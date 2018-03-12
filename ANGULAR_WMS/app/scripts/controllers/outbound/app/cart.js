@@ -23,6 +23,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
 
         angular.copy(data.data.data,vm.model_data.data);
 
+        vm.model_data.invoice_type = data.data.invoice_types[0]
         if(vm.model_data.data.length > 0) {
           angular.forEach(vm.model_data.data, function(sku){
 

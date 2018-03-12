@@ -2264,6 +2264,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     data, imei_data, customer_details = [], [], []
     order_date, order_id, marketplace, consignee, order_no, purchase_type, seller_address, customer_address = '', '', '', '', '', '', '', ''
     tax_type, seller_company, order_reference, order_reference_date = '', '', '', ''
+    invoice_header = ''
     total_quantity, total_amt, total_taxable_amt, total_invoice, total_tax, total_mrp, _total_tax = 0, 0, 0, 0, 0, 0, 0
     total_taxes = {'cgst_amt': 0, 'sgst_amt': 0, 'igst_amt': 0, 'utgst_amt': 0}
     hsn_summary = {}
@@ -2391,6 +2392,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 sgst_tax = order_summary[0].sgst_tax
                 igst_tax = order_summary[0].igst_tax
                 utgst_tax = order_summary[0].utgst_tax
+                invoice_header = order_summary[0].invoice_type
                 if order_summary[0].invoice_date:
                     invoice_date = order_summary[0].invoice_date
             total_tax += float(tax)
@@ -2529,7 +2531,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
         gstin_no = seller.tin_number
         company_address = company_address.replace("\n", " ")
         company_name = 'SHPROC Procurement Pvt. Ltd.'
-    invoice_challan_header = get_misc_value('invoice_challan_header', user.id)
+
     invoice_data = {'data': data, 'imei_data': imei_data, 'company_name': company_name,
                     'company_address': company_address,
                     'order_date': order_date, 'email': email, 'marketplace': marketplace, 'total_amt': total_amt,
@@ -2552,7 +2554,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'show_disc_invoice': show_disc_invoice,
                     'seller_company': seller_company, 'sequence_number': _sequence, 'order_reference': order_reference,
                     'order_reference_date_field': order_reference_date_field,
-                    'order_reference_date': order_reference_date, 'invoice_challan_header': invoice_challan_header,
+                    'order_reference_date': order_reference_date, 'invoice_header': invoice_header,
                     }
     return invoice_data
 
@@ -6304,3 +6306,12 @@ def update_created_extra_status(user, selection):
                     grp_perm.sequence = status_selected.index(grp_perm.perm_value)
                     grp_perm.status = 1
                     grp_perm.save()
+
+
+def get_invoice_types(user):
+    invoice_types = get_misc_value('invoice_types', user.id)
+    if invoice_types in ['', 'false']:
+        invoice_types = ['Tax Invoice']
+    else:
+        invoice_types = invoice_types.split(',')
+    return invoice_types

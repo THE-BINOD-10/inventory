@@ -86,6 +86,7 @@ input[type="date"]:valid::before {
       </div> 
       <div class="row col-md-12">
         <input type="hidden" name="user_type" value={{user.user_profile['user_type']}}>
+        <input name="invoice_type" class="form-control" type="hidden" value="{{Cart.model_data.invoice_type}}" ng-model="Cart.model_data.invoice_type">
         <div class="col-md-4">
           <div class="form-group">
             <label class="control-label">Customer ID</label>

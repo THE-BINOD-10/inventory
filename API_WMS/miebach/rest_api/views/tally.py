@@ -28,6 +28,13 @@ class TallyAPI:
         tally_config = tally_config[0] if tally_config else {}
         return tally_config
 
+    def round_off_value(price):
+	diff_round = int(price) - price
+	if diff_round >= 0.01:
+	    price = int(price) + 1
+	return price, diff_round
+
+
     def get_sales_invoices(self, request):
         """
         bill_of_lading_dt
@@ -57,7 +64,7 @@ class TallyAPI:
                                                'order__shipment_date', 'order__sku__product_type', 'order__customer_id', \
                                                'order__original_order_id', 'order__sku__sku_desc',
                                                'order__sku__measurement_type',
-                                               'creation_date', 'order__customer_name', 'order_id')
+                                               'updation_date', 'order__customer_name', 'order_id')
 
         invoices = []
         from decimal import Decimal
@@ -97,7 +104,8 @@ class TallyAPI:
             item_obj['actual_qty'] = obj['quantity']
             item_obj['billed_qty'] = obj['quantity']
             item_obj['unit'] = obj['order__sku__measurement_type']
-            item_obj['rate'] = obj['order__unit_price']
+	    price, diff_round = round_off_value(price)
+            item_obj['rate'] = price
             item_obj['rate_unit'] = item_obj['unit']
             item_obj['amount'] = item_obj['rate'] * item_obj['billed_qty']
 
@@ -126,8 +134,8 @@ class TallyAPI:
             if item_obj['billed_qty'] and item_obj['rate']:
                 party_amount = int(item_obj['billed_qty']) * float(item_obj['rate'])
             total_amount = party_amount + ((party_amount / 100) * party_ledger_total_tax)
+	    total_amount, total_diff_round = round_off_value(obj['order__unit_price'])
             party_ledger_obj['amount'] = total_amount
-
             s_obj[key_value].setdefault('party_ledger', {})
             party_ledger_obj['amount'] += s_obj[key_value]['party_ledger'].get('amount', 0)
 
@@ -178,6 +186,7 @@ class TallyAPI:
             s_obj[key_value]['terms_of_payment'] = COD.get('payment_terms', '')
             s_obj[key_value]['other_reference'] = ''
             s_obj[key_value]['terms_of_delivery_1'] = ''
+            s_obj[key_value]['updation_date'] = obj['updation_date'].strftime('%d/%m/%Y')
 
             # added
             s_obj[key_value]['terms_of_delivery_2'] = ''
@@ -239,6 +248,7 @@ class TallyAPI:
             data_dict['opening_amt'] = data_dict['opening_qty'] * data_dict['opening_rate']
             data_dict['partNo'] = 'part_' + data_dict['item_name']
             data_dict['description'] = sku_master.sku_desc
+            data_dict['updation_date'] = sku_master.updation_date.strftime('%d/%m/%Y')
             data_dict['sku_code'] = sku_master.sku_code
             data_dict['unit_name'] = sku_master.measurement_type if sku_master.measurement_type else 'nos'
             data_list.append(data_dict)
@@ -299,6 +309,7 @@ class TallyAPI:
             data_dict['pan_no'] = master.pan_number
             data_dict['mobile_no'] = ''
             data_dict['service_tax_no'] = ''
+            data_dict['updation_date'] = self.updation_date
             if master_type == 'customer':
                 credit_period = master.credit_period
                 if not credit_period and tally_config.get('credit_perod', 0):
@@ -355,7 +366,7 @@ class TallyAPI:
                                                      'order__sku__sku_desc', 'quantity', 'damaged_quantity', \
                                                      'sku__measurement_type', 'order__unit_price', 'order__order_id',
                                                      'order__sku__product_type', 'order__state', \
-                                                     'order__customer_id', 'order__user', 'order__address')
+                                                     'order__customer_id', 'order__user', 'order__address', 'updation_date')
         for obj in order_returns_obj:
             order_returns['tally_company_name'] = tally_config.get('company_name', 'Mieone')
             order_returns['voucher_foreign_key'] = obj['return_id']

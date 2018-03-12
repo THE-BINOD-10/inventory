@@ -2813,7 +2813,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     if sku_brand:
         filter_params['sku_brand__in'] = [i.strip() for i in sku_brand.split(",") if i]
         filter_params1['sku__sku_brand__in'] = filter_params['sku_brand__in']
-    if sku_category:
+    if sku_category and sku_category.lower() != 'all':
         filter_params['sku_category__in'] = [i.strip() for i in sku_category.split(",") if i]
         filter_params1['sku__sku_category__in'] = filter_params['sku_category__in']
     if is_catalog:
@@ -3833,10 +3833,11 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
     reserved_quans = map(lambda d: d['in_reserved'], reserved_quantities)
     enq_res_skus = map(lambda d: d['sku__sku_class'], enquiry_res_quantities)
     enq_res_quans = map(lambda d: d['tot_qty'], enquiry_res_quantities)
-    for product in product_styles[start: stop]:
-        sku_object = sku_master.filter(user=user.id, sku_class=product)
-        sku_styles = sku_object.values('image_url', 'sku_class', 'sku_desc', 'sequence', 'id'). \
-            order_by('-image_url')
+
+    #To fix quantity based filter
+    product_styles_filtered = []
+    product_styles_tot_qty_map = {}
+    for product in product_styles:
         total_quantity = 0
         if product in stock_skus:
             total_quantity = stock_quans[stock_skus.index(product)]
@@ -3844,6 +3845,24 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
             total_quantity = total_quantity - float(reserved_quans[reserved_skus.index(product)])
         if product in enq_res_skus:
             total_quantity = total_quantity - float(enq_res_quans[enq_res_skus.index(product)])
+        if total_quantity >= int(stock_quantity):
+            product_styles_filtered.append(product)
+        product_styles_tot_qty_map[product] = total_quantity
+
+    for product in product_styles_filtered[start: stop]:
+        sku_object = sku_master.filter(user=user.id, sku_class=product)
+        sku_styles = sku_object.values('image_url', 'sku_class', 'sku_desc', 'sequence', 'id'). \
+            order_by('-image_url')
+        # total_quantity = 0
+        # if product in stock_skus:
+        #     total_quantity = stock_quans[stock_skus.index(product)]
+        # if product in reserved_skus:
+        #     total_quantity = total_quantity - float(reserved_quans[reserved_skus.index(product)])
+        # if product in enq_res_skus:
+        #     total_quantity = total_quantity - float(enq_res_quans[enq_res_skus.index(product)])
+        total_quantity = product_styles_tot_qty_map[product]
+        if not total_quantity:
+            total_quantity = 0
         if sku_styles:
             sku_variants = list(sku_object.values(*get_values))
             for index, i in enumerate(sku_variants):
@@ -3860,7 +3879,7 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
             if style_quantities.get(sku_styles[0]['sku_class'], ''):
                 sku_styles[0]['style_data'] = get_cal_style_data(sku_styles[0],\
                                               style_quantities[sku_styles[0]['sku_class']])
-                sku_styles[0]['tax_percentage'] = '%.1f'%tax_percentage
+                # sku_styles[0]['tax_percentage'] = '%.1f'%tax_percentage
             else:
                 tax = sku_styles[0]['variants'][0]['taxes']
                 if tax:

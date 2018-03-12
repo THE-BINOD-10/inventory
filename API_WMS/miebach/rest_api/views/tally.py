@@ -13,6 +13,8 @@ from common import *
 from miebach_utils import *
 from dateutil import parser
 
+VOUCHER_NAME_DICT = {'Tax Invoice': 'Sales', '': 'Sales'}
+
 
 class TallyAPI:
     def __init__(self, user=''):
@@ -67,12 +69,19 @@ class TallyAPI:
                 .values('customer_id', 'name', 'address', 'state', 'city', 'state', 'country', \
                         'tin_number', 'cst_number', 'pan_number', 'price_type', 'tax_type')
             customer_info = customer_info[0] if customer_info else {}
+            COD = {}
+            COD_obj = CustomerOrderSummary.objects.filter(order=obj['order_id'], order__user=self.user_id)
+            if COD_obj:
+                COD = \
+                COD_obj.values('dispatch_through', 'payment_terms', 'tax_type', 'cgst_tax', 'sgst_tax', 'igst_tax',
+                               'invoice_type')[0]
 
             s_obj[key_value]['tally_company_name'] = tally_config.get('company_name', '')
             s_obj[key_value]['voucher_foreign_key'] = obj['invoice_number'] if obj['invoice_number'] else obj[
                 'order__order_id']
             s_obj[key_value]['dt_of_voucher'] = obj['creation_date'].strftime('%d/%m/%Y')
-            s_obj[key_value]['voucher_type_name'] = 'Sales'
+            s_obj[key_value]['voucher_type_name'] = VOUCHER_NAME_DICT.get(COD.get('invoice_type', ''),
+                                                                          COD.get('invoice_type', ''))
             s_obj[key_value]['buyer_state'] = obj['order__state']
             if obj['order__original_order_id']:
                 s_obj[key_value]['orders'] = [{"order_no": obj['order__original_order_id'],
@@ -106,11 +115,6 @@ class TallyAPI:
             if not party_ledger_obj['name']:
                 party_ledger_obj['name'] = obj['order__customer_name']
             party_ledger_obj['is_deemeed_positive'] = True
-            COD = {}
-            COD_obj = CustomerOrderSummary.objects.filter(order=obj['order_id'], order__user=self.user_id)
-            if COD_obj:
-                COD = \
-                COD_obj.values('dispatch_through', 'payment_terms', 'tax_type', 'cgst_tax', 'sgst_tax', 'igst_tax')[0]
 
             cgst_tax = COD.get('cgst_tax', 0)
             sgst_tax = COD.get('sgst_tax', 0)

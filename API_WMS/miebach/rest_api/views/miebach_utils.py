@@ -29,6 +29,8 @@ ADJUST_INVENTORY_EXCEL_HEADERS = ['WMS Code', 'Location', 'Physical Quantity', '
 SUB_CATEGORIES = {'round_neck': 'ROUND NECK', 'v_neck': 'V NECK', 'polo': 'POLO', 'chinese_collar': 'CHINESE COLLAR', 'henley': 'HENLEY', 'bags': 'BAGS',
                   'hoodie': 'HOODIE', 'jackets': 'JACKETS'}
 
+MANUAL_ENQUIRY_STATUS = {'pending_approval': 'Pending For Approval', 'approved': 'Approved'}
+
 DECLARATIONS = {
     'default': 'We declare that this invoice shows actual price of the goods described inclusive of taxes and that all particulars are true and correct.',
     'TranceHomeLinen': 'Certify that the particulars given above are true and correct and the amount indicated represents the price actually charged and that there is no flow of additional consideration directly or indirectly.\n Subject to Banglore Jurisdication'}
@@ -618,6 +620,8 @@ CUSTOMER_FIELDS = ((('Customer ID *', 'id', 60), ('Customer Name *', 'name', 256
 CUSTOMER_DATA = {'name': '', 'address': '', 'phone_number': '', 'email_id': '', 'status': 1, 'price_type': '',
                  'tax_type': '', 'lead_time': 0, 'is_distributor': 0}
 
+CORPORATE_DATA = {'name': '', 'address': '', 'phone_number': '', 'email_id': '', 'status': 1, 'tax_type': ''}
+
 PRODUCTION_STAGES = {'Apparel': ['Raw Material Inspection', 'Fabric Washing', 'Finishing'],
                      'Default': ['Raw Material Inspection',
                                  'Fabric Washing', 'Finishing']}
@@ -944,7 +948,8 @@ PERMISSION_DICT = OrderedDict((
     # Outbound
     ("OUTBOUND_LABEL", (("Create Orders", "add_orderdetail"), ("View Orders", "add_picklist"),
                         ("Pull Confirmation", "add_picklistlocation"), ("Enquiry Orders", "add_enquirymaster"),
-                        ("Customer Invoices", "add_sellerordersummary"))),
+                        ("Customer Invoices", "add_sellerordersummary"), ("Manual Orders", "add_manualenquiry"),
+                        )),
 
     # Shipment Info
     ("SHIPMENT_LABEL", (("Shipment Info", "add_shipmentinfo"))),
@@ -1322,7 +1327,8 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'auto_allocate_stock': 'auto_allocate_stock', 'priceband_sync': 'priceband_sync',
                         'auto_confirm_po': 'auto_confirm_po', 'generic_wh_level': 'generic_wh_level',
                         'create_order_po': 'create_order_po', 'calculate_customer_price': 'calculate_customer_price',
-                        'shipment_sku_scan': 'shipment_sku_scan',
+                        'shipment_sku_scan': 'shipment_sku_scan', 'disable_brands_view':'disable_brands_view',
+                        'invoice_challan_header': 'invoice_challan_header',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
@@ -2447,6 +2453,8 @@ def get_order_summary_data(search_params, user, sub_user):
         mrp_price = data.sku.mrp
         order_status = ''
         remarks = ''
+        order_taken_by = ''
+        payment_card, payment_cash = 0, 0
         order_summary = CustomerOrderSummary.objects.filter(order__user=user.id, order_id=data.id)
         unit_price = data.unit_price
         if order_summary:
@@ -2454,6 +2462,7 @@ def get_order_summary_data(search_params, user, sub_user):
             discount = order_summary[0].discount
             order_status = order_summary[0].status
             remarks = order_summary[0].central_remarks
+            order_taken_by = order_summary[0].order_taken_by
             if not is_gst_invoice:
                 tax = order_summary[0].tax_value
                 vat = order_summary[0].vat
@@ -2474,20 +2483,44 @@ def get_order_summary_data(search_params, user, sub_user):
         invoice_amount = "%.2f" % ((float(unit_price) * float(data.quantity)) + tax - discount)
         taxable_amount = "%.2f" % abs(float(invoice_amount) - float(tax))
         unit_price = "%.2f" % unit_price
-        temp_data['aaData'].append(OrderedDict((('Order Date', ''.join(date[0:3])), ('Order ID', order_id),
+        #payment mode
+        payment_obj = OrderFields.objects.filter(user=user.id, name__icontains="payment_",\
+                                      original_order_id=data.original_order_id).values_list('name', 'value')
+        if payment_obj:
+            for pay in payment_obj:
+                exec("%s = %s" % (pay[0],pay[1]))
+        #pos extra fields
+        pos_extra = {}
+        extra_fields = []
+        extra_fields_obj = MiscDetail.objects.filter(user=user.id, misc_type__icontains="pos_extra_fields")
+        for field in extra_fields_obj:
+            tmp = field.misc_value.split(',')
+            for i in tmp:
+                extra_fields.append(str(i))
+        extra_vals = OrderFields.objects.filter(user=user.id,\
+                       original_order_id=data.original_order_id).values('name', 'value')
+        for field in extra_fields:
+            pos_extra[field] = ''
+            for val in extra_vals:
+                if field == val['name']:
+                    pos_extra[str(val['name'])] = str(val['value'])
+        aaData = OrderedDict((('Order Date', ''.join(date[0:3])), ('Order ID', order_id),
                                                 ('Customer Name', data.customer_name),
                                                 ('SKU Brand', data.sku.sku_brand),
                                                 ('SKU Category', data.sku.sku_category),
                                                 ('SKU Class', data.sku.sku_class),
                                                 ('SKU Size', data.sku.sku_size), ('SKU Description', data.sku.sku_desc),
                                                 ('SKU Code', data.sku.sku_code), ('Order Qty', int(data.quantity)),
-                                                ('MRP', int(data.sku.mrp)), ('Unit Price', unit_price),
+                                                ('MRP', int(data.sku.mrp)), ('Unit Price', float(unit_price)),
                                                 ('Discount', discount),
-                                                ('Taxable Amount', taxable_amount), ('Tax', tax),
+                                                ('Taxable Amount', float(taxable_amount)), ('Tax', tax),
                                                 ('City', data.city), ('State', data.state), ('Marketplace', data.marketplace),
-                                                ('Invoice Amount', invoice_amount), ('Price', data.sku.price),
+                                                ('Invoice Amount', float(invoice_amount)), ('Price', data.sku.price),
                                                 ('Status', status), ('Order Status', order_status),
-                                                ('Remarks', remarks))))
+                                                ('Remarks', remarks), ('Order Taken By', order_taken_by),
+                                                ('Payment Cash', payment_cash), ('Payment Card', payment_card)))
+        aaData.update(OrderedDict(pos_extra))
+        temp_data['aaData'].append(aaData)
     return temp_data
 
 

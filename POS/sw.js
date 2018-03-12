@@ -237,10 +237,10 @@ importScripts('/app/data/offlineData.js');
 
     //service worker sync event listner
     self.addEventListener("sync",function(event){
-
     	if(navigator.onLine){
-		    if(event.tag==SYNC_POS_DATA){
-			      	event.waitUntil(mPOSSync(false).
+    		if(event.tag==SYNC_POS_DATA && (POS_ENABLE_SYNC==false)){
+		    	POS_ENABLE_SYNC=true;
+		      	event.waitUntil(mPOSSync(false).
 			      				then(function(data){
 
 				      			}).catch(function(error){
@@ -249,6 +249,7 @@ importScripts('/app/data/offlineData.js');
 		    }
 		}else{
 			throw "error";
+			POS_ENABLE_SYNC=false;
 		}
     });
 

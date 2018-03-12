@@ -1095,7 +1095,7 @@ def update_picklist_pallet(stock, picking_count1):
     pallet.save()
 
 
-def send_picklist_mail(picklists, request, user, pdf_file, misc_detail, data_qt=""):
+def send_picklist_mail(picklists, request, user, pdf_file, misc_detail, data_qt="", from_pos=False):
     picklist_order_ids_list = []
     reciever = []
     internal_mail = MiscDetail.objects.filter(user=user.id, misc_type='Internal Emails')
@@ -1134,8 +1134,12 @@ def send_picklist_mail(picklists, request, user, pdf_file, misc_detail, data_qt=
         reciever.append(email)
     if reciever:
         try:
+            tmp_invoice_date = get_local_date(user, picklist.updation_date, send_date='true')
+            tmp_invoice_date = str(tmp_invoice_date.strftime('%m%y'))
+            tmp_order_id = 'TI/' + tmp_invoice_date + '/' + picklist.order.original_order_id if from_pos else\
+                           'TI/' + tmp_invoice_date + '/' + str(picklist.order.order_id)
             send_mail_attachment(reciever, '%s : Invoice No.%s' % (
-            user_data.company_name, 'TI/1116/' + str(picklist.order.order_id)), rendered, files=[pdf_file])
+            user_data.company_name, tmp_order_id), rendered, files=[pdf_file])
         except:
             log.info('mail issue')
 
@@ -1164,7 +1168,7 @@ def get_picklist_batch(picklist, value, all_picklists):
     return picklist_batch
 
 
-def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail):
+def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail, from_pos=False):
     misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='dispatch', misc_value='true')
 
     # order_ids = list(set(map(lambda d: d['order_id'], picklists_send_mail[0])))
@@ -1177,7 +1181,8 @@ def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
                 order_ids = [str(int(i)) for i in order_ids_list]
                 order_ids = ','.join(order_ids)
 
-            nv_data = get_invoice_data(order_ids, user, picklists_send_mail[order_id])
+
+            nv_data = get_invoice_data(order_ids, user, picklists_send_mail[order_id], from_pos=from_pos)
             nv_data = modify_invoice_data(nv_data, user)
             ord_ids = order_ids.split(",")
             nv_data = add_consignee_data(nv_data, ord_ids, user)
@@ -1197,7 +1202,8 @@ def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
             file_.close()
             os.system("./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (file_name, pdf_file))
 
-            send_picklist_mail(all_picked_items, request, user, pdf_file, misc_detail, picklists_send_mail[order_id])
+            send_picklist_mail(all_picked_items, request, user, pdf_file, misc_detail,\
+                               picklists_send_mail[order_id], from_pos=from_pos)
             if picklist.picked_quantity > 0 and picklist.order and misc_detail:
                 if picklist.order.telephone:
                     order_dispatch_message(picklist.order, user, picklists_send_mail[order_id])
@@ -3077,7 +3083,7 @@ def send_mail_ordered_report(order_detail, telephone, items, other_charge_amount
         if not telephone:
             telephone = order_data.get('telephone', "")
         if telephone:
-            order_creation_message(items, telephone, (order_detail.order_code) + str(order_detail.order_id),
+            order_creation_message(items, telephone, str(order_detail.order_id),
                                    other_charges=other_charge_amounts)
 
 
@@ -4128,7 +4134,7 @@ def get_sku_categories(request, user=''):
                                                                                                       flat=True).distinct())
     return HttpResponse(
         json.dumps({'categories': categories, 'brands': brands, 'size': sizes, 'stages_list': stages_list,
-                    'sub_categories': sub_categories, 'colors': colors, \
+                    'sub_categories': sub_categories, 'colors': colors, 'customization_types': dict(CUSTOMIZATION_TYPES),\
                     'primary_details': categories_details['primary_details']}))
 
 
@@ -4481,7 +4487,14 @@ def get_sku_catalogs(request, user=''):
         style_quantities = eval(request.POST.get('required_quantity', '{}'))
         for style_data in data:
             if style_quantities.get(style_data['sku_class'], ''):
-                style_data['style_data'] = get_cal_style_data(style_data, style_quantities[style_data['sku_class']])
+               style_data['style_data'] = get_cal_style_data(style_data, style_quantities[style_data['sku_class']])
+               style_data['tax_percentage']= '%.1f'%tax_percentage
+            else:
+                tax = style_data['variants'][0]['taxes']
+                if tax:
+                    tax = tax[0]
+                    tax_percentage = float(tax['sgst_tax']) + float(tax['igst_tax']) + float(tax['cgst_tax'])
+                    style_data['tax_percentage']= '%.1f'%tax_percentage
     download_pdf = request.POST.get('share', '')
     if download_pdf:
         remarks = ''
@@ -6231,11 +6244,10 @@ def get_level_based_customer_orders(request, response_data, user):
                                  order_by('-generic_order_id'))
     response_data['data'] = response_data['data'][start_index:stop_index]
     for record in response_data['data']:
-
-        order_details = generic_orders.filter(generic_order_id=record['generic_order_id'])
+        order_details = generic_orders.filter(generic_order_id=record['generic_order_id'],
+                                              customer_id=record['customer_id'])
         order_detail_ids = order_details.values_list('orderdetail_id', flat=True)
         data = OrderDetail.objects.filter(id__in=order_detail_ids)
-
         ord_det_qs = data.values('order_id', 'id', 'user', 'original_order_id', 'order_code')
         if ord_det_qs:
             order_detail_order_id = ord_det_qs[0]['original_order_id']
@@ -6244,7 +6256,6 @@ def get_level_based_customer_orders(request, response_data, user):
             other_charges = order_charges_obj_for_orderid(order_detail_order_id, request.user.id)
             if not other_charges:
                 other_charges = 0
-
         data_status = data.filter(status=1)
         if data_status:
             status = 'open'
@@ -6254,8 +6265,9 @@ def get_level_based_customer_orders(request, response_data, user):
                                           status__icontains='open')
             if pick_status:
                 status = 'open'
-        picked_quantity = picklist.filter(order_id__in=order_detail_ids).aggregate(
-            Sum('picked_quantity'))['picked_quantity__sum']
+        picked_quantity = picklist.filter(order_id__in=order_detail_ids).aggregate(Sum('picked_quantity'))
+        if picked_quantity:
+            picked_quantity = picked_quantity['picked_quantity__sum']
         if not picked_quantity:
             picked_quantity = 0
         record['picked_quantity'] = picked_quantity
@@ -6267,7 +6279,8 @@ def get_level_based_customer_orders(request, response_data, user):
         if record['generic_order_id']:
             record['order_id'] = record['generic_order_id']
         record['order_detail_ids'] = list(order_details.values_list('orderdetail__order_id', flat=True).distinct())
-        record['reseller_name'] = CustomerMaster.objects.get(id=order_details[0].customer_id).name
+        customer_id = record['customer_id']
+        record['reseller_name'] = CustomerMaster.objects.get(id=customer_id).name
         for ord_det_id in order_detail_ids:
             gen_ord_obj = generic_orders.filter(orderdetail_id=ord_det_id)
             if gen_ord_obj:
@@ -6295,7 +6308,7 @@ def get_level_based_customer_orders(request, response_data, user):
                             order_detail_order_id = str(ord_det_qs[0]['order_code']) + str(ord_det_qs[0]['order_id'])
                         other_charges = order_charges_obj_for_orderid(order_detail_order_id, request.user.id)
                         if other_charges:
-                            record['total_inv_amt'] += other_charges
+                            record['total_inv_amt'] += round(other_charges, 2)
     return response_data
 
 
@@ -6443,6 +6456,7 @@ def get_level_based_customer_order_detail(request, user):
     order_charge_dict = {}
     generic_order_id = request.GET['order_id']
     is_autobackorder = request.GET.get('autobackorder', 'false')
+    customer_id = request.GET.get('customer_id', '')
     user_profile = UserProfile.objects.get(user=request.user.id)
     cum_obj = ''
     if is_autobackorder == 'true':
@@ -6474,6 +6488,8 @@ def get_level_based_customer_order_detail(request, user):
         # generic_orders = GenericOrderDetailMapping.objects.filter(customer_id=cm_id)
         generic_orders = GenericOrderDetailMapping.objects.filter(**filter_dict)
         # generic_details_ids = generic_orders.values_list('orderdetail_id', flat=True)
+        if customer_id:
+            generic_orders = generic_orders.filter(customer_id=customer_id)
         order_detail_ids = generic_orders.filter(generic_order_id=generic_order_id).values_list(
             'orderdetail_id', flat=True)
 
@@ -6633,7 +6649,16 @@ def get_tax_value(user, record, product_type, tax_type):
 def get_customer_cart_data(request, user=""):
     """  return customer cart data """
 
-    response = {'data': [], 'msg': 0}
+    response = {'data': [], 'msg': 0, 'reseller_corporates': []}
+    price_band_flag = get_misc_value('priceband_sync', user.id)
+    reseller_obj = CustomerUserMapping.objects.filter(user=request.user.id)
+    if reseller_obj and price_band_flag == 'true':
+        reseller_id = reseller_obj[0].customer_id
+        res_corps = list(CorpResellerMapping.objects.filter(reseller_id=reseller_id,
+                                                   status=1).values_list('corporate_id', flat=True).distinct())
+        corp_names = CorporateMaster.objects.filter(id__in=res_corps).values_list('name', flat=True).distinct()
+        response['reseller_corporates'].extend(corp_names)
+
     cart_data = CustomerCartData.objects.filter(user_id=user.id, customer_user_id=request.user.id)
 
     if cart_data:
@@ -6643,7 +6668,6 @@ def get_customer_cart_data(request, user=""):
         tax = 0
         if tax_type:
             tax_type = tax_type[0]
-        price_band_flag = get_misc_value('priceband_sync', user.id)
 
         cm_obj = CustomerMaster.objects.get(id=cust_user_obj[0].customer_id)
         is_distributor = cm_obj.is_distributor
@@ -6685,6 +6709,25 @@ def get_customer_cart_data(request, user=""):
                     json_record['freight_charges'] = "true"
                 else:
                     json_record['freight_charges'] = "false"
+                whs = get_same_level_warehouses(level=record.warehouse_level)
+                tot_avail_stock = 0
+                for wh in whs:
+                    sku_id = get_syncedusers_mapped_sku(wh=wh, sku_id=record.sku.id)
+                    stock_obj = StockDetail.objects.filter(sku=sku_id, quantity__gt=0).values(
+                        'sku_id').distinct().annotate(in_stock=Sum('quantity'))
+                    if stock_obj:
+                        stock_qty = stock_obj[0]['in_stock']
+                    else:
+                        stock_qty = 0
+                    reserved_obj = PicklistLocation.objects.filter(stock__sku=sku_id, status=1).values(
+                        'stock__sku_id').distinct().annotate(in_reserved=Sum('reserved'))
+                    if reserved_obj:
+                        reserved_qty = reserved_obj[0]['in_reserved']
+                    else:
+                        reserved_qty = 0
+                    avail_stock = stock_qty - reserved_qty
+                    tot_avail_stock = tot_avail_stock + avail_stock
+                #json_record['avail_stock'] = tot_avail_stock
                 # level = json_record['warehouse_level']
                 if is_distributor:
                     if price_type:
@@ -7971,6 +8014,21 @@ def get_enquiry_data(request, user=''):
         response_data['data'].append(res_map)
     return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
 
+@get_admin_user
+def get_manual_enquiry_data(request, user=''):
+    index = request.GET.get('index', '')
+    start_index, stop_index = 0, 20
+    if index:
+        start_index = int(index.split(':')[0])
+        stop_index = int(index.split(':')[1])
+    response_data = {'data': []}
+    em_qs = ManualEnquiry.objects.filter(user=request.user.id)
+    for enquiry in em_qs[start_index:stop_index]:
+        res_map = {'order_id': enquiry.enquiry_id, 'customer_name': enquiry.customer_name,
+                   'date': get_only_date(request, enquiry.creation_date),
+                   'sku_code': enquiry.sku.sku_code, 'style_name': enquiry.sku.sku_class}
+        response_data['data'].append(res_map)
+    return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
 
 @get_admin_user
 def get_customer_enquiry_detail(request, user=''):
@@ -7979,15 +8037,11 @@ def get_customer_enquiry_detail(request, user=''):
     sku_wise_details = {}
     enquiry_id = request.GET['enquiry_id']
     cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
-    user_profile = UserProfile.objects.filter(user=request.user.id)
     filters = {'enquiry_id': float(enquiry_id)}
-    if user_profile and (user_profile[0].warehouse_type == 'DIST' or user_profile[0].warehouse_type == 'CENTRAL_ADMIN'
-                         or user_profile[0].warehouse_type == ''):  # No warehouse user for sub distributor user.
+    if not cum_obj:
         if not request.GET.get('customer_id', ''):
             return HttpResponse("Please Send Customer ID")
         filters['customer_id'] = request.GET.get('customer_id', '')
-    elif not cum_obj:
-        return HttpResponse("No Customer User Mapping Object")
     else:
         filters['customer_id'] = cum_obj[0].customer_id
     em_qs = EnquiryMaster.objects.filter(**filters)
@@ -8253,3 +8307,241 @@ def add_order_charges(request, user=''):
     data_response['data'] = order_charges
     data_response['message'] = message
     return HttpResponse(json.dumps(data_response))
+
+def get_manual_enquiry_id(request):
+    enq_qs = ManualEnquiry.objects.filter(user=request.user.id).order_by('-enquiry_id')
+    if enq_qs:
+        enq_id = int(enq_qs[0].enquiry_id) + 1
+    else:
+        enq_id = 10001
+    return enq_id
+
+def save_manual_enquiry_images(request, enq_data):
+
+    image_urls = []
+    for file_data in  request.FILES.getlist('po_file'):
+        image_data = {'enquiry_id': enq_data.id, 'image': file_data}
+        save_img = ManualEnquiryImages(**image_data)
+        save_img.save()
+        image_urls.append(str(save_img.image))
+    return image_urls
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def place_manual_order(request, user=''):
+    MANUAL_ENQUIRY_DICT = {'customer_name': '', 'sku_id': '', 'customization_type': '', 'quantity': ''}
+    MANUAL_ENQUIRY_DETAILS_DICT = {'ask_price': '', 'expected_date': '', 'remarks': ''}
+    manual_enquiry = copy.deepcopy(MANUAL_ENQUIRY_DICT)
+    manual_enquiry_details = copy.deepcopy(MANUAL_ENQUIRY_DETAILS_DICT)
+    for key, value in MANUAL_ENQUIRY_DICT.iteritems():
+        value = request.POST.get(key, '')
+        if not value:
+            return HttpResponse("Please Fill "+ key)
+        if key == 'sku_id':
+            sku_data = SKUMaster.objects.filter(user=user.id, sku_class=value)
+            if not sku_data:
+                return HttpResponse("Style Not Found")
+            value = sku_data[0].id
+        elif key == 'quantity':
+            value = int(value)
+        manual_enquiry[key] = value
+    for key, value in MANUAL_ENQUIRY_DETAILS_DICT.iteritems():
+        value = request.POST.get(key, '')
+        if key == 'ask_price' and manual_enquiry['customization_type'] == 'product_custom':
+            manual_enquiry_details[key] = 0
+            continue
+        if not value:
+            return HttpResponse("Please Fill "+ key)
+        if key == 'ask_price':
+            value = float(value)
+        elif key == 'expected_date':
+            expected_date = value.split('-')
+            value = datetime.date(int(expected_date[0]), int(expected_date[1]), int(expected_date[2]))
+        manual_enquiry_details[key] = value
+    check_enquiry = ManualEnquiry.objects.filter(user=request.user.id,sku=manual_enquiry['sku_id'])
+    if check_enquiry:
+        return HttpResponse("Manual Enquiry Already Exists")
+    manual_enquiry['user_id'] = request.user.id
+    manual_enquiry['enquiry_id'] = get_manual_enquiry_id(request)
+    enq_data = ManualEnquiry(**manual_enquiry)
+    enq_data.save()
+    manual_enquiry_details['enquiry_id'] = enq_data.id
+    manual_enquiry_details['user_id'] = request.user.id
+    manual_enq_data = ManualEnquiryDetails(**manual_enquiry_details)
+    manual_enq_data.save()
+    if request.FILES.get('po_file', ''):
+        save_manual_enquiry_images(request, enq_data)
+    return HttpResponse("Success")
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def save_manual_enquiry_data(request, user=''):
+
+    enquiry_id = request.POST.get('enquiry_id', '')
+    user_id = request.POST.get('user_id', '')
+    if not enquiry_id or not user_id:
+        return HttpResponse("Give information insufficient")
+    filters = {'enquiry_id': float(enquiry_id), 'user': user_id}
+    manual_enq = ManualEnquiry.objects.filter(**filters)
+    if not manual_enq:
+        return HttpResponse("No Enquiry Data for Id")
+    MANUAL_ENQUIRY_DETAILS_DICT = {'ask_price': 0, 'expected_date': '', 'remarks': ''}
+    manual_enq = manual_enq[0]
+    ask_price = request.POST.get('ask_price', 0)
+    expected_date = request.POST.get('expected_date', '')
+    remarks = request.POST.get('remarks', '')
+    status = request.POST.get('status', '')
+    if not expected_date:
+        return HttpResponse("Please Fill Expected Date")
+    if not remarks:
+        return HttpResponse("Please Fill Remarks")
+    if manual_enq.customization_type != 'product_custom' and not ask_price:
+        return HttpResponse("Please Fill Price")
+    else:
+        ask_price = float(ask_price)
+    enquiry_data = {'enquiry_id': manual_enq.id, 'user_id': request.user.id}
+    enquiry_data['ask_price'] = float(ask_price)
+    enquiry_data['remarks'] = remarks
+    enquiry_data['status'] = status
+    expected_date = expected_date.split('/')
+    expected_date = datetime.date(int(expected_date[2]), int(expected_date[0]), int(expected_date[1]))
+    enquiry_data['expected_date'] = expected_date
+    manual_enq_data = ManualEnquiryDetails(**enquiry_data)
+    manual_enq_data.save()
+    return HttpResponse("Success")
+
+@csrf_exempt
+def get_manual_enquiry_orders(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
+                       filters={}, user_dict={}):
+    data_filters = {}
+    lis = ['enquiry_id', 'customer_name', 'user__username', 'sku__sku_class', 'customization_type', 'status', 'creation_date']
+    special_key = request.POST.get('special_key', '')
+    if special_key:
+        data_filters['status'] = special_key
+        lis = ['enquiry_id', 'customer_name', 'user__username', 'sku__sku_class', 'customization_type', 'creation_date']
+    if user.userprofile.warehouse_type != 'CENTRAL_ADMIN':
+        data_filters['user'] = user.id
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    em_qs = ManualEnquiry.objects.filter(**data_filters).order_by(order_data)
+    for em_obj in em_qs:
+        date = em_obj.creation_date.strftime('%Y-%m-%d')
+        customization_types = dict(CUSTOMIZATION_TYPES)
+        customization_type = customization_types[em_obj.customization_type]
+        temp_data['aaData'].append(OrderedDict((('Enquiry ID', int(em_obj.enquiry_id)), ('Sub Distributor', em_obj.user.username),
+                                                ('Customer Name', em_obj.customer_name), ('Style Name', em_obj.sku.sku_class),
+                                                ('Date', date), ('User ID', em_obj.user.id), ('Customization Type', customization_type),
+                                                ('status', MANUAL_ENQUIRY_STATUS.get(em_obj.status, ''))
+                                               )))
+    temp_data['recordsTotal'] = len(temp_data['aaData'])
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
+
+@get_admin_user
+def get_manual_enquiry_detail(request, user=''):
+    enquiry_id = request.GET.get('enquiry_id', '')
+    user_id = request.GET.get('user_id', '')
+    if not enquiry_id or not user_id:
+        return HttpResponse("Give information insufficient")
+    filters = {'enquiry_id': float(enquiry_id), 'user': user_id}
+    manual_enq = ManualEnquiry.objects.filter(**filters)
+    if not manual_enq:
+        return HttpResponse("No Enquiry Data for Id")
+    customization_types = dict(CUSTOMIZATION_TYPES)
+    customization_type = customization_types[manual_enq[0].customization_type]
+    manual_eq_dict = {'enquiry_id': int(manual_enq[0].enquiry_id), 'customer_name': manual_enq[0].customer_name,
+                      'date': manual_enq[0].creation_date.strftime('%Y-%m-%d'), 'customization_type': customization_type,
+                      'quantity': manual_enq[0].quantity}
+    enquiry_images = list(ManualEnquiryImages.objects.filter(enquiry=manual_enq[0].id).values_list('image', flat=True))
+    style_dict = {'sku_code': manual_enq[0].sku.sku_code, 'style_name':  manual_enq[0].sku.sku_class,
+                  'description': manual_enq[0].sku.sku_desc, 'images': enquiry_images,
+                  'category': manual_enq[0].sku.sku_category}
+    if request.user.id == long(user_id):
+        enquiry_data =  ManualEnquiryDetails.objects.filter(enquiry=manual_enq[0].id, status="")
+    else:
+        enquiry_data =  ManualEnquiryDetails.objects.filter(enquiry=manual_enq[0].id)
+    enquiry_dict = []
+    enq_details = {}
+    for enquiry in enquiry_data:
+        date = enquiry.creation_date.strftime('%Y-%m-%d')
+        expected_date = enquiry.expected_date.strftime('%Y-%m-%d')
+        user = UserProfile.objects.get(user=enquiry.user_id)
+        if user.user_type != 'customer' and enquiry.status != 'approved':
+            enq_details = enquiry
+        enquiry_dict.append({'ask_price': enquiry.ask_price, 'remarks': enquiry.remarks, 'date': date,\
+                             'expected_date': expected_date, 'username': user.user.username,
+                             'status': enquiry.status})
+    if enq_details:
+        expected_date = enq_details.expected_date.strftime('%m/%d/%Y')
+        enq_details = {'ask_price': enq_details.ask_price, 'remarks': enq_details.remarks,\
+                       'expected_date': expected_date}
+    return HttpResponse(json.dumps({'data': enquiry_dict, 'style': style_dict, 'order': manual_eq_dict,\
+                                    'enq_details': enq_details}))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def remove_manual_enquiry_image(request, user=''):
+    enquiry_id = request.POST.get('enquiry_id', '')
+    user_id = request.POST.get('user_id', '')
+    image = request.POST.get('image', '')
+    if not enquiry_id or not user_id or not image:
+        return HttpResponse("Give information insufficient")
+    filters = {'enquiry__enquiry_id': float(enquiry_id), 'enquiry__user': user_id, 'image': image}
+    image_data = ManualEnquiryImages.objects.filter(**filters)
+    if not image_data:
+        return HttpResponse("Image Not Found")
+    image_data[0].delete()
+    return HttpResponse("Success")
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def save_manual_enquiry_image(request, user=''):
+    enquiry_id = request.POST.get('enquiry_id', '')
+    user_id = request.POST.get('user_id', '')
+    resp = {'msg': 'Success', 'data': []}
+    if not enquiry_id or not user_id:
+        resp['msg'] = "Give information insufficient"
+        return HttpResponse(json.dumps(resp))
+    filters = {'enquiry_id': float(enquiry_id), 'user': user_id}
+    enq_data = ManualEnquiry.objects.filter(**filters)
+    if not enq_data:
+        resp['msg'] = "No Enquiry Data for Id"
+        return HttpResponse(json.dumps(resp))
+    images = []
+    enq_data = enq_data[0]
+    if request.FILES.get('po_file', ''):
+        resp['data'] = save_manual_enquiry_images(request, enq_data)
+    else:
+        resp['msg'] = "Please Select Image"
+    return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def request_manual_enquiry_approval(request, user=''):
+    enquiry_id = request.POST.get('enquiry_id', '')
+    user_id = request.POST.get('user_id', '')
+    status = request.POST.get('status', '')
+    resp = {'msg': 'Success', 'data': []}
+    if not enquiry_id or not user_id or not status:
+        resp['msg'] = "Give information insufficient"
+        return HttpResponse(json.dumps(resp))
+    if not MANUAL_ENQUIRY_STATUS.get(status, ''):
+        resp['msg'] = "status incorrect"
+    filters = {'enquiry_id': float(enquiry_id), 'user': user_id}
+    enq_data = ManualEnquiry.objects.filter(**filters)
+    if not enq_data:
+        resp['msg'] = "No Enquiry Data for Id"
+        return HttpResponse(json.dumps(resp))
+    expected_date = request.POST.get('expected_date', '')
+    if expected_date:
+        save_manual_enquiry_data(request)
+    enq_data[0].status = status
+    enq_data[0].save()
+    return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))

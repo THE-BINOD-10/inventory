@@ -17,6 +17,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.user_type = Session.roles.permissions.user_type;
   vm.buttons_width = (Session.roles.permissions.create_order_po)? 4: 6;
   vm.priceband_sync = Session.roles.permissions.priceband_sync;
+  vm.disable_brands = Session.roles.permissions.disable_brands_view;
 
   vm.order_type_value = "offline";
   vm.service = Service;
@@ -40,6 +41,13 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.brand = "";
   vm.filterData = {};
   
+  vm.disable_brands_view = function(){
+    if(Session.roles.permissions.disable_brands_view){
+      $state.go('user.App.Categories');
+    }
+  }
+  vm.disable_brands_view();
+
   vm.goBack = function(){
 
     $state.go('user.App.Brands');
@@ -52,6 +60,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       if(data.message) {
 
         vm.categories = data.data.categories;
+        vm.all_cate = data.data.categories;
         vm.filterData = data.data;
         console.log(data.data);
         vm.filterData.brand_size_data = [];
@@ -1146,14 +1155,30 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
                            'WRIST WATCH':'corp_attire_catg_img/Wrist Watch.svg',
 
 
-};
+  };
+  vm.category_image_map_shailesh = {
+
+    //SAILESH
+    'FULL SLEEVE SHIRT': 'FULL SLEEVE SHIRT.png',
+    'HONEY COMBED DRY FIT': 'HONEY COMBED DRY FIT.png',
+    'HOODIES WITHOUT ZIP': 'HOODIES WITHOUT ZIP.png',
+    'HOODIES WITH ZIP': 'HOODIES WITH ZIP.png',
+    'POLO': 'POLO.png',
+    'ROUND NECK': 'ROUND NECK.png'
+  }
 
   vm.get_category_image = function(category) {
 
-    if(vm.category_image_map[category]) {
+    if (Session.parent.userName == 'shailesh_mehta') {
+      if (vm.category_image_map_shailesh[category]) {
+         return '/images/categories/'+vm.category_image_map_shailesh[category];
+      } else {
+        return '/images/categories/default.png';
+      }
+    } else if(vm.category_image_map[category]) {
       return '/images/categories/'+vm.category_image_map[category];
     } else {
-      return '/images/categories/default.png'
+      return '/images/categories/default.png';
     }
   }
 

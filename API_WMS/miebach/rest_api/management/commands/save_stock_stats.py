@@ -7,6 +7,7 @@ import django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "miebach.settings")
 django.setup()
 from miebach_admin.models import *
+from rest_api.views.common import get_local_date
 import datetime
 
 

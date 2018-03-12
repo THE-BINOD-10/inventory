@@ -1,8 +1,12 @@
 <div class="your_orders" ng-controller="AppMyOrders as orders">
   <div class="row style-menu" style="line-height: 40px;">
     <div class="col-md-4 col-sm-4 col-xs-6">
-      <div class="menu-left">
-        <span ng-click="$state.go('user.App.Brands')"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
+      <div class="menu-left" ng-if="orders.disable_brands_view">
+        <span ng-click="$state.go('user.App.Categories')"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
+        <span ng-click="$state.go('user.App.Categories')" title="Go to Category Page">Back To Categories</span>
+      </div>
+      <div class="menu-left" ng-if="!(orders.disable_brands_view)">
+        <span  ng-click="$state.go('user.App.Brands')"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
         <span ng-click="$state.go('user.App.Brands')" title="Go to Brand Page">Back To Brands</span>
       </div>
     </div>
@@ -22,8 +26,9 @@
       <div class="col-md-3 col-sm-2 col-xs-hidden"></div>
       <div class="col-md-6 col-sm-8 col-xs-12">
         <div class="st-c-toggle pull-right">
-          <div class="bt-left bt-common" ng-click="$state.go('user.App.MyOrders', {state: 'orders'})" ng-class="(orders.your_orders)?'bt-red':'';">Orders</div>
-          <div class="bt-right bt-common" ng-click="$state.go('user.App.MyOrders', {state: 'enquiry'})" ng-class="(orders.your_orders)?'':'bt-red';">Marketing Enquiry</div>
+          <div class="bt-left bt-common" ng-click="$state.go('user.App.MyOrders', {state: 'orders'})" ng-class="(orders.your_orders=='orders')?'bt-red':'bt-common';">Orders</div>
+          <div class="bt-right bt-common" ng-click="$state.go('user.App.MyOrders', {state: 'enquiry'})" ng-class="(orders.your_orders=='enquiry')?'bt-red':'bt-common';">Marketing Enquiry</div>
+          <div class="bt-right bt-common" ng-click="$state.go('user.App.MyOrders', {state: 'manual_enquiry'})" ng-class="(orders.your_orders=='manual_enquiry')?'bt-red':'bt-common';">Custom Order</div>
         </div>
       </div>
     </div>

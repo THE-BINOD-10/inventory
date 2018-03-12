@@ -234,6 +234,15 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                     value: "",
                     show: true,
                     perm: "create_shipment_type"
+                 }, {
+                   title: "Seller-Seller Transfer form Download/ Upload",
+                   download: "Download Seller-Seller Transfer Form",
+                   upload: "Upload Seller-Seller Transfer Form",
+                   durl: "seller_transfer_form/",
+                   uurl: "seller_transfer_upload/",
+                   dparam: "download-file",
+                   value: "",
+                   perm: "add_sellerstocktransfer"
                   }
                 ]
 

@@ -4975,6 +4975,14 @@ def get_seller_order_details(request, user=''):
     for attr in attr_list:
         tuple_data = (attr['attribute_name'], attr['attribute_value'])
         cus_data.append(tuple_data)
+    tax_type = ''
+    inter_state = 2
+    if customer_order_summary:
+        inter_state = customer_order_summary[0].inter_state
+        if customer_order_summary[0].inter_state == 0:
+            tax_type = 'intra_state'
+        elif customer_order_summary[0].inter_state == 1:
+            tax_type = 'inter_state'
     for one_order in order_details:
         quantity = one_order.quantity
         one_order = one_order.order
@@ -5021,6 +5029,30 @@ def get_seller_order_details(request, user=''):
             if order_json:
                 sku_extra_data = eval(order_json[0].json_data)
 
+        customer_order = one_order.customerordersummary_set.filter()
+        sgst_tax = 0
+        cgst_tax = 0
+        igst_tax = 0
+        discount_percentage = 0
+        if customer_order:
+            sgst_tax = customer_order[0].sgst_tax
+            cgst_tax = customer_order[0].cgst_tax
+            igst_tax = customer_order[0].igst_tax
+            discount_percentage = 0
+            if (quantity * one_order.unit_price):
+                discount_percentage = float(
+                    "%.1f" % (float((customer_order[0].discount * 100) / (quantity * one_order.unit_price))))
+
+        tax_masters = TaxMaster.objects.filter(user_id=user.id, product_type=one_order.sku.product_type,
+                                               inter_state=inter_state)
+        taxes_data = []
+        for tax_master in tax_masters:
+            taxes_data.append(tax_master.json())
+
+        if order_id:
+            order_charge_obj = OrderCharges.objects.filter(user_id=user.id, order_id=order_id)
+            order_charges = list(order_charge_obj.values('charge_name', 'charge_amount', 'id'))
+
         order_details_data.append(
             {'product_title': product_title, 'quantity': quantity, 'invoice_amount': invoice_amount, 'remarks': remarks,
              'cust_id': customer_id, 'cust_name': customer_name, 'phone': phone, 'email': email, 'address': address,
@@ -5031,7 +5063,10 @@ def get_seller_order_details(request, user=''):
              'order_id_code': one_order.order_code + str(one_order.order_id),
              'print_vendor': vend_dict['printing_vendor'],
              'embroidery_vendor': vend_dict['embroidery_vendor'], 'production_unit': vend_dict['production_unit'],
-             'sku_extra_data': sku_extra_data})
+             'sku_extra_data': sku_extra_data, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax, 'igst_tax': igst_tax,
+             'unit_price': one_order.unit_price, 'discount_percentage': discount_percentage, 'taxes': taxes_data,
+             'order_charges': order_charges,
+             'sku_status': one_order.status})
     data_dict.append({'cus_data': cus_data, 'status': status_obj, 'ord_data': order_details_data,
                       'central_remarks': central_remarks, 'seller_details': seller_details})
 

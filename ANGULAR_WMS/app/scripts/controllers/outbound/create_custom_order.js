@@ -14,6 +14,8 @@ function CreateCustomOrder($scope, $http, $state, Session, colFilters, Service, 
       'categories': ['ROUND NECK', 'V NECK', 'CHINESE COLLAR', 'POLO', 'HENLEY'],
       'fabrics': ["SCOTT SAPPHIRE", "CRACKLE", "SULPHUR DRYFIT", "SULPHUR COTTON", "GREEN POLO", "LACOSTE", "BIOWASH", "HONEY COMB", "BUTTER HK", "SUPREME", "SPARK", "6 DEGREE", "SPRINT", "SCOTT YOUNG", "AWG DRYFIT", "SUPER POLY", "GRINDLE", "SLUB", "INNER COTTON"],
       'colors': ["RED", "BLACK", "GREY", "NAVY BLUE", "YELLOW", "ROYAL BLUE", "TURQUOISE GREEN", "TURQUOISE BLUE", "ELECTRIC GREEN", "ELECTRIC BLUE", "APPLE GREEN", "WHITE MELANGE", "WHITE", "BOTTLE GREEN", "PURPLE", "MILITARY GREEN", "ICE BLUE", "COFFEE BROWN", "MAROON", "BEIGE", "CRÈME", "CHARCOAL GREY", "INDIAN BLUE", "GOLDEN YELLOW", "LEMON YELLOW", "SKY BLUE", "PINK", "ORANGE", "MAGENTA", "PISTA GREEN", "DARK GREY", "ASH GREY", "MUSTARD", "HP BLUE", "DENIM BLUE", "GREY MELANGE", "CHARCOAL MELANGE", "GREEN MELANGE", "BLUE MELANGE", "PINK MELANGE"],
+      'sleeve': ['Half Sleeve', 'Full Sleeve', '3/4 Sleeves', 'Sleeve Less'],
+      'pockets': ['U-pocket', 'V-pocket'],
       'ROUND NECK': {
         'fabric': true,
         'body_color': true,
@@ -115,6 +117,8 @@ function CreateCustomOrder($scope, $http, $state, Session, colFilters, Service, 
       'categories': ['300 GSM', '400 GSM', 'HIGH NECK (ALWAYS ZIP)', 'COLLAR NECK', 'CHINESE NECK'],
       'fabrics': ["SCOTT SAPPHIRE", "CRACKLE", "SULPHUR DRYFIT", "SULPHUR COTTON", "GREEN POLO", "LACOSTE", "BIOWASH", "HONEY COMB", "BUTTER HK", "SUPREME", "SPARK", "6 DEGREE", "SPRINT", "SCOTT YOUNG", "AWG DRYFIT", "SUPER POLY", "GRINDLE", "SLUB", "INNER COTTON"],
       'colors': ["BLACK", "NAVY BLUE", "CHARCOAL", "GREY", "ROYAL BLUE", "CHARCOAL MELANGE", "BLUE MELANGE", "PINK MELANGE", "ROYAL BLUE MELANGE"],
+      'sleeve': ['Full Sleeve', 'Sleeveless'],
+      'pockets': ['KANGAROO', 'CUT POCKET'],
       '300 GSM': {
         'fabric': false,
         'body_color': true,
@@ -331,12 +335,18 @@ function CreateCustomOrder($scope, $http, $state, Session, colFilters, Service, 
     //    if(data.data.categories.length > 0) {
           vm.customData.styles = [];
           vm.customData.style = "";
+          vm.customData.pocket.pockets = [];
+          vm.customData.pocket.pocketDesign = "";
           $timeout(function() {
 
             vm.customData.styles = vm.product_types[vm.product]['categories']; //data.data.sub_categories;
             vm.customData.style = vm.customData.styles[0];
             vm.styleChange(vm.customData.style);
+            vm.customData.pocket.pockets = vm.product_types[vm.product]['pockets'];
+            vm.customData.pocket.pocketDesign = vm.customData.pocket.pockets[0];
           }, 500);
+          vm.customData.sleeve.sleeves = vm.product_types[vm.product]['sleeve'];
+          vm.customData.sleeve.sleeve = vm.product_types[vm.product]['sleeve'][0];
           //vm.getCustomStyles(vm.customData.style);
     //    } else {
 

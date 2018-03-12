@@ -4346,17 +4346,19 @@ def get_levels(request, user=''):
 
 
 def get_leadtimes(user='', level=0):
-    same_level_users = get_same_level_warehouses(level)
+    central_admin = get_admin(user)
+    same_level_users = get_same_level_warehouses(level, central_admin)
     lead_times = NetworkMaster.objects.filter(dest_location_code=user,
                                               source_location_code_id__in=same_level_users). \
         values_list('lead_time', 'source_location_code').distinct()
     return dict(lead_times)
 
 
-def get_same_level_warehouses(level):
-    warehouses = UserProfile.objects.filter(warehouse_level=level).values_list('user_id', flat=True)
+def get_same_level_warehouses(level, central_admin):
+    users_list = UserGroups.objects.filter(admin_user=central_admin.id).values_list('user').distinct()
+    warehouses = UserProfile.objects.filter(user_id__in=users_list, warehouse_level=level).values_list('user_id',
+                                                                                                       flat=True)
     return warehouses
-
 
 def get_stock_qty_leadtime(item, wh_code):
     wms_code = item['wms_code']
@@ -4392,7 +4394,8 @@ def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_
         stock_display_warehouse = stock_display_warehouse.split(',')
         stock_display_warehouse = map(int, stock_display_warehouse)
     else:
-        stock_display_warehouse = get_same_level_warehouses(level)
+        central_admin = get_admin(user)
+        stock_display_warehouse = get_same_level_warehouses(level, central_admin)
     stock_qty_all = dict(StockDetail.objects.filter(sku__user__in=stock_display_warehouse,
                                                     sku__sku_class=sku_master[0]['sku_class'],
                                                     quantity__gt=0).values_list('sku__wms_code').distinct().
@@ -6200,7 +6203,7 @@ def get_level_based_customer_orders(request, response_data, user):
     picklist = Picklist.objects.filter(order_id__in=generic_details_ids)
     response_data['data'] = list(generic_orders.values('generic_order_id', 'customer_id'). \
                                  annotate(total_quantity=Sum('quantity')).
-                                 order_by('-generic_order_id'))
+                                 order_by('-creation_date'))
     response_data['data'] = response_data['data'][start_index:stop_index]
     for record in response_data['data']:
         order_details = generic_orders.filter(generic_order_id=record['generic_order_id'],
@@ -6668,7 +6671,10 @@ def get_customer_cart_data(request, user=""):
                     json_record['freight_charges'] = "true"
                 else:
                     json_record['freight_charges'] = "false"
-                whs = get_same_level_warehouses(level=record.warehouse_level)
+                if record.warehouse_level:
+                    whs = get_same_level_warehouses(level=record.warehouse_level, central_admin=central_admin)
+                else:
+                    whs = [record.user.id]
                 tot_avail_stock = 0
                 for wh in whs:
                     sku_id = get_syncedusers_mapped_sku(wh=wh, sku_id=record.sku.id)
@@ -6684,7 +6690,12 @@ def get_customer_cart_data(request, user=""):
                         reserved_qty = reserved_obj[0]['in_reserved']
                     else:
                         reserved_qty = 0
-                    avail_stock = stock_qty - reserved_qty
+                    enq_qty = EnquiredSku.objects.filter(sku__user=wh, sku_code=record.sku.sku_code).filter(
+                        ~Q(enquiry__extend_status='rejected')).values_list('sku_code').aggregate(Sum('quantity'))[
+                        'quantity__sum']
+                    if not enq_qty:
+                        enq_qty = 0
+                    avail_stock = stock_qty - reserved_qty - enq_qty
                     tot_avail_stock = tot_avail_stock + avail_stock
                 json_record['avail_stock'] = tot_avail_stock
                 # level = json_record['warehouse_level']

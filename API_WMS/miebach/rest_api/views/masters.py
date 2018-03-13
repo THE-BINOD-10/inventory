@@ -3271,7 +3271,7 @@ def search_corporate_data(request, user=''):
 
     corporate_data = CorporateMaster.objects.filter(Q(corporate_id__icontains=search_key) | Q(name__icontains=search_key) |
                                                 Q(email_id__icontains=search_key))
-    for data in corporate_data[:30]:
+    for data in corporate_data[:50]:
         total_data.append({'corporate_id': data.corporate_id, 'name': data.name, 'phone_number': data.phone_number})
     return HttpResponse(json.dumps(total_data))
 

@@ -2949,7 +2949,8 @@ def split_orders(**order_data):
 def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, custom_order):
     continue_list = ['payment_received', 'charge_name', 'charge_amount', 'custom_order', 'user_type', 'invoice_amount',
                      'description', 'extra_data', 'location', 'serials', 'direct_dispatch', 'seller_id', 'sor_id',
-                     'ship_to', 'client_name', 'po_number', 'corporate_po_number', 'address_selected', 'is_sample']
+                     'ship_to', 'client_name', 'po_number', 'corporate_po_number', 'address_selected', 'is_sample',
+                     'invoice_type']
     inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
     order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
     sku_master = {}
@@ -3148,6 +3149,7 @@ def insert_order_data(request, user=''):
     corporate_po_number = request.POST.get('corporate_po_number', '')
     address_selected = request.POST.get('address_selected', '')
     is_sample = request.POST.get('is_sample', '')
+    invoice_type = request.POST.get('invoice_type', '')
 
     created_order_id = ''
     ex_image_url = {}
@@ -3198,6 +3200,7 @@ def insert_order_data(request, user=''):
             if not order_data['sku_id'] or not order_data['quantity']:
                 continue
 
+            order_summary_dict['invoice_type'] = invoice_type
             if admin_user:
                 if user_type == 'customer':
                     order_data = get_order_customer_details(order_data, request)
@@ -4954,15 +4957,18 @@ def get_seller_order_details(request, user=''):
 
     order_details = seller_data
     seller_details = seller_data[0].seller.json()
-    row_id = order_details[0].id
+    row_id = order_details[0].order_id
 
     custom_data = OrderJson.objects.filter(order_id=row_id)
     status_obj = ''
     central_remarks = ''
+    invoice_types = get_invoice_types(user)
+    invoice_type = ''
     customer_order_summary = CustomerOrderSummary.objects.filter(order_id=row_id)
     if customer_order_summary:
         status_obj = customer_order_summary[0].status
         central_remarks = customer_order_summary[0].central_remarks
+        invoice_type = customer_order_summary[0].invoice_type
 
     data_dict = []
     cus_data = []
@@ -5071,7 +5077,8 @@ def get_seller_order_details(request, user=''):
              'order_charges': order_charges,
              'sku_status': one_order.status})
     data_dict.append({'cus_data': cus_data, 'status': status_obj, 'ord_data': order_details_data,
-                      'central_remarks': central_remarks, 'seller_details': seller_details})
+                      'central_remarks': central_remarks, 'seller_details': seller_details,
+                      'invoice_type': invoice_type, 'invoice_types': invoice_types})
 
     return HttpResponse(json.dumps({'data_dict': data_dict}))
 
@@ -5113,9 +5120,12 @@ def get_view_order_details(request, user=''):
     status_obj = ''
     central_remarks = ''
     customer_order_summary = CustomerOrderSummary.objects.filter(order_id=row_id)
+    invoice_types = get_invoice_types(user)
+    invoice_type = ''
     if customer_order_summary:
         status_obj = customer_order_summary[0].status
         central_remarks = customer_order_summary[0].central_remarks
+        invoice_type = customer_order_summary[0].invoice_type
 
     cus_data = []
     order_details_data = []
@@ -5231,7 +5241,8 @@ def get_view_order_details(request, user=''):
     if status_obj in view_order_status:
         view_order_status = view_order_status[view_order_status.index(status_obj):]
     data_dict.append({'cus_data': cus_data, 'status': status_obj, 'ord_data': order_details_data,
-                      'central_remarks': central_remarks, 'all_status': view_order_status, 'tax_type': tax_type})
+                      'central_remarks': central_remarks, 'all_status': view_order_status, 'tax_type': tax_type,
+                      'invoice_type': invoice_type, 'invoice_types': invoice_types})
 
     return HttpResponse(json.dumps({'data_dict': data_dict}))
 
@@ -5464,8 +5475,9 @@ def update_payment_status(request, user=''):
 def create_orders_data(request, user=''):
     tax_types = copy.deepcopy(TAX_VALUES)
     tax_types.append({'tax_name': 'DEFAULT', 'tax_value': ''})
-
-    return HttpResponse(json.dumps({'payment_mode': PAYMENT_MODES, 'taxes': tax_types}))
+    invoice_types = get_invoice_types(user)
+    return HttpResponse(json.dumps({'payment_mode': PAYMENT_MODES, 'taxes': tax_types,
+                                    'invoice_types': invoice_types}))
 
 
 @csrf_exempt
@@ -5980,12 +5992,13 @@ def update_order_data(request, user=""):
                                                         mrp=old_cust_obj[0].mrp, tax_type=old_cust_obj[0].tax_type,
                                                         status=old_cust_obj[0].status,
                                                         central_remarks=old_cust_obj[0].central_remarks,
-                                                        sgst_tax=sgst_tax, cgst_tax=cgst_tax, igst_tax=igst_tax)
+                                                        sgst_tax=sgst_tax, cgst_tax=cgst_tax, igst_tax=igst_tax,
+                                                        invoice_type=myDict['invoice_type'][0])
                 else:
                     CustomerOrderSummary.objects.create(order=order_obj, status=myDict['status_type'][0],
                                                         central_remarks=myDict['central_remarks'][0], sgst_tax=sgst_tax,
                                                         cgst_tax=cgst_tax, igst_tax=igst_tax, discount=discount,
-                                                        tax_type=tax_type)
+                                                        tax_type=tax_type, invoice_type=myDict['invoice_type'][0])
             else:
                 status_obj = old_cust_obj
                 if not status_obj:
@@ -5999,6 +6012,7 @@ def update_order_data(request, user=""):
                 status_obj.igst_tax = igst_tax
                 status_obj.discount = discount
                 status_obj.tax_type = tax_type
+                status_obj.invoice_type = myDict['invoice_type'][0]
                 status_obj.save()
 
                 vendor_list = ['printing_vendor', 'embroidery_vendor', 'production_unit']
@@ -6794,6 +6808,8 @@ def get_customer_cart_data(request, user=""):
             json_record['del_date'] = del_date
 
             response['data'].append(json_record)
+    response['invoice_types'] = get_invoice_types(user)
+
     return HttpResponse(json.dumps(response, cls=DjangoJSONEncoder))
 
 

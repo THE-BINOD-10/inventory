@@ -286,6 +286,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
             var all_order_details = data.data.data_dict[0].ord_data;
             vm.ord_status = data.data.data_dict[0].status;
+            vm.invoice_type = data.data.data_dict[0].invoice_type;
             vm.display_status_none = (vm.ord_status=="")?true:false;
 
             vm.model_data = {}
@@ -307,6 +308,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             vm.model_data["all_status"] = data.data.data_dict[0].all_status;
             vm.model_data["seller_data"] = data.data.data_dict[0].seller_details;
             vm.model_data["tax_type"] = data.data.data_dict[0].tax_type;
+            vm.model_data["invoice_types"] = data.data.data_dict[0].invoice_types;
             var index = 0;
             angular.forEach(all_order_details, function(value, key){
 

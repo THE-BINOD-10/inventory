@@ -21,7 +21,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'invoice_remarks': '', 'show_disc_invoice': false, 'serial_limit': '',
                     'increment_invoice': false, 'create_shipment_type': false, 'auto_allocate_stock': false,
                     'generic_wh_level': false, 'auto_confirm_po': false, 'create_order_po': false, 'shipment_sku_scan': false,
-                    'disable_brands_view': false, 'invoice_challan_header': false,
+                    'disable_brands_view': false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -36,8 +36,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      40: 'display_remarks_mail', 41: 'create_seller_order', 42: 'invoice_remarks', 43: 'show_disc_invoice',
                      44: 'increment_invoice', 45: 'serial_limit', 46: 'create_shipment_type', 47: 'auto_allocate_stock',
                      48: 'priceband_sync', 49: 'generic_wh_level', 50: 'auto_confirm_po', 51: 'create_order_po',
-                     52: 'calculate_customer_price', 53: 'shipment_sku_scan', 54: 'disable_brands_view',
-                     55: 'invoice_challan_header'}
+                     52: 'calculate_customer_price', 53: 'shipment_sku_scan', 54: 'disable_brands_view',}
 
   vm.check_box_data = [
     {
@@ -292,13 +291,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       class_name: "glyphicon glyphicon-sort",
       display: true
     },
-    {
-      name: "Invoice Tax Challan Header",
-      model_name: "invoice_challan_header",
-      param_no: 55,
-      class_name: "fa fa-step-forward",
-      display: true
-    },
 
 ]
 
@@ -397,6 +389,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       $(".sku_groups").importTags(vm.model_data.all_groups);
       $(".stages").importTags(vm.model_data.all_stages);
       $(".extra_view_order_status").importTags(vm.model_data.extra_view_order_status);
+      $(".invoice_types").importTags(vm.model_data.invoice_types);
       if (vm.model_data.invoice_titles) {
         $(".titles").importTags(vm.model_data.invoice_titles);
       }
@@ -453,6 +446,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
   vm.update_extra_order_status = function() {
     var data = $(".extra_view_order_status").val();
     vm.service.apiCall("switches?extra_view_order_status="+data).then(function(data){
+      if(data.message) {
+        msg = data.data;
+        $scope.showNoty();
+        Auth.status();
+      }
+    });
+  }
+
+  vm.update_invoice_type = function() {
+    var data = $(".invoice_types").val();
+    vm.service.apiCall("switches?invoice_types="+data).then(function(data){
       if(data.message) {
         msg = data.data;
         $scope.showNoty();

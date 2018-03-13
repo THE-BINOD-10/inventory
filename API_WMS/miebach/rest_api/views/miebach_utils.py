@@ -1329,7 +1329,6 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'auto_confirm_po': 'auto_confirm_po', 'generic_wh_level': 'generic_wh_level',
                         'create_order_po': 'create_order_po', 'calculate_customer_price': 'calculate_customer_price',
                         'shipment_sku_scan': 'shipment_sku_scan', 'disable_brands_view':'disable_brands_view',
-                        'invoice_challan_header': 'invoice_challan_header',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
@@ -1337,7 +1336,8 @@ CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
                      'data_range': 'report_data_range', 'imei_limit': 'imei_limit',
                      'invoice_remarks': 'invoice_remarks',
                      'invoice_marketplaces': 'invoice_marketplaces', 'serial_limit': 'serial_limit',
-                     'extra_view_order_status': 'extra_view_order_status'
+                     'extra_view_order_status': 'extra_view_order_status',
+                     'invoice_types': 'invoice_types',
                      }
 
 CONFIG_DEF_DICT = {'receive_options': dict(RECEIVE_OPTIONS),

@@ -2457,26 +2457,27 @@ def get_order_summary_data(search_params, user, sub_user):
         order_taken_by = ''
         payment_card, payment_cash = 0, 0
         order_summary = CustomerOrderSummary.objects.filter(order__user=user.id, order_id=data.id)
-        unit_price = data.unit_price
+        unit_price, unit_price_inclusive_tax = [data.unit_price] * 2
         if order_summary:
             mrp_price = order_summary[0].mrp
             discount = order_summary[0].discount
             order_status = order_summary[0].status
             remarks = order_summary[0].central_remarks
             order_taken_by = order_summary[0].order_taken_by
+            unit_price_inclusive_tax = ((float(data.invoice_amount) / float(data.quantity)))
             if not is_gst_invoice:
                 tax = order_summary[0].tax_value
                 vat = order_summary[0].vat
-                if not unit_price:
-                    unit_price = ((float(data.invoice_amount) / float(data.quantity))) - float(discount) - (
-                    tax / float(data.quantity))
+                #if not unit_price:
             else:
-                amt = unit_price * float(data.quantity)
+                amt = unit_price_inclusive_tax * float(data.quantity)
                 cgst_amt = float(order_summary[0].cgst_tax) * (float(amt) / 100)
                 sgst_amt = float(order_summary[0].sgst_tax) * (float(amt) / 100)
                 igst_amt = float(order_summary[0].igst_tax) * (float(amt) / 100)
                 utgst_amt = float(order_summary[0].utgst_tax) * (float(amt) / 100)
                 tax = cgst_amt + sgst_amt + igst_amt + utgst_amt
+            unit_price = unit_price_inclusive_tax - (tax / float(data.quantity))
+
         else:
             tax = float(float(data.invoice_amount) / 100) * vat
         if order_status == 'None':
@@ -2512,7 +2513,7 @@ def get_order_summary_data(search_params, user, sub_user):
                                                 ('SKU Class', data.sku.sku_class),
                                                 ('SKU Size', data.sku.sku_size), ('SKU Description', data.sku.sku_desc),
                                                 ('SKU Code', data.sku.sku_code), ('Order Qty', int(data.quantity)),
-                                                ('MRP', int(data.sku.mrp)), ('Unit Price', float(unit_price)),
+                                                ('MRP', int(data.sku.mrp)), ('Unit Price', float(unit_price_inclusive_tax)),
                                                 ('Discount', discount),
                                                 ('Taxable Amount', float(taxable_amount)), ('Tax', tax),
                                                 ('City', data.city), ('State', data.state), ('Marketplace', data.marketplace),

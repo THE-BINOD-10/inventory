@@ -28,7 +28,7 @@ class TallyAPI:
         tally_config = tally_config[0] if tally_config else {}
         return tally_config
 
-    def round_off_value(price):
+    def round_off_value(self, price):
 	diff_round = int(price) - price
 	if diff_round >= 0.01:
 	    price = int(price) + 1
@@ -104,7 +104,7 @@ class TallyAPI:
             item_obj['actual_qty'] = obj['quantity']
             item_obj['billed_qty'] = obj['quantity']
             item_obj['unit'] = obj['order__sku__measurement_type']
-	    price, diff_round = round_off_value(price)
+	    price, diff_round = self.round_off_value(obj['order__unit_price'])
             item_obj['rate'] = price
             item_obj['rate_unit'] = item_obj['unit']
             item_obj['amount'] = item_obj['rate'] * item_obj['billed_qty']
@@ -134,10 +134,11 @@ class TallyAPI:
             if item_obj['billed_qty'] and item_obj['rate']:
                 party_amount = int(item_obj['billed_qty']) * float(item_obj['rate'])
             total_amount = party_amount + ((party_amount / 100) * party_ledger_total_tax)
-	    total_amount, total_diff_round = round_off_value(obj['order__unit_price'])
+	    total_amount, total_diff_round = self.round_off_value(total_amount)
             party_ledger_obj['amount'] = total_amount
             s_obj[key_value].setdefault('party_ledger', {})
             party_ledger_obj['amount'] += s_obj[key_value]['party_ledger'].get('amount', 0)
+            party_ledger_obj['amount'] = total_diff_round
 
             s_obj[key_value].setdefault('party_ledger_tax', [])
             party_ledger_tax_obj = []
@@ -160,6 +161,15 @@ class TallyAPI:
                 party_ledger_tax_dict['amount'] = (party_amount / 100) * vat_obj.tax_percentage
                 party_ledger_tax_dict['name'] = vat_obj.ledger_name
                 party_ledger_tax_obj.append(party_ledger_tax_dict)
+
+	    '''
+	    party_ledger_tax_dict = {}
+	    party_ledger_tax_dict['is_deemeed_positive'] = True
+	    party_ledger_tax_dict['entry_rate'] = diff_round
+	    party_ledger_tax_dict['amount'] = diff_round
+	    party_ledger_tax_dict['name'] = 'PAISE ROUND OFF'
+	    party_ledger_tax_obj.append(party_ledger_tax_dict)
+	    '''
 
             order_charges_obj = OrderCharges.objects.filter(user=self.user_id, order_id=key_value)
             for amt in order_charges_obj:

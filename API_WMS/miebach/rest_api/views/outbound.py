@@ -6471,15 +6471,18 @@ def get_level_based_customer_order_detail(request, user):
                 response_data, res = prepare_your_orders_data(request, ord_id, usr_id, det_ids,
                                                          OrderDetail.objects.filter(id__in=det_ids))
                 ord_usr_profile = UserProfile.objects.get(user_id=usr_id)
-                response_data['warehouse_level'] = ord_usr_profile.warehouse_level
-                response_data['level_name'] = get_level_name_with_level(user, ord_usr_profile.warehouse_level,
-                                                                        users_list=[usr_id])
-                response_data_list.append(response_data)
                 for sku_rec in res:
                     sku_code = sku_rec['sku__sku_code']
                     sku_qty = sku_rec['quantity']
                     sku_el_price = round(sku_rec.get('el_price', 0), 2)
                     sku_tax_amt = round(sku_rec.get('sku_tax_amt', 0), 2)
+                    gen_obj = GenericOrderDetailMapping.objects.get(orderdetail_id=sku_rec['id'])
+                    if CustomerMaster.objects.get(id=gen_obj.customer_id).user == usr_id:
+                        response_data['warehouse_level'] = 0
+                    else:
+                        response_data['warehouse_level'] = ord_usr_profile.warehouse_level
+                    response_data['level_name'] = get_level_name_with_level(user, response_data['warehouse_level'],
+                                                                            users_list=[usr_id])
                     if sku_code not in sku_wise_details:
                         sku_wise_details[sku_code] = {'quantity': sku_qty, 'el_price': sku_el_price,
                                                       'sku_tax_amt': sku_tax_amt}
@@ -6487,6 +6490,7 @@ def get_level_based_customer_order_detail(request, user):
                         existing_map = sku_wise_details[sku_code]
                         existing_map['quantity'] = existing_map['quantity'] + sku_qty
                         existing_map['sku_tax_amt'] = existing_map['sku_tax_amt'] + sku_tax_amt
+                response_data_list.append(response_data)
     sku_whole_map = {'data': [], 'totals': {}}
     sku_totals = {'sub_total': 0, 'total_amount': 0, 'tax': 0}
     for sku_code, sku_det in sku_wise_details.items():

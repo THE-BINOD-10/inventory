@@ -4485,7 +4485,7 @@ def get_sku_catalogs(request, user=''):
         for style_data in data:
             if style_quantities.get(style_data['sku_class'], ''):
                style_data['style_data'] = get_cal_style_data(style_data, style_quantities[style_data['sku_class']])
-               style_data['tax_percentage']= '%.1f'%tax_percentage
+               # style_data['tax_percentage']= '%.1f'%tax_percentage
             else:
                 tax = style_data['variants'][0]['taxes']
                 if tax:
@@ -6201,9 +6201,9 @@ def get_level_based_customer_orders(request, response_data, user):
     generic_orders = GenericOrderDetailMapping.objects.filter(**filter_dict)
     generic_details_ids = generic_orders.values_list('orderdetail_id', flat=True)
     picklist = Picklist.objects.filter(order_id__in=generic_details_ids)
-    response_data['data'] = list(generic_orders.values('generic_order_id', 'customer_id'). \
-                                 annotate(total_quantity=Sum('quantity')).
-                                 order_by('-creation_date'))
+    response_data['data'] = list(generic_orders.values('generic_order_id', 'customer_id').
+                                 annotate(total_quantity=Sum('quantity'),
+                                          date_only=Cast('creation_date', DateField())).order_by('-date_only'))
     response_data['data'] = response_data['data'][start_index:stop_index]
     for record in response_data['data']:
         order_details = generic_orders.filter(generic_order_id=record['generic_order_id'],

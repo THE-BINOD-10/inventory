@@ -6260,7 +6260,7 @@ def get_level_based_customer_orders(request, response_data, user):
                     if 'total_inv_amt' not in record:
                         record['total_inv_amt'] = round(tax_inclusive_inv_amt, 2)
                     else:
-                        record['total_inv_amt'] = record['total_inv_amt'] + round(tax_inclusive_inv_amt, 2)
+                        record['total_inv_amt'] = round(record['total_inv_amt'] + tax_inclusive_inv_amt, 2)
 
                     data = OrderDetail.objects.filter(id=ord_det_id)
                     ord_det_qs = data.values('order_id', 'id', 'user', 'original_order_id', 'order_code')
@@ -7913,7 +7913,7 @@ def insert_enquiry_data(request, user=''):
         customer_details = get_order_customer_details(customer_details, request)
         customer_details['customer_id'] = cm_id  # Updating Customer Master ID
         enquiry_map = {'user': user.id, 'enquiry_id': enquiry_id,
-                       'extend_date': datetime.datetime.today() + datetime.timedelta(days=10)}
+                       'extend_date': datetime.datetime.today() + datetime.timedelta(days=3)}
         if corporate_name:
             enquiry_map['corporate_name'] = corporate_name
         enquiry_map.update(customer_details)
@@ -8041,6 +8041,7 @@ def get_customer_enquiry_detail(request, user=''):
                 sku_tot_inv_map[sku_code] = sub_total
             else:
                 sku_tot_inv_map[sku_code] = sku_tot_inv_map[sku_code] + sub_total
+            data_val['level_name'] = get_level_name_with_level(user, data_val['warehouse_level'], users_list=[])
 
         for sku_code in sku_tot_qty_map:
             sku_lbprice_map[sku_code] = sku_tot_inv_map[sku_code] / sku_tot_qty_map[sku_code]
@@ -8052,9 +8053,9 @@ def get_customer_enquiry_detail(request, user=''):
         res_map = {'order_id': em_obj.enquiry_id, 'customer_id': cm_id,
                    'date': get_only_date(request, em_obj.creation_date),
                    'data': data_vals, 'sum_data': sum_data, 'tax': total_tax_amt}
-        res_map['level_name'] = ''
-        if data_vals:
-            res_map['level_name'] = get_level_name_with_level(user, data_vals[0]['warehouse_level'], users_list=[])
+        # res_map['level_name'] = ''
+        # if data_vals:
+        #     res_map['level_name'] = get_level_name_with_level(user, data_vals[0]['warehouse_level'], users_list=[])
         for sku_rec in data_vals:
             sku_code = sku_rec['sku__sku_code']
             tot_amt = sku_rec['invoice_amount']

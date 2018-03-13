@@ -20,9 +20,12 @@
                 <div class="col-md-4">
                   <div class="form-group">
                     <label class="control-label"> Distributor </label>
-                    <select class="form-control" ng-model="showCase.distributor" ng-change="showCase.get_resellers(showCase.distributor)" name="distributor">
+                    <select class="form-control" ng-if="showCase.user_type != 'distributor'" ng-model="showCase.distributor" ng-change="showCase.get_resellers(showCase.distributor)" name="distributor">
                       <option value=""> None </option>
-                      <option ng-repeat="data in showCase.distributors" value="{{data.user_id}}">{{data.user__username}}</option>
+                      <option ng-repeat="data in showCase.distributors" ng-selected="showCase.user_type == 'distributor'" value="{{data.user_id}}">{{data.user__username}}</option>
+                    </select>
+                    <select class="form-control" ng-if="showCase.user_type == 'distributor'" ng-model="showCase.distributor" ng-change="showCase.get_resellers(showCase.distributor)" name="distributor">
+                      <option ng-repeat="data in showCase.distributors" ng-selected="showCase.user_type == 'distributor'" value="{{data.user_id}}">{{data.user__username}}</option>
                     </select>
                   </div>
                 </div>

@@ -76,8 +76,6 @@ class TallyAPI:
         invoices = []
         from decimal import Decimal
         s_obj = {}
-	paise_round_off = 0
-	total_sum = 0
         for obj in seller_summary:
             key_value = obj['order__original_order_id']
             s_obj.setdefault(key_value, {})
@@ -166,7 +164,6 @@ class TallyAPI:
                 party_ledger_tax_dict['is_deemeed_positive'] = True
                 party_ledger_tax_dict['entry_rate'] = vat_obj.tax_percentage
                 party_ledger_tax_dict['amount'] = (party_amount / 100) * vat_obj.tax_percentage
-		total_sum += party_ledger_obj['amount']
                 party_ledger_tax_dict['name'] = vat_obj.ledger_name
                 party_ledger_tax_obj.append(party_ledger_tax_dict)
 

@@ -1419,11 +1419,12 @@ def change_seller_stock(seller_id='', stock='', user='', quantity=0, status='dec
             SellerStock.objects.create(seller_id=seller_id, stock_id=stock.id, quantity=quantity)
 
 
-def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, seller_id=''):
+def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id='',
+                       dest_seller_id=''):
     for stock in stocks:
         if stock.quantity > move_quantity:
             stock.quantity -= move_quantity
-            change_seller_stock(seller_id, stock, user, move_quantity, 'dec')
+            change_seller_stock(src_seller_id, stock, user, move_quantity, 'dec')
             move_quantity = 0
             if stock.quantity < 0:
                 stock.quantity = 0
@@ -1431,7 +1432,7 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
         elif stock.quantity <= move_quantity:
 
             move_quantity -= stock.quantity
-            change_seller_stock(seller_id, stock, user, stock.quantity, 'dec')
+            change_seller_stock(src_seller_id, stock, user, stock.quantity, 'dec')
             stock.quantity = 0
             stock.save()
         if move_quantity == 0:
@@ -1442,12 +1443,12 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
                                   status=1, creation_date=datetime.datetime.now(),
                                   updation_date=datetime.datetime.now(), location_id=dest[0].id, sku_id=sku_id)
         dest_stocks.save()
-        change_seller_stock(seller_id, dest_stocks, user, float(quantity), 'create')
+        change_seller_stock(dest_seller_id, dest_stocks, user, float(quantity), 'create')
     else:
         dest_stocks = dest_stocks[0]
         dest_stocks.quantity += float(quantity)
         dest_stocks.save()
-        change_seller_stock(seller_id, dest_stocks, user, quantity, 'inc')
+        change_seller_stock(dest_seller_id, dest_stocks, user, quantity, 'inc')
 
 
 def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id=''):
@@ -1490,8 +1491,8 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
             return 'Seller Stock Not Found'
 
     dest_stocks = StockDetail.objects.filter(sku_id=sku_id, location_id=dest[0].id, sku__user=user.id)
-    update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, seller_id)
-
+    update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id=seller_id,
+                       dest_seller_id=seller_id)
     data_dict = copy.deepcopy(CYCLE_COUNT_FIELDS)
     data_dict['cycle'] = cycle_id
     data_dict['sku_id'] = sku_id
@@ -1900,7 +1901,16 @@ def load_demo_data(request, user=''):
         open_book = open_workbook(os.path.join(settings.BASE_DIR + "/rest_api/demo_data/", value['file_name']))
         open_sheet = open_book.sheet_by_index(0)
         func_params = [request, open_sheet, user]
-        if key in ['order_upload', 'sku_upload']:
+        if key == 'inventory_upload':
+            reader = open_sheet
+            no_of_rows = reader.nrows
+            file_type = 'xls'
+            no_of_cols = open_sheet.ncols
+            in_status, data_list = validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, open_sheet.name,
+                                                           file_type)
+            inventory_excel_upload(request, user, data_list)
+            continue
+        elif key in ['order_upload', 'sku_upload']:
             func_params.append(open_sheet.nrows)
             func_params.append(value['file_name'])
         elif key in ['supplier_upload', 'purchase_order_upload']:
@@ -2278,6 +2288,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     data, imei_data, customer_details = [], [], []
     order_date, order_id, marketplace, consignee, order_no, purchase_type, seller_address, customer_address = '', '', '', '', '', '', '', ''
     tax_type, seller_company, order_reference, order_reference_date = '', '', '', ''
+    invoice_header = ''
     total_quantity, total_amt, total_taxable_amt, total_invoice, total_tax, total_mrp, _total_tax = 0, 0, 0, 0, 0, 0, 0
     total_taxes = {'cgst_amt': 0, 'sgst_amt': 0, 'igst_amt': 0, 'utgst_amt': 0}
     hsn_summary = {}
@@ -2405,6 +2416,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 sgst_tax = order_summary[0].sgst_tax
                 igst_tax = order_summary[0].igst_tax
                 utgst_tax = order_summary[0].utgst_tax
+                invoice_header = order_summary[0].invoice_type
                 if order_summary[0].invoice_date:
                     invoice_date = order_summary[0].invoice_date
             total_tax += float(tax)
@@ -2542,7 +2554,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
         gstin_no = seller.tin_number
         company_address = company_address.replace("\n", " ")
         company_name = 'SHPROC Procurement Pvt. Ltd.'
-    invoice_challan_header = get_misc_value('invoice_challan_header', user.id)
+
     invoice_data = {'data': data, 'imei_data': imei_data, 'company_name': company_name,
                     'company_address': company_address,
                     'order_date': order_date, 'email': email, 'marketplace': marketplace, 'total_amt': total_amt,
@@ -2565,7 +2577,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'show_disc_invoice': show_disc_invoice,
                     'seller_company': seller_company, 'sequence_number': _sequence, 'order_reference': order_reference,
                     'order_reference_date_field': order_reference_date_field,
-                    'order_reference_date': order_reference_date, 'invoice_challan_header': invoice_challan_header,
+                    'order_reference_date': order_reference_date, 'invoice_header': invoice_header,
                     }
     return invoice_data
 
@@ -2803,7 +2815,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     if sku_brand:
         filter_params['sku_brand__in'] = [i.strip() for i in sku_brand.split(",") if i]
         filter_params1['sku__sku_brand__in'] = filter_params['sku_brand__in']
-    if sku_category:
+    if sku_category and sku_category.lower() != 'all':
         filter_params['sku_category__in'] = [i.strip() for i in sku_category.split(",") if i]
         filter_params1['sku__sku_category__in'] = filter_params['sku_category__in']
     if is_catalog:
@@ -3632,7 +3644,6 @@ def get_tally_data(request, user=""):
 @get_admin_user
 def save_tally_data(request, user=""):
     """ Save or Update Tally Configuration Data"""
-
     data = {}
     request_data = copy.deepcopy(request.POST)
     log.info('Save Tally Configuration data for ' + user.username + ' is ' + str(request.POST.dict()))
@@ -3823,10 +3834,11 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
     reserved_quans = map(lambda d: d['in_reserved'], reserved_quantities)
     enq_res_skus = map(lambda d: d['sku__sku_class'], enquiry_res_quantities)
     enq_res_quans = map(lambda d: d['tot_qty'], enquiry_res_quantities)
-    for product in product_styles[start: stop]:
-        sku_object = sku_master.filter(user=user.id, sku_class=product)
-        sku_styles = sku_object.values('image_url', 'sku_class', 'sku_desc', 'sequence', 'id'). \
-            order_by('-image_url')
+
+    #To fix quantity based filter
+    product_styles_filtered = []
+    product_styles_tot_qty_map = {}
+    for product in product_styles:
         total_quantity = 0
         if product in stock_skus:
             total_quantity = stock_quans[stock_skus.index(product)]
@@ -3834,6 +3846,24 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
             total_quantity = total_quantity - float(reserved_quans[reserved_skus.index(product)])
         if product in enq_res_skus:
             total_quantity = total_quantity - float(enq_res_quans[enq_res_skus.index(product)])
+        if total_quantity >= int(stock_quantity):
+            product_styles_filtered.append(product)
+        product_styles_tot_qty_map[product] = total_quantity
+
+    for product in product_styles_filtered[start: stop]:
+        sku_object = sku_master.filter(user=user.id, sku_class=product)
+        sku_styles = sku_object.values('image_url', 'sku_class', 'sku_desc', 'sequence', 'id'). \
+            order_by('-image_url')
+        # total_quantity = 0
+        # if product in stock_skus:
+        #     total_quantity = stock_quans[stock_skus.index(product)]
+        # if product in reserved_skus:
+        #     total_quantity = total_quantity - float(reserved_quans[reserved_skus.index(product)])
+        # if product in enq_res_skus:
+        #     total_quantity = total_quantity - float(enq_res_quans[enq_res_skus.index(product)])
+        total_quantity = product_styles_tot_qty_map[product]
+        if not total_quantity:
+            total_quantity = 0
         if sku_styles:
             sku_variants = list(sku_object.values(*get_values))
             for index, i in enumerate(sku_variants):
@@ -3850,7 +3880,7 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
             if style_quantities.get(sku_styles[0]['sku_class'], ''):
                 sku_styles[0]['style_data'] = get_cal_style_data(sku_styles[0],\
                                               style_quantities[sku_styles[0]['sku_class']])
-                sku_styles[0]['tax_percentage'] = '%.1f'%tax_percentage
+                # sku_styles[0]['tax_percentage'] = '%.1f'%tax_percentage
             else:
                 tax = sku_styles[0]['variants'][0]['taxes']
                 if tax:
@@ -5990,11 +6020,14 @@ def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_obj
                 min_qty, max_qty, price = each_map['min_unit_range'], each_map['max_unit_range'], each_map['price']
                 if min_qty <= total_qty <= max_qty:
                     order_data['unit_price'] = price
-                    order_data['invoice_amount'] = qty * price
+                    invoice_amount = get_tax_inclusive_invoice_amt(cm_id, price, qty, user_id, sku_code, admin_user)
+                    order_data['invoice_amount'] = invoice_amount
                     break
                 elif max_qty >= highest_max:
                     order_data['unit_price'] = price
-                    order_data['invoice_amount'] = qty * price
+                    invoice_amount = get_tax_inclusive_invoice_amt(cm_id, price, qty, user_id, sku_code, admin_user)
+                    order_data['invoice_amount'] = invoice_amount
+
 
         dist_order_copy = copy.copy(order_data)
         # dist_order_copy['user'] = user_id
@@ -6317,3 +6350,23 @@ def update_created_extra_status(user, selection):
                     grp_perm.sequence = status_selected.index(grp_perm.perm_value)
                     grp_perm.status = 1
                     grp_perm.save()
+
+
+def get_invoice_types(user):
+    invoice_types = get_misc_value('invoice_types', user.id)
+    if invoice_types in ['', 'false']:
+        invoice_types = ['Tax Invoice']
+    else:
+        invoice_types = invoice_types.split(',')
+    return invoice_types
+
+
+def get_max_seller_transfer_id(user):
+    trans_id = ''
+    seller_obj = SellerTransfer.objects.filter(source_seller__user=user.id).\
+                                        aggregate(Max('transact_id'))['transact_id__max']
+    if seller_obj:
+        trans_id = seller_obj + 1
+    else:
+        trans_id = 1
+    return trans_id

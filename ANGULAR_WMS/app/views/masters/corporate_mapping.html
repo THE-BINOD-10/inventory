@@ -20,9 +20,12 @@
                 <div class="col-md-4">
                   <div class="form-group">
                     <label class="control-label"> Distributor </label>
-                    <select class="form-control" ng-model="showCase.distributor" ng-change="showCase.get_resellers(showCase.distributor)" name="distributor">
+                    <select class="form-control" ng-if="showCase.user_type != 'distributor'" ng-model="showCase.distributor" ng-change="showCase.get_resellers(showCase.distributor)" name="distributor">
                       <option value=""> None </option>
-                      <option ng-repeat="data in showCase.distributors" value="{{data.user_id}}">{{data.user__username}}</option>
+                      <option ng-repeat="data in showCase.distributors" ng-selected="showCase.user_type == 'distributor'" value="{{data.user_id}}">{{data.user__username}}</option>
+                    </select>
+                    <select class="form-control" ng-if="showCase.user_type == 'distributor'" ng-model="showCase.distributor" ng-change="showCase.get_resellers(showCase.distributor)" name="distributor">
+                      <option ng-repeat="data in showCase.distributors" ng-selected="showCase.user_type == 'distributor'" value="{{data.user_id}}">{{data.user__username}}</option>
                     </select>
                   </div>
                 </div>
@@ -37,12 +40,12 @@
                   </div>
                 </div>
         
-                <!-- <div class="col-md-4">
+                <div class="col-md-4">
                   <div class="form-group">
                     <label class="control-label"> Corporate </label>
-                    <input type="text" autocomplete="off" name="search_corporate" class="form-control" placeholder="Search Corporte" typeahead="address.corporate for address in showCase.service.getSearchValues($viewValue, 'search_corporate_data?')" typeahead-loading="loadingLocations" ng-model="showCase.search_corporate">
+                    <input type="text" autocomplete="off" name="search_corporate" class="form-control" placeholder="Search Corporte" typeahead="address.corporate_id+' : '+address.name+' : '+address.phone_number for address in showCase.service.getSearchValues($viewValue, 'search_corporate_data?')" typeahead-on-select="showCase.get_corporate_data($item, $model, $label, $event)" typeahead-loading="loadingLocations" ng-model="showCase.search_corporate">
                   </div>
-                </div> -->
+                </div>
 
               </div>
               <div class="row mt15 no-margin" style="background: #f0f0f0; padding: 15px">

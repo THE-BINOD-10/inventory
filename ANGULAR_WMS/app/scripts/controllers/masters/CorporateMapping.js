@@ -6,12 +6,14 @@ angular.module('urbanApp', ['datatables'])
 function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
   var vm = this;
   vm.service = Service;
+  vm.session = Session;
 
   vm.distributors = [];
   vm.resellers = [];
   vm.total_items = {};
   vm.reseller = '';
   vm.corp_dict = {};
+  vm.user_type = vm.session.roles.permissions.user_type;
 
   vm.get_corporates = function(res){
     var send = {'reseller': res};
@@ -48,10 +50,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.title = "Reseller Corporate Mapping";
     var res = 0;
     vm.get_corporates(res);
-    vm.service.apiCall("get_distributors/").then(function(data){
+    var send = {'user_type':vm.user_type};
+    vm.service.apiCall("get_distributors/", 'GET', send).then(function(data){
       if(data.message) {
 
-        vm.distributors = data.data.data;
+        vm.distributors = data.data.data.distributors;
+        vm.resellers = data.data.data.resellers;
       }
     });
   }
@@ -66,6 +70,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.resellers = data.data.data;
       }
     });
+  }
+
+  vm.selected = {};
+  vm.get_corporate_data = function(item, model, label, event) {
+    vm.corporates = [];
+    vm.search_corporate = vm.service.search_key;
+    vm.corporates = vm.service.search_res;
   }
 
   vm.submit = submit;

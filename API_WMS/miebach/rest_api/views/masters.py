@@ -3224,11 +3224,17 @@ def get_terms_and_conditions(request, user=''):
 @get_admin_user
 def get_distributors(request, user=''):
     ''' Get Distributors list'''
+    user_type = request.GET['user_type']
+    resellers = []
     message = 0
-    distributors =  list(UserGroups.objects.filter(admin_user_id=user.id, user__userprofile__warehouse_type='DIST').values('user_id', 'user__username'))
+    if user_type == 'central_admin':
+        distributors =  list(UserGroups.objects.filter(admin_user_id=user.id, user__userprofile__warehouse_type='DIST').values('user_id', 'user__username'))
+    else:
+        distributors =  list(UserGroups.objects.filter(user_id=user.id).values('user_id', 'user__username'))
+        resellers = list(CustomerMaster.objects.filter(user=distributors[0]['user_id']).values('customer_id', 'name', 'id'))
     if distributors:
         message = 1
-    return HttpResponse(json.dumps({'message':message, 'data': distributors}))
+    return HttpResponse(json.dumps({'message':message, 'data': {'distributors': distributors, 'resellers':resellers}}))
 
 
 @csrf_exempt
@@ -3258,6 +3264,22 @@ def get_corporates(request, user=''):
     if corporates:
         message = 1
     return HttpResponse(json.dumps({'message': message, 'data': corporates, 'checked_corporates': checked_corporates}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def search_corporate_data(request, user=''):
+    search_key = request.GET.get('q', '')
+    total_data = []
+    if not search_key:
+        return HttpResponse(json.dumps(total_data))
+
+    corporate_data = CorporateMaster.objects.filter(Q(corporate_id__icontains=search_key) | Q(name__icontains=search_key) |
+                                                Q(email_id__icontains=search_key))
+    for data in corporate_data[:50]:
+        total_data.append({'corporate_id': data.corporate_id, 'name': data.name, 'phone_number': data.phone_number})
+    return HttpResponse(json.dumps(total_data))
 
 
 @csrf_exempt

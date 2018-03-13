@@ -471,8 +471,10 @@ RESTRICTED_SKU_HEADERS = ['WMS Code', 'Put Zone', 'Threshold Quantity', 'Load Un
 SALES_RETURNS_HEADERS = ['Return ID', 'Order ID', 'SKU Code', 'Return Quantity', 'Damaged Quantity',
                          'Return Date(YYYY-MM-DD)', 'Reason']
 
-EXCEL_HEADERS = ['Receipt Number', 'Receipt Date(YYYY-MM-DD)', 'WMS SKU', 'Location', 'Quantity', 'Receipt Type']
-EXCEL_RECORDS = ('receipt_number', 'receipt_date', 'wms_code', 'location', 'wms_quantity', 'receipt_type')
+INVENTORY_EXCEL_MAPPING = OrderedDict(( ('Seller ID', 'seller_id'), ('Receipt Date(YYYY-MM-DD)', 'receipt_date'), ('WMS SKU', 'wms_code'),
+                              ('Location', 'location'), ('Quantity', 'quantity'),
+                              ('Receipt Type', 'receipt_type'), ('Pallet Number', 'pallet_number'),
+                            ))
 
 SKU_EXCEL = (
 'wms_code', 'sku_desc', 'sku_group', 'sku_type', 'sku_category', 'sku_class', 'sku_brand', 'style_name', 'sku_size',
@@ -1327,7 +1329,6 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'auto_confirm_po': 'auto_confirm_po', 'generic_wh_level': 'generic_wh_level',
                         'create_order_po': 'create_order_po', 'calculate_customer_price': 'calculate_customer_price',
                         'shipment_sku_scan': 'shipment_sku_scan', 'disable_brands_view':'disable_brands_view',
-                        'invoice_challan_header': 'invoice_challan_header',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
@@ -1335,7 +1336,8 @@ CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
                      'data_range': 'report_data_range', 'imei_limit': 'imei_limit',
                      'invoice_remarks': 'invoice_remarks',
                      'invoice_marketplaces': 'invoice_marketplaces', 'serial_limit': 'serial_limit',
-                     'extra_view_order_status': 'extra_view_order_status'
+                     'extra_view_order_status': 'extra_view_order_status',
+                     'invoice_types': 'invoice_types',
                      }
 
 CONFIG_DEF_DICT = {'receive_options': dict(RECEIVE_OPTIONS),
@@ -1349,6 +1351,11 @@ MARKETPLACE_SERIAL_EXCEL_HEADERS = ['Order Reference', 'Marketplace', 'Serial Nu
 
 MARKETPLACE_SERIAL_EXCEL_MAPPING = OrderedDict((('order_reference', 0), ('marketplace', 1), ('serial_number', 2)))
 
+SELLER_TRANSFER_MAPPING = OrderedDict((('SKU Code', 'wms_code'), ('Source Seller ID', 'source_seller'),
+                                       ('Source Location', 'source_location'),
+                                       ('Destination Seller ID', 'dest_seller'),
+                                       ('Destination Location', 'dest_location'), ('Quantity', 'quantity'),
+                                    ))
 
 def fn_timer(function):
     @wraps(function)
@@ -2450,26 +2457,27 @@ def get_order_summary_data(search_params, user, sub_user):
         order_taken_by = ''
         payment_card, payment_cash = 0, 0
         order_summary = CustomerOrderSummary.objects.filter(order__user=user.id, order_id=data.id)
-        unit_price = data.unit_price
+        unit_price, unit_price_inclusive_tax = [data.unit_price] * 2
         if order_summary:
             mrp_price = order_summary[0].mrp
             discount = order_summary[0].discount
             order_status = order_summary[0].status
             remarks = order_summary[0].central_remarks
             order_taken_by = order_summary[0].order_taken_by
+            unit_price_inclusive_tax = ((float(data.invoice_amount) / float(data.quantity)))
             if not is_gst_invoice:
                 tax = order_summary[0].tax_value
                 vat = order_summary[0].vat
-                if not unit_price:
-                    unit_price = ((float(data.invoice_amount) / float(data.quantity))) - float(discount) - (
-                    tax / float(data.quantity))
+                #if not unit_price:
             else:
-                amt = unit_price * float(data.quantity)
+                amt = unit_price_inclusive_tax * float(data.quantity)
                 cgst_amt = float(order_summary[0].cgst_tax) * (float(amt) / 100)
                 sgst_amt = float(order_summary[0].sgst_tax) * (float(amt) / 100)
                 igst_amt = float(order_summary[0].igst_tax) * (float(amt) / 100)
                 utgst_amt = float(order_summary[0].utgst_tax) * (float(amt) / 100)
                 tax = cgst_amt + sgst_amt + igst_amt + utgst_amt
+            unit_price = unit_price_inclusive_tax - (tax / float(data.quantity))
+
         else:
             tax = float(float(data.invoice_amount) / 100) * vat
         if order_status == 'None':
@@ -2505,7 +2513,7 @@ def get_order_summary_data(search_params, user, sub_user):
                                                 ('SKU Class', data.sku.sku_class),
                                                 ('SKU Size', data.sku.sku_size), ('SKU Description', data.sku.sku_desc),
                                                 ('SKU Code', data.sku.sku_code), ('Order Qty', int(data.quantity)),
-                                                ('MRP', int(data.sku.mrp)), ('Unit Price', float(unit_price)),
+                                                ('MRP', int(data.sku.mrp)), ('Unit Price', float(unit_price_inclusive_tax)),
                                                 ('Discount', discount),
                                                 ('Taxable Amount', float(taxable_amount)), ('Tax', tax),
                                                 ('City', data.city), ('State', data.state), ('Marketplace', data.marketplace),

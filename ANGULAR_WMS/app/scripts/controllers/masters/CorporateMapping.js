@@ -6,6 +6,7 @@ angular.module('urbanApp', ['datatables'])
 function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
   var vm = this;
   vm.service = Service;
+  vm.session = Session;
 
   vm.distributors = [];
   vm.resellers = [];
@@ -66,6 +67,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.resellers = data.data.data;
       }
     });
+  }
+
+  vm.selected = {};
+  vm.get_corporate_data = function(item, model, label, event) {
+    vm.corporates = [];
+    vm.search_corporate = vm.service.search_key;
+    vm.corporates = vm.service.search_res;
   }
 
   vm.submit = submit;

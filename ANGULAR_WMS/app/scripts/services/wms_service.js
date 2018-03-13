@@ -25,6 +25,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
                   }
 
     vm.reports = {};
+    vm.search_res = [];
 
     vm.price_format = function(a){
 
@@ -520,6 +521,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
     //search input
     vm.getSearchValues = function(val,url,extra) {
       var type = "";
+      vm.search_res = [];
       if (extra) {
         type = extra;
       }
@@ -534,6 +536,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
           results = results.slice(0,7);
         }
         return results.map(function(item){
+          vm.search_res.push(item);
           return item;
         });
       });

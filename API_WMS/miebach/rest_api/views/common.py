@@ -6019,11 +6019,14 @@ def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_obj
                 min_qty, max_qty, price = each_map['min_unit_range'], each_map['max_unit_range'], each_map['price']
                 if min_qty <= total_qty <= max_qty:
                     order_data['unit_price'] = price
-                    order_data['invoice_amount'] = qty * price
+                    invoice_amount = get_tax_inclusive_invoice_amt(cm_id, price, qty, user_id, sku_code, admin_user)
+                    order_data['invoice_amount'] = invoice_amount
                     break
                 elif max_qty >= highest_max:
                     order_data['unit_price'] = price
-                    order_data['invoice_amount'] = qty * price
+                    invoice_amount = get_tax_inclusive_invoice_amt(cm_id, price, qty, user_id, sku_code, admin_user)
+                    order_data['invoice_amount'] = invoice_amount
+
 
         dist_order_copy = copy.copy(order_data)
         # dist_order_copy['user'] = user_id

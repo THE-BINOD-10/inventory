@@ -301,7 +301,7 @@ var app = angular.module('urbanApp')
            })
         .state('app.masters.CorporateMapping', {
           url: '/CorporateMapping',
-          permission: 'add_corporatemaster',
+          permission: 'add_corpresellermapping',
           templateUrl: 'views/masters/corporate_mapping.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {

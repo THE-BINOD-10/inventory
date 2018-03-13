@@ -58,7 +58,7 @@
                 </div>
                 <div class="widget-details col-md-7 col-sm-7 col-xs-8 text-left">
                   <small class="order-label">SKU Description</small>
-                  <p class="no-margin order-bold detail-black" style="font-size:12px">{{data.sku__sku_desc}}</p><br>
+                  <p class="no-margin order-bold detail-black" style="font-size:12px">{{data.sku__sku_desc}} <strong>({{order_details.level_name}})</strong></p><br>
                   <small class="order-label" ng-if="data.schedule_date"><b>Delivery Schedule Date</b></small>
                   <p class="no-margin order-bold detail-black" style="font-size:12px"><b>{{data.schedule_date}}</b></p>
                 </div>

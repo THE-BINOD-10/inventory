@@ -24,9 +24,23 @@ class TallyAPI:
     def tally_configuration(self):
         tally_config = TallyConfiguration.objects.filter(user=self.user_id).values('company_name', 'stock_group',
                                                                                    'stock_category', 'maintain_bill',
-                                                                                   'automatic_voucher', 'credit_period')
-        tally_config = tally_config[0] if tally_config else {}
+                                                                                   'automatic_voucher', 'credit_period', 'round_off_ledger')
+	tally_config = tally_config[0] if tally_config else {}
         return tally_config
+
+    def round_off_value(self, price):
+	diff_round = abs(int(price) - price)
+	if diff_round >= 0.01:
+	    price = int(price) + 1
+	return price, diff_round
+
+    def handle_updation_date(self, q_obj):
+        updation_date = q_obj.updation_date
+        if not updation_date:
+            updation_date = q_obj.creation_date.strftime('%d/%m/%Y')
+        else:
+            updation_date = q_obj.updation_date.strftime('%d/%m/%Y')
+        return updation_date
 
     def get_sales_invoices(self, request):
         """
@@ -57,7 +71,7 @@ class TallyAPI:
                                                'order__shipment_date', 'order__sku__product_type', 'order__customer_id', \
                                                'order__original_order_id', 'order__sku__sku_desc',
                                                'order__sku__measurement_type',
-                                               'creation_date', 'order__customer_name', 'order_id')
+                                               'updation_date', 'order__customer_name', 'order_id')
 
         invoices = []
         from decimal import Decimal
@@ -75,7 +89,6 @@ class TallyAPI:
                 COD = \
                 COD_obj.values('dispatch_through', 'payment_terms', 'tax_type', 'cgst_tax', 'sgst_tax', 'igst_tax',
                                'invoice_type')[0]
-
             s_obj[key_value]['tally_company_name'] = tally_config.get('company_name', '')
             s_obj[key_value]['voucher_foreign_key'] = obj['invoice_number'] if obj['invoice_number'] else obj[
                 'order__order_id']
@@ -127,9 +140,10 @@ class TallyAPI:
                 party_amount = int(item_obj['billed_qty']) * float(item_obj['rate'])
             total_amount = party_amount + ((party_amount / 100) * party_ledger_total_tax)
             party_ledger_obj['amount'] = total_amount
-
-            s_obj[key_value].setdefault('party_ledger', {})
-            party_ledger_obj['amount'] += s_obj[key_value]['party_ledger'].get('amount', 0)
+	    if 'party_ledger' in s_obj[key_value].keys():
+		s_obj[key_value]['party_ledger']['amount'] += s_obj[key_value]['party_ledger'].get('amount', 0)
+	    else:
+		s_obj[key_value]['party_ledger'] = party_ledger_obj
 
             s_obj[key_value].setdefault('party_ledger_tax', [])
             party_ledger_tax_obj = []
@@ -165,6 +179,17 @@ class TallyAPI:
                 party_ledger_tax_dict['amount'] += amt.charge_amount
                 party_ledger_tax_obj.append(party_ledger_tax_dict)
 
+	    round_amt, diff_round = self.round_off_value(s_obj[key_value]['party_ledger'].get('amount', 0))
+	    if diff_round:
+		party_ledger_tax_dict = {}
+		party_ledger_tax_dict['is_deemeed_positive'] = True
+		party_ledger_tax_dict['entry_rate'] = diff_round
+		party_ledger_tax_dict['amount'] = diff_round
+		party_ledger_tax_dict['name'] = tally_config.get('round_off_ledger', '')
+		party_ledger_tax_obj.append(party_ledger_tax_dict)
+		party_ledger_obj['amount'] = round_amt
+		s_obj[key_value]['party_ledger'].update(party_ledger_obj)
+
             s_obj[key_value]['party_ledger_tax'] = s_obj[key_value]['party_ledger_tax'] + party_ledger_tax_obj
             s_obj[key_value]['voucher_no'] = '' if int(tally_config.get('automatic_voucher', 0)) else obj[
                 'order__order_id']
@@ -178,6 +203,7 @@ class TallyAPI:
             s_obj[key_value]['terms_of_payment'] = COD.get('payment_terms', '')
             s_obj[key_value]['other_reference'] = ''
             s_obj[key_value]['terms_of_delivery_1'] = ''
+            s_obj[key_value]['updation_date'] = self.handle_updation_date(obj)
 
             # added
             s_obj[key_value]['terms_of_delivery_2'] = ''
@@ -199,6 +225,7 @@ class TallyAPI:
 
             s_obj[key_value].setdefault('del_notes', [])
             s_obj[key_value]['del_notes'].append(del_notes)
+
         return HttpResponse(json.dumps(s_obj.values(), cls=DjangoJSONEncoder))
 
     def get_item_master(self, request):
@@ -218,8 +245,10 @@ class TallyAPI:
         send_ids = []
         sku_masters = SKUMaster.objects.filter(user=self.user_id).order_by('updation_date')
         if self.updation_date:
-            sku_masters = sku_masters.filter(Q(updation_date__gt=self.updation_date) | Q(
-                stockdetail__updation_date__gt=self.updation_date)).order_by('updation_date')
+            stock_ids = StockDetail.objects.filter(updation_date__gt=self.updation_date, sku__user=self.user_id).\
+                                        values_list('sku_id', flat=True)
+            sku_masters = sku_masters.filter(Q(updation_date__gt=self.updation_date) |
+                                             Q(id__in=stock_ids)).order_by('updation_date').distinct()
         sku_masters = sku_masters[:1000]
         data_list = []
         for sku_master in sku_masters:
@@ -239,6 +268,7 @@ class TallyAPI:
             data_dict['opening_amt'] = data_dict['opening_qty'] * data_dict['opening_rate']
             data_dict['partNo'] = 'part_' + data_dict['item_name']
             data_dict['description'] = sku_master.sku_desc
+            data_dict['updation_date'] = self.handle_updation_date(sku_master)
             data_dict['sku_code'] = sku_master.sku_code
             data_dict['unit_name'] = sku_master.measurement_type if sku_master.measurement_type else 'nos'
             data_list.append(data_dict)
@@ -299,6 +329,7 @@ class TallyAPI:
             data_dict['pan_no'] = master.pan_number
             data_dict['mobile_no'] = ''
             data_dict['service_tax_no'] = ''
+            data_dict['updation_date'] = self.handle_updation_date(master)
             if master_type == 'customer':
                 credit_period = master.credit_period
                 if not credit_period and tally_config.get('credit_perod', 0):
@@ -355,7 +386,7 @@ class TallyAPI:
                                                      'order__sku__sku_desc', 'quantity', 'damaged_quantity', \
                                                      'sku__measurement_type', 'order__unit_price', 'order__order_id',
                                                      'order__sku__product_type', 'order__state', \
-                                                     'order__customer_id', 'order__user', 'order__address')
+                                                     'order__customer_id', 'order__user', 'order__address', 'updation_date')
         for obj in order_returns_obj:
             order_returns['tally_company_name'] = tally_config.get('company_name', 'Mieone')
             order_returns['voucher_foreign_key'] = obj['return_id']

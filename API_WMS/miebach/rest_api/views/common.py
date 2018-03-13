@@ -3644,7 +3644,6 @@ def get_tally_data(request, user=""):
 @get_admin_user
 def save_tally_data(request, user=""):
     """ Save or Update Tally Configuration Data"""
-
     data = {}
     request_data = copy.deepcopy(request.POST)
     log.info('Save Tally Configuration data for ' + user.username + ' is ' + str(request.POST.dict()))

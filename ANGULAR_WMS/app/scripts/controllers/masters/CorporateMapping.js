@@ -72,7 +72,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.selected = {};
   vm.get_corporate_data = function(item, model, label, event) {
     vm.corporates = [];
-    vm.search_corporate = '';
+    vm.search_corporate = vm.service.search_key;
     vm.corporates = vm.service.search_res;
   }
 

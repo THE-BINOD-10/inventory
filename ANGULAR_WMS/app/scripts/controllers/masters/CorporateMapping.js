@@ -13,6 +13,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.total_items = {};
   vm.reseller = '';
   vm.corp_dict = {};
+  vm.user_type = vm.session.roles.permissions.user_type;
 
   vm.get_corporates = function(res){
     var send = {'reseller': res};
@@ -49,10 +50,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.title = "Reseller Corporate Mapping";
     var res = 0;
     vm.get_corporates(res);
-    vm.service.apiCall("get_distributors/").then(function(data){
+    var send = {'user_type':vm.user_type};
+    vm.service.apiCall("get_distributors/", 'GET', send).then(function(data){
       if(data.message) {
 
-        vm.distributors = data.data.data;
+        vm.distributors = data.data.data.distributors;
+        vm.resellers = data.data.data.resellers;
       }
     });
   }

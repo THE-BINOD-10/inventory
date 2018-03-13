@@ -3224,11 +3224,17 @@ def get_terms_and_conditions(request, user=''):
 @get_admin_user
 def get_distributors(request, user=''):
     ''' Get Distributors list'''
+    user_type = request.GET['user_type']
+    resellers = []
     message = 0
-    distributors =  list(UserGroups.objects.filter(admin_user_id=user.id, user__userprofile__warehouse_type='DIST').values('user_id', 'user__username'))
+    if user_type == 'central_admin':
+        distributors =  list(UserGroups.objects.filter(admin_user_id=user.id, user__userprofile__warehouse_type='DIST').values('user_id', 'user__username'))
+    else:
+        distributors =  list(UserGroups.objects.filter(user_id=user.id).values('user_id', 'user__username'))
+        resellers = list(CustomerMaster.objects.filter(user=distributors[0]['user_id']).values('customer_id', 'name', 'id'))
     if distributors:
         message = 1
-    return HttpResponse(json.dumps({'message':message, 'data': distributors}))
+    return HttpResponse(json.dumps({'message':message, 'data': {'distributors': distributors, 'resellers':resellers}}))
 
 
 @csrf_exempt

@@ -6,6 +6,7 @@ angular.module('urbanApp', ['datatables'])
 function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
   var vm = this;
   vm.service = Service;
+  vm.session = Session;
 
   vm.distributors = [];
   vm.resellers = [];
@@ -71,7 +72,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.selected = {};
   vm.get_corporate_data = function(item, model, label, event) {
     vm.corporates = [];
-    vm.search_corporate = item.name;
+    vm.search_corporate = '';
     vm.corporates = vm.service.search_res;
   }
 

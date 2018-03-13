@@ -521,7 +521,6 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
     //search input
     vm.getSearchValues = function(val,url,extra) {
       var type = "";
-      vm.search_res = [];
       if (extra) {
         type = extra;
       }
@@ -531,6 +530,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
           type: type
         }
       }).then(function(response){
+        vm.search_res = [];
         var results = response.data;
         if (results.length > 7) {
           results = results.slice(0,7);

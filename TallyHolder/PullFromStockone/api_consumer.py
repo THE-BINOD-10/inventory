@@ -49,7 +49,6 @@ def populate_api_customer_data(user_id):
     url = dns + 'GetCustomerMaster/'
     data = {'user_id': user_id}
     upd_date = get_latest_updation_date(CustomerVendorMaster, filter_dict={'client_name': user_id})
-    import pdb;pdb.set_trace()
     if upd_date:
         data['updation_date'] = upd_date
     resp_data = requests.post(url=url, data=data)
@@ -65,7 +64,6 @@ def populate_api_customer_data(user_id):
             else:
                 customer_ins.update(data=data['data'], push_status=0)
         except:
-            #pass
             print traceback.format_exc()
             return traceback.format_exc()
     return 0

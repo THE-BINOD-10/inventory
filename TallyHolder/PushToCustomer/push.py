@@ -17,7 +17,7 @@ def push_to_tally(ip, port, data):
     pass
 
 def push_item_master():
-    resp_data = ItemMaster.objects.filter(push_status__in=[0,9], data__icontains='SKUCODE-1')
+    resp_data = ItemMaster.objects.filter(push_status__in=[0,9])
     for obj in resp_data:
         try:
             print obj.data
@@ -104,6 +104,6 @@ def push_purchase_return_data():
             return tpush_customer_vendor_master()
             return traceback.format_exc()
 
-#push_item_master()
-#push_customer_vendor_master()
+push_item_master()
+push_customer_vendor_master()
 push_sales_invoice_data()

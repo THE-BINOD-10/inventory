@@ -1602,10 +1602,16 @@ def inventory_excel_upload(request, user, data_list):
     mod_locations = []
     putaway_stock_data = {}
     receipt_number = get_stock_receipt_number(user)
+    seller_receipt_dict = {}
     for inventory_data in data_list:
         seller_id = ''
         if 'seller_id' in inventory_data.keys():
             seller_id = inventory_data['seller_id']
+            if str(seller_id) in seller_receipt_dict.keys():
+                receipt_number = seller_receipt_dict[str(seller_id)]
+            else:
+                receipt_number = get_stock_receipt_number(user)
+                seller_receipt_dict[str(seller_id)] = receipt_number
             del inventory_data['seller_id']
         receipt_date = inventory_data['receipt_date']
         if inventory_data.get('sku_id', '') and inventory_data.get('location_id', ''):
@@ -4324,23 +4330,24 @@ def validate_seller_transfer_form(request, reader, user, no_of_rows, no_of_cols,
                 if not location_obj:
                     index_status.setdefault(row_idx, set()).add('Invalid %s' % exc_reverse[key])
                 else:
-                    data_dict[key] = location_obj[0].id
+                    data_dict[key] = location_obj
             elif key == 'quantity':
                 try:
                     data_dict[key] = float(cell_data)
                 except:
                     index_status.setdefault(row_idx, set()).add('%s should be number' % exc_reverse[key])
-        stocks = StockDetail.objects.filter(sku_id=data_dict['sku_id'],
-                                            sellerstock__seller_id=data_dict['source_seller'],
-                                            location_id=data_dict['source_location'], quantity__gt=0,
-                                            sellerstock__quantity__gt=0)
-        data_dict['src_stocks'] = stocks
-        data_dict['dest_stocks'] = StockDetail.objects.filter(sku_id=data_dict['sku_id'],
-                                            sellerstock__seller_id=data_dict['dest_seller'],
-                                            location_id=data_dict['dest_location'])
-        avail_qty = check_auto_stock_availability(stocks, user)
-        if data_dict['quantity'] > avail_qty:
-            index_status.setdefault(row_idx, set()).add('Available quantity is %s' % str(avail_qty))
+        if not index_status:
+            stocks = StockDetail.objects.filter(sku_id=data_dict['sku_id'],
+                                                sellerstock__seller_id=data_dict['source_seller'],
+                                                location_id=data_dict['source_location'][0].id, quantity__gt=0,
+                                                sellerstock__quantity__gt=0)
+            data_dict['src_stocks'] = stocks
+            data_dict['dest_stocks'] = StockDetail.objects.filter(sku_id=data_dict['sku_id'],
+                                                sellerstock__seller_id=data_dict['dest_seller'],
+                                                location_id=data_dict['dest_location'][0].id)
+            avail_qty = check_auto_stock_availability(stocks, user)
+            if data_dict['quantity'] > avail_qty:
+                index_status.setdefault(row_idx, set()).add('Available quantity is %s' % str(avail_qty))
         all_data_list.append(data_dict)
 
     if index_status:
@@ -4365,8 +4372,8 @@ def update_seller_transer_upload(user, data_list):
                                           transact_type='stock_transfer', creation_date=datetime.datetime.now())
             trans_mapping[group_key] = seller_transfer.id
         seller_st_dict = {'seller_transfer_id': trans_mapping[group_key], 'sku_id': data_dict['sku_id'],
-                          'source_location_id': data_dict['source_location'],
-                          'dest_location_id': data_dict['dest_location'], 'quantity': data_dict['quantity'],
+                          'source_location_id': data_dict['source_location'][0].id,
+                          'dest_location_id': data_dict['dest_location'][0].id, 'quantity': data_dict['quantity'],
                           'creation_date': datetime.datetime.now()}
         seller_st_obj = SellerStockTransfer(**seller_st_dict)
         stock_transfer_objs.append(seller_st_obj)

@@ -511,6 +511,25 @@
       </div>
     </div>
 
+    <div ng-if="showCase.style_pro.pack">
+      <div class="row mb10 mt20 shaded-title">
+        <div class="col-md-4 col-sm-4 col-xs-4"></div>
+        <div class="col-md-4 col-sm-4 col-xs-4">
+          <p align="center">Product Packaging</p>
+        </div>
+        <div class="col-md-4 col-sm-4 col-xs-4">
+          <toggle ng-model="showCase.customData.pack.pack" on="Yes" off="No" onstyle="btn-success" offstyle="btn-success" class="toggle"></toggle>
+        </div>
+      </div>
+      <div class="row mb10" ng-if="showCase.customData.pack.pack">
+        <div class="col-md-12">
+          <select name="label" class="form-control" style="margin: auto;width: 200px;display: block;" ng-model="showCase.customData.pack.pack_type">
+            <option value="{{pack}}" ng-selected="pack == showCase.customData.pack.pack_type" ng-repeat="pack in showCase.customData.pack.pack_types">{{pack}}</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
       <div class="row shaded-title mb10 mt20">
         <div class="col-md-4"></div>
         <div class="col-md-4">

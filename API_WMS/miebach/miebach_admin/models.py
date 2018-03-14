@@ -2491,6 +2491,8 @@ class GroupPermMapping(models.Model):
     perm_value = models.CharField(max_length=64, default='')
     sequence = models.IntegerField(default=0)
     status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'GROUP_PERM_MAPPING'

@@ -1279,6 +1279,7 @@ class CustomerOrderSummary(models.Model):
     sgst_tax = models.FloatField(default=0)
     igst_tax = models.FloatField(default=0)
     utgst_tax = models.FloatField(default=0)
+    invoice_type = models.CharField(max_length=64, default='Tax Invoice')
 
     class Meta:
         db_table = 'CUSTOMER_ORDER_SUMMARY'
@@ -1906,6 +1907,7 @@ class TallyConfiguration(models.Model):
     maintain_bill = models.IntegerField(default=0)
     automatic_voucher = models.IntegerField(default=0)
     credit_period = models.IntegerField(default=0)
+    round_off_ledger = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -1927,7 +1929,8 @@ class TallyConfiguration(models.Model):
             'stock_category': self.stock_category,
             'maintain_bill': int(self.maintain_bill),
             'automatic_voucher': int(self.automatic_voucher),
-            'credit_period': self.credit_period
+            'credit_period': self.credit_period,
+            'round_off_ledger': self.round_off_ledger,
         }
 
 
@@ -2488,6 +2491,8 @@ class GroupPermMapping(models.Model):
     perm_value = models.CharField(max_length=64, default='')
     sequence = models.IntegerField(default=0)
     status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'GROUP_PERM_MAPPING'

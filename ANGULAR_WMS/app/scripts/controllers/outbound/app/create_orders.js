@@ -1365,6 +1365,7 @@ angular.module('urbanApp').controller('downloadPDFCtrl', function ($modalInstanc
 
     data['terms_list'] = terms_list.join('<>');
     data['user_type'] = Session.roles.permissions.user_type;
+    data['display_stock'] = vm.pdfData.display_stock;
     Service.apiCall("get_sku_catalogs/", "POST", data).then(function(response) {
       if(response.message) {
         window.open(Session.host + response.data, '_blank');

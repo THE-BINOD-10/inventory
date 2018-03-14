@@ -112,7 +112,6 @@ def push_purchase_return_data():
             print status
         except:
             print traceback.format_exc()
-            return tpush_customer_vendor_master()
             return traceback.format_exc()
 
 push_item_master()

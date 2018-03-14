@@ -33,13 +33,11 @@ def populate_api_item_data(user_id):
         data['updation_date'] = upd_date
     resp_data = requests.post(url=url, data=data)
     for obj in resp_data.json():
-        print obj
         try:
             data = {'client_name': user_id, 'item_code': obj['sku_code'],
                     'ip': '', 'port': '', 'data': json.dumps(obj), 'push_status': 0,
                     }
             item_ins = ItemMaster.objects.filter(item_code=data['item_code'], client_name=user_id)
-            print obj
             if not item_ins:
                 status = ItemMaster(**data)
                 status.save()
@@ -61,7 +59,6 @@ def populate_api_customer_data(user_id):
         data['updation_date'] = upd_date
     resp_data = requests.post(url=url, data=data)
     for obj in resp_data.json():
-        print obj
         try:
             data = {'client_name': str(user_id), 'customer_id': obj['ledger_name'],
                     'ip': '', 'port': '', 'data': json.dumps(obj), 'push_status': 0,
@@ -105,7 +102,6 @@ def populate_api_sales_invoice_data(user_id):
         data['updation_date'] = upd_date
     resp_data = requests.post(url=url, data=data)
     for obj in resp_data.json():
-        print obj
         try:
             data = {'client_name': user_id, 'invoice_num': obj['voucher_no'],
                     'ip': '', 'port': '', 'data': json.dumps(obj), 'push_status': 0, 'order_id': obj['voucher_foreign_key']
@@ -124,7 +120,6 @@ def populate_api_sales_returns_data():
     url = dns + 'GetSalesReturns/'
     resp_data = requests.post(url=url, data={})
     for obj in resp_data.json():
-        print obj
         try:
             data = {'client_name': obj['tally_company_name'], 'customer_id': obj['invoice_num'],
                     'ip': '', 'port': '', 'data': json.dumps(obj), 'push_status': 0, 'order_id': obj['order_id']

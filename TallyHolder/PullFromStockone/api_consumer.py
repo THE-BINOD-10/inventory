@@ -9,10 +9,13 @@ import datetime
 import requests
 import traceback
 import json
+
 from django.db.models import Max
 from PullFromStockone.models import *
+from tally.tally.logger_file import *
 
-#dns = 'http://94.130.136.118:8988/rest_api/'
+log = init_logger('logs/stockone_to_db.log')
+
 dns = 'http://beta.stockone.in:8988/rest_api/'
 
 def get_latest_updation_date(model_name, filter_dict={}):
@@ -22,6 +25,7 @@ def get_latest_updation_date(model_name, filter_dict={}):
     return str(updated_date)
 
 def populate_api_item_data(user_id):
+    log.info('------Item Master started Data transfer to Local DB-----')
     url = dns + 'GetItemMaster/'
     data = {'user_id': user_id}
     upd_date = get_latest_updation_date(ItemMaster, filter_dict={'client_name': user_id})
@@ -29,6 +33,7 @@ def populate_api_item_data(user_id):
         data['updation_date'] = upd_date
     resp_data = requests.post(url=url, data=data)
     for obj in resp_data.json():
+        print obj
         try:
             data = {'client_name': user_id, 'item_code': obj['sku_code'],
                     'ip': '', 'port': '', 'data': json.dumps(obj), 'push_status': 0,
@@ -41,11 +46,14 @@ def populate_api_item_data(user_id):
             else:
                 item_ins.update(data=data['data'], push_status=0, updated_at=str(datetime.datetime.now()))
         except:
-            print traceback.format_exc()
+            log.info('------Item Master Error Occured-----')
+            log.debug(traceback.format_exc())
             return traceback.format_exc()
+    log.info('------Item Master Data transfer Completed-----')
     return 0
 
 def populate_api_customer_data(user_id):
+    log.info('------Customer Master started Data transfer to Local DB-----')
     url = dns + 'GetCustomerMaster/'
     data = {'user_id': user_id}
     upd_date = get_latest_updation_date(CustomerVendorMaster, filter_dict={'client_name': user_id})
@@ -53,6 +61,7 @@ def populate_api_customer_data(user_id):
         data['updation_date'] = upd_date
     resp_data = requests.post(url=url, data=data)
     for obj in resp_data.json():
+        print obj
         try:
             data = {'client_name': str(user_id), 'customer_id': obj['ledger_name'],
                     'ip': '', 'port': '', 'data': json.dumps(obj), 'push_status': 0,
@@ -64,8 +73,10 @@ def populate_api_customer_data(user_id):
             else:
                 customer_ins.update(data=data['data'], push_status=0)
         except:
-            print traceback.format_exc()
+            log.info('------Customer Master Error Occured-----')
+            log.debug(traceback.format_exc())
             return traceback.format_exc()
+    log.info('------Customer Master Data transfer completed-----')
     return 0
 
 
@@ -73,7 +84,6 @@ def populate_api_supplier_data():
     url = dns + 'GetSupplierMaster/'
     resp_data = requests.post(url=url, data={})
     for obj in resp_data.json():
-        print(obj)
         try:
             data = {'client_name': obj['tally_company_name'], 'customer_id': obj['sku_code'],
                     'ip': '', 'port': '', 'data': json.dumps(obj), 'push_status': 0,
@@ -87,6 +97,7 @@ def populate_api_supplier_data():
 
 
 def populate_api_sales_invoice_data(user_id):
+    log.info('------Sales Invoice started Data transfer to Local DB-----')
     url = dns + 'GetSalesInvoices/'
     data = {'user_id': user_id}
     upd_date = get_latest_updation_date(SalesInvoice, filter_dict={'client_name': user_id})
@@ -102,8 +113,10 @@ def populate_api_sales_invoice_data(user_id):
             status = SalesInvoice(**data)
             status.save()
         except:
-            print traceback.format_exc()
-            #return traceback.format_exc()
+            log.info('------Sales Invoice Error Occured-----')
+            log.debug(traceback.format_exc())
+            return traceback.format_exc()
+    log.info('------Sales Invoice Data transfer Completed-----')
     return 0
 
 
@@ -120,7 +133,7 @@ def populate_api_sales_returns_data():
             status.save()
         except:
             print traceback.format_exc()
-            #return traceback.format_exc()
+            return traceback.format_exc()
     return 0
 
 
@@ -153,13 +166,6 @@ def populate_api_purchase_returns_data():
             return traceback.format_exc()
     return status
 
-
-populate_api_item_data(3)
-
-#populate_api_customer_data(3)
-
-#populate_api_sales_invoice_data(3)
-
-#populate_api_sales_returns_data(3)
-
-#populate_api_supplier_data()
+populate_api_item_data(12)
+populate_api_customer_data(12)
+populate_api_sales_invoice_data(12)

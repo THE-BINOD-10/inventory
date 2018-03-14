@@ -629,7 +629,6 @@ function CreateCustomOrder($scope, $http, $state, Session, colFilters, Service, 
             vm.customData.embroidery.placeImgs[args.url.split(":")[0]] = base64Data;
           }
         }
-        //$scope.$apply();
       });
     });
   });

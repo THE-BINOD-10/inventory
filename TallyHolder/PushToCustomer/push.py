@@ -17,9 +17,10 @@ def push_to_tally(ip, port, data):
     pass
 
 def push_item_master():
-    resp_data = ItemMaster.objects.filter(push_status__in=[0,9])
+    resp_data = ItemMaster.objects.filter(push_status__in=[0,9], data__icontains='SKUCODE-1')
     for obj in resp_data:
         try:
+            print obj.data
             d = json.loads(obj.data)
             status = bridge.item_master(d)
             obj.push_status = 1
@@ -100,9 +101,9 @@ def push_purchase_return_data():
             print status
         except:
             print traceback.format_exc()
+            return tpush_customer_vendor_master()
             return traceback.format_exc()
 
-push_item_master()
-push_customer_vendor_master()
-push_sales_invoice_data()
+#push_item_master()
+#push_customer_vendor_master()
 push_sales_invoice_data()

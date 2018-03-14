@@ -296,7 +296,6 @@ class OrderFields(models.Model):
     original_order_id = models.CharField(max_length=128, default='')
     name = models.CharField(max_length=256, default='')
     value = models.CharField(max_length=256, default='')
-    user = models.PositiveIntegerField()
 
     class Meta:
         db_table = 'ORDER_FIELDS'
@@ -376,6 +375,7 @@ class PurchaseOrder(models.Model):
     prefix = models.CharField(max_length=32, default='')
     remarks = models.TextField(default='')
     expected_date = models.DateField(blank=True, null=True)
+    remainder_mail = models.IntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -1279,6 +1279,7 @@ class CustomerOrderSummary(models.Model):
     sgst_tax = models.FloatField(default=0)
     igst_tax = models.FloatField(default=0)
     utgst_tax = models.FloatField(default=0)
+    invoice_type = models.CharField(max_length=64, default='Tax Invoice')
 
     class Meta:
         db_table = 'CUSTOMER_ORDER_SUMMARY'
@@ -1906,6 +1907,7 @@ class TallyConfiguration(models.Model):
     maintain_bill = models.IntegerField(default=0)
     automatic_voucher = models.IntegerField(default=0)
     credit_period = models.IntegerField(default=0)
+    round_off_ledger = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -1927,7 +1929,8 @@ class TallyConfiguration(models.Model):
             'stock_category': self.stock_category,
             'maintain_bill': int(self.maintain_bill),
             'automatic_voucher': int(self.automatic_voucher),
-            'credit_period': self.credit_period
+            'credit_period': self.credit_period,
+            'round_off_ledger': self.round_off_ledger,
         }
 
 
@@ -2488,7 +2491,41 @@ class GroupPermMapping(models.Model):
     perm_value = models.CharField(max_length=64, default='')
     sequence = models.IntegerField(default=0)
     status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'GROUP_PERM_MAPPING'
         unique_together = ('group', 'perm_type', 'perm_value')
+
+
+class SellerTransfer(models.Model):
+    id = BigAutoField(primary_key=True)
+    source_seller = models.ForeignKey(SellerMaster)
+    dest_seller = models.ForeignKey(SellerMaster, related_name='destination')
+    transact_id = models.DecimalField(max_digits=20, decimal_places=0, db_index=True, default=0)
+    transact_type = models.CharField(max_length=32)
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'SELLER_TRANSFER'
+        unique_together = ('source_seller', 'dest_seller', 'transact_id')
+        index_together = ('source_seller', 'dest_seller', 'transact_id')
+
+
+class SellerStockTransfer(models.Model):
+    id = BigAutoField(primary_key=True)
+    seller_transfer = models.ForeignKey(SellerTransfer)
+    sku = models.ForeignKey(SKUMaster)
+    source_location = models.ForeignKey(LocationMaster)
+    dest_location = models.ForeignKey(LocationMaster, related_name='dest_location')
+    quantity = models.PositiveIntegerField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'SELLER_STOCK_TRANSFER'
+        unique_together = ('seller_transfer', 'sku', 'source_location', 'dest_location')
+        index_together = ('seller_transfer', 'sku', 'source_location', 'dest_location')

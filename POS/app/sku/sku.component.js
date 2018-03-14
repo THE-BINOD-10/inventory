@@ -89,7 +89,12 @@
           }
         }).error(function() {
           $(".preloader").removeClass("ng-show").addClass("ng-hide");
-        });
+        }).catch(function(error){
+		angular.forEach(self.skus, function(value, index) {
+			self.changeQuantity(value);
+		});
+		console.log("no network");
+	});
       //Session.roles.permissions[switch_name] = switch_value;
     }
 

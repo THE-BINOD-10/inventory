@@ -1095,7 +1095,7 @@ def update_picklist_pallet(stock, picking_count1):
     pallet.save()
 
 
-def send_picklist_mail(picklists, request, user, pdf_file, misc_detail, data_qt=""):
+def send_picklist_mail(picklists, request, user, pdf_file, misc_detail, data_qt="", from_pos=False):
     picklist_order_ids_list = []
     reciever = []
     internal_mail = MiscDetail.objects.filter(user=user.id, misc_type='Internal Emails')
@@ -1134,8 +1134,12 @@ def send_picklist_mail(picklists, request, user, pdf_file, misc_detail, data_qt=
         reciever.append(email)
     if reciever:
         try:
+            tmp_invoice_date = get_local_date(user, picklist.updation_date, send_date='true')
+            tmp_invoice_date = str(tmp_invoice_date.strftime('%m%y'))
+            tmp_order_id = 'TI/' + tmp_invoice_date + '/' + picklist.order.original_order_id if from_pos else\
+                           'TI/' + tmp_invoice_date + '/' + str(picklist.order.order_id)
             send_mail_attachment(reciever, '%s : Invoice No.%s' % (
-            user_data.company_name, 'TI/1116/' + str(picklist.order.order_id)), rendered, files=[pdf_file])
+            user_data.company_name, tmp_order_id), rendered, files=[pdf_file])
         except:
             log.info('mail issue')
 
@@ -1164,7 +1168,7 @@ def get_picklist_batch(picklist, value, all_picklists):
     return picklist_batch
 
 
-def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail):
+def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail, from_pos=False):
     misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='dispatch', misc_value='true')
 
     # order_ids = list(set(map(lambda d: d['order_id'], picklists_send_mail[0])))
@@ -1177,7 +1181,8 @@ def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
                 order_ids = [str(int(i)) for i in order_ids_list]
                 order_ids = ','.join(order_ids)
 
-            nv_data = get_invoice_data(order_ids, user, picklists_send_mail[order_id])
+
+            nv_data = get_invoice_data(order_ids, user, picklists_send_mail[order_id], from_pos=from_pos)
             nv_data = modify_invoice_data(nv_data, user)
             ord_ids = order_ids.split(",")
             nv_data = add_consignee_data(nv_data, ord_ids, user)
@@ -1197,7 +1202,8 @@ def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
             file_.close()
             os.system("./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (file_name, pdf_file))
 
-            send_picklist_mail(all_picked_items, request, user, pdf_file, misc_detail, picklists_send_mail[order_id])
+            send_picklist_mail(all_picked_items, request, user, pdf_file, misc_detail,\
+                               picklists_send_mail[order_id], from_pos=from_pos)
             if picklist.picked_quantity > 0 and picklist.order and misc_detail:
                 if picklist.order.telephone:
                     order_dispatch_message(picklist.order, user, picklists_send_mail[order_id])
@@ -2943,7 +2949,8 @@ def split_orders(**order_data):
 def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, custom_order):
     continue_list = ['payment_received', 'charge_name', 'charge_amount', 'custom_order', 'user_type', 'invoice_amount',
                      'description', 'extra_data', 'location', 'serials', 'direct_dispatch', 'seller_id', 'sor_id',
-                     'ship_to', 'client_name', 'po_number', 'corporate_po_number', 'address_selected', 'is_sample']
+                     'ship_to', 'client_name', 'po_number', 'corporate_po_number', 'address_selected', 'is_sample',
+                     'invoice_type']
     inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
     order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
     sku_master = {}
@@ -3077,7 +3084,7 @@ def send_mail_ordered_report(order_detail, telephone, items, other_charge_amount
         if not telephone:
             telephone = order_data.get('telephone', "")
         if telephone:
-            order_creation_message(items, telephone, (order_detail.order_code) + str(order_detail.order_id),
+            order_creation_message(items, telephone, str(order_detail.order_id),
                                    other_charges=other_charge_amounts)
 
 
@@ -3142,6 +3149,7 @@ def insert_order_data(request, user=''):
     corporate_po_number = request.POST.get('corporate_po_number', '')
     address_selected = request.POST.get('address_selected', '')
     is_sample = request.POST.get('is_sample', '')
+    invoice_type = request.POST.get('invoice_type', '')
 
     created_order_id = ''
     ex_image_url = {}
@@ -3192,6 +3200,7 @@ def insert_order_data(request, user=''):
             if not order_data['sku_id'] or not order_data['quantity']:
                 continue
 
+            order_summary_dict['invoice_type'] = invoice_type
             if admin_user:
                 if user_type == 'customer':
                     order_data = get_order_customer_details(order_data, request)
@@ -4948,15 +4957,18 @@ def get_seller_order_details(request, user=''):
 
     order_details = seller_data
     seller_details = seller_data[0].seller.json()
-    row_id = order_details[0].id
+    row_id = order_details[0].order_id
 
     custom_data = OrderJson.objects.filter(order_id=row_id)
     status_obj = ''
     central_remarks = ''
+    invoice_types = get_invoice_types(user)
+    invoice_type = ''
     customer_order_summary = CustomerOrderSummary.objects.filter(order_id=row_id)
     if customer_order_summary:
         status_obj = customer_order_summary[0].status
         central_remarks = customer_order_summary[0].central_remarks
+        invoice_type = customer_order_summary[0].invoice_type
 
     data_dict = []
     cus_data = []
@@ -4972,6 +4984,14 @@ def get_seller_order_details(request, user=''):
     for attr in attr_list:
         tuple_data = (attr['attribute_name'], attr['attribute_value'])
         cus_data.append(tuple_data)
+    tax_type = ''
+    inter_state = 2
+    if customer_order_summary:
+        inter_state = customer_order_summary[0].inter_state
+        if customer_order_summary[0].inter_state == 0:
+            tax_type = 'intra_state'
+        elif customer_order_summary[0].inter_state == 1:
+            tax_type = 'inter_state'
     for one_order in order_details:
         quantity = one_order.quantity
         one_order = one_order.order
@@ -5018,6 +5038,30 @@ def get_seller_order_details(request, user=''):
             if order_json:
                 sku_extra_data = eval(order_json[0].json_data)
 
+        customer_order = one_order.customerordersummary_set.filter()
+        sgst_tax = 0
+        cgst_tax = 0
+        igst_tax = 0
+        discount_percentage = 0
+        if customer_order:
+            sgst_tax = customer_order[0].sgst_tax
+            cgst_tax = customer_order[0].cgst_tax
+            igst_tax = customer_order[0].igst_tax
+            discount_percentage = 0
+            if (quantity * one_order.unit_price):
+                discount_percentage = float(
+                    "%.1f" % (float((customer_order[0].discount * 100) / (quantity * one_order.unit_price))))
+
+        tax_masters = TaxMaster.objects.filter(user_id=user.id, product_type=one_order.sku.product_type,
+                                               inter_state=inter_state)
+        taxes_data = []
+        for tax_master in tax_masters:
+            taxes_data.append(tax_master.json())
+
+        if order_id:
+            order_charge_obj = OrderCharges.objects.filter(user_id=user.id, order_id=order_id)
+            order_charges = list(order_charge_obj.values('charge_name', 'charge_amount', 'id'))
+
         order_details_data.append(
             {'product_title': product_title, 'quantity': quantity, 'invoice_amount': invoice_amount, 'remarks': remarks,
              'cust_id': customer_id, 'cust_name': customer_name, 'phone': phone, 'email': email, 'address': address,
@@ -5028,9 +5072,13 @@ def get_seller_order_details(request, user=''):
              'order_id_code': one_order.order_code + str(one_order.order_id),
              'print_vendor': vend_dict['printing_vendor'],
              'embroidery_vendor': vend_dict['embroidery_vendor'], 'production_unit': vend_dict['production_unit'],
-             'sku_extra_data': sku_extra_data})
+             'sku_extra_data': sku_extra_data, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax, 'igst_tax': igst_tax,
+             'unit_price': one_order.unit_price, 'discount_percentage': discount_percentage, 'taxes': taxes_data,
+             'order_charges': order_charges,
+             'sku_status': one_order.status})
     data_dict.append({'cus_data': cus_data, 'status': status_obj, 'ord_data': order_details_data,
-                      'central_remarks': central_remarks, 'seller_details': seller_details})
+                      'central_remarks': central_remarks, 'seller_details': seller_details,
+                      'invoice_type': invoice_type, 'invoice_types': invoice_types})
 
     return HttpResponse(json.dumps({'data_dict': data_dict}))
 
@@ -5072,9 +5120,12 @@ def get_view_order_details(request, user=''):
     status_obj = ''
     central_remarks = ''
     customer_order_summary = CustomerOrderSummary.objects.filter(order_id=row_id)
+    invoice_types = get_invoice_types(user)
+    invoice_type = ''
     if customer_order_summary:
         status_obj = customer_order_summary[0].status
         central_remarks = customer_order_summary[0].central_remarks
+        invoice_type = customer_order_summary[0].invoice_type
 
     cus_data = []
     order_details_data = []
@@ -5190,7 +5241,8 @@ def get_view_order_details(request, user=''):
     if status_obj in view_order_status:
         view_order_status = view_order_status[view_order_status.index(status_obj):]
     data_dict.append({'cus_data': cus_data, 'status': status_obj, 'ord_data': order_details_data,
-                      'central_remarks': central_remarks, 'all_status': view_order_status, 'tax_type': tax_type})
+                      'central_remarks': central_remarks, 'all_status': view_order_status, 'tax_type': tax_type,
+                      'invoice_type': invoice_type, 'invoice_types': invoice_types})
 
     return HttpResponse(json.dumps({'data_dict': data_dict}))
 
@@ -5423,8 +5475,9 @@ def update_payment_status(request, user=''):
 def create_orders_data(request, user=''):
     tax_types = copy.deepcopy(TAX_VALUES)
     tax_types.append({'tax_name': 'DEFAULT', 'tax_value': ''})
-
-    return HttpResponse(json.dumps({'payment_mode': PAYMENT_MODES, 'taxes': tax_types}))
+    invoice_types = get_invoice_types(user)
+    return HttpResponse(json.dumps({'payment_mode': PAYMENT_MODES, 'taxes': tax_types,
+                                    'invoice_types': invoice_types}))
 
 
 @csrf_exempt
@@ -5939,12 +5992,13 @@ def update_order_data(request, user=""):
                                                         mrp=old_cust_obj[0].mrp, tax_type=old_cust_obj[0].tax_type,
                                                         status=old_cust_obj[0].status,
                                                         central_remarks=old_cust_obj[0].central_remarks,
-                                                        sgst_tax=sgst_tax, cgst_tax=cgst_tax, igst_tax=igst_tax)
+                                                        sgst_tax=sgst_tax, cgst_tax=cgst_tax, igst_tax=igst_tax,
+                                                        invoice_type=myDict['invoice_type'][0])
                 else:
                     CustomerOrderSummary.objects.create(order=order_obj, status=myDict['status_type'][0],
                                                         central_remarks=myDict['central_remarks'][0], sgst_tax=sgst_tax,
                                                         cgst_tax=cgst_tax, igst_tax=igst_tax, discount=discount,
-                                                        tax_type=tax_type)
+                                                        tax_type=tax_type, invoice_type=myDict['invoice_type'][0])
             else:
                 status_obj = old_cust_obj
                 if not status_obj:
@@ -5958,6 +6012,7 @@ def update_order_data(request, user=""):
                 status_obj.igst_tax = igst_tax
                 status_obj.discount = discount
                 status_obj.tax_type = tax_type
+                status_obj.invoice_type = myDict['invoice_type'][0]
                 status_obj.save()
 
                 vendor_list = ['printing_vendor', 'embroidery_vendor', 'production_unit']
@@ -6688,7 +6743,7 @@ def get_customer_cart_data(request, user=""):
                         enq_qty = 0
                     avail_stock = stock_qty - reserved_qty - enq_qty
                     tot_avail_stock = tot_avail_stock + avail_stock
-                json_record['avail_stock'] = tot_avail_stock
+                #json_record['avail_stock'] = tot_avail_stock
                 # level = json_record['warehouse_level']
                 if is_distributor:
                     if price_type:
@@ -6740,6 +6795,8 @@ def get_customer_cart_data(request, user=""):
             json_record['del_date'] = del_date
 
             response['data'].append(json_record)
+    response['invoice_types'] = get_invoice_types(user)
+
     return HttpResponse(json.dumps(response, cls=DjangoJSONEncoder))
 
 

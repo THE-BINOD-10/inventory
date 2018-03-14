@@ -61,7 +61,7 @@
         <img ng-src="{{ showCase.service.check_image_url(showCase.categories_details[cat]) }}" style="border:0px !important;width: 100%;padding: 0px;" class="img-thumbnail hide">
         <img ng-src="{{ showCase.get_category_image(cat) }}" style="border:0px !important;width: 100%;padding: 0px;cursor: pointer;background: transparent" class="img-thumbnail">
         <br>
-        <div ng-if="!showCase.category_image_map[cat]">
+        <div ng-if="showCase.get_category_image(cat) == '/images/categories/default.png'">
           <p class="style_name" style="font-size: 16px;position: absolute;bottom: 15px;width: 100%;" title="{{ item.sku_class }}">{{cat}}</p>
         </div>
       </div>

@@ -1,7 +1,7 @@
-activate_this = 'C:\\Users\\Headrun\\Downloads\\TallyHolder\\TallyHolder\\headrunvenv\\Scripts\\activate_this.py'
+activate_this = 'C:\\Users\stockone\\Downloads\\Project\\WMS_ANGULAR\\TallyHolder\\stockone\\Scripts\\activate_this.py'
 execfile(activate_this, dict(__file__=activate_this))
 import os, sys
-sys.path.append('C:\\Users\\Headrun\\Downloads\\TallyHolder\\TallyHolder\\TallyHolder')
+sys.path.append('C:\\Users\\stockone\\Downloads\\Project\\WMS_ANGULAR\\TallyHolder')
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "TallyHolder.settings")
 import django
 django.setup()
@@ -161,6 +161,6 @@ def populate_api_purchase_returns_data():
             return traceback.format_exc()
     return status
 
-populate_api_item_data(12)
-populate_api_customer_data(12)
+#populate_api_item_data(12)
+#populate_api_customer_data(12)
 populate_api_sales_invoice_data(12)

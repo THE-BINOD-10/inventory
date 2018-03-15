@@ -79,9 +79,9 @@ WSGI_APPLICATION = 'TallyHolder.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'STOCKONE',
+        'NAME': 'stockone',
         'USER': 'root',
-        'PASSWORD': 'stockone^123',
+        'PASSWORD': 'stockone@123',
         'HOST': 'localhost',
     }
 }

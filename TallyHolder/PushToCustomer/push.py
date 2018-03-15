@@ -1,7 +1,7 @@
-activate_this = 'C:\\Users\\Headrun\\Downloads\\TallyHolder\\TallyHolder\\headrunvenv\\Scripts\\activate_this.py'
+activate_this = 'C:\\Users\stockone\\Downloads\\Project\\WMS_ANGULAR\\TallyHolder\\stockone\\Scripts\\activate_this.py'
 execfile(activate_this, dict(__file__=activate_this))
 import os, sys
-sys.path.append('C:\\Users\\Headrun\\Downloads\\TallyHolder\\TallyHolder\\TallyHolder')
+sys.path.append('C:\\Users\\stockone\\Downloads\\Project\\WMS_ANGULAR\\TallyHolder')
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "TallyHolder.settings")
 import django
 django.setup()
@@ -13,7 +13,7 @@ from tally.tally.common_exceptions import *
 from PullFromStockone.models import *
 from tally.tally.logger_file import *
 
-bridge = TallyBridgeApp(dll="C:\\Users\\Headrun\\Downloads\\TallyHolder\\TallyHolder\\TallyHolder\\tally\\DLL\\TallyBridgeDll.dll")
+bridge = TallyBridgeApp(dll="C:\\Users\\stockone\\Downloads\\Project\\WMS_ANGULAR\\TallyHolder\\tally\\DLL\\TallyBridgeDll.dll")
 
 log = init_logger('logs/db_to_tally.log')
 
@@ -32,7 +32,7 @@ def push_item_master():
             obj.save()
         except TallyDataTransferError:
             print traceback.format_exc()
-            if 'Duplicate Entry!' in TallyDataTransferError['message'] or 'already exists' in TallyDataTransferError['message']:
+            if 'Duplicate Entry!' in TallyDataTransferError.message or 'already exists' in TallyDataTransferError.message:
                 obj.push_status = 1
                 obj.save()
             pass
@@ -114,6 +114,6 @@ def push_purchase_return_data():
             print traceback.format_exc()
             return traceback.format_exc()
 
-push_item_master()
-push_customer_vendor_master()
+#push_item_master()
+#push_customer_vendor_master()
 push_sales_invoice_data()

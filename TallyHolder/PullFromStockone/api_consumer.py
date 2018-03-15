@@ -42,7 +42,7 @@ def populate_api_item_data(user_id):
                 status = ItemMaster(**data)
                 status.save()
             else:
-                item_ins.update(data=data['data'], push_status=0, updated_at=str(datetime.datetime.now()))
+                item_ins.update(data=data['data'], push_status=0, updated_at=str(obj.updation_date))
         except:
             log.info('------Item Master Error Occured-----')
             log.debug(traceback.format_exc())
@@ -68,7 +68,7 @@ def populate_api_customer_data(user_id):
                 status = CustomerVendorMaster(**data)
                 status.save()
             else:
-                customer_ins.update(data=data['data'], push_status=0)
+                customer_ins.update(data=data['data'], push_status=0, updated_at=str(obj.updation_date))
         except:
             log.info('------Customer Master Error Occured-----')
             log.debug(traceback.format_exc())
@@ -102,12 +102,17 @@ def populate_api_sales_invoice_data(user_id):
         data['updation_date'] = upd_date
     resp_data = requests.post(url=url, data=data)
     for obj in resp_data.json():
+
         try:
             data = {'client_name': user_id, 'invoice_num': obj['voucher_no'],
                     'ip': '', 'port': '', 'data': json.dumps(obj), 'push_status': 0, 'order_id': obj['voucher_foreign_key']
                     }
-            status = SalesInvoice(**data)
-            status.save()
+            sales_invoice_ins = SalesInvoice.objects.filter(invoice_num=data['invoice_num'], client_name=user_id)
+            if not sales_invoice_ins:
+                status = SalesInvoice(**data)
+                status.save()
+            else:
+                sales_invoice_ins.update(data=data['data'], push_status=0, updated_at=str(obj.updation_date))
         except:
             log.info('------Sales Invoice Error Occured-----')
             log.debug(traceback.format_exc())

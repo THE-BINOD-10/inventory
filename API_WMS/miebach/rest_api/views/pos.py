@@ -167,7 +167,7 @@ def search_product_data(request, user=''):
                            'SKUCode': data.wms_code,
                            'style_name': data.style_name,
                            'sku_size' : data.sku_size,
-                           'ProductDescription': data.sku_desc + str(data.wms_code),
+                           'ProductDescription': data.sku_desc,
                            'price': discount_price,
                            'url': data.image_url, 'data-id': data.id,
                            'discount': discount_percentage,

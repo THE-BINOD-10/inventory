@@ -2350,6 +2350,10 @@ def confirm_grn(request, confirm_returns='', user=''):
         log.info("Check Generating GRN failed for params " + str(myDict) + " and error statement is " + str(e))
         return HttpResponse("Generate GRN Failed")
 
+def sample_html(request):
+    data = {'data': [1,2,3], "columns": [i for i in range (24)]}
+    return render(request, 'templates/toggle/c_putaway_toggle.html', data)
+
 
 @csrf_exempt
 def confirmation_location(record, data, total_quantity, temp_dict=''):

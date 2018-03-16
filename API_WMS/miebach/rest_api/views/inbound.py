@@ -2172,7 +2172,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
         if 'unit' in myDict.keys():
             unit = myDict['unit'][i]
         cond = (data.id, purchase_data['wms_code'], unit, purchase_data['price'], purchase_data['cgst_tax'],
-                purchase_data['sgst_tax'], purchase_data['igst_tax'], purchase_data['utgst_tax'])
+                purchase_data['sgst_tax'], purchase_data['igst_tax'], purchase_data['utgst_tax'], purchase_data['sku_desc'])
         all_data.setdefault(cond, 0)
         all_data[cond] += float(value)
 
@@ -2270,15 +2270,17 @@ def confirm_grn(request, confirm_returns='', user=''):
     data_dict = ''
     headers = (
     'WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
-    'UTGST(%)', 'Amount')
+    'UTGST(%)', 'Amount', 'Description')
     putaway_data = {headers: []}
     total_received_qty = 0
     total_order_qty = 0
     total_price = 0
+    total_tax = 0
     pallet_number = ''
     is_putaway = ''
     purchase_data = ''
     seller_name = user.username
+    seller_address = user.userprofile.address
     if not confirm_returns:
         request_data = request.POST
         myDict = dict(request_data.iterlists())
@@ -2296,10 +2298,11 @@ def confirm_grn(request, confirm_returns='', user=''):
             if entry_tax:
                 entry_price += (float(entry_price) / 100) * entry_tax
             putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5],
-                                          key[6], key[7], entry_price))
+                                          key[6], key[7], entry_price, key[8]))
             total_order_qty += order_quantity_dict[key[0]]
             total_received_qty += value
             total_price += entry_price
+            total_tax += (key[4] + key[5] + key[6] + key[7])
 
         if is_putaway == 'true':
             btn_class = 'inb-putaway'
@@ -2317,6 +2320,7 @@ def confirm_grn(request, confirm_returns='', user=''):
             gstin_number = purchase_data['gstin_number']
             order_id = data.order_id
             order_date = get_local_date(request.user, data.creation_date)
+            order_date = datetime.datetime.strftime(datetime.datetime.strptime(order_date, "%d %b, %Y %I:%M %p"), "%d-%m-%Y")
 
             profile = UserProfile.objects.get(user=user.id)
             po_reference = '%s%s_%s' % (data.prefix, str(data.creation_date).split(' ')[0].replace('-', ''), order_id)
@@ -2326,13 +2330,16 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total_price,
                                 'po_reference': po_reference, 'total_qty': total_received_qty,
                                 'report_name': 'Goods Receipt Note', 'company_name': profile.company_name, 'location': profile.location}'''
-            report_data_dict = {'data': putaway_data, 'data_dict': data_dict,
+            sku_list = putaway_data[putaway_data.keys()[0]]
+            sku_slices = generate_grn_pagination(sku_list)
+            report_data_dict = {'data': putaway_data, 'data_dict': data_dict, 'data_slices': sku_slices,
                                 'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty,
-                                'total_price': total_price,
-                                'seller_name': seller_name, 'company_name': profile.company_name,
+                                'total_price': total_price, 'total_tax': total_tax,
+                                'address': address,
+                                'company_name': profile.company_name, 'company_address': profile.address,
                                 'po_number': str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(
                                     data.order_id),
-                                'order_date': get_local_date(request.user, data.creation_date), 'order_id': order_id,
+                                'order_date': order_date, 'order_id': order_id,
                                 'btn_class': btn_class}
 
             misc_detail = get_misc_value('receive_po', user.id)
@@ -2341,7 +2348,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                 rendered = t.render(report_data_dict)
                 write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
                                    order_date, internal=True, report_type="Goods Receipt Note")
-            return render(request, 'templates/toggle/putaway_toggle.html', report_data_dict)
+            return render(request, 'templates/toggle/c_putaway_toggle.html', report_data_dict)
         else:
             return HttpResponse(status_msg)
     except Exception as e:
@@ -2350,7 +2357,8 @@ def confirm_grn(request, confirm_returns='', user=''):
         log.info("Check Generating GRN failed for params " + str(myDict) + " and error statement is " + str(e))
         return HttpResponse("Generate GRN Failed")
 
-def sample_html(request):
+
+def generate_grn_pagination(sku_list):
     # header 220
     # footer 125
     # table header 44
@@ -2358,8 +2366,26 @@ def sample_html(request):
     # total 1358
     # default 24 items
     # last page 21 items
-    data = {'data': [1,2,3], "columns": [i for i in range (24)]}
-    return render(request, 'templates/toggle/c_putaway_toggle.html', data)
+    sku_len = len(sku_list)
+    sku_list1 = []
+    for index, sku in enumerate(sku_list):
+        sku += (index+1,)
+        sku_list1.append(sku)
+    sku_list = sku_list1
+    t = sku_list[0]
+    #for i in range(47): sku_list.append(t)#remove it
+    sku_slices = [sku_list[i: i+24] for i in range(0, len(sku_list), 24)]
+    extra_tuple = ('', '', '', '', '', '', '', '', '', '', '', '')
+    if len(sku_slices[-1]) == 24:
+        temp = sku_slices[-1]
+        sku_slices[-1] = temp[:23]
+        temp = [temp[-1]]
+        for i in range(20): temp.append(extra_tuple)
+        sku_slices.append(temp)
+    else:
+        for i in range((21 - len(sku_slices[-1]))): sku_slices[-1].append(extra_tuple)
+    return sku_slices
+
 
 @csrf_exempt
 def confirmation_location(record, data, total_quantity, temp_dict=''):

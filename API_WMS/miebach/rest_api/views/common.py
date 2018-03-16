@@ -1416,6 +1416,7 @@ def change_seller_stock(seller_id='', stock='', user='', quantity=0, status='dec
                 if temp_quantity == 0:
                     break
         else:
+            print "Entered else cond"
             SellerStock.objects.create(seller_id=seller_id, stock_id=stock.id, quantity=quantity)
 
 

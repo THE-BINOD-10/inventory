@@ -2359,7 +2359,7 @@ def sample_html(request):
     # default 24 items
     # last page 21 items
     data = {'data': [1,2,3], "columns": [i for i in range (24)]}
-    return render(request, 'templates/toggle/c_putaway_toggle.html', data)
+    return render(request, 'templates/toggle/delivery_challan.html', data)
 
 @csrf_exempt
 def confirmation_location(record, data, total_quantity, temp_dict=''):

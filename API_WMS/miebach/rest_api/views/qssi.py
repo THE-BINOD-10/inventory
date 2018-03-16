@@ -9,7 +9,7 @@ from django.contrib.auth import authenticate
 from django.contrib import auth
 
 from miebach_admin.custom_decorators import login_required, get_admin_user
-from miebach_admin.models import GenericOrderDetailMapping, CustomerMaster
+from miebach_admin.models import GenericOrderDetailMapping, CustomerMaster, CustomerOrderSummary
 
 # Create your views here.
 #log = init_logger('logs/qssi.log')
@@ -20,22 +20,29 @@ def update_linked_consignee_data(order_detail_id, data):
     if generic_order:
         generic_order = generic_order[0]
         customer_master = CustomerMaster.objects.get(id=generic_order.customer_id)
-        data["Buyer"]["AddressInfo"]["ShippingAddress"]["Name"] =  customer_master.name
-        data["Buyer"]["AddressInfo"]["ShippingAddress"]["address"] =  customer_master.address
-        data["Buyer"]["AddressInfo"]["ShippingAddress"]["city"] = customer_master.city
-        data["Buyer"]["AddressInfo"]["ShippingAddress"]["state"] =  customer_master.state
-        data["Buyer"]["AddressInfo"]["ShippingAddress"]["zip"] = customer_master.pincode
+        for addr in ["ShippingAddress", "BillingAddress"]:
+            data["Buyer"]["AddressInfo"][addr]["Name"] =  customer_master.name
+            data["Buyer"]["AddressInfo"][addr]["Address"] =  customer_master.address
+            data["Buyer"]["AddressInfo"][addr]["City"] = customer_master.city
+            data["Buyer"]["AddressInfo"][addr]["State"] =  customer_master.state
+            data["Buyer"]["AddressInfo"][addr]["Zip"] = customer_master.pincode
+        customer_order_summary = CustomerOrderSummary.objects.filter(order_id=order_detail_id)
+        if customer_order_summary:
+            customer_order_summary = customer_order_summary[0]
+            if customer_order_summary.consignee:
+                data["Buyer"]["AddressInfo"]["ShippingAddress"]["Address"] = customer_order_summary.consignee
 
 
 def integration_get_order(order_id, user, order_status = "NEW"):
     from rest_api.views.integrations import *
-    WarehouseId = user.username
+    WarehouseId = str(user.username)
+    order_prefix = ''.join(filter(str.isdigit, WarehouseId))
     get_order = get_order(order_id, user)
     if get_order["status"] == "success":
         order = get_order["data"]
         sku_data = []
         data = {"Order":
-                    {"Id": ('%s_%s') % (WarehouseId, str(order["order_id"])),
+                    {"Id": ('%s%s') % (order_prefix, str(order["order_id"])),
                      "Status": order_status,
                      "WarehouseId": WarehouseId,
                      "StatusDateTime": order["order_date"],

@@ -149,6 +149,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
     self.manual_orders = [];
     self.styleId = '';
     self.styles_data = {};
+    self.tot_corporates = [];
 
     /** login page maintainance **/
     self.login_data = {

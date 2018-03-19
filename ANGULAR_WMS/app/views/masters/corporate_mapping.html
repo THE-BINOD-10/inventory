@@ -43,7 +43,7 @@
                 <div class="col-md-4">
                   <div class="form-group">
                     <label class="control-label"> Corporate </label>
-                    <input type="text" autocomplete="off" name="search_corporate" class="form-control" placeholder="Search Corporte" typeahead="address.corporate_id+' : '+address.name+' : '+address.phone_number for address in showCase.service.getSearchValues($viewValue, 'search_corporate_data?')" typeahead-on-select="showCase.get_corporate_data($item, $model, $label, $event)" typeahead-loading="loadingLocations" ng-model="showCase.search_corporate">
+                    <input type="text" autocomplete="off" name="search_corporate" class="form-control" placeholder="Search Corporte" typeahead="address.corporate_id+' : '+address.name+' : '+address.phone_number for address in showCase.service.getSearchValues($viewValue, 'search_corporate_data?')" typeahead-on-select="showCase.get_corporate_data($item, $model, $label, $event)" typeahead-loading="loadingLocations" ng-model="showCase.search_corporate" ng-blur="showCase.get_exe_corporates()">
                   </div>
                 </div>
 

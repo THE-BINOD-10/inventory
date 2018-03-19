@@ -1156,7 +1156,7 @@ def auto_po_warehouses(sku, qty):
     if near_whs:
         near_wh = near_whs[0]
         if not near_wh.supplier:
-            return '', ''
+            return '', '', ''
         admin_user = get_priceband_admin_user(User.objects.get(id=sku.user))
         price_type = near_wh.price_type
         supplier_id = near_wh.supplier.id

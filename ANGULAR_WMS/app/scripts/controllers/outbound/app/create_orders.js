@@ -33,8 +33,26 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
   angular.copy(empty_data, vm.model_data);
 
+  vm.margin_style = {};
+  if(vm.user_type=='reseller'){
+    vm.search_box_cls = 'col-md-7 col-sm-5 col-xs-12';
+    vm.buttons_cls = 'col-md-4 col-sm-6 col-xs-12';
+  } else {
+    vm.search_box_cls = 'col-md-8 col-sm-8 col-xs-12';
+    vm.buttons_cls = 'col-md-3 col-sm-3 col-xs-12';
+    vm.margin_style = {left: 25};
+  }
 
   vm.selected = {}
+
+  vm.buyStyle={height:143}
+  vm.add_height = function(){
+    if (vm.buy_price) {
+      vm.buyStyle={height:163}
+    } else {
+      vm.buyStyle={height:143}
+    }
+  }
 
   vm.categories = [];
   vm.category = "";

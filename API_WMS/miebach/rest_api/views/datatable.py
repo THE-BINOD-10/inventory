@@ -73,7 +73,7 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
     file_name = "%s.%s" % (user.id, 'SKU Master')
     folder_path = 'static/excel_files/'
     folder_check(folder_path)
-    if sku_master.count() > 0:#65535:
+    if sku_master.count() > 65535:
         file_type = 'csv'
         wb = open(folder_path + file_name + '.' + file_type, 'w')
         ws = ''
@@ -105,7 +105,7 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
         if excel_mapping.has_key('size_type'):
             ws = write_excel(ws, data_count, excel_mapping['size_type'], sku_fields.get(data.id, ''), file_type)
         if excel_mapping.has_key('hot_release'):
-            hot_release = 'Enable' if (hot_releases.get(data.id, '')) else 'Disable'
+            hot_release = 'Enable' if (hot_releases.get(data.id, '') not in ['', '0']) else 'Disable'
             ws = write_excel(ws, data_count, excel_mapping['hot_release'], hot_release, file_type)
         if excel_mapping.has_key('mix_sku'):
             ws = write_excel(ws, data_count, excel_mapping['mix_sku'], MIX_SKU_ATTRIBUTES.get(data.mix_sku, ''), file_type)

@@ -13,6 +13,7 @@ from django.contrib import auth
 from miebach_admin.models import *
 from miebach_admin.choices import *
 from common import *
+from masters import create_network_supplier
 from miebach_utils import *
 from django.core import serializers
 import csv
@@ -3553,6 +3554,8 @@ def network_excel_upload(request, reader, no_of_rows, file_type='xls', user=''):
             each_row_map['dest_location_code_id'] = dest_lc_code
             each_row_map['source_location_code_id'] = src_lc_code
             network_master = NetworkMaster(**dict(each_row_map))
+            supplier = create_network_supplier(dest_lc_code, src_lc_code)
+            network_master.supplier = supplier.id
             network_master.save()
         else:
             network_obj[0].lead_time = each_row_map['lead_time']

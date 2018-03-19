@@ -6371,3 +6371,12 @@ def get_max_seller_transfer_id(user):
     else:
         trans_id = 1
     return trans_id
+
+
+def write_excel(ws, data_count, ind, val, file_type='xls'):
+    if file_type == 'xls':
+        ws.write(data_count, ind, val)
+    else:
+        val = str(val).replace(',', '  ').replace('\n', '').replace('"', "\'")
+        ws = ws + val + ','
+    return ws

@@ -61,60 +61,76 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
         for market in marketplaces:
             headers = headers + [market + ' SKU', market + ' Description']
     excel_headers = headers
-    wb, ws = get_work_sheet('skus', excel_headers)
+
     data_count = 0
     rev_load_units = dict(zip(LOAD_UNIT_HANDLE_DICT.values(), LOAD_UNIT_HANDLE_DICT.keys()))
     sku_fields = dict(
         SKUFields.objects.filter(sku__user=user.id, field_type='size_type').values_list('sku_id', 'field_value'))
     hot_releases = dict(
         SKUFields.objects.filter(sku__user=user.id, field_type='hot_release').values_list('sku_id', 'field_value'))
+    file_type = 'xls'
+    wb, ws = get_work_sheet('skus', excel_headers)
+    file_name = "%s.%s" % (user.id, 'SKU Master')
+    folder_path = 'static/excel_files/'
+    folder_check(folder_path)
+    if sku_master.count() > 0:#65535:
+        file_type = 'csv'
+        wb = open(folder_path + file_name + '.' + file_type, 'w')
+        ws = ''
+        for head in excel_headers:
+            ws = ws + str(head).replace(',', '  ') + ','
+        ws = ws[:-1] + '\n'
+        wb.write(ws)
+        ws = ''
+    path = folder_path + file_name + '.' + file_type
+
     for data in sku_master:
         data_count += 1
         zone = ''
         if data.zone:
             zone = data.zone.zone
-        ws.write(data_count, excel_mapping['wms_code'], data.wms_code)
-        ws.write(data_count, excel_mapping['sku_desc'], data.sku_desc)
-        ws.write(data_count, excel_mapping['product_type'], data.product_type)
-        ws.write(data_count, excel_mapping['sku_group'], data.sku_group)
-        ws.write(data_count, excel_mapping['sku_type'], data.sku_type)
-        ws.write(data_count, excel_mapping['sku_category'], data.sku_category)
+        ws = write_excel(ws, data_count, excel_mapping['wms_code'], data.wms_code, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['sku_desc'], data.sku_desc, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['product_type'], data.product_type, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['sku_group'], data.sku_group, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['sku_type'], data.sku_type, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['sku_category'], data.sku_category, file_type)
         if excel_mapping.has_key('primary_category'):
-            ws.write(data_count, excel_mapping['primary_category'], data.primary_category)
-        ws.write(data_count, excel_mapping['sku_class'], data.sku_class)
-        ws.write(data_count, excel_mapping['sku_brand'], data.sku_brand)
-        ws.write(data_count, excel_mapping['style_name'], data.style_name)
+            ws = write_excel(ws, data_count, excel_mapping['primary_category'], data.primary_category, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['sku_class'], data.sku_class, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['sku_brand'], data.sku_brand, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['style_name'], data.style_name, file_type)
         if excel_mapping.has_key('sku_size'):
-            ws.write(data_count, excel_mapping['sku_size'], data.sku_size)
+            ws = write_excel(ws, data_count, excel_mapping['sku_size'], data.sku_size, file_type)
         if excel_mapping.has_key('size_type'):
-            ws.write(data_count, excel_mapping['size_type'], sku_fields.get(data.id, ''))
+            ws = write_excel(ws, data_count, excel_mapping['size_type'], sku_fields.get(data.id, ''), file_type)
         if excel_mapping.has_key('hot_release'):
             hot_release = 'Enable' if (hot_releases.get(data.id, '')) else 'Disable'
-            ws.write(data_count, excel_mapping['hot_release'], hot_release)
+            ws = write_excel(ws, data_count, excel_mapping['hot_release'], hot_release, file_type)
         if excel_mapping.has_key('mix_sku'):
-            ws.write(data_count, excel_mapping['mix_sku'], MIX_SKU_ATTRIBUTES.get(data.mix_sku, ''))
-        ws.write(data_count, excel_mapping['zone_id'], zone)
-        ws.write(data_count, excel_mapping['price'], data.price)
-        ws.write(data_count, excel_mapping['mrp'], data.mrp)
-        ws.write(data_count, excel_mapping['sequence'], data.sequence)
-        ws.write(data_count, excel_mapping['image_url'], data.image_url)
-        ws.write(data_count, excel_mapping['threshold_quantity'], data.threshold_quantity)
-        ws.write(data_count, excel_mapping['measurement_type'], data.measurement_type)
-        ws.write(data_count, excel_mapping['sale_through'], data.sale_through)
-        ws.write(data_count, excel_mapping['color'], data.color)
+            ws = write_excel(ws, data_count, excel_mapping['mix_sku'], MIX_SKU_ATTRIBUTES.get(data.mix_sku, ''), file_type)
+        ws = write_excel(ws, data_count, excel_mapping['zone_id'], zone, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['price'], data.price, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['mrp'], data.mrp, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['sequence'], data.sequence, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['image_url'], data.image_url, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['threshold_quantity'], data.threshold_quantity, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['measurement_type'], data.measurement_type, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['sale_through'], data.sale_through, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['color'], data.color, file_type)
         ean_number = ''
         if data.ean_number:
             ean_number = data.ean_number
-        ws.write(data_count, excel_mapping['ean_number'], ean_number)
+        ws = write_excel(ws, data_count, excel_mapping['ean_number'], ean_number, file_type)
         if excel_mapping.has_key('load_unit_handle'):
-            ws.write(data_count, excel_mapping['load_unit_handle'],
-                     rev_load_units.get(data.load_unit_handle, '').capitalize())
-        ws.write(data_count, excel_mapping['hsn_code'], data.hsn_code)
+            ws = write_excel(ws, data_count, excel_mapping['load_unit_handle'],
+                     rev_load_units.get(data.load_unit_handle, '').capitalize(), file_type)
+        ws = write_excel(ws, data_count, excel_mapping['hsn_code'], data.hsn_code, file_type)
         if excel_mapping.has_key('sub_category'):
-            ws.write(data_count, excel_mapping['sub_category'], data.sub_category)
+            ws = write_excel(ws, data_count, excel_mapping['sub_category'], data.sub_category, file_type)
         if excel_mapping.has_key('cost_price'):
-            ws.write(data_count, excel_mapping['cost_price'], data.cost_price)
-        ws.write(data_count, excel_mapping['status'], status_dict[str(int(data.status))])
+            ws = write_excel(ws, data_count, excel_mapping['cost_price'], data.cost_price, file_type)
+        ws = write_excel(ws, data_count, excel_mapping['status'], status_dict[str(int(data.status))], file_type)
         market_map = master_data.filter(sku_id=data.id).values('sku_id', 'sku_type').distinct()
         for dat in market_map:
             # map_dat = market_map.values('marketplace_code', 'description')
@@ -123,17 +139,19 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
             market_desc = map(operator.itemgetter('description'), map_dat)
             indices = [i for i, s in enumerate(headers) if dat['sku_type'] in s]
             try:
-                ws.write(data_count, indices[0], ', '.join(market_codes))
-                ws.write(data_count, indices[1], ', '.join(market_desc))
+                ws = write_excel(ws, data_count, indices[0], ', '.join(market_codes), file_type)
+                ws = write_excel(ws, data_count, indices[1], ', '.join(market_desc), file_type)
             except:
                 pass
+        if file_type == 'csv':
+            ws = ws[:-1] + '\n'
+            wb.write(ws)
+            ws = ''
 
-    # return "daya pata karo"
-    file_name = "%s.%s" % (user.id, 'SKU Master')
-    folder_path = 'static/excel_files/'
-    folder_check(folder_path)
-    path = folder_path + file_name + '.xls'
-    wb.save(path)
+    if file_type == 'xls':
+        wb.save(path)
+    else:
+        wb.close()
     path_to_file = '../' + path
     return path_to_file
 

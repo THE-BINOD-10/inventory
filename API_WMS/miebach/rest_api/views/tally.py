@@ -308,7 +308,7 @@ class TallyAPI:
             data_dict['tally_company_name'] = tally_config.get('company_name', '')
             data_dict['old_ledger_name'] = master['name']
             data_dict['ledger_name'] = master['name']
-            data_dict['ledger_alias'] = master[field_mapping['id']]
+            #data_dict['ledger_alias'] = master[field_mapping['id']]
             data_dict['update_opening_balance'] = True
             data_dict['opening_balance'] = 0  # ?int or Float
             parent_group_name = ''

@@ -9,8 +9,8 @@
       </tab>
       <tab heading="Raise Stock Transfer" ng-if="show_tab('multi_warehouse') || show_tab('add_openst')">
         <div ng-include="'views/inbound/raise_po/raise_stock_transfer.html'"></div>
-      </tab><!-- add_intransit_orders -->
-      <tab heading="Intransit Orders" ng-if="show_tab('add_intransitorders') || show_tab('add_openst')">
+      </tab>
+      <tab heading="Intransit Orders" ng-if="show_tab('add_intransitorders')">
         <div ng-include="'views/inbound/raise_po/raise_intransit_orders.html'"></div>
       </tab>
     </tabset>

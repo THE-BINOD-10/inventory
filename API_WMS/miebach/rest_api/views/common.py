@@ -240,11 +240,12 @@ def add_user_type_permissions(user_profile):
     update_perm = False
     if user_profile.user_type == 'warehouse_user':
         exc_perms = ['qualitycheck', 'qcserialmapping', 'palletdetail', 'palletmapping', 'ordershipment',
-                     'shipmentinfo', 'shipmenttracking', 'networkmaster', 'tandcmaster', 'enquirymaster', 'corporatemaster', 'corpresellermapping']
+                     'shipmentinfo', 'shipmenttracking', 'networkmaster', 'tandcmaster', 'enquirymaster',
+                     'corporatemaster', 'corpresellermapping', 'staffmaster']
         update_perm = True
     elif user_profile.user_type == 'marketplace_user':
         exc_perms = ['productproperties', 'sizemaster', 'pricemaster', 'networkmaster', 'tandcmaster', 'enquirymaster', 
-                    'corporatemaster', 'corpresellermapping']
+                    'corporatemaster', 'corpresellermapping', 'staffmaster']
         update_perm = True
     if update_perm:
         exc_perms = exc_perms + PERMISSION_IGNORE_LIST
@@ -1224,8 +1225,14 @@ def auto_po(wms_codes, user):
         if qty > int(sku.threshold_quantity):
             continue
         if price_band_flag == 'true':
+            intransit_orders = IntransitOrders.objects.filter(sku=sku, user=sku.user, status=1). \
+                values('sku__sku_code').annotate(tot_qty=Sum('quantity'))
+            intr_qty = 0
+            if intransit_orders:
+                intr_order = intransit_orders[0]
+                intr_qty = intr_order['tot_qty']
             supplier_master_id, price, taxes = auto_po_warehouses(sku, qty)
-            moq = qty
+            moq = qty + intr_qty
             if not supplier_master_id:
                 continue
         else:
@@ -1416,6 +1423,7 @@ def change_seller_stock(seller_id='', stock='', user='', quantity=0, status='dec
                 if temp_quantity == 0:
                     break
         else:
+            print "Entered else cond"
             SellerStock.objects.create(seller_id=seller_id, stock_id=stock.id, quantity=quantity)
 
 

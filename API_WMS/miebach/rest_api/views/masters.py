@@ -3260,7 +3260,7 @@ def get_corporates(request, user=''):
     if request.GET['reseller']:
         res = request.GET['reseller']
         checked_corporates = list(CorpResellerMapping.objects.filter(reseller_id=res).values('corporate_id', 'status'))
-    corporates = list(CorporateMaster.objects.all().values('corporate_id', 'name'))
+    corporates = list(CorporateMaster.objects.all().values('corporate_id', 'name').order_by('name'))
     if corporates:
         message = 1
     return HttpResponse(json.dumps({'message': message, 'data': corporates, 'checked_corporates': checked_corporates}))
@@ -3276,7 +3276,7 @@ def search_corporate_data(request, user=''):
         return HttpResponse(json.dumps(total_data))
 
     corporate_data = CorporateMaster.objects.filter(Q(corporate_id__icontains=search_key) | Q(name__icontains=search_key) |
-                                                Q(email_id__icontains=search_key))
+                                                Q(email_id__icontains=search_key)).order_by('name')
     for data in corporate_data[:50]:
         total_data.append({'corporate_id': data.corporate_id, 'name': data.name, 'phone_number': data.phone_number})
     return HttpResponse(json.dumps(total_data))

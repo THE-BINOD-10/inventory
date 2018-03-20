@@ -2064,8 +2064,9 @@ def create_bayarea_stock(sku_code, zone, quantity, user):
 
 def get_seller_receipt_id(open_po):
     receipt_number = 1
-    summary = SellerPOSummary.objects.filter(seller_po__open_po_id=open_po.id,
-                                             seller_po__seller__user=open_po.sku.user).order_by('-creation_date')
+    summary = SellerPOSummary.objects.filter(purchase_order__open_po=open_po.id).order_by('-creation_date')
+    # summary = SellerPOSummary.objects.filter(seller_po__open_po_id=open_po.id,
+    #                                          seller_po__seller__user=open_po.sku.user).order_by('-creation_date')
     if summary:
         receipt_number = int(summary[0].receipt_number) + 1
     return receipt_number
@@ -2076,59 +2077,69 @@ def update_seller_po(data, value, user, receipt_id=''):
         return
     seller_pos = SellerPO.objects.filter(seller__user=user.id, open_po_id=data.open_po_id, status=1)
     seller_received_list = []
-    for sell_po in seller_pos:
-        if not value:
-            break
-        unit_price = data.open_po.price
-        if not sell_po.unit_price:
-            margin_percent = get_misc_value('seller_margin', user.id)
-            if sell_po.seller.margin:
-                margin_percent = sell_po.seller.margin
-            seller_mapping = SellerMarginMapping.objects.filter(seller_id=sell_po.seller_id, sku_id=data.open_po.sku_id,
-                                                                seller__user=user.id)
-            if seller_mapping:
-                margin_percent = seller_mapping[0].margin
-            if margin_percent:
-                try:
-                    margin_percent = float(margin_percent)
-                except:
-                    margin_percent = 0
-                price = float(data.open_po.price)
-                tax = data.open_po.cgst_tax + data.open_po.sgst_tax + data.open_po.igst_tax + data.open_po.utgst_tax
-                price = price + ((price / 100) * float(tax))
-                unit_price = float(price) / (1 - (margin_percent / 100))
-                sell_po.unit_price = float(("%." + str(2) + "f") % (unit_price))
-                sell_po.margin_percent = margin_percent
-        seller_quantity = sell_po.seller_quantity
-        sell_quan = value
-        if seller_quantity < value:
-            sell_quan = seller_quantity
-            value -= seller_quantity
-        elif seller_quantity >= value:
-            sell_quan = value
-            value = 0
-        sell_po.received_quantity += sell_quan
-        if sell_po.seller_quantity <= sell_po.received_quantity:
-            sell_po.status = 0
-        sell_po.save()
-
-        # seller_received_list.append({'seller_id': sell_po.seller_id, 'sku_id': data.open_po.sku_id, 'quantity': sell_quan})
-        seller_po_summary, created = SellerPOSummary.objects.get_or_create(seller_po_id=sell_po.id,
-                                                                           receipt_number=receipt_id,
-                                                                           quantity=sell_quan,
-                                                                           putaway_quantity=sell_quan,
+    if user.userprofile.user_type == 'warehouse_user':
+        seller_po_summary, created = SellerPOSummary.objects.get_or_create(receipt_number=receipt_id,
+                                                                           quantity=value,
+                                                                           putaway_quantity=value,
                                                                            purchase_order_id=data.id,
                                                                            creation_date=datetime.datetime.now())
         seller_received_list.append(
-            {'seller_id': sell_po.seller_id, 'sku_id': data.open_po.sku_id, 'quantity': sell_quan,
+            {'seller_id': '', 'sku_id': data.open_po.sku_id, 'quantity': value,
              'id': seller_po_summary.id})
+    else:
+        for sell_po in seller_pos:
+            if not value:
+                break
+            unit_price = data.open_po.price
+            if not sell_po.unit_price:
+                margin_percent = get_misc_value('seller_margin', user.id)
+                if sell_po.seller.margin:
+                    margin_percent = sell_po.seller.margin
+                seller_mapping = SellerMarginMapping.objects.filter(seller_id=sell_po.seller_id, sku_id=data.open_po.sku_id,
+                                                                    seller__user=user.id)
+                if seller_mapping:
+                    margin_percent = seller_mapping[0].margin
+                if margin_percent:
+                    try:
+                        margin_percent = float(margin_percent)
+                    except:
+                        margin_percent = 0
+                    price = float(data.open_po.price)
+                    tax = data.open_po.cgst_tax + data.open_po.sgst_tax + data.open_po.igst_tax + data.open_po.utgst_tax
+                    price = price + ((price / 100) * float(tax))
+                    unit_price = float(price) / (1 - (margin_percent / 100))
+                    sell_po.unit_price = float(("%." + str(2) + "f") % (unit_price))
+                    sell_po.margin_percent = margin_percent
+            seller_quantity = sell_po.seller_quantity
+            sell_quan = value
+            if seller_quantity < value:
+                sell_quan = seller_quantity
+                value -= seller_quantity
+            elif seller_quantity >= value:
+                sell_quan = value
+                value = 0
+            sell_po.received_quantity += sell_quan
+            if sell_po.seller_quantity <= sell_po.received_quantity:
+                sell_po.status = 0
+            sell_po.save()
+
+            # seller_received_list.append({'seller_id': sell_po.seller_id, 'sku_id': data.open_po.sku_id, 'quantity': sell_quan})
+            seller_po_summary, created = SellerPOSummary.objects.get_or_create(seller_po_id=sell_po.id,
+                                                                               receipt_number=receipt_id,
+                                                                               quantity=sell_quan,
+                                                                               putaway_quantity=sell_quan,
+                                                                               purchase_order_id=data.id,
+                                                                               creation_date=datetime.datetime.now())
+            seller_received_list.append(
+                {'seller_id': sell_po.seller_id, 'sku_id': data.open_po.sku_id, 'quantity': sell_quan,
+                 'id': seller_po_summary.id})
     return seller_received_list
 
 
 def generate_grn(myDict, request, user, is_confirm_receive=False):
     order_quantity_dict = {}
     all_data = {}
-    seller_receipt_id = {}
+    seller_receipt_id = 0
     po_data = []
     status_msg = ''
     data_dict = ''
@@ -2172,7 +2183,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
         if 'unit' in myDict.keys():
             unit = myDict['unit'][i]
         cond = (data.id, purchase_data['wms_code'], unit, purchase_data['price'], purchase_data['cgst_tax'],
-                purchase_data['sgst_tax'], purchase_data['igst_tax'], purchase_data['utgst_tax'])
+                purchase_data['sgst_tax'], purchase_data['igst_tax'], purchase_data['utgst_tax'], purchase_data['sku_desc'])
         all_data.setdefault(cond, 0)
         all_data[cond] += float(value)
 
@@ -2260,7 +2271,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
         po_data.append((purchase_data['wms_code'], purchase_data['supplier_code'], purchase_data['sku_desc'],
                         purchase_data['order_quantity'],
                         value, price))
-    return po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict
+    return po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict, seller_receipt_id
 
 
 @csrf_exempt
@@ -2270,15 +2281,18 @@ def confirm_grn(request, confirm_returns='', user=''):
     data_dict = ''
     headers = (
     'WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
-    'UTGST(%)', 'Amount')
+    'UTGST(%)', 'Amount', 'Description')
     putaway_data = {headers: []}
     total_received_qty = 0
     total_order_qty = 0
     total_price = 0
+    total_tax = 0
     pallet_number = ''
     is_putaway = ''
     purchase_data = ''
     seller_name = user.username
+    seller_address = user.userprofile.address
+    seller_receipt_id = 0
     if not confirm_returns:
         request_data = request.POST
         myDict = dict(request_data.iterlists())
@@ -2287,8 +2301,8 @@ def confirm_grn(request, confirm_returns='', user=''):
 
     log.info('Request params for ' + user.username + ' is ' + str(myDict))
     try:
-        po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict = generate_grn(myDict,
-                                                                                                          request, user)
+        po_data, status_msg, all_data, order_quantity_dict, \
+        purchase_data, data, data_dict, seller_receipt_id = generate_grn(myDict, request, user)
 
         for key, value in all_data.iteritems():
             entry_price = float(key[3]) * float(value)
@@ -2296,10 +2310,11 @@ def confirm_grn(request, confirm_returns='', user=''):
             if entry_tax:
                 entry_price += (float(entry_price) / 100) * entry_tax
             putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5],
-                                          key[6], key[7], entry_price))
+                                          key[6], key[7], entry_price, key[8]))
             total_order_qty += order_quantity_dict[key[0]]
             total_received_qty += value
             total_price += entry_price
+            total_tax += (key[4] + key[5] + key[6] + key[7])
 
         if is_putaway == 'true':
             btn_class = 'inb-putaway'
@@ -2317,6 +2332,7 @@ def confirm_grn(request, confirm_returns='', user=''):
             gstin_number = purchase_data['gstin_number']
             order_id = data.order_id
             order_date = get_local_date(request.user, data.creation_date)
+            order_date = datetime.datetime.strftime(datetime.datetime.strptime(order_date, "%d %b, %Y %I:%M %p"), "%d-%m-%Y")
 
             profile = UserProfile.objects.get(user=user.id)
             po_reference = '%s%s_%s' % (data.prefix, str(data.creation_date).split(' ')[0].replace('-', ''), order_id)
@@ -2326,13 +2342,20 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total_price,
                                 'po_reference': po_reference, 'total_qty': total_received_qty,
                                 'report_name': 'Goods Receipt Note', 'company_name': profile.company_name, 'location': profile.location}'''
-            report_data_dict = {'data': putaway_data, 'data_dict': data_dict,
+            sku_list = putaway_data[putaway_data.keys()[0]]
+            sku_slices = generate_grn_pagination(sku_list)
+            if seller_receipt_id:
+                po_number = str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id) \
+                            + '/' + str(seller_receipt_id)
+            else:
+                po_number = str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id)
+            report_data_dict = {'data': putaway_data, 'data_dict': data_dict, 'data_slices': sku_slices,
                                 'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty,
-                                'total_price': total_price,
-                                'seller_name': seller_name, 'company_name': profile.company_name,
-                                'po_number': str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(
-                                    data.order_id),
-                                'order_date': get_local_date(request.user, data.creation_date), 'order_id': order_id,
+                                'total_price': total_price, 'total_tax': total_tax,
+                                'address': address,
+                                'company_name': profile.company_name, 'company_address': profile.address,
+                                'po_number': po_number,
+                                'order_date': order_date, 'order_id': order_id,
                                 'btn_class': btn_class}
 
             misc_detail = get_misc_value('receive_po', user.id)
@@ -2341,7 +2364,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                 rendered = t.render(report_data_dict)
                 write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
                                    order_date, internal=True, report_type="Goods Receipt Note")
-            return render(request, 'templates/toggle/putaway_toggle.html', report_data_dict)
+            return render(request, 'templates/toggle/c_putaway_toggle.html', report_data_dict)
         else:
             return HttpResponse(status_msg)
     except Exception as e:
@@ -2349,6 +2372,35 @@ def confirm_grn(request, confirm_returns='', user=''):
         log.debug(traceback.format_exc())
         log.info("Check Generating GRN failed for params " + str(myDict) + " and error statement is " + str(e))
         return HttpResponse("Generate GRN Failed")
+
+
+def generate_grn_pagination(sku_list):
+    # header 220
+    # footer 125
+    # table header 44
+    # row 46
+    # total 1358
+    # default 24 items
+    # last page 21 items
+    sku_len = len(sku_list)
+    sku_list1 = []
+    for index, sku in enumerate(sku_list):
+        sku += (index+1,)
+        sku_list1.append(sku)
+    sku_list = sku_list1
+    t = sku_list[0]
+    #for i in range(47): sku_list.append(t)#remove it
+    sku_slices = [sku_list[i: i+24] for i in range(0, len(sku_list), 24)]
+    extra_tuple = ('', '', '', '', '', '', '', '', '', '', '', '')
+    if len(sku_slices[-1]) == 24:
+        temp = sku_slices[-1]
+        sku_slices[-1] = temp[:23]
+        temp = [temp[-1]]
+        for i in range(20): temp.append(extra_tuple)
+        sku_slices.append(temp)
+    else:
+        for i in range((21 - len(sku_slices[-1]))): sku_slices[-1].append(extra_tuple)
+    return sku_slices
 
 
 @csrf_exempt
@@ -5098,9 +5150,8 @@ def confirm_receive_qc(request, user=''):
             imeis_list = [im.split('<<>>')[0] for im in (myDict['rejected'][ind]).split(',')] + myDict['accepted'][
                 ind].split(',')
             myDict['imei_number'].append(','.join(imeis_list))
-        po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict = generate_grn(myDict,
-                                                                                                          request, user,
-                                                                                                          is_confirm_receive=True)
+        po_data, status_msg, all_data, order_quantity_dict, \
+        purchase_data, data, data_dict, seller_receipt_id = generate_grn(myDict, request, user, is_confirm_receive=True)
         for i in range(0, len(myDict['id'])):
             quality_checks = QualityCheck.objects.filter(purchase_order_id=myDict['id'][i],
                                                          po_location__location__zone__user=user.id,

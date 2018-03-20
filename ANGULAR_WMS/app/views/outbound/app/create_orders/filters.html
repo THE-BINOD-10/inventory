@@ -1,21 +1,3 @@
-<style>
-input[type="date"]::before {
-    color: #999999;
-    content: attr(placeholder);
-}
-input[type="date"] {
-    color: #ffffff;
-}
-input[type="date"]:focus,
-input[type="date"]:valid {
-    color: #666666;
-}
-input[type="date"]:focus::before,
-input[type="date"]:valid::before {
-    content: "" !important;
-}
-</style>
-
   <div class="toggle-filter" ng-if="showCase.showFilter">
     <div class="toggle-header">
       <span>Filters</span>
@@ -113,9 +95,7 @@ input[type="date"]:valid::before {
           <span><b>Delivery Date: </b></span>
           <i class="fa fa-angle-down pull-right mr10" style="font-size: 20px;font-weight: 900;cursor:pointer" ng-class="(showCase.d_date)? 'fa-angle-up': 'fa-angle-down'" ng-click="showCase.d_date = (showCase.d_date)? false: true;"></i>
         </div>
-        <div class="box-body mt10" style="overflow: auto;" ng-if="showCase.d_date">
-          <!-- <input ui-jq="datepicker" ng-model="showCase.filterData.delivery_date" class="form-control stk-readonly" type="text" id="shipment_date" readonly name="delivery_date">
-           -->
+        <div class="box-body mt10 filter_date" style="overflow: auto;" ng-if="showCase.d_date">
           <input type="text" ui-jq="datepicker" class="form-control stk-readonly pull-left" name="delivery_date" ng-model="showCase.filterData.delivery_date" id="delivery_date" ng-change="showCase.date_changed()" required data-date-today-highlight="true" data-date-autoclose="true" placeholder="Delivery Date" data-date-start-date="{{showCase.date}}">
         </div>
       </div>

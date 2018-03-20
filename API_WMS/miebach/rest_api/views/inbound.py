@@ -2072,13 +2072,15 @@ def get_seller_receipt_id(open_po):
     return receipt_number
 
 
-def update_seller_po(data, value, user, receipt_id=''):
+def update_seller_po(data, value, user, receipt_id='', invoice_number=''):
     if not receipt_id:
         return
     seller_pos = SellerPO.objects.filter(seller__user=user.id, open_po_id=data.open_po_id, status=1)
     seller_received_list = []
+    invoice_number = int(invoice_number)
     if user.userprofile.user_type == 'warehouse_user':
         seller_po_summary, created = SellerPOSummary.objects.get_or_create(receipt_number=receipt_id,
+                                                                           invoice_number=invoice_number,
                                                                            quantity=value,
                                                                            putaway_quantity=value,
                                                                            purchase_order_id=data.id,
@@ -2145,6 +2147,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
     data_dict = ''
     remarks = request.POST.get('remarks', '')
     expected_date = request.POST.get('expected_date', '')
+    invoice_number = request.POST.get('invoice_number', 0)
     _expected_date = ''
     if expected_date:
         _expected_date = expected_date
@@ -2197,10 +2200,12 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
         data.saved_quantity = 0
 
         seller_received_list = []
+        if not invoice_number:
+            invoice_number = 0
         if data.open_po:
             if not seller_receipt_id:
                 seller_receipt_id = get_seller_receipt_id(data.open_po)
-            seller_received_list = update_seller_po(data, value, user, receipt_id=seller_receipt_id)
+            seller_received_list = update_seller_po(data, value, user, receipt_id=seller_receipt_id, invoice_number=invoice_number)
         if 'wms_code' in myDict.keys():
             if myDict['wms_code'][i]:
                 sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
@@ -2354,7 +2359,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'total_price': total_price, 'total_tax': total_tax,
                                 'address': address,
                                 'company_name': profile.company_name, 'company_address': profile.address,
-                                'po_number': po_number,
+                                'po_number': po_number, 'bill_no': request.POST.get('invoice_number', ''),
                                 'order_date': order_date, 'order_id': order_id,
                                 'btn_class': btn_class}
 

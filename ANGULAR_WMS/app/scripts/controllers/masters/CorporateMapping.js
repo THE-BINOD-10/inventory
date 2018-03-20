@@ -1,12 +1,13 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('CorporateMapping',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
+  .controller('CorporateMapping',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', 'Data', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
+function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, Data) {
   var vm = this;
   vm.service = Service;
   vm.session = Session;
+  vm.data = Data;
 
   vm.distributors = [];
   vm.resellers = [];
@@ -29,9 +30,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }
 
         vm.corporates = data.data.data;
+        vm.data.tot_corporates = data.data.data;
       }
       vm.def_checked_value();
     });
+  }
+
+  vm.get_exe_corporates = function(){
+    if (!vm.search_corporate) {
+      vm.corporates = vm.data.tot_corporates;
+    }
   }
 
   vm.def_checked_value = function(){

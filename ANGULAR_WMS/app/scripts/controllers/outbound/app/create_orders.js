@@ -18,6 +18,13 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.buttons_width = (Session.roles.permissions.create_order_po)? 4: 6;
   vm.priceband_sync = Session.roles.permissions.priceband_sync;
   vm.disable_brands = Session.roles.permissions.disable_brands_view;
+  vm.date = new Date();
+
+  $('#delivery_date').datepicker();
+
+  $('#delivery_date').on('focus',function(){
+    $(this).trigger('blur');
+  });
 
   vm.order_type_value = "offline";
   vm.service = Service;
@@ -281,7 +288,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
     var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
                 sale_through: vm.order_type_value, size_filter: size_stock, color: vm.color, from_price: vm.fromPrice,
-                to_price: vm.toPrice, quantity: vm.quantity, is_margin_percentage: vm.marginData.is_margin_percentage,
+                to_price: vm.toPrice, quantity: vm.quantity, delivery_date: vm.delivery_date, is_margin_percentage: vm.marginData.is_margin_percentage,
                 margin: vm.marginData.margin, hot_release: vm.hot_release, margin_data: JSON.stringify(Data.marginSKUData.data)};
 
     if(status) {
@@ -394,6 +401,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.fromPrice = vm.filterData.fromPrice;
     vm.toPrice = vm.filterData.toPrice;
     vm.quantity = vm.filterData.quantity;
+    vm.delivery_date = vm.filterData.delivery_date;
     vm.size_filter_data = vm.filterData.size_filter;
 
     vm.showFilter = false;
@@ -732,6 +740,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.fromPrice = vm.filterData.fromPrice;
     vm.toPrice = vm.filterData.toPrice;
     vm.quantity = vm.filterData.quantity;
+    vm.delivery_date = vm.filterData.delivery_date;
     vm.showFilter = false;
     vm.from_cats = false;
     vm.hot_release = vm.filterData.hotRelease;
@@ -787,11 +796,13 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       vm.filterData.fromPrice = "";
       vm.filterData.toPrice = "";
       vm.filterData.quantity = "";
+      vm.filterData.delivery_date = "";
       vm.filterData.hotRelease = false;
       vm.hot_release = vm.filterData.hotRelease;
       vm.fromPrice = vm.filterData.fromPrice;
       vm.toPrice = vm.filterData.toPrice;
       vm.quantity = vm.filterData.quantity;
+      vm.delivery_date = vm.filterData.delivery_date
 
     vm.catlog_data.index = "";
     vm.size_filter_data = vm.filterData.size_filter
@@ -995,7 +1006,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     var size_stock = JSON.stringify(vm.size_filter_data);
     var data = {data: {brand: vm.brand, category: vm.category, sku_class: vm.style, index: "", is_catalog: true,
                 sale_through: vm.order_type_value, size_filter:size_stock, share: true, file: true,
-                color: vm.color, from_price: vm.fromPrice, to_price: vm.toPrice, quantity: vm.quantity,
+                color: vm.color, from_price: vm.fromPrice, to_price: vm.toPrice, quantity: vm.quantity, delivery_date: vm.delivery_date,
                 is_margin_percentage: vm.marginData.is_margin_percentage, margin: vm.marginData.margin,
                 margin_data: JSON.stringify(Data.marginSKUData.data)}, required_quantity: vm.required_quantity,
                 checked_items: vm.picked_items_data, checked_item_value: vm.picked_items_obj}

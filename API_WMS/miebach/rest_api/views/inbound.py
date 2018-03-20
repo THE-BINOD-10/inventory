@@ -1508,6 +1508,7 @@ def get_supplier_data(request, user=''):
                                                                             sku_id=order_data['sku_id'],
                                                                             order_ids=order_ids)
             orders.append([{'order_id': order.id, 'wms_code': order_data['wms_code'],
+                            'sku_desc': order_data['sku_desc'],
                             'po_quantity': float(order_data['order_quantity']) - float(order.received_quantity),
                             'name': str(order.order_id) + '-' + str(
                                 re.sub(r'[^\x00-\x7F]+', '', order_data['wms_code'])),

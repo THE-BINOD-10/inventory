@@ -10,8 +10,8 @@ angular
 
 angular
   .module('urbanApp')
-  .controller('AppCtrl', ['$rootScope', '$scope', '$state','$http', '$localStorage', 'Session', 'myservice', "Auth", "AUTH_EVENTS", "Service", "$timeout",
-        function AppCtrl($rootScope, $scope, $state, $http, $localStorage, Session, myservice, Auth, AUTH_EVENTS, Service, $timeout) {
+  .controller('AppCtrl', ['$rootScope', '$scope', '$state','$http', '$localStorage', 'Session', 'myservice', "Auth", "AUTH_EVENTS", "Service", "$timeout", 'Analytics',
+        function AppCtrl($rootScope, $scope, $state, $http, $localStorage, Session, myservice, Auth, AUTH_EVENTS, Service, $timeout, Analytics) {
 
       $rootScope.process = false;
       $scope.session = Session;
@@ -204,3 +204,10 @@ angular
     }
 ]);
 
+angular
+  .module('urbanApp')
+  .config(['AnalyticsProvider', function (AnalyticsProvider) {
+   AnalyticsProvider.setAccount('UA-89737240-2');
+   AnalyticsProvider.trackPages(true);
+   AnalyticsProvider.setPageEvent('$accountCreationSuccess');
+}]).run(['Analytics', function(Analytics) { }]);

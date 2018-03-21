@@ -45,6 +45,27 @@
                 <input type="hidden" value="{{pop.model_data.single_order}}" name="single_order">
               </div>
             </div>
+            <div class="col-md-3 col-sm-4 col-xs-6" ng-show="pop.model_data.single_order!='' &&
+              pop.model_data.data && pop.model_data.data[0].original_order_id">
+              <div class="form-group">
+                <label class="control-label">Order ID</label>
+                <input class="form-control" type="text" ng-model="pop.model_data.data[0].original_order_id" disabled>
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-4 col-xs-6" ng-show="pop.model_data.single_order!='' &&
+              pop.model_data.data && pop.model_data.data[0].customer_name">
+              <div class="form-group">
+                <label class="control-label">Customer Name</label>
+                <input class="form-control" type="text" ng-model="pop.model_data.data[0].customer_name" disabled>
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-4 col-xs-6" ng-if="pop.model_data.single_order!='' &&
+              pop.model_data.data && pop.model_data.data[0].customer_address">
+              <div class="form-group">
+                <label class="control-label">Customer Address</label>
+                <textarea rows="4" class="form-control" cols="27" ng-model="pop.model_data.data[0].customer_address" disabled></textarea>
+              </div>
+            </div>
             <div class="col-md-3 col-sm-4 col-xs-6" ng-if="pop.permissions.scan_picklist_option == 'scan_sku'">
               <div class="form-group">
                 <label class="control-label">Scan SKU</label>

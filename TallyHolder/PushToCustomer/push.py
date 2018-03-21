@@ -1,6 +1,6 @@
-activate_this = 'C:\\Users\stockone\\Downloads\\Project\\WMS_ANGULAR\\TallyHolder\\stockone\\Scripts\\activate_this.py'
-execfile(activate_this, dict(__file__=activate_this))
 import os, sys
+activate_this = os.path.abspath('../stockone/Scripts/activate_this.py')
+execfile(activate_this, dict(__file__=activate_this))
 sys.path.append('C:\\Users\\stockone\\Downloads\\Project\\WMS_ANGULAR\\TallyHolder')
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "TallyHolder.settings")
 import django
@@ -24,22 +24,24 @@ def push_item_master():
     log.info('------Item Master started Data transfer to Tally-----')
     resp_data = ItemMaster.objects.filter(push_status__in=[0,9])
     for obj in resp_data:
-        try:
-            print obj.data
-            d = json.loads(obj.data)
-            status = bridge.item_master(d)
-            obj.push_status = 1
-            obj.save()
-        except TallyDataTransferError:
-            print traceback.format_exc()
-            if 'Duplicate Entry!' in TallyDataTransferError.message or 'already exists' in TallyDataTransferError.message:
-                obj.push_status = 1
-                obj.save()
+	try:
+	    d = json.loads(obj.data)
+	    status = bridge.item_master(d)
+	    obj.push_status = 1
+	    obj.save()
+	    log.info('Data Inserted to Tally : ' + str(obj))
+	except TallyDataTransferError:
+	    log.debug(traceback.format_exc())
+	    if 'Duplicate Entry!' in TallyDataTransferError.message or 'already exists' in TallyDataTransferError.message:
+		obj.push_status = 1
+		obj.save()
+		log.info('Duplicate Entry : ' + str(obj))
             pass
         except:
-            obj.push_status = 9
-            obj.save()
-            print traceback.format_exc()
+	    obj.push_status = 9
+	    obj.save()
+	    log.info('Error Occured : ' + str(obj))
+	    log.debug(traceback.format_exc())
     log.info('------Item Master Completed Data transfer to Tally-----')
     return 0
 
@@ -49,16 +51,23 @@ def push_customer_vendor_master():
     for obj in resp_data:
         try:
             d = json.loads(obj.data)
-            print(d)
             status = bridge.customer_and_vendor_master(d)
             obj.push_status=1
             obj.save()
+	    log.info('Data Inserted to Tally : ' + str(obj))
         except TallyDataTransferError:
-            print traceback.format_exc()
-            pass
+	    log.debug(traceback.format_exc())
+	    if 'Duplicate Entry!' in TallyDataTransferError.message or 'already exists' in TallyDataTransferError.message:
+		obj.push_status = 1
+		obj.save()
+		log.info('Duplicate Entry : ' + str(obj))
+	    pass
         except:
-            print traceback.format_exc()
-            return traceback.format_exc()
+	    obj.push_status = 9
+	    obj.save()
+	    log.info('Error Occured : ' + str(obj))
+	    log.debug(traceback.format_exc())
+	    return traceback.format_exc()
     log.info('------Customer Master Completed Data transfer to Tally-----')
     return 0
 
@@ -68,19 +77,26 @@ def push_sales_invoice_data():
     for obj in resp_data:
         try:
             d = json.loads(obj.data)
-            print(d)
             for i in d['items']:
                 i['actual_qty'] = int(i['actual_qty'])
                 i['billed_qty'] = int(i['billed_qty'])
             status = bridge.sales_invoice(d)
             obj.push_status=1
             obj.save()
+	    log.info('Data Inserted to Tally : ' + str(obj))
         except TallyDataTransferError:
-            print traceback.format_exc()
-            pass
+	    log.debug(traceback.format_exc())
+	    if 'Duplicate Entry!' in TallyDataTransferError.message or 'already exists' in TallyDataTransferError.message:
+		obj.push_status = 1
+		obj.save()
+		log.info('Duplicate Entry : ' + str(obj))
+	    pass
         except:
-            print traceback.format_exc()
-            return traceback.format_exc()
+	    obj.push_status = 9
+	    obj.save()
+	    log.info('Error Occured : ' + str(obj))
+	    log.debug(traceback.format_exc())
+	    return traceback.format_exc()
     log.info('------Sales Invoice Completed Data transfer to Tally-----')
     return 0
 
@@ -116,4 +132,4 @@ def push_purchase_return_data():
 
 #push_item_master()
 #push_customer_vendor_master()
-push_sales_invoice_data()
+#push_sales_invoice_data()

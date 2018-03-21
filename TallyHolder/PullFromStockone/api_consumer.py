@@ -1,6 +1,6 @@
-activate_this = 'C:\\Users\stockone\\Downloads\\Project\\WMS_ANGULAR\\TallyHolder\\stockone\\Scripts\\activate_this.py'
-execfile(activate_this, dict(__file__=activate_this))
 import os, sys
+activate_this = os.path.abspath('../stockone/Scripts/activate_this.py')
+execfile(activate_this, dict(__file__=activate_this))
 sys.path.append('C:\\Users\\stockone\\Downloads\\Project\\WMS_ANGULAR\\TallyHolder')
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "TallyHolder.settings")
 import django
@@ -26,6 +26,7 @@ def get_latest_updation_date(model_name, filter_dict={}):
 
 def populate_api_item_data(user_id):
     log.info('------Item Master started Data transfer to Local DB-----')
+    status = True
     url = dns + 'GetItemMaster/'
     data = {'user_id': user_id}
     upd_date = get_latest_updation_date(ItemMaster, filter_dict={'client_name': user_id})
@@ -36,22 +37,29 @@ def populate_api_item_data(user_id):
         try:
             data = {'client_name': user_id, 'item_code': obj['sku_code'],
                     'ip': '', 'port': '', 'data': json.dumps(obj), 'push_status': 0,
+		    'created_at': str(obj['creation_date']), 'updated_at' : str(obj['updation_date'])
                     }
             item_ins = ItemMaster.objects.filter(item_code=data['item_code'], client_name=user_id)
             if not item_ins:
-                status = ItemMaster(**data)
-                status.save()
+		log.info('Inserted Data : ' + str(data)
+		query_data = ItemMaster(**data)
+		query_data.save()
+		log.info('-------------------')
             else:
-                item_ins.update(data=data['data'], push_status=0, updated_at=str(obj.updation_date))
+		log.info('Updated Data : ' + str(data))
+		item_ins.update(data=data['data'], push_status=0, updated_at=str(obj['updation_date']))
+		log.info('-------------------')
+	    status = True
         except:
             log.info('------Item Master Error Occured-----')
             log.debug(traceback.format_exc())
-            return traceback.format_exc()
+	    status = False
     log.info('------Item Master Data transfer Completed-----')
-    return 0
+    return status
 
 def populate_api_customer_data(user_id):
     log.info('------Customer Master started Data transfer to Local DB-----')
+    status = True
     url = dns + 'GetCustomerMaster/'
     data = {'user_id': user_id}
     upd_date = get_latest_updation_date(CustomerVendorMaster, filter_dict={'client_name': user_id})
@@ -62,20 +70,25 @@ def populate_api_customer_data(user_id):
         try:
             data = {'client_name': str(user_id), 'customer_id': obj['ledger_name'],
                     'ip': '', 'port': '', 'data': json.dumps(obj), 'push_status': 0,
+		    'created_at': str(obj['creation_date']), 'updated_at' : str(obj['updation_date'])
             }
             customer_ins = CustomerVendorMaster.objects.filter(customer_id=data['customer_id'], client_name=user_id)
             if not customer_ins:
-                status = CustomerVendorMaster(**data)
-                status.save()
+		log.info('Inserted Data : ' + str(data))
+		query_data = CustomerVendorMaster(**data)
+		query_data.save()
+		log.info('-------------------')
             else:
-                customer_ins.update(data=data['data'], push_status=0, updated_at=str(obj.updation_date))
+		log.info('Updated Data : ' + str(data))
+		customer_ins.update(data=data['data'], push_status=0, updated_at=str(obj['updation_date']))
+		log.info('-------------------')
+	    status = True
         except:
             log.info('------Customer Master Error Occured-----')
             log.debug(traceback.format_exc())
-            return traceback.format_exc()
-    log.info('------Customer Master Data transfer completed-----')
-    return 0
-
+	    status = False
+    log.info('------Customer Master Data transfer completed------')
+    return status
 
 def populate_api_supplier_data():
     url = dns + 'GetSupplierMaster/'
@@ -105,14 +118,19 @@ def populate_api_sales_invoice_data(user_id):
 
         try:
             data = {'client_name': user_id, 'invoice_num': obj['voucher_no'],
-                    'ip': '', 'port': '', 'data': json.dumps(obj), 'push_status': 0, 'order_id': obj['voucher_foreign_key']
+                    'ip': '', 'port': '', 'data': json.dumps(obj), 'push_status': 0, 'order_id': obj['voucher_foreign_key'],
+		    'created_at': str(obj['creation_date']), 'updated_at' : str(obj['updation_date'])
                     }
-            sales_invoice_ins = SalesInvoice.objects.filter(invoice_num=data['invoice_num'], client_name=user_id)
-            if not sales_invoice_ins:
-                status = SalesInvoice(**data)
-                status.save()
-            else:
-                sales_invoice_ins.update(data=data['data'], push_status=0, updated_at=str(obj.updation_date))
+	    sales_invoice_ins = SalesInvoice.objects.filter(invoice_num=data['invoice_num'], client_name=user_id)
+	    if not sales_invoice_ins:
+		log.info('Inserted Data : ' + str(data))
+		status = SalesInvoice(**data)
+		status.save()
+		log.info('-------------------')
+	    else:
+		log.info('Updated Data : ' + str(data))
+		sales_invoice_ins.update(data=data['data'], push_status=0, updated_at=str(obj['updation_date']))
+		log.info('-------------------')
         except:
             log.info('------Sales Invoice Error Occured-----')
             log.debug(traceback.format_exc())
@@ -168,4 +186,4 @@ def populate_api_purchase_returns_data():
 
 #populate_api_item_data(12)
 #populate_api_customer_data(12)
-populate_api_sales_invoice_data(12)
+#populate_api_sales_invoice_data(12)

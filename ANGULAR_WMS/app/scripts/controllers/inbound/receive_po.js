@@ -205,6 +205,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
       data.push({name: 'remarks', value: vm.model_data.remarks});
       data.push({name: 'expected_date', value: vm.model_data.expected_date});
+      data.push({name: 'remainder_mail', value: vm.model_data.remainder_mail})
       vm.service.apiCall('update_putaway/', 'GET', data, true).then(function(data){
         if(data.message) {
           if(data.data == 'Updated Successfully') {
@@ -232,9 +233,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.service.apiCall(url, 'POST', elem, true).then(function(data){
         if(data.message) {
           if(data.data.search("<div") != -1) {
-            vm.html = $(data.data)[2];
-            var html = $(vm.html).closest("form").clone();
-            angular.element(".modal-body").html($(html).find(".modal-body"));
+            vm.html = $(data.data);
+            //var html = $(vm.html).closest("form").clone();
+            //angular.element(".modal-body").html($(html).find(".modal-body"));
+            angular.element(".modal-body").html($(data.data));
             vm.print_enable = true;
             vm.service.refresh(vm.dtInstance);
             if(vm.permissions.use_imei) {

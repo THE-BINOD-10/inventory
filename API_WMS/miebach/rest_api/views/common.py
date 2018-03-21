@@ -240,11 +240,12 @@ def add_user_type_permissions(user_profile):
     update_perm = False
     if user_profile.user_type == 'warehouse_user':
         exc_perms = ['qualitycheck', 'qcserialmapping', 'palletdetail', 'palletmapping', 'ordershipment',
-                     'shipmentinfo', 'shipmenttracking', 'networkmaster', 'tandcmaster', 'enquirymaster', 'corporatemaster']
+                     'shipmentinfo', 'shipmenttracking', 'networkmaster', 'tandcmaster', 'enquirymaster',
+                     'corporatemaster', 'corpresellermapping', 'staffmaster']
         update_perm = True
     elif user_profile.user_type == 'marketplace_user':
         exc_perms = ['productproperties', 'sizemaster', 'pricemaster', 'networkmaster', 'tandcmaster', 'enquirymaster', 
-                    'corporatemaster']
+                    'corporatemaster', 'corpresellermapping', 'staffmaster']
         update_perm = True
     if update_perm:
         exc_perms = exc_perms + PERMISSION_IGNORE_LIST
@@ -744,7 +745,8 @@ def configurations(request, user=''):
     if tax_details:
         for tax in tax_details:
             config_dict['tax_data'].append({'tax_name': tax.misc_type[4:], 'tax_value': tax.misc_value})
-
+    config_dict['rem_saved_mail_alerts'] = list(MailAlerts.objects.filter(user_id=user.id).\
+                                                values('alert_name', 'alert_value'))
     return HttpResponse(json.dumps(config_dict))
 
 
@@ -1156,7 +1158,7 @@ def auto_po_warehouses(sku, qty):
     if near_whs:
         near_wh = near_whs[0]
         if not near_wh.supplier:
-            return '', ''
+            return '', '', ''
         admin_user = get_priceband_admin_user(User.objects.get(id=sku.user))
         price_type = near_wh.price_type
         supplier_id = near_wh.supplier.id
@@ -1224,8 +1226,14 @@ def auto_po(wms_codes, user):
         if qty > int(sku.threshold_quantity):
             continue
         if price_band_flag == 'true':
+            intransit_orders = IntransitOrders.objects.filter(sku=sku, user=sku.user, status=1). \
+                values('sku__sku_code').annotate(tot_qty=Sum('quantity'))
+            intr_qty = 0
+            if intransit_orders:
+                intr_order = intransit_orders[0]
+                intr_qty = intr_order['tot_qty']
             supplier_master_id, price, taxes = auto_po_warehouses(sku, qty)
-            moq = qty
+            moq = qty + intr_qty
             if not supplier_master_id:
                 continue
         else:
@@ -2746,6 +2754,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     custom_margin = request_data.get('margin', 0)
     hot_release = request_data.get('hot_release', '')
     quantity = request_data.get('quantity', 0)
+    delivery_date = request_data.get('delivery_date', '')
     customer_master = None
     if not quantity:
         quantity = 0
@@ -2938,7 +2947,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
                            customer_data_id=customer_data_id, is_file=is_file, prices_dict=prices_dict,
                            price_type=price_type, custom_margin=custom_margin, specific_margins=specific_margins,
                            is_margin_percentage=is_margin_percentage, stock_quantity=quantity,
-                           msp_min_price=msp_min_price, msp_max_price=msp_max_price)
+                           msp_min_price=msp_min_price, msp_max_price=msp_max_price, delivery_date=delivery_date)
     return data, start, stop
 
 
@@ -3812,7 +3821,7 @@ def get_cal_style_data(style_data, quantity):
 
 def get_styles_data(user, product_styles, sku_master, start, stop, request, customer_id='', customer_data_id='', is_file='',
                     prices_dict={}, price_type='', custom_margin=0, specific_margins=[], is_margin_percentage=0,
-                    stock_quantity=0, msp_min_price=0, msp_max_price=0):
+                    stock_quantity=0, msp_min_price=0, msp_max_price=0, delivery_date=''):
     data = []
     style_quantities = eval(request.POST.get('required_quantity', '{}'))
     from rest_api.views.outbound import get_style_variants
@@ -3823,6 +3832,13 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
     admin = get_priceband_admin_user(user)
     if admin:
         gen_whs = get_generic_warehouses_list(admin)
+        if delivery_date:
+            del_date = datetime.datetime.strptime(delivery_date, '%m/%d/%Y').date()
+            today_date = datetime.datetime.today().date()
+            days_filter = (del_date - today_date).days
+            gen_whs = NetworkMaster.objects.filter(source_location_code__in=gen_whs,
+                                                         dest_location_code=user.id, lead_time__lte=days_filter).\
+                values_list('source_location_code', flat=True)
     stock_objs = StockDetail.objects.filter(sku__user__in=gen_whs, quantity__gt=0).values('sku__sku_class').\
         distinct().annotate(in_stock=Sum('quantity'))
     reserved_quantities = PicklistLocation.objects.filter(stock__sku__user__in=gen_whs, status=1).values(
@@ -6371,3 +6387,43 @@ def get_max_seller_transfer_id(user):
     else:
         trans_id = 1
     return trans_id
+
+
+def write_excel(ws, data_count, ind, val, file_type='xls'):
+    if file_type == 'xls':
+        ws.write(data_count, ind, val)
+    else:
+        val = str(val).replace(',', '  ').replace('\n', '').replace('"', "\'")
+        ws = ws + val + ','
+    return ws
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_mail_alerts(request, user=''):
+    alert_name = request.GET.get('alert_name', '')
+    alert_value = request.GET.get('alert_value', '')
+    to_delete = request.GET.get('delete', '')
+    try:
+        log.info("Update Mail Alerts for user %s and request params are %s" %
+                 (str(user.username), str(request.GET.dict())))
+        if alert_name and alert_value:
+            mail_alert_obj = MailAlerts.objects.filter(user_id=user.id, alert_name=alert_name)
+            if mail_alert_obj:
+                if to_delete == 'true':
+                    mail_alert_obj.delete()
+                else:
+                    mail_alert_obj = mail_alert_obj[0]
+                    mail_alert_obj.alert_value = alert_value
+                    mail_alert_obj.save()
+            else:
+                MailAlerts.objects.create(user_id=user.id, alert_name=alert_name, alert_type='days',
+                                          alert_value=alert_value, creation_date=datetime.datetime.now())
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        result_data = []
+        log.info('Update Remainder Mail alerts failed for %s and request is %s and error statement is %s' % (
+            str(user.username), str(request.GET.dict()), str(e)))
+    return HttpResponse("Success")

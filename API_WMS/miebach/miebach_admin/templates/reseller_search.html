@@ -48,7 +48,7 @@
           {% endif %}
           {% if not obj.style_data %}
           {% if obj.variants.0.price_ranges %}
-          <span class="style_name pull-right" style="font-size: 12px"><b>Tax(%) : </b> {{obj.tax_percentage}}%</span>
+          <span class="style_name pull-right" style="font-size: 12px"><b>GST(%) : </b> {{obj.tax_percentage}}%</span>
           <div ng-if="item.variants[0].price_ranges.length > 0">
             <table class="table table-bordered mb0 mt5" style="font-size:10px;margin-bottom:0px;">
               <tbody>
@@ -79,7 +79,7 @@
           </div>
           <div>
             <span class="style_name" style="font-size: 12px"><b>Amt : </b> {{obj.style_data.amount}}</span>
-            <span class="style_name pull-right" style="font-size: 12px"><b>Tax({{obj.style_data.tax_percentage}}%) : </b> {{obj.style_data.tax_value}}</span>
+            <span class="style_name pull-right" style="font-size: 12px"><b>GST({{obj.style_data.tax_percentage}}%) : </b> {{obj.style_data.tax_value}}</span>
           </div>
           <span class="style_name" style="font-size: 12px"><b>Total Amt : </b> {{obj.style_data.total_amount}}</span>
           {% endif %}

@@ -26,7 +26,8 @@ angular
     'datatables',
     'slick',
     'ui.toggle',
-    'ezplus'
+    'ezplus',
+    'angular-google-analytics'
   ])
   .constant('COLORS', {
     'default': '#e2e2e2',

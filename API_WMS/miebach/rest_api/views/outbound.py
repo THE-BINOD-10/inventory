@@ -713,6 +713,8 @@ def get_picklist_data(data_id, user_id):
             remarks = ''
             load_unit_handle = ''
             category = ''
+            customer_address = ''
+            original_order_id = ''
             if order.stock:
                 stock_id = pick_stocks.get(id=order.stock_id)
             if order.order:
@@ -723,8 +725,15 @@ def get_picklist_data(data_id, user_id):
                 marketplace = order.order.marketplace
                 remarks = order.order.remarks
                 order_id = str(order.order.order_id)
+                original_order_id = order.order.original_order_id
                 load_unit_handle = order.order.sku.load_unit_handle
                 category = order.order.sku.sku_category
+                customer_address = order.order.address
+                if order.order.customer_id:
+                    customer_obj = CustomerMaster.objects.filter(customer_id=order.order.customer_id,
+                                                                 user=user_id)
+                    if customer_obj:
+                        customer_address = customer_obj[0].address
             else:
                 st_order = STOrder.objects.filter(picklist_id=order.id)
                 sku_code = ''
@@ -780,9 +789,11 @@ def get_picklist_data(data_id, user_id):
                                                'image': image, 'order_id': str(order.order_id), 'status': order.status,
                                                'pallet_code': pallet_code, 'sku_code': sku_code, 'title': title,
                                                'stock_left': stock_left, 'last_picked_locs': last_picked_locs,
-                                               'customer_name': customer_name, 'marketplace': marketplace,
+                                               'customer_name': customer_name, 'customer_address': customer_address,
+                                               'marketplace': marketplace,
                                                'order_no': order_id, 'remarks': remarks,
-                                               'load_unit_handle': load_unit_handle, 'category': category}
+                                               'load_unit_handle': load_unit_handle, 'category': category,
+                                               'original_order_id': original_order_id}
             else:
                 batch_data[match_condition]['reserved_quantity'] += order.reserved_quantity
                 batch_data[match_condition]['picked_quantity'] += order.reserved_quantity
@@ -808,15 +819,27 @@ def get_picklist_data(data_id, user_id):
             remarks = ''
             load_unit_handle = ''
             category = ''
+            customer_address = ''
+            original_order_id = ''
             if order.order:
                 wms_code = order.order.sku.wms_code
                 if order.order_type == 'combo' and order.sku_code:
                     wms_code = order.sku_code
                 invoice_amount = order.order.invoice_amount
                 order_id = str(order.order.order_id)
+                original_order_id = order.order.original_order_id
                 sku_code = order.order.sku_code
                 title = order.order.title
                 customer_name = order.order.customer_name
+                customer_address = order.order.address
+                if order.order.customer_id:
+                    customer_obj = CustomerMaster.objects.filter(customer_id=order.order.customer_id,
+                                                                 user=user_id)
+                    if customer_obj:
+                        customer_address = customer_obj[0].address
+                customer_order_summary = order.order.customerordersummary_set.filter()
+                if customer_order_summary and customer_order_summary[0].consignee:
+                    customer_address = customer_order_summary[0].consignee
                 marketplace = order.order.marketplace
                 remarks = order.order.remarks
                 load_unit_handle = order.order.sku.load_unit_handle
@@ -830,6 +853,7 @@ def get_picklist_data(data_id, user_id):
                 marketplace = ""
                 load_unit_handle = order.stock.sku.load_unit_handle
                 category = order.stock.sku.sku_category
+                customer_address = ''
             if order.stock_id:
                 stock_id = pick_stocks.get(id=order.stock_id)
             if order.reserved_quantity == 0:
@@ -868,7 +892,8 @@ def get_picklist_data(data_id, user_id):
                  'status': order.status, 'order_no': order_id, 'pallet_code': pallet_code, 'sku_code': sku_code,
                  'title': title, 'stock_left': stock_left, 'last_picked_locs': last_picked_locs,
                  'customer_name': customer_name, 'marketplace': marketplace, 'remarks': remarks,
-                 'load_unit_handle': load_unit_handle, 'category': category})
+                 'load_unit_handle': load_unit_handle, 'category': category, 'customer_address': customer_address,
+                 'original_order_id': original_order_id})
 
             if wms_code in sku_total_quantities.keys():
                 sku_total_quantities[wms_code] += float(order.reserved_quantity)
@@ -1936,8 +1961,7 @@ def view_picklist(request, user=''):
     if pallet_switch == 'true':
         headers.insert(headers.index('Location') + 1, 'Pallet Code')
     data, sku_total_quantities = get_picklist_data(data_id, user.id)
-    if data[0]['status'] == 'open':
-        headers.insert(headers.index('WMS Code'), 'Order ID')
+    if data:
         order_count = list(set(map(lambda d: d.get('order_no', ''), data)))
         order_count_len = len(filter(lambda x: len(str(x)) > 0, order_count))
         if order_count_len == 1:
@@ -4264,6 +4288,7 @@ def get_style_variants(sku_master, user, customer_id='', total_quantity=0, custo
                 else:
                     sku_master[ind]['pricing_price'] = 0
             else:
+                buy_pm_objs = ''
                 is_distributor = customer_data[0].is_distributor
                 pricemaster_obj = PriceMaster.objects.filter(sku__user=central_admin.id,
                                                              sku__sku_code=sku['wms_code'])
@@ -4290,6 +4315,8 @@ def get_style_variants(sku_master, user, customer_id='', total_quantity=0, custo
                 else:
                     if is_style_detail != 'true':
                         price_type = 'R-C'
+                        buy_pricetype = customer_data[0].price_type
+                        buy_pm_objs = pricemaster_obj.filter(price_type=buy_pricetype)
                     if price_type != 'R-C':
                         # Assuming Reseller, taking price type from Customer Master
                         price_type = customer_data[0].price_type
@@ -4307,6 +4334,10 @@ def get_style_variants(sku_master, user, customer_id='', total_quantity=0, custo
                     for pm_obj in pricemaster_obj:
                         pm_obj_map = {'min_unit_range': pm_obj.min_unit_range, 'max_unit_range': pm_obj.max_unit_range,
                                       'price': pm_obj.price}
+                        if buy_pm_objs:
+                            buy_pm_obj = buy_pm_objs.filter(min_unit_range=pm_obj.min_unit_range,
+                                                            max_unit_range=pm_obj.max_unit_range)
+                            pm_obj_map['buy_price'] = buy_pm_obj[0].price
                         apply_margin_price(pm_obj.sku.sku_code, pm_obj_map, specific_margins, is_margin_percentage,
                                            default_margin, user)
                         sku_master[ind].setdefault('price_ranges', []).append(pm_obj_map)

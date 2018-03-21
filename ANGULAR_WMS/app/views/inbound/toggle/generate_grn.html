@@ -53,9 +53,15 @@
                 <textarea class="form-control" rows="2" ng-model="showCase.model_data.remarks" type="text" name="remarks" focus-on="focusSKU"></textarea>
               </div>
             </div>
+            <div class="col-md-3 col-sm-3 col-xs-6">
+              <div class="form-group">
+                <label for="invoice_number" class="control-label"> Invoice Number </label>
+                <input class="form-control" ng-model="showCase.model_data.invoice_number" type="text" name="invoice_number" natural-number>
+              </div>
+            </div>
           </div>
           <div class="row">
-            <div class="col-md-12"><!--{{showCase.fb.poData}}-->
+            <div class="col-md-12">
               <hr>
             </div>
           </div>

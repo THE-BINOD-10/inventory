@@ -2308,6 +2308,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     # Getting the values from database
     user_profile = UserProfile.objects.get(user_id=user.id)
     gstin_no = user_profile.gst_number
+    cin_no = user_profile.cin_number
     display_customer_sku = get_misc_value('display_customer_sku', user.id)
     show_imei_invoice = get_misc_value('show_imei_invoice', user.id)
     invoice_remarks = get_misc_value('invoice_remarks', user.id)
@@ -2586,6 +2587,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'seller_company': seller_company, 'sequence_number': _sequence, 'order_reference': order_reference,
                     'order_reference_date_field': order_reference_date_field,
                     'order_reference_date': order_reference_date, 'invoice_header': invoice_header,
+                    'cin_no': cin_no
                     }
     return invoice_data
 
@@ -5888,6 +5890,7 @@ def get_user_profile_data(request, user=''):
     data['gst_number'] = main_user.gst_number
     data['main_user'] = request.user.is_staff
     data['company_name'] = main_user.company_name
+    data['cin_number'] = request.user.userprofile.cin_number
     return HttpResponse(json.dumps({'msg': 1, 'data': data}))
 
 
@@ -5939,10 +5942,12 @@ def update_profile_data(request, user=''):
     gst_number = request.POST.get('gst_number', '')
     company_name = request.POST.get('company_name', '')
     email = request.POST.get('email', '')
+    cin_number = request.POST.get('cin_number', '')
     main_user = UserProfile.objects.get(user_id=user.id)
     main_user.address = address
     main_user.gst_number = gst_number
     main_user.company_name = company_name
+    main_user.cin_number = cin_number
     main_user.save()
     user.email = email
     user.save()

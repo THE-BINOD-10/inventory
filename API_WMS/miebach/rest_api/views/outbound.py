@@ -713,6 +713,8 @@ def get_picklist_data(data_id, user_id):
             remarks = ''
             load_unit_handle = ''
             category = ''
+            customer_address = ''
+            original_order_id = ''
             if order.stock:
                 stock_id = pick_stocks.get(id=order.stock_id)
             if order.order:
@@ -723,8 +725,15 @@ def get_picklist_data(data_id, user_id):
                 marketplace = order.order.marketplace
                 remarks = order.order.remarks
                 order_id = str(order.order.order_id)
+                original_order_id = order.order.original_order_id
                 load_unit_handle = order.order.sku.load_unit_handle
                 category = order.order.sku.sku_category
+                customer_address = order.order.address
+                if order.order.customer_id:
+                    customer_obj = CustomerMaster.objects.filter(customer_id=order.order.customer_id,
+                                                                 user=user_id)
+                    if customer_obj:
+                        customer_address = customer_obj[0].address
             else:
                 st_order = STOrder.objects.filter(picklist_id=order.id)
                 sku_code = ''
@@ -780,9 +789,11 @@ def get_picklist_data(data_id, user_id):
                                                'image': image, 'order_id': str(order.order_id), 'status': order.status,
                                                'pallet_code': pallet_code, 'sku_code': sku_code, 'title': title,
                                                'stock_left': stock_left, 'last_picked_locs': last_picked_locs,
-                                               'customer_name': customer_name, 'marketplace': marketplace,
+                                               'customer_name': customer_name, 'customer_address': customer_address,
+                                               'marketplace': marketplace,
                                                'order_no': order_id, 'remarks': remarks,
-                                               'load_unit_handle': load_unit_handle, 'category': category}
+                                               'load_unit_handle': load_unit_handle, 'category': category,
+                                               'original_order_id': original_order_id}
             else:
                 batch_data[match_condition]['reserved_quantity'] += order.reserved_quantity
                 batch_data[match_condition]['picked_quantity'] += order.reserved_quantity
@@ -808,15 +819,27 @@ def get_picklist_data(data_id, user_id):
             remarks = ''
             load_unit_handle = ''
             category = ''
+            customer_address = ''
+            original_order_id = ''
             if order.order:
                 wms_code = order.order.sku.wms_code
                 if order.order_type == 'combo' and order.sku_code:
                     wms_code = order.sku_code
                 invoice_amount = order.order.invoice_amount
                 order_id = str(order.order.order_id)
+                original_order_id = order.order.original_order_id
                 sku_code = order.order.sku_code
                 title = order.order.title
                 customer_name = order.order.customer_name
+                customer_address = order.order.address
+                if order.order.customer_id:
+                    customer_obj = CustomerMaster.objects.filter(customer_id=order.order.customer_id,
+                                                                 user=user_id)
+                    if customer_obj:
+                        customer_address = customer_obj[0].address
+                customer_order_summary = order.order.customerordersummary_set.filter()
+                if customer_order_summary and customer_order_summary[0].consignee:
+                    customer_address = customer_order_summary[0].consignee
                 marketplace = order.order.marketplace
                 remarks = order.order.remarks
                 load_unit_handle = order.order.sku.load_unit_handle
@@ -830,6 +853,7 @@ def get_picklist_data(data_id, user_id):
                 marketplace = ""
                 load_unit_handle = order.stock.sku.load_unit_handle
                 category = order.stock.sku.sku_category
+                customer_address = ''
             if order.stock_id:
                 stock_id = pick_stocks.get(id=order.stock_id)
             if order.reserved_quantity == 0:
@@ -868,7 +892,8 @@ def get_picklist_data(data_id, user_id):
                  'status': order.status, 'order_no': order_id, 'pallet_code': pallet_code, 'sku_code': sku_code,
                  'title': title, 'stock_left': stock_left, 'last_picked_locs': last_picked_locs,
                  'customer_name': customer_name, 'marketplace': marketplace, 'remarks': remarks,
-                 'load_unit_handle': load_unit_handle, 'category': category})
+                 'load_unit_handle': load_unit_handle, 'category': category, 'customer_address': customer_address,
+                 'original_order_id': original_order_id})
 
             if wms_code in sku_total_quantities.keys():
                 sku_total_quantities[wms_code] += float(order.reserved_quantity)
@@ -1936,8 +1961,7 @@ def view_picklist(request, user=''):
     if pallet_switch == 'true':
         headers.insert(headers.index('Location') + 1, 'Pallet Code')
     data, sku_total_quantities = get_picklist_data(data_id, user.id)
-    if data[0]['status'] == 'open':
-        headers.insert(headers.index('WMS Code'), 'Order ID')
+    if data:
         order_count = list(set(map(lambda d: d.get('order_no', ''), data)))
         order_count_len = len(filter(lambda x: len(str(x)) > 0, order_count))
         if order_count_len == 1:
@@ -6236,11 +6260,10 @@ def get_level_based_customer_orders(request, response_data, user):
     user_profile = UserProfile.objects.get(user=user.id)
     admin_user = get_priceband_admin_user(user)
     if is_autobackorder == 'true':
-        filter_dict = {'cust_wh_id__in': [user.id]}
         customer = WarehouseCustomerMapping.objects.filter(warehouse=user.id, status=1)
         if customer:
-            cum_obj = CustomerUserMapping.objects.filter(customer=customer[0].customer.id)
-            filter_dict['cust_wh_id__in'].append(cum_obj[0].customer.user)
+            cm_ids = CustomerUserMapping.objects.filter(customer__user=user.id).values_list('customer_id', flat=True)
+            filter_dict = {'customer_id__in': cm_ids}
     elif user_profile.warehouse_type == 'WH':
         filter_dict = {'cust_wh_id__in': [user.id]}
         cus_mapping = CustomerUserMapping.objects.filter(user_id=request.user.id)
@@ -6475,13 +6498,11 @@ def get_level_based_customer_order_detail(request, user):
     is_autobackorder = request.GET.get('autobackorder', 'false')
     customer_id = request.GET.get('customer_id', '')
     user_profile = UserProfile.objects.get(user=request.user.id)
-    cum_obj = ''
     if is_autobackorder == 'true':
-        filter_dict = {'cust_wh_id__in': [user.id]}
         customer = WarehouseCustomerMapping.objects.filter(warehouse=user.id, status=1)
         if customer:
-            cum_obj = CustomerUserMapping.objects.filter(customer=customer[0].customer.id)
-            filter_dict['cust_wh_id__in'].append(cum_obj[0].customer.user)
+            cm_ids = CustomerUserMapping.objects.filter(customer__user=user.id).values_list('customer_id', flat=True)
+            filter_dict = {'customer_id__in': cm_ids}
     elif user_profile.warehouse_type == 'WH':
         filter_dict = {'cust_wh_id__in': [user.id]}
         cus_mapping = CustomerUserMapping.objects.filter(user_id=request.user.id)
@@ -6494,58 +6515,48 @@ def get_level_based_customer_order_detail(request, user):
         cm_ids = cum_obj.values_list('customer_id', flat=True)
         filter_dict = {'customer_id__in': cm_ids}
 
-    # if user_profile.warehouse_type == 'DIST':
-    #     customer = WarehouseCustomerMapping.objects.filter(warehouse=request.user.id, status=1)
-    #     if customer:
-    #         cum_obj = CustomerUserMapping.objects.filter(customer=customer[0].customer.id)
-    # else:
-    #     cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
-    if cum_obj:
-        # cm_id = cum_obj[0].customer_id
-        # generic_orders = GenericOrderDetailMapping.objects.filter(customer_id=cm_id)
-        generic_orders = GenericOrderDetailMapping.objects.filter(**filter_dict)
-        # generic_details_ids = generic_orders.values_list('orderdetail_id', flat=True)
-        if customer_id:
-            generic_orders = generic_orders.filter(customer_id=customer_id)
-        order_detail_ids = generic_orders.filter(generic_order_id=generic_order_id).values_list(
-            'orderdetail_id', flat=True)
+    generic_orders = GenericOrderDetailMapping.objects.filter(**filter_dict)
+    if customer_id:
+        generic_orders = generic_orders.filter(customer_id=customer_id)
+    order_detail_ids = generic_orders.filter(generic_order_id=generic_order_id).values_list(
+        'orderdetail_id', flat=True)
 
-        ord_det_qs = OrderDetail.objects.filter(id__in=order_detail_ids).values_list('order_id', 'id', 'user',
-                                                                                     'original_order_id', 'order_code')
-        ord_det_map = {}
-        if ord_det_qs:
-            order_detail_order_id = ord_det_qs[0][3]
-            if not order_detail_order_id:
-                order_detail_order_id = str(ord_det_qs[0][4]) + str(ord_det_qs[0][0])
-            other_charges = order_charges_obj_for_orderid(order_detail_order_id, request.user.id)
+    ord_det_qs = OrderDetail.objects.filter(id__in=order_detail_ids).values_list('order_id', 'id', 'user',
+                                                                                 'original_order_id', 'order_code')
+    ord_det_map = {}
+    if ord_det_qs:
+        order_detail_order_id = ord_det_qs[0][3]
+        if not order_detail_order_id:
+            order_detail_order_id = str(ord_det_qs[0][4]) + str(ord_det_qs[0][0])
+        other_charges = order_charges_obj_for_orderid(order_detail_order_id, request.user.id)
 
-        for ord_id, det_id, usr_id, original_order_id, order_code in ord_det_qs:
-            ord_det_map.setdefault(int(ord_id), {}).setdefault(usr_id, []).append(det_id)
-        for ord_id, usr_det_ids in ord_det_map.items():
-            for usr_id, det_ids in usr_det_ids.items():
-                response_data, res = prepare_your_orders_data(request, ord_id, usr_id, det_ids,
-                                                         OrderDetail.objects.filter(id__in=det_ids))
-                ord_usr_profile = UserProfile.objects.get(user_id=usr_id)
-                for sku_rec in res:
-                    sku_code = sku_rec['sku__sku_code']
-                    sku_qty = sku_rec['quantity']
-                    sku_el_price = round(sku_rec.get('el_price', 0), 2)
-                    sku_tax_amt = round(sku_rec.get('sku_tax_amt', 0), 2)
-                    gen_obj = GenericOrderDetailMapping.objects.get(orderdetail_id=sku_rec['id'])
-                    if CustomerMaster.objects.get(id=gen_obj.customer_id).user == usr_id:
-                        response_data['warehouse_level'] = 0
-                    else:
-                        response_data['warehouse_level'] = ord_usr_profile.warehouse_level
-                    response_data['level_name'] = get_level_name_with_level(user, response_data['warehouse_level'],
-                                                                            users_list=[usr_id])
-                    if sku_code not in sku_wise_details:
-                        sku_wise_details[sku_code] = {'quantity': sku_qty, 'el_price': sku_el_price,
-                                                      'sku_tax_amt': sku_tax_amt}
-                    else:
-                        existing_map = sku_wise_details[sku_code]
-                        existing_map['quantity'] = existing_map['quantity'] + sku_qty
-                        existing_map['sku_tax_amt'] = existing_map['sku_tax_amt'] + sku_tax_amt
-                response_data_list.append(response_data)
+    for ord_id, det_id, usr_id, original_order_id, order_code in ord_det_qs:
+        ord_det_map.setdefault(int(ord_id), {}).setdefault(usr_id, []).append(det_id)
+    for ord_id, usr_det_ids in ord_det_map.items():
+        for usr_id, det_ids in usr_det_ids.items():
+            response_data, res = prepare_your_orders_data(request, ord_id, usr_id, det_ids,
+                                                     OrderDetail.objects.filter(id__in=det_ids))
+            ord_usr_profile = UserProfile.objects.get(user_id=usr_id)
+            for sku_rec in res:
+                sku_code = sku_rec['sku__sku_code']
+                sku_qty = sku_rec['quantity']
+                sku_el_price = round(sku_rec.get('el_price', 0), 2)
+                sku_tax_amt = round(sku_rec.get('sku_tax_amt', 0), 2)
+                gen_obj = GenericOrderDetailMapping.objects.get(orderdetail_id=sku_rec['id'])
+                if CustomerMaster.objects.get(id=gen_obj.customer_id).user == usr_id:
+                    response_data['warehouse_level'] = 0
+                else:
+                    response_data['warehouse_level'] = ord_usr_profile.warehouse_level
+                response_data['level_name'] = get_level_name_with_level(user, response_data['warehouse_level'],
+                                                                        users_list=[usr_id])
+                if sku_code not in sku_wise_details:
+                    sku_wise_details[sku_code] = {'quantity': sku_qty, 'el_price': sku_el_price,
+                                                  'sku_tax_amt': sku_tax_amt}
+                else:
+                    existing_map = sku_wise_details[sku_code]
+                    existing_map['quantity'] = existing_map['quantity'] + sku_qty
+                    existing_map['sku_tax_amt'] = existing_map['sku_tax_amt'] + sku_tax_amt
+            response_data_list.append(response_data)
     sku_whole_map = {'data': [], 'totals': {}}
     sku_totals = {'sub_total': 0, 'total_amount': 0, 'tax': 0}
     for sku_code, sku_det in sku_wise_details.items():

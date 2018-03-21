@@ -2529,3 +2529,17 @@ class SellerStockTransfer(models.Model):
         db_table = 'SELLER_STOCK_TRANSFER'
         unique_together = ('seller_transfer', 'sku', 'source_location', 'dest_location')
         index_together = ('seller_transfer', 'sku', 'source_location', 'dest_location')
+
+
+class MailAlerts(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User, blank=True, null=True)
+    alert_name = models.CharField(max_length=64, default='')
+    alert_type = models.CharField(max_length=64, default='')
+    alert_value = models.PositiveIntegerField()
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'MAIL_ALERTS'
+        unique_together = ('user', 'alert_name')

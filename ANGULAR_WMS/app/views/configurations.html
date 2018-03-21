@@ -160,6 +160,40 @@
         <button type="button" class="btn btn-success" ng-click="showCase.saveMarketplace(showCase.model_data.marketplace_name, showCase.model_data.marketplace_prefix)">Save</button>
         <button type="button" class="btn btn-danger" ng-click="showCase.updateMarketplace(showCase.model_data.marketplace_name, showCase.model_data.marketplace_prefix, 'delete')" ng-if="!showCase.model_data.marketplace_new">Delete</button>
       </div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i style="line-height: 34px;" class="fa fa-th fa-15px pull-left"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Remainder Mail Alerts </strong>
+        </div>
+        <div class="col-md-2 col-sm-4 col-xs-4">
+          <select class="show-menu-arrow form-control pull-left" ng-model="showCase.rem_alert_selected" ng-change="showCase.remAlertSelected(showCase.rem_alert_selected)">
+            <option value="">Select</option>
+            <option ng-repeat="alert in showCase.model_data.rem_saved_mail_alerts" value="{{ alert.alert_name}}"> {{ showCase.model_data.rem_mail_alerts[alert.alert_name] }}</option>
+          </select>
+        </div>
+        <div class="col-md-1 col-sm-1 col-xs-2" ng-if="!showCase.rem_alert_add_show">
+          <div class="btn-group pull-left">
+            <button type="button" class="btn btn-warning" ng-click="showCase.rem_alert_add_show = true;showCase.model_data.remainder_alert_new = true;showCase.filterRemAlerts();">
+              <span class="icon-plus"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px" ng-if="showCase.rem_alert_add_show">
+        <div class="col-md-5 col-sm-8 col-xs-12">
+        </div>
+        <div class="col-md-2 col-sm-2 col-xs-3">
+          <select class="show-menu-arrow form-control pull-left" ng-model="showCase.model_data.rem_alert_name" ng-disabled="!showCase.model_data.rem_alert_new">
+            <option ng-repeat="(alert_key, alert_value) in showCase.model_data.rem_mail_alerts" ng-if="Object.keys(showCase.model_data.rem_alerts).indexOf(alert_key)!= -1" value="{{alert_key}}"> {{ alert_value }} </option>
+          </select>
+          <!--<input type="text" class="form-control" ng-model="showCase.model_data.marketplace_name" placeholder="Marketplace" ng-readonly="!showCase.model_data.marketplace_new">-->
+        </div>
+        <div class="col-md-2 col-sm-2 col-xs-3">
+          <input type="text" class="form-control" ng-model="showCase.model_data.rem_alert_value" placeholder="No. of Days">
+        </div>
+        <button type="button" class="btn btn-success" ng-click="showCase.saveRemainderAlerts(showCase.model_data.rem_alert_name, showCase.model_data.rem_alert_value)">Save</button>
+        <button type="button" class="btn btn-danger" ng-click="showCase.updateRemainder(showCase.model_data.rem_alert_name, showCase.model_data.rem_alert_value, 'delete')" ng-if="!showCase.model_data.rem_alert_new">Delete</button>
+      </div>
       <div class="row col-md-12" style="padding-bottom: 15px" ng-repeat="config in showCase.check_box_data" ng-if="config.display">
         <div class="col-md-5 col-sm-8 col-xs-12">
           <i class="fa-15px pull-left" ng-class="config.class_name" style="line-height: 34px;"></i>

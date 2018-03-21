@@ -11,15 +11,21 @@ import traceback
 from tally.tally.tally_wrapper import TallyBridgeApp
 from tally.tally.common_exceptions import *
 from PullFromStockone.models import *
+from tally.tally.logger_file import *
+
 bridge = TallyBridgeApp(dll="C:\\Users\\Headrun\\Downloads\\TallyHolder\\TallyHolder\\TallyHolder\\tally\\DLL\\TallyBridgeDll.dll")
+
+log = init_logger('logs/db_to_tally.log')
 
 def push_to_tally(ip, port, data):
     pass
 
 def push_item_master():
+    log.info('------Item Master started Data transfer to Tally-----')
     resp_data = ItemMaster.objects.filter(push_status__in=[0,9])
     for obj in resp_data:
         try:
+            print obj.data
             d = json.loads(obj.data)
             status = bridge.item_master(d)
             obj.push_status = 1
@@ -34,9 +40,11 @@ def push_item_master():
             obj.push_status = 9
             obj.save()
             print traceback.format_exc()
+    log.info('------Item Master Completed Data transfer to Tally-----')
     return 0
 
 def push_customer_vendor_master():
+    log.info('------Customer Master started Data transfer to Tally-----')
     resp_data = CustomerVendorMaster.objects.filter(push_status__in=[0,9])
     for obj in resp_data:
         try:
@@ -51,8 +59,11 @@ def push_customer_vendor_master():
         except:
             print traceback.format_exc()
             return traceback.format_exc()
+    log.info('------Customer Master Completed Data transfer to Tally-----')
+    return 0
 
 def push_sales_invoice_data():
+    log.info('------Sales Invoice started Data transfer to Tally-----')
     resp_data = SalesInvoice.objects.filter(push_status=0)
     for obj in resp_data:
         try:
@@ -70,6 +81,7 @@ def push_sales_invoice_data():
         except:
             print traceback.format_exc()
             return traceback.format_exc()
+    log.info('------Sales Invoice Completed Data transfer to Tally-----')
     return 0
 
 def push_sales_return_data():
@@ -104,5 +116,4 @@ def push_purchase_return_data():
 
 push_item_master()
 push_customer_vendor_master()
-push_sales_invoice_data()
 push_sales_invoice_data()

@@ -10,6 +10,7 @@ import utils
 
 null = None
 
+
 class TallyBridgeApp(object):
 
     def __init__(self, **kwargs):
@@ -49,7 +50,6 @@ class TallyBridgeApp(object):
         'items',
         'party_ledger'
     ])
-
     def sales_invoice(self, **kwargs):
         ''' Add/Edits sales invoice
         required: [
@@ -96,10 +96,10 @@ class TallyBridgeApp(object):
         dt_of_voucher = kwargs.get('dt_of_voucher')
         voucher_typeName = kwargs.get('voucher_type_name')
         type_of_voucher = kwargs.get('type_of_voucher', 'Sales')
-        
-        #TODO: ask rajesh
+
+        # TODO: ask rajesh
         voucher_no = kwargs.get('voucher_no')
-        
+
         reference = kwargs.get('reference')
         voucher_identifier = kwargs.get('voucher_dentifier')
         despatch_doc_no = kwargs.get('despatch_doc_no')
@@ -135,14 +135,15 @@ class TallyBridgeApp(object):
         # required
         invoice.tallyCompanyName = tally_company_name
         invoice.voucherForeignKey = voucher_foreign_key
-        invoice.dtOfVoucher = System.DateTime.ParseExact(dt_of_voucher, 'dd/MM/yyyy', None)
-        #print(invoice.dtOfVoucher)
+
+        # invoice.dtOfVoucher = System.DateTime.ParseExact(dt_of_voucher, 'dd/MM/yyyy', None)
+        invoice.dtOfVoucher = System.DateTime.ParseExact("01/03/2018", 'dd/MM/yyyy', None)
+
         invoice.voucherTypeName = voucher_typeName
 
-        #modified
+        # modified
         # invoice.voucherIdentifier = voucher_foreign_key
         invoice.voucherIdentifier = voucher_identifier
-
 
         invoice.buyerState = buyer_state
         # order details
@@ -153,7 +154,6 @@ class TallyBridgeApp(object):
             v_order.orderDate = System.DateTime.ParseExact(order['order_date'], 'dd/MM/yyyy', None)
             updated_orders.append(v_order)
         invoice.orderDetails = updated_orders
-        #print(invoice.orderDetails)
         # item details
         for item in items:
             inv_entry = Tally.InventoryEntry()
@@ -164,23 +164,22 @@ class TallyBridgeApp(object):
             inv_entry.rate = System.Decimal(item['rate'])
             inv_entry.rateUnit = item['rate_unit'] or 'nos'
             inv_entry.amount = System.Decimal(item['amount'])
-            print(inv_entry.actualQty,inv_entry.billedQty,  inv_entry.qtyUnit, inv_entry.rate, inv_entry.rateUnit,inv_entry.amount)
-            #Accounting Allocation for the item
+            print(inv_entry.actualQty, inv_entry.billedQty, inv_entry.qtyUnit, inv_entry.rate, inv_entry.rateUnit,
+                  inv_entry.amount)
+            # Accounting Allocation for the item
             ledger_acc_alloc = Tally.LedgerEntry()
             ledger_acc_alloc.ledgerName = item['ledger_name'] or 'GST Sales'
             ledger_acc_alloc.ledgerAmount = inv_entry.amount
             inv_entry.arlAccountingAllocations.Add(ledger_acc_alloc)
-            #print(inv_entry)
-            #print(ledger_acc_alloc)
+            # print(inv_entry)
+            # print(ledger_acc_alloc)
             invoice.arlInvEntries.Add(inv_entry)
         # party Ledger
         party_ledger_entry = Tally.LedgerEntry()
         party_ledger_entry.ledgerName = party_ledger.get('name')
-        party_ledger_entry.ledgerAmount = System.Decimal(party_ledger.get('amount') * -1)                      # always negetive
-        party_ledger_entry.isDeemedPositive = party_ledger.get('is_deemed_positive') or True                   # always True
+        party_ledger_entry.ledgerAmount = System.Decimal(party_ledger.get('amount') * -1)  # always negetive
+        party_ledger_entry.isDeemedPositive = party_ledger.get('is_deemed_positive') or True  # always True
         invoice.arlLedgerEntries.Add(party_ledger_entry)
-        #print(party_ledger_entry)
-        # optional
         # party ledger tax entry
         for tax_obj in party_ledger_tax:
             party_tax_ledger = Tally.LedgerEntry()
@@ -189,18 +188,21 @@ class TallyBridgeApp(object):
             if 'entry_rate' in tax_obj.keys():
                 party_tax_ledger.ledEntryRate = System.Decimal(tax_obj.get('entry_rate'))
             if 'is_deemed_positive' in tax_obj.keys():
-                party_tax_ledger.isDeemedPositive = tax_obj.get('is_deemed_positive') or True            # always True
+                party_tax_ledger.isDeemedPositive = tax_obj.get('is_deemed_positive') or True  # always True
 
             invoice.arlLedgerEntries.Add(party_tax_ledger)
-        '''
-        if party_ledger_tax:
+
+            # import pdb;pdb.set_trace()
+            # Testing Ledger
             party_tax_ledger = Tally.LedgerEntry()
-            party_tax_ledger.ledgerName = party_ledger_tax.get('name', 'sam')
-            party_tax_ledger.ledEntryRate = System.Decimal(party_ledger_tax.get('entry_rate'))
-            party_tax_ledger.ledgerAmount = System.Decimal(party_ledger_tax.get('amount'))                    # always positive
-            party_tax_ledger.isDeemedPositive = party_ledger_tax.get('is_deemed_positive') or False           # always False
+            party_tax_ledger.ledgerName = 'Bill of Supply'
+            party_tax_ledger.ledgerAmount = System.Decimal(0)  # always positive
+            if 'entry_rate' in tax_obj.keys():
+                party_tax_ledger.ledEntryRate = System.Decimal(0)
+            if 'is_deemed_positive' in tax_obj.keys():
+                party_tax_ledger.isDeemedPositive = tax_obj.get('is_deemed_positive') or True  # always True
             invoice.arlLedgerEntries.Add(party_tax_ledger)
-        '''
+
         if voucher_no:
             invoice.voucherNo = voucher_no
         if reference:
@@ -255,8 +257,6 @@ class TallyBridgeApp(object):
         invoice.isInvoice = is_invoice or True
         invoice.isOptional = is_optional or False
         invoice.typeOfVoucher = type_of_voucher or 'Sales'
-        #print(dir(invoice))
-        ##print(invoice)
         return self._transfer_and_get_resp(invoice, constants.SALES_INVOICE)
 
     @utils.required(params=[
@@ -338,7 +338,6 @@ class TallyBridgeApp(object):
         consignee_CST_no = kwargs.get('consignee_CST_no')
         invoice = Tally.PurchaseVoucher()
 
-
         # required
         invoice.tallyCompanyName = tally_company_name
         invoice.voucherForeignKey = voucher_foreign_key
@@ -355,7 +354,7 @@ class TallyBridgeApp(object):
             inv_entry.qtyUnit = item['unit'] or 'nos'
             inv_entry.rate = System.Decimal(item['rate'])
             inv_entry.rateUnit = item['rate_unit'] or 'nos'
-            inv_entry.amount = System.Decimal(item['amount']) * -1                                            # always negetive
+            inv_entry.amount = System.Decimal(item['amount']) * -1  # always negetive
             inv_entry.discountPerc = System.Decimal(item.get('discount_percent', 0))
             # Accounting Allocation for the item
             ledger_acc_alloc = Tally.LedgerEntry()
@@ -366,8 +365,8 @@ class TallyBridgeApp(object):
         # party Ledger
         party_ledger_entry = Tally.LedgerEntry()
         party_ledger_entry.ledgerName = party_ledger.get('name')
-        party_ledger_entry.ledgerAmount = System.Decimal(party_ledger.get('amount'))                           # always positive
-        party_ledger_entry.isDeemedPositive = party_ledger.get('is_deemed_positive') or False                  # always False
+        party_ledger_entry.ledgerAmount = System.Decimal(party_ledger.get('amount'))  # always positive
+        party_ledger_entry.isDeemedPositive = party_ledger.get('is_deemed_positive') or False  # always False
         invoice.arlLedgerEntries.Add(party_ledger_entry)
 
         # optional
@@ -375,11 +374,11 @@ class TallyBridgeApp(object):
         if party_ledger_tax and party_ledger_tax.get('entry_rate', 0):
             party_tax_ledger = Tally.LedgerEntry()
             party_tax_ledger.ledgerName = party_ledger_tax.get('name')
-            party_tax_ledger.ledgerAmount = System.Decimal(party_ledger_tax.get('amount') * -1)               # always negetive
+            party_tax_ledger.ledgerAmount = System.Decimal(party_ledger_tax.get('amount') * -1)  # always negetive
             if 'entry_rate' in party_ledger_tax.keys():
                 party_tax_ledger.ledEntryRate = System.Decimal(party_ledger_tax.get('entry_rate'))
             if 'is_deemed_positive' in party_ledger_tax.keys():
-                party_tax_ledger.isDeemedPositive = party_ledger_tax.get('is_deemed_positive') or True            # always True
+                party_tax_ledger.isDeemedPositive = party_ledger_tax.get('is_deemed_positive') or True  # always True
             invoice.arlLedgerEntries.Add(party_tax_ledger)
         # TODO: ROUND OFF
         if voucher_no:
@@ -396,7 +395,7 @@ class TallyBridgeApp(object):
             invoice.supplierTINNo = supplier_TIN_no
         if supplier_CST_no:
             invoice.supplierCSTNo = supplier_CST_no
-        if type_of_dealer: 
+        if type_of_dealer:
             invoice.typeOfDealer = type_of_dealer
         if consignee_name:
             invoice.consigneeName = consignee_name
@@ -456,14 +455,14 @@ class TallyBridgeApp(object):
         ]
         '''
         tallyCompanyName = kwargs.get('tally_company_name')
-        oldLedgerName = kwargs.get('ledger_name')#kwargs.get('old_ledger_name')
+        oldLedgerName = kwargs.get('ledger_name')  # kwargs.get('old_ledger_name')
         ledgerName = kwargs.get('ledger_name')
         openingBalance = kwargs.get('opening_balance')
         ledgerAlias = kwargs.get('ledger_alias')
         parentGroupName = kwargs.get('parent_group_name')
         updateOpeningBalance = kwargs.get('update_opening_balance')
         ledgerMailingName = kwargs.get('ledger_mailing_name')
-        address_1 = 'Headrun Tech'#kwargs.get('address_1', '')
+        address_1 = 'Headrun Tech'  # kwargs.get('address_1', '')
         address_2 = kwargs.get('address_2', '')
         address_3 = kwargs.get('address_3', '')
         state = kwargs.get('state')
@@ -471,7 +470,7 @@ class TallyBridgeApp(object):
         country = kwargs.get('country')
         contactPerson = kwargs.get('contact_person')
         telephoneNo = kwargs.get('telephone_no')
-        #new added
+        # new added
         mobileNo = kwargs.get('mobile_no')
         faxNo = kwargs.get('fax_no')
         email = kwargs.get('email')
@@ -482,10 +481,10 @@ class TallyBridgeApp(object):
         defaultCreditPeriod = kwargs.get('default_credit_period')
         maintainBillWiseDetails = kwargs.get('maintain_billWise_details')
 
-        #missing
-        #custLedger.emailCc = "manager@abcindia.com";
-        #custLedger.website = "www.abcindia.com";
-        #custLedger.gstRegistrationType = "Regular";
+        # missing
+        # custLedger.emailCc = "manager@abcindia.com";
+        # custLedger.website = "www.abcindia.com";
+        # custLedger.gstRegistrationType = "Regular";
 
         ledger = Tally.Ledger()
 
@@ -532,7 +531,6 @@ class TallyBridgeApp(object):
             ledger.ledgerMailingName = ledgerMailingName
         return self._transfer_and_get_resp(ledger, constants.VENDOR_OR_CUSTOMER)
 
-
     ##-- ITEM MASTER --##
     @utils.required(params=[
         'tally_company_name',
@@ -540,7 +538,7 @@ class TallyBridgeApp(object):
         'sku_code',
         'unit_name',
         'stock_group_name',
-        #'stock_category_name',
+        # 'stock_category_name',
         'opening_qty',
         'opening_rate',
         'opening_amt'
@@ -582,7 +580,7 @@ class TallyBridgeApp(object):
         opening_amt = kwargs.get('opening_amt', 0)
 
         stock_item = Tally.StockItem()
-        
+
         # required
         stock_item.tallyCompanyName = tally_company_name
         stock_item.itemName = item_name
@@ -590,13 +588,13 @@ class TallyBridgeApp(object):
         stock_item.primaryUnitName = unit_name or 'nos'
         stock_item.stockGroupName = stock_group_name
         stock_item.stockCategoryName = ''
-        stock_item.openingQty = System.Decimal(3232)
+        stock_item.openingQty = System.Decimal(opening_qty)
         stock_item.openingRate = System.Decimal(opening_rate)
-        stock_item.openingAmt = System.Decimal(-1 * opening_amt)        # Opening stock amount should be negative
+        stock_item.openingAmt = System.Decimal(-1 * opening_amt)  # Opening stock amount should be negative
 
         # defaults if not passed
         stock_item.isVatAppl = is_vat_app or True
-        
+
         # optional
         if old_item_name:
             stock_item.oldItemName = old_item_name
@@ -686,14 +684,14 @@ class TallyBridgeApp(object):
         for item in items:
             inv_entry = Tally.InventoryEntry()
             inv_entry.itemName = item.get('name')
-            inv_entry.isDeemedPositive = item.get('is_deemed_positive', True)                                           # always True
+            inv_entry.isDeemedPositive = item.get('is_deemed_positive', True)  # always True
             inv_entry.actualQty = System.Decimal(item.get('actual_qty'))
             inv_entry.billedQty = System.Decimal(item.get('billed_qty'))
             inv_entry.qtyUnit = item.get('qty_unit')
             inv_entry.rate = System.Decimal(item.get('rate'))
             inv_entry.rateUnit = item.get('rate_unit')
             inv_entry.discountPerc = System.Decimal(item.get('discount_percentage', 0))
-            inv_entry.amount = System.Decimal(item.get('amount', 0) * -1)                                                    # always positive
+            inv_entry.amount = System.Decimal(item.get('amount', 0) * -1)  # always positive
             # Accounting Allocation for the item
             inv_entry_acc = Tally.LedgerEntry()
             inv_entry_acc.ledgerName = item.get('ledger_name')
@@ -703,8 +701,8 @@ class TallyBridgeApp(object):
         # Party Ledger
         party_ledger_entry = Tally.LedgerEntry()
         party_ledger_entry.ledgerName = party_ledger.get('name')
-        party_ledger_entry.ledgerAmount = System.Decimal(party_ledger.get('amount', 0))                                    # always positive
-        party_ledger_entry.isDeemedPositive = party_ledger.get('is_deemed_positive') or False                              # always False
+        party_ledger_entry.ledgerAmount = System.Decimal(party_ledger.get('amount', 0))  # always positive
+        party_ledger_entry.isDeemedPositive = party_ledger.get('is_deemed_positive') or False  # always False
         credit_note.arlLedgerEntries.Add(party_ledger_entry);
 
         # optional
@@ -713,8 +711,8 @@ class TallyBridgeApp(object):
             party_ledger_tax_entry = Tally.LedgerEntry();
             party_ledger_tax_entry.ledgerName = party_ledger_tax.get('name')
             party_ledger_tax_entry.ledEntryRate = System.decimal(party_ledger_tax.get('entry_rate'))
-            party_ledger_tax_entry.ledgerAmount = System.decimal(party_ledger_tax.get('amount')) * -1                       # always negetive
-            party_ledger_tax_entry.isDeemedPositive = party_ledger_tax.get('is_deemed_positive') or True                    # always True
+            party_ledger_tax_entry.ledgerAmount = System.decimal(party_ledger_tax.get('amount')) * -1  # always negetive
+            party_ledger_tax_entry.isDeemedPositive = party_ledger_tax.get('is_deemed_positive') or True  # always True
             debitNote.arlLedgerEntries.Add(party_ledger_tax_entry);
         # TODO: ROUND OFF
         if voucher_no:
@@ -726,7 +724,7 @@ class TallyBridgeApp(object):
         if voucher_identifier:
             credit_note.voucherIdentifier = voucher_identifier
         if consignee_name:
-            credit_note.consigneeName = consignee_name                                                                       # In case of Debit Note, consignee is same as buyer
+            credit_note.consigneeName = consignee_name  # In case of Debit Note, consignee is same as buyer
         if consignee_address:
             credit_note.consigneeAddress = consignee_address
         if consignee_address_1:
@@ -743,7 +741,7 @@ class TallyBridgeApp(object):
             credit_note.narration = narration
 
         # defaults if not passed
-        credit_note.voucherTypeName = voucher_type_name or "Credit Note"                                                      # This should be the name of the Debit Note voucher type in Tally
+        credit_note.voucherTypeName = voucher_type_name or "Credit Note"  # This should be the name of the Debit Note voucher type in Tally
         credit_note.typeOfVoucher = type_of_voucher or "Credit Note"
         credit_note.isInvoice = is_invoice or True
         credit_note.isOptional = is_optional or False
@@ -828,14 +826,14 @@ class TallyBridgeApp(object):
         for item in items:
             inv_entry = Tally.InventoryEntry()
             inv_entry.itemName = item.get('name')
-            inv_entry.isDeemedPositive = item.get('is_deemed_positive', False)                                            # always False
+            inv_entry.isDeemedPositive = item.get('is_deemed_positive', False)  # always False
             inv_entry.actualQty = item.get('actual_qty')
             inv_entry.billedQty = item.get('billed_qty')
             inv_entry.qtyUnit = item.get('qty_unit')
             inv_entry.rate = item.get('rate')
             inv_entry.rateUnit = item.get('rate_unit')
             inv_entry.discountPerc = item.get('discount_percentage', 0)
-            inv_entry.amount = System.Decimal(item.get('amount'))                                                         # always positive
+            inv_entry.amount = System.Decimal(item.get('amount'))  # always positive
             # Accounting Allocation for the item
             inv_entry_acc = Tally.LedgerEntry()
             inv_entry_acc.ledgerName = item.get('ledger_name')
@@ -845,8 +843,8 @@ class TallyBridgeApp(object):
         # Party Ledger
         party_ledger_entry = Tally.LedgerEntry()
         party_ledger_entry.ledgerName = party_ledger.get('name')
-        party_ledger_entry.ledgerAmount = System.Decimal(party_ledger.get('amount', 0)) * -1                               # always negetive
-        party_ledger_entry.isDeemedPositive = party_ledger.get('is_deemed_positive') or True                               # always True
+        party_ledger_entry.ledgerAmount = System.Decimal(party_ledger.get('amount', 0)) * -1  # always negetive
+        party_ledger_entry.isDeemedPositive = party_ledger.get('is_deemed_positive') or True  # always True
         debit_note.arlLedgerEntries.Add(party_ledger_entry);
 
         # optional
@@ -855,8 +853,9 @@ class TallyBridgeApp(object):
             party_ledger_tax_entry = Tally.LedgerEntry();
             party_ledger_tax_entry.ledgerName = party_ledger_tax.get('name')
             party_ledger_tax_entry.ledEntryRate = System.decimal(party_ledger_tax.get('entry_rate'))
-            party_ledger_tax_entry.ledgerAmount = System.decimal(party_ledger_tax.get('amount'))                            # always positive
-            party_ledger_tax_entry.isDeemedPositive = party_ledger_tax.get('is_deemed_positive') or False                   # always False
+            party_ledger_tax_entry.ledgerAmount = System.decimal(party_ledger_tax.get('amount'))  # always positive
+            party_ledger_tax_entry.isDeemedPositive = party_ledger_tax.get(
+                'is_deemed_positive') or False  # always False
             debitNote.arlLedgerEntries.Add(party_ledger_tax_entry);
         # TODO: ROUND OFF
         if voucher_no:
@@ -868,7 +867,7 @@ class TallyBridgeApp(object):
         if voucher_identifier:
             debit_note.voucherIdentifier = voucher_identifier
         if consignee_name:
-            debit_note.consigneeName = consignee_name                                                                       # In case of Debit Note, consignee is same as buyer
+            debit_note.consigneeName = consignee_name  # In case of Debit Note, consignee is same as buyer
         if consignee_address:
             debit_note.consigneeAddress = consignee_address
         if consignee_address_1:
@@ -885,7 +884,7 @@ class TallyBridgeApp(object):
             debit_note.narration = narration
 
         # defaults if not passed
-        debit_note.voucherTypeName = voucher_type_name or "Debit Note"                                                      # This should be the name of the Debit Note voucher type in Tally
+        debit_note.voucherTypeName = voucher_type_name or "Debit Note"  # This should be the name of the Debit Note voucher type in Tally
         debit_note.typeOfVoucher = type_of_voucher or "Debit Note"
         debit_note.isInvoice = is_invoice or True
         debit_note.isOptional = is_optional or False

@@ -53,6 +53,13 @@
                 <textarea class="form-control" rows="2" ng-model="showCase.model_data.remarks" type="text" name="remarks" focus-on="focusSKU"></textarea>
               </div>
             </div>
+            <div class="col-md-3 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label for="remainder_mail" class="control-label"> Remainder Mail Duration </label>
+                <input class="form-control number" ng-model="showCase.model_data.remainder_mail" type="text" name="remainder_mail"
+                  maxlength="4">
+              </div>
+            </div>
           </div>
           <div class="row">
             <div class="col-md-12"><!--{{showCase.fb.poData}}-->
@@ -65,6 +72,7 @@
                 <thead>
                   <tr>
                     <th>WMS CODE</th>
+                    <th>Title</th>
                     <th>PO Quantity</th>
                     <th ng-if="showCase.permissions.pallet_switch">Pallet Number</th>
                     <th>Received Quantity</th>
@@ -88,6 +96,9 @@
                       <input type="text" name="wms_code" class="form-control pricevalid" value="{{(data.wms_code == 'TEMP')? data.temp_wms: data.wms_code;}}" ng-readonly="records[0].dis && data.wms_code != 'TEMP'" ng-if="!data.is_new">
 
                       <input type="text" autocomplete="off" name="wms_code" class="form-control" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" ng-model="data.wms_code" typeahead-on-select="showCase.get_sku_details(data, $item, $index)" ng-if="data.is_new">
+                    </td>
+                    <td>
+                      <input type="text" ng-model="data.sku_desc" title="{{ data.sku_desc }}" class="form-control" readonly>
                     </td>
                     <td><input type="text" ng-model="data.po_quantity" name="po_quantity" class="form-control" ng-readonly="records[0].dis" ng-class="service.get_decimal_perm()"></td>
                     <td ng-if="showCase.permissions.pallet_switch"><input type="text" ng-show=" data.sku_details[0].fields.load_unit_handle == 'pallet'" ng-model="data.pallet_number" name="pallet_number" class="form-control"></td>

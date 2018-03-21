@@ -4291,6 +4291,7 @@ def get_style_variants(sku_master, user, customer_id='', total_quantity=0, custo
                 else:
                     sku_master[ind]['pricing_price'] = 0
             else:
+                buy_pm_objs = ''
                 is_distributor = customer_data[0].is_distributor
                 pricemaster_obj = PriceMaster.objects.filter(sku__user=central_admin.id,
                                                              sku__sku_code=sku['wms_code'])
@@ -4317,6 +4318,8 @@ def get_style_variants(sku_master, user, customer_id='', total_quantity=0, custo
                 else:
                     if is_style_detail != 'true':
                         price_type = 'R-C'
+                        buy_pricetype = customer_data[0].price_type
+                        buy_pm_objs = pricemaster_obj.filter(price_type=buy_pricetype)
                     if price_type != 'R-C':
                         # Assuming Reseller, taking price type from Customer Master
                         price_type = customer_data[0].price_type
@@ -4334,6 +4337,10 @@ def get_style_variants(sku_master, user, customer_id='', total_quantity=0, custo
                     for pm_obj in pricemaster_obj:
                         pm_obj_map = {'min_unit_range': pm_obj.min_unit_range, 'max_unit_range': pm_obj.max_unit_range,
                                       'price': pm_obj.price}
+                        if buy_pm_objs:
+                            buy_pm_obj = buy_pm_objs.filter(min_unit_range=pm_obj.min_unit_range,
+                                                            max_unit_range=pm_obj.max_unit_range)
+                            pm_obj_map['buy_price'] = buy_pm_obj[0].price
                         apply_margin_price(pm_obj.sku.sku_code, pm_obj_map, specific_margins, is_margin_percentage,
                                            default_margin, user)
                         sku_master[ind].setdefault('price_ranges', []).append(pm_obj_map)
@@ -7375,6 +7382,7 @@ def generate_customer_invoice(request, user=''):
             invoice_date = seller_summary.order_by('-creation_date')[0].creation_date
         invoice_date = get_local_date(user, invoice_date, send_date='true')
         inv_month_year = invoice_date.strftime("%m-%y")
+        invoice_data['invoice_time'] = invoice_date.strftime("%H:%M")
         invoice_date = invoice_date.strftime("%d %b %Y")
         invoice_no = invoice_data['invoice_no']
         if is_marketplace:
@@ -7386,8 +7394,13 @@ def generate_customer_invoice(request, user=''):
         invoice_data['invoice_no'] = invoice_no
         invoice_data = add_consignee_data(invoice_data, ord_ids, user)
         return_data = request.GET.get('data', '')
+        delivery_challan = request.GET.get('delivery_challan', '')
         if return_data:
             invoice_data = json.dumps(invoice_data)
+        if delivery_challan == "true":
+            invoice_data['total_items'] = len(invoice_data['data'])
+            invoice_data['data'] = pagination(invoice_data['data'])
+            return render(request, 'templates/toggle/delivery_challan.html', invoice_data)
         elif get_misc_value('show_imei_invoice', user.id) == 'true':
             invoice_data = build_marketplace_invoice(invoice_data, user, False)
         else:
@@ -7401,6 +7414,35 @@ def generate_customer_invoice(request, user=''):
         return HttpResponse(json.dumps({'message': 'failed'}))
     return HttpResponse(invoice_data)
 
+def pagination(sku_list):
+    # header 220
+    # footer 125
+    # table header 44
+    # row 46
+    # total 1358
+    # default 24 items
+    # last page 21 items
+    mx = 24
+    mn = 22
+    #t = sku_list[0]
+    #for i in range(33): sku_list.append(copy.deepcopy(t))#remove it
+    sku_len = len(sku_list)
+    index = 1
+    for sku in sku_list:
+        sku['index'] = index
+        index = index + 1
+    temp = {"sku_code": "", "title": "", "quantity": ""}
+    sku_slices = [sku_list[i: i+mx] for i in range(0, len(sku_list), mx)] 
+    #extra_tuple = ('', '', '', '', '', '', '', '', '', '', '', '')
+    if len(sku_slices[-1]) == mx:
+        temp = sku_slices[-1]
+        sku_slices[-1] = temp[:mx-1]
+        temp = [temp[-1]]
+        for i in range(mn-1): temp.append(temp)
+        sku_slices.append(temp)
+    else:
+        for i in range((mn - len(sku_slices[-1]))): sku_slices[-1].append(temp)
+    return sku_slices
 
 @csrf_exempt
 def get_seller_order_view(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters,

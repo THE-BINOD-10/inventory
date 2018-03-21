@@ -745,7 +745,8 @@ def configurations(request, user=''):
     if tax_details:
         for tax in tax_details:
             config_dict['tax_data'].append({'tax_name': tax.misc_type[4:], 'tax_value': tax.misc_value})
-
+    config_dict['rem_saved_mail_alerts'] = list(MailAlerts.objects.filter(user_id=user.id).\
+                                                values('alert_name', 'alert_value'))
     return HttpResponse(json.dumps(config_dict))
 
 
@@ -6387,3 +6388,43 @@ def get_max_seller_transfer_id(user):
     else:
         trans_id = 1
     return trans_id
+
+
+def write_excel(ws, data_count, ind, val, file_type='xls'):
+    if file_type == 'xls':
+        ws.write(data_count, ind, val)
+    else:
+        val = str(val).replace(',', '  ').replace('\n', '').replace('"', "\'")
+        ws = ws + val + ','
+    return ws
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_mail_alerts(request, user=''):
+    alert_name = request.GET.get('alert_name', '')
+    alert_value = request.GET.get('alert_value', '')
+    to_delete = request.GET.get('delete', '')
+    try:
+        log.info("Update Mail Alerts for user %s and request params are %s" %
+                 (str(user.username), str(request.GET.dict())))
+        if alert_name and alert_value:
+            mail_alert_obj = MailAlerts.objects.filter(user_id=user.id, alert_name=alert_name)
+            if mail_alert_obj:
+                if to_delete == 'true':
+                    mail_alert_obj.delete()
+                else:
+                    mail_alert_obj = mail_alert_obj[0]
+                    mail_alert_obj.alert_value = alert_value
+                    mail_alert_obj.save()
+            else:
+                MailAlerts.objects.create(user_id=user.id, alert_name=alert_name, alert_type='days',
+                                          alert_value=alert_value, creation_date=datetime.datetime.now())
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        result_data = []
+        log.info('Update Remainder Mail alerts failed for %s and request is %s and error statement is %s' % (
+            str(user.username), str(request.GET.dict()), str(e)))
+    return HttpResponse("Success")

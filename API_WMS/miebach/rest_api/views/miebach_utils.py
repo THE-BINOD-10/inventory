@@ -1298,6 +1298,8 @@ ORDER_ID_AWB_EXCEL_MAPPING = OrderedDict((('order_id', 0), ('awb_no', 1), ('cour
 COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg', 'Subhas_Publishing': 'book_publications.png', 'sm_admin': 'sm-brand.jpg'}
 
 # Configurtions Mapping
+REMAINDER_MAIL_ALERTS = OrderedDict((('po_remainder', 'PO Remainder'),))
+
 CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 'show_mrp': 'show_mrp',
                         'stock_display_warehouse': 'stock_display_warehouse', 'seller_margin': 'seller_margin',
                         'hsn_summary': 'hsn_summary',
@@ -1343,7 +1345,8 @@ CONFIG_DEF_DICT = {'receive_options': dict(RECEIVE_OPTIONS),
                    'mail_options': MAIL_REPORTS_DATA,
                    'mail_reports': MAIL_REPORTS, 'style_detail_headers': STYLE_DETAIL_HEADERS,
                    'picklist_options': PICKLIST_OPTIONS,
-                   'order_headers': ORDER_HEADERS_d, 'barcode_generate_options': BARCODE_OPTIONS
+                   'order_headers': ORDER_HEADERS_d, 'barcode_generate_options': BARCODE_OPTIONS,
+                   'rem_mail_alerts': REMAINDER_MAIL_ALERTS
                    }
 
 MARKETPLACE_SERIAL_EXCEL_HEADERS = ['Order Reference', 'Marketplace', 'Serial Number']

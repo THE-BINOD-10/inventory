@@ -1491,6 +1491,7 @@ def get_supplier_data(request, user=''):
         headers.insert(-2, 'Serial Number')
     data = {}
     order_id = request.GET['supplier_id']
+    remainder_mail = 0
     purchase_orders = PurchaseOrder.objects.filter(order_id=order_id, open_po__sku__user=user.id,
                                                    open_po__sku_id__in=sku_master_ids,
                                                    received_quantity__lt=F('open_po__order_quantity')).exclude(
@@ -1523,6 +1524,7 @@ def get_supplier_data(request, user=''):
                                                                             sku_id=order_data['sku_id'],
                                                                             order_ids=order_ids)
             orders.append([{'order_id': order.id, 'wms_code': order_data['wms_code'],
+                            'sku_desc': order_data['sku_desc'],
                             'po_quantity': float(order_data['order_quantity']) - float(order.received_quantity),
                             'name': str(order.order_id) + '-' + str(
                                 re.sub(r'[^\x00-\x7F]+', '', order_data['wms_code'])),
@@ -1540,6 +1542,7 @@ def get_supplier_data(request, user=''):
         supplier_name = order_data['supplier_name']
         order_date = get_local_date(user, purchase_order.creation_date)
         remarks = purchase_order.remarks
+        remainder_mail = purchase_order.remainder_mail
         if purchase_order.expected_date:
             purchase_order = purchase_orders.latest('expected_date')
             expected_date = datetime.datetime.strftime(purchase_order.expected_date, "%m/%d/%Y")
@@ -1548,7 +1551,8 @@ def get_supplier_data(request, user=''):
                                     'supplier_id': order_data['supplier_id'], 'use_imei': use_imei, \
                                     'temp': temp, 'po_reference': po_reference, 'order_ids': order_ids, \
                                     'supplier_name': supplier_name, 'order_date': order_date, \
-                                    'expected_date': expected_date, 'remarks': remarks}))
+                                    'expected_date': expected_date, 'remarks': remarks,
+                                    'remainder_mail': remainder_mail}))
 
 
 @csrf_exempt
@@ -1560,13 +1564,14 @@ def update_putaway(request, user=''):
             user.username, str(request.GET.dict())))
         remarks = request.GET.get('remarks', '')
         expected_date = request.GET.get('expected_date', '')
+        remainder_mail = request.GET.get('remainder_mail', '')
         _expected_date = ''
         if expected_date:
             _expected_date = expected_date
             expected_date = expected_date.split('/')
             expected_date = datetime.date(int(expected_date[2]), int(expected_date[0]), int(expected_date[1]))
         for key, value in request.GET.iteritems():
-            if key in ['remarks', 'expected_date']:
+            if key in ['remarks', 'expected_date', 'remainder_mail']:
                 continue
             po = PurchaseOrder.objects.get(id=key)
             total_count = float(value)
@@ -1588,6 +1593,8 @@ def update_putaway(request, user=''):
                 order_quantity = rw_purchase[0].rwo.job_order.product_quantity
             if total_count > order_quantity:
                 return HttpResponse('Given quantity is greater than expected quantity')
+            if remainder_mail:
+                po.remainder_mail = remainder_mail
             setattr(po, 'saved_quantity', float(value))
             po.save()
     except Exception as e:
@@ -2163,6 +2170,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
     data_dict = ''
     remarks = request.POST.get('remarks', '')
     expected_date = request.POST.get('expected_date', '')
+    remainder_mail = request.POST.get('remainder_mail', '')
     invoice_number = request.POST.get('invoice_number', 0)
     _expected_date = ''
     if expected_date:
@@ -2196,6 +2204,8 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
             data.remarks = remarks
         if expected_date:
             data.expected_date = expected_date
+        if remainder_mail:
+            data.remainder_mail = remainder_mail
         purchase_data = get_purchase_order_data(data)
         temp_quantity = data.received_quantity
         unit = ''

@@ -2467,6 +2467,9 @@ def print_picklist(request, user=''):
     customer_data = filter(lambda x: len(x) > 0, customer_data)
     if customer_data:
         customer_name = ','.join(customer_data)
+    customer_address = ''
+    if data:
+        customer_address = data[0].get('customer_address', '')
     order_ids = ''
     order_data = list(set(map(lambda d: d.get('order_no', ''), data)))
     order_data = filter(lambda x: len(x) > 0, order_data)
@@ -2511,8 +2514,8 @@ def print_picklist(request, user=''):
                   {'data': data, 'all_data': all_data, 'headers': PRINT_OUTBOUND_PICKLIST_HEADERS,
                    'picklist_id': data_id, 'total_quantity': total,
                    'total_price': total_price, 'picklist_id': data_id,
-                   'customer_name': customer_name, 'order_ids': order_ids,
-                   'marketplace': marketplace, 'date_data': date_data, 'remarks': remarks_data})
+                   'customer_name': customer_name, 'customer_address': customer_address, 'order_ids': order_ids,
+                   'marketplace': marketplace, 'date_data': date_data, 'remarks': remarks_data, 'user': user})
 
 
 @csrf_exempt
@@ -4371,8 +4374,8 @@ def get_levels(request, user=''):
     if cust_obj:
         is_distributor = cust_obj[0].is_distributor
     if is_distributor:
-        wh_levels = list(UserProfile.objects.exclude(warehouse_level=0).values_list('warehouse_level',
-                                                                                    flat=True).distinct())
+        wh_levels = list(UserProfile.objects.exclude(warehouse_level=0).
+                         values_list('warehouse_level', flat=True).distinct().order_by('warehouse_level'))
     else:
         wh_levels = list(UserProfile.objects.values_list('warehouse_level', flat=True).
                          distinct().order_by('warehouse_level'))

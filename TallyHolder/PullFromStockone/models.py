@@ -11,8 +11,8 @@ class CustomerVendorMaster(models.Model):
     port = models.CharField(max_length=6, blank=True, null=True, db_index=True)
     data = models.TextField(null=True, blank=True, default='')
     push_status = models.IntegerField(default=0, null=False, blank=True, db_index=True)
-    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
-    updated_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    created_at = models.DateTimeField(db_index=True)
+    updated_at = models.DateTimeField(db_index=True)
 
     class Meta:
         db_table = "CUSTOMERVENDORMASTER"
@@ -30,8 +30,8 @@ class ItemMaster(models.Model):
     port = models.CharField(max_length=6, blank=True, null=True, db_index=True)
     data = models.TextField(null=True, blank=True, default='')
     push_status = models.IntegerField(default=0, null=False, blank=True, db_index=True)
-    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
-    updated_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    created_at = models.DateTimeField(db_index=True)
+    updated_at = models.DateTimeField(db_index=True)
 
     class Meta:
         db_table = "ITEMMASTER"
@@ -50,8 +50,8 @@ class SalesInvoice(models.Model):
     port = models.CharField(max_length=6, blank=True, null=True, db_index=True)
     data = models.TextField(null=True, blank=True, default='')
     push_status = models.IntegerField(default=0, null=False, blank=True, db_index=True)
-    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
-    updated_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    created_at = models.DateTimeField(db_index=True)
+    updated_at = models.DateTimeField(db_index=True)
 
     class Meta:
         db_table = "SALESINVOICE"

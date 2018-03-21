@@ -334,7 +334,7 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
                          ('phone_number', phone_number), ('email_id', data.email_id), ('status', status),
                          ('tin_number', data.tin_number), ('credit_period', data.credit_period),
                          ('login_created', login_created), ('username', user_name), ('price_type_list', price_types),
-                         ('price_type', price_type), ('cst_number', data.cst_number),
+                         ('price_type', price_type), ('cst_number', data.cst_number), ('cin_number', data.cin_number),
                          ('pan_number', data.pan_number), ('customer_type', data.customer_type),
                          ('pincode', data.pincode), ('city', data.city), ('state', data.state),
                          ('country', data.country), ('tax_type', TAX_TYPE_ATTRIBUTES.get(data.tax_type, '')),

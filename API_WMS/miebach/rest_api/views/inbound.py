@@ -112,25 +112,41 @@ def get_intransit_orders(start_index, stop_index, temp_data, search_term, order_
                              request, user, filters):
     lis = ['sku__sku_code', 'quantity', 'invoice_amount']
     order_data = lis[col_num]
+    if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
+        filter_dict = {'status': 1}
+        values_list = ['id', 'sku__sku_code', 'quantity', 'invoice_amount', 'customer_id']
+    else:
+        filter_dict = {'customer_id': user.id, 'status': 1}
+        values_list = ['id', 'sku__sku_code', 'quantity', 'invoice_amount']
     if order_term == 'desc':
         order_data = '-%s' % order_data
     if order_term:
-        master_data = IntransitOrders.objects.filter(customer_id=user.id, status=1).\
-            values('id', 'sku__sku_code', 'quantity', 'invoice_amount').\
-            annotate(total=Sum('invoice_amount')).order_by(order_data).distinct()
+        master_data = IntransitOrders.objects.filter(**filter_dict).\
+            values(*values_list).annotate(total=Sum('invoice_amount')).order_by(order_data).distinct()
     if search_term:
         master_data = IntransitOrders.objects.filter(
             Q(sku__sku_code__icontains=search_term) | Q(quantity__icontains=search_term),
-            status=1).values('warehouse__username'). \
+            **filter_dict).values('warehouse__username'). \
             annotate(total=Sum('invoice_amount')).order_by(order_data).distinct()
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = len(master_data)
     temp_data['min_order_val'] = user.userprofile.min_order_val
     for data in master_data[start_index:stop_index]:
-        temp_data['aaData'].append(
-            {'SKU': data['sku__sku_code'], 'Quantity': data['quantity'], 'Amount': data['invoice_amount'],
+        cust_id = data.get('customer_id', '')
+        if cust_id:
+            user_obj = UserProfile.objects.get(user=cust_id)
+            username = user_obj.user.username
+            min_order_val = user_obj.min_order_val
+        else:
+            username = ''
+            min_order_val = 0
+        data_dict = {'SKU': data['sku__sku_code'], 'Quantity': data['quantity'], 'Amount': data['invoice_amount'],
              'Total Quantity': data['total'], 'DT_RowClass': 'results',
-             'DT_RowAttr': {'id': data['id']}})
+             'DT_RowAttr': {'id': data['id']}}
+        if username and min_order_val:
+            data_dict['Distributor Name'] = username
+            data_dict['Minimum Order Value'] = min_order_val
+        temp_data['aaData'].append(data_dict)
 
 
 def get_receive_po_datatable_filters(user, filters, request):

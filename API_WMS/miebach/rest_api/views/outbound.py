@@ -4374,8 +4374,8 @@ def get_levels(request, user=''):
     if cust_obj:
         is_distributor = cust_obj[0].is_distributor
     if is_distributor:
-        wh_levels = list(UserProfile.objects.exclude(warehouse_level=0).values_list('warehouse_level',
-                                                                                    flat=True).distinct())
+        wh_levels = list(UserProfile.objects.exclude(warehouse_level=0).
+                         values_list('warehouse_level', flat=True).distinct().order_by('warehouse_level'))
     else:
         wh_levels = list(UserProfile.objects.values_list('warehouse_level', flat=True).
                          distinct().order_by('warehouse_level'))

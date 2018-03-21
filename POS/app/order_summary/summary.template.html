@@ -77,7 +77,7 @@
       <p><b>AMOUNT</b></p>
     </div>
     <div class="pull-right">
-      <b>{{$ctrl.order.total_amount + $ctrl.order.total_discount | number:2}}/-</b>
+      <b>{{ $ctrl.order.subtotal + $ctrl.order.sgst + $ctrl.order.igst + $ctrl.order.utgst + $ctrl.order.cgst | number:2}}/-</b>
     </div>
   </div>
   <div class="summary-row total-cost">
@@ -93,7 +93,7 @@
       <p><b>TOTAL COST</b></p>
     </div>
     <div class="pull-right">
-      <b>{{$ctrl.order.total_amount | number:2}}/-</b>
+      <b>{{ $ctrl.order.subtotal + $ctrl.order.sgst + $ctrl.order.igst + $ctrl.order.utgst + $ctrl.order.cgst - $ctrl.order.total_discount | number:2 }}/-</b>
     </div>
   </div>
 
@@ -122,11 +122,11 @@
 													readonly></p></div>
 					<div class="col-md-4"><p>Disc Amt </p></div>
 					<div class="col-md-6"><p><input type="text" ng-model="$ctrl.discount" ng-init="$ctrl.discount=0"
-													ng-blur="$ctrl.change_disc($ctrl.discount)"></p></div>
+													ng-change="$ctrl.change_disc($ctrl.discount)"></p></div>
 					<div class="col-md-4"><p>Disc % </p></div>
 					<div class="col-md-6"><p><input type="text" ng-model="$ctrl.disc_percent"
 											 		 ng-init="$ctrl.disc_percent=0"
-													 ng-blur="$ctrl.change_disc_perc($ctrl.disc_percent)"></p></div>
+													 ng-change="$ctrl.change_disc_perc($ctrl.disc_percent)"></p></div>
 				  	<div class="col-md-4"><p>Tot Cost </p></div>
 					<div class="col-md-6"><p><input type="text" ng-model="$ctrl.total_amount"
 													ng-init="$ctrl.total_amount=0" readonly></p></div>

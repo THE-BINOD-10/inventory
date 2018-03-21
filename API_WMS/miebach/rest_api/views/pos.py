@@ -131,7 +131,7 @@ def search_product_data(request, user=''):
             igst = tax_master[0].igst_tax
             utgst = tax_master[0].utgst_tax
 
-        discount_percentage = data.discount_percentage
+        discount_percentage = 0#data.discount_percentage
         discount_price = price
         if not data.discount_percentage:
             category = CategoryDiscount.objects.filter(category=data.sku_category, \
@@ -303,12 +303,12 @@ def customer_order(request):
         val_dict['stock_totals'] = map(lambda d: d['total'], sku_id_stocks)"""
         if (customer_name and order['summary']['issue_type'] == "Pre Order") or \
                         order['summary']['issue_type'] == "Delivery Challan":
-            tot_sku_level_discount = 0
-            for item in order['sku_data']:
-                if item['return_status'] == "false":
-                    tot_sku_level_discount += ((int(item['selling_price']) - item['unit_price']) * item['quantity'])
-            tot_order_level_discount = order['summary']['total_discount'] - tot_sku_level_discount
-            order_level_disc_per_sku = tot_order_level_discount / len(order['sku_data'])
+            #tot_sku_level_discount = 0
+            #for item in order['sku_data']:
+                #if item['return_status'] == "false":
+                    #tot_sku_level_discount += ((int(item['selling_price']) - item['unit_price']) * item['quantity'])
+            tot_order_level_discount = order['summary']['total_discount']
+            order_level_disc_per_sku = tot_order_level_discount / float(len(order['sku_data']))
 
             for item in order['sku_data']:
 
@@ -343,7 +343,7 @@ def customer_order(request):
                                                               payment_received=payment_received)
                     sku_disc = (int(item['selling_price']) - item['unit_price']) * item['quantity']
                     CustomerOrderSummary.objects.create(order_id=order_detail.id, \
-                                                        discount=sku_disc + order_level_disc_per_sku, \
+                                                        discount=order_level_disc_per_sku, \
                                                         issue_type=order_detail.order_code, \
                                                         cgst_tax=item['cgst_percent'], \
                                                         sgst_tax=item['sgst_percent'], \
@@ -418,45 +418,52 @@ def prepare_delivery_challan_json(request, order_id, user_id):
     json_data = {}
     customer_data, summary, gst_based = {}, {}, {}
     sku_data = []
-    total_quantity, total_amount, subtotal, total_discount = [0] * 4
+    total_quantity, total_amount, subtotal, total_discount, tot_cgst, tot_sgst = [0] * 6
     status = 'fail'
     order_date = NOW
     user = User.objects.get(id=user_id)
     order_date = get_local_date(user, NOW)
+    #check where discount is saved
     order_detail = OrderDetail.objects.filter(order_id=order_id, \
                                               user=user_id, quantity__gt=0)
-
+    
     for order in order_detail:
         discount = 0
         sku = SKUMaster.objects.get(id=order.sku_id)
-        discount_percentage = sku.discount_percentage
+        discount_percentage = 0#sku.discount_percentage
         if not sku.discount_percentage:
             category = CategoryDiscount.objects.filter(category=sku.sku_category, \
                                                        user_id=user.id)
             if category:
                 category = category[0]
                 if category.discount:
-                    discount_percentage = category.discount
+                    discount_percentage = 0#category.discount
         #original_selling_price = sku.price
         original_selling_price = (order.unit_price * 100)/(100 - discount_percentage)
-        discount = original_selling_price - order.unit_price
-        selling_price = order.unit_price if order.unit_price != 0 \
-            else float(order.invoice_amount) / float(order.quantity)
+        #discount = original_selling_price - order.unit_price
+        selling_price = float(order.invoice_amount) / float(order.quantity)
         order_summary = CustomerOrderSummary.objects.filter(order_id=order.id)
         if order_summary:
-            #import pdb;pdb.set_trace()
-            total_discount  += (order_summary[0].discount * order.quantity)
+            #total_discount  += (order_summary[0].discount * order.quantity)
+            total_discount += order_summary[0].discount
             tax_master = order_summary.values('sgst_tax', 'cgst_tax', 'igst_tax', 'utgst_tax')[0]
         else:
             tax_master = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0}
+        item_sgst = (order.invoice_amount/order.quantity) * tax_master['sgst_tax']/100
+        item_cgst = (order.invoice_amount/order.quantity) * tax_master['cgst_tax']/100
+        selling_price -= (item_cgst + item_sgst)
         gst_based.setdefault(tax_master['cgst_tax'], {'taxable_amt': 0,
                                                       'cgst_percent': tax_master["cgst_tax"],
                                                       'sgst_percent': tax_master["sgst_tax"],
                                                       'sgst': 0,
                                                       'cgst': 0})
-        gst_based[tax_master['cgst_tax']]['taxable_amt'] += order.invoice_amount
+        gst_based[tax_master['cgst_tax']]['taxable_amt'] += order.invoice_amount - \
+                                  order_summary[0].discount -\
+                                  (float(order.invoice_amount) * tax_master["sgst_tax"] / 100) - \
+                                  (float(order.invoice_amount) * tax_master["cgst_tax"] / 100) 
         gst_based[tax_master['cgst_tax']]['sgst'] += order.invoice_amount * tax_master["sgst_tax"] / 100
         gst_based[tax_master['cgst_tax']]['cgst'] += order.invoice_amount * tax_master["cgst_tax"] / 100
+
         sku_data.append({'name': order.title,
                          'quantity': order.quantity,
                          'sku_code': order.sku.sku_code,
@@ -464,13 +471,19 @@ def prepare_delivery_challan_json(request, order_id, user_id):
                          'unit_price': selling_price,
                          'selling_price': original_selling_price,
                          'discount': discount_percentage,
-                         'sgst': selling_price * tax_master["sgst_tax"] / 100,
-                         'cgst': selling_price * tax_master["cgst_tax"] / 100
+                         'sgst': item_sgst,
+                         'cgst': item_cgst
                          })
         total_quantity += int(order.quantity)
-        total_amount += (float(order.invoice_amount) + discount + \
-                         float(order.invoice_amount) * tax_master["sgst_tax"] / 100 + \
-                         float(order.invoice_amount) * tax_master["cgst_tax"] / 100);
+        #total_amount += (float(order.invoice_amount) + discount + \
+        #                 (float(order.invoice_amount) * tax_master["sgst_tax"] / 100) + \
+        #                 (float(order.invoice_amount) * tax_master["cgst_tax"] / 100) );
+        if order_summary[0].issue_type == "Delivery Challan":
+            sgst_temp = float(order.invoice_amount) * tax_master["sgst_tax"] / 100;
+            cgst_temp = float(order.invoice_amount) * tax_master["cgst_tax"] / 100;
+            total_amount += (float(order.invoice_amount) - sgst_temp - cgst_temp)
+        else:
+            total_amount += (float(order.invoice_amount))
     if order_detail:
         status = 'success'
         order = order_detail[0]
@@ -495,10 +508,15 @@ def prepare_delivery_challan_json(request, order_id, user_id):
         order_summary = CustomerOrderSummary.objects.filter(order_id=order.id)
         if order_summary:
             order_summary = order_summary[0]
+            for item in gst_based:
+                tot_sgst += gst_based[item]['sgst']
+                tot_cgst += gst_based[item]['cgst']
             summary = {'total_quantity': total_quantity,
-                       'total_amount': total_amount - total_discount,
+                       'total_amount': total_amount,
                        'total_discount': total_discount,
                        'subtotal': total_amount,
+                       'cgst': tot_cgst,
+                       'sgst': tot_sgst,
                        'gst_based': gst_based,
                        'staff_member': order_summary.order_taken_by,
                        'issue_type': order_summary.issue_type}

@@ -277,7 +277,7 @@ class TallyAPI:
             data_dict['partNo'] = 'part_' + data_dict['item_name']
             data_dict['description'] = sku_master['sku_desc']
 	    data_dict['creation_date'] = sku_master['creation_date']
-            data_dict['updation_date'] = self.handle_updation_date(sku_master)
+	    data_dict['updation_date'] = self.handle_updation_date(sku_master)
             data_dict['sku_code'] = sku_master['sku_code']
             data_dict['unit_name'] = sku_master['measurement_type'] if sku_master['measurement_type'] else 'nos'
             data_list.append(data_dict)

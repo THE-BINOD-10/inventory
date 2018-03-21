@@ -8,6 +8,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.service = Service;
     vm.apply_filters = colFilters;
     vm.tb_data = {};
+    vm.user_type = Session.roles.permissions.user_type;
 
     vm.filters = {'datatable': 'RaiseIO', 'search0':'', 'search1':''};
     vm.dtOptions = DTOptionsBuilder.newOptions()
@@ -31,7 +32,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
        .withOption('initComplete', function( settings ) {
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
-    var columns = ['SKU', 'Quantity', 'Amount'];
+    if (vm.user_type == 'central_admin') {
+      var columns = ['SKU', 'Quantity', 'Amount', 'Distributor Name', 'Minimum Order Value'];
+    } else {
+      var columns = ['SKU', 'Quantity', 'Amount'];
+    }
+    
     vm.dtColumns = vm.service.build_colums(columns);
 
     vm.dtInstance = {};

@@ -769,6 +769,7 @@ class UserProfile(models.Model):
     min_order_val = models.PositiveIntegerField(default=0)
     level_name = models.CharField(max_length=64, default='')
     zone = models.CharField(max_length=64, default='')
+    cin_number = models.CharField(max_length=64, default='')
 
     class Meta:
         db_table = 'USER_PROFILE'

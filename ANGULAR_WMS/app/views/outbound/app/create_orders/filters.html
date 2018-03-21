@@ -90,6 +90,16 @@
         </div>
       </div>
 
+      <div class="filter-box">
+        <div class="box-header">
+          <span><b>Delivery Date: </b></span>
+          <i class="fa fa-angle-down pull-right mr10" style="font-size: 20px;font-weight: 900;cursor:pointer" ng-class="(showCase.d_date)? 'fa-angle-up': 'fa-angle-down'" ng-click="showCase.d_date = (showCase.d_date)? false: true;"></i>
+        </div>
+        <div class="box-body mt10 filter_date" style="overflow: auto;" ng-if="showCase.d_date">
+          <input type="text" ui-jq="datepicker" class="form-control stk-readonly pull-left" name="delivery_date" ng-model="showCase.filterData.delivery_date" id="delivery_date" ng-change="showCase.date_changed()" required data-date-today-highlight="true" data-date-autoclose="true" placeholder="Delivery Date" data-date-start-date="{{showCase.date}}">
+        </div>
+      </div>
+
       <div class="filter-box" ng-if="showCase.filterData.brand_size_data.length > 0">
         <div class="box-header">
           <span><b>Sizes: </b></span>

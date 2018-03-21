@@ -4288,6 +4288,7 @@ def get_style_variants(sku_master, user, customer_id='', total_quantity=0, custo
                 else:
                     sku_master[ind]['pricing_price'] = 0
             else:
+                buy_pm_objs = ''
                 is_distributor = customer_data[0].is_distributor
                 pricemaster_obj = PriceMaster.objects.filter(sku__user=central_admin.id,
                                                              sku__sku_code=sku['wms_code'])
@@ -4314,6 +4315,8 @@ def get_style_variants(sku_master, user, customer_id='', total_quantity=0, custo
                 else:
                     if is_style_detail != 'true':
                         price_type = 'R-C'
+                        buy_pricetype = customer_data[0].price_type
+                        buy_pm_objs = pricemaster_obj.filter(price_type=buy_pricetype)
                     if price_type != 'R-C':
                         # Assuming Reseller, taking price type from Customer Master
                         price_type = customer_data[0].price_type
@@ -4331,6 +4334,10 @@ def get_style_variants(sku_master, user, customer_id='', total_quantity=0, custo
                     for pm_obj in pricemaster_obj:
                         pm_obj_map = {'min_unit_range': pm_obj.min_unit_range, 'max_unit_range': pm_obj.max_unit_range,
                                       'price': pm_obj.price}
+                        if buy_pm_objs:
+                            buy_pm_obj = buy_pm_objs.filter(min_unit_range=pm_obj.min_unit_range,
+                                                            max_unit_range=pm_obj.max_unit_range)
+                            pm_obj_map['buy_price'] = buy_pm_obj[0].price
                         apply_margin_price(pm_obj.sku.sku_code, pm_obj_map, specific_margins, is_margin_percentage,
                                            default_margin, user)
                         sku_master[ind].setdefault('price_ranges', []).append(pm_obj_map)

@@ -233,9 +233,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.service.apiCall(url, 'POST', elem, true).then(function(data){
         if(data.message) {
           if(data.data.search("<div") != -1) {
-            vm.html = $(data.data)[2];
-            var html = $(vm.html).closest("form").clone();
-            angular.element(".modal-body").html($(html).find(".modal-body"));
+            vm.html = $(data.data);
+            //var html = $(vm.html).closest("form").clone();
+            //angular.element(".modal-body").html($(html).find(".modal-body"));
+            angular.element(".modal-body").html($(data.data));
             vm.print_enable = true;
             vm.service.refresh(vm.dtInstance);
             if(vm.permissions.use_imei) {

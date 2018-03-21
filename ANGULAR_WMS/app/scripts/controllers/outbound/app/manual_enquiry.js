@@ -41,7 +41,7 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
       return false;
     }    
 
-    var data = {category: category, is_catalog:true, customer_id: Session.userId}
+    var data = {category: category, is_catalog:true, customer_id: Session.userId, file: true}
     $ctrl.styles_loading = true;
     $ctrl.styles = [];
     Service.apiCall("get_sku_catalogs/", "POST", data).then(function(data) {

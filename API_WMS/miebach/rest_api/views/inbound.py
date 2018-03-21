@@ -2095,13 +2095,15 @@ def get_seller_receipt_id(open_po):
     return receipt_number
 
 
-def update_seller_po(data, value, user, receipt_id=''):
+def update_seller_po(data, value, user, receipt_id='', invoice_number=''):
     if not receipt_id:
         return
     seller_pos = SellerPO.objects.filter(seller__user=user.id, open_po_id=data.open_po_id, status=1)
     seller_received_list = []
+    invoice_number = int(invoice_number)
     if user.userprofile.user_type == 'warehouse_user':
         seller_po_summary, created = SellerPOSummary.objects.get_or_create(receipt_number=receipt_id,
+                                                                           invoice_number=invoice_number,
                                                                            quantity=value,
                                                                            putaway_quantity=value,
                                                                            purchase_order_id=data.id,
@@ -2169,6 +2171,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
     remarks = request.POST.get('remarks', '')
     expected_date = request.POST.get('expected_date', '')
     remainder_mail = request.POST.get('remainder_mail', '')
+    invoice_number = request.POST.get('invoice_number', 0)
     _expected_date = ''
     if expected_date:
         _expected_date = expected_date
@@ -2223,10 +2226,12 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
         data.saved_quantity = 0
 
         seller_received_list = []
+        if not invoice_number:
+            invoice_number = 0
         if data.open_po:
             if not seller_receipt_id:
                 seller_receipt_id = get_seller_receipt_id(data.open_po)
-            seller_received_list = update_seller_po(data, value, user, receipt_id=seller_receipt_id)
+            seller_received_list = update_seller_po(data, value, user, receipt_id=seller_receipt_id, invoice_number=invoice_number)
         if 'wms_code' in myDict.keys():
             if myDict['wms_code'][i]:
                 sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
@@ -2380,7 +2385,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'total_price': total_price, 'total_tax': total_tax,
                                 'address': address,
                                 'company_name': profile.company_name, 'company_address': profile.address,
-                                'po_number': po_number,
+                                'po_number': po_number, 'bill_no': request.POST.get('invoice_number', ''),
                                 'order_date': order_date, 'order_id': order_id,
                                 'btn_class': btn_class}
 
@@ -5157,16 +5162,18 @@ def confirm_receive_qc(request, user=''):
     data_dict = ''
     headers = (
     'WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
-    'UTGST(%)', 'Amount')
+    'UTGST(%)', 'Amount', 'Description')
     putaway_data = {headers: []}
     total_received_qty = 0
     total_order_qty = 0
     total_price = 0
+    total_tax = 0
     pallet_number = ''
     is_putaway = ''
     purchase_data = ''
     btn_class = ''
     seller_name = user.username
+    seller_address = user.userprofile.address
     myDict = dict(request.POST.iterlists())
 
     log.info('Request params for ' + user.username + ' is ' + str(myDict))
@@ -5200,10 +5207,11 @@ def confirm_receive_qc(request, user=''):
             if entry_tax:
                 entry_price += (float(entry_price) / 100) * entry_tax
             putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5],
-                                          key[6], key[7], entry_price))
+                                          key[6], key[7], entry_price, key[8]))
             total_order_qty += order_quantity_dict[key[0]]
             total_received_qty += value
             total_price += entry_price
+            total_tax += (key[4] + key[5] + key[6] + key[7])
 
         if not status_msg:
             if not purchase_data:
@@ -5215,6 +5223,7 @@ def confirm_receive_qc(request, user=''):
             supplier_email = purchase_data['email_id']
             order_id = data.order_id
             order_date = get_local_date(request.user, data.creation_date)
+            order_date = datetime.datetime.strftime(datetime.datetime.strptime(order_date, "%d %b, %Y %I:%M %p"), "%d-%m-%Y")
 
             profile = UserProfile.objects.get(user=user.id)
             po_reference = '%s%s_%s' % (data.prefix, str(data.creation_date).split(' ')[0].replace('-', ''), order_id)
@@ -5224,13 +5233,16 @@ def confirm_receive_qc(request, user=''):
                                 'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total_price,
                                 'po_reference': po_reference, 'total_qty': total_received_qty,
                                 'report_name': 'Goods Receipt Note', 'company_name': profile.company_name, 'location': profile.location}'''
-            report_data_dict = {'data': putaway_data, 'data_dict': data_dict,
+            sku_list = putaway_data[putaway_data.keys()[0]]
+            sku_slices = generate_grn_pagination(sku_list)
+            report_data_dict = {'data': putaway_data, 'data_dict': data_dict, 'data_slices': sku_slices,
                                 'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty,
-                                'total_price': total_price,
+                                'total_price': total_price, 'total_tax': total_tax, 'address': address,
                                 'seller_name': seller_name, 'company_name': profile.company_name,
+                                'company_address': profile.address, 'bill_no': request.POST.get('invoice_number', ''),
                                 'po_number': str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(
                                     data.order_id),
-                                'order_date': get_local_date(request.user, data.creation_date), 'order_id': order_id,
+                                'order_date': order_date, 'order_id': order_id,
                                 'btn_class': btn_class}
 
             misc_detail = get_misc_value('receive_po', user.id)
@@ -5239,7 +5251,7 @@ def confirm_receive_qc(request, user=''):
                 rendered = t.render(report_data_dict)
                 write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
                                    str(order_date), internal=True, report_type="Goods Receipt Note")
-            return render(request, 'templates/toggle/putaway_toggle.html', report_data_dict)
+            return render(request, 'templates/toggle/c_putaway_toggle.html', report_data_dict)
         else:
             return HttpResponse(status_msg)
     except Exception as e:

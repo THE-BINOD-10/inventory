@@ -2556,6 +2556,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
         declaration = DECLARATIONS['default']
     company_name = user_profile.company_name
     company_address = user_profile.address
+    company_number = user_profile.phone_number
     email = user.email
     if seller_address:
         company_address = seller.address
@@ -2565,7 +2566,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
         company_name = 'SHPROC Procurement Pvt. Ltd.'
 
     invoice_data = {'data': data, 'imei_data': imei_data, 'company_name': company_name,
-                    'company_address': company_address,
+                    'company_address': company_address, 'company_number': company_number,
                     'order_date': order_date, 'email': email, 'marketplace': marketplace, 'total_amt': total_amt,
                     'total_quantity': total_quantity, 'total_invoice': "%.2f" % total_invoice, 'order_id': order_id,
                     'customer_details': customer_details, 'order_no': order_no, 'total_tax': "%.2f" % _total_tax,

@@ -36,8 +36,8 @@ class TallyAPI:
 	return price, diff_round
 
     def handle_updation_date(self, q_obj):
-        updation_date = q_obj['updation_date']
-        if not updation_date:
+	updation_date = q_obj['updation_date']
+	if not updation_date:
 	    updation_date = q_obj['creation_date']
         else:
 	    updation_date = q_obj['updation_date']

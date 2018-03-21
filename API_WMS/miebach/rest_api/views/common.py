@@ -2753,6 +2753,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     custom_margin = request_data.get('margin', 0)
     hot_release = request_data.get('hot_release', '')
     quantity = request_data.get('quantity', 0)
+    delivery_date = request_data.get('delivery_date', '')
     customer_master = None
     if not quantity:
         quantity = 0
@@ -2945,7 +2946,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
                            customer_data_id=customer_data_id, is_file=is_file, prices_dict=prices_dict,
                            price_type=price_type, custom_margin=custom_margin, specific_margins=specific_margins,
                            is_margin_percentage=is_margin_percentage, stock_quantity=quantity,
-                           msp_min_price=msp_min_price, msp_max_price=msp_max_price)
+                           msp_min_price=msp_min_price, msp_max_price=msp_max_price, delivery_date=delivery_date)
     return data, start, stop
 
 
@@ -3819,7 +3820,7 @@ def get_cal_style_data(style_data, quantity):
 
 def get_styles_data(user, product_styles, sku_master, start, stop, request, customer_id='', customer_data_id='', is_file='',
                     prices_dict={}, price_type='', custom_margin=0, specific_margins=[], is_margin_percentage=0,
-                    stock_quantity=0, msp_min_price=0, msp_max_price=0):
+                    stock_quantity=0, msp_min_price=0, msp_max_price=0, delivery_date=''):
     data = []
     style_quantities = eval(request.POST.get('required_quantity', '{}'))
     from rest_api.views.outbound import get_style_variants
@@ -3830,6 +3831,13 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
     admin = get_priceband_admin_user(user)
     if admin:
         gen_whs = get_generic_warehouses_list(admin)
+        if delivery_date:
+            del_date = datetime.datetime.strptime(delivery_date, '%m/%d/%Y').date()
+            today_date = datetime.datetime.today().date()
+            days_filter = (del_date - today_date).days
+            gen_whs = NetworkMaster.objects.filter(source_location_code__in=gen_whs,
+                                                         dest_location_code=user.id, lead_time__lte=days_filter).\
+                values_list('source_location_code', flat=True)
     stock_objs = StockDetail.objects.filter(sku__user__in=gen_whs, quantity__gt=0).values('sku__sku_class').\
         distinct().annotate(in_stock=Sum('quantity'))
     reserved_quantities = PicklistLocation.objects.filter(stock__sku__user__in=gen_whs, status=1).values(

@@ -24,22 +24,22 @@ def push_item_master():
     log.info('------Item Master started Data transfer to Tally-----')
     resp_data = ItemMaster.objects.filter(push_status__in=[0,9])
     for obj in resp_data:
-        try:
-            d = json.loads(obj.data)
-            status = bridge.item_master(d)
-            obj.push_status = 1
-            obj.save()
+	try:
+	    d = json.loads(obj.data)
+	    status = bridge.item_master(d)
+	    obj.push_status = 1
+	    obj.save()
 	    log.info('Data Inserted to Tally : ' + str(obj))
-        except TallyDataTransferError:
+	except TallyDataTransferError:
 	    log.debug(traceback.format_exc())
 	    if 'Duplicate Entry!' in TallyDataTransferError.message or 'already exists' in TallyDataTransferError.message:
-                obj.push_status = 1
-                obj.save()
+		obj.push_status = 1
+		obj.save()
 		log.info('Duplicate Entry : ' + str(obj))
             pass
         except:
-            obj.push_status = 9
-            obj.save()
+	    obj.push_status = 9
+	    obj.save()
 	    log.info('Error Occured : ' + str(obj))
 	    log.debug(traceback.format_exc())
     log.info('------Item Master Completed Data transfer to Tally-----')
@@ -61,13 +61,13 @@ def push_customer_vendor_master():
 		obj.push_status = 1
 		obj.save()
 		log.info('Duplicate Entry : ' + str(obj))
-            pass
+	    pass
         except:
 	    obj.push_status = 9
 	    obj.save()
 	    log.info('Error Occured : ' + str(obj))
 	    log.debug(traceback.format_exc())
-            return traceback.format_exc()
+	    return traceback.format_exc()
     log.info('------Customer Master Completed Data transfer to Tally-----')
     return 0
 
@@ -90,13 +90,13 @@ def push_sales_invoice_data():
 		obj.push_status = 1
 		obj.save()
 		log.info('Duplicate Entry : ' + str(obj))
-            pass
+	    pass
         except:
 	    obj.push_status = 9
 	    obj.save()
 	    log.info('Error Occured : ' + str(obj))
 	    log.debug(traceback.format_exc())
-            return traceback.format_exc()
+	    return traceback.format_exc()
     log.info('------Sales Invoice Completed Data transfer to Tally-----')
     return 0
 

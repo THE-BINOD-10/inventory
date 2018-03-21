@@ -38,9 +38,9 @@ class TallyAPI:
     def handle_updation_date(self, q_obj):
         updation_date = q_obj['updation_date']
         if not updation_date:
-            updation_date = q_obj['creation_date']
+	    updation_date = q_obj['creation_date']
         else:
-            updation_date = q_obj['updation_date']
+	    updation_date = q_obj['updation_date']
         return updation_date
 
     def get_sales_invoices(self, request):
@@ -221,7 +221,7 @@ class TallyAPI:
             s_obj[key_value]['buyer_cst_no'] = customer_info.get('cst_number', '')
             s_obj[key_value]['type_of_dealer'] = ''
             s_obj[key_value]['narration'] = ''
-	    s_obj[key_value]['creation_date'] = obj['creation_date']
+	     s_obj[key_value]['creation_date'] = obj['creation_date']
 
             del_notes = {}
             del_notes['delivery_note_no'] = ''

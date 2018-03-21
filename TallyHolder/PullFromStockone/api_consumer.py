@@ -41,9 +41,9 @@ def populate_api_item_data(user_id):
                     }
             item_ins = ItemMaster.objects.filter(item_code=data['item_code'], client_name=user_id)
             if not item_ins:
-		log.info('Inserted Data : ' + str(data))
-                query_data = ItemMaster(**data)
-                query_data.save()
+		log.info('Inserted Data : ' + str(data)
+		query_data = ItemMaster(**data)
+		query_data.save()
 		log.info('-------------------')
             else:
 		log.info('Updated Data : ' + str(data))

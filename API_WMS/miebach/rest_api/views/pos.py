@@ -1,6 +1,7 @@
 import os
 import subprocess
 import sys
+from decimal import Decimal
 
 from mail_server import send_mail, send_mail_attachment
 import json
@@ -167,7 +168,7 @@ def search_product_data(request, user=''):
                            'SKUCode': data.wms_code,
                            'style_name': data.style_name,
                            'sku_size' : data.sku_size,
-                           'ProductDescription': data.sku_desc + str(data.wms_code),
+                           'ProductDescription': data.sku_desc,
                            'price': discount_price,
                            'url': data.image_url, 'data-id': data.id,
                            'discount': discount_percentage,
@@ -369,6 +370,7 @@ def customer_order(request):
                 # if not returning item
                 if item['return_status'] == "false":
                     only_return = False
+                    payment_received = 0
                     if item['price'] < total_payment_received :
                         payment_received = item['price']
                         total_payment_received -= item['price']
@@ -439,7 +441,7 @@ def customer_order(request):
                             location=put_zone.locationmaster_set.all()[0])
                     sku_stocks_.quantity = int(sku_stocks_.quantity) + item['quantity']
                     sku_stocks_.save()
-                    order_id = "return"
+                    #order_id = "return"
                     # add item to OrderReturns
                     order_return = OrderReturns.objects.create( \
                         order=None, \

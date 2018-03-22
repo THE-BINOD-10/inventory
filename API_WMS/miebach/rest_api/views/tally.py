@@ -36,11 +36,11 @@ class TallyAPI:
 	return price, diff_round
 
     def handle_updation_date(self, q_obj):
-        updation_date = q_obj['updation_date']
-        if not updation_date:
-            updation_date = q_obj['creation_date'].strftime('%d/%m/%Y')
+	updation_date = q_obj['updation_date']
+	if not updation_date:
+	    updation_date = q_obj['creation_date']
         else:
-            updation_date = q_obj['updation_date'].strftime('%d/%m/%Y')
+	    updation_date = q_obj['updation_date']
         return updation_date
 
     def get_sales_invoices(self, request):
@@ -221,6 +221,7 @@ class TallyAPI:
             s_obj[key_value]['buyer_cst_no'] = customer_info.get('cst_number', '')
             s_obj[key_value]['type_of_dealer'] = ''
             s_obj[key_value]['narration'] = ''
+	    s_obj[key_value]['creation_date'] = obj['creation_date']
 
             del_notes = {}
             del_notes['delivery_note_no'] = ''
@@ -275,7 +276,8 @@ class TallyAPI:
             data_dict['opening_amt'] = data_dict['opening_qty'] * data_dict['opening_rate']
             data_dict['partNo'] = 'part_' + data_dict['item_name']
             data_dict['description'] = sku_master['sku_desc']
-            data_dict['updation_date'] = self.handle_updation_date(sku_master)
+	    data_dict['creation_date'] = sku_master['creation_date']
+	    data_dict['updation_date'] = self.handle_updation_date(sku_master)
             data_dict['sku_code'] = sku_master['sku_code']
             data_dict['unit_name'] = sku_master['measurement_type'] if sku_master['measurement_type'] else 'nos'
             data_list.append(data_dict)
@@ -308,10 +310,10 @@ class TallyAPI:
             data_dict['tally_company_name'] = tally_config.get('company_name', '')
             data_dict['old_ledger_name'] = master['name']
             data_dict['ledger_name'] = master['name']
-            #data_dict['ledger_alias'] = master[field_mapping['id']]
+	    data_dict['ledger_alias'] = ''
             data_dict['update_opening_balance'] = True
             data_dict['opening_balance'] = 0  # ?int or Float
-            parent_group_name = ''
+            parent_group_name = 'Sundry Creditors'
             master_type = master[field_mapping['type']]
             if not master_type:
                 master_type = 'Default'
@@ -338,6 +340,7 @@ class TallyAPI:
             data_dict['pan_no'] = master['pan_number']
             data_dict['mobile_no'] = ''
             data_dict['service_tax_no'] = ''
+	    data_dict['creation_date'] = master['creation_date']
             data_dict['updation_date'] = self.handle_updation_date(master)
             if master_type == 'customer':
                 credit_period = master.credit_period
@@ -350,8 +353,6 @@ class TallyAPI:
 
     def get_updation_date(self, request):
         updation_date = request.POST.get('updation_date', '')
-        if updation_date:
-            updation_date = parser.parse(updation_date)
         return updation_date
 
     def get_supplier_master(self, request):

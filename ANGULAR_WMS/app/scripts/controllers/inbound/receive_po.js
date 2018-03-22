@@ -205,6 +205,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
       data.push({name: 'remarks', value: vm.model_data.remarks});
       data.push({name: 'expected_date', value: vm.model_data.expected_date});
+      data.push({name: 'remainder_mail', value: vm.model_data.remainder_mail})
       vm.service.apiCall('update_putaway/', 'GET', data, true).then(function(data){
         if(data.message) {
           if(data.data == 'Updated Successfully') {

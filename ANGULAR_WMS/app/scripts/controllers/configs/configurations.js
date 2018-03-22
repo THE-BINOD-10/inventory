@@ -750,5 +750,107 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
             lines++;
           }
         }
-      } 
+      }
+
+  vm.model_data["rem_alert_new"] = true;
+  vm.remAlertSelected = function(name) {
+
+    if (name) {
+
+      for(var i = 0; i < vm.model_data.rem_saved_mail_alerts.length; i++) {
+
+        if(vm.model_data.rem_saved_mail_alerts[i].alert_name == name) {
+
+          vm.model_data.rem_alert_name = vm.model_data.rem_saved_mail_alerts[i].alert_name;
+          vm.model_data.rem_alert_value = vm.model_data.rem_saved_mail_alerts[i].alert_value;
+          vm.model_data["rem_alert_new"] = false;
+          vm.rem_alert_add_show = true;
+          break;
+        }
+      }
+    } else {
+
+      vm.model_data["rem_alert_new"] = true;
+      vm.rem_alert_add_show = false;
+      vm.model_data.rem_alert_name = "";
+      vm.model_data.rem_alert_value = "";
+    }
+  }
+
+  vm.saved_rem_alerts = [];
+  vm.filterRemAlerts = function() {
+    vm.model_data['rem_alerts']  = {};
+    angular.copy(vm.model_data.rem_mail_alerts, vm.model_data.rem_alerts);
+    angular.forEach(vm.model_data.rem_saved_mail_alerts, function(data){
+    if(vm.rem_mail_alerts.indexOf(data.alert_name) > 0)
+       vm.model_data.rem_alerts.pop(data.alert_name);
+    });
+    vm.model_data.rem_alert_new = true;
+    if(Object.keys(vm.model_data.rem_alerts).length>0){
+      vm.model_data.rem_alert_name = Object.keys(vm.model_data.rem_alerts)[0];
+    }
+    console.log(vm.model_data.rem_alerts);
+  }
+
+  vm.saveRemainderAlerts = function(name, value) {
+
+    if(!name) {
+
+      Service.showNoty("Please Enter Alert Name");
+      return false;
+    } else if(!value) {
+
+      Service.showNoty("Please Enter Duration");
+      return false;
+    } else {
+      vm.updateRemainder(name, value, 'save')
+      //vm.switches("{'tax_"+name+"':'"+value+"'}", 31);
+      var found = false;
+      for(var i = 0; i < vm.model_data.rem_saved_mail_alerts.length; i++) {
+
+        if(vm.model_data.rem_saved_mail_alerts[i].alert_name == vm.model_data.rem_alert_name) {
+
+          vm.model_data.rem_saved_mail_alerts[i].alert_name = vm.model_data.rem_alert_name;
+          vm.model_data.rem_saved_mail_alerts[i].alert_value = vm.model_data.rem_alert_value;
+          found = true;
+          break;
+        }
+      }
+      if(!found) {
+        vm.model_data.rem_saved_mail_alerts.push({alert_name: vm.model_data.rem_alert_name, alert_value: vm.model_data.rem_alert_value});
+      }
+      vm.rem_alert_add_show = false;
+      vm.rem_alert_selected = "";
+      vm.model_data.rem_alert_name = "";
+      vm.model_data.rem_alert_value = "";
+      vm.model_data.rem_alert_new = true;
+    }
+  }
+
+  vm.updateRemainder = function(name, value, type) {
+
+      var send = {alert_name : name, alert_value: value}
+      if (type != 'save') {
+        send['delete'] = true;
+
+        for(var i = 0; i < vm.model_data.rem_saved_mail_alerts.length; i++) {
+
+          if(vm.model_data.rem_saved_mail_alerts[i].alert_name == vm.model_data.rem_alert_name) {
+
+            vm.model_data.rem_saved_mail_alerts.splice(i, 1);
+            break;
+          }
+        }
+        vm.rem_alert_add_show = false;
+        vm.rem_alert_selected = "";
+        vm.model_data.rem_alert_name = "";
+        vm.model_data.rem_alert_value = "";
+        vm.model_data.rem_alert_new = true;
+      }
+      vm.service.apiCall("update_mail_alerts/", "GET", send).then(function(data) {
+
+        console.log(data);
+      })
+  }
+
 }

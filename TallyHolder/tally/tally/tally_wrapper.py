@@ -584,7 +584,7 @@ class TallyBridgeApp(object):
         # required
         stock_item.tallyCompanyName = tally_company_name
         stock_item.itemName = item_name
-        stock_item.itemAlias = sku_code
+        #stock_item.itemAlias = sku_code
         stock_item.primaryUnitName = unit_name or 'nos'
         stock_item.stockGroupName = stock_group_name
         stock_item.stockCategoryName = ''

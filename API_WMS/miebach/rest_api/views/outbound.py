@@ -713,6 +713,8 @@ def get_picklist_data(data_id, user_id):
             remarks = ''
             load_unit_handle = ''
             category = ''
+            customer_address = ''
+            original_order_id = ''
             if order.stock:
                 stock_id = pick_stocks.get(id=order.stock_id)
             if order.order:
@@ -723,8 +725,15 @@ def get_picklist_data(data_id, user_id):
                 marketplace = order.order.marketplace
                 remarks = order.order.remarks
                 order_id = str(order.order.order_id)
+                original_order_id = order.order.original_order_id
                 load_unit_handle = order.order.sku.load_unit_handle
                 category = order.order.sku.sku_category
+                customer_address = order.order.address
+                if order.order.customer_id:
+                    customer_obj = CustomerMaster.objects.filter(customer_id=order.order.customer_id,
+                                                                 user=user_id)
+                    if customer_obj:
+                        customer_address = customer_obj[0].address
             else:
                 st_order = STOrder.objects.filter(picklist_id=order.id)
                 sku_code = ''
@@ -780,9 +789,11 @@ def get_picklist_data(data_id, user_id):
                                                'image': image, 'order_id': str(order.order_id), 'status': order.status,
                                                'pallet_code': pallet_code, 'sku_code': sku_code, 'title': title,
                                                'stock_left': stock_left, 'last_picked_locs': last_picked_locs,
-                                               'customer_name': customer_name, 'marketplace': marketplace,
+                                               'customer_name': customer_name, 'customer_address': customer_address,
+                                               'marketplace': marketplace,
                                                'order_no': order_id, 'remarks': remarks,
-                                               'load_unit_handle': load_unit_handle, 'category': category}
+                                               'load_unit_handle': load_unit_handle, 'category': category,
+                                               'original_order_id': original_order_id}
             else:
                 batch_data[match_condition]['reserved_quantity'] += order.reserved_quantity
                 batch_data[match_condition]['picked_quantity'] += order.reserved_quantity
@@ -808,15 +819,27 @@ def get_picklist_data(data_id, user_id):
             remarks = ''
             load_unit_handle = ''
             category = ''
+            customer_address = ''
+            original_order_id = ''
             if order.order:
                 wms_code = order.order.sku.wms_code
                 if order.order_type == 'combo' and order.sku_code:
                     wms_code = order.sku_code
                 invoice_amount = order.order.invoice_amount
                 order_id = str(order.order.order_id)
+                original_order_id = order.order.original_order_id
                 sku_code = order.order.sku_code
                 title = order.order.title
                 customer_name = order.order.customer_name
+                customer_address = order.order.address
+                if order.order.customer_id:
+                    customer_obj = CustomerMaster.objects.filter(customer_id=order.order.customer_id,
+                                                                 user=user_id)
+                    if customer_obj:
+                        customer_address = customer_obj[0].address
+                customer_order_summary = order.order.customerordersummary_set.filter()
+                if customer_order_summary and customer_order_summary[0].consignee:
+                    customer_address = customer_order_summary[0].consignee
                 marketplace = order.order.marketplace
                 remarks = order.order.remarks
                 load_unit_handle = order.order.sku.load_unit_handle
@@ -830,6 +853,7 @@ def get_picklist_data(data_id, user_id):
                 marketplace = ""
                 load_unit_handle = order.stock.sku.load_unit_handle
                 category = order.stock.sku.sku_category
+                customer_address = ''
             if order.stock_id:
                 stock_id = pick_stocks.get(id=order.stock_id)
             if order.reserved_quantity == 0:
@@ -868,7 +892,8 @@ def get_picklist_data(data_id, user_id):
                  'status': order.status, 'order_no': order_id, 'pallet_code': pallet_code, 'sku_code': sku_code,
                  'title': title, 'stock_left': stock_left, 'last_picked_locs': last_picked_locs,
                  'customer_name': customer_name, 'marketplace': marketplace, 'remarks': remarks,
-                 'load_unit_handle': load_unit_handle, 'category': category})
+                 'load_unit_handle': load_unit_handle, 'category': category, 'customer_address': customer_address,
+                 'original_order_id': original_order_id})
 
             if wms_code in sku_total_quantities.keys():
                 sku_total_quantities[wms_code] += float(order.reserved_quantity)
@@ -1936,8 +1961,7 @@ def view_picklist(request, user=''):
     if pallet_switch == 'true':
         headers.insert(headers.index('Location') + 1, 'Pallet Code')
     data, sku_total_quantities = get_picklist_data(data_id, user.id)
-    if data[0]['status'] == 'open':
-        headers.insert(headers.index('WMS Code'), 'Order ID')
+    if data:
         order_count = list(set(map(lambda d: d.get('order_no', ''), data)))
         order_count_len = len(filter(lambda x: len(str(x)) > 0, order_count))
         if order_count_len == 1:
@@ -2443,6 +2467,9 @@ def print_picklist(request, user=''):
     customer_data = filter(lambda x: len(x) > 0, customer_data)
     if customer_data:
         customer_name = ','.join(customer_data)
+    customer_address = ''
+    if data:
+        customer_address = data[0].get('customer_address', '')
     order_ids = ''
     order_data = list(set(map(lambda d: d.get('order_no', ''), data)))
     order_data = filter(lambda x: len(x) > 0, order_data)
@@ -2487,8 +2514,8 @@ def print_picklist(request, user=''):
                   {'data': data, 'all_data': all_data, 'headers': PRINT_OUTBOUND_PICKLIST_HEADERS,
                    'picklist_id': data_id, 'total_quantity': total,
                    'total_price': total_price, 'picklist_id': data_id,
-                   'customer_name': customer_name, 'order_ids': order_ids,
-                   'marketplace': marketplace, 'date_data': date_data, 'remarks': remarks_data})
+                   'customer_name': customer_name, 'customer_address': customer_address, 'order_ids': order_ids,
+                   'marketplace': marketplace, 'date_data': date_data, 'remarks': remarks_data, 'user': user})
 
 
 @csrf_exempt
@@ -7355,6 +7382,7 @@ def generate_customer_invoice(request, user=''):
             invoice_date = seller_summary.order_by('-creation_date')[0].creation_date
         invoice_date = get_local_date(user, invoice_date, send_date='true')
         inv_month_year = invoice_date.strftime("%m-%y")
+        invoice_data['invoice_time'] = invoice_date.strftime("%H:%M")
         invoice_date = invoice_date.strftime("%d %b %Y")
         invoice_no = invoice_data['invoice_no']
         if is_marketplace:
@@ -7366,8 +7394,13 @@ def generate_customer_invoice(request, user=''):
         invoice_data['invoice_no'] = invoice_no
         invoice_data = add_consignee_data(invoice_data, ord_ids, user)
         return_data = request.GET.get('data', '')
+        delivery_challan = request.GET.get('delivery_challan', '')
         if return_data:
             invoice_data = json.dumps(invoice_data)
+        if delivery_challan == "true":
+            invoice_data['total_items'] = len(invoice_data['data'])
+            invoice_data['data'] = pagination(invoice_data['data'])
+            return render(request, 'templates/toggle/delivery_challan.html', invoice_data)
         elif get_misc_value('show_imei_invoice', user.id) == 'true':
             invoice_data = build_marketplace_invoice(invoice_data, user, False)
         else:
@@ -7381,6 +7414,35 @@ def generate_customer_invoice(request, user=''):
         return HttpResponse(json.dumps({'message': 'failed'}))
     return HttpResponse(invoice_data)
 
+def pagination(sku_list):
+    # header 220
+    # footer 125
+    # table header 44
+    # row 46
+    # total 1358
+    # default 24 items
+    # last page 21 items
+    mx = 24
+    mn = 22
+    #t = sku_list[0]
+    #for i in range(33): sku_list.append(copy.deepcopy(t))#remove it
+    sku_len = len(sku_list)
+    index = 1
+    for sku in sku_list:
+        sku['index'] = index
+        index = index + 1
+    temp = {"sku_code": "", "title": "", "quantity": ""}
+    sku_slices = [sku_list[i: i+mx] for i in range(0, len(sku_list), mx)] 
+    #extra_tuple = ('', '', '', '', '', '', '', '', '', '', '', '')
+    if len(sku_slices[-1]) == mx:
+        temp = sku_slices[-1]
+        sku_slices[-1] = temp[:mx-1]
+        temp = [temp[-1]]
+        for i in range(mn-1): temp.append(temp)
+        sku_slices.append(temp)
+    else:
+        for i in range((mn - len(sku_slices[-1]))): sku_slices[-1].append(temp)
+    return sku_slices
 
 @csrf_exempt
 def get_seller_order_view(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters,

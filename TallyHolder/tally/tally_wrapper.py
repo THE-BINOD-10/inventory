@@ -431,7 +431,7 @@ class TallyBridgeApp(object):
         oldLedgerName = kwargs.get('old_ledger_name')
         ledgerName = kwargs.get('ledger_name')
         openingBalance = kwargs.get('opening_balance')
-        ledgerAlias = kwargs.get('ledger_alias')
+        #ledgerAlias = kwargs.get('ledger_alias')
         parentGroupName = kwargs.get('parent_group_name')
         updateOpeningBalance = kwargs.get('update_opening_balance')
         ledgerMailingName = kwargs.get('ledger_mailing_name')
@@ -550,7 +550,7 @@ class TallyBridgeApp(object):
         # required
         stock_item.tallyCompanyName = tally_company_name
         stock_item.itemName = item_name
-        stock_item.itemAlias = sku_code
+        #stock_item.itemAlias = sku_code
         stock_item.primaryUnitName = unit_name or 'nos'
         stock_item.stockGroupName = stock_group_name
         #stock_item.stockCategoryName = stock_category_name

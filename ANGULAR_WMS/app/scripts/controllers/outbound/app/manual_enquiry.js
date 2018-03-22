@@ -95,6 +95,22 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
       $.each($ctrl.model_data, function(key, value) {
         formData.append(key, value);
       });
+
+      var remarks = "";
+      angular.forEach($ctrl.custom_remarks, function(remark) {
+
+        if(remark.remark) {
+
+          if(!remarks) {
+
+            remarks = remark.remark;
+          } else {
+
+            remarks += "<<>>" + remark.remark;
+          }
+        }
+      })
+      formData.append("custom_remarks", remarks);
       $ctrl.uploading = true;
       $.ajax({url: Session.url+'place_manual_order/',
             data: formData,

@@ -112,12 +112,14 @@
               <input type="date" name="expected_date" ng-model="Enquiry.model_data.expected_date" class="form-control" ng-required="true">
             </div>
           </div>
-          <div class="form-group">
-            <label class="col-sm-5 col-xs-5 control-label">Requirements *</label>
+          <div class="form-group" ng-init="Enquiry.custom_remarks = [{'remark': ''}]">
+            <label class="col-sm-5 col-xs-5 control-label">Customization Requirements</label>
             <div class="col-sm-3 col-xs-5">
-              <input type="text" name="req" ng-model="Enquiry.model_data.quantity" class="form-control" ng-required="true">
+              <div ng-repeat="remark in Enquiry.custom_remarks">
+                <input type="text" name="req"  ng-model="remark.remark" class="form-control mr5 mb10" style="width: 90%;display: inline-block;">
+                <i style="font-size: 20px;padding-top: 7px;cursor: pointer;" ng-class="($last)? 'fa-plus-square-o': 'fa-minus-square-o';" class="fa" ng-click="($last)? Enquiry.custom_remarks.push({'remarks': ''}): Enquiry.custom_remarks.splice($index, 1);"></i>
+              </div>
             </div>
-            <i style="font-size: 20px;padding-top: 7px;cursor: pointer;" ng-class="" class="fa fa-plus-square-o ng-click-active"></i>
           </div>
           <div class="form-group">
             <label class="col-sm-5 col-xs-5 control-label">Remarks *</label>

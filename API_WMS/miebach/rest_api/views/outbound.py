@@ -8402,6 +8402,7 @@ def place_manual_order(request, user=''):
             expected_date = value.split('-')
             value = datetime.date(int(expected_date[0]), int(expected_date[1]), int(expected_date[2]))
         manual_enquiry_details[key] = value
+    manual_enquiry['custom_remarks'] = request.POST.get('custom_remarks', '')
     check_enquiry = ManualEnquiry.objects.filter(user=request.user.id,sku=manual_enquiry['sku_id'])
     if check_enquiry:
         return HttpResponse("Manual Enquiry Already Exists")
@@ -8497,7 +8498,7 @@ def get_manual_enquiry_detail(request, user=''):
     customization_type = customization_types[manual_enq[0].customization_type]
     manual_eq_dict = {'enquiry_id': int(manual_enq[0].enquiry_id), 'customer_name': manual_enq[0].customer_name,
                       'date': manual_enq[0].creation_date.strftime('%Y-%m-%d'), 'customization_type': customization_type,
-                      'quantity': manual_enq[0].quantity}
+                      'quantity': manual_enq[0].quantity, 'custom_remarks': manual_enq[0].custom_remarks.split("<<>>")}
     enquiry_images = list(ManualEnquiryImages.objects.filter(enquiry=manual_enq[0].id).values_list('image', flat=True))
     style_dict = {'sku_code': manual_enq[0].sku.sku_code, 'style_name':  manual_enq[0].sku.sku_class,
                   'description': manual_enq[0].sku.sku_desc, 'images': enquiry_images,

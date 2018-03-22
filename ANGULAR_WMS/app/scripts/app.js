@@ -26,7 +26,8 @@ angular
     'datatables',
     'slick',
     'ui.toggle',
-    'ezplus'
+    'ezplus',
+    'ui.select2'
   ])
   .constant('COLORS', {
     'default': '#e2e2e2',

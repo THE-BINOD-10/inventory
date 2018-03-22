@@ -134,6 +134,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       });
     }
 
+    vm.checked_ids = [];
     vm.checkedItem = function(data, index){
       
       if (vm.checked_items[index]) {
@@ -142,6 +143,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       } else {
         
         vm.checked_items[index] = data;
+        vm.checked_ids.push(vm.checked_items[index].id);
       }
       // vm.checked_items[index] = data;
       console.log(data)      
@@ -274,18 +276,22 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       var status = false;
       var field_name = "";
       var data = [];
-      angular.forEach(vm.selected, function(value, key) {
-        if(value) {
-          var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]['_aData'];
-          if(!(po_number)) {
-            po_number = temp[temp['check_field']];
-          } else if (po_number != temp[temp['check_field']]) {
-            status = true;
+      if (vm.user_type == 'distributor') {
+        data = vm.checked_ids;
+      } else {
+        angular.forEach(vm.selected, function(value, key) {
+          if(value) {
+            var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]['_aData'];
+            if(!(po_number)) {
+              po_number = temp[temp['check_field']];
+            } else if (po_number != temp[temp['check_field']]) {
+              status = true;
+            }
+            field_name = temp['check_field'];
+            data.push(temp['id']);
           }
-          field_name = temp['check_field'];
-          data.push(temp['id']);
-        }
-      });
+        });
+      }
 
       if(status) {
         vm.service.showNoty("Please select same "+field_name+"'s");

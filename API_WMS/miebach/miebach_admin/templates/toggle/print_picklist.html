@@ -22,13 +22,11 @@ $(document).ready(function(){
 </script>
  {% load tag_extras %}
 <div style="margin-right:10px">
-{% if customer_name and not marketplace %}
 <div class="row" style="padding-left: 2px;">
   <div class="col-md-12">
-    <center><b>Customer Name: {{ customer_name }}</b></center>
+    <center><b>{{ user.userprofile.company_name }}</b></center>
   </div>
 </div>
-{% endif %}
 {% if marketplace %}
 <div class="row" style="padding-left: 2px;">
   <div class="col-md-12">
@@ -36,6 +34,23 @@ $(document).ready(function(){
   </div>
 </div>
 {% endif %}
+<div class="row" style="padding-left: 2px;">
+  <div class="col-md-12">
+    <div class="col-md-6" ng-if="customer_name and not marketplace">
+      <span class="pull-left" style="float: left;"><b>Customer Name: <span>{{customer_name}}</span></b></span>
+    </div>
+  </div>
+</div>
+<div class="row" style="padding-left: 2px;" ng-if="customer_address">
+  <div class="col-md-12">
+    <div class="col-xs-2">
+      <span class="pull-left" style="float: left;"><b>Address:</b></span>
+    </div>
+    <div class="col-xs-5">
+      <span class="pull-left" style="float: left;"><span>{{customer_address}}</span></span>
+    </div>
+  </div>
+</div>
 <div class="row" style="padding-left: 2px;">
   <input type="hidden" name="picklist_number" value="{{picklist_id}}">
   <div class="col-md-12">

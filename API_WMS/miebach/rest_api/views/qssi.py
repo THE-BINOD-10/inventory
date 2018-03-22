@@ -120,6 +120,7 @@ def integration_get_order_status(order_ids, user):
             "OrderIds": []
            }
     for order_id in order_ids:
-        temp_order_id = ("%s_%s") % (user.username, str(order_id))
+        WarehouseId = ''.join(filter(str.isdigit, str(user.username)))
+        temp_order_id = ("%s%s") % (WarehouseId, str(order_id))
         data["OrderIds"].append({"OrderId": temp_order_id})
     return data

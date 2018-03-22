@@ -221,7 +221,7 @@ class TallyAPI:
             s_obj[key_value]['buyer_cst_no'] = customer_info.get('cst_number', '')
             s_obj[key_value]['type_of_dealer'] = ''
             s_obj[key_value]['narration'] = ''
-	     s_obj[key_value]['creation_date'] = obj['creation_date']
+	    s_obj[key_value]['creation_date'] = obj['creation_date']
 
             del_notes = {}
             del_notes['delivery_note_no'] = ''

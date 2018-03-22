@@ -10,7 +10,11 @@ pull_mapping = {'populate_api_item_data': 'push_item_master', 'populate_api_cust
 sys_args = sys.argv
 #push_to_tally
 if sys_args:
+	log.info("--- Schedule Script Started ---")
+	log.info("Username : " + str(sys.argv[1]) + " Execute function : " + str(sys.argv[2]))
 	resp_status = eval(sys.argv[2])(sys.argv[1])
+	log.info(" --- Pull from Stockone Result : --- " + str(resp_status))
 	if resp_status:
 		eval(pull_mapping[sys.argv[2]])()
-#log.info(sys.argv)
+		log.info(" --- Push to Tally Done --- ")
+	log.info("--- Schedule Script Ended ---")

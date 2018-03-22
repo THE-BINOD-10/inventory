@@ -432,6 +432,7 @@ function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Servi
   var vm = this;
   vm.service = Service;
   vm.permissions = Session.roles.permissions;
+  vm.priceband_sync = Session.roles.permissions.priceband_sync;
 
   vm.model_data = items;
   vm.model_data.temp_sequence_number = vm.model_data.sequence_number;

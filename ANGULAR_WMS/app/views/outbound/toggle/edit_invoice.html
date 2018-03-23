@@ -70,7 +70,7 @@
         <td style="text-align: left;">{{record.title}}</td>
         <td>
           <input type="hidden" name="id" value="{{record.id}}">
-          <input type="text" name="unit_price" class="form-control" ng-model="record.unit_price" style="padding: 5px 5px;height: 26px;" ng-change="pop.changeUnitPrice(record)" decimal-number required>
+          <input type="text" name="unit_price" ng-readonly="pop.priceband_sync" class="form-control" ng-model="record.unit_price" style="padding: 5px 5px;height: 26px;" ng-change="pop.changeUnitPrice(record)" decimal-number required>
         </td>
         <td>{{record.quantity}}</td>
         <td>{{record.base_price | number:2}}</td>

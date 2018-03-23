@@ -2047,12 +2047,10 @@ def insert_sku(request, user=''):
         zone = request.POST['zone_id']
         size_type = request.POST.get('size_type', '')
         hot_release = request.POST.get('hot_release', '')
-        if not wms or not description or not zone:
+        if not wms or not description:
             return HttpResponse('Missing Required Fields')
         filter_params = {'zone': zone, 'user': user.id}
         zone_master = filter_or_none(ZoneMaster, filter_params)
-        if not zone_master:
-            return HttpResponse('Invalid Zone, Please enter valid Zone')
         filter_params = {'wms_code': wms, 'user': user.id}
         data = filter_or_none(SKUMaster, filter_params)
         status_msg = 'SKU exists'
@@ -2064,7 +2062,8 @@ def insert_sku(request, user=''):
                 if key in data_dict.keys():
                     if key == 'zone_id':
                         value = get_or_none(ZoneMaster, {'zone': value, 'user': user.id})
-                        value = value.id
+                        if value:
+                            value = value.id
                     elif key == 'status':
                         if value == 'Active':
                             value = 1

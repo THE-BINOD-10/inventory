@@ -91,7 +91,7 @@
       "colors": ["BLACK", "NAVY BLUE", "CHARCOAL", "GREY", "ROYAL BLUE", "CHARCOAL MELANGE", "BLUE MELANGE", "PINK MELANGE", "ROYAL BLUE MELANGE"],
       "sleeve": ["Full Sleeve", "Sleeveless"],
       "pockets": ["KANGAROO", "CUT POCKET"],
-      "labels": ["Only Size", "Neck Label"]
+      "labels": ["Only Size", "Neck Label"],
       "pack_types": ["SINGLE PACKING", "DEADMAN FOLD"],
       "300 GSM": {
         "fabric": false,

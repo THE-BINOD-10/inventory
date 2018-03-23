@@ -1794,16 +1794,14 @@ def update_invoice(request, user=''):
         marketplace = request.POST.get("marketplace", "")
         order_reference = request.POST.get("order_reference", "")
         order_reference_date = request.POST.get("order_reference_date", "")
+        ord_det_id = request.POST.get("id", "")
 
         myDict = dict(request.POST.iterlists())
         if invoice_date:
             invoice_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y").date()
-        order_id_val = ''.join(re.findall('\d+', order_ids))
-        order_code = ''.join(re.findall('\D+', order_ids))
-        ord_ids = OrderDetail.objects.filter(
-            Q(order_id=order_id_val, order_code=order_code) | Q(original_order_id=order_ids),
-            user=user.id)
-
+        # order_id_val = ''.join(re.findall('\d+', order_ids))
+        # order_code = ''.join(re.findall('\D+', order_ids))
+        ord_ids = OrderDetail.objects.filter(id=ord_det_id)
         if ord_ids:
             update_dict = {}
             if order_reference:
@@ -1845,7 +1843,7 @@ def update_invoice(request, user=''):
                 order_id.unit_price = float(myDict['unit_price'][unit_price_index])
                 order_id.invoice_amount = float(myDict['invoice_amount'][unit_price_index])
                 order_id.save()
-            cust_objs = CustomerOrderSummary.objects.filter(order__user=user.id, order__id=order_id.id)
+            cust_objs = CustomerOrderSummary.objects.filter(order__id=order_id.id)
             if cust_objs:
                 cust_obj = cust_objs[0]
                 cust_obj.consignee = consignee
@@ -7395,12 +7393,12 @@ def generate_customer_invoice(request, user=''):
         invoice_data = add_consignee_data(invoice_data, ord_ids, user)
         return_data = request.GET.get('data', '')
         delivery_challan = request.GET.get('delivery_challan', '')
-        if return_data:
-            invoice_data = json.dumps(invoice_data)
         if delivery_challan == "true":
             invoice_data['total_items'] = len(invoice_data['data'])
             invoice_data['data'] = pagination(invoice_data['data'])
             return render(request, 'templates/toggle/delivery_challan.html', invoice_data)
+        elif return_data:
+            invoice_data = json.dumps(invoice_data)
         elif get_misc_value('show_imei_invoice', user.id) == 'true':
             invoice_data = build_marketplace_invoice(invoice_data, user, False)
         else:

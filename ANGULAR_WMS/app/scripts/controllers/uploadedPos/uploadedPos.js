@@ -69,7 +69,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 vm.model_data = {};
                 vm.update = true;
                 vm.message = "";
-                vm.title = "Update Updated PO's";
+                vm.title = "Update Uploaded PO's";
                 var poId = {id:aData.id};
 
                 vm.service.apiCall("get_updated_pos/", "POST", poId, true).then(function(data) {

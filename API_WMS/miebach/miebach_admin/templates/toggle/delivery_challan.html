@@ -2,7 +2,7 @@
 
 <div>
   <style>
-    {% include 'toggle/bootstrap.min.css' %}
+    {% include 'toggle/page1.css' %}
   </style>
   {% for page in data %}
   <div class="print-invoice2 mb20">
@@ -131,7 +131,7 @@
           </tr>
           {% endfor %}
           {% if forloop.last %}
-          <tr>
+          <tr style="border-top: 1px solid black;">
             <td></td>
             <td class="fs14" colspan="2">
               <span class=>Tot Items: {{total_items}}</span>

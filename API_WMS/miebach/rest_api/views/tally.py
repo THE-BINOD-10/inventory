@@ -227,7 +227,7 @@ class TallyAPI:
             s_obj[key_value]['del_notes'].append(del_notes)
         log.info('Sales Invoice Count :'+str(len(s_obj.values())))
         log.info('-----------------SALES INVOICE ENDED----------------------')
-    return HttpResponse(json.dumps(s_obj.values(), cls=DjangoJSONEncoder))
+        return HttpResponse(json.dumps(s_obj.values(), cls=DjangoJSONEncoder))
 
     def get_item_master(self, request):
         log.info('-----------------ITEM MASTER STARTED----------------------')

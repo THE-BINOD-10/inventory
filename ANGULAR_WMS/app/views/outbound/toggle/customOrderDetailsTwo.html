@@ -90,7 +90,7 @@
             <div class="col-md-8 text-left">
               <span>{{(pop.customData.fabric.fabric)? 'Single Fabric': 'Multi Fabric';}}</span><br>
 
-              <span ng-repeat="(key, value) in pop.customData.fabric.fabrics" ng-if="value != 'none'"><span ng-if="!$first">, </span>{{value}}</span>
+              <span ng-repeat="(key, value) in pop.customData.fabric.fabrics" ng-if="value != 'none' && value != ''"><span ng-if="!$first">, </span>{{value}}</span>
             </div>
           </div>
 
@@ -186,7 +186,7 @@
           </div>
         </div>
         <div class="col-md-3" ng-if="pop.customData.bodyColor && pop.customData.style_pro.body_color">
-          <div style="background: red; width: 100%; height: 100px;" title="pop.customData.bodyColor"></div>
+          <img style="width: 100%;" title="pop.customData.bodyColor" ng-src="{{'images/fabricColors/'+pop.customData.colorDataDict[pop.customData.bodyColor]}}">
         </div>
       </div>
       <div class="row">

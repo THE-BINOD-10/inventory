@@ -97,8 +97,9 @@
         </div>
       </div>
       <div class="row mb10 custom-colors">
-        <div class="col-md-1 col-sm-2 col-xs-3 mb10" ng-repeat="color in showCase.customData.colorData">
-          <div style="height: 50px;background: {{(($index+1)%2==0)?'red': 'yellow';}};cursor: pointer;" ng-class="(showCase.customData.bodyColor==color)? 'color-selected': '';" ng-click="showCase.customData.bodyColor=color" title="{{color}}">
+        <div class="col-lg-1 col-md-2 col-sm-2 col-xs-3 mb10" ng-repeat="color in showCase.customData.colorData">
+          <div ng-class="(showCase.customData.bodyColor==color)? 'color-selected': '';" ng-click="showCase.customData.bodyColor=color" title="{{color}}">
+            <img ng-src="{{'images/fabricColors/'+showCase.customData.colorDataDict[color]}}" style="width: 100%">
           </div>
         </div>
           <!--<slick lazy-load='ondemand' slides-to-show=5 slides-to-scroll=4 class="slider lazy" infinite="false">

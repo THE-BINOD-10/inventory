@@ -105,27 +105,28 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             var empty_data = {data: []}
             angular.copy(empty_data, vm.model_data);
 
-            var modalInstance = $modal.open({
-              templateUrl: 'views/outbound/toggle/customOrderDetailsTwo.html',
-              controller: 'customOrderDetails',
-              controllerAs: 'pop',
-              size: 'lg',
-              backdrop: 'static',
-              keyboard: false,
-              resolve: {
-                items: function () {
-                  return all_order_details;
+            if (all_order_details[0].sku_extra_data.sizeEnable) {
+              var modalInstance = $modal.open({
+                templateUrl: 'views/outbound/toggle/customOrderDetailsTwo.html',
+                controller: 'customOrderDetails',
+                controllerAs: 'pop',
+                size: 'lg',
+                backdrop: 'static',
+                keyboard: false,
+                resolve: {
+                  items: function () {
+                    return all_order_details;
+                  }
                 }
-              }
-            });
+              });
 
-            modalInstance.result.then(function (selectedItem) {
-              var data = selectedItem;
-            });
-            return false;
-
-            vm.input_status = false;
-            vm.order_input_status = false;
+              modalInstance.result.then(function (selectedItem) {
+                var data = selectedItem;
+              });
+              return false;
+            }
+            vm.input_status = true;
+            vm.order_input_status = true;
 
             vm.model_data["embroidery_vendor"] = data.data.data_dict[0].embroidery_vendor;
             vm.model_data["print_vendor"] = data.data.data_dict[0].print_vendor;

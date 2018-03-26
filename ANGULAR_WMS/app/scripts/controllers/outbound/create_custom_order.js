@@ -128,7 +128,7 @@ function CreateCustomOrder($scope, $http, $state, Session, colFilters, Service, 
     }
     vm.customData.fabric.fabricOptions = vm.product_types[vm.product].fabrics;
     vm.customData.fabric.fabrics.fabric1 = vm.customData.fabric.fabricOptions[0];
-    vm.customData.colorData = vm.product_types[vm.product].colors;
+    //vm.customData.colorData = vm.product_types[vm.product].colors;
     //vm.getCustomStyles(vm.customData.style);
   }
 
@@ -476,6 +476,8 @@ function CreateCustomOrder($scope, $http, $state, Session, colFilters, Service, 
     vm.products = resp.data.product_types;
     vm.product_types = resp.data.products;
     vm.product= vm.products[0];
+    vm.customData.colorDataDict = resp.data.fabricColors;
+    vm.customData.colorData = Object.keys(vm.customData.colorDataDict);
     vm.getCategories();
   });
 }

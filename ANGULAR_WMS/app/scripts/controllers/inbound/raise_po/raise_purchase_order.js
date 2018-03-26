@@ -470,6 +470,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.get_sku_details = function(product, item, index) {
       product.fields.sku.wms_code = item.wms_code;
       product.fields.measurement_unit = item.measurement_unit;
+      product.fields.description = item.sku_desc;
       product.fields.order_quantity = 1;
       product.fields.price = "";
       product.fields.description = item.sku_desc;

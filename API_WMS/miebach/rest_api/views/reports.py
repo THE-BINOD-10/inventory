@@ -11,6 +11,7 @@ from django.contrib import auth
 from miebach_admin.models import *
 from common import *
 from miebach_utils import *
+from inbound import generate_grn_pagination
 
 
 @csrf_exempt
@@ -668,13 +669,20 @@ def print_po_reports(request, user=''):
     receipt_type = ''
     for key, data_id in request.GET.iteritems():
         data_id = int(data_id)
-        po_data = []
+        data_dict = ''
+        bill_no = ''
+        #po_data = []
+        headers = (
+        'WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
+        'UTGST(%)', 'Amount', 'Description')
+        po_data = {headers: []}
         if key == 'po_id':
             results = PurchaseOrder.objects.filter(order_id=data_id, open_po__sku__user=user.id)
         else:
             results = SellerPOSummary.objects.filter(id=data_id, purchase_order__open_po__sku__user=user.id)
         total = 0
         total_qty = 0
+        total_tax = 0
         for data in results:
             receipt_type = ''
             if key == 'po_id':
@@ -683,13 +691,15 @@ def print_po_reports(request, user=''):
                 gst_tax = open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax
                 if gst_tax:
                     amount += (amount / 100) * gst_tax
-                po_data.append([open_data.sku.wms_code, open_data.order_quantity, data.received_quantity,
+                po_data[headers].append((open_data.sku.wms_code, open_data.order_quantity, data.received_quantity,
                                 open_data.measurement_unit,
                                 open_data.price, open_data.cgst_tax, open_data.sgst_tax, open_data.igst_tax,
-                                open_data.utgst_tax, amount])
+                                open_data.utgst_tax, amount, open_data.sku.sku_desc))
                 total += amount
                 total_qty += data.received_quantity
+                total_tax += (open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax)
             else:
+                bill_no = data.invoice_number
                 po_order = data.purchase_order
                 open_data = po_order.open_po
                 amount = float(data.quantity) * float(open_data.price)
@@ -697,13 +707,14 @@ def print_po_reports(request, user=''):
                 if gst_tax:
                     amount += (amount / 100) * gst_tax
 
-                po_data.append(
-                    [open_data.sku.wms_code, open_data.order_quantity, data.quantity, open_data.measurement_unit,
-                     open_data.price,
-                     open_data.cgst_tax, open_data.sgst_tax, open_data.igst_tax, open_data.utgst_tax, amount])
+                po_data[headers].append(
+                    (open_data.sku.wms_code, open_data.order_quantity, data.quantity, open_data.measurement_unit,
+                     open_data.price, open_data.cgst_tax, open_data.sgst_tax, open_data.igst_tax,
+                     open_data.utgst_tax, amount, open_data.sku.sku_desc))
                 total += amount
                 total_qty += po_order.received_quantity
                 receipt_type = data.seller_po.receipt_type
+                total_tax += (open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax)
 
         if results:
             purchase_order = results[0]
@@ -713,26 +724,32 @@ def print_po_reports(request, user=''):
             address = '\n'.join(address.split(','))
             telephone = purchase_order.open_po.supplier.phone_number
             name = purchase_order.open_po.supplier.name
+            supplier_id = purchase_order.open_po.supplier.id
             order_id = purchase_order.order_id
             po_reference = '%s%s_%s' % (
             purchase_order.prefix, str(purchase_order.creation_date).split(' ')[0].replace('-', ''),
             purchase_order.order_id)
-            order_date = str(purchase_order.open_po.creation_date).split('+')[0]
+            order_date = datetime.datetime.strftime(purchase_order.open_po.creation_date, "%d-%m-%Y")
             user_profile = UserProfile.objects.get(user_id=user.id)
             w_address = user_profile.address
+            data_dict = (('Order ID', order_id), ('Supplier ID', supplier_id),
+                         ('Order Date', order_date), ('Supplier Name', name))
+        sku_list = po_data[po_data.keys()[0]]
+        sku_slices = generate_grn_pagination(sku_list)
         table_headers = (
         'WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
-        'UTGST(%)', 'Amount')
+        'UTGST(%)', 'Amount', 'Description')
 
     title = 'Purchase Order'
     if receipt_type == 'Hosted Warehouse':
         title = 'Stock Transfer Note'
-    return render(request, 'templates/toggle/po_template.html',
-                  {'table_headers': table_headers, 'data': po_data, 'address': address,
+    return render(request, 'templates/toggle/c_putaway_toggle.html',
+                  {'table_headers': table_headers, 'data': po_data, 'data_slices': sku_slices, 'address': address,
                    'order_id': order_id, 'telephone': str(telephone), 'name': name, 'order_date': order_date,
-                   'total': total,
-                   'po_reference': po_reference, 'w_address': w_address, 'company_name': user_profile.company_name,
-                   'display': 'display-none', 'receipt_type': receipt_type, 'title': title, 'total_qty': total_qty})
+                   'total_price': total, 'data_dict': data_dict, 'bill_no': bill_no,
+                   'po_number': po_reference, 'company_address': w_address, 'company_name': user_profile.company_name,
+                   'display': 'display-none', 'receipt_type': receipt_type, 'title': title,
+                   'total_received_qty': total_qty})
 
 
 @csrf_exempt
@@ -775,7 +792,7 @@ def excel_reports(request, user=''):
     excel_name = ''
     func_name = ''
     file_type = 'xls'
-    headers, search_params, filter_params = get_search_params(request)
+    headers, search_params, filter_params = get_search_params(request, user)
     if '&' in request.POST['serialize_data']:
         form_data = request.POST['serialize_data'].split('&')
     else:

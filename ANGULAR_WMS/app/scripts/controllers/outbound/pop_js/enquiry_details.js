@@ -1,5 +1,4 @@
-angular.module('urbanApp', []).controller('EnquiryOrderDetails', ['$scope', 'Service', '$modalInstance', 'items', 'Session',
-function($scope, Service, $modalInstance, items, Session) {
+function EnquiryOrderDetails ($scope, Service, $modalInstance, items, Session) {
 
   var vm = this;
   vm.service = Service;
@@ -59,4 +58,8 @@ function($scope, Service, $modalInstance, items, Session) {
 
     $modalInstance.close();
   }
-}]);
+};
+
+angular
+  .module('urbanApp')
+  .controller('EnquiryOrderDetails', ['$scope', 'Service', '$modalInstance', 'items', 'Session', EnquiryOrderDetails]);

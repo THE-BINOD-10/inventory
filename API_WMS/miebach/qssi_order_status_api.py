@@ -31,7 +31,8 @@ def update_order_status(company_name):
 
 def order_update(orders, user, status):
     for order in orders:
-        temp_order_id = str(order["OrderId"]).replace('%s_' % user.username)
+        WarehouseId = ''.join(filter(str.isdigit, str(user.username)))
+        temp_order_id = str(order["OrderId"]).replace(WarehouseId, '', 1)
         order_detail = OrderDetail.objects.filter(original_order_id = temp_order_id, user=user.id)
         for item in order_detail:
             item.status = status

@@ -1169,6 +1169,9 @@ def warehouse_headers(request, user=''):
     admin_user_id = ''
     admin_user_name = ''
     level = request.GET.get('level', '')
+    price_band_flag = get_misc_value('priceband_sync', user.id)
+    if price_band_flag == 'true':
+        user = get_admin(user)
     warehouses = UserGroups.objects.filter(admin_user_id=user.id).values_list('user_id', flat=True)
     if level:
         warehouses = UserProfile.objects.filter(user__in=warehouses,warehouse_level=int(level)).values_list('user_id',flat=True)

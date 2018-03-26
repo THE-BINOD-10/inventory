@@ -344,6 +344,62 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
                          )))
 
 
+@csrf_exempt
+def get_corporate_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    lis = ['corporate_id', 'name', 'email_id', 'phone_number', 'address', 'status']
+    search_params = get_filtered_params(filters, lis)
+    if 'status__icontains' in search_params.keys():
+        if (str(search_params['status__icontains']).lower() in "active"):
+            search_params["status__icontains"] = 1
+        elif (str(search_params['status__icontains']).lower() in "inactive"):
+            search_params["status__icontains"] = 0
+        else:
+            search_params["status__icontains"] = "none"
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+
+    if search_term:
+        search_dict = {'active': 1, 'inactive': 0}
+        if search_term.lower() in search_dict:
+            search_terms = search_dict[search_term.lower()]
+            master_data = CorporateMaster.objects.filter(status=search_terms, user=user.id, **search_params).order_by(
+                order_data)
+
+        else:
+            master_data = CorporateMaster.objects.filter(
+                Q(name__icontains=search_term) | Q(address__icontains=search_term) |
+                Q(phone_number__icontains=search_term) | Q(email_id__icontains=search_term),
+                user=user.id, **search_params).order_by(order_data)
+
+    else:
+        master_data = CorporateMaster.objects.filter(user=user.id, **search_params).order_by(order_data)
+
+    temp_data['recordsTotal'] = len(master_data)
+    temp_data['recordsFiltered'] = len(master_data)
+    for data in master_data[start_index: stop_index]:
+        status = 'Inactive'
+        if data.status == '1':
+            status = 'Active'
+
+        if data.phone_number:
+            try:
+                data.phone_number = int(data.phone_number)
+            except:
+                data.phone_number = ''
+
+        phone_number = ''
+        if data.phone_number and data.phone_number != '0':
+            phone_number = data.phone_number
+        temp_data['aaData'].append(
+            OrderedDict((('corporate_id', data.corporate_id), ('name', data.name), ('address', data.address),
+                         ('phone_number', phone_number), ('email_id', data.email_id), ('status', status),
+                         ('tin_number', data.tin_number), ('cst_number', data.cst_number),
+                         ('pan_number', data.pan_number), ('pincode', data.pincode), ('city', data.city), 
+                         ('state', data.state), ('country', data.country), 
+                         ('tax_type', TAX_TYPE_ATTRIBUTES.get(data.tax_type, '')), ('DT_RowId', data.corporate_id), 
+                         ('DT_RowClass', 'results'))))
+
 
 @csrf_exempt
 def get_staff_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
@@ -1187,6 +1243,44 @@ def update_customer_values(request, user=''):
     return HttpResponse('Updated Successfully')
 
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_corporate_values(request, user=''):
+    """ Update Corporate Data"""
+    log.info('Update Corporate Values request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    try:
+        data_id = request.POST['corporate_id']
+        data = get_or_none(CorporateMaster, {'corporate_id': data_id, 'user': user.id})
+        _name = data.name
+        for key, value in request.POST.iteritems():
+            if key not in data.__dict__.keys():
+                continue
+            if key == 'status':
+                if value == 'Active':
+                    value = 1
+                else:
+                    value = 0
+            if key == 'email_id':
+                if not value:
+                    continue
+                setattr(data, key, value)
+
+            setattr(data, key, value)
+        data.save()
+        name_ch = False
+        if _name != data.name:
+            name_ch = True
+        
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Update Corporate Values failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse('Update Corporate Data Failed')
+    return HttpResponse('Updated Successfully')
+
+
 def create_level_wise_price_type(level, price_type, customer_master, user):
     if price_type:
         customer_price_type = CustomerPricetypes.objects.filter(level=level, price_type=price_type,
@@ -1199,6 +1293,42 @@ def create_level_wise_price_type(level, price_type, customer_master, user):
             log.info('Level type 2 created for %s login for customer %s and price type is %s' % (
                 user.username, customer_master.name, price_type
             ))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def insert_corporate(request, user=''):
+    """ Add New Corporate"""
+    log.info('Add New Corporate request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    try:
+        corporate_id = request.POST['corporate_id']
+        if not corporate_id:
+            return HttpResponse('Missing Required Fields')
+        data = filter_or_none(CorporateMaster, {'corporate_id': corporate_id, 'user': user.id})
+        status_msg = 'Corporate Exists'
+        sku_status = 0
+        if not data:
+            data_dict = copy.deepcopy(CORPORATE_DATA)
+            for key, value in request.POST.iteritems():
+                if key == 'status':
+                    if value == 'Active':
+                        value = 1
+                    else:
+                        value = 0
+                if value == '':
+                    continue
+                data_dict[key] = value
+            data_dict['user'] = user.id
+            corporate_master = CorporateMaster(**data_dict)
+            corporate_master.save()
+            status_msg = 'New Corporate Added' 
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Add New Corporate failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
+    
+    return HttpResponse(status_msg)
 
 
 @csrf_exempt
@@ -1917,12 +2047,10 @@ def insert_sku(request, user=''):
         zone = request.POST['zone_id']
         size_type = request.POST.get('size_type', '')
         hot_release = request.POST.get('hot_release', '')
-        if not wms or not description or not zone:
+        if not wms or not description:
             return HttpResponse('Missing Required Fields')
         filter_params = {'zone': zone, 'user': user.id}
         zone_master = filter_or_none(ZoneMaster, filter_params)
-        if not zone_master:
-            return HttpResponse('Invalid Zone, Please enter valid Zone')
         filter_params = {'wms_code': wms, 'user': user.id}
         data = filter_or_none(SKUMaster, filter_params)
         status_msg = 'SKU exists'
@@ -1934,7 +2062,8 @@ def insert_sku(request, user=''):
                 if key in data_dict.keys():
                     if key == 'zone_id':
                         value = get_or_none(ZoneMaster, {'zone': value, 'user': user.id})
-                        value = value.id
+                        if value:
+                            value = value.id
                     elif key == 'status':
                         if value == 'Active':
                             value = 1
@@ -3087,6 +3216,111 @@ def get_terms_and_conditions(request, user=''):
     admin_user = get_admin(user)
     tc_list = list(TANDCMaster.objects.filter(user=admin_user.id, term_type=tc_type).values('id', 'terms').order_by('id'))
     return HttpResponse(json.dumps({'tc_list': tc_list}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_distributors(request, user=''):
+    ''' Get Distributors list'''
+    user_type = request.GET['user_type']
+    resellers = []
+    message = 0
+    if user_type == 'central_admin':
+        distributors =  list(UserGroups.objects.filter(admin_user_id=user.id, user__userprofile__warehouse_type='DIST').values('user_id', 'user__username'))
+    else:
+        distributors =  list(UserGroups.objects.filter(user_id=user.id).values('user_id', 'user__username'))
+        resellers = list(CustomerMaster.objects.filter(user=distributors[0]['user_id']).values('customer_id', 'name', 'id'))
+    if distributors:
+        message = 1
+    return HttpResponse(json.dumps({'message':message, 'data': {'distributors': distributors, 'resellers':resellers}}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_resellers(request, user=''):
+    ''' Get Resellers list'''
+    message = 0
+    dist = request.GET['distributor']
+    resellers = list(CustomerMaster.objects.filter(user=dist).values('customer_id', 'name', 'id'))
+    if resellers:
+        message = 1
+    return HttpResponse(json.dumps({'message': message, 'data': resellers}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_corporates(request, user=''):
+    ''' Get Corporates list'''
+    message = 0
+    checked_corporates = {}
+    if request.GET['reseller']:
+        res = request.GET['reseller']
+        checked_corporates = list(CorpResellerMapping.objects.filter(reseller_id=res).values('corporate_id', 'status'))
+    corporates = list(CorporateMaster.objects.all().values('corporate_id', 'name').order_by('name'))
+    if corporates:
+        message = 1
+    return HttpResponse(json.dumps({'message': message, 'data': corporates, 'checked_corporates': checked_corporates}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def search_corporate_data(request, user=''):
+    search_key = request.GET.get('q', '')
+    total_data = []
+    if not search_key:
+        return HttpResponse(json.dumps(total_data))
+
+    corporate_data = CorporateMaster.objects.filter(Q(corporate_id__icontains=search_key) | Q(name__icontains=search_key) |
+                                                Q(email_id__icontains=search_key)).order_by('name')
+    for data in corporate_data[:50]:
+        total_data.append({'corporate_id': data.corporate_id, 'name': data.name, 'phone_number': data.phone_number})
+    return HttpResponse(json.dumps(total_data))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def corporate_mapping_data(request, user=''):
+    """ Add New Reseller Corporate Mapping"""
+    log.info('Add New Reseller Corporate Mapping request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    distributor = request.POST.get('distributor', '')
+    search_corporate = request.POST.get('search_corporate', '')
+    reseller = request.POST.get('reseller', '')
+    checked_items = request.POST.get('checked_items', '').split(",") # Front end items
+    checked_items = map(int,checked_items)
+    if not reseller and checked_items:
+        return HttpResponse('Missing Required Fields')
+
+    exe_corps_obj = CorpResellerMapping.objects.filter(reseller_id=reseller) # Exist items
+    if not exe_corps_obj:
+        if checked_items:
+            for corp in checked_items:
+                CorpResellerMapping.objects.create(reseller_id=reseller, corporate_id=corp, status=1)
+    else:
+        exe_corps = exe_corps_obj.values_list('corporate_id', flat=True)
+        exe_corps = map(int,exe_corps)
+        new_corps = set(checked_items) - set(exe_corps)
+        del_corps = set(exe_corps) - set(checked_items) # Status = 0
+        for corp_id in exe_corps:
+            if corp_id in checked_items:
+                up_obj = exe_corps_obj.filter(corporate_id=corp_id)
+                if up_obj:
+                    up_obj[0].status = 1
+                    up_obj[0].save()
+        for corp_id in new_corps:
+            CorpResellerMapping.objects.create(reseller_id=reseller, corporate_id=corp_id, status=1) # Insert Corporate
+        for corp_id in del_corps:
+            del_obj = exe_corps_obj.filter(corporate_id=corp_id)
+            if del_obj:
+                del_obj[0].status = 0
+                del_obj[0].save()
+
+    status_msg = 'New Reseller Corporate Mapping Added'
+    return HttpResponse(json.dumps({'status': status_msg, 'message': 1}))
 
 
 @csrf_exempt

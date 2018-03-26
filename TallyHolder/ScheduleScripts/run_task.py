@@ -1,0 +1,20 @@
+from os import path
+import sys
+sys.path.append(path.abspath('../PullFromStockone'))
+sys.path.append(path.abspath('../PushToCustomer'))
+from api_consumer import *
+from push import *
+log = init_logger('logs/schedule_script.log')
+pull_mapping = {'populate_api_item_data': 'push_item_master', 'populate_api_customer_data': 'push_customer_vendor_master',
+ 				'populate_api_sales_invoice_data': 'push_sales_invoice_data'}
+sys_args = sys.argv
+#push_to_tally
+if sys_args:
+	log.info("--- Schedule Script Started ---")
+	log.info("Username : " + str(sys.argv[1]) + " Execute function : " + str(sys.argv[2]))
+	resp_status = eval(sys.argv[2])(sys.argv[1])
+	log.info(" --- Pull from Stockone Result : --- " + str(resp_status))
+	if resp_status:
+		eval(pull_mapping[sys.argv[2]])()
+		log.info(" --- Push to Tally Done --- ")
+	log.info("--- Schedule Script Ended ---")

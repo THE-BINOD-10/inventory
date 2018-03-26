@@ -79,13 +79,14 @@ table, td, th {
         </td>
         <td width="40%">
           <strong>Student Info</strong></n>
+          <span class="shop-name capitalize2">Name : {{data.customer_data.FirstName}}.</span></n>
           <div ng-repeat="(key, value) in data.customer_extra">
             <span class="shop-name capitalize2">{{key}} : {{value}}.</span></n>
           </div>
         </td>
       </tr>
       <tr>
-        <td><strong>Receipt No. : {{data.summary.invoice_number}}{{data.order_id}}</strong>
+        <td><strong>Receipt No. : {{data.summary.invoice_number}}{{data.user.user_id}}{{data.order_id}}</strong>
         <br>Order Taken By : {{data.summary.staff_member}}</td>
         <td><strong>Date : {{date}}</strong></td>
       </tr>

@@ -23,6 +23,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
 
         angular.copy(data.data.data,vm.model_data.data);
 
+        vm.model_data.invoice_type = data.data.invoice_types[0]
         if(vm.model_data.data.length > 0) {
           angular.forEach(vm.model_data.data, function(sku){
 
@@ -30,8 +31,10 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
             sku.quantity = Number(sku.quantity);
             sku.invoice_amount = Number(sku.price) * sku.quantity;
             sku.total_amount = ((sku.invoice_amount*sku.tax) / 100) + sku.invoice_amount;
-          });
 
+            vm.quantity_valid(sku);
+          });
+          vm.corporates = data.data.reseller_corporates;
           var unique_skus = {};
 
           angular.forEach(vm.model_data.data, function(sku){
@@ -51,6 +54,14 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
       }
       vm.place_order_loading = false;
     })
+  }
+
+  vm.quantity_valid = function(row){
+    if (row.quantity > row.avail_stock) {
+
+      row.quantity = row.avail_stock;
+      vm.service.showNoty("You can add "+row.avail_stock+" items only", "success", "topRight");
+    }
   }
 
   vm.change_remarks = function(remark) {
@@ -309,6 +320,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
       Service.showNoty("You should select minimum one item", "success", "topRight");
     } else {
       data.quantity = Number(data.quantity);
+      vm.quantity_valid(data);
     }
 
     vm.update_sku_levels(vm.model_data.data, data);

@@ -34,22 +34,36 @@
   <div class="row search-items mt15 search-box">
     <div class="row">
       <div class="col-md-1 col-sm-1 col-xs-12"></div>
-      <div class="col-md-9 col-sm-9 col-xs-7">
+      <div ng-class="showCase.search_box_cls">
         <div class="input-group mb10">
           <span class="input-group-addon" style="background: #ed1c24;color: white;"><i style="background: #ed1c24;width: 15px;font-size: 15px;" class="fa fa-search"></i></span>
           <input type="text" class="form-control" placeholder="Search for Products" ng-model="showCase.style" ng-change="showCase.catlog_data.index='';showCase.get_category(true, true);" ng-debounce>
         </div>
       </div>
-      <div class="col-md-2 col-sm-2 col-xs-5" style="text-align: center;">
-        <button class="btn btn-icon-icon" style="background: white;float:left;">
-          <i class="fa fa-filter" style="font-size: 15px;border-radius: 18px;color:white" title="Show Filters" ng-click="showCase.showFilters()"></i>
-        </button>
-        <button class="btn btn-icon-icon ml10" style="background: white;float:left">
-          <i class="fa fa-download" style="font-size: 15px;border-radius: 18px;color:white" title="Download PDF" ng-click="showCase.downloadPDF()"></i>
-        </button>
-        <button class="btn btn-icon-icon ml10" style="background: white;float:left">
-          <i class="fa fa-plus" style="font-size: 15px;border-radius: 18px;color:white" title="Add Margin" ng-click="showCase.addMargin()"></i>
-        </button>
+      <div ng-class="showCase.buttons_cls" ng-style="showCase.margin_style" style="text-align: center;">
+        <div class="hidden-xs" style="left: 25px;"></div>
+        <div class="text-center">
+          <button class="btn btn-icon-icon" style="background: white;float:left;">
+            <i class="fa fa-filter" style="font-size: 15px;border-radius: 18px;color:white" title="Show Filters" ng-click="showCase.showFilters()"></i>
+          </button>
+          <button class="btn btn-icon-icon ml10" style="background: white;float:left">
+            <i class="fa fa-download" style="font-size: 15px;border-radius: 18px;color:white" title="Download PDF" ng-click="showCase.downloadPDF()"></i>
+          </button>
+          <button class="btn btn-icon-icon ml10" style="background: white;float:left">
+            <i class="fa fa-plus" style="font-size: 15px;border-radius: 18px;color:white" title="Add Margin" ng-click="showCase.addMargin()"></i>
+          </button>
+          <div class="col-md-5 col-sm-6 col-xs-6" ng-if="showCase.user_type=='reseller'">
+            <span align="right">Buy Price</span>
+            <label class="switch switch-sm square" style="margin-bottom:-2px; margin-top:5px">
+              <div>
+                <input type="checkbox" ng-model="showCase.buy_price" ng-change="showCase.add_height()">
+                <span>
+                  <i class="handle"></i>
+                </span>
+              </div>
+            </label>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -65,7 +79,7 @@
         </div>
         <img ng-src="{{ showCase.service.check_image_url(item.image_url) }}" style="border:0px !important;width: 100%;padding: 0px;" class="img-thumbnail">
         <br>
-        <div style="height: 143px">
+        <div ng-style="showCase.buyStyle">
           <img ng-if="item.loading" ng-src="https://m.popkey.co/fe4ba7/DYALX.gif" style="border:0px !important;z-index: 12;position:absolute;top:5px;left:5px;height:97%;opacity:0.6;width:95%;" class="img-thumbnail ng-scope" src="https://m.popkey.co/fe4ba7/DYALX.gif" ng-click="$event.stopPropagation();">
           <div style="height: 130px" ng-if="permissions.user_type != 'customer'">
             <p class="style_name" style="font-size: 14px" title="{{ item.sku_class }}">{{ item.variants[0].style_name }}</p>
@@ -91,6 +105,10 @@
                   <tr>
                     <td style="padding:2px;width: 46px;" ><b>Price</b></td>
                     <td style="padding:2px;" ng-repeat="td in item.variants[0].price_ranges"><center><b style="color: #ed1c24">{{item.variants[0].price_ranges[$index]['price']}}</b></center></td>
+                  </tr>
+                  <tr ng-if="showCase.buy_price">
+                    <td style="padding:2px;width: 46px;" ><b>Buy&nbsp;Price</b></td>
+                    <td style="padding:2px;" ng-repeat="td in item.variants[0].price_ranges"><center><b style="color: #ed1c24">{{item.variants[0].price_ranges[$index]['buy_price']}}</b></center></td>
                   </tr>
                 </tbody>
               </table>

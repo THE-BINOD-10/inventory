@@ -105,7 +105,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             var empty_data = {data: []}
             angular.copy(empty_data, vm.model_data);
 
-            if (all_order_details[0].sku_extra_data.sizeEnable) {
+            if(all_order_details[0].sku_extra_data && all_order_details[0].sku_extra_data.sizes) {
               var modalInstance = $modal.open({
                 templateUrl: 'views/outbound/toggle/customOrderDetailsTwo.html',
                 controller: 'customOrderDetails',
@@ -162,6 +162,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               sku_extra_data: value.sku_extra_data, display: true})
             });
                 $state.go('app.outbound.ViewOrders.CustomOrderDetails'); 
+                //$state.go('app.outbound.ViewOrders.OrderDetails');
                 })
             });
         });
@@ -321,11 +322,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     if (elem[0].value == '? string: ?'){
         elem[0].value = ''; 
     }   
-    elem.push({name: 'order id', value: vm.order_id}, {name: 'customer_id', value: vm.customer_id}, 
+    elem.push({name: 'order_id', value: vm.order_id}, {name: 'customer_id', value: vm.customer_id}, 
               {name: 'customer_name', value: vm.customer_name},
               {name: 'phone', value: vm.phone}, {name: 'email', value: vm.email}, {name: 'address', value: vm.address},
               {name: 'shipment_date', value: vm.shipment_date}, {name: 'market_place', value: vm.market_place})
-    vm.service.apiCall('update_order_data/', 'GET', elem).then(function(data){
+    vm.service.apiCall('update_order_data/', 'POST', elem).then(function(data){
         console.log(data);
         vm.reloadData();
         colFilters.showNoty('Saved sucessfully');

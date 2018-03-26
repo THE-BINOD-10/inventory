@@ -82,7 +82,7 @@
             </div>
           </div>
 
-          <div class="row mt10">
+          <div class="row mt10" ng-if="pop.customData.style_pro.fabric">
             <div class="col-md-4 text-right">
               <span class="pull-left"><b>Fabric</b></span>
               <span class="pull-right"><b>:</b></span>
@@ -90,21 +90,21 @@
             <div class="col-md-8 text-left">
               <span>{{(pop.customData.fabric.fabric)? 'Single Fabric': 'Multi Fabric';}}</span><br>
 
-              <span ng-repeat="(key, value) in pop.customData.fabric.fabrics" ng-if="value != 'none'"><span ng-if="!$first">, </span>{{value}}</span>
+              <span ng-repeat="(key, value) in pop.customData.fabric.fabrics" ng-if="value != 'none' && value != ''"><span ng-if="!$first">, </span>{{value}}</span>
             </div>
           </div>
 
-          <div class="row mt10" ng-if="pop.customData.bodyStyle.sku_class">
+          <div class="row mt10" ng-if="pop.customData.bodyColor && pop.customData.style_pro.body_color">
             <div class="col-md-4 text-right">
               <span class="pull-left"><b>Body Colour</b></span>
               <span class="pull-right"><b>:</b></span>
             </div>
             <div class="col-md-8 text-left">
-              <span>{{pop.customData.bodyStyle.sku_class}}</span></br>
+              <span>{{pop.customData.bodyColor}}</span></br>
             </div>
           </div>
 
-          <div class="row mt10">
+          <div class="row mt10" ng-if="pop.customData.style_pro.design">
             <div class="col-md-4 text-right">
               <span class="pull-left"><b>Design</b></span>
               <span class="pull-right"><b>:</b></span>
@@ -126,7 +126,7 @@
             </div>
           </div>
 
-          <div class="row mt10" ng-if="pop.customData.piping.piping">
+          <div class="row mt10" ng-if="pop.customData.piping.piping && pop.customData.style_pro.piping">
             <div class="col-md-4 text-right">
               <span class="pull-left"><b>Piping</b></span>
               <span class="pull-right"><b>:</b></span>
@@ -146,7 +146,7 @@
             </div>
           </div>
 
-          <div class="row mt10">
+          <div class="row mt10" ng-if="pop.customData.style_pro.sleeve">
             <div class="col-md-4 text-right">
               <span class="pull-left"><b>Sleeve</b></span>
               <span class="pull-right"><b>:</b></span>
@@ -163,7 +163,7 @@
             </div>
           </div>
 
-          <div class="row mt10" ng-if="pop.customData.pocket.pocket">
+          <div class="row mt10" ng-if="pop.customData.pocket.pocket && pop.customData.style_pro.pocket">
             <div class="col-md-4 text-right">
               <span class="pull-left"><b>Pocket</b></span>
               <span class="pull-right"><b>:</b></span>
@@ -173,7 +173,7 @@
             </div>
           </div>
 
-          <div class="row mt10">
+          <div class="row mt10" ng-if="pop.customData.style_pro.placket">
             <div class="col-md-4 text-right">
               <span class="pull-left"><b>Placket</b></span>
               <span class="pull-right"><b>:</b></span>
@@ -185,13 +185,13 @@
             </div>
           </div>
         </div>
-        <div class="col-md-3">
-          <img ng-src="{{pop.service.check_image_url(pop.customData.bodyStyle.image_url)}}" style="width:100%;">
+        <div class="col-md-3" ng-if="pop.customData.bodyColor && pop.customData.style_pro.body_color">
+          <img style="width: 100%;" title="pop.customData.bodyColor" ng-src="{{'images/fabricColors/'+pop.customData.colorDataDict[pop.customData.bodyColor]}}">
         </div>
       </div>
       <div class="row">
         <div class="col-md-12">
-          <div class="row mt10" ng-if="pop.customData.printEmbroidery && pop.customData.print.print">
+          <div class="row mt10" ng-if="pop.customData.printEmbroidery && pop.customData.print.print && pop.customData.style_pro.print_embroidery">
             <div class="col-md-3 text-right">
               <span class="pull-left"><b>Print</b></span>
               <span class="pull-right"><b>:</b></span>
@@ -215,7 +215,7 @@
             </div>
           </div>
 
-          <div class="row mt10" ng-if="pop.customData.printEmbroidery && pop.customData.embroidery.embroidery">
+          <div class="row mt10" ng-if="pop.customData.printEmbroidery && pop.customData.embroidery.embroidery && pop.customData.style_pro.print_embroidery">
             <div class="col-md-3 text-right">
               <span class="pull-left"><b>Embroidery</b></span>
               <span class="pull-right"><b>:</b></span>
@@ -235,7 +235,7 @@
             </div>
           </div>
 
-          <div class="row mt10" ng-if="pop.customData.collarTip.collarTip">
+          <div class="row mt10" ng-if="pop.customData.collarTip.collarTip && pop.customData.style_pro.collar_tape">
             <div class="col-md-3 text-right">
               <span class="pull-left"><b>Collar Tip</b></span>
               <span class="pull-right"><b>:</b></span>
@@ -245,7 +245,7 @@
             </div>
           </div>
 
-          <div class="row mt10">
+          <div class="row mt10" ng-if="pop.customData.style_pro.neck_tape">
             <div class="col-md-3 text-right">
               <span class="pull-left"><b>Neck Tape Material</b></span>
               <span class="pull-right"><b>:</b></span>
@@ -255,7 +255,7 @@
             </div>
           </div>
 
-          <div class="row mt10">
+          <div class="row mt10" ng-if="pop.customData.style_pro.bottom">
             <div class="col-md-3 text-right">
               <span class="pull-left"><b>T-shirt Slit Style</b></span>
               <span class="pull-right"><b>:</b></span>
@@ -265,21 +265,21 @@
             </div>
           </div>
 
-          <div class="row mt10">
+          <div class="row mt10" ng-if="pop.customData.style_pro.slit_type">
             <div class="col-md-3 text-right">
               <span class="pull-left"><b>Slit Type</b></span>
               <span class="pull-right"><b>:</b></span>
             </div>
             <div class="col-md-9 text-left">
               <span>{{pop.customData.slit.slitType}}</span>
-              <div class="row no-margin" ng-if="pop..customData.slit.bottom">
+              <div class="row no-margin" ng-if="pop.customData.slit.bottom">
                 <div class="col-sm-3">Bottom Piping</div>
                 <div class="col-sm-3">{{pop.customData.slit.bottomColor}}</div>
               </div>
             </div>
           </div>
 
-          <div class="row mt10">
+          <div class="row mt10" ng-if="pop.customData.style_pro.label">
             <div class="col-md-3 text-right">
               <span class="pull-left"><b>Label</b></span>
               <span class="pull-right"><b>:</b></span>

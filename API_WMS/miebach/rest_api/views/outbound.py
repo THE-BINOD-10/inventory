@@ -7121,16 +7121,19 @@ def get_invoice_details(request, user=''):
     return HttpResponse(json.dumps({'data_dict': gen_data_list, 'status': 1}, cls=DjangoJSONEncoder))
 
 
-def get_levelbased_invoice_data(start_index, stop_index, temp_data, user):
-    reseller_objs = CustomerMaster.objects.filter(user=user.id)
+def get_levelbased_invoice_data(start_index, stop_index, temp_data, user, search_term):
+    filter_dict = {'user': user.id}
+    if search_term:
+        filter_dict['name__icontains'] = search_term
+    reseller_objs = CustomerMaster.objects.filter(**filter_dict)
     reseller_ids = reseller_objs.values_list('id', flat=True)
     reseller_ords_map = {}
     total_ords = []
-    ord_picked_qty_map = {}
-    org_order_map = {}
+    ord_picked_qty_map = OrderedDict()
+    org_order_map = OrderedDict()
     for reseller in reseller_ids:
-        gen_ord_objs = GenericOrderDetailMapping.objects.filter(customer_id=reseller)
-        gen_ord_vals = gen_ord_objs.values_list('generic_order_id', 'orderdetail').order_by('-generic_order_id')
+        gen_ord_objs = GenericOrderDetailMapping.objects.filter(customer_id=reseller).order_by('-creation_date')
+        gen_ord_vals = gen_ord_objs.values_list('generic_order_id', 'orderdetail')
         for gen_id, ord_det_id in gen_ord_vals:
             ord_det_obj = OrderDetail.objects.get(id=ord_det_id)
             org_order_id = ord_det_obj.order_id
@@ -7145,7 +7148,7 @@ def get_levelbased_invoice_data(start_index, stop_index, temp_data, user):
             else:
                 continue
             total_ords.append(ord_det_id)
-            reseller_ords_map.setdefault(reseller, {}).setdefault(gen_id, []).append(ord_det_id)
+            reseller_ords_map.setdefault(reseller, OrderedDict()).setdefault(gen_id, []).append(ord_det_id)
             ord_picked_qty_map[ord_det_id] = picked_qty
             org_order_map[ord_det_id] = org_order_id
     temp_data['recordsTotal'] = len(total_ords)
@@ -7184,6 +7187,9 @@ def get_levelbased_invoice_data(start_index, stop_index, temp_data, user):
                 log.debug(traceback.format_exc())
                 log.info('Order Not found for user %s, order_det_id %s and error statement is %s'
                          % (str(user.username), str(res_ords), str(e)))
+    temp_data['recordsTotal'] = len(temp_data['aaData'])
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
     return temp_data
 
 
@@ -7195,7 +7201,7 @@ def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, o
     user_profile = UserProfile.objects.get(user_id=user.id)
     admin_user = get_priceband_admin_user(user)
     if admin_user and user_profile.warehouse_type == 'DIST':
-        temp_data = get_levelbased_invoice_data(start_index, stop_index, temp_data, user)
+        temp_data = get_levelbased_invoice_data(start_index, stop_index, temp_data, user, search_term)
     else:
         if user_profile.user_type == 'marketplace_user':
             lis = ['seller_order__order__order_id', 'seller_order__order__order_id', 'seller_order__sor_id',
@@ -7225,9 +7231,8 @@ def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, o
             if not is_marketplace:
                 master_data = SellerOrderSummary.objects.filter(Q(order__order_id__icontains=order_id_search,
                                                                   order__order_code__icontains=order_code_search) |
-                                                                Q(
-                                                                    order__original_order_id__icontains=search_term) | search_query,
-                                                                **user_filter). \
+                                                                Q(order__original_order_id__icontains=search_term) |
+                                                                search_query, **user_filter). \
                     values(*result_values).distinct(). \
                     annotate(total_quantity=Sum('quantity'),
                              total_order=Sum(field_mapping['order_quantity_field']))

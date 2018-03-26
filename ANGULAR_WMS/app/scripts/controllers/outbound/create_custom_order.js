@@ -1,6 +1,7 @@
+;(function(){;
 'use strict';
 
-function CreateCustomOrder($scope, $http, $state, Session, colFilters, Service, $modal, Data) {
+function CreateCustomOrder($scope, $http, $state, Session, colFilters, Service, $modal, Data, $timeout) {
 
   var vm = this;
   vm.customData = {};
@@ -12,11 +13,12 @@ function CreateCustomOrder($scope, $http, $state, Session, colFilters, Service, 
     styles: [],
     style: "",
     fabric : {
-      fabrics: {fabric1: "100% Cotton", fabric2: "none", fabric3: "none", fabric4: "none"},
+      fabrics: {fabric1: "", fabric2: "", fabric3: "", fabric4: ""},
       fabricOptions: ["100% Cotton", "none"],
       fabric: true,
     },
     styleData: [],
+    colorData: ["red", "green", "yellow"],
     bodyStyle: {},
     colors: ["red", "green", "yellow"],
     design: {
@@ -70,6 +72,8 @@ function CreateCustomOrder($scope, $http, $state, Session, colFilters, Service, 
 
     label: {label: 'Only Size', labels: ['Only Size', 'Neck Label']},
 
+    pack: {pack: false},
+
     sizes: {"Men": {
                     "S":38, "M": 40, "L": 42, "XL": 44, "2XL": 46, "3XL": 48, "4XL": 50
                    },
@@ -114,32 +118,61 @@ function CreateCustomOrder($scope, $http, $state, Session, colFilters, Service, 
     })
   }
 
-  vm.getCategories = function() {
-
-    Service.apiCall("get_sku_categories/").then(function(data){
-
-      if(data.message) {
-
-        if(data.data.categories.length > 0) {
-
-          vm.customData.styles = data.data.sub_categories;
-          vm.customData.style = vm.customData.styles[0];
-          vm.getCustomStyles(vm.customData.style);
-        } else {
-
-          console.log("Categories empty");
-        }
-      }
-    })
-  }
-
-  vm.getCategories();
-
   vm.styleChange = function(style) {
 
     vm.customData.style = style;
-    vm.getCustomStyles(vm.customData.style);
+    if (vm.product_types[vm.product][vm.customData.style]) {
+      vm.style_pro = vm.product_types[vm.product][vm.customData.style];
+    }  else {
+      vm.style_pro = vm.product_types[vm.product]['DEFAULT'];
+    }
+    vm.customData.fabric.fabricOptions = vm.product_types[vm.product].fabrics;
+    vm.customData.fabric.fabrics.fabric1 = vm.customData.fabric.fabricOptions[0];
+    //vm.customData.colorData = vm.product_types[vm.product].colors;
+    //vm.getCustomStyles(vm.customData.style);
   }
+
+  vm.productChange = function(product) {
+
+    vm.product = product;
+    vm.getCategories();
+  }
+
+  vm.getCategories = function() {
+
+    //Service.apiCall("get_sku_categories/").then(function(data){
+
+    //  if(data.message) {
+
+    //    if(data.data.categories.length > 0) {
+          vm.customData.styles = [];
+          vm.customData.style = "";
+          vm.customData.pocket.pockets = [];
+          vm.customData.pocket.pocketDesign = "";
+          vm.customData.pack.pack_types = [];
+          vm.customData.pack.pack_type = "";
+          $timeout(function() {
+
+            vm.customData.styles = vm.product_types[vm.product]['categories']; //data.data.sub_categories;
+            vm.customData.style = vm.customData.styles[0];
+            vm.styleChange(vm.customData.style);
+            vm.customData.pocket.pockets = vm.product_types[vm.product]['pockets'];
+            vm.customData.pocket.pocketDesign = vm.customData.pocket.pockets[0];
+            vm.customData.pack.pack_types = vm.product_types[vm.product]['pack_types'];
+            vm.customData.pack.pack_type = (vm.customData.pack.pack_types.length)? vm.customData.pack.pack_types[0]: "";
+          }, 500);
+          vm.customData.sleeve.sleeves = vm.product_types[vm.product]['sleeve'];
+          vm.customData.sleeve.sleeve = vm.product_types[vm.product]['sleeve'][0];
+          //vm.getCustomStyles(vm.customData.style);
+    //    } else {
+
+    //      console.log("Categories empty");
+    //    }
+    //  }
+    //})
+  }
+
+  //vm.getCategories();
 
   vm.changed = function(data) {
 
@@ -210,6 +243,7 @@ function CreateCustomOrder($scope, $http, $state, Session, colFilters, Service, 
   vm.showPreview = function() {
     var mod_data = {};
     angular.copy(vm.customData, mod_data);
+    mod_data['style_pro'] = vm.style_pro;
     var modalInstance = $modal.open({
             templateUrl: 'views/outbound/toggle/customOrderDetails.html',
             controller: 'customOrderDetailsPreview',
@@ -239,15 +273,21 @@ function CreateCustomOrder($scope, $http, $state, Session, colFilters, Service, 
   vm.confirming = false;
   vm.confirmData = function() {
 
+    if(vm.confirming) {
+      return false;
+    }
+    vm.confirming = true;
     var data = {};
     if (!vm.customData.style) {
       Service.showNoty("Please Select Style First");
+      vm.confirming = false;
       return false;
     }
 
     if (Object.values(vm.customData.sizeEnable).indexOf(true) == -1) {
 
       Service.showNoty("Please check the Size");
+      vm.confirming = false;
       return false;
     } else {
 
@@ -260,6 +300,7 @@ function CreateCustomOrder($scope, $http, $state, Session, colFilters, Service, 
       if(count == 0) {
 
         Service.showNoty("Please Enter Size Quantity");
+        vm.confirming = false;
         return false;
       }
     }
@@ -286,8 +327,8 @@ function CreateCustomOrder($scope, $http, $state, Session, colFilters, Service, 
     })
     vm.customData.print.placeImgs = {}
     vm.customData.embroidery.placeImgs = {}
+    vm.customData.style_pro = vm.style_pro;
     console.log(files)
-    vm.confirming = true;
     $http({
             method: 'POST',
             url: Session.url + "create_custom_skus/",
@@ -404,7 +445,6 @@ function CreateCustomOrder($scope, $http, $state, Session, colFilters, Service, 
             vm.customData.embroidery.placeImgs[args.url.split(":")[0]] = base64Data;
           }
         }
-        //$scope.$apply();
       });
     });
   });
@@ -430,11 +470,21 @@ function CreateCustomOrder($scope, $http, $state, Session, colFilters, Service, 
       vm.customData[name].placeImgs = {};
     }
   }
+
+  $http.get("scripts/controllers/outbound/data_custom_order.json").then(function(resp){
+    console.log(resp)
+    vm.products = resp.data.product_types;
+    vm.product_types = resp.data.products;
+    vm.product= vm.products[0];
+    vm.customData.colorDataDict = resp.data.fabricColors;
+    vm.customData.colorData = Object.keys(vm.customData.colorDataDict);
+    vm.getCategories();
+  });
 }
 
 angular
   .module('urbanApp')
-  .controller('CreateCustomOrder', ['$scope', '$http', '$state', 'Session', 'colFilters', 'Service', '$modal', 'Data', CreateCustomOrder]);
+  .controller('CreateCustomOrder', ['$scope', '$http', '$state', 'Session', 'colFilters', 'Service', '$modal', 'Data', '$timeout', CreateCustomOrder]);
 
 function customOrderDetailsPreview($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items) {
 
@@ -451,4 +501,4 @@ angular
   .module('urbanApp')
   .controller('customOrderDetailsPreview', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', customOrderDetailsPreview]);
 
-
+}());

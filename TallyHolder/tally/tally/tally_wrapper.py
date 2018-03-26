@@ -136,9 +136,9 @@ class TallyBridgeApp(object):
         invoice.tallyCompanyName = tally_company_name
         invoice.voucherForeignKey = voucher_foreign_key
 
-        # invoice.dtOfVoucher = System.DateTime.ParseExact(dt_of_voucher, 'dd/MM/yyyy', None)
-        invoice.dtOfVoucher = System.DateTime.ParseExact("01/03/2018", 'dd/MM/yyyy', None)
-
+        invoice.dtOfVoucher = System.DateTime.ParseExact(dt_of_voucher, 'dd/MM/yyyy', None)
+        #invoice.dtOfVoucher = System.DateTime.ParseExact("01/03/2018", 'dd/MM/yyyy', None)
+        
         invoice.voucherTypeName = voucher_typeName
 
         # modified

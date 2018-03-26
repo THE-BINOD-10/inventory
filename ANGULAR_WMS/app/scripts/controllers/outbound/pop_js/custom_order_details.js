@@ -54,6 +54,12 @@ function customOrderDetails($scope, $http, $state, $timeout, Session, colFilters
       }
     }
   }
+
+  $http.get("scripts/controllers/outbound/data_custom_order.json").then(function(resp){
+    console.log(resp)
+    vm.customData.colorDataDict = resp.data.fabricColors;
+    vm.customData.colorData = Object.keys(vm.customData.colorDataDict);
+  });
 }
 
 angular

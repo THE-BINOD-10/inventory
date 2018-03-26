@@ -2194,7 +2194,7 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
     inv_no = ""
     invoice_no_gen = MiscDetail.objects.filter(user=user.id, misc_type='increment_invoice')
     if invoice_no_gen:
-        seller_order_summary = SellerOrderSummary.objects.filter(Q(order__user=user.id, order_id__in=order_ids) |
+        seller_order_summary = SellerOrderSummary.objects.filter(Q(order__id__in=order_ids) |
                                                                  Q(seller_order__order__user=user.id,
                                                                    seller_order__order_id__in=order_ids))
         if seller_order_summary and invoice_no_gen[0].creation_date < seller_order_summary[0].creation_date:
@@ -2207,7 +2207,8 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
                 order = seller_order_summary[0].order
             check_dict = {prefix_key + 'order_id': order.order_id, prefix_key + 'order_code': order.order_code,
                           prefix_key + 'original_order_id': order.original_order_id, prefix_key + 'user': user.id}
-            invoice_ins = SellerOrderSummary.objects.filter(**check_dict).exclude(invoice_number='')
+            # invoice_ins = SellerOrderSummary.objects.filter(**check_dict).exclude(invoice_number='')
+            invoice_ins = SellerOrderSummary.objects.filter(order__id__in=order_ids).exclude(invoice_number='')
 
             if invoice_ins:
                 order_no = invoice_ins[0].invoice_number

@@ -75,6 +75,8 @@
                     <tr>
                       <th>SKU Code</th>
                       <th>SKU Description</th>
+                      <th>Level ID</th>
+                      <th>Warehouse Name</th>
                       <th>Qty</th>
                       <th>Unit Rate</th>
                       <th>Amount</th>
@@ -88,6 +90,8 @@
                     <tr ng-repeat = "data in showCase.model_data.data.sku_quantity">
                       <td>{{data.sku_code}}</td>
                       <td>{{data.sku_desc}}</td>
+                      <td class="text-center">{{data.warehouse_level}}</td>
+                      <td>{{data.wharehouse_name}}</td>
                       <td class="text-center">{{data.quantity}}</td>
                       <td class="text-right">{{data.unit_price}}</td>
                       <td class="text-right">{{data.amount}}</td>

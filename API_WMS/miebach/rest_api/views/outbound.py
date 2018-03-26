@@ -1794,16 +1794,14 @@ def update_invoice(request, user=''):
         marketplace = request.POST.get("marketplace", "")
         order_reference = request.POST.get("order_reference", "")
         order_reference_date = request.POST.get("order_reference_date", "")
+        ord_det_id = request.POST.get("id", "")
 
         myDict = dict(request.POST.iterlists())
         if invoice_date:
             invoice_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y").date()
-        order_id_val = ''.join(re.findall('\d+', order_ids))
-        order_code = ''.join(re.findall('\D+', order_ids))
-        ord_ids = OrderDetail.objects.filter(
-            Q(order_id=order_id_val, order_code=order_code) | Q(original_order_id=order_ids),
-            user=user.id)
-
+        # order_id_val = ''.join(re.findall('\d+', order_ids))
+        # order_code = ''.join(re.findall('\D+', order_ids))
+        ord_ids = OrderDetail.objects.filter(id=ord_det_id)
         if ord_ids:
             update_dict = {}
             if order_reference:
@@ -1845,7 +1843,7 @@ def update_invoice(request, user=''):
                 order_id.unit_price = float(myDict['unit_price'][unit_price_index])
                 order_id.invoice_amount = float(myDict['invoice_amount'][unit_price_index])
                 order_id.save()
-            cust_objs = CustomerOrderSummary.objects.filter(order__user=user.id, order__id=order_id.id)
+            cust_objs = CustomerOrderSummary.objects.filter(order__id=order_id.id)
             if cust_objs:
                 cust_obj = cust_objs[0]
                 cust_obj.consignee = consignee
@@ -7123,16 +7121,19 @@ def get_invoice_details(request, user=''):
     return HttpResponse(json.dumps({'data_dict': gen_data_list, 'status': 1}, cls=DjangoJSONEncoder))
 
 
-def get_levelbased_invoice_data(start_index, stop_index, temp_data, user):
-    reseller_objs = CustomerMaster.objects.filter(user=user.id)
+def get_levelbased_invoice_data(start_index, stop_index, temp_data, user, search_term):
+    filter_dict = {'user': user.id}
+    if search_term:
+        filter_dict['name__icontains'] = search_term
+    reseller_objs = CustomerMaster.objects.filter(**filter_dict)
     reseller_ids = reseller_objs.values_list('id', flat=True)
     reseller_ords_map = {}
     total_ords = []
-    ord_picked_qty_map = {}
-    org_order_map = {}
+    ord_picked_qty_map = OrderedDict()
+    org_order_map = OrderedDict()
     for reseller in reseller_ids:
-        gen_ord_objs = GenericOrderDetailMapping.objects.filter(customer_id=reseller)
-        gen_ord_vals = gen_ord_objs.values_list('generic_order_id', 'orderdetail').order_by('-generic_order_id')
+        gen_ord_objs = GenericOrderDetailMapping.objects.filter(customer_id=reseller).order_by('-creation_date')
+        gen_ord_vals = gen_ord_objs.values_list('generic_order_id', 'orderdetail')
         for gen_id, ord_det_id in gen_ord_vals:
             ord_det_obj = OrderDetail.objects.get(id=ord_det_id)
             org_order_id = ord_det_obj.order_id
@@ -7147,7 +7148,7 @@ def get_levelbased_invoice_data(start_index, stop_index, temp_data, user):
             else:
                 continue
             total_ords.append(ord_det_id)
-            reseller_ords_map.setdefault(reseller, {}).setdefault(gen_id, []).append(ord_det_id)
+            reseller_ords_map.setdefault(reseller, OrderedDict()).setdefault(gen_id, []).append(ord_det_id)
             ord_picked_qty_map[ord_det_id] = picked_qty
             org_order_map[ord_det_id] = org_order_id
     temp_data['recordsTotal'] = len(total_ords)
@@ -7186,6 +7187,9 @@ def get_levelbased_invoice_data(start_index, stop_index, temp_data, user):
                 log.debug(traceback.format_exc())
                 log.info('Order Not found for user %s, order_det_id %s and error statement is %s'
                          % (str(user.username), str(res_ords), str(e)))
+    temp_data['recordsTotal'] = len(temp_data['aaData'])
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
     return temp_data
 
 
@@ -7197,7 +7201,7 @@ def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, o
     user_profile = UserProfile.objects.get(user_id=user.id)
     admin_user = get_priceband_admin_user(user)
     if admin_user and user_profile.warehouse_type == 'DIST':
-        temp_data = get_levelbased_invoice_data(start_index, stop_index, temp_data, user)
+        temp_data = get_levelbased_invoice_data(start_index, stop_index, temp_data, user, search_term)
     else:
         if user_profile.user_type == 'marketplace_user':
             lis = ['seller_order__order__order_id', 'seller_order__order__order_id', 'seller_order__sor_id',
@@ -7227,9 +7231,8 @@ def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, o
             if not is_marketplace:
                 master_data = SellerOrderSummary.objects.filter(Q(order__order_id__icontains=order_id_search,
                                                                   order__order_code__icontains=order_code_search) |
-                                                                Q(
-                                                                    order__original_order_id__icontains=search_term) | search_query,
-                                                                **user_filter). \
+                                                                Q(order__original_order_id__icontains=search_term) |
+                                                                search_query, **user_filter). \
                     values(*result_values).distinct(). \
                     annotate(total_quantity=Sum('quantity'),
                              total_order=Sum(field_mapping['order_quantity_field']))
@@ -7395,12 +7398,12 @@ def generate_customer_invoice(request, user=''):
         invoice_data = add_consignee_data(invoice_data, ord_ids, user)
         return_data = request.GET.get('data', '')
         delivery_challan = request.GET.get('delivery_challan', '')
-        if return_data:
-            invoice_data = json.dumps(invoice_data)
         if delivery_challan == "true":
             invoice_data['total_items'] = len(invoice_data['data'])
             invoice_data['data'] = pagination(invoice_data['data'])
             return render(request, 'templates/toggle/delivery_challan.html', invoice_data)
+        elif return_data:
+            invoice_data = json.dumps(invoice_data)
         elif get_misc_value('show_imei_invoice', user.id) == 'true':
             invoice_data = build_marketplace_invoice(invoice_data, user, False)
         else:
@@ -7991,8 +7994,11 @@ def create_custom_skus(request, user=''):
                     data_dict['sku_class'] = str(sku) + "-" + size_name
                     fabric = ' Single Fabric ' if data['fabric']['fabric'] else ' Multi Fabric '
                     data_dict['style_name'] = data['style'] + fabric + size_name
+                    if data.get('bodyColor', ''):
+                        data['style_name'] = data_dict['style_name'] + ' ' + data['bodyColor']
                     data_dict['sku_size'] = size
                     data_dict['sku_type'] = "CS"
+                    data_dict['sub_category'] = data['style']
 
                     sku_desc = size_name + "_" + size
                     if data['bodyStyle'].get('sku_class', ''):

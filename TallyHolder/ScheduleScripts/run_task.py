@@ -13,4 +13,3 @@ if sys_args:
 	resp_status = eval(sys.argv[2])(sys.argv[1])
 	if resp_status:
 		eval(pull_mapping[sys.argv[2]])()
-#log.info(sys.argv)

@@ -125,7 +125,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               });
               return false;
             }
-
             vm.input_status = true;
             vm.order_input_status = true;
 

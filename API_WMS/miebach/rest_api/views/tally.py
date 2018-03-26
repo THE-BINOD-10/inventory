@@ -23,28 +23,26 @@ class TallyAPI:
         self.headers = {'ContentType': self.content_type}
 
     def tally_configuration(self):
-        tally_config = TallyConfiguration.objects.filter(user=self.user_id).values('company_name', 'stock_group',
-                                                                                   'stock_category', 'maintain_bill',
-                                                                                   'automatic_voucher', 'credit_period', 'round_off_ledger')
-	tally_config = tally_config[0] if tally_config else {}
+        tally_config = TallyConfiguration.objects.filter(user=self.user_id).values('company_name', 'stock_group', 'stock_category', 'maintain_bill', 'automatic_voucher', 'credit_period', 'round_off_ledger')
+        tally_config = tally_config[0] if tally_config else {}
         return tally_config
 
     def round_off_value(self, price):
-	diff_round = abs(int(price) - price)
-	if diff_round >= 0.01:
-	    price = int(price) + 1
-	return price, diff_round
+        diff_round = abs(int(price) - price)
+        if diff_round >= 0.01:
+            price = int(price) + 1
+        return price, diff_round
 
     def handle_updation_date(self, q_obj):
-	updation_date = q_obj['updation_date']
-	if not updation_date:
-	    updation_date = q_obj['creation_date']
+        updation_date = q_obj['updation_date']
+        if not updation_date:
+            updation_date = q_obj['creation_date']
         else:
-	    updation_date = q_obj['updation_date']
+            updation_date = q_obj['updation_date']
         return updation_date
 
     def get_sales_invoices(self, request):
-	log.info('-----------------SALES INVOICE STARTED----------------------')
+        log.info('-----------------SALES INVOICE STARTED----------------------')
         """
         bill_of_lading_dt
         other_reference
@@ -58,7 +56,7 @@ class TallyAPI:
         type_of_voucher
         """
         self.user_id = request.POST.get('user_id', 0)
-	log.info('Sales Invoice - user_id : ' + self.user_id)
+        log.info('Sales Invoice - user_id : ' + self.user_id)
         self.updation_date = self.get_updation_date(request)
         tally_config = self.tally_configuration()
         seller_summary = SellerOrderSummary.objects.filter(order__user=self.user_id).order_by('updation_date')
@@ -143,11 +141,10 @@ class TallyAPI:
                 party_amount = int(item_obj['billed_qty']) * float(item_obj['rate'])
             total_amount = party_amount + ((party_amount / 100) * party_ledger_total_tax)
             party_ledger_obj['amount'] = total_amount
-	    if 'party_ledger' in s_obj[key_value].keys():
-		s_obj[key_value]['party_ledger']['amount'] += s_obj[key_value]['party_ledger'].get('amount', 0)
-	    else:
-		s_obj[key_value]['party_ledger'] = party_ledger_obj
-
+            if 'party_ledger' in s_obj[key_value].keys():
+                s_obj[key_value]['party_ledger']['amount'] += s_obj[key_value]['party_ledger'].get('amount', 0)
+            else:
+                s_obj[key_value]['party_ledger'] = party_ledger_obj
             s_obj[key_value].setdefault('party_ledger_tax', [])
             party_ledger_tax_obj = []
             vat_ledger = []
@@ -182,16 +179,16 @@ class TallyAPI:
                 party_ledger_tax_dict['amount'] += amt.charge_amount
                 party_ledger_tax_obj.append(party_ledger_tax_dict)
 
-	    round_amt, diff_round = self.round_off_value(s_obj[key_value]['party_ledger'].get('amount', 0))
-	    if diff_round:
-		party_ledger_tax_dict = {}
-		party_ledger_tax_dict['is_deemeed_positive'] = True
-		party_ledger_tax_dict['entry_rate'] = diff_round
-		party_ledger_tax_dict['amount'] = diff_round
-		party_ledger_tax_dict['name'] = tally_config.get('round_off_ledger', '')
-		party_ledger_tax_obj.append(party_ledger_tax_dict)
-		party_ledger_obj['amount'] = round_amt
-		s_obj[key_value]['party_ledger'].update(party_ledger_obj)
+            round_amt, diff_round = self.round_off_value(s_obj[key_value]['party_ledger'].get('amount', 0))
+            if diff_round:
+                party_ledger_tax_dict = {}
+                party_ledger_tax_dict['is_deemeed_positive'] = True
+                party_ledger_tax_dict['entry_rate'] = diff_round
+                party_ledger_tax_dict['amount'] = diff_round
+                party_ledger_tax_dict['name'] = tally_config.get('round_off_ledger', '')
+                party_ledger_tax_obj.append(party_ledger_tax_dict)
+                party_ledger_obj['amount'] = round_amt
+                s_obj[key_value]['party_ledger'].update(party_ledger_obj)
 
             s_obj[key_value]['party_ledger_tax'] = s_obj[key_value]['party_ledger_tax'] + party_ledger_tax_obj
             s_obj[key_value]['voucher_no'] = '' if int(tally_config.get('automatic_voucher', 0)) else obj[
@@ -221,20 +218,19 @@ class TallyAPI:
             s_obj[key_value]['buyer_cst_no'] = customer_info.get('cst_number', '')
             s_obj[key_value]['type_of_dealer'] = ''
             s_obj[key_value]['narration'] = ''
-	    s_obj[key_value]['creation_date'] = obj['creation_date']
-
+            s_obj[key_value]['creation_date'] = obj['creation_date']
             del_notes = {}
             del_notes['delivery_note_no'] = ''
             del_notes['delivery_note_Date'] = obj['creation_date'].strftime('%d/%m/%Y')
 
             s_obj[key_value].setdefault('del_notes', [])
             s_obj[key_value]['del_notes'].append(del_notes)
-	log.info('Sales Invoice Count :'+str(len(s_obj.values())))
-	log.info('-----------------SALES INVOICE ENDED----------------------')
-        return HttpResponse(json.dumps(s_obj.values(), cls=DjangoJSONEncoder))
+        log.info('Sales Invoice Count :'+str(len(s_obj.values())))
+        log.info('-----------------SALES INVOICE ENDED----------------------')
+    return HttpResponse(json.dumps(s_obj.values(), cls=DjangoJSONEncoder))
 
     def get_item_master(self, request):
-	log.info('-----------------ITEM MASTER STARTED----------------------')
+        log.info('-----------------ITEM MASTER STARTED----------------------')
         """
         EMPTY FIELDS:
         opening_amt
@@ -246,7 +242,7 @@ class TallyAPI:
         stock_category_name
         """
         self.user_id = request.POST.get('user_id', 0)
-	log.info('Item Master : user_id :' + self.user_id)
+        log.info('Item Master : user_id :' + self.user_id)
         self.updation_date = self.get_updation_date(request)
         tally_config = self.tally_configuration()
         send_ids = []
@@ -256,7 +252,7 @@ class TallyAPI:
                                         values_list('sku_id', flat=True)
             sku_masters = sku_masters.filter(Q(updation_date__gt=self.updation_date) |
                                              Q(id__in=stock_ids)).order_by('updation_date').distinct()
-	sku_masters = sku_masters.values('id', 'sku_desc', 'price', 'sku_code', 'measurement_type', 'creation_date', 'updation_date')
+        sku_masters = sku_masters.values('id', 'sku_desc', 'price', 'sku_code', 'measurement_type', 'creation_date', 'updation_date')
         sku_masters = sku_masters[:1000]
         data_list = []
         for sku_master in sku_masters:
@@ -276,13 +272,13 @@ class TallyAPI:
             data_dict['opening_amt'] = data_dict['opening_qty'] * data_dict['opening_rate']
             data_dict['partNo'] = 'part_' + data_dict['item_name']
             data_dict['description'] = sku_master['sku_desc']
-	    data_dict['creation_date'] = sku_master['creation_date']
-	    data_dict['updation_date'] = self.handle_updation_date(sku_master)
+            data_dict['creation_date'] = sku_master['creation_date']
+            data_dict['updation_date'] = self.handle_updation_date(sku_master)
             data_dict['sku_code'] = sku_master['sku_code']
             data_dict['unit_name'] = sku_master['measurement_type'] if sku_master['measurement_type'] else 'nos'
             data_list.append(data_dict)
-	log.info('Item Data Count :' + str(len(data_list)))
-	log.info('-----------------ITEM MASTER ENDED----------------------')
+        log.info('Item Data Count :' + str(len(data_list)))
+        log.info('-----------------ITEM MASTER ENDED----------------------')
         return HttpResponse(json.dumps(data_list, cls=DjangoJSONEncoder))
 
     def update_masters_data(self, masters, master_type, field_mapping, tally_config):
@@ -310,7 +306,7 @@ class TallyAPI:
             data_dict['tally_company_name'] = tally_config.get('company_name', '')
             data_dict['old_ledger_name'] = master['name']
             data_dict['ledger_name'] = master['name']
-	    data_dict['ledger_alias'] = ''
+            data_dict['ledger_alias'] = ''
             data_dict['update_opening_balance'] = True
             data_dict['opening_balance'] = 0  # ?int or Float
             parent_group_name = 'Sundry Creditors'
@@ -340,7 +336,7 @@ class TallyAPI:
             data_dict['pan_no'] = master['pan_number']
             data_dict['mobile_no'] = ''
             data_dict['service_tax_no'] = ''
-	    data_dict['creation_date'] = master['creation_date']
+            data_dict['creation_date'] = master['creation_date']
             data_dict['updation_date'] = self.handle_updation_date(master)
             if master_type == 'customer':
                 credit_period = master.credit_period
@@ -357,37 +353,37 @@ class TallyAPI:
 
     def get_supplier_master(self, request):
         # limit = 10
-	log.info('-----------------SUPPLIER MASTER STARTED----------------------')
+        log.info('-----------------SUPPLIER MASTER STARTED----------------------')
         self.user_id = request.POST.get('user_id', 0)
-	log.info('Supplier Master user id : ' + self.user_id)
+        log.info('Supplier Master user id : ' + self.user_id)
         self.updation_date = self.get_updation_date(request)
         tally_config = self.tally_configuration()
         supplier_masters = SupplierMaster.objects.filter(user=self.user_id)
         if self.updation_date:
             supplier_masters = supplier_masters.filter(updation_date__gt=self.updation_date)
-	supplier_masters = customer_masters.values('name', 'address', 'state', 'pincode', 'country', 'phone_number', 'email_id', 'tin_number', 'cst_number', 'credit_period', 'id', 'supplier_type', 'pan_number', 'creation_date', 'updation_date')
-	supplier_masters = supplier_masters[:1000]
+            supplier_masters = customer_masters.values('name', 'address', 'state', 'pincode', 'country', 'phone_number', 'email_id', 'tin_number', 'cst_number', 'credit_period', 'id', 'supplier_type', 'pan_number', 'creation_date', 'updation_date')
+            supplier_masters = supplier_masters[:1000]
         data_list = self.update_masters_data(supplier_masters, \
                                              'vendor', {'id': 'id', 'type': 'supplier_type'}, tally_config)
-	log.info('Supplier Data Count :' + str(len(data_list)))
-	log.info('-----------------SUPPLIER MASTER ENDS-------------------------')
+        log.info('Supplier Data Count :' + str(len(data_list)))
+        log.info('-----------------SUPPLIER MASTER ENDS-------------------------')
         return HttpResponse(json.dumps(data_list, cls=DjangoJSONEncoder))
 
     def get_customer_master(self, request):
-	log.info('-----------------CUSTOMER MASTER STARTED----------------------')
+        log.info('-----------------CUSTOMER MASTER STARTED----------------------')
         self.user_id = request.POST.get('user_id', 0)
-	log.info('Customer Master user id : ' + self.user_id)
+        log.info('Customer Master user id : ' + self.user_id)
         self.updation_date = self.get_updation_date(request)
         tally_config = self.tally_configuration()
         customer_masters = CustomerMaster.objects.filter(user=self.user_id).order_by('updation_date')
         if self.updation_date:
             customer_masters = customer_masters.filter(updation_date__gt=self.updation_date).order_by('updation_date')
-	customer_masters = customer_masters.values('name', 'address', 'state', 'pincode', 'country', 'phone_number', 'email_id', 'tin_number', 'cst_number', 'credit_period', 'customer_id', 'customer_type', 'pan_number', 'creation_date', 'updation_date')
+        customer_masters = customer_masters.values('name', 'address', 'state', 'pincode', 'country', 'phone_number', 'email_id', 'tin_number', 'cst_number', 'credit_period', 'customer_id', 'customer_type', 'pan_number', 'creation_date', 'updation_date')
         customer_masters = customer_masters[:1000]
         data_list = self.update_masters_data(customer_masters, \
                                              'customer', {'id': 'customer_id', 'type': 'customer_type'}, tally_config)
-	log.info('Customer Data Count :' + str(len(data_list)))
-	log.info('-----------------CUSTOMER MASTER ENDS----------------------')
+        log.info('Customer Data Count :' + str(len(data_list)))
+        log.info('-----------------CUSTOMER MASTER ENDS----------------------')
         return HttpResponse(json.dumps(data_list, cls=DjangoJSONEncoder))
 
     def get_sales_returns(self, request):

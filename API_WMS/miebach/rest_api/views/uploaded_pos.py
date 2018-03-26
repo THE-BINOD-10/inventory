@@ -7,10 +7,10 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q
 
-from miebach_utils import OrderUploads, GenericOrderDetailMapping, CustomerOrderSummary
-from common import get_filtered_params
+from miebach_utils import OrderUploads, GenericOrderDetailMapping, CustomerOrderSummary, UserProfile
+from common import get_filtered_params, get_admin
 from miebach_admin.custom_decorators import get_admin_user, login_required
-from miebach_admin.models import CustomerUserMapping
+from miebach_admin.models import CustomerUserMapping, CustomerMaster
 
 
 def upload_po(request):
@@ -44,7 +44,9 @@ def get_updated_pos(request):
         return HttpResponse('No record found')
     else:
         up_obj = up_obj[0]
-    gen_ord_map = get_skucode_quantity(up_obj.po_number, up_obj.customer_name)
+    cm_user_map = CustomerUserMapping.objects.get(user_id=up_obj.uploaded_user.id)
+    cm_obj = CustomerMaster.objects.filter(id=cm_user_map.customer_id)
+    gen_ord_map = get_skucode_quantity(up_obj.po_number, up_obj.customer_name, cm_obj[0])
     if up_obj.uploaded_file.name:
         uploaded_file_url = up_obj.uploaded_file.url
     else:
@@ -56,7 +58,7 @@ def get_updated_pos(request):
     return HttpResponse(json.dumps({'data': data}))
 
 
-def get_skucode_quantity(po_number, customer_name):
+def get_skucode_quantity(po_number, customer_name, uploaded_user):
     gen_ord_qs = GenericOrderDetailMapping.objects.filter(po_number=po_number, client_name=customer_name)
     gen_ord_map = []
     for order in gen_ord_qs:
@@ -64,6 +66,12 @@ def get_skucode_quantity(po_number, customer_name):
               'unit_price': order.unit_price, 'sku_desc': order.orderdetail.sku.sku_desc}
         po['amount'] = round(po['quantity'] * po['unit_price'], 2)
         customer_summary = order.orderdetail.customerordersummary_set.values()
+        user_profile = UserProfile.objects.get(user_type='warehouse_user', user=order.orderdetail.user)
+        po['wharehouse_name'] = user_profile.user.username
+        if uploaded_user.user == user_profile.user_id:
+            po['warehouse_level'] = 0
+        else:
+            po['warehouse_level'] = user_profile.warehouse_level
         total_tax = 0
         if customer_summary:
             customer_summary = customer_summary[0]

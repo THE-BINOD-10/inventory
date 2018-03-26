@@ -78,8 +78,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         console.log(data);
         var html = $(data);
         vm.print_page = $(html).clone();
-        html = $(html).find(".modal-body > .form-group");
-        $(html).find(".modal-footer").remove()
+        //html = $(html).find(".modal-body > .form-group");
+        //$(html).find(".modal-footer").remove()
         $(".modal-body").html(html);
       });
       $state.go('app.reports.GoodsReceiptNote.PurchaseOrder');

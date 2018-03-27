@@ -26,6 +26,17 @@
           <span class="pull-right" align="right">DIRECT DISPATCH</span>
           <input name="direct_dispatch" type="hidden" value="{{showCase.model_data.blind_order}}">
           <input name="custom_order" type="hidden" value="{{showCase.custom_order}}">
+          <div class="row">
+            <div class="col-md-2">
+              <label class="control-label">Invoice Type</label>
+            </div>
+            <div class="col-md-3">
+              <select class="form-control" name="invoice_type" ng-model="showCase.model_data.invoice_type">
+                <option value="" style="display:None;"></option>
+                <option ng-repeat="inv_type in showCase.create_order_data.invoice_types" ng-selected="$first" value="{{inv_type}}">{{inv_type}}</option>
+              </select>
+            </div>
+          </div>
         </div>
         <div class="col-md-3 col-sm-3 col-xs-12">
           <button type="button" class="btn btn-primary pull-right" ng-click="showCase.catlog=true;showCase.details=true;">View Catalog</button>

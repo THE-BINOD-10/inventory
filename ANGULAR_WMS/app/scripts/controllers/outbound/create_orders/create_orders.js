@@ -488,10 +488,11 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
 
  vm.close = function() {
 
-    angular.copy(empty_data, vm.model_data);
+    //angular.copy(empty_data, vm.model_data);
+    vm.customer_data = {}
     vm.attributes = [];
     vm.image = "";
-    //angular.copy(empty_pop_data, vm.pop_data);
+    angular.copy(empty_pop_data, vm.pop_data);
     vm.pop_btn = true;
     $state.go('app.outbound.CreateOrders');
   }

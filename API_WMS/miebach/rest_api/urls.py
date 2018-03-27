@@ -36,6 +36,8 @@ urlpatterns = [
     url(r'^insert_mapping/$', insert_mapping),
     url(r'^update_customer_values/$', update_customer_values),
     url(r'^insert_customer/$', insert_customer),
+    url(r'^update_corporate_values/$', update_corporate_values),
+    url(r'^insert_corporate/$', insert_corporate),
     url(r'^insert_customer_sku/$', insert_customer_sku),
     url(r'^update_customer_sku_mapping/$', update_customer_sku_mapping),
     url(r'^insert_bom_data/$', insert_bom_data),
@@ -89,6 +91,11 @@ urlpatterns = [
     url(r'^delete_terms/$', delete_terms),
     url(r'^insert_staff/$', insert_staff),
     url(r'^update_staff_values/$', update_staff_values),
+    url(r'^get_distributors/$', get_distributors),
+    url(r'^get_resellers/$', get_resellers),
+    url(r'^get_corporates/$', get_corporates),
+    url(r'^corporate_mapping_data/$', corporate_mapping_data),
+    url(r'^search_corporate_data/$', search_corporate_data),
 
     # Inbound
     url(r'^generated_po_data/$', generated_po_data),
@@ -228,6 +235,7 @@ urlpatterns = [
     url(r'^payment_tracker/$', payment_tracker),
     url(r'^get_customer_payment_tracker/$', get_customer_payment_tracker),
     url(r'^get_customer_master_id/$', get_customer_master_id),
+    url(r'^get_corporate_master_id/$', get_corporate_master_id),
     url(r'^search_wms_data/$', search_wms_data),
     url(r'^update_payment_status/$', update_payment_status),
     url(r'^create_orders_data/$', create_orders_data),
@@ -258,6 +266,14 @@ urlpatterns = [
     url(r'^extend_enquiry_date/$', extend_enquiry_date),
     url(r'^order_cancel/$', order_cancel),
     url(r'^add_order_charges/$', add_order_charges),
+    url(r'^place_manual_order/$', place_manual_order),
+    url(r'^get_manual_enquiry_data/$', get_manual_enquiry_data),
+    url(r'^get_manual_enquiry_detail/$', get_manual_enquiry_detail),
+    url(r'^save_manual_enquiry_data/$', save_manual_enquiry_data),
+    url(r'^remove_manual_enquiry_image/$', remove_manual_enquiry_image),
+    url(r'^save_manual_enquiry_image/$', save_manual_enquiry_image),
+    url(r'^request_manual_enquiry_approval/$', request_manual_enquiry_approval),
+    url(r'^get_invoice_details/$', get_invoice_details),
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),
@@ -355,6 +371,8 @@ urlpatterns += [
     url(r'^job_order_upload/$', job_order_upload),
     url(r'^marketplace_serial_form/$', marketplace_serial_form),
     url(r'^marketplace_serial_upload/$', marketplace_serial_upload),
+    url(r'^seller_transfer_form/$', seller_transfer_form),
+    url(r'^seller_transfer_upload/$', seller_transfer_upload),
 
     url(r'^network_master_form/$', network_master_form),
     url(r'^network_master_upload/$', network_master_upload),
@@ -372,6 +390,7 @@ urlpatterns += [
     url(r'^delete_tally_data/$', delete_tally_data),
     url(r'^delete_tax/$', delete_tax),
     url(r'^update_invoice_sequence/$', update_invoice_sequence),
+    url(r'^update_mail_alerts/$', update_mail_alerts),
 
     # manage users
     url(r'^add_user/$', add_user),

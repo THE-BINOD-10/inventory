@@ -9,68 +9,225 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.apply_filters = colFilters;
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
+    vm.user_type = Session.roles.permissions.user_type;
 
     vm.selected = {};
+    vm.checked_items = {};
     vm.selectAll = false;
     vm.bt_disable = true;
     vm.display = false;
 
-    vm.service.apiCall("customer_invoice_data/").then(function(data) {
-      if(data.message) {
-        vm.filters = {'datatable': 'CustomerInvoices', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
-        vm.dtOptions = DTOptionsBuilder.newOptions()
-          .withOption('ajax', {
-              url: Session.url+'results_data/',
-              type: 'POST',
-              data: vm.filters,
-              xhrFields: {
-                withCredentials: true
+    if (vm.user_type == 'distributor') {
+      vm.service.apiCall("customer_invoice_data/").then(function(data) {
+        if(data.message) {
+          vm.filters = {'datatable': 'CustomerInvoices', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
+          vm.dtOptions = DTOptionsBuilder.newOptions()
+            .withOption('ajax', {
+                url: Session.url+'results_data/',
+                type: 'POST',
+                data: vm.filters,
+                xhrFields: {
+                  withCredentials: true
+                }
+            })
+            .withDataProp('data')
+            .withOption('drawCallback', function(settings) {
+              vm.service.make_selected(settings, vm.selected);
+            })
+            .withOption('processing', true)
+            .withOption('serverSide', true)
+            .withOption('order', [5, 'desc'])
+            .withOption('createdRow', function(row, data, dataIndex) {
+               $compile(angular.element(row).contents())($scope);
+            })
+            .withOption('headerCallback', function(header) {
+              if (!vm.headerCompiled) {
+                  vm.headerCompiled = true;
+                  $compile(angular.element(header).contents())($scope);
               }
-          })
-          .withDataProp('data')
-          .withOption('drawCallback', function(settings) {
-            vm.service.make_selected(settings, vm.selected);
-          })
-          .withOption('processing', true)
-          .withOption('serverSide', true)
-          .withOption('order', [5, 'desc'])
-          .withOption('createdRow', function(row, data, dataIndex) {
-             $compile(angular.element(row).contents())($scope);
-          })
-          .withOption('headerCallback', function(header) {
-            if (!vm.headerCompiled) {
-                vm.headerCompiled = true;
-                $compile(angular.element(header).contents())($scope);
+            })
+            .withPaginationType('full_numbers')
+            .withOption('initComplete', function( settings ) {
+              //vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
+            });
+
+          var columns = data.data.headers;
+          var not_sort = ['Order Quantity', 'Picked Quantity']
+          vm.dtColumns = vm.service.build_colums(columns, not_sort);
+          var row_click_bind = 'td';
+          vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle('').notSortable().withOption('width', '20px')
+                 .renderWith(function(data, type, full, meta) {
+                   // if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
+                   //   vm.selected = {};
+                   // }
+                   // vm.selected[meta.row] = vm.selectAll;
+                   return "<i style='cursor: pointer' ng-click='showCase.addRowData($event, "+JSON.stringify(full)+")' class='fa fa-plus-square'></i>";
+                 }))
+          row_click_bind = 'td:not(td:first)';
+          vm.dtInstance = {};
+
+          $scope.$on('change_filters_data', function(){
+            if($("#"+vm.dtInstance.id+":visible").length != 0) {
+              vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
+              vm.service.refresh(vm.dtInstance);
             }
-          })
-          .withPaginationType('full_numbers')
-          .withOption('initComplete', function( settings ) {
-            //vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
           });
+          vm.display = true;
+        }
+      });
+    } else {
+      vm.service.apiCall("customer_invoice_data/").then(function(data) {
+        if(data.message) {
+          vm.filters = {'datatable': 'CustomerInvoices', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
+          vm.dtOptions = DTOptionsBuilder.newOptions()
+            .withOption('ajax', {
+                url: Session.url+'results_data/',
+                type: 'POST',
+                data: vm.filters,
+                xhrFields: {
+                  withCredentials: true
+                }
+            })
+            .withDataProp('data')
+            .withOption('drawCallback', function(settings) {
+              vm.service.make_selected(settings, vm.selected);
+            })
+            .withOption('processing', true)
+            .withOption('serverSide', true)
+            .withOption('order', [5, 'desc'])
+            .withOption('createdRow', function(row, data, dataIndex) {
+               $compile(angular.element(row).contents())($scope);
+            })
+            .withOption('headerCallback', function(header) {
+              if (!vm.headerCompiled) {
+                  vm.headerCompiled = true;
+                  $compile(angular.element(header).contents())($scope);
+              }
+            })
+            .withPaginationType('full_numbers')
+            .withOption('initComplete', function( settings ) {
+              //vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
+            });
 
-        var columns = data.data.headers;
-        var not_sort = ['Order Quantity', 'Picked Quantity']
-        vm.dtColumns = vm.service.build_colums(columns, not_sort);
-        vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle('').notSortable().withOption('width', '20px')
-               .renderWith(function(data, type, full, meta) {
-                 if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
-                   vm.selected = {};
-                 }
-                 vm.selected[meta.row] = vm.selectAll;
-                 return vm.service.frontHtml + meta.row + vm.service.endHtml;
-               }))
+          var columns = data.data.headers;
+          var not_sort = ['Order Quantity', 'Picked Quantity']
+          vm.dtColumns = vm.service.build_colums(columns, not_sort);
+          vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle('').notSortable().withOption('width', '20px')
+                 .renderWith(function(data, type, full, meta) {
+                   if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
+                     vm.selected = {};
+                   }
+                   vm.selected[meta.row] = vm.selectAll;
+                   return vm.service.frontHtml + meta.row + vm.service.endHtml;
+                 }))
 
-        vm.dtInstance = {};
+          vm.dtInstance = {};
 
-        $scope.$on('change_filters_data', function(){
-          if($("#"+vm.dtInstance.id+":visible").length != 0) {
-            vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
-            vm.service.refresh(vm.dtInstance);
-          }
-        });
-        vm.display = true;
+          $scope.$on('change_filters_data', function(){
+            if($("#"+vm.dtInstance.id+":visible").length != 0) {
+              vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
+              vm.service.refresh(vm.dtInstance);
+            }
+          });
+          vm.display = true;
+        }
+      });
+    }
+
+    vm.checked_ids = [];
+    vm.checkedItem = function(data, index){
+      
+      if (vm.checked_items[index]) {
+        
+        delete vm.checked_items[index];
+      } else {
+        
+        vm.checked_items[index] = data;
+        vm.checked_ids.push(vm.checked_items[index].id);
       }
-    });
+      // vm.checked_items[index] = data;
+      console.log(data)      
+    }
+
+    vm.generateInvoice = function(){
+      console.log("Checked Items::", vm.checked_items);
+      var data = [];
+      angular.forEach(vm.checked_items, function(row){
+        data.push(row['id']);
+      });
+      var ids = data.join(",");
+      var send = {seller_summary_id: ids};
+      vm.service.apiCall("generate_customer_invoice/", "GET", send).then(function(data){
+
+        if (data.message) {
+          console.log(data);
+          if(data.message) {
+          vm.pdf_data = data.data;
+          if(typeof(vm.pdf_data) == "string" && vm.pdf_data.search("print-invoice") != -1) {
+            $state.go("app.outbound.CustomerInvoices.InvoiceE");
+            $timeout(function () {
+              $(".modal-body:visible").html(vm.pdf_data)
+            }, 3000);
+          } else if(Session.user_profile.user_type == "marketplace_user") {
+            $state.go("app.outbound.CustomerInvoices.InvoiceM");
+          } else if(vm.permissions.detailed_invoice) {
+            $state.go("app.outbound.CustomerInvoices.InvoiceD");
+          } else {
+            $state.go("app.outbound.CustomerInvoices.InvoiceN");
+          }
+          }
+          vm.service.showNoty("Invoice generated");
+        }
+      });
+    }
+
+    vm.addRowData = function(event, data) {
+      vm.checked_items = {};
+      console.log(data);
+      var elem = event.target;
+      if (!$(elem).hasClass('fa')) {
+        return false;
+      }
+      var data_tr = angular.element(elem).parent().parent();
+      var all_tr = angular.element(elem).parent().parent().siblings();
+      
+      for (var i = 0; i < all_tr.length; i++) {
+
+        if (all_tr[i].cells[0].children[0].className == 'fa fa-minus-square') {
+        
+          all_tr[i].cells[0].children[0].className = 'fa fa-plus-square'
+          all_tr[i].nextSibling.remove();
+        }
+      }
+
+      if ($(elem).hasClass('fa-plus-square')) {
+        $(elem).removeClass('fa-plus-square');
+        $(elem).removeClass();
+        $(elem).addClass('glyphicon glyphicon-refresh glyphicon-refresh-animate');
+        Service.apiCall('get_invoice_details/?gen_id='+data['Gen Order Id']+'&customer_id='+data['Customer ID']).then(function(resp){
+          if (resp.message){
+
+            if(resp.data.status) {
+              // var html = $compile("<tr class='row-expansion' style='display: none'><td colspan='11'><dt-po-data data='"+JSON.stringify(resp.data.data_dict)+"'></dt-po-data></td></tr>")($scope);
+              var html = $compile("<tr class='row-expansion' style='display: none'><td colspan='11'><generic-customer-invoice-data data='"+JSON.stringify(resp.data.data_dict)+"'></generic-customer-invoice-data></td></tr>")($scope);
+              data_tr.after(html)
+              data_tr.next().toggle(1000);
+              $(elem).removeClass();
+              $(elem).addClass('fa fa-minus-square');
+            } else {
+              vm.poDataNotFound();
+            }
+          } else {
+            vm.poDataNotFound();
+          }
+        })
+      } else {
+        $(elem).removeClass('fa-minus-square');
+        $(elem).addClass('fa-plus-square');
+        data_tr.next().remove();
+      }
+    }
+
     vm.close = function() {
 
       $state.go("app.outbound.CustomerInvoices")
@@ -112,25 +269,31 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       })
     }
 
+    vm.delivery_challan = false;
+
     vm.pdf_data = {};
-    vm.generate_invoice = function(click_type){
+    vm.generate_invoice = function(click_type, DC=false){
 
       var po_number = '';
       var status = false;
       var field_name = "";
       var data = [];
-      angular.forEach(vm.selected, function(value, key) {
-        if(value) {
-          var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]['_aData'];
-          if(!(po_number)) {
-            po_number = temp[temp['check_field']];
-          } else if (po_number != temp[temp['check_field']]) {
-            status = true;
+      if (vm.user_type == 'distributor') {
+        data = vm.checked_ids;
+      } else {
+        angular.forEach(vm.selected, function(value, key) {
+          if(value) {
+            var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]['_aData'];
+            if(!(po_number)) {
+              po_number = temp[temp['check_field']];
+            } else if (po_number != temp[temp['check_field']]) {
+              status = true;
+            }
+            field_name = temp['check_field'];
+            data.push(temp['id']);
           }
-          field_name = temp['check_field'];
-          data.push(temp['id']);
-        }
-      });
+        });
+      }
 
       if(status) {
         vm.service.showNoty("Please select same "+field_name+"'s");
@@ -145,6 +308,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           send['data'] = true;
           send['edit_invoice'] = true;
         }
+        send['delivery_challan'] = DC;
+        vm.delivery_challan = DC;
         vm.bt_disable = true;
         vm.service.apiCall("generate_customer_invoice/", "GET", send).then(function(data){
 
@@ -270,6 +435,7 @@ function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Servi
   var vm = this;
   vm.service = Service;
   vm.permissions = Session.roles.permissions;
+  vm.priceband_sync = Session.roles.permissions.priceband_sync;
 
   vm.model_data = items;
   vm.model_data.temp_sequence_number = vm.model_data.sequence_number;
@@ -361,6 +527,19 @@ function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Servi
     data.invoice_amount = (data.amt + data.total_tax_amount);
   }
 }
-angular
-  .module('urbanApp')
-  .controller('EditInvoice', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', EditInvoice]);
+stockone = angular.module('urbanApp');
+
+stockone.controller('EditInvoice', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', EditInvoice]);
+
+stockone.directive('genericCustomerInvoiceData', function() {
+  return {
+    restrict: 'E',
+    scope: {
+      invoice_data: '=data',
+    },
+    templateUrl: 'views/outbound/toggle/invoice_data_html.html',
+    link: function(scope, element, attributes, $http, Service){
+      console.log(scope);
+    }
+  };
+});

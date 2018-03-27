@@ -10,6 +10,7 @@
 
       var self = this;
       self.pending_data = urlService.hold_data;
+      self.order_codes = {'Delivery Challan': 'DC', 'Pre Order': 'PRE'};
 
       self.unhold_order = unhold_order;
       function unhold_order(order) {

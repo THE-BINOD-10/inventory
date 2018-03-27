@@ -44,13 +44,13 @@
             <div class="col-md-2 col-sm-3 col-xs-6 pull-right" style="line-height: 34px;">
                 <span style="float:right">Select View: </span>
             </div>
-            <div class="col-md-2 col-sm-3 col-xs-6 mb10 pull-right" style="height: 34px;padding-left: 0px;" ng-if="permissions.add_networkmaster">
+            <div class="col-md-2 col-sm-3 col-xs-6 mb10 pull-right" style="height: 34px;padding-left: 0px;" ng-if="permissions.add_networkmaster || permissions.priceband_sync">
               <select class="form-control pull-right" ng-model="showCase.g_data.level" ng-change="showCase.change_datatable()">
                 <option value="" ng-selected="''== showCase.g_data.level">None</option>
                 <option ng-repeat="view in showCase.g_data.levels" value="{{view}}" ng-selected="view == showCase.g_data.level"> Level-{{view}}</option>
               </select>
             </div>
-            <div class="col-md-2 col-sm-3 col-xs-6 pull-right" style="line-height: 34px;" ng-if="permissions.add_networkmaster">
+            <div class="col-md-2 col-sm-3 col-xs-6 pull-right" style="line-height: 34px;" ng-if="permissions.add_networkmaster || permissions.priceband_sync">
                 <span style="float:right">Select Level: </span>
             </div>
           </div>

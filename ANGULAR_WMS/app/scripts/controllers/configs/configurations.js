@@ -21,6 +21,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'invoice_remarks': '', 'show_disc_invoice': false, 'serial_limit': '',
                     'increment_invoice': false, 'create_shipment_type': false, 'auto_allocate_stock': false,
                     'generic_wh_level': false, 'auto_confirm_po': false, 'create_order_po': false, 'shipment_sku_scan': false,
+                    'disable_brands_view': false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -28,14 +29,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      10: 'auto_po_switch', 11: 'no_stock_switch', 12:'online_percentage', 13: 'mail_alerts',
                      14: 'invoice_prefix', 15: 'float_switch', 16: 'automate_invoice', 17: 'show_mrp', 18: 'decimal_limit',
                      19: 'picklist_sort_by', 20: 'stock_sync', 21: 'sku_sync', 22: 'auto_generate_picklist',
-                     23: 'detailed_invoice', 24: 'scan_picklist_option', 25: 'stock_display_warehouse', 26: 'view_order_status',
+                     23: 'detailed_invoice', 24: 'scan_picklist_option', 25: 'stock_display_warehouse',
                      27: 'seller_margin', 28: 'style_headers', 29: 'receive_process', 30: 'tally_config', 31: 'tax_details',
                      32: 'hsn_summary', 33: 'display_customer_sku', 34: 'marketplace_model', 35: 'label_generation',
                      36: 'barcode_generate_opt', 37: 'grn_scan_option', 38: 'invoice_titles', 39: 'show_imei_invoice',
                      40: 'display_remarks_mail', 41: 'create_seller_order', 42: 'invoice_remarks', 43: 'show_disc_invoice',
                      44: 'increment_invoice', 45: 'serial_limit', 46: 'create_shipment_type', 47: 'auto_allocate_stock',
                      48: 'priceband_sync', 49: 'generic_wh_level', 50: 'auto_confirm_po', 51: 'create_order_po',
-                     52: 'calculate_customer_price', 53: 'shipment_sku_scan',}
+                     52: 'calculate_customer_price', 53: 'shipment_sku_scan', 54: 'disable_brands_view',}
 
   vm.check_box_data = [
     {
@@ -282,7 +283,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       param_no: 47,
       class_name: "glyphicon glyphicon-sort",
       display: true
-    }
+    },
+    {
+      name: "Disable Brands View",
+      model_name: "disable_brands_view",
+      param_no: 54,
+      class_name: "glyphicon glyphicon-sort",
+      display: true
+    },
+
 ]
 
   vm.empty = {};
@@ -415,6 +424,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       }, 500);
       $(".sku_groups").importTags(vm.model_data.all_groups);
       $(".stages").importTags(vm.model_data.all_stages);
+      $(".extra_view_order_status").importTags(vm.model_data.extra_view_order_status);
+      $(".invoice_types").importTags(vm.model_data.invoice_types);
       if (vm.model_data.invoice_titles) {
         $(".titles").importTags(vm.model_data.invoice_titles);
       }
@@ -460,6 +471,28 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
   vm.update_sku_groups = function() {
     var data = $("#tags").val();
     vm.service.apiCall("save_groups?sku_groups="+data).then(function(data){
+      if(data.message) {
+        msg = data.data;
+        $scope.showNoty();
+        Auth.status();
+      }
+    });
+  }
+
+  vm.update_extra_order_status = function() {
+    var data = $(".extra_view_order_status").val();
+    vm.service.apiCall("switches?extra_view_order_status="+data).then(function(data){
+      if(data.message) {
+        msg = data.data;
+        $scope.showNoty();
+        Auth.status();
+      }
+    });
+  }
+
+  vm.update_invoice_type = function() {
+    var data = $(".invoice_types").val();
+    vm.service.apiCall("switches?invoice_types="+data).then(function(data){
       if(data.message) {
         msg = data.data;
         $scope.showNoty();
@@ -753,5 +786,107 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
             lines++;
           }
         }
-      } 
+      }
+
+  vm.model_data["rem_alert_new"] = true;
+  vm.remAlertSelected = function(name) {
+
+    if (name) {
+
+      for(var i = 0; i < vm.model_data.rem_saved_mail_alerts.length; i++) {
+
+        if(vm.model_data.rem_saved_mail_alerts[i].alert_name == name) {
+
+          vm.model_data.rem_alert_name = vm.model_data.rem_saved_mail_alerts[i].alert_name;
+          vm.model_data.rem_alert_value = vm.model_data.rem_saved_mail_alerts[i].alert_value;
+          vm.model_data["rem_alert_new"] = false;
+          vm.rem_alert_add_show = true;
+          break;
+        }
+      }
+    } else {
+
+      vm.model_data["rem_alert_new"] = true;
+      vm.rem_alert_add_show = false;
+      vm.model_data.rem_alert_name = "";
+      vm.model_data.rem_alert_value = "";
+    }
+  }
+
+  vm.saved_rem_alerts = [];
+  vm.filterRemAlerts = function() {
+    vm.model_data['rem_alerts']  = {};
+    angular.copy(vm.model_data.rem_mail_alerts, vm.model_data.rem_alerts);
+    angular.forEach(vm.model_data.rem_saved_mail_alerts, function(data){
+    if(vm.rem_mail_alerts.indexOf(data.alert_name) > 0)
+       vm.model_data.rem_alerts.pop(data.alert_name);
+    });
+    vm.model_data.rem_alert_new = true;
+    if(Object.keys(vm.model_data.rem_alerts).length>0){
+      vm.model_data.rem_alert_name = Object.keys(vm.model_data.rem_alerts)[0];
+    }
+    console.log(vm.model_data.rem_alerts);
+  }
+
+  vm.saveRemainderAlerts = function(name, value) {
+
+    if(!name) {
+
+      Service.showNoty("Please Enter Alert Name");
+      return false;
+    } else if(!value) {
+
+      Service.showNoty("Please Enter Duration");
+      return false;
+    } else {
+      vm.updateRemainder(name, value, 'save')
+      //vm.switches("{'tax_"+name+"':'"+value+"'}", 31);
+      var found = false;
+      for(var i = 0; i < vm.model_data.rem_saved_mail_alerts.length; i++) {
+
+        if(vm.model_data.rem_saved_mail_alerts[i].alert_name == vm.model_data.rem_alert_name) {
+
+          vm.model_data.rem_saved_mail_alerts[i].alert_name = vm.model_data.rem_alert_name;
+          vm.model_data.rem_saved_mail_alerts[i].alert_value = vm.model_data.rem_alert_value;
+          found = true;
+          break;
+        }
+      }
+      if(!found) {
+        vm.model_data.rem_saved_mail_alerts.push({alert_name: vm.model_data.rem_alert_name, alert_value: vm.model_data.rem_alert_value});
+      }
+      vm.rem_alert_add_show = false;
+      vm.rem_alert_selected = "";
+      vm.model_data.rem_alert_name = "";
+      vm.model_data.rem_alert_value = "";
+      vm.model_data.rem_alert_new = true;
+    }
+  }
+
+  vm.updateRemainder = function(name, value, type) {
+
+      var send = {alert_name : name, alert_value: value}
+      if (type != 'save') {
+        send['delete'] = true;
+
+        for(var i = 0; i < vm.model_data.rem_saved_mail_alerts.length; i++) {
+
+          if(vm.model_data.rem_saved_mail_alerts[i].alert_name == vm.model_data.rem_alert_name) {
+
+            vm.model_data.rem_saved_mail_alerts.splice(i, 1);
+            break;
+          }
+        }
+        vm.rem_alert_add_show = false;
+        vm.rem_alert_selected = "";
+        vm.model_data.rem_alert_name = "";
+        vm.model_data.rem_alert_value = "";
+        vm.model_data.rem_alert_new = true;
+      }
+      vm.service.apiCall("update_mail_alerts/", "GET", send).then(function(data) {
+
+        console.log(data);
+      })
+  }
+
 }

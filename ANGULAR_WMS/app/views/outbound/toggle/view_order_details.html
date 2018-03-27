@@ -167,10 +167,19 @@
           <b>STATUS:</b>
           <select ng-if="!showCase.input_status" class="form-control pull-right" name="status_type"
                   ng-model="showCase.ord_status" ng-readonly="showCase.input_status">
-            <option  ng-selected="showCase.ord_status == ''">None</option>
+            <option ng-selected="showCase.ord_status == ''" ng-if="showCase.display_status_none">None </option>
             <option ng-repeat="type in showCase.model_data.all_status" ng-selected="showCase.ord_status == type">{{type}}</option>
           </select>
           <input ng-if="showCase.input_status" type="text" class="form-control" name="remarks" ng-model="showCase.ord_status" ng-readonly="showCase.input_status">
+      </div>
+      <div class="col-md-3 col-sm-3 col-xs-12">
+          <b>INVOICE TYPE:</b>
+          <select ng-if="!showCase.input_status" class="form-control pull-right" name="invoice_type"
+                  ng-model="showCase.invoice_type" ng-readonly="showCase.input_status">
+            <option ng-selected="showCase.invoice_type == ''" ng-if="showCase.display_status_none">None </option>
+            <option ng-repeat="type in showCase.model_data.invoice_types" ng-selected="showCase.invoice_type == type">{{type}}</option>
+          </select>
+          <input ng-if="showCase.input_status" type="text" class="form-control" name="invoice_type" ng-model="showCase.invoice_type" ng-readonly="showCase.input_status">
       </div>
       <div class="col-md-4 col-sm-3 col-xs-12">
         <b>REMARKS:</b>

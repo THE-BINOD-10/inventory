@@ -6,12 +6,16 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
 
   var vm = this;
   vm.page_url = $state.href($state.current.name, $state.params, {absolute: true})
-  vm.your_orders = ($state.params.state == "orders")? true: false;
-  vm.status = ($state.params.state == "orders")? "orders": "enquiry";
+  vm.your_orders = $state.params.state;
+  vm.status = $state.params.state;
 
-  var url = "get_customer_orders/";
-  if (!vm.your_orders) {
+  var url = "";
+  if (vm.your_orders == 'enquiry') {
     url = "get_enquiry_data/";
+  } else if (vm.your_orders == 'manual_enquiry') {
+    url = "get_manual_enquiry_data/";
+  } else {
+    url = "get_customer_orders/";
   }
 
   //you orders
@@ -20,7 +24,9 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
   vm.order_data = {data: []};
   vm.index = '';
   vm.show_no_data = false;
+  vm.disable_brands_view = Session.roles.permissions.disable_brands_view;
   vm.date = new Date();
+
   vm.get_orders = function(key){
 
     vm.orders_loading = true;
@@ -34,7 +40,6 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
 
         console.log(data.data);
         vm.order_data.data = vm.order_data.data.concat(data.data.data);
-        
         angular.forEach(vm.order_data.data, function(item){
           item['extended_date'] = '';
         });
@@ -45,22 +50,30 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
           vm.show_no_data = true
         }
       }
+      // For testing static data
+      // vm.order_data.data = [{corporate_name:"",customer_id:16498,date:"23/01/2018",days_left:-16,extend_status:"pending",order_id:10002,total_inv_amt:0,total_quantity:1}];
       vm.orders_loading = false;
     })
   }
 
-  if (vm.your_orders && Data.my_orders.length == 0) {
+  if (vm.your_orders == 'orders' && Data.my_orders.length == 0) {
 
     vm.get_orders('my_orders');
-  } else if (!vm.your_orders && Data.enquiry_orders.length == 0) {
+  } else if (vm.your_orders == 'enquiry' && Data.enquiry_orders.length == 0) {
 
     vm.get_orders('enquiry_orders');
-  } else if (vm.your_orders) {
+  } else if (vm.your_orders == 'manual_enquiry' && Data.manual_orders.length == 0) {
+
+    vm.get_orders('manual_orders');
+  } else if (vm.your_orders == 'orders') {
 
     vm.order_data.data = Data.my_orders;
-  } else if (!vm.your_orders) {
+  } else if (vm.your_orders == 'enquiry') {
 
     vm.order_data.data = Data.enquiry_orders;
+  } else if (vm.your_orders == 'manual_enquiry') {
+
+    vm.order_data.data = Data.manual_orders;
   }
 
   // Scrolling Event Function
@@ -159,7 +172,7 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
 
     if (Session.user_profile.user_type == 'warehouse_user') {
 
-      var mod_data = {order_id: data['orderId'], url: 'get_customer_order_detail'};
+      var mod_data = {order_id: data['orderId'], url: 'get_customer_order_detail', customer_id: data['customerId']};
       var page_url = window.location.href
       if(page_url.indexOf('AutoBackOrders') > 0){
         mod_data['autobackorder'] = true;
@@ -184,6 +197,7 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
       $state.go('user.App.OrderDetails', data);
     }
   }
+  
 }
 
 angular

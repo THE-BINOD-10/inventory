@@ -60,6 +60,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.BrandmultipleSelect = "";
       vm.StageMultipleSelect = "";
       vm.PermMultipleSelect = "";
+      vm.StatusmultipleSelect = "";
       $state.go('app.ManageUsers');
     }
 
@@ -80,10 +81,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.PermMultipleSelect = []
   vm.StageMultipleSelect = []
   vm.BrandMultipleSelect = []
+  vm.StatusMultipleSelect = []
 
   vm.group_permissions = [];
   vm.prod_stages = [];
   vm.brands_list = [];
+  vm.statuses_list = [];
   Service.apiCall("add_group_data/","GET").then(function(data){
 
     if(data.message) {
@@ -97,12 +100,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       angular.forEach(data.data.brands, function(item){
 	vm.brands_list.push({id: index, name: item}); index++;
       });
+      angular.forEach(data.data.order_statuses, function(item){
+	vm.statuses_list.push({id: index, name: item}); index++;
+      });
     }
   });
 
   vm.add_group_permission = function(form){
     if(form.group_name.$valid) {
-      var data = {"name":"", "perm_selected":"", "stage_selected":"", "brand_selected":""};
+      var data = {"name":"", "perm_selected":"", "stage_selected":"", "brand_selected":"", "status_selected":""};
       angular.forEach($('.permission').next().find(".chosen-choices > li > span"), function(single_data){	
         data.perm_selected += $(single_data).text()+"," 
       })
@@ -112,6 +118,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       angular.forEach($('.brand').next().find(".chosen-choices > li > span"), function(single_data_two){
         data.brand_selected += $(single_data_two).text()+","
       })
+      angular.forEach($('.status').next().find(".chosen-choices > li > span"), function(single_data_two){
+        data.status_selected += $(single_data_two).text()+","
+      })
       if(form.brand.$valid) {
         data.brand_selected = data.brand_selected.slice(0,-1);
       } 
@@ -120,7 +129,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
       if(form.stage.$valid) {
         data.perm_selected = data.perm_selected.slice(0,-1);
-      } 
+      }
+      if(form.extra_order_status.$valid) {
+        data.status_selected = data.status_selected.slice(0,-1);
+      }
       data.name = $($('input[name=group_name]')[1]).val();
       Service.apiCall("add_group/","POST", data).then(function(data){
 

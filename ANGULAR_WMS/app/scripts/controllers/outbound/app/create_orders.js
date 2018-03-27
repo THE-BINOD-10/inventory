@@ -17,6 +17,14 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.user_type = Session.roles.permissions.user_type;
   vm.buttons_width = (Session.roles.permissions.create_order_po)? 4: 6;
   vm.priceband_sync = Session.roles.permissions.priceband_sync;
+  vm.disable_brands = Session.roles.permissions.disable_brands_view;
+  vm.date = new Date();
+
+  $('#delivery_date').datepicker();
+
+  $('#delivery_date').on('focus',function(){
+    $(this).trigger('blur');
+  });
 
   vm.order_type_value = "offline";
   vm.service = Service;
@@ -32,14 +40,39 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
   angular.copy(empty_data, vm.model_data);
 
+  vm.margin_style = {};
+  if(vm.user_type=='reseller'){
+    vm.search_box_cls = 'col-md-7 col-sm-5 col-xs-12';
+    vm.buttons_cls = 'col-md-4 col-sm-6 col-xs-12';
+  } else {
+    vm.search_box_cls = 'col-md-8 col-sm-8 col-xs-12';
+    vm.buttons_cls = 'col-md-3 col-sm-3 col-xs-12';
+    vm.margin_style = {left: 25};
+  }
 
   vm.selected = {}
+
+  vm.buyStyle={height:143}
+  vm.add_height = function(){
+    if (vm.buy_price) {
+      vm.buyStyle={height:163}
+    } else {
+      vm.buyStyle={height:143}
+    }
+  }
 
   vm.categories = [];
   vm.category = "";
   vm.brand = "";
   vm.filterData = {};
   
+  vm.disable_brands_view = function(){
+    if(Session.roles.permissions.disable_brands_view){
+      $state.go('user.App.Categories');
+    }
+  }
+  vm.disable_brands_view();
+
   vm.goBack = function(){
 
     $state.go('user.App.Brands');
@@ -52,6 +85,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       if(data.message) {
 
         vm.categories = data.data.categories;
+        vm.all_cate = data.data.categories;
         vm.filterData = data.data;
         console.log(data.data);
         vm.filterData.brand_size_data = [];
@@ -88,6 +122,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         'FE550':'FE550.jpg',
         'FE600':'FE600.jpg',
         'MARSH':'MARSH.jpg',
+        'CORP ATTIRE': 'CORP ATTIRE.jpg',
         }
 
         vm.brands_logos = {'6 Degree': 'six-degrees-1.png', 'AWG (All Weather Gear)': 'awg-1.png', 'BIO WASH': 'bio-wash-1.png',
@@ -107,6 +142,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         'FE550':'FE550.jpg',
         'FE600':'FE600.jpg',
         'MARSH':'MARSH.jpg',
+        'CORP ATTIRE': 'CORP ATTIRE.jpg',
         }
         if (vm.location == '/App/Products') {
           // vm.change_brand('');
@@ -252,7 +288,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
     var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
                 sale_through: vm.order_type_value, size_filter: size_stock, color: vm.color, from_price: vm.fromPrice,
-                to_price: vm.toPrice, quantity: vm.quantity, is_margin_percentage: vm.marginData.is_margin_percentage,
+                to_price: vm.toPrice, quantity: vm.quantity, delivery_date: vm.delivery_date, is_margin_percentage: vm.marginData.is_margin_percentage,
                 margin: vm.marginData.margin, hot_release: vm.hot_release, margin_data: JSON.stringify(Data.marginSKUData.data)};
 
     if(status) {
@@ -365,6 +401,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.fromPrice = vm.filterData.fromPrice;
     vm.toPrice = vm.filterData.toPrice;
     vm.quantity = vm.filterData.quantity;
+    vm.delivery_date = vm.filterData.delivery_date;
     vm.size_filter_data = vm.filterData.size_filter;
 
     vm.showFilter = false;
@@ -703,6 +740,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.fromPrice = vm.filterData.fromPrice;
     vm.toPrice = vm.filterData.toPrice;
     vm.quantity = vm.filterData.quantity;
+    vm.delivery_date = vm.filterData.delivery_date;
     vm.showFilter = false;
     vm.from_cats = false;
     vm.hot_release = vm.filterData.hotRelease;
@@ -758,11 +796,13 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       vm.filterData.fromPrice = "";
       vm.filterData.toPrice = "";
       vm.filterData.quantity = "";
+      vm.filterData.delivery_date = "";
       vm.filterData.hotRelease = false;
       vm.hot_release = vm.filterData.hotRelease;
       vm.fromPrice = vm.filterData.fromPrice;
       vm.toPrice = vm.filterData.toPrice;
       vm.quantity = vm.filterData.quantity;
+      vm.delivery_date = vm.filterData.delivery_date
 
     vm.catlog_data.index = "";
     vm.size_filter_data = vm.filterData.size_filter
@@ -966,7 +1006,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     var size_stock = JSON.stringify(vm.size_filter_data);
     var data = {data: {brand: vm.brand, category: vm.category, sku_class: vm.style, index: "", is_catalog: true,
                 sale_through: vm.order_type_value, size_filter:size_stock, share: true, file: true,
-                color: vm.color, from_price: vm.fromPrice, to_price: vm.toPrice, quantity: vm.quantity,
+                color: vm.color, from_price: vm.fromPrice, to_price: vm.toPrice, quantity: vm.quantity, delivery_date: vm.delivery_date,
                 is_margin_percentage: vm.marginData.is_margin_percentage, margin: vm.marginData.margin,
                 margin_data: JSON.stringify(Data.marginSKUData.data)}, required_quantity: vm.required_quantity,
                 checked_items: vm.picked_items_data, checked_item_value: vm.picked_items_obj}
@@ -1066,14 +1106,108 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
                            'HOODIES WITH ZIP': 'HOODIES WITH ZIP.png',
                            'POLO': 'POLO.png',
                            'ROUND NECK': 'ROUND NECK.png',
-                           };
+
+                           //corp attire
+                           'BACKPACK ':'corp_attire_catg_img/BACKPACK.svg',
+                           'ADAPTER':'corp_attire_catg_img/ADAPTER.svg',
+                           'BADGE ':'corp_attire_catg_img/BADGE .svg',
+                           'BAND':'corp_attire_catg_img/BAND.svg',
+                           'BELT':'corp_attire_catg_img/BELT.svg',
+                           'BLUETOOTH HEADPHONE':'corp_attire_catg_img/BLUETOOTH HEADPHONE.svg',
+                           'BLUETOOTH SPEAKER':'corp_attire_catg_img/BLUETOOTH SPEAKER.svg',
+                           'CABLES':'corp_attire_catg_img/CABLES.svg',
+                           'CAMERA':'corp_attire_catg_img/CAMERA.svg',
+                           'CAP':'corp_attire_catg_img/CAP.svg',
+                           'CAR CHARGER':'corp_attire_catg_img/CAR CHARGER.svg',
+                           'CARD HOLDER':'corp_attire_catg_img/CARD HOLDER.svg',
+                           'CHARGER':'corp_attire_catg_img/CHARGER.svg',
+                           'COASTER':'corp_attire_catg_img/COASTER.svg',
+                           'CUTLERY':'corp_attire_catg_img/CUTLERY.svg',
+                           'DELIVERY BAG':'corp_attire_catg_img/DELIVERY BAG.svg',
+                           'DIARY':'corp_attire_catg_img/DIARY.svg',
+                           'DIGITAL PHOTO FRAME':'corp_attire_catg_img/DIGITAL PHOTO FRAME.svg',
+                           'DIGITAL TABLE TOP':'corp_attire_catg_img/DIGITAL TABLE TOP.svg',
+                           'DUFFEL BAG':'corp_attire_catg_img/DUFFEL BAG.svg',
+                           'EXECUTIVE BAG':'corp_attire_catg_img/EXECUTIVE BAG.svg',
+                           'FIDGET CUBE':'corp_attire_catg_img/FIDGET CUBE.svg',
+                           'FITNESS BAND':'corp_attire_catg_img/FITNESS BAND.svg',
+                           'GIFT SET':'corp_attire_catg_img/GIFT SET.svg',
+                           'HARD LUGGAGE':'corp_attire_catg_img/HARD LUGGAGE.svg',
+                           'HEADPHONE':'corp_attire_catg_img/HEADPHONE.svg',
+                           'JACKET ':'corp_attire_catg_img/JACKET.svg',
+                           'JUTE FOLDER':'corp_attire_catg_img/JUTE FOLDER.svg',
+                           'KEYBOARD':'corp_attire_catg_img/KEYBOARD.svg',
+                           'KEYCHAIN':'corp_attire_catg_img/KEYCHAIN.svg',
+                           'LAMP':'corp_attire_catg_img/LAMP.svg',
+                           'LANYARD':'corp_attire_catg_img/LANYARD.svg',
+                           'LIGHTER':'corp_attire_catg_img/LIGHTER.svg',
+                           'LOCKS':'corp_attire_catg_img/LOCKS.svg',
+                           'MANICURE SET':'corp_attire_catg_img/MANICURE SET.svg',
+                           'MEDALS':'corp_attire_catg_img/MEDALS.svg',
+                           'MOBILE HOLDER':'corp_attire_catg_img/MOBILE HOLDER.svg',
+                           'MUG':'corp_attire_catg_img/MUG.svg',
+                           'PASSPORT HOLDER':'corp_attire_catg_img/PASSPORT HOLDER.svg',
+                           'PEN DRIVE':'corp_attire_catg_img/PEN DRIVE.svg',
+                           'PEN':'corp_attire_catg_img/PEN.svg',
+                           'PHOTO FRAME':'corp_attire_catg_img/PHOTO FRAME.svg',
+                           'POLO T-SHIRT DRIFIT':'corp_attire_catg_img/POLO T-SHIRT DRIFIT.svg',
+                           'POLO T-SHIRT TIP':'corp_attire_catg_img/POLO T-SHIRT TIP.svg',
+                           'POLO T-SHIRT':'corp_attire_catg_img/POLO T-SHIRT.svg',
+                           'POWER BANK':'corp_attire_catg_img/POWER BANK.svg',
+                           'ROUND NECK DRIFIT':'corp_attire_catg_img/ROUND NECK DRIFIT.svg',
+                           'ROUND NECK T-SHIRT':'corp_attire_catg_img/ROUND NECK T-SHIRT.svg',
+                           'ROUND NECK':'corp_attire_catg_img/ROUND NECK.svg',
+                           'SHIRTS - FULL SLEEVE':'corp_attire_catg_img/SHIRTS - FULL SLEEVE.svg',
+                           'SIPPER':'corp_attire_catg_img/SIPPER.svg',
+                           'SOCKS':'corp_attire_catg_img/SOCKS.svg',
+                           'SPEAKER':'corp_attire_catg_img/SPEAKER.svg',
+                           'STATIONERY KIT':'corp_attire_catg_img/STATIONERY KIT.svg',
+                           'STATIONERY':'corp_attire_catg_img/STATIONERY.svg',
+                           'SWEATSHIRT - HOOD':'corp_attire_catg_img/SWEATSHIRT - HOOD.svg',
+                           'SWEATSHIRT':'corp_attire_catg_img/SWEATSHIRT.svg',
+                           'SWISS KNIFE':'corp_attire_catg_img/SWISS KNIFE.svg',
+                           'SLING BAG':'corp_attire_catg_img/SLING BAG.svg',
+                           'TABLE TOP':'corp_attire_catg_img/TABLE TOP.svg',
+                           'TIE':'corp_attire_catg_img/TIE.svg',
+                           'TOILETRY KIT':'corp_attire_catg_img/TOILETRY KIT.svg',
+                           'TOOL KIT':'corp_attire_catg_img/TOOL KIT.svg',
+                           'TORCH':'corp_attire_catg_img/TORCH.svg',
+                           'TOWEL':'corp_attire_catg_img/TOWEL.svg',
+                           'TRAVEL ADAPTER':'corp_attire_catg_img/TRAVEL ADAPTER.svg',
+                           'TRAVEL UTILITY':'corp_attire_catg_img/TRAVEL UTILITY.svg',
+                           'TRAVEL WALLET':'corp_attire_catg_img/TRAVEL WALLET.svg',
+                           'TROLLEY BAG':'corp_attire_catg_img/TROLLEY BAG.svg',
+                           'USB PORT':'corp_attire_catg_img/USB PORT.svg',
+                           'V NECK T-SHIRT':'corp_attire_catg_img/V NECK T-SHIRT.svg',
+                           'VR HEADSET':'corp_attire_catg_img/VR HEADSET.svg',
+                           'WALLET':'corp_attire_catg_img/WALLET.svg',
+                           'WRIST WATCH':'corp_attire_catg_img/Wrist Watch.svg',
+
+
+  };
+  vm.category_image_map_shailesh = {
+
+    //SAILESH
+    'FULL SLEEVE SHIRT': 'FULL SLEEVE SHIRT.png',
+    'HONEY COMBED DRY FIT': 'HONEY COMBED DRY FIT.png',
+    'HOODIES WITHOUT ZIP': 'HOODIES WITHOUT ZIP.png',
+    'HOODIES WITH ZIP': 'HOODIES WITH ZIP.png',
+    'POLO': 'POLO.png',
+    'ROUND NECK': 'ROUND NECK.png'
+  }
 
   vm.get_category_image = function(category) {
 
-    if(vm.category_image_map[category]) {
+    if (Session.parent.userName == 'shailesh_mehta') {
+      if (vm.category_image_map_shailesh[category]) {
+         return '/images/categories/'+vm.category_image_map_shailesh[category];
+      } else {
+        return '/images/categories/default.png';
+      }
+    } else if(vm.category_image_map[category]) {
       return '/images/categories/'+vm.category_image_map[category];
     } else {
-      return '/images/categories/default.png'
+      return '/images/categories/default.png';
     }
   }
 
@@ -1260,6 +1394,7 @@ angular.module('urbanApp').controller('downloadPDFCtrl', function ($modalInstanc
 
     data['terms_list'] = terms_list.join('<>');
     data['user_type'] = Session.roles.permissions.user_type;
+    data['display_stock'] = vm.pdfData.display_stock;
     Service.apiCall("get_sku_catalogs/", "POST", data).then(function(response) {
       if(response.message) {
         window.open(Session.host + response.data, '_blank');

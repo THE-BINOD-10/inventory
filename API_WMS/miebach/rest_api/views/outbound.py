@@ -6775,7 +6775,7 @@ def get_customer_cart_data(request, user=""):
                         enq_qty = 0
                     avail_stock = stock_qty - reserved_qty - enq_qty
                     tot_avail_stock = tot_avail_stock + avail_stock
-                #json_record['avail_stock'] = tot_avail_stock
+                json_record['avail_stock'] = tot_avail_stock
                 # level = json_record['warehouse_level']
                 if is_distributor:
                     if price_type:

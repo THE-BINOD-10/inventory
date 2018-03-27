@@ -301,11 +301,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     
     vm.model_data['pos_extra_fields'] = [];
     vm.validation_err = false;
+    var input_type = {'Input':'', 'Textarea':''};
+
     angular.forEach(vm.pos_extra_fields, function(data){
       
       if (!data.input_type || !data.field_name) {
         vm.service.showNoty('Please fill all the required fields which are selected', 'success', 'topRight');
         vm.validation_err = true;
+      } else {
+        if (input_type[data.input_type]) {
+          input_type[data.input_type] += ','+data.field_name;
+        } else {
+          input_type[data.input_type] = data.field_name;
+        }
       }
     });
     
@@ -313,7 +321,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       
       vm.model_data['pos_extra_fields'] = vm.pos_extra_fields;
       var send = {'pos_extra_fields':vm.pos_extra_fields};
-      vm.service.apiCall("pos_extra_fields/", "POST", send).then(function(data) {
+      vm.service.apiCall("pos_extra_fields/", "POST", input_type).then(function(data) {
 
         console.log(data);
       })

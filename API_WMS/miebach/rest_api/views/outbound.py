@@ -4306,7 +4306,9 @@ def get_style_variants(sku_master, user, customer_id='', total_quantity=0, custo
                                 source_location_code_id__userprofile__warehouse_level=level). \
                                 values_list('source_location_code_id', 'price_type')
                     sku_master[ind].setdefault('prices_map', {}).update(dict(price_data))
-                    nw_pricetypes = [j for i, j in price_data]
+                    nw_pricetypes = ['D-R']
+                    if is_style_detail == 'true':
+                        nw_pricetypes = [j for i, j in price_data]
                     pricemaster_obj = pricemaster_obj.filter(price_type__in=nw_pricetypes)
                     if pricemaster_obj:
                         sku_master[ind]['price'] = pricemaster_obj[0].price
@@ -6551,7 +6553,9 @@ def get_level_based_customer_order_detail(request, user):
                 sku_el_price = round(sku_rec.get('el_price', 0), 2)
                 sku_tax_amt = round(sku_rec.get('sku_tax_amt', 0), 2)
                 gen_obj = GenericOrderDetailMapping.objects.get(orderdetail_id=sku_rec['id'])
-                if CustomerMaster.objects.get(id=gen_obj.customer_id).user == usr_id:
+                cm_obj = CustomerMaster.objects.get(id=gen_obj.customer_id)
+                is_distributor = cm_obj.is_distributor
+                if not is_distributor and cm_obj.user == usr_id:
                     response_data['warehouse_level'] = 0
                 else:
                     response_data['warehouse_level'] = ord_usr_profile.warehouse_level
@@ -6775,7 +6779,7 @@ def get_customer_cart_data(request, user=""):
                         enq_qty = 0
                     avail_stock = stock_qty - reserved_qty - enq_qty
                     tot_avail_stock = tot_avail_stock + avail_stock
-                #json_record['avail_stock'] = tot_avail_stock
+                json_record['avail_stock'] = tot_avail_stock
                 # level = json_record['warehouse_level']
                 if is_distributor:
                     if price_type:
@@ -7121,16 +7125,19 @@ def get_invoice_details(request, user=''):
     return HttpResponse(json.dumps({'data_dict': gen_data_list, 'status': 1}, cls=DjangoJSONEncoder))
 
 
-def get_levelbased_invoice_data(start_index, stop_index, temp_data, user):
-    reseller_objs = CustomerMaster.objects.filter(user=user.id)
+def get_levelbased_invoice_data(start_index, stop_index, temp_data, user, search_term):
+    filter_dict = {'user': user.id}
+    if search_term:
+        filter_dict['name__icontains'] = search_term
+    reseller_objs = CustomerMaster.objects.filter(**filter_dict)
     reseller_ids = reseller_objs.values_list('id', flat=True)
     reseller_ords_map = {}
     total_ords = []
-    ord_picked_qty_map = {}
-    org_order_map = {}
+    ord_picked_qty_map = OrderedDict()
+    org_order_map = OrderedDict()
     for reseller in reseller_ids:
-        gen_ord_objs = GenericOrderDetailMapping.objects.filter(customer_id=reseller)
-        gen_ord_vals = gen_ord_objs.values_list('generic_order_id', 'orderdetail').order_by('-generic_order_id')
+        gen_ord_objs = GenericOrderDetailMapping.objects.filter(customer_id=reseller).order_by('-creation_date')
+        gen_ord_vals = gen_ord_objs.values_list('generic_order_id', 'orderdetail')
         for gen_id, ord_det_id in gen_ord_vals:
             ord_det_obj = OrderDetail.objects.get(id=ord_det_id)
             org_order_id = ord_det_obj.order_id
@@ -7145,7 +7152,7 @@ def get_levelbased_invoice_data(start_index, stop_index, temp_data, user):
             else:
                 continue
             total_ords.append(ord_det_id)
-            reseller_ords_map.setdefault(reseller, {}).setdefault(gen_id, []).append(ord_det_id)
+            reseller_ords_map.setdefault(reseller, OrderedDict()).setdefault(gen_id, []).append(ord_det_id)
             ord_picked_qty_map[ord_det_id] = picked_qty
             org_order_map[ord_det_id] = org_order_id
     temp_data['recordsTotal'] = len(total_ords)
@@ -7184,6 +7191,9 @@ def get_levelbased_invoice_data(start_index, stop_index, temp_data, user):
                 log.debug(traceback.format_exc())
                 log.info('Order Not found for user %s, order_det_id %s and error statement is %s'
                          % (str(user.username), str(res_ords), str(e)))
+    temp_data['recordsTotal'] = len(temp_data['aaData'])
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
     return temp_data
 
 
@@ -7195,7 +7205,7 @@ def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, o
     user_profile = UserProfile.objects.get(user_id=user.id)
     admin_user = get_priceband_admin_user(user)
     if admin_user and user_profile.warehouse_type == 'DIST':
-        temp_data = get_levelbased_invoice_data(start_index, stop_index, temp_data, user)
+        temp_data = get_levelbased_invoice_data(start_index, stop_index, temp_data, user, search_term)
     else:
         if user_profile.user_type == 'marketplace_user':
             lis = ['seller_order__order__order_id', 'seller_order__order__order_id', 'seller_order__sor_id',
@@ -7225,9 +7235,8 @@ def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, o
             if not is_marketplace:
                 master_data = SellerOrderSummary.objects.filter(Q(order__order_id__icontains=order_id_search,
                                                                   order__order_code__icontains=order_code_search) |
-                                                                Q(
-                                                                    order__original_order_id__icontains=search_term) | search_query,
-                                                                **user_filter). \
+                                                                Q(order__original_order_id__icontains=search_term) |
+                                                                search_query, **user_filter). \
                     values(*result_values).distinct(). \
                     annotate(total_quantity=Sum('quantity'),
                              total_order=Sum(field_mapping['order_quantity_field']))
@@ -7989,8 +7998,11 @@ def create_custom_skus(request, user=''):
                     data_dict['sku_class'] = str(sku) + "-" + size_name
                     fabric = ' Single Fabric ' if data['fabric']['fabric'] else ' Multi Fabric '
                     data_dict['style_name'] = data['style'] + fabric + size_name
+                    if data.get('bodyColor', ''):
+                        data['style_name'] = data_dict['style_name'] + ' ' + data['bodyColor']
                     data_dict['sku_size'] = size
                     data_dict['sku_type'] = "CS"
+                    data_dict['sub_category'] = data['style']
 
                     sku_desc = size_name + "_" + size
                     if data['bodyStyle'].get('sku_class', ''):

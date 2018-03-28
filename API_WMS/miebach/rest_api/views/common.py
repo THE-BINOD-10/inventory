@@ -2207,7 +2207,8 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
                 order = seller_order_summary[0].order
             check_dict = {prefix_key + 'order_id': order.order_id, prefix_key + 'order_code': order.order_code,
                           prefix_key + 'original_order_id': order.original_order_id, prefix_key + 'user': user.id}
-            invoice_ins = SellerOrderSummary.objects.filter(**check_dict).exclude(invoice_number='')
+            # invoice_ins = SellerOrderSummary.objects.filter(**check_dict).exclude(invoice_number='')
+            invoice_ins = SellerOrderSummary.objects.filter(order__id__in=order_ids).exclude(invoice_number='')
 
             if invoice_ins:
                 order_no = invoice_ins[0].invoice_number
@@ -3834,7 +3835,15 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
     gen_whs = [user.id]
     admin = get_priceband_admin_user(user)
     if admin:
-        gen_whs = get_generic_warehouses_list(admin)
+        gen_whs = list(get_generic_warehouses_list(admin))
+        cm_obj = CustomerUserMapping.objects.filter(user=request.user.id)
+        if cm_obj:
+            cm_id = cm_obj[0].customer
+            dist_wh_obj = WarehouseCustomerMapping.objects.filter(customer_id=cm_id)
+            if dist_wh_obj:
+                dist_wh_id = dist_wh_obj[0].warehouse.id
+                if dist_wh_id in gen_whs:
+                    gen_whs.remove(dist_wh_id)
         if delivery_date:
             del_date = datetime.datetime.strptime(delivery_date, '%m/%d/%Y').date()
             today_date = datetime.datetime.today().date()

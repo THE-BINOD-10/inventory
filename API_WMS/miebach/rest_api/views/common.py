@@ -3835,7 +3835,15 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
     gen_whs = [user.id]
     admin = get_priceband_admin_user(user)
     if admin:
-        gen_whs = get_generic_warehouses_list(admin)
+        gen_whs = list(get_generic_warehouses_list(admin))
+        cm_obj = CustomerUserMapping.objects.filter(user=request.user.id)
+        if cm_obj:
+            cm_id = cm_obj[0].customer
+            dist_wh_obj = WarehouseCustomerMapping.objects.filter(customer_id=cm_id)
+            if dist_wh_obj:
+                dist_wh_id = dist_wh_obj[0].warehouse.id
+                if dist_wh_id in gen_whs:
+                    gen_whs.remove(dist_wh_id)
         if delivery_date:
             del_date = datetime.datetime.strptime(delivery_date, '%m/%d/%Y').date()
             today_date = datetime.datetime.today().date()

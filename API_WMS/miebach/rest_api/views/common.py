@@ -6433,3 +6433,31 @@ def update_mail_alerts(request, user=''):
         log.info('Update Remainder Mail alerts failed for %s and request is %s and error statement is %s' % (
             str(user.username), str(request.GET.dict()), str(e)))
     return HttpResponse("Success")
+
+
+def allocate_order_returns(user, sku_data, request):
+    excl_filter = {}
+    data = {}
+    order_filter = {'user': user.id, 'sku_id': sku_data.id}
+    if request.GET.get('marketplace', ''):
+        order_filter['marketplace'] = request.GET.get('marketplace', '')
+    if request.GET.get('exclude_order_ids', []):
+        excl_filter['original_order_id__in'] = request.GET.get('exclude_order_ids', []).split(',')
+    if request.GET.get('order_id', ''):
+        order_filter['original_order_id'] = request.GET.get('order_id', '')
+    if get_permission(user, 'add_shipmentinfo'):
+        order_filter['picklist__status'] = 'dispatched'
+    else:
+        order_filter['picklist__status__in'] = ['picked', 'batch_picked']
+    orders = OrderDetail.objects.exclude(**excl_filter).filter(**order_filter).\
+                                annotate(ret=Sum(F('orderreturns__quantity')),
+                                        dam=Sum(F('orderreturns__damaged_quantity'))).annotate(tot=F('ret')+F('dam')). \
+                                filter(Q(tot__isnull=True) | Q(quantity__gt=F('tot')))
+    if orders:
+        order = orders[0]
+        if not order.tot:
+            order.tot = 0
+        ship_quantity = order.quantity - order.tot
+        data = {'status': 'confirmed', 'sku_code': sku_data.sku_code, 'description': sku_data.sku_desc,
+                'order_id': order.original_order_id, 'ship_quantity': ship_quantity, 'unit_price': order.unit_price}
+    return data

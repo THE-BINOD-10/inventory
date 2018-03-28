@@ -35,6 +35,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.dtInstance = {};
     vm.reloadData = reloadData;
+    vm.allocate_order = false;
+    vm.excl_order_map = {};
 
     function reloadData () {
         vm.dtInstance.reloadData();
@@ -51,6 +53,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.confirm_disable = false;
       vm.imei_data.reason = "";
       vm.imei_data.scanning = false;
+      vm.excl_order_map = {};
       $state.go('app.inbound.SalesReturns');
     }
 
@@ -140,7 +143,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.sku_mapping = {};
     vm.scan_sku = function(event, field) {
       if ( event.keyCode == 13 && field) {
-        vm.service.apiCall('check_sku/', 'GET',{'sku_code': field}).then(function(data){
+        var check_sku_dict = {'sku_code': field, 'allocate_order': vm.allocate_order,
+                           'marketplace': vm.model_data.marketplace}
+        if(vm.excl_order_map[field]) {
+          check_sku_dict['exclude_order_ids'] = vm.excl_order_map[field].join(',');
+        }
+        console.log(check_sku_dict);
+        vm.service.apiCall('check_sku/', 'GET', check_sku_dict).then(function(data){
           field = data.data.sku_code;
           if(vm.scan_skus.indexOf(field) == -1) {
             if ('confirmed'==data.data.status) {
@@ -152,16 +161,22 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           } else {
             var status = true;
             for(var i = 0; i < vm.model_data.data.length; i++) {
-              if(field == vm.model_data.data[i].sku_code && vm.model_data.data[i].is_new && vm.model_data.marketplace == vm.model_data.data[i].marketplace) {
+              if(field == vm.model_data.data[i].sku_code && vm.model_data.data[i].is_new &&
+                    vm.model_data.marketplace == vm.model_data.data[i].marketplace &&
+                     (vm.model_data.data[i].ship_quantity > vm.model_data.data[i].return_quantity || vm.model_data.data[i].ship_quantity=="")) {
+                vm.model_data.data[i].return_quantity = Number(vm.model_data.data[i].return_quantity) + 1;
+                status = false;
+                vm.add_excl_orders(vm.model_data.data[i]);
+                break;
+              }
+              if(vm.sku_mapping[field] == vm.model_data.data[i].sku_code && vm.model_data.data[i].is_new &&
+                    vm.model_data.marketplace == vm.model_data.data[i].marketplace &&
+                     (vm.model_data.data[i].ship_quantity > vm.model_data.data[i].return_quantity || vm.model_data.data[i].ship_quantity=="")) {
                 vm.model_data.data[i].return_quantity = Number(vm.model_data.data[i].return_quantity) + 1;
                 status = false;
                 break;
               }
-              if(vm.sku_mapping[field] == vm.model_data.data[i].sku_code && vm.model_data.data[i].is_new && vm.model_data.marketplace == vm.model_data.data[i].marketplace) {
-                vm.model_data.data[i].return_quantity = Number(vm.model_data.data[i].return_quantity) + 1;
-                status = false;
-                break;
-              }
+              console.log(vm.excl_order_map);
             }
             if (status) {
               vm.add_new_sku(data.data);
@@ -173,9 +188,26 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     vm.add_new_sku = function(new_sku) {
-      vm.model_data.data.push({'sku_code': new_sku.sku_code, 'sku_desc': new_sku.description, 'shipping_quantity': '', 'order_id':'',
-                                'return_quantity': 1, 'damaged_quantity': '', 'track_id_enable': false,
-                                'is_new': true, 'marketplace':vm.model_data.marketplace, 'sor_id': vm.model_data.sor_id})
+      vm.model_data.data.push({'sku_code': new_sku.sku_code, 'sku_desc': new_sku.description, 'ship_quantity': new_sku.ship_quantity,
+                               'order_id': new_sku.order_id, 'return_quantity': 1, 'damaged_quantity': 0, 'track_id_enable': false,
+                               'is_new': true, 'marketplace':vm.model_data.marketplace, 'sor_id': vm.model_data.sor_id,
+                               'unit_price': new_sku.unit_price, 'old_order_id': new_sku.order_id})
+      if(new_sku.order_id){
+        var name = new_sku.order_id+"<<>>"+new_sku.sku_code;
+        vm.orders_data[name] = {};
+        angular.copy(new_sku, vm.orders_data[name]);
+      }
+    }
+
+    vm.add_excl_orders = function(data_dict) {
+      if(Number(data_dict.ship_quantity) <= Number(data_dict.return_quantity)) {
+        if(vm.excl_order_map[data_dict.sku_code] == undefined) {
+          vm.excl_order_map[data_dict.sku_code] = [];
+        }
+        if(data_dict.order_id != '') {
+          vm.excl_order_map[data_dict.sku_code].push(data_dict.order_id);
+        }
+      }
     }
 
     vm.confirm_disable = false;
@@ -296,6 +328,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.scan_awb_order_no.splice($.inArray(vm.model_data.data[index]['awb_no'], vm.scan_awb_order_no),1);
       }
       vm.remove_serials(data);
+      if(vm.excl_order_map[data[index].sku_code] && vm.excl_order_map[data[index].sku_code].indexOf(data[index].order_id) > -1) {
+        vm.excl_order_map[data[index].sku_code].splice(vm.excl_order_map[data[index].sku_code].indexOf(data[index].order_id), 1);
+      }
+
       data.splice(index, 1);
       vm.calOrdersData(record);
       if(data.length > 0 && !(record.order_id)) {
@@ -497,6 +533,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }
         temp_data.return_quantity = Number(data.return_quantity) + return_quantity;
       }
+      if(vm.return_process == 'sku_code') {
+        vm.add_excl_orders(vm.model_data.data[index]);
+      }
     }
 
     vm.changeDamagedQty = function(qty, index, data) {
@@ -523,6 +562,74 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }
         temp_data.damaged_quantity = Number(data.damaged_quantity) + damaged_quantity;
       }
+    }
+
+    vm.changeOrderId = function(qty, index, data) {
+
+      if(vm.return_process != 'sku_code' || !vm.allocate_order || data.order_id == data.old_order_id){
+        return false;
+      }
+      for(var ind=0;ind<vm.model_data.data.length;ind++){
+        if(vm.model_data.data[ind].order_id == data.order_id && ind != index){
+          data.order_id = data.old_order_id;
+          pop_msg("Order Id already added in the list");
+          return false
+        }
+      }
+      var check_sku_dict = {'sku_code': data.sku_code, 'allocate_order': vm.allocate_order,
+                            'marketplace': vm.model_data.marketplace, 'order_id': data.order_id}
+      vm.service.apiCall('check_sku/', 'GET', check_sku_dict).then(function(api_data){
+        if ('confirmed'==api_data.data.status && api_data.data.order_id) {
+           console.log(api_data.data);
+           if(api_data.data.ship_quantity < data.return_quantity){
+             vm.service.alert_msg("Return quantity is more than shipped quantity.Confirm to Overwrite").then(function(msg) {
+               if(msg == 'true') {
+                 vm.update_order_det(data, api_data);
+               }
+               else {
+                 data.order_id = data.old_order_id;
+               }
+             });
+           }
+           else {
+             vm.update_order_det(data, api_data);
+           }
+          //vm.scan_skus.push(field);
+        } else if(!api_data.data.order_id){
+          pop_msg("Invalid Order Id");
+          data.order_id = data.old_order_id;
+        } else {
+          pop_msg(api_data.data);
+        }
+        /*var temp_data = vm.orders_data[data.old_order_id+"<<>>"+data.sku_code];
+        if(temp_data) {
+          var return_quantity = 0;
+          angular.forEach(vm.model_data.data, function(sku_data, position){
+            if(sku_data.old_order_id == data.old_order_id && sku_data.sku_code == data.sku_code) {
+              return_quantity += Number(sku_data.return_quantity);
+            }
+          });
+          temp_data.return_quantity = Number(data.return_quantity) + return_quantity;
+        }*/
+      });
+    }
+
+    vm.update_order_det = function(data, api_data){
+      if(vm.orders_data[data.old_order_id+'<<>>'+data.sku_code]){
+        vm.orders_data[data.order_id+'<<>>'+data.sku_code] = data;
+        delete vm.orders_data[data.old_order_id+'<<>>'+data.sku_code];
+      }
+      data.ship_quantity = api_data.data.ship_quantity;
+      data.order_id = api_data.data.order_id;
+      data.old_order_id = api_data.data.order_id;
+      data.unit_price = api_data.data.unit_price;
+      if(data.return_quantity>data.ship_quantity){
+        data.return_quantity = data.ship_quantity;
+      }
+      if(data.damaged_quantity>data.ship_quantity){
+        data.damaged_quantity = data.ship_quantity;
+      }
+      vm.add_excl_orders(data);
     }
 
     vm.return_processes = {return_id: 'Return ID', order_id: 'Order ID'};

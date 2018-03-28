@@ -2566,7 +2566,9 @@ def check_returns(request, user=''):
 @csrf_exempt
 @get_admin_user
 def check_sku(request, user=''):
+    data = []
     sku_code = request.GET.get('sku_code')
+    allocate_order = request.GET.get('allocate_order', 'false')
     check = False
     sku_id = check_and_return_mapping_id(sku_code, '', user, check)
     if not sku_id:
@@ -2576,7 +2578,11 @@ def check_sku(request, user=''):
             sku_id = ''
     if sku_id:
         sku_data = SKUMaster.objects.get(id=sku_id)
-        data = {"status": 'confirmed', 'sku_code': sku_data.sku_code, 'description': sku_data.sku_desc}
+        if allocate_order == 'true':
+            data = allocate_order_returns(user, sku_data, request)
+        if not data:
+            data = {"status": 'confirmed', 'sku_code': sku_data.sku_code, 'description': sku_data.sku_desc,
+                    'order_id': '', 'ship_quantity': '', 'unit_price': ''}
         return HttpResponse(json.dumps(data))
 
     """

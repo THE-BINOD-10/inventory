@@ -2566,7 +2566,7 @@ def check_returns(request, user=''):
 @csrf_exempt
 @get_admin_user
 def check_sku(request, user=''):
-    data = []
+    data = {}
     sku_code = request.GET.get('sku_code')
     allocate_order = request.GET.get('allocate_order', 'false')
     check = False

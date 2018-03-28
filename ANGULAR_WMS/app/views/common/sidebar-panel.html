@@ -32,7 +32,8 @@
     </li>
     <!-- /dashboard -->
 
-    <!-- Masters -->
+    <!-- 
+      Masters -->
     <li data-ng-class="{open: $state.includes('app.masters')}" ng-show="show_tab('MASTERS_LABEL')">
       <a href="javascript:;">
         <i class="fa fa-cubes"></i>
@@ -57,6 +58,16 @@
         <li ui-sref-active="active">
           <a ui-sref="app.masters.supplierSKUMapping" ng-show="show_tab('add_skusupplier')">
             <span>Supplier-SKU Mapping</span>
+          </a>
+        </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.masters.CorporateMaster" ng-show="show_tab('add_corporatemaster')">
+            <span>Corporate Master</span>
+          </a>
+        </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.masters.CorporateMapping" ng-show="show_tab('add_corpresellermapping')">
+            <span>Reseller Corporate Mapping</span>
           </a>
         </li>
         <li ui-sref-active="active">
@@ -146,7 +157,7 @@
         <span>Inbound</span>
       </a>
       <ul class="sub-menu">
-        <li ng-show="show_tab('add_openpo') || show_tab('change_openpo')" ui-sref-active="active">
+        <li ng-show="show_tab('add_openpo') || show_tab('change_openpo') || show_tab('add_intransitorders')" ui-sref-active="active">
           <a ui-sref="app.inbound.RaisePo">
             <span>Raise PO</span>
           </a>

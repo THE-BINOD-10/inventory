@@ -55,7 +55,10 @@
     if(POS_ENABLE_SYNC===false && POS_UPDATE_FOUND){
       
       navigator.serviceWorker.ready.then(function(reg){
-          reg.showNotification("POS found update,reloading the page", {icon:"app/images/pos_icon.png"});
+          reg.showNotification("POS update", {
+            body:"POS find a new update please wait for reloading",
+            tag:"pos_alert",
+            icon:"app/images/pos_icon.png"});
       });
       
       POS_UPDATE_FOUND=false;
@@ -82,6 +85,7 @@
       });
     });
   }
+  
   //check if the storage is persisted or not
   async function isStoragePersisted() {
     return await navigator.storage && navigator.storage.persisted &&

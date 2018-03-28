@@ -58,12 +58,12 @@
                 <label class="control-label"> Phone No. * </label>
                 <input name="phone_number" type="text" class="form-control numvalid" ng-model="showCase.model_data.phone_number" maxlength="10" ng-pattern="/^\+?\d{2}[- ]?\d{3}[- ]?\d{5}$/" required> </div>
             </div>
-            <div class="col-md-4">
-                 <div class="form-group">
-                   <label class="control-label"> CST </label>
-                   <input type="text" name="cst_number" class="form-control" ng-model="showCase.model_data.cst_number" maxlength="64">
-                 </div>
-            </div>
+            <!--<div class="col-md-4">-->
+                 <!--<div class="form-group">-->
+                   <!--<label class="control-label"> CIN </label>-->
+                   <!--<input type="text" name="cin_number" class="form-control" ng-model="showCase.model_data.cin_number" maxlength="64">-->
+                 <!--</div>-->
+            <!--</div>-->
             <div class="col-md-4">
                <div class="form-group">
                  <label class="control-label"> PAN </label>
@@ -102,8 +102,8 @@
             </div>
             <div class="col-md-4" ng-if="show_tab('add_pricemaster')">
               <div class="form-group">
-                <label class="control-label"> Tax Type </label>
-                <select class="form-control"  ng-model="showCase.model_data.tax_type" name="tax_type">
+                <label class="control-label"> Tax Type *</label>
+                <select class="form-control" ng-model="showCase.model_data.tax_type" name="tax_type" required>
                   <option value=""> None </option>
                   <option ng-repeat="one in showCase.all_taxes" value="{{one.tax_value}}" ng-selected="one.tax_name == showCase.model_data.tax_type">{{one.tax_name}}</option>
                 </select>

@@ -16,8 +16,8 @@ input[type="date"]:valid::before {
 }
 </style>
         <div class="order-list">
-          <div class="order-item" ng-class="(!($last))? 'border-grey': ''" ng-repeat="order in orders.order_data.data" ng-click="orders.open_details({orderId: order.order_id, state: orders.status})" style="cursor: pointer">
-            <div class="row" ng-if="orders.your_orders">
+          <div class="order-item" ng-class="(!($last))? 'border-grey': ''" ng-repeat="order in orders.order_data.data" ng-click="orders.open_details({orderId: order.order_id, state: orders.status, customerId: order.customer_id})" style="cursor: pointer">
+            <div class="row" ng-if="orders.your_orders=='orders'">
               <div class="col-md-6 col-sm-6 col-xs-6">
                 <div class="order-id">
                   <span class="order-label">Order on:</span>
@@ -28,7 +28,7 @@ input[type="date"]:valid::before {
                 <span class="label pull-right text-uppercase" ng-class="(orders.getStatus(order.total_quantity, order.picked_quantity) == 'Open')? 'label-danger': 'label-success';" style="font-size: 12px;">{{orders.getStatus(order.total_quantity, order.picked_quantity)}}</span>
               </div>
             </div>
-            <div class="row" ng-if="orders.your_orders">
+            <div class="row" ng-if="orders.your_orders=='orders'">
               <section class="widget text-center no-margin">
                 <div class="widget-details col-xs-3 text-left">
                   <small class="order-label" ng-if="permissions.user_type == 'distributor'">Reseller Order ID</small>
@@ -67,7 +67,7 @@ input[type="date"]:valid::before {
                   
               </div>
             </div>
-            <div class="row" ng-if="!orders.your_orders">
+            <div class="row" ng-if="orders.your_orders=='enquiry'">
               <section class="widget text-center no-margin">
                 <div class="widget-details col-xs-2 text-left">
                   <small class="order-label">Enquiry ID</small>
@@ -92,7 +92,7 @@ input[type="date"]:valid::before {
                 </div>
               </section>
             </div>
-            <div class="row m10" ng-if="!orders.your_orders">
+            <div class="row m10" ng-if="orders.your_orders=='enquiry'">
               <div class="widget-details col-xs-5 text-left no-padding">
                 <span class="pull-left ml10"><b>Corp. Name:</b> {{order.corporate_name}}</span>
               </div>
@@ -113,6 +113,25 @@ input[type="date"]:valid::before {
                 <small class="order-label"> </small>
                 <button type='button' class="btn btn-warning pull-right" style="min-width: 75px;height: 26px;padding: 2px 5px;" ng-click="orders.moveToCart(order, $index, $event)" ng-disabled="orders.moving">{{(orders.moving)? 'Moving': 'Move to Cart';}}</button>
               </div>
+            </div>
+
+            <div class="row" ng-if="orders.your_orders=='manual_enquiry'">
+              <section class="widget text-center no-margin">
+                <div class="widget-details col-xs-2 text-left">
+                  <small class="order-label">Enquiry ID</small>
+                  <h2 class="no-margin order-bold">{{order.order_id}}</h2></div>
+                <div class="widget-details col-xs-2 text-left">
+                  <small class="order-label">Enquiry Date</small>
+                  <h2 class="no-margin order-bold">{{order.date}}</h2></div>
+                <div class="widget-details col-xs-4 text-center">
+                  <small class="order-label">Customer Name</small>
+                  <h2 class="no-margin order-bold">{{order.customer_name}}</h2>
+                </div>
+                <div class="widget-details col-xs-4 text-right">
+                  <small class="order-label">Style Name</small>
+                  <h2 class="no-margin order-bold">{{order.style_name}}</h2>
+                </div>
+              </section>
             </div>
           </div>
           <div class="order-item" ng-if="orders.order_data.data.length == 0 && (!orders.orders_loading)">

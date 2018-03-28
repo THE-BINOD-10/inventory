@@ -4,7 +4,8 @@ from miebach_utils import BigAutoField
 from datetime import date
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .choices import UNIT_TYPE_CHOICES, REMARK_CHOICES, TERMS_CHOICES, ROLE_TYPE_CHOICES
+from .choices import UNIT_TYPE_CHOICES, REMARK_CHOICES, TERMS_CHOICES, CUSTOMIZATION_TYPES, ROLE_TYPE_CHOICES
+
 # from longerusername import MAX_USERNAME_LENGTH
 # Create your models here.
 
@@ -374,6 +375,7 @@ class PurchaseOrder(models.Model):
     prefix = models.CharField(max_length=32, default='')
     remarks = models.TextField(default='')
     expected_date = models.DateField(blank=True, null=True)
+    remainder_mail = models.IntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -767,6 +769,7 @@ class UserProfile(models.Model):
     min_order_val = models.PositiveIntegerField(default=0)
     level_name = models.CharField(max_length=64, default='')
     zone = models.CharField(max_length=64, default='')
+    cin_number = models.CharField(max_length=64, default='')
 
     class Meta:
         db_table = 'USER_PROFILE'
@@ -1130,6 +1133,41 @@ class CustomerSKU(models.Model):
         unique_together = ('customer', 'sku')
 
 
+class CorporateMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.PositiveIntegerField(default=0)
+    name = models.CharField(max_length=256, default='')
+    address = models.CharField(max_length=256, default='')
+    city = models.CharField(max_length=64, default='')
+    state = models.CharField(max_length=64, default='')
+    country = models.CharField(max_length=64, default='')
+    pincode = models.CharField(max_length=64, default='')
+    phone_number = models.CharField(max_length=32, default='')
+    email_id = models.CharField(max_length=64, default='')
+    status = models.CharField(max_length=11, default='')
+    tin_number = models.CharField(max_length=64, default='')
+    corporate_id = models.PositiveIntegerField(default=0)
+    cst_number = models.CharField(max_length=64, default='')
+    pan_number = models.CharField(max_length=64, default='')
+    tax_type = models.CharField(max_length=32, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'CORPORATE_MASTER'
+
+class CorpResellerMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    reseller_id = models.PositiveIntegerField()
+    corporate_id = models.PositiveIntegerField()
+    status = models.CharField(max_length=10, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'CORP_RESELLER_MAPPING'
+
+
 class SKUGroups(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.PositiveIntegerField()
@@ -1242,6 +1280,7 @@ class CustomerOrderSummary(models.Model):
     sgst_tax = models.FloatField(default=0)
     igst_tax = models.FloatField(default=0)
     utgst_tax = models.FloatField(default=0)
+    invoice_type = models.CharField(max_length=64, default='Tax Invoice')
 
     class Meta:
         db_table = 'CUSTOMER_ORDER_SUMMARY'
@@ -1694,6 +1733,7 @@ class SellerPO(models.Model):
 class SellerPOSummary(models.Model):
     id = BigAutoField(primary_key=True)
     receipt_number = models.PositiveIntegerField(default=0)
+    invoice_number = models.PositiveIntegerField(default=0)
     seller_po = models.ForeignKey(SellerPO, blank=True, null=True, db_index=True)
     purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True, db_index=True)
     location = models.ForeignKey(LocationMaster, blank=True, null=True)
@@ -1869,6 +1909,7 @@ class TallyConfiguration(models.Model):
     maintain_bill = models.IntegerField(default=0)
     automatic_voucher = models.IntegerField(default=0)
     credit_period = models.IntegerField(default=0)
+    round_off_ledger = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -1890,7 +1931,8 @@ class TallyConfiguration(models.Model):
             'stock_category': self.stock_category,
             'maintain_bill': int(self.maintain_bill),
             'automatic_voucher': int(self.automatic_voucher),
-            'credit_period': self.credit_period
+            'credit_period': self.credit_period,
+            'round_off_ledger': self.round_off_ledger,
         }
 
 
@@ -2402,6 +2444,48 @@ class MastersMapping(models.Model):
         unique_together = ('user', 'master_id', 'mapping_id', 'mapping_type')
 
 
+class ManualEnquiry(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    enquiry_id = models.DecimalField(max_digits=50, decimal_places=0)
+    customer_name = models.CharField(max_length=256, default='')
+    sku = models.ForeignKey(SKUMaster)
+    quantity = models.PositiveIntegerField()
+    customization_type =  models.CharField(max_length=64, default='',  choices=CUSTOMIZATION_TYPES)
+    status = models.CharField(max_length=32)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'MANUAL_ENQUIRY'
+        unique_together = ('enquiry_id', 'customer_name', 'user')
+
+
+class ManualEnquiryDetails(models.Model):
+    id = BigAutoField(primary_key=True)
+    user_id = models.PositiveIntegerField()
+    enquiry = models.ForeignKey(ManualEnquiry)
+    ask_price = models.FloatField(default=0)
+    expected_date = models.DateField(blank=True, null=True)
+    remarks = models.TextField(default='')
+    status = models.CharField(max_length=32)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'MANUAL_ENQUIRY_DETAILS'
+
+
+class ManualEnquiryImages(models.Model):
+    id = BigAutoField(primary_key=True)
+    enquiry = models.ForeignKey(ManualEnquiry)
+    image =  models.ImageField(upload_to='static/images/manual_enquiry/')
+    status = models.CharField(max_length=32)
+
+    class Meta:
+        db_table = 'MANUAL_ENQUIRY_IMAGES'
+
+
 class GroupPermMapping(models.Model):
     id = BigAutoField(primary_key=True)
     group = models.ForeignKey(Group)
@@ -2415,6 +2499,52 @@ class GroupPermMapping(models.Model):
     class Meta:
         db_table = 'GROUP_PERM_MAPPING'
         unique_together = ('group', 'perm_type', 'perm_value')
+
+
+class SellerTransfer(models.Model):
+    id = BigAutoField(primary_key=True)
+    source_seller = models.ForeignKey(SellerMaster)
+    dest_seller = models.ForeignKey(SellerMaster, related_name='destination')
+    transact_id = models.DecimalField(max_digits=20, decimal_places=0, db_index=True, default=0)
+    transact_type = models.CharField(max_length=32)
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'SELLER_TRANSFER'
+        unique_together = ('source_seller', 'dest_seller', 'transact_id')
+        index_together = ('source_seller', 'dest_seller', 'transact_id')
+
+
+class SellerStockTransfer(models.Model):
+    id = BigAutoField(primary_key=True)
+    seller_transfer = models.ForeignKey(SellerTransfer)
+    sku = models.ForeignKey(SKUMaster)
+    source_location = models.ForeignKey(LocationMaster)
+    dest_location = models.ForeignKey(LocationMaster, related_name='dest_location')
+    quantity = models.PositiveIntegerField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'SELLER_STOCK_TRANSFER'
+        unique_together = ('seller_transfer', 'sku', 'source_location', 'dest_location')
+        index_together = ('seller_transfer', 'sku', 'source_location', 'dest_location')
+
+
+class MailAlerts(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User, blank=True, null=True)
+    alert_name = models.CharField(max_length=64, default='')
+    alert_type = models.CharField(max_length=64, default='')
+    alert_value = models.PositiveIntegerField()
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'MAIL_ALERTS'
+        unique_together = ('user', 'alert_name')
 
 
 class UserAttributes(models.Model):

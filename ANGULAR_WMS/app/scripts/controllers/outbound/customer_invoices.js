@@ -134,6 +134,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       });
     }
 
+    vm.checked_ids = [];
     vm.checkedItem = function(data, index){
       
       if (vm.checked_items[index]) {
@@ -142,6 +143,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       } else {
         
         vm.checked_items[index] = data;
+        vm.checked_ids.push(vm.checked_items[index].id);
       }
       // vm.checked_items[index] = data;
       console.log(data)      
@@ -267,25 +269,31 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       })
     }
 
+    vm.delivery_challan = false;
+
     vm.pdf_data = {};
-    vm.generate_invoice = function(click_type){
+    vm.generate_invoice = function(click_type, DC=false){
 
       var po_number = '';
       var status = false;
       var field_name = "";
       var data = [];
-      angular.forEach(vm.selected, function(value, key) {
-        if(value) {
-          var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]['_aData'];
-          if(!(po_number)) {
-            po_number = temp[temp['check_field']];
-          } else if (po_number != temp[temp['check_field']]) {
-            status = true;
+      if (vm.user_type == 'distributor') {
+        data = vm.checked_ids;
+      } else {
+        angular.forEach(vm.selected, function(value, key) {
+          if(value) {
+            var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]['_aData'];
+            if(!(po_number)) {
+              po_number = temp[temp['check_field']];
+            } else if (po_number != temp[temp['check_field']]) {
+              status = true;
+            }
+            field_name = temp['check_field'];
+            data.push(temp['id']);
           }
-          field_name = temp['check_field'];
-          data.push(temp['id']);
-        }
-      });
+        });
+      }
 
       if(status) {
         vm.service.showNoty("Please select same "+field_name+"'s");
@@ -300,6 +308,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           send['data'] = true;
           send['edit_invoice'] = true;
         }
+        send['delivery_challan'] = DC;
+        vm.delivery_challan = DC;
         vm.bt_disable = true;
         vm.service.apiCall("generate_customer_invoice/", "GET", send).then(function(data){
 
@@ -425,6 +435,7 @@ function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Servi
   var vm = this;
   vm.service = Service;
   vm.permissions = Session.roles.permissions;
+  vm.priceband_sync = Session.roles.permissions.priceband_sync;
 
   vm.model_data = items;
   vm.model_data.temp_sequence_number = vm.model_data.sequence_number;

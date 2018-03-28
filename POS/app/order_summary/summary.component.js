@@ -86,25 +86,10 @@
 
     //save user status in local db
     function saveUserData(user_data){
-
         setCheckSum(setCheckSumFormate(JSON.stringify(user_data),USER_DATA)).
                           then(function(data){
                               console.log("user data saved on locally "+data); 
-                                      
-                              if(navigator.onLine){
-                                //sync pos data 
-                                navigator.serviceWorker.ready.then(function() {
-                                  syncPOSTransactionData().then(function(){
-                                    urlService.hide_loading();
-                                  }).catch(function(){
-                                    urlService.hide_loading();
-                                  });
-                                });
-                              }else{
-                                console.log( "offline");
-                                urlService.hide_loading();
-                              }               
-                                         
+                              urlService.pos_sync();    
                           }).catch(function(error){
                              urlService.hide_loading();
                              console.log("user data saved fail in locally "+error.message); 
@@ -202,7 +187,7 @@
       self.change_disc = change_disc;
       function change_disc(disc) {
         disc = parseFloat(disc);
-        var perc = parseFloat((disc * 100)/(self.order.total_amount + self.order.total_discount).toFixed(2));
+        var perc = parseFloat(((disc * 100)/(self.order.total_amount + self.order.total_discount)).toFixed(2));
         self.total_amount = parseFloat((self.order.total_amount + self.order.total_discount - disc).toFixed(2));
         self.disc_percent = perc;
       }

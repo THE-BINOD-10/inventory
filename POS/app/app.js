@@ -107,7 +107,7 @@ app.config(function($stateProvider, $urlRouterProvider,$httpProvider){
 app.factory('printer', ['$rootScope', '$compile', '$http', '$timeout','$q', function ($rootScope, $compile, $http, $timeout, $q) {
         var printHtml = function (html) {
             var deferred = $q.defer();
-            var hiddenFrame = $('<iframe style="display: none"></iframe>').appendTo('body')[0];
+            var hiddenFrame = $('<iframe style="visibility: hidden"></iframe>').appendTo('body')[0];
             $(hiddenFrame).on('load', function () {
                 if (!hiddenFrame.contentDocument.execCommand('print', false, null)) {
                     hiddenFrame.contentWindow.focus();

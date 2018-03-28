@@ -6459,5 +6459,6 @@ def allocate_order_returns(user, sku_data, request):
             order.tot = 0
         ship_quantity = order.quantity - order.tot
         data = {'status': 'confirmed', 'sku_code': sku_data.sku_code, 'description': sku_data.sku_desc,
-                'order_id': order.original_order_id, 'ship_quantity': ship_quantity, 'unit_price': order.unit_price}
+                'order_id': order.original_order_id, 'ship_quantity': ship_quantity, 'unit_price': order.unit_price,
+                'return_quantity': 1}
     return data

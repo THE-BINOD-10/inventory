@@ -155,6 +155,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             if ('confirmed'==data.data.status) {
               vm.add_new_sku(data.data);
               vm.scan_skus.push(field);
+              vm.add_excl_orders(data.data);
             } else {
               pop_msg(data.data);
             }

@@ -1531,6 +1531,10 @@ var app = angular.module('urbanApp')
             title: 'Supplier Wise POs',
           }
         })
+        .state('app.reports.SupplierWisePOs.POs', {
+            url: '/POs',
+            templateUrl: 'views/reports/toggles/po_details.html',
+          })
         .state('app.reports.SalesReturnReport', {
           url: '/SalesReturnReport',
           permission: 'add_orderreturns',

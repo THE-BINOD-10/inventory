@@ -18,7 +18,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
               xhrFields: {
                 withCredentials: true
               },
-              data: vm.model_data,
               complete: function(jqXHR, textStatus) {
                 $scope.$apply(function(){
                   angular.copy(JSON.parse(jqXHR.responseText), vm.tb_data)
@@ -29,6 +28,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
        .withOption('processing', true)
        .withOption('serverSide', true)
        .withPaginationType('full_numbers')
+       .withOption('rowCallback', rowCallback)
        .withOption('initComplete', function( settings ) {
          var html = vm.service.add_totals(settings.aoColumns.length, vm.total_data)
          $(".dataTable > thead").prepend(html)
@@ -39,8 +39,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         DTColumnBuilder.newColumn('Order Date').withTitle('Order Date'),
         DTColumnBuilder.newColumn('PO Number').withTitle('PO Number'),
         DTColumnBuilder.newColumn('Supplier Name').withTitle('Supplier Name'),
-        DTColumnBuilder.newColumn('WMS Code').withTitle('WMS Code'),
-        DTColumnBuilder.newColumn('Design').withTitle('Design'),
+        // DTColumnBuilder.newColumn('WMS Code').withTitle('WMS Code'),
+        // DTColumnBuilder.newColumn('Design').withTitle('Design'),
         DTColumnBuilder.newColumn('Ordered Quantity').withTitle('Ordered Quantity'),
         DTColumnBuilder.newColumn('Received Quantity').withTitle('Received Quantity'),
         DTColumnBuilder.newColumn('Amount').withTitle('Amount'),
@@ -48,6 +48,25 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     ];
 
    vm.dtInstance = {};
+
+
+    $scope.$on('change_filters_data', function(){
+      vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
+      vm.service.refresh(vm.dtInstance);
+    });
+
+    function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
+        $('td', nRow).unbind('click');
+        $('td', nRow).bind('click', function() {
+            $scope.$apply(function() {
+                angular.copy(aData, vm.model_data);
+                vm.update = true;
+                vm.title = "Update PO's";
+                $state.go("app.reports.SupplierWisePOs.POs");
+            });
+        });
+        return nRow;
+    }
 
    vm.empty_data = {
                     'supplier': ''
@@ -63,6 +82,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         vm.suppliers = data.data.suppliers;
       }
    })
+
+    vm.close = function() {
+
+      angular.copy(vm.empty_data, vm.model_data);
+      $state.go('app.reports.SupplierWisePOs');
+    }
 
   }
 

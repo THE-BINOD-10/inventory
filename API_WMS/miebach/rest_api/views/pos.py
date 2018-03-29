@@ -811,7 +811,7 @@ def pos_extra_fields(request, user=''):
                 for val in input_array:
                     if not val in exe_array:
                         exe_array.append(val)
-                exe_data[0].misc_value = ', '.join(exe_array)
+                exe_data[0].misc_value = ','.join(exe_array)
                 exe_data[0].updation_date = datetime.datetime.now()
                 exe_data[0].save()
             if not exe_data:
@@ -825,7 +825,7 @@ def pos_extra_fields(request, user=''):
                 for val in input_array:
                     if not val in exe_array:
                         exe_array.append(val)
-                exe_data[0].misc_value = ', '.join(exe_array)
+                exe_data[0].misc_value = ','.join(exe_array)
                 exe_data[0].updation_date = datetime.datetime.now()
                 exe_data[0].save()
             if not exe_data:

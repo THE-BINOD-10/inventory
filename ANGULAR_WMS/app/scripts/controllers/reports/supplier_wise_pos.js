@@ -18,11 +18,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
               xhrFields: {
                 withCredentials: true
               },
-              complete: function(jqXHR, textStatus) {
-                $scope.$apply(function(){
-                  angular.copy(JSON.parse(jqXHR.responseText), vm.tb_data)
-                })
-              }
+              // complete: function(jqXHR, textStatus) {
+              //   $scope.$apply(function(){
+              //     angular.copy(JSON.parse(jqXHR.responseText), vm.tb_data)
+              //   })
+              // }
            })
        .withDataProp('data')
        .withOption('processing', true)
@@ -39,21 +39,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         DTColumnBuilder.newColumn('Order Date').withTitle('Order Date'),
         DTColumnBuilder.newColumn('PO Number').withTitle('PO Number'),
         DTColumnBuilder.newColumn('Supplier Name').withTitle('Supplier Name'),
-        // DTColumnBuilder.newColumn('WMS Code').withTitle('WMS Code'),
-        // DTColumnBuilder.newColumn('Design').withTitle('Design'),
         DTColumnBuilder.newColumn('Ordered Quantity').withTitle('Ordered Quantity'),
         DTColumnBuilder.newColumn('Received Quantity').withTitle('Received Quantity'),
         DTColumnBuilder.newColumn('Amount').withTitle('Amount'),
-        DTColumnBuilder.newColumn('Status').withTitle('Status')
+        DTColumnBuilder.newColumn('Status').withTitle('Status'),
     ];
 
    vm.dtInstance = {};
-
-
-    $scope.$on('change_filters_data', function(){
-      vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
-      vm.service.refresh(vm.dtInstance);
-    });
 
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
         $('td', nRow).unbind('click');
@@ -62,6 +54,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
                 angular.copy(aData, vm.model_data);
                 vm.update = true;
                 vm.title = "Update PO's";
+
+                $http.get(Session.url+'print_po_reports/?po_no='+aData['PO Number'], {withCredential: true})
+                .success(function(data, status, headers, config) {
+                  var html = $(data);
+                  vm.print_page = $(html).clone();
+                  $(".modal-body").html(html);
+                });
                 $state.go("app.reports.SupplierWisePOs.POs");
             });
         });
@@ -87,6 +86,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
       angular.copy(vm.empty_data, vm.model_data);
       $state.go('app.reports.SupplierWisePOs');
+    }
+
+    vm.print = print;
+    vm.print = function() {
+      console.log(vm.print_page);
+      vm.service.print_data(vm.print_page, "Good Receipt Note");
     }
 
   }

@@ -52,6 +52,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                         }).withOption('width', '80px')
     ];
 
+    var sku_attr_list = [];
     var empty_data = {
                       sku_data:{
                         sku_code:"",
@@ -181,7 +182,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.model_data.sub_categories = data.sub_categories;
                   var index = vm.model_data.zones.indexOf(vm.model_data.sku_data.zone);
                   vm.model_data.sku_data.zone = vm.model_data.zones[index];
+                  vm.model_data.attributes = data.attributes;
 
+                  angular.forEach(vm.model_data.attributes, function(attr_dat){
+                    if(data.sku_attributes[attr_dat.attribute_name])
+                    {
+                      attr_dat.attribute_value = data.sku_attributes[attr_dat.attribute_name];
+                    }
+                  });
                   for (var j=0; j<vm.model_data.market_data.length; j++) {
                     var index = vm.model_data.market_list.indexOf(vm.model_data.market_data[j].market_sku_type);
                     vm.model_data.market_data[j].market_sku_type = vm.model_data.market_list[index];
@@ -343,6 +351,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.model_data.sku_data.sku_size = vm.model_data.sizes_list[0];
         vm.model_data.sku_data.size_type = "Default";
         vm.change_size_type();
+        vm.model_data.attributes = data.attributes;
+        angular.forEach(vm.model_data.attributes, function(record) {
+          record.attribute_value = '';
+        });
       }
     });
     vm.model_data.sku_data.status = vm.status_data[1];
@@ -464,53 +476,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     });
   }
+}
 
-
-
-
-  /*var send_data  = {data: {}}
-    var modalInstance = $modal.open({
-      templateUrl: 'views/masters/toggles/attributes.html',
-      controller: 'AttributesPOP',
-      controllerAs: 'pop',
-      size: 'lg',
-      backdrop: 'static',
-      keyboard: false,
-      windowClass: 'full-modal',
-      resolve: {
-        items: function () {
-          return send_data;
-        }
-      }
-    });*/
-  }
-
-/*  vm.attr_model_data = {'data': []};
-  var empty_attr_data = [{'attribute_id': '', 'attribute_name': '', 'attribute_type': ''}]
-
-  vm.addAttributes = function() {
-
-    vm.title = "Add SKU Attributes";
-    vm.update = false;
-    vm.combo = false;
-    vm.attr_model_data.data = []
-    vm.service.apiCall('get_user_attributes_list/', "GET", {attr_model: 'sku'}).then(function(data){
-      data = data.data;
-      if(data.status && data.data) {
-        //angular.copy(data.data, vm.attr_model_data['data']);
-        vm.attr_model_data.data.push(data.data);
-      }
-      else {
-        vm.attr_model_data.data.push(data.data);
-        angular.copy(empty_attr_data, vm.attr_model_data['data']);
-      }
-    });
-    console.log(vm.attr_model_data);
-    debugger;
-    $state.go('app.masters.SKUMaster.update');
-  }
-
-}*/
 
 app.directive('fileUpload', function () {
     return {

@@ -216,6 +216,12 @@
                 <input ng-if="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" type="hidden" name="hot_release" class="form-control" value="{{showCase.model_data.sku_data.hot_release}}" readonly>
               </div>
             </div>
+            <div class="col-md-4 col-sm-6 col-xs-6" ng-repeat= "attr in showCase.model_data.attributes">
+              <div class="form-group">
+                <label class="control-label"> {{ attr.attribute_name}} </label>
+                <input type="text" name="attr_{{attr.attribute_name}}" class="form-control" ng-model="attr.attribute_value">
+              </div>
+            </div>
           </div>
           <div class="row">
             <div class="col-md-12"><hr></div>

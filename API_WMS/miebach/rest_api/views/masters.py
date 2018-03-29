@@ -672,10 +672,14 @@ def get_sku_data(request, user=''):
     else:
         product_types = list(TaxMaster.objects.filter(user_id=user.id).values_list('product_type',
                                                                                    flat=True).distinct())
+    attributes = list(UserAttributes.objects.filter(user_id=user.id, status=1, attribute_model='sku').\
+                            values('id', 'attribute_model', 'attribute_name', 'attribute_type'))
+    sku_attributes = dict(data.skuattributes_set.filter().values_list('attribute_name', 'attribute_value'))
     return HttpResponse(
         json.dumps({'sku_data': sku_data, 'zones': zone_list, 'groups': all_groups, 'market_list': market_places,
                     'market_data': market_data, 'combo_data': combo_data, 'sizes_list': sizes_list,
-                    'sub_categories': SUB_CATEGORIES, 'product_types': product_types}, cls=DjangoJSONEncoder))
+                    'sub_categories': SUB_CATEGORIES, 'product_types': product_types, 'attributes': attributes,
+                    'sku_attributes': sku_attributes}, cls=DjangoJSONEncoder))
 
 
 @csrf_exempt
@@ -818,6 +822,19 @@ def check_update_hot_release(data, value):
             sku_fields[0].save()
 
 
+def update_sku_attributes(data, request):
+    for key, value in request.POST.iteritems():
+        if 'attr_' not in key:
+            continue
+        key = key.replace('attr_', '')
+        sku_attr_obj = SKUAttributes.objects.filter(sku_id=data.id, attribute_name=key)
+        if not sku_attr_obj and value:
+            SKUAttributes.objects.create(sku_id=data.id, attribute_name=key, attribute_value=value,
+                                         creation_date=datetime.datetime.now())
+        else:
+            sku_attr_obj.update(attribute_value=value)
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -840,6 +857,8 @@ def update_sku(request, user=''):
             save_image_file(image_file, data, user)
         for key, value in request.POST.iteritems():
 
+            if 'attr_' in key:
+                continue
             if key == 'status':
                 if value == 'Active':
                     value = 1
@@ -879,6 +898,7 @@ def update_sku(request, user=''):
             setattr(data, key, value)
 
         data.save()
+        update_sku_attributes(data, request)
 
         update_marketplace_mapping(user, data_dict=dict(request.POST.iterlists()), data=data)
         # update master sku txt file
@@ -2028,9 +2048,11 @@ def get_zones_list(request, user=''):
     for sizes in size_names:
         sizes_list.append({'size_name': sizes.size_name, 'size_values': (sizes.size_value).split('<<>>')})
     sizes_list.append({'size_name': 'Default', 'size_values': copy.deepcopy(SIZES_LIST)})
+    attributes = list(UserAttributes.objects.filter(user_id=user.id, status=1, attribute_model='sku').\
+                            values('id', 'attribute_model', 'attribute_name', 'attribute_type'))
     return HttpResponse(json.dumps(
         {'zones': zones_list, 'sku_groups': all_groups, 'market_places': market_places, 'sizes_list': sizes_list,
-         'product_types': product_types, 'sub_categories': SUB_CATEGORIES}))
+         'product_types': product_types, 'sub_categories': SUB_CATEGORIES, 'attributes': attributes}))
 
 
 @csrf_exempt
@@ -2087,6 +2109,7 @@ def insert_sku(request, user=''):
             data_dict['sku_code'] = data_dict['wms_code']
             sku_master = SKUMaster(**data_dict)
             sku_master.save()
+            update_sku_attributes(sku_master, request)
             image_file = request.FILES.get('files-0', '')
             if image_file:
                 save_image_file(image_file, sku_master, user)

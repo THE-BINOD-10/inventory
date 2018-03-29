@@ -322,8 +322,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       vm.model_data['pos_extra_fields'] = vm.pos_extra_fields;
       var send = {'pos_extra_fields':vm.pos_extra_fields};
       vm.service.apiCall("pos_extra_fields/", "POST", input_type).then(function(data) {
-
-        console.log(data);
+        if (data.data = 'Success') {
+          Service.showNoty(data.data);
+          vm.pos_extra_fields = [{input_type: "",field_name: ""}];
+        }
       })
     }
   }

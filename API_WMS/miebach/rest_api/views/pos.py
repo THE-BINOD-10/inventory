@@ -792,3 +792,46 @@ def pos_tax_inclusive(request, user=''):
     tax_inclusive = get_misc_value('tax_inclusive', user.id)
     data['tax_inclusive_switch'] = json.loads(tax_inclusive)
     return HttpResponse(json.dumps(data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def pos_extra_fields(request, user=''):
+    input_fld = request.POST.get('Input', '')
+    textarea_fld = request.POST.get('Textarea', '')
+    try:
+        log.info("Insert pos extra fields data user %s and request params are %s" %
+                 (str(user.username), str(request.GET.dict())))
+        if input_fld:
+            exe_data = MiscDetail.objects.filter(user=user.id, misc_type='pos_extra_fields_input')
+            if exe_data:
+                exe_array = exe_data[0].misc_value.split(',')
+                input_array = input_fld.split(',')
+                for val in input_array:
+                    if not val in exe_array:
+                        exe_array.append(val)
+                exe_data[0].misc_value = ', '.join(exe_array)
+                exe_data[0].updation_date = datetime.datetime.now()
+                exe_data[0].save()
+            if not exe_data:
+                MiscDetail.objects.create(user=user.id, misc_type='pos_extra_fields_input', misc_value=input_fld,
+                                          creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
+        if textarea_fld:
+            exe_data = MiscDetail.objects.filter(user=user.id, misc_type='pos_extra_fields_textarea')
+            if exe_data:
+                exe_array = exe_data[0].misc_value.split(',')
+                input_array = textarea_fld.split(',')
+                for val in input_array:
+                    if not val in exe_array:
+                        exe_array.append(val)
+                exe_data[0].misc_value = ', '.join(exe_array)
+                exe_data[0].updation_date = datetime.datetime.now()
+                exe_data[0].save()
+            if not exe_data:
+                MiscDetail.objects.create(user=user.id, misc_type='pos_extra_fields_textarea', misc_value=textarea_fld,
+                                          creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
+        status = 'Success'
+    except:
+        status = 'Fail'
+    return HttpResponse(status)

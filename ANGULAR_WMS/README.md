@@ -20,11 +20,17 @@ Installing requirements:
   command : npm install sweetalert@1.1.0
   after that move sweetalert directory from nodemodules directory to vendor directory.
 
-6.Change api url in following directory.
-  directory : 'app/scripts/extentions/auth/session.js'
+7.Please point index file based on the environment in nginx configuration file.
 
-7.Please check firebase url in "index.html" before starting the project. If it contains prod firebase then change it to some other.
+    Development -->  dev.html
+    Staging     -->  staging.html
+    Production  -->  prod.html
 
-8.Finally To run project use following command.Run this command where 'Gruntfile.js' exist.
+8.Check api url in following directory.
+   Dev:  directory : 'app/scripts/extentions/auth/dev_session.js'
+   Staging: directory : 'app/scripts/extentions/auth/staging_session.js'
+   Prod:  directory : 'app/scripts/extentions/auth/prod_session.js'
+
+9.Finally To run project use following command.Run this command where 'Gruntfile.js' exist.
   command : grunt serve
   NOTE    : you can change UI Port number in Gruntfile.js

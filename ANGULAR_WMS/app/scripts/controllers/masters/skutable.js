@@ -475,6 +475,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }
       }
     });
+
+    modalInstance.result.then(function (result_dat) {
+      vm.model_data.attributes = result_dat;
+    });
   }
 }
 

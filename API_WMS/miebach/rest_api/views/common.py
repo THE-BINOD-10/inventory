@@ -2021,16 +2021,12 @@ def search_wms_codes(request, user=''):
     return HttpResponse(json.dumps(wms_codes))
 
 
-def get_order_id(user_id, is_pos=False):
-    if is_pos:
-        order_key = "-order_id"
-    else:
-        order_key = "-creation_date"
+def get_order_id(user_id):
     order_detail_id = OrderDetail.objects.filter(Q(order_code__in=\
                                           ['MN', 'Delivery Challan', 'sample', 'R&D', 'CO','Pre Order']) |
                                           reduce(operator.or_, (Q(order_code__icontains=x)\
                                           for x in ['DC', 'PRE'])), user=user_id)\
-                                          .order_by(order_key)
+                                          .order_by('-creation_date')
     if order_detail_id:
         order_id = int(order_detail_id[0].order_id) + 1
     else:
@@ -3839,15 +3835,7 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
     gen_whs = [user.id]
     admin = get_priceband_admin_user(user)
     if admin:
-        gen_whs = list(get_generic_warehouses_list(admin))
-        cm_obj = CustomerUserMapping.objects.filter(user=request.user.id)
-        if cm_obj:
-            cm_id = cm_obj[0].customer
-            dist_wh_obj = WarehouseCustomerMapping.objects.filter(customer_id=cm_id)
-            if dist_wh_obj:
-                dist_wh_id = dist_wh_obj[0].warehouse.id
-                if dist_wh_id in gen_whs:
-                    gen_whs.remove(dist_wh_id)
+        gen_whs = get_generic_warehouses_list(admin)
         if delivery_date:
             del_date = datetime.datetime.strptime(delivery_date, '%m/%d/%Y').date()
             today_date = datetime.datetime.today().date()

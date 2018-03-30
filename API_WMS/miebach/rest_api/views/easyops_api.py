@@ -4,6 +4,7 @@ import json
 import create_environment
 from urllib import urlencode
 from miebach_admin.models import UserAccessTokens, UserProfile, Integrations
+from miebach.settings import INTEGRATIONS_CFG_FILE
 from urlparse import urlparse, urljoin, urlunparse, parse_qs
 import sys
 import traceback
@@ -13,7 +14,7 @@ from rest_api.views.miebach_utils import *
 from utils import *
 
 LOAD_CONFIG = ConfigParser.ConfigParser()
-LOAD_CONFIG.read('rest_api/views/configuration.cfg')
+LOAD_CONFIG.read(INTEGRATIONS_CFG_FILE)
 
 log = init_logger('logs/integration_requests.log')
 

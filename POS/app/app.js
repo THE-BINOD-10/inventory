@@ -92,7 +92,8 @@ app.config(function($stateProvider, $urlRouterProvider,$httpProvider){
 
         if (typeof($location.$$search.user_id) != "undefined") {
 
-          urlService.userData = {'parent_id':$location.$$search.user_id, 'user_name':$location.$$search.user_name, 'VAT':0}
+          urlService.userData = {'user_name':$location.$$search.user_name,
+				 'user_id': $location.$$search.user_id, 'VAT':0}
         } else {
 
           //$state.go("login")

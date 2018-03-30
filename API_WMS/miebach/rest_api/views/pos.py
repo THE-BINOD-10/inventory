@@ -79,7 +79,7 @@ def get_pos_user_data(request, user=''):
 @csrf_exempt
 @get_admin_user
 def get_current_order_id(request, user=''):
-    order_id = get_order_id(user.id)
+    order_id = get_order_id(user.id, is_pos=True)
     return HttpResponse(json.dumps({'order_id': order_id}))
 
 
@@ -325,7 +325,7 @@ def customer_order(request):
         number = order['customer_data']['Number']
         customer_data = CustomerMaster.objects.filter(phone_number=number, \
                                                       user=user_id) if number else []
-        order_id = get_order_id(user_id) if order['summary']['nw_status'] == 'online' \
+        order_id = get_order_id(user_id, is_pos=True) if order['summary']['nw_status'] == 'online' \
             else order['summary']['order_id']
         status = 0 if order['summary']['issue_type'] == "Delivery Challan" \
             else 1
@@ -461,7 +461,7 @@ def customer_order(request):
                 #send mail and sms for pre order
                 if order["summary"]["issue_type"] == "Pre Order" and customer_data:
                     email_id, phone_number = customer_data[0].email_id, customer_data[0].phone_number
-                    if email_id:
+                    if email_id or phone_number:
                         other_charge_amounts = 0
                         order_detail.order_id = order_detail.original_order_id
                         order_data = {

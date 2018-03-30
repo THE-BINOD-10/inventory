@@ -4,6 +4,7 @@ import json
 import create_environment
 from urllib import urlencode
 from miebach_admin.models import UserAccessTokens, UserProfile
+from miebach.settings import INTEGRATIONS_CFG_FILE
 from urlparse import urlparse, urljoin, urlunparse, parse_qs
 import sys
 import traceback
@@ -11,7 +12,7 @@ import ConfigParser
 import datetime
 
 LOAD_CONFIG = ConfigParser.ConfigParser()
-LOAD_CONFIG.read('rest_api/views/configuration.cfg')
+LOAD_CONFIG.read(INTEGRATIONS_CFG_FILE)
 
 
 class RetailoneAPI:

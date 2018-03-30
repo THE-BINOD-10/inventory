@@ -27,7 +27,8 @@ angular
     'slick',
     'ui.toggle',
     'ezplus',
-    'angular-google-analytics'
+    'angular-google-analytics',
+    'ui.select2'
   ])
   .constant('COLORS', {
     'default': '#e2e2e2',

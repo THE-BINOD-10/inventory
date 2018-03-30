@@ -426,7 +426,7 @@ def get_supplier_details_data(search_params, user, sub_user):
                                                     ('Ordered Quantity', supplier.open_po.order_quantity),
                                                     ('Amount', amount),
                                                     ('Received Quantity', supplier.received_quantity),
-                                                    ('Status', status))))
+                                                    ('Status', status), ('order_id', supplier.order_id))))
     supplier_data['total_charge'] = total_charge
     return supplier_data
 

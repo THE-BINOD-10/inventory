@@ -53,13 +53,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
             $scope.$apply(function() {
                 angular.copy(aData, vm.model_data);
                 vm.update = true;
-                vm.title = "Update PO's";
+                vm.title = "Purchase Order";
 
-                $http.get(Session.url+'print_po_reports/?po_no='+aData['PO Number'], {withCredential: true})
+                $http.get(Session.url+'print_purchase_order_form/?po_id='+aData['order_id'], {withCredential: true})
                 .success(function(data, status, headers, config) {
-                  var html = $(data);
+                  vm.html = $(data)[0];
+                  $(html).find(".modal-dialog").removeClass('modal-lg');
+                  $(html).find(".modal-dialog").addClass('modal-lgi');
+                  $(html).find(".modal-dialog").addClass('modal-size');
+                  var html = $(vm.html).closest("form").clone();
                   vm.print_page = $(html).clone();
-                  $(".modal-body").html(html);
+                  $(".modal-body").html($(html).find(".modal-body > .form-group"));
                 });
                 $state.go("app.reports.SupplierWisePOs.POs");
             });
@@ -91,7 +95,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.print = print;
     vm.print = function() {
       console.log(vm.print_page);
-      vm.service.print_data(vm.print_page, "Good Receipt Note");
+      vm.service.print_data(vm.print_page, "Purchase Order");
     }
 
   }

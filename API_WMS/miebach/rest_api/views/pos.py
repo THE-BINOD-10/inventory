@@ -128,7 +128,7 @@ def search_product_data(request, user=''):
         except:
             master_data = SKUMaster.objects.exclude(sku_type='RM').filter(Q(wms_code__icontains=search_key) |
                                                                       Q(sku_desc__icontains=search_key), user=user.id)
-    for data in master_data[:100]:
+    for data in master_data[:30]:
         status = 'Inactive'
         if data.status:
             status = 'Active'

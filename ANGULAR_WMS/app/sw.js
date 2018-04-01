@@ -6,11 +6,11 @@ self.importScripts('./scripts/App/offlineDB.js');
    "use strict";
 
 
- var version        = "0.0.1-build03.0.153",
+ var version        = "0.0.1-build03.0.154",
       cacheName     = "stock1-app-" + version,
       Directory     ="";
- var APICALL        ="https://api.stockone.in/rest_api/";
- var UIAPICALL      ="https://go.stockone.in/";
+ var APICALL        ="https://dev.stockone.in/rest_api/";
+ var UIAPICALL      ="http://beta.stockone.in/";
 // var APICALL        ="http://176.9.181.43:7654/rest_api/";   
 
  var filesToBeCached = [

@@ -945,9 +945,9 @@
         if(Object.keys(data).indexOf("order_ids")>=0)
             data.order_id=data.order_ids[0];
         if (typeof data === "number")
-            temp_order_id = data
+            var temp_order_id = data
         else
-            temp_order_id = data[ORDER_ID]
+            var temp_order_id = data[ORDER_ID]
         return {"checksum":temp_order_id,"name":"order_id","path":""};
     }
 

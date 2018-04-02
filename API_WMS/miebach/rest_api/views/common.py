@@ -3838,11 +3838,13 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
                   'sku_category', 'sku_brand', 'sku_size', 'style_name', 'sale_through', 'product_type']
     gen_whs = [user.id]
     admin = get_priceband_admin_user(user)
+    res_lead_time = 0
     if admin:
         gen_whs = list(get_generic_warehouses_list(admin))
         cm_obj = CustomerUserMapping.objects.filter(user=request.user.id)
         if cm_obj:
             cm_id = cm_obj[0].customer
+            res_lead_time = cm_obj[0].customer.lead_time
             dist_wh_obj = WarehouseCustomerMapping.objects.filter(customer_id=cm_id)
             if dist_wh_obj:
                 dist_wh_id = dist_wh_obj[0].warehouse.id
@@ -3852,9 +3854,13 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
             del_date = datetime.datetime.strptime(delivery_date, '%m/%d/%Y').date()
             today_date = datetime.datetime.today().date()
             days_filter = (del_date - today_date).days
-            gen_whs = NetworkMaster.objects.filter(source_location_code__in=gen_whs,
-                                                         dest_location_code=user.id, lead_time__lte=days_filter).\
+            if res_lead_time:
+                day_filter = days_filter + res_lead_time
+            nw_gen_whs = NetworkMaster.objects.filter(source_location_code__in=gen_whs,
+                                                   dest_location_code=user.id, lead_time__lte=days_filter).\
                 values_list('source_location_code', flat=True)
+            gen_whs = [user.id]
+            gen_whs.extend(list(nw_gen_whs))
     stock_objs = StockDetail.objects.filter(sku__user__in=gen_whs, quantity__gt=0).values('sku__sku_class').\
         distinct().annotate(in_stock=Sum('quantity'))
     reserved_quantities = PicklistLocation.objects.filter(stock__sku__user__in=gen_whs, status=1).values(

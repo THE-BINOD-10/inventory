@@ -6377,16 +6377,21 @@ def update_created_extra_status(user, selection):
                     grp_perm.save()
 
 
+def get_user_attributes(user, attr_model):
+    attributes = []
+    if attr_model:
+        attributes = UserAttributes.objects.filter(user_id=user.id, status=1, attribute_model=attr_model).\
+                                        values('id', 'attribute_model', 'attribute_name', 'attribute_type')
+    return attributes
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
 def get_user_attributes_list(request, user=''):
     attr_model = request.GET.get('attr_model')
-    attributes = []
-    if attr_model:
-        attributes = list(UserAttributes.objects.filter(user_id=user.id, status=1).values('id', 'attribute_model',
-                                                                        'attribute_name', 'attribute_type'))
-    return HttpResponse(json.dumps({'data': attributes, 'status': 1}))
+    attributes = get_user_attributes(user, 'sku')
+    return HttpResponse(json.dumps({'data': list(attributes), 'status': 1}))
 
 
 def get_invoice_types(user):
@@ -6447,3 +6452,19 @@ def update_mail_alerts(request, user=''):
         log.info('Update Remainder Mail alerts failed for %s and request is %s and error statement is %s' % (
             str(user.username), str(request.GET.dict()), str(e)))
     return HttpResponse("Success")
+
+
+def update_sku_attributes_data(data, key, value):
+    sku_attr_obj = SKUAttributes.objects.filter(sku_id=data.id, attribute_name=key)
+    if not sku_attr_obj and value:
+        SKUAttributes.objects.create(sku_id=data.id, attribute_name=key, attribute_value=value,
+                                     creation_date=datetime.datetime.now())
+    else:
+        sku_attr_obj.update(attribute_value=value)
+
+def update_sku_attributes(data, request):
+    for key, value in request.POST.iteritems():
+        if 'attr_' not in key:
+            continue
+        key = key.replace('attr_', '')
+        update_sku_attributes_data(data, key, value)

@@ -672,13 +672,12 @@ def get_sku_data(request, user=''):
     else:
         product_types = list(TaxMaster.objects.filter(user_id=user.id).values_list('product_type',
                                                                                    flat=True).distinct())
-    attributes = list(UserAttributes.objects.filter(user_id=user.id, status=1, attribute_model='sku').\
-                            values('id', 'attribute_model', 'attribute_name', 'attribute_type'))
+    attributes = get_user_attributes(user, 'sku')
     sku_attributes = dict(data.skuattributes_set.filter().values_list('attribute_name', 'attribute_value'))
     return HttpResponse(
         json.dumps({'sku_data': sku_data, 'zones': zone_list, 'groups': all_groups, 'market_list': market_places,
                     'market_data': market_data, 'combo_data': combo_data, 'sizes_list': sizes_list,
-                    'sub_categories': SUB_CATEGORIES, 'product_types': product_types, 'attributes': attributes,
+                    'sub_categories': SUB_CATEGORIES, 'product_types': product_types, 'attributes': list(attributes),
                     'sku_attributes': sku_attributes}, cls=DjangoJSONEncoder))
 
 
@@ -820,19 +819,6 @@ def check_update_hot_release(data, value):
         if sku_fields[0].field_value != value:
             sku_fields[0].field_value = value
             sku_fields[0].save()
-
-
-def update_sku_attributes(data, request):
-    for key, value in request.POST.iteritems():
-        if 'attr_' not in key:
-            continue
-        key = key.replace('attr_', '')
-        sku_attr_obj = SKUAttributes.objects.filter(sku_id=data.id, attribute_name=key)
-        if not sku_attr_obj and value:
-            SKUAttributes.objects.create(sku_id=data.id, attribute_name=key, attribute_value=value,
-                                         creation_date=datetime.datetime.now())
-        else:
-            sku_attr_obj.update(attribute_value=value)
 
 
 @csrf_exempt
@@ -2048,11 +2034,10 @@ def get_zones_list(request, user=''):
     for sizes in size_names:
         sizes_list.append({'size_name': sizes.size_name, 'size_values': (sizes.size_value).split('<<>>')})
     sizes_list.append({'size_name': 'Default', 'size_values': copy.deepcopy(SIZES_LIST)})
-    attributes = list(UserAttributes.objects.filter(user_id=user.id, status=1, attribute_model='sku').\
-                            values('id', 'attribute_model', 'attribute_name', 'attribute_type'))
+    attributes = get_user_attributes(user, 'sku')
     return HttpResponse(json.dumps(
         {'zones': zones_list, 'sku_groups': all_groups, 'market_places': market_places, 'sizes_list': sizes_list,
-         'product_types': product_types, 'sub_categories': SUB_CATEGORIES, 'attributes': attributes}))
+         'product_types': product_types, 'sub_categories': SUB_CATEGORIES, 'attributes': list(attributes)}))
 
 
 @csrf_exempt
@@ -3439,7 +3424,6 @@ def update_staff_values(request, user=''):
 @login_required
 @get_admin_user
 def save_update_attribute(request, user=''):
-    print request.POST
     attr_model = request.POST.get('attr_model', '')
     if not attr_model:
         return HttpResponse('Attribute model is mandatory')
@@ -3461,4 +3445,14 @@ def save_update_attribute(request, user=''):
                                               attribute_type=data_dict['attribute_type'][ind], status=1,
                                               creation_date=datetime.datetime.now(),
                                               user_id=user.id)
+    return HttpResponse(json.dumps({'message': 'Updated Successfully', 'status': 1}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def delete_user_attribute(request, user=''):
+    attr_id = request.GET.get('data_id', '')
+    if attr_id:
+        UserAttributes.objects.filter(id=attr_id).update(status=0)
     return HttpResponse(json.dumps({'message': 'Updated Successfully', 'status': 1}))

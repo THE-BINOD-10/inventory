@@ -93,6 +93,7 @@ urlpatterns = [
     url(r'^update_staff_values/$', update_staff_values),
     url(r'^get_user_attributes_list/$', get_user_attributes_list),
     url(r'^save_update_attribute/$', save_update_attribute),
+    url(r'^delete_user_attribute/$', delete_user_attribute),
     url(r'^get_distributors/$', get_distributors),
     url(r'^get_resellers/$', get_resellers),
     url(r'^get_corporates/$', get_corporates),

@@ -1183,10 +1183,10 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
                            'WALLET':'corp_attire_catg_img/WALLET.svg',
                            'WRIST WATCH':'corp_attire_catg_img/Wrist Watch.svg',
                            'TROPHY':'corp_attire_catg_img/TROPHY.svg',
-                           'Power Socket':'corp_attire_catg_img/Power Socket.svg',
-                           'Mouse':'corp_attire_catg_img/Mouse.svg',
-                           'HDMI Wireless Display':'corp_attire_catg_img/HDMI Wireless Display.svg',
-                           'Car Accessories-01':'corp_attire_catg_img/Car Accessories-01.svg',
+                           'POWER SOCKET':'corp_attire_catg_img/POWER SOCKET.svg',
+                           'MOUSE':'corp_attire_catg_img/MOUSE.svg',
+                           'HDMI WIRELSS DISPLAY DONGLE':'corp_attire_catg_img/HDMI WIRELSS DISPLAY DONGLE.svg',
+                           'CAR_ACCESSORIES':'corp_attire_catg_img/CAR_ACCESSORIES.svg',
 
   };
   vm.category_image_map_shailesh = {

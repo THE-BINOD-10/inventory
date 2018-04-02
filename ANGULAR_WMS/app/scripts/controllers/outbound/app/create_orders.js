@@ -1182,7 +1182,11 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
                            'VR HEADSET':'corp_attire_catg_img/VR HEADSET.svg',
                            'WALLET':'corp_attire_catg_img/WALLET.svg',
                            'WRIST WATCH':'corp_attire_catg_img/Wrist Watch.svg',
-
+                           'TROPHY':'corp_attire_catg_img/TROPHY.svg',
+                           'Power Socket':'corp_attire_catg_img/Power Socket.svg',
+                           'Mouse':'corp_attire_catg_img/Mouse.svg',
+                           'HDMI Wireless Display':'corp_attire_catg_img/HDMI Wireless Display.svg',
+                           'Car Accessories-01':'corp_attire_catg_img/Car Accessories-01.svg',
 
   };
   vm.category_image_map_shailesh = {

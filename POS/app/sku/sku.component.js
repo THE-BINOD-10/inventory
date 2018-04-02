@@ -402,6 +402,12 @@
                 }
                 urlService.current_order["user"] = urlService.userData
                 urlService.current_order.summary.issue_type = self.issue_selected;
+                urlService.current_order.summary.order_id = 0;
+                getCurrentOrderID().then(function(data){
+                    urlService.current_order.summary.order_id = data;
+                }).catch(function(error){
+                    return 0;
+                });
                 self.customer_order(urlService.current_order);
             } else {
                 self.submit_enable = false;

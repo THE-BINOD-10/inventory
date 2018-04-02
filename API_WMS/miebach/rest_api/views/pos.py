@@ -325,8 +325,12 @@ def customer_order(request):
         number = order['customer_data']['Number']
         customer_data = CustomerMaster.objects.filter(phone_number=number, \
                                                       user=user_id) if number else []
-        order_id = get_order_id(user_id, is_pos=True) if order['summary']['nw_status'] == 'online' \
-            else order['summary']['order_id']
+        frontend_order_id = order['summary']['order_id']
+        if order['summary']['nw_status'] == 'online':
+            backend_order_id = get_order_id(user_id, is_pos=True)
+            order_id = backend_order_id if (backend_order_id > frontend_order_id) else frontend_order_id
+        else:
+            order_id = frontend_order_id
         status = 0 if order['summary']['issue_type'] == "Delivery Challan" \
             else 1
         order_code = order_codes[order['summary']['issue_type']] + str(request.user.id)
@@ -377,24 +381,39 @@ def customer_order(request):
                     else:
                         payment_received = total_payment_received
                         total_payment_received = 0
-                    order_detail = OrderDetail.objects.create(user=user_id, \
-                                                              marketplace="Offline", \
-                                                              order_id=order_id, \
-                                                              sku_id=sku.id, \
-                                                              customer_id=customer_id, \
-                                                              customer_name=customer_name, \
-                                                              telephone=number, \
-                                                              title=sku.sku_desc, \
-                                                              quantity=item['quantity'], \
-                                                              invoice_amount=item['price'], \
-                                                              order_code=order_code, \
-                                                              shipment_date=NOW, \
-                                                              original_order_id=original_order_id, \
-                                                              nw_status=order['summary']['nw_status'], \
-                                                              status=status, \
-                                                              email_id=cust_dict.get('Email', ''), \
-                                                              unit_price=item['unit_price'],
-                                                              payment_received=payment_received)
+                    try:
+                        order_detail = OrderDetail.objects.create(user=user_id, \
+                                                                  marketplace="Offline", \
+                                                                  order_id=order_id, \
+                                                                  sku_id=sku.id, \
+                                                                  customer_id=customer_id, \
+                                                                  customer_name=customer_name, \
+                                                                  telephone=number, \
+                                                                  title=sku.sku_desc, \
+                                                                  quantity=item['quantity'], \
+                                                                  invoice_amount=item['price'], \
+                                                                  order_code=order_code, \
+                                                                  shipment_date=NOW, \
+                                                                  original_order_id=original_order_id, \
+                                                                  nw_status=order['summary']['nw_status'], \
+                                                                  status=status, \
+                                                                  email_id=cust_dict.get('Email', ''), \
+                                                                  unit_price=item['unit_price'],
+                                                                  payment_received=payment_received)
+                    except Exception as exece:
+                        if "Duplicate entry" in exece[1]:
+                            order_detail = OrderDetail.objects.get(user=user_id, \
+                                                                   order_id=order_id, \
+                                                                   sku_id=sku.id, \
+                                                                   order_code=order_code)
+                            new_sku_count = order_detail.quantity + item['quantity']
+                            new_invoice_amount = order_detail.invoice_amount + item['price']
+                            new_payment_received = order_detail.payment_received + payment_received
+                            order_detail.quantity = new_sku_count
+                            order_detail.invoice_amount = new_invoice_amount
+                            order_detail.payment_received = new_payment_received
+                            order_detail.save()
+                            continue
                     sku_disc = (int(item['selling_price']) - item['unit_price']) * item['quantity']
                     CustomerOrderSummary.objects.create(order_id=order_detail.id, \
                                                         discount=order_level_disc_per_sku, \

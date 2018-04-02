@@ -8,6 +8,7 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
   $ctrl.service = Service;
 
   $ctrl.loading = true;
+  $ctrl.is_skuId_empty = false;
 
   var empty_data = {customer_name: '', sku_id: '', category: '', customization_type: 'custom_price', ask_price: '', expected_date: '', remarks: ''};
 
@@ -39,9 +40,13 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
       $ctrl.sku = "";
       $ctrl.skus = [];
       return false;
-    }    
+    }
 
-    var data = {category: category, is_catalog:true, customer_id: Session.userId}
+    if (category == 'ALL') {
+      category = "";
+    }
+
+    var data = {category: category, is_catalog:true, customer_id: Session.userId, file: true}
     $ctrl.styles_loading = true;
     $ctrl.styles = [];
     Service.apiCall("get_sku_catalogs/", "POST", data).then(function(data) {
@@ -58,6 +63,7 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
   $ctrl.selected_style = {};
   $ctrl.select_style = function(style, styles) {
 
+    $ctrl.is_skuId_empty = false;
     $ctrl.selected_style = {};
     for(let i=0; i<styles.length; i++) {
       if(styles[i].sku_class == style){
@@ -81,9 +87,30 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
         formData.append('po_file', file);
       });
 
+      if ($ctrl.model_data.sku_id === "") {
+        $ctrl.is_skuId_empty = true;
+        return false;
+      }
+
       $.each($ctrl.model_data, function(key, value) {
         formData.append(key, value);
       });
+
+      var remarks = "";
+      angular.forEach($ctrl.custom_remarks, function(remark) {
+
+        if(remark.remark) {
+
+          if(!remarks) {
+
+            remarks = remark.remark;
+          } else {
+
+            remarks += "<<>>" + remark.remark;
+          }
+        }
+      })
+      formData.append("custom_remarks", remarks);
       $ctrl.uploading = true;
       $.ajax({url: Session.url+'place_manual_order/',
             data: formData,

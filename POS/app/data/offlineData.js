@@ -944,7 +944,11 @@
     function setOrderID(data){
         if(Object.keys(data).indexOf("order_ids")>=0)
             data.order_id=data.order_ids[0];
-        return {"checksum":data[ORDER_ID],"name":"order_id","path":""};
+        if (typeof data === "number")
+            var temp_order_id = data
+        else
+            var temp_order_id = data[ORDER_ID]
+        return {"checksum":temp_order_id,"name":"order_id","path":""};
     }
 
     //change user data foramte like checksum

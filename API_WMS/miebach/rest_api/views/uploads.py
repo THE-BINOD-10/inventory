@@ -1186,8 +1186,11 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
         for key, value in sku_file_mapping.iteritems():
             cell_data = get_cell_data(row_idx, sku_file_mapping[key], reader, file_type)
             if key in attributes.keys():
-                if attributes[key] == 'Number' and cell_data and not isinstance(cell_data, float):
-                    index_status.setdefault(row_idx, set()).add('%s is Number field' % (key))
+                if attributes[key] == 'Number' and cell_data:
+                    try:
+                        cell_data = int(cell_data)
+                    except:
+                        index_status.setdefault(row_idx, set()).add('%s is Number field' % (key))
             if key == 'wms_code':
                 data_set = wms_data
                 data_type = 'WMS'

@@ -4306,7 +4306,9 @@ def get_style_variants(sku_master, user, customer_id='', total_quantity=0, custo
                                 source_location_code_id__userprofile__warehouse_level=level). \
                                 values_list('source_location_code_id', 'price_type')
                     sku_master[ind].setdefault('prices_map', {}).update(dict(price_data))
-                    nw_pricetypes = [j for i, j in price_data]
+                    nw_pricetypes = ['D-R']
+                    if is_style_detail == 'true':
+                        nw_pricetypes = [j for i, j in price_data]
                     pricemaster_obj = pricemaster_obj.filter(price_type__in=nw_pricetypes)
                     if pricemaster_obj:
                         sku_master[ind]['price'] = pricemaster_obj[0].price
@@ -6551,7 +6553,9 @@ def get_level_based_customer_order_detail(request, user):
                 sku_el_price = round(sku_rec.get('el_price', 0), 2)
                 sku_tax_amt = round(sku_rec.get('sku_tax_amt', 0), 2)
                 gen_obj = GenericOrderDetailMapping.objects.get(orderdetail_id=sku_rec['id'])
-                if CustomerMaster.objects.get(id=gen_obj.customer_id).user == usr_id:
+                cm_obj = CustomerMaster.objects.get(id=gen_obj.customer_id)
+                is_distributor = cm_obj.is_distributor
+                if not is_distributor and cm_obj.user == usr_id:
                     response_data['warehouse_level'] = 0
                 else:
                     response_data['warehouse_level'] = ord_usr_profile.warehouse_level
@@ -8453,6 +8457,7 @@ def place_manual_order(request, user=''):
             expected_date = value.split('-')
             value = datetime.date(int(expected_date[0]), int(expected_date[1]), int(expected_date[2]))
         manual_enquiry_details[key] = value
+    manual_enquiry['custom_remarks'] = request.POST.get('custom_remarks', '')
     check_enquiry = ManualEnquiry.objects.filter(user=request.user.id,sku=manual_enquiry['sku_id'])
     if check_enquiry:
         return HttpResponse("Manual Enquiry Already Exists")
@@ -8548,7 +8553,7 @@ def get_manual_enquiry_detail(request, user=''):
     customization_type = customization_types[manual_enq[0].customization_type]
     manual_eq_dict = {'enquiry_id': int(manual_enq[0].enquiry_id), 'customer_name': manual_enq[0].customer_name,
                       'date': manual_enq[0].creation_date.strftime('%Y-%m-%d'), 'customization_type': customization_type,
-                      'quantity': manual_enq[0].quantity}
+                      'quantity': manual_enq[0].quantity, 'custom_remarks': manual_enq[0].custom_remarks.split("<<>>")}
     enquiry_images = list(ManualEnquiryImages.objects.filter(enquiry=manual_enq[0].id).values_list('image', flat=True))
     style_dict = {'sku_code': manual_enq[0].sku.sku_code, 'style_name':  manual_enq[0].sku.sku_class,
                   'description': manual_enq[0].sku.sku_desc, 'images': enquiry_images,

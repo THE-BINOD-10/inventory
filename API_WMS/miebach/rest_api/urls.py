@@ -394,6 +394,7 @@ urlpatterns += [
     url(r'^delete_tax/$', delete_tax),
     url(r'^update_invoice_sequence/$', update_invoice_sequence),
     url(r'^update_mail_alerts/$', update_mail_alerts),
+    url(r'^pos_extra_fields/$',pos_extra_fields),
 
     # manage users
     url(r'^add_user/$', add_user),

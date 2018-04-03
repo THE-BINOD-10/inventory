@@ -942,9 +942,21 @@
 
     //change order id formate like checksum 
     function setOrderID(data){
+		var offline_id = 0;
+		getLastSyncOrderID().then(function(last_id){
+			offline_id = Number(last_id);
+		}).catch(function(error){
+			return 0;
+		});
         if(Object.keys(data).indexOf("order_ids")>=0)
             data.order_id=data.order_ids[0];
-        return {"checksum":data[ORDER_ID],"name":"order_id","path":""};
+        if (typeof data === "number")
+            var temp_order_id = data
+        else
+            var temp_order_id = data[ORDER_ID]
+		if(offline_id > temp_order_id)
+			temp_order_id = offline_id;
+        return {"checksum":temp_order_id,"name":"order_id","path":""};
     }
 
     //change user data foramte like checksum
@@ -1699,4 +1711,25 @@
                
             });
         });                
+    }
+
+
+//get the last sync order id
+    function getLastSyncOrderID(){
+
+        return new Promise(function(resolve,reject){
+            openDB().then(function(){
+                POS_TABLES.sync_orders.
+                orderBy('order_id').
+                last().
+                then(function(data){
+                    if(data!=undefined)
+                       return resolve(data.order_id);
+                    else
+                       return reject("0"); 
+                }).catch(function(error){
+                    return reject(error.message);
+                });    
+            });
+        });
     }

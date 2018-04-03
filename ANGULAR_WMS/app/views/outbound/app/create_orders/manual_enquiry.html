@@ -30,6 +30,7 @@
             <div class="col-sm-3 col-xs-5">
               <select class="form-control" name="choose_category" ng-disabled="Enquiry.categories_loading" ng-model="Enquiry.category" ng-change="Enquiry.get_styles(Enquiry.category)" ng-required="true">
                 <option ng-selected="Enquiry.category == ''" value="">None</option>
+                <option value="ALL">ALL</option>
                 <option ng-repeat="category in Enquiry.categories" ng-selected="Enquiry.category == category" value="{{category}}">{{category}}</option>
               </select>
             </div>
@@ -38,10 +39,16 @@
           <div class="form-group">
             <label class="col-sm-5 col-xs-5 control-label">Choose Style *</label>
             <div class="col-sm-3 col-xs-5">
-              <select class="form-control" name="choose_stype" ng-disabled="Enquiry.styles_loading || Enquiry.styles.length == 0" ng-model="Enquiry.model_data.sku_id" ng-change="Enquiry.select_style(Enquiry.model_data.sku_id, Enquiry.styles)" ng-required="true">
-                <option ng-selected="Enquiry.style == ''" value="">None</option>
-                <option ng-repeat="style in Enquiry.styles" ng-selected="Enquiry.model_data.sku_id == style.sku_class" value="{{style.sku_class}}">{{style.sku_class}}</option>
+              <select ui-select2 class="form-control sku-id-select" 
+                       name="choose_stype" 
+                       ng-disabled="Enquiry.styles_loading || Enquiry.styles.length == 0" 
+                       ng-model="Enquiry.model_data.sku_id" 
+                       ng-change="Enquiry.select_style(Enquiry.model_data.sku_id, Enquiry.styles)" 
+                       ng-required="false">
+                  <option ng-selected="Enquiry.style == ''" value="">None</option>
+                  <option ng-repeat="style in Enquiry.styles" ng-selected="Enquiry.model_data.sku_id == style.sku_class" value="{{style.sku_class}}">{{style.sku_class}}</option>
               </select>
+              <small ng-if="Enquiry.is_skuId_empty" style="color: red">Please select style</small>
             </div>
             <i ng-if="Enquiry.styles_loading" class="fa fa-spinner fa-spin fa-2x fa-fw mt5"></i>
           </div>
@@ -103,6 +110,15 @@
             <label class="col-sm-5 col-xs-5 control-label">Expected Date *</label>
             <div class="col-sm-3 col-xs-5">
               <input type="date" name="expected_date" ng-model="Enquiry.model_data.expected_date" class="form-control" ng-required="true">
+            </div>
+          </div>
+          <div class="form-group" ng-init="Enquiry.custom_remarks = [{'remark': ''}]">
+            <label class="col-sm-5 col-xs-5 control-label">Customization Requirements</label>
+            <div class="col-sm-3 col-xs-5">
+              <div ng-repeat="remark in Enquiry.custom_remarks">
+                <input type="text" name="req"  ng-model="remark.remark" class="form-control mr5 mb10" style="width: 90%;display: inline-block;">
+                <i style="font-size: 20px;padding-top: 7px;cursor: pointer;" ng-class="($last)? 'fa-plus-square-o': 'fa-minus-square-o';" class="fa" ng-click="($last)? Enquiry.custom_remarks.push({'remarks': ''}): Enquiry.custom_remarks.splice($index, 1);"></i>
+              </div>
             </div>
           </div>
           <div class="form-group">

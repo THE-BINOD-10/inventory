@@ -663,10 +663,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
 
       Service.showNoty("Please Enter Name");
       return false;
-    } else if(!value) {
-
-      Service.showNoty("Please Enter Prefix");
-      return false;
     } else {
       vm.updateMarketplace(name, value, 'save')
       //vm.switches("{'tax_"+name+"':'"+value+"'}", 31);

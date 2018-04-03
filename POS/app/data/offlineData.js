@@ -1724,7 +1724,7 @@
                 last().
                 then(function(data){
                     if(data!=undefined)
-                       return resolve(data.order_id);
+                       return resolve(Number(data.order_id) + 1);
                     else
                        return reject("0"); 
                 }).catch(function(error){

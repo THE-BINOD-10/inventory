@@ -274,6 +274,7 @@ urlpatterns = [
     url(r'^save_manual_enquiry_image/$', save_manual_enquiry_image),
     url(r'^request_manual_enquiry_approval/$', request_manual_enquiry_approval),
     url(r'^get_invoice_details/$', get_invoice_details),
+    url(r'^upload_logo/$', upload_logo),
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),

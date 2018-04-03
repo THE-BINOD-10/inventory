@@ -8620,6 +8620,7 @@ def save_manual_enquiry_image(request, user=''):
         resp['msg'] = "Please Select Image"
     return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
 
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -8642,5 +8643,22 @@ def request_manual_enquiry_approval(request, user=''):
     if expected_date:
         save_manual_enquiry_data(request)
     enq_data[0].status = status
+    enq_data[0].save()
+    return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def upload_logo(request, user=''):
+    import pdb
+    pdb.set_trace()
+    logo = request.POST.get('logo', '')
+    user_id = request.POST.get('user_id', '')
+    resp = {'msg': 'Success', 'data': []}
+    filters = {'user_id': user_id}
+    exe_data = UserProfile.objects.filter(**filters)
+
+    enq_data[0].customer_logo = logo
     enq_data[0].save()
     return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))

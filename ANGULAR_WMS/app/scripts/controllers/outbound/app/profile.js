@@ -10,6 +10,7 @@ function ProfileUpload($scope, $http, $q, Session, colFilters, Service, $state, 
   vm.title = 'Customer Profile';
   vm.first_name = vm.session.user_profile.first_name;
   vm.email = vm.session.user_profile.email;
+  vm.user_id = vm.session.userId;
 
   vm.upload_file_name = "";
   $scope.$on("fileSelected", function (event, args) {
@@ -25,7 +26,7 @@ function ProfileUpload($scope, $http, $q, Session, colFilters, Service, $state, 
     } else {
       var formdata = $('#form').serializeArray();
       formdata.push({'name':'logo', 'value':$('#logo')[0].files});
-      Service.apiCall("upload_logo/", "GET", formdata).then(function(data){
+      Service.apiCall("upload_logo/", "POST", formdata).then(function(data){
         if(data.message) {
           console.log(data.message);
         }

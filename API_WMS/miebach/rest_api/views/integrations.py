@@ -1486,7 +1486,7 @@ def get_order(orig_order_id, user):
         order = order_detail[0]
         order_date = order.creation_date.strftime("%Y-%m-%d %H:%M:%S")#get_local_date(user, order.creation_date)
         if order.customer_id:
-            customer_master = CustomerMaster.objects.filter(id = order.customer_id,\
+            customer_master = CustomerMaster.objects.filter(customer_id = order.customer_id,\
                                                      name = order.customer_name,\
                                                      user = user.id)
         customer_master = customer_master[0] if customer_master else None

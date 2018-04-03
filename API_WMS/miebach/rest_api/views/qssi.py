@@ -92,8 +92,8 @@ def integration_get_order(order_id, user, order_status = "NEW"):
                     }
                }
         for ind, sku in enumerate(order["sku_data"]):
-            if ind == 0:
-                update_linked_consignee_data(sku["id"], data)
+            #if ind == 0:
+                #update_linked_consignee_data(sku["id"], data)
             sku_data.append({"SKUID": sku["sku_code"],
                              "Quantity": str(sku["quantity"]),
                              "Offer": {}

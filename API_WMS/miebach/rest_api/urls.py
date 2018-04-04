@@ -149,6 +149,7 @@ urlpatterns = [
     url('^check_generated_label/$', check_generated_label),
     url('^get_receive_po_style_view/$', get_receive_po_style_view),
     url('^save_supplier_po/$', save_supplier_po),
+    url('^get_po_segregation_data/$', get_po_segregation_data),
 
     # Production
     url(r'^generated_jo_data/$', generated_jo_data),

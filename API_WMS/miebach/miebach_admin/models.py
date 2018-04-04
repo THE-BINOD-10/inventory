@@ -2546,3 +2546,17 @@ class MailAlerts(models.Model):
     class Meta:
         db_table = 'MAIL_ALERTS'
         unique_together = ('user', 'alert_name')
+
+
+class PrimarySegregation(models.Model):
+    id = BigAutoField(primary_key=True)
+    purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True, unique=True)
+    quantity = models.FloatField(default=0)
+    sellable = models.FloatField(default=0)
+    non_sellable = models.FloatField(default=0)
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'PRIMARY_SEGREGATION'

@@ -935,6 +935,7 @@ def switches(request, user=''):
                        'extra_view_order_status':'extra_view_order_status',
                        'disable_brands_view':'disable_brands_view',
                        'invoice_types': 'invoice_types',
+                       'sellable_segregation': 'sellable_segregation',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -1913,6 +1914,7 @@ def save_po_location(put_zone, temp_dict, seller_received_list=[]):
     data = temp_dict['data']
     user = temp_dict['user']
     pallet_number = 0
+    sellable_segregation = get_misc_value('sellable_segregation', user)
     if 'pallet_number' in temp_dict.keys():
         pallet_number = temp_dict['pallet_number']
     # location = get_purchaseorder_locations(put_zone, temp_dict)
@@ -1925,6 +1927,9 @@ def save_po_location(put_zone, temp_dict, seller_received_list=[]):
             {'seller_id': '', 'sku_id': (purchase_data['sku']).id, 'quantity': received_quantity, 'id': ''})
     for po_received in seller_received_list:
         temp_dict['seller_id'] = po_received.get('seller_id', '')
+        if sellable_segregation == 'true' and not 'quality_check' in temp_dict.keys():
+            create_update_primary_segregation(data, po_received['quantity'])
+            continue
         location = get_purchaseorder_locations(put_zone, temp_dict)
         received_quantity = po_received['quantity']
         for loc in location:
@@ -2095,6 +2100,18 @@ def get_seller_receipt_id(open_po):
     return receipt_number
 
 
+def create_update_primary_segregation(data, quantity):
+    segregation_obj = PrimarySegregation.objects.filter(purchase_order_id=data.id)
+    if segregation_obj:
+        segregation_obj = segregation_obj[0]
+        segregation_obj.quantity = float(segregation_obj).quantity + quantity
+        if segregation_obj.status == 0:
+            segregation_obj.status = 1
+        segregation_obj.save()
+    else:
+        PrimarySegregation.objects.create(purchase_order_id=data.id, quantity=quantity,status=1,
+                                          creation_date=datetime.datetime.now())
+
 def update_seller_po(data, value, user, receipt_id='', invoice_number=''):
     if not receipt_id:
         return
@@ -2231,7 +2248,8 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
         if data.open_po:
             if not seller_receipt_id:
                 seller_receipt_id = get_seller_receipt_id(data.open_po)
-            seller_received_list = update_seller_po(data, value, user, receipt_id=seller_receipt_id, invoice_number=invoice_number)
+            seller_received_list = update_seller_po(data, value, user, receipt_id=seller_receipt_id,
+                                                    invoice_number=invoice_number)
         if 'wms_code' in myDict.keys():
             if myDict['wms_code'][i]:
                 sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
@@ -5497,3 +5515,108 @@ def save_supplier_po(request, user=''):
             date = po['expected_date'].split('/')
             style_po.update(expected_date=datetime.date(int(date[2]), int(date[0]), int(date[1])))
     return HttpResponse("Success")
+
+
+def get_primary_suggestions(request, user):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    purchase_filter = {'open_po__sku_id__in': sku_master_ids, 'open_po__sku__user': user.id,
+                       'primarysegregation__status': 1}
+    stpurchase_filter = {'stpurchaseorder__open_st__sku_id__in': sku_master_ids,
+                         'stpurchaseorder__open_st__sku__user': user.id, 'primarysegregation__status': 1}
+    rwpurchase_filter = {'rwpurchase__rwo__job_order__product_code_id__in': sku_master_ids,
+                             'rwpurchase__rwo__vendor__user': user.id, 'primarysegregation__status': 1}
+    purchase_orders = PurchaseOrder.objects.filter(Q(**stpurchase_filter) | Q(**rwpurchase_filter) |
+                                                   Q(**purchase_filter))
+    return purchase_orders
+
+@csrf_exempt
+def get_segregation_pos(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    lis = ['PO Number', 'Order Date', 'Supplier ID', 'Supplier Name', 'Order Type']
+    purchase_orders = get_primary_suggestions(request, user)
+    if search_term:
+        orders = purchase_orders.filter(Q(open_po__supplier__name__icontains=search_term) |
+            Q(open_po__supplier__id__icontains=search_term) | Q(order_id__icontains=search_term) |
+            Q(creation_date__regex=search_term) | Q(stpurchaseorder__open_st__warehouse__id__icontains=search_term) |
+            Q(stpurchaseorder__open_st__warehouse__username__icontains=search_term) |
+            Q(rwpurchase__rwo__vendor__id__icontains=search_term) | Q(rwpurchase__rwo__vendor__name__icontains=search_term))
+    elif order_term:
+        orders = purchase_orders
+    order_ids = orders.values_list('order_id', flat=True).distinct()
+    temp_data['recordsTotal'] = orders.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    for order_id in order_ids:
+        order = orders.filter(order_id=order_id)[0]
+        order_data = get_purchase_order_data(order)
+        order_type = 'Purchase Order'
+        if RWPurchase.objects.filter(purchase_order_id=order.id):
+            order_type = 'Returnable Work Order'
+        elif STPurchaseOrder.objects.filter(po_id=order.id):
+            order_type = 'Stock Transfer'
+        po_reference = '%s%s_%s' % (
+        order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order.order_id)
+        temp_data['aaData'].append({'DT_RowId': order.order_id, 'Supplier ID': order_data['supplier_id'],
+                                    'Supplier Name': order_data['supplier_name'], 'Order Type': order_type,
+                                    ' Order ID': order.order_id,
+                                    'Order Date': get_local_date(request.user, order.creation_date),
+                                    'DT_RowClass': 'results', 'PO Number': po_reference,
+                                    'DT_RowAttr': {'data-id': order.order_id}})
+
+    order_data = lis[col_num]
+    if order_term == 'asc':
+        temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(order_data))
+    else:
+        temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(order_data), reverse=True)
+    temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_po_segregation_data(request, user=''):
+    purchase_orders = get_primary_suggestions(request, user)
+    order_id = request.GET['order_id']
+    purchase_orders = purchase_orders.filter(order_id=order_id)
+    if not purchase_orders:
+        return HttpResponse("No Data found")
+    po_reference = get_po_reference(purchase_orders[0])
+    orders = []
+    order_data = {}
+    order_ids = []
+    for order in purchase_orders:
+        order_data = get_purchase_order_data(order)
+        segregation_obj = order.primarysegregation_set.filter()
+        if not segregation_obj:
+            continue
+        segregation_obj = segregation_obj[0]
+        quantity = float(segregation_obj.quantity) - float(segregation_obj.sellable) - float(segregation_obj.non_sellable)
+        sku_details = json.loads(
+            serializers.serialize("json", [order_data['sku']], indent=1, use_natural_foreign_keys=True, fields=(
+            'sku_code', 'wms_code', 'sku_desc', 'color', 'sku_class', 'sku_brand', 'sku_category', 'image_url',
+            'load_unit_handle')))
+        if quantity > 0:
+            sku_extra_data, product_images, order_ids = get_order_json_data(user, mapping_id=order.id,
+                                                                            mapping_type='PO',
+                                                                            sku_id=order_data['sku_id'],
+                                                                            order_ids=order_ids)
+            orders.append([{'order_id': order.id, 'wms_code': order_data['wms_code'],
+                            'sku_desc': order_data['sku_desc'],
+                            'quantity': quantity, 'sellable': quantity,
+                            'non_sellable': 0,
+                            'name': str(order.order_id) + '-' + str(
+                                re.sub(r'[^\x00-\x7F]+', '', order_data['wms_code'])),
+                            'price': order_data['price'], 'order_type': order_data['order_type'],
+                            'unit': order_data['unit'],
+                            'sku_extra_data': sku_extra_data, 'product_images': product_images,
+                            'sku_details': sku_details}])
+    supplier_name, order_date, expected_date, remarks = '', '', '', ''
+    if purchase_orders:
+        purchase_order = purchase_orders[0]
+        supplier_name = order_data['supplier_name']
+        order_date = get_local_date(user, purchase_order.creation_date)
+        remarks = purchase_order.remarks
+    return HttpResponse(json.dumps({'data': orders, 'order_id': order_id, \
+                                    'supplier_id': order_data['supplier_id'],\
+                                    'po_reference': po_reference, 'order_ids': order_ids,
+                                    'supplier_name': supplier_name, 'order_date': order_date,
+                                    'remarks': remarks
+                        }))

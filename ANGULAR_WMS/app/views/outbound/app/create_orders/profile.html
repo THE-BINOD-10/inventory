@@ -1,4 +1,4 @@
-<div class="clearfix render-items" ng-controller="ProfileUpload as profile" style="padding-top: 60px;">
+<div class="clearfix render-items" ng-controller="ProfileUpload as profile" style="padding-top: 20px;">
   <div class="row style-menu" style="height: 60px;position: absolute;top:0px;width:100%;z-index:100">
     <div class="col-md-4 col-sm-4 col-xs-4">
       <div class="menu-left" style="line-height: 60px">
@@ -26,7 +26,6 @@
       </a>
     </div>
   </div>
-
   <div class="app_body" scrolly="showCase.scroll(e)" style="position: relative">
     <div class="row search-items mt15 search-box">
       <div class="col-md-4 col-md-offset-4">
@@ -41,8 +40,8 @@
               <div class="col-md-12">
                 <div class="form-group">
                   <label class="control-label"> Name </label>
-                  <input type="text" name="f_name" class="form-control namevalid" ng-model="profile.first_name" ng-readonly='true'>
-                  <input type="hidden" name="user_id" class="form-control namevalid" value="{{profile.user_id}}" ng-readonly='true'>
+                  <input type="text" name="first_name" class="form-control namevalid" ng-model="profile.first_name">
+                  <input type="hidden" name="user_id" class="form-control namevalid" value="{{profile.user_id}}">
                 </div>
               </div>
             </div>
@@ -51,31 +50,59 @@
               <div class="col-md-12">
                 <div class="form-group">
                   <label class="control-label"> Email </label>
-                  <input type="text" name="email" class="form-control namevalid" ng-model="profile.email" ng-readonly='true'>
-                </div>
-              </div>
-            </div>
-<!-- 
-            <div class="row">
-              <div class="col-md-12">
-                <div class="form-group">
-                  <label class="control-label"> Phone </label>
-                  <input type="text" name="phone" class="form-control namevalid" ng-model="profile.phone" ng-readonly='true'>
-                </div>
-              </div>
-            </div>
- -->
-            <div class="row">
-              <div class="col-md-12">
-                <div class="form-group">
-                  <label class="control-label"> Logo </label>
-                  <input type="file" nv-file-select="" uploader="uploader" name="file" id="logo" multiple/>
+                  <input type="text" name="email" class="form-control namevalid" ng-model="profile.email">
                 </div>
               </div>
             </div>
 
             <div class="row">
-              <div class="col-md-12 mt20">
+              <div class="col-md-12">
+                <div class="form-group">
+                  <label class="control-label"> Phone </label>
+                  <input type="text" name="phone_number" class="form-control namevalid" ng-model="profile.model_data.phone_number">
+                </div>
+              </div>
+            </div>
+
+
+            <div class="row">
+              <div class="col-md-12">
+                <div class="form-group">
+                  <label class="control-label"> Bank Details </label>
+                  <input type="text" name="bank_details" class="form-control namevalid" ng-model="profile.model_data.bank_details">
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-12">
+                <div class="form-group">
+                  <label class="control-label"> GST Number </label>
+                  <input type="text" name="gst_number" class="form-control namevalid" ng-model="profile.model_data.gst_number">
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-12">
+                <div class="form-group">
+                  <label class="control-label"> Address </label>
+                  <textarea rows="3" class="form-control" cols="27" ng-model="profile.model_data.address" name="address"></textarea>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-12">
+                <div class="form-group">
+                  <label class="control-label"> Logo </label>
+                  <input type="file" name="file" id="logo" />
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-12 mt10">
                 <div class="form-group pull-right">
                   <!-- <button type="submit" class="btn btn-warning mr10" ng-click="showCase.cancel()">Close</button> -->
                   <button type="submit" class="btn btn-success mr10" ng-click="profile.submit(form)">Save</button>

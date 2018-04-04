@@ -19,6 +19,17 @@ function ProfileUpload($scope, $http, $q, Session, colFilters, Service, $state, 
     });
   });
 
+  vm.base = function(){
+
+    var send = {'user_id':vm.user_id};
+    Service.apiCall("get_cust_profile_info/", "POST", send).then(function(data){
+      if(data.message) {
+        vm.model_data = data.data.data;
+      }
+    });
+  }
+  vm.base();
+
   vm.submit = function(form){
     
     if (!($("#logo")[0].files.length)){
@@ -26,7 +37,7 @@ function ProfileUpload($scope, $http, $q, Session, colFilters, Service, $state, 
     } else {
       var formdata = $('#form').serializeArray();
       formdata.push({'name':'logo', 'value':$('#logo')[0].files});
-      Service.apiCall("upload_logo/", "POST", formdata).then(function(data){
+      Service.apiCall("update_cust_profile/", "POST", formdata).then(function(data){
         if(data.message) {
           console.log(data.message);
         }

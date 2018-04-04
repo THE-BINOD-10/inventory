@@ -274,7 +274,7 @@ urlpatterns = [
     url(r'^save_manual_enquiry_image/$', save_manual_enquiry_image),
     url(r'^request_manual_enquiry_approval/$', request_manual_enquiry_approval),
     url(r'^get_invoice_details/$', get_invoice_details),
-    url(r'^upload_logo/$', upload_logo),
+    url(r'^update_cust_profile/$', update_cust_profile),
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),
@@ -414,6 +414,7 @@ urlpatterns += [
     url(r'get_user_profile_data/$', get_user_profile_data),
     url(r'change_user_password/$', change_user_password),
     url(r'update_profile_data/$', update_profile_data),
+    url(r'get_cust_profile_info/$', get_cust_profile_info),
 
     # Retailone
     url(r'^get_marketplace_data/$', get_marketplace_data),

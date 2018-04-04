@@ -2975,7 +2975,7 @@ def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, cus
     continue_list = ['payment_received', 'charge_name', 'charge_amount', 'custom_order', 'user_type', 'invoice_amount',
                      'description', 'extra_data', 'location', 'serials', 'direct_dispatch', 'seller_id', 'sor_id',
                      'ship_to', 'client_name', 'po_number', 'corporate_po_number', 'address_selected', 'is_sample',
-                     'invoice_type']
+                     'invoice_type', 'default_shipment_addr', 'manual_shipment_addr']
     inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
     order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
     sku_master = {}
@@ -3175,6 +3175,9 @@ def insert_order_data(request, user=''):
     address_selected = request.POST.get('address_selected', '')
     is_sample = request.POST.get('is_sample', '')
     invoice_type = request.POST.get('invoice_type', '')
+    dist_shipment_address = request.POST.get('manual_shipment_addr', '')
+    if dist_shipment_address:
+        ship_to = dist_shipment_address
 
     created_order_id = ''
     ex_image_url = {}
@@ -6789,6 +6792,7 @@ def get_customer_cart_data(request, user=""):
                         dist_userid = dist_mapping[0].warehouse_id
                         lead_times = get_leadtimes(dist_userid, record.warehouse_level)
                         del_date = min(lead_times.keys())
+                        json_record['default_shipment_address'] = cm_obj.address
                 else:
                     price_type = update_level_price_type(cm_obj, record.warehouse_level, price_type)
                     if record.warehouse_level:

@@ -13,6 +13,9 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
   vm.user_type = Session.roles.permissions.user_type;
   vm.deliver_address = ['Distributor Address'];
   vm.checked_address = vm.deliver_address[0];
+  vm.shipment_addr = 'default';
+  vm.manual_shipment_addr = false;
+  vm.default_shipment_addr = true;
 
   vm.get_customer_cart_data = function() {
     
@@ -147,7 +150,6 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
         vm.order_data_insertion(data_dict);
       }
     } else {
-
       if (!(vm.model_data.shipment_date)) {
 
         vm.service.showNoty("The Shipment Date is Required Please Select", "success", "bottomRight");
@@ -439,6 +441,16 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
       vm.upload_file_name = args.file.name;
     });
   });
+
+  vm.selectShipmentAddr = function (shipment_type) {
+    if (shipment_type === 'manual') {
+      vm.manual_shipment_addr = true;
+      vm.default_shipment_addr = false;
+    } else {
+      vm.default_shipment_addr = true;
+      vm.manual_shipment_addr = false;
+    }
+  }
 }
 
 angular

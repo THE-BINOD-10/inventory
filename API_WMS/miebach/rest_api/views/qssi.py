@@ -16,16 +16,6 @@ from miebach_admin.models import GenericOrderDetailMapping, CustomerMaster, Cust
 
 
 def update_linked_consignee_data(order_detail_id, data):
-    generic_order = GenericOrderDetailMapping.objects.filter(orderdetail_id=order_detail_id)
-    if generic_order:
-        generic_order = generic_order[0]
-        customer_master = CustomerMaster.objects.get(id=generic_order.customer_id)
-        for addr in ["ShippingAddress", "BillingAddress"]:
-            data["Buyer"]["AddressInfo"][addr]["Name"] =  customer_master.name
-            data["Buyer"]["AddressInfo"][addr]["Address"] =  customer_master.address
-            data["Buyer"]["AddressInfo"][addr]["City"] = customer_master.city
-            data["Buyer"]["AddressInfo"][addr]["State"] =  customer_master.state
-            data["Buyer"]["AddressInfo"][addr]["Zip"] = customer_master.pincode
         customer_order_summary = CustomerOrderSummary.objects.filter(order_id=order_detail_id)
         if customer_order_summary:
             customer_order_summary = customer_order_summary[0]

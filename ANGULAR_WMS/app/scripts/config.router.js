@@ -1531,6 +1531,10 @@ var app = angular.module('urbanApp')
             title: 'Supplier Wise POs',
           }
         })
+        .state('app.reports.SupplierWisePOs.POs', {
+            url: '/POs',
+            templateUrl: 'views/reports/toggles/po_details.html',
+          })
         .state('app.reports.SalesReturnReport', {
           url: '/SalesReturnReport',
           permission: 'add_orderreturns',
@@ -2028,6 +2032,19 @@ var app = angular.module('urbanApp')
             templateUrl: 'views/outbound/app/create_orders/categories.html'
             // templateUrl: 'views/outbound/app/create_orders/catlog.html'
           })
+          .state('user.App.Profile', {
+            url: '/Profile',
+            templateUrl: 'views/outbound/app/create_orders/profile.html',
+            resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/outbound/app/profile.js');
+                      }]
+            },
+            data: {
+              title: 'Profile'
+            }
+          })
+
           .state('user.App.Style', {
             url: '/Style?styleId',
             templateUrl: 'views/outbound/app/create_orders/style.html',

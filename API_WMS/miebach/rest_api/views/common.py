@@ -5922,6 +5922,17 @@ def get_user_profile_data(request, user=''):
     return HttpResponse(json.dumps({'msg': 1, 'data': data}))
 
 
+@login_required
+@get_admin_user
+def get_cust_profile_info(request, user=''):
+    data = {'user_id': request.POST.get('user_id','')}
+    customer_info = UserProfile.objects.get(user_id=request.POST.get('user_id',''))
+    data['address'] = customer_info.address
+    data['gst_number'] = customer_info.gst_number
+    data['phone_number'] = customer_info.phone_number
+    return HttpResponse(json.dumps({'message': 1, 'data': data}))
+
+
 @csrf_exempt
 @login_required
 @get_admin_user

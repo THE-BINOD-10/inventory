@@ -8630,6 +8630,7 @@ def save_manual_enquiry_image(request, user=''):
         resp['msg'] = "Please Select Image"
     return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
 
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -8653,4 +8654,37 @@ def request_manual_enquiry_approval(request, user=''):
         save_manual_enquiry_data(request)
     enq_data[0].status = status
     enq_data[0].save()
+    return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_cust_profile(request, user=''):
+    logo = request.POST.get('logo', '')
+    user_id = request.POST.get('user_id', '')
+    first_name = request.POST.get('first_name', '')
+    email = request.POST.get('email', '')
+    phone_number = request.POST.get('phone_number', '')
+    gst_number = request.POST.get('gst_number', '')
+    address = request.POST.get('address', '')
+
+    exe_user_data = User.objects.filter(id=user_id)
+    exe_user_data[0].first_name = first_name
+    exe_user_data[0].email = email
+    exe_user_data[0].save()
+
+    filters = {'user_id': user_id}
+    exe_data = UserProfile.objects.filter(**filters)
+    exe_data[0].phone_number = phone_number
+    exe_data[0].gst_number = gst_number
+    exe_data[0].address = address
+    # exe_data[0].phone_number = request.POST.get('bank_details', '')
+    # exe_data[0].customer_logo = logo
+    exe_data[0].save()
+    data = UserProfile.objects.get(user_id=user_id)
+    # import pdb
+    # pdb.set_trace()
+    resp = {'message': 'Success', 'data': data}
+
     return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))

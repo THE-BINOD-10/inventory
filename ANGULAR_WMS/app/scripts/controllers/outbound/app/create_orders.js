@@ -598,6 +598,9 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       if(vm.location == '/App/Categories'){
         $(".app_body").css('height',height-menu-cart);
         vm.location = vm.old_path;
+      } else if (vm.location == '/App/Profile') {
+        $(".app_body").css('height',height-menu);
+        vm.location = vm.old_path;
       } else {
         $(".app_body").css('height',height-header-menu-cart);
       }

@@ -18,17 +18,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
               xhrFields: {
                 withCredentials: true
               },
-              data: vm.model_data,
-              complete: function(jqXHR, textStatus) {
-                $scope.$apply(function(){
-                  angular.copy(JSON.parse(jqXHR.responseText), vm.tb_data)
-                })
-              }
+              // complete: function(jqXHR, textStatus) {
+              //   $scope.$apply(function(){
+              //     angular.copy(JSON.parse(jqXHR.responseText), vm.tb_data)
+              //   })
+              // }
            })
        .withDataProp('data')
        .withOption('processing', true)
        .withOption('serverSide', true)
        .withPaginationType('full_numbers')
+       .withOption('rowCallback', rowCallback)
        .withOption('initComplete', function( settings ) {
          var html = vm.service.add_totals(settings.aoColumns.length, vm.total_data)
          $(".dataTable > thead").prepend(html)
@@ -39,15 +39,33 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         DTColumnBuilder.newColumn('Order Date').withTitle('Order Date'),
         DTColumnBuilder.newColumn('PO Number').withTitle('PO Number'),
         DTColumnBuilder.newColumn('Supplier Name').withTitle('Supplier Name'),
-        DTColumnBuilder.newColumn('WMS Code').withTitle('WMS Code'),
-        DTColumnBuilder.newColumn('Design').withTitle('Design'),
         DTColumnBuilder.newColumn('Ordered Quantity').withTitle('Ordered Quantity'),
         DTColumnBuilder.newColumn('Received Quantity').withTitle('Received Quantity'),
         DTColumnBuilder.newColumn('Amount').withTitle('Amount'),
-        DTColumnBuilder.newColumn('Status').withTitle('Status')
+        DTColumnBuilder.newColumn('Status').withTitle('Status'),
     ];
 
    vm.dtInstance = {};
+
+    function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
+        $('td', nRow).unbind('click');
+        $('td', nRow).bind('click', function() {
+            $scope.$apply(function() {
+                angular.copy(aData, vm.model_data);
+                vm.update = true;
+                vm.title = "Update PO's";
+
+                $http.get(Session.url+'print_po_reports/?po_no='+aData['PO Number'], {withCredential: true})
+                .success(function(data, status, headers, config) {
+                  var html = $(data);
+                  vm.print_page = $(html).clone();
+                  $(".modal-body").html(html);
+                });
+                $state.go("app.reports.SupplierWisePOs.POs");
+            });
+        });
+        return nRow;
+    }
 
    vm.empty_data = {
                     'supplier': ''
@@ -63,6 +81,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         vm.suppliers = data.data.suppliers;
       }
    })
+
+    vm.close = function() {
+
+      angular.copy(vm.empty_data, vm.model_data);
+      $state.go('app.reports.SupplierWisePOs');
+    }
+
+    vm.print = print;
+    vm.print = function() {
+      console.log(vm.print_page);
+      vm.service.print_data(vm.print_page, "Good Receipt Note");
+    }
 
   }
 

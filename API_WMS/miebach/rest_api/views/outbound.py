@@ -8224,6 +8224,7 @@ def get_customer_enquiry_detail(request, user=''):
 @csrf_exempt
 def get_enquiry_orders(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                        filters={}, user_dict={}):
+    central_admin_zone = request.user.userprofile.zone
     if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
         em_qs = EnquiryMaster.objects.all()
     else:
@@ -8233,7 +8234,11 @@ def get_enquiry_orders(start_index, stop_index, temp_data, search_term, order_te
         total_qty = map(sum, [[i['quantity'] for i in em_obj.enquiredsku_set.values()]])[0]
         cm_obj = CustomerMaster.objects.get(id=em_obj.customer_id)
         customer_name = cm_obj.name
-        zone = ''
+        dist_obj = User.objects.get(id=em_obj.user)
+        distributor_name = dist_obj.username
+        zone = dist_obj.userprofile.zone
+        if central_admin_zone and zone != central_admin_zone:
+            continue
         date = em_obj.creation_date.strftime('%Y-%m-%d')
         extend_status = em_obj.extend_status
         if em_obj.extend_date:
@@ -8242,6 +8247,7 @@ def get_enquiry_orders(start_index, stop_index, temp_data, search_term, order_te
         else:
             days_left = 0
         temp_data['aaData'].append(OrderedDict((('Enquiry ID', enq_id), ('Sub Distributor', customer_name),
+                                                ('Distributor', distributor_name),
                                                 ('Customer Name', em_obj.corporate_name), ('Zone', zone),
                                                 ('Quantity', total_qty), ('Date', date),
                                                 ('Customer ID', em_obj.customer_id),

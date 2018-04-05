@@ -288,6 +288,13 @@ def wms_login(request):
             return HttpResponse(json.dumps(response_data), content_type='application/json')
 
         response_data = add_user_permissions(request, response_data)
+        price_band_flag = get_misc_value('priceband_sync', user.id)
+        if response_data['data'].get('parent', '') and not user_profile[0].warehouse_type \
+                and user_profile[0].user_type != 'customer' and price_band_flag:
+            parent_user_profile = UserProfile.objects.get(user_id=response_data['data']['parent']['userId'])
+            if parent_user_profile.warehouse_type:
+                user_profile[0].warehouse_type = parent_user_profile.warehouse_type
+                user_profile[0].save()
 
     return HttpResponse(json.dumps(response_data), content_type='application/json')
 

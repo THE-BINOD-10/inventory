@@ -10,7 +10,7 @@ from django.db.models import Q
 from miebach_utils import OrderUploads, GenericOrderDetailMapping, CustomerOrderSummary, UserProfile
 from common import get_filtered_params, get_admin
 from miebach_admin.custom_decorators import get_admin_user, login_required
-from miebach_admin.models import CustomerUserMapping, CustomerMaster
+from miebach_admin.models import CustomerUserMapping, CustomerMaster, UserGroups
 
 
 def upload_po(request):
@@ -66,21 +66,23 @@ def get_skucode_quantity(po_number, customer_name, uploaded_user):
               'unit_price': order.unit_price, 'sku_desc': order.orderdetail.sku.sku_desc}
         po['amount'] = round(po['quantity'] * po['unit_price'], 2)
         customer_summary = order.orderdetail.customerordersummary_set.values()
-        user_profile = UserProfile.objects.get(user_type='warehouse_user', user=order.orderdetail.user)
-        po['wharehouse_name'] = user_profile.user.username
-        if uploaded_user.user == user_profile.user_id:
-            po['warehouse_level'] = 0
-        else:
-            po['warehouse_level'] = user_profile.warehouse_level
-        total_tax = 0
-        if customer_summary:
-            customer_summary = customer_summary[0]
-            for tax in ['sgst', 'cgst', 'igst']:
-                po[tax+'_tax'] = customer_summary[tax+'_tax']
-                po[tax] = round((po['amount']/100)*po[tax+'_tax'], 2)
-                total_tax += po[tax]
-        po['invoice_amt'] = po['amount'] + total_tax
-        gen_ord_map.append(po)
+        user_profile_obj = UserProfile.objects.filter(user_type='warehouse_user', user=order.orderdetail.user)
+        if user_profile_obj:
+            user_profile = user_profile_obj[0]
+            po['wharehouse_name'] = user_profile.user.username
+            if uploaded_user.user == user_profile.user_id:
+                po['warehouse_level'] = 0
+            else:
+                po['warehouse_level'] = user_profile.warehouse_level
+            total_tax = 0
+            if customer_summary:
+                customer_summary = customer_summary[0]
+                for tax in ['sgst', 'cgst', 'igst']:
+                    po[tax+'_tax'] = customer_summary[tax+'_tax']
+                    po[tax] = round((po['amount']/100)*po[tax+'_tax'], 2)
+                    total_tax += po[tax]
+            po['invoice_amt'] = po['amount'] + total_tax
+            gen_ord_map.append(po)
     return gen_ord_map
 
 
@@ -93,6 +95,15 @@ def get_uploaded_pos_by_customers(start_index, stop_index, temp_data, search_ter
         dist_customers = CustomerUserMapping.objects.filter(customer__user=user.id).values_list('user_id', flat=True)
         if dist_customers:
             filter_params['uploaded_user_id__in'] = dist_customers
+    elif user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
+        all_wh_dists_obj = UserGroups.objects.filter(admin_user=user.id)
+        if request.user.userprofile.zone:
+            all_wh_dists = all_wh_dists_obj.filter(user__userprofile__zone=request.user.userprofile.zone).values_list('user_id', flat=True)
+        else:
+            all_wh_dists = all_wh_dists_obj.values_list('user_id', flat=True)
+        customers = CustomerUserMapping.objects.filter(customer__user__in=all_wh_dists).values_list('user_id', flat=True)
+        if customers:
+            filter_params['uploaded_user_id__in'] = customers
     if search_term:
         results = OrderUploads.objects.filter(Q(uploaded_user__first_name__icontains=search_term) |
                                               Q(po_number__icontains=search_term) |
@@ -103,27 +114,30 @@ def get_uploaded_pos_by_customers(start_index, stop_index, temp_data, search_ter
         results = OrderUploads.objects.filter(**filter_params)
     for result in results:
         generic_id = ''
+        distributor = ''
         customer_user = CustomerUserMapping.objects.filter(user=result.uploaded_user.id)
         if customer_user:
             customer_user = customer_user[0]
-            order_data = GenericOrderDetailMapping.objects.filter(customer_id=customer_user.customer.id,\
+            dist_id = customer_user.customer.user
+            distributor = UserProfile.objects.get(user=dist_id).user.username
+            order_data = GenericOrderDetailMapping.objects.filter(customer_id=customer_user.customer.id,
                          po_number=result.po_number, client_name=result.customer_name)
             if order_data:
                 generic_id = order_data[0].generic_order_id
         cond = (result.id, result.uploaded_user, result.po_number, result.uploaded_date,
                 result.customer_name, result.uploaded_file, result.verification_flag, result.remarks,
-                generic_id, result.uploaded_user.userprofile.zone)
+                generic_id, result.uploaded_user.userprofile.zone, distributor)
         all_data.setdefault(cond, 0)
     temp_data['recordsTotal'] = len(all_data)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for key, value in all_data.iteritems():
         _id, uploaded_user, po_number, uploaded_date, customer_name, uploaded_file, \
-        verification_flag, remarks, generic_id, zone = key
+        verification_flag, remarks, generic_id, zone, distributor = key
         temp_data['aaData'].append(
             {'id': _id, 'uploaded_user': uploaded_user.first_name, 'po_number': po_number,
              'uploaded_date': uploaded_date.strftime('%Y-%m-%d'),
              'customer_name': customer_name, 'uploaded_file': str(uploaded_file),
-             'verification_flag': verification_flag, 'zone': zone, 'order_id': generic_id})
+             'verification_flag': verification_flag, 'zone': zone, 'order_id': generic_id, 'distributor': distributor})
     sort_col = lis[col_num]
 
     if order_term == 'asc':

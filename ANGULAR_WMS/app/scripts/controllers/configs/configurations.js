@@ -297,6 +297,50 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
   vm.empty = {};
   vm.message = "";
 
+  vm.save_pos_extra_fields = function(){
+    
+    vm.model_data['pos_extra_fields'] = [];
+    vm.validation_err = false;
+    var input_type = {'Input':'', 'Textarea':''};
+
+    angular.forEach(vm.pos_extra_fields, function(data){
+      
+      if (!data.input_type || !data.field_name) {
+        vm.service.showNoty('Please fill all the required fields which are selected', 'success', 'topRight');
+        vm.validation_err = true;
+      } else {
+        if (input_type[data.input_type]) {
+          input_type[data.input_type] += ','+data.field_name;
+        } else {
+          input_type[data.input_type] = data.field_name;
+        }
+      }
+    });
+    
+    if (!vm.validation_err) {
+      
+      vm.model_data['pos_extra_fields'] = vm.pos_extra_fields;
+      var send = {'pos_extra_fields':vm.pos_extra_fields};
+      vm.service.apiCall("pos_extra_fields/", "POST", input_type).then(function(data) {
+        if (data.data = 'Success') {
+          Service.showNoty(data.data);
+          vm.pos_extra_fields = [{input_type: "",field_name: ""}];
+        }
+      })
+    }
+  }
+
+  vm.pos_extra_fields = [{'input_type': "",'field_name': ""}];
+  vm.add_pos_fields = function() {
+
+    vm.pos_extra_fields.push({input_type: "",field_name: ""});
+  }
+
+  vm.remove_pos_fields = function(index){
+
+    vm.pos_extra_fields.splice(index,1);
+  }
+
   vm.switches = switches;
   function switches(value, switch_num) {
     vm.service.apiCall("switches/?"+vm.switch_names[switch_num]+"="+String(value)).then(function(data){
@@ -327,6 +371,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       }, 500);
     }
   }
+
+  vm.input_fields = ['Input', 'Textarea'];
 
   vm.service.apiCall("configurations/").then(function(data){
     if(data.message) {
@@ -616,10 +662,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     if(!name) {
 
       Service.showNoty("Please Enter Name");
-      return false;
-    } else if(!value) {
-
-      Service.showNoty("Please Enter Prefix");
       return false;
     } else {
       vm.updateMarketplace(name, value, 'save')

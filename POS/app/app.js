@@ -92,7 +92,8 @@ app.config(function($stateProvider, $urlRouterProvider,$httpProvider){
 
         if (typeof($location.$$search.user_id) != "undefined") {
 
-          urlService.userData = {'parent_id':$location.$$search.user_id, 'user_name':$location.$$search.user_name, 'VAT':0}
+          urlService.userData = {'user_name':$location.$$search.user_name,
+				 'user_id': $location.$$search.user_id, 'VAT':0}
         } else {
 
           //$state.go("login")
@@ -107,7 +108,7 @@ app.config(function($stateProvider, $urlRouterProvider,$httpProvider){
 app.factory('printer', ['$rootScope', '$compile', '$http', '$timeout','$q', function ($rootScope, $compile, $http, $timeout, $q) {
         var printHtml = function (html) {
             var deferred = $q.defer();
-            var hiddenFrame = $('<iframe style="display: none"></iframe>').appendTo('body')[0];
+            var hiddenFrame = $('<iframe style="visibility: hidden"></iframe>').appendTo('body')[0];
             $(hiddenFrame).on('load', function () {
                 if (!hiddenFrame.contentDocument.execCommand('print', false, null)) {
                     hiddenFrame.contentWindow.focus();

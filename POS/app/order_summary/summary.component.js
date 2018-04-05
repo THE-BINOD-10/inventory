@@ -14,7 +14,7 @@
       var GET_STAFF_DATA=false;
 		if (urlService.user_update) {
            console.log("online");
-            $http.get( urlService.mainUrl+'rest_api/get_pos_user_data/?id='+urlService.userData.parent_id).
+            $http.get( urlService.mainUrl+'rest_api/get_pos_user_data/?id='+urlService.userData.user_id).
 					then(function(data) {
                 data=data.data;
                 if (data.status == "Success"){
@@ -49,7 +49,7 @@
 
                   var data=JSON.parse(result.checksum);
 
-                   if (data.status == "Success"&& urlService.userData.parent_id==data.parent_id){
+                   if (data.status == "Success"&& urlService.userData.user_id==data.user_id){
                       console.log(data);
                       urlService.userData = data;
                       urlService.VAT = data.VAT;

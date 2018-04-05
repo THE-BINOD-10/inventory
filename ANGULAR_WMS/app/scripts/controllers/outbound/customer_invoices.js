@@ -269,6 +269,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       })
     }
 
+    vm.delivery_challan = false;
+
     vm.pdf_data = {};
     vm.generate_invoice = function(click_type, DC=false){
 
@@ -307,6 +309,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           send['edit_invoice'] = true;
         }
         send['delivery_challan'] = DC;
+        vm.delivery_challan = DC;
         vm.bt_disable = true;
         vm.service.apiCall("generate_customer_invoice/", "GET", send).then(function(data){
 

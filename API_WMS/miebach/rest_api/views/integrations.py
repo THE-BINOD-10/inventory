@@ -2,13 +2,14 @@ from miebach_admin.models import *
 from common import *
 from masters import *
 from uploads import *
+from miebach.settings import INTEGRATIONS_CFG_FILE
 from dateutil import parser
 import traceback
 import ConfigParser
 import datetime
 
 LOAD_CONFIG = ConfigParser.ConfigParser()
-LOAD_CONFIG.read('rest_api/views/configuration.cfg')
+LOAD_CONFIG.read(INTEGRATIONS_CFG_FILE)
 log = init_logger('logs/integrations.log')
 
 
@@ -1485,7 +1486,7 @@ def get_order(orig_order_id, user):
         order = order_detail[0]
         order_date = order.creation_date.strftime("%Y-%m-%d %H:%M:%S")#get_local_date(user, order.creation_date)
         if order.customer_id:
-            customer_master = CustomerMaster.objects.filter(id = order.customer_id,\
+            customer_master = CustomerMaster.objects.filter(customer_id = order.customer_id,\
                                                      name = order.customer_name,\
                                                      user = user.id)
         customer_master = customer_master[0] if customer_master else None
@@ -1497,7 +1498,7 @@ def get_order(orig_order_id, user):
                          'city': customer_master.city if customer_master else order.city,
                          'state': customer_master.state if customer_master else order.state,
                          'Email': customer_master.email_id if customer_master else order.email_id}
-        return ({'data':
+        return {'data':
                        {'order_id': order.original_order_id if order.original_order_id\
                                     else '%s%s' % (order.order_code, order.order_id),
                        'order_date': order_date,
@@ -1507,7 +1508,6 @@ def get_order(orig_order_id, user):
                        'total_gst': total_gst,
                        'customer_data': customer_data,
                        'sku_data': sku_data},
-                   'status': 'success'})
+                'status': 'success'}
     else:
-	return ({'data':{},
-		 'status': 'failure'})
+        return {'data':{}, 'status': 'failure'}

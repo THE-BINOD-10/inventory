@@ -79,7 +79,7 @@ def get_pos_user_data(request, user=''):
 @csrf_exempt
 @get_admin_user
 def get_current_order_id(request, user=''):
-    order_id = get_order_id(user.id)
+    order_id = get_order_id(user.id, is_pos=True)
     return HttpResponse(json.dumps({'order_id': order_id}))
 
 
@@ -128,7 +128,7 @@ def search_product_data(request, user=''):
         except:
             master_data = SKUMaster.objects.exclude(sku_type='RM').filter(Q(wms_code__icontains=search_key) |
                                                                       Q(sku_desc__icontains=search_key), user=user.id)
-    for data in master_data[:100]:
+    for data in master_data[:30]:
         status = 'Inactive'
         if data.status:
             status = 'Active'
@@ -325,8 +325,12 @@ def customer_order(request):
         number = order['customer_data']['Number']
         customer_data = CustomerMaster.objects.filter(phone_number=number, \
                                                       user=user_id) if number else []
-        order_id = get_order_id(user_id) if order['summary']['nw_status'] == 'online' \
-            else order['summary']['order_id']
+        frontend_order_id = order['summary']['order_id']
+        if order['summary']['nw_status'] == 'online':
+            backend_order_id = get_order_id(user_id, is_pos=True)
+            order_id = backend_order_id if (backend_order_id > frontend_order_id) else frontend_order_id
+        else:
+            order_id = frontend_order_id
         status = 0 if order['summary']['issue_type'] == "Delivery Challan" \
             else 1
         order_code = order_codes[order['summary']['issue_type']] + str(request.user.id)
@@ -377,24 +381,39 @@ def customer_order(request):
                     else:
                         payment_received = total_payment_received
                         total_payment_received = 0
-                    order_detail = OrderDetail.objects.create(user=user_id, \
-                                                              marketplace="Offline", \
-                                                              order_id=order_id, \
-                                                              sku_id=sku.id, \
-                                                              customer_id=customer_id, \
-                                                              customer_name=customer_name, \
-                                                              telephone=number, \
-                                                              title=sku.sku_desc, \
-                                                              quantity=item['quantity'], \
-                                                              invoice_amount=item['price'], \
-                                                              order_code=order_code, \
-                                                              shipment_date=NOW, \
-                                                              original_order_id=original_order_id, \
-                                                              nw_status=order['summary']['nw_status'], \
-                                                              status=status, \
-                                                              email_id=cust_dict.get('Email', ''), \
-                                                              unit_price=item['unit_price'],
-                                                              payment_received=payment_received)
+                    try:
+                        order_detail = OrderDetail.objects.create(user=user_id, \
+                                                                  marketplace="Offline", \
+                                                                  order_id=order_id, \
+                                                                  sku_id=sku.id, \
+                                                                  customer_id=customer_id, \
+                                                                  customer_name=customer_name, \
+                                                                  telephone=number, \
+                                                                  title=sku.sku_desc, \
+                                                                  quantity=item['quantity'], \
+                                                                  invoice_amount=item['price'], \
+                                                                  order_code=order_code, \
+                                                                  shipment_date=NOW, \
+                                                                  original_order_id=original_order_id, \
+                                                                  nw_status=order['summary']['nw_status'], \
+                                                                  status=status, \
+                                                                  email_id=cust_dict.get('Email', ''), \
+                                                                  unit_price=item['unit_price'],
+                                                                  payment_received=payment_received)
+                    except Exception as exece:
+                        if "Duplicate entry" in exece[1]:
+                            order_detail = OrderDetail.objects.get(user=user_id, \
+                                                                   order_id=order_id, \
+                                                                   sku_id=sku.id, \
+                                                                   order_code=order_code)
+                            new_sku_count = order_detail.quantity + item['quantity']
+                            new_invoice_amount = order_detail.invoice_amount + item['price']
+                            new_payment_received = order_detail.payment_received + payment_received
+                            order_detail.quantity = new_sku_count
+                            order_detail.invoice_amount = new_invoice_amount
+                            order_detail.payment_received = new_payment_received
+                            order_detail.save()
+                            continue
                     sku_disc = (int(item['selling_price']) - item['unit_price']) * item['quantity']
                     CustomerOrderSummary.objects.create(order_id=order_detail.id, \
                                                         discount=order_level_disc_per_sku, \
@@ -461,7 +480,7 @@ def customer_order(request):
                 #send mail and sms for pre order
                 if order["summary"]["issue_type"] == "Pre Order" and customer_data:
                     email_id, phone_number = customer_data[0].email_id, customer_data[0].phone_number
-                    if email_id:
+                    if email_id or phone_number:
                         other_charge_amounts = 0
                         order_detail.order_id = order_detail.original_order_id
                         order_data = {
@@ -792,3 +811,46 @@ def pos_tax_inclusive(request, user=''):
     tax_inclusive = get_misc_value('tax_inclusive', user.id)
     data['tax_inclusive_switch'] = json.loads(tax_inclusive)
     return HttpResponse(json.dumps(data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def pos_extra_fields(request, user=''):
+    input_fld = request.POST.get('Input', '')
+    textarea_fld = request.POST.get('Textarea', '')
+    try:
+        log.info("Insert pos extra fields data user %s and request params are %s" %
+                 (str(user.username), str(request.GET.dict())))
+        if input_fld:
+            exe_data = MiscDetail.objects.filter(user=user.id, misc_type='pos_extra_fields_input')
+            if exe_data:
+                exe_array = exe_data[0].misc_value.split(',')
+                input_array = input_fld.split(',')
+                for val in input_array:
+                    if not val in exe_array:
+                        exe_array.append(val)
+                exe_data[0].misc_value = ','.join(exe_array)
+                exe_data[0].updation_date = datetime.datetime.now()
+                exe_data[0].save()
+            if not exe_data:
+                MiscDetail.objects.create(user=user.id, misc_type='pos_extra_fields_input', misc_value=input_fld,
+                                          creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
+        if textarea_fld:
+            exe_data = MiscDetail.objects.filter(user=user.id, misc_type='pos_extra_fields_textarea')
+            if exe_data:
+                exe_array = exe_data[0].misc_value.split(',')
+                input_array = textarea_fld.split(',')
+                for val in input_array:
+                    if not val in exe_array:
+                        exe_array.append(val)
+                exe_data[0].misc_value = ','.join(exe_array)
+                exe_data[0].updation_date = datetime.datetime.now()
+                exe_data[0].save()
+            if not exe_data:
+                MiscDetail.objects.create(user=user.id, misc_type='pos_extra_fields_textarea', misc_value=textarea_fld,
+                                          creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
+        status = 'Success'
+    except:
+        status = 'Fail'
+    return HttpResponse(status)

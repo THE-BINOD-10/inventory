@@ -16,16 +16,6 @@ from miebach_admin.models import GenericOrderDetailMapping, CustomerMaster, Cust
 
 
 def update_linked_consignee_data(order_detail_id, data):
-    generic_order = GenericOrderDetailMapping.objects.filter(orderdetail_id=order_detail_id)
-    if generic_order:
-        generic_order = generic_order[0]
-        customer_master = CustomerMaster.objects.get(id=generic_order.customer_id)
-        for addr in ["ShippingAddress", "BillingAddress"]:
-            data["Buyer"]["AddressInfo"][addr]["Name"] =  customer_master.name
-            data["Buyer"]["AddressInfo"][addr]["Address"] =  customer_master.address
-            data["Buyer"]["AddressInfo"][addr]["City"] = customer_master.city
-            data["Buyer"]["AddressInfo"][addr]["State"] =  customer_master.state
-            data["Buyer"]["AddressInfo"][addr]["Zip"] = customer_master.pincode
         customer_order_summary = CustomerOrderSummary.objects.filter(order_id=order_detail_id)
         if customer_order_summary:
             customer_order_summary = customer_order_summary[0]
@@ -120,6 +110,7 @@ def integration_get_order_status(order_ids, user):
             "OrderIds": []
            }
     for order_id in order_ids:
-        temp_order_id = ("%s_%s") % (user.username, str(order_id))
+        WarehouseId = ''.join(filter(str.isdigit, str(user.username)))
+        temp_order_id = ("%s%s") % (WarehouseId, str(order_id))
         data["OrderIds"].append({"OrderId": temp_order_id})
     return data

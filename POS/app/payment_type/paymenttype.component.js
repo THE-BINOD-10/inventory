@@ -37,6 +37,7 @@
     
     self.payment_valid = payment_valid;
     function payment_valid (name_value, index) {
+      urlService.current_order.summary.paymenttype_values = self.paymentTypeInput;
       var temp = 0;
       angular.forEach(self.paymentTypeInput, function (index_value, index) {
         temp += index_value['type_value'];
@@ -59,6 +60,7 @@
           }
         }
       }
+      urlService.current_order.summary.paymenttype_values = self.paymentTypeInput;
     }
 
     $scope.$on('empty_payment_values', function(){

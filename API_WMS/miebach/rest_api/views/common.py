@@ -2021,12 +2021,16 @@ def search_wms_codes(request, user=''):
     return HttpResponse(json.dumps(wms_codes))
 
 
-def get_order_id(user_id):
+def get_order_id(user_id, is_pos=False):
+    if is_pos:
+        order_key = "-order_id"
+    else:
+        order_key = "-creation_date"
     order_detail_id = OrderDetail.objects.filter(Q(order_code__in=\
                                           ['MN', 'Delivery Challan', 'sample', 'R&D', 'CO','Pre Order']) |
                                           reduce(operator.or_, (Q(order_code__icontains=x)\
                                           for x in ['DC', 'PRE'])), user=user_id)\
-                                          .order_by('-creation_date')
+                                          .order_by(order_key)
     if order_detail_id:
         order_id = int(order_detail_id[0].order_id) + 1
     else:
@@ -2194,7 +2198,7 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
     inv_no = ""
     invoice_no_gen = MiscDetail.objects.filter(user=user.id, misc_type='increment_invoice')
     if invoice_no_gen:
-        seller_order_summary = SellerOrderSummary.objects.filter(Q(order__user=user.id, order_id__in=order_ids) |
+        seller_order_summary = SellerOrderSummary.objects.filter(Q(order__id__in=order_ids) |
                                                                  Q(seller_order__order__user=user.id,
                                                                    seller_order__order_id__in=order_ids))
         if seller_order_summary and invoice_no_gen[0].creation_date < seller_order_summary[0].creation_date:
@@ -2207,7 +2211,8 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
                 order = seller_order_summary[0].order
             check_dict = {prefix_key + 'order_id': order.order_id, prefix_key + 'order_code': order.order_code,
                           prefix_key + 'original_order_id': order.original_order_id, prefix_key + 'user': user.id}
-            invoice_ins = SellerOrderSummary.objects.filter(**check_dict).exclude(invoice_number='')
+            # invoice_ins = SellerOrderSummary.objects.filter(**check_dict).exclude(invoice_number='')
+            invoice_ins = SellerOrderSummary.objects.filter(order__id__in=order_ids).exclude(invoice_number='')
 
             if invoice_ins:
                 order_no = invoice_ins[0].invoice_number
@@ -3833,15 +3838,29 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
                   'sku_category', 'sku_brand', 'sku_size', 'style_name', 'sale_through', 'product_type']
     gen_whs = [user.id]
     admin = get_priceband_admin_user(user)
+    res_lead_time = 0
     if admin:
-        gen_whs = get_generic_warehouses_list(admin)
+        gen_whs = list(get_generic_warehouses_list(admin))
+        cm_obj = CustomerUserMapping.objects.filter(user=request.user.id)
+        if cm_obj:
+            cm_id = cm_obj[0].customer
+            res_lead_time = cm_obj[0].customer.lead_time
+            dist_wh_obj = WarehouseCustomerMapping.objects.filter(customer_id=cm_id)
+            if dist_wh_obj:
+                dist_wh_id = dist_wh_obj[0].warehouse.id
+                if dist_wh_id in gen_whs:
+                    gen_whs.remove(dist_wh_id)
         if delivery_date:
             del_date = datetime.datetime.strptime(delivery_date, '%m/%d/%Y').date()
             today_date = datetime.datetime.today().date()
             days_filter = (del_date - today_date).days
-            gen_whs = NetworkMaster.objects.filter(source_location_code__in=gen_whs,
-                                                         dest_location_code=user.id, lead_time__lte=days_filter).\
+            if res_lead_time:
+                day_filter = days_filter + res_lead_time
+            nw_gen_whs = NetworkMaster.objects.filter(source_location_code__in=gen_whs,
+                                                   dest_location_code=user.id, lead_time__lte=days_filter).\
                 values_list('source_location_code', flat=True)
+            gen_whs = [user.id]
+            gen_whs.extend(list(nw_gen_whs))
     stock_objs = StockDetail.objects.filter(sku__user__in=gen_whs, quantity__gt=0).values('sku__sku_class').\
         distinct().annotate(in_stock=Sum('quantity'))
     reserved_quantities = PicklistLocation.objects.filter(stock__sku__user__in=gen_whs, status=1).values(

@@ -1043,7 +1043,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
                            'Round Neck': 'software-catagaies-final_46.png',
                            'Scott Basic - RN': 'software-catagaies-final_57.png',
                            'V Neck T Shirt': 'software-catagaies-final_37.png',
-                           //'T Shirt': 'software-catagaies-final_06.png',
+                           'T Shirt': 'software-catagaies-final_06.png',
                            'Sleeve Less Jacket': 'software-catagaies-final_13.png',
                            'Sleeveless': 'software-catagaies-final_13.png',
                            'Round Neck T Shirt': 'software-catagaies-final_35.png',
@@ -1200,6 +1200,37 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     'ROUND NECK': 'ROUND NECK.png'
   }
 
+  vm.sagar_fab_imgs = {
+    "1000-Men":"",
+    "1002-Men":"",
+    "1003-Men":"",
+    "1004-Men":"",
+    "1005-Men":"",
+    "1006-Women":"",
+    "1007-Men":"",
+    "Bags":"DIFFLE_BAG.png",
+    "Cotton Round Neck":"COTTON_ROUND_NECK.png",
+    "Dryfit Collar":"",
+    "Dryfit Polo":"DRYFIT_POLO.png",
+    "Dryfit Round Neck":"DRYFIT_ROUND_NECK.png",
+    "Ear Phone":"EARPHONE.png",
+    "Grindle round neck":"GRINDLE_ROUND_NECK.png",
+    "Henley Neck":"",
+    "Hoodie":"HOODIES.png",
+    "Hoodie - 300 GSM":"HOODIES_300_GSM.png",
+    "Hoodie - 300 GSM ZIP":"HOODIES_300_GSM_ZIP.png",
+    "Hoodie - 400 GSM":"HOODIES_400_GSM.png",
+    "Hoodie - 400 GSM ZIP":"HOODIES_400_GSM_ZIP.png",
+    "Jacket":"",
+    "Jackets":"JACKETS.png",
+    "Ladies Polo":"LADIES_POLO.png",
+    "Men's Polo":"MENS_POLO.png",
+    "Round Neck":"ROUND_NECK.png",
+    "Shirts":"SHIRTS.png",
+    "Slub Round Neck":"SLUB_ROUND_NECK.png",
+    "V Neck":"V_NECK.png",
+  }
+
   vm.get_category_image = function(category) {
 
     if (Session.parent.userName == 'shailesh_mehta') {
@@ -1208,6 +1239,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       } else {
         return '/images/categories/default.png';
       }
+    }else if(Session.parent.userName == 'sagar_fab' && vm.sagar_fab_imgs[category]){
+      return '/images/categories/'+vm.sagar_fab_imgs[category];
     } else if(vm.category_image_map[category]) {
       return '/images/categories/'+vm.category_image_map[category];
     } else {

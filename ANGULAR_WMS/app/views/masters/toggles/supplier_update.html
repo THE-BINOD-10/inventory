@@ -118,6 +118,32 @@
                 </div>
               </div>
             </div>
+            <div class="row">
+                <div class="col-md-12"><hr></div>
+            </div>
+            <div class="row">
+                <div class="col-md-9 col-sm-9 col-xs-8">
+                    <div class="form-group">
+                        <div>File Upload</div>
+                        <span class="btn btn-primary up-btn" style="position: relative;overflow: hidden;width: 250px;">Choose File
+                            <input style="position: absolute;
+                                          top: 0;
+                                          right: 0;
+                                          min-width: 100%;
+                                          min-height: 100%;
+                                          font-size: 100px;
+                                          text-align: right;
+                                          filter: alpha(opacity=0);
+                                          opacity: 0;
+                                          outline: none;
+                                          background: white;
+                                          cursor: inherit;
+                                          display: block;" ng-disabled=""
+                                          class="btn btn-primary" type = "file" name="files" id="file-upload" file-upload multiple/>
+                        </span>
+                    </div>
+                </div>
+            </div>
             </div>
             <div class="row" ng-if="showCase.model_data.create_login">
               <hr>

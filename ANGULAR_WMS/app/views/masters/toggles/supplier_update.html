@@ -95,6 +95,25 @@
               </div>
               <div class="col-md-4">
                 <div class="form-group">
+                  <label class="control-label"> Days required to supply </label>
+                  <input name="days_to_supply" type="text" class="form-control" ng-model="showCase.model_data.days_to_supply" quantity-number>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Fulfillment amount in any given time </label>
+                  <input name="fulfillment_amt" type="text" class="form-control" ng-model="showCase.model_data.fulfillment_amt" quantity-number>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Credibility (quality control based) </label>
+                  <input type="text" name="credibility" class="form-control" ng-model="showCase.model_data.credibility" maxlength="64">
+                </div>
+              </div>
+              
+              <div class="col-md-4">
+                <div class="form-group">
                   <label class="control-label"> Status </label>
                   <select class="form-control supplier_status" ng-model="showCase.model_data.status" name="status">
                     <option ng-repeat="status in showCase.status_data" value="{{status}}" ng-selected="status=='Active'">{{status}}</option>

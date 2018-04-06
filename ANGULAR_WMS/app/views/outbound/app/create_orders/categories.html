@@ -64,7 +64,9 @@
         <img ng-src="{{ showCase.get_category_image(cat) }}" style="border:0px !important;width: 100%;padding: 0px;cursor: pointer;background: transparent" class="img-thumbnail">
         <br>
         <div ng-if="showCase.get_category_image(cat) == '/images/categories/default.png'">
-          <p class="style_name" style="font-size: 16px;position: absolute;bottom: 15px;width: 100%;" title="{{ item.sku_class }}">{{cat}}</p>
+          <p class="visible-md visible-lg style_name" style="font-size: 16px;position: absolute;bottom: 15px;width: 100%;" title="{{ item.sku_class }}">{{cat}}</p>
+          <p class="visible-sm style_name" style="font-size: 14px;position: absolute;bottom: 10px;width: 95%;" title="{{ item.sku_class }}">{{cat}}</p>
+          <p class="visible-xs style_name" style="font-size: 12px;position: absolute;bottom: 0px;width: 85%;" title="{{ item.sku_class }}">{{cat}}</p>
         </div>
       </div>
     </div>

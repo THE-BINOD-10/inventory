@@ -6,7 +6,7 @@ self.importScripts('./scripts/App/offlineDB.js');
    "use strict";
 
 
- var version        = "0.0.1-build03.0.166",
+ var version        = "0.0.1-build03.0.176",
       cacheName     = "stock1-app-" + version,
       Directory     ="";
  var APICALL        ="https://api.stockone.in/rest_api/";
@@ -15,7 +15,7 @@ self.importScripts('./scripts/App/offlineDB.js');
 
  var filesToBeCached = [
        Directory+ "/",
-       Directory+ "/index.html",
+       //Directory+ "/index.html",
        Directory+ "/sw_reg.js",
        Directory+ "/favicon.ico",
        Directory+ "/vendor/bootstrap/dist/css/bootstrap.min.css",
@@ -66,7 +66,7 @@ self.importScripts('./scripts/App/offlineDB.js');
        Directory+ "/scripts/extentions/plugins/typehead/typeahead.min.js",
        Directory+ "/scripts/extentions/auth/auth.js",
        Directory+ "/scripts/extentions/auth/authEvents.js",
-       Directory+ "/scripts/extentions/auth/session.js",
+       //Directory+ "/scripts/extentions/auth/session.js",
        Directory+ "/vendor/sweetalert/dist/sweetalert.min.js",
        Directory+ "/vendor/angular-sweetalert/SweetAlert.min.js",
        Directory+ "/vendor/checkbo/src/0.1.4/js/checkBo.min.js",

@@ -2550,7 +2550,7 @@ class MailAlerts(models.Model):
 
 class PrimarySegregation(models.Model):
     id = BigAutoField(primary_key=True)
-    purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True, unique=True)
+    purchase_order = models.OneToOneField(PurchaseOrder, blank=True, null=True)
     quantity = models.FloatField(default=0)
     sellable = models.FloatField(default=0)
     non_sellable = models.FloatField(default=0)

@@ -501,7 +501,7 @@ def generate_picklist(request, user=''):
 
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
     sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-        location__zone__zone='DAMAGED_ZONE').filter(sku__user=user.id, quantity__gt=0)
+        location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
     all_orders = OrderDetail.objects.prefetch_related('sku').filter(**order_filter)
     all_seller_orders = SellerOrder.objects.prefetch_related('order__sku').filter(**seller_order_filter)
 
@@ -603,7 +603,7 @@ def batch_generate_picklist(request, user=''):
 
         sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
         sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-            location__zone__zone='DAMAGED_ZONE').filter(sku__user=user.id, quantity__gt=0)
+            location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
         all_orders = OrderDetail.objects.prefetch_related('sku').filter(**order_filter)
 
         fifo_switch = get_misc_value('fifo_switch', user.id)
@@ -2677,7 +2677,7 @@ def st_generate_picklist(request, user=''):
 
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
     sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-        location__zone__zone='DAMAGED_ZONE').filter(sku__user=user.id, quantity__gt=0)
+        location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
     all_orders = OrderDetail.objects.prefetch_related('sku').filter(status=1, user=user.id, quantity__gt=0)
 
     fifo_switch = get_misc_value('fifo_switch', user.id)
@@ -3496,7 +3496,7 @@ def direct_dispatch_orders(user, dispatch_orders, creation_date=datetime.datetim
 def check_stocks(order_sku, user, request, order_objs):
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
     sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-        location__zone__zone='DAMAGED_ZONE').filter(sku__user=user.id, quantity__gt=0)
+        location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
 
     fifo_switch = get_misc_value('fifo_switch', user.id)
     if fifo_switch == 'true':
@@ -5836,7 +5836,7 @@ def order_category_generate_picklist(request, user=''):
 
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
     sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-        location__zone__zone='DAMAGED_ZONE').filter(sku__user=user.id, quantity__gt=0)
+        location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
     all_orders = OrderDetail.objects.prefetch_related('sku').filter(**order_filter)
     all_seller_orders = SellerOrder.objects.prefetch_related('order__sku').filter(**seller_order_filter)
 
@@ -7579,7 +7579,7 @@ def seller_generate_picklist(request, user=''):
     try:
         sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
         sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-            location__zone__zone='DAMAGED_ZONE'). \
+            location__zone__zone__in=PICKLIST_EXCLUDE_ZONES). \
             filter(sku__user=user.id, quantity__gt=0)
         all_seller_orders = SellerOrder.objects.prefetch_related('order__sku').filter(**order_filter)
 
@@ -7701,7 +7701,7 @@ def update_exist_picklists(picklist_no, request, user, sku_code='', location='',
         if location:
             stock_params['location__location'] = location
         stock_objs = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-            location__zone__zone='DAMAGED_ZONE').filter(**stock_params).order_by('location__pick_sequence')
+            location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(**stock_params).order_by('location__pick_sequence')
 
         picklist_data['stock_id'] = 0
         stock_quan = 0

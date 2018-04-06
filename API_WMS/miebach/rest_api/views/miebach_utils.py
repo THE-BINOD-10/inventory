@@ -1363,6 +1363,8 @@ SELLER_TRANSFER_MAPPING = OrderedDict((('SKU Code', 'wms_code'), ('Source Seller
                                        ('Destination Location', 'dest_location'), ('Quantity', 'quantity'),
                                     ))
 
+PICKLIST_EXCLUDE_ZONES = ['DAMAGED_ZONE', 'QC_ZONE', 'Non Sellable Zone']
+
 def fn_timer(function):
     @wraps(function)
     def function_timer(*args, **kwargs):

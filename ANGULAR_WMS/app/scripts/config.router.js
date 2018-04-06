@@ -681,6 +681,10 @@ var app = angular.module('urbanApp')
             title: 'Primary Segregation',
           }
         })
+        .state('app.inbound.PrimarySegregation.AddSegregation', {
+          url: '/AddSegregation',
+          templateUrl: 'views/inbound/toggle/add_segregation.html'
+          })
 
         .state('app.inbound.PutAwayConfirmation', {
           url: '/PutawayConfirmation',

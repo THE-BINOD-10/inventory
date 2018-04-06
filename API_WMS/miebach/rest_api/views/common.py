@@ -5841,7 +5841,7 @@ def order_allocate_stock(request, user, stock_data=[], mapping_type=''):
         seller_stocks = SellerStock.objects.filter(seller__user=user.id, quantity__gt=0, stock__sku_id__in=all_skus). \
             values('stock_id', 'seller_id')
         sku_stocks = StockDetail.objects.prefetch_related('sku', 'location'). \
-            exclude(Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])). \
+            exclude(Q(receipt_number=0) | Q(location__zone__zone__in=PICKLIST_EXCLUDE_ZONES)). \
             filter(sku__user=user.id, quantity__gt=0, sku_id__in=all_skus)
 
         for sku_id, mapping_ids in stock_data.iteritems():

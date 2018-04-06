@@ -1214,7 +1214,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     "Dryfit Polo":"DRYFIT_POLO.png",
     "Dryfit Round Neck":"DRYFIT_ROUND_NECK.png",
     "Ear Phone":"EARPHONE.png",
-    "Grindle round neck":"GRINDLE_ROUND_NECK.png",
+    "Grindle Round Neck":"GRINDLE_ROUND_NECK.png",
     "Henley Neck":"HENLEY_ROUND_NECK.png",
     "Hoodie":"HOODIES.png",
     "Hoodie - 300 GSM":"HOODIES_300_GSM.png",

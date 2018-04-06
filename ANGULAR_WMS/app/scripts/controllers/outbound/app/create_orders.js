@@ -1241,7 +1241,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       }
     }else if(Session.parent.userName == 'sagar_fab' && vm.sagar_fab_imgs[category]){
       return '/images/categories/'+vm.sagar_fab_imgs[category];
-    } else if(vm.category_image_map[category]) {
+    } else if(Session.parent.userName != 'sagar_fab' && vm.category_image_map[category]) {
       return '/images/categories/'+vm.category_image_map[category];
     } else {
       return '/images/categories/default.png';

@@ -322,7 +322,10 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       } else {
         return url;
       }
-    } 
+    }
+	vm.get_host_url = function(url) {
+		return Session.host + url;
+	}
 
     vm.print_enable = false;
     vm.print_report = function(data, url, stat){

@@ -1350,6 +1350,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 except:
                     pass
                 attr_dict[key] = cell_data
+                continue
             elif key not in temp_dict:
                 continue
             if key == 'wms_code':

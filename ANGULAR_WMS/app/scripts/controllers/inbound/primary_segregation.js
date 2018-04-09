@@ -208,7 +208,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.receive_quantity_change = function(data) {
 
       if(isNaN(data.sellable)){
-        return false
+        data.sellable = 0;
+      }
+      else {
+        data.sellable = Number(data.sellable);
       }
       if(Number(data.quantity) < Number(data.sellable)) {
           data.sellable = data.quantity;

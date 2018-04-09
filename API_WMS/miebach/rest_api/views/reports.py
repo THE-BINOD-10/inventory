@@ -426,7 +426,7 @@ def get_supplier_details_data(search_params, user, sub_user):
                                                     ('Ordered Quantity', supplier.open_po.order_quantity),
                                                     ('Amount', amount),
                                                     ('Received Quantity', supplier.received_quantity),
-                                                    ('Status', status))))
+                                                    ('Status', status), ('order_id', supplier.order_id))))
     supplier_data['total_charge'] = total_charge
     return supplier_data
 
@@ -934,3 +934,81 @@ def print_stock_ledger_report(request, user=''):
     if report_data:
         html_data = create_reports_table(report_data[0].keys(), report_data)
     return HttpResponse(html_data)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def print_purchase_order_form(request, user=''):
+    po_id = request.GET.get('po_id', '')
+    total_qty = 0
+    total = 0
+    if not po_id:
+        return HttpResponse("Purchase Order Id is missing")
+    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user=user.id, order_id=po_id)
+    ean_flag = list(purchase_orders.exclude(open_po__sku__ean_number=0))
+    display_remarks = get_misc_value('display_remarks_mail', user.id)
+    po_data = []
+    for order in purchase_orders:
+        open_po = order.open_po
+        total_qty += open_po.order_quantity
+        amount = open_po.order_quantity * open_po.price
+        tax = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax
+        total += amount + ((amount / 100) * float(tax))
+        po_temp_data = [open_po.sku.sku_code, open_po.supplier_code, open_po.sku.sku_desc, open_po.order_quantity,
+                        open_po.measurement_unit, open_po.price, amount,
+                        open_po.sgst_tax, open_po.cgst_tax, open_po.igst_tax, open_po.utgst_tax]
+        if ean_flag:
+            po_temp_data.insert(1, open_po.sku.ean_number)
+        if display_remarks == 'true':
+            po_temp_data.append(open_po.remarks)
+        po_data.append(po_temp_data)
+    order = purchase_orders[0]
+    open_po = order.open_po
+    address = open_po.supplier.address
+    address = '\n'.join(address.split(','))
+    vendor_name = ''
+    vendor_address = ''
+    vendor_telephone = ''
+    if open_po.order_type == 'VR':
+        vendor_address = open_po.vendor.address
+        vendor_address = '\n'.join(vendor_address.split(','))
+        vendor_name = open_po.vendor.name
+        vendor_telephone = open_po.vendor.phone_number
+    telephone = open_po.supplier.phone_number
+    name = open_po.supplier.name
+    order_id = order.order_id
+    gstin_no = open_po.supplier.tin_number
+    order_date = get_local_date(request.user, order.creation_date)
+    po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
+    table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price',
+                     'Amount',
+                     'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)']
+    if ean_flag:
+        table_headers.insert(1, 'EAN Number')
+    if display_remarks == 'true':
+        table_headers.append('Remarks')
+
+    profile = user.userprofile
+
+    company_name = profile.company_name
+    title = 'Purchase Order'
+    receipt_type = request.GET.get('receipt_type', '')
+    # if receipt_type == 'Hosted Warehouse':
+    if request.POST.get('seller_id', ''):
+        title = 'Stock Transfer Note'
+    if request.POST.get('seller_id', '') and 'shproc' in str(request.POST.get('seller_id').split(":")[1]).lower():
+        company_name = 'SHPROC Procurement Pvt. Ltd.'
+        title = 'Purchase Order'
+
+    data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
+                 'telephone': str(telephone),
+                 'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference,
+                 'user_name': request.user.username,
+                 'total_qty': total_qty, 'company_name': company_name, 'location': profile.location,
+                 'w_address': get_purchase_company_address(profile),
+                 'company_name': company_name, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
+                 'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title,
+                 'gstin_no': gstin_no}
+
+    return render(request, 'templates/toggle/po_template.html', data_dict)

@@ -322,6 +322,7 @@ urlpatterns = [
     url(r'^excel_sales_return_report/$', excel_sales_return_report),
     url(r'^get_stock_ledger_report/$', get_stock_ledger_report),
     url(r'^print_stock_ledger_report/$', print_stock_ledger_report),
+    url(r'^print_purchase_order_form/$', print_purchase_order_form),
 ]
 
 # urlpatterns += patterns('rest_api.views',

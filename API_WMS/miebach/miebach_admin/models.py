@@ -2546,3 +2546,18 @@ class MailAlerts(models.Model):
     class Meta:
         db_table = 'MAIL_ALERTS'
         unique_together = ('user', 'alert_name')
+
+
+class UserAttributes(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User, blank=True, null=True)
+    attribute_model = models.CharField(max_length=32, default='')
+    attribute_name = models.CharField(max_length=64, default='')
+    attribute_type = models.CharField(max_length=64, default='')
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'USER_ATTRIBUTES'
+        unique_together = ('user', 'attribute_model', 'attribute_name')

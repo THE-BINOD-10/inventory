@@ -200,8 +200,13 @@ var app = angular.module('urbanApp')
           templateUrl: 'views/masters/sku_datatable.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/masters/skutable.js');
-                    }]
+                return $ocLazyLoad.load(['scripts/controllers/masters/skutable.js'
+                ]).then(function(){
+                return $ocLazyLoad.load([
+                    'scripts/controllers/masters/toggle/attributes.js'
+                  ])
+                })
+             }]
           },
           data: {
             title: 'SKU Master',
@@ -1531,6 +1536,10 @@ var app = angular.module('urbanApp')
             title: 'Supplier Wise POs',
           }
         })
+        .state('app.reports.SupplierWisePOs.POs', {
+            url: '/POs',
+            templateUrl: 'views/reports/toggles/po_details.html',
+          })
         .state('app.reports.SalesReturnReport', {
           url: '/SalesReturnReport',
           permission: 'add_orderreturns',

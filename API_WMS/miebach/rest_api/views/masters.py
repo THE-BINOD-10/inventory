@@ -672,10 +672,13 @@ def get_sku_data(request, user=''):
     else:
         product_types = list(TaxMaster.objects.filter(user_id=user.id).values_list('product_type',
                                                                                    flat=True).distinct())
+    attributes = get_user_attributes(user, 'sku')
+    sku_attributes = dict(data.skuattributes_set.filter().values_list('attribute_name', 'attribute_value'))
     return HttpResponse(
         json.dumps({'sku_data': sku_data, 'zones': zone_list, 'groups': all_groups, 'market_list': market_places,
                     'market_data': market_data, 'combo_data': combo_data, 'sizes_list': sizes_list,
-                    'sub_categories': SUB_CATEGORIES, 'product_types': product_types}, cls=DjangoJSONEncoder))
+                    'sub_categories': SUB_CATEGORIES, 'product_types': product_types, 'attributes': list(attributes),
+                    'sku_attributes': sku_attributes}, cls=DjangoJSONEncoder))
 
 
 @csrf_exempt
@@ -840,6 +843,8 @@ def update_sku(request, user=''):
             save_image_file(image_file, data, user)
         for key, value in request.POST.iteritems():
 
+            if 'attr_' in key:
+                continue
             if key == 'status':
                 if value == 'Active':
                     value = 1
@@ -879,6 +884,7 @@ def update_sku(request, user=''):
             setattr(data, key, value)
 
         data.save()
+        update_sku_attributes(data, request)
 
         update_marketplace_mapping(user, data_dict=dict(request.POST.iterlists()), data=data)
         # update master sku txt file
@@ -2028,9 +2034,10 @@ def get_zones_list(request, user=''):
     for sizes in size_names:
         sizes_list.append({'size_name': sizes.size_name, 'size_values': (sizes.size_value).split('<<>>')})
     sizes_list.append({'size_name': 'Default', 'size_values': copy.deepcopy(SIZES_LIST)})
+    attributes = get_user_attributes(user, 'sku')
     return HttpResponse(json.dumps(
         {'zones': zones_list, 'sku_groups': all_groups, 'market_places': market_places, 'sizes_list': sizes_list,
-         'product_types': product_types, 'sub_categories': SUB_CATEGORIES}))
+         'product_types': product_types, 'sub_categories': SUB_CATEGORIES, 'attributes': list(attributes)}))
 
 
 @csrf_exempt
@@ -2087,6 +2094,7 @@ def insert_sku(request, user=''):
             data_dict['sku_code'] = data_dict['wms_code']
             sku_master = SKUMaster(**data_dict)
             sku_master.save()
+            update_sku_attributes(sku_master, request)
             image_file = request.FILES.get('files-0', '')
             if image_file:
                 save_image_file(image_file, sku_master, user)
@@ -3410,3 +3418,41 @@ def update_staff_values(request, user=''):
     data.status = status
     data.save()
     return HttpResponse("Updated Successfully")
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def save_update_attribute(request, user=''):
+    attr_model = request.POST.get('attr_model', '')
+    if not attr_model:
+        return HttpResponse('Attribute model is mandatory')
+    data_dict = dict(request.POST.lists())
+    for ind in range(0, len(data_dict['id'])):
+        if(data_dict['id'][ind]):
+            user_attr = UserAttributes.objects.filter(id=data_dict['id'][ind])
+            if user_attr:
+                user_attr.update(attribute_type=data_dict['attribute_type'][ind], status=1)
+        else:
+            user_attr = UserAttributes.objects.filter(attribute_model=attr_model,
+                                          attribute_name=data_dict['attribute_name'][ind],
+                                                      user_id=user.id)
+            if user_attr:
+                user_attr.update(attribute_type=data_dict['attribute_type'][ind], status=1)
+            else:
+                UserAttributes.objects.create(attribute_model=attr_model,
+                                              attribute_name=data_dict['attribute_name'][ind],
+                                              attribute_type=data_dict['attribute_type'][ind], status=1,
+                                              creation_date=datetime.datetime.now(),
+                                              user_id=user.id)
+    return HttpResponse(json.dumps({'message': 'Updated Successfully', 'status': 1}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def delete_user_attribute(request, user=''):
+    attr_id = request.GET.get('data_id', '')
+    if attr_id:
+        UserAttributes.objects.filter(id=attr_id).update(status=0)
+    return HttpResponse(json.dumps({'message': 'Updated Successfully', 'status': 1}))

@@ -91,6 +91,9 @@ urlpatterns = [
     url(r'^delete_terms/$', delete_terms),
     url(r'^insert_staff/$', insert_staff),
     url(r'^update_staff_values/$', update_staff_values),
+    url(r'^get_user_attributes_list/$', get_user_attributes_list),
+    url(r'^save_update_attribute/$', save_update_attribute),
+    url(r'^delete_user_attribute/$', delete_user_attribute),
     url(r'^get_distributors/$', get_distributors),
     url(r'^get_resellers/$', get_resellers),
     url(r'^get_corporates/$', get_corporates),
@@ -322,6 +325,7 @@ urlpatterns = [
     url(r'^excel_sales_return_report/$', excel_sales_return_report),
     url(r'^get_stock_ledger_report/$', get_stock_ledger_report),
     url(r'^print_stock_ledger_report/$', print_stock_ledger_report),
+    url(r'^print_purchase_order_form/$', print_purchase_order_form),
 ]
 
 # urlpatterns += patterns('rest_api.views',

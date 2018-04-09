@@ -196,6 +196,9 @@ class SupplierMaster(models.Model):
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
     supplier_type = models.CharField(max_length=64, default='')
+    days_to_supply = models.IntegerField(default=0)
+    fulfillment_amt = models.FloatField(default=0)
+    credibility = models.CharField(max_length=32, default='')
 
     class Meta:
         db_table = 'SUPPLIER_MASTER'
@@ -2576,3 +2579,17 @@ class PrimarySegregation(models.Model):
 
     class Meta:
         db_table = 'PRIMARY_SEGREGATION'
+
+
+def get_path(instance, filename):
+    return "static/master_docs/%s_%s/%s" %(instance.master_type, instance.master_id, filename)
+
+class MasterDocs(models.Model):
+    id = BigAutoField(primary_key=True)
+    master_id = models.PositiveIntegerField()
+    master_type = models.CharField(max_length=64, default='')
+    uploaded_file = models.FileField(upload_to=get_path, blank=True, null=True)
+
+    class Meta:
+        db_table = 'MASTER_DOCS'
+        index_together = ('master_id', 'master_type', 'uploaded_file')

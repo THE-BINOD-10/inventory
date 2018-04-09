@@ -648,6 +648,7 @@ var app = angular.module('urbanApp')
             url: '/QC_Detail',
             templateUrl: 'views/inbound/toggle/grn_qc.html'
           })
+
         .state('app.inbound.QualityCheck', {
           url: '/QualityCheck',
           permission: 'add_qualitycheck',
@@ -669,6 +670,27 @@ var app = angular.module('urbanApp')
             url: '/QC_Detail',
             templateUrl: 'views/inbound/toggle/qc_detail.html'
           })
+
+          .state('app.inbound.PrimarySegregation', {
+          url: '/PrimarySegregation',
+          permission: 'add_purchaseorder',
+          templateUrl: 'views/inbound/primary_segregation.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/inbound/primary_segregation.js'
+                  ]);
+              }]
+          },
+          data: {
+            title: 'Primary Segregation',
+          }
+        })
+        .state('app.inbound.PrimarySegregation.AddSegregation', {
+          url: '/AddSegregation',
+          templateUrl: 'views/inbound/toggle/add_segregation.html'
+          })
+
         .state('app.inbound.PutAwayConfirmation', {
           url: '/PutawayConfirmation',
           permission: 'add_polocation',

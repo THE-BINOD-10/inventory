@@ -172,6 +172,11 @@
             <span>Quality Check</span>
           </a>
         </li>
+        <li ng-show="show_tab('sellable_segregation')" ui-sref-active="active">
+          <a ui-sref="app.inbound.PrimarySegregation">
+            <span>Primary Segregation</span>
+          </a>
+        </li>
         <li ng-show="show_tab('add_polocation')" ui-sref-active="active">
           <a ui-sref="app.inbound.PutAwayConfirmation">
             <span>Put away Confirmation</span>

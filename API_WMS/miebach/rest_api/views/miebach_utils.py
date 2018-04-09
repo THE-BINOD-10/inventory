@@ -1355,6 +1355,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'auto_confirm_po': 'auto_confirm_po', 'generic_wh_level': 'generic_wh_level',
                         'create_order_po': 'create_order_po', 'calculate_customer_price': 'calculate_customer_price',
                         'shipment_sku_scan': 'shipment_sku_scan', 'disable_brands_view':'disable_brands_view',
+                        'sellable_segregation': 'sellable_segregation',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
@@ -1383,6 +1384,8 @@ SELLER_TRANSFER_MAPPING = OrderedDict((('SKU Code', 'wms_code'), ('Source Seller
                                        ('Destination Seller ID', 'dest_seller'),
                                        ('Destination Location', 'dest_location'), ('Quantity', 'quantity'),
                                     ))
+
+PICKLIST_EXCLUDE_ZONES = ['DAMAGED_ZONE', 'QC_ZONE', 'Non Sellable Zone']
 
 def fn_timer(function):
     @wraps(function)

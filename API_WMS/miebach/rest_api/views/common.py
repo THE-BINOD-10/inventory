@@ -442,7 +442,7 @@ data_datatable = {  # masters
     'QualityCheck': 'get_quality_check_data', 'POPutaway': 'get_order_data', \
     'ReturnsPutaway': 'get_order_returns_data', 'SalesReturns': 'get_order_returns', \
     'RaiseST': 'get_raised_stock_transfer', 'SellerInvoice': 'get_seller_invoice_data', \
-    'RaiseIO': 'get_intransit_orders',
+    'RaiseIO': 'get_intransit_orders', 'PrimarySegregation': 'get_segregation_pos',
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
     'PickelistGenerated': 'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo', \
@@ -5841,7 +5841,7 @@ def order_allocate_stock(request, user, stock_data=[], mapping_type=''):
         seller_stocks = SellerStock.objects.filter(seller__user=user.id, quantity__gt=0, stock__sku_id__in=all_skus). \
             values('stock_id', 'seller_id')
         sku_stocks = StockDetail.objects.prefetch_related('sku', 'location'). \
-            exclude(Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])). \
+            exclude(Q(receipt_number=0) | Q(location__zone__zone__in=PICKLIST_EXCLUDE_ZONES)). \
             filter(sku__user=user.id, quantity__gt=0, sku_id__in=all_skus)
 
         for sku_id, mapping_ids in stock_data.iteritems():

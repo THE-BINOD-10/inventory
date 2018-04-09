@@ -1739,6 +1739,7 @@ class SellerPOSummary(models.Model):
     location = models.ForeignKey(LocationMaster, blank=True, null=True)
     putaway_quantity = models.FloatField(default=0)
     quantity = models.FloatField(default=0)
+    mrp = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

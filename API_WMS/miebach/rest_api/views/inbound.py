@@ -2202,7 +2202,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
     expected_date = request.POST.get('expected_date', '')
     remainder_mail = request.POST.get('remainder_mail', '')
     invoice_number = request.POST.get('invoice_number', 0)
-    mrp = request.POST.get('mrp', 0)
+    mrp = float(request.POST.get('mrp', 0))
     _expected_date = ''
     if expected_date:
         _expected_date = expected_date

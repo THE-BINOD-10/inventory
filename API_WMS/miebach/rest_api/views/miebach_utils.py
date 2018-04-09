@@ -50,7 +50,8 @@ SKU_DATA = {'user': '', 'sku_code': '', 'wms_code': '',
             'status': 1, 'online_percentage': 0, 'qc_check': 0, 'sku_brand': '', 'sku_size': '', 'style_name': '',
             'price': 0,
             'ean_number': 0, 'load_unit_handle': 'unit', 'zone_id': None, 'hsn_code': 0, 'product_type': '',
-            'sub_category': '', 'primary_category': ''}
+            'sub_category': '', 'primary_category': '', 'cost_price': 0, 'sequence': 0, 'image_url': '',
+            'measurement_type': '', 'sale_through': ''}
 
 STOCK_TRANSFER_FIELDS = {'order_id': '', 'invoice_amount': 0, 'quantity': 0, 'shipment_date': datetime.datetime.now(),
                          'st_po_id': '', 'sku_id': '', 'status': 1}
@@ -744,6 +745,23 @@ EASYOPS_ORDER_EXCEL = {'order_id': 1, 'quantity': 9, 'invoice_amount': 3, 'chann
                        'split_order_id': 1}
 
 # SKU Master Upload Templates
+SKU_COMMON_MAPPING = OrderedDict((('WMS Code', 'wms_code'), ('SKU Description', 'sku_desc'),
+                                  ('Product Type', 'product_type'), ('SKU Group', 'sku_group'),
+                                  ('SKU Type(Options: FG, RM)', 'sku_type'), ('SKU Category', 'sku_category'),
+                                  ('Primary Category', 'primary_category'), ('SKU Class', 'sku_class'),
+                                  ('SKU Brand', 'sku_brand'), ('Style Name', 'style_name'),
+                                  ('SKU Size', 'sku_size'), ('Size Type', 'size_type'), ('Put Zone', 'zone_id'),
+                                  ('Cost Price', 'cost_price'), ('Selling Price', 'price'), ('MRP Price', 'mrp'),
+                                  ('Sequence', 'sequence'), ('Image Url', 'image_url'),
+                                  ('Threshold Quantity', 'threshold_quantity'),
+                                  ('Measurment Type', 'measurement_type'), ('Sale Through', 'sale_through'),
+                                  ('Color', 'color'), ('EAN Number', 'ean_number'),
+                                  ('Load Unit Handling(Options: Enable, Disable)', 'load_unit_handle'),
+                                  ('HSN Code', 'hsn_code'), ('Sub Category', 'sub_category'),
+                                  ('Hot Release', 'hot_release'), ('Status', 'status'),
+                                  ('Mix SKU Attribute(Options: No Mix, Mix within Group)', 'mix_sku')
+                                  ))
+
 SKU_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('product_type', 2), ('sku_group', 3), ('sku_type', 4),
                              ('sku_category', 5), ('primary_category', 6), ('sku_class', 7), ('sku_brand', 8),
                              ('style_name', 9),
@@ -772,7 +790,7 @@ SHOTANG_SKU_MASTER_EXCEL = OrderedDict(
 SM_WH_SKU_MASTER_EXCEL = OrderedDict((('wms_code', 0), ('zone_id', 1), ('threshold_quantity', 2),
                                      ('load_unit_handle', 3)))
 
-# End of SKU Master U[pload templates
+# End of SKU Master Upload templates
 
 # Order File Upload Templates
 INDIA_TIMES_EXCEL = {'order_id': 2, 'invoice_amount': 16, 'address': 8, 'customer_name': 7,

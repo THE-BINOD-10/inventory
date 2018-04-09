@@ -1,0 +1,53 @@
+<div id="page-pop">
+  <form name="form" role="form" ui-jq="validate" ui-options="pop.validationOpt">
+    <div class="model-custom">
+      <div class="modal-content mw60">
+        <div ng-include="'views/common/loader.html'"></div>
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="pop.ok('close')"><span aria-hidden="true">×</span>
+          </button>
+          <h4 class="modal-title" id="myLargeModalLabel">Update SKU Attributes</h4> </div>
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-12">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Attribute Name</th>
+                    <th>Attribute Type</th>
+                    <th class="plus"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr ng-repeat="item in pop.status_data">
+                    <td style="width: 42%;">
+                      <input type="hidden" name="id" value="{{item.id}}">
+                      <input type="text" autocomplete="off" ng-readonly="item.id" name="attribute_name" class="form-control" placeholder="Attribute Name" ng-model="item.attribute_name">
+                    </td>
+                    <td>
+                      <select name="attribute_type" class="form-control" ng-model="item.attribute_type">
+                        <option ng-repeat="inp_type in pop.input_types" value="{{inp_type}}" ng-selected= "item.attribute_type == inp_type">{{inp_type}}</option>
+                      </select>
+                    </td>
+                    <td>
+                      <i ng-click="pop.delete_attr(item, $index)" class="fa fa-minus-square-o"></i>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-12" style="margin-top:10px">
+              <center><button ng-click="pop.add_attribute();" type="button" class="btn btn-default">Add New Attribute</button></center>
+            </div>
+          </div>
+          <div class="row insert-status"><h4 align="center">{{pop.message}}</h4></div>
+        </div>
+        <div class="modal-footer">
+          <button ng-disabled="!pop.status_data.length>0" type="submit" class="btn pop pop-green" ng-click="pop.save_attribute(form)">Save</button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

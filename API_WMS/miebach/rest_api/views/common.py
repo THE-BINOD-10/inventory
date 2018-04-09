@@ -6376,6 +6376,7 @@ def get_view_order_statuses(request, user):
 
 
 def update_created_extra_status(user, selection):
+    """ If the sequence changed or updated for view order status"""
     sub_users = get_related_users(user.id)
     status_selected = selection.split(',')
     for sub_user in sub_users:
@@ -6392,6 +6393,23 @@ def update_created_extra_status(user, selection):
                     grp_perm.sequence = status_selected.index(grp_perm.perm_value)
                     grp_perm.status = 1
                     grp_perm.save()
+
+
+def get_user_attributes(user, attr_model):
+    attributes = []
+    if attr_model:
+        attributes = UserAttributes.objects.filter(user_id=user.id, status=1, attribute_model=attr_model).\
+                                        values('id', 'attribute_model', 'attribute_name', 'attribute_type')
+    return attributes
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_user_attributes_list(request, user=''):
+    attr_model = request.GET.get('attr_model')
+    attributes = get_user_attributes(user, 'sku')
+    return HttpResponse(json.dumps({'data': list(attributes), 'status': 1}))
 
 
 def get_invoice_types(user):
@@ -6481,3 +6499,19 @@ def allocate_order_returns(user, sku_data, request):
                 'order_id': order.original_order_id, 'ship_quantity': ship_quantity, 'unit_price': order.unit_price,
                 'return_quantity': 1}
     return data
+
+
+def update_sku_attributes_data(data, key, value):
+    sku_attr_obj = SKUAttributes.objects.filter(sku_id=data.id, attribute_name=key)
+    if not sku_attr_obj and value:
+        SKUAttributes.objects.create(sku_id=data.id, attribute_name=key, attribute_value=value,
+                                     creation_date=datetime.datetime.now())
+    else:
+        sku_attr_obj.update(attribute_value=value)
+
+def update_sku_attributes(data, request):
+    for key, value in request.POST.iteritems():
+        if 'attr_' not in key:
+            continue
+        key = key.replace('attr_', '')
+        update_sku_attributes_data(data, key, value)

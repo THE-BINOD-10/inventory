@@ -1,9 +1,9 @@
 'use strict';
 
 var app = angular.module('urbanApp', ['datatables'])
-app.controller('SKUMasterTable',['$scope', '$http', '$state', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', '$log', 'colFilters' , 'Service', '$rootScope', ServerSideProcessingCtrl]);
+app.controller('SKUMasterTable',['$scope', '$http', '$state', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', '$log', 'colFilters' , 'Service', '$rootScope', '$modal',ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, $log, colFilters, Service, $rootScope) {
+function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, $log, colFilters, Service, $rootScope, $modal) {
 
     var vm = this;
     vm.apply_filters = colFilters;
@@ -52,6 +52,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                         }).withOption('width', '80px')
     ];
 
+    var sku_attr_list = [];
     var empty_data = {
                       sku_data:{
                         sku_code:"",
@@ -181,7 +182,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.model_data.sub_categories = data.sub_categories;
                   var index = vm.model_data.zones.indexOf(vm.model_data.sku_data.zone);
                   vm.model_data.sku_data.zone = vm.model_data.zones[index];
+                  vm.model_data.attributes = data.attributes;
 
+                  angular.forEach(vm.model_data.attributes, function(attr_dat){
+                    if(data.sku_attributes[attr_dat.attribute_name])
+                    {
+                      attr_dat.attribute_value = data.sku_attributes[attr_dat.attribute_name];
+                    }
+                  });
                   for (var j=0; j<vm.model_data.market_data.length; j++) {
                     var index = vm.model_data.market_list.indexOf(vm.model_data.market_data[j].market_sku_type);
                     vm.model_data.market_data[j].market_sku_type = vm.model_data.market_list[index];
@@ -343,6 +351,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.model_data.sku_data.sku_size = vm.model_data.sizes_list[0];
         vm.model_data.sku_data.size_type = "Default";
         vm.change_size_type();
+        vm.model_data.attributes = data.attributes;
+        angular.forEach(vm.model_data.attributes, function(record) {
+          record.attribute_value = '';
+        });
       }
     });
     vm.model_data.sku_data.status = vm.status_data[1];
@@ -445,7 +457,31 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           }
       }
   }
+
+  vm.addAttributes = function() {
+    var send_data = {}
+    angular.copy(vm.attr_model_data, send_data);
+    var modalInstance = $modal.open({
+      templateUrl: 'views/masters/toggles/attributes.html',
+      controller: 'AttributesPOP',
+      controllerAs: 'pop',
+      size: 'lg',
+      backdrop: 'static',
+      keyboard: false,
+      //windowClass: 'full-modal',
+      resolve: {
+        items: function () {
+          return send_data;
+        }
+      }
+    });
+
+    modalInstance.result.then(function (result_dat) {
+      vm.model_data.attributes = result_dat;
+    });
+  }
 }
+
 
 app.directive('fileUpload', function () {
     return {

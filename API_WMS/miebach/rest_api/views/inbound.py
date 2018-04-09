@@ -1566,6 +1566,7 @@ def update_putaway(request, user=''):
         remarks = request.GET.get('remarks', '')
         expected_date = request.GET.get('expected_date', '')
         remainder_mail = request.GET.get('remainder_mail', '')
+        mrp = request.GET.get('mrp','')
         _expected_date = ''
         if expected_date:
             _expected_date = expected_date
@@ -2122,7 +2123,7 @@ def create_update_primary_segregation(data, quantity):
         PrimarySegregation.objects.create(purchase_order_id=data.id, quantity=quantity,status=1,
                                           creation_date=datetime.datetime.now())
 
-def update_seller_po(data, value, user, receipt_id='', invoice_number=''):
+def update_seller_po(data, value, user, receipt_id='', invoice_number='', mrp=0):
     if not receipt_id:
         return
     seller_pos = SellerPO.objects.filter(seller__user=user.id, open_po_id=data.open_po_id, status=1)
@@ -2132,6 +2133,7 @@ def update_seller_po(data, value, user, receipt_id='', invoice_number=''):
         seller_po_summary, created = SellerPOSummary.objects.get_or_create(receipt_number=receipt_id,
                                                                            invoice_number=invoice_number,
                                                                            quantity=value,
+                                                                           mrp=mrp,
                                                                            putaway_quantity=value,
                                                                            purchase_order_id=data.id,
                                                                            creation_date=datetime.datetime.now())
@@ -2179,6 +2181,7 @@ def update_seller_po(data, value, user, receipt_id='', invoice_number=''):
             seller_po_summary, created = SellerPOSummary.objects.get_or_create(seller_po_id=sell_po.id,
                                                                                receipt_number=receipt_id,
                                                                                quantity=sell_quan,
+                                                                               mrp=mrp,
                                                                                putaway_quantity=sell_quan,
                                                                                purchase_order_id=data.id,
                                                                                creation_date=datetime.datetime.now())
@@ -2199,6 +2202,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
     expected_date = request.POST.get('expected_date', '')
     remainder_mail = request.POST.get('remainder_mail', '')
     invoice_number = request.POST.get('invoice_number', 0)
+    mrp = float(request.POST.get('mrp', 0))
     _expected_date = ''
     if expected_date:
         _expected_date = expected_date
@@ -2259,7 +2263,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
             if not seller_receipt_id:
                 seller_receipt_id = get_seller_receipt_id(data.open_po)
             seller_received_list = update_seller_po(data, value, user, receipt_id=seller_receipt_id,
-                                                    invoice_number=invoice_number)
+                                                    invoice_number=invoice_number, mrp=mrp)
         if 'wms_code' in myDict.keys():
             if myDict['wms_code'][i]:
                 sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)

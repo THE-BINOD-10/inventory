@@ -209,6 +209,11 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
     temp_data['recordsFiltered'] = len(master_data)
 
     for data in master_data[start_index: stop_index]:
+        uploads_list = []
+        uploads_obj = MasterDocs.objects.filter(master_id=data.id, master_type=data.__class__.__name__)\
+                                .values_list('uploaded_file', flat=True)
+        if uploads_obj:
+            uploads_list = [(i, i.split("/")[-1]) for i in uploads_obj]
         status = 'Inactive'
         if data.status:
             status = 'Active'
@@ -226,7 +231,9 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
                                                 ('phone_number', data.phone_number), ('email_id', data.email_id),
                                                 ('cst_number', data.cst_number), ('tin_number', data.tin_number),
                                                 ('pan_number', data.pan_number), ('city', data.city),
-                                                ('state', data.state),
+                                                ('state', data.state), ('days_to_supply', data.days_to_supply),
+                                                ('fulfillment_amt', data.fulfillment_amt),
+                                                ('credibility', data.credibility), ('uploads_list', uploads_list),
                                                 ('country', data.country), ('pincode', data.pincode),
                                                 ('status', status), ('supplier_type', data.supplier_type),
                                                 ('username', username), ('login_created', login_created),
@@ -971,6 +978,7 @@ def update_supplier_values(request, user=''):
         data_id = request.POST['id']
         data = get_or_none(SupplierMaster, {'id': data_id, 'user': user.id})
         old_name = data.name
+        upload_master_file(request, data.id, "SupplierMaster")
 
         create_login = request.POST.get('create_login', '')
         password = request.POST.get('password', '')
@@ -1055,6 +1063,7 @@ def insert_supplier(request, user=''):
 
             data_dict['user'] = user.id
             supplier_master = SupplierMaster(**data_dict)
+            upload_master_file(request, supplier_master.id, "SupplierMaster")
             supplier_master.save()
             status_msg = 'New Supplier Added'
 	    if create_login == 'true':
@@ -1074,6 +1083,21 @@ def insert_supplier(request, user=''):
         status_msg = 'Add Supplier Failed'
     return HttpResponse(status_msg)
 
+
+@csrf_exempt
+def upload_master_file(request, master_id, master_type):
+    master_id = master_id
+    master_type = master_type
+    master_file = request.FILES.get('master_file', '')
+    if not master_file and master_id and master_type:
+        return 'Fields are missing.'
+    upload_doc_dict = {'master_id': master_id, 'master_type': master_type,
+                       'uploaded_file': master_file}
+    master_doc = MasterDocs.objects.filter(**upload_doc_dict)
+    if not master_doc:
+        master_doc = MasterDocs(**upload_doc_dict)
+        master_doc.save()
+    return 'Uploaded Successfully'
 
 @csrf_exempt
 @get_admin_user

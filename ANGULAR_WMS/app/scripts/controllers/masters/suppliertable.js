@@ -93,8 +93,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.supplier = function(url) {
 
     //var data = $.param(vm.model_data);
-    var send = $("form").serializeArray();
-    vm.service.apiCall(url, 'POST', send, true).then(function(data){
+	var elem = angular.element($('form'));
+	elem = elem[0];
+	elem = $(elem).serializeArray();
+	var send = vm.uploadFile(elem);
+    //var send = $("form").serializeArray();
+    vm.service.apiCall(url, 'POST', send, true, true).then(function(data){
 
       if(data.message) {
 
@@ -126,6 +130,61 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.service.pop_msg('Please fill required fields');
     }
   }
+  //read files
+    function readFile(input) {
+      var deferred = $.Deferred();
+
+      var files = input.file;
+      if (files) {
+          var fr= new FileReader();
+          fr.onload = function(e) {
+              deferred.resolve(e.target.result);
+          };  
+          fr.readAsDataURL( files );
+      } else {
+          deferred.resolve(undefined);
+      }   
+
+      return deferred.promise();
+    }   
+
+	//upload file
+	vm.uploadFile = function(elem) {
+
+		var formData = new FormData();
+		var el = $("#file-upload");
+		var files = el[0].files;
+		$.each(elem, function(i, val) {
+			formData.append(val.name, val.value);
+		});
+
+		if(files.length == 0){
+			return formData;
+		}
+		$.each(files, function(i, file) {
+			formData.append('master_file', file);
+		});
+		return formData;
+  	}
+
+    $scope.$on("fileSelected", function (event, args) {
+	  console.log(args.file.name);
+	});
 }
+
+    app.directive('fileUploadd', function () { 
+    return {
+        scope: true,
+        link: function (scope, el, attrs) {
+            el.bind('change', function (event) {
+                var files = event.target.files;
+                var url = $(this).attr('data');
+                for (var i = 0;i<files.length;i++) {
+                    scope.$emit("fileSelected", { file: files[i], url: url});
+                }
+            });  
+        }
+    };   
+    });
 
 })();

@@ -158,9 +158,15 @@
                                           background: white;
                                           cursor: inherit;
                                           display: block;" ng-disabled=""
-                                          class="btn btn-primary" type = "file" name="files" id="file-upload" file-upload multiple/>
+                                          class="btn btn-primary" type = "file" name="files" id="file-upload" file-uploadd multiple/>
                         </span>
                     </div>
+                </div>
+            </div>
+            <div class="col-md-12 col-sm-12 col-xs-12">
+                <div ng-repeat="file in showCase.model_data.uploads_list" class="alert alert-info"
+                style="float: left;height:25px;padding:2px 10px;margin-right:5px">
+                    <a ng-href={{file[0]}} download={{file[1]}} target="_blank">{{file[1]}}</a>
                 </div>
             </div>
             </div>

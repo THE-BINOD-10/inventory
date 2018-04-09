@@ -935,6 +935,7 @@ def switches(request, user=''):
                        'extra_view_order_status':'extra_view_order_status',
                        'disable_brands_view':'disable_brands_view',
                        'invoice_types': 'invoice_types',
+                       'sellable_segregation': 'sellable_segregation',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -1685,7 +1686,7 @@ def get_purchaseorder_locations(put_zone, temp_dict):
     seller_id = temp_dict.get('seller_id', '')
     location_masters = LocationMaster.objects.filter(zone__user=user).exclude(
         lock_status__in=['Inbound', 'Inbound and Outbound'])
-    exclude_zones_list = ['QC_ZONE', 'DAMAGED_ZONE', 'RTO_ZONE']
+    exclude_zones_list = ['QC_ZONE', 'DAMAGED_ZONE', 'RTO_ZONE', 'Non Sellable Zone']
     if put_zone in exclude_zones_list:
         location = location_masters.filter(zone__zone=put_zone, zone__user=user)
         if location:
@@ -1887,6 +1888,16 @@ def update_seller_summary_locs(data, location, quantity, po_received):
         return po_received
     seller_summary = SellerPOSummary.objects.get(id=po_received['id'])
     if not seller_summary.location:
+        if seller_summary.quantity != quantity:
+            rem_quantity = float(seller_summary.quantity) - float(quantity)
+            rem_putaway_quantity = float(seller_summary.putaway_quantity) - float(quantity)
+            seller_po_summary = SellerPOSummary.objects.create(seller_po_id=seller_summary.seller_po.id,
+                                                                               receipt_number=seller_summary.receipt_number,
+                                                                               quantity=rem_quantity,
+                                                                               putaway_quantity=rem_putaway_quantity,
+                                                                               location_id=None,
+                                                                               purchase_order_id=data.id,
+                                                                               creation_date=seller_summary.creation_date)
         seller_summary.location_id = location.id
         seller_summary.quantity = quantity
         seller_summary.putaway_quantity = quantity
@@ -1909,10 +1920,11 @@ def update_seller_summary_locs(data, location, quantity, po_received):
 
 
 @csrf_exempt
-def save_po_location(put_zone, temp_dict, seller_received_list=[]):
+def save_po_location(put_zone, temp_dict, seller_received_list=[], run_segregation=False):
     data = temp_dict['data']
     user = temp_dict['user']
     pallet_number = 0
+    sellable_segregation = get_misc_value('sellable_segregation', user)
     if 'pallet_number' in temp_dict.keys():
         pallet_number = temp_dict['pallet_number']
     # location = get_purchaseorder_locations(put_zone, temp_dict)
@@ -1925,6 +1937,9 @@ def save_po_location(put_zone, temp_dict, seller_received_list=[]):
             {'seller_id': '', 'sku_id': (purchase_data['sku']).id, 'quantity': received_quantity, 'id': ''})
     for po_received in seller_received_list:
         temp_dict['seller_id'] = po_received.get('seller_id', '')
+        if sellable_segregation == 'true' and run_segregation:
+            create_update_primary_segregation(data, po_received['quantity'])
+            continue
         location = get_purchaseorder_locations(put_zone, temp_dict)
         received_quantity = po_received['quantity']
         for loc in location:
@@ -2095,6 +2110,18 @@ def get_seller_receipt_id(open_po):
     return receipt_number
 
 
+def create_update_primary_segregation(data, quantity):
+    segregation_obj = PrimarySegregation.objects.filter(purchase_order_id=data.id)
+    if segregation_obj:
+        segregation_obj = segregation_obj[0]
+        segregation_obj.quantity = float(segregation_obj.quantity) + quantity
+        if segregation_obj.status == 0:
+            segregation_obj.status = 1
+        segregation_obj.save()
+    else:
+        PrimarySegregation.objects.create(purchase_order_id=data.id, quantity=quantity,status=1,
+                                          creation_date=datetime.datetime.now())
+
 def update_seller_po(data, value, user, receipt_id='', invoice_number=''):
     if not receipt_id:
         return
@@ -2231,7 +2258,8 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
         if data.open_po:
             if not seller_receipt_id:
                 seller_receipt_id = get_seller_receipt_id(data.open_po)
-            seller_received_list = update_seller_po(data, value, user, receipt_id=seller_receipt_id, invoice_number=invoice_number)
+            seller_received_list = update_seller_po(data, value, user, receipt_id=seller_receipt_id,
+                                                    invoice_number=invoice_number)
         if 'wms_code' in myDict.keys():
             if myDict['wms_code'][i]:
                 sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
@@ -2287,7 +2315,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
             continue
         else:
             is_putaway = 'true'
-        save_po_location(put_zone, temp_dict, seller_received_list=seller_received_list)
+        save_po_location(put_zone, temp_dict, seller_received_list=seller_received_list, run_segregation=True)
         create_bayarea_stock(purchase_data['wms_code'], 'BAY_AREA', temp_dict['received_quantity'], user.id)
         data_dict = (('Order ID', data.order_id), ('Supplier ID', purchase_data['supplier_id']),
                      ('Order Date', get_local_date(request.user, data.creation_date)),
@@ -3510,7 +3538,7 @@ def update_quality_check(myDict, request, user):
                 pallet.pallet_detail.save()
             temp_dict['pallet_number'] = pallet_code
             temp_dict['pallet_data'] = pallet
-        save_po_location(put_zone, temp_dict, seller_received_list=seller_summary_dict)
+        save_po_location(put_zone, temp_dict, seller_received_list=seller_summary_dict, run_segregation=True)
         create_bayarea_stock(purchase_data['sku_code'], 'BAY_AREA', temp_dict['received_quantity'], user.id)
         if temp_dict['rejected_quantity']:
             put_zone = 'DAMAGED_ZONE'
@@ -3546,65 +3574,6 @@ def confirm_quality_check(request, user=''):
         return HttpResponse('Update Quantities')
 
     update_quality_check(myDict, request, user)
-    '''for i in range(len(myDict['id'])):
-        temp_dict = {}
-        q_id = myDict['id'][i]
-        if not myDict['accepted_quantity'][i]:
-            myDict['accepted_quantity'][i] = 0
-        if not myDict['rejected_quantity'][i]:
-            myDict['rejected_quantity'][i] = 0
-        quality_check = QualityCheck.objects.get(id=q_id, po_location__location__zone__user=user.id)
-        data = PurchaseOrder.objects.get(id=quality_check.purchase_order_id)
-        purchase_data = get_purchase_order_data(data)
-        seller_received_dict = get_seller_received_list(data, user)
-        put_zone = purchase_data['zone']
-        if put_zone:
-            put_zone = put_zone.zone
-        else:
-            put_zone = 'DEFAULT'
-
-        temp_dict = {'received_quantity': float(myDict['accepted_quantity'][i]), 'original_quantity': float(quality_check.putaway_quantity),
-                     'rejected_quantity': float(myDict['rejected_quantity'][i]), 'new_quantity': float(myDict['accepted_quantity'][i]),
-                     'total_check_quantity': float(myDict['accepted_quantity'][i]) + float(myDict['rejected_quantity'][i]),
-                     'user': user.id, 'data': data, 'quality_check': quality_check }
-        if temp_dict['total_check_quantity'] == 0:
-             continue
-        seller_received_dict, seller_summary_dict = get_quality_check_seller(seller_received_dict, temp_dict, purchase_data)
-        if get_misc_value('pallet_switch', user.id) == 'true':
-            pallet_code = ''
-            pallet = PalletMapping.objects.filter(po_location_id = quality_check.po_location_id)
-            if pallet:
-                pallet = pallet[0]
-                pallet_code = pallet.pallet_detail.pallet_code
-                if pallet and (not temp_dict['total_check_quantity'] == pallet.pallet_detail.quantity):
-                    return HttpResponse('Partial quality check is not allowed for pallets')
-                setattr(pallet.pallet_detail, 'quantity', temp_dict['new_quantity'])
-                pallet.pallet_detail.save()
-            temp_dict['pallet_number'] = pallet_code
-            temp_dict['pallet_data'] = pallet
-        save_po_location(put_zone, temp_dict, seller_received_list=seller_summary_dict)
-        create_bayarea_stock(purchase_data['sku_code'], 'BAY_AREA', temp_dict['received_quantity'], user.id)
-        if temp_dict['rejected_quantity']:
-            put_zone = 'DAMAGED_ZONE'
-            temp_dict['received_quantity'] = temp_dict['rejected_quantity']
-            seller_received_dict, seller_summary_dict = get_quality_check_seller(seller_received_dict, temp_dict, purchase_data)
-            save_po_location(put_zone, temp_dict, seller_received_list=seller_summary_dict)
-        setattr(quality_check, 'accepted_quantity', temp_dict['new_quantity'])
-        setattr(quality_check, 'rejected_quantity', temp_dict['rejected_quantity'])
-        setattr(quality_check, 'reason', myDict['reason'][i])
-        setattr(quality_check, 'status', 'qc_cleared')
-        quality_check.save()
-        if not temp_dict['total_check_quantity'] == temp_dict['original_quantity']:
-            put_zone = 'QC_ZONE'
-            not_checked = float(quality_check.putaway_quantity) - temp_dict['total_check_quantity']
-            temp_dict = {}
-            temp_dict['received_quantity'] = not_checked
-            temp_dict['user'] = user.id
-            temp_dict['data'] = data
-            qc_data = copy.deepcopy(QUALITY_CHECK_FIELDS)
-            qc_data['purchase_order_id'] = data.id
-            temp_dict['qc_data'] = qc_data
-            save_po_location(put_zone, temp_dict)'''
 
     use_imei = 'false'
     misc_data = MiscDetail.objects.filter(user=user.id, misc_type='use_imei')
@@ -5503,3 +5472,176 @@ def save_supplier_po(request, user=''):
             date = po['expected_date'].split('/')
             style_po.update(expected_date=datetime.date(int(date[2]), int(date[0]), int(date[1])))
     return HttpResponse("Success")
+
+
+def get_primary_suggestions(request, user):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    purchase_filter = {'open_po__sku_id__in': sku_master_ids, 'open_po__sku__user': user.id,
+                       'primarysegregation__status': 1}
+    stpurchase_filter = {'stpurchaseorder__open_st__sku_id__in': sku_master_ids,
+                         'stpurchaseorder__open_st__sku__user': user.id, 'primarysegregation__status': 1}
+    rwpurchase_filter = {'rwpurchase__rwo__job_order__product_code_id__in': sku_master_ids,
+                             'rwpurchase__rwo__vendor__user': user.id, 'primarysegregation__status': 1}
+    purchase_orders = PurchaseOrder.objects.filter(Q(**stpurchase_filter) | Q(**rwpurchase_filter) |
+                                                   Q(**purchase_filter))
+    return purchase_orders
+
+@csrf_exempt
+def get_segregation_pos(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    lis = ['PO Number', 'Order Date', 'Supplier ID', 'Supplier Name', 'Order Type']
+    purchase_orders = get_primary_suggestions(request, user)
+    if search_term:
+        orders = purchase_orders.filter(Q(open_po__supplier__name__icontains=search_term) |
+            Q(open_po__supplier__id__icontains=search_term) | Q(order_id__icontains=search_term) |
+            Q(creation_date__regex=search_term) | Q(stpurchaseorder__open_st__warehouse__id__icontains=search_term) |
+            Q(stpurchaseorder__open_st__warehouse__username__icontains=search_term) |
+            Q(rwpurchase__rwo__vendor__id__icontains=search_term) | Q(rwpurchase__rwo__vendor__name__icontains=search_term))
+    elif order_term:
+        orders = purchase_orders
+    order_ids = orders.values_list('order_id', flat=True).distinct()
+    temp_data['recordsTotal'] = orders.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    for order_id in order_ids:
+        order = orders.filter(order_id=order_id)[0]
+        order_data = get_purchase_order_data(order)
+        order_type = 'Purchase Order'
+        if RWPurchase.objects.filter(purchase_order_id=order.id):
+            order_type = 'Returnable Work Order'
+        elif STPurchaseOrder.objects.filter(po_id=order.id):
+            order_type = 'Stock Transfer'
+        po_reference = '%s%s_%s' % (
+        order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order.order_id)
+        temp_data['aaData'].append({'DT_RowId': order.order_id, 'Supplier ID': order_data['supplier_id'],
+                                    'Supplier Name': order_data['supplier_name'], 'Order Type': order_type,
+                                    ' Order ID': order.order_id,
+                                    'Order Date': get_local_date(request.user, order.creation_date),
+                                    'DT_RowClass': 'results', 'PO Number': po_reference,
+                                    'DT_RowAttr': {'data-id': order.order_id}})
+
+    order_data = lis[col_num]
+    if order_term == 'asc':
+        temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(order_data))
+    else:
+        temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(order_data), reverse=True)
+    temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_po_segregation_data(request, user=''):
+    purchase_orders = get_primary_suggestions(request, user)
+    order_id = request.GET['order_id']
+    purchase_orders = purchase_orders.filter(order_id=order_id)
+    if not purchase_orders:
+        return HttpResponse("No Data found")
+    po_reference = get_po_reference(purchase_orders[0])
+    orders = []
+    order_data = {}
+    order_ids = []
+    for order in purchase_orders:
+        order_data = get_purchase_order_data(order)
+        segregation_obj = order.primarysegregation
+        if not segregation_obj:
+            continue
+        segregation_obj = segregation_obj
+        quantity = float(segregation_obj.quantity) - float(segregation_obj.sellable) - float(segregation_obj.non_sellable)
+        sku_details = json.loads(
+            serializers.serialize("json", [order_data['sku']], indent=1, use_natural_foreign_keys=True, fields=(
+            'sku_code', 'wms_code', 'sku_desc', 'color', 'sku_class', 'sku_brand', 'sku_category', 'image_url',
+            'load_unit_handle')))
+        if quantity > 0:
+            sku_extra_data, product_images, order_ids = get_order_json_data(user, mapping_id=order.id,
+                                                                            mapping_type='PO',
+                                                                            sku_id=order_data['sku_id'],
+                                                                            order_ids=order_ids)
+            orders.append([{'order_id': order.id, 'wms_code': order_data['wms_code'],
+                            'sku_desc': order_data['sku_desc'],
+                            'quantity': quantity, 'sellable': quantity,
+                            'non_sellable': 0,
+                            'name': str(order.order_id) + '-' + str(
+                                re.sub(r'[^\x00-\x7F]+', '', order_data['wms_code'])),
+                            'price': order_data['price'], 'order_type': order_data['order_type'],
+                            'unit': order_data['unit'],
+                            'sku_extra_data': sku_extra_data, 'product_images': product_images,
+                            'sku_details': sku_details}])
+    supplier_name, order_date, expected_date, remarks = '', '', '', ''
+    if purchase_orders:
+        purchase_order = purchase_orders[0]
+        supplier_name = order_data['supplier_name']
+        order_date = get_local_date(user, purchase_order.creation_date)
+        remarks = purchase_order.remarks
+    return HttpResponse(json.dumps({'data': orders, 'order_id': order_id, \
+                                    'supplier_id': order_data['supplier_id'],\
+                                    'po_reference': po_reference, 'order_ids': order_ids,
+                                    'supplier_name': supplier_name, 'order_date': order_date,
+                                    'remarks': remarks
+                        }))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def confirm_primary_segregation(request, user=''):
+    data_dict = dict(request.POST.iterlists())
+    log.info('Request params for ' + user.username + ' is ' + str(data_dict))
+    try:
+        primary_segregations = PrimarySegregation.objects.filter(purchase_order_id__in=data_dict['order_id'], status=1)
+        for ind in range(0, len(data_dict['order_id'])):
+            segregation_obj = primary_segregations.filter(purchase_order_id=data_dict['order_id'][ind])
+            if not segregation_obj:
+                continue
+            segregation_obj = segregation_obj[0]
+            sellable = data_dict['sellable'][ind]
+            non_sellable = data_dict['non_sellable'][ind]
+            if not sellable:
+                sellable = 0
+            if not non_sellable:
+                non_sellable = 0
+            sellable = float(sellable)
+            non_sellable = float(non_sellable)
+            purchase_data = get_purchase_order_data(segregation_obj.purchase_order)
+            seller_received_dict = get_seller_received_list(segregation_obj.purchase_order, user)
+            if sellable:
+                put_zone = purchase_data['zone']
+                if put_zone:
+                    put_zone = put_zone.zone
+                else:
+                    put_zone = ZoneMaster.objects.filter(zone='DEFAULT', user=user.id)
+                    if not put_zone:
+                        create_default_zones(user, 'DEFAULT', 'DFLT1', 9999)
+                        put_zone = ZoneMaster.objects.filter(zone='DEFAULT', user=user.id)[0]
+                    else:
+                        put_zone = put_zone[0]
+                    put_zone = put_zone.zone
+                temp_dict = {'received_quantity': sellable, 'user': user.id, 'data': segregation_obj.purchase_order,
+                             'pallet_number': '', 'pallet_data': {}}
+                seller_received_dict, seller_summary_dict = get_quality_check_seller(seller_received_dict, temp_dict,
+                                                                                     purchase_data)
+                save_po_location(put_zone, temp_dict, seller_received_list=seller_summary_dict, run_segregation=False)
+            sellable_qty = get_decimal_limit(user.id, (float(segregation_obj.sellable) + sellable))
+            segregation_obj.sellable = sellable_qty
+            if non_sellable:
+                put_zone = ZoneMaster.objects.filter(zone='Non Sellable Zone', user=user.id)
+                if not put_zone:
+                    create_default_zones(user, 'Non Sellable Zone', 'Non-Sellable1', 10001)
+                    put_zone = ZoneMaster.objects.filter(zone='Non Sellable Zone', user=user.id)[0]
+                else:
+                    put_zone = put_zone[0]
+                put_zone = put_zone.zone
+                temp_dict = {'received_quantity': non_sellable, 'user': user.id, 'data': segregation_obj.purchase_order,
+                             'pallet_number': '', 'pallet_data': {}}
+                seller_received_dict, seller_summary_dict = get_quality_check_seller(seller_received_dict, temp_dict,
+                                                                                     purchase_data)
+                save_po_location(put_zone, temp_dict, seller_received_list=seller_summary_dict, run_segregation=False)
+            non_sellable_qty = get_decimal_limit(user.id, (float(segregation_obj.non_sellable) + non_sellable))
+            segregation_obj.non_sellable = non_sellable_qty
+            if (sellable_qty + non_sellable_qty) >= float(segregation_obj.quantity):
+                segregation_obj.status = 0
+            segregation_obj.save()
+        return HttpResponse("Updated Successfully")
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Add Primary Segregation failed for params " + str(data_dict) + " and error statement is " + str(e))
+        return HttpResponse("Add Segregation Failed")

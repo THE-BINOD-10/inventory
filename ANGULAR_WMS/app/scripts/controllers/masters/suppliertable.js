@@ -58,6 +58,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.message = "";
         vm.title = "Update Supplier";
         vm.model_data.status = vm.status_data[vm.status_data.indexOf(aData["status"])]
+        for(var i in vm.model_data.uploads_list){
+            vm.model_data.uploads_list[i][0] = vm.service.get_host_url(vm.model_data.uploads_list[i][0]);
+        }
         $state.go('app.masters.SupplierMaster.supplier');
       });
     });

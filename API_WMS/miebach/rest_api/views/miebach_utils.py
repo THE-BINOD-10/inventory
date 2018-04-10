@@ -1316,7 +1316,9 @@ ORDER_ID_AWB_MAP_EXCEL_HEADERS = ['Order ID', 'AWB No', 'Courier Name', 'Marketp
 ORDER_ID_AWB_EXCEL_MAPPING = OrderedDict((('order_id', 0), ('awb_no', 1), ('courier_name', 2), ('marketplace', 3)))
 
 # Company logo names
-COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg', 'Subhas_Publishing': 'book_publications.png', 'sm_admin': 'sm-brand.jpg'}
+COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg', 'Subhas_Publishing': 'book_publications.png', 'sm_admin': 'sm-brand.jpg',
+                      'demo':'dr_reddy_logo.png'}
+TOP_COMPANY_LOGO_PATHS = {'Konda_foundation': 'dr_reddy_logo.png'}
 
 # Configurtions Mapping
 REMAINDER_MAIL_ALERTS = OrderedDict((('po_remainder', 'PO Remainder'),))

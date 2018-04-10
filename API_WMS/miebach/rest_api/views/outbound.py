@@ -7424,6 +7424,7 @@ def generate_customer_invoice(request, user=''):
         str(user.username), str(request.GET.dict()), str(e)))
         return HttpResponse(json.dumps({'message': 'failed'}))
     return HttpResponse(invoice_data)
+    
 
 def pagination(sku_list):
     # header 220

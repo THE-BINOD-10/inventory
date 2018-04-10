@@ -19,6 +19,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.priceband_sync = Session.roles.permissions.priceband_sync;
   vm.disable_brands = Session.roles.permissions.disable_brands_view;
   vm.date = new Date();
+  vm.client_logo = Session.parent.logo;  
 
   $('#delivery_date').datepicker();
 

@@ -31,18 +31,40 @@ function ProfileUpload($scope, $http, $q, Session, colFilters, Service, $state, 
   vm.base();
 
   vm.submit = function(form){
-    
-    if (!($("#logo")[0].files.length)){
-      vm.service.showNoty("Please select logo to upload");
-    } else {
-      var formdata = $('#form').serializeArray();
-      formdata.push({'name':'logo', 'value':$('#logo')[0].files});
-      Service.apiCall("update_cust_profile/", "POST", formdata).then(function(data){
+
+      var formData = new FormData();
+      var logo_file = $('#logo')[0].files;
+
+      if (logo_file.length > 0) {
+        $.each(logo_file, function(i, file) {
+          formData.append('logo', file);
+        });
+      }
+      formData.append('user_id', vm.user_id);
+      formData.append('gst_number', vm.model_data.gst_number);
+      formData.append('address', vm.model_data.address);
+      formData.append('phone_number', vm.model_data.phone_number);
+      formData.append('bank_details', vm.model_data.bank_details);
+      $.ajax({url:Session.url+"update_cust_profile/",
+               method:"POST",
+               data:formData,
+               processData : false,
+               contentType : false,
+               xhrFields: {
+                 withCredentials: true},
+              'success': function(response) {
+                  var response = JSON.parse(response);
+                  if(response.message == "success") {
+                    vm.service.showNoty("Successfully updated Profile data");
+                  } else {
+                    vm.service.pop_msg(response.message);
+                  }
+                }
+              }).then(function(data){
         if(data.message) {
           console.log(data.message);
         }
       });
-    }
   }
 }
 

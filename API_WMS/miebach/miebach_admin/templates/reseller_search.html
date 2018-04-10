@@ -125,4 +125,20 @@
     </ul>
   </div>
 {% endif %}
+{% if bank_details %}
+    <div class="row col-md-12 col-xs-12" style="margin-top: 20px;width:100%;margin-left:20">
+      <span class="pre-custom"><b>Bank Details</b></span>
+        {{bank_details}}
+    </div>
+{% endif %}
+{% if address_details %}
+    <div class="row col-md-12 col-xs-12" style="margin-top: 20px;width:100%;margin-left:20">
+      <span class="pre-custom"><b>Address Details</b></span>
+        <ul>
+            {% for key, value in address_details.items %}
+            <li>{{key}} : {{value}}</li>
+            {% endfor %}
+        </ul>
+
+{% endif%}
 </div>

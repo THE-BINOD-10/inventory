@@ -5930,7 +5930,10 @@ def get_cust_profile_info(request, user=''):
     data['address'] = customer_info.address
     data['gst_number'] = customer_info.gst_number
     data['phone_number'] = customer_info.phone_number
-    return HttpResponse(json.dumps({'message': 1, 'data': data}))
+    data['bank_details'] = customer_info.bank_details
+    if customer_info.customer_logo:
+        data['logo'] = customer_info.customer_logo.url
+    return HttpResponse(json.dumps({'message': 1, 'data': data}, cls=DjangoJSONEncoder))
 
 
 @csrf_exempt

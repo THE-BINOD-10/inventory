@@ -1374,6 +1374,8 @@ angular.module('urbanApp').controller('downloadPDFCtrl', function ($modalInstanc
   vm.user_type = Session.roles.permissions.user_type;
   vm.pdfData = items
   vm.pdfData.display_stock = true;
+  vm.pdfData.bank_details = true;
+  vm.pdfData.address_details = true;
   vm.pdfData.remarks = '';
   if (Session.roles.permissions.customer_pdf_remarks) {
     vm.pdfData.remarks = Session.roles.permissions.customer_pdf_remarks;
@@ -1402,6 +1404,8 @@ angular.module('urbanApp').controller('downloadPDFCtrl', function ($modalInstanc
     data['terms_list'] = terms_list.join('<>');
     data['user_type'] = Session.roles.permissions.user_type;
     data['display_stock'] = vm.pdfData.display_stock;
+    data['bank_details'] = vm.pdfData.bank_details;
+    data['address_details'] = vm.pdfData.address_details;
     Service.apiCall("get_sku_catalogs/", "POST", data).then(function(response) {
       if(response.message) {
         window.open(Session.host + response.data, '_blank');

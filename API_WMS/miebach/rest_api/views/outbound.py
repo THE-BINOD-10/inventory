@@ -4545,8 +4545,18 @@ def get_sku_catalogs(request, user=''):
         if remarks:
             remarks = remarks[0].misc_value
         display_stock = request.POST.get('display_stock', '')
+        bank_dets_check = request.POST.get('bank_details', '')
+        addr_dets_check = request.POST.get('address_details', '')
+        bank_details = ''
+        address_details = {}
+        usr_obj = UserProfile.objects.get(user=request.user)
+        if bank_dets_check:
+            bank_details = usr_obj.bank_details
+        if addr_dets_check:
+            address_details = {'phone': usr_obj.phone_number, 'gst': usr_obj.gst_number,
+                               'address': usr_obj.address, 'email': usr_obj.user.email}
         user_type = request.POST.get('user_type', '')
-        terms_list = (request.POST.get('terms_list', '')).split('<>');
+        terms_list = request.POST.get('terms_list', '').split('<>')
         admin = get_admin(user)
         image = get_company_logo(admin)
         date = get_local_date(user, datetime.datetime.now())
@@ -4560,7 +4570,8 @@ def get_sku_catalogs(request, user=''):
         rendered = t.render({'data': data, 'user': request.user.first_name, 'date': date,
                              'remarks': remarks, 'display_stock': display_stock, 'image': image,
                              'style_quantities': eval(request.POST.get('required_quantity', '{}')),
-                             'terms_list': terms_list, 'pages': int(pages), 'style_count': len(data)})
+                             'terms_list': terms_list, 'pages': int(pages), 'style_count': len(data),
+                             'bank_details': bank_details, 'address_details': address_details})
 
         if not os.path.exists('static/pdf_files/'):
             os.makedirs('static/pdf_files/')
@@ -8661,30 +8672,36 @@ def request_manual_enquiry_approval(request, user=''):
 @login_required
 @get_admin_user
 def update_cust_profile(request, user=''):
-    logo = request.POST.get('logo', '')
+    resp = {'message': 'success'}
+    logo = request.FILES.get('logo', '')
     user_id = request.POST.get('user_id', '')
     first_name = request.POST.get('first_name', '')
     email = request.POST.get('email', '')
     phone_number = request.POST.get('phone_number', '')
     gst_number = request.POST.get('gst_number', '')
     address = request.POST.get('address', '')
+    bank_details = request.POST.get('bank_details', '')
 
-    exe_user_data = User.objects.filter(id=user_id)
-    exe_user_data[0].first_name = first_name
-    exe_user_data[0].email = email
-    exe_user_data[0].save()
+    try:
+        exe_user_data = User.objects.filter(id=user_id)
+        exe_user_data[0].first_name = first_name
+        exe_user_data[0].email = email
+        exe_user_data[0].save()
 
-    filters = {'user_id': user_id}
-    exe_data = UserProfile.objects.filter(**filters)
-    exe_data[0].phone_number = phone_number
-    exe_data[0].gst_number = gst_number
-    exe_data[0].address = address
-    # exe_data[0].phone_number = request.POST.get('bank_details', '')
-    # exe_data[0].customer_logo = logo
-    exe_data[0].save()
-    data = UserProfile.objects.get(user_id=user_id)
-    # import pdb
-    # pdb.set_trace()
-    resp = {'message': 'Success', 'data': data}
+        filters = {'user_id': user_id}
+        exe_data = UserProfile.objects.filter(**filters)
+        if exe_data:
+            exe_data = exe_data[0]
+            exe_data.phone_number = phone_number
+            exe_data.gst_number = gst_number
+            exe_data.address = address
+            exe_data.bank_details = bank_details
+            if logo:
+                exe_data.customer_logo = logo
+            exe_data.save()
+    except Exception as e:
+        import traceback
+        log.info("Error Occurred while updating the Customer Profile data: %s" %traceback.format_exc())
+        resp = {'message': 'fail'}
 
     return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))

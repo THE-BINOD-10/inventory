@@ -2586,7 +2586,7 @@ def get_path(instance, filename):
 
 class MasterDocs(models.Model):
     id = BigAutoField(primary_key=True)
-    master_id = models.PositiveIntegerField()
+    master_id = models.CharField(max_length=64, default='')
     master_type = models.CharField(max_length=64, default='')
     uploaded_file = models.FileField(upload_to=get_path, blank=True, null=True)
 

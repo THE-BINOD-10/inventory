@@ -200,7 +200,6 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
   vm.sel_items_total_price = 0;
   vm.sel_items_tax = 0;
   vm.wish_list_total_qty = 0;
-  vm.sel_tot_qtys = 0;
   vm.update_levels = function(index){
 
     vm.sel_items_total_price = 0;
@@ -208,7 +207,6 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
     vm.sel_items_total_quantity = 0;
     var total_quantity = vm.get_total_level_quantity(index);
     angular.forEach(vm.levels_data, function(level_data, level_name) {
-      vm.sel_total_quantities = vm.style_data.quantity;
       if (level_data.data[index].quantity) {
         
         if (Session.roles.permissions.user_type == 'reseller' && vm.selLevel==0 && level_name!=vm.selLevel) {
@@ -225,17 +223,23 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
         }
       }
       Data.styles_data = vm.wish_list;
+      vm.sel_total_quantity = 0;
+      angular.forEach(level_data.data, function(record){
+        if (record.quantity) {
+          vm.sel_total_quantity += Number(record.quantity);
+        }
+      });
 
       level_data.quantity = 0;
       level_data.total_price = 0;
-
       angular.forEach(level_data.data, function(data){
         
         var quantity = (data.quantity) ? data.quantity : 0;
         level_data.quantity += Number(quantity);
         level_data.total_price += data.row_total_price;
-        data.price = vm.priceRangesCheck(data, vm.sel_total_quantities);
+        data.price = vm.priceRangesCheck(data, vm.sel_total_quantity);
         data.unit_rate = data.price;
+        data.row_total_price = data.price * data.quantity;
       });
       vm.sel_items_total_price += level_data.total_price;
       vm.sel_items_total_quantity += level_data.quantity;
@@ -266,8 +270,6 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
 
   vm.style_total_quantity = 0;
   vm.change_style_quantity = function(data, row, index){
-
-    vm.style_total_quantity = 0;
     
     if (Number(row.quantity) == 0) {
 
@@ -289,7 +291,6 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
     } else {
       console.log(index);
     }
-    
     vm.update_levels(index);
   }
 

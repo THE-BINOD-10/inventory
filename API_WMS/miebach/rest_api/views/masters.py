@@ -2577,6 +2577,7 @@ def get_price_master_results(start_index, stop_index, temp_data, search_term, or
 
     for key, val in temp_map.items()[start_index:stop_index]:
         sku_code, sku_desc, price_type = key
+        val = ','.join(map(str, val))
         temp_data['aaData'].append(OrderedDict((('SKU Code', sku_code), ('SKU Description', sku_desc),
                                                 ('Selling Price Type', price_type), ('Price', val))))
 

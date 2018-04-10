@@ -95,6 +95,15 @@
         </div>
         <div class="col-md-4 col-sm-4 col-xs-6">
           <div class="form-group">
+            <label class="control-label">Mode of Transport</label>
+            <select class="form-control" name="mode_of_transport" ng-model="showCase.model_data.mode_of_transport">
+              <option value="">-- Select --</option>
+              <option ng-repeat="transport in showCase.create_order_data.mode_of_transport" value="{{transport}}">{{transport}}</option>
+            </select>
+          </div>
+        </div>
+        <div class="col-md-4 col-sm-4 col-xs-6">
+          <div class="form-group">
             <label class="control-label">Address</label>
             <textarea rows="4" class="form-control" cols="27" name="address" ng-model="showCase.model_data.address" readonly></textarea>
           </div>

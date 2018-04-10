@@ -4352,7 +4352,7 @@ def get_style_variants(sku_master, user, customer_id='', total_quantity=0, custo
                     is_sellingprice = False
                     if price_field == 'price':
                         is_sellingprice = True
-                    sku_master[ind]['price'] = get_customer_based_price(customer_data[0], sku_master[ind][price_field],
+                    sku_master[ind]['price'], sku_master[ind]['mrp'] = get_customer_based_price(customer_data[0], sku_master[ind][price_field],
                                                                         sku_master[ind]['mrp'],
                                                                         is_sellingprice=is_sellingprice)
                     apply_margin_price(sku['wms_code'], sku_master[ind], specific_margins, is_margin_percentage,
@@ -6739,7 +6739,7 @@ def get_customer_cart_data(request, user=""):
             is_sellingprice = False
             if price_field == 'price':
                 is_sellingprice = True
-            json_record['price'] = get_customer_based_price(cm_obj, json_record[price_field], json_record['mrp'],
+            json_record['price'], json_record['mrp']  = get_customer_based_price(cm_obj, json_record[price_field], json_record['mrp'],
                                                             is_sellingprice)
             if not tax_type and product_type:
                 json_record['tax'] = 0

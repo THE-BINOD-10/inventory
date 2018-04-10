@@ -1351,7 +1351,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'auto_confirm_po': 'auto_confirm_po', 'generic_wh_level': 'generic_wh_level',
                         'create_order_po': 'create_order_po', 'calculate_customer_price': 'calculate_customer_price',
                         'shipment_sku_scan': 'shipment_sku_scan', 'disable_brands_view':'disable_brands_view',
-                        'sellable_segregation': 'sellable_segregation',
+                        'sellable_segregation': 'sellable_segregation', 'display_styles_price': 'display_styles_price',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',

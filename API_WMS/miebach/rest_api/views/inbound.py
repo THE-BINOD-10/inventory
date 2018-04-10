@@ -936,6 +936,7 @@ def switches(request, user=''):
                        'disable_brands_view':'disable_brands_view',
                        'invoice_types': 'invoice_types',
                        'sellable_segregation': 'sellable_segregation',
+                       'display_styles_price': 'display_styles_price',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

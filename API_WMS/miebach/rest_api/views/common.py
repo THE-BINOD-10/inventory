@@ -6339,8 +6339,8 @@ def get_customer_based_price(customer_obj, price, mrp,is_sellingprice='', user_i
         price = price * float(1 + float(customer_obj.markup) / 100)
         if mrp and price > mrp:
             price = mrp
-        if not mrp:
-            mrp = price
+    if not mrp:
+        mrp = price
     return price, mrp
 
 

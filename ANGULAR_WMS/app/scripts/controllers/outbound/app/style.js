@@ -200,6 +200,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
   vm.sel_items_total_price = 0;
   vm.sel_items_tax = 0;
   vm.wish_list_total_qty = 0;
+  vm.sel_tot_qtys = 0;
   vm.update_levels = function(index){
 
     vm.sel_items_total_price = 0;
@@ -207,14 +208,14 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
     vm.sel_items_total_quantity = 0;
     var total_quantity = vm.get_total_level_quantity(index);
     angular.forEach(vm.levels_data, function(level_data, level_name) {
-      
+      vm.sel_total_quantities = vm.style_data.quantity;
       if (level_data.data[index].quantity) {
         
         if (Session.roles.permissions.user_type == 'reseller' && vm.selLevel==0 && level_name!=vm.selLevel) {
           level_data.data[index].quantity = 0;
           Service.showNoty('Level-'+level_name+' quantity removed', 'warning');
         }
-        level_data.data[index].price = vm.priceRangesCheck(level_data.data[index], total_quantity);
+        // level_data.data[index].price = vm.priceRangesCheck(level_data.data[index], total_quantity);
         level_data.data[index].unit_rate = level_data.data[index].price;
         level_data.data[index].row_total_price = level_data.data[index].price * level_data.data[index].quantity;
         vm.wish_list[level_data.data[index].wms_code+":"+level_name] = level_data.data[index];
@@ -233,8 +234,9 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
         var quantity = (data.quantity) ? data.quantity : 0;
         level_data.quantity += Number(quantity);
         level_data.total_price += data.row_total_price;
+        data.price = vm.priceRangesCheck(data, vm.sel_total_quantities);
+        data.unit_rate = data.price;
       });
-      
       vm.sel_items_total_price += level_data.total_price;
       vm.sel_items_total_quantity += level_data.quantity;
       vm.sel_items_tax = 0;

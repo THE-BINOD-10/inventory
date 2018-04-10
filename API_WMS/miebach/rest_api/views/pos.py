@@ -307,6 +307,7 @@ def picklist_creation(request, stock_detail, stock_quantity, order_detail, \
 @csrf_exempt
 def customer_order(request):
     orders = request.POST['order']
+    null = None
     orders = eval(orders)
     order_ids = []
     only_return = True
@@ -316,6 +317,9 @@ def customer_order(request):
     for order in orders:
         order_created = False
         items_to_mail = []
+        for typ, pay in order['summary'].get('payment', {}).iteritems():
+            if not pay:
+                order['summary']['payment'][typ] = 0
         total_payment_received = sum(order['summary'].get('payment', {}).values())
         user_id = order['user']['parent_id']
         user = User.objects.get(id=user_id)

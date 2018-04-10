@@ -3393,6 +3393,10 @@ def pricing_excel_upload(request, reader, user, no_of_rows, fname, file_type='xl
             if not discount:
                 each_row_map['discount'] = 0
 
+            if not min_amount:
+                min_amount = 0
+            if not max_amount:
+                max_amount = 0
             each_row_map['max_unit_range'] = max_amount
             each_row_map['min_unit_range'] = min_amount
             each_row_map['price'] = price

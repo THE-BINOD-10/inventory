@@ -206,6 +206,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
     vm.sel_items_tax = 0;
     vm.sel_items_total_quantity = 0;
     var total_quantity = vm.get_total_level_quantity(index);
+    vm.sel_total_quantity = 0;
     angular.forEach(vm.levels_data, function(level_data, level_name) {
       if (level_data.data[index].quantity) {
         
@@ -213,7 +214,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
           level_data.data[index].quantity = 0;
           Service.showNoty('Level-'+level_name+' quantity removed', 'warning');
         }
-        // level_data.data[index].price = vm.priceRangesCheck(level_data.data[index], total_quantity);
+        level_data.data[index].price = vm.priceRangesCheck(level_data.data[index], total_quantity);
         level_data.data[index].unit_rate = level_data.data[index].price;
         level_data.data[index].row_total_price = level_data.data[index].price * level_data.data[index].quantity;
         vm.wish_list[level_data.data[index].wms_code+":"+level_name] = level_data.data[index];
@@ -223,7 +224,6 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
         }
       }
       Data.styles_data = vm.wish_list;
-      vm.sel_total_quantity = 0;
       angular.forEach(level_data.data, function(record){
         if (record.quantity) {
           vm.sel_total_quantity += Number(record.quantity);
@@ -251,7 +251,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
     vm.sel_items_total_price += vm.sel_items_tax;
     vm.cal_wish_list()
   }
-
+  
   vm.wish_data = {total_tax: 0, total_amount: 0};
   vm.cal_wish_list = function() {
 
@@ -293,6 +293,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
     }
     vm.update_levels(index);
   }
+
 
   vm.priceRangesCheck = function(record, quantity){
 

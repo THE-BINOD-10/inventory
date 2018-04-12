@@ -17,7 +17,7 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
                             location: "", serials: [], serial: "", capacity: 0, discount: ""
                           }],
                     customer_id: "", payment_received: "", order_taken_by: "", other_charges: [],  shipment_time_slot: "",
-                    tax_type: "", blind_order: false};
+                    tax_type: "", blind_order: false, mode_of_transport: ""};
 
   angular.copy(empty_data, vm.model_data);
 

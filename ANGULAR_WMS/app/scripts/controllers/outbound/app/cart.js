@@ -17,6 +17,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
   vm.manual_shipment_addr = false;
   vm.default_shipment_addr = true;
 
+  vm.sel_styles = {};
   vm.get_customer_cart_data = function() {
     
     vm.place_order_loading = true; 
@@ -29,6 +30,8 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
         vm.model_data.invoice_type = data.data.invoice_types[0]
         if(vm.model_data.data.length > 0) {
           angular.forEach(vm.model_data.data, function(sku){
+
+            vm.add_quantities(sku);
 
             sku['org_price'] = sku.price;
             sku.quantity = Number(sku.quantity);
@@ -57,6 +60,15 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
       }
       vm.place_order_loading = false;
     })
+  }
+
+  vm.add_quantities = function(sku){
+    if(vm.sel_styles[sku.sku_style]){
+
+      vm.sel_styles[sku.sku_style] += Number(sku.quantity); 
+    } else {
+      vm.sel_styles[sku.sku_style] = Number(sku.quantity);
+    }
   }
 
   vm.quantity_valid = function(row){
@@ -106,12 +118,9 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
     if (vm.model_data.data) {
       
       for (var i = 0; i < vm.model_data.data.length; i++) {
-        
-        if(deleted_sku_id == vm.model_data.data[i].sku_id){
 
-          vm.update_sku_levels(vm.model_data.data, vm.model_data.data[i]);
-          break; 
-        }
+        vm.update_sku_levels(vm.model_data.data, vm.model_data.data[i]);
+        break; 
       }
     }
 
@@ -252,14 +261,25 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
     var count = 0;
     var amount = 0;
     var total_amount = 0;
+    vm.sel_styles = {};
+    angular.forEach(data, function(record){
+      vm.add_quantities(record);
+    });
+
     angular.forEach(data, function(record) {
 
       if (row.sku_id == record.sku_id) {
-        vm.priceRangesCheck(record, total_quantity);
+
         count += record.quantity;
         amount += record.price;
         total_amount += record.invoice_amount;
       }
+
+      if (vm.sel_styles[record.sku_style]) {
+        
+        vm.priceRangesCheck(record, Number(vm.sel_styles[record.sku_style]));
+      }
+
     });
     vm.sku_group_data[row.sku_id].effective_landing_price = total_amount/count;
     vm.sku_group_data[row.sku_id].total_amount = total_amount;

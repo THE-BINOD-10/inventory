@@ -772,9 +772,14 @@ def sku_form(request, user=''):
         return error_file_download(sku_file)
     user_profile = UserProfile.objects.get(user_id=user.id)
     if user_profile.warehouse_type in ('WH', 'DIST'):
-        wb, ws = get_work_sheet('skus', USER_SKU_EXCEL[user_profile.warehouse_type])
+        headers = copy.deepcopy(USER_SKU_EXCEL[user_profile.warehouse_type])
     else:
-        wb, ws = get_work_sheet('skus', USER_SKU_EXCEL[user_profile.user_type])
+        headers = copy.deepcopy(USER_SKU_EXCEL[user_profile.user_type])
+    attributes = get_user_attributes(user, 'sku')
+    attr_headers = list(attributes.values_list('attribute_name', flat=True))
+    if attr_headers:
+        headers += attr_headers
+    wb, ws = get_work_sheet('skus', headers)
 
     return xls_to_response(wb, '%s.sku_form.xls' % str(user.id))
 
@@ -1168,12 +1173,11 @@ def orderid_awb_upload(request, user=''):
 
 
 @csrf_exempt
-def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls'):
+def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type='xls', attributes={}):
     sku_data = []
     wms_data = []
     index_status = {}
-
-    sku_file_mapping = get_sku_file_mapping(reader, file_type, user=user.id)
+    sku_file_mapping = get_sku_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
     product_types = list(TaxMaster.objects.filter(user_id=user.id).values_list('product_type', flat=True).distinct())
     if not sku_file_mapping:
         return 'Invalid File'
@@ -1181,7 +1185,12 @@ def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls')
         sku_code = ''
         for key, value in sku_file_mapping.iteritems():
             cell_data = get_cell_data(row_idx, sku_file_mapping[key], reader, file_type)
-
+            if key in attributes.keys():
+                if attributes[key] == 'Number' and cell_data:
+                    try:
+                        cell_data = int(cell_data)
+                    except:
+                        index_status.setdefault(row_idx, set()).add('%s is Number field' % (key))
             if key == 'wms_code':
                 data_set = wms_data
                 data_type = 'WMS'
@@ -1297,39 +1306,34 @@ def validate_sku_form(request, reader, user, no_of_rows, fname, file_type='xls')
         return f_name
 
 
-def get_sku_file_mapping(reader, file_type, user=''):
-    sku_file_mapping = {}
-    if get_cell_data(0, 0, reader, file_type) == 'WMS Code' and get_cell_data(0, 1, reader,
-                                                                              file_type) == 'SKU Description':
-        if user:
-            user_profile = UserProfile.objects.get(user_id=user)
-            sku_file_mapping = copy.deepcopy(USER_SKU_EXCEL_MAPPING[user_profile.user_type])
-        else:
-            sku_file_mapping = copy.deepcopy(SKU_DEF_EXCEL)
-    elif get_cell_data(0, 1, reader, file_type) == 'Product Code' and get_cell_data(0, 2, reader, file_type) == 'Name':
+def get_sku_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type):
+    sku_mapping = copy.deepcopy(SKU_COMMON_MAPPING)
+    user_attributes = get_user_attributes(user, 'sku')
+    attributes = user_attributes.values_list('attribute_name', flat=True)
+    sku_mapping.update(dict(zip(attributes, attributes)))
+    sku_file_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                                 sku_mapping)
+    if get_cell_data(0, 1, reader, file_type) == 'Product Code' and get_cell_data(0, 2, reader, file_type) == 'Name':
         sku_file_mapping = copy.deepcopy(ITEM_MASTER_EXCEL)
-    elif get_cell_data(0, 0, reader, file_type) == 'product_id' and get_cell_data(0, 1, reader,
-                                                                                  file_type) == 'product_variant_id':
-        sku_file_mapping = copy.deepcopy(SHOTANG_SKU_MASTER_EXCEL)
-    elif get_cell_data(0, 0, reader, file_type) == 'WMS Code' and get_cell_data(0, 1, reader, file_type) == 'Put Zone':
-        sku_file_mapping = copy.deepcopy(SM_WH_SKU_MASTER_EXCEL)
 
     return sku_file_mapping
 
 
-def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
+def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_type='xls', attributes={}):
     from masters import check_update_size_type
     from masters import check_update_hot_release
     all_sku_masters = []
     zone_master = ZoneMaster.objects.filter(user=user.id).values('id', 'zone')
     zones = map(lambda d: d['zone'], zone_master)
     zone_ids = map(lambda d: d['id'], zone_master)
-    sku_file_mapping = get_sku_file_mapping(reader, file_type, user)
+    sku_file_mapping = get_sku_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
     for row_idx in range(1, no_of_rows):
         if not sku_file_mapping:
             continue
 
         data_dict = copy.deepcopy(SKU_DATA)
+        temp_dict = data_dict.keys()
+        temp_dict += ['size_type', 'hot_release']
         data_dict['user'] = user.id
 
         sku_code = ''
@@ -1337,9 +1341,18 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
         sku_data = None
         _size_type = ''
         hot_release = 0
+        attr_dict = {}
         for key, value in sku_file_mapping.iteritems():
             cell_data = get_cell_data(row_idx, sku_file_mapping[key], reader, file_type)
-
+            if key in attributes.keys():
+                try:
+                    cell_data = int(cell_data)
+                except:
+                    pass
+                attr_dict[key] = cell_data
+                continue
+            elif key not in temp_dict:
+                continue
             if key == 'wms_code':
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
@@ -1454,6 +1467,8 @@ def sku_excel_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
         if hot_release:
             hot_release = 1 if (hot_release == 'enable') else 0
             check_update_hot_release(sku_data, hot_release)
+        for attr_key, attr_val in attr_dict.iteritems():
+            update_sku_attributes_data(sku_data, attr_key, attr_val)
 
     # get_user_sku_data(user)
     insert_update_brands(user)
@@ -1476,11 +1491,15 @@ def sku_upload(request, user=''):
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
         if ex_status:
             return HttpResponse(ex_status)
-        status = validate_sku_form(request, reader, user, no_of_rows, fname, file_type=file_type)
+        user_attributes = get_user_attributes(user, 'sku')
+        attributes = dict(user_attributes.values_list('attribute_name', 'attribute_type'))
+        status = validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type=file_type,
+                                   attributes=attributes)
         if status != 'Success':
             return HttpResponse(status)
 
-        sku_excel_upload(request, reader, user, no_of_rows, fname, file_type=file_type)
+        sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_type=file_type,
+                         attributes=attributes)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -1729,6 +1748,8 @@ def validate_supplier_form(open_sheet, user_id):
     index_status = {}
     supplier_ids = []
     mapping_dict = copy.deepcopy(SUPPLIER_EXCEL_FIELDS)
+    messages_dict = {'phone_number': 'Phone Number', 'days_to_supply': 'Days required to supply',
+                     'fulfillment_amt': 'Fulfillment Amount'}
     for row_idx in range(0, open_sheet.nrows):
         for key, value in mapping_dict.iteritems():
             cell_data = open_sheet.cell(row_idx, mapping_dict[key]).value
@@ -1754,10 +1775,11 @@ def validate_supplier_form(open_sheet, user_id):
                 if cell_data and validate_email(cell_data):
                     index_status.setdefault(row_idx, set()).add('Enter Valid Email address')
 
-            elif key == 'phone_number':
+            elif key in ['phone_number', 'days_to_supply', 'fulfillment_amt']:
                 if cell_data:
                     if not isinstance(cell_data, (int, float)):
-                        index_status.setdefault(row_idx, set()).add('Wrong contact information')
+                        index_status.setdefault(row_idx, set()).add('Invalid %s' % messages_dict[key])
+
 
     if not index_status:
         return 'Success'
@@ -3374,6 +3396,10 @@ def pricing_excel_upload(request, reader, user, no_of_rows, fname, file_type='xl
             if not discount:
                 each_row_map['discount'] = 0
 
+            if not min_amount:
+                min_amount = 0
+            if not max_amount:
+                max_amount = 0
             each_row_map['max_unit_range'] = max_amount
             each_row_map['min_unit_range'] = min_amount
             each_row_map['price'] = price

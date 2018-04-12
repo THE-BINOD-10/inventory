@@ -95,6 +95,25 @@
               </div>
               <div class="col-md-4">
                 <div class="form-group">
+                  <label class="control-label"> Days required to supply </label>
+                  <input name="days_to_supply" type="text" class="form-control" ng-model="showCase.model_data.days_to_supply" quantity-number>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Fulfillment amount in any given time </label>
+                  <input name="fulfillment_amt" type="text" class="form-control" ng-model="showCase.model_data.fulfillment_amt" quantity-number>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Credibility (quality control based) </label>
+                  <input type="text" name="credibility" class="form-control" ng-model="showCase.model_data.credibility" maxlength="64">
+                </div>
+              </div>
+              
+              <div class="col-md-4">
+                <div class="form-group">
                   <label class="control-label"> Status </label>
                   <select class="form-control supplier_status" ng-model="showCase.model_data.status" name="status">
                     <option ng-repeat="status in showCase.status_data" value="{{status}}" ng-selected="status=='Active'">{{status}}</option>
@@ -117,6 +136,38 @@
                   </div>
                 </div>
               </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12"><hr></div>
+            </div>
+            <div class="row">
+                <div class="col-md-9 col-sm-9 col-xs-8">
+                    <div class="form-group">
+                        <div>File Upload</div>
+                        <span class="btn btn-primary up-btn" style="position: relative;overflow: hidden;width: 250px;">Choose File
+                            <input style="position: absolute;
+                                          top: 0;
+                                          right: 0;
+                                          min-width: 100%;
+                                          min-height: 100%;
+                                          font-size: 100px;
+                                          text-align: right;
+                                          filter: alpha(opacity=0);
+                                          opacity: 0;
+                                          outline: none;
+                                          background: white;
+                                          cursor: inherit;
+                                          display: block;" ng-disabled=""
+                                          class="btn btn-primary" type = "file" name="files" id="file-upload" file-uploadd multiple/>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-12 col-sm-12 col-xs-12">
+                <div ng-repeat="file in showCase.model_data.uploads_list" class="alert alert-info"
+                style="float: left;height:25px;padding:2px 10px;margin-right:5px">
+                    <a ng-href={{file[0]}} download target="_blank">{{file[1]}}</a>
+                </div>
             </div>
             </div>
             <div class="row" ng-if="showCase.model_data.create_login">

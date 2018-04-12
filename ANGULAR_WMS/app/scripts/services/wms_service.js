@@ -322,7 +322,10 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       } else {
         return url;
       }
-    } 
+    }
+	vm.get_host_url = function(url) {
+		return Session.host + url;
+	}
 
     vm.print_enable = false;
     vm.print_report = function(data, url, stat){
@@ -719,7 +722,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
         $rootScope.process = make;
       }
     }
-    vm.apiCall = function(url, method, data, disable) {
+    vm.apiCall = function(url, method, data, disable, with_file) {
 
       var d = $q.defer();
       var response = {message: 0, data:{}}
@@ -727,46 +730,75 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
         method = (method == "POST") ? method : "GET";
         data = (data) ? data: {};
         var send =  "";
-        send = $.param(data);
-        $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
         $(".preloader").removeClass("ng-hide").addClass("ng-show");
         vm.change_process(disable, true);
-        if (method == "POST") {
-          $http({
-            method: method,
-            url:Session.url+url,
-            withCredential: true,
-            data: send}).success(function(data, status, headers, config) {
-              response.data = data;
-              response.message = 1;
-              $(".preloader").removeClass("ng-show").addClass("ng-hide");
-              vm.change_process(disable, false);
-              d.resolve(response);
-            }).error(function(){
-              response.message = 0;
-              $(".preloader").removeClass("ng-show").addClass("ng-hide");
-              vm.change_process(disable, false);
-              d.resolve(response);
-            });
-        } else {
-          var temp_url = (send)? Session.url+url+"?"+send: Session.url+url;
-          $http({
-            method: method,
-            url:temp_url,
-            withCredential: true,
-            }).success(function(data, status, headers, config) {
-              response.data = data;
-              response.message = 1;
-              $(".preloader").removeClass("ng-show").addClass("ng-hide");
-              vm.change_process(disable, false);
-              d.resolve(response);
-            }).error(function(){
-              response.message = 0;
-              $(".preloader").removeClass("ng-show").addClass("ng-hide");
-              vm.change_process(disable, false);
-              d.resolve(response);
-            });
+        if (with_file) {
+			send = data;
+			if (method == "POST") {
+				$.ajax({url: Session.url+url,
+						data: send,
+						method: 'POST',
+						processData : false,
+						contentType : false,
+						xhrFields: {
+							withCredentials: true
+						},
+						'success': function(data) {
+							  response.data = data;
+							  response.message = 1;
+							  $(".preloader").removeClass("ng-show").addClass("ng-hide");
+							  vm.change_process(disable, false);
+							  d.resolve(response);
+							},
+						'error': function(data){
+							  response.message = 0;
+							  $(".preloader").removeClass("ng-show").addClass("ng-hide");
+							  vm.change_process(disable, false);
+							  d.resolve(response);
+						}
+				});
+			}
         }
+        else {
+			send = $.param(data);
+			$http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
+            if (method == "POST") {
+              $http({
+                method: method,
+                url:Session.url+url,
+                withCredential: true,
+                data: send}).success(function(data, status, headers, config) {
+                  response.data = data;
+                  response.message = 1;
+                  $(".preloader").removeClass("ng-show").addClass("ng-hide");
+                  vm.change_process(disable, false);
+                  d.resolve(response);
+                }).error(function(){
+                  response.message = 0;
+                  $(".preloader").removeClass("ng-show").addClass("ng-hide");
+                  vm.change_process(disable, false);
+                  d.resolve(response);
+                });
+            } else {
+              var temp_url = (send)? Session.url+url+"?"+send: Session.url+url;
+              $http({
+                method: method,
+                url:temp_url,
+                withCredential: true,
+                }).success(function(data, status, headers, config) {
+                  response.data = data;
+                  response.message = 1;
+                  $(".preloader").removeClass("ng-show").addClass("ng-hide");
+                  vm.change_process(disable, false);
+                  d.resolve(response);
+                }).error(function(){
+                  response.message = 0;
+                  $(".preloader").removeClass("ng-show").addClass("ng-hide");
+                  vm.change_process(disable, false);
+                  d.resolve(response);
+                });
+            }
+      }
       } else {
 
         d.resolve(response);

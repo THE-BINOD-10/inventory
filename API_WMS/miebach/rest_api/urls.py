@@ -91,6 +91,9 @@ urlpatterns = [
     url(r'^delete_terms/$', delete_terms),
     url(r'^insert_staff/$', insert_staff),
     url(r'^update_staff_values/$', update_staff_values),
+    url(r'^get_user_attributes_list/$', get_user_attributes_list),
+    url(r'^save_update_attribute/$', save_update_attribute),
+    url(r'^delete_user_attribute/$', delete_user_attribute),
     url(r'^get_distributors/$', get_distributors),
     url(r'^get_resellers/$', get_resellers),
     url(r'^get_corporates/$', get_corporates),
@@ -149,6 +152,8 @@ urlpatterns = [
     url('^check_generated_label/$', check_generated_label),
     url('^get_receive_po_style_view/$', get_receive_po_style_view),
     url('^save_supplier_po/$', save_supplier_po),
+    url('^get_po_segregation_data/$', get_po_segregation_data),
+    url('^confirm_primary_segregation/$', confirm_primary_segregation),
 
     # Production
     url(r'^generated_jo_data/$', generated_jo_data),
@@ -274,12 +279,15 @@ urlpatterns = [
     url(r'^save_manual_enquiry_image/$', save_manual_enquiry_image),
     url(r'^request_manual_enquiry_approval/$', request_manual_enquiry_approval),
     url(r'^get_invoice_details/$', get_invoice_details),
+    url(r'^update_cust_profile/$', update_cust_profile),
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),
     url(r'^get_updated_pos/$', get_updated_pos),
     url(r'^validate_po/$', validate_po),
     url(r'^pending_pos/$', pending_pos),
+    # Targets [SWISS MILITARY]
+    url(r'^get_distributor_targets/$', get_distributor_targets),
     # Reports
     # url(r'^location_wise_filter/$',location_wise_filter),
     url(r'^get_report_data/$', get_report_data),
@@ -322,6 +330,7 @@ urlpatterns = [
     url(r'^excel_sales_return_report/$', excel_sales_return_report),
     url(r'^get_stock_ledger_report/$', get_stock_ledger_report),
     url(r'^print_stock_ledger_report/$', print_stock_ledger_report),
+    url(r'^print_purchase_order_form/$', print_purchase_order_form),
 ]
 
 # urlpatterns += patterns('rest_api.views',
@@ -413,6 +422,7 @@ urlpatterns += [
     url(r'get_user_profile_data/$', get_user_profile_data),
     url(r'change_user_password/$', change_user_password),
     url(r'update_profile_data/$', update_profile_data),
+    url(r'get_cust_profile_info/$', get_cust_profile_info),
 
     # Retailone
     url(r'^get_marketplace_data/$', get_marketplace_data),

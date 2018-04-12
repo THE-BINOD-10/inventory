@@ -10,8 +10,8 @@
         <!-- <span ng-click="$state.go('user.App.Products')"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i>&nbsp; Back</span> -->
       </div>
     </div>
-    <div class="col-md-4 col-sm-4 col-xs-7 hidden-xs">
-      <h4 align="center">CREATE ORDERS</h4>
+    <div class="col-md-4 col-sm-4 col-xs-7 hidden-xs" align="center">
+      <img ng-src="{{showCase.api_url}}static/company_logos/{{showCase.client_logo}}" ng-if="showCase.client_logo" style="height: 43px;"/>
     </div>
     <div class="col-md-4 col-sm-4 col-xs-4">
       <div class="btn-group pull-right" role="group">
@@ -20,6 +20,7 @@
         </a>
         <ul class="dropdown-menu">
           <li><a ng-click="$state.go('user.App.MyOrders')">Your Orders</a></li>
+          <li><a ng-click="$state.go('user.App.Profile')">Profile</a></li>
           <li><a ng-click="$state.go('user.App.ManualEnquiry');">Create Custom Order</a></li>
           <!--<li><a ng-click="$state.go('user.App.CorporateOrders');" ng-if="showCase.user_type=='reseller'">Corporate Orders</a></li>-->
           <li><a ng-click="showCase.logout()">Logout</a></li>
@@ -32,15 +33,19 @@
     </div>
   </div>
 
+  <div class="row">
+    <div class="col-md-12 col-sm-12 col-xs-12" align="center">
+      <h4 align="center">CREATE ORDER</h4>
+    </div>
+  </div>
+
   <div class="row col-md-12 col-sm-12 col-xs-12" ng-if="Style.page_loading">
     <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;">
   </div>
-
   <div class="app_body">
     </br>
     <div class="style-body">
       <div class="row">
-
         <div class="col-md-3 col-sm-3 col-xs-12" ng-if="showCase.service.check_image_url(Style.style_details.image_url) && Style.includeDesktopTemplate">
           <img ng-src="{{ showCase.service.check_image_url(Style.style_details.image_url) }}" style="border:0px !important;padding: 0px;" class="img-thumbnail" ez-plus ezp-model="{thumb: showCase.service.check_image_url(Style.style_details.image_url) , small: showCase.service.check_image_url(Style.style_details.image_url), large:showCase.service.check_image_url(Style.style_details.image_url)}" ezp-options="{scrollZoom: true, easing: true, zoomWindowWidth: 600, zoomWindowHeight: 600}" id="zoom_01">
           <h5 align="center"><b>{{Style.style_data.data[0].sku_class}}</b></h5>
@@ -294,7 +299,7 @@
                 <span class="pull-left">Total Quantity</span>
               </div>
               <div class="col-md-6 col-sm-6 no-padding">
-                <span class="pull-right"> {{Style.sel_items_total_quantity}}</span>
+                <span class="pull-right"> {{Style.wish_data.total_qty}}</span>
               </div>
             </div>
             <hr>

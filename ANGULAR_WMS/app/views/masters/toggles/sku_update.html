@@ -67,7 +67,7 @@
                 <input type="text" name="sku_brand" class="form-control" ng-model="showCase.model_data.sku_data.sku_brand" maxlength="60" ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
-            <div class="col-md-4 col-sm-6 col-xs-6" ng-if="user.user_profile['user_type'] != 'marketplace_user'">
+            <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Size Type </label>
                 <select class="form-control" name="size_type" ng-model="showCase.model_data.sku_data.size_type" ng-change="showCase.change_size_type(showCase.model_data.sku_data.size_type)" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
@@ -78,7 +78,7 @@
                 <input ng-if="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" type="hidden" name="size_type" class="form-control" value="{{showCase.model_data.sku_data.size_type}}" readonly>
               </div>
             </div>
-            <div class="col-md-4 col-sm-6 col-xs-6" ng-if="user.user_profile['user_type'] != 'marketplace_user'">
+            <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Size </label>
                 <select class="form-control" name="sku_size" ng-model="showCase.model_data.sku_data.sku_size" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
@@ -190,7 +190,7 @@
                 <input type="text" name="ean_number" class="form-control" ng-model="showCase.model_data.sku_data.ean_number" decimal-number ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
-            <div class="col-md-4 col-sm-6 col-xs-6" ng-if="user.user_profile['user_type'] != 'marketplace_user'">
+            <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Load Unit Handling </label>
                 <select class="form-control" name="load_unit_handle" ng-model="showCase.model_data.sku_data.load_unit_handle">
@@ -214,6 +214,12 @@
                 </select>
 
                 <input ng-if="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" type="hidden" name="hot_release" class="form-control" value="{{showCase.model_data.sku_data.hot_release}}" readonly>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6" ng-repeat= "attr in showCase.model_data.attributes">
+              <div class="form-group">
+                <label class="control-label"> {{ attr.attribute_name}} </label>
+                <input type="text" name="attr_{{attr.attribute_name}}" class="form-control" ng-model="attr.attribute_value">
               </div>
             </div>
           </div>

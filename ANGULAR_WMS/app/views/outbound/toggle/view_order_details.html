@@ -167,7 +167,7 @@
           <b>STATUS:</b>
           <select ng-if="!showCase.input_status" class="form-control pull-right" name="status_type"
                   ng-model="showCase.ord_status" ng-readonly="showCase.input_status">
-            <option ng-selected="showCase.ord_status == ''" ng-if="showCase.display_status_none">None </option>
+            <option ng-selected="showCase.ord_status == ''" ng-if="showCase.display_status_none"></option>
             <option ng-repeat="type in showCase.model_data.all_status" ng-selected="showCase.ord_status == type">{{type}}</option>
           </select>
           <input ng-if="showCase.input_status" type="text" class="form-control" name="remarks" ng-model="showCase.ord_status" ng-readonly="showCase.input_status">
@@ -187,6 +187,22 @@
       </div>
     </div>
     <div class="row"><hr></div>
+
+	<div class="row" ng-if="showCase.show_client_details">
+		<div class="col-md-12" style="padding-left: 0px;">
+    		<h5><b>CLIENT DETAILS</b></h5>
+		</div>
+		<div class="col-md-12 col-sm-12 col-xs-12">
+			<div class="col-md-2 col-sm-2 col-xs-2" style="text-align: right;margin-top: 8px;">
+        		<b>CLIENT NAME:</b>
+			</div>
+			<div class="col-md-3 col-sm-3 col-xs-3">
+    			<input type="text" class="form-control" name="client_name" ng-model= "showCase.client_name" ng-readonly="showCase.input_status">
+			</div>
+    	</div>
+	</div>
+
+    <div class="row" ng-if="showCase.show_client_details"><hr></div>
     <div class="row over-x form-group">
       <table class="table mw75">
         <thead>

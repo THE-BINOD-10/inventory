@@ -9,6 +9,7 @@ import re
 from miebach_admin.models import *
 from itertools import chain
 from operator import itemgetter
+from django.db.models import Q, F
 
 # from inbound import *
 
@@ -50,7 +51,8 @@ SKU_DATA = {'user': '', 'sku_code': '', 'wms_code': '',
             'status': 1, 'online_percentage': 0, 'qc_check': 0, 'sku_brand': '', 'sku_size': '', 'style_name': '',
             'price': 0,
             'ean_number': 0, 'load_unit_handle': 'unit', 'zone_id': None, 'hsn_code': 0, 'product_type': '',
-            'sub_category': '', 'primary_category': ''}
+            'sub_category': '', 'primary_category': '', 'cost_price': 0, 'sequence': 0, 'image_url': '',
+            'measurement_type': '', 'sale_through': ''}
 
 STOCK_TRANSFER_FIELDS = {'order_id': '', 'invoice_amount': 0, 'quantity': 0, 'shipment_date': datetime.datetime.now(),
                          'st_po_id': '', 'sku_id': '', 'status': 1}
@@ -176,7 +178,7 @@ MOVE_INVENTORY_UPLOAD_FIELDS = ['WMS Code', 'Source Location', 'Destination Loca
 
 SUPPLIER_HEADERS = ['Supplier Id', 'Supplier Name', 'Address', 'Email', 'Phone No.', 'GSTIN Number', 'PAN Number',
                     'PIN Code',
-                    'City', 'State', 'Country']
+                    'City', 'State', 'Country', 'Days required to supply', 'Fulfillment Amount', 'Credibility']
 
 VENDOR_HEADERS = ['Vendor Id', 'Vendor Name', 'Address', 'Email', 'Phone No.']
 
@@ -456,7 +458,8 @@ SKU_HEADERS = ['WMS Code', 'SKU Description', 'Product Type', 'SKU Group', 'SKU 
                'SKU Class', 'SKU Brand', 'Style Name', 'SKU Size', 'Size Type', 'Put Zone', 'Cost Price', 'Selling Price',
                'MRP Price', 'Sequence', 'Image Url',
                'Threshold Quantity', 'Measurment Type', 'Sale Through', 'Color', 'EAN Number',
-               'Load Unit Handling(Options: Enable, Disable)', 'HSN Code', 'Sub Category', 'Hot Release', 'Status']
+               'Load Unit Handling(Options: Enable, Disable)', 'HSN Code', 'Sub Category', 'Hot Release',
+               'Mix SKU Attribute(Options: No Mix, Mix within Group)', 'Status']
 
 MARKET_USER_SKU_HEADERS = ['WMS Code', 'SKU Description', 'Product Type', 'SKU Group', 'SKU Type(Options: FG, RM)',
                            'SKU Category',
@@ -744,6 +747,24 @@ EASYOPS_ORDER_EXCEL = {'order_id': 1, 'quantity': 9, 'invoice_amount': 3, 'chann
                        'split_order_id': 1}
 
 # SKU Master Upload Templates
+SKU_COMMON_MAPPING = OrderedDict((('WMS Code', 'wms_code'), ('SKU Description', 'sku_desc'),
+                                  ('Product Type', 'product_type'), ('SKU Group', 'sku_group'),
+                                  ('SKU Type(Options: FG, RM)', 'sku_type'), ('SKU Category', 'sku_category'),
+                                  ('Primary Category', 'primary_category'), ('SKU Class', 'sku_class'),
+                                  ('SKU Brand', 'sku_brand'), ('Style Name', 'style_name'),
+                                  ('SKU Size', 'sku_size'), ('Size Type', 'size_type'), ('Put Zone', 'zone_id'),
+                                  ('Cost Price', 'cost_price'), ('Selling Price', 'price'), ('MRP Price', 'mrp'),
+                                  ('Sequence', 'sequence'), ('Image Url', 'image_url'),
+                                  ('Threshold Quantity', 'threshold_quantity'),
+                                  ('Measurment Type', 'measurement_type'), ('Sale Through', 'sale_through'),
+                                  ('Color', 'color'), ('EAN Number', 'ean_number'),
+                                  ('Load Unit Handling(Options: Enable, Disable)', 'load_unit_handle'),
+                                  ('HSN Code', 'hsn_code'), ('Sub Category', 'sub_category'),
+                                  ('Hot Release', 'hot_release'),
+                                  ('Mix SKU Attribute(Options: No Mix, Mix within Group)', 'mix_sku'),
+                                  ('Status', 'status'),
+                                ))
+
 SKU_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('product_type', 2), ('sku_group', 3), ('sku_type', 4),
                              ('sku_category', 5), ('primary_category', 6), ('sku_class', 7), ('sku_brand', 8),
                              ('style_name', 9),
@@ -752,7 +773,7 @@ SKU_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('product_type', 
                              ('measurement_type', 19),
                              ('sale_through', 20), ('color', 21), ('ean_number', 22), ('load_unit_handle', 23),
                              ('hsn_code', 24),
-                             ('sub_category', 25), ('hot_release', 26), ('status', 27)
+                             ('sub_category', 25), ('hot_release', 26), ('mix_sku', 27), ('status', 28)
                              ))
 
 MARKETPLACE_SKU_DEF_EXCEL = OrderedDict(
@@ -772,7 +793,7 @@ SHOTANG_SKU_MASTER_EXCEL = OrderedDict(
 SM_WH_SKU_MASTER_EXCEL = OrderedDict((('wms_code', 0), ('zone_id', 1), ('threshold_quantity', 2),
                                      ('load_unit_handle', 3)))
 
-# End of SKU Master U[pload templates
+# End of SKU Master Upload templates
 
 # Order File Upload Templates
 INDIA_TIMES_EXCEL = {'order_id': 2, 'invoice_amount': 16, 'address': 8, 'customer_name': 7,
@@ -1182,10 +1203,10 @@ NETWORK_MASTER_DATA = {'dest_location_code': '', 'source_location_code': '',
 SELLER_DATA = {'name': '', 'address': '', 'phone_number': '',
                'email_id': '', 'status': 1, 'price_type': '', 'margin': 0}
 
-USER_SKU_EXCEL = {'warehouse_user': SKU_HEADERS, 'marketplace_user': MARKET_USER_SKU_HEADERS,
+USER_SKU_EXCEL = {'warehouse_user': SKU_HEADERS, 'marketplace_user': SKU_HEADERS,
                   'customer': SKU_HEADERS, 'WH': RESTRICTED_SKU_HEADERS, 'DIST': RESTRICTED_SKU_HEADERS}
 
-USER_SKU_EXCEL_MAPPING = {'warehouse_user': SKU_DEF_EXCEL, 'marketplace_user': MARKETPLACE_SKU_DEF_EXCEL,
+USER_SKU_EXCEL_MAPPING = {'warehouse_user': SKU_DEF_EXCEL, 'marketplace_user': SKU_DEF_EXCEL,
                           'customer': SKU_DEF_EXCEL}
 
 MIX_SKU_MAPPING = {'no mix': 'no_mix', 'mix within group': 'mix_group'}
@@ -1247,7 +1268,8 @@ DIST_CUSTOMER_INVOICE_HEADERS = ['Gen Order Id', 'Order Ids', 'Customer Name', '
 
 SUPPLIER_EXCEL_FIELDS = OrderedDict((('id', 0), ('name', 1), ('address', 2), ('email_id', 3), ('phone_number', 4),
                                      ('tin_number', 5), ('pan_number', 6), ('pincode', 7), ('city', 8), ('state', 9),
-                                     ('country', 10)
+                                     ('country', 10), ('days_to_supply', 11), ('fulfillment_amt', 12),
+                                     ('credibility', 13)
                                      ))
 STATUS_DICT = {1: True, 0: False}
 
@@ -1302,7 +1324,8 @@ ORDER_ID_AWB_MAP_EXCEL_HEADERS = ['Order ID', 'AWB No', 'Courier Name', 'Marketp
 ORDER_ID_AWB_EXCEL_MAPPING = OrderedDict((('order_id', 0), ('awb_no', 1), ('courier_name', 2), ('marketplace', 3)))
 
 # Company logo names
-COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg', 'Subhas_Publishing': 'book_publications.png', 'sm_admin': 'sm-brand.jpg'}
+COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg', 'Subhas_Publishing': 'book_publications.png', 'sm_admin': 'sm-brand.jpg',
+                        'corp_attire': 'corp_attire.jpg'}
 
 # Configurtions Mapping
 REMAINDER_MAIL_ALERTS = OrderedDict((('po_remainder', 'PO Remainder'),))
@@ -1337,6 +1360,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'auto_confirm_po': 'auto_confirm_po', 'generic_wh_level': 'generic_wh_level',
                         'create_order_po': 'create_order_po', 'calculate_customer_price': 'calculate_customer_price',
                         'shipment_sku_scan': 'shipment_sku_scan', 'disable_brands_view':'disable_brands_view',
+                        'sellable_segregation': 'sellable_segregation', 'display_styles_price': 'display_styles_price',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
@@ -1365,6 +1389,8 @@ SELLER_TRANSFER_MAPPING = OrderedDict((('SKU Code', 'wms_code'), ('Source Seller
                                        ('Destination Seller ID', 'dest_seller'),
                                        ('Destination Location', 'dest_location'), ('Quantity', 'quantity'),
                                     ))
+
+PICKLIST_EXCLUDE_ZONES = ['DAMAGED_ZONE', 'QC_ZONE', 'Non Sellable Zone']
 
 def fn_timer(function):
     @wraps(function)
@@ -2378,8 +2404,11 @@ def get_order_summary_data(search_params, user, sub_user):
                                             reserved_quantity=0).values_list('order__order_id', flat=True).distinct()
 
     order_ids = OrderDetail.objects.filter(status=1, user=user.id).values_list('order_id', flat=True).distinct()
-    partial_generated = Picklist.objects.filter(order__user=user.id, order__order_id__in=order_ids).values_list(
-        'order__order_id', flat=True).distinct()
+    pos_order_ids = OrderDetail.objects.filter(Q(order_code__icontains="PRE")|
+                    Q(order_code__icontains="DC"), user=user.id, status=1).values_list('order_id', flat=True).distinct()
+    partial_generated = Picklist.objects.filter(order__user=user.id, order__order_id__in=order_ids)\
+                                .exclude(order__order_id__in=pos_order_ids).values_list(\
+                                'order__order_id', flat=True).distinct()
     dispatched = OrderDetail.objects.filter(status=2, user=user.id).values_list('order_id', flat=True).distinct()
     reschedule_cancelled = OrderDetail.objects.filter(status=5, user=user.id).values_list('order_id',
                                                                                           flat=True).distinct()

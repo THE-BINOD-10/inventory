@@ -170,6 +170,7 @@ def add_user_permissions(request, response_data, user=''):
     parent_data = {}
     parent_data['userId'] = user.id
     parent_data['userName'] = user.username
+    parent_data['logo'] = COMPANY_LOGO_PATHS.get(user.username, '')
     response_data['data']['userName'] = request.user.username
     response_data['data']['userId'] = request.user.id
     response_data['data']['parent'] = parent_data
@@ -288,6 +289,13 @@ def wms_login(request):
             return HttpResponse(json.dumps(response_data), content_type='application/json')
 
         response_data = add_user_permissions(request, response_data)
+        price_band_flag = get_misc_value('priceband_sync', user.id)
+        if response_data['data'].get('parent', '') and not user_profile[0].warehouse_type \
+                and user_profile[0].user_type != 'customer' and price_band_flag:
+            parent_user_profile = UserProfile.objects.get(user_id=response_data['data']['parent']['userId'])
+            if parent_user_profile.warehouse_type:
+                user_profile[0].warehouse_type = parent_user_profile.warehouse_type
+                user_profile[0].save()
 
     return HttpResponse(json.dumps(response_data), content_type='application/json')
 
@@ -442,7 +450,7 @@ data_datatable = {  # masters
     'QualityCheck': 'get_quality_check_data', 'POPutaway': 'get_order_data', \
     'ReturnsPutaway': 'get_order_returns_data', 'SalesReturns': 'get_order_returns', \
     'RaiseST': 'get_raised_stock_transfer', 'SellerInvoice': 'get_seller_invoice_data', \
-    'RaiseIO': 'get_intransit_orders',
+    'RaiseIO': 'get_intransit_orders', 'PrimarySegregation': 'get_segregation_pos',
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
     'PickelistGenerated': 'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo', \
@@ -476,7 +484,8 @@ data_datatable = {  # masters
     # Uploaded POs (Display only to Central Admin)
     'UploadedPos': 'get_uploaded_pos_by_customers',
     'EnquiryOrders': 'get_enquiry_orders',
-    'ManualEnquiryOrders': 'get_manual_enquiry_orders'
+    'ManualEnquiryOrders': 'get_manual_enquiry_orders',
+    'Targets': 'get_distributor_targets',
 }
 
 
@@ -1145,7 +1154,7 @@ def get_auto_po_quantity(sku, stock_quantity=''):
 
 def auto_po_warehouses(sku, qty):
     supplier_id = ''
-    price = ''
+    price = 0
     taxes = {}
     wh_customer_map = WarehouseCustomerMapping.objects.filter(warehouse_id=sku.user)
     if not wh_customer_map:
@@ -3097,7 +3106,7 @@ def get_customer_sku_prices(request, user=""):
                 price_band_flag = get_misc_value('priceband_sync', user.id)
                 if price_band_flag == 'true':
                     user = get_admin(user)
-                price = get_customer_based_price(customer_obj, price, data.mrp, is_sellingprice)
+                price, mrp = get_customer_based_price(customer_obj, price, data.mrp, is_sellingprice)
                 price_master_objs = PriceMaster.objects.filter(price_type=price_type, sku__sku_code=sku_code,
                                                                sku__user=user.id)
                 if price_master_objs:
@@ -5841,7 +5850,7 @@ def order_allocate_stock(request, user, stock_data=[], mapping_type=''):
         seller_stocks = SellerStock.objects.filter(seller__user=user.id, quantity__gt=0, stock__sku_id__in=all_skus). \
             values('stock_id', 'seller_id')
         sku_stocks = StockDetail.objects.prefetch_related('sku', 'location'). \
-            exclude(Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])). \
+            exclude(Q(receipt_number=0) | Q(location__zone__zone__in=PICKLIST_EXCLUDE_ZONES)). \
             filter(sku__user=user.id, quantity__gt=0, sku_id__in=all_skus)
 
         for sku_id, mapping_ids in stock_data.iteritems():
@@ -5913,6 +5922,20 @@ def get_user_profile_data(request, user=''):
     data['company_name'] = main_user.company_name
     data['cin_number'] = request.user.userprofile.cin_number
     return HttpResponse(json.dumps({'msg': 1, 'data': data}))
+
+
+@login_required
+@get_admin_user
+def get_cust_profile_info(request, user=''):
+    data = {'user_id': request.POST.get('user_id','')}
+    customer_info = UserProfile.objects.get(user_id=request.POST.get('user_id',''))
+    data['address'] = customer_info.address
+    data['gst_number'] = customer_info.gst_number
+    data['phone_number'] = customer_info.phone_number
+    data['bank_details'] = customer_info.bank_details
+    if customer_info.customer_logo:
+        data['logo'] = customer_info.customer_logo.url
+    return HttpResponse(json.dumps({'message': 1, 'data': data}, cls=DjangoJSONEncoder))
 
 
 @csrf_exempt
@@ -6339,7 +6362,9 @@ def get_customer_based_price(customer_obj, price, mrp,is_sellingprice='', user_i
         price = price * float(1 + float(customer_obj.markup) / 100)
         if mrp and price > mrp:
             price = mrp
-    return price
+    if not mrp:
+        mrp = price
+    return price, mrp
 
 
 def get_price_field(user):
@@ -6376,6 +6401,7 @@ def get_view_order_statuses(request, user):
 
 
 def update_created_extra_status(user, selection):
+    """ If the sequence changed or updated for view order status"""
     sub_users = get_related_users(user.id)
     status_selected = selection.split(',')
     for sub_user in sub_users:
@@ -6392,6 +6418,23 @@ def update_created_extra_status(user, selection):
                     grp_perm.sequence = status_selected.index(grp_perm.perm_value)
                     grp_perm.status = 1
                     grp_perm.save()
+
+
+def get_user_attributes(user, attr_model):
+    attributes = []
+    if attr_model:
+        attributes = UserAttributes.objects.filter(user_id=user.id, status=1, attribute_model=attr_model).\
+                                        values('id', 'attribute_model', 'attribute_name', 'attribute_type')
+    return attributes
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_user_attributes_list(request, user=''):
+    attr_model = request.GET.get('attr_model')
+    attributes = get_user_attributes(user, 'sku')
+    return HttpResponse(json.dumps({'data': list(attributes), 'status': 1}))
 
 
 def get_invoice_types(user):
@@ -6452,3 +6495,48 @@ def update_mail_alerts(request, user=''):
         log.info('Update Remainder Mail alerts failed for %s and request is %s and error statement is %s' % (
             str(user.username), str(request.GET.dict()), str(e)))
     return HttpResponse("Success")
+
+
+def allocate_order_returns(user, sku_data, request):
+    excl_filter = {}
+    data = {}
+    order_filter = {'user': user.id, 'sku_id': sku_data.id}
+    if request.GET.get('marketplace', ''):
+        order_filter['marketplace'] = request.GET.get('marketplace', '')
+    if request.GET.get('exclude_order_ids', []):
+        excl_filter['original_order_id__in'] = request.GET.get('exclude_order_ids', []).split(',')
+    if request.GET.get('order_id', ''):
+        order_filter['original_order_id'] = request.GET.get('order_id', '')
+    if get_permission(user, 'add_shipmentinfo'):
+        order_filter['picklist__status'] = 'dispatched'
+    else:
+        order_filter['picklist__status__in'] = ['picked', 'batch_picked']
+    orders = OrderDetail.objects.exclude(**excl_filter).filter(**order_filter).\
+                                annotate(ret=Sum(F('orderreturns__quantity')),
+                                        dam=Sum(F('orderreturns__damaged_quantity'))).annotate(tot=F('ret')+F('dam')). \
+                                filter(Q(tot__isnull=True) | Q(quantity__gt=F('tot')))
+    if orders:
+        order = orders[0]
+        if not order.tot:
+            order.tot = 0
+        ship_quantity = order.quantity - order.tot
+        data = {'status': 'confirmed', 'sku_code': sku_data.sku_code, 'description': sku_data.sku_desc,
+                'order_id': order.original_order_id, 'ship_quantity': ship_quantity, 'unit_price': order.unit_price,
+                'return_quantity': 1}
+    return data
+
+
+def update_sku_attributes_data(data, key, value):
+    sku_attr_obj = SKUAttributes.objects.filter(sku_id=data.id, attribute_name=key)
+    if not sku_attr_obj and value:
+        SKUAttributes.objects.create(sku_id=data.id, attribute_name=key, attribute_value=value,
+                                     creation_date=datetime.datetime.now())
+    else:
+        sku_attr_obj.update(attribute_value=value)
+
+def update_sku_attributes(data, request):
+    for key, value in request.POST.iteritems():
+        if 'attr_' not in key:
+            continue
+        key = key.replace('attr_', '')
+        update_sku_attributes_data(data, key, value)

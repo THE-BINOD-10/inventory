@@ -172,6 +172,11 @@
             <span>Quality Check</span>
           </a>
         </li>
+        <li ng-show="show_tab('sellable_segregation')" ui-sref-active="active">
+          <a ui-sref="app.inbound.PrimarySegregation">
+            <span>Primary Segregation</span>
+          </a>
+        </li>
         <li ng-show="show_tab('add_polocation')" ui-sref-active="active">
           <a ui-sref="app.inbound.PutAwayConfirmation">
             <span>Put away Confirmation</span>
@@ -368,6 +373,14 @@
     </li>
     <!-- /uploaded pages -->
 
+    <!--Targets-->
+    <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin'">
+      <a ui-sref="app.targets">
+      <i class="fa fa-book" aria-hidden="true"></i>
+        <span>Targets</span>
+      </a>
+    </li>
+    <!--Targets-->
     <!-- extras -->
     <li data-ng-class="{open: $state.includes('app.reports')}" ng-show="show_tab('REPORTS')">
       <a href="javascript:;">

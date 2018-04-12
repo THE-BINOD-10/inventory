@@ -17,14 +17,21 @@ from stock_locator import *
 from miebach_utils import *
 from retailone import *
 from uploaded_pos import *
+from targets import *
 
 
 @fn_timer
 def sku_excel_download(search_params, temp_data, headers, user, request):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     user_profile = UserProfile.objects.get(user=user.id)
-    headers = USER_SKU_EXCEL[user_profile.user_type]
-    excel_mapping = USER_SKU_EXCEL_MAPPING[user_profile.user_type]
+    headers = copy.deepcopy(USER_SKU_EXCEL[user_profile.user_type])
+    excel_mapping = copy.deepcopy(USER_SKU_EXCEL_MAPPING[user_profile.user_type])
+    attributes = get_user_attributes(user, 'sku')
+    attr_count = max(excel_mapping.values()) + 1
+    for attr in attributes:
+        excel_mapping[attr['attribute_name']] = attr_count
+        headers += [attr['attribute_name']]
+        attr_count += 1
     status_dict = {'1': 'Active', '0': 'Inactive'}
     # marketplace_list = Marketplaces.objects.filter(user=user.id).values_list('name').distinct()
     marketplace_list = MarketplaceMapping.objects.filter(sku__user=user.id).values_list('sku_type',
@@ -131,6 +138,12 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
         if excel_mapping.has_key('cost_price'):
             ws = write_excel(ws, data_count, excel_mapping['cost_price'], data.cost_price, file_type)
         ws = write_excel(ws, data_count, excel_mapping['status'], status_dict[str(int(data.status))], file_type)
+        for attr in attributes:
+            attr_val = ''
+            if data.skuattributes_set.filter(attribute_name=attr['attribute_name']):
+                attr_val = data.skuattributes_set.filter(attribute_name=attr['attribute_name'])[0].attribute_value
+            ws = write_excel(ws, data_count, excel_mapping[attr['attribute_name']], attr_val,
+                             file_type)
         market_map = master_data.filter(sku_id=data.id).values('sku_id', 'sku_type').distinct()
         for dat in market_map:
             # map_dat = market_map.values('marketplace_code', 'description')

@@ -34,7 +34,14 @@
     self.remove_payment_type = function(index) {
       self.paymentTypeInput.splice(index,1);
     }
-    
+    self.remove_null = remove_null;
+    function remove_null(name_value, index){
+        angular.forEach(self.paymentTypeInput, function (index_value, index) {
+            if(!index_value['type_value']){
+                index_value['type_value'] = 0;
+            }
+        })
+    }
     self.payment_valid = payment_valid;
     function payment_valid (name_value, index) {
       urlService.current_order.summary.paymenttype_values = self.paymentTypeInput;

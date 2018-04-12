@@ -196,6 +196,9 @@ class SupplierMaster(models.Model):
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
     supplier_type = models.CharField(max_length=64, default='')
+    days_to_supply = models.IntegerField(default=0)
+    fulfillment_amt = models.FloatField(default=0)
+    credibility = models.CharField(max_length=32, default='')
 
     class Meta:
         db_table = 'SUPPLIER_MASTER'
@@ -770,6 +773,8 @@ class UserProfile(models.Model):
     level_name = models.CharField(max_length=64, default='')
     zone = models.CharField(max_length=64, default='')
     cin_number = models.CharField(max_length=64, default='')
+    customer_logo = models.ImageField(upload_to='static/images/customer_logos/', default='')
+    bank_details = models.TextField(default='')
 
     class Meta:
         db_table = 'USER_PROFILE'
@@ -1281,6 +1286,8 @@ class CustomerOrderSummary(models.Model):
     igst_tax = models.FloatField(default=0)
     utgst_tax = models.FloatField(default=0)
     invoice_type = models.CharField(max_length=64, default='Tax Invoice')
+    client_name = models.CharField(max_length=64, default='')
+    mode_of_transport = models.CharField(max_length=24, default='')
 
     class Meta:
         db_table = 'CUSTOMER_ORDER_SUMMARY'
@@ -1739,6 +1746,7 @@ class SellerPOSummary(models.Model):
     location = models.ForeignKey(LocationMaster, blank=True, null=True)
     putaway_quantity = models.FloatField(default=0)
     quantity = models.FloatField(default=0)
+    mrp = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -2546,3 +2554,46 @@ class MailAlerts(models.Model):
     class Meta:
         db_table = 'MAIL_ALERTS'
         unique_together = ('user', 'alert_name')
+
+
+class UserAttributes(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User, blank=True, null=True)
+    attribute_model = models.CharField(max_length=32, default='')
+    attribute_name = models.CharField(max_length=64, default='')
+    attribute_type = models.CharField(max_length=64, default='')
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'USER_ATTRIBUTES'
+        unique_together = ('user', 'attribute_model', 'attribute_name')
+
+
+class PrimarySegregation(models.Model):
+    id = BigAutoField(primary_key=True)
+    purchase_order = models.OneToOneField(PurchaseOrder, blank=True, null=True)
+    quantity = models.FloatField(default=0)
+    sellable = models.FloatField(default=0)
+    non_sellable = models.FloatField(default=0)
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'PRIMARY_SEGREGATION'
+
+
+def get_path(instance, filename):
+    return "static/master_docs/%s_%s/%s" %(instance.master_type, instance.master_id, filename)
+
+class MasterDocs(models.Model):
+    id = BigAutoField(primary_key=True)
+    master_id = models.CharField(max_length=64, default='')
+    master_type = models.CharField(max_length=64, default='')
+    uploaded_file = models.FileField(upload_to=get_path, blank=True, null=True)
+
+    class Meta:
+        db_table = 'MASTER_DOCS'
+        index_together = ('master_id', 'master_type', 'uploaded_file')

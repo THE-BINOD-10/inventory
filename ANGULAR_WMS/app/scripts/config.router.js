@@ -200,8 +200,13 @@ var app = angular.module('urbanApp')
           templateUrl: 'views/masters/sku_datatable.html',
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/masters/skutable.js');
-                    }]
+                return $ocLazyLoad.load(['scripts/controllers/masters/skutable.js'
+                ]).then(function(){
+                return $ocLazyLoad.load([
+                    'scripts/controllers/masters/toggle/attributes.js'
+                  ])
+                })
+             }]
           },
           data: {
             title: 'SKU Master',
@@ -643,6 +648,7 @@ var app = angular.module('urbanApp')
             url: '/QC_Detail',
             templateUrl: 'views/inbound/toggle/grn_qc.html'
           })
+
         .state('app.inbound.QualityCheck', {
           url: '/QualityCheck',
           permission: 'add_qualitycheck',
@@ -664,6 +670,27 @@ var app = angular.module('urbanApp')
             url: '/QC_Detail',
             templateUrl: 'views/inbound/toggle/qc_detail.html'
           })
+
+          .state('app.inbound.PrimarySegregation', {
+          url: '/PrimarySegregation',
+          permission: 'add_purchaseorder',
+          templateUrl: 'views/inbound/primary_segregation.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/inbound/primary_segregation.js'
+                  ]);
+              }]
+          },
+          data: {
+            title: 'Primary Segregation',
+          }
+        })
+        .state('app.inbound.PrimarySegregation.AddSegregation', {
+          url: '/AddSegregation',
+          templateUrl: 'views/inbound/toggle/add_segregation.html'
+          })
+
         .state('app.inbound.PutAwayConfirmation', {
           url: '/PutawayConfirmation',
           permission: 'add_polocation',
@@ -1367,6 +1394,20 @@ var app = angular.module('urbanApp')
             url: '/PO',
             templateUrl: 'views/uploadedPos/toggles/uploaded_po_update.html'
          })
+      // Targets route
+      .state('app.targets', {
+          url: '/targets',
+          templateUrl: 'views/targets/targets.html',
+          authRequired: true,
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad){
+              return $ocLazyLoad.load('scripts/controllers/targets/targets.js');
+            }]
+          },
+          data: {
+            title: 'Targets'
+          }
+      })
       // Track Orders
       .state('app.TrackOrders', {
           url: '/TrackOrders',
@@ -1531,6 +1572,10 @@ var app = angular.module('urbanApp')
             title: 'Supplier Wise POs',
           }
         })
+        .state('app.reports.SupplierWisePOs.POs', {
+            url: '/POs',
+            templateUrl: 'views/reports/toggles/po_details.html',
+          })
         .state('app.reports.SalesReturnReport', {
           url: '/SalesReturnReport',
           permission: 'add_orderreturns',
@@ -2028,6 +2073,19 @@ var app = angular.module('urbanApp')
             templateUrl: 'views/outbound/app/create_orders/categories.html'
             // templateUrl: 'views/outbound/app/create_orders/catlog.html'
           })
+          .state('user.App.Profile', {
+            url: '/Profile',
+            templateUrl: 'views/outbound/app/create_orders/profile.html',
+            resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/outbound/app/profile.js');
+                      }]
+            },
+            data: {
+              title: 'Profile'
+            }
+          })
+
           .state('user.App.Style', {
             url: '/Style?styleId',
             templateUrl: 'views/outbound/app/create_orders/style.html',

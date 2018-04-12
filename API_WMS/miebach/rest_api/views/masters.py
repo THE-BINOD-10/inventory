@@ -209,6 +209,11 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
     temp_data['recordsFiltered'] = len(master_data)
 
     for data in master_data[start_index: stop_index]:
+        uploads_list = []
+        uploads_obj = MasterDocs.objects.filter(master_id=data.id, master_type=data.__class__.__name__)\
+                                .values_list('uploaded_file', flat=True)
+        if uploads_obj:
+            uploads_list = [(i, i.split("/")[-1]) for i in uploads_obj]
         status = 'Inactive'
         if data.status:
             status = 'Active'
@@ -226,7 +231,9 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
                                                 ('phone_number', data.phone_number), ('email_id', data.email_id),
                                                 ('cst_number', data.cst_number), ('tin_number', data.tin_number),
                                                 ('pan_number', data.pan_number), ('city', data.city),
-                                                ('state', data.state),
+                                                ('state', data.state), ('days_to_supply', data.days_to_supply),
+                                                ('fulfillment_amt', data.fulfillment_amt),
+                                                ('credibility', data.credibility), ('uploads_list', uploads_list),
                                                 ('country', data.country), ('pincode', data.pincode),
                                                 ('status', status), ('supplier_type', data.supplier_type),
                                                 ('username', username), ('login_created', login_created),
@@ -672,10 +679,13 @@ def get_sku_data(request, user=''):
     else:
         product_types = list(TaxMaster.objects.filter(user_id=user.id).values_list('product_type',
                                                                                    flat=True).distinct())
+    attributes = get_user_attributes(user, 'sku')
+    sku_attributes = dict(data.skuattributes_set.filter().values_list('attribute_name', 'attribute_value'))
     return HttpResponse(
         json.dumps({'sku_data': sku_data, 'zones': zone_list, 'groups': all_groups, 'market_list': market_places,
                     'market_data': market_data, 'combo_data': combo_data, 'sizes_list': sizes_list,
-                    'sub_categories': SUB_CATEGORIES, 'product_types': product_types}, cls=DjangoJSONEncoder))
+                    'sub_categories': SUB_CATEGORIES, 'product_types': product_types, 'attributes': list(attributes),
+                    'sku_attributes': sku_attributes}, cls=DjangoJSONEncoder))
 
 
 @csrf_exempt
@@ -703,15 +713,23 @@ def get_warehouse_user_results(start_index, stop_index, temp_data, search_term, 
     all_user_groups = UserGroups.objects.filter(admin_user_id=warehouse_admin.id)
     if search_term:
         master_data1 = all_user_groups.filter(
-            Q(user__first_name__icontains=search_term) | Q(user__email__icontains=search_term),
+            Q(user__first_name__icontains=search_term) | Q(user__email__icontains=search_term) |
+            Q(user__userprofile__warehouse_type__icontains=search_term) |
+            Q(user__userprofile__warehouse_level__icontains=search_term) |
+            Q(user__userprofile__city__icontains=search_term) |
+            Q(user__userprofile__zone__icontains=search_term),
             **search_params1).exclude(user_id=user.id). \
             order_by(order_data).values_list('user__username', 'user__first_name', 'user__email',
-                                             'user__warehouse_type', 'user__warehouse_level', 'user__min_order_val',
-                                             'user__zone')
+                                             'user__userprofile__warehouse_type', 'user__userprofile__warehouse_level',
+                                             'user__userprofile__min_order_val', 'user__userprofile__zone')
 
         master_data2 = all_user_groups.exclude(**exclude_admin).filter(
             Q(admin_user__first_name__icontains=search_term) |
-            Q(admin_user__email__icontains=search_term), **search_params2). \
+            Q(admin_user__email__icontains=search_term) |
+            Q(admin_user__userprofile__warehouse_type__icontains=search_term) |
+            Q(admin_user__userprofile__warehouse_level__icontains=search_term) |
+            Q(admin_user__userprofile__city__icontains=search_term) |
+            Q(admin_user__userprofile__zone__icontains=search_term), **search_params2). \
             order_by(order_data1).values_list('admin_user__username',
                                               'admin_user__first_name', 'admin_user__email',
                                               'admin_user__userprofile__warehouse_type',
@@ -840,6 +858,8 @@ def update_sku(request, user=''):
             save_image_file(image_file, data, user)
         for key, value in request.POST.iteritems():
 
+            if 'attr_' in key:
+                continue
             if key == 'status':
                 if value == 'Active':
                     value = 1
@@ -879,6 +899,7 @@ def update_sku(request, user=''):
             setattr(data, key, value)
 
         data.save()
+        update_sku_attributes(data, request)
 
         update_marketplace_mapping(user, data_dict=dict(request.POST.iterlists()), data=data)
         # update master sku txt file
@@ -971,6 +992,7 @@ def update_supplier_values(request, user=''):
         data_id = request.POST['id']
         data = get_or_none(SupplierMaster, {'id': data_id, 'user': user.id})
         old_name = data.name
+        upload_master_file(request, data.id, "SupplierMaster")
 
         create_login = request.POST.get('create_login', '')
         password = request.POST.get('password', '')
@@ -1055,6 +1077,7 @@ def insert_supplier(request, user=''):
 
             data_dict['user'] = user.id
             supplier_master = SupplierMaster(**data_dict)
+            upload_master_file(request, supplier_master.id, "SupplierMaster")
             supplier_master.save()
             status_msg = 'New Supplier Added'
 	    if create_login == 'true':
@@ -1074,6 +1097,21 @@ def insert_supplier(request, user=''):
         status_msg = 'Add Supplier Failed'
     return HttpResponse(status_msg)
 
+
+@csrf_exempt
+def upload_master_file(request, master_id, master_type):
+    master_id = master_id
+    master_type = master_type
+    master_file = request.FILES.get('master_file', '')
+    if not master_file and master_id and master_type:
+        return 'Fields are missing.'
+    upload_doc_dict = {'master_id': master_id, 'master_type': master_type,
+                       'uploaded_file': master_file}
+    master_doc = MasterDocs.objects.filter(**upload_doc_dict)
+    if not master_doc:
+        master_doc = MasterDocs(**upload_doc_dict)
+        master_doc.save()
+    return 'Uploaded Successfully'
 
 @csrf_exempt
 @get_admin_user
@@ -2028,9 +2066,10 @@ def get_zones_list(request, user=''):
     for sizes in size_names:
         sizes_list.append({'size_name': sizes.size_name, 'size_values': (sizes.size_value).split('<<>>')})
     sizes_list.append({'size_name': 'Default', 'size_values': copy.deepcopy(SIZES_LIST)})
+    attributes = get_user_attributes(user, 'sku')
     return HttpResponse(json.dumps(
         {'zones': zones_list, 'sku_groups': all_groups, 'market_places': market_places, 'sizes_list': sizes_list,
-         'product_types': product_types, 'sub_categories': SUB_CATEGORIES}))
+         'product_types': product_types, 'sub_categories': SUB_CATEGORIES, 'attributes': list(attributes)}))
 
 
 @csrf_exempt
@@ -2087,6 +2126,7 @@ def insert_sku(request, user=''):
             data_dict['sku_code'] = data_dict['wms_code']
             sku_master = SKUMaster(**data_dict)
             sku_master.save()
+            update_sku_attributes(sku_master, request)
             image_file = request.FILES.get('files-0', '')
             if image_file:
                 save_image_file(image_file, sku_master, user)
@@ -2545,6 +2585,7 @@ def get_price_master_results(start_index, stop_index, temp_data, search_term, or
 
     for key, val in temp_map.items()[start_index:stop_index]:
         sku_code, sku_desc, price_type = key
+        val = ','.join(map(str, val))
         temp_data['aaData'].append(OrderedDict((('SKU Code', sku_code), ('SKU Description', sku_desc),
                                                 ('Selling Price Type', price_type), ('Price', val))))
 
@@ -3410,3 +3451,41 @@ def update_staff_values(request, user=''):
     data.status = status
     data.save()
     return HttpResponse("Updated Successfully")
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def save_update_attribute(request, user=''):
+    attr_model = request.POST.get('attr_model', '')
+    if not attr_model:
+        return HttpResponse('Attribute model is mandatory')
+    data_dict = dict(request.POST.lists())
+    for ind in range(0, len(data_dict['id'])):
+        if(data_dict['id'][ind]):
+            user_attr = UserAttributes.objects.filter(id=data_dict['id'][ind])
+            if user_attr:
+                user_attr.update(attribute_type=data_dict['attribute_type'][ind], status=1)
+        else:
+            user_attr = UserAttributes.objects.filter(attribute_model=attr_model,
+                                          attribute_name=data_dict['attribute_name'][ind],
+                                                      user_id=user.id)
+            if user_attr:
+                user_attr.update(attribute_type=data_dict['attribute_type'][ind], status=1)
+            else:
+                UserAttributes.objects.create(attribute_model=attr_model,
+                                              attribute_name=data_dict['attribute_name'][ind],
+                                              attribute_type=data_dict['attribute_type'][ind], status=1,
+                                              creation_date=datetime.datetime.now(),
+                                              user_id=user.id)
+    return HttpResponse(json.dumps({'message': 'Updated Successfully', 'status': 1}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def delete_user_attribute(request, user=''):
+    attr_id = request.GET.get('data_id', '')
+    if attr_id:
+        UserAttributes.objects.filter(id=attr_id).update(status=0)
+    return HttpResponse(json.dumps({'message': 'Updated Successfully', 'status': 1}))

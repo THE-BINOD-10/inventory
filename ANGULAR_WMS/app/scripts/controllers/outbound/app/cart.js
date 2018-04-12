@@ -16,6 +16,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
   vm.shipment_addr = 'default';
   vm.manual_shipment_addr = false;
   vm.default_shipment_addr = true;
+  vm.client_logo = Session.parent.logo;
 
   vm.sel_styles = {};
   vm.get_customer_cart_data = function() {

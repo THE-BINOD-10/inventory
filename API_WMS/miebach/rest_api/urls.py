@@ -281,6 +281,8 @@ urlpatterns = [
     url(r'^get_updated_pos/$', get_updated_pos),
     url(r'^validate_po/$', validate_po),
     url(r'^pending_pos/$', pending_pos),
+    # Targets [SWISS MILITARY]
+    url(r'^get_distributor_targets/$', get_distributor_targets),
     # Reports
     # url(r'^location_wise_filter/$',location_wise_filter),
     url(r'^get_report_data/$', get_report_data),

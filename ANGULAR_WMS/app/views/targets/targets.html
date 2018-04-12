@@ -1,0 +1,34 @@
+<div ng-controller="targetsTable as showCase">
+  <div class="page-layout">
+    <div class='layout-header'>
+      <div class="row">
+        <div class="col-md-6 col-sm-12 col-xs-12">
+          <div ng-include="'views/common/title.html'"></div>
+        </div>
+        <div class="col-md-6 col-sm-12 col-xs-12">
+          <div class="row">
+            <div ng-include="'views/common/excel_button.html'"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-4 col-sm-4 col-xs-6">
+        <div class="form-group">
+          <label class="control-label">From Date</label>
+          <input name="from_date" class="form-control" type="text" ng-model="showCase.model_data.from_date" ui-jq="datepicker">
+        </div>
+      </div>
+      <div class="col-md-4 col-sm-4 col-xs-6">
+        <div class="form-group">
+          <label class="control-label">To Date</label>
+          <input name="to_date" class="form-control hasDatepicker" type="text" ng-model="showCase.model_data.to_date" ui-jq="datepicker">
+        </div>
+      </div>
+      <div class="col-md-4 col-sm-4 col-xs-6 filter-controls">
+        <button type="button" class="btn btn-success ng-click-active" id="targets-btn" data-toggle="modal" data-target="#myModal" ng-click="targetsTable."> Filter </button>
+      </div>
+    </div>
+    <div ng-include="'views/common/master-datatable.html'"></div>
+  </div>
+</div>

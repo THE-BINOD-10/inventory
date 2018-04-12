@@ -1367,6 +1367,20 @@ var app = angular.module('urbanApp')
             url: '/PO',
             templateUrl: 'views/uploadedPos/toggles/uploaded_po_update.html'
          })
+      // Targets route
+      .state('app.targets', {
+          url: '/targets',
+          templateUrl: 'views/targets/targets.html',
+          authRequired: true,
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad){
+              return $ocLazyLoad.load('scripts/controllers/targets/targets.js');
+            }]
+          },
+          data: {
+            title: 'Targets'
+          }
+      })
       // Track Orders
       .state('app.TrackOrders', {
           url: '/TrackOrders',

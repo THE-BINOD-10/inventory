@@ -6745,6 +6745,7 @@ def get_customer_cart_data(request, user=""):
             sku_obj = SKUMaster.objects.filter(user=user.id, sku_code=json_record['sku_id'])
             json_record['mrp'] = sku_obj[0].mrp
             json_record['cost_price'] = sku_obj[0].cost_price
+            json_record['sku_style'] = sku_obj[0].sku_class
             product_type = sku_obj[0].product_type
             price_field = get_price_field(user)
             is_sellingprice = False

@@ -25,13 +25,17 @@ input[type="date"]:valid::before {
   <div ui-view></div>
 
   <div class="row style-menu" style="line-height: 40px;">
-    <div class="col-md-6 col-sm-6 col-xs-8">
+    <div class="col-md-4 col-sm-6 col-xs-8">
       <div class="menu-left">
         <span ng-click="$state.go('user.App.Products'); showCase.get_category(false)"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
         <span ng-click="$state.go('user.App.Products'); showCase.get_category(false)" title="Go to Brand Page">Continue Shopping</span>
       </div>
     </div>
-    <div class="col-md-6 col-sm-6 col-xs-4">
+    <div class="col-md-4 col-sm-4 hidden-xs" align="center">
+      <!-- <h4 align="center">MY ORDERS</h4> -->
+      <img ng-src="/static/company_logos/{{showCase.client_logo}}" ng-if="showCase.client_logo" style="height: 43px;"/>
+    </div>
+    <div class="col-md-4 col-sm-6 col-xs-4">
       <div class="btn-group pull-right" role="group">
         <a class="" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
           <i class="fa fa-user fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;"></i>
@@ -46,6 +50,11 @@ input[type="date"]:valid::before {
       <a class="hide fa fa-power-off pull-right fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" ng-click="Cart.logout()"></a>
     </div>
     <div class="col-md-12" style="background: #fff;overflow: hidden; margin-bottom: -3px;padding-bottom:10px;margin-right: -2px;z-index: 100;box-shadow: 0px 4px 8px -2px #888;">
+      <div class="row">
+        <div class="col-md-12 col-sm-12 col-xs-12" align="center">
+          <h4 align="center" style="color: #000">MY ORDERS</h4>
+        </div>
+      </div>
       <div class="row">
         <div class="col-md-2 col-sm-6 col-xs-6 mt10">
           <input type="text" class="form-control stk-readonly pull-left" name="shipment_date" ng-model="Cart.model_data.shipment_date" id="shipment_date" ng-change="Cart.date_changed()" required data-date-today-highlight="true" data-date-autoclose="true" placeholder="Exp. Delivery Date" data-date-start-date="{{Cart.date}}">

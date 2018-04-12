@@ -1748,6 +1748,8 @@ def validate_supplier_form(open_sheet, user_id):
     index_status = {}
     supplier_ids = []
     mapping_dict = copy.deepcopy(SUPPLIER_EXCEL_FIELDS)
+    messages_dict = {'phone_number': 'Phone Number', 'days_to_supply': 'Days required to supply',
+                     'fulfillment_amt': 'Fulfillment Amount'}
     for row_idx in range(0, open_sheet.nrows):
         for key, value in mapping_dict.iteritems():
             cell_data = open_sheet.cell(row_idx, mapping_dict[key]).value
@@ -1773,10 +1775,11 @@ def validate_supplier_form(open_sheet, user_id):
                 if cell_data and validate_email(cell_data):
                     index_status.setdefault(row_idx, set()).add('Enter Valid Email address')
 
-            elif key == 'phone_number':
+            elif key in ['phone_number', 'days_to_supply', 'fulfillment_amt']:
                 if cell_data:
                     if not isinstance(cell_data, (int, float)):
-                        index_status.setdefault(row_idx, set()).add('Wrong contact information')
+                        index_status.setdefault(row_idx, set()).add('Invalid %s' % messages_dict[key])
+
 
     if not index_status:
         return 'Success'
@@ -3393,6 +3396,10 @@ def pricing_excel_upload(request, reader, user, no_of_rows, fname, file_type='xl
             if not discount:
                 each_row_map['discount'] = 0
 
+            if not min_amount:
+                min_amount = 0
+            if not max_amount:
+                max_amount = 0
             each_row_map['max_unit_range'] = max_amount
             each_row_map['min_unit_range'] = min_amount
             each_row_map['price'] = price

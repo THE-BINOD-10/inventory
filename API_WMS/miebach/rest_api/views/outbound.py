@@ -3175,6 +3175,7 @@ def insert_order_data(request, user=''):
     address_selected = request.POST.get('address_selected', '')
     is_sample = request.POST.get('is_sample', '')
     invoice_type = request.POST.get('invoice_type', '')
+    mode_of_transport = request.POST.get('mode_of_transport','')
     dist_shipment_address = request.POST.get('manual_shipment_addr', '')
     if dist_shipment_address:
         ship_to = dist_shipment_address
@@ -3227,8 +3228,8 @@ def insert_order_data(request, user=''):
 
             if not order_data['sku_id'] or not order_data['quantity']:
                 continue
-
             order_summary_dict['invoice_type'] = invoice_type
+            order_summary_dict['mode_of_transport'] = mode_of_transport
             if admin_user:
                 if user_type == 'customer':
                     order_data = get_order_customer_details(order_data, request)
@@ -3327,6 +3328,8 @@ def insert_order_data(request, user=''):
                         order_data.pop('el_price')
                     if 'del_date' in order_data:
                         order_data.pop('del_date')
+                    if 'mode_of_transport' in order_data:
+                        order_data.pop('mode_of_transport')
                     order_detail = OrderDetail(**order_data)
                     order_detail.save()
                     created_order_objs.append(order_detail)
@@ -4352,7 +4355,7 @@ def get_style_variants(sku_master, user, customer_id='', total_quantity=0, custo
                     is_sellingprice = False
                     if price_field == 'price':
                         is_sellingprice = True
-                    sku_master[ind]['price'] = get_customer_based_price(customer_data[0], sku_master[ind][price_field],
+                    sku_master[ind]['price'], sku_master[ind]['mrp'] = get_customer_based_price(customer_data[0], sku_master[ind][price_field],
                                                                         sku_master[ind]['mrp'],
                                                                         is_sellingprice=is_sellingprice)
                     apply_margin_price(sku['wms_code'], sku_master[ind], specific_margins, is_margin_percentage,
@@ -5513,8 +5516,9 @@ def create_orders_data(request, user=''):
     tax_types = copy.deepcopy(TAX_VALUES)
     tax_types.append({'tax_name': 'DEFAULT', 'tax_value': ''})
     invoice_types = get_invoice_types(user)
+    mode_of_transport = ['By Air', 'By Road', 'By Train']
     return HttpResponse(json.dumps({'payment_mode': PAYMENT_MODES, 'taxes': tax_types,
-                                    'invoice_types': invoice_types}))
+                                    'invoice_types': invoice_types, 'mode_of_transport': mode_of_transport }))
 
 
 @csrf_exempt
@@ -6739,7 +6743,7 @@ def get_customer_cart_data(request, user=""):
             is_sellingprice = False
             if price_field == 'price':
                 is_sellingprice = True
-            json_record['price'] = get_customer_based_price(cm_obj, json_record[price_field], json_record['mrp'],
+            json_record['price'], json_record['mrp']  = get_customer_based_price(cm_obj, json_record[price_field], json_record['mrp'],
                                                             is_sellingprice)
             if not tax_type and product_type:
                 json_record['tax'] = 0

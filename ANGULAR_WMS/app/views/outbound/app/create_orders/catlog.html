@@ -8,7 +8,8 @@
       </div>
     </div>
     <div class="col-md-4 col-sm-4 col-xs-4 brand-title">
-      <img ng-src="images/brands/{{showCase.brands_logos[showCase.brand]}}" ng-if="showCase.brands_logos[showCase.brand]" style="height: 60px;"/>
+      <img ng-src="images/brands/{{showCase.brands_logos[showCase.brand]}}" ng-if="showCase.brands_logos[showCase.brand]" style="height: 60px;" />
+      <img ng-src="/static/company_logos/{{showCase.client_logo}}" ng-if="!showCase.brands_logos[showCase.brand] && showCase.client_logo" style="height: 60px;"/>
       <h3 style="margin-top:10px;overflow: hidden;text-overflow: ellipsis;white-space: nowrap;" ng-if="!(showCase.brands_logos[showCase.brand])">{{showCase.brand}}</h3>
     </div>
     <div class="col-md-4 col-sm-4 col-xs-4">
@@ -167,8 +168,12 @@
             <span class="style_name" style="font-size: 14px" ng-if="!(item.variants[0].pricing_price) && item.variants[0].price">{{ showCase.service.price_format(item.variants[0].price)  }}</span>
             <p class="style_name" style="font-size: 14px" style="font-size: 12px;" title="{{ item.variants[0].style_name }}">{{ item.variants[0].style_name }}</p>
             <p class="style_name" style="font-size: 12px; padding:2px 5px; font-weight: 500; background: #ccc;">Stock: {{ item.style_quantity }}</p>
-            <div>
-              <span style="font-size: 14px">&#8377; {{ item.variants[0].mrp }}</span>
+            <div ng-if="!permissions.display_styles_price">
+              <span style="font-size: 14px">&#8377; {{ item.variants[0].mrp }}</span><br/>
+            </div>
+            <div ng-if="permissions.display_styles_price">
+              <span style="font-size: 14px">MRP: &#8377; {{ item.variants[0].mrp }}</span><br/>
+              <span style="font-size: 14px">Price: &#8377; {{ item.variants[0].price }}</span>
             </div>
           </div>
         </div>

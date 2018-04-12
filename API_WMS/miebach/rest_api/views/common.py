@@ -170,6 +170,7 @@ def add_user_permissions(request, response_data, user=''):
     parent_data = {}
     parent_data['userId'] = user.id
     parent_data['userName'] = user.username
+    parent_data['logo'] = COMPANY_LOGO_PATHS.get(user.username, '')
     response_data['data']['userName'] = request.user.username
     response_data['data']['userId'] = request.user.id
     response_data['data']['parent'] = parent_data
@@ -3097,7 +3098,7 @@ def get_customer_sku_prices(request, user=""):
                 price_band_flag = get_misc_value('priceband_sync', user.id)
                 if price_band_flag == 'true':
                     user = get_admin(user)
-                price = get_customer_based_price(customer_obj, price, data.mrp, is_sellingprice)
+                price, mrp = get_customer_based_price(customer_obj, price, data.mrp, is_sellingprice)
                 price_master_objs = PriceMaster.objects.filter(price_type=price_type, sku__sku_code=sku_code,
                                                                sku__user=user.id)
                 if price_master_objs:
@@ -6339,7 +6340,9 @@ def get_customer_based_price(customer_obj, price, mrp,is_sellingprice='', user_i
         price = price * float(1 + float(customer_obj.markup) / 100)
         if mrp and price > mrp:
             price = mrp
-    return price
+    if not mrp:
+        mrp = price
+    return price, mrp
 
 
 def get_price_field(user):

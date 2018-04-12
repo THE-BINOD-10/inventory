@@ -17,6 +17,7 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
   $ctrl.categories_loading = true;
   $ctrl.customization_types = {};
   $ctrl.client_logo = Session.parent.logo;
+  $ctrl.api_url = Session.host;
   $ctrl.get_categories = function() {
 
     var data = {brand: ''};

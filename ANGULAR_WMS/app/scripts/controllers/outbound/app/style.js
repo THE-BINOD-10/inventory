@@ -23,6 +23,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
   vm.style_headers = {};
   vm.style_detail_hd = [];
   vm.client_logo = Session.parent.logo;
+  vm.api_url = Session.host;
   
   if (Session.roles.permissions["style_headers"]) {
   

@@ -421,14 +421,14 @@ def customer_order(request):
                             new_sku_count = order_detail.quantity + item['quantity']
                             new_invoice_amount = order_detail.invoice_amount + item['price']
                             new_payment_received = order_detail.payment_received + payment_received
-                            order_detail.quantity = new_sku_count
-                            order_detail.invoice_amount = new_invoice_amount
-                            order_detail.payment_received = new_payment_received
-                            order_detail.save()
-                            log.info("After appending to duplicate order: id=%s, qty=%s, invoice_amt=%s,\
+                            #order_detail.quantity = new_sku_count
+                            #order_detail.invoice_amount = new_invoice_amount
+                            #order_detail.payment_received = new_payment_received
+                            #order_detail.save()
+                            log.info("duplicate order didnt save, data is : id=%s, qty=%s, amt=%s,\
                                      payment_receieved=%s" %(str(order_detail.original_order_id),\
-                                     str(order_detail.quantity), str(order_detail.invoice_amount),\
-                                     str(order_detail.payment_received)))
+                                     str(item['quantity']), str(item['price']),\
+                                     str(payment_received)))
                             continue
                     sku_disc = (int(item['selling_price']) - item['unit_price']) * item['quantity']
                     CustomerOrderSummary.objects.create(order_id=order_detail.id, \

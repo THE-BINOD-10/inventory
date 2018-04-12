@@ -1405,7 +1405,7 @@ def create_intransit_order(auto_skus, user, sku_qty_map):
     intr_data = {'user': user.id, 'customer_id': user.id, 'intr_order_id': get_intr_order_id(user.id), 'status': 1}
     for sku in sku_objs:
         intr_data['sku'] = sku
-        quantity, price = sku_qty_map.get(sku.sku_code, 0)
+        quantity, price = sku_qty_map.get(sku.sku_code, (0, 0))
         if quantity:
             intr_data['quantity'] = quantity
         else:
@@ -1646,12 +1646,16 @@ def picklist_confirmation(request, user=''):
 
         if get_misc_value('auto_po_switch', user.id) == 'true' and auto_skus:
             auto_skus = list(set(auto_skus))
-            reaches_order_val, sku_qty_map = check_req_min_order_val(user, auto_skus)
-            if reaches_order_val:
-                auto_po(auto_skus, user.id)
-                delete_intransit_orders(auto_skus, user)  # deleting intransit order after creating actual order.
+            price_band_flag = get_misc_value('priceband_sync', user.id)
+            if price_band_flag == 'true':
+                reaches_order_val, sku_qty_map = check_req_min_order_val(user, auto_skus)
+                if reaches_order_val:
+                    auto_po(auto_skus, user.id)
+                    delete_intransit_orders(auto_skus, user)  # deleting intransit order after creating actual order.
+                else:
+                    create_intransit_order(auto_skus, user, sku_qty_map)
             else:
-                create_intransit_order(auto_skus, user, sku_qty_map)
+                auto_po(auto_skus, user.id)
 
         detailed_invoice = get_misc_value('detailed_invoice', user.id)
         if (detailed_invoice == 'false' and picklist.order and picklist.order.marketplace == "Offline"):

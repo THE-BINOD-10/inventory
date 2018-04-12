@@ -5995,6 +5995,7 @@ def update_order_data(request, user=""):
         order_creation_date = datetime.datetime.now()
         tax_type = 2
         tax_name = request.POST.get('tax_type', '')
+        client_name = request.POST.get('client_name', '')
         if tax_name == 'intra_state':
             tax_type = 0
         elif tax_name == 'inter_state':
@@ -6075,6 +6076,7 @@ def update_order_data(request, user=""):
                 status_obj.discount = discount
                 status_obj.tax_type = tax_type
                 status_obj.invoice_type = myDict['invoice_type'][0]
+                status_obj.client_name = client_name
                 status_obj.save()
 
                 vendor_list = ['printing_vendor', 'embroidery_vendor', 'production_unit']

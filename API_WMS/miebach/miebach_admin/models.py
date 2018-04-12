@@ -773,8 +773,8 @@ class UserProfile(models.Model):
     level_name = models.CharField(max_length=64, default='')
     zone = models.CharField(max_length=64, default='')
     cin_number = models.CharField(max_length=64, default='')
-    customer_logo = models.ImageField(upload_to='static/images/customer_logos/')
-    bank_details = models.TextField()
+    customer_logo = models.ImageField(upload_to='static/images/customer_logos/', default='')
+    bank_details = models.TextField(default='')
 
     class Meta:
         db_table = 'USER_PROFILE'

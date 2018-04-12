@@ -336,6 +336,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             vm.taxes = value.taxes;
             vm.order_charges = value.order_charges;
             vm.client_name = value.client_name;
+            vm.show_client_details = vm.permissions.create_order_po;
 
             // if (value.discount_percentage <= 99.99) {
               vm.discount_per = value.discount_percentage;

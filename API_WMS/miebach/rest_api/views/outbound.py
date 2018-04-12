@@ -3175,11 +3175,11 @@ def insert_order_data(request, user=''):
     address_selected = request.POST.get('address_selected', '')
     is_sample = request.POST.get('is_sample', '')
     invoice_type = request.POST.get('invoice_type', '')
+    sample_client_name = request.POST.get('sample_client_name', '')
     mode_of_transport = request.POST.get('mode_of_transport','')
     dist_shipment_address = request.POST.get('manual_shipment_addr', '')
     if dist_shipment_address:
         ship_to = dist_shipment_address
-
     created_order_id = ''
     ex_image_url = {}
     inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
@@ -3229,6 +3229,7 @@ def insert_order_data(request, user=''):
             if not order_data['sku_id'] or not order_data['quantity']:
                 continue
             order_summary_dict['invoice_type'] = invoice_type
+            order_summary_dict['client_name'] = sample_client_name
             order_summary_dict['mode_of_transport'] = mode_of_transport
             if admin_user:
                 if user_type == 'customer':
@@ -3328,6 +3329,8 @@ def insert_order_data(request, user=''):
                         order_data.pop('el_price')
                     if 'del_date' in order_data:
                         order_data.pop('del_date')
+                    if 'sample_client_name' in order_data:
+                        order_data.pop('sample_client_name')
                     if 'mode_of_transport' in order_data:
                         order_data.pop('mode_of_transport')
                     order_detail = OrderDetail(**order_data)
@@ -5159,6 +5162,7 @@ def get_view_order_details(request, user=''):
     custom_data = OrderJson.objects.filter(order_id=row_id)
     status_obj = ''
     central_remarks = ''
+    client_name = ''
     customer_order_summary = CustomerOrderSummary.objects.filter(order_id=row_id)
     invoice_types = get_invoice_types(user)
     invoice_type = ''
@@ -5166,6 +5170,7 @@ def get_view_order_details(request, user=''):
         status_obj = customer_order_summary[0].status
         central_remarks = customer_order_summary[0].central_remarks
         invoice_type = customer_order_summary[0].invoice_type
+        client_name = customer_order_summary[0].client_name
 
     cus_data = []
     order_details_data = []
@@ -5245,6 +5250,7 @@ def get_view_order_details(request, user=''):
         igst_tax = 0
         discount_percentage = 0
         if customer_order:
+            client_name = customer_order[0].client_name
             sgst_tax = customer_order[0].sgst_tax
             cgst_tax = customer_order[0].cgst_tax
             igst_tax = customer_order[0].igst_tax
@@ -5276,7 +5282,7 @@ def get_view_order_details(request, user=''):
              'sku_extra_data': sku_extra_data, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax, 'igst_tax': igst_tax,
              'unit_price': unit_price, 'discount_percentage': discount_percentage, 'taxes': taxes_data,
              'order_charges': order_charges,
-             'sku_status': one_order.status})
+             'sku_status': one_order.status, 'client_name':client_name})
 
     if status_obj in view_order_status:
         view_order_status = view_order_status[view_order_status.index(status_obj):]

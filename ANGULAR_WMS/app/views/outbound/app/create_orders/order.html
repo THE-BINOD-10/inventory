@@ -152,6 +152,9 @@ input[type="date"]:valid::before {
            <div class="col-md-4 col-sm-5 col-xs-12">
              <input type="text" class="form-control pull-left" placeholder="Enter Remarks" ng-model="Cart.model_data.remarks" ng-change="Cart.change_remarks(Cart.model_data.remarks)">
            </div>
+		   <div class="col-md-4 col-sm-5 col-xs-12">
+            <input type="text" class="form-control stk-readonly pull-left" ng-model="Cart.model_data.sample_client_name" name="sample_client_name" required placeholder="Client Name">
+		   </div>
         </div>
         <div class="col-md-8 col-sm-8 col-xs-12">
           <div ng-repeat="data in Cart.model_data.data" class="style col-md-12 col-sm-12 col-xs-12 cart-item" ng-if="data.sku_id">

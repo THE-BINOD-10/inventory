@@ -4551,8 +4551,18 @@ def get_sku_catalogs(request, user=''):
         if remarks:
             remarks = remarks[0].misc_value
         display_stock = request.POST.get('display_stock', '')
+        bank_dets_check = request.POST.get('bank_details', '')
+        addr_dets_check = request.POST.get('address_details', '')
+        bank_details = ''
+        address_details = {}
+        usr_obj = UserProfile.objects.get(user=request.user)
+        if bank_dets_check:
+            bank_details = usr_obj.bank_details
+        if addr_dets_check:
+            address_details = {'phone': usr_obj.phone_number, 'gst': usr_obj.gst_number,
+                               'address': usr_obj.address, 'email': usr_obj.user.email}
         user_type = request.POST.get('user_type', '')
-        terms_list = (request.POST.get('terms_list', '')).split('<>');
+        terms_list = request.POST.get('terms_list', '').split('<>')
         admin = get_admin(user)
         image = get_company_logo(admin)
         date = get_local_date(user, datetime.datetime.now())
@@ -4566,7 +4576,8 @@ def get_sku_catalogs(request, user=''):
         rendered = t.render({'data': data, 'user': request.user.first_name, 'date': date,
                              'remarks': remarks, 'display_stock': display_stock, 'image': image,
                              'style_quantities': eval(request.POST.get('required_quantity', '{}')),
-                             'terms_list': terms_list, 'pages': int(pages), 'style_count': len(data)})
+                             'terms_list': terms_list, 'pages': int(pages), 'style_count': len(data),
+                             'bank_details': bank_details, 'address_details': address_details})
 
         if not os.path.exists('static/pdf_files/'):
             os.makedirs('static/pdf_files/')
@@ -6744,6 +6755,7 @@ def get_customer_cart_data(request, user=""):
             sku_obj = SKUMaster.objects.filter(user=user.id, sku_code=json_record['sku_id'])
             json_record['mrp'] = sku_obj[0].mrp
             json_record['cost_price'] = sku_obj[0].cost_price
+            json_record['sku_style'] = sku_obj[0].sku_class
             product_type = sku_obj[0].product_type
             price_field = get_price_field(user)
             is_sellingprice = False
@@ -8234,6 +8246,7 @@ def get_customer_enquiry_detail(request, user=''):
 @csrf_exempt
 def get_enquiry_orders(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                        filters={}, user_dict={}):
+    central_admin_zone = request.user.userprofile.zone
     if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
         em_qs = EnquiryMaster.objects.all()
     else:
@@ -8243,7 +8256,11 @@ def get_enquiry_orders(start_index, stop_index, temp_data, search_term, order_te
         total_qty = map(sum, [[i['quantity'] for i in em_obj.enquiredsku_set.values()]])[0]
         cm_obj = CustomerMaster.objects.get(id=em_obj.customer_id)
         customer_name = cm_obj.name
-        zone = ''
+        dist_obj = User.objects.get(id=em_obj.user)
+        distributor_name = dist_obj.username
+        zone = dist_obj.userprofile.zone
+        if central_admin_zone and zone != central_admin_zone:
+            continue
         date = em_obj.creation_date.strftime('%Y-%m-%d')
         extend_status = em_obj.extend_status
         if em_obj.extend_date:
@@ -8252,6 +8269,7 @@ def get_enquiry_orders(start_index, stop_index, temp_data, search_term, order_te
         else:
             days_left = 0
         temp_data['aaData'].append(OrderedDict((('Enquiry ID', enq_id), ('Sub Distributor', customer_name),
+                                                ('Distributor', distributor_name),
                                                 ('Customer Name', em_obj.corporate_name), ('Zone', zone),
                                                 ('Quantity', total_qty), ('Date', date),
                                                 ('Customer ID', em_obj.customer_id),
@@ -8634,6 +8652,7 @@ def save_manual_enquiry_image(request, user=''):
         resp['msg'] = "Please Select Image"
     return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
 
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -8657,4 +8676,43 @@ def request_manual_enquiry_approval(request, user=''):
         save_manual_enquiry_data(request)
     enq_data[0].status = status
     enq_data[0].save()
+    return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_cust_profile(request, user=''):
+    resp = {'message': 'success'}
+    logo = request.FILES.get('logo', '')
+    user_id = request.POST.get('user_id', '')
+    first_name = request.POST.get('first_name', '')
+    email = request.POST.get('email', '')
+    phone_number = request.POST.get('phone_number', '')
+    gst_number = request.POST.get('gst_number', '')
+    address = request.POST.get('address', '')
+    bank_details = request.POST.get('bank_details', '')
+
+    try:
+        exe_user_data = User.objects.filter(id=user_id)
+        exe_user_data[0].first_name = first_name
+        exe_user_data[0].email = email
+        exe_user_data[0].save()
+
+        filters = {'user_id': user_id}
+        exe_data = UserProfile.objects.filter(**filters)
+        if exe_data:
+            exe_data = exe_data[0]
+            exe_data.phone_number = phone_number
+            exe_data.gst_number = gst_number
+            exe_data.address = address
+            exe_data.bank_details = bank_details
+            if logo:
+                exe_data.customer_logo = logo
+            exe_data.save()
+    except Exception as e:
+        import traceback
+        log.info("Error Occurred while updating the Customer Profile data: %s" %traceback.format_exc())
+        resp = {'message': 'fail'}
+
     return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))

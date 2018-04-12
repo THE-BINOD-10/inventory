@@ -3176,6 +3176,7 @@ def insert_order_data(request, user=''):
     is_sample = request.POST.get('is_sample', '')
     invoice_type = request.POST.get('invoice_type', '')
     sample_client_name = request.POST.get('sample_client_name', '')
+    mode_of_transport = request.POST.get('mode_of_transport','')
     dist_shipment_address = request.POST.get('manual_shipment_addr', '')
     if dist_shipment_address:
         ship_to = dist_shipment_address
@@ -3227,9 +3228,9 @@ def insert_order_data(request, user=''):
 
             if not order_data['sku_id'] or not order_data['quantity']:
                 continue
-
             order_summary_dict['invoice_type'] = invoice_type
             order_summary_dict['client_name'] = sample_client_name
+            order_summary_dict['mode_of_transport'] = mode_of_transport
             if admin_user:
                 if user_type == 'customer':
                     order_data = get_order_customer_details(order_data, request)
@@ -3330,6 +3331,8 @@ def insert_order_data(request, user=''):
                         order_data.pop('del_date')
                     if 'sample_client_name' in order_data:
                         order_data.pop('sample_client_name')
+                    if 'mode_of_transport' in order_data:
+                        order_data.pop('mode_of_transport')
                     order_detail = OrderDetail(**order_data)
                     order_detail.save()
                     created_order_objs.append(order_detail)
@@ -5519,8 +5522,9 @@ def create_orders_data(request, user=''):
     tax_types = copy.deepcopy(TAX_VALUES)
     tax_types.append({'tax_name': 'DEFAULT', 'tax_value': ''})
     invoice_types = get_invoice_types(user)
+    mode_of_transport = ['By Air', 'By Road', 'By Train']
     return HttpResponse(json.dumps({'payment_mode': PAYMENT_MODES, 'taxes': tax_types,
-                                    'invoice_types': invoice_types}))
+                                    'invoice_types': invoice_types, 'mode_of_transport': mode_of_transport }))
 
 
 @csrf_exempt

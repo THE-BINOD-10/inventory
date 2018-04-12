@@ -1285,6 +1285,7 @@ class CustomerOrderSummary(models.Model):
     utgst_tax = models.FloatField(default=0)
     invoice_type = models.CharField(max_length=64, default='Tax Invoice')
     client_name = models.CharField(max_length=64, default='')
+    mode_of_transport = models.CharField(max_length=24, default='')
 
     class Meta:
         db_table = 'CUSTOMER_ORDER_SUMMARY'

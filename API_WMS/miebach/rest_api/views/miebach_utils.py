@@ -9,6 +9,7 @@ import re
 from miebach_admin.models import *
 from itertools import chain
 from operator import itemgetter
+from django.db.models import Q, F
 
 # from inbound import *
 
@@ -177,7 +178,7 @@ MOVE_INVENTORY_UPLOAD_FIELDS = ['WMS Code', 'Source Location', 'Destination Loca
 
 SUPPLIER_HEADERS = ['Supplier Id', 'Supplier Name', 'Address', 'Email', 'Phone No.', 'GSTIN Number', 'PAN Number',
                     'PIN Code',
-                    'City', 'State', 'Country']
+                    'City', 'State', 'Country', 'Days required to supply', 'Fulfillment Amount', 'Credibility']
 
 VENDOR_HEADERS = ['Vendor Id', 'Vendor Name', 'Address', 'Email', 'Phone No.']
 
@@ -1261,7 +1262,8 @@ DIST_CUSTOMER_INVOICE_HEADERS = ['Gen Order Id', 'Order Ids', 'Customer Name', '
 
 SUPPLIER_EXCEL_FIELDS = OrderedDict((('id', 0), ('name', 1), ('address', 2), ('email_id', 3), ('phone_number', 4),
                                      ('tin_number', 5), ('pan_number', 6), ('pincode', 7), ('city', 8), ('state', 9),
-                                     ('country', 10)
+                                     ('country', 10), ('days_to_supply', 11), ('fulfillment_amt', 12),
+                                     ('credibility', 13)
                                      ))
 STATUS_DICT = {1: True, 0: False}
 
@@ -1316,7 +1318,8 @@ ORDER_ID_AWB_MAP_EXCEL_HEADERS = ['Order ID', 'AWB No', 'Courier Name', 'Marketp
 ORDER_ID_AWB_EXCEL_MAPPING = OrderedDict((('order_id', 0), ('awb_no', 1), ('courier_name', 2), ('marketplace', 3)))
 
 # Company logo names
-COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg', 'Subhas_Publishing': 'book_publications.png', 'sm_admin': 'sm-brand.jpg'}
+COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg', 'Subhas_Publishing': 'book_publications.png', 'sm_admin': 'sm-brand.jpg',
+                        'corp_attire': 'corp_attire.jpg'}
 
 # Configurtions Mapping
 REMAINDER_MAIL_ALERTS = OrderedDict((('po_remainder', 'PO Remainder'),))
@@ -2395,8 +2398,11 @@ def get_order_summary_data(search_params, user, sub_user):
                                             reserved_quantity=0).values_list('order__order_id', flat=True).distinct()
 
     order_ids = OrderDetail.objects.filter(status=1, user=user.id).values_list('order_id', flat=True).distinct()
-    partial_generated = Picklist.objects.filter(order__user=user.id, order__order_id__in=order_ids).values_list(
-        'order__order_id', flat=True).distinct()
+    pos_order_ids = OrderDetail.objects.filter(Q(order_code__icontains="PRE")|
+                    Q(order_code__icontains="DC"), user=user.id, status=1).values_list('order_id', flat=True).distinct()
+    partial_generated = Picklist.objects.filter(order__user=user.id, order__order_id__in=order_ids)\
+                                .exclude(order__order_id__in=pos_order_ids).values_list(\
+                                'order__order_id', flat=True).distinct()
     dispatched = OrderDetail.objects.filter(status=2, user=user.id).values_list('order_id', flat=True).distinct()
     reschedule_cancelled = OrderDetail.objects.filter(status=5, user=user.id).values_list('order_id',
                                                                                           flat=True).distinct()

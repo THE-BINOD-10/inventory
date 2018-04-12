@@ -251,38 +251,44 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
   vm.sku_group_data = {};
   vm.update_sku_levels = function(data, row){
 
-    var total_quantity = vm.get_total_sku_level_quantity(data, row);
-
-    if(!vm.sku_group_data[row.sku_id]) {
-      vm.sku_group_data[row.sku_id] = {sku_code: row.sku_id, quantity: total_quantity}
-    } else {
-      vm.sku_group_data[row.sku_id].quantity = total_quantity;
-    }
-    var count = 0;
-    var amount = 0;
-    var total_amount = 0;
+    var total_price = 0;
     vm.sel_styles = {};
     angular.forEach(data, function(record){
       vm.add_quantities(record);
     });
-
+    
     angular.forEach(data, function(record) {
-
-      if (row.sku_id == record.sku_id) {
-
-        count += record.quantity;
-        amount += record.price;
-        total_amount += record.invoice_amount;
-      }
 
       if (vm.sel_styles[record.sku_style]) {
         
         vm.priceRangesCheck(record, Number(vm.sel_styles[record.sku_style]));
       }
 
+      if(vm.sku_group_data[record.sku_id] && vm.sku_group_data[record.sku_id][record.level_name] != record.level_name) {
+        vm.sku_group_data[record.sku_id].quantity += record.quantity;
+        vm.sku_group_data[record.sku_id].add_sku_total_price += (record.price * record.quantity);
+      } else {
+        vm.sku_group_data[record.sku_id] = {'sku_code': record.sku_id, 'quantity': record.quantity};
+        vm.sku_group_data[record.sku_id][record.level_name] = record.level_name;
+        vm.sku_group_data[record.sku_id].add_sku_total_price = (record.price * record.quantity);
+      }
+      vm.sku_group_data[record.sku_id].sku_style = record.sku_style;
     });
-    vm.sku_group_data[row.sku_id].effective_landing_price = total_amount/count;
-    vm.sku_group_data[row.sku_id].total_amount = total_amount;
+
+    angular.forEach(data, function(record) {
+      if(record.sku_id){
+        total_price = vm.sku_group_data[record.sku_id].add_sku_total_price;
+
+        if (vm.sku_group_data[record.sku_id].sku_style == record.sku_style) {
+          total_price += (record.price * record.quantity);
+          vm.sel_styles[record.sku_style] = vm.sku_group_data[record.sku_id].quantity + record.quantity;
+        }
+
+        vm.sku_group_data[record.sku_id].effective_landing_price = total_price / vm.sel_styles[record.sku_style];
+        vm.sku_group_data[record.sku_id].total_amount = (vm.sku_group_data[record.sku_id].quantity * 
+                                                        vm.sku_group_data[record.sku_id].effective_landing_price);
+      }
+    });
   }
 
   vm.priceRangesCheck = function(record, quantity){

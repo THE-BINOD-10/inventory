@@ -458,7 +458,8 @@ SKU_HEADERS = ['WMS Code', 'SKU Description', 'Product Type', 'SKU Group', 'SKU 
                'SKU Class', 'SKU Brand', 'Style Name', 'SKU Size', 'Size Type', 'Put Zone', 'Cost Price', 'Selling Price',
                'MRP Price', 'Sequence', 'Image Url',
                'Threshold Quantity', 'Measurment Type', 'Sale Through', 'Color', 'EAN Number',
-               'Load Unit Handling(Options: Enable, Disable)', 'HSN Code', 'Sub Category', 'Hot Release', 'Status']
+               'Load Unit Handling(Options: Enable, Disable)', 'HSN Code', 'Sub Category', 'Hot Release',
+               'Mix SKU Attribute(Options: No Mix, Mix within Group)', 'Status']
 
 MARKET_USER_SKU_HEADERS = ['WMS Code', 'SKU Description', 'Product Type', 'SKU Group', 'SKU Type(Options: FG, RM)',
                            'SKU Category',
@@ -759,9 +760,10 @@ SKU_COMMON_MAPPING = OrderedDict((('WMS Code', 'wms_code'), ('SKU Description', 
                                   ('Color', 'color'), ('EAN Number', 'ean_number'),
                                   ('Load Unit Handling(Options: Enable, Disable)', 'load_unit_handle'),
                                   ('HSN Code', 'hsn_code'), ('Sub Category', 'sub_category'),
-                                  ('Hot Release', 'hot_release'), ('Status', 'status'),
-                                  ('Mix SKU Attribute(Options: No Mix, Mix within Group)', 'mix_sku')
-                                  ))
+                                  ('Hot Release', 'hot_release'),
+                                  ('Mix SKU Attribute(Options: No Mix, Mix within Group)', 'mix_sku'),
+                                  ('Status', 'status'),
+                                ))
 
 SKU_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('product_type', 2), ('sku_group', 3), ('sku_type', 4),
                              ('sku_category', 5), ('primary_category', 6), ('sku_class', 7), ('sku_brand', 8),
@@ -771,7 +773,7 @@ SKU_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('product_type', 
                              ('measurement_type', 19),
                              ('sale_through', 20), ('color', 21), ('ean_number', 22), ('load_unit_handle', 23),
                              ('hsn_code', 24),
-                             ('sub_category', 25), ('hot_release', 26), ('status', 27)
+                             ('sub_category', 25), ('hot_release', 26), ('mix_sku', 27), ('status', 28)
                              ))
 
 MARKETPLACE_SKU_DEF_EXCEL = OrderedDict(
@@ -1197,10 +1199,10 @@ NETWORK_MASTER_DATA = {'dest_location_code': '', 'source_location_code': '',
 SELLER_DATA = {'name': '', 'address': '', 'phone_number': '',
                'email_id': '', 'status': 1, 'price_type': '', 'margin': 0}
 
-USER_SKU_EXCEL = {'warehouse_user': SKU_HEADERS, 'marketplace_user': MARKET_USER_SKU_HEADERS,
+USER_SKU_EXCEL = {'warehouse_user': SKU_HEADERS, 'marketplace_user': SKU_HEADERS,
                   'customer': SKU_HEADERS, 'WH': RESTRICTED_SKU_HEADERS, 'DIST': RESTRICTED_SKU_HEADERS}
 
-USER_SKU_EXCEL_MAPPING = {'warehouse_user': SKU_DEF_EXCEL, 'marketplace_user': MARKETPLACE_SKU_DEF_EXCEL,
+USER_SKU_EXCEL_MAPPING = {'warehouse_user': SKU_DEF_EXCEL, 'marketplace_user': SKU_DEF_EXCEL,
                           'customer': SKU_DEF_EXCEL}
 
 MIX_SKU_MAPPING = {'no mix': 'no_mix', 'mix within group': 'mix_group'}

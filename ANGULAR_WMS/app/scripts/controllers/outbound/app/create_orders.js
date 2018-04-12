@@ -772,6 +772,16 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     }
   }
 
+  vm.checkSubcategoryFilter = function(primary_cat, sub) {
+
+    if(!vm.filterData.selectedCats[primary_cat]) {
+
+      angular.forEach(vm.filterData.subCats[primary_cat], function(value ,sub_cat){
+        vm.filterData.subCats[primary_cat][sub_cat] = false;
+      })
+    }
+  }
+
   vm.clearFilterData = function() {
 
     angular.forEach(vm.filterData.size_filter, function(value, key) {

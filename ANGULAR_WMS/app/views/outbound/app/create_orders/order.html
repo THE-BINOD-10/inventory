@@ -33,7 +33,7 @@ input[type="date"]:valid::before {
     </div>
     <div class="col-md-4 col-sm-4 hidden-xs" align="center">
       <!-- <h4 align="center">MY ORDERS</h4> -->
-      <img ng-src="/static/company_logos/{{showCase.client_logo}}" ng-if="showCase.client_logo" style="height: 43px;"/>
+      <img ng-src="{{showCase.api_url}}static/company_logos/{{showCase.client_logo}}" ng-if="showCase.client_logo" style="height: 43px;"/>
     </div>
     <div class="col-md-4 col-sm-6 col-xs-4">
       <div class="btn-group pull-right" role="group">

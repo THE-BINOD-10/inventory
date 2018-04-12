@@ -9,6 +9,7 @@ import re
 from miebach_admin.models import *
 from itertools import chain
 from operator import itemgetter
+from django.db.models import Q, F
 
 # from inbound import *
 
@@ -2396,8 +2397,11 @@ def get_order_summary_data(search_params, user, sub_user):
                                             reserved_quantity=0).values_list('order__order_id', flat=True).distinct()
 
     order_ids = OrderDetail.objects.filter(status=1, user=user.id).values_list('order_id', flat=True).distinct()
-    partial_generated = Picklist.objects.filter(order__user=user.id, order__order_id__in=order_ids).values_list(
-        'order__order_id', flat=True).distinct()
+    pos_order_ids = OrderDetail.objects.filter(Q(order_code__icontains="PRE")|
+                    Q(order_code__icontains="DC"), user=user.id, status=1).values_list('order_id', flat=True).distinct()
+    partial_generated = Picklist.objects.filter(order__user=user.id, order__order_id__in=order_ids)\
+                                .exclude(order__order_id__in=pos_order_ids).values_list(\
+                                'order__order_id', flat=True).distinct()
     dispatched = OrderDetail.objects.filter(status=2, user=user.id).values_list('order_id', flat=True).distinct()
     reschedule_cancelled = OrderDetail.objects.filter(status=5, user=user.id).values_list('order_id',
                                                                                           flat=True).distinct()

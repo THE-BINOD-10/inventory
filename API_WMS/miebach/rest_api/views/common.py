@@ -4515,7 +4515,6 @@ def get_invoice_html_data(invoice_data):
     data['empty_tds'] = [i for i in range(data['columns'])]
     return data
 
-
 def build_invoice(invoice_data, user, css=False):
     # it will create invoice template
     user_profile = UserProfile.objects.get(user_id=user.id)
@@ -4539,7 +4538,7 @@ def build_invoice(invoice_data, user, css=False):
         invoice_data['perm_hsn_summary'] = 'false'
     invoice_data['empty_tds'] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
-    inv_height = 1358  # total invoice height
+    inv_height = 1200  # total invoice height
     inv_details = 317  # invoice details height
     inv_footer = 95  # invoice footer height
     inv_totals = 127  # invoice totals height
@@ -4613,7 +4612,10 @@ def build_invoice(invoice_data, user, css=False):
     else:
         temp = invoice_data['data']
         invoice_data['data'] = []
-        empty_data = [""] * (no_of_skus - data_length)
+        no_of_space = no_of_skus - (2)*data_length
+        if no_of_space < 0:
+            no_of_space = 0
+        empty_data = [""] * (no_of_space)
         invoice_data['data'].append({'data': temp, 'empty_data': empty_data})
     top = ''
     if css:

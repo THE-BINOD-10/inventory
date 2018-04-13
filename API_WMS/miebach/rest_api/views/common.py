@@ -4527,10 +4527,8 @@ def get_invoice_html_data(invoice_data):
 def build_invoice(invoice_data, user, css=False):
     # it will create invoice template
     user_profile = UserProfile.objects.get(user_id=user.id)
-    top_logo_users = ['konda_foundation', 'demo']
     if not (not invoice_data['detailed_invoice'] and invoice_data['is_gst_invoice']):
         return json.dumps(invoice_data, cls=DjangoJSONEncoder)
-
     titles = ['']
     import math
     if not (invoice_data.get("customer_invoice", "") == True):
@@ -4538,16 +4536,13 @@ def build_invoice(invoice_data, user, css=False):
         if not title_dat == 'false':
             titles = title_dat.split(",")
     invoice_data['html_data'] = get_invoice_html_data(invoice_data)
-
     invoice_data['user_type'] = user_profile.user_type
-
     invoice_data['titles'] = titles
     perm_hsn_summary = get_misc_value('hsn_summary', user.id)
     invoice_data['perm_hsn_summary'] = str(perm_hsn_summary)
     if len(invoice_data['hsn_summary'].keys()) == 0:
         invoice_data['perm_hsn_summary'] = 'false'
     invoice_data['empty_tds'] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-
     inv_height = 1200  # total invoice height
     inv_details = 317  # invoice details height
     inv_footer = 95  # invoice footer height
@@ -4557,9 +4552,7 @@ def build_invoice(invoice_data, user, css=False):
     inv_summary = 47  # invoice summary headers height
     inv_total = 27  # total display height
     inv_charges = 20  # height of other charges
-
     inv_totals = inv_totals + len(invoice_data['order_charges']) * inv_charges
-
     '''
     if invoice_data['user_type'] == 'marketplace_user':
         inv_details = 142
@@ -4584,12 +4577,12 @@ def build_invoice(invoice_data, user, css=False):
         render_space = inv_height - (inv_details + inv_footer + inv_totals + inv_header + inv_total)
     no_of_skus = int(render_space / inv_product)
     data_length = len(invoice_data['data'])
-    
+    '''
     if user.username in top_logo_users:
         no_of_skus -= 2
     if data_length == 1:
         no_of_skus += 2
-
+    '''
     invoice_data['empty_data'] = []
     if (data_length > no_of_skus):
 
@@ -4628,10 +4621,10 @@ def build_invoice(invoice_data, user, css=False):
     else:
         temp = invoice_data['data']
         invoice_data['data'] = []
-        no_of_space = no_of_skus - (2)*data_length
+        no_of_space = (13 - data_length)
         if no_of_space < 0:
             no_of_space = 0
-        empty_data = [""] * (no_of_space)
+        empty_data = [""] * no_of_space
         invoice_data['data'].append({'data': temp, 'empty_data': empty_data})
     top = ''
     if css:

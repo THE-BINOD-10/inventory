@@ -2630,10 +2630,15 @@ def get_sku_categories_data(request, user, request_data={}, is_catalog=''):
     primary_details = {'data': {}}
     primary_details['primary_categories'] = list(sku_master.exclude(primary_category='').filter(**filter_params). \
                                                  values_list('primary_category', flat=True).distinct())
-
+    primary_details['sub_category_list'] = {}
     for primary in primary_details['primary_categories']:
-        primary_details['data'][primary] = list(sku_master.exclude(sku_category='').filter(primary_category=primary). \
-                                                values_list('sku_category', flat=True).distinct())
+        primary_filtered = sku_master.exclude(sku_category='').filter(primary_category=primary).\
+                                    values_list('sku_category', flat=True).distinct()
+        primary_details['data'][primary] = list(primary_filtered)
+        for primary_filt in primary_filtered:
+            primary_details['sub_category_list'][primary_filt] = list(sku_master.\
+                                            filter(sku_category=primary_filt).exclude(sub_category='').\
+                                            values_list('sub_category', flat=True).distinct())
     _sizes = {}
     integer = []
     character = []

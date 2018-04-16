@@ -2322,11 +2322,6 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     invoice_date = datetime.datetime.now()
     order_reference_date_field = ''
     order_charges = ''
-    top_logo_users = ['konda_foundation', 'demo']
-    if user.username in top_logo_users:
-        top_logo = True
-    else:
-        top_logo = False
 
     # Getting the values from database
     user_profile = UserProfile.objects.get(user_id=user.id)
@@ -2574,6 +2569,10 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     # _invoice_no =  'TI/%s/%s' %(datetime.datetime.now().strftime('%m%y'), order_no)
 
     image = get_company_logo(user)
+    if image:
+	top_logo = True
+    else:
+	top_logo = False
     declaration = DECLARATIONS.get(user.username, '')
     if not declaration:
         declaration = DECLARATIONS['default']

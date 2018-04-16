@@ -41,23 +41,27 @@
             <div class="filter-box ml10" ng-if="value_list.length > 0 && showCase.filterData.selectedCats[key]">
               <div class="box-header"></div>
               <div class="box-body">
-                <span>
+                <div>
                   <input type="checkbox" ng-model="showCase.filterData.subCats[key]['All']" ng-change="showCase.checkFilters('All', showCase.filterData.subCats[key], key)">
                   All</br>
-                </span>
-                <span ng-repeat="value in value_list">
+                </div>
+                <div ng-repeat="value in value_list">
+                  <span>
                   <input type="checkbox" ng-model="showCase.filterData.subCats[key][value]" ng-change="showCase.checkSubcategoryFilter(key, value)">
                   {{value}}</br>
-                </span>
-                <div class="filter-box ml10" ng-if="showCase.filterData.primary_details.sub_category_list[value].length > 0">
-                  <div class="box-header"></div>
-                  <div class="box-body">
-                    <span ng-repeat="lastCat in showCase.filterData.primary_details.sub_category_list[value]">
-                      <input type="checkbox" ng-model="showCase.filterData.subCats[key][value][lastCat]" ng-change="showCase.checkFilters(lastCat, showCase.filterData.subCats[key][value], key)">
-                      {{lastCat}}</br>
-                    </span>
+                  </span>
+
+                  <div class="filter-box ml10" ng-if="showCase.filterData.primary_details.sub_category_list[value].length > 0 && showCase.filterData.subCats[key][value]">
+                    <div class="box-header"></div>
+                    <div class="box-body">
+                      <span ng-repeat="lastCat in showCase.filterData.primary_details.sub_category_list[value]">
+                        <input type="checkbox" ng-model="showCase.filterData.leastCats[key][lastCat]">
+                        {{lastCat}}</br>
+                      </span>
+                    </div>
                   </div>
                 </div>
+
                 <!-- <div class="filter-box ml10" ng-if="showCase.filterData.primary_details.sub_category_list[value].length > 0 && showCase.filterData.selectedCats[key][value]">
                   <div class="box-header"></div>
                   <div class="box-body">

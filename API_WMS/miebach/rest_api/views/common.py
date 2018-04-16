@@ -2757,10 +2757,10 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     # from rest_api.views.outbound import get_style_variants
     filter_params = {'user': user.id}
     # get_values = ['wms_code', 'sku_desc', 'image_url', 'sku_class', 'price', 'mrp', 'id', 'sku_category', 'sku_brand', 'sku_size', 'style_name', 'sale_through']
-    sku_category = request_data.get('category', '')
     sku_class = request_data.get('sku_class', '')
     sku_brand = request_data.get('brand', '')
     sku_category = request_data.get('category', '')
+    sub_category = request_data.get('sub_category', '')
     from_price = request_data.get('from_price', '')
     to_price = request_data.get('to_price', '')
     color = request_data.get('color', '')
@@ -2841,6 +2841,9 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     if sku_category and sku_category.lower() != 'all':
         filter_params['sku_category__in'] = [i.strip() for i in sku_category.split(",") if i]
         filter_params1['sku__sku_category__in'] = filter_params['sku_category__in']
+    if sub_category and sub_category.lower() != 'all':
+        filter_params['sub_category__in'] = [i.strip() for i in sub_category.split(",") if i]
+        filter_params1['sku__sub_category__in'] = filter_params['sub_category__in']
     if is_catalog:
         filter_params['status'] = 1
         filter_params1['sku__status'] = 1

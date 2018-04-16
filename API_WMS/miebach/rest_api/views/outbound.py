@@ -1405,7 +1405,7 @@ def create_intransit_order(auto_skus, user, sku_qty_map):
     intr_data = {'user': user.id, 'customer_id': user.id, 'intr_order_id': get_intr_order_id(user.id), 'status': 1}
     for sku in sku_objs:
         intr_data['sku'] = sku
-        quantity, price = sku_qty_map.get(sku.sku_code, 0)
+        quantity, price = sku_qty_map.get(sku.sku_code, (0, 0))
         if quantity:
             intr_data['quantity'] = quantity
         else:
@@ -1646,12 +1646,16 @@ def picklist_confirmation(request, user=''):
 
         if get_misc_value('auto_po_switch', user.id) == 'true' and auto_skus:
             auto_skus = list(set(auto_skus))
-            reaches_order_val, sku_qty_map = check_req_min_order_val(user, auto_skus)
-            if reaches_order_val:
-                auto_po(auto_skus, user.id)
-                delete_intransit_orders(auto_skus, user)  # deleting intransit order after creating actual order.
+            price_band_flag = get_misc_value('priceband_sync', user.id)
+            if price_band_flag == 'true':
+                reaches_order_val, sku_qty_map = check_req_min_order_val(user, auto_skus)
+                if reaches_order_val:
+                    auto_po(auto_skus, user.id)
+                    delete_intransit_orders(auto_skus, user)  # deleting intransit order after creating actual order.
+                else:
+                    create_intransit_order(auto_skus, user, sku_qty_map)
             else:
-                create_intransit_order(auto_skus, user, sku_qty_map)
+                auto_po(auto_skus, user.id)
 
         detailed_invoice = get_misc_value('detailed_invoice', user.id)
         if (detailed_invoice == 'false' and picklist.order and picklist.order.marketplace == "Offline"):
@@ -5991,6 +5995,7 @@ def update_order_data(request, user=""):
         order_creation_date = datetime.datetime.now()
         tax_type = 2
         tax_name = request.POST.get('tax_type', '')
+        client_name = request.POST.get('client_name', '')
         if tax_name == 'intra_state':
             tax_type = 0
         elif tax_name == 'inter_state':
@@ -6071,6 +6076,7 @@ def update_order_data(request, user=""):
                 status_obj.discount = discount
                 status_obj.tax_type = tax_type
                 status_obj.invoice_type = myDict['invoice_type'][0]
+                status_obj.client_name = client_name
                 status_obj.save()
 
                 vendor_list = ['printing_vendor', 'embroidery_vendor', 'production_unit']

@@ -1154,7 +1154,7 @@ def get_auto_po_quantity(sku, stock_quantity=''):
 
 def auto_po_warehouses(sku, qty):
     supplier_id = ''
-    price = ''
+    price = 0
     taxes = {}
     wh_customer_map = WarehouseCustomerMapping.objects.filter(warehouse_id=sku.user)
     if not wh_customer_map:

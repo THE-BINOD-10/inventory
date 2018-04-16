@@ -72,14 +72,14 @@
             </div>
             <div class="col-md-4">
                <div class="form-group">
-                 <label class="control-label"> City </label>
-                 <input type="text" name="city" class="form-control" ng-model="showCase.model_data.city" maxlength="64">
+                 <label class="control-label"> City <span ng-if="showCase.priceband_sync='true'">*</span></label>
+                 <input type="text" name="city" class="form-control" ng-model="showCase.model_data.city" maxlength="64" ng-required="showCase.priceband_sync='true'">
                </div>
             </div>
             <div class="col-md-4">
                <div class="form-group">
-                 <label class="control-label"> State </label>
-                 <input type="text" name="state" class="form-control" ng-model="showCase.model_data.state" maxlength="64">
+                 <label class="control-label"> State <span ng-if="showCase.priceband_sync='true'">*</span></label>
+                 <input type="text" name="state" class="form-control" ng-model="showCase.model_data.state" maxlength="64" ng-required="showCase.priceband_sync='true'">
                </div>
             </div>
             <div class="col-md-4">
@@ -90,8 +90,8 @@
             </div>
             <div class="col-md-4">
                <div class="form-group">
-                 <label class="control-label"> PIN Code </label>
-                 <input type="text" name="pincode" class="form-control" ng-model="showCase.model_data.pincode" maxlength="10">
+                 <label class="control-label"> PIN Code <span ng-if="showCase.priceband_sync='true'">*</span></label>
+                 <input type="text" name="pincode" class="form-control" ng-model="showCase.model_data.pincode" maxlength="10" ng-required="showCase.priceband_sync='true'">
                </div>
             </div>
             <div class="col-md-4">

@@ -242,12 +242,12 @@ function dashboardCtrl($scope, $state, $http, $interval, COLORS, Session, $timeo
       $interval.cancel($scope.interval);
     }
 
-    $scope.interval = $interval(function() {
+    /*$scope.interval = $interval(function() {
       console.log(new Date(), $scope.display_level);
       if($state.current.name == "app.dashboard") {
         $scope.update_dashboard();
       }
-    }, 60000);
+    }, 60000);*/
   }
 
   $scope.d_data = {}

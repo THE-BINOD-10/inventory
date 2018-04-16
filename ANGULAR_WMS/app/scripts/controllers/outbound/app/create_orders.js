@@ -719,9 +719,13 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     });
 
     var temp_sub_cat_data = [];
-    angular.forEach(vm.filterData.leastCats, function(val, key){
-      temp_sub_cat_data.push(key);
-    })
+    angular.forEach(vm.filterData.selectedCats, function(value, key) {
+      if (value) {
+        angular.forEach(vm.filterData.leastCats[key], function(val, key){
+          temp_sub_cat_data.push(key);
+        });
+      }
+    });
 
     angular.forEach(vm.filterData.selectedColors, function(value, key) {
       if (value) {

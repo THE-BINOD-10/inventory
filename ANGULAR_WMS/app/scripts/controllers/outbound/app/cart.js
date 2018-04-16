@@ -11,7 +11,6 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
   angular.copy(empty_data, vm.model_data);
   vm.date = new Date();
   vm.user_type = Session.roles.permissions.user_type;
-  vm.show_client_details = Session.roles.permissions.create_order_po;
   vm.deliver_address = ['Distributor Address'];
   vm.checked_address = vm.deliver_address[0];
   vm.shipment_addr = 'default';

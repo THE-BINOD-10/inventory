@@ -55,18 +55,22 @@ def process_date(value):
 
 
 def get_company_logo(user):
+    top = False
+    side = False
     import base64
     try:
         if user.username != 'Konda_foundation':
             logo_name = COMPANY_LOGO_PATHS.get(user.username, '')
+            side = True
         else:
             logo_name = TOP_COMPANY_LOGO_PATHS.get(user.username, '')
+            top = True
         logo_path = 'static/company_logos/' + logo_name
         with open(logo_path, "rb") as image_file:
             image = base64.b64encode(image_file.read())
     except:
         image = ""
-    return image
+    return image, top, side
 
 
 def get_decimal_value(user_id):
@@ -2568,7 +2572,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     _total_invoice = round(total_invoice_amount)
     # _invoice_no =  'TI/%s/%s' %(datetime.datetime.now().strftime('%m%y'), order_no)
 
-    image = get_company_logo(user)
+    image, top, side = get_company_logo(user)
     if image:
 	top_logo = True
     else:
@@ -2602,6 +2606,8 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'is_gst_invoice': is_gst_invoice,
                     'gstin_no': gstin_no, 'total_taxable_amt': total_taxable_amt, 'total_taxes': total_taxes,
                     'image': image,
+                    'top' : top,
+                    'side' : side,
                     'top_logo': top_logo,
                     'total_tax_words': number_in_words(_total_tax), 'declaration': declaration,
                     'hsn_summary': hsn_summary,

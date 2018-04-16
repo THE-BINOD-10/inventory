@@ -1,4 +1,4 @@
-              {% if top_logo == True and image %}
+              {% if top_logo == True and image and top %}
               <div class="col-md-4">&nbsp;</div>
               <div class="col-md-4 mb5" align="center">
                   <img src="data:image/jpg;base64, {{image}}" style="width:299.98px"/>
@@ -18,12 +18,12 @@
                     <td style="width: 50%">
                       <div class="row m0" style="height: 105px;overflow: hidden;">
                         <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
-                          {% if top_logo == False and image %}
+                          {% if top_logo == True and image and side %}
                           <div class="col-md-2 col-sm-2 col-xs-2 padding-none fs10 p0">
                             <img src="data:image/jpg;base64, {{image}}" style="width:100%;padding-right:2px;"/>
                           </div>
                           {% endif %}
-                          {% if top_logo == False and image %}
+                          {% if top_logo == True and image and side %}
                           <div class="col-md-10 col-sm-10 col-xs-10 fs14 p0">
                           {% else %}
                           <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">

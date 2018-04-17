@@ -10,7 +10,7 @@ django.setup()
 from miebach_admin.models import *
 from rest_api.views.common import *
 from rest_api.views.utils import *
-log = init_logger('logs/integrations.log')
+log = init_logger('logs/qssi_stock_check.log')
 
 def update_inventory(company_name):
     integration_users = Integrations.objects.filter(name = company_name).values_list('user', flat=True)

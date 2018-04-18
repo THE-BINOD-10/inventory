@@ -3384,7 +3384,7 @@ def insert_order_data(request, user=''):
                     OrderPOMapping.objects.create(order_id=order_data['original_order_id'], sku_id=order_data['sku_id'],
                                                   purchase_order_id=po_number.split('_')[-1], status=1,
                                                   creation_date=datetime.datetime.now())
-                other_charge_amounts = construct_other_charge_amounts_map(created_order_id, myDict,
+        other_charge_amounts = construct_other_charge_amounts_map(created_order_id, myDict,
                                                                           datetime.datetime.now(), other_charge_amounts,
                                                                           user)
         if generic_order_id:

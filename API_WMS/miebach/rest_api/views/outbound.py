@@ -1147,9 +1147,13 @@ def send_picklist_mail(picklists, request, user, pdf_file, misc_detail, data_qt=
     picklist = picklists[0]
 
     user_data = UserProfile.objects.get(user_id=user.id);
+    client_name = ''
+    if picklist.order:
+        client_name = picklist.order.customerordersummary_set.values_list('client_name', flat=True)[0]
     data_dict = {'customer_name': picklist.order.customer_name, 'order_id': picklist.order.order_id,
                  'address': picklist.order.address, 'phone_number': picklist.order.telephone, 'all_items': items,
-                 'headers': headers, 'query_contact': user_data.phone_number, 'company_name': user_data.company_name}
+                 'headers': headers, 'query_contact': user_data.phone_number,
+                 'company_name': user_data.company_name, 'client_name': client_name}
 
     t = loader.get_template('templates/dispatch_mail.html')
     rendered = t.render(data_dict)
@@ -3102,7 +3106,7 @@ def send_mail_ordered_report(order_detail, telephone, items, other_charge_amount
         headers = ['Product Details', 'Ordered Quantity', 'Total']
         data_dict = {'customer_name': order_data['customer_name'], 'order_id': order_detail.order_id,
                      'address': order_data['address'], 'phone_number': order_data['telephone'], 'items': items,
-                     'headers': headers, 'company_name': company_name, 'user': user}
+                     'headers': headers, 'company_name': company_name, 'user': user, 'client_name': order_data['client_name']}
 
         t = loader.get_template('templates/order_confirmation.html')
         rendered = t.render(data_dict)
@@ -3398,6 +3402,7 @@ def insert_order_data(request, user=''):
 
     try:
         if not admin_user:
+            order_data['client_name'] = sample_client_name
             send_mail_ordered_report(order_detail, telephone, items, other_charge_amounts, order_data, user)
     except Exception as e:
         import traceback

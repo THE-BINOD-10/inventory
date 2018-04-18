@@ -1566,11 +1566,14 @@ def get_location_stock_data(search_params, user, sub_user):
         stock_detail = stock_detail[start_index:stop_index]
 
     for data in stock_detail:
+        ean_num = data.sku.ean_number
+        if not ean_num:
+            ean_num = ''
         results_data['aaData'].append(OrderedDict((('SKU Code', data.sku.sku_code), ('WMS Code', data.sku.wms_code),
                                                    ('Product Description', data.sku.sku_desc),
                                                    ('Zone', data.location.zone.zone),
                                                    ('Location', data.location.location), ('Quantity', data.quantity),
-                                                   ('Receipt Number', data.receipt_number), ('EAN', str(data.sku.ean_number)),
+                                                   ('Receipt Number', data.receipt_number), ('EAN', str(ean_num)),
                                                    ('Receipt Date', str(data.receipt_date).split('+')[0]))))
     return results_data, total_quantity
 

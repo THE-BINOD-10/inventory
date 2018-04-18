@@ -7,6 +7,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     var vm = this;
     vm.apply_filters = colFilters;
+
+
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
     vm.user_type = Session.roles.permissions.user_type;
@@ -74,4 +76,59 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         vm.display = true;
       }
     });
+
+    vm.edit_dc = function() {
+      var data = [];
+      angular.forEach(vm.selected, function(value, key) {
+        if(value) {
+          var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]['_aData'];
+          data.push(temp['id']);
+        }
+      });
+      var ids = data.join(",");
+      var send = {seller_summary_id: ids, data: true, edit_dc: true};
+      
+      vm.service.apiCall("generate_customer_invoice/", "GET", send).then(function(data){
+        
+        if (data.message) {
+          var mod_data = data.data;
+          var modalInstance = $modal.open({
+          templateUrl: 'views/outbound/customer_invoices/edit_delivery_challan.html',
+          controller: 'EditDeliveryChallan',
+          controllerAs: 'pop',
+          size: 'lg',
+          backdrop: 'static',
+          keyboard: false,
+          resolve: {
+            items: function () {
+              return mod_data;
+            }
+          }
+          });
+
+          modalInstance.result.then(function (selectedItem) {
+            var data = selectedItem;
+          })
+        }
+      });
+    }
 }
+
+function EditDeliveryChallan($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items) {
+
+  var vm = this;
+  vm.service = Service;
+  vm.permissions = Session.roles.permissions;
+  vm.priceband_sync = Session.roles.permissions.priceband_sync;
+
+  vm.model_data = items;
+
+  vm.ok = function () {
+    $modalInstance.close("close");
+  };
+
+}
+
+stockone = angular.module('urbanApp');
+
+stockone.controller('EditDeliveryChallan', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', EditDeliveryChallan]);

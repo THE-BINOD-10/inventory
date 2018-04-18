@@ -1339,7 +1339,15 @@ var app = angular.module('urbanApp')
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                   return $ocLazyLoad.load([
                     'scripts/controllers/outbound/customer_invoices.js'
-                  ])
+                  ]).then( function() {
+                    return $ocLazyLoad.load([
+                      'scripts/controllers/outbound/customer_invoices/delivery_challan.js'
+                    ])
+                  }).then( function() {
+                    return $ocLazyLoad.load([
+                      'scripts/controllers/outbound/customer_invoices/customer_invoices.js'
+                    ])
+                  });
               }]
           },
           data: {

@@ -4675,9 +4675,22 @@ def get_sku_variants(request, user=''):
                                 continue
                             location_id = location_master[0].id
                             if warehouse["WarehouseId"] == user.username:
+                                stock_dict = {}
                                 for item in warehouse["Result"]["InventoryStatus"]:
                                     sku_id = item["SKUId"]
-                                    inventory = item["Inventory"]
+                                    if sku_id[-3:]=="-TU":
+                                        sku_id = sku_id[:-3]
+                                        if sku_id in stock_dict:
+                                            stock_dict[sku_id] += int(item['Inventory'])
+                                        else:
+                                            stock_dict[sku_id] = int(item['Inventory'])
+                                    else:
+                                        if sku_id in stock_dict:
+                                            stock_dict[sku_id] += int(item['FG'])
+                                        else:
+                                            stock_dict[sku_id] = int(item['FG'])
+
+                                for sku_id, inventory in stock_dict.iteritems():
                                     sku = SKUMaster.objects.filter(user = user_id, sku_code = sku_id)
                                     if sku:
                                         sku = sku[0]

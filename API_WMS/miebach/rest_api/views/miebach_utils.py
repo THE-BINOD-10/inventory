@@ -217,7 +217,7 @@ MARKETPLACE_SKU_HEADERS = ['WMS Code', 'Flipkart SKU', 'Snapdeal SKU', 'Paytm SK
                            'Paytm Description', 'HomeShop18 Description', 'Jabong Description',
                            'Indiatimes Description', 'Amazon Description']
 
-PURCHASE_ORDER_HEADERS = ['PO Name', 'PO Date(MM-DD-YYYY)', 'Supplier ID', 'WMS SKU Code', 'Quantity', 'Price',
+PURCHASE_ORDER_HEADERS = ['PO Reference', 'PO Date(MM-DD-YYYY)', 'Supplier ID', 'WMS SKU Code', 'Quantity', 'Price',
                           'Ship TO']
 
 LOCK_FIELDS = ['', 'Inbound', 'Outbound', 'Inbound and Outbound']

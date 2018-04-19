@@ -197,11 +197,15 @@ def get_receive_po_datatable_filters(user, filters, request):
             search_params['id__in'] = list(chain(po_ids, stock_results, rw_results))
             search_params1['po_id__in'] = search_params['id__in']
     if filters['search_1']:
-        search_params['creation_date__regex'] = filters['search_1']
+        search_params['open_po__po_name__icontains'] = filters['search_1']
+        search_params1['po__open_po__po_name__icontains'] = filters['search_1']
+        search_params2['purchase_order__open_po__po_name__icontains'] = filters['search_1']
+    if filters['search_3']:
+        search_params['creation_date__regex'] = filters['search_3']
     if request.POST.get('style_view', '') == 'true':
-        supplier_search = 'search_9'
+        supplier_search = 'search_10'
     else:
-        supplier_search = 'search_8'
+        supplier_search = 'search_9'
     if filters[supplier_search]:
         search_params['open_po__supplier__id__icontains'] = filters[supplier_search]
         search_params1['open_st__warehouse__id__icontains'] = filters[supplier_search]
@@ -226,7 +230,8 @@ def get_receive_po_datatable_filters(user, filters, request):
 
 def get_filtered_purchase_order_ids(request, user, search_term, filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
-    purchase_order_list = ['open_po__supplier__id', 'open_po__supplier__name', 'order_id', 'creation_date']
+    purchase_order_list = ['open_po__supplier__id', 'open_po__supplier__name', 'order_id',
+                           'creation_date', 'open_po__po_name']
     st_purchase_list = ['open_st__warehouse__id', 'open_st__warehouse__username', 'po__order_id', 'po__creation_date']
     rw_purchase_list = ['rwo__vendor__id', 'rwo__vendor__name', 'purchase_order__creation_date',
                         'purchase_order__order_id']
@@ -278,12 +283,14 @@ def get_filtered_purchase_order_ids(request, user, search_term, filters):
 @csrf_exempt
 def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     # sku_master, sku_master_ids = get_sku_master(user, request.user)
-    lis = ['PO No', 'PO No', 'Customer Name', 'Order Date', 'Expected Date', 'Total Qty', 'Receivable Qty', 'Received Qty',
+    lis = ['PO No', 'PO No', 'PO Reference', 'Customer Name', 'Order Date', 'Expected Date',
+           'Total Qty', 'Receivable Qty', 'Received Qty',
            'Remarks', 'Supplier ID/Name', 'Order Type', 'Receive Status']
     data_list = []
     data = []
     supplier_data = {}
     col_num1 = 0
+    po_reference_no = ''
     supplier_status, supplier_user, supplier, supplier_parent = get_supplier_info(request)
     if supplier_status:
         request.user.id = supplier.user
@@ -324,7 +331,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         _date = _date.strftime("%d %b, %Y")
         supplier_id_name = '%s/%s' % (str(order_data['supplier_id']), str(order_data['supplier_name']))
 
-        columns = ['PO No', 'Order Date', 'Supplier ID/Name', 'Total Qty', 'Receivable Qty', 'Received Qty',
+        columns = ['PO No', 'PO Reference', 'Order Date', 'Supplier ID/Name', 'Total Qty', 'Receivable Qty', 'Received Qty',
                    'Expected Date', 'Remarks', 'Order Type', 'Receive Status']
 
         total_order_qty = order_qtys_dict.get(supplier.order_id, 0)
@@ -342,7 +349,10 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         else:
             if supplier_parent:
                 customer_name = supplier_parent.username
-        data_list.append(OrderedDict((('DT_RowId', supplier.order_id), ('PO No', po_reference), ('Order Date', _date),
+        if supplier.open_po:
+            po_reference_no = supplier.open_po.po_name
+        data_list.append(OrderedDict((('DT_RowId', supplier.order_id), ('PO No', po_reference),
+                                      ('PO Reference', po_reference_no), ('Order Date', _date),
                                       ('Supplier ID/Name', supplier_id_name), ('Total Qty', total_order_qty),
                                       ('Receivable Qty', total_receivable_qty),
                                       ('Received Qty', total_received_qty), ('Expected Date', expected_date),

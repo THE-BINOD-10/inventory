@@ -54,10 +54,10 @@ def process_date(value):
     return value
 
 
-def get_company_logo(user):
+def get_company_logo(user, IMAGE_PATH_DICT):
     import base64
     try:
-        logo_name = COMPANY_LOGO_PATHS.get(user.username, '')
+        logo_name = IMAGE_PATH_DICT.get(user.username, '')
         logo_path = 'static/company_logos/' + logo_name
         with open(logo_path, "rb") as image_file:
             image = base64.b64encode(image_file.read())
@@ -2564,8 +2564,9 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     dispatch_through = "By Road"
     _total_invoice = round(total_invoice_amount)
     # _invoice_no =  'TI/%s/%s' %(datetime.datetime.now().strftime('%m%y'), order_no)
+    side_image = get_company_logo(user, COMPANY_LOGO_PATHS)
+    top_image = get_company_logo(user, TOP_COMPANY_LOGO_PATHS)
 
-    image = get_company_logo(user)
     declaration = DECLARATIONS.get(user.username, '')
     if not declaration:
         declaration = DECLARATIONS['default']
@@ -2594,7 +2595,8 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'rounded_invoice_amount': _total_invoice, 'purchase_type': purchase_type,
                     'is_gst_invoice': is_gst_invoice,
                     'gstin_no': gstin_no, 'total_taxable_amt': total_taxable_amt, 'total_taxes': total_taxes,
-                    'image': image,
+                    'side_image': side_image,
+                    'top_image' : top_image,
                     'total_tax_words': number_in_words(_total_tax), 'declaration': declaration,
                     'hsn_summary': hsn_summary,
                     'hsn_summary_display': get_misc_value('hsn_summary', user.id), 'seller_address': seller_address,
@@ -4515,13 +4517,11 @@ def get_invoice_html_data(invoice_data):
     data['empty_tds'] = [i for i in range(data['columns'])]
     return data
 
-
 def build_invoice(invoice_data, user, css=False):
     # it will create invoice template
     user_profile = UserProfile.objects.get(user_id=user.id)
     if not (not invoice_data['detailed_invoice'] and invoice_data['is_gst_invoice']):
         return json.dumps(invoice_data, cls=DjangoJSONEncoder)
-
     titles = ['']
     import math
     if not (invoice_data.get("customer_invoice", "") == True):
@@ -4529,17 +4529,14 @@ def build_invoice(invoice_data, user, css=False):
         if not title_dat == 'false':
             titles = title_dat.split(",")
     invoice_data['html_data'] = get_invoice_html_data(invoice_data)
-
     invoice_data['user_type'] = user_profile.user_type
-
     invoice_data['titles'] = titles
     perm_hsn_summary = get_misc_value('hsn_summary', user.id)
     invoice_data['perm_hsn_summary'] = str(perm_hsn_summary)
     if len(invoice_data['hsn_summary'].keys()) == 0:
         invoice_data['perm_hsn_summary'] = 'false'
     invoice_data['empty_tds'] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-
-    inv_height = 1358  # total invoice height
+    inv_height = 1200  # total invoice height
     inv_details = 317  # invoice details height
     inv_footer = 95  # invoice footer height
     inv_totals = 127  # invoice totals height
@@ -4548,9 +4545,7 @@ def build_invoice(invoice_data, user, css=False):
     inv_summary = 47  # invoice summary headers height
     inv_total = 27  # total display height
     inv_charges = 20  # height of other charges
-
     inv_totals = inv_totals + len(invoice_data['order_charges']) * inv_charges
-
     '''
     if invoice_data['user_type'] == 'marketplace_user':
         inv_details = 142
@@ -4575,6 +4570,12 @@ def build_invoice(invoice_data, user, css=False):
         render_space = inv_height - (inv_details + inv_footer + inv_totals + inv_header + inv_total)
     no_of_skus = int(render_space / inv_product)
     data_length = len(invoice_data['data'])
+    '''
+    if user.username in top_logo_users:
+        no_of_skus -= 2
+    if data_length == 1:
+        no_of_skus += 2
+    '''
     invoice_data['empty_data'] = []
     if (data_length > no_of_skus):
 
@@ -4613,7 +4614,10 @@ def build_invoice(invoice_data, user, css=False):
     else:
         temp = invoice_data['data']
         invoice_data['data'] = []
-        empty_data = [""] * (no_of_skus - data_length)
+        no_of_space = (13 - data_length)
+        if no_of_space < 0:
+            no_of_space = 0
+        empty_data = [""] * no_of_space
         invoice_data['data'].append({'data': temp, 'empty_data': empty_data})
     top = ''
     if css:

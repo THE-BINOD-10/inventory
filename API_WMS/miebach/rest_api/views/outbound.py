@@ -3385,8 +3385,7 @@ def insert_order_data(request, user=''):
                                                   purchase_order_id=po_number.split('_')[-1], status=1,
                                                   creation_date=datetime.datetime.now())
         other_charge_amounts = construct_other_charge_amounts_map(created_order_id, myDict,
-                                                                          datetime.datetime.now(), other_charge_amounts,
-                                                                          user)
+                                                                    datetime.datetime.now(), other_charge_amounts, user)
         if generic_order_id:
             check_and_raise_po(generic_order_id, cm_id)
     except Exception as e:

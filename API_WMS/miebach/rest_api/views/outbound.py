@@ -5840,7 +5840,7 @@ def get_custom_order_data(start_index, stop_index, temp_data, search_term, order
 @get_admin_user
 def order_category_generate_picklist(request, user=''):
     filters = request.POST.get('filters', '')
-    order_filter = {'status': 1, 'user': user.id, 'quantity__gt': 0}
+    order_filter = OrderedDict((('status', 1), ('user', user.id), ('quantity__gt', 0)))
     seller_order_filter = {'order__status': 1, 'order__user': user.id, 'order__quantity__gt': 0}
     if filters:
         filters = eval(filters)

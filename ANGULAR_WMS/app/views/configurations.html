@@ -151,16 +151,34 @@
         </div>
         <div class="col-md-2 col-sm-2 col-xs-3">
           <select class="show-menu-arrow form-control pull-left" ng-model="showCase.model_data.marketplace_name" ng-disabled="!showCase.model_data.marketplace_new">
-            <option ng-repeat="marketplace in showCase.model_data.marketplaces" ng-if="showCase.saved_marketplaces.indexOf(marketplace) == -1" value="{{marketplace}}"> {{marketplace}} </option>
+            <option ng-repeat="marketplace in showCase.model_data.marketplaces" value="{{marketplace}}" ng-selected="marketplace==showCase.model_data.marketplace_name"> {{marketplace}} </option>
           </select>
           <!--<input type="text" class="form-control" ng-model="showCase.model_data.marketplace_name" placeholder="Marketplace" ng-readonly="!showCase.model_data.marketplace_new">-->
         </div>
-        <div class="col-md-2 col-sm-2 col-xs-3">
+        <div class="col-md-1 col-sm-1 col-xs-2">
           <input type="text" class="form-control" ng-model="showCase.model_data.marketplace_prefix" placeholder="Prefix">
         </div>
-        <button type="button" class="btn btn-success" ng-click="showCase.saveMarketplace(showCase.model_data.marketplace_name, showCase.model_data.marketplace_prefix)">Save</button>
-        <button type="button" class="btn btn-danger" ng-click="showCase.updateMarketplace(showCase.model_data.marketplace_name, showCase.model_data.marketplace_prefix, 'delete')" ng-if="!showCase.model_data.marketplace_new">Delete</button>
+        <div class="col-md-1 col-sm-1 col-xs-2">
+          <input type="text" class="form-control" ng-model="showCase.model_data.marketplace_interfix" placeholder="Interfix">
+        </div>
+        <div class="col-md-2 col-sm-2 col-xs-3">
+          <select class="show-menu-arrow form-control pull-left" ng-model="showCase.model_data.marketplace_date_type">
+            <option value="">Select</option>
+            <option value="financial"> Include Financial year </option>
+            <option value="month_year"> Include Month and year </option>
+          </select>
+        </div>
       </div>
+
+      <div class="row col-md-12" style="padding-bottom: 15px" ng-if="showCase.marketplace_add_show">
+        <div class="col-md-5 col-sm-8 col-xs-12">
+        </div>
+        <div class="col-md-2 col-sm-2 col-xs-3">
+          <button type="button" class="btn btn-success" ng-click="showCase.saveMarketplace(showCase.model_data.marketplace_name, showCase.model_data.marketplace_prefix)">Save</button>
+          <button type="button" class="btn btn-danger" ng-click="showCase.updateMarketplace(showCase.model_data.marketplace_name, showCase.model_data.marketplace_prefix, 'delete')" ng-if="!showCase.model_data.marketplace_new">Delete</button>
+        </div>
+      </div>
+
 
       <div class="row col-md-12" ng-if="showCase.model_data['pos_switch']" style="padding-bottom: 15px">
         <div class="col-md-5 col-sm-8 col-xs-12">

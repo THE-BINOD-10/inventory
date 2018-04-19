@@ -712,7 +712,7 @@ def configurations(request, user=''):
     # Invoice Marketplaces list and selected Option
     config_dict['marketplaces'] = get_marketplace_names(user, 'all_marketplaces')
     config_dict['prefix_data'] = list(InvoiceSequence.objects.filter(user=user.id, status=1).exclude(marketplace=''). \
-                                      values('marketplace', 'prefix'))
+                                      values('marketplace', 'prefix', 'interfix', 'date_type'))
 
     all_stages = ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True)
     config_dict['all_stages'] = str(','.join(all_stages))
@@ -2205,6 +2205,7 @@ def get_financial_year(date):
 def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos=False):
     invoice_number = ""
     inv_no = ""
+    invoice_sequence = None
     invoice_no_gen = MiscDetail.objects.filter(user=user.id, misc_type='increment_invoice')
     if invoice_no_gen:
         seller_order_summary = SellerOrderSummary.objects.filter(Q(order__id__in=order_ids) |
@@ -2222,41 +2223,55 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
                           prefix_key + 'original_order_id': order.original_order_id, prefix_key + 'user': user.id}
             # invoice_ins = SellerOrderSummary.objects.filter(**check_dict).exclude(invoice_number='')
             invoice_ins = SellerOrderSummary.objects.filter(order__id__in=order_ids).exclude(invoice_number='')
-
             if invoice_ins:
+                invoice_sequence = get_invoice_sequence_obj(user, order.marketplace)
                 order_no = invoice_ins[0].invoice_number
                 seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)
-                inv_no = int(order_no)
+                inv_no = order_no
             elif invoice_no_gen[0].misc_value == 'true':
-                invoice_sequence = InvoiceSequence.objects.filter(user=user.id, status=1, marketplace=order.marketplace)
-                if not invoice_sequence:
-                    invoice_sequence = InvoiceSequence.objects.filter(user=user.id, marketplace='')
+                invoice_sequence =  get_invoice_sequence_obj(user, order.marketplace)
                 if invoice_sequence:
                     invoice_sequence = invoice_sequence[0]
                     inv_no = int(invoice_sequence.value)
-                    order_no = invoice_sequence.prefix + str(inv_no).zfill(3)
+                    #order_no = invoice_sequence.prefix + str(inv_no).zfill(3)
+                    order_no = str(inv_no).zfill(3)
                     seller_order_summary.update(invoice_number=order_no)
                     invoice_sequence.value = inv_no + 1
                     invoice_sequence.save()
             else:
                 seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)
-    if user_profile.user_type == 'marketplace_user':
-        invoice_number = user_profile.prefix + '/' + str(invoice_date.strftime('%m-%y')) + '/A-' + str(order_no)
-    elif user.username == 'TranceHomeLinen':
-        invoice_number = user_profile.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + 'GST' + '/' + str(
-            order_no)
-    elif user.username == 'Subhas_Publishing':
-        invoice_number = user_profile.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + str(order_no)
-    elif user.username == 'campus_sutra':
-        invoice_number = str(get_financial_year(invoice_date)) + '/' + str(order_no)
-    elif user_profile.warehouse_type == 'DIST':
-        invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), order_no)
+    if invoice_sequence:
+        invoice_sequence = invoice_sequence[0]
+        inv_num_lis = []
+        if invoice_sequence.prefix:
+            inv_num_lis.append(invoice_sequence.prefix)
+        if invoice_sequence.date_type:
+            if invoice_sequence.date_type == 'financial':
+                inv_num_lis.append(get_financial_year(invoice_date))
+            elif invoice_sequence.date_type == 'month_year':
+                inv_num_lis.append(invoice_date.strftime('%m%y'))
+        if invoice_sequence.interfix:
+            inv_num_lis.append(invoice_sequence.interfix)
+        inv_num_lis.append(str(order_no))
+        invoice_number = '/'.join(['%s'] * len(inv_num_lis)) % tuple(inv_num_lis)
     else:
-        if from_pos:
-            sub_usr = ''.join(re.findall('\d+', OrderDetail.objects.get(id=order_ids[0]).order_code))
-            invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), sub_usr + order_no)
-        else:
+        if user_profile.user_type == 'marketplace_user':
+            invoice_number = user_profile.prefix + '/' + str(invoice_date.strftime('%m-%y')) + '/A-' + str(order_no)
+        elif user.username == 'TranceHomeLinen':
+            invoice_number = user_profile.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + 'GST' + '/' + str(
+                order_no)
+        elif user.username == 'Subhas_Publishing':
+            invoice_number = user_profile.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + str(order_no)
+        elif user.username == 'campus_sutra':
+            invoice_number = str(get_financial_year(invoice_date)) + '/' + str(order_no)
+        elif user_profile.warehouse_type == 'DIST':
             invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), order_no)
+        else:
+            if from_pos:
+                sub_usr = ''.join(re.findall('\d+', OrderDetail.objects.get(id=order_ids[0]).order_code))
+                invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), sub_usr + order_no)
+            else:
+                invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), order_no)
 
     return invoice_number, inv_no
 
@@ -5414,12 +5429,16 @@ def update_invoice_sequence(request, user=''):
         if not marketplace_name:
             status = 'Marketplace Name Should not be empty'
         marketplace_prefix = request.GET.get('marketplace_prefix', '')
+        marketplace_interfix = request.GET.get('marketplace_interfix', '')
+        marketplace_date_type = request.GET.get('marketplace_date_type', '')
         delete_status = request.GET.get('delete', '')
         if not status:
             invoice_sequence = InvoiceSequence.objects.filter(user_id=user.id, marketplace=marketplace_name)
             if invoice_sequence:
                 invoice_sequence = invoice_sequence[0]
                 invoice_sequence.prefix = marketplace_prefix
+                invoice_sequence.interfix = marketplace_interfix
+                invoice_sequence.date_type = marketplace_date_type
                 if delete_status:
                     invoice_sequence.status = 0
                 else:
@@ -5427,7 +5446,7 @@ def update_invoice_sequence(request, user=''):
                 invoice_sequence.save()
             else:
                 InvoiceSequence.objects.create(marketplace=marketplace_name, prefix=marketplace_prefix, value=1,
-                                               status=1,
+                                               status=1, interfix=marketplace_interfix, date_type=marketplace_date_type,
                                                user_id=user.id, creation_date=datetime.datetime.now())
             status = 'Success'
 
@@ -6552,3 +6571,10 @@ def update_sku_attributes(data, request):
             continue
         key = key.replace('attr_', '')
         update_sku_attributes_data(data, key, value)
+
+
+def get_invoice_sequence_obj(user, marketplace):
+    invoice_sequence = InvoiceSequence.objects.filter(user=user.id, status=1, marketplace=marketplace)
+    if not invoice_sequence:
+        invoice_sequence = InvoiceSequence.objects.filter(user=user.id, marketplace='')
+    return  invoice_sequence

@@ -395,7 +395,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       vm.model_data["tax_details"] = {'CST': {}};
       vm.model_data['prefix_data'] = [];
       angular.forEach(data.data.prefix_data, function(data){
-        vm.model_data.prefix_data.push({marketplace_name: data.marketplace, marketplace_prefix: data.prefix});
+        vm.model_data.prefix_data.push({marketplace_name: data.marketplace, marketplace_prefix: data.prefix,
+                                        marketplace_interfix: data.interfix, marketplace_date_type: data.date_type});
       })
       angular.forEach(vm.model_data, function(value, key) {
         if (value == "true") {
@@ -688,18 +689,25 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
 
           vm.model_data.prefix_data[i].marketplace_name = vm.model_data.marketplace_name;
           vm.model_data.prefix_data[i].marketplace_prefix = vm.model_data.marketplace_prefix;
+          vm.model_data.prefix_data[i].marketplace_interfix = vm.model_data.marketplace_interfix;
+          vm.model_data.prefix_data[i].marketplace_date_type = vm.model_data.marketplace_date_type;
           found = true;
           break;
         }
       }
       if(!found) {
 
-        vm.model_data.prefix_data.push({marketplace_name: vm.model_data.marketplace_name, marketplace_prefix: vm.model_data.marketplace_prefix});
+        vm.model_data.prefix_data.push({marketplace_name: vm.model_data.marketplace_name,
+                                        marketplace_prefix: vm.model_data.marketplace_prefix,
+                                        marketplace_interfix: vm.model_data.marketplace_interfix,
+                                        marketplace_date_type: vm.model_data.marketplace_date_type});
       }
       vm.marketplace_add_show = false;
       vm.marketplace_selected = "";
       vm.model_data.marketplace_name = "";
       vm.model_data.marketplace_prefix = "";
+      vm.model_data.marketplace_interfix = "";
+      vm.model_data.marketplace_date_type = "";
       vm.model_data.marketplace_new = true;
     }
   }
@@ -715,6 +723,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
 
           vm.model_data.marketplace_name = vm.model_data.prefix_data[i].marketplace_name;
           vm.model_data.marketplace_prefix = vm.model_data.prefix_data[i].marketplace_prefix;
+          vm.model_data.marketplace_interfix = vm.model_data.prefix_data[i].marketplace_interfix;
+          vm.model_data.marketplace_date_type = vm.model_data.prefix_data[i].marketplace_date_type;
           vm.model_data["marketplace_new"] = false;
           vm.marketplace_add_show = true;
           break;
@@ -731,7 +741,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
 
   vm.updateMarketplace = function(name, value, type) {
 
-      var send = {marketplace_name : name, marketplace_prefix: value}
+      var send = {marketplace_name : name, marketplace_prefix: value,
+                  marketplace_interfix: vm.model_data.marketplace_interfix,
+                  marketplace_date_type: vm.model_data.marketplace_date_type}
       if (type != 'save') {
         send['delete'] = true;
 

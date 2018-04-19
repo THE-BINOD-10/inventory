@@ -10,7 +10,7 @@ django.setup()
 from miebach_admin.models import *
 from rest_api.views.common import *
 from rest_api.views.utils import *
-log = init_logger('logs/integrations.log')
+log = init_logger('logs/qssi_stock_check.log')
 
 def update_inventory(company_name):
     integration_users = Integrations.objects.filter(name = company_name).values_list('user', flat=True)
@@ -26,9 +26,22 @@ def update_inventory(company_name):
                     if not location_master:
                         continue
                     location_id = location_master[0].id
+                    stock_dict = {}
                     for item in warehouse["Result"]["InventoryStatus"]:
                         sku_id = item["SKUId"]
-                        inventory = item["Inventory"]
+                        if sku_id[-3:]=="-TU":
+                            sku_id = sku_id[:-3]
+                            if sku_id in stock_dict:
+                                stock_dict[sku_id] += int(item['Inventory'])
+                            else:
+                                stock_dict[sku_id] = int(item['Inventory'])
+                        else:
+                            if sku_id in stock_dict:
+                                stock_dict[sku_id] += int(item['FG'])
+                            else:
+                                stock_dict[sku_id] = int(item['FG'])
+
+                    for sku_id, inventory in stock_dict.iteritems():
                         sku = SKUMaster.objects.filter(user = user_id, sku_code = sku_id)
                         if sku:
                             sku = sku[0]

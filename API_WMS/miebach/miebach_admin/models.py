@@ -267,8 +267,8 @@ class OrderDetail(models.Model):
         db_table = 'ORDER_DETAIL'
         unique_together = ('order_id', 'sku', 'order_code')
         index_together = (('order_id', 'sku', 'order_code'), ('user', 'order_code'),
-                          (
-                          'customer_id', 'order_code', 'marketplace', 'original_order_id', 'order_id', 'customer_name'))
+                          ('customer_id', 'order_code', 'marketplace', 'original_order_id', 'order_id', 'customer_name'),
+                          ('status', 'user', 'quantity'))
 
     def __unicode__(self):
         return str(self.sku) + ':' + str(self.original_order_id)
@@ -451,11 +451,11 @@ class PalletMapping(models.Model):
 
 class StockDetail(models.Model):
     id = BigAutoField(primary_key=True)
-    receipt_number = models.PositiveIntegerField()
+    receipt_number = models.PositiveIntegerField(db_index=True)
     receipt_date = models.DateTimeField()
     receipt_type = models.CharField(max_length=32, default='')
     sku = models.ForeignKey(SKUMaster)
-    location = models.ForeignKey(LocationMaster)
+    location = models.ForeignKey(LocationMaster, db_index=True)
     pallet_detail = models.ForeignKey(PalletDetail, blank=True, null=True)
     quantity = models.FloatField(default=0)
     status = models.IntegerField(default=1)
@@ -465,7 +465,7 @@ class StockDetail(models.Model):
     class Meta:
         db_table = 'STOCK_DETAIL'
         unique_together = ('receipt_number', 'receipt_date', 'sku', 'location', 'pallet_detail')
-        index_together = ('sku', 'location', 'quantity')
+        index_together = (('sku', 'location', 'quantity'), ('location', 'sku', 'pallet_detail'))
 
     def __unicode__(self):
         return str(self.sku) + " : " + str(self.location)
@@ -487,7 +487,7 @@ class Picklist(models.Model):
 
     class Meta:
         db_table = 'PICKLIST'
-        index_together = ('picklist_number', 'order', 'stock')
+        index_together = (('picklist_number', 'order', 'stock'), ('order', 'order_type', 'picked_quantity'))
 
     def __unicode__(self):
         return str(self.picklist_number)
@@ -2184,6 +2184,8 @@ class InvoiceSequence(models.Model):
     user = models.ForeignKey(User)
     marketplace = models.CharField(max_length=64)
     prefix = models.CharField(max_length=64)
+    interfix = models.CharField(max_length=64, default='')
+    date_type = models.CharField(max_length=32, default='')
     value = models.PositiveIntegerField()
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)

@@ -5,6 +5,8 @@ Hi {{ supplier_name }},<br>
         {{ mail_subject_line }}
 </p>
 
+{% if client_name %} <p> <strong>Client Name : {{ client_name }}</strong> </p> {% endif %}
+
 <p>Item(s) details:</p>
 <table border="1" bordercolor="#D2D9E7" cellpadding="2" cellspacing="2" style="border-collapse:collapse; font-size:13px; border:1px solid #D2D9E7">
     <tbody>

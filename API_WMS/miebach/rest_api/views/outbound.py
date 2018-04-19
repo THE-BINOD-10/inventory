@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 import copy
 import json
 from itertools import chain
@@ -4560,6 +4560,10 @@ def get_sku_catalogs(request, user=''):
         bank_details = ''
         address_details = {}
         usr_obj = UserProfile.objects.get(user=request.user)
+        import base64
+        logo_path = usr_obj.customer_logo.url
+        with open(logo_path, "rb") as image_file:
+            logo_image = base64.b64encode(image_file.read())
         if bank_dets_check:
             bank_details = usr_obj.bank_details
         if addr_dets_check:
@@ -4581,7 +4585,7 @@ def get_sku_catalogs(request, user=''):
                              'remarks': remarks, 'display_stock': display_stock, 'image': image,
                              'style_quantities': eval(request.POST.get('required_quantity', '{}')),
                              'terms_list': terms_list, 'pages': int(pages), 'style_count': len(data),
-                             'bank_details': bank_details, 'address_details': address_details})
+                             'bank_details': bank_details, 'address_details': address_details, 'logo_image':logo_image})
 
         if not os.path.exists('static/pdf_files/'):
             os.makedirs('static/pdf_files/')
@@ -8689,7 +8693,7 @@ def request_manual_enquiry_approval(request, user=''):
 @login_required
 @get_admin_user
 def update_cust_profile(request, user=''):
-    resp = {'message': 'success'}
+    resp = {'message': 'success', 'data':[]}
     logo = request.FILES.get('logo', '')
     user_id = request.POST.get('user_id', '')
     first_name = request.POST.get('first_name', '')
@@ -8716,9 +8720,11 @@ def update_cust_profile(request, user=''):
             if logo:
                 exe_data.customer_logo = logo
             exe_data.save()
+            data = UserProfile.objects.filter(**filters)
+            resp.data.append(data[0].customer_logo.url)
     except Exception as e:
         import traceback
         log.info("Error Occurred while updating the Customer Profile data: %s" %traceback.format_exc())
-        resp = {'message': 'fail'}
+        resp['message'] = 'fail'
 
     return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))

@@ -2224,21 +2224,20 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
                           prefix_key + 'original_order_id': order.original_order_id, prefix_key + 'user': user.id}
             # invoice_ins = SellerOrderSummary.objects.filter(**check_dict).exclude(invoice_number='')
             invoice_ins = SellerOrderSummary.objects.filter(order__id__in=order_ids).exclude(invoice_number='')
+            invoice_sequence = get_invoice_sequence_obj(user, order.marketplace)
             if invoice_ins:
-                invoice_sequence = get_invoice_sequence_obj(user, order.marketplace)
                 order_no = invoice_ins[0].invoice_number
                 seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)
                 inv_no = order_no
             elif invoice_no_gen[0].misc_value == 'true':
-                invoice_sequence =  get_invoice_sequence_obj(user, order.marketplace)
                 if invoice_sequence:
-                    invoice_sequence = invoice_sequence[0]
-                    inv_no = int(invoice_sequence.value)
+                    invoice_seq = invoice_sequence[0]
+                    inv_no = int(invoice_seq.value)
                     #order_no = invoice_sequence.prefix + str(inv_no).zfill(3)
                     order_no = str(inv_no).zfill(3)
                     seller_order_summary.update(invoice_number=order_no)
-                    invoice_sequence.value = inv_no + 1
-                    invoice_sequence.save()
+                    invoice_seq.value = inv_no + 1
+                    invoice_seq.save()
             else:
                 seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)
     if invoice_sequence:

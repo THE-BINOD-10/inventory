@@ -54,23 +54,16 @@ def process_date(value):
     return value
 
 
-def get_company_logo(user):
-    top = False
-    side = False
+def get_company_logo(user, IMAGE_PATH_DICT):
     import base64
     try:
-        if user.username != 'Konda_foundation':
-            logo_name = COMPANY_LOGO_PATHS.get(user.username, '')
-            side = True
-        else:
-            logo_name = TOP_COMPANY_LOGO_PATHS.get(user.username, '')
-            top = True
-        logo_path = 'static/company_logos/' + logo_name
-        with open(logo_path, "rb") as image_file:
-            image = base64.b64encode(image_file.read())
+	logo_name = IMAGE_PATH_DICT.get(user.username, '')
+	logo_path = 'static/company_logos/' + logo_name
+	with open(logo_path, "rb") as image_file:
+	    image = base64.b64encode(image_file.read())
     except:
         image = ""
-    return image, top, side
+    return image
 
 
 def get_decimal_value(user_id):
@@ -2571,12 +2564,9 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     dispatch_through = "By Road"
     _total_invoice = round(total_invoice_amount)
     # _invoice_no =  'TI/%s/%s' %(datetime.datetime.now().strftime('%m%y'), order_no)
+    side_image = get_company_logo(user, COMPANY_LOGO_PATHS)
+    top_image = get_company_logo(user, TOP_COMPANY_LOGO_PATHS)
 
-    image, top, side = get_company_logo(user)
-    if image:
-	top_logo = True
-    else:
-	top_logo = False
     declaration = DECLARATIONS.get(user.username, '')
     if not declaration:
         declaration = DECLARATIONS['default']
@@ -2605,10 +2595,8 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'rounded_invoice_amount': _total_invoice, 'purchase_type': purchase_type,
                     'is_gst_invoice': is_gst_invoice,
                     'gstin_no': gstin_no, 'total_taxable_amt': total_taxable_amt, 'total_taxes': total_taxes,
-                    'image': image,
-                    'top' : top,
-                    'side' : side,
-                    'top_logo': top_logo,
+                    'side_image': side_image,
+                    'top_image' : top_image,
                     'total_tax_words': number_in_words(_total_tax), 'declaration': declaration,
                     'hsn_summary': hsn_summary,
                     'hsn_summary_display': get_misc_value('hsn_summary', user.id), 'seller_address': seller_address,

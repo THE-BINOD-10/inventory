@@ -2316,7 +2316,9 @@ def purchase_order_excel_upload(request, open_sheet, user, demo_data=False):
                     year, month, day, hour, minute, second = xldate_as_tuple(cell_data, 0)
                     data['po_date'] = datetime.datetime(year, month, day, hour, minute, second)
             elif col_idx == 0:
-                order_data['po_name'] = cell_data
+                if type(cell_data) == float:
+                    cell_data = int(cell_data)
+                order_data['po_name'] = str(cell_data)
             elif col_idx == 6:
                 data['ship_to'] = cell_data
 

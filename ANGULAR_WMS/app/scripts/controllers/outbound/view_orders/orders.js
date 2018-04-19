@@ -8,6 +8,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     //$state.go($state.current, {}, {reload: true});
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
+    vm.show_client_details = vm.permissions.create_order_po;
     vm.apply_filters = colFilters;
     vm.default_status = true;
     vm.selected = {};
@@ -336,8 +337,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             vm.taxes = value.taxes;
             vm.order_charges = value.order_charges;
             vm.client_name = value.client_name;
-            vm.show_client_details = vm.permissions.create_order_po;
-
+            if (!vm.client_name) {
+              vm.show_client_details = false;
+            }
             // if (value.discount_percentage <= 99.99) {
               vm.discount_per = value.discount_percentage;
             // }

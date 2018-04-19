@@ -8401,12 +8401,31 @@ def order_cancel(request, user=''):
                     ord_upload_qs.delete()
                 order_det_ids = gen_qs.values_list('orderdetail_id', flat=True)
                 ord_det_qs = OrderDetail.objects.filter(id__in=order_det_ids)
-                ord_det_qs.delete()
+                for order_det in ord_det_qs:
+                    if order_det.status == 1:
+                        order_det.status = 3
+                        order_det.save()
+                    else:
+                        picklists = Picklist.objects.filter(order_id=order_det.id)
+                        for picklist in picklists:
+                            if picklist.picked_quantity <= 0:
+                                picklist.delete()
+                            elif picklist.stock:
+                                cancel_location = CancelledLocation.objects.filter(picklist_id=picklist.id,
+                                                                                   picklist__order__user=user.id)
+                                if not cancel_location:
+                                    CancelledLocation.objects.create(picklist_id=picklist.id,
+                                                                     quantity=picklist.picked_quantity,
+                                                                     location_id=picklist.stock.location_id,
+                                                                     creation_date=datetime.datetime.now(), status=1)
+                                    picklist.status = 'cancelled'
+                                    picklist.save()
+                            else:
+                                picklist.status = 'cancelled'
+                                picklist.save()
+                        order_det.status = 3
+                        order_det.save()
                 gen_qs.delete()
-        else:
-            ord_id = request.GET.get('order_id', '')
-            ord_qs = OrderDetail.objects.filter(order_id=ord_id, user=user)
-            ord_qs.delete()
     except:
         import traceback
         log.debug(traceback.format_exc())

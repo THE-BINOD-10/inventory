@@ -1544,7 +1544,7 @@ def get_location_stock_data(search_params, user, sub_user):
     search_mapping = {'sku_code': 'sku__sku_code__iexact', 'sku_category': 'sku__sku_category__iexact',
                       'sku_type': 'sku__sku_type__iexact', 'sku_class': 'sku__sku_class__iexact',
                       'zone': 'location__zone__zone__iexact',
-                      'location': 'location__location__iexact', 'wms_code': 'sku__wms_code'}
+                      'location': 'location__location__iexact', 'wms_code': 'sku__wms_code', 'ean': 'sku__ean_number__iexact'}
 
     results_data['draw'] = search_params.get('draw', 1)
     for key, value in search_mapping.iteritems():
@@ -1563,17 +1563,20 @@ def get_location_stock_data(search_params, user, sub_user):
         total_quantity = stock_detail.aggregate(Sum('quantity'))['quantity__sum']
 
     results_data['recordsTotal'] = len(stock_detail)
-    results_data['recordsFiltered'] = len(stock_detail)
+    results_data['recordsFiltered'] = results_data['recordsTotal']
 
     if stop_index:
         stock_detail = stock_detail[start_index:stop_index]
 
     for data in stock_detail:
+        ean_num = data.sku.ean_number
+        if not ean_num:
+            ean_num = ''
         results_data['aaData'].append(OrderedDict((('SKU Code', data.sku.sku_code), ('WMS Code', data.sku.wms_code),
                                                    ('Product Description', data.sku.sku_desc),
                                                    ('Zone', data.location.zone.zone),
                                                    ('Location', data.location.location), ('Quantity', data.quantity),
-                                                   ('Receipt Number', data.receipt_number),
+                                                   ('Receipt Number', data.receipt_number), ('EAN', str(ean_num)),
                                                    ('Receipt Date', str(data.receipt_date).split('+')[0]))))
     return results_data, total_quantity
 

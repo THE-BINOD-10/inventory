@@ -397,7 +397,7 @@ def get_search_params(request, user=''):
                     'order_id': 'order_id', 'job_code': 'job_code', 'job_order_code': 'job_order_code',
                     'fg_sku_code': 'fg_sku_code',
                     'rm_sku_code': 'rm_sku_code', 'pallet': 'pallet',
-                    'staff_id': 'id'}
+                    'staff_id': 'id', 'ean': 'ean' }
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
                       'search2': 'search_2', 'search3': 'search_3',

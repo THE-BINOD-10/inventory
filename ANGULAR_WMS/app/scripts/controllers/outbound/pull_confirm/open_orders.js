@@ -8,6 +8,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     vm.picklist_order = {};
     vm.permissions = Session.roles.permissions;
+    vm.show_client_details = vm.permissions.create_order_po;
     vm.service = Service;
     vm.merge_invoice = false;
     vm.special_key = {status: 'open'};
@@ -226,7 +227,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           vm.order_id = value.order_id;
           vm.market_place = value.market_place;
           vm.order_charges = value.order_charges;
-
+          vm.client_name = value.client_name;
+          if (!vm.client_name) {
+            vm.show_client_details = false;
+          }
           var image_url = value.image_url;
           vm.img_url = vm.service.check_image_url(image_url);
           /*var custom_data = value.customization_data;

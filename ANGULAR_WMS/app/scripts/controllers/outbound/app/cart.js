@@ -33,8 +33,6 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
         if(vm.model_data.data.length > 0) {
           angular.forEach(vm.model_data.data, function(sku){
 
-            vm.add_quantities(sku);
-
             sku['org_price'] = sku.price;
             sku.quantity = Number(sku.quantity);
             sku.invoice_amount = Number(sku.price) * sku.quantity;
@@ -65,9 +63,12 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
   }
 
   vm.add_quantities = function(sku){
-    if(vm.sel_styles[sku.sku_style]){
+    if (sku.quantity > sku.avail_stock) {
+      sku.quantity = sku.avail_stock;
+    }
 
-      vm.sel_styles[sku.sku_style] += Number(sku.quantity); 
+    if(vm.sel_styles[sku.sku_style]){
+      vm.sel_styles[sku.sku_style] += Number(sku.quantity);
     } else {
       vm.sel_styles[sku.sku_style] = Number(sku.quantity);
     }
@@ -253,16 +254,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
   vm.sku_group_data = {};
   vm.update_sku_levels = function(data, row){
 
-    var total_quantity = vm.get_total_sku_level_quantity(data, row);
-
-    if(!vm.sku_group_data[row.sku_id]) {
-      vm.sku_group_data[row.sku_id] = {sku_code: row.sku_id, quantity: total_quantity}
-    } else {
-      vm.sku_group_data[row.sku_id].quantity = total_quantity;
-    }
-    var count = 0;
-    var amount = 0;
-    var total_amount = 0;
+    var total_price = 0;
     vm.sel_styles = {};
     angular.forEach(data, function(record){
       vm.add_quantities(record);
@@ -270,21 +262,40 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
 
     angular.forEach(data, function(record) {
 
-      if (row.sku_id == record.sku_id) {
-
-        count += record.quantity;
-        amount += record.price;
-        total_amount += record.invoice_amount;
-      }
-
       if (vm.sel_styles[record.sku_style]) {
         
         vm.priceRangesCheck(record, Number(vm.sel_styles[record.sku_style]));
       }
 
+      if(vm.sku_group_data[record.sku_id] && vm.sku_group_data[record.sku_id][record.level_name] != record.level_name) {
+
+        vm.sku_group_data[record.sku_id].quantity += record.quantity;
+        vm.sku_group_data[record.sku_id].add_sku_total_price += (record.price * record.quantity);
+      } else {
+        
+        vm.sku_group_data[record.sku_id] = {'sku_code': record.sku_id, 'quantity': record.quantity};
+        vm.sku_group_data[record.sku_id][record.level_name] = record.level_name;
+        vm.sku_group_data[record.sku_id].add_sku_total_price = (record.price * record.quantity);
+      }
+
+      vm.sku_group_data[record.sku_id].sku_style = record.sku_style;
     });
-    vm.sku_group_data[row.sku_id].effective_landing_price = total_amount/count;
-    vm.sku_group_data[row.sku_id].total_amount = total_amount;
+
+    var style_prices = {}
+    angular.forEach(vm.sku_group_data, function(record) {
+      if(style_prices[record.sku_style]) {
+        style_prices[record.sku_style]['quantity'] += record.quantity;
+        style_prices[record.sku_style]['total_price'] += record.add_sku_total_price;
+      }
+      else {
+        style_prices[record.sku_style] = {}
+        style_prices[record.sku_style]['quantity'] = record.quantity;
+        style_prices[record.sku_style]['total_price'] = record.add_sku_total_price;
+      }
+
+      vm.sku_group_data[record.sku_code].effective_landing_price = style_prices[record.sku_style]['total_price']/style_prices[record.sku_style]['quantity'];
+      vm.sku_group_data[record.sku_code].total_amount = style_prices[record.sku_style]['total_price']
+    });
   }
 
   vm.priceRangesCheck = function(record, quantity){

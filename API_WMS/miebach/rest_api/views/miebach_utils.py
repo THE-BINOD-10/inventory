@@ -1224,8 +1224,10 @@ MYNTRA_BULK_ADDRESS = 'MYNTRA DESIGNS PVT LTD\nKsquare Industrial Park, Warehous
                          Before Padgha Toll naka Nashik-Mumbai Highway \nNear Pushkar Mela Hotel Rahul Narkhede,\n\
                          Padgha-Bhiwandi\nTin# 27590747736'
 
-JABONG_ADDRESS = 'Jabong Marketplace Mahindra Logistics Limited\nBlock No. H2 Sai Dhara Warehousing & Logistics Park,\n\
-                  Opp. Indian Oil Petrol Pump\nNear Shangrila Resort\nMumbai-Nasik Highway,\nBhiwandi,\nMaharashtra,421302'
+JABONG_ADDRESS = 'Myntra jabong India Pvt Ltd.\nKsquare Industrial Park,\
+                         Before Padgha Toll naka Nashik-Mumbai Highway, \nNear Pushkar Mela Hotel Rahul Narkhede,\n\
+                         Padgha Bhiwandi - 421101, Maharashtra\n\
+                         TIN:27461499703'
 
 USER_CHANNEL_ADDRESS = {'campus_sutra:myntra': MYNTRA_BANGALORE_ADDRESS, 'adam_clothing:myntra': MYNTRA_MUMBAI_ADDRESS,
                         'adam_clothing1:myntra': MYNTRA_MUMBAI_ADDRESS,

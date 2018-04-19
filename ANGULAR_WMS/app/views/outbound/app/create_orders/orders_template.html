@@ -62,7 +62,7 @@ input[type="date"]:valid::before {
                   </div>
                 </div>
                 <div class="widget-details col-xs-4 text-right">
-                  <button ng-if="(permissions.user_type == 'reseller' || permissions.user_type == 'distributor') && (orders.getStatus(order.total_quantity, order.picked_quantity) == 'Open') && user.user_profile['user_type'] != 'warehouse_user'" type="button" class="btn btn-warning mt20 pull-right ng-binding ng-click-active" style="min-width: 75px;height: 26px;padding: 2px 5px;" ng-click="orders.order_cancel(order, $index, $event)">Cancel</button>
+                  <button ng-if="(permissions.user_type == 'reseller' || permissions.user_type == 'distributor' || permissions.user_type == 'dist_customer') && (orders.getStatus(order.total_quantity, order.picked_quantity) == 'Open') && user.user_profile['user_type'] != 'warehouse_user'" type="button" class="btn btn-warning mt20 pull-right ng-binding ng-click-active" style="min-width: 75px;height: 26px;padding: 2px 5px;" ng-click="orders.order_cancel(order, $index, $event)">Cancel</button>
                 </div>
                   
               </div>

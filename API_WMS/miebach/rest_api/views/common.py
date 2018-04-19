@@ -280,11 +280,12 @@ def wms_login(request):
 
             if not user_profile:
                 prefix = re.sub('[^A-Za-z0-9]+', '', user.username)[:3].upper()
-                user_profile = UserProfile(user=user, phone_number='',
+                up_obj = UserProfile(user=user, phone_number='',
                                            is_active=1, prefix=prefix, swx_id=0)
-                user_profile.save()
+                up_obj.save()
                 if user.is_staff:
-                    add_user_type_permissions(user_profile)
+                    add_user_type_permissions(up_obj)
+                user_profile = UserProfile.objects.filter(user_id=user.id)
         else:
             return HttpResponse(json.dumps(response_data), content_type='application/json')
 

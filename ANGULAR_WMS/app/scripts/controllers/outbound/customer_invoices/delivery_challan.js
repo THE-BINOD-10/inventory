@@ -253,10 +253,13 @@ function EditDeliveryChallan($scope, $http, $state, $timeout, Session, colFilter
 
   var vm = this;
   vm.service = Service;
+  vm.process = false;
   vm.permissions = Session.roles.permissions;
   vm.priceband_sync = Session.roles.permissions.priceband_sync;
 
   vm.model_data = items;
+  vm.model_data.total_qty = 0;
+  vm.model_data.total_items = 0;
 
   vm.ok = function () {
     $modalInstance.close("close");
@@ -297,15 +300,13 @@ function EditDeliveryChallan($scope, $http, $state, $timeout, Session, colFilter
   };
 
   vm.getTotals = function(data) {
-    vm.model_data.total_price = 0;
-    vm.model_data.sub_total = 0;
+    vm.model_data.total_items = vm.model_data.data.length;
+    vm.model_data.total_qty = 0;
     angular.forEach(vm.model_data.data, function(sku_data){
-      var temp = sku_data.order_quantity * sku_data.price;
-      if (!sku_data.tax) {
-        sku_data.tax = Number(sku_data.cgst_tax) + Number(sku_data.sgst_tax) + Number(sku_data.igst_tax) + Number(sku_data.utgst_tax);
+      if (sku_data.quantity == "" || typeof sku_data.quantity == 'undefined') {
+        sku_data.quantity = 0;
       }
-      vm.model_data.total_price = vm.model_data.total_price + temp;
-      vm.model_data.sub_total = vm.model_data.sub_total + ((temp / 100) * sku_data.tax) + temp;
+      vm.model_data.total_qty += parseInt(sku_data.quantity);
     })
   }
 
@@ -344,6 +345,38 @@ function EditDeliveryChallan($scope, $http, $state, $timeout, Session, colFilter
       });
     }
   }
+
+  vm.getTotals();
+
+  vm.update_dc = function(form_data) {
+    var update_dc_data = {};
+    update_dc_data.form_data = {
+      'challan_date': form_data.challan_date.$modelValue,
+      'challan_no': form_data.challan_no.$modelValue,
+      'rep': form_data.rep.$modelValue,
+      'order_no': form_data.order_no.$modelValue,
+      'lr_no': form_data.lr_no.$modelValue,
+      'carrier': form_data.carrier.$modelValue,
+      'terms': form_data.terms.$modelValue,
+      'pkgs': form_data.pkgs.$modelValue,
+      'address': form_data.address.$modelValue,
+      'wms_code': form_data.wms_code.$modelValue
+    };
+    update_dc_data.data = JSON.stringify(vm.model_data.data);
+    vm.process = true;
+
+    vm.service.apiCall('update_dc/', 'POST', update_dc_data).then(function(resp){
+      if(resp.message) {
+        console.log(resp);
+        Service.showNoty(resp.data);
+        if(resp.data == 'Success') {
+          console.log('success');
+        }
+      } else {
+        Service.showNoty("Something went wrong !");
+      }
+    });
+  };
 
 }
 

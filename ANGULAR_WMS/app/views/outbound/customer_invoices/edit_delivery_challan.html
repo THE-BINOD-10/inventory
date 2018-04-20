@@ -64,7 +64,7 @@
           <div class="col-md-4 col-sm-4 col-xs-6">
             <div class="form-group">
               <label class="control-label"> Address </label>
-              <textarea rows="4" class="form-control" cols="27" name="ship_to" ng-model="pop.model_data.address"></textarea>
+              <textarea rows="4" class="form-control" cols="27" name="address" ng-model="pop.model_data.address"></textarea>
             </div>
           </div>
         </div>
@@ -97,7 +97,7 @@
                     <input ng-model="product.pkng" title="{{ product.pkng }}" type="text" class="form-control">
                   </td>
                   <td>
-                    <input ng-model="product.quantity" title="{{ product.quantity }}" type="text" class="form-control">
+                    <input ng-model="product.quantity" ng-keyup="pop.getTotals()" title="{{ product.quantity }}" type="text" class="form-control">
                   </td>
                   <td>
                   	<i ng-click="pop.update_data($index)" ng-class="pop.service.isLast($last)"></i>
@@ -112,13 +112,16 @@
           <div class="col-md-6 col-sm-6">
           </div>
           <div class="col-md-3 col-sm-3 col-xs-12">
-            <p>Total Price: <b style="font-size:26px">{{pop.model_data.total_amt}}</b></p>
+            <p>Total Items: <b style="font-size:26px">{{pop.model_data.total_items}}</b></p>
+          </div>
+          <div class="col-md-3 col-sm-3 col-xs-12">
+            <p>Total Quantity: <b style="font-size:26px">{{pop.model_data.total_qty}}</b></p>
           </div>
         </div>
 
       </div>
       <div class="modal-footer">
-        <button type="submit" class="btn pop pop-green col-md-3 col-sm-3 col-xs-12 pull-right" style="margin-left:0px;" ng-disabled="pop.process" ng-click="pop.save(form)">Save</button>
+        <button type="submit" class="btn pop pop-green col-md-3 col-sm-3 col-xs-12 pull-right" style="margin-left:0px;" ng-disabled="pop.process" ng-click="pop.update_dc(form)">Save</button>
       </div>
     </div>
   </form>

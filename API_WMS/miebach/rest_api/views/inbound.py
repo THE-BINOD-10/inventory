@@ -947,6 +947,7 @@ def switches(request, user=''):
                        'invoice_types': 'invoice_types',
                        'sellable_segregation': 'sellable_segregation',
                        'display_styles_price': 'display_styles_price',
+                       'picklist_display_address': 'picklist_display_address',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

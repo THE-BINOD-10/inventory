@@ -4568,7 +4568,7 @@ def get_sku_catalogs(request, user=''):
         user_type = request.POST.get('user_type', '')
         terms_list = request.POST.get('terms_list', '').split('<>')
         admin = get_admin(user)
-        image = get_company_logo(admin)
+        image = get_company_logo(admin, COMPANY_LOGO_PATHS)
         date = get_local_date(user, datetime.datetime.now())
         import math
         if user_type in ['reseller', 'distributor']:
@@ -7450,6 +7450,7 @@ def generate_customer_invoice(request, user=''):
         if delivery_challan == "true":
             invoice_data['total_items'] = len(invoice_data['data'])
             invoice_data['data'] = pagination(invoice_data['data'])
+            invoice_data['username'] = user.username
             return render(request, 'templates/toggle/delivery_challan.html', invoice_data)
         elif return_data:
             invoice_data = json.dumps(invoice_data)

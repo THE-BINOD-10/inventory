@@ -74,4 +74,205 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         vm.display = true;
       }
     });
+
+    vm.generate_invoice = function(click_type, DC=false){
+
+      var po_number = '';
+      var status = false;
+      var field_name = "";
+      var data = [];
+      if (vm.user_type == 'distributor') {
+        data = vm.checked_ids;
+      } else {
+        angular.forEach(vm.selected, function(value, key) {
+          if(value) {
+            var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]['_aData'];
+            if(!(po_number)) {
+              po_number = temp[temp['check_field']];
+            } else if (po_number != temp[temp['check_field']]) {
+              status = true;
+            }
+            field_name = temp['check_field'];
+            data.push(temp['id']);
+          }
+        });
+      }
+
+      if(status) {
+        vm.service.showNoty("Please select same "+field_name+"'s");
+      } else {
+
+        var ids = data.join(",");
+        var send = {seller_summary_id: ids};
+        if(po_number && field_name == 'SOR ID') {
+          send['sor_id'] = po_number;
+        }
+        if(click_type == 'edit'){
+          send['data'] = true;
+          send['edit_invoice'] = true;
+        }
+        send['delivery_challan'] = DC;
+        vm.delivery_challan = DC;
+        vm.bt_disable = true;
+        vm.service.apiCall("generate_customer_invoice/", "GET", send).then(function(data){
+
+          if(data.message) {
+            if(click_type == 'generate') {
+              vm.pdf_data = data.data;
+              if(typeof(vm.pdf_data) == "string" && vm.pdf_data.search("print-invoice") != -1) {
+                $state.go("app.outbound.CustomerInvoices.InvoiceE");
+                $timeout(function () {
+                  $(".modal-body:visible").html(vm.pdf_data)
+                }, 3000);
+              } else if(Session.user_profile.user_type == "marketplace_user") {
+                $state.go("app.outbound.CustomerInvoices.InvoiceM");
+              } else if(vm.permissions.detailed_invoice) {
+                $state.go("app.outbound.CustomerInvoices.InvoiceD");
+              } else {
+                $state.go("app.outbound.CustomerInvoices.InvoiceN");
+              }
+            } else {
+              var mod_data = data.data;
+              var modalInstance = $modal.open({
+              templateUrl: 'views/outbound/toggle/edit_invoice.html',
+              controller: 'EditInvoice',
+              controllerAs: 'pop',
+              size: 'lg',
+              backdrop: 'static',
+              keyboard: false,
+              resolve: {
+                items: function () {
+                  return mod_data;
+                }
+              }
+              });
+
+              modalInstance.result.then(function (selectedItem) {
+                var data = selectedItem;
+              })
+            }
+          }
+          vm.bt_disable = false;
+        });
+      }
+    }
+
+    vm.close = function() {
+
+      $state.go("app.outbound.CustomerInvoices")
+    }
 }
+
+function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items) {
+
+  var vm = this;
+  vm.service = Service;
+  vm.permissions = Session.roles.permissions;
+  vm.priceband_sync = Session.roles.permissions.priceband_sync;
+
+  vm.model_data = items;
+  vm.model_data.temp_sequence_number = vm.model_data.sequence_number;
+
+  vm.model_data.default_charge = function(){
+
+    if (vm.model_data.order_charges.length == 1) {
+
+      vm.model_data.flag = true;
+    }
+  }
+
+  vm.delete_charge = function(id){
+
+    if (id) {
+
+      vm.service.apiCall("delete_order_charges?id="+id, "GET").then(function(data){
+
+        if(data.message){
+
+          Service.showNoty(data.data.message);
+        }
+      });
+    }
+  }
+
+  $timeout(function() {
+
+    $('[name="invoice_date"]').datepicker("setDate", new Date(vm.model_data.inv_date) );
+  },1000);
+  vm.ok = function () {
+
+    $modalInstance.close("close");
+  };
+
+  vm.process = false;
+  vm.save = function(form) {
+
+    if (vm.permissions.increment_invoice && vm.model_data.sequence_number && form.invoice_number.$invalid) {
+
+      Service.showNoty("Please Fill Invoice Number");
+      return false;
+    } else if (!form.$valid) {
+
+      Service.showNoty("Please Fill the Mandatory Fields");
+      return false;
+    }
+    vm.process = true;
+    var data = $("form:visible").serializeArray()
+    Service.apiCall("update_invoice/", "POST", data).then(function(data) {
+
+      if(data.message) {
+
+        if(data.data.msg == 'success') {
+
+          Service.showNoty("Updated Successfully");
+          $modalInstance.close("saved");
+        } else {
+
+          Service.showNoty(data.data.msg);
+        }
+      } else {
+
+        Service.showNoty("Update fail");
+      }
+      vm.process = false;
+    })
+  }
+
+  vm.changeUnitPrice = function(data) {
+
+    data.base_price = data.quantity * Number(data.unit_price);
+    data.discount = (data.base_price/100)*Number(data.discount_percentage);
+    data.amt = data.base_price - data.discount;
+    var taxes = {cgst_amt: 'cgst_tax', sgst_amt: 'sgst_tax', igst_amt: 'igst_tax', utgst_amt: 'utgst_tax'};
+    data.total_tax_amount = 0;
+
+    angular.forEach(taxes, function(tax_name, tax_amount){
+
+      if (data.taxes[tax_name] > 0){
+
+        data.taxes[tax_amount] = (data.amt/100)*data.taxes[tax_name];
+      } else {
+
+        data.taxes[tax_amount] = 0;
+      }
+       data.total_tax_amount += data.taxes[tax_amount];
+    })
+    data.invoice_amount = (data.amt + data.total_tax_amount);
+  }
+}
+stockone = angular.module('urbanApp');
+
+stockone.controller('EditInvoice', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', EditInvoice]);
+
+stockone.directive('genericCustomerInvoiceData', function() {
+  return {
+    restrict: 'E',
+    scope: {
+      invoice_data: '=data',
+    },
+    templateUrl: 'views/outbound/toggle/invoice_data_html.html',
+    link: function(scope, element, attributes, $http, Service){
+      console.log(scope);
+    }
+  };
+});

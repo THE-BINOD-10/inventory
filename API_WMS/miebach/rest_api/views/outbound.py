@@ -2516,6 +2516,9 @@ def print_picklist(request, user=''):
     for key, value in all_data.iteritems():
         total += float(value[0])
         total_price += float(value[1])
+    show_picklist_display_address = get_misc_value('picklist_display_address', user.id)
+    if show_picklist_display_address == "false":
+        customer_address = ''
     return render(request, 'templates/toggle/print_picklist.html',
                   {'data': data, 'all_data': all_data, 'headers': PRINT_OUTBOUND_PICKLIST_HEADERS,
                    'picklist_id': data_id, 'total_quantity': total,

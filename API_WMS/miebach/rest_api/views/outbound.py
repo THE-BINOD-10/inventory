@@ -3292,8 +3292,8 @@ def insert_order_data(request, user=''):
                     creation_date = datetime.datetime.now()
                     order_data['creation_date'] = creation_date
                     mapped_sku_id = get_syncedusers_mapped_sku(usr, order_data['sku_id'])
-                    if not order_data.get('original_order_id', ''):
-                        order_data['original_order_id'] = str(order_data['order_code']) + str(order_data['order_id'])
+                    #if not order_data.get('original_order_id', ''):
+                    order_data['original_order_id'] = str(order_data['order_code']) + str(order_data['order_id'])
                     order_obj = OrderDetail.objects.filter(order_id=order_data['order_id'], user=usr,
                                                            sku_id=mapped_sku_id, order_code=order_data['order_code'])
                     if not order_obj:

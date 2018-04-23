@@ -3292,8 +3292,8 @@ def insert_order_data(request, user=''):
                     creation_date = datetime.datetime.now()
                     order_data['creation_date'] = creation_date
                     mapped_sku_id = get_syncedusers_mapped_sku(usr, order_data['sku_id'])
-                    if not order_data.get('original_order_id', ''):
-                        order_data['original_order_id'] = str(order_data['order_code']) + str(order_data['order_id'])
+                    #if not order_data.get('original_order_id', ''):
+                    order_data['original_order_id'] = str(order_data['order_code']) + str(order_data['order_id'])
                     order_obj = OrderDetail.objects.filter(order_id=order_data['order_id'], user=usr,
                                                            sku_id=mapped_sku_id, order_code=order_data['order_code'])
                     if not order_obj:
@@ -4670,7 +4670,9 @@ def get_sku_variants(request, user=''):
                 #if qssi, update inventory first
                 if company_name == "qssi":
                     sku_ids = [item['wms_code'] for item in sku_master]
-                    api_resp = get_inventory(sku_ids, user)
+                    suffix_tu_skus = map(lambda x: x+'-TU', sku_ids)
+                    all_skus = sku_ids + suffix_tu_skus
+                    api_resp = get_inventory(all_skus, user)
                     if api_resp.get("Status", "").lower() == "success":
                         for warehouse in api_resp["Warehouses"]:
                             location_master = LocationMaster.objects.filter(zone__zone="DEFAULT", zone__user=user.id)

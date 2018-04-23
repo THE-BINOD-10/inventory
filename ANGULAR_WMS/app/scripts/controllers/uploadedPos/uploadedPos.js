@@ -26,6 +26,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.dtColumns = [
         DTColumnBuilder.newColumn('id').withTitle('S.No'),
         DTColumnBuilder.newColumn('uploaded_user').withTitle('Uploaded User'),
+        DTColumnBuilder.newColumn('distributor').withTitle('Distributor'),
         DTColumnBuilder.newColumn('order_id').withTitle('Order ID'),
         DTColumnBuilder.newColumn('po_number').withTitle('Po No'),
         DTColumnBuilder.newColumn('uploaded_date').withTitle('Date'),

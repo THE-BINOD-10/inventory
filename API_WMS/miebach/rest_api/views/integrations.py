@@ -1486,9 +1486,19 @@ def get_order(orig_order_id, user):
         order = order_detail[0]
         order_date = order.creation_date.strftime("%Y-%m-%d %H:%M:%S")#get_local_date(user, order.creation_date)
         if order.customer_id:
-            customer_master = CustomerMaster.objects.filter(customer_id = order.customer_id,\
-                                                     name = order.customer_name,\
-                                                     user = user.id)
+            gen_obj = GenericOrderDetailMapping.objects.filter(orderdetail_id=order.id)
+            if gen_obj:
+                cm_id = gen_obj[0].customer_id
+                customer_master = CustomerMaster.objects.filter(id=cm_id)
+                if customer_master:
+                    if customer_master[0].is_distributor == False:
+                        log.info("user:%s" %(str(user.id)))
+                        wh_customer_map = WarehouseCustomerMapping.objects.filter(warehouse_id=customer_master[0].user)
+                        if wh_customer_map:
+                            customer_master = [wh_customer_map[0].customer]
+                        #customer_master = CustomerMaster.objects.filter(customer_id = order.customer_id,\
+                                                        #name = order.customer_name,\
+                                                        #user = user.id)
         customer_master = customer_master[0] if customer_master else None
         customer_data = {'Name': customer_master.name if customer_master else order.customer_name,
                          'Number': customer_master.phone_number if customer_master else order.telephone,

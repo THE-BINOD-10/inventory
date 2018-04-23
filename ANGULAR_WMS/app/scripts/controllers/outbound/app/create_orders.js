@@ -19,6 +19,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.priceband_sync = Session.roles.permissions.priceband_sync;
   vm.disable_brands = Session.roles.permissions.disable_brands_view;
   vm.date = new Date();
+  vm.client_logo = Session.parent.logo;
+  vm.api_url = Session.host;
 
   $('#delivery_date').datepicker();
 
@@ -101,6 +103,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         vm.filterData.primary_details = data.data.primary_details;
         vm.filterData.selectedBrands = {};
         vm.filterData.subCats = {};
+        vm.filterData.leastCats = {};
 
 	vm.brands = data.data.brands;
 	if (vm.brands.length === 0){
@@ -271,6 +274,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.show_no_data = false;
     var size_stock = "";
     var cat_name = vm.category;
+    var sub_cat_name = vm.sub_category;
     // vm.required_quantity = {};
 
     if(vm.category == "All") {
@@ -286,7 +290,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       size_stock = vm.size_filter_data;
     }
 
-    var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
+    var data = {brand: vm.brand, sub_category: sub_cat_name, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
                 sale_through: vm.order_type_value, size_filter: size_stock, color: vm.color, from_price: vm.fromPrice,
                 to_price: vm.toPrice, quantity: vm.quantity, delivery_date: vm.delivery_date, is_margin_percentage: vm.marginData.is_margin_percentage,
                 margin: vm.marginData.margin, hot_release: vm.hot_release, margin_data: JSON.stringify(Data.marginSKUData.data)};
@@ -598,6 +602,9 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       if(vm.location == '/App/Categories'){
         $(".app_body").css('height',height-menu-cart);
         vm.location = vm.old_path;
+      } else if (vm.location == '/App/Profile') {
+        $(".app_body").css('height',height-menu);
+        vm.location = vm.old_path;
       } else {
         $(".app_body").css('height',height-header-menu-cart);
       }
@@ -695,6 +702,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     console.log(vm.filterData, $state);
     var brand= [];
     var category= [];
+    var sub_category = [];
     var color = [];
     angular.forEach(vm.filterData.selectedBrands, function(value, key) {
       if (value) {
@@ -712,6 +720,15 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
             temp_primary_data.push(sub_cat);
           }
         })
+      }
+    });
+
+    var temp_sub_cat_data = [];
+    angular.forEach(vm.filterData.selectedCats, function(value, key) {
+      if (value) {
+        angular.forEach(vm.filterData.leastCats[key], function(val, key){
+          temp_sub_cat_data.push(key);
+        });
       }
     });
 
@@ -734,6 +751,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.catlog_data.index = "";
     vm.brand = brand.join(",");
     vm.category = temp_primary_data.join(","); //category.join(",");
+    vm.sub_category = temp_sub_cat_data.join(","); //category.join(",");
     vm.color = color.join(",");
     vm.size_filter_data = vm.filterData.size_filter
     //vm.primary_data = JSON.stringify(temp_primary_data);
@@ -765,6 +783,16 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.checkPrimaryFilter = function(primary_cat) {
 
     if(!vm.filterData.selectedCats[primary_cat]) {
+
+      angular.forEach(vm.filterData.subCats[primary_cat], function(value ,sub_cat){
+        vm.filterData.subCats[primary_cat][sub_cat] = false;
+      })
+    }
+  }
+
+  vm.checkSubcategoryFilter = function(primary_cat, sub) {
+
+    if(!vm.filterData.subCats[primary_cat][sub]) {
 
       angular.forEach(vm.filterData.subCats[primary_cat], function(value ,sub_cat){
         vm.filterData.subCats[primary_cat][sub_cat] = false;
@@ -851,7 +879,10 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     } else if(value == 'All' && data['All']) {
       angular.forEach(vm.filterData.primary_details.data[primary], function(key) {
         data[key] = true;
-      })
+        angular.forEach(vm.filterData.primary_details.sub_category_list[key], function(key1) {
+          vm.filterData.leastCats[key1] = true;
+        })
+      });
     } else {
       angular.forEach(data, function(value, key) {
         if(key != 'All') {
@@ -1404,6 +1435,8 @@ angular.module('urbanApp').controller('downloadPDFCtrl', function ($modalInstanc
   vm.user_type = Session.roles.permissions.user_type;
   vm.pdfData = items
   vm.pdfData.display_stock = true;
+  vm.pdfData.bank_details = true;
+  vm.pdfData.address_details = true;
   vm.pdfData.remarks = '';
   if (Session.roles.permissions.customer_pdf_remarks) {
     vm.pdfData.remarks = Session.roles.permissions.customer_pdf_remarks;
@@ -1432,6 +1465,8 @@ angular.module('urbanApp').controller('downloadPDFCtrl', function ($modalInstanc
     data['terms_list'] = terms_list.join('<>');
     data['user_type'] = Session.roles.permissions.user_type;
     data['display_stock'] = vm.pdfData.display_stock;
+    data['bank_details'] = vm.pdfData.bank_details;
+    data['address_details'] = vm.pdfData.address_details;
     Service.apiCall("get_sku_catalogs/", "POST", data).then(function(response) {
       if(response.message) {
         window.open(Session.host + response.data, '_blank');

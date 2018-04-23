@@ -8,7 +8,8 @@
       </div>
     </div>
     <div class="col-md-4 col-sm-4 col-xs-4 brand-title">
-      <img ng-src="images/brands/{{showCase.brands_logos[showCase.brand]}}" ng-if="showCase.brands_logos[showCase.brand]" style="height: 60px;"/>
+      <img ng-src="images/brands/{{showCase.brands_logos[showCase.brand]}}" ng-if="showCase.brands_logos[showCase.brand]" style="height: 60px;" />
+      <img ng-src="{{showCase.api_url}}static/company_logos/{{showCase.client_logo}}" ng-if="!showCase.brands_logos[showCase.brand] && showCase.client_logo" style="height: 60px;"/>
       <h3 style="margin-top:10px;overflow: hidden;text-overflow: ellipsis;white-space: nowrap;" ng-if="!(showCase.brands_logos[showCase.brand])">{{showCase.brand}}</h3>
     </div>
     <div class="col-md-4 col-sm-4 col-xs-4">
@@ -19,6 +20,7 @@
         <ul class="dropdown-menu">
           <!-- <li><a ng-click="showCase.addMargin()">Add Margin</a></li> -->
           <li><a ng-click="$state.go('user.App.MyOrders');showCase.get_orders();">Your Orders</a></li>
+          <li><a ng-click="$state.go('user.App.Profile')">Profile</a></li>
           <li><a ng-click="$state.go('user.App.ManualEnquiry');">Create Custom Order</a></li>
           <!--<li><a ng-click="$state.go('user.App.CorporateOrders');" ng-if="showCase.user_type=='reseller'">Corporate Orders</a></li>-->
           <li><a ng-click="showCase.logout()">Logout</a></li>

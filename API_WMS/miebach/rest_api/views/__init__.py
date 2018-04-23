@@ -11,3 +11,4 @@ from stockone import *
 from uploaded_pos import *
 from qssi import *
 from pos import *
+from targets import *

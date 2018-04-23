@@ -78,7 +78,7 @@ def integration_get_order(order_id, user, order_status = "NEW"):
                     },
                 "Seller":
                     {
-                        "Code": ''#what to send
+                        "Code": '111111'#dummy
                     }
                }
         for ind, sku in enumerate(order["sku_data"]):

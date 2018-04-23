@@ -713,15 +713,23 @@ def get_warehouse_user_results(start_index, stop_index, temp_data, search_term, 
     all_user_groups = UserGroups.objects.filter(admin_user_id=warehouse_admin.id)
     if search_term:
         master_data1 = all_user_groups.filter(
-            Q(user__first_name__icontains=search_term) | Q(user__email__icontains=search_term),
+            Q(user__first_name__icontains=search_term) | Q(user__email__icontains=search_term) |
+            Q(user__userprofile__warehouse_type__icontains=search_term) |
+            Q(user__userprofile__warehouse_level__icontains=search_term) |
+            Q(user__userprofile__city__icontains=search_term) |
+            Q(user__userprofile__zone__icontains=search_term),
             **search_params1).exclude(user_id=user.id). \
             order_by(order_data).values_list('user__username', 'user__first_name', 'user__email',
-                                             'user__warehouse_type', 'user__warehouse_level', 'user__min_order_val',
-                                             'user__zone')
+                                             'user__userprofile__warehouse_type', 'user__userprofile__warehouse_level',
+                                             'user__userprofile__min_order_val', 'user__userprofile__zone')
 
         master_data2 = all_user_groups.exclude(**exclude_admin).filter(
             Q(admin_user__first_name__icontains=search_term) |
-            Q(admin_user__email__icontains=search_term), **search_params2). \
+            Q(admin_user__email__icontains=search_term) |
+            Q(admin_user__userprofile__warehouse_type__icontains=search_term) |
+            Q(admin_user__userprofile__warehouse_level__icontains=search_term) |
+            Q(admin_user__userprofile__city__icontains=search_term) |
+            Q(admin_user__userprofile__zone__icontains=search_term), **search_params2). \
             order_by(order_data1).values_list('admin_user__username',
                                               'admin_user__first_name', 'admin_user__email',
                                               'admin_user__userprofile__warehouse_type',

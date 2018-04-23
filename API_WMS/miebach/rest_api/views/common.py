@@ -54,10 +54,10 @@ def process_date(value):
     return value
 
 
-def get_company_logo(user):
+def get_company_logo(user, IMAGE_PATH_DICT):
     import base64
     try:
-        logo_name = COMPANY_LOGO_PATHS.get(user.username, '')
+        logo_name = IMAGE_PATH_DICT.get(user.username, '')
         logo_path = 'static/company_logos/' + logo_name
         with open(logo_path, "rb") as image_file:
             image = base64.b64encode(image_file.read())
@@ -170,6 +170,7 @@ def add_user_permissions(request, response_data, user=''):
     parent_data = {}
     parent_data['userId'] = user.id
     parent_data['userName'] = user.username
+    parent_data['logo'] = COMPANY_LOGO_PATHS.get(user.username, '')
     response_data['data']['userName'] = request.user.username
     response_data['data']['userId'] = request.user.id
     response_data['data']['parent'] = parent_data
@@ -279,15 +280,23 @@ def wms_login(request):
 
             if not user_profile:
                 prefix = re.sub('[^A-Za-z0-9]+', '', user.username)[:3].upper()
-                user_profile = UserProfile(user=user, phone_number='',
+                up_obj = UserProfile(user=user, phone_number='',
                                            is_active=1, prefix=prefix, swx_id=0)
-                user_profile.save()
+                up_obj.save()
                 if user.is_staff:
-                    add_user_type_permissions(user_profile)
+                    add_user_type_permissions(up_obj)
+                user_profile = UserProfile.objects.filter(user_id=user.id)
         else:
             return HttpResponse(json.dumps(response_data), content_type='application/json')
 
         response_data = add_user_permissions(request, response_data)
+        price_band_flag = get_misc_value('priceband_sync', user.id)
+        if response_data['data'].get('parent', '') and not user_profile[0].warehouse_type \
+                and user_profile[0].user_type != 'customer' and price_band_flag:
+            parent_user_profile = UserProfile.objects.get(user_id=response_data['data']['parent']['userId'])
+            if parent_user_profile.warehouse_type:
+                user_profile[0].warehouse_type = parent_user_profile.warehouse_type
+                user_profile[0].save()
 
     return HttpResponse(json.dumps(response_data), content_type='application/json')
 
@@ -389,7 +398,7 @@ def get_search_params(request, user=''):
                     'order_id': 'order_id', 'job_code': 'job_code', 'job_order_code': 'job_order_code',
                     'fg_sku_code': 'fg_sku_code',
                     'rm_sku_code': 'rm_sku_code', 'pallet': 'pallet',
-                    'staff_id': 'id'}
+                    'staff_id': 'id', 'ean': 'ean' }
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
                       'search2': 'search_2', 'search3': 'search_3',
@@ -476,7 +485,8 @@ data_datatable = {  # masters
     # Uploaded POs (Display only to Central Admin)
     'UploadedPos': 'get_uploaded_pos_by_customers',
     'EnquiryOrders': 'get_enquiry_orders',
-    'ManualEnquiryOrders': 'get_manual_enquiry_orders'
+    'ManualEnquiryOrders': 'get_manual_enquiry_orders',
+    'Targets': 'get_distributor_targets',
 }
 
 
@@ -703,7 +713,7 @@ def configurations(request, user=''):
     # Invoice Marketplaces list and selected Option
     config_dict['marketplaces'] = get_marketplace_names(user, 'all_marketplaces')
     config_dict['prefix_data'] = list(InvoiceSequence.objects.filter(user=user.id, status=1).exclude(marketplace=''). \
-                                      values('marketplace', 'prefix'))
+                                      values('marketplace', 'prefix', 'interfix', 'date_type'))
 
     all_stages = ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True)
     config_dict['all_stages'] = str(','.join(all_stages))
@@ -1145,7 +1155,7 @@ def get_auto_po_quantity(sku, stock_quantity=''):
 
 def auto_po_warehouses(sku, qty):
     supplier_id = ''
-    price = ''
+    price = 0
     taxes = {}
     wh_customer_map = WarehouseCustomerMapping.objects.filter(warehouse_id=sku.user)
     if not wh_customer_map:
@@ -2196,6 +2206,7 @@ def get_financial_year(date):
 def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos=False):
     invoice_number = ""
     inv_no = ""
+    invoice_sequence = None
     invoice_no_gen = MiscDetail.objects.filter(user=user.id, misc_type='increment_invoice')
     if invoice_no_gen:
         seller_order_summary = SellerOrderSummary.objects.filter(Q(order__id__in=order_ids) |
@@ -2213,41 +2224,54 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
                           prefix_key + 'original_order_id': order.original_order_id, prefix_key + 'user': user.id}
             # invoice_ins = SellerOrderSummary.objects.filter(**check_dict).exclude(invoice_number='')
             invoice_ins = SellerOrderSummary.objects.filter(order__id__in=order_ids).exclude(invoice_number='')
-
+            invoice_sequence = get_invoice_sequence_obj(user, order.marketplace)
             if invoice_ins:
                 order_no = invoice_ins[0].invoice_number
                 seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)
-                inv_no = int(order_no)
+                inv_no = order_no
             elif invoice_no_gen[0].misc_value == 'true':
-                invoice_sequence = InvoiceSequence.objects.filter(user=user.id, status=1, marketplace=order.marketplace)
-                if not invoice_sequence:
-                    invoice_sequence = InvoiceSequence.objects.filter(user=user.id, marketplace='')
                 if invoice_sequence:
-                    invoice_sequence = invoice_sequence[0]
-                    inv_no = int(invoice_sequence.value)
-                    order_no = invoice_sequence.prefix + str(inv_no).zfill(3)
+                    invoice_seq = invoice_sequence[0]
+                    inv_no = int(invoice_seq.value)
+                    #order_no = invoice_sequence.prefix + str(inv_no).zfill(3)
+                    order_no = str(inv_no).zfill(3)
                     seller_order_summary.update(invoice_number=order_no)
-                    invoice_sequence.value = inv_no + 1
-                    invoice_sequence.save()
+                    invoice_seq.value = inv_no + 1
+                    invoice_seq.save()
             else:
                 seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)
-    if user_profile.user_type == 'marketplace_user':
-        invoice_number = user_profile.prefix + '/' + str(invoice_date.strftime('%m-%y')) + '/A-' + str(order_no)
-    elif user.username == 'TranceHomeLinen':
-        invoice_number = user_profile.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + 'GST' + '/' + str(
-            order_no)
-    elif user.username == 'Subhas_Publishing':
-        invoice_number = user_profile.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + str(order_no)
-    elif user.username == 'campus_sutra':
-        invoice_number = str(get_financial_year(invoice_date)) + '/' + str(order_no)
-    elif user_profile.warehouse_type == 'DIST':
-        invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), order_no)
+    if invoice_sequence:
+        invoice_sequence = invoice_sequence[0]
+        inv_num_lis = []
+        if invoice_sequence.prefix:
+            inv_num_lis.append(invoice_sequence.prefix)
+        if invoice_sequence.date_type:
+            if invoice_sequence.date_type == 'financial':
+                inv_num_lis.append(get_financial_year(invoice_date))
+            elif invoice_sequence.date_type == 'month_year':
+                inv_num_lis.append(invoice_date.strftime('%m%y'))
+        if invoice_sequence.interfix:
+            inv_num_lis.append(invoice_sequence.interfix)
+        inv_num_lis.append(str(order_no))
+        invoice_number = '/'.join(['%s'] * len(inv_num_lis)) % tuple(inv_num_lis)
     else:
-        if from_pos:
-            sub_usr = ''.join(re.findall('\d+', OrderDetail.objects.get(id=order_ids[0]).order_code))
-            invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), sub_usr + order_no)
-        else:
+        if user_profile.user_type == 'marketplace_user':
+            invoice_number = user_profile.prefix + '/' + str(invoice_date.strftime('%m-%y')) + '/A-' + str(order_no)
+        elif user.username == 'TranceHomeLinen':
+            invoice_number = user_profile.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + 'GST' + '/' + str(
+                order_no)
+        elif user.username == 'Subhas_Publishing':
+            invoice_number = user_profile.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + str(order_no)
+        elif user.username == 'campus_sutra':
+            invoice_number = str(get_financial_year(invoice_date)) + '/' + str(order_no)
+        elif user_profile.warehouse_type == 'DIST':
             invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), order_no)
+        else:
+            if from_pos:
+                sub_usr = ''.join(re.findall('\d+', OrderDetail.objects.get(id=order_ids[0]).order_code))
+                invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), sub_usr + order_no)
+            else:
+                invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), order_no)
 
     return invoice_number, inv_no
 
@@ -2555,8 +2579,9 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     dispatch_through = "By Road"
     _total_invoice = round(total_invoice_amount)
     # _invoice_no =  'TI/%s/%s' %(datetime.datetime.now().strftime('%m%y'), order_no)
+    side_image = get_company_logo(user, COMPANY_LOGO_PATHS)
+    top_image = get_company_logo(user, TOP_COMPANY_LOGO_PATHS)
 
-    image = get_company_logo(user)
     declaration = DECLARATIONS.get(user.username, '')
     if not declaration:
         declaration = DECLARATIONS['default']
@@ -2585,7 +2610,8 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'rounded_invoice_amount': _total_invoice, 'purchase_type': purchase_type,
                     'is_gst_invoice': is_gst_invoice,
                     'gstin_no': gstin_no, 'total_taxable_amt': total_taxable_amt, 'total_taxes': total_taxes,
-                    'image': image,
+                    'side_image': side_image,
+                    'top_image' : top_image,
                     'total_tax_words': number_in_words(_total_tax), 'declaration': declaration,
                     'hsn_summary': hsn_summary,
                     'hsn_summary_display': get_misc_value('hsn_summary', user.id), 'seller_address': seller_address,
@@ -2630,10 +2656,15 @@ def get_sku_categories_data(request, user, request_data={}, is_catalog=''):
     primary_details = {'data': {}}
     primary_details['primary_categories'] = list(sku_master.exclude(primary_category='').filter(**filter_params). \
                                                  values_list('primary_category', flat=True).distinct())
-
+    primary_details['sub_category_list'] = {}
     for primary in primary_details['primary_categories']:
-        primary_details['data'][primary] = list(sku_master.exclude(sku_category='').filter(primary_category=primary). \
-                                                values_list('sku_category', flat=True).distinct())
+        primary_filtered = sku_master.exclude(sku_category='').filter(primary_category=primary).\
+                                    values_list('sku_category', flat=True).distinct()
+        primary_details['data'][primary] = list(primary_filtered)
+        for primary_filt in primary_filtered:
+            primary_details['sub_category_list'][primary_filt] = list(sku_master.\
+                                            filter(sku_category=primary_filt).exclude(sub_category='').\
+                                            values_list('sub_category', flat=True).distinct())
     _sizes = {}
     integer = []
     character = []
@@ -2752,10 +2783,10 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     # from rest_api.views.outbound import get_style_variants
     filter_params = {'user': user.id}
     # get_values = ['wms_code', 'sku_desc', 'image_url', 'sku_class', 'price', 'mrp', 'id', 'sku_category', 'sku_brand', 'sku_size', 'style_name', 'sale_through']
-    sku_category = request_data.get('category', '')
     sku_class = request_data.get('sku_class', '')
     sku_brand = request_data.get('brand', '')
     sku_category = request_data.get('category', '')
+    sub_category = request_data.get('sub_category', '')
     from_price = request_data.get('from_price', '')
     to_price = request_data.get('to_price', '')
     color = request_data.get('color', '')
@@ -2836,6 +2867,9 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     if sku_category and sku_category.lower() != 'all':
         filter_params['sku_category__in'] = [i.strip() for i in sku_category.split(",") if i]
         filter_params1['sku__sku_category__in'] = filter_params['sku_category__in']
+    if sub_category and sub_category.lower() != 'all':
+        filter_params['sub_category__in'] = [i.strip() for i in sub_category.split(",") if i]
+        filter_params1['sku__sub_category__in'] = filter_params['sub_category__in']
     if is_catalog:
         filter_params['status'] = 1
         filter_params1['sku__status'] = 1
@@ -4506,13 +4540,11 @@ def get_invoice_html_data(invoice_data):
     data['empty_tds'] = [i for i in range(data['columns'])]
     return data
 
-
 def build_invoice(invoice_data, user, css=False):
     # it will create invoice template
     user_profile = UserProfile.objects.get(user_id=user.id)
     if not (not invoice_data['detailed_invoice'] and invoice_data['is_gst_invoice']):
         return json.dumps(invoice_data, cls=DjangoJSONEncoder)
-
     titles = ['']
     import math
     if not (invoice_data.get("customer_invoice", "") == True):
@@ -4520,17 +4552,14 @@ def build_invoice(invoice_data, user, css=False):
         if not title_dat == 'false':
             titles = title_dat.split(",")
     invoice_data['html_data'] = get_invoice_html_data(invoice_data)
-
     invoice_data['user_type'] = user_profile.user_type
-
     invoice_data['titles'] = titles
     perm_hsn_summary = get_misc_value('hsn_summary', user.id)
     invoice_data['perm_hsn_summary'] = str(perm_hsn_summary)
     if len(invoice_data['hsn_summary'].keys()) == 0:
         invoice_data['perm_hsn_summary'] = 'false'
     invoice_data['empty_tds'] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-
-    inv_height = 1358  # total invoice height
+    inv_height = 1200  # total invoice height
     inv_details = 317  # invoice details height
     inv_footer = 95  # invoice footer height
     inv_totals = 127  # invoice totals height
@@ -4539,9 +4568,7 @@ def build_invoice(invoice_data, user, css=False):
     inv_summary = 47  # invoice summary headers height
     inv_total = 27  # total display height
     inv_charges = 20  # height of other charges
-
     inv_totals = inv_totals + len(invoice_data['order_charges']) * inv_charges
-
     '''
     if invoice_data['user_type'] == 'marketplace_user':
         inv_details = 142
@@ -4566,6 +4593,12 @@ def build_invoice(invoice_data, user, css=False):
         render_space = inv_height - (inv_details + inv_footer + inv_totals + inv_header + inv_total)
     no_of_skus = int(render_space / inv_product)
     data_length = len(invoice_data['data'])
+    '''
+    if user.username in top_logo_users:
+        no_of_skus -= 2
+    if data_length == 1:
+        no_of_skus += 2
+    '''
     invoice_data['empty_data'] = []
     if (data_length > no_of_skus):
 
@@ -4604,7 +4637,10 @@ def build_invoice(invoice_data, user, css=False):
     else:
         temp = invoice_data['data']
         invoice_data['data'] = []
-        empty_data = [""] * (no_of_skus - data_length)
+        no_of_space = (13 - data_length)
+        if no_of_space < 0:
+            no_of_space = 0
+        empty_data = [""] * no_of_space
         invoice_data['data'].append({'data': temp, 'empty_data': empty_data})
     top = ''
     if css:
@@ -5393,12 +5429,16 @@ def update_invoice_sequence(request, user=''):
         if not marketplace_name:
             status = 'Marketplace Name Should not be empty'
         marketplace_prefix = request.GET.get('marketplace_prefix', '')
+        marketplace_interfix = request.GET.get('marketplace_interfix', '')
+        marketplace_date_type = request.GET.get('marketplace_date_type', '')
         delete_status = request.GET.get('delete', '')
         if not status:
             invoice_sequence = InvoiceSequence.objects.filter(user_id=user.id, marketplace=marketplace_name)
             if invoice_sequence:
                 invoice_sequence = invoice_sequence[0]
                 invoice_sequence.prefix = marketplace_prefix
+                invoice_sequence.interfix = marketplace_interfix
+                invoice_sequence.date_type = marketplace_date_type
                 if delete_status:
                     invoice_sequence.status = 0
                 else:
@@ -5406,7 +5446,7 @@ def update_invoice_sequence(request, user=''):
                 invoice_sequence.save()
             else:
                 InvoiceSequence.objects.create(marketplace=marketplace_name, prefix=marketplace_prefix, value=1,
-                                               status=1,
+                                               status=1, interfix=marketplace_interfix, date_type=marketplace_date_type,
                                                user_id=user.id, creation_date=datetime.datetime.now())
             status = 'Success'
 
@@ -5915,6 +5955,20 @@ def get_user_profile_data(request, user=''):
     return HttpResponse(json.dumps({'msg': 1, 'data': data}))
 
 
+@login_required
+@get_admin_user
+def get_cust_profile_info(request, user=''):
+    data = {'user_id': request.POST.get('user_id','')}
+    customer_info = UserProfile.objects.get(user_id=request.POST.get('user_id',''))
+    data['address'] = customer_info.address
+    data['gst_number'] = customer_info.gst_number
+    data['phone_number'] = customer_info.phone_number
+    data['bank_details'] = customer_info.bank_details
+    if customer_info.customer_logo:
+        data['logo'] = customer_info.customer_logo.url
+    return HttpResponse(json.dumps({'message': 1, 'data': data}, cls=DjangoJSONEncoder))
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -6339,8 +6393,8 @@ def get_customer_based_price(customer_obj, price, mrp,is_sellingprice='', user_i
         price = price * float(1 + float(customer_obj.markup) / 100)
         if mrp and price > mrp:
             price = mrp
-        if not mrp:
-            mrp = price
+    if not mrp:
+        mrp = price
     return price, mrp
 
 
@@ -6517,3 +6571,10 @@ def update_sku_attributes(data, request):
             continue
         key = key.replace('attr_', '')
         update_sku_attributes_data(data, key, value)
+
+
+def get_invoice_sequence_obj(user, marketplace):
+    invoice_sequence = InvoiceSequence.objects.filter(user=user.id, status=1, marketplace=marketplace)
+    if not invoice_sequence:
+        invoice_sequence = InvoiceSequence.objects.filter(user=user.id, marketplace='')
+    return  invoice_sequence

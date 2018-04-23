@@ -10,14 +10,20 @@
         <span ng-click="$state.go('user.App.Brands')" title="Go to Brand Page">Back To Brands</span>
       </div>
     </div>
-    <div class="col-md-4 col-sm-4 hidden-xs">
-      <h4 align="center">MY ORDERS</h4>
+    <div class="col-md-4 col-sm-4 hidden-xs" align="center">
+      <!-- <h4 align="center">MY ORDERS</h4> -->
+      <img ng-src="{{showCase.api_url}}static/company_logos/{{showCase.client_logo}}" ng-if="showCase.client_logo" style="height: 43px;"/>
     </div>
     <div class="col-md-4 col-sm-4 col-xs-6">
       <a class="fa fa-power-off pull-right fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" ng-click="showCase.logout()"></a>
       <a href="" class="pull-right hide" ng-click="$state.go('user.App.Cart')">
           <i class="fa fa-cart-plus fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" title="Go To Cart Page"></i>
       </a>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-12 col-sm-12 col-xs-12" align="center">
+      <h4 align="center">MY ORDERS</h4>
     </div>
   </div>
 
@@ -27,8 +33,8 @@
       <div class="col-md-6 col-sm-8 col-xs-12">
         <div class="st-c-toggle pull-right">
           <div class="bt-left bt-common" ng-click="$state.go('user.App.MyOrders', {state: 'orders'})" ng-class="(orders.your_orders=='orders')?'bt-red':'bt-common';">Orders</div>
-          <div class="bt-right bt-common" ng-click="$state.go('user.App.MyOrders', {state: 'enquiry'})" ng-class="(orders.your_orders=='enquiry')?'bt-red':'bt-common';">Marketing Enquiry</div>
-          <div class="bt-right bt-common" ng-click="$state.go('user.App.MyOrders', {state: 'manual_enquiry'})" ng-class="(orders.your_orders=='manual_enquiry')?'bt-red':'bt-common';">Custom Order</div>
+          <div class="bt-right bt-common" ng-click="$state.go('user.App.MyOrders', {state: 'enquiry'})" ng-class="(orders.your_orders=='enquiry')?'bt-red':'bt-common';">Marketing Enquiries</div>
+          <div class="bt-right bt-common" ng-click="$state.go('user.App.MyOrders', {state: 'manual_enquiry'})" ng-class="(orders.your_orders=='manual_enquiry')?'bt-red':'bt-common';">Custom Orders</div>
         </div>
       </div>
     </div>

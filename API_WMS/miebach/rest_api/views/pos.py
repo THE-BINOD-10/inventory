@@ -307,6 +307,8 @@ def picklist_creation(request, stock_detail, stock_quantity, order_detail, \
 @csrf_exempt
 def customer_order(request):
     orders = request.POST['order']
+    null = None
+    log.info("Create orders request: %s\n" %(str(orders)))
     orders = eval(orders)
     order_ids = []
     only_return = True
@@ -316,6 +318,9 @@ def customer_order(request):
     for order in orders:
         order_created = False
         items_to_mail = []
+        for typ, pay in order['summary'].get('payment', {}).iteritems():
+            if not pay:
+                order['summary']['payment'][typ] = 0
         total_payment_received = sum(order['summary'].get('payment', {}).values())
         user_id = order['user']['parent_id']
         user = User.objects.get(id=user_id)
@@ -331,6 +336,7 @@ def customer_order(request):
             order_id = backend_order_id if (backend_order_id > frontend_order_id) else frontend_order_id
         else:
             order_id = frontend_order_id
+        log.info("Latest Order ID : %s\n" %(str(order_id)))
         status = 0 if order['summary']['issue_type'] == "Delivery Challan" \
             else 1
         order_code = order_codes[order['summary']['issue_type']] + str(request.user.id)
@@ -400,19 +406,29 @@ def customer_order(request):
                                                                   email_id=cust_dict.get('Email', ''), \
                                                                   unit_price=item['unit_price'],
                                                                   payment_received=payment_received)
+                        log.info("Order %s created" %(order_detail.original_order_id))
                     except Exception as exece:
+                        import traceback
+                        log.debug(traceback.format_exc())
                         if "Duplicate entry" in exece[1]:
                             order_detail = OrderDetail.objects.get(user=user_id, \
                                                                    order_id=order_id, \
                                                                    sku_id=sku.id, \
                                                                    order_code=order_code)
+                            log.info("Duplicate order: id=%s, qty=%s, invoice_amt=%s, paymnt_received=%s"\
+                                    %(str(order_detail.original_order_id), str(order_detail.quantity),\
+                                    str(order_detail.invoice_amount), str(order_detail.payment_received)))
                             new_sku_count = order_detail.quantity + item['quantity']
                             new_invoice_amount = order_detail.invoice_amount + item['price']
                             new_payment_received = order_detail.payment_received + payment_received
-                            order_detail.quantity = new_sku_count
-                            order_detail.invoice_amount = new_invoice_amount
-                            order_detail.payment_received = new_payment_received
-                            order_detail.save()
+                            #order_detail.quantity = new_sku_count
+                            #order_detail.invoice_amount = new_invoice_amount
+                            #order_detail.payment_received = new_payment_received
+                            #order_detail.save()
+                            log.info("duplicate order didnt save, data is : id=%s, qty=%s, amt=%s,\
+                                     payment_receieved=%s" %(str(order_detail.original_order_id),\
+                                     str(item['quantity']), str(item['price']),\
+                                     str(payment_received)))
                             continue
                     sku_disc = (int(item['selling_price']) - item['unit_price']) * item['quantity']
                     CustomerOrderSummary.objects.create(order_id=order_detail.id, \
@@ -460,6 +476,8 @@ def customer_order(request):
                             location=put_zone.locationmaster_set.all()[0])
                     sku_stocks_.quantity = int(sku_stocks_.quantity) + item['quantity']
                     sku_stocks_.save()
+                    log.info("return item, stock increased: sku_id=%s, user=%s, qty=%s, new_stock=%s"\
+                            %(str(sku.id), str(user_id), str(item['quantity']), str(sku_stocks_.quantity)))
                     #order_id = "return"
                     # add item to OrderReturns
                     order_return = OrderReturns.objects.create( \
@@ -471,6 +489,7 @@ def customer_order(request):
                         status=0)
                     order_return.return_id = "MN" + str(order_return.id)
                     order_return.save()
+                    log.info("OrderReturns object created with id: %s" %(str(order_return.id)))
                     return_location = ReturnsLocation.objects.create( \
                         quantity=0, \
                         status=0, \

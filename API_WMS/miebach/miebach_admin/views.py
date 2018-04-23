@@ -2745,6 +2745,7 @@ def configurations(request, user=''):
     all_groups = str(','.join(all_groups))
     all_stages = ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True)
     all_stages = str(','.join(all_stages))
+    picklist_display_address = 'false'
 
     if mail_alerts == 'false':
         mail_alerts = 0
@@ -2787,6 +2788,10 @@ def configurations(request, user=''):
     if pos_switch == 'false':
         display_pos = 'display:none'
 
+    picklist_display_address = MiscDetail.objects.filter(misc_type='report_data_range', user=request.user.id)
+    if picklist_display_address:
+        picklist_display_address = picklist_display_address[0].misc_value
+
     return render(request, 'templates/configurations.html', {'batch_switch': batch_switch, 'fifo_switch': fifo_switch, 'pos_switch': pos_switch,
                                                              'send_message': send_message, 'use_imei': use_imei, 'back_order': back_order,
                                                              'show_image': show_image, 'online_percentage': online_percentage,
@@ -2798,7 +2803,7 @@ def configurations(request, user=''):
                                                              'reports_data': reports_data, 'display_none': display_none, 'is_config': 'true',
                                                              'all_groups': all_groups, 'display_pos': display_pos,
                                                              'auto_po_switch': auto_po_switch, 'no_stock_switch': no_stock_switch,
-                                                             'all_stages': all_stages})
+                                                             'all_stages': all_stages, 'picklist_display_address':picklist_display_address })
 
 #tax_inclusive_pos = get_misc_value('tax_inclusive', user.id)
 

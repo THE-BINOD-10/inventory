@@ -9,6 +9,7 @@ import re
 from miebach_admin.models import *
 from itertools import chain
 from operator import itemgetter
+from django.db.models import Q, F
 
 # from inbound import *
 
@@ -177,7 +178,7 @@ MOVE_INVENTORY_UPLOAD_FIELDS = ['WMS Code', 'Source Location', 'Destination Loca
 
 SUPPLIER_HEADERS = ['Supplier Id', 'Supplier Name', 'Address', 'Email', 'Phone No.', 'GSTIN Number', 'PAN Number',
                     'PIN Code',
-                    'City', 'State', 'Country']
+                    'City', 'State', 'Country', 'Days required to supply', 'Fulfillment Amount', 'Credibility']
 
 VENDOR_HEADERS = ['Vendor Id', 'Vendor Name', 'Address', 'Email', 'Phone No.']
 
@@ -216,7 +217,7 @@ MARKETPLACE_SKU_HEADERS = ['WMS Code', 'Flipkart SKU', 'Snapdeal SKU', 'Paytm SK
                            'Paytm Description', 'HomeShop18 Description', 'Jabong Description',
                            'Indiatimes Description', 'Amazon Description']
 
-PURCHASE_ORDER_HEADERS = ['PO Name', 'PO Date(MM-DD-YYYY)', 'Supplier ID', 'WMS SKU Code', 'Quantity', 'Price',
+PURCHASE_ORDER_HEADERS = ['PO Reference', 'PO Date(MM-DD-YYYY)', 'Supplier ID', 'WMS SKU Code', 'Quantity', 'Price',
                           'Ship TO']
 
 LOCK_FIELDS = ['', 'Inbound', 'Outbound', 'Inbound and Outbound']
@@ -457,7 +458,8 @@ SKU_HEADERS = ['WMS Code', 'SKU Description', 'Product Type', 'SKU Group', 'SKU 
                'SKU Class', 'SKU Brand', 'Style Name', 'SKU Size', 'Size Type', 'Put Zone', 'Cost Price', 'Selling Price',
                'MRP Price', 'Sequence', 'Image Url',
                'Threshold Quantity', 'Measurment Type', 'Sale Through', 'Color', 'EAN Number',
-               'Load Unit Handling(Options: Enable, Disable)', 'HSN Code', 'Sub Category', 'Hot Release', 'Status']
+               'Load Unit Handling(Options: Enable, Disable)', 'HSN Code', 'Sub Category', 'Hot Release',
+               'Mix SKU Attribute(Options: No Mix, Mix within Group)', 'Status']
 
 MARKET_USER_SKU_HEADERS = ['WMS Code', 'SKU Description', 'Product Type', 'SKU Group', 'SKU Type(Options: FG, RM)',
                            'SKU Category',
@@ -758,9 +760,10 @@ SKU_COMMON_MAPPING = OrderedDict((('WMS Code', 'wms_code'), ('SKU Description', 
                                   ('Color', 'color'), ('EAN Number', 'ean_number'),
                                   ('Load Unit Handling(Options: Enable, Disable)', 'load_unit_handle'),
                                   ('HSN Code', 'hsn_code'), ('Sub Category', 'sub_category'),
-                                  ('Hot Release', 'hot_release'), ('Status', 'status'),
-                                  ('Mix SKU Attribute(Options: No Mix, Mix within Group)', 'mix_sku')
-                                  ))
+                                  ('Hot Release', 'hot_release'),
+                                  ('Mix SKU Attribute(Options: No Mix, Mix within Group)', 'mix_sku'),
+                                  ('Status', 'status'),
+                                ))
 
 SKU_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('product_type', 2), ('sku_group', 3), ('sku_type', 4),
                              ('sku_category', 5), ('primary_category', 6), ('sku_class', 7), ('sku_brand', 8),
@@ -770,7 +773,7 @@ SKU_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('product_type', 
                              ('measurement_type', 19),
                              ('sale_through', 20), ('color', 21), ('ean_number', 22), ('load_unit_handle', 23),
                              ('hsn_code', 24),
-                             ('sub_category', 25), ('hot_release', 26), ('status', 27)
+                             ('sub_category', 25), ('hot_release', 26), ('mix_sku', 27), ('status', 28)
                              ))
 
 MARKETPLACE_SKU_DEF_EXCEL = OrderedDict(
@@ -1215,10 +1218,10 @@ NETWORK_MASTER_DATA = {'dest_location_code': '', 'source_location_code': '',
 SELLER_DATA = {'name': '', 'address': '', 'phone_number': '',
                'email_id': '', 'status': 1, 'price_type': '', 'margin': 0}
 
-USER_SKU_EXCEL = {'warehouse_user': SKU_HEADERS, 'marketplace_user': MARKET_USER_SKU_HEADERS,
+USER_SKU_EXCEL = {'warehouse_user': SKU_HEADERS, 'marketplace_user': SKU_HEADERS,
                   'customer': SKU_HEADERS, 'WH': RESTRICTED_SKU_HEADERS, 'DIST': RESTRICTED_SKU_HEADERS}
 
-USER_SKU_EXCEL_MAPPING = {'warehouse_user': SKU_DEF_EXCEL, 'marketplace_user': MARKETPLACE_SKU_DEF_EXCEL,
+USER_SKU_EXCEL_MAPPING = {'warehouse_user': SKU_DEF_EXCEL, 'marketplace_user': SKU_DEF_EXCEL,
                           'customer': SKU_DEF_EXCEL}
 
 MIX_SKU_MAPPING = {'no mix': 'no_mix', 'mix within group': 'mix_group'}
@@ -1240,8 +1243,10 @@ MYNTRA_BULK_ADDRESS = 'MYNTRA DESIGNS PVT LTD\nKsquare Industrial Park, Warehous
                          Before Padgha Toll naka Nashik-Mumbai Highway \nNear Pushkar Mela Hotel Rahul Narkhede,\n\
                          Padgha-Bhiwandi\nTin# 27590747736'
 
-JABONG_ADDRESS = 'Jabong Marketplace Mahindra Logistics Limited\nBlock No. H2 Sai Dhara Warehousing & Logistics Park,\n\
-                  Opp. Indian Oil Petrol Pump\nNear Shangrila Resort\nMumbai-Nasik Highway,\nBhiwandi,\nMaharashtra,421302'
+JABONG_ADDRESS = 'Myntra jabong India Pvt Ltd.\nKsquare Industrial Park,\
+                         Before Padgha Toll naka Nashik-Mumbai Highway, \nNear Pushkar Mela Hotel Rahul Narkhede,\n\
+                         Padgha Bhiwandi - 421101, Maharashtra\n\
+                         TIN:27461499703'
 
 USER_CHANNEL_ADDRESS = {'campus_sutra:myntra': MYNTRA_BANGALORE_ADDRESS, 'adam_clothing:myntra': MYNTRA_MUMBAI_ADDRESS,
                         'adam_clothing1:myntra': MYNTRA_MUMBAI_ADDRESS,
@@ -1280,7 +1285,8 @@ DIST_CUSTOMER_INVOICE_HEADERS = ['Gen Order Id', 'Order Ids', 'Customer Name', '
 
 SUPPLIER_EXCEL_FIELDS = OrderedDict((('id', 0), ('name', 1), ('address', 2), ('email_id', 3), ('phone_number', 4),
                                      ('tin_number', 5), ('pan_number', 6), ('pincode', 7), ('city', 8), ('state', 9),
-                                     ('country', 10)
+                                     ('country', 10), ('days_to_supply', 11), ('fulfillment_amt', 12),
+                                     ('credibility', 13)
                                      ))
 STATUS_DICT = {1: True, 0: False}
 
@@ -1335,7 +1341,9 @@ ORDER_ID_AWB_MAP_EXCEL_HEADERS = ['Order ID', 'AWB No', 'Courier Name', 'Marketp
 ORDER_ID_AWB_EXCEL_MAPPING = OrderedDict((('order_id', 0), ('awb_no', 1), ('courier_name', 2), ('marketplace', 3)))
 
 # Company logo names
-COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg', 'Subhas_Publishing': 'book_publications.png', 'sm_admin': 'sm-brand.jpg'}
+COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg', 'Subhas_Publishing': 'book_publications.png', 'sm_admin': 'sm-brand.jpg',
+                        'corp_attire': 'corp_attire.jpg'}
+TOP_COMPANY_LOGO_PATHS = {'Konda_foundation': 'dr_reddy_logo.png'}
 
 # Configurtions Mapping
 REMAINDER_MAIL_ALERTS = OrderedDict((('po_remainder', 'PO Remainder'),))
@@ -1555,7 +1563,7 @@ def get_location_stock_data(search_params, user, sub_user):
     search_mapping = {'sku_code': 'sku__sku_code__iexact', 'sku_category': 'sku__sku_category__iexact',
                       'sku_type': 'sku__sku_type__iexact', 'sku_class': 'sku__sku_class__iexact',
                       'zone': 'location__zone__zone__iexact',
-                      'location': 'location__location__iexact', 'wms_code': 'sku__wms_code'}
+                      'location': 'location__location__iexact', 'wms_code': 'sku__wms_code', 'ean': 'sku__ean_number__iexact'}
 
     results_data['draw'] = search_params.get('draw', 1)
     for key, value in search_mapping.iteritems():
@@ -1574,17 +1582,20 @@ def get_location_stock_data(search_params, user, sub_user):
         total_quantity = stock_detail.aggregate(Sum('quantity'))['quantity__sum']
 
     results_data['recordsTotal'] = len(stock_detail)
-    results_data['recordsFiltered'] = len(stock_detail)
+    results_data['recordsFiltered'] = results_data['recordsTotal']
 
     if stop_index:
         stock_detail = stock_detail[start_index:stop_index]
 
     for data in stock_detail:
+        ean_num = data.sku.ean_number
+        if not ean_num:
+            ean_num = ''
         results_data['aaData'].append(OrderedDict((('SKU Code', data.sku.sku_code), ('WMS Code', data.sku.wms_code),
                                                    ('Product Description', data.sku.sku_desc),
                                                    ('Zone', data.location.zone.zone),
                                                    ('Location', data.location.location), ('Quantity', data.quantity),
-                                                   ('Receipt Number', data.receipt_number),
+                                                   ('Receipt Number', data.receipt_number), ('EAN', str(ean_num)),
                                                    ('Receipt Date', str(data.receipt_date).split('+')[0]))))
     return results_data, total_quantity
 
@@ -2414,8 +2425,11 @@ def get_order_summary_data(search_params, user, sub_user):
                                             reserved_quantity=0).values_list('order__order_id', flat=True).distinct()
 
     order_ids = OrderDetail.objects.filter(status=1, user=user.id).values_list('order_id', flat=True).distinct()
-    partial_generated = Picklist.objects.filter(order__user=user.id, order__order_id__in=order_ids).values_list(
-        'order__order_id', flat=True).distinct()
+    pos_order_ids = OrderDetail.objects.filter(Q(order_code__icontains="PRE")|
+                    Q(order_code__icontains="DC"), user=user.id, status=1).values_list('order_id', flat=True).distinct()
+    partial_generated = Picklist.objects.filter(order__user=user.id, order__order_id__in=order_ids)\
+                                .exclude(order__order_id__in=pos_order_ids).values_list(\
+                                'order__order_id', flat=True).distinct()
     dispatched = OrderDetail.objects.filter(status=2, user=user.id).values_list('order_id', flat=True).distinct()
     reschedule_cancelled = OrderDetail.objects.filter(status=5, user=user.id).values_list('order_id',
                                                                                           flat=True).distinct()

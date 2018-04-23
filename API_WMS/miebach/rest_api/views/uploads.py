@@ -1748,6 +1748,8 @@ def validate_supplier_form(open_sheet, user_id):
     index_status = {}
     supplier_ids = []
     mapping_dict = copy.deepcopy(SUPPLIER_EXCEL_FIELDS)
+    messages_dict = {'phone_number': 'Phone Number', 'days_to_supply': 'Days required to supply',
+                     'fulfillment_amt': 'Fulfillment Amount'}
     for row_idx in range(0, open_sheet.nrows):
         for key, value in mapping_dict.iteritems():
             cell_data = open_sheet.cell(row_idx, mapping_dict[key]).value
@@ -1773,10 +1775,11 @@ def validate_supplier_form(open_sheet, user_id):
                 if cell_data and validate_email(cell_data):
                     index_status.setdefault(row_idx, set()).add('Enter Valid Email address')
 
-            elif key == 'phone_number':
+            elif key in ['phone_number', 'days_to_supply', 'fulfillment_amt']:
                 if cell_data:
                     if not isinstance(cell_data, (int, float)):
-                        index_status.setdefault(row_idx, set()).add('Wrong contact information')
+                        index_status.setdefault(row_idx, set()).add('Invalid %s' % messages_dict[key])
+
 
     if not index_status:
         return 'Success'
@@ -2313,7 +2316,9 @@ def purchase_order_excel_upload(request, open_sheet, user, demo_data=False):
                     year, month, day, hour, minute, second = xldate_as_tuple(cell_data, 0)
                     data['po_date'] = datetime.datetime(year, month, day, hour, minute, second)
             elif col_idx == 0:
-                order_data['po_name'] = cell_data
+                if type(cell_data) == float:
+                    cell_data = int(cell_data)
+                order_data['po_name'] = str(cell_data)
             elif col_idx == 6:
                 data['ship_to'] = cell_data
 

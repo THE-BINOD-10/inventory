@@ -2124,12 +2124,13 @@ def create_update_primary_segregation(data, quantity):
         PrimarySegregation.objects.create(purchase_order_id=data.id, quantity=quantity,status=1,
                                           creation_date=datetime.datetime.now())
 
-def update_seller_po(data, value, user, receipt_id='', invoice_number='', mrp=0):
+def update_seller_po(data, value, user, receipt_id='', invoice_number='', mrp=0, invoice_date=''):
     if not receipt_id:
         return
     seller_pos = SellerPO.objects.filter(seller__user=user.id, open_po_id=data.open_po_id, status=1)
     seller_received_list = []
     invoice_number = int(invoice_number)
+    invoice_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y").date()
     if user.userprofile.user_type == 'warehouse_user':
         seller_po_summary, created = SellerPOSummary.objects.get_or_create(receipt_number=receipt_id,
                                                                            invoice_number=invoice_number,
@@ -2137,7 +2138,8 @@ def update_seller_po(data, value, user, receipt_id='', invoice_number='', mrp=0)
                                                                            mrp=mrp,
                                                                            putaway_quantity=value,
                                                                            purchase_order_id=data.id,
-                                                                           creation_date=datetime.datetime.now())
+                                                                           creation_date=datetime.datetime.now(),
+                                                                           invoice_date=invoice_date)
         seller_received_list.append(
             {'seller_id': '', 'sku_id': data.open_po.sku_id, 'quantity': value,
              'id': seller_po_summary.id})
@@ -2203,6 +2205,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
     expected_date = request.POST.get('expected_date', '')
     remainder_mail = request.POST.get('remainder_mail', '')
     invoice_number = request.POST.get('invoice_number', 0)
+    invoice_date = request.POST.get('invoice_date', '')
     mrp = float(request.POST.get('mrp', 0))
     _expected_date = ''
     if expected_date:
@@ -2264,7 +2267,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
             if not seller_receipt_id:
                 seller_receipt_id = get_seller_receipt_id(data.open_po)
             seller_received_list = update_seller_po(data, value, user, receipt_id=seller_receipt_id,
-                                                    invoice_number=invoice_number, mrp=mrp)
+                                                    invoice_number=invoice_number, mrp=mrp, invoice_date=invoice_date)
         if 'wms_code' in myDict.keys():
             if myDict['wms_code'][i]:
                 sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
@@ -5215,6 +5218,7 @@ def confirm_receive_qc(request, user=''):
                                 'report_name': 'Goods Receipt Note', 'company_name': profile.company_name, 'location': profile.location}'''
             sku_list = putaway_data[putaway_data.keys()[0]]
             sku_slices = generate_grn_pagination(sku_list)
+            bill_date = datetime.datetime.strptime(str(request.POST.get('invoice_date', '')), "%m/%d/%Y").strftime('%d-%m-%Y')
             report_data_dict = {'data': putaway_data, 'data_dict': data_dict, 'data_slices': sku_slices,
                                 'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty,
                                 'total_price': total_price, 'total_tax': total_tax, 'address': address,
@@ -5223,8 +5227,7 @@ def confirm_receive_qc(request, user=''):
                                 'po_number': str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(
                                     data.order_id),
                                 'order_date': order_date, 'order_id': order_id,
-                                'btn_class': btn_class}
-
+                                'btn_class': btn_class, 'bill_date': str(bill_date)}
             misc_detail = get_misc_value('receive_po', user.id)
             if misc_detail == 'true':
                 t = loader.get_template('templates/toggle/grn_form.html')

@@ -4670,7 +4670,9 @@ def get_sku_variants(request, user=''):
                 #if qssi, update inventory first
                 if company_name == "qssi":
                     sku_ids = [item['wms_code'] for item in sku_master]
-                    api_resp = get_inventory(sku_ids, user)
+                    suffix_tu_skus = map(lambda x: x+'-TU', sku_ids)
+                    all_skus = sku_ids + suffix_tu_skus
+                    api_resp = get_inventory(all_skus, user)
                     if api_resp.get("Status", "").lower() == "success":
                         for warehouse in api_resp["Warehouses"]:
                             location_master = LocationMaster.objects.filter(zone__zone="DEFAULT", zone__user=user.id)

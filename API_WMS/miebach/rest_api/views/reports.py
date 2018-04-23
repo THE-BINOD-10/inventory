@@ -672,6 +672,7 @@ def print_po_reports(request, user=''):
     receipt_no = request.GET.get('receipt_no', '')
     data_dict = ''
     bill_no = ''
+    bill_date = ''
     #po_data = []
     headers = (
     'WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
@@ -692,6 +693,7 @@ def print_po_reports(request, user=''):
                 seller_summary_obj = data.sellerposummary_set.filter(receipt_number=receipt_no)[0]
                 quantity = seller_summary_obj.quantity
                 bill_no = seller_summary_obj.invoice_number if seller_summary_obj.invoice_number else ''
+                bill_date = seller_summary_obj.invoice_date if seller_summary_obj.invoice_date else data.updation_date
             open_data = data.open_po
             amount = float(quantity) * float(data.open_po.price)
             gst_tax = open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax
@@ -705,6 +707,7 @@ def print_po_reports(request, user=''):
             total_qty += quantity
             total_tax += (open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax)
         else:
+            bill_date = seller_summary_obj.invoice_date if seller_summary_obj.invoice_date else data.creation_date
             bill_no = data.invoice_number if data.invoice_number else ''
             po_order = data.purchase_order
             open_data = po_order.open_po
@@ -736,6 +739,7 @@ def print_po_reports(request, user=''):
         purchase_order.prefix, str(purchase_order.creation_date).split(' ')[0].replace('-', ''),
         purchase_order.order_id)
         order_date = datetime.datetime.strftime(purchase_order.open_po.creation_date, "%d-%m-%Y")
+        bill_date = datetime.datetime.strftime(bill_date, "%d-%m-%Y")
         user_profile = UserProfile.objects.get(user_id=user.id)
         w_address = user_profile.address
         data_dict = (('Order ID', order_id), ('Supplier ID', supplier_id),
@@ -755,7 +759,7 @@ def print_po_reports(request, user=''):
                    'total_price': total, 'data_dict': data_dict, 'bill_no': bill_no,
                    'po_number': po_reference, 'company_address': w_address, 'company_name': user_profile.company_name,
                    'display': 'display-none', 'receipt_type': receipt_type, 'title': title,
-                   'total_received_qty': total_qty})
+                   'total_received_qty': total_qty, 'bill_date': bill_date})
 
 
 @csrf_exempt

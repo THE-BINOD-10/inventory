@@ -1511,3 +1511,155 @@ def get_order(orig_order_id, user):
                 'status': 'success'}
     else:
         return {'data':{}, 'status': 'failure'}
+
+
+def update_error_message(failed_status, error_code, error_message, original_order_id):
+    failed_status.append({"OrderId": original_order_id,
+                          "result": {"errors": [
+                              {
+                                  "ErrorCode": error_code,
+                                  "ErrorMessage": error_message
+                              }
+                          ]
+                          }
+                          })
+
+
+def validate_orders_format(orders, user='', company_name='', is_cancelled=False):
+    order_status_dict = {'NEW': 1, 'RETURN': 3, 'CANCEL': 4}
+    NOW = datetime.datetime.now()
+    insert_status = []
+    final_data_dict = OrderedDict()
+    try:
+        seller_master_dict, valid_order, query_params = {}, {}, {}
+        failed_status = []
+        if not orders:
+            orders = {}
+        if isinstance(orders, dict):
+            orders = [orders]
+        for ind, order in enumerate(orders):
+            try:
+                creation_date = datetime.datetime.strptime(order['order_date'], '%Y-%m-%d %H:%M:%S')
+            except:
+                update_error_message(failed_status, 5024, 'Invalid Order Date Format', original_order_id)
+            order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
+            channel_name = order['source']
+            order_details = copy.deepcopy(ORDER_DATA)
+            data = order
+            original_order_id = order['order_id']
+            order_code = ''.join(re.findall('\D+', original_order_id))
+            order_id = ''.join(re.findall('\d+', original_order_id))
+            filter_params = {'user': user.id, 'order_id': order_id}
+            filter_params1 = {'user': user.id, 'original_order_id': original_order_id}
+
+            order_status = order['order_status']
+            if order_status not in order_status_dict.keys():
+                error_message = 'Invalid Order Status - Should be ' + ','.join(order_status_dict.keys())
+                update_error_message(failed_status, 5024, error_message, original_order_id)
+                break
+
+            if order.has_key('billing_address'):
+                order_details['customer_id'] = order['billing_address'].get('customer_id', 0)
+                order_details['customer_name'] = order['billing_address'].get('name', '')
+                order_details['telephone'] = order['billing_address'].get('phone_number', '')
+                order_details['city'] = order['billing_address'].get('city', '')
+                order_details['address'] = order['billing_address'].get('address', '')
+                order_details['pin_code'] = order['billing_address'].get('pincode', '')
+
+            if order_code:
+                filter_params['order_code'] = order_code
+            sku_items = order['items']
+            valid_order['user'] = user.id
+            valid_order['marketplace'] = channel_name
+            valid_order['original_order_id'] = original_order_id
+            if order_details['status'] in [1]:
+                valid_order['status__in'] = [1, 2, 3, 4, 5]
+            elif order_details['status'] in [3, 4]:
+                valid_order['status__in'] = [3, 4]
+            order_detail_present = OrderDetail.objects.filter(**valid_order)
+            if order_detail_present:
+                if int(order_detail_present[0].status) == 1:
+                    error_code = "5001"
+                    message = 'Duplicate Order, ignored at Stockone'
+                elif int(order_detail_present[0].status) == 3:
+                    error_code = "5002"
+                    message = 'Order is already returned at Stockone'
+                elif int(order_detail_present[0].status) == 4:
+                    error_code = "5003"
+                    message = 'Order is already cancelled at Stockone'
+                update_error_message(failed_status, error_code, message, original_order_id)
+                break
+            for sku_item in sku_items:
+                try:
+                    shipment_date = NOW
+                except:
+                    shipment_date = NOW
+                failed_sku_status = []
+                sku_code = sku_item['sku']
+                sku_master = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
+                if sku_master:
+                    filter_params['sku_id'] = sku_master[0].id
+                    filter_params1['sku_id'] = sku_master[0].id
+                else:
+                    update_error_message(failed_status, 5020, "SKU Not found in Stockone", original_order_id)
+                    continue
+
+                if sku_master:
+                    grouping_key = str(original_order_id) + '<<>>' + str(sku_master[0].sku_code)
+                    order_det = OrderDetail.objects.filter(**filter_params)
+                    order_det1 = OrderDetail.objects.filter(**filter_params1)
+
+                    invoice_amount = 0
+                    unit_price = sku_item['unit_price']
+                    if not order_det:
+                        order_det = order_det1
+
+                    order_create = True
+
+                    if order_create:
+                        order_details['original_order_id'] = original_order_id
+                        order_details['order_id'] = order_id
+                        order_details['order_code'] = order_code
+
+                        order_details['sku_id'] = sku_master[0].id
+                        order_details['title'] = sku_item['name']
+                        order_details['user'] = user.id
+                        order_details['quantity'] = sku_item['quantity']
+                        order_details['shipment_date'] = shipment_date
+                        order_details['marketplace'] = channel_name
+                        order_details['invoice_amount'] = float(invoice_amount)
+                        order_details['unit_price'] = float(unit_price)
+                        order_details['creation_date'] = creation_date
+
+                        final_data_dict = check_and_add_dict(grouping_key, 'order_details', order_details,
+                                                             final_data_dict=final_data_dict)
+                    if not failed_status and not insert_status and sku_item.get('tax_percent', {}):
+                        order_summary_dict['cgst_tax'] = float(sku_item['tax_percent'].get('CGST', 0))
+                        order_summary_dict['sgst_tax'] = float(sku_item['tax_percent'].get('SGST', 0))
+                        order_summary_dict['igst_tax'] = float(sku_item['tax_percent'].get('IGST', 0))
+                        order_summary_dict['utgst_tax'] = float(sku_item['tax_percent'].get('UTGST', 0))
+                        order_summary_dict['consignee'] = order_details['address']
+                        order_summary_dict['invoice_date'] = order_details['creation_date']
+                        order_summary_dict['inter_state'] = 0
+                        if order_summary_dict['igst_tax']:
+                            order_summary_dict['inter_state'] = 1
+                        final_data_dict = check_and_add_dict(grouping_key, 'order_summary_dict',
+                                                             order_summary_dict, final_data_dict=final_data_dict)
+
+                if len(failed_sku_status):
+                    failed_status = {
+                        "OrderId": original_order_id,
+                        "Result": {
+                            "Errors": failed_sku_status
+                        }
+                    }
+                    break
+
+                final_data_dict[grouping_key]['shipping_tax'] = eval(order_mapping.get('shipping_tax', ''))
+                final_data_dict[grouping_key]['status_type'] = order_status
+    except:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Update Order API failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(orders), str(e)))
+    return insert_status, failed_status, final_data_dict

@@ -1090,7 +1090,7 @@ def update_so(request):
         return HttpResponse(json.dumps({'message': 'Please send proper data'}))
     log.info('Request params for ' + request.user.username + ' is ' + str(orders))
     try:
-        validation_dict, failed_status, final_data_dict, seller_id = validate_ingram_orders(orders, user=request.user, company_name='ingram')
+        validation_dict, failed_status, final_data_dict = validate_orders_format(orders, user=request.user, company_name='mieone')
         if validation_dict:
             return HttpResponse(json.dumps({'messages': validation_dict, 'status': 0}))
         if failed_status:

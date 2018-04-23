@@ -987,7 +987,7 @@ ORDERS_TRACK_STATUS = {0: 'Resolved', 1: "Conflict", 2: "Delete"}
 
 # Shotang Integration Mapping Dictionaries
 
-ORDER_DETAIL_API_MAPPING = {'id': 'order["itemId"]', 'order_id': 'uorId', 'items': 'orders',
+SELLER_ORDER_DETAIL_API_MAPPING = {'id': 'order["itemId"]', 'order_id': 'uorId', 'items': 'orders',
                             'channel': 'orders.get("channel", "Shotang")', 'order_items': 'orders["subOrders"]',
                             'sku': 'sku_item["sku"]',
                             'title': 'sku_item["name"]', 'quantity': 'sku_item["quantity"]',
@@ -1004,6 +1004,25 @@ ORDER_DETAIL_API_MAPPING = {'id': 'order["itemId"]', 'order_id': 'uorId', 'items
                             'seller_item_id': 'sku_item["lineItemId"]',
                             'seller_parent_item_id': 'sku_item["parentLineItemId"]'
                             }
+
+ORDER_DETAIL_API_MAPPING = {'order_id': 'order_id', 'items': 'orders',
+                            'channel': 'orders.get("source", "")',
+                            'sku': 'sku_item["sku"]',
+                            'title': 'sku_item["name"]', 'quantity': 'sku_item["quantity"]',
+                            'shipment_date': 'orders.get("orderDate", '')', 'channel_sku': 'sku_item["sku"]',
+                            'unit_price': 'sku_item["unitPrice"]', 'seller_id': 'order["sellerId"]',
+                            'sor_id': 'order["sorId"]', 'cgst_tax': 'sku_item.get("cgstTax", "0")',
+                            'sgst_tax': 'sku_item.get("sgstTax", "0")',
+                            'igst_tax': 'sku_item.get("igstTax", "0")', 'order_status': 'orders.get("order_status", "")',
+                            'line_items': 'order["lineItems"]', 'customer_id': 'orders.get("billing_address", {}).get("customer_id", "")',
+                            'customer_name': 'orders.get("billing_address", {}).get("name", "")',
+                            'telephone': '(orders.get("retailerAddress", {})).get("phoneNo", "")',
+                            'address': '(orders.get("retailerAddress", {})).get("address", "")',
+                            'city': '(orders.get("retailerAddress", {})).get("city", "")',
+                            'seller_item_id': 'sku_item["lineItemId"]',
+                            'seller_parent_item_id': 'sku_item["parentLineItemId"]'
+                            }
+
 
 ORDER_DETAIL_INGRAM_API_MAPPING = {'order_id': 'order_increment_id', 'order_status': '(orders["order_status"]).upper()',
                                    'items': 'orders',

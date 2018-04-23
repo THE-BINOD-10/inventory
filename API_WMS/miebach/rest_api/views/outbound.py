@@ -3058,8 +3058,9 @@ def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, cus
                 value = 0
             order_data[key] = value
         elif key == 'del_date':
+            value = myDict[key][i]
             if value:
-                order_data[key] = datetime.datetime.strptime(myDict[key][i], '%d/%m/%Y')
+                order_data[key] = datetime.datetime.strptime(value, '%d/%m/%Y')
         else:
             order_data[key] = value
 
@@ -4425,12 +4426,15 @@ def get_stock_qty_leadtime(item, wh_code):
                                           quantity__gt=0,
                                           sku__wms_code=wms_code).values_list('sku__wms_code').distinct(). \
         aggregate(Sum('quantity'))['quantity__sum']
+    log.info("Stock Avail for SKU Code (%s)::%s::%s" % (wms_code, wh_code, repr(lt_stock)))
     reserved_quantities = PicklistLocation.objects.filter(stock__sku__user__in=wh_code,
                                                           stock__sku__wms_code=wms_code,
                                                           status=1).values_list('stock__sku__wms_code'). \
         aggregate(Sum('reserved'))['reserved__sum']
+    log.info("Reserved Qtys for SKU Code (%s)::%s::%s" % (wms_code, wh_code, repr(reserved_quantities)))
     enquiry_res_quantities = EnquiredSku.objects.filter(sku__user__in=wh_code, sku_code=wms_code).\
     filter(~Q(enquiry__extend_status='rejected')).values_list('sku_code').aggregate(Sum('quantity'))['quantity__sum']
+    log.info("EnquiryOrders for SKU Code (%s)::%s::%s" % (wms_code, wh_code, repr(enquiry_res_quantities)))
     if not reserved_quantities:
         reserved_quantities = 0
     if not enquiry_res_quantities:
@@ -6759,7 +6763,7 @@ def get_customer_cart_data(request, user=""):
         cm_obj = CustomerMaster.objects.get(id=cust_user_obj[0].customer_id)
         is_distributor = cm_obj.is_distributor
         for record in cart_data:
-            del_date = ''
+            del_date = 0
             if is_distributor:
                 dist_mapping = WarehouseCustomerMapping.objects.get(customer_id=cm_obj.id, status=1)
                 dist_wh_id = dist_mapping.warehouse.id
@@ -6869,10 +6873,10 @@ def get_customer_cart_data(request, user=""):
             json_record['invoice_amount'] = json_record['quantity'] * json_record['price']
             json_record['total_amount'] = ((json_record['invoice_amount'] * json_record['tax']) / 100) + \
                                           json_record['invoice_amount']
-            if del_date:
-                date = datetime.datetime.now()
-                date += datetime.timedelta(days=del_date)
-                del_date = date.strftime("%d/%m/%Y")
+            # if del_date:
+            date = datetime.datetime.now()
+            date += datetime.timedelta(days=del_date)
+            del_date = date.strftime("%d/%m/%Y")
             json_record['del_date'] = del_date
 
             response['data'].append(json_record)

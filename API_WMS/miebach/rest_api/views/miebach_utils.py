@@ -1981,6 +1981,8 @@ def get_po_filter_data(search_params, user, sub_user):
             receipt_no = data['sellerposummary__receipt_number']
             if not receipt_no:
                 receipt_no = ''
+            else:
+                po_number = '%s/%s' % (po_number, receipt_no)
             received_qty = data['total_received']
             if data['grn_rec']:
                 received_qty = data['grn_rec']

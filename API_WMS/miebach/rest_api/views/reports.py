@@ -689,6 +689,7 @@ def print_po_reports(request, user=''):
         receipt_type = ''
         if po_id:
             quantity = data.received_quantity
+            bill_date = data.updation_date
             if receipt_no:
                 seller_summary_obj = data.sellerposummary_set.filter(receipt_number=receipt_no)[0]
                 quantity = seller_summary_obj.quantity
@@ -738,6 +739,8 @@ def print_po_reports(request, user=''):
         po_reference = '%s%s_%s' % (
         purchase_order.prefix, str(purchase_order.creation_date).split(' ')[0].replace('-', ''),
         purchase_order.order_id)
+        if receipt_no:
+            po_reference = '%s/%s' % (po_reference, receipt_no)
         order_date = datetime.datetime.strftime(purchase_order.open_po.creation_date, "%d-%m-%Y")
         bill_date = datetime.datetime.strftime(bill_date, "%d-%m-%Y")
         user_profile = UserProfile.objects.get(user_id=user.id)

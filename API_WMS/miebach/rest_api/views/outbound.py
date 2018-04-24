@@ -2949,6 +2949,9 @@ def split_orders(**order_data):
     source_whs = list(NetworkMaster.objects.filter(dest_location_code_id=dist_user_id).filter(
         source_location_code__userprofile__warehouse_level=warehouse_level).values_list(
         'source_location_code_id', flat=True).order_by('lead_time', 'priority'))
+    pick_filter_map = {'picklist__order__user__in': source_whs, 'picklist__order__sku__wms_code': sku_code}
+    pick_res_locat = dict(PicklistLocation.objects.prefetch_related('picklist', 'stock').filter(status=1).filter(
+        **pick_filter_map).values_list('stock__sku__user').annotate(total=Sum('reserved')))
     # source_whs = list(NetworkMaster.objects.filter(dest_location_code_id=dist_user_id).values_list(
     #     'source_location_code_id', flat=True).order_by('lead_time', 'priority'))
     # if user_id in source_whs and source_whs.index(user_id) != 0:
@@ -2965,8 +2968,13 @@ def split_orders(**order_data):
         'sku__user').distinct().annotate(in_stock=Sum('quantity')))
 
     log.info("Stock Avail for SKU Code (%s)::%s" % (sku_code, repr(stk_dtl_obj)))
+    log.info("Stock Reserved for SKU Code (%s):: %s" % (sku_code, repr(pick_res_locat)))
     for source_wh in source_whs:
         avail_stock = stk_dtl_obj.get(source_wh, 0)
+        res_stock = pick_res_locat.get(source_wh, 0)
+        if not res_stock:
+            res_stock = 0
+        avail_stock = avail_stock - res_stock
         if not avail_stock:
             continue
         req_qty = req_stock - avail_stock

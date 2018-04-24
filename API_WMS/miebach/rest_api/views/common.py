@@ -1044,7 +1044,7 @@ def update_mail_configuration(request, user=''):
         data_dict = {'user': user.id, 'misc_type': 'report_frequency'}
         if date_val:
             date_val = time.strptime(date_val, '%d/%M/%Y')
-            date_val = time.strftime('%Y-%M-%d', date_val)
+            date_val = time.strftime('%Y-%d-%M', date_val)
         misc_detail = MiscDetail.objects.filter(**data_dict)
         if misc_detail:
             misc_detail[0].misc_value = frequency

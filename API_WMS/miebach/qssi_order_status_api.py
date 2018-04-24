@@ -10,7 +10,7 @@ django.setup()
 from miebach_admin.models import *
 from rest_api.views.common import *
 from rest_api.views.utils import *
-log = init_logger('logs/integrations.log')
+log = init_logger('logs/qssi_order_status_update.log')
 
 
 def update_order_status(company_name):
@@ -19,9 +19,11 @@ def update_order_status(company_name):
         user = User.objects.get(id = user_id)
         open_orders = OrderDetail.objects.filter(user = user_id, status = 0,\
                       picklist__status__icontains = 'open').values_list('original_order_id', flat=True).distinct()
+        log.info(str(open_orders.count()))
+        log.info(str(list(open_orders)))
         resp = order_status_update(open_orders, user)
         log.info(resp)
-        if resp["Status"].lower() == "success":
+        if resp["Status"].lower() in ["success", "partial"]:
             dispatched_orders = resp["Result"].get("Dispatched", [])
             picked_orders = resp["Result"].get("Picked", [])
             cancelled_orders = resp["Result"].get("Cancelled", [])

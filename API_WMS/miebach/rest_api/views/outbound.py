@@ -2949,6 +2949,9 @@ def split_orders(**order_data):
     source_whs = list(NetworkMaster.objects.filter(dest_location_code_id=dist_user_id).filter(
         source_location_code__userprofile__warehouse_level=warehouse_level).values_list(
         'source_location_code_id', flat=True).order_by('lead_time', 'priority'))
+    pick_filter_map = {'picklist__order__user__in': source_whs, 'picklist__order__sku__wms_code': sku_code}
+    pick_res_locat = dict(PicklistLocation.objects.prefetch_related('picklist', 'stock').filter(status=1).filter(
+        **pick_filter_map).values_list('stock__sku__user').annotate(total=Sum('reserved')))
     # source_whs = list(NetworkMaster.objects.filter(dest_location_code_id=dist_user_id).values_list(
     #     'source_location_code_id', flat=True).order_by('lead_time', 'priority'))
     # if user_id in source_whs and source_whs.index(user_id) != 0:
@@ -2965,8 +2968,13 @@ def split_orders(**order_data):
         'sku__user').distinct().annotate(in_stock=Sum('quantity')))
 
     log.info("Stock Avail for SKU Code (%s)::%s" % (sku_code, repr(stk_dtl_obj)))
+    log.info("Stock Reserved for SKU Code (%s):: %s" % (sku_code, repr(pick_res_locat)))
     for source_wh in source_whs:
         avail_stock = stk_dtl_obj.get(source_wh, 0)
+        res_stock = pick_res_locat.get(source_wh, 0)
+        if not res_stock:
+            res_stock = 0
+        avail_stock = avail_stock - res_stock
         if not avail_stock:
             continue
         req_qty = req_stock - avail_stock
@@ -3061,8 +3069,9 @@ def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, cus
                 value = 0
             order_data[key] = value
         elif key == 'del_date':
+            value = myDict[key][i]
             if value:
-                order_data[key] = datetime.datetime.strptime(myDict[key][i], '%d/%m/%Y')
+                order_data[key] = datetime.datetime.strptime(value, '%d/%m/%Y')
         else:
             order_data[key] = value
 
@@ -4428,12 +4437,15 @@ def get_stock_qty_leadtime(item, wh_code):
                                           quantity__gt=0,
                                           sku__wms_code=wms_code).values_list('sku__wms_code').distinct(). \
         aggregate(Sum('quantity'))['quantity__sum']
+    log.info("Stock Avail for SKU Code (%s)::%s::%s" % (wms_code, wh_code, repr(lt_stock)))
     reserved_quantities = PicklistLocation.objects.filter(stock__sku__user__in=wh_code,
                                                           stock__sku__wms_code=wms_code,
                                                           status=1).values_list('stock__sku__wms_code'). \
         aggregate(Sum('reserved'))['reserved__sum']
+    log.info("Reserved Qtys for SKU Code (%s)::%s::%s" % (wms_code, wh_code, repr(reserved_quantities)))
     enquiry_res_quantities = EnquiredSku.objects.filter(sku__user__in=wh_code, sku_code=wms_code).\
     filter(~Q(enquiry__extend_status='rejected')).values_list('sku_code').aggregate(Sum('quantity'))['quantity__sum']
+    log.info("EnquiryOrders for SKU Code (%s)::%s::%s" % (wms_code, wh_code, repr(enquiry_res_quantities)))
     if not reserved_quantities:
         reserved_quantities = 0
     if not enquiry_res_quantities:
@@ -6764,7 +6776,7 @@ def get_customer_cart_data(request, user=""):
         cm_obj = CustomerMaster.objects.get(id=cust_user_obj[0].customer_id)
         is_distributor = cm_obj.is_distributor
         for record in cart_data:
-            del_date = ''
+            del_date = 0
             if is_distributor:
                 dist_mapping = WarehouseCustomerMapping.objects.get(customer_id=cm_obj.id, status=1)
                 dist_wh_id = dist_mapping.warehouse.id
@@ -6874,10 +6886,10 @@ def get_customer_cart_data(request, user=""):
             json_record['invoice_amount'] = json_record['quantity'] * json_record['price']
             json_record['total_amount'] = ((json_record['invoice_amount'] * json_record['tax']) / 100) + \
                                           json_record['invoice_amount']
-            if del_date:
-                date = datetime.datetime.now()
-                date += datetime.timedelta(days=del_date)
-                del_date = date.strftime("%d/%m/%Y")
+            # if del_date:
+            date = datetime.datetime.now()
+            date += datetime.timedelta(days=del_date)
+            del_date = date.strftime("%d/%m/%Y")
             json_record['del_date'] = del_date
 
             response['data'].append(json_record)

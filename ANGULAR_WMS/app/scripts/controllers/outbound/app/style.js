@@ -49,17 +49,6 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
 
   vm.open_style = function(user_type) {
 
-    if (user_type == 'reseller' && vm.selLevel  != 0) {
-
-      if ((!vm.levels_data[0].data[0].quantity && vm.levels_data[0].data[0].overall_sku_total_quantity != 0) ||
-        vm.levels_data[0].data[0].overall_sku_total_quantity > Number(vm.levels_data[0].data[0].quantity)) {
-      
-        vm.service.showNoty("You can not change level until the filled quantity is equal to the available quantity", "success", "topRight");
-        vm.selLevel  = 0;
-        return false;
-      }
-    }
-
     if (vm.old_selLevel == "") {
 
       console.log(vm.old_selLevel);
@@ -270,6 +259,17 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
     vm.wish_data.total_amount += vm.wish_data.total_tax;
   }
 
+  vm.check_quantity = function(sku){
+    if (sku.quantity > sku.overall_sku_total_quantity) {
+
+      vm.full_quantity = true;
+      sku.quantity = sku.overall_sku_total_quantity;
+      vm.service.showNoty("You can add "+sku.overall_sku_total_quantity+" items only", "success", "topRight");
+    } else {
+      vm.full_quantity = false;
+    }
+  }
+
   vm.style_total_quantity = 0;
   vm.change_style_quantity = function(data, row, index){
     
@@ -282,14 +282,25 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
 
     if (Session.roles.permissions.user_type != 'customer') {
 
-      if (row.quantity > row.overall_sku_total_quantity) {
-
-        vm.full_quantity = true;
-        row.quantity = row.overall_sku_total_quantity;
-        vm.service.showNoty("You can add "+row.overall_sku_total_quantity+" items only", "success", "topRight");
-      } else {
-        vm.full_quantity = false;
+      if (Session.roles.permissions.user_type == 'reseller' && vm.selLevel  != 0) {
+    
+        if ((vm.levels_data[0].data[index].overall_sku_total_quantity != 0 && !vm.levels_data[0].data[index].quantity) ||
+          vm.levels_data[0].data[index].overall_sku_total_quantity > Number(vm.levels_data[0].data[index].quantity)) {
+          var available_qty = 0;
+          if (vm.levels_data[0].data[index].quantity) {
+            available_qty = Number(vm.levels_data[0].data[index].overall_sku_total_quantity) - 
+              Number(vm.levels_data[0].data[index].quantity);
+          } else {
+            available_qty = Number(vm.levels_data[0].data[index].overall_sku_total_quantity);
+          }
+          vm.service.showNoty("The <b>"+vm.levels_data[0].data[index].wms_code+"</b> SKU having <b>"+available_qty+"</b> quantity in <b>Level-0</b>. Please consider it.", "success", "topRight");
+          var level = Number(row.level);
+          vm.levels_data[level].data[index].quantity = 0;
+          vm.selLevel  = level;
+          return false;
+        }
       }
+      vm.check_quantity(row);
     } else {
       console.log(index);
     }

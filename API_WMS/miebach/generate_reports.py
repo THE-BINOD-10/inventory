@@ -1,9 +1,21 @@
+activate_this = 'setup/MIEBACH/bin/activate_this.py'
+execfile(activate_this, dict(__file__ = activate_this))
+import os
+import sys
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "miebach.settings")
+import django
+django.setup()
+
+import pytz
 import datetime
 import xlwt
-import create_environment
-from  mail_server import send_mail_attachment
-from miebach_utils import *
+#import create_environment
+from  rest_api.views.mail_server import send_mail_attachment
+from rest_api.views.miebach_utils import *
 from miebach_admin.models import *
+from rest_api.views.utils import *
+log = init_logger('logs/stockone_report_mail.log')
 
 reports_list = {'SKU List': get_sku_filter_data, 'Location Wise Stock': get_location_stock_data,
                 'Receipt Summary': get_receipt_filter_data, 'Dispatch Summary': get_dispatch_data,
@@ -23,10 +35,19 @@ class MailReports:
             return
 
         if report_frequency:
-            frequency_value = int(report_frequency[0].misc_value)
             report_date = report_frequency[0].creation_date
-            date_difference = (datetime.datetime.now().date() - report_date.date()).days
-            if (frequency_value in (0, 1) or (date_difference % frequency_value) != 0) and not mail_now:
+            frequency_value = int(report_frequency[0].misc_value)
+            frequency_range = MiscDetail.objects.filter(misc_type__contains='report_data_range', user=user.id)
+            if frequency_range:
+                frequency_range = frequency_range[0].misc_value
+                date_difference = (datetime.datetime.now(pytz.utc) - report_date)
+                date_difference = (date_difference.days*24) + (date_difference.seconds/3600)
+                if frequency_range == "Days":
+                    frequency_value *= 24
+            log.info(("Report config. : user= %s, frequency= %s hrs") % (str(user.id), str(frequency_value)))
+            #date_difference = (datetime.datetime.now().date() - report_date.date()).days
+            #if (frequency_value in (0, 1) or (date_difference % frequency_value) != 0) and not mail_now:
+            if ((frequency_value in (0,) or (date_difference % frequency_value) != 0) and not mail_now):
                 return
 
         enabled_reports = MiscDetail.objects.filter(misc_type__contains='report', misc_value='true', user=user.id)
@@ -83,7 +104,9 @@ class MailReports:
 
 if __name__ == "__main__":
 
+    log.info("Started cronjob for report sending\n")
     users = User.objects.all()
     for user in users:
+        log.info("user : %s"%(str(user.id)))
         OBJ = MailReports()
         OBJ.send_reports_mail(user)

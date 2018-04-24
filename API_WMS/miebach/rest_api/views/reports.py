@@ -667,78 +667,91 @@ def sku_category_list(request, user=''):
 @get_admin_user
 def print_po_reports(request, user=''):
     receipt_type = ''
-    for key, data_id in request.GET.iteritems():
-        data_id = int(data_id)
-        data_dict = ''
-        bill_no = ''
-        #po_data = []
-        headers = (
-        'WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
-        'UTGST(%)', 'Amount', 'Description')
-        po_data = {headers: []}
-        if key == 'po_id':
-            results = PurchaseOrder.objects.filter(order_id=data_id, open_po__sku__user=user.id)
+    po_id = request.GET.get('po_id', '')
+    po_summary_id = request.GET.get('po_summary_id', '')
+    receipt_no = request.GET.get('receipt_no', '')
+    data_dict = ''
+    bill_no = ''
+    bill_date = ''
+    #po_data = []
+    headers = (
+    'WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
+    'UTGST(%)', 'Amount', 'Description')
+    po_data = {headers: []}
+    if po_id:
+        results = PurchaseOrder.objects.filter(order_id=po_id, open_po__sku__user=user.id)
+    elif po_summary_id:
+        results = SellerPOSummary.objects.filter(id=po_summary_id, purchase_order__open_po__sku__user=user.id)
+    total = 0
+    total_qty = 0
+    total_tax = 0
+    for data in results:
+        receipt_type = ''
+        if po_id:
+            quantity = data.received_quantity
+            bill_date = data.updation_date
+            if receipt_no:
+                seller_summary_obj = data.sellerposummary_set.filter(receipt_number=receipt_no)[0]
+                quantity = seller_summary_obj.quantity
+                bill_no = seller_summary_obj.invoice_number if seller_summary_obj.invoice_number else ''
+                bill_date = seller_summary_obj.invoice_date if seller_summary_obj.invoice_date else data.updation_date
+            open_data = data.open_po
+            amount = float(quantity) * float(data.open_po.price)
+            gst_tax = open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax
+            if gst_tax:
+                amount += (amount / 100) * gst_tax
+            po_data[headers].append((open_data.sku.wms_code, open_data.order_quantity, quantity,
+                            open_data.measurement_unit,
+                            open_data.price, open_data.cgst_tax, open_data.sgst_tax, open_data.igst_tax,
+                            open_data.utgst_tax, amount, open_data.sku.sku_desc))
+            total += amount
+            total_qty += quantity
+            total_tax += (open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax)
         else:
-            results = SellerPOSummary.objects.filter(id=data_id, purchase_order__open_po__sku__user=user.id)
-        total = 0
-        total_qty = 0
-        total_tax = 0
-        for data in results:
-            receipt_type = ''
-            if key == 'po_id':
-                open_data = data.open_po
-                amount = float(data.received_quantity) * float(data.open_po.price)
-                gst_tax = open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax
-                if gst_tax:
-                    amount += (amount / 100) * gst_tax
-                po_data[headers].append((open_data.sku.wms_code, open_data.order_quantity, data.received_quantity,
-                                open_data.measurement_unit,
-                                open_data.price, open_data.cgst_tax, open_data.sgst_tax, open_data.igst_tax,
-                                open_data.utgst_tax, amount, open_data.sku.sku_desc))
-                total += amount
-                total_qty += data.received_quantity
-                total_tax += (open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax)
-            else:
-                bill_no = data.invoice_number
-                po_order = data.purchase_order
-                open_data = po_order.open_po
-                amount = float(data.quantity) * float(open_data.price)
-                gst_tax = open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax
-                if gst_tax:
-                    amount += (amount / 100) * gst_tax
+            bill_date = seller_summary_obj.invoice_date if seller_summary_obj.invoice_date else data.creation_date
+            bill_no = data.invoice_number if data.invoice_number else ''
+            po_order = data.purchase_order
+            open_data = po_order.open_po
+            amount = float(data.quantity) * float(open_data.price)
+            gst_tax = open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax
+            if gst_tax:
+                amount += (amount / 100) * gst_tax
 
-                po_data[headers].append(
-                    (open_data.sku.wms_code, open_data.order_quantity, data.quantity, open_data.measurement_unit,
-                     open_data.price, open_data.cgst_tax, open_data.sgst_tax, open_data.igst_tax,
-                     open_data.utgst_tax, amount, open_data.sku.sku_desc))
-                total += amount
-                total_qty += po_order.received_quantity
-                receipt_type = data.seller_po.receipt_type
-                total_tax += (open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax)
+            po_data[headers].append(
+                (open_data.sku.wms_code, open_data.order_quantity, data.quantity, open_data.measurement_unit,
+                 open_data.price, open_data.cgst_tax, open_data.sgst_tax, open_data.igst_tax,
+                 open_data.utgst_tax, amount, open_data.sku.sku_desc))
+            total += amount
+            total_qty += po_order.received_quantity
+            receipt_type = data.seller_po.receipt_type
+            total_tax += (open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax)
 
-        if results:
-            purchase_order = results[0]
-            if not key == 'po_id':
-                purchase_order = results[0].purchase_order
-            address = purchase_order.open_po.supplier.address
-            address = '\n'.join(address.split(','))
-            telephone = purchase_order.open_po.supplier.phone_number
-            name = purchase_order.open_po.supplier.name
-            supplier_id = purchase_order.open_po.supplier.id
-            order_id = purchase_order.order_id
-            po_reference = '%s%s_%s' % (
-            purchase_order.prefix, str(purchase_order.creation_date).split(' ')[0].replace('-', ''),
-            purchase_order.order_id)
-            order_date = datetime.datetime.strftime(purchase_order.open_po.creation_date, "%d-%m-%Y")
-            user_profile = UserProfile.objects.get(user_id=user.id)
-            w_address = user_profile.address
-            data_dict = (('Order ID', order_id), ('Supplier ID', supplier_id),
-                         ('Order Date', order_date), ('Supplier Name', name))
-        sku_list = po_data[po_data.keys()[0]]
-        sku_slices = generate_grn_pagination(sku_list)
-        table_headers = (
-        'WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
-        'UTGST(%)', 'Amount', 'Description')
+    if results:
+        purchase_order = results[0]
+        if not po_id:
+            purchase_order = results[0].purchase_order
+        address = purchase_order.open_po.supplier.address
+        address = '\n'.join(address.split(','))
+        telephone = purchase_order.open_po.supplier.phone_number
+        name = purchase_order.open_po.supplier.name
+        supplier_id = purchase_order.open_po.supplier.id
+        order_id = purchase_order.order_id
+        po_reference = '%s%s_%s' % (
+        purchase_order.prefix, str(purchase_order.creation_date).split(' ')[0].replace('-', ''),
+        purchase_order.order_id)
+        if receipt_no:
+            po_reference = '%s/%s' % (po_reference, receipt_no)
+        order_date = datetime.datetime.strftime(purchase_order.open_po.creation_date, "%d-%m-%Y")
+        bill_date = datetime.datetime.strftime(bill_date, "%d-%m-%Y")
+        user_profile = UserProfile.objects.get(user_id=user.id)
+        w_address = user_profile.address
+        data_dict = (('Order ID', order_id), ('Supplier ID', supplier_id),
+                     ('Order Date', order_date), ('Supplier Name', name))
+    sku_list = po_data[po_data.keys()[0]]
+    sku_slices = generate_grn_pagination(sku_list)
+    table_headers = (
+    'WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
+    'UTGST(%)', 'Amount', 'Description')
 
     title = 'Purchase Order'
     if receipt_type == 'Hosted Warehouse':
@@ -749,7 +762,7 @@ def print_po_reports(request, user=''):
                    'total_price': total, 'data_dict': data_dict, 'bill_no': bill_no,
                    'po_number': po_reference, 'company_address': w_address, 'company_name': user_profile.company_name,
                    'display': 'display-none', 'receipt_type': receipt_type, 'title': title,
-                   'total_received_qty': total_qty})
+                   'total_received_qty': total_qty, 'bill_date': bill_date})
 
 
 @csrf_exempt

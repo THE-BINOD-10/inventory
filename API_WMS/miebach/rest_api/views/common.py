@@ -44,6 +44,7 @@ from barcodes import *
 
 log = init_logger('logs/common.log')
 init_log = init_logger('logs/integrations.log')
+log_qssi = init_logger('logs/qssi_order_status_update.log')
 
 
 # Create your views here.
@@ -1060,7 +1061,7 @@ def update_mail_configuration(request, user=''):
     if data_range:
         misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='report_data_range')
         if misc_detail:
-            misc_detail[0].misc_value = frequency
+            misc_detail[0].misc_value = data_range
             misc_detail[0].save()
         else:
             misc_detail = MiscDetail(user=user.id, misc_type='report_data_range', misc_value=data_range)
@@ -6235,6 +6236,7 @@ def order_status_update(order_ids, user):
     for integrate in integrations:
         integration_module = importlib.import_module("rest_api.views.%s" % (integrate.name))
         order_id_dict = integration_module.integration_get_order_status(order_ids, user)
+        log_qssi.info("Order status request: %s" %(str(order_id_dict)))
         obj = eval(integrate.api_instance)(company_name=integrate.name, user=user)
         response = obj.qssi_get_order_status(order_id_dict, user=user)
     return response

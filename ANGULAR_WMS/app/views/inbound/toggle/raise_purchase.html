@@ -166,7 +166,30 @@
           <div class="col-md-3 col-sm-3 col-xs-12">
             <p>Sub Total: <b style="font-size:26px">{{showCase.model_data.sub_total}}</b></p>
           </div>
-        </div>
+          
+          <p>Last Three Transactions :</p>
+          <table>
+            <thead>
+              <tr>
+                <th>PO Date</th>
+                <th>PO Number</th>
+                <th>Supplier</th>
+                <th>Quantity</th>
+                <th>Unit Price</th>
+                <th>Tax Percent</th>
+              </tr>
+            </thead>
+            <tbody ng-repeat="row in showCase.last_transaction_data">
+                <tr class="field" ng-repeat="data in row">
+				    <td>{{data.pod_date}}</td>
+                    <td>{{data.po_number}}</td>
+					<td>{{data.supplier}}</td>
+					<td>{{data.quantity}}</td>
+					<td>{{data.unit_price}}</td>
+					<td>{{data.tax_percent}}</td>
+                </tr>
+            </tbody>
+          </table>
           <div class="row insert-status"><h4 align="center">{{showCase.message}}</h4></div>
         </div>
         <div class="modal-footer">

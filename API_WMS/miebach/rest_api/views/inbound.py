@@ -948,6 +948,7 @@ def switches(request, user=''):
                        'sellable_segregation': 'sellable_segregation',
                        'display_styles_price': 'display_styles_price',
                        'picklist_display_address': 'picklist_display_address',
+                       'show_purchase_history': 'show_purchase_history',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -5664,3 +5665,13 @@ def confirm_primary_segregation(request, user=''):
         log.debug(traceback.format_exc())
         log.info("Add Primary Segregation failed for params " + str(data_dict) + " and error statement is " + str(e))
         return HttpResponse("Add Segregation Failed")
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def last_transaction_details(request, user=''):
+    wms_code_list = request.GET.getlist('wms_code')
+    purchase_order = PurchaseOrder.objects.filter(open_po__sku__wms_code__in=wms_code_list, open_po__sku__wms_code__user=user)
+
+    return True
+

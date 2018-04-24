@@ -1224,8 +1224,10 @@ MYNTRA_BULK_ADDRESS = 'MYNTRA DESIGNS PVT LTD\nKsquare Industrial Park, Warehous
                          Before Padgha Toll naka Nashik-Mumbai Highway \nNear Pushkar Mela Hotel Rahul Narkhede,\n\
                          Padgha-Bhiwandi\nTin# 27590747736'
 
-JABONG_ADDRESS = 'Jabong Marketplace Mahindra Logistics Limited\nBlock No. H2 Sai Dhara Warehousing & Logistics Park,\n\
-                  Opp. Indian Oil Petrol Pump\nNear Shangrila Resort\nMumbai-Nasik Highway,\nBhiwandi,\nMaharashtra,421302'
+JABONG_ADDRESS = 'Myntra jabong India Pvt Ltd.\nKsquare Industrial Park,\
+                         Before Padgha Toll naka Nashik-Mumbai Highway, \nNear Pushkar Mela Hotel Rahul Narkhede,\n\
+                         Padgha Bhiwandi - 421101, Maharashtra\n\
+                         TIN:27461499703'
 
 USER_CHANNEL_ADDRESS = {'campus_sutra:myntra': MYNTRA_BANGALORE_ADDRESS, 'adam_clothing:myntra': MYNTRA_MUMBAI_ADDRESS,
                         'adam_clothing1:myntra': MYNTRA_MUMBAI_ADDRESS,
@@ -1322,6 +1324,7 @@ ORDER_ID_AWB_EXCEL_MAPPING = OrderedDict((('order_id', 0), ('awb_no', 1), ('cour
 # Company logo names
 COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg', 'Subhas_Publishing': 'book_publications.png', 'sm_admin': 'sm-brand.jpg',
                         'corp_attire': 'corp_attire.jpg'}
+TOP_COMPANY_LOGO_PATHS = {'Konda_foundation': 'dr_reddy_logo.png'}
 
 # Configurtions Mapping
 REMAINDER_MAIL_ALERTS = OrderedDict((('po_remainder', 'PO Remainder'),))
@@ -1541,7 +1544,7 @@ def get_location_stock_data(search_params, user, sub_user):
     search_mapping = {'sku_code': 'sku__sku_code__iexact', 'sku_category': 'sku__sku_category__iexact',
                       'sku_type': 'sku__sku_type__iexact', 'sku_class': 'sku__sku_class__iexact',
                       'zone': 'location__zone__zone__iexact',
-                      'location': 'location__location__iexact', 'wms_code': 'sku__wms_code'}
+                      'location': 'location__location__iexact', 'wms_code': 'sku__wms_code', 'ean': 'sku__ean_number__iexact'}
 
     results_data['draw'] = search_params.get('draw', 1)
     for key, value in search_mapping.iteritems():
@@ -1560,17 +1563,20 @@ def get_location_stock_data(search_params, user, sub_user):
         total_quantity = stock_detail.aggregate(Sum('quantity'))['quantity__sum']
 
     results_data['recordsTotal'] = len(stock_detail)
-    results_data['recordsFiltered'] = len(stock_detail)
+    results_data['recordsFiltered'] = results_data['recordsTotal']
 
     if stop_index:
         stock_detail = stock_detail[start_index:stop_index]
 
     for data in stock_detail:
+        ean_num = data.sku.ean_number
+        if not ean_num:
+            ean_num = ''
         results_data['aaData'].append(OrderedDict((('SKU Code', data.sku.sku_code), ('WMS Code', data.sku.wms_code),
                                                    ('Product Description', data.sku.sku_desc),
                                                    ('Zone', data.location.zone.zone),
                                                    ('Location', data.location.location), ('Quantity', data.quantity),
-                                                   ('Receipt Number', data.receipt_number),
+                                                   ('Receipt Number', data.receipt_number), ('EAN', str(ean_num)),
                                                    ('Receipt Date', str(data.receipt_date).split('+')[0]))))
     return results_data, total_quantity
 

@@ -242,6 +242,7 @@
                         $window.location.reload();
                     } else {
                  console.log(data);
+                 updateCustomer(self.searchText, "");
                  self.customerButton = false;
                }
               },function(error){

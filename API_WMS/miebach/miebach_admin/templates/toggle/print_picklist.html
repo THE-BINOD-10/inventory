@@ -41,6 +41,7 @@ $(document).ready(function(){
     </div>
   </div>
 </div>
+{% if customer_address %}
 <div class="row" style="padding-left: 2px;" ng-if="customer_address">
   <div class="col-md-12">
     <div class="col-xs-2">
@@ -51,6 +52,7 @@ $(document).ready(function(){
     </div>
   </div>
 </div>
+{% endif %}
 <div class="row" style="padding-left: 2px;">
   <input type="hidden" name="picklist_number" value="{{picklist_id}}">
   <div class="col-md-12">

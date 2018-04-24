@@ -61,6 +61,12 @@ class Command(BaseCommand):
             for order_id in order_ids:
                 purchase_orders = all_purchase_orders.filter(order_id=order_id)
                 purchase_order = purchase_orders[0]
+                client_name = ''
+                order_mapping = OrderMapping.objects.filter(mapping_id=purchase_order.order_id,\
+                                                     mapping_type='PO')
+                if order_mapping:
+                    order_mapping = order_mapping[0]
+                    client_name = order_mapping.order.customerordersummary_set.values_list('client_name', flat=True)[0]
                 if purchase_order.remainder_mail:
                     alert_duration = int(purchase_order.remainder_mail)
                 time_diff = (today - purchase_order.creation_date.replace(tzinfo=None)).days
@@ -85,7 +91,7 @@ class Command(BaseCommand):
 
                     self.mail_subject = 'PO Remainder for %s Purchase Order : %s' % (company_name, po_reference)
                     self.data_dict = {'supplier_name': supplier.name, 'mail_subject_line': mail_subject_line,
-                                      'item_list': item_list, 'headers': headers}
+                                      'item_list': item_list, 'headers': headers, 'client_name': client_name}
                     self.receiver_list = [supplier.email_id]
                     self.receiver_list.extend(internal_mails)
                     self.prepare_and_send_mail()

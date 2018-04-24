@@ -30,12 +30,14 @@ function ProfileUpload($scope, $http, $q, Session, colFilters, Service, $state, 
   }
   vm.base();
 
+  vm.logo_loading = false;
   vm.submit = function(form){
 
       var formData = new FormData();
       var logo_file = $('#logo')[0].files;
 
       if (logo_file.length > 0) {
+        vm.logo_loading = true;
         $.each(logo_file, function(i, file) {
           formData.append('logo', file);
         });
@@ -56,8 +58,15 @@ function ProfileUpload($scope, $http, $q, Session, colFilters, Service, $state, 
                   var response = JSON.parse(response);
                   if(response.message == "success") {
                     vm.service.showNoty("Successfully updated Profile data");
+                    $scope.$apply(function () {
+                      vm.logo_loading = false;
+                      vm.model_data.logo = response.data[0];
+                    });
                   } else {
                     vm.service.pop_msg(response.message);
+                    $scope.$apply(function () {
+                      vm.logo_loading = false;
+                    });
                   }
                 }
               }).then(function(data){

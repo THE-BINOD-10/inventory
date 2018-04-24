@@ -23,6 +23,7 @@ from itertools import groupby
 import datetime
 import shutil
 from utils import *
+import os
 
 log = init_logger('logs/outbound.log')
 
@@ -8718,10 +8719,12 @@ def update_cust_profile(request, user=''):
             exe_data.address = address
             exe_data.bank_details = bank_details
             if logo:
+                if exe_data.customer_logo:
+                    os.remove(os.path.join(settings.MEDIA_ROOT, exe_data.customer_logo.url))
                 exe_data.customer_logo = logo
             exe_data.save()
-            data = UserProfile.objects.filter(**filters)
-            resp.data.append(data[0].customer_logo.url)
+            data = UserProfile.objects.filter(user_id=user_id)
+            resp['data'].append(data[0].customer_logo.url)
     except Exception as e:
         import traceback
         log.info("Error Occurred while updating the Customer Profile data: %s" %traceback.format_exc())

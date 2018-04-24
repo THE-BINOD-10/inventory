@@ -103,6 +103,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         vm.filterData.primary_details = data.data.primary_details;
         vm.filterData.selectedBrands = {};
         vm.filterData.subCats = {};
+        vm.filterData.leastCats = {};
 
 	vm.brands = data.data.brands;
 	if (vm.brands.length === 0){
@@ -273,6 +274,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.show_no_data = false;
     var size_stock = "";
     var cat_name = vm.category;
+    var sub_cat_name = vm.sub_category;
     // vm.required_quantity = {};
 
     if(vm.category == "All") {
@@ -288,7 +290,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       size_stock = vm.size_filter_data;
     }
 
-    var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
+    var data = {brand: vm.brand, sub_category: sub_cat_name, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
                 sale_through: vm.order_type_value, size_filter: size_stock, color: vm.color, from_price: vm.fromPrice,
                 to_price: vm.toPrice, quantity: vm.quantity, delivery_date: vm.delivery_date, is_margin_percentage: vm.marginData.is_margin_percentage,
                 margin: vm.marginData.margin, hot_release: vm.hot_release, margin_data: JSON.stringify(Data.marginSKUData.data)};
@@ -700,6 +702,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     console.log(vm.filterData, $state);
     var brand= [];
     var category= [];
+    var sub_category = [];
     var color = [];
     angular.forEach(vm.filterData.selectedBrands, function(value, key) {
       if (value) {
@@ -717,6 +720,15 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
             temp_primary_data.push(sub_cat);
           }
         })
+      }
+    });
+
+    var temp_sub_cat_data = [];
+    angular.forEach(vm.filterData.selectedCats, function(value, key) {
+      if (value) {
+        angular.forEach(vm.filterData.leastCats[key], function(val, key){
+          temp_sub_cat_data.push(key);
+        });
       }
     });
 
@@ -739,6 +751,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.catlog_data.index = "";
     vm.brand = brand.join(",");
     vm.category = temp_primary_data.join(","); //category.join(",");
+    vm.sub_category = temp_sub_cat_data.join(","); //category.join(",");
     vm.color = color.join(",");
     vm.size_filter_data = vm.filterData.size_filter
     //vm.primary_data = JSON.stringify(temp_primary_data);
@@ -770,6 +783,16 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.checkPrimaryFilter = function(primary_cat) {
 
     if(!vm.filterData.selectedCats[primary_cat]) {
+
+      angular.forEach(vm.filterData.subCats[primary_cat], function(value ,sub_cat){
+        vm.filterData.subCats[primary_cat][sub_cat] = false;
+      })
+    }
+  }
+
+  vm.checkSubcategoryFilter = function(primary_cat, sub) {
+
+    if(!vm.filterData.subCats[primary_cat][sub]) {
 
       angular.forEach(vm.filterData.subCats[primary_cat], function(value ,sub_cat){
         vm.filterData.subCats[primary_cat][sub_cat] = false;
@@ -856,7 +879,10 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     } else if(value == 'All' && data['All']) {
       angular.forEach(vm.filterData.primary_details.data[primary], function(key) {
         data[key] = true;
-      })
+        angular.forEach(vm.filterData.primary_details.sub_category_list[key], function(key1) {
+          vm.filterData.leastCats[key1] = true;
+        })
+      });
     } else {
       angular.forEach(data, function(value, key) {
         if(key != 'All') {

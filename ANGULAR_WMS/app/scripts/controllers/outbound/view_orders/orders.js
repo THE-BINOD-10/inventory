@@ -8,6 +8,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     //$state.go($state.current, {}, {reload: true});
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
+    vm.show_client_details = vm.permissions.create_order_po;
     vm.apply_filters = colFilters;
     vm.default_status = true;
     vm.selected = {};
@@ -16,6 +17,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.merge_invoice = false;
     vm.scroll_data = true;
     vm.special_key = {market_places: "", customer_id: ""}
+    vm.picklist_display_address = vm.permissions.picklist_display_address;
 
     vm.update_order_details = update_order_details;
     function update_order_details(index, data, last) {
@@ -137,8 +139,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
       .renderWith(function(data, type, full, meta) {
         if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
-          vm.selected = {}; 
-        }   
+          vm.selected = {};
+        }
         vm.selected[meta.row] = vm.selectAll;
         return vm.service.frontHtml + meta.row + vm.service.endHtml;
       }))
@@ -336,8 +338,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             vm.taxes = value.taxes;
             vm.order_charges = value.order_charges;
             vm.client_name = value.client_name;
-            vm.show_client_details = vm.permissions.create_order_po;
-
+            if (!vm.client_name) {
+              vm.show_client_details = false;
+            }
             // if (value.discount_percentage <= 99.99) {
               vm.discount_per = value.discount_percentage;
             // }
@@ -841,6 +844,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       }, 1000);
     }
   });
+
+  vm.address_change = function(switch_value) {
+    vm.service.apiCall("switches/?picklist_display_address="+String(switch_value)).then(function(data) {
+        if(data.message) {
+            Service.showNoty(data.data);
+        }
+    });
+    vm.picklist_display_address = switch_value
+    Session.roles.permissions['picklist_display_address'] = switch_value;
+  }
 
   vm.add_order = function() {
 

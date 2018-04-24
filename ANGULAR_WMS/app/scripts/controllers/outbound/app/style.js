@@ -190,11 +190,17 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
     var total_quantity = 0;
 
     angular.forEach(vm.levels_data, function(record, key){
-          
-      if (record.data[index].quantity) {
+      
+      angular.forEach(record.data,function(sku){
+        if (sku.quantity) {
+          total_quantity += Number(sku.quantity);
+        }
+      });
+
+      // if (record.data[index].quantity) {
         
-        total_quantity += Number(record.data[index].quantity);
-      }
+      //   total_quantity += Number(record.data[index].quantity);
+      // }
     });
     return total_quantity;
   }

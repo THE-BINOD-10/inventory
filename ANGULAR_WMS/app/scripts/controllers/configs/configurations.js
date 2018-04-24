@@ -306,13 +306,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       class_name: "fa fa-rupee",
       display: true
     },
-    {
-      name: "Display Customer address in Picklist",
-      model_name: "picklist_display_address",
-      param_no: 57,
-      class_name: "fa fa-exchange",
-      display: true
-    }
 ]
 
   vm.empty = {};

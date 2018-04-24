@@ -2950,8 +2950,10 @@ def split_orders(**order_data):
         source_location_code__userprofile__warehouse_level=warehouse_level).values_list(
         'source_location_code_id', flat=True).order_by('lead_time', 'priority'))
     pick_filter_map = {'picklist__order__user__in': source_whs, 'picklist__order__sku__wms_code': sku_code}
-    pick_res_locat = dict(PicklistLocation.objects.prefetch_related('picklist', 'stock').filter(status=1).filter(
+    res_qtys = dict(PicklistLocation.objects.prefetch_related('picklist', 'stock').filter(status=1).filter(
         **pick_filter_map).values_list('stock__sku__user').annotate(total=Sum('reserved')))
+    blocked_qtys = dict(EnquiredSku.objects.filter(sku__user__in=source_whs, sku_code=sku_code).filter(
+        ~Q(enquiry__extend_status='rejected')).values_list('sku__user', 'quantity'))
     # source_whs = list(NetworkMaster.objects.filter(dest_location_code_id=dist_user_id).values_list(
     #     'source_location_code_id', flat=True).order_by('lead_time', 'priority'))
     # if user_id in source_whs and source_whs.index(user_id) != 0:
@@ -2967,14 +2969,17 @@ def split_orders(**order_data):
         sku__user__in=source_whs, sku__wms_code=sku_code, quantity__gt=0).values_list(
         'sku__user').distinct().annotate(in_stock=Sum('quantity')))
 
-    log.info("Stock Avail for SKU Code (%s)::%s" % (sku_code, repr(stk_dtl_obj)))
-    log.info("Stock Reserved for SKU Code (%s):: %s" % (sku_code, repr(pick_res_locat)))
+    log.info("Stock Avail, Reserved and Blocked(Enquiry) for SKU Code (%s)::%s:%s:%s" %
+             (sku_code, repr(stk_dtl_obj), repr(res_qtys), repr(blocked_qtys)))
     for source_wh in source_whs:
         avail_stock = stk_dtl_obj.get(source_wh, 0)
-        res_stock = pick_res_locat.get(source_wh, 0)
+        res_stock = res_qtys.get(source_wh, 0)
+        blocked_stock = blocked_qtys.get(source_wh, 0)
         if not res_stock:
             res_stock = 0
-        avail_stock = avail_stock - res_stock
+        if not blocked_stock:
+            blocked_stock = 0
+        avail_stock = avail_stock - res_stock - blocked_stock
         if not avail_stock:
             continue
         req_qty = req_stock - avail_stock
@@ -6334,14 +6339,14 @@ def get_level_based_customer_orders(request, response_data, user):
         if customer:
             cm_ids = CustomerUserMapping.objects.filter(customer__user=user.id).values_list('customer_id', flat=True)
             filter_dict = {'customer_id__in': cm_ids}
-    elif user_profile.warehouse_type == 'WH':
-        filter_dict = {'cust_wh_id__in': [user.id]}
-        cus_mapping = CustomerUserMapping.objects.filter(user_id=request.user.id)
-        if cus_mapping:
-            customer = WarehouseCustomerMapping.objects.filter(customer_id=cus_mapping[0].customer_id, status=1)
-            if customer:
-                filter_dict['cust_wh_id__in'].append(customer[0].warehouse_id)
-                filter_dict['customer_id'] = customer[0].customer_id
+    # elif user_profile.warehouse_type == 'WH':
+    #     filter_dict = {'cust_wh_id__in': [user.id]}
+    #     cus_mapping = CustomerUserMapping.objects.filter(user_id=request.user.id)
+    #     if cus_mapping:
+    #         customer = WarehouseCustomerMapping.objects.filter(customer_id=cus_mapping[0].customer_id, status=1)
+    #         if customer:
+    #             filter_dict['cust_wh_id__in'].append(customer[0].warehouse_id)
+    #             filter_dict['customer_id'] = customer[0].customer_id
     else:
         cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
         cm_ids = cum_obj.values_list('customer_id', flat=True)
@@ -8115,13 +8120,15 @@ def insert_enquiry_data(request, user=''):
                             'user': user.id, 'quantity': cart_item.quantity, 'sku_id': cart_item.sku.id}
             stock_wh_map = split_orders(**enquiry_data)
             for wh_code, qty in stock_wh_map.items():
+                if not qty:
+                    continue
                 wh_sku_id = get_syncedusers_mapped_sku(wh_code, cart_item.sku.id)
                 enq_sku_obj = EnquiredSku()
                 enq_sku_obj.sku_id = wh_sku_id
                 enq_sku_obj.title = cart_item.sku.style_name
                 enq_sku_obj.enquiry = enq_master_obj
-                enq_sku_obj.quantity = cart_item.quantity
-                tot_amt = get_tax_inclusive_invoice_amt(cm_id, cart_item.levelbase_price, cart_item.quantity,
+                enq_sku_obj.quantity = qty
+                tot_amt = get_tax_inclusive_invoice_amt(cm_id, cart_item.levelbase_price, qty,
                                                         user.id, cart_item.sku.sku_code, admin_user)
                 enq_sku_obj.invoice_amount = tot_amt
                 enq_sku_obj.status = 1

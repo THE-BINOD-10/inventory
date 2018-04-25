@@ -468,6 +468,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
    }
 
     vm.get_sku_details = function(product, item, index) {
+	  $timeout( function() {
+	    vm.populate_last_transaction()
+      }, 2000 );
       product.fields.sku.wms_code = item.wms_code;
       product.fields.measurement_unit = item.measurement_unit;
       product.fields.description = item.sku_desc;
@@ -500,13 +503,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           }
         });
       }
-
-	  if (vm.permissions.show_purchase_history) {
-		$timeout( function(){
-			vm.populate_last_transaction(product.fields.sku.wms_code)
-        }, 5000 );
-      }
-
     }
 
     vm.key_event = function(product, item) {
@@ -599,13 +595,33 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       }
     }
 
+    vm.last_transaction_table = {}
     vm.last_transaction_wms_code = []
-    vm.populate_last_transaction = function(wms_code) {
-	  var elem = angular.element($('form').find('input[name=wms_code]'));
+	vm.supplier_level_last_transaction = false
+	vm.supplier_wise_table = []
+	vm.sku_wise_table = []
+
+	vm.supplier_level = function(toggle_value) {
+        vm.supplier_level_last_transaction = toggle_value
+        if (vm.supplier_level_last_transaction) {
+            vm.last_transaction_table = vm.supplier_wise_table;
+        } else {
+            vm.last_transaction_table = vm.sku_wise_table;
+        }
+    }
+
+    vm.populate_last_transaction = function() {
+      vm.last_transaction_details = {}
+	  var elem = angular.element($('form').find('input[name=wms_code], input[name=supplier_id]'));
       elem = $(elem).serializeArray();
 	  vm.service.apiCall('last_transaction_details/', 'POST', elem, true).then(function(data) {
+        if(data.message) {
+            vm.last_transaction_details = data.data;
+			vm.supplier_wise_table = data.data.supplier_wise_table_data;
+			vm.sku_wise_table = data.data.sku_wise_table_data;
+			vm.supplier_level(vm.supplier_level_last_transaction);
+        }
 		console.log(data);
       });
     }
   }
-

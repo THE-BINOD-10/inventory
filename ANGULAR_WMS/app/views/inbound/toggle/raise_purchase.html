@@ -166,8 +166,20 @@
           <div class="col-md-3 col-sm-3 col-xs-12">
             <p>Sub Total: <b style="font-size:26px">{{showCase.model_data.sub_total}}</b></p>
           </div>
-          
+
           <p>Last Three Transactions :</p>
+		  <div class="col-md-5 col-sm-4 col-xs-6 mb10" style="">
+            	<div class="col-md-8 col-sm-8 col-xs-12" style="padding-top: 7px;text-align: right;">
+                  <strong class="ml20">Show Supplier Level Last Transactions :</strong>
+                </div>
+                <div class="col-md-2 col-sm-3 col-xs-4">
+                  <label class="switch switch-sm square mt5">
+                    <div><input type="checkbox" ng-model="showCase.supplier_level_last_transaction" ng-change="showCase.supplier_level(showCase.supplier_level_last_transaction)" class="ng-valid ng-dirty"><span><i class="handle"></i></span>
+                    </div>
+                  </label>
+                </div>
+          </div>
+
           <table>
             <thead>
               <tr>
@@ -179,14 +191,14 @@
                 <th>Tax Percent</th>
               </tr>
             </thead>
-            <tbody ng-repeat="row in showCase.last_transaction_data">
-                <tr class="field" ng-repeat="data in row">
-				    <td>{{data.pod_date}}</td>
+            <tbody ng-repeat="data in showCase.last_transaction_table">
+                <tr class="field">
+				    <td>{{data.po_date}}</td>
                     <td>{{data.po_number}}</td>
-					<td>{{data.supplier}}</td>
-					<td>{{data.quantity}}</td>
-					<td>{{data.unit_price}}</td>
-					<td>{{data.tax_percent}}</td>
+					<td>{{data.supplier_name}}</td>
+					<td>{{data.received_quantity}}</td>
+					<td>{{data.price}}</td>
+					<td>{{data.total_tax}}</td>
                 </tr>
             </tbody>
           </table>

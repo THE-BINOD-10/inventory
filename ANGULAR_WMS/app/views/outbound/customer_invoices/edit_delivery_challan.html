@@ -23,14 +23,105 @@
           </div>
           <div class="col-md-4 col-sm-4 col-xs-6">
             <div class="form-group">
-              <label class="control-label"> Address </label>
-              <textarea rows="4" class="form-control" cols="27" name="ship_to" ng-model="pop.model_data.address"></textarea>
+              <label class="control-label"> Rep </label>
+              <input name="rep" ng-model="pop.model_data.rep" class="form-control" type="text">
             </div>
           </div>
         </div>
+        <div class="row">
+          <div class="col-md-4 col-sm-4 col-xs-6">
+            <div class="form-group">
+              <label class="control-label"> Order No </label>
+              <input name="order_no" ng-model="pop.model_data.order_no" class="form-control" type="text">
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-4 col-xs-6">
+            <div class="form-group">
+              <label class="control-label"> L.R No </label>
+              <input name="lr_no" ng-model="pop.model_data.lr_no" class="form-control" type="text">
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-4 col-xs-6">
+            <div class="form-group">
+              <label class="control-label"> Carrier </label>
+              <input name="carrier" ng-model="pop.model_data.carrier" class="form-control" type="text">
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-4 col-sm-4 col-xs-6">
+            <div class="form-group">
+              <label class="control-label"> Terms </label>
+              <input name="terms" ng-model="pop.model_data.terms" class="form-control" type="text">
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-4 col-xs-6">
+            <div class="form-group">
+              <label class="control-label"> Pkgs </label>
+              <input name="pkgs" ng-model="pop.model_data.pkgs" class="form-control" type="text">
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-4 col-xs-6">
+            <div class="form-group">
+              <label class="control-label"> Address </label>
+              <textarea rows="4" class="form-control" cols="27" name="address" ng-model="pop.model_data.address"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-12"><hr></div>
+        </div>
+        <div class="row">
+          <div class="col-md-12">
+            <table class="table">
+              <thead>
+                <tr>
+                	<th>SKU Code</th>
+                	<th>PARTICULARS</th>
+                	<th>PKNG</th>
+                	<th>QTY</th>
+                	<th class="plus"></th>
+                </tr>
+              </thead>
+             	<tbody>
+             		<tr ng-repeat="product in pop.model_data.data">
+             			<td>
+             				<input type="text" autocomplete="off" name="wms_code" class="form-control" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in pop.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="product.sku_code" typeahead-on-select="pop.get_sku_details(product, $item, $index)" ng-keyup="$event.keyCode == 13 ? pop.key_event(product, $item) : null" ng-readonly="product.pk > 0">
+                      <input type="text" name="data-id" ng-model="product.pk" class="hide" ng-if="pop.update">
+                      <input type="text" name="seller_po_id" ng-model="product.seller_po_id" class="hide" ng-if="pop.update">
+             			</td>
+             			<td>
+                    <input ng-model="product.sku_class" title="{{ product.description }}" type="text" class="form-control">
+                  </td>
+                  <td>
+                    <input ng-model="product.pkng" title="{{ product.pkng }}" type="text" class="form-control">
+                  </td>
+                  <td>
+                    <input ng-model="product.quantity" ng-keyup="pop.getTotals()" title="{{ product.quantity }}" type="text" class="form-control">
+                  </td>
+                  <td>
+                  	<i ng-click="pop.update_data($index)" ng-class="pop.service.isLast($last)"></i>
+                  </td>
+             		</tr>
+             	</tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="row" style="padding-bottom:0px;">
+          <div class="col-md-6 col-sm-6">
+          </div>
+          <div class="col-md-3 col-sm-3 col-xs-12">
+            <p>Total Items: <b style="font-size:26px">{{pop.model_data.total_items}}</b></p>
+          </div>
+          <div class="col-md-3 col-sm-3 col-xs-12">
+            <p>Total Quantity: <b style="font-size:26px">{{pop.model_data.total_qty}}</b></p>
+          </div>
+        </div>
+
       </div>
       <div class="modal-footer">
-        <button type="submit" class="btn pop pop-green col-md-3 col-sm-3 col-xs-12 pull-right" style="margin-left:0px;" ng-disabled="pop.process" ng-click="pop.save(form)">Save</button>
+        <button type="submit" class="btn pop pop-green col-md-3 col-sm-3 col-xs-12 pull-right" style="margin-left:0px;" ng-disabled="pop.process" ng-click="pop.update_dc(form)">Save</button>
       </div>
     </div>
   </form>

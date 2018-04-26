@@ -2142,7 +2142,6 @@ def update_seller_po(data, value, user, receipt_id='', invoice_number='', mrp=0,
     invoice_number = int(invoice_number)
     if not invoice_date:
         invoice_date = datetime.datetime.now().date()
-    #invoice_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y").date()
     if user.userprofile.user_type == 'warehouse_user':
         seller_po_summary, created = SellerPOSummary.objects.get_or_create(receipt_number=receipt_id,
                                                                            invoice_number=invoice_number,

@@ -104,6 +104,15 @@
         </div>
         <div class="col-md-4 col-sm-4 col-xs-6">
           <div class="form-group">
+            <label class="control-label">Payment Status</label>
+            <select class="form-control" name="payment_status" ng-model="showCase.model_data.payment_status">
+              <option value="">Select Payment Status</option>
+              <option ng-repeat="type in showCase.payment_status" value="{{type}}">{{type}}</option>
+            </select>
+          </div>
+        </div>
+        <div class="col-md-4 col-sm-4 col-xs-6">
+          <div class="form-group">
             <label class="control-label">Address</label>
             <textarea rows="4" class="form-control" cols="27" name="address" ng-model="showCase.model_data.address" readonly></textarea>
           </div>

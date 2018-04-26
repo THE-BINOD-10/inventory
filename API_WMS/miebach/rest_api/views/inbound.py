@@ -2140,8 +2140,9 @@ def update_seller_po(data, value, user, receipt_id='', invoice_number='', mrp=0,
     seller_pos = SellerPO.objects.filter(seller__user=user.id, open_po_id=data.open_po_id, status=1)
     seller_received_list = []
     invoice_number = int(invoice_number)
-    if invoice_date:
-        invoice_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y").date()
+    if not invoice_date:
+        invoice_date = datetime.datetime.now().date()
+    #invoice_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y").date()
     if user.userprofile.user_type == 'warehouse_user':
         seller_po_summary, created = SellerPOSummary.objects.get_or_create(receipt_number=receipt_id,
                                                                            invoice_number=invoice_number,
@@ -2216,7 +2217,9 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
     expected_date = request.POST.get('expected_date', '')
     remainder_mail = request.POST.get('remainder_mail', '')
     invoice_number = request.POST.get('invoice_number', 0)
-    invoice_date = request.POST.get('invoice_date', '')
+    bill_date = datetime.datetime.now().date()
+    if request.POST.get('invoice_date', ''):
+        bill_date = datetime.datetime.strptime(request.POST.get('invoice_date', ''), "%m/%d/%Y").date()
     mrp = float(request.POST.get('mrp', 0))
     _expected_date = ''
     if expected_date:
@@ -2278,7 +2281,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
             if not seller_receipt_id:
                 seller_receipt_id = get_seller_receipt_id(data.open_po)
             seller_received_list = update_seller_po(data, value, user, receipt_id=seller_receipt_id,
-                                                    invoice_number=invoice_number, mrp=mrp, invoice_date=invoice_date)
+                                                    invoice_number=invoice_number, mrp=mrp, invoice_date=bill_date)
         if 'wms_code' in myDict.keys():
             if myDict['wms_code'][i]:
                 sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
@@ -2371,10 +2374,9 @@ def confirm_grn(request, confirm_returns='', user=''):
     seller_name = user.username
     seller_address = user.userprofile.address
     seller_receipt_id = 0
-    bill_date = ''
-    invoice_date = str(request.POST.get('invoice_date', ''))
-    if invoice_date:
-        bill_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y").strftime('%d-%m-%Y')
+    bill_date = datetime.datetime.now().date().strftime('%d-%m-%Y')
+    if request.POST.get('invoice_date', ''):
+        bill_date = datetime.datetime.strptime(str(request.POST.get('invoice_date', '')), "%m/%d/%Y").strftime('%d-%m-%Y')
     if not confirm_returns:
         request_data = request.POST
         myDict = dict(request_data.iterlists())
@@ -5173,7 +5175,9 @@ def confirm_receive_qc(request, user=''):
     seller_name = user.username
     seller_address = user.userprofile.address
     myDict = dict(request.POST.iterlists())
-
+    bill_date = datetime.datetime.now().date().strftime('%d-%m-%Y')
+    if request.POST.get('invoice_date', ''):
+        bill_date = datetime.datetime.strptime(str(request.POST.get('invoice_date', '')), "%m/%d/%Y").strftime('%d-%m-%Y')
     log.info('Request params for ' + user.username + ' is ' + str(myDict))
     try:
         for ind in range(0, len(myDict['id'])):
@@ -5233,11 +5237,6 @@ def confirm_receive_qc(request, user=''):
                                 'report_name': 'Goods Receipt Note', 'company_name': profile.company_name, 'location': profile.location}'''
             sku_list = putaway_data[putaway_data.keys()[0]]
             sku_slices = generate_grn_pagination(sku_list)
-            invoice_date = str(request.POST.get('invoice_date', ''))
-            if invoice_date:
-                bill_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y").strftime('%d-%m-%Y')
-            else:
-                bill_date = ''
             report_data_dict = {'data': putaway_data, 'data_dict': data_dict, 'data_slices': sku_slices,
                                 'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty,
                                 'total_price': total_price, 'total_tax': total_tax, 'address': address,

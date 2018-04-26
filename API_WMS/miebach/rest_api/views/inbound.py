@@ -2372,9 +2372,7 @@ def confirm_grn(request, confirm_returns='', user=''):
     seller_name = user.username
     seller_address = user.userprofile.address
     seller_receipt_id = 0
-    invoice_date = str(request.POST.get('invoice_date', ''))
-    if invoice_date:
-        bill_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y").strftime('%d-%m-%Y')
+    bill_date = datetime.datetime.strptime(str(request.POST.get('invoice_date', '')), "%m/%d/%Y").strftime('%d-%m-%Y')
     if not confirm_returns:
         request_data = request.POST
         myDict = dict(request_data.iterlists())
@@ -5233,9 +5231,7 @@ def confirm_receive_qc(request, user=''):
                                 'report_name': 'Goods Receipt Note', 'company_name': profile.company_name, 'location': profile.location}'''
             sku_list = putaway_data[putaway_data.keys()[0]]
             sku_slices = generate_grn_pagination(sku_list)
-            invoice_date = str(request.POST.get('invoice_date', ''))
-            if invoice_date:
-                bill_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y").strftime('%d-%m-%Y')
+            bill_date = datetime.datetime.strptime(str(request.POST.get('invoice_date', '')), "%m/%d/%Y").strftime('%d-%m-%Y')
             report_data_dict = {'data': putaway_data, 'data_dict': data_dict, 'data_slices': sku_slices,
                                 'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty,
                                 'total_price': total_price, 'total_tax': total_tax, 'address': address,

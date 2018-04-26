@@ -476,6 +476,7 @@ data_datatable = {  # masters
     'CustomerOrderView': 'get_order_view_data', 'CustomerCategoryView': 'get_order_category_view_data', \
     'CustomOrders': 'get_custom_order_data', \
     'ShipmentPickedAlternative': 'get_order_shipment_picked', 'CustomerInvoices': 'get_customer_invoice_data', \
+    'ProcessedOrders': 'get_processed_orders_data', 'DeliveryChallans': 'get_delivery_challans_data',
     'SellerOrderView': 'get_seller_order_view', \
     # manage users
     'ManageUsers': 'get_user_results', 'ManageGroups': 'get_user_groups',
@@ -2204,6 +2205,47 @@ def get_financial_year(date):
         return str(financial_year_start_date.year)[2:] + '-' + str(financial_year_start_date.year + 1)[2:]
 
 
+def get_challan_number(user, seller_order_summary):
+    challan_num = ""
+    chn_date = datetime.datetime.now()
+    invoice_no_gen = MiscDetail.objects.filter(user=user.id, misc_type='increment_invoice')
+    if invoice_no_gen:
+        # seller_order_summary = SellerOrderSummary.objects.filter(Q(order__id__in=order_ids) |
+        #                                                          Q(seller_order__order__user=user.id,
+        #                                                            seller_order__order_id__in=order_ids))
+        if seller_order_summary: # and invoice_no_gen[0].creation_date < seller_order_summary[0].creation_date:
+            if seller_order_summary[0].seller_order:
+                order = seller_order_summary[0].seller_order.order
+            else:
+                order = seller_order_summary[0].order
+            # sos_qs = SellerOrderSummary.objects.filter(order__id__in=order_ids).exclude(challan_number='')
+            # if sos_qs:
+            #     existing_ch_number = sos_qs[0].challan_number
+            #     seller_order_summary.filter(invoice_number='').update(challan_number=existing_ch_number)
+            #     challan_num = int(existing_ch_number)
+            if invoice_no_gen[0].misc_value == 'true':
+                challan_sequence = ChallanSequence.objects.filter(user=user.id, status=1, marketplace=order.marketplace)
+                if not challan_sequence:
+                    challan_sequence = ChallanSequence.objects.filter(user=user.id, marketplace='')
+                if challan_sequence:
+                    challan_sequence = challan_sequence[0]
+                    challan_num = int(challan_sequence.value)
+                    order_no = challan_sequence.prefix + str(challan_num).zfill(3)
+                    seller_order_summary.update(challan_number=order_no)
+                    challan_sequence.value = challan_num + 1
+                    challan_sequence.save()
+                else:
+                    ChallanSequence.objects.create(marketplace='', prefix='CHN', value=1, status=1, user_id=user.id,
+                                                   creation_date=datetime.datetime.now())
+                    order_no = '001'
+                    challan_num = int(order_no)
+            else:
+                # seller_order_summary.filter(challan_number='').update(challan_number=order_no)
+                log.info("Challan No not updated for seller_order_summary")
+        challan_number = 'CHN/%s/%s' % (chn_date.strftime('%m%y'), order_no)
+    return challan_number, challan_num
+
+
 def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos=False):
     invoice_number = ""
     inv_no = ""
@@ -2564,6 +2606,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                  'base_price': base_price, 'hsn_code': hsn_code, 'imeis': temp_imeis,
                  'discount_percentage': discount_percentage, 'id': dat.id})
     _invoice_no, _sequence = get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos)
+    challan_no, challan_sequence = get_challan_number(user, seller_summary)
     inv_date = invoice_date.strftime("%m/%d/%Y")
     invoice_date = invoice_date.strftime("%d %b %Y")
     order_charges = {}
@@ -2621,7 +2664,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'seller_company': seller_company, 'sequence_number': _sequence, 'order_reference': order_reference,
                     'order_reference_date_field': order_reference_date_field,
                     'order_reference_date': order_reference_date, 'invoice_header': invoice_header,
-                    'cin_no': cin_no
+                    'cin_no': cin_no,
                     }
     return invoice_data
 

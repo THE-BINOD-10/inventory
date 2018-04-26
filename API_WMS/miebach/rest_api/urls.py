@@ -280,6 +280,9 @@ urlpatterns = [
     url(r'^request_manual_enquiry_approval/$', request_manual_enquiry_approval),
     url(r'^get_invoice_details/$', get_invoice_details),
     url(r'^update_cust_profile/$', update_cust_profile),
+    url(r'^move_to_dc/$', move_to_dc),
+    url(r'^move_to_inv/$', move_to_inv),
+    url(r'^update_dc/$', update_dc),
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),

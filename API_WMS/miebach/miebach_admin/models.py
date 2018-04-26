@@ -1896,6 +1896,8 @@ class SellerOrderSummary(models.Model):
     picklist = models.ForeignKey(Picklist, blank=True, null=True, db_index=True)
     quantity = models.FloatField(default=0)
     invoice_number = models.CharField(max_length=64, default='')
+    challan_number = models.CharField(max_length=64, default='')
+    order_status_flag = models.CharField(max_length=64, default='processed_orders')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -2197,6 +2199,20 @@ class InvoiceSequence(models.Model):
         index_together = ('user', 'marketplace')
         unique_together = ('user', 'marketplace')
 
+class ChallanSequence(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    marketplace = models.CharField(max_length=64)
+    prefix = models.CharField(max_length=64)
+    value = models.PositiveIntegerField()
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'CHALLAN_SEQUENCE'
+        index_together = ('user', 'marketplace')
+        unique_together = ('user', 'marketplace')
 
 class OrderAwbMap(models.Model):
     user = models.ForeignKey(User)

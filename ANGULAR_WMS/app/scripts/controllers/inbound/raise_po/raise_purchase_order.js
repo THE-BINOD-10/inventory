@@ -228,7 +228,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     }
 
     vm.update_data = function (index) {
-
       if (index == vm.model_data.data.length-1) {
         if (vm.model_data.data[index]["fields"]["sku"]["wms_code"] && vm.model_data.data[index]["fields"]["order_quantity"]) {
           vm.model_data.data.push({"fields": {"wms_code":"", "ean_number": "", "supplier_code":"", "order_quantity":"", "price":"", 
@@ -238,13 +237,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         }
       } else {
         if(vm.model_data.data[index].seller_po_id){
-             vm.delete_data('seller_po_id', vm.model_data.data[index].seller_po_id, index);
-            }
-        else {
-        vm.delete_data('id', vm.model_data.data[index].pk, index);
+            vm.delete_data('seller_po_id', vm.model_data.data[index].seller_po_id, index);
+        } else {
+            vm.delete_data('id', vm.model_data.data[index].pk, index);
         }
         vm.model_data.data.splice(index,1);
         vm.getTotals();
+      }
+	  if(vm.permissions.show_purchase_history) {
+        $timeout( function() {
+            vm.populate_last_transaction()
+        }, 2000 );
       }
     }
 
@@ -626,4 +629,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 		console.log(data);
       });
     }
+
+	vm.supplier_on_change = function () {
+		if(vm.permissions.show_purchase_history) {
+        $timeout( function() {
+            vm.populate_last_transaction()
+        }, 2000 );
+      }
+	}
+
   }

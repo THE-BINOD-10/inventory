@@ -2371,6 +2371,7 @@ def confirm_grn(request, confirm_returns='', user=''):
     seller_name = user.username
     seller_address = user.userprofile.address
     seller_receipt_id = 0
+    bill_date = ''
     invoice_date = str(request.POST.get('invoice_date', ''))
     if invoice_date:
         bill_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y").strftime('%d-%m-%Y')

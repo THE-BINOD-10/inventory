@@ -166,21 +166,24 @@
           <div class="col-md-3 col-sm-3 col-xs-12">
             <p>Sub Total: <b style="font-size:26px">{{showCase.model_data.sub_total}}</b></p>
           </div>
+		  <div class="col-md-12 col-sm-12 col-xs-12" ng-if="showCase.permissions.show_purchase_history">
+		  <div class="col-md-12 col-sm-12 col-xs-12">
+          <div style="margin-bottom: 10px;"><strong>Last Three Transactions :</strong></div>
+		  </div>
 
-          <p>Last Three Transactions :</p>
-		  <div class="col-md-5 col-sm-4 col-xs-6 mb10" style="">
-            	<div class="col-md-8 col-sm-8 col-xs-12" style="padding-top: 7px;text-align: right;">
-                  <strong class="ml20">Show Supplier Level Last Transactions :</strong>
-                </div>
-                <div class="col-md-2 col-sm-3 col-xs-4">
-                  <label class="switch switch-sm square mt5">
-                    <div><input type="checkbox" ng-model="showCase.supplier_level_last_transaction" ng-change="showCase.supplier_level(showCase.supplier_level_last_transaction)" class="ng-valid ng-dirty"><span><i class="handle"></i></span>
-                    </div>
-                  </label>
-                </div>
+          <div class="col-md-12 col-sm-12 col-xs-12 mb10">
+			<div class="col-md-3 col-sm-5 col-xs-5" style="text-align: right;">
+				<strong>Supplier Level Last Transactions :</strong>
+			</div>
+			<div class="col-md-2 col-sm-3 col-xs-4">
+			  <label class="switch switch-sm square">
+				<div><input type="checkbox" ng-model="showCase.supplier_level_last_transaction" ng-change="showCase.supplier_level(showCase.supplier_level_last_transaction)" class="ng-valid ng-dirty ng-pristine"><span><i class="handle"></i></span>
+				</div>
+			  </label>
+			</div>
           </div>
-
-          <table>
+		  <div class="col-md-12 col-sm-12 col-xs-12 mb10">
+          <table class="table table-bordered">
             <thead>
               <tr>
                 <th>PO Date</th>
@@ -202,8 +205,11 @@
                 </tr>
             </tbody>
           </table>
+		  </div>
+		  </div>
           <div class="row insert-status"><h4 align="center">{{showCase.message}}</h4></div>
         </div>
+		</div>
         <div class="modal-footer">
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop {{showCase.permissions.change_openpo?'pop-normal':'pop-green'}}" ng-click="showCase.save_raise_po(form)">{{showCase.permissions.change_openpo?'Save':'Send for Approval'}}</button>
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-show="showCase.permissions.change_openpo" data-dismiss="modal" ng-click="showCase.confirm(form)">Confirm PO</button>

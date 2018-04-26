@@ -2141,7 +2141,8 @@ def update_seller_po(data, value, user, receipt_id='', invoice_number='', mrp=0,
     seller_pos = SellerPO.objects.filter(seller__user=user.id, open_po_id=data.open_po_id, status=1)
     seller_received_list = []
     invoice_number = int(invoice_number)
-    invoice_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y").date()
+    if invoice_date:
+        invoice_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y").date()
     if user.userprofile.user_type == 'warehouse_user':
         seller_po_summary, created = SellerPOSummary.objects.get_or_create(receipt_number=receipt_id,
                                                                            invoice_number=invoice_number,
@@ -2371,7 +2372,9 @@ def confirm_grn(request, confirm_returns='', user=''):
     seller_name = user.username
     seller_address = user.userprofile.address
     seller_receipt_id = 0
-    bill_date = datetime.datetime.strptime(str(request.POST.get('invoice_date', '')), "%m/%d/%Y").strftime('%d-%m-%Y')
+    invoice_date = str(request.POST.get('invoice_date', ''))
+    if invoice_date:
+        bill_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y").strftime('%d-%m-%Y')
     if not confirm_returns:
         request_data = request.POST
         myDict = dict(request_data.iterlists())
@@ -5230,7 +5233,9 @@ def confirm_receive_qc(request, user=''):
                                 'report_name': 'Goods Receipt Note', 'company_name': profile.company_name, 'location': profile.location}'''
             sku_list = putaway_data[putaway_data.keys()[0]]
             sku_slices = generate_grn_pagination(sku_list)
-            bill_date = datetime.datetime.strptime(str(request.POST.get('invoice_date', '')), "%m/%d/%Y").strftime('%d-%m-%Y')
+            invoice_date = str(request.POST.get('invoice_date', ''))
+            if invoice_date:
+                bill_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y").strftime('%d-%m-%Y')
             report_data_dict = {'data': putaway_data, 'data_dict': data_dict, 'data_slices': sku_slices,
                                 'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty,
                                 'total_price': total_price, 'total_tax': total_tax, 'address': address,
@@ -5671,9 +5676,11 @@ def confirm_primary_segregation(request, user=''):
 @get_admin_user
 def last_transaction_details(request, user=''):
     wms_code_list = request.POST.getlist('wms_code', [])
-    supplier_name = request.POST.get('supplier_name', [])
+    supplier_name_list = request.POST.getlist('supplier_id', [])
+    print wms_code_list
+    print supplier_name_list
     sku_wise_obj = PurchaseOrder.objects.filter(open_po__sku__wms_code__in=wms_code_list, open_po__sku__user=user.id).order_by('-creation_date')
-    supplier_wise_obj = sku_wise_obj.filter(open_po__supplier__name__in = supplier_name).order_by('-creation_date')
+    supplier_wise_obj = sku_wise_obj.filter(open_po__supplier__id__in = supplier_name_list).order_by('-creation_date')
     sku_wise_list = []
     supplier_wise_list = []
     for data in sku_wise_obj[0:3]:

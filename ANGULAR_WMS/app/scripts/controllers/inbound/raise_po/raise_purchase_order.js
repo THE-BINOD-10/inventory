@@ -468,9 +468,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
    }
 
     vm.get_sku_details = function(product, item, index) {
-	  $timeout( function() {
-	    vm.populate_last_transaction()
-      }, 2000 );
+      if(vm.permissions.show_purchase_history) {
+	    $timeout( function() {
+	        vm.populate_last_transaction()
+        }, 2000 );
+      }
       product.fields.sku.wms_code = item.wms_code;
       product.fields.measurement_unit = item.measurement_unit;
       product.fields.description = item.sku_desc;

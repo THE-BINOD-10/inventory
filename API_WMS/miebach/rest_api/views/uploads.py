@@ -1761,6 +1761,10 @@ def validate_supplier_form(open_sheet, user_id):
             if key == 'id':
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))
+                if cell_data:
+                    supplier_master = SupplierMaster.objects.filter(id=cell_data)
+                    if supplier_master and not supplier_master[0].user == user_id:
+                        index_status.setdefault(row_idx, set()).add('Supplier ID Already exists')
                 if cell_data and cell_data in supplier_ids:
                     index_status.setdefault(row_idx, set()).add('Duplicate Supplier ID')
                     for index, data in enumerate(supplier_ids):

@@ -625,8 +625,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 			vm.supplier_wise_table = data.data.supplier_wise_table_data;
 			vm.sku_wise_table = data.data.sku_wise_table_data;
 			vm.supplier_level(vm.supplier_level_last_transaction);
+        } else {
+            vm.last_transaction_details = {};
         }
-		console.log(data);
       });
     }
 

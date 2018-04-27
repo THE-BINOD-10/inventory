@@ -5672,8 +5672,6 @@ def confirm_primary_segregation(request, user=''):
 def last_transaction_details(request, user=''):
     wms_code_list = request.POST.getlist('wms_code', [])
     supplier_name_list = request.POST.getlist('supplier_id', [])
-    print wms_code_list
-    print supplier_name_list
     sku_wise_obj = PurchaseOrder.objects.filter(open_po__sku__wms_code__in=wms_code_list, open_po__sku__user=user.id).order_by('-creation_date')
     supplier_wise_obj = sku_wise_obj.filter(open_po__supplier__id__in = supplier_name_list).order_by('-creation_date')
     sku_wise_list = []

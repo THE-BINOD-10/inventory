@@ -4560,7 +4560,12 @@ def build_invoice(invoice_data, user, css=False):
     if len(invoice_data['hsn_summary'].keys()) == 0:
         invoice_data['perm_hsn_summary'] = 'false'
     invoice_data['empty_tds'] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    inv_height = 1250  # total invoice height
+    invoice_height = 1358
+    if not invoice_data['side_image'] and invoice_data['top_image']:
+        invoice_height = 1250
+    if not invoice_data['top_image'] and invoice_data['side_image']:
+        invoice_height = 1358
+    inv_height = invoice_height  # total invoice height
     inv_details = 317  # invoice details height
     inv_footer = 95  # invoice footer height
     inv_totals = 127  # invoice totals height
@@ -4601,7 +4606,7 @@ def build_invoice(invoice_data, user, css=False):
         no_of_skus += 2
     '''
     invoice_data['empty_data'] = []
-    if (data_length > no_of_skus):
+    if (data_length >= no_of_skus):
 
         needed_space = inv_footer + inv_footer + inv_total
         if (perm_hsn_summary == 'true'):
@@ -4636,6 +4641,7 @@ def build_invoice(invoice_data, user, css=False):
     else:
         temp = invoice_data['data']
         invoice_data['data'] = []
+        #empty_data = [""] * (no_of_skus - data_length)
         no_of_space = (13 - data_length)
         if no_of_space < 0:
             no_of_space = 0

@@ -852,10 +852,10 @@ def confirm_move_location_inventory(request, user=''):
     reason = request.POST.get('reason', '')
     source = LocationMaster.objects.filter(location=source_loc, zone__user=user.id)
     if not source:
-        return 'Invalid Source'
+        return HttpResponse('Invalid Source')
     dest = LocationMaster.objects.filter(location=dest_loc, zone__user=user.id)
     if not dest:
-        return 'Invalid Destination'
+        return HttpResponse('Invalid Destination')
     log.info("Move location inventory:\nSource:%s, Dest: %s, Reason: %s"%(source_loc, dest_loc, reason))
     try:
         sku_dict = StockDetail.objects.filter(location_id=source[0].id, sku__user=user.id, quantity__gt=0)\

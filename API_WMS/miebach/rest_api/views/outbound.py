@@ -5212,6 +5212,7 @@ def get_view_order_details(request, user=''):
             Q(order_id=order_id, order_code=order_code) | Q(original_order_id=main_id), user=user.id)
         if not row_id:
             row_id = order_details[0].id
+
     custom_data = OrderJson.objects.filter(order_id=row_id)
     status_obj = ''
     central_remarks = ''
@@ -5301,6 +5302,7 @@ def get_view_order_details(request, user=''):
         sgst_tax = 0
         cgst_tax = 0
         igst_tax = 0
+        payment_status = ''
         discount_percentage = 0
         if customer_order:
             client_name = customer_order[0].client_name
@@ -5308,6 +5310,7 @@ def get_view_order_details(request, user=''):
             cgst_tax = customer_order[0].cgst_tax
             igst_tax = customer_order[0].igst_tax
             discount_percentage = 0
+            payment_status = customer_order[0].payment_status
             if (quantity * unit_price):
                 discount_percentage = float(
                     "%.1f" % (float((customer_order[0].discount * 100) / (quantity * unit_price))))
@@ -5335,7 +5338,7 @@ def get_view_order_details(request, user=''):
              'sku_extra_data': sku_extra_data, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax, 'igst_tax': igst_tax,
              'unit_price': unit_price, 'discount_percentage': discount_percentage, 'taxes': taxes_data,
              'order_charges': order_charges,
-             'sku_status': one_order.status, 'client_name':client_name})
+             'sku_status': one_order.status, 'client_name':client_name, 'payment_status':payment_status})
 
     if status_obj in view_order_status:
         view_order_status = view_order_status[view_order_status.index(status_obj):]
@@ -6115,6 +6118,7 @@ def update_order_data(request, user=""):
                 status_obj.tax_type = tax_type
                 status_obj.invoice_type = myDict['invoice_type'][0]
                 status_obj.client_name = client_name
+                status_obj.payment_status = myDict['payment_status'][0]
                 status_obj.save()
 
                 vendor_list = ['printing_vendor', 'embroidery_vendor', 'production_unit']

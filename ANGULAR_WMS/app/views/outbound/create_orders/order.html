@@ -2,44 +2,61 @@
   <form id="order-create" name="form" role="form" ui-jq="validate">
     <div class="clearfix">
       <div class="row mt10 mb10 pr10 pl10">
-        <div class="col-md-3 col-sm-3 col-xs-6">
-          <button type="button" class="btn btn-primary pull-left" ng-click="showCase.open_customer_pop()">New Customer</button>
+        <div class="col-md-2 col-sm-3 col-xs-12 mt10">
+          <button type="button" class="btn btn-primary visible-md visible-lg pull-left" ng-click="showCase.open_customer_pop()">New Customer</button>
+          <button type="button" class="btn btn-primary visible-xs" style="width: 100%" ng-click="showCase.open_customer_pop()">New Customer</button>
         </div>
-        <div class="col-md-6 col-sm-6 col-xs-6">
-       	  <label class="switch switch-sm square pull-right ml10">
-            <div>
-              <input type="checkbox" ng-model="showCase.custom_order">
-              <span>
-                <i class="handle"></i>
-              </span>
-            </div>
-          </label>
-          <span class="pull-right" align="right">CUSTOM ORDER</span>
-          <label class="switch switch-sm square pull-right ml10 mr20">
-            <div>
-              <input type="checkbox" ng-model="showCase.model_data.blind_order" ng-change="showCase.change_blind_order()">
-              <span>
-                <i class="handle"></i>
-              </span>
-            </div>
-          </label>
-          <span class="pull-right" align="right">DIRECT DISPATCH</span>
-          <input name="direct_dispatch" type="hidden" value="{{showCase.model_data.blind_order}}">
-          <input name="custom_order" type="hidden" value="{{showCase.custom_order}}">
-          <div class="row">
-            <div class="col-md-2">
+        <div class="col-md-8 col-sm-6 col-xs-12">
+       	  <div class="col-md-4 col-sm-12 mt10">
+            <div class="col-md-4">
               <label class="control-label">Invoice Type</label>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-8">
               <select class="form-control" name="invoice_type" ng-model="showCase.model_data.invoice_type">
                 <option value="" style="display:None;"></option>
                 <option ng-repeat="inv_type in showCase.create_order_data.invoice_types" ng-selected="$first" value="{{inv_type}}">{{inv_type}}</option>
               </select>
             </div>
           </div>
+          <div class="col-md-4 col-sm-12 mt10">
+            <div class="col-md-3 pull-right">
+              <label class="switch switch-sm square pull-right ml10">
+                <div>
+                  <input type="checkbox" ng-model="showCase.model_data.blind_order" ng-change="showCase.change_blind_order()">
+                  <span>
+                    <i class="handle"></i>
+                  </span>
+                </div>
+              </label>
+            </div>
+            <div class="col-md-9" align="right">
+              <span>DIRECT DISPATCH</span>
+              <input name="direct_dispatch" type="hidden" value="{{showCase.model_data.blind_order}}">
+              <input name="custom_order" type="hidden" value="{{showCase.custom_order}}">
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-12 mt10">
+            <div class="col-md-3 pull-right">
+              <label class="switch switch-sm square pull-right ml10">
+                <div>
+                  <input type="checkbox" ng-model="showCase.custom_order">
+                  <span>
+                    <i class="handle"></i>
+                  </span>
+                </div>
+              </label>
+            </div>
+            <div class="col-md-9" align="right">
+              <span>CUSTOM ORDER</span>
+            </div>
+          </div>
+          <!-- <div class="row">
+            
+          </div> -->
         </div>
-        <div class="col-md-3 col-sm-3 col-xs-12">
-          <button type="button" class="btn btn-primary pull-right" ng-click="showCase.catlog=true;showCase.details=true;">View Catalog</button>
+        <div class="col-md-2 col-sm-3 col-xs-12 mt10">
+          <button type="button" class="btn btn-primary visible-md visible-lg pull-right" ng-click="showCase.catlog=true;showCase.details=true;">View Catalog</button>
+          <button type="button" class="btn btn-primary visible-xs" style="width: 100%" ng-click="showCase.catlog=true;showCase.details=true;">View Catalog</button>
         </div>
       </div>
       <div class="row">

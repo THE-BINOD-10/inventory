@@ -151,19 +151,27 @@
     </div>
     <div class="row">
       <div class="col-md-4 col-sm-6 col-xs-12">
+        <b>EXPECTED DELIVERY DATE:</b>
+        <P><span style="color: rgb(0, 86, 255);">{{showCase.shipment_date}}</span></P>
+      </div>
+      <div class="col-md-4 col-sm-6 col-xs-12">
+        <div class="form-group">
+          <b>PAYMENT STATUS:</b>
+          <select class="form-control" name="payment_status" ng-if="showCase.g_data.view == 'CustomerOrderView'" ng-model="showCase.model_data.payment_status">
+            <option value="">Select Payment Status</option>
+            <option ng-repeat="type in showCase.payment_status" ng-selected="showCase.model_data.payment_status==type" value="{{type}}">{{type}}</option>
+          </select>
+          <input type="text" ng-if="showCase.g_data.view != 'CustomerOrderView'" class="form-control" name="payment_status" ng-model= "showCase.model_data.payment_status" value="{{showCase.model_data.payment_status}}" readonly>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <!-- <div class="col-md-4 col-sm-6 col-xs-12">
           <b>EXPECTED DELIVERY DATE:</b>
           <span style="color: rgb(0, 86, 255);">{{showCase.shipment_date}}</span></br>
-          <!--<div ng-if="showCase.model_data.print_vendor.length > 0">
-            <b>PRINT VENDOR:</b>
-            <span style="color: rgb(0, 86, 255);"><span ng-repeat="vendor in showCase.model_data.print_vendor">{{vendor}}{{(!$last) ? ", ": "";}}</span></span></br>
-          </div>
-          <div ng-if="showCase.model_data.embroidery_vendor.length > 0">
-            <b>EMBROIDERY VENDOR:</b>
-            <span style="color: rgb(0, 86, 255);"><span ng-repeat="vendor in showCase.model_data.embroidery_vendor">{{vendor}}{{(!$last) ? ", ": "";}}</span></span>
-          </div>-->
-      </div>
+      </div> -->
 
-      <div class="col-md-3 col-sm-3 col-xs-12">
+      <div class="col-md-4 col-sm-6 col-xs-12">
           <b>STATUS:</b>
           <select ng-if="!showCase.input_status" class="form-control pull-right" name="status_type"
                   ng-model="showCase.ord_status" ng-readonly="showCase.input_status">
@@ -172,7 +180,7 @@
           </select>
           <input ng-if="showCase.input_status" type="text" class="form-control" name="remarks" ng-model="showCase.ord_status" ng-readonly="showCase.input_status">
       </div>
-      <div class="col-md-3 col-sm-3 col-xs-12">
+      <div class="col-md-4 col-sm-6 col-xs-12">
           <b>INVOICE TYPE:</b>
           <select ng-if="!showCase.input_status" class="form-control pull-right" name="invoice_type"
                   ng-model="showCase.invoice_type" ng-readonly="showCase.input_status">
@@ -181,7 +189,7 @@
           </select>
           <input ng-if="showCase.input_status" type="text" class="form-control" name="invoice_type" ng-model="showCase.invoice_type" ng-readonly="showCase.input_status">
       </div>
-      <div class="col-md-4 col-sm-3 col-xs-12">
+      <div class="col-md-4 col-sm-6 col-xs-12">
         <b>REMARKS:</b>
         <input type="text" class="form-control" name="central_remarks" ng-model= "showCase.model_data.central_remarks" ng-readonly="showCase.input_status">
       </div>

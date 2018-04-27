@@ -244,11 +244,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         vm.model_data.data.splice(index,1);
         vm.getTotals();
       }
-	  if(vm.permissions.show_purchase_history) {
-        $timeout( function() {
-            vm.populate_last_transaction()
-        }, 2000 );
-      }
     }
 
     vm.check_sku_list = function(key, val, index) {
@@ -471,6 +466,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
    }
 
     vm.get_sku_details = function(product, item, index) {
+      vm.purchase_history_wms_code = item.wms_code;
       if(vm.permissions.show_purchase_history) {
 	    $timeout( function() {
 	        vm.populate_last_transaction()
@@ -617,8 +613,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     vm.populate_last_transaction = function() {
       vm.last_transaction_details = {}
-	  var elem = angular.element($('form').find('input[name=wms_code], input[name=supplier_id]'));
+	  var elem = angular.element($('form').find('input[name=supplier_id]'));
       elem = $(elem).serializeArray();
+      var wms_code_flag = true;
+      angular.forEach(elem, function(list_obj) {
+        if (list_obj['name'] == 'wms_code') {
+            list_obj['value'] = vm.purchase_history_wms_code;
+            wms_code_flag = false;
+        }
+      })
+      if(wms_code_flag) {
+		var wms_code_dict = {'name':'wms_code', 'value':vm.purchase_history_wms_code}
+		elem.push(wms_code_dict)
+      }
 	  vm.service.apiCall('last_transaction_details/', 'POST', elem, true).then(function(data) {
         if(data.message) {
             vm.last_transaction_details = data.data;

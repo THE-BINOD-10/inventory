@@ -1009,6 +1009,10 @@ var app = angular.module('urbanApp')
             title: 'Move Inventory',
           }
         })
+          .state('app.stockLocator.MoveInventory.MoveLocationInventory', {
+            url: '/MoveLocationInventory',
+            templateUrl: 'views/stockLocator/toggles/mv_location_inventory_tg.html'
+          })
           .state('app.stockLocator.MoveInventory.Inventory', {
             url: '/Inventory',
             templateUrl: 'views/stockLocator/toggles/mv_inventory_tg.html'

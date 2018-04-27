@@ -846,6 +846,90 @@ def get_move_inventory(start_index, stop_index, temp_data, search_term, order_te
 @csrf_exempt
 @login_required
 @get_admin_user
+def confirm_move_location_inventory(request, user=''):
+    source_loc = request.POST['source_loc']
+    dest_loc = request.POST['dest_loc']
+    reason = request.POST.get('reason', '')
+    source = LocationMaster.objects.filter(location=source_loc, zone__user=user.id)
+    if not source:
+        return 'Invalid Source'
+    dest = LocationMaster.objects.filter(location=dest_loc, zone__user=user.id)
+    if not dest:
+        return 'Invalid Destination'
+    log.info("Move location inventory:\nSource:%s, Dest: %s, Reason: %s"%(source_loc, dest_loc, reason))
+    try:
+        sku_dict = StockDetail.objects.filter(location_id=source[0].id, sku__user=user.id, quantity__gt=0)\
+                                      .values("sku_id", "quantity")
+        log.info("Moving SKUs: %s" %(str(list(sku_dict))))
+        stocks = StockDetail.objects.filter(location_id=source[0].id, sku__user=user.id, quantity__gt=0)\
+                                    .update(location_id=dest[0].id)
+    except:
+        import traceback
+        log.debug(traceback.format_exc())
+
+    """for stock in stocks:
+        data = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
+        if not data:
+            cycle_id = 1
+        else:
+            cycle_id = data[0].cycle + 1
+        stock.location = dest[0]
+        stock.save()
+
+        quantity = stock.quantity
+        sku_id = stock.sku.id
+        data_dict = copy.deepcopy(CYCLE_COUNT_FIELDS)
+        data_dict['cycle'] = cycle_id
+        data_dict['sku_id'] = sku_id
+        data_dict['location_id'] = source[0].id
+        data_dict['quantity'] = quantity
+        data_dict['seen_quantity'] = 0
+        data_dict['status'] = 0
+        data_dict['creation_date'] = datetime.datetime.now()
+        data_dict['updation_date'] = datetime.datetime.now()
+
+        cycle_instance = CycleCount.objects.filter(cycle=cycle_id, location_id=source[0].id, sku_id=sku_id)
+        if not cycle_instance:
+            dat = CycleCount(**data_dict)
+            dat.save()
+        else:
+            cycle_instance = cycle_instance[0]
+            cycle_instance.quantity = float(cycle_instance.quantity) + quantity
+            cycle_instance.save()
+        data_dict['location_id'] = dest[0].id
+        data_dict['quantity'] = quantity
+        cycle_instance = CycleCount.objects.filter(cycle=cycle_id, location_id=dest[0].id, sku_id=sku_id)
+        if not cycle_instance:
+            dat = CycleCount(**data_dict)
+            dat.save()
+        else:
+            cycle_instance = cycle_instance[0]
+            cycle_instance.quantity = float(cycle_instance.quantity) + quantity
+            cycle_instance.save()
+
+        data = copy.deepcopy(INVENTORY_FIELDS)
+	data['cycle_id'] = cycle_id
+	data['adjusted_location'] = dest[0].id
+	data['adjusted_quantity'] = quantity
+        data['reason'] = reason
+	data['creation_date'] = datetime.datetime.now()
+	data['updation_date'] = datetime.datetime.now()
+
+	inventory_instance = InventoryAdjustment.objects.filter(cycle_id=cycle_id, adjusted_location=dest[0].id)
+	if not inventory_instance:
+	    dat = InventoryAdjustment(**data)
+	    dat.save()
+	else:
+	    inventory_instance = inventory_instance[0]
+	    inventory_instance.adjusted_quantity += float(inventory_instance.adjusted_quantity) + quantity
+	    inventory_instance.save()"""
+
+    return HttpResponse('Moved Successfully')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def insert_move_inventory(request, user=''):
     data = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
     if not data:

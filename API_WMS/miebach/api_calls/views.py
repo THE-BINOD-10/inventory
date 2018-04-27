@@ -1177,15 +1177,21 @@ def get_mp_inventory(request):
                         filter(stock__sellerstock__seller_id=seller_master_id, reserved__gt=0, status=1,
                                 stock__sellerstock__quantity__gt=0, stock__sku__user=user.id).\
                         values_list('stock__sku__sku_code').distinct().annotate(tot_stock=Sum('reserved')))
+        unsellable_stock = dict(SellerStock.objects.select_related('seller', 'stock', 'stock__location__zone__zone').\
+                      filter(seller_id=seller_master_id,stock__sku__user=user.id, stock__quantity__gt=0,
+                             stock__location__zone__zone='Non Sellable Zone').\
+                          values_list('stock__sku__sku_code').distinct().\
+                      annotate(tot_stock=Sum('quantity')))
         error_skus = set(skus) - set(sku_records.values_list('sku_code', flat=True))
         for error_sku in error_skus:
             error_status.append({'sku': error_sku, 'error': 'SKU Not found'})
         for sku in sku_records:
             inventory = stocks.get(sku['sku_code'], 0)
             reserved = pick_res.get(sku['sku_code'], 0)
+            unsellable = unsellable_stock.get(sku['sku_code'], 0)
             inventory -= reserved
             data.append(OrderedDict(( ('sku', sku['sku_code']), ('inventory', int(inventory)),
-                                      ('on_hold', int(reserved)))))
+                                      ('on_hold', int(reserved)), ('un_sellable', unsellable))))
         data = scroll_data(request, data, limit=limit)
         response_data = {'page_info': data.get('page_info', {}), 'status': 'success', 'error_status': error_status,
                          'inventory_status': data['data']}

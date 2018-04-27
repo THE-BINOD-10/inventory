@@ -903,6 +903,7 @@ def get_supplier_data(request):
 
     return return_response(data)
 
+
 @csrf_exempt
 def get_skus(request):
     if request.user.is_anonymous():
@@ -1081,16 +1082,17 @@ def update_return(request):
         status = {'message': 'Internal Server Error'}
     return HttpResponse(json.dumps(status))
 
+
 @csrf_exempt
 @login_required
-def update_so(request):
+def update_orders(request):
     try:
         orders = json.loads(request.body)
     except:
         return HttpResponse(json.dumps({'message': 'Please send proper data'}))
     log.info('Request params for ' + request.user.username + ' is ' + str(orders))
     try:
-        validation_dict, failed_status, final_data_dict, seller_id = validate_ingram_orders(orders, user=request.user, company_name='ingram')
+        validation_dict, failed_status, final_data_dict = validate_orders_format(orders, user=request.user, company_name='mieone')
         if validation_dict:
             return HttpResponse(json.dumps({'messages': validation_dict, 'status': 0}))
         if failed_status:
@@ -1108,3 +1110,88 @@ def update_so(request):
         log.info('Update orders data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
         status = {'messages': 'Internal Server Error', 'status': 0}
     return HttpResponse(json.dumps(status))
+
+
+@csrf_exempt
+@login_required
+def update_mp_orders(request):
+    try:
+        orders = json.loads(request.body)
+    except:
+        return HttpResponse(json.dumps({'message': 'Please send proper data'}))
+    log.info('Request params for ' + request.user.username + ' is ' + str(orders))
+    try:
+        validation_dict, failed_status, final_data_dict = validate_seller_orders_format(orders, user=request.user, company_name='mieone')
+        if validation_dict:
+            return HttpResponse(json.dumps({'messages': validation_dict, 'status': 0}))
+        if failed_status:
+            if type(failed_status) == dict:
+                failed_status.update({'Status': 'Failure'})
+            if type(failed_status) == list:
+                failed_status = failed_status[0]
+                failed_status.update({'Status': 'Failure'})
+            return HttpResponse(json.dumps(failed_status))
+        status = update_order_dicts(final_data_dict, user=request.user, company_name='mieone')
+        log.info(status)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Update orders data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
+        status = {'messages': 'Internal Server Error', 'status': 0}
+    return HttpResponse(json.dumps(status))
+
+
+@csrf_exempt
+@login_required
+def get_mp_inventory(request):
+    user = request.user
+    data = []
+    filter_params = {'user': user.id}
+    error_status = []
+    limit = request.POST.get('limit', 10)
+    skus = request.POST.get('sku', [])
+    seller_id = request.POST.get('seller_id', '')
+    try:
+        if skus:
+            try:
+                skus = eval(skus)
+            except:
+                return HttpResponse(json.dumps({'error_status': 'fail', 'message': 'Invalid SKU filter arguments'}))
+            filter_params['sku_code__in'] = skus
+        if not seller_id:
+            return HttpResponse(json.dumps({'error_status': 'fail', 'message': 'Seller ID is Mandatory'}))
+        try:
+            seller_master = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
+            if not seller_master:
+                return HttpResponse(json.dumps({'error_status': 'fail', 'message': 'Invalid Seller ID'}))
+        except:
+            return HttpResponse(json.dumps({'error_status': 'fail', 'message': 'Invalid Seller ID'}))
+        seller_master_id = seller_master[0].id
+        sku_records = SKUMaster.objects.filter(**filter_params).values('sku_code')
+        stocks = dict(SellerStock.objects.select_related('seller', 'stock', 'stock__location__zone__zone').\
+                      filter(seller_id=seller_master_id,stock__sku__user=user.id, stock__quantity__gt=0).\
+                            exclude(Q(stock__location__zone__zone__in=PICKLIST_EXCLUDE_ZONES) |
+                                    Q(stock__receipt_number=0)).values_list('stock__sku__sku_code').distinct().\
+                      annotate(tot_stock=Sum('quantity')))
+        pick_res = dict(PicklistLocation.objects.select_related('seller__sellerstock', 'stock', 'stock__sku').\
+                        filter(stock__sellerstock__seller_id=seller_master_id, reserved__gt=0, status=1,
+                                stock__sellerstock__quantity__gt=0, stock__sku__user=user.id).\
+                        values_list('stock__sku__sku_code').distinct().annotate(tot_stock=Sum('reserved')))
+        error_skus = set(skus) - set(sku_records.values_list('sku_code', flat=True))
+        for error_sku in error_skus:
+            error_status.append({'sku': error_sku, 'error': 'SKU Not found'})
+        for sku in sku_records:
+            inventory = stocks.get(sku['sku_code'], 0)
+            reserved = pick_res.get(sku['sku_code'], 0)
+            inventory -= reserved
+            data.append(OrderedDict(( ('sku', sku['sku_code']), ('inventory', int(inventory)),
+                                      ('on_hold', int(reserved)))))
+        data = scroll_data(request, data, limit=limit)
+        response_data = {'page_info': data.get('page_info', {}), 'status': 'success', 'error_status': error_status,
+                         'inventory_status': data['data']}
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Get Inventory failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
+        response_data = {'messages': 'Internal Server Error', 'status': 0}
+    return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))

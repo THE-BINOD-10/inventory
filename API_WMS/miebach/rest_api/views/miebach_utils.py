@@ -1757,20 +1757,20 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False):
 
     for data in model_data:
         if not serial_view:
-            picked_quantity = data.picked_quantity
-            if data.stock.location.zone.zone == 'DEFAULT':
-                picked_quantity = 0
-            date = get_local_date(user, data.updation_date).split(' ')
-            order_id = data.order.original_order_id
-            if not order_id:
-                order_id = str(data.order.order_code) + str(data.order.order_id)
+            pick_locs = data.picklistlocation_set.exclude(reserved=0, quantity=0)
+            for pick_loc in pick_locs:
+                picked_quantity = pick_loc.quantity
+                date = get_local_date(user, data.updation_date).split(' ')
+                order_id = data.order.original_order_id
+                if not order_id:
+                    order_id = str(data.order.order_code) + str(data.order.order_id)
 
-            temp_data['aaData'].append(OrderedDict((('Order ID', order_id), ('WMS Code', data.stock.sku.wms_code),
-                                                    ('Description', data.stock.sku.sku_desc),
-                                                    ('Location', data.stock.location.location),
-                                                    ('Quantity', data.picked_quantity),
-                                                    ('Picked Quantity', picked_quantity),
-                                                    ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])))))
+                temp_data['aaData'].append(OrderedDict((('Order ID', order_id), ('WMS Code', data.stock.sku.wms_code),
+                                                        ('Description', data.stock.sku.sku_desc),
+                                                        ('Location', pick_loc.stock.location.location),
+                                                        ('Quantity', data.order.quantity),
+                                                        ('Picked Quantity', picked_quantity),
+                                                        ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])))))
         else:
             order_id = data.order.original_order_id
             if not order_id:

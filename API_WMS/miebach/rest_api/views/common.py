@@ -4561,10 +4561,11 @@ def build_invoice(invoice_data, user, css=False):
         invoice_data['perm_hsn_summary'] = 'false'
     invoice_data['empty_tds'] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     invoice_height = 1358
-    if not invoice_data['side_image'] and invoice_data['top_image']:
-        invoice_height = 1250
-    if not invoice_data['top_image'] and invoice_data['side_image']:
-        invoice_height = 1358
+    if 'side_image' in invoice_data.keys() and 'top_image' in invoice_data.keys():
+        if not invoice_data['side_image'] and invoice_data['top_image']:
+            invoice_height = 1250
+        if not invoice_data['top_image'] and invoice_data['side_image']:
+            invoice_height = 1358
     inv_height = invoice_height  # total invoice height
     inv_details = 317  # invoice details height
     inv_footer = 95  # invoice footer height

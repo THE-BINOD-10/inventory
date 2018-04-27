@@ -3123,7 +3123,7 @@ def send_mail_ordered_report(order_detail, telephone, items, other_charge_amount
         headers = ['Product Details', 'Ordered Quantity', 'Total']
         data_dict = {'customer_name': order_data['customer_name'], 'order_id': order_detail.order_id,
                      'address': order_data['address'], 'phone_number': order_data['telephone'], 'items': items,
-                     'headers': headers, 'company_name': company_name, 'user': user, 'client_name': order_data['client_name']}
+                     'headers': headers, 'company_name': company_name, 'user': user, 'client_name': order_data.get('client_name', '')}
 
         t = loader.get_template('templates/order_confirmation.html')
         rendered = t.render(data_dict)

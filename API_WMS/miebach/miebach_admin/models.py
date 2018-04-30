@@ -775,6 +775,7 @@ class UserProfile(models.Model):
     cin_number = models.CharField(max_length=64, default='')
     customer_logo = models.ImageField(upload_to='static/images/customer_logos/', default='')
     bank_details = models.TextField(default='')
+    industry_type = models.CharField(max_length=32, default='')
 
     class Meta:
         db_table = 'USER_PROFILE'

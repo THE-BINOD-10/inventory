@@ -1709,6 +1709,18 @@ var app = angular.module('urbanApp')
             title: 'Stock Ledger',
           }
         })
+        .state('app.reports.ShipmentReport', {
+          url: '/ShipmentReport',
+          templateUrl: 'views/reports/shipment_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/shipment_report.js');
+              }]
+          },
+          data: {
+            title: 'Shipment Report',
+          }
+        })
 
       // configuration route
       .state('app.configurations', {

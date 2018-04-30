@@ -952,6 +952,16 @@ def print_stock_ledger_report(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+def get_shipment_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_shipment_report_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def print_purchase_order_form(request, user=''):
     po_id = request.GET.get('po_id', '')
     total_qty = 0

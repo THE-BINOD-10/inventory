@@ -1778,6 +1778,7 @@ def add_warehouse_user(request, user=''):
         if not user_profile_dict.get('phone_number', 0):
             user_profile_dict['phone_number'] = 0
         user_profile_dict['user_type'] = exist_user_profile.user_type
+        user_profile_dict['industry_type'] = exist_user_profile.industry_type
         user_profile = UserProfile(**user_profile_dict)
         user_profile.save()
         add_user_type_permissions(user_profile)

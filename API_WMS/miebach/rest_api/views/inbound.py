@@ -883,7 +883,7 @@ def switches(request, user=''):
     
     log.info('Request params for ' + user.username + ' on ' + str(
         get_local_date(user, datetime.datetime.now())) + ' is ' + str(request.GET.dict()))
-    
+
     try:
         toggle_data = {'fifo_switch': 'fifo_switch',
                        'batch_switch': 'batch_switch',
@@ -948,6 +948,7 @@ def switches(request, user=''):
                        'sellable_segregation': 'sellable_segregation',
                        'display_styles_price': 'display_styles_price',
                        'picklist_display_address': 'picklist_display_address',
+                       'mode_of_transport': 'mode_of_transport',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

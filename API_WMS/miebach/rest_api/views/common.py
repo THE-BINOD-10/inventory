@@ -6477,6 +6477,13 @@ def get_invoice_types(user):
     return invoice_types
 
 
+def get_mode_of_transport(user):
+    mode_of_transport = get_misc_value('mode_of_transport', user.id)
+    if mode_of_transport:
+        mode_of_transport = mode_of_transport.split(',')
+    return mode_of_transport
+
+
 def get_max_seller_transfer_id(user):
     trans_id = ''
     seller_obj = SellerTransfer.objects.filter(source_seller__user=user.id).\

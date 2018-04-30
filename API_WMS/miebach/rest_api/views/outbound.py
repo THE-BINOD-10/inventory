@@ -5572,7 +5572,7 @@ def create_orders_data(request, user=''):
     tax_types = copy.deepcopy(TAX_VALUES)
     tax_types.append({'tax_name': 'DEFAULT', 'tax_value': ''})
     invoice_types = get_invoice_types(user)
-    mode_of_transport = ['By Air', 'By Road', 'By Train']
+    mode_of_transport = get_mode_of_transport(user)
     return HttpResponse(json.dumps({'payment_mode': PAYMENT_MODES, 'taxes': tax_types,
                                     'invoice_types': invoice_types, 'mode_of_transport': mode_of_transport }))
 

@@ -1795,7 +1795,7 @@ def validate_supplier_form(open_sheet, user_id):
 
 def supplier_excel_upload(request, open_sheet, user, demo_data=False):
     mapping_dict = copy.deepcopy(SUPPLIER_EXCEL_FIELDS)
-    number_str_fields = ['pincode', 'phone_number']
+    number_str_fields = ['pincode', 'phone_number', 'days_to_supply', 'fulfillment_amt']
     for row_idx in range(1, open_sheet.nrows):
         sku_code = ''
         wms_code = ''

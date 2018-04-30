@@ -6161,7 +6161,7 @@ def picklist_delete(request, user=""):
                                             order_id__user=user.id)
     order_ids = picklist_objs.values_list('order_id', flat=True)
     order_objs = OrderDetail.objects.filter(id__in=order_ids, user=user.id)
-    log.info('Cancel Picklist request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    log.info('Cancel Picklist request params for ' + user.username + ' is ' + str(request.GET.dict()))
     cancelled_orders_dict = {}
     try:
         if key == "process":

@@ -18,6 +18,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.scroll_data = true;
     vm.special_key = {market_places: "", customer_id: ""}
     vm.picklist_display_address = vm.permissions.picklist_display_address;
+    vm.payment_status = ['To Pay', 'VPP', 'Paid'];
 
     vm.update_order_details = update_order_details;
     function update_order_details(index, data, last) {
@@ -311,6 +312,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             vm.model_data["seller_data"] = data.data.data_dict[0].seller_details;
             vm.model_data["tax_type"] = data.data.data_dict[0].tax_type;
             vm.model_data["invoice_types"] = data.data.data_dict[0].invoice_types;
+            if (data.data.data_dict[0].ord_data[0].payment_status) {
+              vm.model_data["payment_status"] = data.data.data_dict[0].ord_data[0].payment_status;
+            }
             var index = 0;
             angular.forEach(all_order_details, function(value, key){
 

@@ -2999,7 +2999,7 @@ def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, cus
     continue_list = ['payment_received', 'charge_name', 'charge_amount', 'custom_order', 'user_type', 'invoice_amount',
                      'description', 'extra_data', 'location', 'serials', 'direct_dispatch', 'seller_id', 'sor_id',
                      'ship_to', 'client_name', 'po_number', 'corporate_po_number', 'address_selected', 'is_sample',
-                     'invoice_type', 'default_shipment_addr', 'manual_shipment_addr', 'sample_client_name', 'mode_of_transport']
+                     'invoice_type', 'default_shipment_addr', 'manual_shipment_addr', 'sample_client_name', 'mode_of_transport', 'payment_status']
     inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
     order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
     sku_master = {}
@@ -3187,6 +3187,7 @@ def insert_order_data(request, user=''):
 
     payment_mode = request.POST.get('payment_mode', '')
     payment_received = request.POST.get('payment_received', '')
+    payment_status = request.POST.get('payment_status', '')
     tax_percent = request.POST.get('tax', '')
     telephone = request.POST.get('telephone', '')
     custom_order = request.POST.get('custom_order', '')
@@ -3242,7 +3243,6 @@ def insert_order_data(request, user=''):
             if custom_order == 'true':
                 order_data['order_code'] = 'CO'
             order_data['user'] = user.id
-
             order_data['unit_price'] = 0
             order_data['sku_code'] = myDict['sku_id'][i]
             vendor_items = ['printing_vendor', 'embroidery_vendor', 'production_unit']
@@ -3256,6 +3256,8 @@ def insert_order_data(request, user=''):
             order_summary_dict['invoice_type'] = invoice_type
             order_summary_dict['client_name'] = sample_client_name
             order_summary_dict['mode_of_transport'] = mode_of_transport
+            order_summary_dict['payment_status'] = payment_status
+
             if admin_user:
                 if user_type == 'customer':
                     order_data = get_order_customer_details(order_data, request)
@@ -3263,6 +3265,7 @@ def insert_order_data(request, user=''):
                     order_data['warehouse_level'] = 0
                 stock_wh_map = split_orders(**order_data)
                 fetch_order_ids(stock_wh_map, user_order_ids_map)
+                
                 if not is_distributor and user_order_ids_map.has_key(user.id) and stock_wh_map.has_key(user.id):
                     order_data['order_id'] = user_order_ids_map[user.id]
                     order_data['user'] = user.id
@@ -5209,6 +5212,7 @@ def get_view_order_details(request, user=''):
             Q(order_id=order_id, order_code=order_code) | Q(original_order_id=main_id), user=user.id)
         if not row_id:
             row_id = order_details[0].id
+
     custom_data = OrderJson.objects.filter(order_id=row_id)
     status_obj = ''
     central_remarks = ''
@@ -5298,6 +5302,7 @@ def get_view_order_details(request, user=''):
         sgst_tax = 0
         cgst_tax = 0
         igst_tax = 0
+        payment_status = ''
         discount_percentage = 0
         if customer_order:
             client_name = customer_order[0].client_name
@@ -5305,6 +5310,7 @@ def get_view_order_details(request, user=''):
             cgst_tax = customer_order[0].cgst_tax
             igst_tax = customer_order[0].igst_tax
             discount_percentage = 0
+            payment_status = customer_order[0].payment_status
             if (quantity * unit_price):
                 discount_percentage = float(
                     "%.1f" % (float((customer_order[0].discount * 100) / (quantity * unit_price))))
@@ -5332,7 +5338,7 @@ def get_view_order_details(request, user=''):
              'sku_extra_data': sku_extra_data, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax, 'igst_tax': igst_tax,
              'unit_price': unit_price, 'discount_percentage': discount_percentage, 'taxes': taxes_data,
              'order_charges': order_charges,
-             'sku_status': one_order.status, 'client_name':client_name})
+             'sku_status': one_order.status, 'client_name':client_name, 'payment_status':payment_status})
 
     if status_obj in view_order_status:
         view_order_status = view_order_status[view_order_status.index(status_obj):]
@@ -6112,6 +6118,7 @@ def update_order_data(request, user=""):
                 status_obj.tax_type = tax_type
                 status_obj.invoice_type = myDict['invoice_type'][0]
                 status_obj.client_name = client_name
+                status_obj.payment_status = myDict['payment_status'][0]
                 status_obj.save()
 
                 vendor_list = ['printing_vendor', 'embroidery_vendor', 'production_unit']

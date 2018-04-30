@@ -101,6 +101,7 @@ class SKUMaster(models.Model):
     hsn_code = models.DecimalField(max_digits=20, decimal_places=0, db_index=True, default=0)
     sub_category = models.CharField(max_length=64, default='')
     primary_category = models.CharField(max_length=64, default='')
+    shelf_life = models.IntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

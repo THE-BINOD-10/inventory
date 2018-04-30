@@ -779,6 +779,8 @@ def sku_form(request, user=''):
     attr_headers = list(attributes.values_list('attribute_name', flat=True))
     if attr_headers:
         headers += attr_headers
+    if user_profile.industry_type == "FMCG":
+        headers.append("Shelf life")
     wb, ws = get_work_sheet('skus', headers)
 
     return xls_to_response(wb, '%s.sku_form.xls' % str(user.id))
@@ -1445,6 +1447,13 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
 
             elif key == 'hot_release':
                 hot_release = str(cell_data).lower()
+
+            elif key == 'shelf_life':
+                if not cell_data:
+                    cell_data = 0
+                if sku_data and cell_data:
+                    sku_data.shelf_life = cell_data
+                data_dict[key] = cell_data
 
             elif cell_data:
                 data_dict[key] = cell_data

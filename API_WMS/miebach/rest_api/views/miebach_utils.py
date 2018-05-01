@@ -1387,7 +1387,7 @@ CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
                      'invoice_remarks': 'invoice_remarks',
                      'invoice_marketplaces': 'invoice_marketplaces', 'serial_limit': 'serial_limit',
                      'extra_view_order_status': 'extra_view_order_status',
-                     'invoice_types': 'invoice_types',
+                     'invoice_types': 'invoice_types', 'shelf_life_ratio': 'shelf_life_ratio'
                      }
 
 CONFIG_DEF_DICT = {'receive_options': dict(RECEIVE_OPTIONS),

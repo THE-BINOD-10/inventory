@@ -37,7 +37,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      44: 'increment_invoice', 45: 'serial_limit', 46: 'create_shipment_type', 47: 'auto_allocate_stock',
                      48: 'priceband_sync', 49: 'generic_wh_level', 50: 'auto_confirm_po', 51: 'create_order_po',
                      52: 'calculate_customer_price', 53: 'shipment_sku_scan', 54: 'disable_brands_view',
-                     55: 'sellable_segregation', 56: 'display_styles_price', 57: 'picklist_display_address'}
+                     55: 'sellable_segregation', 56: 'display_styles_price', 57: 'picklist_display_address',
+                     58: 'shelf_life_ratio'}
 
   vm.check_box_data = [
     {

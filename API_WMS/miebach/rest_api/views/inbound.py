@@ -948,6 +948,7 @@ def switches(request, user=''):
                        'sellable_segregation': 'sellable_segregation',
                        'display_styles_price': 'display_styles_price',
                        'picklist_display_address': 'picklist_display_address',
+                       'shelf_life_ratio': 'shelf_life_ratio',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

@@ -13,10 +13,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.apply_filters = colFilters;
     vm.service = Service;
     vm.industry_type = Session.user_profile.industry_type;
-
+    
     if(vm.industry_type == 'FMCG'){
       vm.extra_width = {
-        'width': '1200px'
+        'width': '1250px'
       }
     }
 
@@ -173,7 +173,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.update_data = update_data;
     function update_data(index, data) {
-      if (Session.roles.permissions['pallet_switch']) {
+      if (Session.roles.permissions['pallet_switch'] || vm.industry_type == 'FMCG') {
         if (index == data.length-1) {
           var new_dic = {};
           angular.copy(data[0], new_dic);

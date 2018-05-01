@@ -383,9 +383,10 @@ function EditDeliveryChallan($scope, $http, $state, $timeout, Session, colFilter
     vm.service.apiCall('update_dc/', 'POST', update_dc_data).then(function(resp){
       if(resp.message) {
         console.log(resp);
-        Service.showNoty(resp.data);
-        if(resp.data == 'success') {
+        if(resp.data.message == 'success') {
           console.log('success');
+          Service.showNoty("Updated Successfully");
+          $modalInstance.close("saved");
         }
       } else {
         Service.showNoty("Something went wrong !");

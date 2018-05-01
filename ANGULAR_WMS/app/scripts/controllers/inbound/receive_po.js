@@ -13,7 +13,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.apply_filters = colFilters;
     vm.service = Service;
     vm.industry_type = Session.user_profile.industry_type;
-    
+    vm.industry_type = 'FMCG';
     if(vm.industry_type == 'FMCG'){
       vm.extra_width = {
         'width': '1250px'
@@ -202,18 +202,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     vm.submit = submit;
-    function submit() {
-      var data = [];
+    function submit(form) {
+      var elem = angular.element($('form'));
+      elem = $(elem[0]).serializeArray();
+
       for(var i=0; i<vm.model_data.data.length; i++)  {
         var temp = vm.model_data.data[i][0];
         if(!temp.is_new) {
-          data.push({name: temp.order_id, value: temp.value});
+          elem.push({name: temp.order_id, value: temp.value});
         }
       }
-      data.push({name: 'remarks', value: vm.model_data.remarks});
-      data.push({name: 'expected_date', value: vm.model_data.expected_date});
-      data.push({name: 'remainder_mail', value: vm.model_data.remainder_mail})
-      vm.service.apiCall('update_putaway/', 'GET', data, true).then(function(data){
+      vm.service.apiCall('update_putaway/', 'GET', elem, true).then(function(data){
         if(data.message) {
           if(data.data == 'Updated Successfully') {
             vm.close();

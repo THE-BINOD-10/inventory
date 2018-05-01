@@ -12,6 +12,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.permissions = Session.roles.permissions;
     vm.apply_filters = colFilters;
     vm.service = Service;
+    vm.industry_type = Session.user_profile.industry_type;
+
+    if(vm.industry_type == 'FMCG'){
+      vm.extra_width = {
+        'width': '1200px'
+      }
+    }
 
     //default values
     if(!vm.permissions.grn_scan_option) {

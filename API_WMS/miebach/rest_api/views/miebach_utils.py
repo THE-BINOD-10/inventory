@@ -1926,6 +1926,7 @@ def get_po_filter_data(search_params, user, sub_user):
                          'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price', 'id',
                          'seller_po__receipt_type', 'receipt_number']
         excl_status = {'purchase_order__status': ''}
+        ord_quan = 'quantity'
         rec_quan = 'quantity'
         rec_quan1 = 'quantity'
     else:
@@ -1969,7 +1970,7 @@ def get_po_filter_data(search_params, user, sub_user):
     search_parameters[field_mapping['user']] = user.id
     search_parameters[field_mapping['sku_id__in']] = sku_master_ids
     query_data = model_name.objects.exclude(**excl_status).filter(**search_parameters)
-    model_data = query_data.values(*result_values).distinct().annotate(ordered_qty=Sum(rec_quan),
+    model_data = query_data.values(*result_values).distinct().annotate(ordered_qty=Sum(ord_quan),
                                                                        total_received=Sum(rec_quan),
                                                                        grn_rec=Sum(rec_quan1))
     col_num = search_params.get('order_index', 0)

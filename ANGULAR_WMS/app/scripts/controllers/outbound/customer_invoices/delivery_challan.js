@@ -115,7 +115,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     }
 
     vm.move_to = function (click_type) {
-      var po_number = '';
+//      var po_number = '';
+      var cust_name = '';
       var status = false;
       var field_name = "";
       var data = [];
@@ -125,10 +126,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         angular.forEach(vm.selected, function(value, key) {
           if(value) {
             var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]['_aData'];
-            if(!(po_number)) {
+            /*if(!(po_number)) {
               po_number = temp[temp['check_field']];
             } else if (po_number != temp[temp['check_field']]) {
               status = true;
+            }*/
+            if(!(cust_name)){
+                cust_name = temp[temp['check_field']];
+            }else if(cust_name != temp[temp['check_field']]){
+                status = true;
             }
             field_name = temp['check_field'];
             data.push(temp['id']);
@@ -165,6 +171,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.generate_invoice = function(click_type, DC=false){
 
       var po_number = '';
+      var cust_name = ''
       var status = false;
       var field_name = "";
       var data = [];
@@ -174,12 +181,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         angular.forEach(vm.selected, function(value, key) {
           if(value) {
             var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]['_aData'];
-            if(!(po_number)) {
+            /*if(!(po_number)) {
               po_number = temp[temp['check_field']];
             } else if (po_number != temp[temp['check_field']]) {
               status = true;
             }
             field_name = temp['check_field'];
+            data.push(temp['id']);*/
+            if(!(cust_name)){
+                cust_name = temp[temp['check_field']];
+            }else if(cust_name != temp[temp['check_field']]){
+                status = true;
+            }
+            field_name = temp['check_field']
             data.push(temp['id']);
           }
         });
@@ -303,10 +317,10 @@ function EditDeliveryChallan($scope, $http, $state, $timeout, Session, colFilter
     vm.model_data.total_items = vm.model_data.data.length;
     vm.model_data.total_qty = 0;
     angular.forEach(vm.model_data.data, function(sku_data){
-      if (sku_data.quantity == "" || typeof sku_data.quantity == 'undefined') {
-        sku_data.quantity = 0;
+      if (sku_data.quantity != "" || typeof sku_data.quantity != 'undefined') {
+        // sku_data.quantity = ''
+        vm.model_data.total_qty += parseInt(sku_data.quantity);
       }
-      vm.model_data.total_qty += parseInt(sku_data.quantity);
     })
   }
 
@@ -355,6 +369,7 @@ function EditDeliveryChallan($scope, $http, $state, $timeout, Session, colFilter
       'challan_no': form_data.challan_no.$modelValue,
       'rep': form_data.rep.$modelValue,
       'order_no': form_data.order_no.$modelValue,
+      'pick_number': form_data.pick_number.$modelValue,
       'lr_no': form_data.lr_no.$modelValue,
       'carrier': form_data.carrier.$modelValue,
       'terms': form_data.terms.$modelValue,
@@ -369,7 +384,7 @@ function EditDeliveryChallan($scope, $http, $state, $timeout, Session, colFilter
       if(resp.message) {
         console.log(resp);
         Service.showNoty(resp.data);
-        if(resp.data == 'Success') {
+        if(resp.data == 'success') {
           console.log('success');
         }
       } else {

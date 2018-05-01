@@ -7348,7 +7348,11 @@ def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, o
                 total_quantity = data['total_quantity']
             else:
                 order = orders.filter(order_id=data['order__order_id'])[0]
-                invoice_number = order.sellerordersummary_set.values_list('invoice_number', flat=True)[0]
+                invoice_number = order.sellerordersummary_set.values_list('invoice_number', flat=True)
+                if invoice_number:
+                    invoice_number = invoice_number[0]
+                else:
+                    invoice_number = ''
                 ordered_quantity = orders.filter(order_id=data['order__order_id']).aggregate(Sum('quantity'))[
                     'quantity__sum']
             order_id = order.order_code + str(order.order_id)
@@ -7598,7 +7602,7 @@ def get_delivery_challans_data(start_index, stop_index, temp_data, search_term, 
             else:
                 data_dict = OrderedDict((('Challan ID', data['challan_number']), ('Order ID', order_id),
                                          ('id', str(data['order__order_id']) + ":" + str(data['pick_number'])),
-                                         ('check_field', 'Order ID')))
+                                         ('check_field', 'Customer Name')))
             data_dict.update(OrderedDict((('Customer Name', order.customer_name),
                                           ('Order Quantity', ordered_quantity), ('Picked Quantity', data['total_quantity']),
                                           ('Order Date&Time', order_date), ('Invoice Number', '')
@@ -7606,10 +7610,50 @@ def get_delivery_challans_data(start_index, stop_index, temp_data, search_term, 
             temp_data['aaData'].append(data_dict)
         log.info('Customer Invoice filtered %s for %s ' % (str(temp_data['recordsTotal']), user.username))
 
-
+@get_admin_user
 def update_dc(request, user=''):
-    data_dict = dict(request.POST.iterlists())
-    print data_dict
+    form_dict = dict(request.POST.iterlists())
+    address = form_dict['form_data[address]']
+    challan_number = form_dict['form_data[challan_no]']
+    # order_id = form_dict['form_data[order_no]']
+    rep_id = form_dict['form_data[rep]']
+    lr_no = form_dict['form_data[lr_no]']
+    carrier = form_dict['form_data[carrier]']
+    sku_id = form_dict['form_data[wms_code]']
+    pkgs = form_dict['form_data[pkgs]']
+    terms = form_dict['form_data[terms]']
+    skus_data = form_dict['data']
+    order_id = form_dict['form_data[order_no]'][0]
+    pick_number = form_dict['form_data[pick_number]'][0]
+    order_detail_dict = {}
+    for sku_data in skus_data:
+        sku_data = eval(sku_data)
+        shipment_date = sku_data[0].get('shipment_date', '')
+        for each_sku in sku_data:
+            ord_det_id = each_sku.get('id', '')
+            if ord_det_id:
+                ord_obj = OrderDetail.objects.filter(id=ord_det_id)
+                if ord_obj:
+                    ord_obj[0].quantity = each_sku['quantity']
+                    ord_obj[0].save()
+            else:
+                sku_qs = SKUMaster.objects.filter(sku_code=each_sku['sku_code'], user=user.id)
+                if sku_qs:
+                    sku_id = sku_qs[0].id
+                order_detail_dict['sku_id'] = sku_id
+                order_detail_dict['quantity'] = each_sku['quantity']
+                order_detail_dict['order_id'] = order_id
+                order_detail_dict['original_order_id'] = 'MN%s'%order_id
+                order_detail_dict['user'] = user.id
+                order_detail_dict['customer_id'] = 1
+                order_detail_dict['shipment_date'] = shipment_date
+                ord_obj = OrderDetail(**order_detail_dict)
+                ord_obj.save()
+                sos_dict = {'quantity': each_sku['quantity'], 'pick_number': pick_number,
+                            'creation_date':datetime.datetime.now(), 'order_id': ord_obj.id}
+                sos_obj = SellerOrderSummary(**sos_dict)
+                sos_obj.save()
+
     return HttpResponse(json.dumps({'message': 'success'}))
 
 
@@ -7620,15 +7664,13 @@ def construct_sell_ids(request, user, status_flag='processed_orders'):
     seller_summary_dat = seller_summary_dat.split(',')
     sell_ids = {'order__user': user.id}
     field_mapping = {'sku_code': 'order__sku__sku_code', 'order_id': 'order_id', 'order_id_in': 'order__order_id__in'}
-    # field_mapping['order_id_in'] = 'order__order_id__in'
-    # sell_ids['order__user'] = user.id
     for data_id in seller_summary_dat:
         splitted_data = data_id.split(':')
         sell_ids.setdefault(field_mapping['order_id_in'], [])
         sell_ids.setdefault('pick_number__in', [])
         sell_ids[field_mapping['order_id_in']].append(splitted_data[0])
         sell_ids['pick_number__in'].append(splitted_data[1])
-        sell_ids['order_status_flag'] = status_flag
+        # sell_ids['order_status_flag'] = status_flag
     return sell_ids
 
 
@@ -7714,12 +7756,14 @@ def generate_customer_invoice(request, user=''):
         seller_summary_dat = seller_summary_dat.split(',')
         all_data = OrderedDict()
         seller_order_ids = []
+        pick_number = 1
         for data_id in seller_summary_dat:
             splitted_data = data_id.split(':')
             sell_ids.setdefault(field_mapping['order_id_in'], [])
             sell_ids.setdefault('pick_number__in', [])
             sell_ids[field_mapping['order_id_in']].append(splitted_data[0])
             sell_ids['pick_number__in'].append(splitted_data[1])
+            pick_number = splitted_data[1]
         seller_summary = SellerOrderSummary.objects.filter(**sell_ids)
         order_ids = list(seller_summary.values_list(field_mapping['order_id'], flat=True))
         order_ids = map(lambda x: str(x), order_ids)
@@ -7760,6 +7804,7 @@ def generate_customer_invoice(request, user=''):
         if not len(set(sell_ids.get('pick_number__in', ''))) > 1:
             invoice_no = invoice_no + '/' + str(max(map(int, sell_ids.get('pick_number__in', ''))))
         invoice_data['invoice_no'] = invoice_no
+        invoice_data['pick_number'] = pick_number
         invoice_data = add_consignee_data(invoice_data, ord_ids, user)
         return_data = request.GET.get('data', '')
         delivery_challan = request.GET.get('delivery_challan', '')

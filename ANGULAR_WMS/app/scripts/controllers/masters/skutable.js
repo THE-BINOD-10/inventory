@@ -9,6 +9,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.apply_filters = colFilters;
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
+    vm.user_profile = Session.user_profile;
 
     vm.filters = {'datatable': 'SKUMaster', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':'', 'search6': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()

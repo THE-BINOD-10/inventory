@@ -216,6 +216,13 @@
                 <input ng-if="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" type="hidden" name="hot_release" class="form-control" value="{{showCase.model_data.sku_data.hot_release}}" readonly>
               </div>
             </div>
+            <div class="col-md-4 col-sm-6 col-xs-6" ng-if="showCase.user_profile.industry_type=='FMCG'">
+              <div class="form-group">
+                <label class="control-label"> Shelf life (Days) </label>
+                <input type="text" name="shelf_life" class="form-control" ng-model="showCase.model_data.sku_data.shelf_life" ng-class="service.get_decimal_perm()">
+              </div>
+            </div>
+
             <div class="col-md-4 col-sm-6 col-xs-6" ng-repeat= "attr in showCase.model_data.attributes">
               <div class="form-group">
                 <label class="control-label"> {{ attr.attribute_name}} </label>

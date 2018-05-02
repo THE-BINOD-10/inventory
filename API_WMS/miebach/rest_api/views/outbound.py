@@ -1809,7 +1809,7 @@ def update_invoice(request, user=''):
             invoice_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y").date()
         # order_id_val = ''.join(re.findall('\d+', order_ids))
         # order_code = ''.join(re.findall('\D+', order_ids))
-        ord_ids = OrderDetail.objects.filter(id=ord_det_id)
+        ord_ids = OrderDetail.objects.filter(id__in=myDict['id'])
         if ord_ids:
             update_dict = {}
             if order_reference:
@@ -7613,9 +7613,8 @@ def get_delivery_challans_data(start_index, stop_index, temp_data, search_term, 
 @get_admin_user
 def update_dc(request, user=''):
     form_dict = dict(request.POST.iterlists())
-    address = form_dict['form_data[address]']
+    address = form_dict['form_data[address]'][0]
     challan_number = form_dict['form_data[challan_no]']
-    # order_id = form_dict['form_data[order_no]']
     rep_id = form_dict['form_data[rep]']
     lr_no = form_dict['form_data[lr_no]']
     carrier = form_dict['form_data[carrier]']
@@ -7625,12 +7624,29 @@ def update_dc(request, user=''):
     skus_data = form_dict['data']
     order_id = form_dict['form_data[order_no]'][0]
     pick_number = form_dict['form_data[pick_number]'][0]
-    order_detail_dict = {}
+    cm_id = form_dict['form_data[customer_id]'][0]
+    if not cm_id:
+        log.info("No Customer Master Id found")
+        return HttpResponse(json.dumps({'message': 'failed'}))
+    else:
+        cm_obj = CustomerMaster.objects.filter(id=cm_id)
+        if not cm_obj:
+            log.info('No Proper Customer Object')
+            return HttpResponse(json.dumps({'message': 'failed'}))
+        else:
+            cm_obj = cm_obj[0]
+        customer_id = cm_obj.customer_id
+        customer_name = cm_obj.name
+        price_type = cm_obj.price_type
+        tax_type = cm_obj.tax_type
     for sku_data in skus_data:
         sku_data = eval(sku_data)
         shipment_date = sku_data[0].get('shipment_date', '')
         for each_sku in sku_data:
             ord_det_id = each_sku.get('id', '')
+            quantity = each_sku.get('quantity', '')
+            if not quantity:
+                continue
             if ord_det_id:
                 ord_obj = OrderDetail.objects.filter(id=ord_det_id)
                 if ord_obj:
@@ -7638,21 +7654,35 @@ def update_dc(request, user=''):
                     ord_obj[0].save()
             else:
                 sku_qs = SKUMaster.objects.filter(sku_code=each_sku['sku_code'], user=user.id)
-                if sku_qs:
+                if not sku_qs:
+                    continue
+                else:
                     sku_id = sku_qs[0].id
-                order_detail_dict['sku_id'] = sku_id
-                order_detail_dict['quantity'] = each_sku['quantity']
-                order_detail_dict['order_id'] = order_id
-                order_detail_dict['original_order_id'] = 'MN%s'%order_id
-                order_detail_dict['user'] = user.id
-                order_detail_dict['customer_id'] = 1
-                order_detail_dict['shipment_date'] = shipment_date
-                ord_obj = OrderDetail(**order_detail_dict)
-                ord_obj.save()
-                sos_dict = {'quantity': each_sku['quantity'], 'pick_number': pick_number,
-                            'creation_date':datetime.datetime.now(), 'order_id': ord_obj.id}
-                sos_obj = SellerOrderSummary(**sos_dict)
-                sos_obj.save()
+                    title = sku_qs[0].sku_desc
+                    product_type = sku_qs[0].product_type
+                    price_master_obj = PriceMaster.objects.filter(price_type=price_type, sku__id=sku_id)
+                    if price_master_obj:
+                        price_master_obj = price_master_obj[0]
+                        price = price_master_obj.price
+                    else:
+                        price = sku_qs[0].price
+                    net_amount = price * int(quantity)
+                    org_order_id = 'MN%s' % order_id
+                    order_detail_dict = {'sku_id': sku_id, 'title': title, 'quantity': each_sku['quantity'],
+                                         'order_id': order_id, 'original_order_id': org_order_id, 'user': user.id,
+                                         'customer_id': customer_id, 'customer_name': customer_name,
+                                         'shipment_date': shipment_date, 'address': address, 'price': price}
+                    tax = get_tax_value(user, order_detail_dict, product_type, tax_type)
+                    total_amount = ((net_amount * tax) / 100) + net_amount
+                    order_detail_dict['invoice_amount'] = total_amount
+                    order_detail_dict.pop('price')
+                    ord_obj = OrderDetail(**order_detail_dict)
+                    ord_obj.save()
+                    sos_dict = {'quantity': quantity, 'pick_number': pick_number,
+                                'creation_date': datetime.datetime.now(), 'order_id': ord_obj.id,
+                                'challan_number': challan_number}
+                    sos_obj = SellerOrderSummary(**sos_dict)
+                    sos_obj.save()
 
     return HttpResponse(json.dumps({'message': 'success'}))
 

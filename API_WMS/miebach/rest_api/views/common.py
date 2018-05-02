@@ -2369,6 +2369,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     invoice_date = datetime.datetime.now()
     order_reference_date_field = ''
     order_charges = ''
+    customer_id = ''
 
     # Getting the values from database
     user_profile = UserProfile.objects.get(user_id=user.id)
@@ -2411,9 +2412,10 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                                                'credit_period', 'phone_number'))
             else:
                 customer_details = list(CustomerMaster.objects.filter(user=user.id, customer_id=dat.customer_id).
-                                        values('customer_id', 'name', 'email_id', 'tin_number', 'address',
+                                        values('id', 'customer_id', 'name', 'email_id', 'tin_number', 'address',
                                                'credit_period', 'phone_number'))
             if customer_details:
+                customer_id = customer_details[0]['id']
                 customer_address = customer_details[0]['name'] + '\n' + customer_details[0]['address']
                 if customer_details[0]['phone_number']:
                     customer_address += ("\nCall: " + customer_details[0]['phone_number'])
@@ -2659,7 +2661,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'seller_company': seller_company, 'sequence_number': _sequence, 'order_reference': order_reference,
                     'order_reference_date_field': order_reference_date_field,
                     'order_reference_date': order_reference_date, 'invoice_header': invoice_header,
-                    'cin_no': cin_no, 'challan_no': challan_no
+                    'cin_no': cin_no, 'challan_no': challan_no, 'customer_id': customer_id,
                     }
     return invoice_data
 

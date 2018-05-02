@@ -95,7 +95,6 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
 
     for data in sku_master:
         data_count += 1
-        print data_count
         zone = ''
         if data.zone:
             zone = data.zone.zone

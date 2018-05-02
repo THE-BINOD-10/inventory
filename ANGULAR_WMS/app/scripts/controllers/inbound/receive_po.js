@@ -13,10 +13,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.apply_filters = colFilters;
     vm.service = Service;
     vm.industry_type = Session.user_profile.industry_type;
-
+    vm.industry_type = 'FMCG';
     if(vm.industry_type == 'FMCG'){
       vm.extra_width = {
-        'width': '1200px'
+        'width': '1250px'
       }
     }
 
@@ -173,13 +173,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.update_data = update_data;
     function update_data(index, data) {
-      if (Session.roles.permissions['pallet_switch']) {
+      if (Session.roles.permissions['pallet_switch'] || vm.industry_type == 'FMCG') {
         if (index == data.length-1) {
           var new_dic = {};
           angular.copy(data[0], new_dic);
           new_dic.receive_quantity = 0;
           new_dic.value = "";
           new_dic.pallet_number = "";
+          new_dic.batch_no = "";
+          new_dic.manf_date = "";
+          new_dic.exp_date = "";
+          new_dic.tax_per = "";
           data.push(new_dic);
         } else {
           data.splice(index,1);
@@ -202,8 +206,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     vm.submit = submit;
-    function submit() {
+    function submit(form) {
       var data = [];
+
       for(var i=0; i<vm.model_data.data.length; i++)  {
         var temp = vm.model_data.data[i][0];
         if(!temp.is_new) {
@@ -212,7 +217,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
       data.push({name: 'remarks', value: vm.model_data.remarks});
       data.push({name: 'expected_date', value: vm.model_data.expected_date});
-      data.push({name: 'remainder_mail', value: vm.model_data.remainder_mail})
+      data.push({name: 'remainder_mail', value: vm.model_data.remainder_mail});
       vm.service.apiCall('update_putaway/', 'GET', data, true).then(function(data){
         if(data.message) {
           if(data.data == 'Updated Successfully') {
@@ -227,6 +232,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.html = "";
     vm.confirm_grn = function(form) {
+      // var data = [];
+      // data.push({name: 'batch_no', value: form.batch_no.$viewValue});
+      // data.push({name: 'mrp', value: form.mrp.$viewValue});
+      // data.push({name: 'manf_date', value: form.manf_date.$viewValue});
+      // data.push({name: 'exp_date', value: form.exp_date.$viewValue});
+      // data.push({name: 'po_unit', value: form.po_unit.$viewValue});
+      // data.push({name: 'tax_per', value: form.tax_per.$viewValue});
 
      if(check_receive()){
       var that = vm;

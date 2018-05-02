@@ -180,6 +180,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           new_dic.receive_quantity = 0;
           new_dic.value = "";
           new_dic.pallet_number = "";
+          new_dic.batch_no = "";
+          new_dic.manf_date = "";
+          new_dic.exp_date = "";
+          new_dic.tax_per = "";
           data.push(new_dic);
         } else {
           data.splice(index,1);
@@ -203,16 +207,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.submit = submit;
     function submit(form) {
-      var elem = angular.element($('form'));
-      elem = $(elem[0]).serializeArray();
+      var data = [];
 
       for(var i=0; i<vm.model_data.data.length; i++)  {
         var temp = vm.model_data.data[i][0];
         if(!temp.is_new) {
-          elem.push({name: temp.order_id, value: temp.value});
+          data.push({name: temp.order_id, value: temp.value});
         }
       }
-      vm.service.apiCall('update_putaway/', 'GET', elem, true).then(function(data){
+      data.push({name: 'remarks', value: vm.model_data.remarks});
+      data.push({name: 'expected_date', value: vm.model_data.expected_date});
+      data.push({name: 'remainder_mail', value: vm.model_data.remainder_mail});
+      vm.service.apiCall('update_putaway/', 'GET', data, true).then(function(data){
         if(data.message) {
           if(data.data == 'Updated Successfully') {
             vm.close();
@@ -226,6 +232,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.html = "";
     vm.confirm_grn = function(form) {
+      // var data = [];
+      // data.push({name: 'batch_no', value: form.batch_no.$viewValue});
+      // data.push({name: 'mrp', value: form.mrp.$viewValue});
+      // data.push({name: 'manf_date', value: form.manf_date.$viewValue});
+      // data.push({name: 'exp_date', value: form.exp_date.$viewValue});
+      // data.push({name: 'po_unit', value: form.po_unit.$viewValue});
+      // data.push({name: 'tax_per', value: form.tax_per.$viewValue});
 
      if(check_receive()){
       var that = vm;

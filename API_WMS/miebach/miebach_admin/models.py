@@ -651,6 +651,7 @@ class OrderShipment(models.Model):
     truck_number = models.CharField(max_length=64)
     shipment_reference = models.CharField(max_length=64)
     status = models.CharField(max_length=32)
+    courier_name = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

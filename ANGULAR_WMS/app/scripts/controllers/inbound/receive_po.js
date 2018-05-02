@@ -13,7 +13,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.apply_filters = colFilters;
     vm.service = Service;
     vm.industry_type = Session.user_profile.industry_type;
-    vm.industry_type = 'FMCG';
+    
     if(vm.industry_type == 'FMCG'){
       vm.extra_width = {
         'width': '1250px'

@@ -96,7 +96,7 @@
                     <th>UOM</th>
                     <th ng-if="showCase.permissions.use_imei">Serial Number</th>
                     <th>Unit Price</th>
-                    <th ng-if="showCase.industry_type=='FMCG'">PO Unit Price</th>
+                    <th ng-if="showCase.industry_type=='FMCG'">Buy Price</th>
                     <th ng-if="showCase.industry_type=='FMCG'">MRP</th>
                     <th ng-if="showCase.industry_type=='FMCG'">Batch No</th>
                     <th ng-if="showCase.industry_type=='FMCG'">Mfg. Date</th>
@@ -125,14 +125,14 @@
                     </td>
                     <td><input type="text" ng-model="data.po_quantity" title="{{ data.po_quantity }}" name="po_quantity" class="form-control" ng-readonly="records[0].dis" ng-class="service.get_decimal_perm()"></td>
                     <td ng-if="showCase.permissions.pallet_switch"><input type="text" ng-show=" data.sku_details[0].fields.load_unit_handle == 'pallet'" ng-model="data.pallet_number" name="pallet_number" class="form-control"></td>
-                    <td><input type="text" ng-model="data.value" title="{{ data.value }}" name="quantity" class="form-control" ng-class="service.get_decimal_perm()" required ng-readonly="showCase.permissions.use_imei" ng-change="showCase.receive_quantity_change(data)"> </div></td>
+                    <td><input type="text" ng-model="data.value" ng-init="data.value=0" name="quantity" class="form-control" ng-class="service.get_decimal_perm()" required ng-readonly="showCase.permissions.use_imei" ng-change="showCase.receive_quantity_change(data)"> </div></td>
                     <td><input type="text" ng-model="data.unit" size="26" title="{{ data.unit }}" name="unit" class="form-control" readonly></td>
                     <td ng-if="showCase.permissions.use_imei">
-                      <input type="text" name="imei" attr-name="{{'imei_'+data.wms_code}}" ng-model="data.imei_number" title="{{ data.imei_number }}" class="form-control" ng-readonly="data.po_quantity == data.value || data.disable" ng-keydown="showCase.check_imei_exists($event, data, $parent.$parent.$index)">
+                      <input type="text" name="imei" attr-name="{{'imei_'+data.wms_code}}" ng-model="data.imei_number" class="form-control" ng-readonly="data.po_quantity == data.value || data.disable" ng-keydown="showCase.check_imei_exists($event, data, $parent.$parent.$index)">
                       <input ng-if="!showCase.po_qc" type="hidden" name="imei_number" class="form-control" value="{{data.imei_list.join(',')}}">
                     </td>
                     <td><input type="text" ng-model="data.price" title="{{ data.price }}" size="22" name="price" class="form-control" value="" ng-readonly="records[0].dis"></td>
-                    <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.po_unit" size="22" title="{{ data.po_unit }}" name="po_unit" class="form-control" ng-init="data.po_unit=0" value="{{data.po_unit}}"></td>
+                    <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.buy_unit" size="22" title="{{ data.buy_unit }}" name="buy_unit" class="form-control" ng-init="data.po_unit=0" value="{{data.po_unit}}"></td>
                     <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.mrp" size="22" title="{{ data.mrp }}" name="mrp" class="form-control" ng-init="data.mrp=0" value="{{data.mrp}}"></td>
                     <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.batch_no" title="{{ data.batch_no }}" name="batch_no" class="form-control" value="{{data.batch_no}}"></td>
                     <td ng-if="showCase.industry_type=='FMCG'">

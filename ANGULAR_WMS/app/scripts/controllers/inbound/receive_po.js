@@ -12,8 +12,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.permissions = Session.roles.permissions;
     vm.apply_filters = colFilters;
     vm.service = Service;
+    vm.self_life_ratio = Number(vm.permissions.shelf_life_ratio);
     vm.industry_type = Session.user_profile.industry_type;
-    
+    // vm.industry_type = 'FMCG';
     if(vm.industry_type == 'FMCG'){
       vm.extra_width = {
         'width': '1250px'
@@ -137,6 +138,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     vm.serial_numbers = [];
                     angular.copy(data.data, vm.model_data);
                     vm.title = "Generate GRN";
+                    vm.shelf_life = vm.model_data.data[0][0].shelf_life;
                     if(vm.permissions.use_imei) {
                       fb.push_po(vm.model_data);
                     }
@@ -150,6 +152,25 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             });
         });
         return nRow;
+    }
+
+    vm.check_exp_date = function(sel_date, shelf_life_ratio){
+      console.log(sel_date);
+
+      var res_days = (vm.shelf_life * (shelf_life_ratio / 100));
+      var cur_date = new Date();
+      sel_date = new Date(sel_date);
+      if(new Date() < new Date(sel_date)){
+
+        var days_left = sel_date.getDate()-cur_date.getDate()
+        if (days_left > res_days) {
+          Service.showNoty('Product has crossed acceptable shelf life ratio');
+        }
+        
+      } else {
+        Service.showNoty('Please choose proper date');
+        vm.model_data.data.exp_date = '';
+      }
     }
 
     vm.filter_enable = true;

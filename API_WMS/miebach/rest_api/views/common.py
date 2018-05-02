@@ -464,6 +464,7 @@ data_datatable = {  # masters
     'StockSummary': 'get_stock_results', 'OnlinePercentage': 'get_sku_stock_data', \
     'StockDetail': 'get_stock_detail_results', 'CycleCount': 'get_cycle_count', \
     'MoveInventory': 'get_move_inventory', 'InventoryAdjustment': 'get_move_inventory', \
+    'InventoryModification' : 'get_inventory_modification', \
     'ConfirmCycleCount': 'get_cycle_confirmed', 'VendorStockTable': 'get_vendor_stock', \
     'Available': 'get_available_stock', 'Available+Intransit': 'get_availintra_stock', 'Total': 'get_avinre_stock', \
     'StockSummaryAlt': 'get_stock_summary_size', 'SellerStockTable': 'get_seller_stock_data', \

@@ -1531,3 +1531,155 @@ def confirm_sku_substitution(request, user=''):
     log.info("Substitution Done For " + str(json.dumps(sub_data)))
 
     return HttpResponse('Successfully Updated')
+
+@csrf_exempt
+def get_inventory_modification(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    lis = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_brand', 'sku__sku_category', 'total', 'total', 'total',
+           'sku__measurement_type']
+    lis1 = ['product_code__wms_code', 'product_code__sku_desc', 'product_code__sku_brand', 'product_code__sku_category',
+            'total',
+            'total', 'total', 'product_code__measurement_type']
+    sort_cols = ['WMS Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Quantity', 'Reserved Quantity',
+                 'Total Quantity',
+                 'Unit of Measurement']
+    lis2 = ['wms_code', 'sku_desc', 'sku_brand', 'sku_category', 'threshold_quantity', 'threshold_quantity',
+            'threshold_quantity', 'measurement_type']
+    #search_params = get_filtered_params(filters, lis)
+    #search_params1 = get_filtered_params(filters, lis1)
+    #search_params2 = get_filtered_params(filters, lis2)
+
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    #if 'total__icontains' in search_params1.keys():
+    #    if search_params1['total__icontains']:
+    #        search_params1['status__icontains'] = search_params1['total__icontains']
+    #    del search_params1['total__icontains']
+    job_order = JobOrder.objects.filter(product_code__user=user.id, status__in=['grn-generated', 'pick_confirm'])
+    job_ids = job_order.values_list('id', flat=True)
+    extra_headers = list(
+        ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True))
+    status_track = StatusTracking.objects.filter(status_type='JO', status_id__in=job_ids,
+                                                 status_value__in=extra_headers, quantity__gt=0). \
+        values('status_value', 'status_id').distinct().annotate(total=Sum('quantity'))
+    status_ids = map(lambda d: d.get('status_id', ''), status_track)
+
+    #search_params['sku_id__in'] = sku_master_ids
+    #search_params1['product_code_id__in'] = sku_master_ids
+
+    reserved_instances = PicklistLocation.objects.filter(status=1, stock__sku__user=user.id).values(
+        'stock__sku__wms_code'). \
+        distinct().annotate(reserved=Sum('reserved'))
+    reserveds = map(lambda d: d['stock__sku__wms_code'], reserved_instances)
+    reserved_quantities = map(lambda d: d['reserved'], reserved_instances)
+    #raw_reserveds = map(lambda d: d['material_picklist__jo_material__material_code__wms_code'], raw_res_instances)
+    #raw_reserved_quantities = map(lambda d: d['rm_reserved'], raw_res_instances)
+    temp_data['totalQuantity'] = 0
+    temp_data['totalReservedQuantity'] = 0
+    temp_data['totalAvailableQuantity'] = 0
+
+    if search_term:
+        master_data = StockDetail.objects.exclude(receipt_number=0).values_list('sku__wms_code', 'sku__sku_desc',
+                                                                                'sku__sku_category',
+                                                                                'sku__sku_brand'). \
+            distinct().annotate(total=Sum('quantity')).filter(Q(sku__wms_code__icontains=search_term) |
+                                                              Q(sku__sku_desc__icontains=search_term) | Q(
+            sku__sku_category__icontains=search_term) |
+                                                              Q(total__icontains=search_term), sku__user=user.id,
+                                                              status=1)
+        wms_codes = map(lambda d: d[0], master_data)
+        master_data1 = job_order.exclude(product_code__wms_code__in=wms_codes).filter(
+            Q(product_code__wms_code__icontains=search_term) |
+            Q(product_code__sku_desc__icontains=search_term) | Q(product_code__sku_category__icontains=search_term),
+        ).values_list('product_code__wms_code',
+                                          'product_code__sku_desc', 'product_code__sku_category',
+                                          'product_code__sku_brand').distinct()
+        quantity_master_data = master_data.aggregate(Sum('total'))
+        master_data = list(chain(master_data, master_data1))
+
+
+    else:
+        master_data = StockDetail.objects.exclude(receipt_number=0).values_list('sku__wms_code', 'sku__sku_desc',
+                                                                                'sku__sku_category',
+                                                                                'sku__sku_brand').distinct(). \
+            annotate(total=Sum('quantity')).filter(sku__user=user.id). \
+            order_by(order_data)
+        wms_codes = map(lambda d: d[0], master_data)
+	quantity_master_data = master_data.aggregate(Sum('total'))
+        master_data1 = job_order.exclude(product_code__wms_code__in=wms_codes).values_list(
+            'product_code__wms_code',
+            'product_code__sku_desc', 'product_code__sku_category', 'product_code__sku_brand').distinct()
+        master_data = list(chain(master_data, master_data1))
+    zero_quantity = sku_master.exclude(wms_code__in=wms_codes).filter(user=user.id)
+    if search_term:
+        zero_quantity = zero_quantity.filter(
+            Q(wms_code__icontains=search_term) | Q(sku_desc__icontains=search_term) | Q(
+                sku_category__icontains=search_term))
+
+    zero_quantity = zero_quantity.values_list('wms_code', 'sku_desc', 'sku_category', 'sku_brand', 'skuquantity')
+    master_data = list(chain(master_data, zero_quantity))
+    temp_data['recordsTotal'] = len(master_data)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    if quantity_master_data['total__sum'] == None:
+        quantity_master_data['total__sum'] = 0
+    temp_data['totalQuantity'] = int(quantity_master_data['total__sum'])
+
+    for data in master_data:
+        total_available_quantity = 0
+        total_reserved = 0
+        total = 0
+        diff = 0
+
+        if data[0] in reserveds:
+            total_reserved = float(reserved_quantities[reserveds.index(data[0])])
+            temp_data['totalReservedQuantity'] += total_reserved
+        #if data[0] in raw_reserveds:
+        #    total_reserved = float(raw_reserved_quantities[raw_reserveds.index(data[0])])
+        #    temp_data['totalReservedQuantity'] += total_reserved
+        if len(data) >= 5:
+            if data[4] != None:
+                if len(data) > 4:
+                    total = data[4]
+            diff = total - total_reserved
+        if not diff < 0:
+            total_available_quantity = diff
+	temp_data['totalAvailableQuantity'] += total_available_quantity
+
+    temp_data['totalReservedQuantity'] = int(temp_data['totalReservedQuantity'])
+
+    temp_data['totalAvailableQuantity'] = int(temp_data['totalAvailableQuantity'])
+
+    reserveds = map(lambda d: d['stock__sku__wms_code'], reserved_instances)
+    reserved_quantities = map(lambda d: d['reserved'], reserved_instances)
+    #raw_reserveds = map(lambda d: d['material_picklist__jo_material__material_code__wms_code'], raw_res_instances)
+    #raw_reserved_quantities = map(lambda d: d['rm_reserved'], raw_res_instances)
+    # temp_data['totalQuantity'] = sum([data[4] for data in master_data])
+    for ind, data in enumerate(master_data[start_index:stop_index]):
+        reserved = 0
+        # total = data[4] if len(data) > 4 else 0
+        total = 0
+        if len(data) >= 5:
+            if data[4] != None:
+                if len(data) > 4:
+                    total = data[4]
+
+        sku = sku_master.get(wms_code=data[0], user=user.id)
+        if data[0] in reserveds:
+            reserved += float(reserved_quantities[reserveds.index(data[0])])
+        #if data[0] in raw_reserveds:
+        #    reserved += float(raw_reserved_quantities[raw_reserveds.index(data[0])])
+
+        quantity = total - reserved
+        if quantity < 0:
+            quantity = 0
+        temp_data['aaData'].append(OrderedDict((('WMS Code', data[0]), ('Product Description', data[1]),
+                                                ('SKU Category', data[2]), ('SKU Brand', data[3]),
+                                                ('Available Quantity', quantity), ('SKU Class', ''),
+                                                ('Reserved Quantity', reserved), ('Total Quantity', total),
+                                                ('Unit of Measurement', sku.measurement_type),
+                                                ('DT_RowId', data[0]), ('Addition', "<input type='text' name='addition'>"),
+                                                ('Reduction', "<input type='text' name='reduction'>"),
+                                                (' ', "<button type='button' name='submit' wms_code="+data[0]+" location="+location+">Save</button>")
+                                              )))
+

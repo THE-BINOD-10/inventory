@@ -157,23 +157,32 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     vm.check_exp_date = function(sel_date, shelf_life_ratio){
-      console.log(sel_date);
+      var mfg_date = new Date(vm.model_data.data[0][0].mfg_date);
+      var exp_date = new Date(sel_date);
 
-      if (vm.shelf_life && shelf_life_ratio) {
-        var res_days = (vm.shelf_life * (shelf_life_ratio / 100));
-        var cur_date = new Date();
-        sel_date = new Date(sel_date);
-        if(new Date() < new Date(sel_date)){
+      if (exp_date < mfg_date && vm.model_data.data[0][0].mfg_date) {
+        Service.showNoty('Your selected date is less than manufacturer date.');
+        vm.model_data.data[0][0].exp_date = '';
+      } else if(!vm.model_data.data[0][0].mfg_date){
 
-          var days_left = sel_date.getDate()-cur_date.getDate()
-          if (days_left > res_days) {
-            Service.showNoty('Product has crossed acceptable shelf life ratio');
+        Service.showNoty('Please choose manufacturer date first');
+        vm.model_data.data[0][0].exp_date = '';
+      } else {
+        if (vm.shelf_life && shelf_life_ratio) {
+          var res_days = (vm.shelf_life * (shelf_life_ratio / 100));
+          var cur_date = new Date();
+          if(new Date() < new Date(exp_date)){
+
+            var days_left = exp_date.getDate()-cur_date.getDate()
+            if (days_left > res_days) {
+              Service.showNoty('Product has crossed acceptable shelf life ratio');
+              vm.model_data.data[0][0].exp_date = '';
+            }
+            
+          } else {
+            Service.showNoty('Please choose proper date');
             vm.model_data.data[0][0].exp_date = '';
           }
-          
-        } else {
-          Service.showNoty('Please choose proper date');
-          vm.model_data.data[0][0].exp_date = '';
         }
       }
     }
@@ -760,7 +769,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         var quant = barcode_data[0].po_quantity;
         var sku_det = barcode_data[0].wms_code;
         /*var list_of_sku = barcode_data[0].serial_number.split(',');
-
         angular.forEach(list_of_sku, function(serial) {
           console.log(vm.sku_det);
           var serial_number = vm.sku_det+'/00'+serial;
@@ -932,9 +940,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           console.log(sku.val());
           var response = sku.val();
           if(response["wms_code"]){
-
             for(var i=0; i < vm.model_data.data.length; i++) {
-
               if(response.wms_code == vm.model_data.data[i][0]['wms_code']) {
                 vm.model_data.data[i][0]['value'] = Object.keys(response.serials).length;
                 vm.model_data.data[i][0]['imei_list'] = Object.values(response.serials);
@@ -946,7 +952,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               }
             }
           } else {
-
             vm.fb.poData.serials = Object.values(response);
             vm.serial_number = vm.fb.poData.serials;
           }

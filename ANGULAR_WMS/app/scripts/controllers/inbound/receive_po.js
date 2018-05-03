@@ -14,12 +14,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service = Service;
     vm.self_life_ratio = Number(vm.permissions.shelf_life_ratio);
     vm.industry_type = Session.user_profile.industry_type;
-    // vm.industry_type = 'FMCG';
-    if(vm.industry_type == 'FMCG'){
-      vm.extra_width = {
-        'width': '1250px'
-      }
-    }
+    vm.industry_type = 'FMCG';
 
     //default values
     if(!vm.permissions.grn_scan_option) {
@@ -138,6 +133,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     vm.serial_numbers = [];
                     angular.copy(data.data, vm.model_data);
                     vm.title = "Generate GRN";
+                    if (vm.industry_type = 'FMCG') {
+                      vm.extra_width = {
+                        'width': '1250px'
+                      };
+                    } else {
+                      vm.extra_width = {};
+                    }
                     vm.shelf_life = vm.model_data.data[0][0].shelf_life;
                     if(vm.permissions.use_imei) {
                       fb.push_po(vm.model_data);
@@ -157,19 +159,22 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.check_exp_date = function(sel_date, shelf_life_ratio){
       console.log(sel_date);
 
-      var res_days = (vm.shelf_life * (shelf_life_ratio / 100));
-      var cur_date = new Date();
-      sel_date = new Date(sel_date);
-      if(new Date() < new Date(sel_date)){
+      if (vm.shelf_life && shelf_life_ratio) {
+        var res_days = (vm.shelf_life * (shelf_life_ratio / 100));
+        var cur_date = new Date();
+        sel_date = new Date(sel_date);
+        if(new Date() < new Date(sel_date)){
 
-        var days_left = sel_date.getDate()-cur_date.getDate()
-        if (days_left > res_days) {
-          Service.showNoty('Product has crossed acceptable shelf life ratio');
+          var days_left = sel_date.getDate()-cur_date.getDate()
+          if (days_left > res_days) {
+            Service.showNoty('Product has crossed acceptable shelf life ratio');
+            vm.model_data.data[0][0].exp_date = '';
+          }
+          
+        } else {
+          Service.showNoty('Please choose proper date');
+          vm.model_data.data[0][0].exp_date = '';
         }
-        
-      } else {
-        Service.showNoty('Please choose proper date');
-        vm.model_data.data.exp_date = '';
       }
     }
 
@@ -273,6 +278,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.service.apiCall(url, 'POST', elem, true).then(function(data){
         if(data.message) {
           if(data.data.search("<div") != -1) {
+            vm.extra_width = {}
             vm.html = $(data.data);
             //var html = $(vm.html).closest("form").clone();
             //angular.element(".modal-body").html($(html).find(".modal-body"));

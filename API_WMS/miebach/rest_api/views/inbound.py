@@ -2130,26 +2130,26 @@ def get_seller_receipt_id(open_po):
 
 
 def create_update_primary_segregation(data, quantity, batch_dict):
-    segregation_obj = PrimarySegregation.objects.filter(purchase_order_id=data.id)
-    if segregation_obj:
-        segregation_obj = segregation_obj[0]
-        segregation_obj.quantity = float(segregation_obj.quantity) + quantity
-        if segregation_obj.status == 0:
-            segregation_obj.status = 1
-        segregation_obj.save()
-        if batch_dict:
-            batch_dict['transact_type'] = 'segregation'
-            batch_dict['transact_id'] = segregation_obj.id
-            create_update_batch_data(batch_dict)
+    if not batch_dict:
+        segregation_obj = PrimarySegregation.objects.filter(purchase_order_id=data.id)
+        if segregation_obj:
+            segregation_obj = segregation_obj[0]
+            segregation_obj.quantity = float(segregation_obj.quantity) + quantity
+            if segregation_obj.status == 0:
+                segregation_obj.status = 1
+            segregation_obj.save()
+        else:
+            segregation_obj = PrimarySegregation.objects.create(purchase_order_id=data.id, quantity=quantity,status=1,
+                                              creation_date=datetime.datetime.now())
     else:
-        segregation_obj = PrimarySegregation.objects.create(purchase_order_id=data.id, quantity=quantity,status=1,
-                                          creation_date=datetime.datetime.now())
-        if batch_dict:
-            batch_dict['transact_type'] = 'segregation'
-            batch_dict['transact_id'] = segregation_obj.id
-            create_update_batch_data(batch_dict)
+        batch_dict['transact_type'] = 'po'
+        batch_dict['transact_id'] = data.id
+        batch_obj = create_update_batch_data(batch_dict)
+        segregation_obj = PrimarySegregation.objects.create(purchase_order_id=data.id, quantity=quantity, status=1,
+                                                            creation_date=datetime.datetime.now(),
+                                                            batch_detail_id=batch_obj.id)
 
-def update_seller_po(data, value, user, receipt_id='', invoice_number='', invoice_date='', buy_price=0):
+def update_seller_po(data, value, user, receipt_id='', invoice_number='', invoice_date=''):
     if not receipt_id:
         return
     seller_pos = SellerPO.objects.filter(seller__user=user.id, open_po_id=data.open_po_id, status=1)
@@ -2163,7 +2163,6 @@ def update_seller_po(data, value, user, receipt_id='', invoice_number='', invoic
                                                                            quantity=value,
                                                                            putaway_quantity=value,
                                                                            purchase_order_id=data.id,
-                                                                           buy_price=buy_price,
                                                                            creation_date=datetime.datetime.now(),
                                                                            invoice_date=invoice_date)
         seller_received_list.append(
@@ -2210,7 +2209,6 @@ def update_seller_po(data, value, user, receipt_id='', invoice_number='', invoic
             seller_po_summary, created = SellerPOSummary.objects.get_or_create(seller_po_id=sell_po.id,
                                                                                receipt_number=receipt_id,
                                                                                quantity=sell_quan,
-                                                                               buy_price=buy_price,
                                                                                putaway_quantity=sell_quan,
                                                                                purchase_order_id=data.id,
                                                                                creation_date=datetime.datetime.now())
@@ -2269,15 +2267,13 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
         if remainder_mail:
             data.remainder_mail = remainder_mail
 
-        buy_price = 0
         #Create Batch Detail entry
         if 'batch_no' in myDict.keys():
-            buy_price = myDict['buy_price'][i]
-            batch_dict = {'transact_type': 'PO_LOC', 'batch_no': myDict['batch_no'][i],
+            batch_dict = {'transact_type': 'po_loc', 'batch_no': myDict['batch_no'][i],
                           'expiry_date': myDict['exp_date'][i],
                           'manufactured_date': myDict['mfg_date'][i],
                           'tax_percent': myDict['tax_percent'][i],
-                          'mrp': myDict['mrp'][i]
+                          'mrp': myDict['mrp'][i], 'buy_price': myDict['mrp'][i]
                          }
         purchase_data = get_purchase_order_data(data)
         temp_quantity = data.received_quantity
@@ -2305,8 +2301,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
             if not seller_receipt_id:
                 seller_receipt_id = get_seller_receipt_id(data.open_po)
             seller_received_list = update_seller_po(data, value, user, receipt_id=seller_receipt_id,
-                                                    invoice_number=invoice_number, invoice_date=bill_date,
-                                                    buy_price=buy_price)
+                                                    invoice_number=invoice_number, invoice_date=bill_date)
         if 'wms_code' in myDict.keys():
             if myDict['wms_code'][i]:
                 sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
@@ -5539,6 +5534,20 @@ def get_primary_suggestions(request, user):
                                                    Q(**purchase_filter))
     return purchase_orders
 
+
+def get_primary_suggestions_data(request, user):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    purchase_filter = {'purchase_order__open_po__sku_id__in': sku_master_ids, 'purchase_order__open_po__sku__user': user.id,
+                       'status': 1}
+    stpurchase_filter = {'purchase_order__stpurchaseorder__open_st__sku_id__in': sku_master_ids,
+                         'purchase_order__stpurchaseorder__open_st__sku__user': user.id, 'status': 1}
+    rwpurchase_filter = {'purchase_order__rwpurchase__rwo__job_order__product_code_id__in': sku_master_ids,
+                         'purchase_order__rwpurchase__rwo__vendor__user': user.id, 'status': 1}
+    segregations = PrimarySegregation.objects.filter(Q(**stpurchase_filter) | Q(**rwpurchase_filter) |
+                                                   Q(**purchase_filter))
+    return segregations
+
+
 @csrf_exempt
 def get_segregation_pos(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     lis = ['PO Number', 'Order Date', 'Supplier ID', 'Supplier Name', 'Order Type']
@@ -5583,21 +5592,19 @@ def get_segregation_pos(start_index, stop_index, temp_data, search_term, order_t
 @login_required
 @get_admin_user
 def get_po_segregation_data(request, user=''):
-    purchase_orders = get_primary_suggestions(request, user)
+    segregations = get_primary_suggestions_data(request, user)
     order_id = request.GET['order_id']
-    purchase_orders = purchase_orders.filter(order_id=order_id)
-    if not purchase_orders:
+    segregations = segregations.select_related('purchase_order', 'batch_detail').\
+                                filter(purchase_order__order_id=order_id)
+    if not segregations:
         return HttpResponse("No Data found")
-    po_reference = get_po_reference(purchase_orders[0])
+    po_reference = get_po_reference(segregations[0].purchase_order)
     orders = []
     order_data = {}
     order_ids = []
-    for order in purchase_orders:
+    for segregation_obj in segregations:
+        order = segregation_obj.purchase_order
         order_data = get_purchase_order_data(order)
-        segregation_obj = order.primarysegregation
-        if not segregation_obj:
-            continue
-        segregation_obj = segregation_obj
         quantity = float(segregation_obj.quantity) - float(segregation_obj.sellable) - float(segregation_obj.non_sellable)
         sku_details = json.loads(
             serializers.serialize("json", [order_data['sku']], indent=1, use_natural_foreign_keys=True, fields=(
@@ -5608,7 +5615,7 @@ def get_po_segregation_data(request, user=''):
                                                                             mapping_type='PO',
                                                                             sku_id=order_data['sku_id'],
                                                                             order_ids=order_ids)
-            orders.append([{'order_id': order.id, 'wms_code': order_data['wms_code'],
+            data_dict = {'order_id': order.id, 'wms_code': order_data['wms_code'],
                             'sku_desc': order_data['sku_desc'],
                             'quantity': quantity, 'sellable': quantity,
                             'non_sellable': 0,
@@ -5617,10 +5624,23 @@ def get_po_segregation_data(request, user=''):
                             'price': order_data['price'], 'order_type': order_data['order_type'],
                             'unit': order_data['unit'],
                             'sku_extra_data': sku_extra_data, 'product_images': product_images,
-                            'sku_details': sku_details}])
+                            'sku_details': sku_details}
+            if segregation_obj.batch_detail:
+                batch_detail = segregation_obj.batch_detail
+                data_dict['batch_no'] = batch_detail.batch_no
+                data_dict['mrp'] = batch_detail.mrp
+                data_dict['buy_price'] = batch_detail.buy_price
+                data_dict['mfg_date'] = ''
+                if batch_detail.manufactured_date:
+                    data_dict['mfg_date'] = batch_detail.manufactured_date.strftime('%m/%d/%Y')
+                data_dict['exp_date'] = ''
+                if batch_detail.manufactured_date:
+                    data_dict['exp_date'] = batch_detail.expiry_date.strftime('%m/%d/%Y')
+                data_dict['tax_percent'] = batch_detail.tax_percent
+            orders.append([data_dict])
     supplier_name, order_date, expected_date, remarks = '', '', '', ''
-    if purchase_orders:
-        purchase_order = purchase_orders[0]
+    if segregations:
+        purchase_order = segregations[0].purchase_order
         supplier_name = order_data['supplier_name']
         order_date = get_local_date(user, purchase_order.creation_date)
         remarks = purchase_order.remarks

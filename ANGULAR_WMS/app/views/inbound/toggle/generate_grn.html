@@ -136,10 +136,10 @@
                     <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.mrp" size="22" title="{{ data.mrp }}" name="mrp" class="form-control" ng-init="data.mrp=0" value="{{data.mrp}}"></td>
                     <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.batch_no" title="{{ data.batch_no }}" name="batch_no" class="form-control" value="{{data.batch_no}}"></td>
                     <td ng-if="showCase.industry_type=='FMCG'">
-                      <input name="manf_date" ui-jq="datepicker" size="33" title="{{ data.manf_date }}" ng-model="data.manf_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}"></td>
+                      <input name="mfg_date" ui-jq="datepicker" size="33" title="{{ data.mfg_date }}" ng-model="data.mfg_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}"></td>
                     <td ng-if="showCase.industry_type=='FMCG'">
-                      <input name="exp_date" ui-jq="datepicker" size="33" title="{{ data.exp_date }}" ng-model="data.exp_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}"></td>
-                    <td><input type="text" ng-model="data.tax_per" title="{{ data.tax_per }}" name="tax_per" class="form-control" value="{{data.tax_per}}"></td>
+                      <input name="exp_date" ui-jq="datepicker" size="33" title="{{ data.exp_date }}" ng-model="data.exp_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}" ng-change="showCase.check_exp_date(data.exp_date, showCase.self_life_ratio)"></td>
+                    <td><input type="text" ng-model="data.tax_percentage" title="{{ data.tax_percentage }}" name="tax_percentage" class="form-control" value="{{data.tax_percentage}}"></td>
                     <td ng-if="showCase.permissions.pallet_switch || showCase.industry_type=='FMCG'"><i ng-click="showCase.update_data($index, records)" ng-class="showCase.service.isLast($last)"></i></td>
                     <td ng-include="'views/production/toggle/common/custom_sku_details.html'">
                     </td>

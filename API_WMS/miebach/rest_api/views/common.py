@@ -6582,6 +6582,7 @@ def get_invoice_sequence_obj(user, marketplace):
 
 
 def create_update_batch_data(batch_dict):
+    batch_obj = None
     if {'batch_no', 'mrp', 'expiry_date'}.issubset(batch_dict):
         if batch_dict['expiry_date']:
             batch_dict['expiry_date'] = datetime.datetime.strptime(batch_dict['expiry_date'], '%m/%d/%Y')
@@ -6591,7 +6592,16 @@ def create_update_batch_data(batch_dict):
             batch_dict['manufactured_date'] = datetime.datetime.strptime(batch_dict['manufactured_date'], '%m/%d/%Y')
         else:
             batch_dict['manufactured_date'] = None
-        batch_obj = BatchDetail.objects.filter(**batch_dict)
-        if not batch_obj.exists():
+        number_fields = ['mrp', 'buy_price', 'tax_percent']
+        for field in number_fields:
+            try:
+                batch_dict[field] = float(batch_dict[field])
+            except:
+                batch_dict[field] = 0
+        batch_objs = BatchDetail.objects.filter(**batch_dict)
+        if not batch_objs.exists():
             batch_dict['creation_date'] = datetime.datetime.now()
-            BatchDetail.objects.create(**batch_dict)
+            batch_obj = BatchDetail.objects.create(**batch_dict)
+        else:
+            batch_obj = batch_objs[0].id
+    return batch_obj

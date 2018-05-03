@@ -204,7 +204,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           new_dic.batch_no = "";
           new_dic.manf_date = "";
           new_dic.exp_date = "";
-          new_dic.tax_per = "";
+          new_dic.tax_percent = "";
           data.push(new_dic);
         } else {
           data.splice(index,1);

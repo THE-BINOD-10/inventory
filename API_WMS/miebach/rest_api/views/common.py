@@ -4393,7 +4393,7 @@ def get_purchase_order_data(order):
                       'supplier_code': '', 'load_unit_handle': order.product_code.load_unit_handle,
                       'sku_desc': order.product_code.sku_desc,
                       'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0, 'tin_number': '',
-                      'intransit_quantity': intransit_quantity}
+                      'intransit_quantity': intransit_quantity, 'shelf_life': order.product_code.shelf_life}
         return order_data
     elif rw_purchase and not order.open_po:
         rw_purchase = rw_purchase[0]
@@ -4460,7 +4460,7 @@ def get_purchase_order_data(order):
                   'order_type': order_type,
                   'supplier_code': supplier_code, 'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax,
                   'utgst_tax': utgst_tax, 'intransit_quantity': intransit_quantity,
-                  'tin_number': tin_number}
+                  'tin_number': tin_number, 'shelf_life': sku.shelf_life}
 
     return order_data
 
@@ -6579,3 +6579,19 @@ def get_invoice_sequence_obj(user, marketplace):
     if not invoice_sequence:
         invoice_sequence = InvoiceSequence.objects.filter(user=user.id, marketplace='')
     return  invoice_sequence
+
+
+def create_update_batch_data(batch_dict):
+    if {'batch_no', 'mrp', 'expiry_date'}.issubset(batch_dict):
+        if batch_dict['expiry_date']:
+            batch_dict['expiry_date'] = datetime.datetime.strptime(batch_dict['expiry_date'], '%m/%d/%Y')
+        else:
+            batch_dict['expiry_date'] = None
+        if batch_dict['manufactured_date']:
+            batch_dict['manufactured_date'] = datetime.datetime.strptime(batch_dict['manufactured_date'], '%m/%d/%Y')
+        else:
+            batch_dict['manufactured_date'] = None
+        batch_obj = BatchDetail.objects.filter(**batch_dict)
+        if not batch_obj.exists():
+            batch_dict['creation_date'] = datetime.datetime.now()
+            BatchDetail.objects.create(**batch_dict)

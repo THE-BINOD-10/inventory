@@ -2218,7 +2218,7 @@ def validate_purchase_order(open_sheet, user):
         for col_idx in range(0, len(PURCHASE_ORDER_HEADERS)):
             cell_data = open_sheet.cell(row_idx, col_idx).value
             if row_idx == 0:
-                if col_idx == 0 and cell_data != 'PO Name':
+                if col_idx == 0 and cell_data != 'PO Reference':
                     return 'Invalid File'
                 break
             if col_idx == 2:

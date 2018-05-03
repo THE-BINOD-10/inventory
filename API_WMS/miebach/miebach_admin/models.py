@@ -1749,7 +1749,7 @@ class SellerPOSummary(models.Model):
     location = models.ForeignKey(LocationMaster, blank=True, null=True)
     putaway_quantity = models.FloatField(default=0)
     quantity = models.FloatField(default=0)
-    mrp = models.FloatField(default=0)
+    buy_price = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -2602,3 +2602,20 @@ class MasterDocs(models.Model):
     class Meta:
         db_table = 'MASTER_DOCS'
         index_together = ('master_id', 'master_type', 'uploaded_file')
+
+
+class BatchDetail(models.Model):
+    id = BigAutoField(primary_key=True)
+    batch_no = models.CharField(max_length=64, default='')
+    mrp = models.FloatField(default=0)
+    manufactured_date = models.DateField(null=True, blank=True)
+    expiry_date = models.DateField(null=True, blank=True)
+    tax_percent = models.FloatField(default=0)
+    transact_id = models.IntegerField(default=0)
+    transact_type = models.CharField(max_length=36, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'BATCH_DETAIL'
+        #index_together = ('master_id', 'master_type', 'uploaded_file')

@@ -216,6 +216,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }
       }
     }
+    
     vm.new_sku = false
     vm.add_wms_code = add_wms_code;
     function add_wms_code() {

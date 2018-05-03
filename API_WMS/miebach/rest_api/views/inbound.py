@@ -5602,28 +5602,32 @@ def get_po_segregation_data(request, user=''):
     orders = []
     order_data = {}
     order_ids = []
-    shelf_life_ratio = 0
+    shelf_life_ratio = get_misc_value('shelf_life_ratio', user.id)
     for segregation_obj in segregations:
-        deviation_remarks = {'Price Deviation': False, 'MRP Deviation': False, 'Shelf Life Ratio Exceeded': False,
-                             'Tax Rate Deviation': False}
+        #deviation_remarks = {'Price Deviation': False, 'MRP Deviation': False, 'Shelf Life Ratio Exceeded': False,
+        #                     'Tax Rate Deviation': False}
+        deviation_remarks = []
         if segregation_obj.batch_detail:
             if segregation_obj.batch_detail.buy_price != segregation_obj.purchase_order.open_po.price:
-                deviation_remarks['Price Deviation'] = True
+                #deviation_remarks['Price Deviation'] = True
+                deviation_remarks.append('Price Deviation')
             if segregation_obj.batch_detail.mrp != segregation_obj.purchase_order.open_po.sku.mrp:
-                deviation_remarks['MRP Deviation'] = True
+                #deviation_remarks['MRP Deviation'] = True
+                deviation_remarks.append('MRP Deviation')
             if segregation_obj.batch_detail.expiry_date and segregation_obj.purchase_order.open_po.sku.shelf_life\
                     and shelf_life_ratio:
-                sku_days = int(segregation_obj.purchase_order.open_po.sku.shelf_life * (shelf_life_ratio/100))
+                sku_days = int(segregation_obj.purchase_order.open_po.sku.shelf_life * (float(shelf_life_ratio)/100))
                 stock_days = (segregation_obj.batch_detail.expiry_date - \
-                              segregation_obj.batch_detail.creation_date.date()).days()
+                              segregation_obj.batch_detail.creation_date.date()).days
                 if sku_days > stock_days:
-                    deviation_remarks['Shelf Life Ratio Exceeded'] = True
+                    deviation_remarks.append('Shelf Life Ratio Exceeded')
+                    #deviation_remarks['Shelf Life Ratio Exceeded'] = True
             if segregation_obj.batch_detail.tax_percent:
                 open_po = segregation_obj.purchase_order.open_po
                 seg_tax = segregation_obj.batch_detail.tax_percent
                 po_tax = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax
                 if seg_tax != po_tax:
-                    deviation_remarks['Tax Rate Deviation'] = True
+                    deviation_remarks.append('Tax Rate Deviation')
 
         order = segregation_obj.purchase_order
         order_data = get_purchase_order_data(order)
@@ -5646,7 +5650,7 @@ def get_po_segregation_data(request, user=''):
                             'price': order_data['price'], 'order_type': order_data['order_type'],
                             'unit': order_data['unit'],
                             'sku_extra_data': sku_extra_data, 'product_images': product_images,
-                            'sku_details': sku_details, 'deviation_remarks': deviation_remarks}
+                            'sku_details': sku_details, 'deviation_remarks': '\n'.join(deviation_remarks)}
             if segregation_obj.batch_detail:
                 batch_detail = segregation_obj.batch_detail
                 data_dict['batch_no'] = batch_detail.batch_no

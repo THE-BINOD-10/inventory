@@ -36,6 +36,7 @@
                     <th ng-if="showCase.industry_type=='FMCG'">Mfg. Date</th>
                     <th ng-if="showCase.industry_type=='FMCG'">Exp. Date</th>
                     <th ng-if="showCase.industry_type=='FMCG'">Tax</th>
+                    <th ng-if="showCase.industry_type=='FMCG'">Remarks</th>
                     <!--<th ng-if="showCase.permissions.pallet_switch" class="plus"></th>-->
                     <!--<th class="detail"></th>-->
                   <tr>
@@ -74,6 +75,12 @@
                     </td>
                     <td ng-if="showCase.industry_type=='FMCG'">
                       <input type="text" ng-model="data.tax_percent" title="{{ data.tax_percent }}" name="tax_percent" class="form-control" value="{{data.tax_percent}}" ng-readonly="true">
+                    </td>
+                    <td ng-if="showCase.industry_type=='FMCG'">
+                      <textarea rows="5" cols="15" ng-model="data.deviation_remarks" ng-disabled="true"></textarea>
+                      <!--<select id="maxOption2" class="selectpicker show-menu-arrow form-control" multiple>-->
+                        <!--<option ng-selected="value" ng-repeat="(key, value) in data.deviation_remarks"> {{key}}</option>-->
+                      <!--</select>-->
                     </td>
                   </tr>
                 </tbody>

@@ -15,7 +15,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.industry_type = Session.user_profile.industry_type;
     if(vm.industry_type == 'FMCG'){
       vm.extra_width = {
-        'width': '1250px'
+        'width': '1350px'
       }
     }
 

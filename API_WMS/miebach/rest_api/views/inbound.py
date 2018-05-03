@@ -2273,7 +2273,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
                           'expiry_date': myDict['exp_date'][i],
                           'manufactured_date': myDict['mfg_date'][i],
                           'tax_percent': myDict['tax_percent'][i],
-                          'mrp': myDict['mrp'][i], 'buy_price': myDict['mrp'][i]
+                          'mrp': myDict['mrp'][i], 'buy_price': myDict['buy_price'][i]
                          }
         purchase_data = get_purchase_order_data(data)
         temp_quantity = data.received_quantity
@@ -5603,6 +5603,10 @@ def get_po_segregation_data(request, user=''):
     order_data = {}
     order_ids = []
     for segregation_obj in segregations:
+        deviation_remarks = {'Price Deviation': False, 'MRP Deviation': False, 'Shelf Life Ratio Exceeded': False,
+                             'Tax Rate Deviation': False}
+        if segregation_obj.batch_detail.buy_price != segregation_obj.purchase_order.open_po.price:
+            deviation_remarks['Price Deviation'] = True
         order = segregation_obj.purchase_order
         order_data = get_purchase_order_data(order)
         quantity = float(segregation_obj.quantity) - float(segregation_obj.sellable) - float(segregation_obj.non_sellable)
@@ -5624,7 +5628,7 @@ def get_po_segregation_data(request, user=''):
                             'price': order_data['price'], 'order_type': order_data['order_type'],
                             'unit': order_data['unit'],
                             'sku_extra_data': sku_extra_data, 'product_images': product_images,
-                            'sku_details': sku_details}
+                            'sku_details': sku_details, 'deviation_remarks': deviation_remarks}
             if segregation_obj.batch_detail:
                 batch_detail = segregation_obj.batch_detail
                 data_dict['batch_no'] = batch_detail.batch_no

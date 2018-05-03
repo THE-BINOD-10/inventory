@@ -362,6 +362,7 @@ urlpatterns += [
     url(r'^combo_sku_upload/$', combo_sku_upload),
     url(r'^inventory_adjust_form/$', inventory_adjust_form),
     url(r'^inventory_adjust_upload/$', inventory_adjust_upload),
+    url(r'^inventory_adj_modify_qty/$', inventory_adj_modify_qty),
     url(r'vendor_form/$', vendor_form),
     url(r'vendor_upload/$', vendor_upload),
     url(r'customer_form/$', customer_form),

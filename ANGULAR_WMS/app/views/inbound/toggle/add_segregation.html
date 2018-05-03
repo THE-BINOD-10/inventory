@@ -1,6 +1,6 @@
 <div id="page-pop" class="modal fade in over-x" tabindex="-1" role="dialog">
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
-  <div class="modal-dialog model-custom modal-lg">
+  <div class="modal-dialog model-custom modal-lg" ng-style="showCase.extra_width">
     <div class="modal-content mw100">
       <div class="process-overlay" ng-if="process || showCase.fb.process"><div class="process-text">Loading...</div></div>
       <div class="modal-header">
@@ -30,6 +30,12 @@
                     <th>Non Sellable Quantity</th>
                     <th>Measurement</th>
                     <th>Unit Price</th>
+                    <th ng-if="showCase.industry_type=='FMCG'">Buy Price</th>
+                    <th ng-if="showCase.industry_type=='FMCG'">MRP</th>
+                    <th ng-if="showCase.industry_type=='FMCG'">Batch No</th>
+                    <th ng-if="showCase.industry_type=='FMCG'">Mfg. Date</th>
+                    <th ng-if="showCase.industry_type=='FMCG'">Exp. Date</th>
+                    <th ng-if="showCase.industry_type=='FMCG'">Tax</th>
                     <!--<th ng-if="showCase.permissions.pallet_switch" class="plus"></th>-->
                     <!--<th class="detail"></th>-->
                   <tr>
@@ -48,6 +54,26 @@
                     <td><input type="text" ng-model="data.non_sellable" name="non_sellable" class="form-control" ng-readonly="true" ng-class="service.get_decimal_perm()"></td>
                     <td><input type="text" ng-model="data.unit" name="unit" class="form-control" readonly></td>
                     <td><input type="text" ng-model="data.price" name="price" class="form-control" value="" ng-readonly="true"></td>
+                    
+                    <td ng-if="showCase.industry_type=='FMCG'">
+                      <input type="text" ng-model="data.buy_price" size="22" title="{{ data.buy_price }}" name="buy_price" class="form-control" value="{{data.buy_price}}" ng-readonly="true">
+                    </td>
+                    <td ng-if="showCase.industry_type=='FMCG'">
+                      <input type="text" ng-model="data.mrp" size="22" title="{{ data.mrp }}" name="mrp" class="form-control" value="{{data.mrp}}" ng-readonly="true">
+                    </td>
+                    <td ng-if="showCase.industry_type=='FMCG'">
+                      <input type="text" ng-model="data.batch_no" title="{{ data.batch_no }}" name="batch_no" class="form-control" value="{{data.batch_no}}" ng-readonly="true">
+                    </td>
+                    <td ng-if="showCase.industry_type=='FMCG'">
+                      <!-- <input name="mfg_date" ui-jq="datepicker" size="33" title="{{ data.mfg_date }}" ng-model="data.mfg_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}" ng-readonly="true"> -->
+                      <input name="mfg_date" size="33" title="{{ data.mfg_date }}" ng-model="data.mfg_date" class="form-control" type="text" ng-readonly="true">
+                    </td>
+                    <td ng-if="showCase.industry_type=='FMCG'">
+                      <!-- <input name="exp_date" ui-jq="datepicker" size="33" title="{{ data.exp_date }}" ng-model="data.exp_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}" ng-change="showCase.check_exp_date(data.exp_date, showCase.self_life_ratio)" ng-readonly="true"> -->
+                      <input name="exp_date" size="33" title="{{ data.exp_date }}" ng-model="data.exp_date" class="form-control" type="text" ng-readonly="true">
+                    </td>
+                    <td ng-if="showCase.industry_type=='FMCG'">
+                      <input type="text" ng-model="data.tax_percent" title="{{ data.tax_percent }}" name="tax_percent" class="form-control" value="{{data.tax_percent}}" ng-readonly="true">
                     </td>
                   </tr>
                 </tbody>

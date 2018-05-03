@@ -5602,11 +5602,29 @@ def get_po_segregation_data(request, user=''):
     orders = []
     order_data = {}
     order_ids = []
+    shelf_life_ratio = 0
     for segregation_obj in segregations:
         deviation_remarks = {'Price Deviation': False, 'MRP Deviation': False, 'Shelf Life Ratio Exceeded': False,
                              'Tax Rate Deviation': False}
-        if segregation_obj.batch_detail.buy_price != segregation_obj.purchase_order.open_po.price:
-            deviation_remarks['Price Deviation'] = True
+        if segregation_obj.batch_detail:
+            if segregation_obj.batch_detail.buy_price != segregation_obj.purchase_order.open_po.price:
+                deviation_remarks['Price Deviation'] = True
+            if segregation_obj.batch_detail.mrp != segregation_obj.purchase_order.open_po.sku.mrp:
+                deviation_remarks['MRP Deviation'] = True
+            if segregation_obj.batch_detail.expiry_date and segregation_obj.purchase_order.open_po.sku.shelf_life\
+                    and shelf_life_ratio:
+                sku_days = int(segregation_obj.purchase_order.open_po.sku.shelf_life * (shelf_life_ratio/100))
+                stock_days = (segregation_obj.batch_detail.expiry_date - \
+                              segregation_obj.batch_detail.creation_date.date()).days()
+                if sku_days > stock_days:
+                    deviation_remarks['Shelf Life Ratio Exceeded'] = True
+            if segregation_obj.batch_detail.tax_percent:
+                open_po = segregation_obj.purchase_order.open_po
+                seg_tax = segregation_obj.batch_detail.tax_percent
+                po_tax = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax
+                if seg_tax != po_tax:
+                    deviation_remarks['Tax Rate Deviation'] = True
+
         order = segregation_obj.purchase_order
         order_data = get_purchase_order_data(order)
         quantity = float(segregation_obj.quantity) - float(segregation_obj.sellable) - float(segregation_obj.non_sellable)
@@ -5619,7 +5637,7 @@ def get_po_segregation_data(request, user=''):
                                                                             mapping_type='PO',
                                                                             sku_id=order_data['sku_id'],
                                                                             order_ids=order_ids)
-            data_dict = {'order_id': order.id, 'wms_code': order_data['wms_code'],
+            data_dict = {'segregation_id': segregation_obj.id,'order_id': order.id, 'wms_code': order_data['wms_code'],
                             'sku_desc': order_data['sku_desc'],
                             'quantity': quantity, 'sellable': quantity,
                             'non_sellable': 0,

@@ -2231,11 +2231,9 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
     expected_date = request.POST.get('expected_date', '')
     remainder_mail = request.POST.get('remainder_mail', '')
     invoice_number = request.POST.get('invoice_number', 0)
-    buy_price = request.POST.get('buy_price', 0)
     bill_date = datetime.datetime.now().date()
     if request.POST.get('invoice_date', ''):
         bill_date = datetime.datetime.strptime(request.POST.get('invoice_date', ''), "%m/%d/%Y").date()
-    mrp = float(request.POST.get('mrp', 0))
     _expected_date = ''
     if expected_date:
         _expected_date = expected_date
@@ -2271,13 +2269,16 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
         if remainder_mail:
             data.remainder_mail = remainder_mail
 
+        buy_price = 0
         #Create Batch Detail entry
-        batch_dict = {'transact_type': 'PO_LOC', 'batch_no': request.POST.get('batch_no', ''),
-                      'expiry_date': request.POST.get('exp_date', ''),
-                      'manufactured_date': request.POST.get('mfg_date', ''),
-                      'tax_percent': request.POST.get('tax_percent', 0),
-                      'mrp': mrp
-                      }
+        if 'batch_no' in myDict.keys():
+            buy_price = myDict['buy_price'][i]
+            batch_dict = {'transact_type': 'PO_LOC', 'batch_no': myDict['batch_no'][i],
+                          'expiry_date': myDict['exp_date'][i],
+                          'manufactured_date': myDict['mfg_date'][i],
+                          'tax_percent': myDict['tax_percent'][i],
+                          'mrp': myDict['mrp'][i]
+                         }
         purchase_data = get_purchase_order_data(data)
         temp_quantity = data.received_quantity
         unit = ''

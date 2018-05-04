@@ -381,7 +381,8 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
   vm.get_customer_sku_prices = function(sku) {
 
     var d = $q.defer();
-    var data = {sku_codes: sku, cust_id: vm.model_data.customer_id, tax_type: vm.model_data.tax_type}
+    var tax_dict = {0:"intra_state", 1:"inter_state", 2:"default"};
+    var data = {sku_codes: sku, cust_id: vm.model_data.customer_id, tax_type: tax_dict[vm.model_data.tax_type]}
     vm.service.apiCall("get_customer_sku_prices/", "POST", data).then(function(data) {
 
       if(data.message) {
@@ -394,10 +395,37 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
   vm.get_tax_value = function(data) {
 
     var tax_perc = 0;
-    tax_perc = data.taxes.sgst_tax + data.taxes.cgst_tax + data.taxes.igst_tax;
+	data.sgst_tax = 0;
+	data.cgst_tax = 0;
+	data.igst_tax = 0;
+	data.taxes = {"cgst_amt": "", "cgst_tax": 0, "sgst_amt": "", "sgst_tax": 0, "igst_amt": "", "igst_tax": 0};
+    for(var i = 0; i < data.taxes_data.length; i++) {
+
+      if(data.unit_price <= data.taxes_data[i].max_amt && data.unit_price >= data.taxes_data[i].min_amt) {
+
+        if(vm.model_data.tax_type == "0") {//intra_state
+
+		  tax_perc = data.taxes_data[i].sgst_tax + data.taxes_data[i].cgst_tax;
+		  data.sgst_tax = data.taxes_data[i].sgst_tax;
+		  data.cgst_tax = data.taxes_data[i].cgst_tax;
+		  data.taxes.sgst_tax = data.sgst_tax;
+		  data.taxes.cgst_tax = data.cgst_tax;
+        } else if (vm.model_data.tax_type == "1") {//inter_state
+
+          data.igst_tax = data.taxes_data[i].igst_tax;
+          tax_perc = data.taxes_data[i].igst_tax;
+		  data.taxes.igst_tax = data.igst_tax;
+		}
+		data.taxes.cgst_amt = (data.amt * data.cgst_tax)/100;
+		data.taxes.sgst_amt = (data.amt * data.sgst_tax)/100;
+		data.taxes.igst_amt = (data.amt * data.igst_tax)/ 100;
+        break;
+      }
+    }
+    /*tax_perc = data.taxes.sgst_tax + data.taxes.cgst_tax + data.taxes.igst_tax;
     data.taxes.sgst_amt = (data.unit_price * data.taxes.sgst_tax / 100) * data.quantity;
 	data.taxes.cgst_amt = (data.unit_price * data.taxes.cgst_tax / 100) * data.quantity;
-	data.taxes.igst_amt = (data.unit_price * data.taxes.igst_tax / 100) * data.quantity;
+	data.taxes.igst_amt = (data.unit_price * data.taxes.igst_tax / 100) * data.quantity;*/
     data.tax = tax_perc;
     return tax_perc;
   }
@@ -487,8 +515,11 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
             record.quantity = 1
           }
         }
-        record["taxes"] = data.taxes;
-        record.invoice_amount = Number(record.price)*Number(record.quantity);
+        record["taxes_data"] = data.taxes;
+		record["base_price"] = Number(record.unit_price)*Number(record.quantity);
+		record["discount"] = data.discount;
+		record["amt"] = record["base_price"] - record["discount"];
+        //record.invoice_amount = Number(record.price)*Number(record.quantity);
         record["priceRanges"] = data.price_bands_map;
         vm.cal_percentage(record);
       }

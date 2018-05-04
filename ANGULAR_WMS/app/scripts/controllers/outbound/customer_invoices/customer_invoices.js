@@ -201,6 +201,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       }
     };
 
+    vm.reloadData = function () {
+      $('.custom-table').DataTable().draw();
+    };
+
+
     vm.close = function() {
 
       $state.go("app.outbound.CustomerInvoices")

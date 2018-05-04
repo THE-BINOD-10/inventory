@@ -38,7 +38,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      48: 'priceband_sync', 49: 'generic_wh_level', 50: 'auto_confirm_po', 51: 'create_order_po',
                      52: 'calculate_customer_price', 53: 'shipment_sku_scan', 54: 'disable_brands_view',
                      55: 'sellable_segregation', 56: 'display_styles_price', 57: 'picklist_display_address',
-                     58: 'shelf_life_ratio'}
+                     58: 'shelf_life_ratio', 59: 'show_purchase_history'}
 
   vm.check_box_data = [
     {
@@ -308,12 +308,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       display: true
     },
     {
-      name: "Display Customer address in Picklist",
-      model_name: "picklist_display_address",
-      param_no: 57,
-      class_name: "fa fa-exchange",
+      name: "Show Purchase History",
+      model_name: "show_purchase_history",
+      param_no: 59,
+      class_name: "fa fa-rupee",
       display: true
-    }
+    },
 ]
 
   vm.empty = {};

@@ -285,9 +285,14 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
       return false;
     }
     if (last) {
-	  var temp = vm.model_data.data[0];
-	  temp.amt = temp.base_price = temp.discount = temp.id = temp.invoice_amount = temp.sku_code = temp.sku_size = temp.tax = temp.title = temp.unit_price = "";
-      vm.model_data.data.push(temp);
+	  // var temp = vm.model_data.data[0];
+	  // temp.amt = temp.base_price = temp.discount = temp.id = temp.invoice_amount = temp.sku_code = temp.sku_size = temp.tax = temp.title = temp.unit_price = "";
+    var empty_data = {
+      'amt':0, 'base_price':"0.00", 'discount':0, 'discount_percentage':0, 'hsn_code':"", 'id':"", 'imeis':[], 'invoice_amount':"",
+      'mrp_price':"", 'order_id':"", 'quantity':0, 'shipment_date':"", 'sku_category':"", 'sku_class':"", 'sku_code':"",
+      'sku_size':"", 'tax':"0.00", 'tax_type':"", 'title':"", 'unit_price':"0.00", 'vat':0 }
+  
+      vm.model_data.data.push(empty_data);
     } else {
 	  var del_sku = vm.model_data.data[index];
 	  Service.apiCall("remove_sku/", "POST", del_sku).then(function(data) {

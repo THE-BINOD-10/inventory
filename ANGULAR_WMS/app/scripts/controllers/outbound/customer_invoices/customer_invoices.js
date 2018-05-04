@@ -227,7 +227,7 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
       return false;
     }
     vm.process = true;
-    var data = $("form:visible").serializeArray()
+    var data = $("form").serializeArray()
     Service.apiCall("update_invoice/", "POST", data).then(function(data) {
 
       if(data.message) {

@@ -14,7 +14,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service = Service;
     vm.self_life_ratio = Number(vm.permissions.shelf_life_ratio);
     vm.industry_type = Session.user_profile.industry_type;
-    vm.industry_type = 'FMCG';
+    // vm.industry_type = 'FMCG';
 
     //default values
     if(!vm.permissions.grn_scan_option) {

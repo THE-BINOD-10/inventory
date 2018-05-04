@@ -2391,7 +2391,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     if order_ids:
         sor_id = ''
         order_ids = list(set(order_ids.split(',')))
-        order_data = OrderDetail.objects.filter(id__in=order_ids)
+        order_data = OrderDetail.objects.filter(id__in=order_ids).exclude(status=3)
         seller_summary = SellerOrderSummary.objects.filter(
             Q(seller_order__order_id__in=order_ids) | Q(order_id__in=order_ids))
         if seller_summary:
@@ -2594,7 +2594,8 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 #         if imei:
                 #             temp_imeis.append(imei.po_imei.imei_number)
                 imei_data.append(temp_imeis)
-
+            if sku_code in [x['sku_code'] for x in data]:
+                continue
             data.append(
                 {'order_id': order_id, 'sku_code': sku_code, 'title': title, 'invoice_amount': str(invoice_amount),
                  'quantity': quantity, 'tax': "%.2f" % (_tax), 'unit_price': unit_price, 'tax_type': tax_type,

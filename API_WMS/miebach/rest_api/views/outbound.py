@@ -1785,6 +1785,21 @@ def create_shipment_entry(picklist):
     picklist.order.save()
 
 
+def remove_sku(request):
+    resp = {"message": "Updated Successfully"}
+    ord_det_id = request.POST.get('id', '')
+    if ord_det_id:
+        ord_qs = OrderDetail.objects.filter(id=ord_det_id)
+        if ord_qs:
+            ord_obj = ord_qs[0]
+            ord_obj.status = 3
+            ord_obj.save()
+            ord_obj.sellerordersummary_set.all().delete()
+    else:
+        resp = {"message": "Order does not exist"}
+    return HttpResponse(json.dumps(resp))
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -1803,13 +1818,74 @@ def update_invoice(request, user=''):
         order_reference = request.POST.get("order_reference", "")
         order_reference_date = request.POST.get("order_reference_date", "")
         ord_det_id = request.POST.get("id", "")
+        cm_id = request.POST.get("customer_id", "")
 
         myDict = dict(request.POST.iterlists())
         if invoice_date:
             invoice_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y").date()
         # order_id_val = ''.join(re.findall('\d+', order_ids))
         # order_code = ''.join(re.findall('\D+', order_ids))
-        ord_ids = OrderDetail.objects.filter(id__in=myDict['id'])
+        cm_obj = CustomerMaster.objects.filter(id=cm_id)
+        if not cm_obj:
+            log.info('No Proper Customer Object')
+            return HttpResponse(json.dumps({'message': 'failed'}))
+        else:
+            cm_obj = cm_obj[0]
+        customer_id = cm_obj.customer_id
+        customer_name = cm_obj.name
+        price_type = cm_obj.price_type
+        tax_type = cm_obj.tax_type
+        for index, ord_id in enumerate(myDict['id']):
+            if ord_id:
+                continue
+            else:
+                sku_id = myDict['sku_id'][index]
+                quantity = myDict['quantity'][index]
+                invoice_amount = myDict['invoice_amount'][index]
+                if invoice_amount == 'NaN':
+                    invoice_amount = 0
+                # unit_price = myDict['unit_price'][index]
+                org_ord_id = myDict['order_id'][0]
+                invoice_number = myDict['invoice_number'][0]
+                shipment_date = myDict['invoice_date'][0]
+                if shipment_date:
+                    ship_date = shipment_date.split('/')
+                    shipment_date = datetime.date(int(ship_date[2]), int(ship_date[0]), int(ship_date[1]))
+                order_id = org_ord_id.replace('MN', '')
+                address = myDict['ship_to'][0]
+                sku_qs = SKUMaster.objects.filter(sku_code=sku_id, user=user.id)
+                if not sku_qs:
+                    continue
+                else:
+                    sku_id = sku_qs[0].id
+                    title = sku_qs[0].sku_desc
+                    # product_type = sku_qs[0].product_type
+                    price_master_obj = PriceMaster.objects.filter(price_type=price_type, sku__id=sku_id)
+                    if price_master_obj:
+                        price_master_obj = price_master_obj[0]
+                        price = price_master_obj.price
+                    else:
+                        price = sku_qs[0].price
+                    # net_amount = price * int(quantity)
+                    # org_order_id = 'MN%s' % order_id
+                    order_detail_dict = {'sku_id': sku_id, 'title': title, 'quantity': quantity, 'order_id': order_id,
+                                         'original_order_id': org_ord_id, 'user': user.id, 'customer_id': customer_id,
+                                         'customer_name': customer_name, 'shipment_date': shipment_date,
+                                         'address': address, 'unit_price': price, 'invoice_amount': invoice_amount}
+                    # tax = get_tax_value(user, order_detail_dict, product_type, tax_type)
+                    # total_amount = ((net_amount * tax) / 100) + net_amount
+                    # order_detail_dict['invoice_amount'] = invoice_amount
+                    # order_detail_dict.pop('price')
+                    ord_obj = OrderDetail(**order_detail_dict)
+                    ord_obj.save()
+                    sos_dict = {'quantity': quantity, 'pick_number': 1,
+                                'creation_date': datetime.datetime.now(), 'order_id': ord_obj.id,
+                                'invoice_number': invoice_number, 'order_status_flag': 'customer_invoices'}
+                    sos_obj = SellerOrderSummary(**sos_dict)
+                    sos_obj.save()
+
+        existing_order_ids = [x for x in myDict['id'] if x]
+        ord_ids = OrderDetail.objects.filter(id__in=existing_order_ids)
         if ord_ids:
             update_dict = {}
             if order_reference:
@@ -1842,15 +1918,16 @@ def update_invoice(request, user=''):
 
             discount_percentage = 0
             unit_price_index = myDict['id'].index(str(order_id.id))
-            if order_id.unit_price != float(myDict['unit_price'][unit_price_index]):
-                cust_obj = order_id.customerordersummary_set.all()
-                if cust_obj:
-                    cust_obj = cust_obj[0]
-                    if (order_id.quantity * order_id.unit_price):
-                        discount_percentage = "%.1f" % (float((cust_obj.discount * 100) / (order_id.quantity * order_id.unit_price)))
-                order_id.unit_price = float(myDict['unit_price'][unit_price_index])
-                order_id.invoice_amount = float(myDict['invoice_amount'][unit_price_index])
-                order_id.save()
+            # if order_id.unit_price != float(myDict['unit_price'][unit_price_index]):
+            cust_obj = order_id.customerordersummary_set.all()
+            if cust_obj:
+                cust_obj = cust_obj[0]
+                if (order_id.quantity * order_id.unit_price):
+                    discount_percentage = "%.1f" % (float((cust_obj.discount * 100) / (order_id.quantity * order_id.unit_price)))
+            order_id.unit_price = float(myDict['unit_price'][unit_price_index])
+            order_id.invoice_amount = float(myDict['invoice_amount'][unit_price_index])
+            order_id.quantity = int(myDict['quantity'][unit_price_index])
+            order_id.save()
             cust_objs = CustomerOrderSummary.objects.filter(order__id=order_id.id)
             if cust_objs:
                 cust_obj = cust_objs[0]
@@ -1860,6 +1937,12 @@ def update_invoice(request, user=''):
                 if discount_percentage:
                     cust_obj.discount = ((order_id.quantity * order_id.unit_price)/100) * float(discount_percentage)
                 cust_obj.save()
+            sos_obj = SellerOrderSummary.objects.filter(order_id=order_id)
+            if sos_obj:
+                sos_obj = sos_obj[0]
+                sos_obj.quantity = int(myDict['quantity'][unit_price_index])
+                sos_obj.save()
+
 
         # Updating or Creating Order other charges Table
         for i in range(0, len(myDict.get('charge_name', []))):
@@ -4415,6 +4498,7 @@ def get_levels(request, user=''):
     for wh_level in wh_levels:
         levels.append({'warehouse_level': wh_level,
                        'level_name': get_level_name_with_level(user, wh_level, users_list=users_list)})
+    # levels.append({'warehouse_level': 3, 'level_name': 'L3-IntransitStock'})
     return HttpResponse(json.dumps(levels))
 
 
@@ -7353,7 +7437,7 @@ def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, o
                     invoice_number = invoice_number[0]
                 else:
                     invoice_number = ''
-                ordered_quantity = orders.filter(order_id=data['order__order_id']).aggregate(Sum('quantity'))[
+                ordered_quantity = orders.filter(order_id=data['order__order_id']).exclude(status=3).aggregate(Sum('quantity'))[
                     'quantity__sum']
             order_id = order.order_code + str(order.order_id)
             if order.original_order_id:
@@ -7671,7 +7755,8 @@ def update_dc(request, user=''):
                     order_detail_dict = {'sku_id': sku_id, 'title': title, 'quantity': each_sku['quantity'],
                                          'order_id': order_id, 'original_order_id': org_order_id, 'user': user.id,
                                          'customer_id': customer_id, 'customer_name': customer_name,
-                                         'shipment_date': shipment_date, 'address': address, 'price': price}
+                                         'shipment_date': shipment_date, 'address': address, 'price': price,
+                                         'unit_price': price}
                     tax = get_tax_value(user, order_detail_dict, product_type, tax_type)
                     total_amount = ((net_amount * tax) / 100) + net_amount
                     order_detail_dict['invoice_amount'] = total_amount
@@ -7680,7 +7765,7 @@ def update_dc(request, user=''):
                     ord_obj.save()
                     sos_dict = {'quantity': quantity, 'pick_number': pick_number,
                                 'creation_date': datetime.datetime.now(), 'order_id': ord_obj.id,
-                                'challan_number': challan_number}
+                                'challan_number': challan_number, 'order_status_flag': 'delivery_challans'}
                     sos_obj = SellerOrderSummary(**sos_dict)
                     sos_obj.save()
 
@@ -7710,10 +7795,10 @@ def move_to_dc(request, user=''):
     cancel_flag = request.GET.get('cancel', '')
     if cancel_flag == 'true':
         status_flag = 'processed_orders'
-        sell_ids = construct_sell_ids(request, user, status_flag='delivery_challans')
+        # sell_ids = construct_sell_ids(request, user)
     else:
         status_flag = 'delivery_challans'
-        sell_ids = construct_sell_ids(request, user)
+    sell_ids = construct_sell_ids(request, user)
     seller_summary = SellerOrderSummary.objects.filter(**sell_ids)
     chn_no, chn_sequence = get_challan_number(user, seller_summary)
     try:
@@ -7730,11 +7815,19 @@ def move_to_dc(request, user=''):
 @csrf_exempt
 @get_admin_user
 def move_to_inv(request, user=''):
+    cancel_flag = request.GET.get('cancel', '')
     sell_ids = construct_sell_ids(request, user)
     seller_summary = SellerOrderSummary.objects.filter(**sell_ids)
     try:
         for sel_obj in seller_summary:
-            sel_obj.order_status_flag = 'customer_invoices'
+            if cancel_flag == 'true':
+                if sel_obj.challan_number:
+                    status_flag = 'delivery_challans'
+                else:
+                    status_flag = 'processed_orders'
+            else:
+                status_flag = 'customer_invoices'
+            sel_obj.order_status_flag = status_flag
             sel_obj.save()
         return HttpResponse(json.dumps({'message': 'success'}))
     except Exception as e:

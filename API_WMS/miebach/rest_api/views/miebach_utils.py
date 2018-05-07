@@ -434,11 +434,13 @@ SHIPMENT_REPORT_DICT = {
         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+        {'label': 'Order ID', 'name': 'order_id', 'type': 'input'},
+        {'label': 'Customer ID', 'name': 'order_id', 'type': 'customer_search'}
     ],
     'dt_headers': ['Shipment Number' ,'Order ID', 'SKU Code', 'Title', 'Customer Name', 'Quantity', 'Shipped Quantity', 'Truck Number',
-                   'Date', 'Delivered', 'Courier Name', 'Payment Status'],
-    'dt_url': 'get_shipment_report', 'excel_name': 'stock_ledger_report',
-    'print_url': 'print_stock_ledger_report',
+                   'Date', 'Shipment Status', 'Courier Name', 'Payment Status', 'Pack Reference'],
+    'dt_url': 'get_shipment_report', 'excel_name': 'get_shipment_report',
+    'print_url': 'print_shipment_report',
 }
 
 REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report': OPEN_JO_REP_DICT,
@@ -928,7 +930,8 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'sales_returns_addition': 'get_returns_addition_data',
                         'seller_stock_summary_replace': 'get_seller_stock_summary_replace',
                         'rm_picklist_report': 'get_rm_picklist_data',
-                        'stock_ledger_report': 'get_stock_ledger_data'
+                        'stock_ledger_report': 'get_stock_ledger_data',
+                        'get_shipment_report': 'get_shipment_report_data',
                         }
 # End of Download Excel Report Mapping
 
@@ -3085,7 +3088,8 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
     search_parameters = {}
     lis = ['order_shipment__shipment_number', 'order__original_order_id', 'order__sku__sku_code', 'order__title',
            'order__customer_name',
-           'order__quantity', 'shipping_quantity', 'order_shipment__truck_number','creation_date', 'id', 'id', 'order__customerordersummary__payment_status']
+           'order__quantity', 'shipping_quantity', 'order_shipment__truck_number','creation_date', 'id', 'id',
+           'order__customerordersummary__payment_status', 'order_packaging__package_reference']
     search_parameters['order__user'] = user.id
     search_parameters['shipping_quantity__gt'] = 0
     search_parameters['order__sku_id__in'] = sku_master_ids
@@ -3102,29 +3106,29 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
         search_parameters['order__sku__sku_code'] = search_params['sku_code']
     if 'customer_id' in search_params:
         search_parameters['order__customer_id'] = search_params['customer_id']
-    if 'imei_number' in search_params and serial_view:
-        search_parameters['po_imei__imei_number'] = search_params['imei_number']
     if 'order_id' in search_params:
         order_detail = get_order_detail_objs(search_params['order_id'], user, search_params={}, all_order_objs=[])
         if order_detail:
             search_parameters['order_id__in'] = order_detail.values_list('id', flat=True)
         else:
             search_parameters['order_id__in'] = []
-        if serial_view:
-            order_ids = OrderIMEIMapping.objects.filter(order__user=user.id, status=1,
-                                                        order_reference=search_params['order_id']). \
-                values_list('order_id', flat=True)
-            search_parameters['order_id__in'] = list(chain(search_parameters['order_id__in'], order_ids))
 
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
     model_data = ShipmentInfo.objects.filter(**search_parameters).\
-                                    values('order_shipment__shipment_number', 'order__order_id',
+                                    values('order_shipment__shipment_number', 'order__order_id', 'id',
                                            'order__original_order_id', 'order__order_code', 'order__sku__sku_code',
                                            'order__title', 'order__customer_name', 'order__quantity', 'shipping_quantity',
                                            'order_shipment__truck_number', 'creation_date',
-                                           'order__customerordersummary__payment_status')
+                                           'order_shipment__courier_name',
+                                           'order__customerordersummary__payment_status',
+                                           'order_packaging__package_reference')
+
+    ship_search_params  = {}
+    for key, value in search_parameters.iteritems():
+        ship_search_params['shipment__%s' % key] = value
+    ship_status = dict(ShipmentTracking.objects.filter(**ship_search_params).values_list('shipment_id', 'ship_status'))
     if search_params.get('order_term'):
         order_data = lis[search_params['order_index']]
         if search_params['order_term'] == 'desc':
@@ -3148,6 +3152,10 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
                                                 ('Customer Name', data['order__customer_name']),
                                                 ('Quantity', data['order__quantity']),
                                                 ('Shipped Quantity', data['shipping_quantity']),
-                                                ('Truck Number', ''), ('Date', ' '.join(date)),
-                                                ('Delivered', ''), ('Courier Name', ''), ('Payment Status', data['order__customerordersummary__payment_status']))))
+                                                ('Truck Number', data['order_shipment__truck_number']),
+                                                ('Date', ' '.join(date)),
+                                                ('Shipment Status', ship_status.get(data['id'], '')),
+                                                ('Courier Name', data['order_shipment__courier_name']),
+                                                ('Payment Status', data['order__customerordersummary__payment_status']),
+                                                ('Pack Reference', data['order_packaging__package_reference']))))
     return temp_data

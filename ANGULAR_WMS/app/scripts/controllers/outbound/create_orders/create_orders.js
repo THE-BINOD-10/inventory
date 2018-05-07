@@ -12,12 +12,13 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
   vm.model_data = {}
   vm.auto_shipment = false;
   vm.date = new Date();
+  vm.payment_status = ['To Pay', 'VPP', 'Paid'];
 
   var empty_data = {data: [{sku_id: "", quantity: "", invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: "",
                             location: "", serials: [], serial: "", capacity: 0, discount: ""
                           }],
                     customer_id: "", payment_received: "", order_taken_by: "", other_charges: [],  shipment_time_slot: "",
-                    tax_type: "", blind_order: false, mode_of_transport: ""};
+                    tax_type: "", blind_order: false, mode_of_transport: "", payment_status: ""};
 
   angular.copy(empty_data, vm.model_data);
 

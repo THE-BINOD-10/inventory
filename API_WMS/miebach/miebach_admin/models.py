@@ -461,7 +461,6 @@ class StockDetail(models.Model):
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
-
     class Meta:
         db_table = 'STOCK_DETAIL'
         unique_together = ('receipt_number', 'receipt_date', 'sku', 'location', 'pallet_detail')

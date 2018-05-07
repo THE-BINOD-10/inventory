@@ -46,7 +46,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 	vm.dtColumns = [
         DTColumnBuilder.newColumn('WMS Code').withTitle('SKU Code'),
 		DTColumnBuilder.newColumn('Location').withTitle('Location'),
-        DTColumnBuilder.newColumn('Pallet Code').withTitle('Pallet Code').withOption('visible', 'false'),
+        DTColumnBuilder.newColumn('Pallet Code').withTitle('Pallet Code').withOption('visible', vm.pallet_switch),
         DTColumnBuilder.newColumn('Product Description').withTitle('Description'),
         DTColumnBuilder.newColumn('SKU Class').withTitle('SKU Class'),
         DTColumnBuilder.newColumn('SKU Category').withTitle('Category'),
@@ -86,14 +86,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 		vm.addition_edit = true;
         vm.button_edit = false;
     }
-	vm.inv_adj_save_qty = function(wms_code, available_qty, added_qty, sub_qty) {
-		console.log(wms_code, available_qty, added_qty, sub_qty)
-		var data = {}
-		data['wms_code'] = wms_code
-		data['available_qty'] = available_qty
-		data['added_qty'] = added_qty
-		data['sub_qty'] = sub_qty
-		vm.service.apiCall(Session.url+'inventory_adj_modify_qty/', 'POST', {'inventory_adj_data':data}).then(function(data) {
+	vm.inv_adj_save_qty = function(wms_code, sku_location, pallet_code, sku_category, sku_brand, sku_class, available_qty, old_available_qty, added_qty, sub_qty, receipt_number) {
+		var inventory_adj_data = {}
+		inventory_adj_data['wms_code'] = wms_code
+		inventory_adj_data['available_qty'] = available_qty
+        inventory_adj_data['old_available_qty'] = old_available_qty
+		inventory_adj_data['added_qty'] = added_qty
+		inventory_adj_data['sub_qty'] = sub_qty
+        inventory_adj_data['pallet_code'] = pallet_code
+        inventory_adj_data['location'] = sku_location
+        inventory_adj_data['sku_category'] = sku_category
+        inventory_adj_data['sku_brand'] = sku_brand
+        inventory_adj_data['sku_class'] = sku_class
+        inventory_adj_data['receipt_number'] = receipt_number
+		vm.service.apiCall('inventory_adj_modify_qty/', 'POST', inventory_adj_data).then(function(resp) {
            console.log(data);
         })
 	}

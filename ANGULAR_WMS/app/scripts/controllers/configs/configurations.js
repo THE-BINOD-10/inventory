@@ -458,6 +458,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       $(".stages").importTags(vm.model_data.all_stages);
       $(".extra_view_order_status").importTags(vm.model_data.extra_view_order_status);
       $(".invoice_types").importTags(vm.model_data.invoice_types);
+      $(".mode_of_transport").importTags(vm.model_data.mode_of_transport);
       if (vm.model_data.invoice_titles) {
         $(".titles").importTags(vm.model_data.invoice_titles);
       }
@@ -525,6 +526,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
   vm.update_invoice_type = function() {
     var data = $(".invoice_types").val();
     vm.service.apiCall("switches?invoice_types="+data).then(function(data){
+      if(data.message) {
+        msg = data.data;
+        $scope.showNoty();
+        Auth.status();
+      }
+    });
+  }
+
+  vm.update_mode_of_transport = function() {
+    var data = $(".mode_of_transport").val();
+    vm.service.apiCall("switches?mode_of_transport="+data).then(function(data){
       if(data.message) {
         msg = data.data;
         $scope.showNoty();

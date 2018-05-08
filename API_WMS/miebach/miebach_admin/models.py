@@ -651,6 +651,7 @@ class OrderShipment(models.Model):
     truck_number = models.CharField(max_length=64)
     shipment_reference = models.CharField(max_length=64)
     status = models.CharField(max_length=32)
+    courier_name = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -1288,6 +1289,7 @@ class CustomerOrderSummary(models.Model):
     invoice_type = models.CharField(max_length=64, default='Tax Invoice')
     client_name = models.CharField(max_length=64, default='')
     mode_of_transport = models.CharField(max_length=24, default='')
+    payment_status = models.CharField(max_length=64, default='')
 
     class Meta:
         db_table = 'CUSTOMER_ORDER_SUMMARY'

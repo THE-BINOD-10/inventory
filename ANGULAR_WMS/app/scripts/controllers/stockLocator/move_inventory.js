@@ -117,6 +117,12 @@
         $state.go('app.stockLocator.MoveInventory.Inventory');
       }
 
+      //vm.move_location_inventory = move_location_inventory;
+      vm.move_location_inventory = function() {
+        angular.copy(vm.empty_data, vm.model_data);
+        $state.go('app.stockLocator.MoveInventory.MoveLocationInventory');
+      };
+
       vm.close = close;
       function close() {
         vm.model_imei = {};
@@ -146,6 +152,24 @@
                 angular.extend(vm.model_data, vm.empty_data);
               } else {
                 Service.showNoty(data.data, 'warning');
+              }
+            }
+          });
+        }
+      }
+
+      vm.move_loc_submit = function move_loc_submit(data) {
+        if(data.$valid) {
+          var elem = angular.element($('form'));
+          elem = elem[0];
+          elem = $(elem).serializeArray();
+          vm.service.apiCall('confirm_move_location_inventory/', 'POST', elem, true).then(function(data){
+            if(data.message) {
+              if(data.data == "Moved Successfully") {
+                vm.close();
+                angular.extend(vm.model_data, vm.empty_data);
+              } else {
+               Service.showNoty(data.data, 'warning');
               }
             }
           });

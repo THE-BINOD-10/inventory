@@ -1796,6 +1796,7 @@ def validate_supplier_form(open_sheet, user_id):
 def supplier_excel_upload(request, open_sheet, user, demo_data=False):
     mapping_dict = copy.deepcopy(SUPPLIER_EXCEL_FIELDS)
     number_str_fields = ['pincode', 'phone_number', 'days_to_supply', 'fulfillment_amt']
+    rev_tax_types = dict(zip(TAX_TYPE_ATTRIBUTES.values(), TAX_TYPE_ATTRIBUTES.keys()))
     for row_idx in range(1, open_sheet.nrows):
         sku_code = ''
         wms_code = ''
@@ -1820,6 +1821,12 @@ def supplier_excel_upload(request, open_sheet, user, demo_data=False):
                 supplier_data['name'] = cell_data
                 if supplier_master and cell_data:
                     setattr(supplier_master, key, cell_data)
+            elif key == 'tax_type':
+                if cell_data:
+                    cell_data = rev_tax_types.get(cell_data, '')
+                supplier_data['tax_type'] = cell_data
+                if supplier_master and cell_data:
+                    supplier_master.tax_type = supplier_data['tax_type']
 
             elif key in number_str_fields:
                 if cell_data:

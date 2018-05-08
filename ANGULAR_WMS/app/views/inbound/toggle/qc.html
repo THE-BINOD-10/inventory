@@ -1,6 +1,6 @@
 <div id="page-pop" aria-hidden="false" aria-labelledby="myLargeModalLabel" role="dialog" tabindex="-1" id="po-modal" class="modal fade process-toggle in" style="display: block; padding-right: 13px;">
   <form id="confirm_quality_check">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog model-custom modal-lg" ng-style="showCase.extra_width">
       <div class="modal-content">
         <div ng-include="'views/common/loader.html'"></div>
         <div class="modal-header">
@@ -38,6 +38,11 @@
                     <th> Accepted Quantity </th>
                     <th> Rejected Quantity </th>
                     <th> Reason </th>
+                    <th ng-if="showCase.industry_type=='FMCG'">PO Unit Price</th>
+                    <th ng-if="showCase.industry_type=='FMCG'">MRP</th>
+                    <th ng-if="showCase.industry_type=='FMCG'">Batch No</th>
+                    <th ng-if="showCase.industry_type=='FMCG'">Mfg. Date</th>
+                    <th ng-if="showCase.industry_type=='FMCG'">Exp. Date</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -54,6 +59,13 @@
                       <input type="hidden" class="form-control" value="{{data.accept_imei.join(',')}}" name="accepted">
                       <input type="hidden" class="form-control" value="{{data.reject_imei.join(',')}}" name="rejected">
                     </td>
+                    <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.po_unit" size="22" title="{{ data.po_unit }}" name="po_unit" class="form-control" ng-init="data.po_unit=0" value="{{data.po_unit}}"></td>
+                    <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.mrp" size="22" title="{{ data.mrp }}" name="mrp" class="form-control" ng-init="data.mrp=0" value="{{data.mrp}}"></td>
+                    <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.batch_no" title="{{ data.batch_no }}" name="batch_no" class="form-control" value="{{data.batch_no}}"></td>
+                    <td ng-if="showCase.industry_type=='FMCG'">
+                      <input name="mfg_date" ui-jq="datepicker" size="33" title="{{ data.mfg_date }}" ng-model="data.mfg_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}"></td>
+                    <td ng-if="showCase.industry_type=='FMCG'">
+                      <input name="exp_date" ng-readonly="" ui-jq="datepicker" size="33" title="{{ data.exp_date }}" ng-model="data.exp_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}" ng-change="showCase.check_exp_date(data.exp_date, showCase.self_life_ratio)"></td>
                   </tr>
                 </tbody>
               </table>

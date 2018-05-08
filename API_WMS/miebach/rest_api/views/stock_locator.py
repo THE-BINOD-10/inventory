@@ -1632,17 +1632,56 @@ def get_inventory_modification(start_index, stop_index, temp_data, search_term, 
         quantity = total - reserved
         if quantity < 0:
             quantity = 0
-
+	if not pallet_code:
+	    pallet_code = ''
         temp_data['aaData'].append(OrderedDict((('WMS Code', data[0]), ('Product Description', data[1]),
                                                 ('SKU Category', data[2]), ('SKU Brand', data[3]),
 						('SKU Class', data[4]), ('Location', data[5]),
 						('Pallet Code', pallet_code),
-                                                ('Available Quantity', ('<input type="number" class="ng-hide form-control" name="available_qty" ng-hide="showCase.available_qty_edit" min="0" ng-model="showCase.available_qty_val_%s" ng-init="showCase.available_qty_val_%s=%s" limit-to-max><p ng-show="showCase.available_qty_edit">{{showCase.available_qty_val_%s}}</p>')%(str(ind), str(ind), str(int(quantity)), str(int(ind))) ), ('SKU Class', ''),
+                                                ('Available Quantity', ('<input type="number" class="ng-hide form-control" name="available_qty" ng-hide="showCase.available_qty_edit" min="0" ng-model="showCase.available_qty_val_%s" ng-init="showCase.available_qty_val_%s=%s" limit-to-max><p ng-show="showCase.available_qty_edit">%s</p>')%(str(ind), str(ind), str(int(quantity)), str(int(quantity))) ), ('SKU Class', ''),
                                                 ('Reserved Quantity', reserved), ('Total Quantity', total),
                                                 ('Unit of Measurement', sku.measurement_type),                                                ('DT_RowId', data[0]), ('Addition', ("<input type='number' class='form-control' name='addition' disabled='true' ng-disabled='showCase.addition_edit' value='0' min='0' ng-model='showCase.add_qty_val_%s' ng-init='showCase.add_qty_val_%s=0' limit-to-max>") % (str(ind), str(ind) )),
                                                 ('Reduction', ("<input class='form-control' type='number' name='reduction' ng-disabled='showCase.reduction_edit' disabled='true' value='0' min='0' max='%s' ng-model='showCase.sub_qty_val_%s' ng-init='showCase.sub_qty_val_%s=0' limit-to-max>" )%(str(int(quantity)), str(ind), str(ind)) ),
                                                 (' ', '<button type="button" name="submit" ng-click="showCase.inv_adj_save_qty('+"'"+str(ind)+"'"+', '+"'"+str(data[0])+"'"+', '+"'"+str(data[5])+"'"+', '+"'"+pallet_code+"'"+', '+"'"+data[2]+"'"+', '+"'"+data[3]+"'"+', '+"'"+data[4]+"'"+', showCase.available_qty_val_'+str(ind)+', '+"'"+str(int(quantity))+"'"+', showCase.add_qty_val_'+str(ind)+', showCase.sub_qty_val_'+str(ind)+')" ng-disabled="showCase.button_edit" disabled class="btn btn-primary ng-click-active" >Save</button>'))))
 
+
+def update_cycle_count_inventory_adjustment(user, sku_id, location_id, old_qty, new_qty, pallet_id):
+    data = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
+    if not data:
+        cycle_id = 1
+    else:
+        cycle_id = data[0].cycle + 1
+    data_dict = {}
+    data_dict['cycle'] = cycle_id
+    data_dict['sku_id'] = sku_id
+    data_dict['location_id'] = location_id
+    data_dict['quantity'] = old_qty
+    data_dict['seen_quantity'] = new_qty
+    data_dict['status'] = 0
+    data_dict['creation_date'] = str(datetime.datetime.now())
+    data_dict['updation_date'] = str(datetime.datetime.now())
+    dat = CycleCount(**data_dict)
+    dat.save()
+
+    data = {}
+    data['cycle_id'] = dat.id
+    data['adjusted_quantity'] = new_qty - old_qty
+    data['reason'] = ''
+    data['adjusted_location'] = location_id
+    data['creation_date'] = str(datetime.datetime.now())
+    data['updation_date'] = str(datetime.datetime.now())
+    inv_obj = InventoryAdjustment.objects.filter(cycle__cycle=dat.cycle, adjusted_location=location_id, cycle__sku__user=user.id)
+    if pallet_id:
+	data['pallet_detail_id'] = pallet_id
+	inv_obj = inv_obj.filter(pallet_detail_id = pallet_id)
+    if inv_obj:
+	inv_obj = inv_obj[0]
+	inv_obj.adjusted_quantity = quantity
+	inv_obj.save()
+	dat = inv_obj
+    else:
+	dat = InventoryAdjustment(**data)
+	dat.save()
 
 @csrf_exempt
 @login_required
@@ -1714,6 +1753,7 @@ def inventory_adj_modify_qty(request, user=''):
             stock_new_create['receipt_type'] = data_dict['receipt_type']
             message="Added Quantity Successfully"
             inventory_create_new = StockDetail.objects.create(**stock_new_create)
+            save_sku_stats(user, sku_id, inventory_create_new.id, 'inventory-adjustment', stock_new_create['quantity'])
         #Modify Available Qty
 	if old_available_qty != available_qty or sub_qty:
 	    stock_qty_update = {}
@@ -1739,6 +1779,8 @@ def inventory_adj_modify_qty(request, user=''):
                         if not idx:
                             ob.quantity = int(ob.quantity)+int(sub_qty)
                             ob.save()
+                            save_sku_stats(user, sku_id, ob.id, 'inventory-adjustment', int(ob.quantity)+int(sub_qty))
+                            update_cycle_count_inventory_adjustment(user, sku_id, location_id, old_available_qty, available_qty, pallet_id)
                             break
 		    if (available_qty - old_available_qty) < 0:
 			sub_qty = abs(sub_qty)
@@ -1757,10 +1799,14 @@ def inventory_adj_modify_qty(request, user=''):
 			if save_reduced_qty >= sub_qty:
 			    diff_qty = int(save_reduced_qty)-int(sub_qty)
 			    StockDetail.objects.filter(id=ob.id).update(quantity=diff_qty)
+                            save_sku_stats(user, sku_id, ob.id, 'inventory-adjustment', diff_qty)
+                            update_cycle_count_inventory_adjustment(user, sku_id, location_id, old_available_qty, available_qty, pallet_id)
 			    sub_qty = 0
 			elif save_reduced_qty:
 			    sub_qty = int(sub_qty)-int(save_reduced_qty)
 			    StockDetail.objects.filter(id=ob.id).update(quantity=0)
+                            save_sku_stats(user, sku_id, ob.id, 'inventory-adjustment', 0)
+                            update_cycle_count_inventory_adjustment(user, sku_id, location_id, old_available_qty, available_qty, pallet_id)
 			    continue
 			if not sub_qty:
 			    break
@@ -1785,10 +1831,14 @@ def inventory_adj_modify_qty(request, user=''):
                         diff_qty = int(save_reduced_qty)-int(sub_qty)
                         ob.quantiy = diff_qty
                         StockDetail.objects.filter(id=ob.id).update(quantity=diff_qty)
+                        save_sku_stats(user, sku_id, ob.id, 'inventory-adjustment', diff_qty)
+                        update_cycle_count_inventory_adjustment(user, sku_id, location_id, old_available_qty, available_qty, pallet_id)
                         sub_qty = 0
                     elif save_reduced_qty:
                         sub_qty = int(sub_qty)-int(save_reduced_qty)
                         StockDetail.objects.filter(id=ob.id).update(quantity=0)
+                        save_sku_stats(user, sku_id, ob.id, 'inventory-adjustment', 0)
+                        update_cycle_count_inventory_adjustment(user, sku_id, location_id, old_available_qty, available_qty, pallet_id)
                         continue
                     if not sub_qty:
                         break

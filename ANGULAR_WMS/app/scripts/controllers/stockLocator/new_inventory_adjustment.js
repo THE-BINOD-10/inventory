@@ -43,10 +43,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             }
         }).withPaginationType('full_numbers');
 
+	var pallet_column;
+	if (vm.pallet_switch) {
+		pallet_column = DTColumnBuilder.newColumn('Pallet Code').withTitle('Pallet Code');
+	} else {
+		pallet_column = DTColumnBuilder.newColumn('Pallet Code').withTitle('Pallet Code').notVisible();
+	}
+
 	vm.dtColumns = [
         DTColumnBuilder.newColumn('WMS Code').withTitle('SKU Code'),
 		DTColumnBuilder.newColumn('Location').withTitle('Location'),
-        DTColumnBuilder.newColumn('Pallet Code').withTitle('Pallet Code').withOption('visible', vm.pallet_switch),
+        pallet_column,
         DTColumnBuilder.newColumn('Product Description').withTitle('Description'),
         DTColumnBuilder.newColumn('SKU Class').withTitle('SKU Class'),
         DTColumnBuilder.newColumn('SKU Category').withTitle('Category'),
@@ -59,7 +66,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         DTColumnBuilder.newColumn(' ').withTitle(''),
     ];
 
-	vm.dtInstance = {};
+    vm.dtInstance = function(instance) {
+   		vm.dtInstance = instance
+	}
+
     vm.reloadData = reloadData;
 
     function reloadData () {
@@ -101,6 +111,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 		if ( (available_qty != parseInt(old_available_qty)) || (added_qty != 0) || (sub_qty != 0) ) {
 		  vm.service.apiCall('inventory_adj_modify_qty/', 'POST', inventory_adj_data).then(function(resp) {
             if (resp.data.status) {
+				vm.reloadData();
 				vm.addition_edit = true;
 				vm.button_edit = true;
 				vm.reduction_edit = true;

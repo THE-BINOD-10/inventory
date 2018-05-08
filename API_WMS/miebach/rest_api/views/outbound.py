@@ -4585,9 +4585,11 @@ def get_sku_catalogs(request, user=''):
         address_details = {}
         usr_obj = UserProfile.objects.get(user=request.user)
         import base64
-        logo_path = usr_obj.customer_logo.url
-        with open(logo_path, "rb") as image_file:
-            logo_image = base64.b64encode(image_file.read())
+        logo_image = ''
+        if usr_obj.customer_logo:
+            logo_path = usr_obj.customer_logo.url
+            with open(logo_path, "rb") as image_file:
+                logo_image = base64.b64encode(image_file.read())
         if bank_dets_check:
             bank_details = usr_obj.bank_details
         if addr_dets_check:

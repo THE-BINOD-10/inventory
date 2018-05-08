@@ -1570,7 +1570,7 @@ def get_inventory_modification(start_index, stop_index, temp_data, search_term, 
     raw_reserveds = map(lambda d: d['material_picklist__jo_material__material_code__wms_code'], raw_res_instances)
     raw_reserved_quantities = map(lambda d: d['rm_reserved'], raw_res_instances)
     pallet_misc_detail = get_misc_value('pallet_switch',user.id)
-    stock_detail_query_list = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_category', 'sku__sku_brand', 'sku__sku_class', 'location__location', 'receipt_number']
+    stock_detail_query_list = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_category', 'sku__sku_brand', 'sku__sku_class', 'location__location']
     if pallet_misc_detail=='true':
 	stock_detail_query_list.append('pallet_detail__pallet_code')
     if search_term:
@@ -1612,17 +1612,17 @@ def get_inventory_modification(start_index, stop_index, temp_data, search_term, 
 	pallet_misc_detail = get_misc_value('pallet_switch',user.id)
 	if pallet_misc_detail=='true':
 	    total = 0
-            if len(data) >= 8:
-                if data[8] != None:
-                    if len(data) > 8:
-                        total = data[8]
-	    pallet_code = data[7]
+            if len(data) >= 7:
+                if data[7] != None:
+                    if len(data) > 7:
+                        total = data[7]
+	    pallet_code = data[6]
 	else:
 	    total = 0
-	    if len(data) >= 7:
-		if data[7] != None:
-		    if len(data) > 7:
-			total = data[7]
+	    if len(data) >= 6:
+		if data[6] != None:
+		    if len(data) > 6:
+			total = data[6]
         sku = sku_master.get(wms_code=data[0], user=user.id)
         if data[0] in reserveds:
 	    reserved += float(reserved_quantities[reserveds.index(data[0])])
@@ -1637,11 +1637,11 @@ def get_inventory_modification(start_index, stop_index, temp_data, search_term, 
                                                 ('SKU Category', data[2]), ('SKU Brand', data[3]),
 						('SKU Class', data[4]), ('Location', data[5]),
 						('Pallet Code', pallet_code),
-                                                ('Available Quantity', ('<input type="number" class="ng-hide form-control" name="available_qty" ng-hide="showCase.available_qty_edit" min="0" ng-model="showCase.available_qty_val_%s" ng-init="showCase.available_qty_val_%s=%s" limit-to-max><p ng-show="showCase.available_qty_edit">%s</p>')%(str(ind), str(ind), str(int(quantity)), str(int(quantity))) ), ('SKU Class', ''),
+                                                ('Available Quantity', ('<input type="number" class="ng-hide form-control" name="available_qty" ng-hide="showCase.available_qty_edit" min="0" ng-model="showCase.available_qty_val_%s" ng-init="showCase.available_qty_val_%s=%s" limit-to-max><p ng-show="showCase.available_qty_edit">{{showCase.available_qty_val_%s}}</p>')%(str(ind), str(ind), str(int(quantity)), str(int(ind))) ), ('SKU Class', ''),
                                                 ('Reserved Quantity', reserved), ('Total Quantity', total),
                                                 ('Unit of Measurement', sku.measurement_type),                                                ('DT_RowId', data[0]), ('Addition', ("<input type='number' class='form-control' name='addition' disabled='true' ng-disabled='showCase.addition_edit' value='0' min='0' ng-model='showCase.add_qty_val_%s' ng-init='showCase.add_qty_val_%s=0' limit-to-max>") % (str(ind), str(ind) )),
                                                 ('Reduction', ("<input class='form-control' type='number' name='reduction' ng-disabled='showCase.reduction_edit' disabled='true' value='0' min='0' max='%s' ng-model='showCase.sub_qty_val_%s' ng-init='showCase.sub_qty_val_%s=0' limit-to-max>" )%(str(int(quantity)), str(ind), str(ind)) ),
-                                                (' ', '<button type="button" name="submit" ng-click="showCase.inv_adj_save_qty('+"'"+str(data[0])+"'"+', '+"'"+str(data[5])+"'"+', '+"'"+pallet_code+"'"+', '+"'"+data[2]+"'"+', '+"'"+data[3]+"'"+', '+"'"+data[4]+"'"+', showCase.available_qty_val_'+str(ind)+', '+"'"+str(int(quantity))+"'"+', showCase.add_qty_val_'+str(ind)+', showCase.sub_qty_val_'+str(ind)+', '+"'"+str(int(data[6]))+"'"+')" ng-disabled="showCase.button_edit" disabled class="btn btn-primary ng-click-active" >Save</button>'))))
+                                                (' ', '<button type="button" name="submit" ng-click="showCase.inv_adj_save_qty('+"'"+str(ind)+"'"+', '+"'"+str(data[0])+"'"+', '+"'"+str(data[5])+"'"+', '+"'"+pallet_code+"'"+', '+"'"+data[2]+"'"+', '+"'"+data[3]+"'"+', '+"'"+data[4]+"'"+', showCase.available_qty_val_'+str(ind)+', '+"'"+str(int(quantity))+"'"+', showCase.add_qty_val_'+str(ind)+', showCase.sub_qty_val_'+str(ind)+')" ng-disabled="showCase.button_edit" disabled class="btn btn-primary ng-click-active" >Save</button>'))))
 
 
 @csrf_exempt
@@ -1659,7 +1659,6 @@ def inventory_adj_modify_qty(request, user=''):
     modify_qty = int(request.POST.get('mod_qty', 0))
     available_qty = int(request.POST.get('available_qty', 0))
     old_available_qty = int(request.POST.get('old_available_qty', 0))
-    receipt_number = int(request.POST.get('receipt_number', 0))
     pallet_code_enabled = get_misc_value('pallet_switch', user.id)
     data_dict = {}
     data_dict['sku__wms_code']=wms_code
@@ -1701,7 +1700,6 @@ def inventory_adj_modify_qty(request, user=''):
         #For Add Qty and create new stock detail
         message = ''
         if added_qty:
-            import pdb;pdb.set_trace()
             stock_new_create = {}
             if location_id:
                 stock_new_create['location_id'] = location_id
@@ -1717,7 +1715,7 @@ def inventory_adj_modify_qty(request, user=''):
             message="Added Quantity Successfully"
             inventory_create_new = StockDetail.objects.create(**stock_new_create)
         #Modify Available Qty
-	if old_available_qty != available_qty:
+	if old_available_qty != available_qty or sub_qty:
 	    stock_qty_update = {}
 	    if location_id:
 		stock_qty_update['location_id'] = location_id
@@ -1725,13 +1723,74 @@ def inventory_adj_modify_qty(request, user=''):
 		stock_qty_update['sku_id'] = sku_id
 	    if pallet_id:
 		stock_qty_update['pallet_detail_id'] = pallet_id
-	    #stock_qty_update['receipt_date__regex'] = str(data_dict['receipt_date'].replace(tzinfo=None))
+	    stock_qty_update['receipt_date__regex'] = str(data_dict['receipt_date'].replace(tzinfo=None))
 	    stock_qty_update['receipt_type'] = data_dict['receipt_type']
-            stock_qty_update['receipt_number'] = receipt_number
 	    stock_qty_update['status'] = 1
+            stock_qty_update['sku__user'] = user.id
 	    inventory_update_adj = StockDetail.objects.filter(**stock_qty_update)
-            if inventory_update_adj:
+            if old_available_qty != available_qty and inventory_update_adj:
+                sub_qty = available_qty - old_available_qty
                 message="Available Quantity Updated Successfully"
-                inventory_update_adj.update(quantity=available_qty)
+                for idx, ob in enumerate(inventory_update_adj):
+                    reserve_qty = 0
+                    raw_reserve_qty = 0
+                    save_reduced_qty = 0
+		    if (available_qty - old_available_qty) > 0:
+                        if not idx:
+                            ob.quantity = int(ob.quantity)+int(sub_qty)
+                            ob.save()
+                            break
+		    if (available_qty - old_available_qty) < 0:
+			sub_qty = abs(sub_qty)
+			reserved_instances = PicklistLocation.objects.filter(status=1, stock__sku__user=user.id, stock=ob).values('stock__sku__wms_code').distinct().annotate(reserved=Sum('reserved'))
+			raw_res_instances = RMLocation.objects.filter(status=1, stock__sku__user=user.id, stock=ob).values('material_picklist__jo_material__material_code__wms_code').distinct().annotate(rm_reserved=Sum('reserved'))
+			reserve = map(lambda d: d['reserved'], reserved_instances)
+			if reserve:
+			    reserve_qty = reserve[0]
+			raw_reserve = map(lambda d: d['rm_reserved'], raw_res_instances)
+			if raw_reserve:
+                            raw_reserve_qty = raw_reserve[0]
+			total_reserve_qty = reserve_qty + raw_reserve_qty
+			obj_qty = ob.quantity
+			if obj_qty:
+                            save_reduced_qty = abs(obj_qty - total_reserve_qty)
+			if save_reduced_qty >= sub_qty:
+			    diff_qty = int(save_reduced_qty)-int(sub_qty)
+			    StockDetail.objects.filter(id=ob.id).update(quantity=diff_qty)
+			    sub_qty = 0
+			elif save_reduced_qty:
+			    sub_qty = int(sub_qty)-int(save_reduced_qty)
+			    StockDetail.objects.filter(id=ob.id).update(quantity=0)
+			    continue
+			if not sub_qty:
+			    break
+            elif sub_qty and inventory_update_adj:
+                for ob in inventory_update_adj:
+                    reserve_qty = 0
+                    raw_reserve_qty = 0
+                    save_reduced_qty = 0
+                    reserved_instances = PicklistLocation.objects.filter(status=1, stock__sku__user=user.id, stock=ob).values('stock__sku__wms_code').distinct().annotate(reserved=Sum('reserved'))
+                    raw_res_instances = RMLocation.objects.filter(status=1, stock__sku__user=user.id, stock=ob).values('material_picklist__jo_material__material_code__wms_code').distinct().annotate(rm_reserved=Sum('reserved'))
+                    reserve = map(lambda d: d['reserved'], reserved_instances)
+                    if reserve:
+                        reserve_qty = reserve[0]
+                    raw_reserve = map(lambda d: d['rm_reserved'], raw_res_instances)
+                    if raw_reserve:
+                        raw_reserve_qty = raw_reserve[0]
+                    total_reserve_qty = reserve_qty + raw_reserve_qty
+                    obj_qty = ob.quantity
+                    if obj_qty:
+                        save_reduced_qty = abs(obj_qty - total_reserve_qty)
+                    if save_reduced_qty >= sub_qty:
+                        diff_qty = int(save_reduced_qty)-int(sub_qty)
+                        ob.quantiy = diff_qty
+                        StockDetail.objects.filter(id=ob.id).update(quantity=diff_qty)
+                        sub_qty = 0
+                    elif save_reduced_qty:
+                        sub_qty = int(sub_qty)-int(save_reduced_qty)
+                        StockDetail.objects.filter(id=ob.id).update(quantity=0)
+                        continue
+                    if not sub_qty:
+                        break
     return HttpResponse(json.dumps({'status': True, 'message':message}))
 

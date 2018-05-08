@@ -41,6 +41,7 @@ urlpatterns = [
     url(r'^update_seller/$',update_seller),
     url(r'^cancel_order/$',cancel_order),
     url(r'^update_return/$',update_return),
-    url(r'^update_so/$',update_so),
+    url(r'^update_orders/$',update_orders),
+    url(r'^mp/update_orders/$',update_mp_orders),
+    url(r'^mp/get_inventory/$',get_mp_inventory),
 ]
-

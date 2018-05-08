@@ -4560,7 +4560,13 @@ def build_invoice(invoice_data, user, css=False):
     if len(invoice_data['hsn_summary'].keys()) == 0:
         invoice_data['perm_hsn_summary'] = 'false'
     invoice_data['empty_tds'] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    inv_height = 1200  # total invoice height
+    invoice_height = 1358
+    if 'side_image' in invoice_data.keys() and 'top_image' in invoice_data.keys():
+        if not invoice_data['side_image'] and invoice_data['top_image']:
+            invoice_height = 1250
+        if not invoice_data['top_image'] and invoice_data['side_image']:
+            invoice_height = 1358
+    inv_height = invoice_height  # total invoice height
     inv_details = 317  # invoice details height
     inv_footer = 95  # invoice footer height
     inv_totals = 127  # invoice totals height
@@ -4601,7 +4607,7 @@ def build_invoice(invoice_data, user, css=False):
         no_of_skus += 2
     '''
     invoice_data['empty_data'] = []
-    if (data_length > no_of_skus):
+    if (data_length >= no_of_skus):
 
         needed_space = inv_footer + inv_footer + inv_total
         if (perm_hsn_summary == 'true'):
@@ -4631,13 +4637,12 @@ def build_invoice(invoice_data, user, css=False):
         last = len(render_data) - 1
         data_length = len(render_data[last]['data'])
         empty_data = [""] * (no_of_skus - data_length)
-
         render_data[last]['empty_data'] = empty_data
-
         invoice_data['data'] = render_data
     else:
         temp = invoice_data['data']
         invoice_data['data'] = []
+        #empty_data = [""] * (no_of_skus - data_length)
         no_of_space = (13 - data_length)
         if no_of_space < 0:
             no_of_space = 0
@@ -6477,6 +6482,13 @@ def get_invoice_types(user):
     else:
         invoice_types = invoice_types.split(',')
     return invoice_types
+
+
+def get_mode_of_transport(user):
+    mode_of_transport = get_misc_value('mode_of_transport', user.id)
+    if mode_of_transport:
+        mode_of_transport = mode_of_transport.split(',')
+    return mode_of_transport
 
 
 def get_max_seller_transfer_id(user):

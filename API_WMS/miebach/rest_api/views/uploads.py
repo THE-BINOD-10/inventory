@@ -1761,6 +1761,10 @@ def validate_supplier_form(open_sheet, user_id):
             if key == 'id':
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))
+                if cell_data:
+                    supplier_master = SupplierMaster.objects.filter(id=cell_data)
+                    if supplier_master and not supplier_master[0].user == user_id:
+                        index_status.setdefault(row_idx, set()).add('Supplier ID Already exists')
                 if cell_data and cell_data in supplier_ids:
                     index_status.setdefault(row_idx, set()).add('Duplicate Supplier ID')
                     for index, data in enumerate(supplier_ids):
@@ -1791,7 +1795,7 @@ def validate_supplier_form(open_sheet, user_id):
 
 def supplier_excel_upload(request, open_sheet, user, demo_data=False):
     mapping_dict = copy.deepcopy(SUPPLIER_EXCEL_FIELDS)
-    number_str_fields = ['pincode', 'phone_number']
+    number_str_fields = ['pincode', 'phone_number', 'days_to_supply', 'fulfillment_amt']
     for row_idx in range(1, open_sheet.nrows):
         sku_code = ''
         wms_code = ''

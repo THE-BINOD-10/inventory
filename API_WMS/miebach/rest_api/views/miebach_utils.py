@@ -117,7 +117,7 @@ PO_SUGGESTIONS_DATA = {'supplier_id': '', 'sku_id': '', 'order_quantity': '', 'o
 PO_DATA = {'open_po_id': '', 'status': '', 'received_quantity': 0}
 
 ORDER_SHIPMENT_DATA = {'shipment_number': '', 'shipment_date': '', 'truck_number': '', 'shipment_reference': '',
-                       'status': 1}
+                       'status': 1, 'courier_name': ''}
 
 SKU_FIELDS = ((('WMS SKU Code *', 'wms_code', 60), ('Product Description *', 'sku_desc', 256)),
               (('SKU Type', 'sku_type', 60), ('Put Zone *', 'zone_id', 60)),
@@ -429,11 +429,25 @@ STOCK_LEDGER_REPORT_DICT = {
     'print_url': 'print_stock_ledger_report',
 }
 
+SHIPMENT_REPORT_DICT = {
+    'filters': [
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+        {'label': 'Order ID', 'name': 'order_id', 'type': 'input'},
+        {'label': 'Customer ID', 'name': 'order_id', 'type': 'customer_search'}
+    ],
+    'dt_headers': ['Shipment Number' ,'Order ID', 'SKU Code', 'Title', 'Customer Name', 'Quantity', 'Shipped Quantity', 'Truck Number',
+                   'Date', 'Shipment Status', 'Courier Name', 'Payment Status', 'Pack Reference'],
+    'dt_url': 'get_shipment_report', 'excel_name': 'get_shipment_report',
+    'print_url': 'print_shipment_report',
+}
+
 REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report': OPEN_JO_REP_DICT,
                      'sku_wise_po_report': SKU_WISE_PO_DICT,
                      'grn_report': GRN_DICT, 'seller_invoice_details': SELLER_INVOICE_DETAILS_DICT,
-                     'rm_picklist_report': RM_PICKLIST_REPORT_DICT, 'stock_ledger_report': STOCK_LEDGER_REPORT_DICT
-                     }
+                     'rm_picklist_report': RM_PICKLIST_REPORT_DICT, 'stock_ledger_report': STOCK_LEDGER_REPORT_DICT,
+                     'shipment_report': SHIPMENT_REPORT_DICT}
 
 SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', 'sku-wise', 1, 2, 'sku-wise-report'): (
 ['SKU Code', 'WMS Code', 'Product Description', 'SKU Category', 'Total Quantity'], (
@@ -916,7 +930,8 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'sales_returns_addition': 'get_returns_addition_data',
                         'seller_stock_summary_replace': 'get_seller_stock_summary_replace',
                         'rm_picklist_report': 'get_rm_picklist_data',
-                        'stock_ledger_report': 'get_stock_ledger_data'
+                        'stock_ledger_report': 'get_stock_ledger_data',
+                        'get_shipment_report': 'get_shipment_report_data',
                         }
 # End of Download Excel Report Mapping
 
@@ -990,7 +1005,7 @@ ORDERS_TRACK_STATUS = {0: 'Resolved', 1: "Conflict", 2: "Delete"}
 
 # Shotang Integration Mapping Dictionaries
 
-ORDER_DETAIL_API_MAPPING = {'id': 'order["itemId"]', 'order_id': 'uorId', 'items': 'orders',
+SELLER_ORDER_DETAIL_API_MAPPING = {'id': 'order["itemId"]', 'order_id': 'uorId', 'items': 'orders',
                             'channel': 'orders.get("channel", "Shotang")', 'order_items': 'orders["subOrders"]',
                             'sku': 'sku_item["sku"]',
                             'title': 'sku_item["name"]', 'quantity': 'sku_item["quantity"]',
@@ -1007,6 +1022,25 @@ ORDER_DETAIL_API_MAPPING = {'id': 'order["itemId"]', 'order_id': 'uorId', 'items
                             'seller_item_id': 'sku_item["lineItemId"]',
                             'seller_parent_item_id': 'sku_item["parentLineItemId"]'
                             }
+
+ORDER_DETAIL_API_MAPPING = {'order_id': 'order_id', 'items': 'orders',
+                            'channel': 'orders.get("source", "")',
+                            'sku': 'sku_item["sku"]',
+                            'title': 'sku_item["name"]', 'quantity': 'sku_item["quantity"]',
+                            'shipment_date': 'orders.get("orderDate", '')', 'channel_sku': 'sku_item["sku"]',
+                            'unit_price': 'sku_item["unitPrice"]', 'seller_id': 'order["sellerId"]',
+                            'sor_id': 'order["sorId"]', 'cgst_tax': 'sku_item.get("cgstTax", "0")',
+                            'sgst_tax': 'sku_item.get("sgstTax", "0")',
+                            'igst_tax': 'sku_item.get("igstTax", "0")', 'order_status': 'orders.get("order_status", "")',
+                            'line_items': 'order["lineItems"]', 'customer_id': 'orders.get("billing_address", {}).get("customer_id", "")',
+                            'customer_name': 'orders.get("billing_address", {}).get("name", "")',
+                            'telephone': '(orders.get("retailerAddress", {})).get("phoneNo", "")',
+                            'address': '(orders.get("retailerAddress", {})).get("address", "")',
+                            'city': '(orders.get("retailerAddress", {})).get("city", "")',
+                            'seller_item_id': 'sku_item["lineItemId"]',
+                            'seller_parent_item_id': 'sku_item["parentLineItemId"]'
+                            }
+
 
 ORDER_DETAIL_INGRAM_API_MAPPING = {'order_id': 'order_increment_id', 'order_status': '(orders["order_status"]).upper()',
                                    'items': 'orders',
@@ -1373,6 +1407,7 @@ CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
                      'invoice_marketplaces': 'invoice_marketplaces', 'serial_limit': 'serial_limit',
                      'extra_view_order_status': 'extra_view_order_status',
                      'invoice_types': 'invoice_types',
+                     'mode_of_transport': 'mode_of_transport',
                      }
 
 CONFIG_DEF_DICT = {'receive_options': dict(RECEIVE_OPTIONS),
@@ -1738,20 +1773,20 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False):
 
     for data in model_data:
         if not serial_view:
-            picked_quantity = data.picked_quantity
-            if data.stock.location.zone.zone == 'DEFAULT':
-                picked_quantity = 0
-            date = get_local_date(user, data.updation_date).split(' ')
-            order_id = data.order.original_order_id
-            if not order_id:
-                order_id = str(data.order.order_code) + str(data.order.order_id)
+            pick_locs = data.picklistlocation_set.exclude(reserved=0, quantity=0)
+            for pick_loc in pick_locs:
+                picked_quantity = pick_loc.quantity
+                date = get_local_date(user, data.updation_date).split(' ')
+                order_id = data.order.original_order_id
+                if not order_id:
+                    order_id = str(data.order.order_code) + str(data.order.order_id)
 
-            temp_data['aaData'].append(OrderedDict((('Order ID', order_id), ('WMS Code', data.stock.sku.wms_code),
-                                                    ('Description', data.stock.sku.sku_desc),
-                                                    ('Location', data.stock.location.location),
-                                                    ('Quantity', data.picked_quantity),
-                                                    ('Picked Quantity', picked_quantity),
-                                                    ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])))))
+                temp_data['aaData'].append(OrderedDict((('Order ID', order_id), ('WMS Code', data.stock.sku.wms_code),
+                                                        ('Description', data.stock.sku.sku_desc),
+                                                        ('Location', pick_loc.stock.location.location),
+                                                        ('Quantity', data.order.quantity),
+                                                        ('Picked Quantity', picked_quantity),
+                                                        ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])))))
         else:
             order_id = data.order.original_order_id
             if not order_id:
@@ -1911,6 +1946,7 @@ def get_po_filter_data(search_params, user, sub_user):
                          'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price', 'id',
                          'seller_po__receipt_type', 'receipt_number']
         excl_status = {'purchase_order__status': ''}
+        ord_quan = 'quantity'
         rec_quan = 'quantity'
         rec_quan1 = 'quantity'
     else:
@@ -1954,7 +1990,7 @@ def get_po_filter_data(search_params, user, sub_user):
     search_parameters[field_mapping['user']] = user.id
     search_parameters[field_mapping['sku_id__in']] = sku_master_ids
     query_data = model_name.objects.exclude(**excl_status).filter(**search_parameters)
-    model_data = query_data.values(*result_values).distinct().annotate(ordered_qty=Sum(rec_quan),
+    model_data = query_data.values(*result_values).distinct().annotate(ordered_qty=Sum(ord_quan),
                                                                        total_received=Sum(rec_quan),
                                                                        grn_rec=Sum(rec_quan1))
     col_num = search_params.get('order_index', 0)
@@ -3046,4 +3082,86 @@ def get_stock_ledger_data(search_params, user, sub_user):
                                  ('Adjustment Quantity', obj.adjustment_qty), ('Closing Stock', obj.closing_stock)
                                  )))
     temp_data['aaData'] = data
+    return temp_data
+
+
+def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
+    from miebach_admin.models import *
+    from miebach_admin.views import *
+    from rest_api.views.common import get_sku_master, get_order_detail_objs
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    search_parameters = {}
+    lis = ['order_shipment__shipment_number', 'order__original_order_id', 'order__sku__sku_code', 'order__title',
+           'order__customer_name',
+           'order__quantity', 'shipping_quantity', 'order_shipment__truck_number','creation_date', 'id', 'id',
+           'order__customerordersummary__payment_status', 'order_packaging__package_reference']
+    search_parameters['order__user'] = user.id
+    search_parameters['shipping_quantity__gt'] = 0
+    search_parameters['order__sku_id__in'] = sku_master_ids
+    temp_data = copy.deepcopy(AJAX_DATA)
+
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_parameters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'sku_code' in search_params:
+        search_parameters['order__sku__sku_code'] = search_params['sku_code']
+    if 'customer_id' in search_params:
+        search_parameters['order__customer_id'] = search_params['customer_id']
+    if 'order_id' in search_params:
+        order_detail = get_order_detail_objs(search_params['order_id'], user, search_params={}, all_order_objs=[])
+        if order_detail:
+            search_parameters['order_id__in'] = order_detail.values_list('id', flat=True)
+        else:
+            search_parameters['order_id__in'] = []
+
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    model_data = ShipmentInfo.objects.filter(**search_parameters).\
+                                    values('order_shipment__shipment_number', 'order__order_id', 'id',
+                                           'order__original_order_id', 'order__order_code', 'order__sku__sku_code',
+                                           'order__title', 'order__customer_name', 'order__quantity', 'shipping_quantity',
+                                           'order_shipment__truck_number', 'creation_date',
+                                           'order_shipment__courier_name',
+                                           'order__customerordersummary__payment_status',
+                                           'order_packaging__package_reference')
+
+    ship_search_params  = {}
+    for key, value in search_parameters.iteritems():
+        ship_search_params['shipment__%s' % key] = value
+    ship_status = dict(ShipmentTracking.objects.filter(**ship_search_params).values_list('shipment_id', 'ship_status').\
+                       distinct().order_by('creation_date'))
+    if search_params.get('order_term'):
+        order_data = lis[search_params['order_index']]
+        if search_params['order_term'] == 'desc':
+            order_data = "-%s" % order_data
+        model_data = model_data.order_by(order_data)
+
+    temp_data['recordsTotal'] = model_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    if stop_index:
+        model_data = model_data[start_index:stop_index]
+
+    for data in model_data:
+        order_id = data['order__original_order_id']
+        if not order_id:
+            order_id = data['order__order_code'] + str(data['order__order_id'])
+        date = get_local_date(user, data['creation_date']).split(' ')
+        temp_data['aaData'].append(OrderedDict((('Shipment Number', data['order_shipment__shipment_number']),
+                                                ('Order ID', order_id), ('SKU Code', data['order__sku__sku_code']),
+                                                ('Title', data['order__title']),
+                                                ('Customer Name', data['order__customer_name']),
+                                                ('Quantity', data['order__quantity']),
+                                                ('Shipped Quantity', data['shipping_quantity']),
+                                                ('Truck Number', data['order_shipment__truck_number']),
+                                                ('Date', ' '.join(date)),
+                                                ('Shipment Status', ship_status.get(data['id'], '')),
+                                                ('Courier Name', data['order_shipment__courier_name']),
+                                                ('Payment Status', data['order__customerordersummary__payment_status']),
+                                                ('Pack Reference', data['order_packaging__package_reference']))))
     return temp_data

@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 import copy
 import json
 from itertools import chain
@@ -23,6 +23,7 @@ from itertools import groupby
 import datetime
 import shutil
 from utils import *
+import os
 
 log = init_logger('logs/outbound.log')
 
@@ -2999,7 +3000,7 @@ def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, cus
     continue_list = ['payment_received', 'charge_name', 'charge_amount', 'custom_order', 'user_type', 'invoice_amount',
                      'description', 'extra_data', 'location', 'serials', 'direct_dispatch', 'seller_id', 'sor_id',
                      'ship_to', 'client_name', 'po_number', 'corporate_po_number', 'address_selected', 'is_sample',
-                     'invoice_type', 'default_shipment_addr', 'manual_shipment_addr', 'sample_client_name', 'mode_of_transport']
+                     'invoice_type', 'default_shipment_addr', 'manual_shipment_addr', 'sample_client_name', 'mode_of_transport', 'payment_status']
     inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
     order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
     sku_master = {}
@@ -3123,7 +3124,7 @@ def send_mail_ordered_report(order_detail, telephone, items, other_charge_amount
         headers = ['Product Details', 'Ordered Quantity', 'Total']
         data_dict = {'customer_name': order_data['customer_name'], 'order_id': order_detail.order_id,
                      'address': order_data['address'], 'phone_number': order_data['telephone'], 'items': items,
-                     'headers': headers, 'company_name': company_name, 'user': user, 'client_name': order_data['client_name']}
+                     'headers': headers, 'company_name': company_name, 'user': user, 'client_name': order_data.get('client_name', '')}
 
         t = loader.get_template('templates/order_confirmation.html')
         rendered = t.render(data_dict)
@@ -3187,6 +3188,7 @@ def insert_order_data(request, user=''):
 
     payment_mode = request.POST.get('payment_mode', '')
     payment_received = request.POST.get('payment_received', '')
+    payment_status = request.POST.get('payment_status', '')
     tax_percent = request.POST.get('tax', '')
     telephone = request.POST.get('telephone', '')
     custom_order = request.POST.get('custom_order', '')
@@ -3242,7 +3244,6 @@ def insert_order_data(request, user=''):
             if custom_order == 'true':
                 order_data['order_code'] = 'CO'
             order_data['user'] = user.id
-
             order_data['unit_price'] = 0
             order_data['sku_code'] = myDict['sku_id'][i]
             vendor_items = ['printing_vendor', 'embroidery_vendor', 'production_unit']
@@ -3256,6 +3257,8 @@ def insert_order_data(request, user=''):
             order_summary_dict['invoice_type'] = invoice_type
             order_summary_dict['client_name'] = sample_client_name
             order_summary_dict['mode_of_transport'] = mode_of_transport
+            order_summary_dict['payment_status'] = payment_status
+
             if admin_user:
                 if user_type == 'customer':
                     order_data = get_order_customer_details(order_data, request)
@@ -3263,6 +3266,7 @@ def insert_order_data(request, user=''):
                     order_data['warehouse_level'] = 0
                 stock_wh_map = split_orders(**order_data)
                 fetch_order_ids(stock_wh_map, user_order_ids_map)
+                
                 if not is_distributor and user_order_ids_map.has_key(user.id) and stock_wh_map.has_key(user.id):
                     order_data['order_id'] = user_order_ids_map[user.id]
                     order_data['user'] = user.id
@@ -4580,6 +4584,10 @@ def get_sku_catalogs(request, user=''):
         bank_details = ''
         address_details = {}
         usr_obj = UserProfile.objects.get(user=request.user)
+        import base64
+        logo_path = usr_obj.customer_logo.url
+        with open(logo_path, "rb") as image_file:
+            logo_image = base64.b64encode(image_file.read())
         if bank_dets_check:
             bank_details = usr_obj.bank_details
         if addr_dets_check:
@@ -4601,7 +4609,7 @@ def get_sku_catalogs(request, user=''):
                              'remarks': remarks, 'display_stock': display_stock, 'image': image,
                              'style_quantities': eval(request.POST.get('required_quantity', '{}')),
                              'terms_list': terms_list, 'pages': int(pages), 'style_count': len(data),
-                             'bank_details': bank_details, 'address_details': address_details})
+                             'bank_details': bank_details, 'address_details': address_details, 'logo_image':logo_image})
 
         if not os.path.exists('static/pdf_files/'):
             os.makedirs('static/pdf_files/')
@@ -5209,6 +5217,7 @@ def get_view_order_details(request, user=''):
             Q(order_id=order_id, order_code=order_code) | Q(original_order_id=main_id), user=user.id)
         if not row_id:
             row_id = order_details[0].id
+
     custom_data = OrderJson.objects.filter(order_id=row_id)
     status_obj = ''
     central_remarks = ''
@@ -5298,6 +5307,7 @@ def get_view_order_details(request, user=''):
         sgst_tax = 0
         cgst_tax = 0
         igst_tax = 0
+        payment_status = ''
         discount_percentage = 0
         if customer_order:
             client_name = customer_order[0].client_name
@@ -5305,6 +5315,7 @@ def get_view_order_details(request, user=''):
             cgst_tax = customer_order[0].cgst_tax
             igst_tax = customer_order[0].igst_tax
             discount_percentage = 0
+            payment_status = customer_order[0].payment_status
             if (quantity * unit_price):
                 discount_percentage = float(
                     "%.1f" % (float((customer_order[0].discount * 100) / (quantity * unit_price))))
@@ -5332,7 +5343,7 @@ def get_view_order_details(request, user=''):
              'sku_extra_data': sku_extra_data, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax, 'igst_tax': igst_tax,
              'unit_price': unit_price, 'discount_percentage': discount_percentage, 'taxes': taxes_data,
              'order_charges': order_charges,
-             'sku_status': one_order.status, 'client_name':client_name})
+             'sku_status': one_order.status, 'client_name':client_name, 'payment_status':payment_status})
 
     if status_obj in view_order_status:
         view_order_status = view_order_status[view_order_status.index(status_obj):]
@@ -5572,7 +5583,7 @@ def create_orders_data(request, user=''):
     tax_types = copy.deepcopy(TAX_VALUES)
     tax_types.append({'tax_name': 'DEFAULT', 'tax_value': ''})
     invoice_types = get_invoice_types(user)
-    mode_of_transport = ['By Air', 'By Road', 'By Train']
+    mode_of_transport = get_mode_of_transport(user)
     return HttpResponse(json.dumps({'payment_mode': PAYMENT_MODES, 'taxes': tax_types,
                                     'invoice_types': invoice_types, 'mode_of_transport': mode_of_transport }))
 
@@ -6112,6 +6123,7 @@ def update_order_data(request, user=""):
                 status_obj.tax_type = tax_type
                 status_obj.invoice_type = myDict['invoice_type'][0]
                 status_obj.client_name = client_name
+                status_obj.payment_status = myDict['payment_status'][0]
                 status_obj.save()
 
                 vendor_list = ['printing_vendor', 'embroidery_vendor', 'production_unit']
@@ -6161,7 +6173,7 @@ def picklist_delete(request, user=""):
                                             order_id__user=user.id)
     order_ids = picklist_objs.values_list('order_id', flat=True)
     order_objs = OrderDetail.objects.filter(id__in=order_ids, user=user.id)
-    log.info('Cancel Picklist request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    log.info('Cancel Picklist request params for ' + user.username + ' is ' + str(request.GET.dict()))
     cancelled_orders_dict = {}
     try:
         if key == "process":
@@ -8747,7 +8759,7 @@ def request_manual_enquiry_approval(request, user=''):
 @login_required
 @get_admin_user
 def update_cust_profile(request, user=''):
-    resp = {'message': 'success'}
+    resp = {'message': 'success', 'data':[]}
     logo = request.FILES.get('logo', '')
     user_id = request.POST.get('user_id', '')
     first_name = request.POST.get('first_name', '')
@@ -8772,11 +8784,15 @@ def update_cust_profile(request, user=''):
             exe_data.address = address
             exe_data.bank_details = bank_details
             if logo:
+                if exe_data.customer_logo:
+                    os.remove(os.path.join(settings.MEDIA_ROOT, exe_data.customer_logo.url))
                 exe_data.customer_logo = logo
             exe_data.save()
+            data = UserProfile.objects.filter(user_id=user_id)
+            resp['data'].append(data[0].customer_logo.url)
     except Exception as e:
         import traceback
         log.info("Error Occurred while updating the Customer Profile data: %s" %traceback.format_exc())
-        resp = {'message': 'fail'}
+        resp['message'] = 'fail'
 
     return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))

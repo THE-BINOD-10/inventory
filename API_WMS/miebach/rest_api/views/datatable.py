@@ -28,7 +28,9 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
     excel_mapping = copy.deepcopy(USER_SKU_EXCEL_MAPPING[user_profile.user_type])
     attributes = get_user_attributes(user, 'sku')
     attr_count = max(excel_mapping.values()) + 1
+    sku_attr_list = []
     for attr in attributes:
+        sku_attr_list.append(attr['attribute_name'])
         excel_mapping[attr['attribute_name']] = attr_count
         headers += [attr['attribute_name']]
         attr_count += 1
@@ -59,9 +61,9 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
         else:
             search_terms["status__icontains"] = "none"
     search_terms["user"] = user.id
-    sku_master = sku_master.filter(**search_terms)
+    sku_master = sku_master.prefetch_related('skuattributes_set').filter(**search_terms)
     sku_ids = sku_master.values_list('id', flat=True)
-    master_data = MarketplaceMapping.objects.exclude(sku_type='').filter(sku_id__in=sku_ids,
+    master_data = MarketplaceMapping.objects.exclude(sku_type='').select_related('sku').filter(sku_id__in=sku_ids,
                                                                          sku_type__in=marketplace_list)
     marketplaces = master_data.values_list('sku_type', flat=True).distinct()
     if master_data.count():
@@ -138,13 +140,32 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
         if excel_mapping.has_key('cost_price'):
             ws = write_excel(ws, data_count, excel_mapping['cost_price'], data.cost_price, file_type)
         ws = write_excel(ws, data_count, excel_mapping['status'], status_dict[str(int(data.status))], file_type)
-        for attr in attributes:
+        '''for attr in attributes:
             attr_val = ''
             if data.skuattributes_set.filter(attribute_name=attr['attribute_name']):
                 attr_val = data.skuattributes_set.filter(attribute_name=attr['attribute_name'])[0].attribute_value
             ws = write_excel(ws, data_count, excel_mapping[attr['attribute_name']], attr_val,
+                             file_type)'''
+        att_data = data.skuattributes_set.filter(attribute_name__in=sku_attr_list).values('attribute_name', 'attribute_value')
+        for attr in att_data:
+            ws = write_excel(ws, data_count, excel_mapping[attr['attribute_name']], attr['attribute_value'],
                              file_type)
-        market_map = master_data.filter(sku_id=data.id).values('sku_id', 'sku_type').distinct()
+        sku_types = data.marketplacemapping_set.exclude(sku_type='').filter().\
+                                                values_list('sku_type', flat=True).distinct()
+        for sku_type in sku_types:
+            map_dat = data.marketplacemapping_set.filter(sku_type=sku_type).\
+                                values('marketplace_code', 'description')
+            market_codes = map(operator.itemgetter('marketplace_code'), map_dat)
+            market_desc = map(operator.itemgetter('description'), map_dat)
+            indices = [i for i, s in enumerate(headers) if sku_type in s]
+            try:
+                ws = write_excel(ws, data_count, indices[0], ', '.join(market_codes), file_type)
+                ws = write_excel(ws, data_count, indices[1], ', '.join(market_desc), file_type)
+            except:
+                pass
+
+
+        '''market_map = master_data.filter(sku_id=data.id).values('sku_id', 'sku_type').distinct()
         for dat in market_map:
             # map_dat = market_map.values('marketplace_code', 'description')
             map_dat = market_map.filter(sku_type=dat['sku_type']).values('marketplace_code', 'description')
@@ -155,7 +176,7 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
                 ws = write_excel(ws, data_count, indices[0], ', '.join(market_codes), file_type)
                 ws = write_excel(ws, data_count, indices[1], ', '.join(market_desc), file_type)
             except:
-                pass
+                pass'''
         if file_type == 'csv':
             ws = ws[:-1] + '\n'
             wb.write(ws)

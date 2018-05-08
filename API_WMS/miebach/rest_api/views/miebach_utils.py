@@ -3128,7 +3128,8 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
     ship_search_params  = {}
     for key, value in search_parameters.iteritems():
         ship_search_params['shipment__%s' % key] = value
-    ship_status = dict(ShipmentTracking.objects.filter(**ship_search_params).values_list('shipment_id', 'ship_status'))
+    ship_status = dict(ShipmentTracking.objects.filter(**ship_search_params).values_list('shipment_id', 'ship_status').\
+                       distinct().order_by('creation_date'))
     if search_params.get('order_term'):
         order_data = lis[search_params['order_index']]
         if search_params['order_term'] == 'desc':

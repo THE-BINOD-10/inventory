@@ -1613,21 +1613,22 @@ def get_inventory_modification(start_index, stop_index, temp_data, search_term, 
 	if pallet_misc_detail=='true':
 	    total = 0
             if len(data) >= 8:
-                if data[7] != None:
-                    if len(data) > 7:
-                        total = data[7]
-	    pallet_code = data[6]
+                if data[8] != None:
+                    if len(data) > 8:
+                        total = data[8]
+	    pallet_code = data[7]
 	else:
 	    total = 0
 	    if len(data) >= 7:
-		if data[6] != None:
-		    if len(data) > 6:
-			total = data[6]
+		if data[7] != None:
+		    if len(data) > 7:
+			total = data[7]
         sku = sku_master.get(wms_code=data[0], user=user.id)
         if data[0] in reserveds:
 	    reserved += float(reserved_quantities[reserveds.index(data[0])])
         if data[0] in raw_reserveds:
 	    reserved += float(raw_reserved_quantities[raw_reserveds.index(data[0])])
+        total = total + reserved
         quantity = total - reserved
         if quantity < 0:
             quantity = 0
@@ -1673,7 +1674,6 @@ def inventory_adj_modify_qty(request, user=''):
         new_receipt_number = get_next_receipt_number['receipt_number__max'] + 1
     else:
         new_receipt_number = 1
-
     qty_obj = StockDetail.objects.filter(**data_dict).order_by('-updation_date')
     if qty_obj:
         qty_obj = qty_obj[0]
@@ -1699,7 +1699,9 @@ def inventory_adj_modify_qty(request, user=''):
         else:
             pallet_id = 0
         #For Add Qty and create new stock detail
+        message = ''
         if added_qty:
+            import pdb;pdb.set_trace()
             stock_new_create = {}
             if location_id:
                 stock_new_create['location_id'] = location_id
@@ -1712,7 +1714,9 @@ def inventory_adj_modify_qty(request, user=''):
             stock_new_create['receipt_number'] = data_dict['receipt_number']
             stock_new_create['receipt_date'] = data_dict['receipt_date']
             stock_new_create['receipt_type'] = data_dict['receipt_type']
+            message="Added Quantity Successfully"
             inventory_create_new = StockDetail.objects.create(**stock_new_create)
+        #Modify Available Qty
 	if old_available_qty != available_qty:
 	    stock_qty_update = {}
 	    if location_id:
@@ -1721,11 +1725,13 @@ def inventory_adj_modify_qty(request, user=''):
 		stock_qty_update['sku_id'] = sku_id
 	    if pallet_id:
 		stock_qty_update['pallet_detail_id'] = pallet_id
-	    stock_qty_update['receipt_date__regex'] = str(data_dict['receipt_date'].replace(tzinfo=None))
+	    #stock_qty_update['receipt_date__regex'] = str(data_dict['receipt_date'].replace(tzinfo=None))
 	    stock_qty_update['receipt_type'] = data_dict['receipt_type']
+            stock_qty_update['receipt_number'] = receipt_number
 	    stock_qty_update['status'] = 1
 	    inventory_update_adj = StockDetail.objects.filter(**stock_qty_update)
-	    import pdb;pdb.set_trace()
-	    inventory_update_adj[0].update(quantity=available_qty)
-    return HttpResponse('Success')
+            if inventory_update_adj:
+                message="Available Quantity Updated Successfully"
+                inventory_update_adj.update(quantity=available_qty)
+    return HttpResponse(json.dumps({'status': True, 'message':message}))
 

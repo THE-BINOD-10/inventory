@@ -1545,17 +1545,24 @@ def get_inventory_modification(start_index, stop_index, temp_data, search_term, 
     status_track = StatusTracking.objects.filter(status_type='JO', status_id__in=job_ids,status_value__in=extra_headers, quantity__gt=0). \
         values('status_value', 'status_id').distinct().annotate(total=Sum('quantity'))
     status_ids = map(lambda d: d.get('status_id', ''), status_track)
-    reserved_instances = PicklistLocation.objects.filter(status=1, stock__sku__user=user.id).values(
-        'stock__sku__wms_code'). \
+    pallet_misc_detail = get_misc_value('pallet_switch',user.id)
+    picklist_location_stock_query_list = ['stock__sku__wms_code', 'stock__location__location']
+    if pallet_misc_detail=='true':
+        picklist_location_stock_query_list.append('stock__pallet_detail__pallet_code')
+    reserved_instances = PicklistLocation.objects.filter(status=1, stock__sku__user=user.id).values(*picklist_location_stock_query_list). \
         distinct().annotate(reserved=Sum('reserved'))
+    rm_location_query_list = ['material_picklist__jo_material__material_code__wms_code', 'stock__location__location']
+    if pallet_misc_detail=='true':
+        rm_location_query_list.append('stock__pallet_detail__pallet_code')
     raw_res_instances = RMLocation.objects.filter(status=1, stock__sku__user=user.id). \
-        values('material_picklist__jo_material__material_code__wms_code').distinct(). \
+        values(*rm_location_query_list).distinct(). \
         annotate(rm_reserved=Sum('reserved'))
     reserveds = map(lambda d: d['stock__sku__wms_code'], reserved_instances)
+    reserveds_location = map(lambda d: d['stock__location__location'], reserved_instances)
     reserved_quantities = map(lambda d: d['reserved'], reserved_instances)
     raw_reserveds = map(lambda d: d['material_picklist__jo_material__material_code__wms_code'], raw_res_instances)
     raw_reserved_quantities = map(lambda d: d['rm_reserved'], raw_res_instances)
-    pallet_misc_detail = get_misc_value('pallet_switch',user.id)
+    raw_reserveds_location = map(lambda d: d['stock__location__location'], raw_res_instances)
     stock_detail_query_list = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_category', 'sku__sku_brand', 'sku__sku_class', 'location__location']
     if pallet_misc_detail=='true':
         stock_detail_query_list.append('pallet_detail__pallet_code')
@@ -1579,8 +1586,6 @@ def get_inventory_modification(start_index, stop_index, temp_data, search_term, 
         master_data = list(chain(master_data, master_data1))
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
-    reserveds = map(lambda d: d['stock__sku__wms_code'], reserved_instances)
-    reserved_quantities = map(lambda d: d['reserved'], reserved_instances)
     pallet_code = ''
     for ind, data in enumerate(master_data[start_index:stop_index]):
         reserved = 0
@@ -1599,10 +1604,12 @@ def get_inventory_modification(start_index, stop_index, temp_data, search_term, 
                     if len(data) > 6:
                         total = data[6]
         sku = sku_master.get(wms_code=data[0], user=user.id)
-        if data[0] in reserveds:
-            reserved += float(reserved_quantities[reserveds.index(data[0])])
-        if data[0] in raw_reserveds:
-            reserved += float(raw_reserved_quantities[raw_reserveds.index(data[0])])
+        if data[0] in reserveds and data[5] in reserveds_location:
+            if reserveds_location[reserveds.index(data[0])] == data[5]:
+                reserved += float(reserved_quantities[reserveds.index(data[0])])
+        if data[0] in raw_reserveds and data[5] in raw_reserveds_location:
+            if raw_reserveds_location[reserveds.index(data[0])] == data[5]:
+                reserved += float(raw_reserved_quantities[raw_reserveds.index(data[0])])
         total = total + reserved
         quantity = total - reserved
         if quantity < 0:
@@ -1615,7 +1622,7 @@ def get_inventory_modification(start_index, stop_index, temp_data, search_term, 
 						('Pallet Code', pallet_code),
                                                 ('Available Quantity', ('<input type="number" class="ng-hide form-control" name="available_qty" ng-hide="showCase.available_qty_edit" min="0" ng-model="showCase.available_qty_val_%s" ng-init="showCase.available_qty_val_%s=%s" limit-to-max><p ng-show="showCase.available_qty_edit">%s</p>')%(str(ind), str(ind), str(int(quantity)), str(int(quantity))) ), ('SKU Class', ''),
                                                 ('Reserved Quantity', reserved), ('Total Quantity', total),
-                                                ('Unit of Measurement', sku.measurement_type),                                                ('DT_RowId', data[0]), ('Addition', ("<input type='number' class='form-control' name='addition' disabled='true' ng-disabled='showCase.addition_edit' value='0' min='0' ng-model='showCase.add_qty_val_%s' ng-init='showCase.add_qty_val_%s=0' limit-to-max>") % (str(ind), str(ind) )),
+                                                ('Addition', ("<input type='number' class='form-control' name='addition' disabled='true' ng-disabled='showCase.addition_edit' value='0' min='0' ng-model='showCase.add_qty_val_%s' ng-init='showCase.add_qty_val_%s=0' limit-to-max>") % (str(ind), str(ind) )),
                                                 ('Reduction', ("<input class='form-control' type='number' name='reduction' ng-disabled='showCase.reduction_edit' disabled='true' value='0' min='0' max='%s' ng-model='showCase.sub_qty_val_%s' ng-init='showCase.sub_qty_val_%s=0' limit-to-max>" )%(str(int(quantity)), str(ind), str(ind)) ),
                                                 (' ', '<button type="button" name="submit" ng-click="showCase.inv_adj_save_qty('+"'"+str(ind)+"'"+', '+"'"+str(data[0])+"'"+', '+"'"+str(data[5])+"'"+', '+"'"+pallet_code+"'"+', showCase.available_qty_val_'+str(ind)+', '+"'"+str(int(quantity))+"'"+', showCase.add_qty_val_'+str(ind)+', showCase.sub_qty_val_'+str(ind)+')" ng-disabled="showCase.button_edit" disabled class="btn btn-primary ng-click-active" >Save</button>'))))
 
@@ -1753,7 +1760,7 @@ def inventory_adj_modify_qty(request, user=''):
                     if (available_qty - old_available_qty) < 0:
                         sub_qty = abs(sub_qty)
                         reserved_instances = PicklistLocation.objects.filter(status=1, stock__sku__user=user.id, stock=ob).values('stock__sku__wms_code').distinct().annotate(reserved=Sum('reserved'))
-                        raw_res_instances = RMLocation.objects.filter(status=1, stock__sku__user=user.id, stock=ob).values('material_picklist__jo_material__material_code__wms_code').distinct().annotate(rm_reserved=Sum('reserved'))
+                        raw_res_instances = RMLocation.objects.filter(status=1, stock__sku__user=user.id, stock=ob).values('stock__sku__wms_code').distinct().annotate(rm_reserved=Sum('reserved'))
                         reserve = map(lambda d: d['reserved'], reserved_instances)
                         if reserve:
                             reserve_qty = reserve[0]
@@ -1784,7 +1791,7 @@ def inventory_adj_modify_qty(request, user=''):
                     raw_reserve_qty = 0
                     save_reduced_qty = 0
                     reserved_instances = PicklistLocation.objects.filter(status=1, stock__sku__user=user.id, stock=ob).values('stock__sku__wms_code').distinct().annotate(reserved=Sum('reserved'))
-                    raw_res_instances = RMLocation.objects.filter(status=1, stock__sku__user=user.id, stock=ob).values('material_picklist__jo_material__material_code__wms_code').distinct().annotate(rm_reserved=Sum('reserved'))
+                    raw_res_instances = RMLocation.objects.filter(status=1, stock__sku__user=user.id, stock=ob).values('stock__sku__wms_code').distinct().annotate(rm_reserved=Sum('reserved'))
                     reserve = map(lambda d: d['reserved'], reserved_instances)
                     if reserve:
                         reserve_qty = reserve[0]

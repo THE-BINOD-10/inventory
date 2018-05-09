@@ -1717,8 +1717,8 @@ def inventory_adj_modify_qty(request, user=''):
             stock_new_create['quantity'] = data_dict['quantity']
             stock_new_create['status'] = 1
             stock_new_create['receipt_number'] = data_dict['receipt_number']
-            stock_new_create['receipt_date'] = data_dict['receipt_date']
-            stock_new_create['receipt_type'] = data_dict['receipt_type']
+            stock_new_create['receipt_date'] = datetime.datetime.now()
+            stock_new_create['receipt_type'] = ''
             message="Added Quantity Successfully"
             inventory_create_new = StockDetail.objects.create(**stock_new_create)
             save_sku_stats(user, sku_id, inventory_create_new.id, 'inventory-adjustment', stock_new_create['quantity'])

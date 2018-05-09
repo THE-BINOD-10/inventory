@@ -4263,6 +4263,11 @@ def generate_barcode_dict(pdf_format, myDict, user):
     barcodes_list = []
     user_prf = UserProfile.objects.filter(user_id=user.id)[0]
     barcode_opt = get_misc_value('barcode_generate_opt', user.id)
+    attribute_names = get_user_attributes(user, 'sku').values_list('attribute_name', flat=True)
+    format_type = "_".join(pdf_format.split("_")[:-1]) if "_" in pdf_format else (1, '60X30')
+    barcode_formats = BarcodeSettings.objects.filter(user=user_prf.user, format_type=str(format_type))
+    if barcode_formats:
+        show_fields = eval(barcode_formats[0].show_fields)
     for ind in range(0, len(myDict['wms_code'])):
         sku = myDict['wms_code'][ind]
         quant = myDict['quantity'][ind]
@@ -4275,6 +4280,11 @@ def generate_barcode_dict(pdf_format, myDict, user):
             else:
                 sku_data = SKUMaster.objects.filter(sku_code=sku, user=user.id)[0]
             single = {}  # copy.deepcopy(BARCODE_DICT[pdf_format])
+            for attribute_name in attribute_names:
+                if attribute_name in show_fields:
+                    attr_obj = sku_data.skuattributes_set.filter(attribute_name=attribute_name)
+                    if attr_obj.exists():
+                        single[attribute_name] = attr_obj[0].attribute_value
             single['SKUCode'] = sku if sku else label
             single['Label'] = label if label else sku
 

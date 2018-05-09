@@ -949,6 +949,7 @@ def switches(request, user=''):
                        'display_styles_price': 'display_styles_price',
                        'picklist_display_address': 'picklist_display_address',
                        'mode_of_transport': 'mode_of_transport',
+                       'show_purchase_history': 'show_purchase_history',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -5671,3 +5672,38 @@ def confirm_primary_segregation(request, user=''):
         log.debug(traceback.format_exc())
         log.info("Add Primary Segregation failed for params " + str(data_dict) + " and error statement is " + str(e))
         return HttpResponse("Add Segregation Failed")
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def last_transaction_details(request, user=''):
+    wms_code_list = request.POST.getlist('wms_code', [])
+    supplier_name_list = request.POST.getlist('supplier_id', [])
+    sku_wise_obj = PurchaseOrder.objects.filter(open_po__sku__wms_code__in=wms_code_list, open_po__sku__user=user.id).order_by('-creation_date')
+    supplier_wise_obj = sku_wise_obj.filter(open_po__supplier__id__in = supplier_name_list).order_by('-creation_date')
+    sku_wise_list = []
+    supplier_wise_list = []
+    for data in sku_wise_obj[0:3]:
+        data_dict = {}
+        data_dict['total_tax'] = data.open_po.sgst_tax + data.open_po.igst_tax + data.open_po.cgst_tax + data.open_po.utgst_tax
+        data_dict['po_date'] = str(data.po_date)
+        data_dict['supplier_name'] = data.open_po.supplier.name
+        data_dict['received_quantity'] = data.received_quantity
+        data_dict['price'] = data.open_po.price
+        data_dict['po_number'] = get_po_reference(data)
+        sku_wise_list.append(data_dict)
+    for data in supplier_wise_obj[0:3]:
+        supplier_data_dict = {}
+        supplier_data_dict['total_tax'] = data.open_po.sgst_tax + data.open_po.igst_tax + data.open_po.cgst_tax + data.open_po.utgst_tax
+        supplier_data_dict['po_date'] = str(data.po_date)
+        supplier_data_dict['supplier_name'] = data.open_po.supplier.name
+        supplier_data_dict['received_quantity'] = data.received_quantity
+        supplier_data_dict['price'] = data.open_po.price
+        supplier_data_dict['po_number'] = get_po_reference(data)
+        supplier_wise_list.append(supplier_data_dict)
+    data_resp = {}
+    data_resp['sku_wise_table_data'] = sku_wise_list
+    data_resp['wms_code_list'] = wms_code_list
+    data_resp['supplier_wise_table_data'] = supplier_wise_list
+    return HttpResponse(json.dumps(data_resp))
+

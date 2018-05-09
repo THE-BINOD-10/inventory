@@ -7,6 +7,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
     var vm = this;
     vm.permissions = Session.roles.permissions;
     vm.service = Service;
+    vm.industry_type = Session.user_profile.industry_type;
+    vm.extra_width = {};
+
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -44,6 +47,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
             $scope.$apply(function() {
                 vm.service.apiCall('get_received_orders/', 'GET', {supplier_id: aData.DT_RowAttr["data-id"]}).then(function(data){
                   if(data.message) {
+                    
+                    if(vm.industry_type == 'FMCG'){
+                      vm.extra_width = {
+                        'width': '1200px'
+                      };
+                    } else {
+                      vm.extra_width = {};
+                    }
+
                     change_data(data.data);
                     $state.go('app.inbound.PutAwayConfirmation.confirmation');
                   }

@@ -79,25 +79,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         return nRow;
     }
 
-    vm.check_exp_date = function(sel_date){
-      var mfg_date = new Date(vm.model_data.data[0].mfg_date);
-      var exp_date = new Date(sel_date);
-
-      if (exp_date < mfg_date && vm.model_data.data[0].mfg_date) {
-        vm.service.showNoty('Your selected date is less than manufacturer date.');
-        vm.model_data.data[0].exp_date = '';
-      } else if(!vm.model_data.data[0].mfg_date){
-
-        vm.service.showNoty('Please choose manufacturer date first');
-        vm.model_data.data[0].exp_date = '';
-      } else {
-        if(new Date() > exp_date){
-          vm.service.showNoty('Please choose proper date');
-          vm.model_data.data[0].exp_date = '';
-        }
-      }
-    }
-
     vm.filter_enable = true;
     vm.bt_enable = false;
     var empty_data ={};

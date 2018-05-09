@@ -1642,7 +1642,7 @@ def get_inventory_modification(start_index, stop_index, temp_data, search_term, 
                                                 ('Reserved Quantity', reserved), ('Total Quantity', total),
                                                 ('Unit of Measurement', sku.measurement_type),                                                ('DT_RowId', data[0]), ('Addition', ("<input type='number' class='form-control' name='addition' disabled='true' ng-disabled='showCase.addition_edit' value='0' min='0' ng-model='showCase.add_qty_val_%s' ng-init='showCase.add_qty_val_%s=0' limit-to-max>") % (str(ind), str(ind) )),
                                                 ('Reduction', ("<input class='form-control' type='number' name='reduction' ng-disabled='showCase.reduction_edit' disabled='true' value='0' min='0' max='%s' ng-model='showCase.sub_qty_val_%s' ng-init='showCase.sub_qty_val_%s=0' limit-to-max>" )%(str(int(quantity)), str(ind), str(ind)) ),
-                                                (' ', '<button type="button" name="submit" ng-click="showCase.inv_adj_save_qty('+"'"+str(ind)+"'"+', '+"'"+str(data[0])+"'"+', '+"'"+str(data[5])+"'"+', '+"'"+pallet_code+"'"+', '+"'"+data[2]+"'"+', '+"'"+data[3]+"'"+', '+"'"+data[4]+"'"+', showCase.available_qty_val_'+str(ind)+', '+"'"+str(int(quantity))+"'"+', showCase.add_qty_val_'+str(ind)+', showCase.sub_qty_val_'+str(ind)+')" ng-disabled="showCase.button_edit" disabled class="btn btn-primary ng-click-active" >Save</button>'))))
+                                                (' ', '<button type="button" name="submit" ng-click="showCase.inv_adj_save_qty('+"'"+str(ind)+"'"+', '+"'"+str(data[0])+"'"+', '+"'"+str(data[5])+"'"+', '+"'"+pallet_code+"'"+', '+"'"+data[3]+"'"+', '+"'"+data[4]+"'"+', showCase.available_qty_val_'+str(ind)+', '+"'"+str(int(quantity))+"'"+', showCase.add_qty_val_'+str(ind)+', showCase.sub_qty_val_'+str(ind)+')" ng-disabled="showCase.button_edit" disabled class="btn btn-primary ng-click-active" >Save</button>'))))
 
 
 def update_cycle_count_inventory_adjustment(user, sku_id, location_id, old_qty, new_qty, pallet_id):
@@ -1692,7 +1692,6 @@ def inventory_adj_modify_qty(request, user=''):
     pallet_code = request.POST.get('pallet_code', '')
     sku_class = request.POST.get('sku_class', '')
     sku_brand = request.POST.get('sku_brand', '')
-    sku_category = request.POST.get('sku_category', '')
     added_qty = int(request.POST.get('added_qty', 0))
     sub_qty = int(request.POST.get('sub_qty', 0))
     modify_qty = int(request.POST.get('mod_qty', 0))
@@ -1702,7 +1701,6 @@ def inventory_adj_modify_qty(request, user=''):
     data_dict = {}
     data_dict['sku__wms_code']=wms_code
     data_dict['location__location']=sku_location
-    data_dict['sku__sku_category']=sku_category
     data_dict['sku__sku_brand']=sku_brand
     data_dict['sku__sku_class']=sku_class
     if pallet_code_enabled == 'true':

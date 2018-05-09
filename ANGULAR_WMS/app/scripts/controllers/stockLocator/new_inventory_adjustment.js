@@ -95,7 +95,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 		vm.addition_edit = true;
         vm.button_edit = false;
     }
-	vm.inv_adj_save_qty = function(id, wms_code, sku_location, pallet_code, sku_category, sku_brand, sku_class, available_qty, old_available_qty, added_qty, sub_qty, receipt_number) {
+	vm.inv_adj_save_qty = function(id, wms_code, sku_location, pallet_code, sku_brand, sku_class, available_qty, old_available_qty, added_qty, sub_qty, receipt_number) {
 		var inventory_adj_data = {}
 		inventory_adj_data['wms_code'] = wms_code
 		inventory_adj_data['available_qty'] = available_qty
@@ -104,19 +104,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 		inventory_adj_data['sub_qty'] = sub_qty
         inventory_adj_data['pallet_code'] = pallet_code
         inventory_adj_data['location'] = sku_location
-        inventory_adj_data['sku_category'] = sku_category
         inventory_adj_data['sku_brand'] = sku_brand
         inventory_adj_data['sku_class'] = sku_class
         inventory_adj_data['receipt_number'] = receipt_number
 		if ( (available_qty != parseInt(old_available_qty)) || (added_qty != 0) || (sub_qty != 0) ) {
-		  vm.service.apiCall('inventory_adj_modify_qty/', 'POST', inventory_adj_data).then(function(resp) {
-            if (resp.data.status) {
+			vm.service.apiCall('inventory_adj_modify_qty/', 'POST', inventory_adj_data).then(function(resp) {
+              if (resp.data.status) {
 				vm.reloadData();
 				vm.addition_edit = true;
 				vm.button_edit = true;
 				vm.reduction_edit = true;
 				vm.available_qty_edit = true;
-            }
+              }
           })
 		}
 	}

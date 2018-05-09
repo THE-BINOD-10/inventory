@@ -1535,16 +1535,7 @@ def confirm_sku_substitution(request, user=''):
 @csrf_exempt
 def get_inventory_modification(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
-    lis = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_brand', 'sku__sku_category', 'total', 'total', 'total',
-           'sku__measurement_type']
-    lis1 = ['product_code__wms_code', 'product_code__sku_desc', 'product_code__sku_brand', 'product_code__sku_category',
-            'total',
-            'total', 'total', 'product_code__measurement_type']
-    sort_cols = ['WMS Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Quantity', 'Reserved Quantity',
-                 'Total Quantity',
-                 'Unit of Measurement']
-    lis2 = ['wms_code', 'sku_desc', 'sku_brand', 'sku_category', 'threshold_quantity', 'threshold_quantity',
-            'threshold_quantity', 'measurement_type']
+    lis = ['sku__wms_code', 'location', 'pallet_detail__pallet_code', 'sku__sku_desc', 'sku__sku_class', 'sku__sku_category' , 'sku__sku_brand']
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -1592,14 +1583,6 @@ def get_inventory_modification(start_index, stop_index, temp_data, search_term, 
             'product_code__sku_desc', 'product_code__sku_category', 'product_code__sku_brand', 'product_code__sku_class').distinct()
 	master_data = list(chain(master_data, master_data1))
 
-    #zero_quantity = sku_master.exclude(wms_code__in=wms_codes).filter(user=user.id)
-    #if search_term:
-    #    zero_quantity = zero_quantity.filter(
-    #        Q(wms_code__icontains=search_term) | Q(sku_desc__icontains=search_term) | Q(
-    #            sku_category__icontains=search_term))
-
-    #zero_quantity = zero_quantity.values_list('wms_code', 'sku_desc', 'sku_category', 'sku_brand', 'skuquantity')
-    #master_data = list(chain(master_data, zero_quantity))
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
@@ -1608,7 +1591,6 @@ def get_inventory_modification(start_index, stop_index, temp_data, search_term, 
     pallet_code = ''
     for ind, data in enumerate(master_data[start_index:stop_index]):
         reserved = 0
-        # total = data[4] if len(data) > 4 else 0
 	pallet_misc_detail = get_misc_value('pallet_switch',user.id)
 	if pallet_misc_detail=='true':
 	    total = 0
@@ -1642,7 +1624,7 @@ def get_inventory_modification(start_index, stop_index, temp_data, search_term, 
                                                 ('Reserved Quantity', reserved), ('Total Quantity', total),
                                                 ('Unit of Measurement', sku.measurement_type),                                                ('DT_RowId', data[0]), ('Addition', ("<input type='number' class='form-control' name='addition' disabled='true' ng-disabled='showCase.addition_edit' value='0' min='0' ng-model='showCase.add_qty_val_%s' ng-init='showCase.add_qty_val_%s=0' limit-to-max>") % (str(ind), str(ind) )),
                                                 ('Reduction', ("<input class='form-control' type='number' name='reduction' ng-disabled='showCase.reduction_edit' disabled='true' value='0' min='0' max='%s' ng-model='showCase.sub_qty_val_%s' ng-init='showCase.sub_qty_val_%s=0' limit-to-max>" )%(str(int(quantity)), str(ind), str(ind)) ),
-                                                (' ', '<button type="button" name="submit" ng-click="showCase.inv_adj_save_qty('+"'"+str(ind)+"'"+', '+"'"+str(data[0])+"'"+', '+"'"+str(data[5])+"'"+', '+"'"+pallet_code+"'"+', '+"'"+data[3]+"'"+', '+"'"+data[4]+"'"+', showCase.available_qty_val_'+str(ind)+', '+"'"+str(int(quantity))+"'"+', showCase.add_qty_val_'+str(ind)+', showCase.sub_qty_val_'+str(ind)+')" ng-disabled="showCase.button_edit" disabled class="btn btn-primary ng-click-active" >Save</button>'))))
+                                                (' ', '<button type="button" name="submit" ng-click="showCase.inv_adj_save_qty('+"'"+str(ind)+"'"+', '+"'"+str(data[0])+"'"+', '+"'"+str(data[5])+"'"+', '+"'"+pallet_code+"'"+', showCase.available_qty_val_'+str(ind)+', '+"'"+str(int(quantity))+"'"+', showCase.add_qty_val_'+str(ind)+', showCase.sub_qty_val_'+str(ind)+')" ng-disabled="showCase.button_edit" disabled class="btn btn-primary ng-click-active" >Save</button>'))))
 
 
 def update_cycle_count_inventory_adjustment(user, sku_id, location_id, old_qty, new_qty, pallet_id):
@@ -1690,8 +1672,6 @@ def inventory_adj_modify_qty(request, user=''):
     wms_code = request.POST.get('wms_code', '')
     sku_location = request.POST.get('location', '')
     pallet_code = request.POST.get('pallet_code', '')
-    sku_class = request.POST.get('sku_class', '')
-    sku_brand = request.POST.get('sku_brand', '')
     added_qty = int(request.POST.get('added_qty', 0))
     sub_qty = int(request.POST.get('sub_qty', 0))
     modify_qty = int(request.POST.get('mod_qty', 0))
@@ -1701,15 +1681,14 @@ def inventory_adj_modify_qty(request, user=''):
     data_dict = {}
     data_dict['sku__wms_code']=wms_code
     data_dict['location__location']=sku_location
-    data_dict['sku__sku_brand']=sku_brand
-    data_dict['sku__sku_class']=sku_class
-    if pallet_code_enabled == 'true':
+    if pallet_code_enabled == 'true' and pallet_code:
         data_dict['pallet_detail__pallet_code'] = pallet_code
     get_next_receipt_number = StockDetail.objects.filter(sku__user=user.id).aggregate(Max('receipt_number'))
     if get_next_receipt_number:
         new_receipt_number = get_next_receipt_number['receipt_number__max'] + 1
     else:
         new_receipt_number = 1
+    message = ''
     qty_obj = StockDetail.objects.filter(**data_dict).order_by('-updation_date')
     if qty_obj:
         qty_obj = qty_obj[0]
@@ -1735,7 +1714,7 @@ def inventory_adj_modify_qty(request, user=''):
         else:
             pallet_id = 0
         #For Add Qty and create new stock detail
-        message = ''
+
         if added_qty:
             stock_new_create = {}
             if location_id:

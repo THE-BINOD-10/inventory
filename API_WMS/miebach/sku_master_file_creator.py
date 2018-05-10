@@ -14,6 +14,7 @@ django.setup()
 from django.db.models import Sum
 
 from miebach_admin.models import *
+from rest_api.views.common import *
 from dict_to_txt import text_file_creator
 
 def get_user_sku_data(user):
@@ -58,7 +59,7 @@ def get_user_sku_data(user):
       if discount_percentage:
          discount_price = price - ((price * discount_percentage) / 100)
       stock_quantity = stocks.get(data.wms_code, 0)
-      total_data.append({'search': str(data.wms_code) + " " + data.sku_desc + " " + str(data.ean_number),
+      total_data.append({'search': str(xcode(data.wms_code)) + " " + xcode(data.sku_desc) + " " + str(data.ean_number),
                          'SKUCode': data.wms_code,
                          'ProductDescription': data.sku_desc,
                          'ean_number': str(data.ean_number),

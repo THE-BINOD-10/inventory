@@ -215,6 +215,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             vm.default_status = false;
             vm.model_data.data[vm.model_data.data.length - 1].fields.dedicated_seller = vm.selected_seller;
             vm.getCompany();
+			vm.populate_last_transaction('')
           }
           vm.model_data.receipt_type = 'Purchase Order';
           if (Session.user_profile.user_type == 'marketplace_user') {
@@ -223,9 +224,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           $state.go('app.inbound.RaisePo.PurchaseOrder');
 
         }
-
       });
-
     }
 
     vm.update_data = function (index) {
@@ -619,24 +618,28 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     vm.populate_last_transaction = function(delete_obj) {
       vm.last_transaction_details = {}
-	  var elem = angular.element($('form').find('input[name=supplier_id]'));
+	  var elem = angular.element($('form').find('input[name=supplier_id], select[name=seller_id]'));
       elem = $(elem).serializeArray();
       var wms_code_flag = true;
 	  if (delete_obj == 'delete') {
 		vm.purchase_history_wms_code = angular.element($('form').find('input[name=wms_code]')).val();
 	  } else {
-      angular.forEach(elem, function(list_obj) {
-        if (list_obj['name'] == 'wms_code') {
-            list_obj['value'] = vm.purchase_history_wms_code;
-            wms_code_flag = false;
-        }
-      })
+		var new_elem = [];
+		angular.forEach(elem, function(list_obj) {
+			if (list_obj['name'] == 'wms_code') {
+				list_obj['value'] = vm.purchase_history_wms_code;
+				wms_code_flag = false;
+			}
+			if (list_obj['value'] != '' && list_obj['value'] != '? undefined:undefined ?' ) {
+				new_elem.push(list_obj)
+			}
+		})
 	  }
-      if(wms_code_flag) {
+      if (wms_code_flag) {
 		var wms_code_dict = {'name':'wms_code', 'value':vm.purchase_history_wms_code}
-		elem.push(wms_code_dict)
+		new_elem.push(wms_code_dict)
       }
-	  vm.service.apiCall('last_transaction_details/', 'POST', elem, true).then(function(data) {
+	  vm.service.apiCall('last_transaction_details/', 'POST', new_elem, true).then(function(data) {
         if (data.message) {
 			vm.display_purchase_history_table = true;
             vm.last_transaction_details = data.data;

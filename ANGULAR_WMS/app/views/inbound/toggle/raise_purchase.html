@@ -166,13 +166,16 @@
           <div class="col-md-3 col-sm-3 col-xs-12">
             <p>Sub Total: <b style="font-size:26px">{{showCase.model_data.sub_total}}</b></p>
           </div>
-		  <div class="col-md-12 col-sm-12 col-xs-12" ng-if="showCase.permissions.show_purchase_history">
+		  <div class="col-md-12 col-sm-12 col-xs-12" ng-if="(showCase.permissions.show_purchase_history && showCase.display_purchase_history_table)">
 		  <div class="col-md-12 col-sm-12 col-xs-12">
           <div style="margin-bottom: 10px;"><strong>Last Three Transactions :</strong></div>
 		  </div>
 
           <div class="col-md-12 col-sm-12 col-xs-12 mb10">
-			<div class="col-md-3 col-sm-5 col-xs-5" style="text-align: right;">
+
+            <div class="col-md-7 col-sm-7 col-xs-7">
+
+			<div class="col-md-5 col-sm-5 col-xs-5" style="text-align: right;">
 				<strong>Supplier Level Last Transactions :</strong>
 			</div>
 			<div class="col-md-2 col-sm-3 col-xs-4">
@@ -181,6 +184,13 @@
 				</div>
 			  </label>
 			</div>
+
+            </div>
+
+            <div class="col-md-5 col-sm-5 col-xs-5" style="text-align: left;">
+				<p><strong style="margin-right:5px;">SKU Code in Last Transactions :</strong>{{showCase.purchase_history_wms_code}}</p>
+			</div>
+
           </div>
 		  <div class="col-md-12 col-sm-12 col-xs-12 mb10">
           <table class="table table-bordered">

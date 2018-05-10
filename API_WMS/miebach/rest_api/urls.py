@@ -491,6 +491,7 @@ urlpatterns += [
 
     # price_master data
     url(r'get_customer_sku_prices', get_customer_sku_prices),
+    url(r'get_supplier_sku_prices', get_supplier_sku_prices),
 
     # save_invoice_changes -> outbound
     url(r'edit_invoice', edit_invoice),

@@ -263,7 +263,8 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
     else:
         header = OPEN_PICK_LIST_HEADERS
 
-    all_picks = Picklist.objects.filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id), **filter_params)
+    all_picks = Picklist.objects.select_related('order', 'stock').\
+                                filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id), **filter_params)
 
     if search_term:
         master_data = all_picks.filter(

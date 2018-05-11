@@ -5679,6 +5679,7 @@ def confirm_primary_segregation(request, user=''):
 def last_transaction_details(request, user=''):
     get_supplier_each_seller_list = []
     check_supplier = ''
+    seller_id = 0
     wms_code_list = request.POST.getlist('wms_code', [])
     supplier_name_list = request.POST.getlist('supplier_id', [])
     seller_id_list = request.POST.getlist('seller_id', [])

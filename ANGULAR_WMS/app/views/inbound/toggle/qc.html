@@ -59,8 +59,8 @@
                       <input type="hidden" class="form-control" value="{{data.accept_imei.join(',')}}" name="accepted">
                       <input type="hidden" class="form-control" value="{{data.reject_imei.join(',')}}" name="rejected">
                     </td>
-                    <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.po_unit" size="22" title="{{ data.po_unit }}" name="po_unit" class="form-control" ng-class="service.get_decimal_perm()" ng-init="data.po_unit=0" value="{{data.po_unit}}" readonly></td>
-                    <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.mrp" size="22" title="{{ data.mrp }}" name="mrp" class="form-control" ng-init="data.mrp=0" ng-class="service.get_decimal_perm()" value="{{data.mrp}}" readonly></td>
+                    <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.po_unit" size="22" title="{{ data.po_unit }}" name="po_unit" class="form-control" ng-class="service.get_decimal_perm()" value="{{data.po_unit}}" readonly></td>
+                    <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.mrp" size="22" title="{{ data.mrp }}" name="mrp" class="form-control" ng-class="service.get_decimal_perm()" value="{{data.mrp}}" readonly></td>
                     <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.batch_no" title="{{ data.batch_no }}" name="batch_no" class="form-control" value="{{data.batch_no}}" readonly></td>
                     <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.mfg_date" size="33" title="{{ data.mfg_date }}" name="mfg_date" class="form-control" value="{{data.mfg_date}}" readonly></td>
                     <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.exp_date" size="33" title="{{ data.exp_date }}" name="exp_date" class="form-control" value="{{data.exp_date}}" readonly></td>

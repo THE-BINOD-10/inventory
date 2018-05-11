@@ -141,6 +141,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                       vm.extra_width = {};
                     }
                     vm.shelf_life = vm.model_data.data[0][0].shelf_life;
+                    vm.model_data.data[0][0].mrp = 0;
+                    console.log('MRP is: '+vm.model_data.data[0][0].mrp);
                     if(vm.permissions.use_imei) {
                       fb.push_po(vm.model_data);
                     }

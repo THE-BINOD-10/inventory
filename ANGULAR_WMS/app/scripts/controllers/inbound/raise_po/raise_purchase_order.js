@@ -618,13 +618,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     vm.populate_last_transaction = function(delete_obj) {
       vm.last_transaction_details = {}
+      var new_elem = []
 	  var elem = angular.element($('form').find('input[name=supplier_id], select[name=seller_id]'));
       elem = $(elem).serializeArray();
       var wms_code_flag = true;
 	  if (delete_obj == 'delete') {
 		vm.purchase_history_wms_code = angular.element($('form').find('input[name=wms_code]')).val();
 	  } else {
-		var new_elem = [];
 		angular.forEach(elem, function(list_obj) {
 			if (list_obj['name'] == 'wms_code') {
 				list_obj['value'] = vm.purchase_history_wms_code;

@@ -1,21 +1,21 @@
 <div class="page-layout" ng-controller="SKUMasterTable as showCase">
   <div class='layout-header'>
     <div class="row">
-      <div class="col-md-4 col-sm-12 col-xs-12">
+      <div class="col-md-2 col-sm-12 col-xs-12">
         <div ng-include="'views/common/title.html'"></div>
       </div>
-      <div class="col-md-8 col-sm-12 col-xs-12">
+      <div class="col-md-10 col-sm-12 col-xs-12">
         <div class="row pb10">
           <div ng-hide="showCase.permissions.user_type == 'warehouse' || showCase.permissions.user_type == 'distributor'">
-            <button type="button" class="btn btn-success col-md-3 col-sm-3 col-xs-3" style="width: 150px;" ng-click="showCase.add()">New SKU</button>
+            <button type="button" class="btn btn-success col-md-3 col-sm-3 col-xs-12" style="width: 150px; margin-bottom:5px" ng-click="showCase.add()">New SKU</button>
           </div>
           <div ng-include="'views/common/excel_button.html'"></div>
-          <button type="button" class="btn btn-primary col-md-3 col-sm-3 col-xs-3" style="width: 150px;"
+          <button type="button" class="btn btn-primary col-md-3 col-sm-3 col-xs-12" style="width: 150px; margin-bottom:5px;"
                   ng-click="$state.go('app.masters.ImageBulkUpload')">Image Upload</button>
 
-          <button type="button" class="btn btn-info col-md-3 col-sm-3 col-xs-3" style="width: 150px;" 
+          <button type="button" class="btn btn-info col-md-3 col-sm-3 col-xs-12" style="width: 150px; margin-bottom:5px" 
                   ng-click="showCase.barcode()">Print Barcodes</button>
-          <button type="button" class="btn btn-success col-md-3 col-sm-3 col-xs-3" style="width: 150px;" ng-click="showCase.addAttributes()">SKU Attributes</button>
+          <button type="button" class="btn btn-success col-md-3 col-sm-3 col-xs-12" style="width: 150px; margin-bottom:5px" ng-click="showCase.addAttributes()">SKU Attributes</button>
         </div>
       </div>
     </div>

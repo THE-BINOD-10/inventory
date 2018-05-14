@@ -1889,6 +1889,10 @@ def save_update_order(location_quantity, location_data, temp_dict, user_check, u
         location_data['status'] = 2
         po_loc = POLocation(**location_data)
         po_loc.save()
+        if temp_dict.get('qc_po_loc_id', ''):
+            batch_detail = BatchDetail.objects.filter(transact_type='po_loc', transact_id=temp_dict['qc_po_loc_id'])
+            if batch_detail:
+                batch_detail.update(transact_id=po_loc.id)
         qc_data = temp_dict['qc_data']
         qc_data['putaway_quantity'] = location_quantity
         qc_data['po_location_id'] = po_loc.id
@@ -1947,12 +1951,12 @@ def save_po_location(put_zone, temp_dict, seller_received_list=[], run_segregati
     data.save()
     purchase_data = get_purchase_order_data(data)
     if not seller_received_list:
-        seller_received_list.append(
-            {'seller_id': '', 'sku_id': (purchase_data['sku']).id, 'quantity': received_quantity, 'id': ''})
+        seller_received_list = [{'seller_id': '', 'sku_id': (purchase_data['sku']).id,
+                                'quantity': received_quantity, 'id': ''}]
     for po_received in seller_received_list:
         temp_dict['seller_id'] = po_received.get('seller_id', '')
         if sellable_segregation == 'true' and run_segregation:
-            create_update_primary_segregation(data, po_received['quantity'], batch_dict)
+            create_update_primary_segregation(data, po_received['quantity'], batch_dict, temp_dict)
             continue
         location = get_purchaseorder_locations(put_zone, temp_dict)
         received_quantity = po_received['quantity']
@@ -1964,7 +1968,10 @@ def save_po_location(put_zone, temp_dict, seller_received_list=[], run_segregati
             if po_received.get('seller_id', '') and not loc.zone.zone == 'QC_ZONE':
                 po_received = update_seller_summary_locs(data, loc, location_quantity, po_received)
             if not 'quality_check' in temp_dict.keys():
-                location_data = {'purchase_order_id': data.id, 'location_id': loc.id, 'status': 1}
+                location_data = {'purchase_order_id': data.id, 'location_id': loc.id, 'status': 1,
+                                 'quantity': location_quantity,
+                                 'original_quantity': location_quantity,
+                                 }
                 user_check = 'location__zone__user'
                 if data.open_po:
                     user_check = 'purchase_order__open_po__sku__user'
@@ -2130,8 +2137,8 @@ def get_seller_receipt_id(open_po):
     return receipt_number
 
 
-def create_update_primary_segregation(data, quantity, batch_dict):
-    if not batch_dict:
+def create_update_primary_segregation(data, quantity, batch_dict, temp_dict):
+    if not 'batch_no' in batch_dict and not 'quality_check' in temp_dict.keys():
         segregation_obj = PrimarySegregation.objects.filter(purchase_order_id=data.id)
         if segregation_obj:
             segregation_obj = segregation_obj[0]
@@ -2145,10 +2152,26 @@ def create_update_primary_segregation(data, quantity, batch_dict):
     else:
         batch_dict['transact_type'] = 'po'
         batch_dict['transact_id'] = data.id
-        batch_obj = create_update_batch_data(batch_dict)
-        segregation_obj = PrimarySegregation.objects.create(purchase_order_id=data.id, quantity=quantity, status=1,
-                                                            creation_date=datetime.datetime.now(),
-                                                            batch_detail_id=batch_obj.id)
+        if 'batch_no' in batch_dict:
+            batch_obj = create_update_batch_data(batch_dict)
+        else:
+            batch_obj = BatchDetail.objects.filter(transact_id=temp_dict['quality_check'].po_location.id,
+                                                   transact_type='po_loc')
+            if batch_obj:
+                batch_obj = batch_obj[0]
+        if batch_obj:
+            segregation_obj = PrimarySegregation.objects.filter(purchase_order_id=data.id,
+                                                                batch_detail_id=batch_obj.id)
+            if segregation_obj:
+                segregation_obj = segregation_obj[0]
+                segregation_obj.quantity = float(segregation_obj.quantity) + quantity
+                if segregation_obj.status == 0:
+                    segregation_obj.status = 1
+                segregation_obj.save()
+            else:
+                segregation_obj = PrimarySegregation.objects.create(purchase_order_id=data.id, quantity=quantity, status=1,
+                                                                    creation_date=datetime.datetime.now(),
+                                                                    batch_detail_id=batch_obj.id)
 
 def update_seller_po(data, value, user, receipt_id='', invoice_number='', invoice_date=''):
     if not receipt_id:
@@ -3428,6 +3451,14 @@ def quality_check_data(request, user=''):
                                                     purchase_order_id=order.id, status='qc_pending',
                                                     po_location__location__zone__user=user.id)
         for qc_data in quality_check:
+            batch_dict = {}
+            batch_obj = BatchDetail.objects.filter(transact_id=qc_data.po_location_id, transact_type='po_loc')
+            if batch_obj:
+                batch_dict = batch_obj.values('batch_no', 'mrp', 'buy_price', 'expiry_date', 'manufactured_date')[0]
+                if batch_dict['expiry_date']:
+                    batch_dict['expiry_date'] = batch_dict['expiry_date'].strftime('%m/%d/%Y')
+                if batch_dict['manufactured_date']:
+                    batch_dict['manufactured_date'] = batch_dict['manufactured_date'].strftime('%m/%d/%Y')
             purchase_data = get_purchase_order_data(qc_data.purchase_order)
             po_reference = '%s%s_%s' % (
             qc_data.purchase_order.prefix, str(qc_data.purchase_order.creation_date).split(' ')[0]. \
@@ -3437,7 +3468,11 @@ def quality_check_data(request, user=''):
                          'quantity': get_decimal_limit(user.id, qc_data.putaway_quantity),
                          'unit': purchase_data['unit'],
                          'accepted_quantity': get_decimal_limit(user.id, qc_data.accepted_quantity),
-                         'rejected_quantity': get_decimal_limit(user.id, qc_data.rejected_quantity)})
+                         'rejected_quantity': get_decimal_limit(user.id, qc_data.rejected_quantity),
+                         'batch_no': batch_dict.get('batch_no', ''), 'mrp': batch_dict.get('mrp', 0),
+                         'buy_price': batch_dict.get('buy_price', ''),
+                         'exp_date': batch_dict.get('expiry_date', ''),
+                         'mfg_date': batch_dict.get('manufactured_date', '')})
 
     return HttpResponse(json.dumps({'data': data, 'po_reference': po_reference, 'order_id': order_id}))
 
@@ -3609,6 +3644,7 @@ def update_quality_check(myDict, request, user):
             qc_data = copy.deepcopy(QUALITY_CHECK_FIELDS)
             qc_data['purchase_order_id'] = data.id
             temp_dict['qc_data'] = qc_data
+            temp_dict['qc_po_loc_id'] = quality_check.po_location_id
             save_po_location(put_zone, temp_dict)
 
 
@@ -5686,9 +5722,9 @@ def confirm_primary_segregation(request, user=''):
     data_dict = dict(request.POST.iterlists())
     log.info('Request params for ' + user.username + ' is ' + str(data_dict))
     try:
-        primary_segregations = PrimarySegregation.objects.filter(purchase_order_id__in=data_dict['order_id'], status=1)
-        for ind in range(0, len(data_dict['order_id'])):
-            segregation_obj = primary_segregations.filter(purchase_order_id=data_dict['order_id'][ind])
+        for ind in range(0, len(data_dict['segregation_id'])):
+            segregation_obj = PrimarySegregation.objects.select_related('batch_detail', 'purchase_order').\
+                                                            filter(id=data_dict['segregation_id'][ind])
             if not segregation_obj:
                 continue
             segregation_obj = segregation_obj[0]

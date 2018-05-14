@@ -273,6 +273,32 @@ def get_supplier_mapping(start_index, stop_index, temp_data, search_term, order_
 
 
 @csrf_exempt
+def get_wh_sku_mapping(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
+
+    order_data = SKU_WH_MAPPING.values()[col_num]
+    filter_params = get_filtered_params(filters, SKU_WH_MAPPING.values())
+
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if search_term:
+        mapping_results = WarehouseSKUMapping.objects.filter(sku_id__in=sku_master_ids).filter(
+            Q(priority__icontains=search_term) | Q(
+            moq__icontains=search_term) | Q(sku__wms_code__icontains=search_term),
+            sku__user=user.id, **filter_params).order_by(order_data)
+    else:
+        mapping_results = WarehouseSKUMapping.objects.filter(sku_id__in=sku_master_ids, sku__user=user.id).filter(
+            **filter_params).order_by(order_data)
+    temp_data['recordsTotal'] = len(mapping_results)
+    temp_data['recordsFiltered'] = len(mapping_results)
+
+    for result in mapping_results[start_index: stop_index]:
+        temp_data['aaData'].append(OrderedDict((('warehouse_name', result.warehouse.username), ('wms_code', result.sku.wms_code),
+                                                ('priority', int(result.priority)), ('moq', result.moq), ('price', result.price),
+                                                ('DT_RowClass', 'results'), ('DT_RowId', result.id))))
+
+
+@csrf_exempt
 def get_customer_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     lis = ['customer_id', 'name', 'email_id', 'phone_number', 'address', 'status']
 
@@ -1163,6 +1189,11 @@ def insert_mapping(request, user=''):
 
         if value != '':
             data_dict[key] = value
+
+    sku_supplier = SKUSupplier.objects.filter(Q(sku_id=sku_id[0].id) & Q(preference=preference),
+                                              sku__user=user.id)
+    if sku_supplier:
+        return HttpResponse('Preference matched with existing WMS Code')
 
     data = SKUSupplier.objects.filter(supplier_id=supplier, sku_id=sku_id[0].id)
     if data:
@@ -3489,3 +3520,88 @@ def delete_user_attribute(request, user=''):
     if attr_id:
         UserAttributes.objects.filter(id=attr_id).update(status=0)
     return HttpResponse(json.dumps({'message': 'Updated Successfully', 'status': 1}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_warehouse_list(request, user=''):
+    warehouse_admin = get_warehouse_admin(request.user.id)
+    exclude_admin = {}
+    if warehouse_admin.id == request.user.id:
+        exclude_admin = {'user_id': request.user.id}
+    all_user_groups = UserGroups.objects.filter(admin_user_id=warehouse_admin.id)\
+                                .exclude(**exclude_admin)
+
+    warehouse_list = []
+    for wh in all_user_groups:
+        warehouse_list.append({'warehouse_id': wh.id, 'warehouse_name': wh.user.username})
+    return HttpResponse(json.dumps({'warehouses': warehouse_list}))
+
+
+@csrf_exempt
+@get_admin_user
+def insert_wh_mapping(request, user=''):
+    data_dict = copy.deepcopy(WAREHOUSE_SKU_DATA)
+    integer_data = ('priority', 'moq')
+    for key, value in request.POST.iteritems():
+        if key == 'wms_code':
+            sku_id = SKUMaster.objects.filter(wms_code=value.upper(), user=user.id)
+            if not sku_id:
+                return HttpResponse('Wrong WMS Code')
+            key = 'sku'
+            value = sku_id[0]
+        elif key == 'warehouse_name':
+            key = 'warehouse'
+            warehouse = UserGroups.objects.filter(id=value)
+            if warehouse:
+                warehouse = warehouse[0]
+                value = warehouse.user
+        elif key == 'price' and not value:
+            value = 0
+        elif key in integer_data:
+            if not value.isdigit():
+                return HttpResponse('Plese enter Integer values for Priority and MOQ')
+        if key == 'priority':
+            priority = value
+        if value != '':
+            data_dict[key] = value
+
+    data_wh = WarehouseSKUMapping.objects.filter(Q(sku_id=sku_id[0].id) & Q(priority=priority),\
+                                                 sku__user=user.id)
+    if data_wh:
+        return HttpResponse('Preference matched with existing WMS Code')
+
+    data = WarehouseSKUMapping.objects.filter(warehouse=warehouse.user, sku_id=sku_id[0].id)
+    if data:
+        return HttpResponse('Duplicate Entry')
+    priority_data = WarehouseSKUMapping.objects.filter(sku_id=sku_id[0].id).order_by('-priority').\
+                                        values_list('priority', flat=True)
+    min_preference = 0
+    if priority_data:
+        min_priority = int(priority_data[0])
+    if int(priority) in priority_data:
+        return HttpResponse('Duplicate Priority, Next incremantal value is %s' % str(min_priority + 1))
+    wh_sku_mapping = WarehouseSKUMapping(**data_dict)
+    wh_sku_mapping.save()
+    return HttpResponse('Added Successfully')
+
+
+@csrf_exempt
+@get_admin_user
+def update_sku_warehouse_values(request, user=''):
+    data_id = request.POST['data-id']
+    data = get_or_none(WarehouseSKUMapping, {'id': data_id})
+    for key, value in request.POST.iteritems():
+        if key in ('moq', 'price'):
+            if not value:
+                value = 0
+        elif key == 'priority':
+            sku_wh = WarehouseSKUMapping.objects.exclude(id=data.id).filter(Q(sku_id=data.sku_id) & Q(priority=value),
+                                                                          sku__user=user.id)
+            if sku_wh:
+                return HttpResponse('Preference matched with existing WMS Code')
+
+        setattr(data, key, value)
+    data.save()
+    return HttpResponse('Updated Successfully')

@@ -81,6 +81,8 @@ ISSUE_DATA = {'issue_title': '', 'name': '', 'email_id': '',
 SUPPLIER_SKU_DATA = {'supplier_id': '', 'supplier_type': '',
                      'sku': '', 'supplier_code': '', 'preference': '', 'moq': '', 'price': ''}
 
+WAREHOUSE_SKU_DATA = {'warehouse': '', 'sku': '', 'priority': '', 'moq': '', 'price': ''}
+
 UPLOAD_ORDER_DATA = {'order_id': '', 'title': '', 'user': '',
                      'sku_id': '', 'status': 1, 'shipment_date': datetime.datetime.now()}
 
@@ -513,6 +515,10 @@ PROCESSING_HEADER = ('WMS Code', 'Title', 'Zone', 'Location', 'Reserved Quantity
 SKU_SUPPLIER_MAPPING = OrderedDict(
     [('Supplier ID', 'supplier__id'), ('SKU CODE', 'sku__wms_code'), ('Supplier Code', 'supplier_code'),
      ('Priority', 'preference'), ('MOQ', 'moq')])
+
+SKU_WH_MAPPING = OrderedDict(
+    [('Warehouse Name', 'warehouse__username'), ('SKU CODE', 'sku__wms_code'), ('Priority', 'priority'),
+     ('MOQ', 'moq'), ('Price', 'price')])
 
 SUPPLIER_MASTER_HEADERS = OrderedDict(
     [('Supplier ID', 'id'), ('Name', 'name'), ('Address', 'address'), ('Phone Number', 'phone_number'),
@@ -1394,6 +1400,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'create_order_po': 'create_order_po', 'calculate_customer_price': 'calculate_customer_price',
                         'shipment_sku_scan': 'shipment_sku_scan', 'disable_brands_view':'disable_brands_view',
                         'sellable_segregation': 'sellable_segregation', 'display_styles_price': 'display_styles_price',
+                        'auto_raise_stock_transfer': 'auto_raise_stock_transfer',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',

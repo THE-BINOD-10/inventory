@@ -1,0 +1,61 @@
+<div id="page-pop" class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
+  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt">
+    <div class="modal-dialog model-custom modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span></button>
+          <h4 class="modal-title">{{showCase.title}}</h4>
+        </div>
+        <div class="modal-body">
+          <!-- body -->
+          <div class="row">
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Warehouse Name *</label>
+                <input ng-if="showCase.update" type="text" name="warehouse_name" class="form-control" ng-model="showCase.model_data.warehouse_name" ng-readonly="showCase.update">
+                <select ng-if="!(showCase.update)" class="form-control" ng-model="showCase.model_data.warehouse_name"
+                ng-options="wh.id as wh.name for wh in showCase.warehouse_list" required>
+                </select>
+              </div>
+            </div>
+	    <div class="col-md-4 col-sm-6 col-xs-6">
+	      <div class="form-group">
+		<label class="control-label"> WMS Code *</label>
+                <input type="text" autocomplete="off" name="sku_id" class="form-control" placeholder="Search WMS Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="WMSCodesLoading" ng-model="showCase.model_data.wms_code" ng-blur="showCase.service.checkSearchValue(showCase.model_data.wms_code,'search_wms_codes?', $event, 'WMS Code', 'WMS Code')" ng-readonly="showCase.update" required>
+	      </div>
+	    </div>
+	    <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Priority *</label>
+                <input type="text" class="form-control" name="number" ng-model="showCase.model_data.priority" natural-number required>
+              </div>
+	    </div>
+	    <div class="col-md-4 col-sm-6 col-xs-6">
+	      <div class="form-group">
+		<label class="control-label"> MOQ *</label>
+		<input name="moq" type="text" class="form-control" ng-model="showCase.model_data.moq" whole-number required>
+	      </div>
+	    </div>
+	    <div class="col-md-4 col-sm-6 col-xs-6">
+	      <div class="form-group">
+		<label class="col-md-5 control-label"> Price </label>
+		<input type="text" name="price" class="form-control" ng-model="showCase.model_data.price" decimal-number>
+	      </div>
+	    </div>
+	  </div>
+          <div class="row insert-status">
+            <h4 style="text-align: center;">{{showCase.service.message}}</h4>
+          </div>
+          <!-- body end -->  
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn pop pop-normal" ng-click="showCase.close()">Close</button>
+          <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process">
+            <span>Save</span>
+            <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+          </button>
+        </div>
+      </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+  </form>
+</div>

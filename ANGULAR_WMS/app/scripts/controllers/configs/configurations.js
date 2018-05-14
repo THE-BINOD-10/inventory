@@ -22,6 +22,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'increment_invoice': false, 'create_shipment_type': false, 'auto_allocate_stock': false,
                     'generic_wh_level': false, 'auto_confirm_po': false, 'create_order_po': false, 'shipment_sku_scan': false,
                     'disable_brands_view': false, 'sellable_segregation': false, 'display_styles_price': false,
+                    'auto_raise_stock_transfer': false
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -37,7 +38,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      44: 'increment_invoice', 45: 'serial_limit', 46: 'create_shipment_type', 47: 'auto_allocate_stock',
                      48: 'priceband_sync', 49: 'generic_wh_level', 50: 'auto_confirm_po', 51: 'create_order_po',
                      52: 'calculate_customer_price', 53: 'shipment_sku_scan', 54: 'disable_brands_view',
-                     55: 'sellable_segregation', 56: 'display_styles_price', 57: 'picklist_display_address'}
+                     55: 'sellable_segregation', 56: 'display_styles_price', 57: 'picklist_display_address',
+                     58: 'auto_raise_stock_transfer'}
 
   vm.check_box_data = [
     {
@@ -312,6 +314,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       param_no: 57,
       class_name: "fa fa-exchange",
       display: true
+    },
+    {
+      name: "Auto raise Stock transfer Enable/Disable",
+      model_name: "auto_raise_stock_transfer",
+      param_no: 58,
+      class_name: "fa fa-server",
+      display: true
     }
 ]
 
@@ -364,6 +373,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
 
   vm.switches = switches;
   function switches(value, switch_num) {
+    if(vm.switch_names[switch_num] === "auto_raise_stock_transfer" && vm.model_data["auto_po_switch"]) {
+      value = false;
+      vm.model_data[vm.switch_names[switch_num]] = value;
+      Service.showNoty("error", 'warning');
+      return
+    }
+    if(vm.switch_names[switch_num] === "auto_po_switch" && vm.model_data["auto_raise_stock_transfer"]) {
+      value = false;
+      vm.model_data[vm.switch_names[switch_num]] = value;
+      Service.showNoty("error", 'warning');
+      return
+    }
     vm.service.apiCall("switches/?"+vm.switch_names[switch_num]+"="+String(value)).then(function(data){
       if(data.message) {
         Service.showNoty(data.data);

@@ -949,6 +949,7 @@ def switches(request, user=''):
                        'display_styles_price': 'display_styles_price',
                        'picklist_display_address': 'picklist_display_address',
                        'mode_of_transport': 'mode_of_transport',
+                       'auto_raise_stock_transfer': 'auto_raise_stock_transfer',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

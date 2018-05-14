@@ -253,6 +253,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         if(data.message) {
           if(data.data.search("<div") != -1) {
             vm.html = $(data.data);
+            vm.extra_width = {}
             //var html = $(vm.html).closest("form").clone();
             //angular.element(".modal-body").html($(html).find(".modal-body"));
             angular.element(".modal-body").html($(data.data));

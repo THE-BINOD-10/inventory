@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('StockTransferOrders',['$scope', '$http', '$state', '$compile', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
+  .controller('StockTransferOrders',['$scope', '$http', '$state', '$compile', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service',  '$q', 'Data', '$modal', '$log', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
+function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, $q, Data, $modal, $log) {
     var vm = this;
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
@@ -264,5 +264,40 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     }
   }
 
-  }
+  /* raise po */
+  vm.backorder_po = function() {
+	var data = [];
+	data.push({name: 'table_name', value: 'stock_transfer_order'})
+    for(var key in vm.selected) {
+        if(vm.selected[key]) {
+          var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]._aData
+          data.push({name: 'stock_transfer_id', value: temp['Stock Transfer ID'] })
+		  data.push({name: 'sku_code', value: temp['SKU Code'] })
+		  data.push({name: 'id', value: temp['DT_RowAttr']['id'] })
+        }
+    }
+    var send_data  = {data: data}
+    var modalInstance = $modal.open({
+      templateUrl: 'views/outbound/toggle/common_backorder_po.html',
+      controller: 'BackorderPOPOP',
+      controllerAs: 'pop',
+      size: 'lg',
+      backdrop: 'static',
+      keyboard: false,
+      windowClass: 'full-modal',
+      resolve: {
+        items: function () {
+          return send_data;
+        }
+      }
+    });
 
+    modalInstance.result.then(function (selectedItem) {
+      var data = selectedItem;
+      reloadData();
+    }, function () {
+       $log.info('Modal dismissed at: ' + new Date());
+    });
+    //$state.go("app.outbound.ViewOrders.PO", {data: JSON.stringify(data)});
+  }
+}

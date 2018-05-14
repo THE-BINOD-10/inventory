@@ -4984,7 +4984,14 @@ def generate_order_po_data(request, user=''):
     suppliers = SupplierMaster.objects.filter(user=user.id)
     for supplier in suppliers:
         supplier_list.append({'id': supplier.id, 'name': supplier.name})
-    request_dict = dict(request.POST.iterlists())
+    #request_dict = dict(request.POST.iterlists())
+    table_type_name = request.POST.get('table_name', '')
+    if table_type_name == 'stock_transfer_order':
+        stock_transfer_id = request.POST.get('stock_transfer_id', '')
+        table_id = request.POST.get('id', '')
+        sku_code = request.POST.get('sku_code', '')
+        stock_transfer_obj = StockTransfer.objects.filter(id=table_id, order_id=stock_transfer_id, sku__sku_code=sku_code)
+
     order_id = request.POST.get('order_id', '')
     order_details = OrderDetail.objects.none()
     if order_id:

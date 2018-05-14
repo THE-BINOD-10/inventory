@@ -1000,7 +1000,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
   function print() {
       colFilters.print_data(vm.html);
   }
-
   /* raise po */
   vm.backorder_po = function() {
     var data = [];
@@ -1019,6 +1018,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         }
       }
     }
+	data.push({name: 'table_name', value: 'orders_table'})
     var send_data  = {data: data}
     var modalInstance = $modal.open({
       templateUrl: 'views/outbound/toggle/common_backorder_po.html',

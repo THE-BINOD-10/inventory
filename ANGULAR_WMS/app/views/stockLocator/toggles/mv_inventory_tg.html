@@ -42,6 +42,21 @@
                   <input ng-model="showCase.model_data.quantity" type="text" name="quantity" class="form-control" ng-class="service.get_decimal_perm()" required>
                 </div>
               </div>
+              <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.industry_type == 'FMCG'">
+                <div class="form-group">
+                  <label class="control-label"> Batch Number * </label>
+                  <input type="text" autocomplete="off" name="batch_number" class="form-control" placeholder="Search Batch Number" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_batch_number?')" typeahead-loading="BatchNumberLoading" ng-model="showCase.model_data.batch_number" ng-change="showCase.checkSearchValue(showCase.model_data.batch_number)" required>
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.industry_type == 'FMCG'">
+                <div class="form-group">
+                  <label class="control-label"> MRP * </label>
+                  <select class="form-control zone" name="mrp" ng-model="showCase.model_data.mrp" ng-readonly="showCase.batch_num_mrp" required>
+                    <option value="">Select MRP</option>
+                    <option ng-repeat="b_mrp in showCase.batch_wise_mrps" value="{{b_mrp}}">{{b_mrp}}</option>
+                  </select>
+                </div>
+              </div>
             </div>
             <div class="row insert-status"><h4 align="center">{{showCase.message}}</h4></div>
           </div>

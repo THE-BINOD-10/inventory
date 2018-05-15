@@ -15,6 +15,7 @@
       vm.selectAll = false;
       vm.bt_disable = true;
       vm.service = Service;
+      vm.industry_type = Session.user_profile.industry_type;
 
       vm.dtOptions = DTOptionsBuilder.newOptions()
          .withOption('ajax', {
@@ -111,6 +112,25 @@
           vm.generate_data = [];
         }
       }
+
+      vm.batch_wise_mrps = [];
+      vm.batch_num_mrp = true;
+      vm.checkSearchValue = function(batch_num){
+        if (batch_num) {
+          vm.service.apiCall('get_batch_wise_mrps/?'+batch_num).then(function(data){
+            if(data.message) {
+
+              vm.batch_num_mrp = false;
+              vm.batch_wise_mrps = data.data.mrps;
+            } else {
+              vm.batch_num_mrp = true;
+              vm.batch_wise_mrps = [];
+              Service.showNoty(data.message, 'warning');
+            }
+          });
+        }
+      }
+
       vm.add = add;
       function add() {
         angular.copy(vm.empty_data, vm.model_data);

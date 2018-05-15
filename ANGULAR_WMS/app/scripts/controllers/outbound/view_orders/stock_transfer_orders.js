@@ -300,4 +300,32 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     });
     //$state.go("app.outbound.ViewOrders.PO", {data: JSON.stringify(data)});
   }
+
+  vm.raise_jo = function() {
+	var data = [];
+    data.push({name: 'table_name', value: 'stock_transfer_order'})
+    for(var key in vm.selected) {
+        if(vm.selected[key]) {
+          var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]._aData
+          data.push({name: 'stock_transfer_id', value: temp['Stock Transfer ID'] })
+          data.push({name: 'sku_code', value: temp['SKU Code'] })
+          data.push({name: 'id', value: temp['DT_RowAttr']['id'] })
+        }
+    }
+    var send_data = {data: data}
+    var modalInstance = $modal.open({
+      templateUrl: 'views/outbound/toggle/back/backorder_jo.html',
+      controller: 'BackorderJOPOP',
+      controllerAs: 'pop',
+      size: 'lg',
+      backdrop: 'static',
+      keyboard: false,
+      windowClass: 'full-modal',
+      resolve: {
+        items: function () {
+          return send_data;
+        }
+      }
+    });
+  }
 }

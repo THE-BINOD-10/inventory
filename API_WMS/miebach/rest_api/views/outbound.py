@@ -4926,43 +4926,44 @@ def generate_order_jo_data(request, user=''):
         table_id = request.POST.get('id', '')
         sku_code = request.POST.get('sku_code', '')
         stock_transfer_obj = StockTransfer.objects.filter(id=table_id, order_id__in=stock_transfer_id, sku__sku_code=sku_code, sku__user=user.id)
-	order_details = OrderDetail.objects.none()
-	if order_id:
+    else:
+        order_details = OrderDetail.objects.none()
+        if order_id:
             for i in range(0, len(data_dict['order_id'])):
-	        main_id = data_dict['order_id'][i]
+                main_id = str(data_dict['order_id'][i])
                 order_code = ''.join(re.findall('\D+', main_id))
                 order_id = ''.join(re.findall('\d+', main_id))
                 order_details = order_details | OrderDetail.objects.filter(Q(order_id=order_id, \
                     order_code=order_code) | Q(original_order_id=main_id), user=user.id)
-            else:
-                order_details = OrderDetail.objects.filter(id__in=data_dict['id'], user=user.id)
-	if table_type_name == 'stock_transfer_order':
-            for sku_id in stock_transfer_obj.values('sku__id').distinct():
-                stock_transfer = stock_transfer_obj.filter(sku__id=sku_id['sku__id'])
-                data = []
-                product_qty = stock_transfer.aggregate(Sum('quantity'))['quantity__sum']
-                data_id = ','.join([str(order_id.id) for order_id in stock_transfer])
-                stock_transfer = stock_transfer[0]
-                bom_master = BOMMaster.objects.filter(product_sku__sku_code=stock_transfer.sku.sku_code,
-												  product_sku__user=user.id)
-                if bom_master:
-                    for bom in bom_master:
-                        data.append({'material_code': bom.material_sku.sku_code, 'material_quantity': float(bom.material_quantity),
-			    'id': '', 'measurement_type': bom.unit_of_measurement})
-                all_data.append({'order_id': data_id, 'product_code': stock_transfer.sku.sku_code, 'product_description': product_qty, 'description': stock_transfer.sku.sku_desc, 'sub_data': data})
-	else:
-            for sku_id in order_details.values('sku__id').distinct():
-                order_detail= order_details.filter(sku__id=sku_id['sku__id'])
-                data = []
-                product_qty = order_detail.aggregate(Sum('quantity'))['quantity__sum']
-                data_id = ','.join([str(order_id.id) for order_id in order_detail])
-                order_detail = order_detail[0]
-                bom_master = BOMMaster.objects.filter(product_sku__sku_code=order_detail.sku.sku_code,product_sku__user=user.id)
-                if bom_master:
-                    for bom in bom_master:
-                        data.append({'material_code': bom.material_sku.sku_code, 'material_quantity': float(bom.material_quantity), 'id': '', 'measurement_type': bom.unit_of_measurement})
-                all_data.append({ 'order_id': data_id, 'product_code': order_detail.sku.sku_code, 'product_description': product_qty, 'description': order_detail.sku.sku_desc, 'sub_data': data })
-	return HttpResponse(json.dumps({'data': all_data}))
+        else:
+            order_details = OrderDetail.objects.filter(id__in=data_dict['id'], user=user.id)
+    if table_type_name == 'stock_transfer_order':
+        for sku_id in stock_transfer_obj.values('sku__id').distinct():
+            stock_transfer = stock_transfer_obj.filter(sku__id=sku_id['sku__id'])
+            data = []
+            product_qty = stock_transfer.aggregate(Sum('quantity'))['quantity__sum']
+            data_id = ','.join([str(order_id.id) for order_id in stock_transfer])
+            stock_transfer = stock_transfer[0]
+            bom_master = BOMMaster.objects.filter(product_sku__sku_code=stock_transfer.sku.sku_code,
+                                                                                              product_sku__user=user.id)
+            if bom_master:
+                for bom in bom_master:
+                    data.append({'material_code': bom.material_sku.sku_code, 'material_quantity': float(bom.material_quantity),
+                        'id': '', 'measurement_type': bom.unit_of_measurement})
+            all_data.append({'order_id': data_id, 'product_code': stock_transfer.sku.sku_code, 'product_description': product_qty, 'description': stock_transfer.sku.sku_desc, 'sub_data': data})
+    else:
+        for sku_id in order_details.values('sku__id').distinct():
+            order_detail= order_details.filter(sku__id=sku_id['sku__id'])
+            data = []
+            product_qty = order_detail.aggregate(Sum('quantity'))['quantity__sum']
+            data_id = ','.join([str(order_id.id) for order_id in order_detail])
+            order_detail = order_detail[0]
+            bom_master = BOMMaster.objects.filter(product_sku__sku_code=order_detail.sku.sku_code,product_sku__user=user.id)
+            if bom_master:
+                for bom in bom_master:
+                    data.append({'material_code': bom.material_sku.sku_code, 'material_quantity': float(bom.material_quantity), 'id': '', 'measurement_type': bom.unit_of_measurement})
+            all_data.append({ 'order_id': data_id, 'product_code': order_detail.sku.sku_code, 'product_description': product_qty, 'description': order_detail.sku.sku_desc, 'sub_data': data })
+    return HttpResponse(json.dumps({'data': all_data}))
 
 @get_admin_user
 def search_customer_data(request, user=''):

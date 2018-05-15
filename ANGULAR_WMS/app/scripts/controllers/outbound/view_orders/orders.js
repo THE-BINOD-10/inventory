@@ -909,6 +909,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
   vm.raise_jo = function() {
     var data = [];
+    data.push({name: 'table_name', value: 'orders_table'})
     if (vm.g_data.view == 'OrderView') {
       for(var key in vm.selected){
         if(vm.selected[key]) {
@@ -1068,7 +1069,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
   }
 
   vm.raise_stock_transfer = function() {
-
     var data = {};
     var url = '';
     if (vm.g_data.view == 'OrderView') {

@@ -945,7 +945,13 @@ var app = angular.module('urbanApp')
           templateUrl: 'views/stockLocator/stock_detail.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/stockLocator/stock_detail.js');
+                return $ocLazyLoad.load([
+                  'scripts/controllers/stockLocator/stock_detail.js'
+                ]).then( function() { 
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/stockLocator/batch_level_stock.js'
+                  ])
+                });
               }]
           },
           data: {

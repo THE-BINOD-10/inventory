@@ -6605,3 +6605,15 @@ def create_update_batch_data(batch_dict):
         else:
             batch_obj = batch_objs[0].id
     return batch_obj
+
+
+def get_batch_dict(transact_id, transact_type):
+    batch_dict = {}
+    batch_obj = BatchDetail.objects.filter(transact_id=transact_id, transact_type=transact_type)
+    if batch_obj:
+        batch_dict = batch_obj.values('batch_no', 'mrp', 'buy_price', 'expiry_date', 'manufactured_date')[0]
+        if batch_dict['expiry_date']:
+            batch_dict['expiry_date'] = batch_dict['expiry_date'].strftime('%m/%d/%Y')
+        if batch_dict['manufactured_date']:
+            batch_dict['manufactured_date'] = batch_dict['manufactured_date'].strftime('%m/%d/%Y')
+    return batch_dict

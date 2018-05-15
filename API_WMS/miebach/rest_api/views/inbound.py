@@ -2364,7 +2364,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
         temp_dict = {'received_quantity': float(value), 'user': user.id, 'data': data, 'pallet_number': pallet_number,
                      'pallet_data': pallet_data}
 
-        if is_confirm_receive or (get_permission(request.user, 'add_qualitycheck') and purchase_data['qc_check'] == 1):
+        if (get_permission(request.user, 'add_qualitycheck') and purchase_data['qc_check'] == 1):
             put_zone = 'QC_ZONE'
             qc_data = copy.deepcopy(QUALITY_CHECK_FIELDS)
             qc_data['purchase_order_id'] = data.id
@@ -3063,6 +3063,7 @@ def get_received_orders(request, user=''):
         else:
             sku_total_quantities[order_data['wms_code']] = float(total_sku_quantity)
         for location in po_location:
+            batch_dict = get_batch_dict(location.id, 'po_loc')
             pallet_number = ''
             if temp == "true":
                 pallet_mapping = PalletMapping.objects.filter(po_location_id=location.id, status=1)
@@ -3092,6 +3093,7 @@ def get_received_orders(request, user=''):
                                      'pallet_number': pallet_number, 'unit': order_data['unit'],
                                      'load_unit_handle': order_data['load_unit_handle'],
                                      'sub_data': [{'loc': location.location.location, 'quantity': location.quantity}]}
+                data[location.id].update(batch_dict)
 
     if temp == 'true' and all_data:
         for key, value in all_data.iteritems():
@@ -3326,6 +3328,7 @@ def putaway_data(request, user=''):
             for data in po_loc_data:
                 if not count:
                     break
+                batch_obj = BatchDetail.objects.filter(transact_id=data.id, transact_type='po_loc')
                 if float(data.quantity) < count:
                     value = count - float(data.quantity)
                     count -= float(data.quantity)
@@ -3334,15 +3337,14 @@ def putaway_data(request, user=''):
                     count = 0
                 order_data = get_purchase_order_data(data.purchase_order)
                 putaway_location(data, value, exc_loc, user, 'purchase_order_id', data.purchase_order_id)
-                stock_data = StockDetail.objects.filter(location_id=exc_loc,
-                                                        receipt_number=data.purchase_order.order_id,
-                                                        sku_id=order_data['sku_id'], sku__user=user.id)
+                stock_check_params = {'location_id': exc_loc, 'receipt_number':data.purchase_order.order_id,
+                                     'sku_id': order_data['sku_id'], 'sku__user': user.id}
+                if batch_obj:
+                    stock_check_params['batch_detail_id'] = batch_obj[0].id
                 pallet_mapping = PalletMapping.objects.filter(po_location_id=data.id, status=1)
                 if pallet_mapping:
-                    stock_data = StockDetail.objects.filter(location_id=exc_loc,
-                                                            receipt_number=data.purchase_order.order_id,
-                                                            sku_id=order_data['sku_id'], sku__user=user.id,
-                                                            pallet_detail_id=pallet_mapping[0].pallet_detail.id)
+                    stock_check_params['pallet_detail_id'] = pallet_mapping[0].pallet_detail.id
+                stock_data = StockDetail.objects.filter(**stock_check_params)
                 if pallet_mapping:
                     setattr(loc1, 'pallet_filled', float(loc1.pallet_filled) + 1)
                 else:
@@ -3376,6 +3378,8 @@ def putaway_data(request, user=''):
                                    'quantity': value, 'status': 1, 'receipt_type': 'purchase order',
                                    'creation_date': datetime.datetime.now(),
                                    'updation_date': datetime.datetime.now()}
+                    if batch_obj:
+                        record_data['batch_detail_id'] = batch_obj[0].id
                     if pallet_mapping:
                         record_data['pallet_detail_id'] = pallet_mapping[0].pallet_detail.id
                         pallet_mapping[0].status = 0
@@ -3451,14 +3455,7 @@ def quality_check_data(request, user=''):
                                                     purchase_order_id=order.id, status='qc_pending',
                                                     po_location__location__zone__user=user.id)
         for qc_data in quality_check:
-            batch_dict = {}
-            batch_obj = BatchDetail.objects.filter(transact_id=qc_data.po_location_id, transact_type='po_loc')
-            if batch_obj:
-                batch_dict = batch_obj.values('batch_no', 'mrp', 'buy_price', 'expiry_date', 'manufactured_date')[0]
-                if batch_dict['expiry_date']:
-                    batch_dict['expiry_date'] = batch_dict['expiry_date'].strftime('%m/%d/%Y')
-                if batch_dict['manufactured_date']:
-                    batch_dict['manufactured_date'] = batch_dict['manufactured_date'].strftime('%m/%d/%Y')
+            batch_dict = get_batch_dict(qc_data.po_location_id, 'po_loc')
             purchase_data = get_purchase_order_data(qc_data.purchase_order)
             po_reference = '%s%s_%s' % (
             qc_data.purchase_order.prefix, str(qc_data.purchase_order.creation_date).split(' ')[0]. \
@@ -3470,7 +3467,7 @@ def quality_check_data(request, user=''):
                          'accepted_quantity': get_decimal_limit(user.id, qc_data.accepted_quantity),
                          'rejected_quantity': get_decimal_limit(user.id, qc_data.rejected_quantity),
                          'batch_no': batch_dict.get('batch_no', ''), 'mrp': batch_dict.get('mrp', 0),
-                         'buy_price': batch_dict.get('buy_price', ''),
+                         'po_unit': batch_dict.get('buy_price', ''),
                          'exp_date': batch_dict.get('expiry_date', ''),
                          'mfg_date': batch_dict.get('manufactured_date', '')})
 
@@ -5728,6 +5725,21 @@ def confirm_primary_segregation(request, user=''):
             if not segregation_obj:
                 continue
             segregation_obj = segregation_obj[0]
+            batch_dict = {}
+            if segregation_obj.batch_detail:
+                batch_detail = segregation_obj.batch_detail
+                manufactured_date = ''
+                if batch_detail.manufactured_date:
+                    manufactured_date = batch_detail.manufactured_date.strftime('%m/%d/%Y')
+                expiry_date = ''
+                if batch_detail.expiry_date:
+                    expiry_date = batch_detail.expiry_date.strftime('%m/%d/%Y')
+                batch_dict = {'transact_type': 'po_loc', 'batch_no': batch_detail.batch_no,
+                              'expiry_date': expiry_date,
+                              'manufactured_date': manufactured_date,
+                              'tax_percent': batch_detail.tax_percent,
+                              'mrp': batch_detail.mrp, 'buy_price': batch_detail.buy_price
+                              }
             sellable = data_dict['sellable'][ind]
             non_sellable = data_dict['non_sellable'][ind]
             if not sellable:
@@ -5754,7 +5766,8 @@ def confirm_primary_segregation(request, user=''):
                              'pallet_number': '', 'pallet_data': {}}
                 seller_received_dict, seller_summary_dict = get_quality_check_seller(seller_received_dict, temp_dict,
                                                                                      purchase_data)
-                save_po_location(put_zone, temp_dict, seller_received_list=seller_summary_dict, run_segregation=False)
+                save_po_location(put_zone, temp_dict, seller_received_list=seller_summary_dict, run_segregation=False,
+                                 batch_dict=batch_dict)
             sellable_qty = get_decimal_limit(user.id, (float(segregation_obj.sellable) + sellable))
             segregation_obj.sellable = sellable_qty
             if non_sellable:
@@ -5769,7 +5782,8 @@ def confirm_primary_segregation(request, user=''):
                              'pallet_number': '', 'pallet_data': {}}
                 seller_received_dict, seller_summary_dict = get_quality_check_seller(seller_received_dict, temp_dict,
                                                                                      purchase_data)
-                save_po_location(put_zone, temp_dict, seller_received_list=seller_summary_dict, run_segregation=False)
+                save_po_location(put_zone, temp_dict, seller_received_list=seller_summary_dict, run_segregation=False,
+                                 batch_dict=batch_dict)
             non_sellable_qty = get_decimal_limit(user.id, (float(segregation_obj.non_sellable) + non_sellable))
             segregation_obj.non_sellable = non_sellable_qty
             if (sellable_qty + non_sellable_qty) >= float(segregation_obj.quantity):

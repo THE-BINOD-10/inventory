@@ -316,7 +316,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       display: true
     },
     {
-      name: "Auto raise Stock transfer Enable/Disable",
+      name: "Auto Raise Stock Transfer Enable/Disable",
       model_name: "auto_raise_stock_transfer",
       param_no: 58,
       class_name: "fa fa-server",
@@ -376,13 +376,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     if(vm.switch_names[switch_num] === "auto_raise_stock_transfer" && vm.model_data["auto_po_switch"]) {
       value = false;
       vm.model_data[vm.switch_names[switch_num]] = value;
-      Service.showNoty("error", 'warning');
+      Service.showNoty("Auto PO & Auto Raise Stock Transfer can't be enabled simultaneously", 'warning');
       return
     }
     if(vm.switch_names[switch_num] === "auto_po_switch" && vm.model_data["auto_raise_stock_transfer"]) {
       value = false;
       vm.model_data[vm.switch_names[switch_num]] = value;
-      Service.showNoty("error", 'warning');
+      Service.showNoty("Auto PO & Auto Raise Stock Transfer can't be enabled simultaneously", 'warning');
       return
     }
     vm.service.apiCall("switches/?"+vm.switch_names[switch_num]+"="+String(value)).then(function(data){

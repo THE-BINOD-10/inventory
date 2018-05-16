@@ -53,12 +53,12 @@
                 <div class="row">
                 <div class="widget-details col-md-5 col-sm-5 col-xs-4 text-right">
                   <small class="order-label"></small>
-                  <img  style="width: 100%;"ng-src="{{showCase.service.check_image_url(data.sku__image_url)}}">
+                  <img  style="width: 100%;" ng-src="{{showCase.service.check_image_url(data.sku__image_url)}}">
                   <p class="text-center detail-black order-bold" style="font-size:12px;overflow-wrap: break-word;">{{data.sku__sku_code}}</p>
                 </div>
                 <div class="widget-details col-md-7 col-sm-7 col-xs-8 text-left">
                   <small class="order-label">SKU Description</small>
-                  <p class="no-margin order-bold detail-black" style="font-size:12px">{{data.sku__sku_desc}} <strong>({{order_details.level_name}})</strong></p><br>
+                  <p class="no-margin order-bold detail-black" style="font-size:12px">{{data.sku__sku_desc}} <strong ng-if="order_details.level_name">({{order_details.level_name}})</strong></p><br>
                   <small class="order-label" ng-if="data.schedule_date"><b>Delivery Schedule Date</b></small>
                   <p class="no-margin order-bold detail-black" style="font-size:12px"><b>{{data.schedule_date}}</b></p>
                 </div>

@@ -1531,3 +1531,70 @@ def confirm_sku_substitution(request, user=''):
     log.info("Substitution Done For " + str(json.dumps(sub_data)))
 
     return HttpResponse('Successfully Updated')
+
+@csrf_exempt
+def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
+                             filters):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    lis = ['receipt_number', 'receipt_date', 'sku_id__wms_code', 'sku_id__sku_desc', 'batch_detail__batch_no',
+           'batch_detail__mrp', 'location__zone__zone', 'location__location', 'pallet_detail__pallet_code',
+           'quantity', 'receipt_type']
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    search_params = get_filtered_params(filters, lis)
+    if 'receipt_date__icontains' in search_params:
+        search_params['receipt_date__regex'] = search_params['receipt_date__icontains']
+        del search_params['receipt_date__icontains']
+    search_params['sku_id__in'] = sku_master_ids
+
+    if search_term:
+        master_data = StockDetail.objects.exclude(receipt_number=0).filter(Q(receipt_number__icontains=search_term) |
+                                                                           Q(sku__wms_code__icontains=search_term) | Q(
+            quantity__icontains=search_term) |
+                                                                           Q(
+                                                                               location__zone__zone__icontains=search_term) | Q(
+            sku__sku_code__icontains=search_term) |
+                                                                           Q(sku__sku_desc__icontains=search_term) | Q(
+            location__location__icontains=search_term),
+                                                                           sku__user=user.id).filter(
+            **search_params).order_by(order_data)
+
+    else:
+        master_data = StockDetail.objects.exclude(receipt_number=0).filter(sku__user=user.id, **search_params). \
+            order_by(order_data)
+
+    temp_data['recordsTotal'] = len(master_data)
+    temp_data['recordsFiltered'] = len(master_data)
+    for data in master_data[start_index:stop_index]:
+        pallet_switch = get_misc_value('pallet_switch', user.id)
+        _date = get_local_date(user, data.receipt_date, True)
+        _date = _date.strftime("%d %b, %Y")
+        batch_no = data.batch_detail.batch_no if data.batch_detail else ''
+        mrp = data.batch_detail.mrp if data.batch_detail else ''
+        if pallet_switch == 'true':
+            pallet_code = ''
+            if data.pallet_detail:
+                pallet_code = data.pallet_detail.pallet_code
+            temp_data['aaData'].append(OrderedDict((('Receipt Number', data.receipt_number), ('DT_RowClass', 'results'),
+                                                    ('Receipt Date', _date), ('SKU Code', data.sku.sku_code),
+                                                    ('WMS Code', data.sku.wms_code),
+                                                    ('Product Description', data.sku.sku_desc),
+                                                    ('Batch Number', batch_no),
+                                                    ('MRP', mrp),
+                                                    ('Zone', data.location.zone.zone),
+                                                    ('Location', data.location.location),
+                                                    ('Quantity', get_decimal_limit(user.id, data.quantity)),
+                                                    ('Pallet', pallet_code), ('Receipt Type', data.receipt_type))))
+        else:
+            temp_data['aaData'].append(OrderedDict((('Receipt ID', data.receipt_number), ('DT_RowClass', 'results'),
+                                                    ('Receipt Date', _date), ('SKU Code', data.sku.sku_code),
+                                                    ('WMS Code', data.sku.wms_code),
+                                                    ('Product Description', data.sku.sku_desc),
+                                                    ('Batch Number', batch_no),
+                                                    ('MRP', mrp),
+                                                    ('Zone', data.location.zone.zone),
+                                                    ('Location', data.location.location),
+                                                    ('Quantity', get_decimal_limit(user.id, data.quantity)),
+                                                    ('Receipt Type', data.receipt_type))))
+

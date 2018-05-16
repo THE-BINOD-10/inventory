@@ -1,6 +1,6 @@
 <div class="panel">
   <div class="panel-header">
-    <div ng-include="'views/common/excel.html'"></div>
+    <button type="button" class="btn btn-primary pull-right" ng-click="showCase.excel()">Download Excel</button>
   </div>
   <div class="panel-body">
     <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="table custom-table table-condensed datatable"></table>

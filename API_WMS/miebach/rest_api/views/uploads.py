@@ -342,6 +342,7 @@ def myntra_order_tax_calc(key, value, order_mapping, order_summary_dict, row_idx
 def check_and_save_order(cell_data, order_data, order_mapping, user_profile, seller_order_dict, order_summary_dict,
                          sku_ids,
                          sku_masters_dict, all_sku_decs, exist_created_orders, user):
+    order_obj_list = []
     sku_codes = str(cell_data).split(',')
     for cell_data in sku_codes:
         if isinstance(cell_data, float):
@@ -350,9 +351,10 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
         if not order_data.get('title', ''):
             order_data['title'] = all_sku_decs.get(order_data['sku_id'], '')
 
-        order_obj = OrderDetail.objects.filter(order_id=order_data['order_id'],
-                                               order_code=order_data.get('order_code', ''),
-                                               sku_id=order_data['sku_id'], user=user.id)
+        order_obj = OrderDetail.objects.filter(order_id=order_data['order_id'], \
+            order_code=order_data.get('order_code', ''), user=user.id)
+        order_obj_list.append(order_obj)
+        order_obj = order_obj.filter(sku_id=order_data['sku_id'])
         order_create = True
         if user_profile.user_type == 'marketplace_user' and order_mapping.has_key('seller_id'):
             if not seller_order_dict['seller_id'] or (
@@ -399,7 +401,7 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
                 order_obj.status = 1
                 update_seller_order(seller_order_dict, order_obj, user)
                 order_obj.save()
-
+        create_order_pos(user, order_obj_list)
         log.info("Order Saving Ended %s" % (datetime.datetime.now()))
     return sku_ids
 
@@ -748,7 +750,6 @@ def order_form(request, user=''):
     wb = Workbook()
     ws = wb.add_sheet('order')
     header_style = easyxf('font: bold on')
-
     user_profile = UserProfile.objects.get(user_id=user.id)
     order_headers = USER_ORDER_EXCEL_MAPPING.get(user_profile.user_type, {})
     for count, header in enumerate(order_headers):

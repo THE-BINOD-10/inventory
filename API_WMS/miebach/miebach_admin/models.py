@@ -2172,6 +2172,7 @@ class BarcodeSettings(models.Model):
     show_fields = models.CharField(max_length=256, blank=True, null=True)
     rows_columns = models.CharField(max_length=64, blank=True, null=True)
     styles = models.TextField(blank=True, null=True)
+    mapping_fields = models.CharField(max_length=256, blank=True, null=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

@@ -4262,13 +4262,22 @@ def get_imei_data(request, user=''):
 def generate_barcode_dict(pdf_format, myDict, user):
     barcode_pdf_dict = {}
     barcodes_list = []
+    barcode_mapping_dict = {'Size': 'sku_size', 'Brand': 'sku_brand', 'SKUDes': 'sku_desc',
+                            'UOM': 'measurement_type', 'Style': 'style_name', 'Color': 'color',
+                            'DesignNo': 'sku_class', 'Gender': 'style_name', 'MRP': 'mrp',
+                            'SKUDes/Prod': 'sku_desc'}
     user_prf = UserProfile.objects.filter(user_id=user.id)[0]
     barcode_opt = get_misc_value('barcode_generate_opt', user.id)
     attribute_names = get_user_attributes(user, 'sku').values_list('attribute_name', flat=True)
     format_type = "_".join(pdf_format.split("_")[:-1]) if "_" in pdf_format else (1, '60X30')
     barcode_formats = BarcodeSettings.objects.filter(user=user_prf.user, format_type=str(format_type))
+    mapping_fields = {}
+    show_fields = []
     if barcode_formats:
-        show_fields = eval(barcode_formats[0].show_fields)
+        if barcode_formats[0].show_fields:
+            show_fields = eval(barcode_formats[0].show_fields)
+        if barcode_formats[0].mapping_fields:
+            mapping_fields = eval(barcode_formats[0].mapping_fields)
     for ind in range(0, len(myDict['wms_code'])):
         sku = myDict['wms_code'][ind]
         quant = myDict['quantity'][ind]
@@ -4277,33 +4286,34 @@ def generate_barcode_dict(pdf_format, myDict, user):
             label = myDict['label'][ind]
         if sku and quant:
             if sku.isdigit():
-                sku_data = SKUMaster.objects.filter(Q(ean_number=sku) | Q(wms_code=sku), user=user.id)[0]
+                sku_data = SKUMaster.objects.filter(Q(ean_number=sku) | Q(wms_code=sku), user=user.id)
             else:
-                sku_data = SKUMaster.objects.filter(sku_code=sku, user=user.id)[0]
-            single = {}  # copy.deepcopy(BARCODE_DICT[pdf_format])
-            for attribute_name in attribute_names:
-                if attribute_name in show_fields:
-                    attr_obj = sku_data.skuattributes_set.filter(attribute_name=attribute_name)
-                    if attr_obj.exists():
-                        single[attribute_name] = attr_obj[0].attribute_value
+                sku_data = SKUMaster.objects.filter(sku_code=sku, user=user.id)
+            if not sku_data:
+                continue
+            sku_data = sku_data[0]
+            single = {}
             single['SKUCode'] = sku if sku else label
             single['Label'] = label if label else sku
 
             if barcode_opt == 'sku_ean' and sku_data.ean_number:
                 single['Label'] = str(sku_data.ean_number)
-
-            single['Size'] = str(sku_data.sku_size).replace("'", '')
             single['SKUPrintQty'] = quant
-            single['Brand'] = sku_data.sku_brand.replace("'", '')
-            single['SKUDes'] = sku_data.sku_desc.replace("'", '')
-        single['UOM'] = sku_data.measurement_type.replace("'", '')
-        single['Style'] = str(sku_data.style_name).replace("'", '')
-        single['Color'] = sku_data.color.replace("'", '')
-        single['Product'] = sku_data.sku_desc
-        if len(sku_data.sku_desc) >= 25:
-            single['Product'] = sku_data.sku_desc[0:24].replace("'", '') + '...'
+            for show_keys1 in show_fields:
+                show_keys2 = [show_keys1]
+                if isinstance(show_keys1, list):
+                    show_keys2 = copy.deepcopy(show_keys1)
+                for show_key in show_keys2:
+                    show_key = show_key.split('/')[0]
+                    if show_key in barcode_mapping_dict.keys():
+                        single[show_key] = getattr(sku_data, barcode_mapping_dict[show_key])
+                        if barcode_mapping_dict[show_key] == 'sku_desc':
+                            single[show_key] = sku_data.sku_desc[0:24].replace("'", '') + '...'
+                    else:
+                        attr_obj = sku_data.skuattributes_set.filter(attribute_name=show_key)
+                        if attr_obj.exists():
+                            single[show_key] = attr_obj[0].attribute_value
         single['Company'] = user_prf.company_name.replace("'", '')
-        single["DesignNo"] = str(sku_data.sku_class).replace("'", '')
         present = get_local_date(user, datetime.datetime.now(), send_date=True).strftime("%b %Y")
         single["Packed on"] = str(present).replace("'", '')
         single['Marketed By'] = user_prf.company_name.replace("'", '')
@@ -4313,8 +4323,6 @@ def generate_barcode_dict(pdf_format, myDict, user):
             phone_number = ''
         single['Contact No'] = phone_number
         single['Email'] = user.email
-        single["Gender"] = str(sku_data.style_name).replace("'", '')
-        single['MRP'] = str(sku_data.price).replace("'", '')
         order_label = OrderLabels.objects.filter(label=single['Label'], order__user=user.id)
 
         if order_label:

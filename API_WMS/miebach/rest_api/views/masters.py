@@ -3268,10 +3268,13 @@ def get_distributors(request, user=''):
     resellers = []
     message = 0
     if user_type == 'central_admin':
-        distributors =  list(UserGroups.objects.filter(admin_user_id=user.id, user__userprofile__warehouse_type='DIST').values('user_id', 'user__username'))
+        distributors = list(UserGroups.objects.filter(admin_user_id=user.id,
+                                                      user__userprofile__warehouse_type='DIST').
+                            values('user_id', 'user__first_name').order_by('user__first_name'))
     else:
-        distributors =  list(UserGroups.objects.filter(user_id=user.id).values('user_id', 'user__username'))
-        resellers = list(CustomerMaster.objects.filter(user=distributors[0]['user_id']).values('customer_id', 'name', 'id'))
+        distributors = list(UserGroups.objects.filter(user_id=user.id).values('user_id', 'user__first_name'))
+        resellers = list(CustomerMaster.objects.filter(user=distributors[0]['user_id']).
+                         values('customer_id', 'name', 'id').order_by('name'))
     if distributors:
         message = 1
     return HttpResponse(json.dumps({'message':message, 'data': {'distributors': distributors, 'resellers':resellers}}))
@@ -3284,7 +3287,7 @@ def get_resellers(request, user=''):
     ''' Get Resellers list'''
     message = 0
     dist = request.GET['distributor']
-    resellers = list(CustomerMaster.objects.filter(user=dist).values('customer_id', 'name', 'id'))
+    resellers = list(CustomerMaster.objects.filter(user=dist).values('customer_id', 'name', 'id').order_by('name'))
     if resellers:
         message = 1
     return HttpResponse(json.dumps({'message': message, 'data': resellers}))
@@ -3299,7 +3302,7 @@ def get_corporates(request, user=''):
     checked_corporates = {}
     if request.GET['reseller']:
         res = request.GET['reseller']
-        checked_corporates = list(CorpResellerMapping.objects.filter(reseller_id=res).values('corporate_id', 'status'))
+        checked_corporates = list(CorpResellerMapping.objects.filter(reseller_id=res).exclude(status=0).values('corporate_id', 'status'))
     corporates = list(CorporateMaster.objects.all().values('corporate_id', 'name').order_by('name'))
     if corporates:
         message = 1

@@ -4039,6 +4039,7 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
     zones_data = {}
     pallet_switch = get_misc_value('pallet_switch', user.id)
     availabe_quantity = {}
+    industry_type = user.userprofile.industry_type
     for stock in stock_data:
         res_qty = PicklistLocation.objects.filter(stock_id=stock.id, status=1, picklist__order__user=user.id). \
             aggregate(Sum('reserved'))['reserved__sum']
@@ -4052,13 +4053,17 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
             res_qty = float(res_qty) + float(raw_reserved)
         location = stock.location.location
         zone = stock.location.zone.zone
-        pallet_number = ''
+        pallet_number, batch, mrp = ['']*3
         if pallet_switch == 'true' and stock.pallet_detail:
             pallet_number = stock.pallet_detail.pallet_code
-        cond = str((zone, location, pallet_number))
+        if industry_type == "FMCG" and stock.batch_detail:
+            batch_detail = stock.batch_detail
+            batch = batch_detail.batch_no
+            mrp = batch_detail.mrp
+        cond = str((zone, location, pallet_number, batch, mrp))
         zones_data.setdefault(cond,
                               {'zone': zone, 'location': location, 'pallet_number': pallet_number, 'total_quantity': 0,
-                               'reserved_quantity': 0})
+                               'reserved_quantity': 0, 'batch': batch, 'mrp': mrp})
         zones_data[cond]['total_quantity'] += stock.quantity
         zones_data[cond]['reserved_quantity'] += res_qty
         availabe_quantity.setdefault(location, 0)

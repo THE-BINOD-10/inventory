@@ -23,6 +23,8 @@
                         <th ng-if="showCase.permissions.pallet_switch && showCase.model_data.load_unit_handle == 'pallet'">Pallet Number</th>
                         <th>Total Quantity</th>
                         <th>Reserved Quantity</th>
+                        <th ng-if="showCase.industry_type == 'FMCG'">Batch</th>
+                        <th ng-if="showCase.industry_type == 'FMCG'">MRP</th>
                       </tr>
                     </thead>
                     <tbody ng-repeat="data in showCase.model_data.zones_data">
@@ -32,6 +34,8 @@
                         <th ng-if="showCase.permissions.pallet_switch && showCase.model_data.load_unit_handle == 'pallet'">{{data.pallet_number}}</td>
                         <td>{{data.total_quantity}}</td>
                         <td>{{data.reserved_quantity}}</td>
+                        <td ng-if="showCase.industry_type == 'FMCG'">{{data.batch}}</td>
+                        <td ng-if="showCase.industry_type == 'FMCG'">{{data.mrp}}</td>
                       </tr>
                     </tbody>
                   </table>

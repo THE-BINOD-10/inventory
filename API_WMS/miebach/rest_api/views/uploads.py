@@ -443,9 +443,9 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             cell_data = get_cell_data(row_idx, order_mapping['order_id'], reader, file_type)
             if not cell_data:
                 index_status.setdefault(count, set()).add('Order Id should not be empty')
-            order_type = get_cell_data(row_idx, 19, reader, file_type)
+            order_type = get_cell_data(row_idx, order_mapping['order_type'], reader, file_type)
             if cell_data in order_id_order_type.keys():
-                if order_id_order_type[cell_data] == order_type:
+                if order_id_order_type[cell_data] != order_type:
                     index_status.setdefault(count, set()).add('Order Type are different for same orders')
             else:
                 order_id_order_type[cell_data]=order_type
@@ -462,7 +462,6 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             sku_code = cell_data.upper()
 
         sku_codes = sku_code.split(',')
-        print sku_codes
         for sku_code in sku_codes:
             sku_id = check_and_return_mapping_id(sku_code, title, user)
             if not sku_id:
@@ -486,6 +485,12 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             _invoice_amount_value = get_cell_data(row_idx, order_mapping['tax_percentage'][1], reader, file_type)
             if _invoice_amount_value and not isinstance(_invoice_amount_value, float):
                 index_status.setdefault(count, set()).add('Invoice Amount should be Number')
+
+        if 'order_type' in order_mapping:
+            cell_data = get_cell_data(row_idx, order_mapping['order_type'], reader, file_type)
+            if cell_data == 'Returnable Order':
+                if not get_cell_data(row_idx, order_mapping['customer_id'], reader, file_type):
+                    index_status.setdefault(count, set()).add('Customer ID mandatory for Returnable Order')
 
     if index_status and file_type == 'csv':
         f_name = fname.name.replace(' ', '_')

@@ -5494,16 +5494,17 @@ def get_warehouse_admin(user):
         admin_user = user
     return admin_user
 
-
+@fn_timer
 def get_picklist_number(user):
     """ Get the Latest Picklist number"""
-    picklist_obj = Picklist.objects.filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id)).values_list(
-        'picklist_number',
-        flat=True).distinct().order_by('-picklist_number')
+    #picklist_obj = Picklist.objects.filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id)).values_list(
+    #    'picklist_number',
+    #    flat=True).distinct().order_by('-picklist_number')
+    picklist_obj = Picklist.objects.filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id)).last()
     if not picklist_obj:
         picklist_number = 1000
     else:
-        picklist_number = picklist_obj[0]
+        picklist_number = picklist_obj.picklist_number
     return picklist_number
 
 
@@ -5567,24 +5568,23 @@ def create_seller_summary_details(seller_order, picklist):
 
 
 @fn_timer
-def picklist_generation(order_data, request, picklist_number, user, sku_combos, sku_stocks, status='', remarks='',
+def picklist_generation(order_data, request, picklist_number, user, sku_combos, sku_stocks, switch_vals, status='', remarks='',
                         is_seller_order=False):
     stock_status = []
     if not status:
         status = 'batch_open'
     is_marketplace_model = False
     all_zone_mappings = []
-    if get_misc_value('marketplace_model', user.id) == 'true':
+    if switch_vals['marketplace_model'] == 'true':
         all_zone_mappings = ZoneMarketplaceMapping.objects.filter(zone__user=user.id, status=1)
         is_marketplace_model = True
 
-    fifo_switch = get_misc_value('fifo_switch', user.id)
-    if fifo_switch == "true":
+    if switch_vals['fifo_switch'] == 'true':
         order_by = 'receipt_date'
     else:
         order_by = 'location_id__pick_sequence'
     no_stock_switch = False
-    if get_misc_value('no_stock_switch', user.id) == 'true':
+    if switch_vals['no_stock_switch'] == 'true':
         no_stock_switch = True
 
     for order in order_data:
@@ -5600,7 +5600,10 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
         else:
             picklist_data['remarks'] = 'Picklist_' + str(picklist_number + 1)
 
-        sku_id_stocks = sku_stocks.values('id', 'sku_id').annotate(total=Sum('quantity')).order_by(order_by)
+        combo_sku_ids = list(sku_combos.filter(parent_sku_id=order.sku_id).values_list('member_sku_id', flat=True))
+        combo_sku_ids.append(order.sku_id)
+        sku_id_stocks = sku_stocks.filter(sku_id__in=combo_sku_ids).values('id', 'sku_id').\
+                                    annotate(total=Sum('quantity')).order_by(order_by)
         val_dict = {}
         val_dict['sku_ids'] = map(lambda d: d['sku_id'], sku_id_stocks)
         val_dict['stock_ids'] = map(lambda d: d['id'], sku_id_stocks)
@@ -5846,6 +5849,9 @@ def picklist_allocate_stock(request, user, picklists, stock):
 
 def open_orders_allocate_stock(request, user, sku_combos, sku_open_orders, all_seller_orders, seller_stocks,
                                stock_objs, picklist_order_mapping):
+    switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
+                   'fifo_switch': get_misc_value('fifo_switch', user.id),
+                   'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
     remarks = 'Auto-generated Picklist'
     from outbound import picklist_generation, get_sku_stock, get_picklist_number
     consumed_qty = 0
@@ -5866,11 +5872,11 @@ def open_orders_allocate_stock(request, user, sku_combos, sku_open_orders, all_s
                 else:
                     sku_stocks = sku_stocks.filter(id=0)
                 stock_status, picklist_number = picklist_generation([seller_order], request, picklist_number, user,
-                                                                    sku_combos, sku_stocks, status='open',
+                                                                    sku_combos, sku_stocks, switch_vals, status='open',
                                                                     remarks=remarks, is_seller_order=True)
         else:
             stock_status, picklist_number = picklist_generation([open_order], request, picklist_number, user,
-                                                                sku_combos, stock_objs, status='open', remarks=remarks)
+                                                                sku_combos, stock_objs, switch_vals, status='open', remarks=remarks)
 
     return picklist_order_mapping
 

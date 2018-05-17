@@ -5,12 +5,13 @@ import json
 import time
 import ConfigParser
 import pytz
+import glob
 from os import path
 from PIL import Image
 
 def image_compression(image_path):
     image_size = os.stat(image_path).st_size
-    limit = 1
+    limit = 500 * 1024
     print 'Original Image Size : ' +str(image_size)
     while image_size > limit:
         image = Image.open(image_path)
@@ -20,11 +21,10 @@ def image_compression(image_path):
     return True
 
 def get_images():
-    img_list = ['']
-    img_path = ''
-    for i in img_list:
-        full_path = img_path + i
-        image_compression(full_path)
+    img_list = glob.glob("/root/aravind/WMS_ANGULAR_FIX_BAK/ANGULAR_WMS/app/images_bak/brand-logos/*.*")
+    for full_path in img_list:
+        if '.png' in full_path or '.jpg' in full_path:
+            print full_path
+            image_compression(full_path)
     return True
-
 get_images()

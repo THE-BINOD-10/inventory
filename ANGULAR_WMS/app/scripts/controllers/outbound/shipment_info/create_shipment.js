@@ -126,9 +126,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
               type: 'success',
               title: 'Carton Code Added!',
               // html: 'Submitted text is: ' + text
-            })
+            }), $('.swal2-confirm').click(function(){
+              $('#scan_sku').focus();
+            });
         });
-        $('#scan_sku').focus();
     }
 
     vm.update_carton_code = function(carton_code){

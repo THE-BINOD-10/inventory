@@ -88,7 +88,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
           } else {
             vm.selected[iDisplayIndex] = true;
           }
-
+          vm.carton_code = "";
           vm.bt_disable = vm.service.toggleOne(vm.selectAll, vm.selected, vm.bt_disable);
           vm.selectAll = vm.service.select_all(vm.selectAll, vm.selected);
         })
@@ -96,8 +96,46 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
     }
 
     //DATA table end
+    vm.carton_code = "";
+    vm.add_carton = function() {
+        var carton_code = '';
+        swal2({
+          title: 'Please enter your carton code',
+          text: '',
+          input: 'text',
+          confirmButtonColor: '#33cc66',
+          // cancelButtonColor: '#d33',
+          confirmButtonText: 'Save',
+          cancelButtonText: 'Cancel',
+          showLoaderOnConfirm: true,
+          inputOptions: 'Testing',
+          inputPlaceholder: 'Type Reason',
+          confirmButtonClass: 'btn btn-success',
+          cancelButtonClass: 'btn btn-default',
+          showCancelButton: true,
+          preConfirm: function (text) {
+            return new Promise(function (resolve, reject) {
+              vm.update_carton_code(text);
+              resolve();
+            })
+          },
+          allowOutsideClick: false,
+          // buttonsStyling: false
+        }).then(function (text) {
+            swal2({
+              type: 'success',
+              title: 'Carton Code Added!',
+              // html: 'Submitted text is: ' + text
+            })
+        });
+        $('#scan_sku').focus();
+    }
 
-
+    vm.update_carton_code = function(carton_code){
+      $scope.$apply(function() {
+        vm.carton_code = carton_code;
+      });
+    }
 
    vm.bt_disable = false;
 
@@ -166,6 +204,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
               if(vm.mk_user) {
                 vm.model_data.marketplace = Session.user_profile.company_name;
               }
+              vm.carton_code = "";
               $state.go('app.outbound.ShipmentInfo.Shipment');
               $timeout(function() {
                 $('#shipment_date').datepicker('setDate', vm.today_date);
@@ -462,12 +501,34 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
                 var sb_shipped = isNaN(sb_data.shipping_quantity)? 0: sb_data.shipping_quantity;
                 tot_ship = Number(tot_ship) + Number(sb_shipped);
               });
+
               if(vm.model_data.data[i].picked > tot_ship)
               {
                 var last_index = vm.model_data.data[i].sub_data.length - 1;
                 var exist_quan = vm.model_data.data[i].sub_data[last_index].shipping_quantity;
                 exist_quan = (!isNaN(exist_quan)) ? exist_quan: 0;
-                vm.model_data.data[i].sub_data[last_index].shipping_quantity = Number(exist_quan) + 1;
+
+                for(var p_ref=0; p_ref<vm.model_data.data[i].sub_data.length; p_ref++){
+                  if (vm.carton_code == vm.model_data.data[i].sub_data[p_ref].pack_reference) {
+                    last_index = p_ref;
+                  }
+                }
+
+                if (vm.carton_code == vm.model_data.data[i].sub_data[last_index].pack_reference || !vm.model_data.data[i].sub_data[last_index].pack_reference) {
+                  vm.model_data.data[i].sub_data[last_index].shipping_quantity = Number(exist_quan) + 1;
+
+                  if (!vm.model_data.data[i].sub_data[last_index].pack_reference) {
+                    vm.model_data.data[i].sub_data[last_index].pack_reference = vm.carton_code;
+                  }
+                } else {
+                  vm.update_data(i, vm.model_data.data[i], true);
+
+                  if (vm.model_data.data[i].sub_data[last_index+1].pack_reference) {
+                    vm.model_data.data[i].sub_data[last_index+1].pack_reference = '';
+                  }
+                  vm.update_sku_quan(event, scanned_sku);
+                }
+
                 is_updated = true;
                 break;
               }

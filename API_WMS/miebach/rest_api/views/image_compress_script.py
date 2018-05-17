@@ -8,8 +8,10 @@ import pytz
 import glob
 from os import path
 from PIL import Image
+from PIL import ImageFile
 
 def image_compression(image_path):
+    ImageFile.LOAD_TRUNCATED_IMAGES = True
     image_size = os.stat(image_path).st_size
     limit = 500 * 1024
     print 'Original Image Size : ' +str(image_size)
@@ -21,7 +23,8 @@ def image_compression(image_path):
     return True
 
 def get_images():
-    img_list = glob.glob("/root/aravind/WMS_ANGULAR_FIX_BAK/ANGULAR_WMS/app/images_bak/brand-logos/*.*")
+    image_path = '/root/aravind/WMS_ANGULAR_FIX_BAK/ANGULAR_WMS/app/images/companies'
+    img_list = glob.glob("%s/*.*" % image_path)
     for full_path in img_list:
         if '.png' in full_path or '.jpg' in full_path:
             print full_path

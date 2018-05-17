@@ -352,9 +352,7 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
             order_data['title'] = all_sku_decs.get(order_data['sku_id'], '')
 
         order_obj = OrderDetail.objects.filter(order_id=order_data['order_id'], \
-            order_code=order_data.get('order_code', ''), user=user.id)
-        order_obj_list.append(order_obj)
-        order_obj = order_obj.filter(sku_id=order_data['sku_id'])
+            order_code=order_data.get('order_code', ''), user=user.id, sku_id=order_data['sku_id'])
         order_create = True
         if user_profile.user_type == 'marketplace_user' and order_mapping.has_key('seller_id'):
             if not seller_order_dict['seller_id'] or (
@@ -379,6 +377,8 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
                 order_detail.creation_date = exist_order_ins[0].creation_date
                 order_detail.shipment_date = exist_order_ins[0].shipment_date
                 order_detail.save()
+                if order_data['order_type'] == 'Returnable Order':
+                    order_obj_list.append(order_obj)
             check_create_seller_order(seller_order_dict, order_detail, user)
             if order_data['sku_id'] not in sku_ids:
                 sku_ids.append(order_data['sku_id'])
@@ -393,6 +393,8 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
             order_obj = order_obj[0]
             order_obj.quantity = order_obj.quantity + order_data['quantity']
             order_obj.save()
+            if order_data['order_type'] == 'Returnable Order':
+                order_obj_list.append(order_obj)
             check_create_seller_order(seller_order_dict, order_obj, user)
         elif order_obj and order_create and seller_order_dict.get('seller_id', '') and \
                         seller_order_dict.get('order_status') == 'DELIVERY_RESCHEDULED':
@@ -401,6 +403,8 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
                 order_obj.status = 1
                 update_seller_order(seller_order_dict, order_obj, user)
                 order_obj.save()
+                if order_data['order_type'] == 'Returnable Order':
+                    order_obj_list.append(order_obj)
         create_order_pos(user, order_obj_list)
         log.info("Order Saving Ended %s" % (datetime.datetime.now()))
     return sku_ids
@@ -414,17 +418,16 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
     order_mapping = get_order_mapping(reader, file_type)
     if not order_mapping:
         return "Headers not matching"
-
     count = 0
     exclude_rows = []
     sku_masters_dict = {}
+    order_id_order_type = {}
     log.info("Validation Started %s" % datetime.datetime.now())
     exist_created_orders = OrderDetail.objects.filter(user=user.id,
                                                       order_code__in=['MN', 'Delivery Challan', 'sample', 'R&D', 'CO'])
     for row_idx in range(1, no_of_rows):
         if not order_mapping:
             break
-
         count += 1
         if order_mapping.has_key('seller'):
             seller_id = get_cell_data(row_idx, order_mapping['seller'], reader, file_type)
@@ -440,7 +443,12 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             cell_data = get_cell_data(row_idx, order_mapping['order_id'], reader, file_type)
             if not cell_data:
                 index_status.setdefault(count, set()).add('Order Id should not be empty')
-
+            order_type = get_cell_data(row_idx, 19, reader, file_type)
+            if cell_data in order_id_order_type.keys():
+                if order_id_order_type[cell_data] == order_type:
+                    index_status.setdefault(count, set()).add('Order Type are different for same orders')
+            else:
+                order_id_order_type[cell_data]=order_type
         cell_data = get_cell_data(row_idx, order_mapping['sku_code'], reader, file_type)
         title = ''
         if order_mapping.has_key('title'):

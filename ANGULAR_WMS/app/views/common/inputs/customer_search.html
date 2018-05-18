@@ -1,0 +1,4 @@
+<div class="form-group">
+  <label class="control-label">Customer ID</label>
+  <input type="text" autocomplete="off" name="customer_id" class="form-control" placeholder="Search Customer ID/Name" typeahead="address.customer_id+' : '+address.name+' : '+address.phone_number for address in showCase.service.getSearchValues($viewValue, 'search_customer_data?')" typeahead-loading="loadingLocations" typeahead-on-select="showCase.model_data.customer_id = $item.customer_id" ng-model="showCase.model_data.customer_id">
+</div>

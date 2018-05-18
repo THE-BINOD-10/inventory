@@ -888,7 +888,7 @@ def switches(request, user=''):
     
     log.info('Request params for ' + user.username + ' on ' + str(
         get_local_date(user, datetime.datetime.now())) + ' is ' + str(request.GET.dict()))
-    
+
     try:
         toggle_data = {'fifo_switch': 'fifo_switch',
                        'batch_switch': 'batch_switch',
@@ -954,6 +954,7 @@ def switches(request, user=''):
                        'display_styles_price': 'display_styles_price',
                        'picklist_display_address': 'picklist_display_address',
                        'shelf_life_ratio': 'shelf_life_ratio',
+                       'mode_of_transport': 'mode_of_transport',
                        'show_purchase_history': 'show_purchase_history',
                        }
         toggle_field, selection = "", ""
@@ -5831,10 +5832,22 @@ def confirm_primary_segregation(request, user=''):
 @login_required
 @get_admin_user
 def last_transaction_details(request, user=''):
+    get_supplier_each_seller_list = []
+    check_supplier = ''
+    seller_id = 0
     wms_code_list = request.POST.getlist('wms_code', [])
     supplier_name_list = request.POST.getlist('supplier_id', [])
+    seller_id_list = request.POST.getlist('seller_id', [])
+    if seller_id_list:
+        seller_id = seller_id_list[0].split(':')[0]
+    get_supplier_each_seller_list = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
+    if get_supplier_each_seller_list:
+        check_supplier = get_supplier_each_seller_list[0].supplier
     sku_wise_obj = PurchaseOrder.objects.filter(open_po__sku__wms_code__in=wms_code_list, open_po__sku__user=user.id).order_by('-creation_date')
-    supplier_wise_obj = sku_wise_obj.filter(open_po__supplier__id__in = supplier_name_list).order_by('-creation_date')
+    if check_supplier:
+        supplier_wise_obj = sku_wise_obj.filter(open_po__supplier__id__in = get_supplier_each_seller_list).order_by('-creation_date')
+    else:
+        supplier_wise_obj = sku_wise_obj.filter(open_po__supplier__id__in = supplier_name_list).order_by('-creation_date')
     sku_wise_list = []
     supplier_wise_list = []
     for data in sku_wise_obj[0:3]:

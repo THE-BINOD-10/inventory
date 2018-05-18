@@ -4270,6 +4270,11 @@ def generate_barcode_dict(pdf_format, myDict, user):
     barcodes_list = []
     user_prf = UserProfile.objects.filter(user_id=user.id)[0]
     barcode_opt = get_misc_value('barcode_generate_opt', user.id)
+    attribute_names = get_user_attributes(user, 'sku').values_list('attribute_name', flat=True)
+    format_type = "_".join(pdf_format.split("_")[:-1]) if "_" in pdf_format else (1, '60X30')
+    barcode_formats = BarcodeSettings.objects.filter(user=user_prf.user, format_type=str(format_type))
+    if barcode_formats:
+        show_fields = eval(barcode_formats[0].show_fields)
     for ind in range(0, len(myDict['wms_code'])):
         sku = myDict['wms_code'][ind]
         quant = myDict['quantity'][ind]
@@ -4282,6 +4287,11 @@ def generate_barcode_dict(pdf_format, myDict, user):
             else:
                 sku_data = SKUMaster.objects.filter(sku_code=sku, user=user.id)[0]
             single = {}  # copy.deepcopy(BARCODE_DICT[pdf_format])
+            for attribute_name in attribute_names:
+                if attribute_name in show_fields:
+                    attr_obj = sku_data.skuattributes_set.filter(attribute_name=attribute_name)
+                    if attr_obj.exists():
+                        single[attribute_name] = attr_obj[0].attribute_value
             single['SKUCode'] = sku if sku else label
             single['Label'] = label if label else sku
 
@@ -4567,7 +4577,13 @@ def build_invoice(invoice_data, user, css=False):
     if len(invoice_data['hsn_summary'].keys()) == 0:
         invoice_data['perm_hsn_summary'] = 'false'
     invoice_data['empty_tds'] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    inv_height = 1250  # total invoice height
+    invoice_height = 1358
+    if 'side_image' in invoice_data.keys() and 'top_image' in invoice_data.keys():
+        if not invoice_data['side_image'] and invoice_data['top_image']:
+            invoice_height = 1250
+        if not invoice_data['top_image'] and invoice_data['side_image']:
+            invoice_height = 1358
+    inv_height = invoice_height  # total invoice height
     inv_details = 317  # invoice details height
     inv_footer = 95  # invoice footer height
     inv_totals = 127  # invoice totals height
@@ -4608,7 +4624,7 @@ def build_invoice(invoice_data, user, css=False):
         no_of_skus += 2
     '''
     invoice_data['empty_data'] = []
-    if (data_length > no_of_skus):
+    if (data_length >= no_of_skus):
 
         needed_space = inv_footer + inv_footer + inv_total
         if (perm_hsn_summary == 'true'):
@@ -4643,6 +4659,7 @@ def build_invoice(invoice_data, user, css=False):
     else:
         temp = invoice_data['data']
         invoice_data['data'] = []
+        #empty_data = [""] * (no_of_skus - data_length)
         no_of_space = (13 - data_length)
         if no_of_space < 0:
             no_of_space = 0
@@ -6482,6 +6499,13 @@ def get_invoice_types(user):
     else:
         invoice_types = invoice_types.split(',')
     return invoice_types
+
+
+def get_mode_of_transport(user):
+    mode_of_transport = get_misc_value('mode_of_transport', user.id)
+    if mode_of_transport:
+        mode_of_transport = mode_of_transport.split(',')
+    return mode_of_transport
 
 
 def get_max_seller_transfer_id(user):

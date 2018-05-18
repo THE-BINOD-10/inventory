@@ -135,6 +135,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
     vm.update_carton_code = function(carton_code){
       $scope.$apply(function() {
         vm.carton_code = carton_code;
+        
+        if (!vm.model_data.sel_cartons[carton_code]) {
+          vm.model_data.sel_cartons[carton_code] = 0;
+        }
       });
     }
 
@@ -206,6 +210,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
                 vm.model_data.marketplace = Session.user_profile.company_name;
               }
               vm.carton_code = "";
+              vm.model_data.sel_cartons = {};
+              vm.print_enable = false;
               $state.go('app.outbound.ShipmentInfo.Shipment');
               $timeout(function() {
                 $('#shipment_date').datepicker('setDate', vm.today_date);
@@ -517,6 +523,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
 
                 if (vm.carton_code == vm.model_data.data[i].sub_data[last_index].pack_reference || !vm.model_data.data[i].sub_data[last_index].pack_reference) {
                   vm.model_data.data[i].sub_data[last_index].shipping_quantity = Number(exist_quan) + 1;
+                  vm.model_data.sel_cartons[vm.carton_code] = vm.model_data.data[i].sub_data[last_index].shipping_quantity;
 
                   if (!vm.model_data.data[i].sub_data[last_index].pack_reference) {
                     vm.model_data.data[i].sub_data[last_index].pack_reference = vm.carton_code;
@@ -541,4 +548,94 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
       }
     }
 
+    vm.cartonPrintData = {html: vm.html};
+    vm.print_pdf = function(form){
+      if (vm.model_data.sel_cartons) {
+        var sel_cartons = JSON.stringify(vm.model_data.sel_cartons);
+        var elem = angular.element($('#add-customer'));
+        elem = elem[0];
+        elem = $(elem).serializeArray();
+        elem.push({'name':'sel_cartons', 'value':sel_cartons});
+        vm.service.apiCall("print_cartons_wise_qty/", "POST", elem).then(function(data) {
+          if(data.message) {
+
+            if(data.data.search("<div") != -1) {
+              /*if (vm.model_data.receipt_type == 'Hosted Warehouse') {
+                //vm.title = "Stock transfer Note";
+                vm.title = $(data.data).find('.modal-header h4').text().trim();
+
+              }*/
+              var mod_data = vm.cartonPrintData;
+              var modalInstance = $modal.open({
+                // templateUrl: 'views/outbound/toggle/createpri_orders/add_margin.html',
+                templateUrl: 'views/outbound/toggle/print_shipment_info.html',
+                controller: 'CartonPrintCtrl',
+                controllerAs: '$ctrl',
+                size: 'md',
+                backdrop: 'static',
+                keyboard: false,
+                resolve: {
+                  items: function () {
+                    return mod_data;
+                  }
+                }
+              });
+
+              modalInstance.result.then(function (selectedItem) {
+                vm.mod_data = selectedItem;
+                console.log(vm.mod_data);
+                // Data.marginSKUData.is_margin_percentage = vm.marginData.is_margin_percentage;
+                // Data.marginSKUData.margin = vm.marginData.margin;
+                // Data.marginSKUData.data = [];
+
+                // vm.catlog_data.index = '';
+                // vm.get_category(true, true);
+              })
+
+
+              vm.html = $(data.data)[0];
+              var html = $(vm.html).closest("form").clone();
+              angular.element(".modal-body").html($(html).find(".modal-body > .form-group"));
+              vm.print_enable = true;
+            } else {
+              vm.service.pop_msg(data.data);
+            }
+          }
+
+        });
+      } else {
+        vm.service.showNoty("No cartons codes are entered");
+      }
+    }
+
+    // vm.get_carton_info = function(carton){
+    //   alert(carton);
+    // }
+
   }
+
+angular.module('urbanApp').controller('CartonPrintCtrl', function ($modalInstance, $modal, items, Service, Data, Session) {
+  var $ctrl = this;
+  $ctrl.printData = {};
+  angular.copy(items, $ctrl.printData);
+  $ctrl.user_type = Session.roles.permissions.user_type;
+
+  $ctrl.ok = function (form) {
+
+    if(form.$invalid) {
+      return false;
+    }
+    // angular.copy({data: $ctrl.sku_data}, Data.marginSKUData);
+    $modalInstance.close($ctrl.printData);
+  };
+
+  $ctrl.cancel = function () {
+    $modalInstance.dismiss('cancel');
+  };
+
+  $ctrl.print_carton_pdf = function() {
+
+    $ctrl.service.print_data($ctrl.printData.html, "Shipment Details");
+  }
+
+});

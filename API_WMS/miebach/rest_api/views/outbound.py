@@ -8805,3 +8805,29 @@ def update_cust_profile(request, user=''):
         resp['message'] = 'fail'
 
     return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def print_cartons_wise_qty(request, user=''):
+    
+    company_name = "Myntra Jabong India Pvt. Ltd"
+    table_headers = ['S.No', 'Carton Number', 'No of Item Codes']
+    name = "Myntra Jabong India Pvt. Ltd. C/O Future Supply Chain Ltd"
+    address = "Khasra No. 26/13, 14,15, 16/1, 17/1, 18/1/27/11 Revenue Estate Of Sadhrana Village, Gurgaon – 122001 Haryana, India"
+    st_number = "ST0023"
+    st_date = "15-05-2018"
+    total_cartons = 35
+    total_items = 1000
+    vehicle_number = 'HR61B4717'
+    data = [[1, 'CT030', 30], [2, 'CT031', 31], [3, 'CT032', 32], [4, 'CT033', 33], [5, 'CT034', 34]]
+
+    import pdb
+    pdb.set_trace()
+
+    data_dict = {'table_headers': table_headers, 'address': address, 'name': name, 'st_number': st_number,
+                 'st_date': st_date, 'total_cartons': total_cartons, 'total_items': total_items, 
+                 'vehicle_number': vehicle_number, 'company_name': company_name, 'data': data}
+
+    return render(request, 'templates/toggle/print_cartons_wise_qty.html', data_dict)

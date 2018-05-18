@@ -29,6 +29,12 @@ class UserProfileAdmin(admin.ModelAdmin):
     def get_user_profile_user(self, obj):
         return obj.user.username
 
+#@admin.register(BarcodeSettings)
+class BarcodeSettingsAdmin(admin.ModelAdmin):
+    search_fields = ['user__username']
+    list_display = ('user', 'format_type', 'show_fields')
+
+
 admin.site.register(UserBrand)
 admin.site.register(Brands)
 admin.site.register(UserStages)
@@ -37,4 +43,4 @@ admin.site.register(ProductionStages)
 admin.site.register(AdminGroups)
 admin.site.register(GroupBrand)
 admin.site.register(GroupStages)
-admin.site.register(BarcodeSettings)
+admin.site.register(BarcodeSettings, BarcodeSettingsAdmin)

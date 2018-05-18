@@ -84,11 +84,22 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     $state.go('app.masters.SupplierMaster');
   }
 
+  vm.get_supplier_master_data = function() {
+
+    vm.service.apiCall("get_supplier_master_data/").then(function(data){
+      if(data.message) {
+        vm.all_taxes = data.data.tax_data;
+      }
+    });
+  }
+  vm.get_supplier_master_data();
+
   vm.add = function() {
 
     vm.title = "Add Supplier";
     vm.update = false;
     vm.message = "";
+    vm.get_supplier_master_data();
     angular.copy(empty_data, vm.model_data);
     $state.go('app.masters.SupplierMaster.supplier');
   }

@@ -12,6 +12,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.permissions = Session.roles.permissions;
     vm.apply_filters = colFilters;
     vm.service = Service;
+    vm.self_life_ratio = Number(vm.permissions.shelf_life_ratio) || 0;
+    vm.industry_type = Session.user_profile.industry_type;
+    // vm.industry_type = 'FMCG';
 
     //default values
     if(!vm.permissions.grn_scan_option) {
@@ -130,6 +133,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     vm.serial_numbers = [];
                     angular.copy(data.data, vm.model_data);
                     vm.title = "Generate GRN";
+                    if (vm.industry_type == 'FMCG') {
+                      vm.extra_width = {
+                        'width': '1250px'
+                      };
+                    } else {
+                      vm.extra_width = {};
+                    }
+                    vm.shelf_life = vm.model_data.data[0][0].shelf_life;
+                    vm.model_data.data[0][0].mrp = 0;
+                    console.log('MRP is: '+vm.model_data.data[0][0].mrp);
                     if(vm.permissions.use_imei) {
                       fb.push_po(vm.model_data);
                     }
@@ -143,6 +156,37 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             });
         });
         return nRow;
+    }
+
+    vm.check_exp_date = function(sel_date, shelf_life_ratio){
+      var mfg_date = new Date(vm.model_data.data[0][0].mfg_date);
+      var exp_date = new Date(sel_date);
+
+      if (exp_date < mfg_date && vm.model_data.data[0][0].mfg_date) {
+        Service.showNoty('Your selected date is less than manufacturer date.');
+        vm.model_data.data[0][0].exp_date = '';
+      } else if(!vm.model_data.data[0][0].mfg_date){
+
+        Service.showNoty('Please choose manufacturer date first');
+        vm.model_data.data[0][0].exp_date = '';
+      } else {
+        if (vm.shelf_life && shelf_life_ratio) {
+          var res_days = (vm.shelf_life * (shelf_life_ratio / 100));
+          var cur_date = new Date();
+          if(new Date() < new Date(exp_date)){
+
+            var days_left = exp_date.getDate()-cur_date.getDate()
+            if (days_left < res_days) {
+              Service.showNoty('Product has crossed acceptable shelf life ratio');
+              //vm.model_data.data[0][0].exp_date = '';
+            }
+            
+          } else {
+            Service.showNoty('Please choose proper date');
+            vm.model_data.data[0][0].exp_date = '';
+          }
+        }
+      }
     }
 
     vm.filter_enable = true;
@@ -166,19 +210,24 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.update_data = update_data;
     function update_data(index, data) {
-      if (Session.roles.permissions['pallet_switch']) {
+      if (Session.roles.permissions['pallet_switch'] || vm.industry_type == 'FMCG') {
         if (index == data.length-1) {
           var new_dic = {};
           angular.copy(data[0], new_dic);
           new_dic.receive_quantity = 0;
           new_dic.value = "";
           new_dic.pallet_number = "";
+          new_dic.batch_no = "";
+          new_dic.manf_date = "";
+          new_dic.exp_date = "";
+          new_dic.tax_percent = "";
           data.push(new_dic);
         } else {
           data.splice(index,1);
         }
       }
     }
+    
     vm.new_sku = false
     vm.add_wms_code = add_wms_code;
     function add_wms_code() {
@@ -195,8 +244,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     vm.submit = submit;
-    function submit() {
+    function submit(form) {
       var data = [];
+
       for(var i=0; i<vm.model_data.data.length; i++)  {
         var temp = vm.model_data.data[i][0];
         if(!temp.is_new) {
@@ -205,7 +255,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
       data.push({name: 'remarks', value: vm.model_data.remarks});
       data.push({name: 'expected_date', value: vm.model_data.expected_date});
-      data.push({name: 'remainder_mail', value: vm.model_data.remainder_mail})
+      data.push({name: 'remainder_mail', value: vm.model_data.remainder_mail});
       vm.service.apiCall('update_putaway/', 'GET', data, true).then(function(data){
         if(data.message) {
           if(data.data == 'Updated Successfully') {
@@ -220,6 +270,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.html = "";
     vm.confirm_grn = function(form) {
+      // var data = [];
+      // data.push({name: 'batch_no', value: form.batch_no.$viewValue});
+      // data.push({name: 'mrp', value: form.mrp.$viewValue});
+      // data.push({name: 'manf_date', value: form.manf_date.$viewValue});
+      // data.push({name: 'exp_date', value: form.exp_date.$viewValue});
+      // data.push({name: 'po_unit', value: form.po_unit.$viewValue});
+      // data.push({name: 'tax_per', value: form.tax_per.$viewValue});
 
      if(check_receive()){
       var that = vm;
@@ -233,6 +290,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.service.apiCall(url, 'POST', elem, true).then(function(data){
         if(data.message) {
           if(data.data.search("<div") != -1) {
+            vm.extra_width = {}
             vm.html = $(data.data);
             //var html = $(vm.html).closest("form").clone();
             //angular.element(".modal-body").html($(html).find(".modal-body"));
@@ -713,7 +771,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         var quant = barcode_data[0].po_quantity;
         var sku_det = barcode_data[0].wms_code;
         /*var list_of_sku = barcode_data[0].serial_number.split(',');
-
         angular.forEach(list_of_sku, function(serial) {
           console.log(vm.sku_det);
           var serial_number = vm.sku_det+'/00'+serial;
@@ -885,9 +942,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           console.log(sku.val());
           var response = sku.val();
           if(response["wms_code"]){
-
             for(var i=0; i < vm.model_data.data.length; i++) {
-
               if(response.wms_code == vm.model_data.data[i][0]['wms_code']) {
                 vm.model_data.data[i][0]['value'] = Object.keys(response.serials).length;
                 vm.model_data.data[i][0]['imei_list'] = Object.values(response.serials);
@@ -899,7 +954,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               }
             }
           } else {
-
             vm.fb.poData.serials = Object.values(response);
             vm.serial_number = vm.fb.poData.serials;
           }

@@ -1,17 +1,37 @@
-<div ng-controller="StockDetailCtrl as showCase">
+<div ng-controller="StockDetailCtrl as showCase" ng-init="FMCGCtrl=false">
   <div class="page-layout">
     <div class='layout-header'>
       <div class="pull-left" ng-include="'views/common/title.html'"></div>
-      <button type="button" class="btn btn-primary pull-right" ng-click="showCase.excel()">Download Excel</button>
+      <button type="button" ng-if="showCase.industry_type!='FMCG'" class="btn btn-primary pull-right" ng-click="showCase.excel()">Download Excel</button>
     </div>
     <div class="layout-body">
-      <div class="panel">
+      <tabset class="box-tab" ng-if="showCase.industry_type=='FMCG'">
+        <tab heading="Stock Detail">
+          <div class="panel-header">
+            <button type="button" class="btn btn-primary pull-right" ng-click="showCase.excel()">Download Excel</button>
+          </div>
+
+          <div class="panel-body" style="padding-left: 0px; padding-right: 0px">
+            <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="table custom-table table-condensed datatable no_click_tb"></table>
+
+            <div ui-view></div>
+          </div>
+        </tab>
+        <tab heading="Batch Level Stock" ng-click="FMCGCtrl=true">
+          <div ng-if="FMCGCtrl" ng-controller="BatchLevelStockCtrl as showCase">
+            <div ng-include="'views/stockLocator/batch_level_stock.html'"></div>
+          </div>
+        </tab>
+      </tabset>
+
+      <div class="panel" ng-if="showCase.industry_type!='FMCG'">
         <div class="panel-body" style="padding-left: 0px; padding-right: 0px">
           <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="table custom-table table-condensed datatable no_click_tb"></table>
 
           <div ui-view></div>
         </div>
       </div>
+
     </div>
   </div>
 </div>

@@ -110,6 +110,16 @@
             <div ui-view></div>
           </div>
           <div class="panel-footer">
+
+
+			<div class="col-md-2 col-sm-4 col-xs-6 mb10">
+				<button type="submit" class="btn btn-primary" style="width: 100%" ng-click="showCase.backorder_po()" ng-disabled="showCase.bt_disable" ng-hide="showCase.permissions.user_type == 'warehouse' || showCase.permissions.user_type == 'distributor'">Raise PO</button>
+			</div>
+			<div class="col-md-2 col-sm-4 col-xs-6 mb10">
+              <button type="submit" class="btn btn-primary" style="width: 100%" ng-click="showCase.raise_jo()" ng-disabled="showCase.bt_disable" ng-hide="showCase.permissions.user_type == 'warehouse' || showCase.permissions.user_type == 'distributor'">Raise JO</button>
+			</div>
+
+
             <button type="submit" class="btn btn-primary pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.generate_picklist()">Generate Picklist</button>
           </div>
         </div>

@@ -52,7 +52,7 @@ SKU_DATA = {'user': '', 'sku_code': '', 'wms_code': '',
             'price': 0,
             'ean_number': 0, 'load_unit_handle': 'unit', 'zone_id': None, 'hsn_code': 0, 'product_type': '',
             'sub_category': '', 'primary_category': '', 'cost_price': 0, 'sequence': 0, 'image_url': '',
-            'measurement_type': '', 'sale_through': ''}
+            'measurement_type': '', 'sale_through': '', 'shelf_life': 0}
 
 STOCK_TRANSFER_FIELDS = {'order_id': '', 'invoice_amount': 0, 'quantity': 0, 'shipment_date': datetime.datetime.now(),
                          'st_po_id': '', 'sku_id': '', 'status': 1}
@@ -67,7 +67,7 @@ SKU_STOCK_DATA = {'sku_id': '', 'total_quantity': 0,
 
 SUPPLIER_DATA = {'name': '', 'address': '',
                  'phone_number': '', 'email_id': '',
-                 'status': 1}
+                 'status': 1, 'tax_type': ''}
 
 SIZE_DATA = {'size_name': '', 'size_value': '', 'creation_date': datetime.datetime.now()}
 
@@ -178,7 +178,8 @@ MOVE_INVENTORY_UPLOAD_FIELDS = ['WMS Code', 'Source Location', 'Destination Loca
 
 SUPPLIER_HEADERS = ['Supplier Id', 'Supplier Name', 'Address', 'Email', 'Phone No.', 'GSTIN Number', 'PAN Number',
                     'PIN Code',
-                    'City', 'State', 'Country', 'Days required to supply', 'Fulfillment Amount', 'Credibility']
+                    'City', 'State', 'Country', 'Days required to supply', 'Fulfillment Amount', 'Credibility',
+                    'Tax Type(Options: Inter State, Intra State)']
 
 VENDOR_HEADERS = ['Vendor Id', 'Vendor Name', 'Address', 'Email', 'Phone No.']
 
@@ -776,7 +777,7 @@ SKU_COMMON_MAPPING = OrderedDict((('WMS Code', 'wms_code'), ('SKU Description', 
                                   ('HSN Code', 'hsn_code'), ('Sub Category', 'sub_category'),
                                   ('Hot Release', 'hot_release'),
                                   ('Mix SKU Attribute(Options: No Mix, Mix within Group)', 'mix_sku'),
-                                  ('Status', 'status'),
+                                  ('Status', 'status'), ('Shelf life', 'shelf_life'),
                                 ))
 
 SKU_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('product_type', 2), ('sku_group', 3), ('sku_type', 4),
@@ -1305,7 +1306,7 @@ DIST_CUSTOMER_INVOICE_HEADERS = ['Gen Order Id', 'Order Ids', 'Customer Name', '
 SUPPLIER_EXCEL_FIELDS = OrderedDict((('id', 0), ('name', 1), ('address', 2), ('email_id', 3), ('phone_number', 4),
                                      ('tin_number', 5), ('pan_number', 6), ('pincode', 7), ('city', 8), ('state', 9),
                                      ('country', 10), ('days_to_supply', 11), ('fulfillment_amt', 12),
-                                     ('credibility', 13)
+                                     ('credibility', 13), ('tax_type', 14)
                                      ))
 STATUS_DICT = {1: True, 0: False}
 
@@ -1397,7 +1398,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'auto_confirm_po': 'auto_confirm_po', 'generic_wh_level': 'generic_wh_level',
                         'create_order_po': 'create_order_po', 'calculate_customer_price': 'calculate_customer_price',
                         'shipment_sku_scan': 'shipment_sku_scan', 'disable_brands_view':'disable_brands_view',
-                        'sellable_segregation': 'sellable_segregation', 'display_styles_price': 'display_styles_price',
+                        'sellable_segregation': 'sellable_segregation', 'display_styles_price': 'display_styles_price', 'show_purchase_history':'show_purchase_history'
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
@@ -1408,6 +1409,7 @@ CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
                      'extra_view_order_status': 'extra_view_order_status',
                      'invoice_types': 'invoice_types',
                      'mode_of_transport': 'mode_of_transport',
+                     'shelf_life_ratio': 'shelf_life_ratio',
                      }
 
 CONFIG_DEF_DICT = {'receive_options': dict(RECEIVE_OPTIONS),

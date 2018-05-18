@@ -191,6 +191,7 @@ def add_user_permissions(request, response_data, user=''):
                                              'email': request.user.email,
                                              'trail_user': status_dict[int(user_profile.is_trail)],
                                              'company_name': user_profile.company_name,
+                                             'industry_type': user_profile.industry_type,
                                              'user_type': request_user_profile.user_type}
 
     setup_status = 'false'
@@ -464,9 +465,11 @@ data_datatable = {  # masters
     'StockSummary': 'get_stock_results', 'OnlinePercentage': 'get_sku_stock_data', \
     'StockDetail': 'get_stock_detail_results', 'CycleCount': 'get_cycle_count', \
     'MoveInventory': 'get_move_inventory', 'InventoryAdjustment': 'get_move_inventory', \
+    'InventoryModification' : 'get_inventory_modification', \
     'ConfirmCycleCount': 'get_cycle_confirmed', 'VendorStockTable': 'get_vendor_stock', \
     'Available': 'get_available_stock', 'Available+Intransit': 'get_availintra_stock', 'Total': 'get_avinre_stock', \
     'StockSummaryAlt': 'get_stock_summary_size', 'SellerStockTable': 'get_seller_stock_data', \
+    'BatchLevelStock': 'get_batch_level_stock',
     # outbound
     'SKUView': 'get_batch_data', 'OrderView': 'get_order_results', 'OpenOrders': 'open_orders', \
     'PickedOrders': 'open_orders', 'BatchPicked': 'open_orders', \
@@ -3086,6 +3089,50 @@ def get_admin(user):
 @csrf_exempt
 @login_required
 @get_admin_user
+def get_supplier_sku_prices(request, user=""):
+    suppli_id = request.POST.get('suppli_id', '')
+    sku_codes = request.POST.get('sku_codes', '')
+    tax_type = ''
+    log.info('Get Customer SKU Taxes data for ' + user.username + ' is ' + str(request.POST.dict()))
+    inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
+    try:
+        sku_codes = [sku_codes]
+        result_data = []
+        supplier_master = ""
+        inter_state = 2
+        if suppli_id:
+            supplier_master = SupplierMaster.objects.filter(id=suppli_id, user=user.id)
+            if supplier_master:
+                tax_type = supplier_master[0].tax_type
+                inter_state = inter_state_dict.get(tax_type, 2)
+
+        for sku_code in sku_codes:
+            if not sku_code:
+                continue
+            data = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
+            if data:
+                data = data[0]
+            else:
+                return "sku_doesn't exist"
+            tax_masters = TaxMaster.objects.filter(user_id=user.id, product_type=data.product_type,
+                                                   inter_state=inter_state)
+            taxes_data = []
+            for tax_master in tax_masters:
+                taxes_data.append(tax_master.json())
+        result_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'tax_type': tax_type,
+                            'taxes': taxes_data})
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        result_data = []
+        log.info('Get Supplier SKU Taxes Data failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.GET.dict()), str(e)))
+    return HttpResponse(json.dumps(result_data))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def get_customer_sku_prices(request, user=""):
     cust_id = request.POST.get('cust_id', '')
     sku_codes = request.POST.get('sku_codes', '')
@@ -4037,6 +4084,7 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
     zones_data = {}
     pallet_switch = get_misc_value('pallet_switch', user.id)
     availabe_quantity = {}
+    industry_type = user.userprofile.industry_type
     for stock in stock_data:
         res_qty = PicklistLocation.objects.filter(stock_id=stock.id, status=1, picklist__order__user=user.id). \
             aggregate(Sum('reserved'))['reserved__sum']
@@ -4050,13 +4098,17 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
             res_qty = float(res_qty) + float(raw_reserved)
         location = stock.location.location
         zone = stock.location.zone.zone
-        pallet_number = ''
+        pallet_number, batch, mrp = ['']*3
         if pallet_switch == 'true' and stock.pallet_detail:
             pallet_number = stock.pallet_detail.pallet_code
-        cond = str((zone, location, pallet_number))
+        if industry_type == "FMCG" and stock.batch_detail:
+            batch_detail = stock.batch_detail
+            batch = batch_detail.batch_no
+            mrp = batch_detail.mrp
+        cond = str((zone, location, pallet_number, batch, mrp))
         zones_data.setdefault(cond,
                               {'zone': zone, 'location': location, 'pallet_number': pallet_number, 'total_quantity': 0,
-                               'reserved_quantity': 0})
+                               'reserved_quantity': 0, 'batch': batch, 'mrp': mrp})
         zones_data[cond]['total_quantity'] += stock.quantity
         zones_data[cond]['reserved_quantity'] += res_qty
         availabe_quantity.setdefault(location, 0)
@@ -4126,14 +4178,15 @@ def get_sku_available_dict(user, sku_code='', location='', available=False):
 
 
 def get_order_detail_objs(order_id, user, search_params={}, all_order_objs=[]):
-    if not search_params.has_key('user'):
-        search_params['user'] = user.id
+    search_param = copy.deepcopy(search_params)
+    if not search_param.has_key('user'):
+        search_param['user'] = user.id
     if not all_order_objs:
         all_order_objs = OrderDetail.objects.filter(user=user.id)
     order_id_search = ''.join(re.findall('\d+', order_id))
     order_code_search = ''.join(re.findall('\D+', order_id))
     order_detail_objs = OrderDetail.objects.filter(Q(order_id=order_id_search, order_code=order_code_search) |
-                                                   Q(original_order_id=order_id), **search_params)
+                                                   Q(original_order_id=order_id), **search_param)
     return order_detail_objs
 
 
@@ -4261,13 +4314,22 @@ def get_imei_data(request, user=''):
 def generate_barcode_dict(pdf_format, myDict, user):
     barcode_pdf_dict = {}
     barcodes_list = []
+    barcode_mapping_dict = {'Size': 'sku_size', 'Brand': 'sku_brand', 'SKUDes': 'sku_desc',
+                            'UOM': 'measurement_type', 'Style': 'style_name', 'Color': 'color',
+                            'DesignNo': 'sku_class', 'Gender': 'style_name', 'MRP': 'mrp',
+                            'SKUDes/Prod': 'sku_desc'}
     user_prf = UserProfile.objects.filter(user_id=user.id)[0]
     barcode_opt = get_misc_value('barcode_generate_opt', user.id)
     attribute_names = get_user_attributes(user, 'sku').values_list('attribute_name', flat=True)
     format_type = "_".join(pdf_format.split("_")[:-1]) if "_" in pdf_format else (1, '60X30')
     barcode_formats = BarcodeSettings.objects.filter(user=user_prf.user, format_type=str(format_type))
+    mapping_fields = {}
+    show_fields = []
     if barcode_formats:
-        show_fields = eval(barcode_formats[0].show_fields)
+        if barcode_formats[0].show_fields:
+            show_fields = eval(barcode_formats[0].show_fields)
+        if barcode_formats[0].mapping_fields:
+            mapping_fields = eval(barcode_formats[0].mapping_fields)
     for ind in range(0, len(myDict['wms_code'])):
         sku = myDict['wms_code'][ind]
         quant = myDict['quantity'][ind]
@@ -4276,33 +4338,38 @@ def generate_barcode_dict(pdf_format, myDict, user):
             label = myDict['label'][ind]
         if sku and quant:
             if sku.isdigit():
-                sku_data = SKUMaster.objects.filter(Q(ean_number=sku) | Q(wms_code=sku), user=user.id)[0]
+                sku_data = SKUMaster.objects.filter(Q(ean_number=sku) | Q(wms_code=sku), user=user.id)
             else:
-                sku_data = SKUMaster.objects.filter(sku_code=sku, user=user.id)[0]
-            single = {}  # copy.deepcopy(BARCODE_DICT[pdf_format])
-            for attribute_name in attribute_names:
-                if attribute_name in show_fields:
-                    attr_obj = sku_data.skuattributes_set.filter(attribute_name=attribute_name)
-                    if attr_obj.exists():
-                        single[attribute_name] = attr_obj[0].attribute_value
+                sku_data = SKUMaster.objects.filter(sku_code=sku, user=user.id)
+            if not sku_data:
+                continue
+            sku_data = sku_data[0]
+            single = {}
             single['SKUCode'] = sku if sku else label
             single['Label'] = label if label else sku
 
             if barcode_opt == 'sku_ean' and sku_data.ean_number:
                 single['Label'] = str(sku_data.ean_number)
-
-            single['Size'] = str(sku_data.sku_size).replace("'", '')
             single['SKUPrintQty'] = quant
-            single['Brand'] = sku_data.sku_brand.replace("'", '')
-            single['SKUDes'] = sku_data.sku_desc.replace("'", '')
-        single['UOM'] = sku_data.measurement_type.replace("'", '')
-        single['Style'] = str(sku_data.style_name).replace("'", '')
-        single['Color'] = sku_data.color.replace("'", '')
-        single['Product'] = sku_data.sku_desc
-        if len(sku_data.sku_desc) >= 25:
-            single['Product'] = sku_data.sku_desc[0:24].replace("'", '') + '...'
+            for show_keys1 in show_fields:
+                show_keys2 = [show_keys1]
+                if isinstance(show_keys1, list):
+                    show_keys2 = copy.deepcopy(show_keys1)
+                for show_key in show_keys2:
+                    show_key = show_key.split('/')[0]
+                    if show_key in barcode_mapping_dict.keys():
+                        single[show_key] = str(getattr(sku_data, barcode_mapping_dict[show_key]))
+                        if barcode_mapping_dict[show_key] == 'sku_desc':
+                            single[show_key] = sku_data.sku_desc[0:24].replace("'", '') + '...'
+                    elif show_key in mapping_fields.keys():
+                        single[show_key] = str(getattr(sku_data, mapping_fields[show_key]))
+                        if mapping_fields[show_key] == 'sku_desc':
+                            single[show_key] = sku_data.sku_desc[0:24].replace("'", '') + '...'
+                    else:
+                        attr_obj = sku_data.skuattributes_set.filter(attribute_name=show_key)
+                        if attr_obj.exists():
+                            single[show_key] = attr_obj[0].attribute_value
         single['Company'] = user_prf.company_name.replace("'", '')
-        single["DesignNo"] = str(sku_data.sku_class).replace("'", '')
         present = get_local_date(user, datetime.datetime.now(), send_date=True).strftime("%b %Y")
         single["Packed on"] = str(present).replace("'", '')
         single['Marketed By'] = user_prf.company_name.replace("'", '')
@@ -4312,8 +4379,6 @@ def generate_barcode_dict(pdf_format, myDict, user):
             phone_number = ''
         single['Contact No'] = phone_number
         single['Email'] = user.email
-        single["Gender"] = str(sku_data.style_name).replace("'", '')
-        single['MRP'] = str(sku_data.price).replace("'", '')
         order_label = OrderLabels.objects.filter(label=single['Label'], order__user=user.id)
 
         if order_label:
@@ -4402,7 +4467,7 @@ def get_purchase_order_data(order):
                       'supplier_code': '', 'load_unit_handle': order.product_code.load_unit_handle,
                       'sku_desc': order.product_code.sku_desc,
                       'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0, 'tin_number': '',
-                      'intransit_quantity': intransit_quantity}
+                      'intransit_quantity': intransit_quantity, 'shelf_life': order.product_code.shelf_life}
         return order_data
     elif rw_purchase and not order.open_po:
         rw_purchase = rw_purchase[0]
@@ -4469,7 +4534,7 @@ def get_purchase_order_data(order):
                   'order_type': order_type,
                   'supplier_code': supplier_code, 'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax,
                   'utgst_tax': utgst_tax, 'intransit_quantity': intransit_quantity,
-                  'tin_number': tin_number}
+                  'tin_number': tin_number, 'shelf_life': sku.shelf_life}
 
     return order_data
 
@@ -5485,16 +5550,17 @@ def get_warehouse_admin(user):
         admin_user = user
     return admin_user
 
-
+@fn_timer
 def get_picklist_number(user):
     """ Get the Latest Picklist number"""
-    picklist_obj = Picklist.objects.filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id)).values_list(
-        'picklist_number',
-        flat=True).distinct().order_by('-picklist_number')
+    #picklist_obj = Picklist.objects.filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id)).values_list(
+    #    'picklist_number',
+    #    flat=True).distinct().order_by('-picklist_number')
+    picklist_obj = Picklist.objects.filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id)).latest('picklist_number')
     if not picklist_obj:
         picklist_number = 1000
     else:
-        picklist_number = picklist_obj[0]
+        picklist_number = picklist_obj.picklist_number
     return picklist_number
 
 
@@ -5558,24 +5624,23 @@ def create_seller_summary_details(seller_order, picklist):
 
 
 @fn_timer
-def picklist_generation(order_data, request, picklist_number, user, sku_combos, sku_stocks, status='', remarks='',
+def picklist_generation(order_data, request, picklist_number, user, sku_combos, sku_stocks, switch_vals, status='', remarks='',
                         is_seller_order=False):
     stock_status = []
     if not status:
         status = 'batch_open'
     is_marketplace_model = False
     all_zone_mappings = []
-    if get_misc_value('marketplace_model', user.id) == 'true':
+    if switch_vals['marketplace_model'] == 'true':
         all_zone_mappings = ZoneMarketplaceMapping.objects.filter(zone__user=user.id, status=1)
         is_marketplace_model = True
 
-    fifo_switch = get_misc_value('fifo_switch', user.id)
-    if fifo_switch == "true":
+    if switch_vals['fifo_switch'] == 'true':
         order_by = 'receipt_date'
     else:
         order_by = 'location_id__pick_sequence'
     no_stock_switch = False
-    if get_misc_value('no_stock_switch', user.id) == 'true':
+    if switch_vals['no_stock_switch'] == 'true':
         no_stock_switch = True
 
     for order in order_data:
@@ -5591,7 +5656,10 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
         else:
             picklist_data['remarks'] = 'Picklist_' + str(picklist_number + 1)
 
-        sku_id_stocks = sku_stocks.values('id', 'sku_id').annotate(total=Sum('quantity')).order_by(order_by)
+        combo_sku_ids = list(sku_combos.filter(parent_sku_id=order.sku_id).values_list('member_sku_id', flat=True))
+        combo_sku_ids.append(order.sku_id)
+        sku_id_stocks = sku_stocks.filter(sku_id__in=combo_sku_ids).values('id', 'sku_id').\
+                                    annotate(total=Sum('quantity')).order_by(order_by)
         val_dict = {}
         val_dict['sku_ids'] = map(lambda d: d['sku_id'], sku_id_stocks)
         val_dict['stock_ids'] = map(lambda d: d['id'], sku_id_stocks)
@@ -5837,6 +5905,9 @@ def picklist_allocate_stock(request, user, picklists, stock):
 
 def open_orders_allocate_stock(request, user, sku_combos, sku_open_orders, all_seller_orders, seller_stocks,
                                stock_objs, picklist_order_mapping):
+    switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
+                   'fifo_switch': get_misc_value('fifo_switch', user.id),
+                   'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
     remarks = 'Auto-generated Picklist'
     from outbound import picklist_generation, get_sku_stock, get_picklist_number
     consumed_qty = 0
@@ -5857,11 +5928,11 @@ def open_orders_allocate_stock(request, user, sku_combos, sku_open_orders, all_s
                 else:
                     sku_stocks = sku_stocks.filter(id=0)
                 stock_status, picklist_number = picklist_generation([seller_order], request, picklist_number, user,
-                                                                    sku_combos, sku_stocks, status='open',
+                                                                    sku_combos, sku_stocks, switch_vals, status='open',
                                                                     remarks=remarks, is_seller_order=True)
         else:
             stock_status, picklist_number = picklist_generation([open_order], request, picklist_number, user,
-                                                                sku_combos, stock_objs, status='open', remarks=remarks)
+                                                                sku_combos, stock_objs, switch_vals, status='open', remarks=remarks)
 
     return picklist_order_mapping
 
@@ -6602,3 +6673,41 @@ def get_invoice_sequence_obj(user, marketplace):
     if not invoice_sequence:
         invoice_sequence = InvoiceSequence.objects.filter(user=user.id, marketplace='')
     return  invoice_sequence
+
+
+def create_update_batch_data(batch_dict):
+    batch_obj = None
+    if {'batch_no', 'mrp', 'expiry_date'}.issubset(batch_dict):
+        if batch_dict['expiry_date']:
+            batch_dict['expiry_date'] = datetime.datetime.strptime(batch_dict['expiry_date'], '%m/%d/%Y')
+        else:
+            batch_dict['expiry_date'] = None
+        if batch_dict['manufactured_date']:
+            batch_dict['manufactured_date'] = datetime.datetime.strptime(batch_dict['manufactured_date'], '%m/%d/%Y')
+        else:
+            batch_dict['manufactured_date'] = None
+        number_fields = ['mrp', 'buy_price', 'tax_percent']
+        for field in number_fields:
+            try:
+                batch_dict[field] = float(batch_dict[field])
+            except:
+                batch_dict[field] = 0
+        batch_objs = BatchDetail.objects.filter(**batch_dict)
+        if not batch_objs.exists():
+            batch_dict['creation_date'] = datetime.datetime.now()
+            batch_obj = BatchDetail.objects.create(**batch_dict)
+        else:
+            batch_obj = batch_objs[0].id
+    return batch_obj
+
+
+def get_batch_dict(transact_id, transact_type):
+    batch_dict = {}
+    batch_obj = BatchDetail.objects.filter(transact_id=transact_id, transact_type=transact_type)
+    if batch_obj:
+        batch_dict = batch_obj.values('batch_no', 'mrp', 'buy_price', 'expiry_date', 'manufactured_date')[0]
+        if batch_dict['expiry_date']:
+            batch_dict['expiry_date'] = batch_dict['expiry_date'].strftime('%m/%d/%Y')
+        if batch_dict['manufactured_date']:
+            batch_dict['manufactured_date'] = batch_dict['manufactured_date'].strftime('%m/%d/%Y')
+    return batch_dict

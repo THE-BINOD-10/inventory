@@ -236,6 +236,7 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
                                                 ('credibility', data.credibility), ('uploads_list', uploads_list),
                                                 ('country', data.country), ('pincode', data.pincode),
                                                 ('status', status), ('supplier_type', data.supplier_type),
+                                                ('tax_type', TAX_TYPE_ATTRIBUTES.get(data.tax_type, '')),
                                                 ('username', username), ('login_created', login_created),
                                                 ('DT_RowId', data.id), ('DT_RowClass', 'results'))))
 
@@ -658,6 +659,7 @@ def get_sku_data(request, user=''):
     sku_data['sub_category'] = data.sub_category
     sku_data['primary_category'] = data.primary_category
     sku_data['hot_release'] = 0
+    sku_data['shelf_life'] = data.shelf_life
     sku_fields = SKUFields.objects.filter(field_type='size_type', sku_id=data.id)
     if sku_fields:
         sku_data['size_type'] = sku_fields[0].field_value
@@ -846,7 +848,7 @@ def update_sku(request, user=''):
     load_unit_dict = LOAD_UNIT_HANDLE_DICT
     try:
         number_fields = ['threshold_quantity', 'cost_price', 'price', 'mrp', 'ean_number',
-                         'hsn_code']
+                         'hsn_code', 'shelf_life']
         wms = request.POST['wms_code']
         description = request.POST['sku_desc']
         zone = request.POST['zone_id']
@@ -979,6 +981,13 @@ def delete_bom_data(request, user=''):
         bom_master = BOMMaster.objects.get(id=value, product_sku__user=user.id).delete()
 
     return HttpResponse('Updated Successfully')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_supplier_master_data(request, user=''):
+    return HttpResponse(json.dumps({'tax_data': TAX_VALUES}))
 
 
 @csrf_exempt
@@ -1777,6 +1786,7 @@ def add_warehouse_user(request, user=''):
         if not user_profile_dict.get('phone_number', 0):
             user_profile_dict['phone_number'] = 0
         user_profile_dict['user_type'] = exist_user_profile.user_type
+        user_profile_dict['industry_type'] = exist_user_profile.industry_type
         user_profile = UserProfile(**user_profile_dict)
         user_profile.save()
         add_user_type_permissions(user_profile)
@@ -3268,10 +3278,13 @@ def get_distributors(request, user=''):
     resellers = []
     message = 0
     if user_type == 'central_admin':
-        distributors =  list(UserGroups.objects.filter(admin_user_id=user.id, user__userprofile__warehouse_type='DIST').values('user_id', 'user__username'))
+        distributors = list(UserGroups.objects.filter(admin_user_id=user.id,
+                                                      user__userprofile__warehouse_type='DIST').
+                            values('user_id', 'user__first_name').order_by('user__first_name'))
     else:
-        distributors =  list(UserGroups.objects.filter(user_id=user.id).values('user_id', 'user__username'))
-        resellers = list(CustomerMaster.objects.filter(user=distributors[0]['user_id']).values('customer_id', 'name', 'id'))
+        distributors = list(UserGroups.objects.filter(user_id=user.id).values('user_id', 'user__first_name'))
+        resellers = list(CustomerMaster.objects.filter(user=distributors[0]['user_id']).
+                         values('customer_id', 'name', 'id').order_by('name'))
     if distributors:
         message = 1
     return HttpResponse(json.dumps({'message':message, 'data': {'distributors': distributors, 'resellers':resellers}}))
@@ -3284,7 +3297,7 @@ def get_resellers(request, user=''):
     ''' Get Resellers list'''
     message = 0
     dist = request.GET['distributor']
-    resellers = list(CustomerMaster.objects.filter(user=dist).values('customer_id', 'name', 'id'))
+    resellers = list(CustomerMaster.objects.filter(user=dist).values('customer_id', 'name', 'id').order_by('name'))
     if resellers:
         message = 1
     return HttpResponse(json.dumps({'message': message, 'data': resellers}))
@@ -3299,7 +3312,7 @@ def get_corporates(request, user=''):
     checked_corporates = {}
     if request.GET['reseller']:
         res = request.GET['reseller']
-        checked_corporates = list(CorpResellerMapping.objects.filter(reseller_id=res).values('corporate_id', 'status'))
+        checked_corporates = list(CorpResellerMapping.objects.filter(reseller_id=res).exclude(status=0).values('corporate_id', 'status'))
     corporates = list(CorporateMaster.objects.all().values('corporate_id', 'name').order_by('name'))
     if corporates:
         message = 1

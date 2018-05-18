@@ -95,6 +95,15 @@
               </div>
               <div class="col-md-4">
                 <div class="form-group">
+                  <label class="control-label"> Tax Type *</label>
+                  <select class="form-control" ng-model="showCase.model_data.tax_type" name="tax_type" required>
+                    <option value=""> None </option>
+                    <option ng-repeat="one in showCase.all_taxes" value="{{one.tax_value}}" ng-selected="one.tax_name == showCase.model_data.tax_type">{{one.tax_name}}</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
                   <label class="control-label"> Days required to supply </label>
                   <input name="days_to_supply" type="text" class="form-control" ng-model="showCase.model_data.days_to_supply" quantity-number>
                 </div>

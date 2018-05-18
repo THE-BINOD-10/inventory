@@ -101,6 +101,7 @@ class SKUMaster(models.Model):
     hsn_code = models.DecimalField(max_digits=20, decimal_places=0, db_index=True, default=0)
     sub_category = models.CharField(max_length=64, default='')
     primary_category = models.CharField(max_length=64, default='')
+    shelf_life = models.IntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -193,6 +194,7 @@ class SupplierMaster(models.Model):
     tin_number = models.CharField(max_length=64, default='')
     pan_number = models.CharField(max_length=64, default='')
     status = models.IntegerField(default=1)
+    tax_type = models.CharField(max_length=32, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
     supplier_type = models.CharField(max_length=64, default='')
@@ -352,6 +354,7 @@ class OpenPO(models.Model):
     cgst_tax = models.FloatField(default=0)
     igst_tax = models.FloatField(default=0)
     utgst_tax = models.FloatField(default=0)
+    mrp = models.FloatField(default=0)
     status = models.CharField(max_length=32)
     measurement_unit = models.CharField(max_length=32, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -449,6 +452,23 @@ class PalletMapping(models.Model):
         db_table = 'PALLET_MAPPING'
 
 
+class BatchDetail(models.Model):
+    id = BigAutoField(primary_key=True)
+    batch_no = models.CharField(max_length=64, default='')
+    buy_price = models.FloatField(default=0)
+    mrp = models.FloatField(default=0)
+    manufactured_date = models.DateField(null=True, blank=True)
+    expiry_date = models.DateField(null=True, blank=True)
+    tax_percent = models.FloatField(default=0)
+    transact_id = models.IntegerField(default=0)
+    transact_type = models.CharField(max_length=36, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'BATCH_DETAIL'
+
+
 class StockDetail(models.Model):
     id = BigAutoField(primary_key=True)
     receipt_number = models.PositiveIntegerField(db_index=True)
@@ -457,6 +477,7 @@ class StockDetail(models.Model):
     sku = models.ForeignKey(SKUMaster)
     location = models.ForeignKey(LocationMaster, db_index=True)
     pallet_detail = models.ForeignKey(PalletDetail, blank=True, null=True)
+    batch_detail = models.ForeignKey(BatchDetail, blank=True, null=True)
     quantity = models.FloatField(default=0)
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -464,7 +485,7 @@ class StockDetail(models.Model):
 
     class Meta:
         db_table = 'STOCK_DETAIL'
-        unique_together = ('receipt_number', 'receipt_date', 'sku', 'location', 'pallet_detail')
+        unique_together = ('receipt_number', 'receipt_date', 'sku', 'location', 'pallet_detail', 'batch_detail')
         index_together = (('sku', 'location', 'quantity'), ('location', 'sku', 'pallet_detail'))
 
     def __unicode__(self):
@@ -777,6 +798,7 @@ class UserProfile(models.Model):
     cin_number = models.CharField(max_length=64, default='')
     customer_logo = models.ImageField(upload_to='static/images/customer_logos/', default='')
     bank_details = models.TextField(default='')
+    industry_type = models.CharField(max_length=32, default='')
 
     class Meta:
         db_table = 'USER_PROFILE'
@@ -1750,7 +1772,6 @@ class SellerPOSummary(models.Model):
     location = models.ForeignKey(LocationMaster, blank=True, null=True)
     putaway_quantity = models.FloatField(default=0)
     quantity = models.FloatField(default=0)
-    mrp = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -2172,6 +2193,7 @@ class BarcodeSettings(models.Model):
     show_fields = models.CharField(max_length=256, blank=True, null=True)
     rows_columns = models.CharField(max_length=64, blank=True, null=True)
     styles = models.TextField(blank=True, null=True)
+    mapping_fields = models.CharField(max_length=256, blank=True, null=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -2579,7 +2601,8 @@ class UserAttributes(models.Model):
 
 class PrimarySegregation(models.Model):
     id = BigAutoField(primary_key=True)
-    purchase_order = models.OneToOneField(PurchaseOrder, blank=True, null=True)
+    purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True)
+    batch_detail = models.ForeignKey(BatchDetail, blank=True, null=True)
     quantity = models.FloatField(default=0)
     sellable = models.FloatField(default=0)
     non_sellable = models.FloatField(default=0)
@@ -2589,6 +2612,8 @@ class PrimarySegregation(models.Model):
 
     class Meta:
         db_table = 'PRIMARY_SEGREGATION'
+        unique_together = ('purchase_order', 'batch_detail')
+
 
 
 def get_path(instance, filename):

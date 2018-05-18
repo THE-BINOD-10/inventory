@@ -8,6 +8,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.permissions = Session.roles.permissions;
     vm.apply_filters = colFilters;
     vm.service = Service;
+    vm.industry_type = Session.user_profile.industry_type;
+    vm.extra_width = {};
+
     vm.filters = {'datatable': 'QualityCheck', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -46,6 +49,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             $scope.$apply(function() {
                 vm.service.apiCall('quality_check_data/', 'GET', {order_id: aData.DT_RowId}).then(function(data){
                   if(data.message) {
+                    if(vm.industry_type == 'FMCG'){
+                      vm.extra_width = {
+                        'width': '1200px'
+                      };
+                    } else {
+                      vm.extra_width = {};
+                    }
                     angular.copy(data.data, vm.model_data);
                     angular.forEach(vm.model_data.data ,function(record){
 

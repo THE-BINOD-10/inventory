@@ -23,7 +23,7 @@ def image_compression(image_path):
     return True
 
 def get_images():
-    image_path = '/root/aravind/WMS_ANGULAR_FIX_BAK/ANGULAR_WMS/app/images/companies'
+    image_path = ''
     img_list = glob.glob("%s/*.*" % image_path)
     for full_path in img_list:
         if '.png' in full_path or '.jpg' in full_path:

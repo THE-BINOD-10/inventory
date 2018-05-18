@@ -4358,7 +4358,7 @@ def generate_barcode_dict(pdf_format, myDict, user):
                 for show_key in show_keys2:
                     show_key = show_key.split('/')[0]
                     if show_key in barcode_mapping_dict.keys():
-                        single[show_key] = getattr(sku_data, barcode_mapping_dict[show_key])
+                        single[show_key] = str(getattr(sku_data, barcode_mapping_dict[show_key]))
                         if barcode_mapping_dict[show_key] == 'sku_desc':
                             single[show_key] = sku_data.sku_desc[0:24].replace("'", '') + '...'
                     else:

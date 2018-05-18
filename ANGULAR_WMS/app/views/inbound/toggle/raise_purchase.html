@@ -62,7 +62,7 @@
               <div class="form-group" ng-if="user.user_profile.user_type == 'marketplace_user'">
                 <label class="control-label"> Seller </label>
                 <select class="form-control zone" name="seller_id" ng-model="showCase.model_data.seller_type"
-                        ng-change="showCase.seller_change(showCase.model_data.seller_type)" ng-init="showCase.model_data.seller_type=showCase.model_data.seller_types[0]">
+                        ng-change="showCase.seller_change(showCase.model_data.seller_type)" ng-init="showCase.model_data.seller_type=showCase.model_data.seller_types[0]; showCase.seller_change(showCase.model_data.seller_type)">
                   <option ng-repeat="type in showCase.model_data.seller_types" value="{{type}}">{{type}}</option>
                 </select>
               </div>
@@ -89,7 +89,7 @@
                     <th>WMS Code*</th>
                     <th>Title</th>
                     <th class="w10" ng-if="!(user.user_profile.user_type == 'marketplace_user')">Supplier Code</th>
-                    <th ng-if="user.user_profile.user_type == 'marketplace_user'">Description</th>
+                    <!--<th ng-if="user.user_profile.user_type == 'marketplace_user'">Description</th>-->
                     <th class="w10">Quantity*</th>
                     <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">Measurement</th>
                     <th>Unit Price</th>
@@ -113,10 +113,10 @@
                     <td>
                       <input ng-model="product.fields.description" title="{{ product.fields.description }}" type="text" class="form-control" readonly>
                     </td>
-                    <td ng-if="user.user_profile.user_type == 'marketplace_user'">
+                    <!--<td ng-if="user.user_profile.user_type == 'marketplace_user'">
                       <input type="text" ng-model="product.fields.description" name="description" class="form-control" 
                              ng-readonly="showCase.default_status">
-                    </td>
+                    </td>-->
                     <td ng-if="!(user.user_profile.user_type == 'marketplace_user')" ng-readonly="showCase.default_status">
                       <input id="wms1" ng-model="product.fields.supplier_code" type="text" name="supplier_code" class="form-control " value="">
                     </td>

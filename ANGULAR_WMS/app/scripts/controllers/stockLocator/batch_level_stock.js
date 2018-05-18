@@ -1,15 +1,15 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('StockDetailCtrl',['$scope', '$http', '$state', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', ServerSideProcessingCtrl]);
+  .controller('BatchLevelStockCtrl',['$scope', '$http', '$state', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', ServerSideProcessingCtrl]);
 
 function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuilder, DTColumnBuilder, colFilters) {
     var vm = this;
     vm.permissions = Session.roles.permissions;
     vm.apply_filters = colFilters;
     vm.industry_type = Session.user_profile.industry_type;
-
-    vm.filters = {'datatable': 'StockDetail', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':'', 'search6':'', 'search7': '', 'search8': ''}
+    
+    vm.filters = {'datatable': 'BatchLevelStock', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':'', 'search6':'', 'search7': '', 'search8': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -34,12 +34,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
     }
 
     vm.dtColumns = [
-        DTColumnBuilder.newColumn('Receipt ID').withTitle('Receipt ID'),
+        DTColumnBuilder.newColumn('Receipt Number').withTitle('Receipt Number'),
         DTColumnBuilder.newColumn('Receipt Date').withTitle('Receipt Date'),
         DTColumnBuilder.newColumn('WMS Code').withTitle('WMS Code'),
         DTColumnBuilder.newColumn('Product Description').withTitle('Product Description'),
+        DTColumnBuilder.newColumn('Batch Number').withTitle('Batch Number'),
+        DTColumnBuilder.newColumn('MRP').withTitle('MRP'),
         DTColumnBuilder.newColumn('Zone').withTitle('Zone'),
         DTColumnBuilder.newColumn('Location').withTitle('Location'),
+        DTColumnBuilder.newColumn('Pallet').withTitle('Pallet'),
         DTColumnBuilder.newColumn('Quantity').withTitle('Quantity'),
         DTColumnBuilder.newColumn('Receipt Type').withTitle('Receipt Type')
     ];
@@ -51,9 +54,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
       colFilters.download_excel()
     }
 
-    if (vm.permissions.pallet_switch) {
-      vm.dtColumns.push(DTColumnBuilder.newColumn('Pallet Code').withTitle('Pallet Code'))
-    }
+    // if (vm.permissions.pallet_switch) {
+    //   vm.dtColumns.push(DTColumnBuilder.newColumn('Pallet Code').withTitle('Pallet Code'))
+    // }
 
     $scope.$on('change_filters_data', function(){
       vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;

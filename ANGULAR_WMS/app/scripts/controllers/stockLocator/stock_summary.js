@@ -12,6 +12,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
     vm.data_display = false;
     vm.tb_data = {};
     vm.selected_size = vm.g_data.size_type;
+    vm.industry_type = Session.user_profile.industry_type;
 
   vm.dt_display = false;
   vm.build_dt = function() {

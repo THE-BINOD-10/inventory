@@ -1,6 +1,6 @@
 <div id="page-pop" class="modal fade in over-x">
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate">
-    <div class="modal-dialog model-custom modal-lgi modal-size">
+    <div class="modal-dialog model-custom modal-lgi" ng-style="showCase.extra_width">
       <div class="modal-content mw60">
         <div ng-include="'views/common/loader.html'"></div>
         <div class="modal-header">
@@ -93,6 +93,7 @@
                     <th class="w10">Quantity*</th>
                     <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">Measurement</th>
                     <th>Unit Price</th>
+                    <th ng-if="showCase.industry_type=='FMCG'">MRP</th>
                     <th class="w10">SGST(%)</th>
                     <th class="w10">CGST(%)</th>
                     <th class="w10">IGST(%)</th>
@@ -131,6 +132,7 @@
                       <input type="text" ng-model="product.fields.price" name="price" class="form-control" decimal-number 
                              ng-readonly="showCase.default_status" ng-keyup="showCase.getTotals()">
                     </td>
+                    <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="product.fields.mrp" size="22" title="{{ product.fields.mrp }}" name="mrp" class="form-control" ng-class="service.get_decimal_perm()"></td>
                     <td>
                       <input type="text" ng-model="product.fields.sgst_tax" name="sgst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce>
                     </td>
@@ -190,7 +192,6 @@
             <div class="col-md-5 col-sm-5 col-xs-5" style="text-align: left;">
 				<p><strong style="margin-right:5px;">SKU Code in Last Transactions :</strong>{{showCase.purchase_history_wms_code}}</p>
 			</div>
-
           </div>
 		  <div class="col-md-12 col-sm-12 col-xs-12 mb10">
           <table class="table table-bordered">

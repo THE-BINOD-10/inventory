@@ -191,6 +191,7 @@ def add_user_permissions(request, response_data, user=''):
                                              'email': request.user.email,
                                              'trail_user': status_dict[int(user_profile.is_trail)],
                                              'company_name': user_profile.company_name,
+                                             'industry_type': user_profile.industry_type,
                                              'user_type': request_user_profile.user_type}
 
     setup_status = 'false'
@@ -468,6 +469,7 @@ data_datatable = {  # masters
     'ConfirmCycleCount': 'get_cycle_confirmed', 'VendorStockTable': 'get_vendor_stock', \
     'Available': 'get_available_stock', 'Available+Intransit': 'get_availintra_stock', 'Total': 'get_avinre_stock', \
     'StockSummaryAlt': 'get_stock_summary_size', 'SellerStockTable': 'get_seller_stock_data', \
+    'BatchLevelStock': 'get_batch_level_stock',
     # outbound
     'SKUView': 'get_batch_data', 'OrderView': 'get_order_results', 'OpenOrders': 'open_orders', \
     'PickedOrders': 'open_orders', 'BatchPicked': 'open_orders', \
@@ -4082,6 +4084,7 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
     zones_data = {}
     pallet_switch = get_misc_value('pallet_switch', user.id)
     availabe_quantity = {}
+    industry_type = user.userprofile.industry_type
     for stock in stock_data:
         res_qty = PicklistLocation.objects.filter(stock_id=stock.id, status=1, picklist__order__user=user.id). \
             aggregate(Sum('reserved'))['reserved__sum']
@@ -4095,13 +4098,17 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
             res_qty = float(res_qty) + float(raw_reserved)
         location = stock.location.location
         zone = stock.location.zone.zone
-        pallet_number = ''
+        pallet_number, batch, mrp = ['']*3
         if pallet_switch == 'true' and stock.pallet_detail:
             pallet_number = stock.pallet_detail.pallet_code
-        cond = str((zone, location, pallet_number))
+        if industry_type == "FMCG" and stock.batch_detail:
+            batch_detail = stock.batch_detail
+            batch = batch_detail.batch_no
+            mrp = batch_detail.mrp
+        cond = str((zone, location, pallet_number, batch, mrp))
         zones_data.setdefault(cond,
                               {'zone': zone, 'location': location, 'pallet_number': pallet_number, 'total_quantity': 0,
-                               'reserved_quantity': 0})
+                               'reserved_quantity': 0, 'batch': batch, 'mrp': mrp})
         zones_data[cond]['total_quantity'] += stock.quantity
         zones_data[cond]['reserved_quantity'] += res_qty
         availabe_quantity.setdefault(location, 0)
@@ -4456,7 +4463,7 @@ def get_purchase_order_data(order):
                       'supplier_code': '', 'load_unit_handle': order.product_code.load_unit_handle,
                       'sku_desc': order.product_code.sku_desc,
                       'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0, 'tin_number': '',
-                      'intransit_quantity': intransit_quantity}
+                      'intransit_quantity': intransit_quantity, 'shelf_life': order.product_code.shelf_life}
         return order_data
     elif rw_purchase and not order.open_po:
         rw_purchase = rw_purchase[0]
@@ -4523,7 +4530,7 @@ def get_purchase_order_data(order):
                   'order_type': order_type,
                   'supplier_code': supplier_code, 'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax,
                   'utgst_tax': utgst_tax, 'intransit_quantity': intransit_quantity,
-                  'tin_number': tin_number}
+                  'tin_number': tin_number, 'shelf_life': sku.shelf_life}
 
     return order_data
 
@@ -6662,3 +6669,41 @@ def get_invoice_sequence_obj(user, marketplace):
     if not invoice_sequence:
         invoice_sequence = InvoiceSequence.objects.filter(user=user.id, marketplace='')
     return  invoice_sequence
+
+
+def create_update_batch_data(batch_dict):
+    batch_obj = None
+    if {'batch_no', 'mrp', 'expiry_date'}.issubset(batch_dict):
+        if batch_dict['expiry_date']:
+            batch_dict['expiry_date'] = datetime.datetime.strptime(batch_dict['expiry_date'], '%m/%d/%Y')
+        else:
+            batch_dict['expiry_date'] = None
+        if batch_dict['manufactured_date']:
+            batch_dict['manufactured_date'] = datetime.datetime.strptime(batch_dict['manufactured_date'], '%m/%d/%Y')
+        else:
+            batch_dict['manufactured_date'] = None
+        number_fields = ['mrp', 'buy_price', 'tax_percent']
+        for field in number_fields:
+            try:
+                batch_dict[field] = float(batch_dict[field])
+            except:
+                batch_dict[field] = 0
+        batch_objs = BatchDetail.objects.filter(**batch_dict)
+        if not batch_objs.exists():
+            batch_dict['creation_date'] = datetime.datetime.now()
+            batch_obj = BatchDetail.objects.create(**batch_dict)
+        else:
+            batch_obj = batch_objs[0].id
+    return batch_obj
+
+
+def get_batch_dict(transact_id, transact_type):
+    batch_dict = {}
+    batch_obj = BatchDetail.objects.filter(transact_id=transact_id, transact_type=transact_type)
+    if batch_obj:
+        batch_dict = batch_obj.values('batch_no', 'mrp', 'buy_price', 'expiry_date', 'manufactured_date')[0]
+        if batch_dict['expiry_date']:
+            batch_dict['expiry_date'] = batch_dict['expiry_date'].strftime('%m/%d/%Y')
+        if batch_dict['manufactured_date']:
+            batch_dict['manufactured_date'] = batch_dict['manufactured_date'].strftime('%m/%d/%Y')
+    return batch_dict

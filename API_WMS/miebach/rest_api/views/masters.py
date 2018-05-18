@@ -659,6 +659,7 @@ def get_sku_data(request, user=''):
     sku_data['sub_category'] = data.sub_category
     sku_data['primary_category'] = data.primary_category
     sku_data['hot_release'] = 0
+    sku_data['shelf_life'] = data.shelf_life
     sku_fields = SKUFields.objects.filter(field_type='size_type', sku_id=data.id)
     if sku_fields:
         sku_data['size_type'] = sku_fields[0].field_value
@@ -847,7 +848,7 @@ def update_sku(request, user=''):
     load_unit_dict = LOAD_UNIT_HANDLE_DICT
     try:
         number_fields = ['threshold_quantity', 'cost_price', 'price', 'mrp', 'ean_number',
-                         'hsn_code']
+                         'hsn_code', 'shelf_life']
         wms = request.POST['wms_code']
         description = request.POST['sku_desc']
         zone = request.POST['zone_id']
@@ -1785,6 +1786,7 @@ def add_warehouse_user(request, user=''):
         if not user_profile_dict.get('phone_number', 0):
             user_profile_dict['phone_number'] = 0
         user_profile_dict['user_type'] = exist_user_profile.user_type
+        user_profile_dict['industry_type'] = exist_user_profile.industry_type
         user_profile = UserProfile(**user_profile_dict)
         user_profile.save()
         add_user_type_permissions(user_profile)

@@ -353,6 +353,7 @@ class OpenPO(models.Model):
     cgst_tax = models.FloatField(default=0)
     igst_tax = models.FloatField(default=0)
     utgst_tax = models.FloatField(default=0)
+    mrp = models.FloatField(default=0)
     status = models.CharField(max_length=32)
     measurement_unit = models.CharField(max_length=32, default='')
     creation_date = models.DateTimeField(auto_now_add=True)

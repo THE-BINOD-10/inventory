@@ -738,7 +738,7 @@ def generated_po_data(request, user=''):
                     receipt_type = sell_po.receipt_type
                 ser_data.append({'fields': {'sku': {'wms_code': rec.sku.sku_code}, 'description': rec.sku.sku_desc,
                                             'order_quantity': sell_po.seller_quantity,
-                                            'price': rec.price, 'supplier_code': rec.supplier_code,
+                                            'price': rec.price, 'mrp': rec.mrp, 'supplier_code': rec.supplier_code,
                                             'measurement_unit': rec.measurement_unit,
                                             'remarks': rec.remarks, 'dedicated_seller': str(
                         sell_po.seller.seller_id) + ':' + sell_po.seller.name,
@@ -748,7 +748,7 @@ def generated_po_data(request, user=''):
         else:
             ser_data.append({'fields': {'sku': {'wms_code': rec.sku.sku_code}, 'description': rec.sku.sku_desc,
                                         'order_quantity': rec.order_quantity,
-                                        'price': rec.price, 'supplier_code': rec.supplier_code,
+                                        'price': rec.price, 'mrp': rec.mrp, 'supplier_code': rec.supplier_code,
                                         'measurement_unit': rec.measurement_unit,
                                         'remarks': rec.remarks, 'dedicated_seller': '', 'sgst_tax': rec.sgst_tax,
                                         'cgst_tax': rec.cgst_tax,
@@ -819,6 +819,8 @@ def modify_po_update(request, user=''):
             setattr(record, 'cgst_tax', value['cgst_tax'])
             setattr(record, 'igst_tax', value['igst_tax'])
             setattr(record, 'utgst_tax', value['utgst_tax'])
+            if record.mrp:
+                setattr(record, 'mrp', value['mrp'])
             record.save()
             if value['sellers']:
                 for k, val in value['sellers'].iteritems():
@@ -858,6 +860,9 @@ def modify_po_update(request, user=''):
         if not value['price']:
             value['price'] = 0
         po_suggestions['price'] = float(value['price'])
+        if not value['mrp']:
+            value['mrp'] = 0
+        po_suggestions['mrp'] = float(value['mrp'])
         po_suggestions['status'] = 'Manual'
         po_suggestions['remarks'] = value['remarks']
         po_suggestions['sgst_tax'] = value['sgst_tax']
@@ -1304,6 +1309,7 @@ def get_raisepo_group_data(user, myDict):
         supplier_id = ''
         order_type = 'SR'
         sgst_tax = 0
+        mrp = 0
         cgst_tax = 0
         igst_tax = 0
         utgst_tax = 0
@@ -1328,6 +1334,9 @@ def get_raisepo_group_data(user, myDict):
             data_id = myDict['data-id'][i]
         if 'seller_po_id' in myDict.keys():
             seller_po_id = myDict['seller_po_id'][i]
+        if 'mrp' in myDict.keys():
+            if myDict['mrp'][i]:
+                mrp = float(myDict['mrp'][i])
         if 'sgst_tax' in myDict.keys():
             if myDict['sgst_tax'][i]:
                 sgst_tax = float(myDict['sgst_tax'][i])
@@ -1355,7 +1364,7 @@ def get_raisepo_group_data(user, myDict):
                                    'supplier_code': supplier_code, 'po_name': po_name, 'receipt_type': receipt_type,
                                    'remarks': remarks, 'measurement_unit': measurement_unit,
                                    'vendor_id': vendor_id, 'ship_to': ship_to, 'sellers': {}, 'data_id': data_id,
-                                   'order_type': order_type, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax,
+                                   'order_type': order_type, 'mrp': mrp, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax,
                                    'igst_tax': igst_tax,
                                    'utgst_tax': utgst_tax})
         all_data[cond]['order_quantity'] += float(myDict['order_quantity'][i])
@@ -1378,7 +1387,6 @@ def add_po(request, user=''):
     status = 'Failed to Add PO'
     myDict = dict(request.POST.iterlists())
     all_data = get_raisepo_group_data(user, myDict)
-
     for key, value in all_data.iteritems():
         wms_code = key
         if not wms_code:
@@ -1422,7 +1430,11 @@ def add_po(request, user=''):
                 po_suggestions['order_quantity'] = float(value['order_quantity'])
             except:
                 po_suggestions['order_quantity'] = 0
+
+            if not value['mrp']:
+                value['mrp'] = 0
             po_suggestions['price'] = float(value['price'])
+            po_suggestions['mrp'] = float(value['mrp'])
             po_suggestions['status'] = 'Manual'
             po_suggestions['po_name'] = value['po_name']
             po_suggestions['remarks'] = value['remarks']
@@ -4094,6 +4106,11 @@ def confirm_add_po(request, sales_data='', user=''):
         price = value['price']
         if not price:
             price = 0
+
+        mrp = value['mrp']
+        if not mrp:
+            mrp = 0
+
         if not 'supplier_code' in myDict.keys() and value['supplier_id']:
             supplier = SKUSupplier.objects.filter(supplier_id=value['supplier_id'], sku__user=user.id)
             if supplier:
@@ -4124,6 +4141,7 @@ def confirm_add_po(request, sales_data='', user=''):
         po_suggestions['status'] = 'Manual'
         po_suggestions['remarks'] = value['remarks']
         po_suggestions['measurement_unit'] = "UNITS"
+        po_suggestions['mrp'] = float(mrp)
         po_suggestions['sgst_tax'] = value['sgst_tax']
         po_suggestions['cgst_tax'] = value['cgst_tax']
         po_suggestions['igst_tax'] = value['igst_tax']
@@ -4151,6 +4169,7 @@ def confirm_add_po(request, sales_data='', user=''):
         data['order_id'] = ids_dict[supplier]
         data['ship_to'] = value['ship_to']
         user_profile = UserProfile.objects.filter(user_id=user.id)
+        industry_type = user_profile[0].industry_type
         if user_profile:
             data['prefix'] = user_profile[0].prefix
         order = PurchaseOrder(**data)
@@ -4173,7 +4192,15 @@ def confirm_add_po(request, sales_data='', user=''):
         else:
             wms_code = purchase_order.sku.wms_code
 
-        po_temp_data = [wms_code, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity,
+
+        if industry_type == 'FMCG':
+            po_temp_data = [wms_code, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity,
+                        po_suggestions['measurement_unit'],
+                        purchase_order.price, purchase_order.mrp, amount, purchase_order.sgst_tax, purchase_order.cgst_tax,
+                        purchase_order.igst_tax,
+                        purchase_order.utgst_tax]
+        else:
+            po_temp_data = [wms_code, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity,
                         po_suggestions['measurement_unit'],
                         purchase_order.price, amount, purchase_order.sgst_tax, purchase_order.cgst_tax,
                         purchase_order.igst_tax,
@@ -4208,7 +4235,11 @@ def confirm_add_po(request, sales_data='', user=''):
     gstin_no = purchase_order.supplier.tin_number
     order_date = get_local_date(request.user, order.creation_date)
     po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
-    table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount',
+    if industry_type == 'FMCG':
+        table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'MRP', 'Amount',
+                     'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)']
+    else:
+        table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount',
                      'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)']
     if ean_flag:
         table_headers.insert(1, 'EAN Number')
@@ -4235,7 +4266,7 @@ def confirm_add_po(request, sales_data='', user=''):
                  'w_address': get_purchase_company_address(profile),
                  'company_name': company_name, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                  'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title,
-                 'gstin_no': gstin_no}
+                 'gstin_no': gstin_no, 'industry_type': industry_type}
 
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)

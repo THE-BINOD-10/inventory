@@ -423,7 +423,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       });
       vm.service.alert_msg("Do you want to Raise PO").then(function(msg) {
         if (msg == "true") {
-          vm.service.apiCall('confirm_po1/', 'GET', data, true).then(function(data){
+          vm.service.apiCall('confirm_po1/', 'POST', data, true).then(function(data){
             if(data.message) {
               vm.confirm_print = true;
               vm.print_enable = true;

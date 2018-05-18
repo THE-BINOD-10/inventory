@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('CreateShipmentCtrl',['$scope', '$http', '$state', '$compile', '$rootScope', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'Service', 'colFilters', '$timeout', 'Data', ServerSideProcessingCtrl]);
+  .controller('CreateShipmentCtrl',['$scope', '$http', '$state', '$compile', '$rootScope', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'Service', 'colFilters', '$timeout', 'Data', '$modal', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, Session, DTOptionsBuilder, DTColumnBuilder, service, colFilters, $timeout, Data) {
+function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, Session, DTOptionsBuilder, DTColumnBuilder, service, colFilters, $timeout, Data, $modal) {
 
     var vm = this;
     vm.service = service;
@@ -567,11 +567,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
               }*/
               var mod_data = vm.cartonPrintData;
               var modalInstance = $modal.open({
-                // templateUrl: 'views/outbound/toggle/createpri_orders/add_margin.html',
                 templateUrl: 'views/outbound/toggle/print_shipment_info.html',
                 controller: 'CartonPrintCtrl',
                 controllerAs: '$ctrl',
-                size: 'md',
+                size: 'lg',
                 backdrop: 'static',
                 keyboard: false,
                 resolve: {
@@ -584,18 +583,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
               modalInstance.result.then(function (selectedItem) {
                 vm.mod_data = selectedItem;
                 console.log(vm.mod_data);
-                // Data.marginSKUData.is_margin_percentage = vm.marginData.is_margin_percentage;
-                // Data.marginSKUData.margin = vm.marginData.margin;
-                // Data.marginSKUData.data = [];
 
-                // vm.catlog_data.index = '';
-                // vm.get_category(true, true);
+                vm.html = $(data.data)[0];
+                var html = $(vm.html).closest("form").clone();
+                angular.element(".modal-body").html($(html).find(".modal-body > .form-group"));
               })
 
-
-              vm.html = $(data.data)[0];
-              var html = $(vm.html).closest("form").clone();
-              angular.element(".modal-body").html($(html).find(".modal-body > .form-group"));
               vm.print_enable = true;
             } else {
               vm.service.pop_msg(data.data);

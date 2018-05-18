@@ -1027,8 +1027,12 @@ var app = angular.module('urbanApp')
           templateUrl: 'views/stockLocator/inventory_adjustment.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/stockLocator/inventory_adjustment.js');
-              }]
+                    return $ocLazyLoad.load(['scripts/controllers/stockLocator/inventory_adjustment.js'
+                ]).then(function() {
+                    return $ocLazyLoad.load(['scripts/controllers/stockLocator/new_inventory_adjustment.js'
+                ])
+            });
+            }]
           },
           data: {
             title: 'Inventory Adjustment',

@@ -20,7 +20,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               xhrFields: {
                 withCredentials: true
               },
-              data: {'datatable': 'InventoryAdjustment', 'special_key': 'adj'}
+              data: {'datatable': 'InventoryAdjustment', 'special_key':'adj'}
            })
        .withDataProp('data')
        .withOption('drawCallback', function(settings) {
@@ -53,7 +53,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         DTColumnBuilder.newColumn('Description').withTitle('Description'),
         DTColumnBuilder.newColumn('Total Quantity').withTitle('Total Quantity'),
         DTColumnBuilder.newColumn('Physical Quantity').withTitle('Physical Quantity'),
-        DTColumnBuilder.newColumn('Reason').withTitle('Reason')
+        DTColumnBuilder.newColumn('Reason').withTitle('Reason'),
     ];
 
     vm.dtInstance = {};

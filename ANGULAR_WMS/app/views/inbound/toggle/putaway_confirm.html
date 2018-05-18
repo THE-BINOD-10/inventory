@@ -1,7 +1,7 @@
 <div id="page-pop" style="display: block;" class="modal fade process-toggle in" id="sku-toggle" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false">
   <!-- Modal -->
   <form id="putaway_confirmation">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog model-custom modal-lg" ng-style="showCase.extra_width">
       <div class="modal-content model-custom">
         <div ng-include="'views/common/loader.html'"></div>
         <div class="modal-header">
@@ -48,6 +48,11 @@
                     <th> Original Quantity </th>
                     <th> Measurement </th>
                     <th> Putaway Quantity </th>
+                    <th ng-if="showCase.industry_type=='FMCG'">PO Unit Price</th>
+                    <th ng-if="showCase.industry_type=='FMCG'">MRP</th>
+                    <th ng-if="showCase.industry_type=='FMCG'">Batch No</th>
+                    <th ng-if="showCase.industry_type=='FMCG'">Mfg. Date</th>
+                    <th ng-if="showCase.industry_type=='FMCG'">Exp. Date</th>
                   </tr>
                 </thead>
                 <tbody ng-repeat="data in showCase.model_data.data">
@@ -63,6 +68,11 @@
                     <td><input type="text" name="original_quantity" class="form-control" value="{{data.original_quantity}}" readonly=""></td>
                     <td><input type="text" ng-model="data.unit" name="unit" class="form-control" readonly></td>
                     <td><input type="text" name="quantity" class="form-control" ng-model="sku.quantity" ng-class="service.get_decimal_perm()" ng-change="showCase.count_sku_quantity();showCase.cal_quantity(sku, data);"></td>
+                    <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.buy_price" size="22" title="{{ data.buy_price }}" name="buy_price" class="form-control" ng-class="service.get_decimal_perm()" value="{{data.buy_price}}" readonly></td>
+                    <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.mrp" size="22" title="{{ data.mrp }}" name="mrp" class="form-control" ng-class="service.get_decimal_perm()" value="{{data.mrp}}" readonly></td>
+                    <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.batch_no" title="{{ data.batch_no }}" name="batch_no" class="form-control" value="{{data.batch_no}}" readonly></td>
+                    <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.manufactured_date" size="33" title="{{ data.manufactured_date }}" name="manufactured_date" class="form-control" value="{{data.manufactured_date}}" readonly></td>
+                    <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.expiry_date" size="33" title="{{ data.expiry_date }}" name="expiry_date" class="form-control" value="{{data.expiry_date}}" readonly></td>
                     <td><i ng-if="sku.quantity != data.original_quantity" ng-hide="sku.new" ng-click="showCase.update_data($index,data, $last);" ng-class="showCase.isLast($last);"></td>
                   <tr>
                 </tbody>
@@ -86,6 +96,11 @@
             <th ng-if="showCase.permissions.pallet_switch">Pallet Number</th>
             <th>Original Quantity</th>
             <th>Putaway Quantity</th>
+            <th ng-if="showCase.industry_type=='FMCG'">PO Unit Price</th>
+            <th ng-if="showCase.industry_type=='FMCG'">MRP</th>
+            <th ng-if="showCase.industry_type=='FMCG'">Batch No</th>
+            <th ng-if="showCase.industry_type=='FMCG'">Mfg. Date</th>
+            <th ng-if="showCase.industry_type=='FMCG'">Exp. Date</th>
             <th></th>
           </tr>
         </thead>
@@ -97,6 +112,11 @@
             <td ng-if="showCase.permissions.pallet_switch">{{data.pallet_number}}</td>
             <td>{{data.original_quantity}}</td>
             <td>{{sku.quantity}}</td>
+            <td ng-if="showCase.industry_type=='FMCG'">{{data.buy_price}}</td>
+            <td ng-if="showCase.industry_type=='FMCG'">{{data.mrp}}</td>
+            <td ng-if="showCase.industry_type=='FMCG'">{{data.batch_no}}</td>
+            <td ng-if="showCase.industry_type=='FMCG'">{{data.manufactured_date}}</td>
+            <td ng-if="showCase.industry_type=='FMCG'">{{data.expiry_date}}</td>
             <td></td>
            </tr>
          </tbody>

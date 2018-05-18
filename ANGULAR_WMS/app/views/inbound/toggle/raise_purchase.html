@@ -1,6 +1,6 @@
 <div id="page-pop" class="modal fade in over-x">
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate">
-    <div class="modal-dialog model-custom modal-lgi modal-size">
+    <div class="modal-dialog model-custom modal-lgi" ng-style="showCase.extra_width">
       <div class="modal-content mw60">
         <div ng-include="'views/common/loader.html'"></div>
         <div class="modal-header">
@@ -37,7 +37,7 @@
             <div class="col-md-4 col-sm-4 col-xs-6" ng-show="showCase.model_data.receipt_type != 'Hosted Warehouse'">
               <div class="form-group">
                 <label class="control-label"> Supplier ID/Name * </label>
-                <input type="text" autocomplete="off" ng-if="(!(showCase.update))" ng-model="showCase.model_data.supplier_id" name="supplier_id" placeholder="Search Supplier" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?')" typeahead-loading="loadingLocations" class="form-control" typeahead-on-select="showCase.model_data.supplier_id = showCase.service.change_search_value(showCase.model_data.supplier_id)" ng-blur="showCase.service.checkSearchValue(showCase.model_data.supplier_id, 'search_supplier?', $event, '', 'Supplier')" ng-required="(showCase.model_data.receipt_type != 'Hosted Warehouse')? true: false;">
+                <input type="text" autocomplete="off" ng-if="(!(showCase.update))" ng-model="showCase.model_data.supplier_id" name="supplier_id" placeholder="Search Supplier" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?')" typeahead-loading="loadingLocations" class="form-control" typeahead-on-select="showCase.model_data.supplier_id = showCase.service.change_search_value(showCase.model_data.supplier_id)" ng-blur="showCase.service.checkSearchValue(showCase.model_data.supplier_id, 'search_supplier?', $event, '', 'Supplier');showCase.supplier_on_change();" ng-required="(showCase.model_data.receipt_type != 'Hosted Warehouse')? true: false;" ng-disabled="showCase.update">
                 <input name="supplier_id" class="form-control" ng-if="showCase.update" type="text" ng-model="showCase.model_data.supplier_id" ng-readonly="showCase.update">
               </div>
             </div>
@@ -62,8 +62,8 @@
               <div class="form-group" ng-if="user.user_profile.user_type == 'marketplace_user'">
                 <label class="control-label"> Seller </label>
                 <select class="form-control zone" name="seller_id" ng-model="showCase.model_data.seller_type"
-                        ng-change="showCase.seller_change(showCase.model_data.seller_type)">
-                  <option ng-repeat="type in showCase.model_data.seller_types" value="{{type}}" ng-selected="showCase.model_data.seller_type == type">{{type}}</option>
+                        ng-change="showCase.seller_change(showCase.model_data.seller_type)" ng-init="showCase.model_data.seller_type=showCase.model_data.seller_types[0]">
+                  <option ng-repeat="type in showCase.model_data.seller_types" value="{{type}}">{{type}}</option>
                 </select>
               </div>
             </div>
@@ -93,6 +93,7 @@
                     <th class="w10">Quantity*</th>
                     <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">Measurement</th>
                     <th>Unit Price</th>
+                    <th ng-if="showCase.industry_type=='FMCG'">MRP</th>
                     <th class="w10">SGST(%)</th>
                     <th class="w10">CGST(%)</th>
                     <th class="w10">IGST(%)</th>
@@ -131,17 +132,18 @@
                       <input type="text" ng-model="product.fields.price" name="price" class="form-control" decimal-number 
                              ng-readonly="showCase.default_status" ng-keyup="showCase.getTotals()">
                     </td>
+                    <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="product.fields.mrp" size="22" title="{{ product.fields.mrp }}" name="mrp" class="form-control" ng-class="service.get_decimal_perm()"></td>
                     <td>
-                      <input type="text" ng-model="product.fields.sgst_tax" name="sgst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce>
+                      <input type="text" ng-model="product.fields.sgst_tax" name="sgst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce>
                     </td>
                     <td>
-                      <input type="text" ng-model="product.fields.cgst_tax" name="cgst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce>
+                      <input type="text" ng-model="product.fields.cgst_tax" name="cgst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce>
                     </td>
                     <td>
-                      <input type="text" ng-model="product.fields.igst_tax" name="igst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce>
+                      <input type="text" ng-model="product.fields.igst_tax" name="igst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce>
                     </td>
                     <td>
-                      <input type="text" ng-model="product.fields.utgst_tax" name="utgst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-debounce>
+                      <input type="text" ng-model="product.fields.utgst_tax" name="utgst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce>
                     </td>
                     <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
                       <input type="text" ng-model="product.fields.remarks" name="remarks" class="form-control" 
@@ -166,9 +168,59 @@
           <div class="col-md-3 col-sm-3 col-xs-12">
             <p>Sub Total: <b style="font-size:26px">{{showCase.model_data.sub_total}}</b></p>
           </div>
-        </div>
+		  <div class="col-md-12 col-sm-12 col-xs-12" ng-if="(showCase.permissions.show_purchase_history && showCase.display_purchase_history_table)">
+		  <div class="col-md-12 col-sm-12 col-xs-12">
+          <div style="margin-bottom: 10px;"><strong>Last Three Transactions :</strong></div>
+		  </div>
+
+          <div class="col-md-12 col-sm-12 col-xs-12 mb10">
+
+            <div class="col-md-7 col-sm-7 col-xs-7">
+
+			<div class="col-md-5 col-sm-5 col-xs-5" style="text-align: right;">
+				<strong>Supplier Level Last Transactions :</strong>
+			</div>
+			<div class="col-md-2 col-sm-3 col-xs-4">
+			  <label class="switch switch-sm square">
+				<div><input type="checkbox" ng-model="showCase.supplier_level_last_transaction" ng-change="showCase.supplier_level(showCase.supplier_level_last_transaction)" class="ng-valid ng-dirty ng-pristine"><span><i class="handle"></i></span>
+				</div>
+			  </label>
+			</div>
+
+            </div>
+
+            <div class="col-md-5 col-sm-5 col-xs-5" style="text-align: left;">
+				<p><strong style="margin-right:5px;">SKU Code in Last Transactions :</strong>{{showCase.purchase_history_wms_code}}</p>
+			</div>
+          </div>
+		  <div class="col-md-12 col-sm-12 col-xs-12 mb10">
+          <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th>PO Date</th>
+                <th>PO Number</th>
+                <th>Supplier</th>
+                <th>Quantity</th>
+                <th>Unit Price</th>
+                <th>Tax Percent</th>
+              </tr>
+            </thead>
+            <tbody ng-repeat="data in showCase.last_transaction_table">
+                <tr class="field">
+				    <td>{{data.po_date}}</td>
+                    <td>{{data.po_number}}</td>
+					<td>{{data.supplier_name}}</td>
+					<td>{{data.received_quantity}}</td>
+					<td>{{data.price}}</td>
+					<td>{{data.total_tax}}</td>
+                </tr>
+            </tbody>
+          </table>
+		  </div>
+		  </div>
           <div class="row insert-status"><h4 align="center">{{showCase.message}}</h4></div>
         </div>
+		</div>
         <div class="modal-footer">
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop {{showCase.permissions.change_openpo?'pop-normal':'pop-green'}}" ng-click="showCase.save_raise_po(form)">{{showCase.permissions.change_openpo?'Save':'Send for Approval'}}</button>
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-show="showCase.permissions.change_openpo" data-dismiss="modal" ng-click="showCase.confirm(form)">Confirm PO</button>

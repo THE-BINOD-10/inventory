@@ -12,6 +12,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.permissions = Session.roles.permissions;
     vm.apply_filters = colFilters;
     vm.service = Service;
+    vm.industry_type = Session.user_profile.industry_type;
+    if(vm.industry_type == 'FMCG'){
+      vm.extra_width = {
+        'width': '1350px'
+      }
+    }
 
     vm.filters = {'datatable': 'PrimarySegregation', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': '', 'search5': '',
                   'search6': '', 'search7': '', 'search8': '', 'search9': '', 'search10': ''};

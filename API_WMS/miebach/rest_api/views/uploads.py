@@ -779,6 +779,8 @@ def sku_form(request, user=''):
     attr_headers = list(attributes.values_list('attribute_name', flat=True))
     if attr_headers:
         headers += attr_headers
+    if user_profile.industry_type == "FMCG":
+        headers.append("Shelf life")
     wb, ws = get_work_sheet('skus', headers)
 
     return xls_to_response(wb, '%s.sku_form.xls' % str(user.id))
@@ -1446,6 +1448,13 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
             elif key == 'hot_release':
                 hot_release = str(cell_data).lower()
 
+            elif key == 'shelf_life':
+                if not cell_data:
+                    cell_data = 0
+                if sku_data and cell_data:
+                    sku_data.shelf_life = cell_data
+                data_dict[key] = cell_data
+
             elif cell_data:
                 data_dict[key] = cell_data
                 if sku_data:
@@ -1796,6 +1805,7 @@ def validate_supplier_form(open_sheet, user_id):
 def supplier_excel_upload(request, open_sheet, user, demo_data=False):
     mapping_dict = copy.deepcopy(SUPPLIER_EXCEL_FIELDS)
     number_str_fields = ['pincode', 'phone_number', 'days_to_supply', 'fulfillment_amt']
+    rev_tax_types = dict(zip(TAX_TYPE_ATTRIBUTES.values(), TAX_TYPE_ATTRIBUTES.keys()))
     for row_idx in range(1, open_sheet.nrows):
         sku_code = ''
         wms_code = ''
@@ -1820,6 +1830,12 @@ def supplier_excel_upload(request, open_sheet, user, demo_data=False):
                 supplier_data['name'] = cell_data
                 if supplier_master and cell_data:
                     setattr(supplier_master, key, cell_data)
+            elif key == 'tax_type':
+                if cell_data:
+                    cell_data = rev_tax_types.get(cell_data, '')
+                supplier_data['tax_type'] = cell_data
+                if supplier_master and cell_data:
+                    supplier_master.tax_type = supplier_data['tax_type']
 
             elif key in number_str_fields:
                 if cell_data:
@@ -2209,7 +2225,7 @@ def validate_purchase_order(open_sheet, user):
         for col_idx in range(0, len(PURCHASE_ORDER_HEADERS)):
             cell_data = open_sheet.cell(row_idx, col_idx).value
             if row_idx == 0:
-                if col_idx == 0 and cell_data != 'PO Name':
+                if col_idx == 0 and cell_data != 'PO Reference':
                     return 'Invalid File'
                 break
             if col_idx == 2:

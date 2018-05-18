@@ -43,6 +43,30 @@
     </div>
 </div>
 
+<div class="panel" ng-controller="CustomOrders as showCase">
+  <div class="panel-header">
+    <button type="button" class="btn btn-primary pull-right" ng-click="showCase.excel()">Download Excel</button>
+    <select class="hide form-control pull-right mr10" style="width: 155px;" ng-model="showCase.g_data.view" ng-change="showCase.change_datatable()">
+      <option ng-repeat="view in showCase.g_data.views" value="{{view}}" ng-selected="view == showCase.g_data.view"> {{view}}</option>
+    </select>
+  </div>
+  <div ng-include="'views/common/datatable.html'"></div>
+  <div class="panel-footer">
+    <div class="row" ng-hide="showCase.permissions.user_type == 'warehouse' || showCase.permissions.user_type == 'distributor'">
+      <div class="col-md-2 col-sm-4 col-xs-6 mb10">
+        <button type="submit" class="btn btn-primary" style="width: 100%" ng-click="showCase.backorder_po()" ng-disabled="showCase.bt_disable">Raise PO</button>
+      </div>
+      <div class="col-md-2 col-sm-4 col-xs-6 mb10">
+        <button type="submit" class="btn btn-primary" style="width: 100%" ng-click="showCase.raise_jo()" ng-disabled="showCase.bt_disable">Raise JO</button>
+      </div>
+      <div class="col-md-2 col-sm-4 col-xs-6 mb10">
+        <button type="submit" class="btn btn-primary" style="width: 100%" ng-click="showCase.raise_stock_transfer()" ng-disabled="showCase.bt_disable">Raise Stock Transfer</button>
+      </div>
+    </div>
+    <button type="submit" class="btn btn-primary pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.generate_picklist()">Generate Picklist</button>
+  </div>
+</div>
+
 <div class="button_column">
     <button type="get_input" class="btn" id="add-inventory-adjust" data-toggle="modal" data-placement="top"
             title="Add Inventory Adjustment" data-original-title="Click to Submit" data-target="#MyModal">

@@ -558,7 +558,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
             sku_data = sku_data[0];
             vm.model_data.tax_type = sku_data.tax_type.replace(" ","_").toLowerCase();
             //sku_data["price"] = product.fields.price;
-            debugger;
             //vm.model_data.supplier_sku_prices = sku_data;
             product["taxes"] = sku_data.taxes;
             vm.get_tax_value(product);

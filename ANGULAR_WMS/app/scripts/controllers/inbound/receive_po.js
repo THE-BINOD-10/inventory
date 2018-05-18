@@ -12,7 +12,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.permissions = Session.roles.permissions;
     vm.apply_filters = colFilters;
     vm.service = Service;
-    vm.self_life_ratio = Number(vm.permissions.shelf_life_ratio);
+    vm.self_life_ratio = Number(vm.permissions.shelf_life_ratio) || 0;
     vm.industry_type = Session.user_profile.industry_type;
     // vm.industry_type = 'FMCG';
 
@@ -133,7 +133,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     vm.serial_numbers = [];
                     angular.copy(data.data, vm.model_data);
                     vm.title = "Generate GRN";
-                    if (vm.industry_type = 'FMCG') {
+                    if (vm.industry_type == 'FMCG') {
                       vm.extra_width = {
                         'width': '1250px'
                       };

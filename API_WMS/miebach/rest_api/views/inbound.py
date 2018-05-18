@@ -2306,6 +2306,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
             data.remainder_mail = remainder_mail
 
         #Create Batch Detail entry
+        batch_dict = {}
         if 'batch_no' in myDict.keys():
             batch_dict = {'transact_type': 'po_loc', 'batch_no': myDict['batch_no'][i],
                           'expiry_date': myDict['exp_date'][i],

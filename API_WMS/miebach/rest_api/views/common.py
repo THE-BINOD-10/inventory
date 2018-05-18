@@ -4361,6 +4361,10 @@ def generate_barcode_dict(pdf_format, myDict, user):
                         single[show_key] = str(getattr(sku_data, barcode_mapping_dict[show_key]))
                         if barcode_mapping_dict[show_key] == 'sku_desc':
                             single[show_key] = sku_data.sku_desc[0:24].replace("'", '') + '...'
+                    elif show_key in mapping_fields.keys():
+                        single[show_key] = str(getattr(sku_data, mapping_fields[show_key]))
+                        if mapping_fields[show_key] == 'sku_desc':
+                            single[show_key] = sku_data.sku_desc[0:24].replace("'", '') + '...'
                     else:
                         attr_obj = sku_data.skuattributes_set.filter(attribute_name=show_key)
                         if attr_obj.exists():

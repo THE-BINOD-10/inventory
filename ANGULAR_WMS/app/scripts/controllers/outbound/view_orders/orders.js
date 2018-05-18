@@ -909,6 +909,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
   vm.raise_jo = function() {
     var data = [];
+    data.push({name: 'table_name', value: 'orders_table'})
     if (vm.g_data.view == 'OrderView') {
       for(var key in vm.selected){
         if(vm.selected[key]) {
@@ -1000,7 +1001,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
   function print() {
       colFilters.print_data(vm.html);
   }
-
   /* raise po */
   vm.backorder_po = function() {
     var data = [];
@@ -1019,6 +1019,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         }
       }
     }
+	data.push({name: 'table_name', value: 'orders_table'})
     var send_data  = {data: data}
     var modalInstance = $modal.open({
       templateUrl: 'views/outbound/toggle/common_backorder_po.html',
@@ -1068,7 +1069,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
   }
 
   vm.raise_stock_transfer = function() {
-
     var data = {};
     var url = '';
     if (vm.g_data.view == 'OrderView') {

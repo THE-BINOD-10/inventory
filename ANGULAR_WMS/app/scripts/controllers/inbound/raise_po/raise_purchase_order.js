@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('RaisePurchaseOrderCtrl',['$scope', '$http', '$state', '$compile', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
+  .controller('RaisePurchaseOrderCtrl',['$scope', '$http', '$q', '$state', '$compile', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, colFilters, Service) {
+function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, colFilters, Service) {
 
     var vm = this;
     vm.apply_filters = colFilters;
@@ -161,8 +161,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                       "total_price": 0,
                       "tax": "",
                       "sub_total": "",
+                      "supplier_sku_prices": "",
                       "data": [
-                        {'fields':{"supplier_Code":"", "ean_number":"", "order_quantity":"", 'price':'', "measurement_unit":"", 
+                        {'fields':{"supplier_Code":"", "ean_number":"", "order_quantity":"", 'price':0, "measurement_unit":"", 
                                    "dedicated_seller": "", "row_price": 0, 'sku': {"price":"", 'wms_code': ""},
                                    "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": "", "tax": ""}}
                       ],
@@ -230,7 +231,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.update_data = function (index) {
       if (index == vm.model_data.data.length-1) {
         if (vm.model_data.data[index]["fields"]["sku"]["wms_code"] && vm.model_data.data[index]["fields"]["order_quantity"]) {
-          vm.model_data.data.push({"fields": {"wms_code":"", "ean_number": "", "supplier_code":"", "order_quantity":"", "price":"", 
+          vm.model_data.data.push({"fields": {"wms_code":"", "ean_number": "", "supplier_code":"", "order_quantity":"", "price":0,
                                    "measurement_unit": "", "dedicated_seller": vm.selected_seller, "order_quantity": "","row_price": 0,
                                    "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "utgst_tax": "", "tax": ""
                                    }});
@@ -470,6 +471,48 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       });
    }
 
+   vm.get_supplier_sku_prices = function(sku) {
+
+     var d = $q.defer();
+     var data = {sku_codes: sku, suppli_id: vm.model_data.supplier_id}
+     vm.service.apiCall("get_supplier_sku_prices/", "POST", data).then(function(data) {
+
+       if(data.message) {
+         d.resolve(data.data);
+       }
+     });
+     return d.promise;
+   }
+
+   vm.get_tax_value = function(sku_data) {
+
+     var tax = 0;
+     for(var i = 0; i < sku_data.taxes.length; i++) {
+
+       if(sku_data.fields.price <= sku_data.taxes[i].max_amt && sku_data.fields.price >= sku_data.taxes[i].min_amt) {
+
+         if(vm.model_data.tax_type == "intra_state") {
+
+           tax = sku_data.taxes[i].sgst_tax + sku_data.taxes[i].cgst_tax;
+           sku_data.fields.sgst_tax = sku_data.taxes[i].sgst_tax;
+           sku_data.fields.cgst_tax = sku_data.taxes[i].cgst_tax;
+           sku_data.fields.igst_tax = 0;
+         } else if (vm.model_data.tax_type == "inter_state") {
+
+           sku_data.fields.sgst_tax = 0;
+           sku_data.fields.cgst_tax = 0;
+           sku_data.fields.igst_tax = sku_data.taxes[i].igst_tax;
+           tax = sku_data.taxes[i].igst_tax;
+         }
+         break;
+       }
+     }
+
+     sku_data.tax = tax;
+     return tax;
+   }
+
+
     vm.get_sku_details = function(product, item, index) {
       vm.purchase_history_wms_code = item.wms_code;
       if(vm.permissions.show_purchase_history) {
@@ -481,7 +524,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       product.fields.measurement_unit = item.measurement_unit;
       product.fields.description = item.sku_desc;
       product.fields.order_quantity = 1;
-      product.fields.price = "";
+      product.fields.price = 0;
       product.fields.description = item.sku_desc;
       product.fields.sgst_tax = "";
       product.fields.cgst_tax = "";
@@ -508,6 +551,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             vm.getTotals();
           }
         });
+        vm.get_supplier_sku_prices(item.wms_code).then(function(sku_data){
+            sku_data = sku_data[0];
+            vm.model_data.tax_type = sku_data.tax_type.replace(" ","_").toLowerCase();
+            //sku_data["price"] = product.fields.price;
+            debugger;
+            //vm.model_data.supplier_sku_prices = sku_data;
+            product["taxes"] = sku_data.taxes;
+            vm.get_tax_value(product);
+        })
       }
     }
 
@@ -578,6 +630,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       vm.model_data.sub_total = 0;
       angular.forEach(vm.model_data.data, function(sku_data){
         var temp = sku_data.fields.order_quantity * sku_data.fields.price;
+        //vm.model_data.supplier_sku_prices.price = sku_data.fields.price;
+        if(sku_data.taxes) {
+            vm.get_tax_value(sku_data);
+        }
         if (!sku_data.fields.tax) {
           sku_data.fields.tax = Number(sku_data.fields.cgst_tax) + Number(sku_data.fields.sgst_tax) + Number(sku_data.fields.igst_tax) + Number(sku_data.fields.utgst_tax);
         }

@@ -67,7 +67,7 @@ SKU_STOCK_DATA = {'sku_id': '', 'total_quantity': 0,
 
 SUPPLIER_DATA = {'name': '', 'address': '',
                  'phone_number': '', 'email_id': '',
-                 'status': 1}
+                 'status': 1, 'tax_type': ''}
 
 SIZE_DATA = {'size_name': '', 'size_value': '', 'creation_date': datetime.datetime.now()}
 
@@ -178,7 +178,8 @@ MOVE_INVENTORY_UPLOAD_FIELDS = ['WMS Code', 'Source Location', 'Destination Loca
 
 SUPPLIER_HEADERS = ['Supplier Id', 'Supplier Name', 'Address', 'Email', 'Phone No.', 'GSTIN Number', 'PAN Number',
                     'PIN Code',
-                    'City', 'State', 'Country', 'Days required to supply', 'Fulfillment Amount', 'Credibility']
+                    'City', 'State', 'Country', 'Days required to supply', 'Fulfillment Amount', 'Credibility',
+                    'Tax Type(Options: Inter State, Intra State)']
 
 VENDOR_HEADERS = ['Vendor Id', 'Vendor Name', 'Address', 'Email', 'Phone No.']
 
@@ -1301,7 +1302,7 @@ DIST_CUSTOMER_INVOICE_HEADERS = ['Gen Order Id', 'Order Ids', 'Customer Name', '
 SUPPLIER_EXCEL_FIELDS = OrderedDict((('id', 0), ('name', 1), ('address', 2), ('email_id', 3), ('phone_number', 4),
                                      ('tin_number', 5), ('pan_number', 6), ('pincode', 7), ('city', 8), ('state', 9),
                                      ('country', 10), ('days_to_supply', 11), ('fulfillment_amt', 12),
-                                     ('credibility', 13)
+                                     ('credibility', 13), ('tax_type', 14)
                                      ))
 STATUS_DICT = {1: True, 0: False}
 

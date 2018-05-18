@@ -193,6 +193,7 @@ class SupplierMaster(models.Model):
     tin_number = models.CharField(max_length=64, default='')
     pan_number = models.CharField(max_length=64, default='')
     status = models.IntegerField(default=1)
+    tax_type = models.CharField(max_length=32, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
     supplier_type = models.CharField(max_length=64, default='')

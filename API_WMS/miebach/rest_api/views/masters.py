@@ -236,6 +236,7 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
                                                 ('credibility', data.credibility), ('uploads_list', uploads_list),
                                                 ('country', data.country), ('pincode', data.pincode),
                                                 ('status', status), ('supplier_type', data.supplier_type),
+                                                ('tax_type', TAX_TYPE_ATTRIBUTES.get(data.tax_type, '')),
                                                 ('username', username), ('login_created', login_created),
                                                 ('DT_RowId', data.id), ('DT_RowClass', 'results'))))
 
@@ -979,6 +980,13 @@ def delete_bom_data(request, user=''):
         bom_master = BOMMaster.objects.get(id=value, product_sku__user=user.id).delete()
 
     return HttpResponse('Updated Successfully')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_supplier_master_data(request, user=''):
+    return HttpResponse(json.dumps({'tax_data': TAX_VALUES}))
 
 
 @csrf_exempt

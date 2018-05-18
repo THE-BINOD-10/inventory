@@ -50,19 +50,19 @@ def get_po_suggestions(start_index, stop_index, temp_data, search_term, order_te
     search_params['sku_id__in'] = sku_master_ids
 
     if search_term:
-        results = OpenPO.objects.exclude(status=0).values('supplier_id', 'supplier__name',
+        results = OpenPO.objects.exclude(status=0).values('supplier_id', 'supplier__name', 'supplier__tax_type',
                                                           'order_type').distinct().annotate(
             total=Sum('order_quantity')). \
             filter(Q(supplier__id__icontains=search_term) | Q(supplier__name__icontains=search_term) |
                    Q(total__icontains=search_term), sku__user=user.id, **search_params).order_by(order_data)
 
     elif order_term:
-        results = OpenPO.objects.exclude(status=0).values('supplier_id', 'supplier__name',
+        results = OpenPO.objects.exclude(status=0).values('supplier_id', 'supplier__name', 'supplier__tax_type',
                                                           'order_type').distinct().annotate(
             total=Sum('order_quantity')). \
             filter(sku__user=user.id, **search_params).order_by(order_data)
     else:
-        results = OpenPO.objects.exclude(status=0).values('supplier_id', 'supplier__name',
+        results = OpenPO.objects.exclude(status=0).values('supplier_id', 'supplier__name', 'supplier__tax_type',
                                                           'order_type').distinct().annotate(
             total=Sum('order_quantity')). \
             filter(sku__user=user.id, **search_params)
@@ -79,6 +79,7 @@ def get_po_suggestions(start_index, stop_index, temp_data, search_term, order_te
         checkbox = "<input type='checkbox' name='%s' value='%s'>" % (result['supplier_id'], result['supplier__name'])
         temp_data['aaData'].append(OrderedDict((('', checkbox), ('Supplier ID', result['supplier_id']),
                                                 ('Supplier Name', result['supplier__name']),
+                                                ('Tax Type', result['supplier__tax_type']),
                                                 ('Total Quantity', result['total']),
                                                 ('Order Type', order_type), ('id', count),
                                                 ('DT_RowClass', 'results'))))

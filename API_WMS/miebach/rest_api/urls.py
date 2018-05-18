@@ -28,6 +28,7 @@ urlpatterns = [
     # Master
     url(r'^get_sku_data/$', get_sku_data),
     url(r'^update_sku/$', update_sku),
+    url(r'^get_supplier_master_data/$', get_supplier_master_data),
     url(r'^get_supplier_update/$', get_supplier_update),
     url(r'^get_bom_data/$', get_bom_data),
     url(r'^update_supplier_values/$', update_supplier_values),
@@ -493,6 +494,7 @@ urlpatterns += [
 
     # price_master data
     url(r'get_customer_sku_prices', get_customer_sku_prices),
+    url(r'get_supplier_sku_prices', get_supplier_sku_prices),
 
     # save_invoice_changes -> outbound
     url(r'edit_invoice', edit_invoice),

@@ -3087,6 +3087,50 @@ def get_admin(user):
 @csrf_exempt
 @login_required
 @get_admin_user
+def get_supplier_sku_prices(request, user=""):
+    suppli_id = request.POST.get('suppli_id', '')
+    sku_codes = request.POST.get('sku_codes', '')
+    tax_type = ''
+    log.info('Get Customer SKU Taxes data for ' + user.username + ' is ' + str(request.POST.dict()))
+    inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
+    try:
+        sku_codes = [sku_codes]
+        result_data = []
+        supplier_master = ""
+        inter_state = 2
+        if suppli_id:
+            supplier_master = SupplierMaster.objects.filter(id=suppli_id, user=user.id)
+            if supplier_master:
+                tax_type = supplier_master[0].tax_type
+                inter_state = inter_state_dict.get(tax_type, 2)
+
+        for sku_code in sku_codes:
+            if not sku_code:
+                continue
+            data = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
+            if data:
+                data = data[0]
+            else:
+                return "sku_doesn't exist"
+            tax_masters = TaxMaster.objects.filter(user_id=user.id, product_type=data.product_type,
+                                                   inter_state=inter_state)
+            taxes_data = []
+            for tax_master in tax_masters:
+                taxes_data.append(tax_master.json())
+        result_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'tax_type': tax_type,
+                            'taxes': taxes_data})
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        result_data = []
+        log.info('Get Supplier SKU Taxes Data failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.GET.dict()), str(e)))
+    return HttpResponse(json.dumps(result_data))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def get_customer_sku_prices(request, user=""):
     cust_id = request.POST.get('cust_id', '')
     sku_codes = request.POST.get('sku_codes', '')

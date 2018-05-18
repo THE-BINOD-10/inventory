@@ -5556,7 +5556,7 @@ def get_picklist_number(user):
     #picklist_obj = Picklist.objects.filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id)).values_list(
     #    'picklist_number',
     #    flat=True).distinct().order_by('-picklist_number')
-    picklist_obj = Picklist.objects.filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id)).last()
+    picklist_obj = Picklist.objects.filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id)).latest('picklist_number')
     if not picklist_obj:
         picklist_number = 1000
     else:

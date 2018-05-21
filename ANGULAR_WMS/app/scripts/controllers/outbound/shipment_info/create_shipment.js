@@ -561,7 +561,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
     }
 
     vm.add_carton_code = function(data){
-      if(!vm.carton_code){
+      if(!vm.carton_code || data.pack_reference != vm.carton_code){
         vm.carton_code = data.pack_reference;
       }
       if (!vm.model_data.sel_cartons[data.pack_reference] && data.cal_quantity) {

@@ -556,7 +556,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
         elem = elem[0];
         elem = $(elem).serializeArray();
         elem.push({'name':'sel_cartons', 'value':sel_cartons});
-        vm.service.apiCall("print_cartons_wise_qty/", "POST", elem).then(function(data) {
+        vm.service.apiCall("print_cartons_data/", "POST", elem).then(function(data) {
           if(data.message) {
 
             if(data.data.search("<div") != -1) {

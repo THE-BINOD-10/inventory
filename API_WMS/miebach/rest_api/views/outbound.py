@@ -8810,24 +8810,32 @@ def update_cust_profile(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-def print_cartons_wise_qty(request, user=''):
-    
-    company_name = "Myntra Jabong India Pvt. Ltd"
-    table_headers = ['S.No', 'Carton Number', 'No of Item Codes']
+def print_cartons_data(request, user=''):
+    request_dict = dict(request.POST.iterlists())
+    company_info = user.userprofile.__dict__
+    company_name = company_info['company_name']
+    table_headers = ['S.No', 'Carton Number', 'SKU Code', 'SKU Description']
     name = "Myntra Jabong India Pvt. Ltd. C/O Future Supply Chain Ltd"
-    address = "Khasra No. 26/13, 14,15, 16/1, 17/1, 18/1/27/11 Revenue Estate Of Sadhrana Village, Gurgaon – 122001 Haryana, India"
-    st_number = "ST0023"
-    st_date = "15-05-2018"
+    address = company_info['address']
+    shipment_number = request.POST.get('shipment_number', '')
+    shipment_date = get_local_date(user, datetime.datetime.now(), True).strftime("%d %b, %Y")
     total_cartons = 35
     total_items = 1000
-    vehicle_number = 'HR61B4717'
-    data = [[1, 'CT030', 30], [2, 'CT031', 31], [3, 'CT032', 32], [4, 'CT033', 33], [5, 'CT034', 34]]
+    data = []
+    count = 1
+    for ind in xrange(0, len(request_dict['sku_code'])):
+        sku_code = request_dict['sku_code'][ind]
+        title = ''
+        order_obj = OrderDetail.objects.select_related('sku__sku_code', 'title').\
+                                            filter(id=request_dict['id'][ind]).values('sku__sku_code', 'title')
+        if order_obj:
+            sku_code = order_obj[0]['sku__sku_code']
+            title = order_obj[0]['title']
+        data.append([count, request_dict['package_reference'][ind], sku_code, title])
+        count+=1
 
-    import pdb
-    pdb.set_trace()
+    final_data = {'table_headers': table_headers, 'address': address, 'name': name, 'shipment_number': shipment_number,
+                 'shipment_date': shipment_date, 'total_cartons': total_cartons, 'total_items': total_items,
+                 'company_name': company_name, 'data': data}
 
-    data_dict = {'table_headers': table_headers, 'address': address, 'name': name, 'st_number': st_number,
-                 'st_date': st_date, 'total_cartons': total_cartons, 'total_items': total_items, 
-                 'vehicle_number': vehicle_number, 'company_name': company_name, 'data': data}
-
-    return render(request, 'templates/toggle/print_cartons_wise_qty.html', data_dict)
+    return render(request, 'templates/toggle/print_cartons_wise_qty.html', final_data)

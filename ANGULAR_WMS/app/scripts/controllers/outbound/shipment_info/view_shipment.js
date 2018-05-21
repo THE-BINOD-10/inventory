@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('ViewShipmentCtrl',['$scope', '$http', '$state', '$compile', '$rootScope', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'Service', ServerSideProcessingCtrl]);
+  .controller('ViewShipmentCtrl',['$scope', '$http', '$state', '$compile', '$rootScope', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'Service', '$modal', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, Session, DTOptionsBuilder, DTColumnBuilder, Service) {
+function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, Session, DTOptionsBuilder, DTColumnBuilder, Service, $modal) {
     var vm = this;
     vm.service = Service
     vm.selected = {};
@@ -71,6 +71,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
                 vm.service.apiCall("shipment_info_data/","GET", data).then(function(data){
                   if(data.message) {
                     angular.copy(data.data, vm.model_data);
+                    vm.model_data['sel_cartons'] = [];
+
+                    for (var i = 0; i < vm.model_data.data.length; i++) {
+                      if (vm.model_data.data[i].pack_reference) {
+                        vm.model_data.sel_cartons.push(vm.model_data.data[i].pack_reference);
+                      }
+                    }
+
                     $state.go('app.outbound.ShipmentInfo.ConfirmShipment');
                   }
                 });
@@ -131,7 +139,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
     }
 
     vm.close = close;
-    function close() {
+    vm.close = function() {
       $state.go('app.outbound.ShipmentInfo');
     }
 
@@ -237,4 +245,90 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
       })
     }
 
+
+    vm.cartonPrintData = {html: vm.html};
+    vm.print_pdf = function(form){
+      if (vm.model_data.sel_cartons) {
+        var sel_cartons = JSON.stringify(vm.model_data.sel_cartons);
+        var elem = angular.element($('#view_form'));
+        elem = elem[0];
+        elem = $(elem).serializeArray();
+        elem.push({'name':'sel_cartons', 'value':sel_cartons});
+        elem.push({'name':'carton', 'value':vm.carton});
+        vm.service.apiCall("print_cartons_wise_qty/", "POST", elem).then(function(data) {
+          if(data.message) {
+
+            if(data.data.search("<div") != -1) {
+              /*if (vm.model_data.receipt_type == 'Hosted Warehouse') {
+                //vm.title = "Stock transfer Note";
+                vm.title = $(data.data).find('.modal-header h4').text().trim();
+
+              }*/
+              var mod_data = vm.cartonPrintData;
+              var modalInstance = $modal.open({
+                templateUrl: 'views/outbound/toggle/print_shipment_info.html',
+                controller: 'CartonPrintCtrl',
+                controllerAs: '$ctrl',
+                size: 'lg',
+                backdrop: 'static',
+                keyboard: false,
+                resolve: {
+                  items: function () {
+                    return mod_data;
+                  }
+                }
+              });
+
+              modalInstance.result.then(function (selectedItem) {
+                vm.mod_data = selectedItem;
+                console.log(vm.mod_data);
+
+                vm.html = $(data.data)[0];
+                var html = $(vm.html).closest("form").clone();
+                angular.element(".modal-body").html($(html).find(".modal-body > .form-group"));
+              })
+
+              vm.print_enable = true;
+            } else {
+              vm.service.pop_msg(data.data);
+            }
+          }
+
+        });
+      } else {
+        vm.service.showNoty("No cartons codes are entered");
+      }
+    }
+
+    vm.get_carton_info = function(carton){
+      vm.carton = carton;
+      // alert(carton);
+    }
+
   }
+
+angular.module('urbanApp').controller('CartonPrintCtrl', function ($modalInstance, $modal, items, Service, Data, Session) {
+  var $ctrl = this;
+  $ctrl.printData = {};
+  angular.copy(items, $ctrl.printData);
+  $ctrl.user_type = Session.roles.permissions.user_type;
+
+  $ctrl.ok = function (form) {
+
+    if(form.$invalid) {
+      return false;
+    }
+    // angular.copy({data: $ctrl.sku_data}, Data.marginSKUData);
+    $modalInstance.close($ctrl.printData);
+  };
+
+  $ctrl.cancel = function () {
+    $modalInstance.dismiss('cancel');
+  };
+
+  $ctrl.print_carton_pdf = function() {
+
+    $ctrl.service.print_data($ctrl.printData.html, "Shipment Details");
+  }
+
+});

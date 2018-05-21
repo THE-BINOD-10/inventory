@@ -521,7 +521,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
                   }
                 }
 
-                if (vm.carton_code == vm.model_data.data[i].sub_data[last_index].pack_reference || !vm.model_data.data[i].sub_data[last_index].pack_reference) {
+                if (vm.carton_code == vm.model_data.data[i].sub_data[last_index].pack_reference || 
+                  !vm.model_data.data[i].sub_data[last_index].pack_reference || 
+                  (!vm.model_data.data[i].sub_data[last_index].shipping_quantity && vm.model_data.data[i].sub_data[last_index].pack_reference)) {
+                  
                   vm.model_data.data[i].sub_data[last_index].shipping_quantity = Number(exist_quan) + 1;
                   vm.model_data.sel_cartons[vm.carton_code] = vm.model_data.data[i].sub_data[last_index].shipping_quantity;
 
@@ -548,11 +551,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
       }
     }
 
-    // vm.add_carton_code = function(data){
-    //   if (!vm.model_data.sel_cartons[data.pack_reference]) {
-    //     vm.model_data.sel_cartons[data.pack_reference] = data.cal_quantity;
-    //   }
-    // }
+    vm.add_carton_code = function(data){
+      if (!vm.model_data.sel_cartons[data.pack_reference]) {
+        vm.model_data.sel_cartons[data.pack_reference] = data.cal_quantity;
+      }
+    }
 
     vm.cartonPrintData = {html: vm.html};
     vm.print_pdf = function(form){

@@ -8819,8 +8819,8 @@ def print_cartons_data(request, user=''):
     address = company_info['address']
     shipment_number = request.POST.get('shipment_number', '')
     shipment_date = get_local_date(user, datetime.datetime.now(), True).strftime("%d %b, %Y")
-    total_cartons = 35
-    total_items = 1000
+    total_cartons = request.POST.get('total_cartons', '')
+    total_items = request.POST.get('total_items', '')
     data = []
     count = 1
     for ind in xrange(0, len(request_dict['sku_code'])):

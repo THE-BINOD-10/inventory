@@ -548,6 +548,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
       }
     }
 
+    // vm.add_carton_code = function(data){
+    //   if (!vm.model_data.sel_cartons[data.pack_reference]) {
+    //     vm.model_data.sel_cartons[data.pack_reference] = data.cal_quantity;
+    //   }
+    // }
+
     vm.cartonPrintData = {html: vm.html};
     vm.print_pdf = function(form){
       if (vm.model_data.sel_cartons) {

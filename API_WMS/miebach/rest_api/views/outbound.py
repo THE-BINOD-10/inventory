@@ -8869,3 +8869,64 @@ def print_cartons_data(request, user=''):
                   'courier_name': courier_name, 'data': data.values()}
 
     return render(request, 'templates/toggle/print_cartons_wise_qty.html', final_data)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def print_cartons_data_view(request, user=''):
+    table_headers = ['S.No', 'Carton Number', 'SKU Code', 'SKU Description', 'Quantity']
+    customer_id = request.GET.get('customer_id', '')
+    shipment_number = request.GET.get('shipment_number', '')
+    selected_carton = request.GET.get('sel_carton', '')
+    data = OrderedDict()
+    customer_info = {}
+    truck_number = ''
+    courier_name = ''
+
+    company_info = user.userprofile.__dict__
+    company_name = company_info['company_name']
+    address = company_info['address']
+    shipment_date = get_local_date(user, datetime.datetime.now(), True).strftime("%d %b, %Y")
+    shipment_orders = ShipmentInfo.objects.filter(order__customer_id=customer_id,
+                                                  order_shipment__shipment_number=shipment_number,
+                                                  order_packaging__package_reference=selected_carton,
+                                                  order_shipment__user=user.id)
+    customers_obj = shipment_orders.values('order__customer_id', 'order__customer_name', 'order__marketplace').\
+                                    distinct()
+    if customers_obj.count() > 1:
+        customer_info = {'name': customers_obj[0]['order__marketplace']}
+    elif customers_obj:
+        cust_master = CustomerMaster.objects.filter(user=user.id, customer_id=customers_obj[0]['order__customer_id'])
+        if cust_master:
+            customer_info = {'name': cust_master[0].name, 'address': cust_master[0].address}
+        else:
+            customer_info = {'name': customers_obj[0]['order__customer_name'],
+                             'address': customers_obj[0]['order__address']}
+    count = 1
+    for orders in shipment_orders:
+        pack_reference = orders.order_packaging.package_reference
+        sku_code = orders.order.sku.sku_code
+        if pack_reference != selected_carton:
+            continue
+        if not truck_number:
+            truck_number = orders.order_shipment.truck_number
+        if not courier_name:
+            courier_name = orders.order_shipment.courier_name
+        title = orders.order.title
+        quantity = int(orders.shipping_quantity)
+        grouping_key = '%s:%s' % (str(pack_reference), str(sku_code))
+        data.setdefault(grouping_key, [])
+        if data[grouping_key]:
+            data[grouping_key][4] = int(data[grouping_key][4]) + quantity
+        else:
+            data[grouping_key] = [count, pack_reference, sku_code, title, quantity]
+        count += 1
+
+    final_data = {'table_headers': table_headers, 'customer_address': customer_info.get('address', ''),
+                  'customer_name': customer_info.get('name', ''), 'name': company_name,
+                  'shipment_number': shipment_number, 'company_address': address,
+                  'shipment_date': shipment_date, 'company_name': company_name, 'truck_number':truck_number,
+                  'courier_name': courier_name, 'data': data.values()}
+
+    return render(request, 'templates/toggle/print_cartons_wise_qty.html', final_data)

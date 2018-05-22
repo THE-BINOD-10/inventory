@@ -14,16 +14,19 @@
         <div class="form-group clearfix print-invoice">
           <div class="row">
             <div style="float: left; width: 50%">
-              <p><b>Name :</b> {{name}}</p>
-              <p><b>Address :</b> {{address}}</p>
+              <p><b>Name :</b> {{customer_name}}</p>
+              {% if customer_address %}
+                <p><b>Address :</b> {{customer_address}}</p>
+              {% endif %}
             </div>
             <div style="float: right;">
               <p><b>Shipment Number :</b> {{shipment_number}}</p>
               <p><b>Shipment Date :</b> {{shipment_date}}</p>
-              <p><b>Total No.of Cartons :</b> {{total_cartons}}</p>
-              <p><b>Total No.of Items :</b> {{total_items}}</p>
+              {% if courier_name %}
+                <p><b>Courier Name :</b> {{courier_name}}</p>
+              {% endif %}
               {% if truck_number %}
-                <p><b>Vehicle Number :</b> {{truck_number}}</p>
+                <p><b>Truck Number :</b> {{truck_number}}</p>
               {% endif %}
             </div>
           </div>

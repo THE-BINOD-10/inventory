@@ -8816,29 +8816,42 @@ def print_cartons_data(request, user=''):
     company_name = company_info['company_name']
     sel_carton = request.POST.get('sel_carton', '')
     table_headers = ['S.No', 'Carton Number', 'SKU Code', 'SKU Description']
-    name = "Myntra Jabong India Pvt. Ltd. C/O Future Supply Chain Ltd"
-    company_address = "Village Binola, Tehsil Manesar, Gurgaon - 122413, Haryana, India."
     address = company_info['address']
     shipment_number = request.POST.get('shipment_number', '')
     shipment_date = get_local_date(user, datetime.datetime.now(), True).strftime("%d %b, %Y")
-    total_cartons = request.POST.get('total_cartons', '')
-    total_items = request.POST.get('total_items', '')
     truck_number = request.POST.get('truck_number', '')
+    courier_name = request.POST.get('courier_name', '')
+
     data = []
     count = 1
+    customers_obj = OrderDetail.objects.select_related('customer_id', 'customer_name', 'marketplace').\
+                                filter(id__in=request_dict['id']).only('customer_id', 'customer_name', 'marketplace').\
+                                values('customer_id', 'customer_name', 'marketplace').distinct()
+    customer_info = {}
+    if customers_obj.count() > 1:
+        customer_info = {'name': customers_obj[0]['marketplace']}
+    elif customers_obj:
+        cust_master = CustomerMaster.objects.filter(user=user.id, customer_id=customers_obj[0]['customer_id'])
+        if cust_master:
+            customer_info = {'name': cust_master[0]['name'], 'address': cust_master[0]['address']}
+        else:
+            customer_info = {'name': customers_obj[0]['customer_name'], 'address': customers_obj[0]['address']}
     for ind in xrange(0, len(request_dict['sku_code'])):
         sku_code = request_dict['sku_code'][ind]
         title = ''
         order_obj = OrderDetail.objects.select_related('sku__sku_code', 'title').\
-                                            filter(id=request_dict['id'][ind]).values('sku__sku_code', 'title')
+                                            filter(id=request_dict['id'][ind]).only('sku__sku_code', 'title').\
+                                            values('sku__sku_code', 'title')
         if order_obj:
             sku_code = order_obj[0]['sku__sku_code']
             title = order_obj[0]['title']
         data.append([count, request_dict['package_reference'][ind], sku_code, title])
         count+=1
 
-    final_data = {'table_headers': table_headers, 'address': address, 'name': name, 'shipment_number': shipment_number,
-                 'shipment_date': shipment_date, 'total_cartons': total_cartons, 'total_items': total_items,
-                 'company_name': company_name, 'truck_number':truck_number, 'company_address':company_address, 'data': data}
+    final_data = {'table_headers': table_headers, 'customer_address': customer_info.get('address', ''),
+                  'customer_name': customer_info.get('name', ''), 'name': company_name, 'address': address,
+                  'shipment_number': shipment_number,
+                  'shipment_date': shipment_date, 'company_name': company_name, 'truck_number':truck_number,
+                  'courier_name': courier_name, 'data': data}
 
     return render(request, 'templates/toggle/print_cartons_wise_qty.html', final_data)

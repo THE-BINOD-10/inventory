@@ -2703,13 +2703,20 @@ def update_pricing(request, user=''):
 
 def create_network_supplier(dest, src):
     ''' creating supplier in destination with source details '''
-
-    user_profile = UserProfile.objects.get(user_id=src.id)
+    if not isinstance(src, long):
+        source_id = src.id
+    else:
+        source_id = src
+    if not isinstance(dest, long):
+        dest_id = dest.id
+    else:
+        dest_id = dest
+    user_profile = UserProfile.objects.get(user_id=source_id)
     max_sup_id = SupplierMaster.objects.count()
     phone_number = ''
     if user_profile.phone_number:
         phone_number = user_profile.phone_number
-    supplier = SupplierMaster.objects.create(id=max_sup_id, user=dest.id, name=user_profile.user.username,
+    supplier = SupplierMaster.objects.create(id=max_sup_id, user=dest_id, name=user_profile.user.username,
                                              email_id=user_profile.user.email,
                                              phone_number=phone_number,
                                              address=user_profile.address, status=1)

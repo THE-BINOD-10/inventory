@@ -252,7 +252,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
       if (vm.model_data.sel_cartons) {
         var sel_cartons = JSON.stringify(vm.model_data.sel_cartons);
         var elem = [];
-        elem.push({'name':'sel_cart', 'value':vm.carton});
+        elem.push({'name':'sel_carton', 'value':vm.carton});
         elem.push({'name':'customer_id', 'value':vm.model_data.customer_id});
         elem.push({'name':'shipment_number', 'value':Data.shipment_number});
 

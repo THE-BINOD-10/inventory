@@ -1,6 +1,6 @@
-<div id="page-pop" aria-hidden="false" aria-labelledby="myLargeModalLabel" role="dialog" tabindex="-1" id="location-toggle" class="modal fade process-toggle in" style="display: block;">
+<div id="page-pop" aria-hidden="false" aria-labelledby="myLargeModalLabel" role="dialog" tabindex="-1" id="location-toggle" class="modal fade process-toggle in" style="display: block; z-index:1000">
   <!-- Modal -->
-  <form role="form" name="form">
+  <form role="form" name="form" id="view_form">
     <div class="modal-dialog modal-lg confirm_shipment">
       <div class="modal-content">
         <div class="modal-header">
@@ -42,6 +42,7 @@
               <tbody>
                 <tr class="field" ng-repeat="data in vm.model_data.data">
                   <input type="hidden" name="id" value="{{data.id}}">
+                  <input type="hidden" name="order_id" value="{{data.order_id}}">
                   <td>{{data.order_id}}</td>
                   <td>{{data.sku_code}}</td>
                   <td>{{data.ship_quantity}}</td>
@@ -55,6 +56,34 @@
               </tbody>
             </table>
           </div>
+          <!-- <div class="row">
+            <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12 col-md-offset-4 col-lg-offset-4">
+              <div class="form-group">
+                <select name="sel_carton" ng-model="vm.sel_carton" class="form-control mt25" ng-change="vm.get_carton_info(vm.sel_carton)">
+                  <option value="">Select Carton</option>
+                  <option  ng-repeat="carton in vm.model_data.sel_cartons" value="{{carton}}">{{carton}}</option>
+                </select>
+              </div>
+            </div>
+          </div> -->
+          <div class="row">
+            <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12 col-md-offset-3 col-lg-offset-3">
+              <div class="col-md-8">
+                <div class="form-group">
+                  <select ng-model="vm.sel_carton" class="form-control mt25" ng-change="vm.get_carton_info(vm.sel_carton)">
+                    <option value="">Select Carton</option>
+                    <option  ng-repeat="(key, value) in vm.model_data.sel_cartons" value="{{key}}">{{key}}</option>
+                  </select>
+                  <!-- <input type="hidden" value="{{vm.sel_carton}}" name="sel_carton" class="form-control"> -->
+                </div>
+              </div>
+              
+              <div class="col-md-4">
+                <button type="button" class="btn btn-success mt25" style="width: 100%" ng-click="vm.print_pdf(form)">Print</button>
+              </div>
+            </div>
+          </div>
+
           <div ng-include="'views/common/msg.html'"></div>
         </div>
         <div class="modal-footer">

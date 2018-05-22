@@ -8411,11 +8411,18 @@ def move_enquiry_to_order(request, user=''):
             data_vals = em_obj.enquiredsku_set.values_list('sku', 'quantity', 'levelbase_price', 'warehouse_level')
             for data_val in data_vals:
                 sku, quantity, lb_price, warehouse_level = data_val
-                data = {'user_id': user.id, 'customer_user_id': request.user.id, 'sku_id': int(sku),
-                        'quantity': quantity, 'tax': 0, 'warehouse_level': warehouse_level,
-                        'levelbase_price': lb_price}
-                customer_cart_data = CustomerCartData(**data)
-                customer_cart_data.save()
+                sku_id = get_syncedusers_mapped_sku(user.id, sku)
+                data = {'user_id': user.id, 'customer_user_id': request.user.id, 'sku_id': sku_id,
+                        'tax': 0, 'warehouse_level': warehouse_level, 'levelbase_price': lb_price}
+                cart_obj = CustomerCartData.objects.filter(**data)
+                if cart_obj:
+                    cart_obj = cart_obj[0]
+                    cart_obj.quantity += quantity
+                    cart_obj.save()
+                else:
+                    data['quantity'] = quantity
+                    customer_cart_data = CustomerCartData(**data)
+                    customer_cart_data.save()
     except:
         import traceback
         log.debug(traceback.format_exc())

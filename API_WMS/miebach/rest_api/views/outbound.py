@@ -8821,6 +8821,7 @@ def print_cartons_data(request, user=''):
     shipment_date = get_local_date(user, datetime.datetime.now(), True).strftime("%d %b, %Y")
     truck_number = request.POST.get('truck_number', '')
     courier_name = request.POST.get('courier_name', '')
+    company_address = "Tehsil Manesar, Gurgaon - 122413, Haryana, India."
 
     data = []
     count = 1
@@ -8850,7 +8851,7 @@ def print_cartons_data(request, user=''):
 
     final_data = {'table_headers': table_headers, 'customer_address': customer_info.get('address', ''),
                   'customer_name': customer_info.get('name', ''), 'name': company_name, 'address': address,
-                  'shipment_number': shipment_number,
+                  'shipment_number': shipment_number, 'company_address': company_address,
                   'shipment_date': shipment_date, 'company_name': company_name, 'truck_number':truck_number,
                   'courier_name': courier_name, 'data': data}
 

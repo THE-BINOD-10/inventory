@@ -8814,6 +8814,7 @@ def print_cartons_data(request, user=''):
     request_dict = dict(request.POST.iterlists())
     company_info = user.userprofile.__dict__
     company_name = company_info['company_name']
+    sel_carton = request.POST.get('sel_carton', '')
     table_headers = ['S.No', 'Carton Number', 'SKU Code', 'SKU Description']
     name = "Myntra Jabong India Pvt. Ltd. C/O Future Supply Chain Ltd"
     address = company_info['address']
@@ -8821,6 +8822,7 @@ def print_cartons_data(request, user=''):
     shipment_date = get_local_date(user, datetime.datetime.now(), True).strftime("%d %b, %Y")
     total_cartons = request.POST.get('total_cartons', '')
     total_items = request.POST.get('total_items', '')
+    truck_number = request.POST.get('truck_number', '')
     data = []
     count = 1
     for ind in xrange(0, len(request_dict['sku_code'])):
@@ -8836,6 +8838,6 @@ def print_cartons_data(request, user=''):
 
     final_data = {'table_headers': table_headers, 'address': address, 'name': name, 'shipment_number': shipment_number,
                  'shipment_date': shipment_date, 'total_cartons': total_cartons, 'total_items': total_items,
-                 'company_name': company_name, 'data': data}
+                 'company_name': company_name, 'truck_number':truck_number, 'data': data}
 
     return render(request, 'templates/toggle/print_cartons_wise_qty.html', final_data)

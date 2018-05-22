@@ -530,9 +530,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
                   if (vm.model_data.data[i].sub_data[last_index].shipping_quantity) {
 
                     if(vm.model_data.sel_cartons[vm.carton_code]){
-                        vm.model_data.sel_cartons[vm.carton_code] += vm.model_data.data[i].sub_data[last_index].shipping_quantity;
+                        vm.model_data.sel_cartons[vm.carton_code] += 1;
                     } else {
-                      vm.model_data.sel_cartons[vm.carton_code] = vm.model_data.data[i].sub_data[last_index].shipping_quantity;
+                      vm.model_data.sel_cartons[vm.carton_code] = 1;
                     }
                     vm.model_data.data[i].sub_data[last_index].pack_reference = vm.carton_code;
                   }
@@ -591,7 +591,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
 
             if(data.data.search("<div") != -1) {
 
-              vm.service.print_data(data.data);
+              vm.service.print_data(data.data, 'Packaging Slip');
 
             } else {
               vm.service.pop_msg(data.data);

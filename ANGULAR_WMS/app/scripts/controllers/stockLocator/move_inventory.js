@@ -16,6 +16,8 @@
       vm.bt_disable = true;
       vm.service = Service;
       vm.industry_type = Session.user_profile.industry_type;
+      vm.batch_nos = [];
+      vm.batches = {};
 
       vm.dtOptions = DTOptionsBuilder.newOptions()
          .withOption('ajax', {
@@ -113,7 +115,19 @@
         }
       }
 
-      vm.batch_wise_mrps = [];
+      vm.get_sku_batches = function(sku_code){
+        if(sku_code && vm.industry_type==="FMCG"){
+          vm.service.apiCall('get_sku_batches/?sku_code='+sku_code).then(function(data){
+            if(data.message) {
+              vm.batches = data.data.sku_batches;
+              vm.batch_nos = Object.keys(vm.batches);
+            }
+          });
+        }
+
+      }
+
+      /*vm.batch_wise_mrps = [];
       vm.batch_num_mrp = true;
       vm.checkSearchValue = function(batch_num){
         if (batch_num) {
@@ -129,7 +143,7 @@
             }
           });
         }
-      }
+      }*/
 
       vm.add = add;
       function add() {

@@ -200,6 +200,7 @@ urlpatterns = [
     url(r'^get_imei_details/$', get_imei_details),
     url(r'^change_imei_status/$', change_imei_status),
     url(r'^confirm_sku_substitution/$', confirm_sku_substitution),
+    url(r'^get_sku_batches/$', get_sku_batches),
 
     # OutBound
     url(r'^batch_generate_picklist/$', batch_generate_picklist),

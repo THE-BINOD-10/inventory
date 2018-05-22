@@ -5,7 +5,7 @@ import copy
 import json
 from django.db.models import Q, F
 from itertools import chain
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from itertools import groupby
 from django.contrib.auth import authenticate
 from django.contrib import auth
@@ -865,7 +865,9 @@ def insert_move_inventory(request, user=''):
     dest_loc = request.GET['dest_loc']
     quantity = request.GET['quantity']
     seller_id = request.GET.get('seller_id', '')
-    status = move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id)
+    batch_no = request.GET.get('batch_number', '')
+    mrp =request.GET.get('mrp', '')
+    status = move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id, batch_no=batch_no, mrp=mrp)
     if 'success' in status.lower():
         update_filled_capacity([source_loc, dest_loc], user.id)
 
@@ -1531,3 +1533,17 @@ def confirm_sku_substitution(request, user=''):
     log.info("Substitution Done For " + str(json.dumps(sub_data)))
 
     return HttpResponse('Successfully Updated')
+
+
+@login_required
+@get_admin_user
+def get_sku_batches(request, user=''):
+    sku_batches = defaultdict(list)
+    sku_code = request.GET.get('sku_code')
+    sku_id = SKUMaster.objects.filter(user=user.id, sku_code=sku_code).only('id')
+    if sku_id:
+        sku_id = sku_id[0].id
+        batch_obj = BatchDetail.objects.filter(stockdetail__sku=sku_id).values('batch_no', 'mrp')
+        for batch in batch_obj:
+            sku_batches[batch['batch_no']].append(batch['mrp'])
+    return HttpResponse(json.dumps({"sku_batches": sku_batches}))

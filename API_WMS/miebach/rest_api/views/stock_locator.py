@@ -1958,7 +1958,7 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                                                     ('Quantity', get_decimal_limit(user.id, data.quantity)),
                                                     ('Pallet', pallet_code), ('Receipt Type', data.receipt_type))))
         else:
-            temp_data['aaData'].append(OrderedDict((('Receipt ID', data.receipt_number), ('DT_RowClass', 'results'),
+            temp_data['aaData'].append(OrderedDict((('Receipt Number', data.receipt_number), ('DT_RowClass', 'results'),
                                                     ('Receipt Date', _date), ('SKU Code', data.sku.sku_code),
                                                     ('WMS Code', data.sku.wms_code),
                                                     ('Product Description', data.sku.sku_desc),

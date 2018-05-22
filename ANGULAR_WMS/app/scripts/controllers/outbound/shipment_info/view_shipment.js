@@ -256,7 +256,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
         elem.push({'name':'customer_id', 'value':vm.model_data.customer_id});
         elem.push({'name':'shipment_number', 'value':Data.shipment_number});
 
-        vm.service.apiCall("print_cartons_data_view/", "POST", elem).then(function(data) {
+        vm.service.apiCall("print_cartons_data_view/", "GET", elem).then(function(data) {
           if(data.message) {
 
             if(data.data.search("<div") != -1) {

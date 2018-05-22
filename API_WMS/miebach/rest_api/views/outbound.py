@@ -8829,11 +8829,11 @@ def print_cartons_data(request, user=''):
                                 values('customer_id', 'customer_name', 'marketplace').distinct()
     customer_info = {}
     if customers_obj.count() > 1:
-        customer_info = {'name': customers_obj[0].marketplace}
+        customer_info = {'name': customers_obj[0]['marketplace']}
     elif customers_obj:
         cust_master = CustomerMaster.objects.filter(user=user.id, customer_id=customers_obj[0]['customer_id'])
         if cust_master:
-            customer_info = {'name': cust_master[0].name, 'address': cust_master[0].address}
+            customer_info = {'name': cust_master[0]['name'], 'address': cust_master[0]['address']}
         else:
             customer_info = {'name': customers_obj[0]['customer_name'], 'address': customers_obj[0]['address']}
     for ind in xrange(0, len(request_dict['sku_code'])):

@@ -4396,7 +4396,7 @@ def generate_barcode_dict(pdf_format, myDict, user):
         address = user_prf.address
         if BARCODE_ADDRESS_DICT.get(user.username, ''):
             address = BARCODE_ADDRESS_DICT.get(user.username)
-            single['Manufactured By'] = address.replace("'", '')
+        single['Manufactured By'] = address.replace("'", '')
         if "bulk" in pdf_format.lower():
             single['Qty'] = single['SKUPrintQty']
             single['SKUPrintQty'] = "1"

@@ -150,6 +150,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
     self.styleId = '';
     self.styles_data = {};
     self.tot_corporates = [];
+    self.shipment_number = '';
 
     /** login page maintainance **/
     self.login_data = {

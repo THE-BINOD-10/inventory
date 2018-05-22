@@ -1,4 +1,4 @@
-<div id="page-pop" style="display: block;" class="modal fade process-toggle in" id="location-toggle" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false">
+<div id="page-pop" style="display: block; z-index:1000" class="modal fade process-toggle in" id="location-toggle" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false">
   <form name="form" role="form" id="add-customer">
     <div class="modal-dialog modal-lg">
       <!-- Modal content-->
@@ -68,13 +68,23 @@
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.permissions.shipment_sku_scan">
               <div class="form-group">
                 <label class="control-label"> Scan SKU</label>
-                <input type="text" ng-model="showCase.scan_sku" class="form-control" ng-keydown="showCase.update_sku_quan($event, showCase.scan_sku)" auto-focus>
+                <input type="text" id="scan_sku" name="scan_sku" ng-model="showCase.scan_sku" class="form-control" ng-keydown="showCase.update_sku_quan($event, showCase.scan_sku)" auto-focus>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <span class="btn btn-success mt25" ng-click="showCase.add_carton()" style="width: 100%">Start Carton</span>
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Courier Name </label>
                 <input type="text" name="courier_name" ng-model="showCase.model_data.courier_name" class="form-control">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.carton_code">
+              <div class="form-group">
+                <label class="control-label"> Selected Carton code <b>{{ showCase.carton_code}}</b> </label>
               </div>
             </div>
 
@@ -112,7 +122,8 @@
                   <td> {{data.ordered}} </td>
                   <td> {{data.picked}} </td>
                   <td><input class="form-control" name="shipping_quantity" ng-model="record.shipping_quantity" type="text" ng-class="service.get_decimal_perm()" ng-change="showCase.cal_quantity(record, data)" ng-readonly="showCase.mk_user"></td>
-                  <td ng-hide="user.user_profile['user_type'] == 'marketplace_user'"><input class="form-control" name="package_reference" ng-model="record.pack_reference" type="text"></td>
+                  <!-- <td ng-hide="user.user_profile['user_type'] == 'marketplace_user'"><input class="form-control" name="package_reference" ng-model="record.pack_reference" type="text"></td> -->
+                  <td ng-hide="user.user_profile['user_type'] == 'marketplace_user'"><input class="form-control" name="package_reference" ng-model="record.pack_reference" ng-blur="showCase.add_carton_code(record)" type="text"></td>
                   <!--<td ng-if="showCase.mk_user">
                     <input type="text" ng-model="record.imei_number" class="form-control" ng-keydown="showCase.check_imei_exists($event, record, data)" ng-disabled="data.equal">
                     <input type="hidden" name="imei_number" class="form-control" ng-init="record.imei_list=[]" value="{{record.imei_list.join(',')}}">
@@ -122,9 +133,31 @@
               </tbody>
             </table>
           </div>
+          <div class="row">
+            <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12 col-md-offset-3 col-lg-offset-3">
+              <div class="col-md-8">
+                <div class="form-group">
+                <!-- <label class="control-label">Selected Cartons</label> -->
+                  <select name="sel_carton" ng-model="showCase.sel_carton" class="form-control mt25" ng-change="showCase.get_carton_info(showCase.sel_carton)">
+                    <option value="">Select Carton</option>
+                    <option  ng-repeat="(key, value) in showCase.model_data.sel_cartons" value="{{key}}">{{key}}</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div class="col-md-4">
+                <button type="button" class="btn btn-success mt25" style="width: 100%" ng-click="showCase.print_pdf(form)">Print</button>
+              </div>
+            </div>
+          </div>
           <div class="row insert-status"><h4 align="center"></h4></div>
         </div>
         <div class="modal-footer">
+          <!-- <button type="button" class="btn pop pop-green pull-left col-md-3 col-sm-4 col-xs-12" ng-click="pop.print_excel(pop.model_data.picklist_id)">Print to Excel</button>
+          <div class="col-md-3 col-sm-1 col-xs-0"></div>
+          <button type="button" class="btn pop pop-normal col-md-3 col-sm-4 col-xs-12" ng-click="pop.print_pdf(pop.model_data.picklist_id)">Print Picklist</button>
+          <button type="button" class="btn pop pop-green col-md-3 col-sm-3 col-xs-12" style="margin-left:0px;" ng-click="pop.picklist_confirmation()">Confirm</button> -->
+
           <button type="button" class="btn pop pop-normal" data-dismiss="modal" ng-click="showCase.close()">Close</button>
           <button class="btn pop pop-green" value="Add Shippment" type="button" ng-disabled="showCase.bt_disable" ng-click="showCase.add_shipment(form)">Add Shippment</button>
         </div>

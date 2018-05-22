@@ -2449,35 +2449,39 @@ def get_order_summary_data(search_params, user, sub_user):
     search_parameters['sku_id__in'] = sku_master_ids
 
     orders = OrderDetail.objects.filter(**search_parameters)
+    pick_filters = {}
+    for key, value in search_parameters.iteritems():
+        pick_filters['order__%s' % key] = value
+    order_id_status = dict(OrderDetail.objects.select_related('order_id', 'status').filter(**search_parameters).\
+                                        only('order_id', 'status').values_list('order_id', 'status').distinct())
 
-    open_orders = OrderDetail.objects.filter(status=1, user=user.id).values_list('order_id', flat=True).distinct()
+    picklist_generated = Picklist.objects.select_related('order').filter(status__icontains='open',picked_quantity=0,
+                                                 **pick_filters).only('order__order_id').values_list('order__order_id', flat=True).distinct()
 
-    picklist_generated = Picklist.objects.filter(order__user=user.id, status__icontains='open',
-                                                 picked_quantity=0).values_list('order__order_id', flat=True).distinct()
-
-    partially_picked = Picklist.objects.filter(order__user=user.id, status__icontains='open', picked_quantity__gt=0,
-                                               reserved_quantity__gt=0).values_list('order__order_id',
+    partially_picked = Picklist.objects.filter(status__icontains='open', picked_quantity__gt=0,
+                                               reserved_quantity__gt=0, **pick_filters).values_list('order__order_id',
                                                                                     flat=True).distinct()
 
-    picked_orders = Picklist.objects.filter(order__user=user.id, status__icontains='picked', picked_quantity__gt=0,
-                                            reserved_quantity=0).values_list('order__order_id', flat=True).distinct()
+    picked_orders = Picklist.objects.filter(status__icontains='picked', picked_quantity__gt=0,
+                                            reserved_quantity=0, **pick_filters).values_list('order__order_id', flat=True).distinct()
 
-    order_ids = OrderDetail.objects.filter(status=1, user=user.id).values_list('order_id', flat=True).distinct()
+    #order_ids = OrderDetail.objects.filter(status=1, user=user.id).values_list('order_id', flat=True).distinct()
     pos_order_ids = OrderDetail.objects.filter(Q(order_code__icontains="PRE")|
-                    Q(order_code__icontains="DC"), user=user.id, status=1).values_list('order_id', flat=True).distinct()
-    partial_generated = Picklist.objects.filter(order__user=user.id, order__order_id__in=order_ids)\
+                    Q(order_code__icontains="DC"), status=1, **search_parameters).values_list('order_id', flat=True).distinct()
+    partial_generated = Picklist.objects.filter(**pick_filters)\
                                 .exclude(order__order_id__in=pos_order_ids).values_list(\
                                 'order__order_id', flat=True).distinct()
-    dispatched = OrderDetail.objects.filter(status=2, user=user.id).values_list('order_id', flat=True).distinct()
-    reschedule_cancelled = OrderDetail.objects.filter(status=5, user=user.id).values_list('order_id',
-                                                                                          flat=True).distinct()
+    #dispatched = OrderDetail.objects.filter(status=2, **search_parameters).values_list('order_id', flat=True).distinct()
+    #reschedule_cancelled = OrderDetail.objects.filter(status=5, **search_parameters).values_list('order_id',
+    #                                                                                     flat=True).distinct()
 
     _status = ""
     if status_search:
         # ['Open', 'Picklist generated', 'Partial Picklist generated', 'Picked', 'Partially picked']
         ord_ids = ""
         if status_search == 'Open':
-            ord_ids = open_orders
+            ord_ids = OrderDetail.objects.filter(status=1, **search_parameters).\
+                                            values_list('order_id', flat=True).distinct()
         elif status_search == 'Picklist generated':
             ord_ids = picklist_generated
         elif status_search == 'Partial Picklist generated':
@@ -2487,8 +2491,7 @@ def get_order_summary_data(search_params, user, sub_user):
         elif status_search == 'Partially picked':
             ord_ids = partial_generated
 
-        if ord_ids:
-            orders = orders.filter(order_id__in=ord_ids)
+        orders = orders.filter(order_id__in=ord_ids)
         _status = status_search
 
     if search_params.get('order_term'):
@@ -2516,7 +2519,16 @@ def get_order_summary_data(search_params, user, sub_user):
         orders = orders[start_index:stop_index]
 
     status = ''
-    for data in orders:
+    count = 1
+    extra_fields = []
+    extra_fields_obj = MiscDetail.objects.filter(user=user.id, misc_type__icontains="pos_extra_fields")
+    for field in extra_fields_obj:
+        tmp = field.misc_value.split(',')
+        for i in tmp:
+            extra_fields.append(str(i))
+    for data in orders.iterator():
+        print count
+        count = count + 1
         is_gst_invoice = False
         invoice_date = get_local_date(user, data.creation_date, send_date='true')
         if datetime.datetime.strptime('2017-07-01', '%Y-%m-%d').date() <= invoice_date.date():
@@ -2528,7 +2540,7 @@ def get_order_summary_data(search_params, user, sub_user):
 
         # ['Open', 'Picklist generated', 'Partial Picklist generated', 'Picked', 'Partially picked']
         if not _status:
-            if data.order_id in open_orders:
+            if order_id_status.get(data.order_id, '') == '1':
                 status = ORDER_SUMMARY_REPORT_STATUS[0]
             elif data.order_id in picklist_generated:
                 status = ORDER_SUMMARY_REPORT_STATUS[1]
@@ -2536,11 +2548,11 @@ def get_order_summary_data(search_params, user, sub_user):
                 status = ORDER_SUMMARY_REPORT_STATUS[2]
             elif data.order_id in picked_orders:
                 status = ORDER_SUMMARY_REPORT_STATUS[3]
-            if data.order_id in partial_generated:
+            elif data.order_id in partial_generated:
                 status = ORDER_SUMMARY_REPORT_STATUS[4]
-            if data.order_id in dispatched:
+            if order_id_status.get(data.order_id, '') == '2':
                 status = ORDER_DETAIL_STATES.get(2, '')
-            if data.order_id in reschedule_cancelled:
+            if order_id_status.get(data.order_id, '') == '5':
                 status = ORDER_DETAIL_STATES.get(5, '')
         else:
             status = _status
@@ -2553,7 +2565,7 @@ def get_order_summary_data(search_params, user, sub_user):
         remarks = ''
         order_taken_by = ''
         payment_card, payment_cash = 0, 0
-        order_summary = CustomerOrderSummary.objects.filter(order__user=user.id, order_id=data.id)
+        order_summary = data.customerordersummary_set.filter()#CustomerOrderSummary.objects.filter(order__user=user.id, order_id=data.id)
         unit_price, unit_price_inclusive_tax = [data.unit_price] * 2
         if order_summary:
             mrp_price = order_summary[0].mrp
@@ -2590,12 +2602,6 @@ def get_order_summary_data(search_params, user, sub_user):
                 exec("%s = %s" % (pay[0],pay[1]))
         #pos extra fields
         pos_extra = {}
-        extra_fields = []
-        extra_fields_obj = MiscDetail.objects.filter(user=user.id, misc_type__icontains="pos_extra_fields")
-        for field in extra_fields_obj:
-            tmp = field.misc_value.split(',')
-            for i in tmp:
-                extra_fields.append(str(i))
         extra_vals = OrderFields.objects.filter(user=user.id,\
                        original_order_id=data.original_order_id).values('name', 'value')
         for field in extra_fields:

@@ -8863,8 +8863,8 @@ def print_cartons_data(request, user=''):
         count+=1
 
     final_data = {'table_headers': table_headers, 'customer_address': customer_info.get('address', ''),
-                  'customer_name': customer_info.get('name', ''), 'name': company_name, 'address': address,
-                  'shipment_number': shipment_number,
+                  'customer_name': customer_info.get('name', ''), 'name': company_name,
+                  'shipment_number': shipment_number, 'company_address': address,
                   'shipment_date': shipment_date, 'company_name': company_name, 'truck_number':truck_number,
                   'courier_name': courier_name, 'data': data.values()}
 

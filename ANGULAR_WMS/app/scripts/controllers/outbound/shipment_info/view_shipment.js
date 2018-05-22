@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('ViewShipmentCtrl',['$scope', '$http', '$state', '$compile', '$rootScope', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'Service', '$modal', ServerSideProcessingCtrl]);
+  .controller('ViewShipmentCtrl',['$scope', '$http', '$state', '$compile', '$rootScope', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'Service', '$modal', 'Data', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, Session, DTOptionsBuilder, DTColumnBuilder, Service, $modal) {
+function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, Session, DTOptionsBuilder, DTColumnBuilder, Service, $modal, Data) {
     var vm = this;
     vm.service = Service
     vm.selected = {};
@@ -68,6 +68,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
             $scope.$apply(function() {
                 console.log(aData);
                 var data = { gateout : 0 ,customer_id: aData['Customer ID'], shipment_number:aData['Shipment Number']}
+                Data.shipment_number = aData['Shipment Number'];
                 vm.service.apiCall("shipment_info_data/","GET", data).then(function(data){
                   if(data.message) {
                     angular.copy(data.data, vm.model_data);
@@ -75,8 +76,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
 
                     for (var i = 0; i < vm.model_data.data.length; i++) {
                       if (vm.model_data.data[i].pack_reference && !vm.model_data.sel_cartons[vm.model_data.data[i].pack_reference]) {
-                        // vm.model_data.sel_cartons.push(vm.model_data.data[i].pack_reference);
-                        vm.model_data.sel_cartons[vm.model_data.data[i].pack_reference] = vm.model_data.data[i].sku_code;
+                        vm.model_data.sel_cartons[vm.model_data.data[i].pack_reference] = vm.model_data.data[i].ship_quantity;
                       }
                     }
 
@@ -251,16 +251,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
     vm.print_pdf = function(form){
       if (vm.model_data.sel_cartons) {
         var sel_cartons = JSON.stringify(vm.model_data.sel_cartons);
-        var elem = angular.element($('#view_form'));
-        elem = elem[0];
-        elem = $(elem).serializeArray();
-        elem.push({'name':'sel_cartons', 'value':sel_cartons});
-        elem.push({'name':'carton', 'value':vm.carton});
-        vm.service.apiCall("print_cartons_data/", "POST", elem).then(function(data) {
+        var elem = [];
+        elem.push({'name':'sel_cart', 'value':vm.carton});
+        elem.push({'name':'customer_id', 'value':vm.model_data.customer_id});
+        elem.push({'name':'shipment_number', 'value':Data.shipment_number});
+
+        vm.service.apiCall("print_cartons_data_view/", "POST", elem).then(function(data) {
           if(data.message) {
 
             if(data.data.search("<div") != -1) {
-              vm.service.print_data(data.data);
+              vm.service.print_data(data.data, 'Packaging Slip');
             } else {
               vm.service.pop_msg(data.data);
             }

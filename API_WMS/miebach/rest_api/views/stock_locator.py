@@ -1692,7 +1692,7 @@ def get_inventory_modification(start_index, stop_index, temp_data, search_term, 
             if reserveds_location[reserveds.index(data[0])] == data[5]:
                 reserved += float(reserved_quantities[reserveds.index(data[0])])
         if data[0] in raw_reserveds and data[5] in raw_reserveds_location:
-            if raw_reserveds_location[reserveds.index(data[0])] == data[5]:
+            if raw_reserveds_location[raw_reserveds.index(data[0])] == data[5]:
                 reserved += float(raw_reserved_quantities[raw_reserveds.index(data[0])])
         total = total + reserved
         quantity = total - reserved
@@ -1958,7 +1958,7 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                                                     ('Quantity', get_decimal_limit(user.id, data.quantity)),
                                                     ('Pallet', pallet_code), ('Receipt Type', data.receipt_type))))
         else:
-            temp_data['aaData'].append(OrderedDict((('Receipt ID', data.receipt_number), ('DT_RowClass', 'results'),
+            temp_data['aaData'].append(OrderedDict((('Receipt Number', data.receipt_number), ('DT_RowClass', 'results'),
                                                     ('Receipt Date', _date), ('SKU Code', data.sku.sku_code),
                                                     ('WMS Code', data.sku.wms_code),
                                                     ('Product Description', data.sku.sku_desc),

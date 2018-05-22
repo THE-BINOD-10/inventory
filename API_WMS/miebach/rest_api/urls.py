@@ -283,6 +283,8 @@ urlpatterns = [
     url(r'^request_manual_enquiry_approval/$', request_manual_enquiry_approval),
     url(r'^get_invoice_details/$', get_invoice_details),
     url(r'^update_cust_profile/$', update_cust_profile),
+    url(r'^print_cartons_data/$', print_cartons_data),
+    url(r'^print_cartons_data_view/$', print_cartons_data_view),
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),

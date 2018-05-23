@@ -16,6 +16,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.selectAll = false;
     vm.bt_disable = true;
     vm.display = false;
+    vm.extra_width = {'width': '1100px'};
 
     if (vm.user_type == 'distributor') {
       vm.service.apiCall("customer_invoice_data/").then(function(data) {

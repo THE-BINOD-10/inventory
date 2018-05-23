@@ -42,7 +42,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
         DTColumnBuilder.newColumn('MRP').withTitle('MRP'),
         DTColumnBuilder.newColumn('Zone').withTitle('Zone'),
         DTColumnBuilder.newColumn('Location').withTitle('Location'),
-        DTColumnBuilder.newColumn('Pallet').withTitle('Pallet'),
+        //DTColumnBuilder.newColumn('Pallet').withTitle('Pallet'),
         DTColumnBuilder.newColumn('Quantity').withTitle('Quantity'),
         DTColumnBuilder.newColumn('Receipt Type').withTitle('Receipt Type')
     ];
@@ -54,9 +54,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
       colFilters.download_excel()
     }
 
-    // if (vm.permissions.pallet_switch) {
-    //   vm.dtColumns.push(DTColumnBuilder.newColumn('Pallet Code').withTitle('Pallet Code'))
-    // }
+     if (vm.permissions.pallet_switch) {
+       vm.dtColumns.splice(8, 0, DTColumnBuilder.newColumn('Pallet').withTitle('Pallet'))
+     }
 
     $scope.$on('change_filters_data', function(){
       vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;

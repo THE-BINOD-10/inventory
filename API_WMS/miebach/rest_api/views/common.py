@@ -1444,7 +1444,9 @@ def change_seller_stock(seller_id='', stock='', user='', quantity=0, status='dec
 
 def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id='',
                        dest_seller_id=''):
+    batch_obj = ''
     for stock in stocks:
+        batch_obj = stock.batch_detail
         if stock.quantity > move_quantity:
             stock.quantity -= move_quantity
             change_seller_stock(src_seller_id, stock, user, move_quantity, 'dec')
@@ -1462,9 +1464,14 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
             break
 
     if not dest_stocks:
-        dest_stocks = StockDetail(receipt_number=1, receipt_date=datetime.datetime.now(), quantity=float(quantity),
-                                  status=1, creation_date=datetime.datetime.now(),
-                                  updation_date=datetime.datetime.now(), location_id=dest[0].id, sku_id=sku_id)
+        dict_values = {'receipt_number': 1, 'receipt_date': datetime.datetime.now(),
+                       'quantity': float(quantity), 'status': 1,
+                       'creation_date': datetime.datetime.now(),
+                       'updation_date': datetime.datetime.now(),
+                       'location_id': dest[0].id, 'sku_id': sku_id}
+        if batch_obj:
+            dict_values['batch_detail'] = batch_obj
+        dest_stocks = StockDetail(**dict_values)
         dest_stocks.save()
         change_seller_stock(dest_seller_id, dest_stocks, user, float(quantity), 'create')
     else:
@@ -1474,7 +1481,7 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
         change_seller_stock(dest_seller_id, dest_stocks, user, quantity, 'inc')
 
 
-def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id=''):
+def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id='', batch_no='', mrp=''):
     # sku = SKUMaster.objects.filter(wms_code=wms_code, user=user.id)
     sku = check_and_return_mapping_id(wms_code, "", user, False)
     if sku:
@@ -1498,7 +1505,17 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
             return 'Seller Not Found'
         seller_id = seller_id[0].id
 
-    stocks = StockDetail.objects.filter(sku_id=sku_id, location_id=source[0].id, sku__user=user.id)
+    stock_dict = {"sku_id": sku_id,
+                  "location_id": source[0].id,
+                  "sku__user": user.id}
+    if batch_no:
+        stock_dict["batch_detail__batch_no"] =  batch_no
+    if mrp:
+        stock_dict["batch_detail__mrp"] = mrp
+    stocks = StockDetail.objects.filter(**stock_dict)
+    if not stocks:
+        return 'No stock with given Batch Number'
+    #stocks = StockDetail.objects.filter(sku_id=sku_id, location_id=source[0].id, sku__user=user.id)
     stock_count = stocks.aggregate(Sum('quantity'))['quantity__sum']
     reserved_quantity = \
     PicklistLocation.objects.exclude(stock=None).filter(stock__sku_id=sku_id, stock__sku__user=user.id, status=1,
@@ -1513,7 +1530,8 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
         if not seller_stock:
             return 'Seller Stock Not Found'
 
-    dest_stocks = StockDetail.objects.filter(sku_id=sku_id, location_id=dest[0].id, sku__user=user.id)
+    stock_dict['location_id'] = dest[0].id
+    dest_stocks = StockDetail.objects.filter(**stock_dict)
     update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id=seller_id,
                        dest_seller_id=seller_id)
     data_dict = copy.deepcopy(CYCLE_COUNT_FIELDS)
@@ -1564,7 +1582,7 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
     return 'Added Successfully'
 
 
-def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet=''):
+def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet='', batch_no='', mrp=''):
     now_date = datetime.datetime.now()
     now = str(now_date)
     if wmscode:
@@ -1578,6 +1596,8 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
             return 'Invalid Location'
     if quantity == '':
         return 'Quantity should not be empty'
+    stock_dict = {'sku_id': sku_id, 'location_id': location[0].id,
+                  'sku__user': user.id}
     if pallet:
         pallet_present = PalletDetail.objects.filter(user = user.id, status = 1, pallet_code = pallet)
         if not pallet_present:
@@ -1587,12 +1607,17 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
             pallet_present.update(quantity = quantity)
             pallet_present = pallet_present[0]
 
+        stock_dict['pallet_detail_id'] = pallet_present.id
+
+    if batch_no:
+        stock_dict["batch_detail__batch_no"] =  batch_no
+    if mrp:
+        stock_dict["batch_detail__mrp"] = mrp
+
     total_stock_quantity = 0
     if quantity:
         quantity = float(quantity)
-        stocks = StockDetail.objects.filter(sku_id=sku_id, location_id=location[0].id, sku__user=user.id)
-        if pallet:
-            stocks = stocks.filter(pallet_detail_id = pallet_present)
+        stocks = StockDetail.objects.filter(**stock_dict)
         total_stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
         if not total_stock_quantity:
             total_stock_quantity = 0
@@ -1614,21 +1639,30 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
                     setattr(stock, 'quantity', 0)
                     stock.save()
                     remaining_quantity = remaining_quantity - stock_quantity
-        if not stocks:            
-            if not pallet:
-                dest_stocks = StockDetail(receipt_number=1, receipt_date=datetime.datetime.now(),
-                    quantity=quantity, status=1, creation_date=now_date, updation_date=now_date, 
-                    location_id=location[0].id, sku_id=sku_id, pallet_detail_id='')
-            else:
-                dest_stocks = StockDetail(receipt_number=1, receipt_date=datetime.datetime.now(),
-                    quantity=quantity, status=1, creation_date=now_date, updation_date=now_date,
-                    location_id=location[0].id, sku_id=sku_id, pallet_detail_id=pallet_present.id)
+        if not stocks:
+            batch_dict = {}
+            if batch_no:
+                batch_dict = {'batch_no': batch_no}
+                del stock_dict["batch_detail__batch_no"]
+            if mrp:
+                batch_dict['mrp'] = mrp
+                del stock_dict["batch_detail__mrp"]
+            if batch_dict.keys():
+                batch_obj = BatchDetail.objects.create(**batch_dict)
+                stock_dict["batch_detail_id"] = batch_obj.id
+            if pallet:
+                del stock_dict['pallet_detail_id']
+            del stock_dict["sku__user"]
+            stock_dict.update({"receipt_number": 1, "receipt_date": now_date,
+                               "quantity": quantity, "status": 1, "creation_date": now_date,
+                               "updation_date": now_date
+                              })
+            dest_stocks = StockDetail(**stock_dict)
             dest_stocks.save()
 
     adj_quantity = quantity - total_stock_quantity
     if quantity == 0:
-        all_stocks = StockDetail.objects.filter(sku_id=sku_id, location__location=location[0].location,
-                                                sku__user=user.id)
+        all_stocks = StockDetail.objects.filter(**stock_dict)
         adj_quantity = all_stocks.aggregate(Sum('quantity'))['quantity__sum']
         if not adj_quantity:
             adj_quantity = 0

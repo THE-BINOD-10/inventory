@@ -1981,7 +1981,8 @@ def get_sku_batches(request, user=''):
     sku_id = SKUMaster.objects.filter(user=user.id, sku_code=sku_code).only('id')
     if sku_id:
         sku_id = sku_id[0].id
-        batch_obj = BatchDetail.objects.filter(stockdetail__sku=sku_id).values('batch_no', 'mrp')
+        batch_obj = BatchDetail.objects.filter(stockdetail__sku=sku_id).values('batch_no', 'mrp').distinct()
         for batch in batch_obj:
             sku_batches[batch['batch_no']].append(batch['mrp'])
+        sku_batches[batch['batch_no']] = list(set(sku_batches[batch['batch_no']]))
     return HttpResponse(json.dumps({"sku_batches": sku_batches}))

@@ -1146,6 +1146,7 @@ def update_mp_orders(request):
 def get_mp_inventory(request):
     user = request.user
     data = []
+    industry_type = user.userprofile.industry_type
     filter_params = {'user': user.id}
     error_status = []
     limit = request.POST.get('limit', 10)
@@ -1168,30 +1169,95 @@ def get_mp_inventory(request):
             return HttpResponse(json.dumps({'error_status': 'fail', 'message': 'Invalid Seller ID'}))
         seller_master_id = seller_master[0].id
         sku_records = SKUMaster.objects.filter(**filter_params).values('sku_code')
-        stocks = dict(SellerStock.objects.select_related('seller', 'stock', 'stock__location__zone__zone').\
-                      filter(seller_id=seller_master_id,stock__sku__user=user.id, stock__quantity__gt=0).\
-                            exclude(Q(stock__location__zone__zone__in=PICKLIST_EXCLUDE_ZONES) |
-                                    Q(stock__receipt_number=0)).values_list('stock__sku__sku_code').distinct().\
-                      annotate(tot_stock=Sum('quantity')))
-        pick_res = dict(PicklistLocation.objects.select_related('seller__sellerstock', 'stock', 'stock__sku').\
-                        filter(stock__sellerstock__seller_id=seller_master_id, reserved__gt=0, status=1,
-                                stock__sellerstock__quantity__gt=0, stock__sku__user=user.id).\
-                        values_list('stock__sku__sku_code').distinct().annotate(tot_stock=Sum('reserved')))
-        unsellable_stock = dict(SellerStock.objects.select_related('seller', 'stock', 'stock__location__zone__zone').\
-                      filter(seller_id=seller_master_id,stock__sku__user=user.id, stock__quantity__gt=0,
-                             stock__location__zone__zone='Non Sellable Zone').\
-                          values_list('stock__sku__sku_code').distinct().\
-                      annotate(tot_stock=Sum('quantity')))
         error_skus = set(skus) - set(sku_records.values_list('sku_code', flat=True))
         for error_sku in error_skus:
             error_status.append({'sku': error_sku, 'error': 'SKU Not found'})
-        for sku in sku_records:
-            inventory = stocks.get(sku['sku_code'], 0)
-            reserved = pick_res.get(sku['sku_code'], 0)
-            unsellable = unsellable_stock.get(sku['sku_code'], 0)
-            inventory -= reserved
-            data.append(OrderedDict(( ('sku', sku['sku_code']), ('inventory', int(inventory)),
-                                      ('on_hold', int(reserved)), ('un_sellable', unsellable))))
+        if industry_type == 'FMCG':
+            stocks = SellerStock.objects.select_related('seller', 'stock', 'stock__location__zone').\
+                          filter(seller_id=seller_master_id,stock__sku__user=user.id, stock__quantity__gt=0).\
+                                exclude(Q(stock__location__zone__zone__in=PICKLIST_EXCLUDE_ZONES) |
+                                        Q(stock__receipt_number=0)).only('stock__sku__sku_code',
+                                                                        'stock__batch_detail__mrp', 'quantity').\
+                          annotate(group_key=Concat('stock__sku__sku_code',Value('<<>>'), 'stock__batch_detail__mrp',
+                                    output_field=CharField())).values('group_key').distinct().\
+                          annotate(stock_sum=Sum('quantity'))
+            pick_res = dict(PicklistLocation.objects.select_related('seller__sellerstock', 'stock', 'stock__sku').\
+                            filter(stock__sellerstock__seller_id=seller_master_id, reserved__gt=0, status=1,
+                                    stock__sellerstock__quantity__gt=0, stock__sku__user=user.id). \
+                            only('stock__sku__sku_code', 'stock__batch_detail__mrp', 'reserved').\
+                            annotate(group_key=Concat('stock__sku__sku_code', Value('<<>>'), 'stock__batch_detail__mrp',
+                                              output_field=CharField())).values_list('group_key').distinct(). \
+                            annotate(stock_sum=Sum('reserved')))
+            unsellable_stock = SellerStock.objects.select_related('seller', 'stock', 'stock__location__zone__zone').\
+                          filter(seller_id=seller_master_id,stock__sku__user=user.id, stock__quantity__gt=0,
+                                 stock__location__zone__zone='Non Sellable Zone'). \
+                          only('stock__sku__sku_code', 'stock__batch_detail__mrp', 'reserved').\
+                          annotate(group_key=Concat('stock__sku__sku_code', Value('<<>>'), 'stock__batch_detail__mrp',
+                                          output_field=CharField())).values('group_key').distinct(). \
+                          annotate(stock_sum=Sum('quantity'))
+            for sku in sku_records:
+                group_data = stocks.filter(stock__sku__sku_code=sku['sku_code']).values('group_key', 'stock_sum')
+                group_data1 = unsellable_stock.filter(stock__sku__sku_code=sku['sku_code']).\
+                                        exclude(group_key__in=group_data.values_list('group_key', flat=True))
+                mrp_list = []
+                for stock_dat in group_data:
+                    sku_code = stock_dat['group_key'].split('<<>>')[0]
+                    mrp = stock_dat['group_key'].split('<<>>')[1]
+                    if not mrp:
+                        mrp = 0
+                    inventory = stock_dat['stock_sum']
+                    if not inventory:
+                        inventory = 0
+                    pick_filter = {'stock__sku__sku_code': sku_code}
+                    if mrp:
+                        pick_filter['stock__batch_detail__mrp'] = mrp
+                    reserved = pick_res.get(stock_dat['group_key'], 0)
+                    sell_filter = {'stock__sku__sku_code': sku_code}
+                    if mrp:
+                        sell_filter['stock__batch_detail__mrp'] = mrp
+                    unsellable = unsellable_stock.filter(**sell_filter).\
+                                                aggregate(Sum('quantity'))['quantity__sum']
+                    if not unsellable:
+                        unsellable = 0
+                    inventory -= reserved
+                    mrp_list.append(OrderedDict(( ('mrp', mrp), ('inventory', int(inventory)),
+                                          ('on_hold', int(reserved)), ('un_sellable', int(unsellable)))))
+                for stock_dat1 in group_data1:
+                    mrp = stock_dat1['group_key'].split('<<>>')[1]
+                    if not mrp:
+                        mrp = 0
+                    inventory = stock_dat1['stock_sum']
+                    if not inventory:
+                        inventory = 0
+                    mrp_list.append(OrderedDict(( ('mrp', mrp), ('inventory', 0),
+                                          ('on_hold', 0), ('un_sellable', int(inventory)))))
+                if not mrp_list:
+                    mrp_list = OrderedDict(( ('mrp', 0), ('inventory', 0),
+                                          ('on_hold', 0), ('un_sellable', 0)))
+                data.append(OrderedDict(( ('sku', sku['sku_code']), ('data', mrp_list))))
+
+        else:
+            stocks = dict(SellerStock.objects.select_related('seller', 'stock', 'stock__location__zone').\
+                          filter(seller_id=seller_master_id,stock__sku__user=user.id, stock__quantity__gt=0).\
+                                exclude(Q(stock__location__zone__zone__in=PICKLIST_EXCLUDE_ZONES) |
+                                        Q(stock__receipt_number=0)).values_list('stock__sku__sku_code').distinct().\
+                          annotate(tot_stock=Sum('quantity')))
+            pick_res = dict(PicklistLocation.objects.select_related('seller__sellerstock', 'stock', 'stock__sku').\
+                            filter(stock__sellerstock__seller_id=seller_master_id, reserved__gt=0, status=1,
+                                    stock__sellerstock__quantity__gt=0, stock__sku__user=user.id).\
+                            values_list('stock__sku__sku_code').distinct().annotate(tot_stock=Sum('reserved')))
+            unsellable_stock = dict(SellerStock.objects.select_related('seller', 'stock', 'stock__location__zone__zone').\
+                          filter(seller_id=seller_master_id,stock__sku__user=user.id, stock__quantity__gt=0,
+                                 stock__location__zone__zone='Non Sellable Zone').\
+                              values_list('stock__sku__sku_code').distinct().\
+                          annotate(tot_stock=Sum('quantity')))
+            for sku in sku_records:
+                inventory = stocks.get(sku['sku_code'], 0)
+                reserved = pick_res.get(sku['sku_code'], 0)
+                unsellable = unsellable_stock.get(sku['sku_code'], 0)
+                inventory -= reserved
+                data.append(OrderedDict(( ('sku', sku['sku_code']), ('inventory', int(inventory)),
+                                          ('on_hold', int(reserved)), ('un_sellable', unsellable))))
         data = scroll_data(request, data, limit=limit)
         response_data = {'page_info': data.get('page_info', {}), 'status': 'success', 'error_status': error_status,
                          'inventory_status': data['data']}

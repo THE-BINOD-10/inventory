@@ -6247,7 +6247,24 @@ def picklist_delete(request, user=""):
                     seller_orders.update(status=1)
             OrderLabels.objects.filter(order_id__in=order_ids, picklist__picklist_number=picklist_id).update(
                 picklist=None)
-            picklist_objs.delete()
+            picked_objs = picklist_objs.filter(picked_quantity__gt=0)
+            not_picked_objs = picklist_objs.filter(picked_quantity=0)
+            if not_picked_objs.exists():
+                not_picked_objs.delete()
+            if picked_objs.exists():
+                pick_obj_status = picked_objs[0].status
+                if 'batch' in pick_obj_status:
+                    pick_obj_status = 'batch_picked'
+                else:
+                    pick_obj_status = 'picked'
+                picklist_locations = PicklistLocation.objects.filter(picklist_id__in=picked_objs.\
+                                                                     values_list('id', flat=True))
+                for pick_location in picklist_locations:
+                    pick_location.quantity = float(pick_location.quantity) - float(pick_location.reserved)
+                    pick_location.reserved = 0
+                    pick_location.status = 0
+                    pick_location.save()
+                picked_objs.update(reserved_quantity=0, status=pick_obj_status)
             end_time = datetime.datetime.now()
             duration = end_time - st_time
             log.info("process completed")

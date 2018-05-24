@@ -1,3 +1,11 @@
+<style type="text/css">
+  .modal-content {
+    width: 1100px;
+  }
+  .re-textbox-width{
+    width: 60px
+  }
+</style>
 <div id="page-pop">
   <form name="form" role="form" ui-jq="validate" ui-options="pop.validationOpt">
   	<div class="model-custom">
@@ -82,13 +90,13 @@
                 	<th>PARTICULARS</th>
                 	<th>PKNG</th>
                 	<th>QTY</th>
-                    <th>Unit Price</th>
-                    <th>CGST (%)</th>
-                    <th>SGST (%)</th>
-                    <th>IGST (%)</th>
-                    <th>Taxable Amt</th>
-                    <th>Tax</th>
-                    <th>Invoice Amt</th>
+                  <th>Unit Price</th>
+                  <th>CGST (%)</th>
+                  <th>SGST (%)</th>
+                  <th>IGST (%)</th>
+                  <th>Taxable Amt</th>
+                  <th>Tax</th>
+                  <th>Invoice Amt</th>
 
                 	<th class="plus"></th>
                 </tr>
@@ -107,7 +115,7 @@
                     <input ng-model="product.pkng" title="{{ product.pkng }}" type="text" class="form-control">
                   </td>
                   <td>
-                    <input ng-model="product.quantity" ng-keyup="pop.getTotals(); pop.changeUnitPrice(product)" title="{{ product.quantity }}" type="text" class="form-control">
+                    <input ng-model="product.quantity" style="width: 50px" ng-keyup="pop.getTotals(); pop.changeUnitPrice(product)" title="{{ product.quantity }}" type="text" class="form-control">
                   </td>
 
                   <td>

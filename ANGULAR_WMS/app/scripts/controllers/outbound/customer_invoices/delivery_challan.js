@@ -272,7 +272,6 @@ function EditDeliveryChallan($scope, $http, $state, $timeout, Session, colFilter
   vm.permissions = Session.roles.permissions;
   vm.priceband_sync = Session.roles.permissions.priceband_sync;
 
-  debugger;
   vm.model_data = items;
   vm.model_data.total_qty = 0;
   vm.model_data.total_items = 0;

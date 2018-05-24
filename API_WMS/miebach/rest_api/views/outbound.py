@@ -7360,17 +7360,18 @@ def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, o
     else:
         if user_profile.user_type == 'marketplace_user':
             lis = ['seller_order__order__order_id', 'seller_order__order__order_id', 'seller_order__sor_id',
-                   'seller_order__seller__seller_id',
+                   'seller_order__seller__seller_id', 'seller_order__order__original_order_id',
                    'seller_order__order__customer_name', 'quantity', 'quantity', 'date_only', 'id']
             user_filter = {'seller_order__seller__user': user.id}
             result_values = ['seller_order__order__order_id', 'seller_order__seller__name', 'pick_number',
-                             'seller_order__sor_id']
+                             'seller_order__sor_id', 'seller_order__order__original_order_id']
             field_mapping = {'order_quantity_field': 'seller_order__quantity', 'date_only': 'seller_order__creation_date'}
             is_marketplace = True
         else:
-            lis = ['order__order_id', 'order__order_id', 'order__customer_name', 'quantity', 'quantity', 'date_only']
+            lis = ['order__order_id', 'order__order_id', 'order__customer_name', 'quantity', 'quantity', 'date_only',
+                   'seller_order__order__original_order_id']
             user_filter = {'order__user': user.id, 'order_status_flag': 'customer_invoices'}
-            result_values = ['order__order_id', 'pick_number']
+            result_values = ['order__order_id', 'pick_number', 'order__original_order_id']
             field_mapping = {'order_quantity_field': 'order__quantity', 'date_only': 'order__creation_date'}
             is_marketplace = False
 
@@ -7418,7 +7419,8 @@ def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, o
         temp_data['recordsTotal'] = master_data.count()
         temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
-        order_summaries = SellerOrderSummary.objects.filter(seller_order__seller__user=user.id)
+        order_summaries = SellerOrderSummary.objects.filter(Q(seller_order__seller__user=user.id) |
+                                                            Q(order__user=user.id))
         seller_orders = SellerOrder.objects.filter(seller__user=user.id)
         orders = OrderDetail.objects.filter(user=user.id)
         for data in master_data[start_index:stop_index]:
@@ -7430,15 +7432,25 @@ def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, o
                                                         sor_id=data['seller_order__sor_id']).aggregate(Sum('quantity'))[
                     'quantity__sum']
                 total_quantity = data['total_quantity']
+                picked_amount = order_summaries.filter(order__original_order_id=data['order__original_order_id'])\
+                                               .values('order__sku_id', 'order__invoice_amount', 'order__quantity').distinct()\
+                                               .annotate(pic_qty=Sum('quantity'))\
+                                               .annotate(cur_amt=(F('order__invoice_amount')/F('order__quantity'))* F('pic_qty'))\
+                                               .aggregate(Sum('cur_amt'))['cur_amt__sum']
             else:
-                order = orders.filter(order_id=data['order__order_id'])[0]
+                order = orders.filter(original_order_id=data['order__original_order_id'])[0]
                 invoice_number = order.sellerordersummary_set.values_list('invoice_number', flat=True)
                 if invoice_number:
                     invoice_number = invoice_number[0]
                 else:
                     invoice_number = ''
-                ordered_quantity = orders.filter(order_id=data['order__order_id']).exclude(status=3).aggregate(Sum('quantity'))[
-                    'quantity__sum']
+                ordered_quantity = orders.filter(original_order_id=data['order__original_order_id'])\
+                                         .exclude(status=3).aggregate(Sum('quantity'))['quantity__sum']
+                picked_amount = order_summaries.filter(order__original_order_id=data['order__original_order_id'])\
+                                               .values('order__sku_id', 'order__invoice_amount', 'order__quantity')\
+                                               .distinct().annotate(pic_qty=Sum('quantity'))\
+                                               .annotate(cur_amt=(F('order__invoice_amount')/F('order__quantity'))* F('pic_qty'))\
+                                               .aggregate(Sum('cur_amt'))['cur_amt__sum']
             order_id = order.order_code + str(order.order_id)
             if order.original_order_id:
                 order_id = order.original_order_id
@@ -7461,6 +7473,7 @@ def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, o
                                          ('check_field', 'Order ID')))
             data_dict.update(OrderedDict((('Customer Name', order.customer_name),
                                           ('Order Quantity', ordered_quantity), ('Picked Quantity', data['total_quantity']),
+                                          ('Total Amount', picked_amount),
                                           ('Order Date&Time', order_date), ('Invoice Number', '')
                                           )))
             temp_data['aaData'].append(data_dict)
@@ -7483,13 +7496,13 @@ def get_processed_orders_data(start_index, stop_index, temp_data, search_term, o
                    'seller_order__order__customer_name', 'quantity', 'quantity', 'date_only', 'id']
             user_filter = {'seller_order__seller__user': user.id}
             result_values = ['seller_order__order__order_id', 'seller_order__seller__name', 'pick_number',
-                             'seller_order__sor_id']
+                             'seller_order__sor_id', 'order__original_order_id']
             field_mapping = {'order_quantity_field': 'seller_order__quantity', 'date_only': 'seller_order__creation_date'}
             is_marketplace = True
         else:
             lis = ['order__order_id', 'order__order_id', 'order__customer_name', 'quantity', 'quantity', 'date_only']
             user_filter = {'order__user': user.id, 'order_status_flag': 'processed_orders'}
-            result_values = ['order__order_id', 'pick_number']
+            result_values = ['order__order_id', 'pick_number', 'order__original_order_id']
             field_mapping = {'order_quantity_field': 'order__quantity', 'date_only': 'order__creation_date'}
             is_marketplace = False
 
@@ -7537,10 +7550,12 @@ def get_processed_orders_data(start_index, stop_index, temp_data, search_term, o
         temp_data['recordsTotal'] = master_data.count()
         temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
-        order_summaries = SellerOrderSummary.objects.filter(seller_order__seller__user=user.id)
+        order_summaries = SellerOrderSummary.objects.filter(Q(seller_order__seller__user=user.id) |
+                                                            Q(order__user=user.id))
         seller_orders = SellerOrder.objects.filter(seller__user=user.id)
         orders = OrderDetail.objects.filter(user=user.id)
         for data in master_data[start_index:stop_index]:
+            #order_summaries.filter
             if is_marketplace:
                 summary = order_summaries.filter(seller_order__order__order_id=data['seller_order__order__order_id'],
                                                  seller_order__seller__name=data['seller_order__seller__name'])[0]
@@ -7549,10 +7564,20 @@ def get_processed_orders_data(start_index, stop_index, temp_data, search_term, o
                                                         sor_id=data['seller_order__sor_id']).aggregate(Sum('quantity'))[
                     'quantity__sum']
                 total_quantity = data['total_quantity']
+                picked_amount = order_summaries.filter(order__original_order_id=data['order__original_order_id'])\
+                                               .values('order__sku_id', 'order__invoice_amount', 'order__quantity').distinct()\
+                                               .annotate(pic_qty=Sum('quantity'))\
+                                               .annotate(cur_amt=(F('order__invoice_amount')/F('order__quantity'))* F('pic_qty'))\
+                                               .aggregate(Sum('cur_amt'))['cur_amt__sum']
             else:
-                order = orders.filter(order_id=data['order__order_id'])[0]
-                ordered_quantity = orders.filter(order_id=data['order__order_id']).aggregate(Sum('quantity'))[
+                order = orders.filter(original_order_id=data['order__original_order_id'])[0]
+                ordered_quantity = orders.filter(original_order_id=data['order__original_order_id']).aggregate(Sum('quantity'))[
                     'quantity__sum']
+                picked_amount = order_summaries.filter(order__original_order_id=data['order__original_order_id'])\
+                                .values('order__sku_id', 'order__invoice_amount', 'order__quantity')\
+                                .distinct().annotate(pic_qty=Sum('quantity'))\
+                                .annotate(cur_amt=(F('order__invoice_amount')/F('order__quantity'))* F('pic_qty'))\
+                                .aggregate(Sum('cur_amt'))['cur_amt__sum']
             order_id = order.order_code + str(order.order_id)
             if order.original_order_id:
                 order_id = order.original_order_id
@@ -7574,7 +7599,8 @@ def get_processed_orders_data(start_index, stop_index, temp_data, search_term, o
                                          ('id', str(data['order__order_id']) + ":" + str(data['pick_number'])),
                                          ('check_field', 'Order ID')))
             data_dict.update(OrderedDict((('Customer Name', order.customer_name),
-                                          ('Order Quantity', ordered_quantity), ('Picked Quantity', data['total_quantity']),
+                                          ('Order Quantity', ordered_quantity), ('Total Amount', round(picked_amount, 2)),
+                                          ('Picked Quantity', data['total_quantity']),
                                           ('Order Date&Time', order_date), ('Invoice Number', '')
                                           )))
             temp_data['aaData'].append(data_dict)
@@ -7593,17 +7619,18 @@ def get_delivery_challans_data(start_index, stop_index, temp_data, search_term, 
     else:
         if user_profile.user_type == 'marketplace_user':
             lis = ['seller_order__order__order_id', 'seller_order__order__order_id', 'seller_order__sor_id',
-                   'seller_order__seller__seller_id',
+                   'seller_order__seller__seller_id', 'seller_order__order__original_order_id',
                    'seller_order__order__customer_name', 'quantity', 'quantity', 'date_only', 'id']
             user_filter = {'seller_order__seller__user': user.id}
             result_values = ['seller_order__order__order_id', 'seller_order__seller__name', 'pick_number',
-                             'seller_order__sor_id']
+                             'seller_order__sor_id', 'seller_order__order__order_id']
             field_mapping = {'order_quantity_field': 'seller_order__quantity', 'date_only': 'seller_order__creation_date'}
             is_marketplace = True
         else:
-            lis = ['order__order_id', 'order__order_id', 'order__customer_name', 'quantity', 'quantity', 'date_only']
+            lis = ['order__order_id', 'order__order_id', 'order__customer_name', 'quantity', 'quantity',
+                   'order__original_order_id', 'date_only']
             user_filter = {'order__user': user.id, 'order_status_flag': 'delivery_challans'}
-            result_values = ['order__order_id', 'pick_number', 'challan_number']
+            result_values = ['order__order_id', 'pick_number', 'challan_number', 'order__original_order_id']
             field_mapping = {'order_quantity_field': 'order__quantity', 'date_only': 'order__creation_date'}
             is_marketplace = False
 
@@ -7651,7 +7678,8 @@ def get_delivery_challans_data(start_index, stop_index, temp_data, search_term, 
         temp_data['recordsTotal'] = master_data.count()
         temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
-        order_summaries = SellerOrderSummary.objects.filter(seller_order__seller__user=user.id)
+        order_summaries = SellerOrderSummary.objects.filter(Q(seller_order__seller__user=user.id) |
+                                                            Q(order__user=user.id))
         seller_orders = SellerOrder.objects.filter(seller__user=user.id)
         orders = OrderDetail.objects.filter(user=user.id)
         for data in master_data[start_index:stop_index]:
@@ -7663,10 +7691,20 @@ def get_delivery_challans_data(start_index, stop_index, temp_data, search_term, 
                                                         sor_id=data['seller_order__sor_id']).aggregate(Sum('quantity'))[
                     'quantity__sum']
                 total_quantity = data['total_quantity']
+                picked_amount = order_summaries.filter(order__original_order_id=data['order__original_order_id'])\
+                                               .values('order__sku_id', 'order__invoice_amount', 'order__quantity').distinct()\
+                                               .annotate(pic_qty=Sum('quantity'))\
+                                               .annotate(cur_amt=(F('order__invoice_amount')/F('order__quantity'))* F('pic_qty'))\
+                                               .aggregate(Sum('cur_amt'))['cur_amt__sum']
             else:
-                order = orders.filter(order_id=data['order__order_id'])[0]
-                ordered_quantity = orders.filter(order_id=data['order__order_id']).aggregate(Sum('quantity'))[
+                order = orders.filter(original_order_id=data['order__original_order_id'])[0]
+                ordered_quantity = orders.filter(original_order_id=data['order__original_order_id']).aggregate(Sum('quantity'))[
                     'quantity__sum']
+                picked_amount = order_summaries.filter(order__original_order_id=data['order__original_order_id'])\
+                                               .values('order__sku_id', 'order__invoice_amount', 'order__quantity')\
+                                               .distinct().annotate(pic_qty=Sum('quantity'))\
+                                               .annotate(cur_amt=(F('order__invoice_amount')/F('order__quantity'))* F('pic_qty'))\
+                                               .aggregate(Sum('cur_amt'))['cur_amt__sum']
             order_id = order.order_code + str(order.order_id)
             if order.original_order_id:
                 order_id = order.original_order_id
@@ -7689,7 +7727,8 @@ def get_delivery_challans_data(start_index, stop_index, temp_data, search_term, 
                                          ('check_field', 'Customer Name')))
             data_dict.update(OrderedDict((('Customer Name', order.customer_name),
                                           ('Order Quantity', ordered_quantity), ('Picked Quantity', data['total_quantity']),
-                                          ('Order Date&Time', order_date), ('Invoice Number', '')
+                                          ('Total Amount', round(picked_amount, 2)), ('Order Date&Time', order_date),
+                                          ('Invoice Number', '')
                                           )))
             temp_data['aaData'].append(data_dict)
         log.info('Customer Invoice filtered %s for %s ' % (str(temp_data['recordsTotal']), user.username))
@@ -7698,7 +7737,7 @@ def get_delivery_challans_data(start_index, stop_index, temp_data, search_term, 
 def update_dc(request, user=''):
     form_dict = dict(request.POST.iterlists())
     address = form_dict['form_data[address]'][0]
-    challan_number = form_dict['form_data[challan_no]']
+    challan_number = form_dict['form_data[challan_no]'][0]
     rep_id = form_dict['form_data[rep]']
     lr_no = form_dict['form_data[lr_no]']
     carrier = form_dict['form_data[carrier]']
@@ -7729,12 +7768,30 @@ def update_dc(request, user=''):
         for each_sku in sku_data:
             ord_det_id = each_sku.get('id', '')
             quantity = each_sku.get('quantity', '')
+            unit_price = each_sku.get('unit_price', '')
+            sgst_tax = each_sku['taxes'].get('sgst_tax', '')
+            cgst_tax = each_sku['taxes'].get('cgst_tax', '')
+            igst_tax = each_sku['taxes'].get('igst_tax', '')
+            invoice_amount = each_sku.get('invoice_amount', '')
+
             if not quantity:
                 continue
             if ord_det_id:
                 ord_obj = OrderDetail.objects.filter(id=ord_det_id)
                 if ord_obj:
-                    ord_obj[0].quantity = each_sku['quantity']
+                    ord_obj[0].quantity = quantity
+                    ord_obj[0].invoice_amount = invoice_amount
+                    ord_obj[0].unit_price = unit_price
+                    cust_order_summary = CustomerOrderSummary.objects.filter(order_id = ord_obj[0].id)
+                    if cust_order_summary:
+                        if cgst_tax:
+                            cust_order_summary[0].cgst_tax = cgst_tax
+                        if sgst_tax:
+                            cust_order_summary[0].sgst_tax = sgst_tax
+                        if igst_tax:
+                            cust_order_summary[0].igst_tax = igst_tax
+                        cust_order_summary[0].save()
+
                     ord_obj[0].save()
             else:
                 sku_qs = SKUMaster.objects.filter(sku_code=each_sku['sku_code'], user=user.id)
@@ -7744,25 +7801,30 @@ def update_dc(request, user=''):
                     sku_id = sku_qs[0].id
                     title = sku_qs[0].sku_desc
                     product_type = sku_qs[0].product_type
-                    price_master_obj = PriceMaster.objects.filter(price_type=price_type, sku__id=sku_id)
+                    """price_master_obj = PriceMaster.objects.filter(price_type=price_type, sku__id=sku_id)
                     if price_master_obj:
                         price_master_obj = price_master_obj[0]
                         price = price_master_obj.price
                     else:
                         price = sku_qs[0].price
-                    net_amount = price * int(quantity)
+                    net_amount = price * int(quantity)"""
                     org_order_id = 'MN%s' % order_id
-                    order_detail_dict = {'sku_id': sku_id, 'title': title, 'quantity': each_sku['quantity'],
+                    order_detail_dict = {'sku_id': sku_id, 'title': title, 'quantity': quantity,
                                          'order_id': order_id, 'original_order_id': org_order_id, 'user': user.id,
                                          'customer_id': customer_id, 'customer_name': customer_name,
-                                         'shipment_date': shipment_date, 'address': address, 'price': price,
-                                         'unit_price': price}
-                    tax = get_tax_value(user, order_detail_dict, product_type, tax_type)
-                    total_amount = ((net_amount * tax) / 100) + net_amount
-                    order_detail_dict['invoice_amount'] = total_amount
+                                         'shipment_date': shipment_date, 'address': address, 'price': unit_price,
+                                         'unit_price': unit_price}
+                    #tax = get_tax_value(user, order_detail_dict, product_type, tax_type)
+                    #total_amount = ((net_amount * tax) / 100) + net_amount
+                    order_detail_dict['invoice_amount'] = invoice_amount #total_amount
                     order_detail_dict.pop('price')
                     ord_obj = OrderDetail(**order_detail_dict)
                     ord_obj.save()
+                    cos_dict = {'order_id': ord_obj.id, 'cgst_tax': cgst_tax,
+                                'igst_tax': igst_tax, 'sgst_tax': sgst_tax
+                                }
+                    cos_obj = CustomerOrderSummary(**cos_dict)
+                    cos_obj.save()
                     sos_dict = {'quantity': quantity, 'pick_number': pick_number,
                                 'creation_date': datetime.datetime.now(), 'order_id': ord_obj.id,
                                 'challan_number': challan_number, 'order_status_flag': 'delivery_challans'}

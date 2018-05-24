@@ -7737,7 +7737,7 @@ def get_delivery_challans_data(start_index, stop_index, temp_data, search_term, 
 def update_dc(request, user=''):
     form_dict = dict(request.POST.iterlists())
     address = form_dict['form_data[address]'][0]
-    challan_number = form_dict['form_data[challan_no]']
+    challan_number = form_dict['form_data[challan_no]'][0]
     rep_id = form_dict['form_data[rep]']
     lr_no = form_dict['form_data[lr_no]']
     carrier = form_dict['form_data[carrier]']
@@ -7768,12 +7768,30 @@ def update_dc(request, user=''):
         for each_sku in sku_data:
             ord_det_id = each_sku.get('id', '')
             quantity = each_sku.get('quantity', '')
+            unit_price = each_sku.get('unit_price', '')
+            sgst_tax = each_sku['taxes'].get('sgst_tax', '')
+            cgst_tax = each_sku['taxes'].get('cgst_tax', '')
+            igst_tax = each_sku['taxes'].get('igst_tax', '')
+            invoice_amount = each_sku.get('invoice_amount', '')
+
             if not quantity:
                 continue
             if ord_det_id:
                 ord_obj = OrderDetail.objects.filter(id=ord_det_id)
                 if ord_obj:
-                    ord_obj[0].quantity = each_sku['quantity']
+                    ord_obj[0].quantity = quantity
+                    ord_obj[0].invoice_amount = invoice_amount
+                    ord_obj[0].unit_price = unit_price
+                    cust_order_summary = CustomerOrderSummary.objects.filter(order_id = ord_obj[0].id)
+                    if cust_order_summary:
+                        if cgst_tax:
+                            cust_order_summary[0].cgst_tax = cgst_tax
+                        if sgst_tax:
+                            cust_order_summary[0].sgst_tax = sgst_tax
+                        if igst_tax:
+                            cust_order_summary[0].igst_tax = igst_tax
+                        cust_order_summary[0].save()
+
                     ord_obj[0].save()
             else:
                 sku_qs = SKUMaster.objects.filter(sku_code=each_sku['sku_code'], user=user.id)
@@ -7783,25 +7801,30 @@ def update_dc(request, user=''):
                     sku_id = sku_qs[0].id
                     title = sku_qs[0].sku_desc
                     product_type = sku_qs[0].product_type
-                    price_master_obj = PriceMaster.objects.filter(price_type=price_type, sku__id=sku_id)
+                    """price_master_obj = PriceMaster.objects.filter(price_type=price_type, sku__id=sku_id)
                     if price_master_obj:
                         price_master_obj = price_master_obj[0]
                         price = price_master_obj.price
                     else:
                         price = sku_qs[0].price
-                    net_amount = price * int(quantity)
+                    net_amount = price * int(quantity)"""
                     org_order_id = 'MN%s' % order_id
-                    order_detail_dict = {'sku_id': sku_id, 'title': title, 'quantity': each_sku['quantity'],
+                    order_detail_dict = {'sku_id': sku_id, 'title': title, 'quantity': quantity,
                                          'order_id': order_id, 'original_order_id': org_order_id, 'user': user.id,
                                          'customer_id': customer_id, 'customer_name': customer_name,
-                                         'shipment_date': shipment_date, 'address': address, 'price': price,
-                                         'unit_price': price}
-                    tax = get_tax_value(user, order_detail_dict, product_type, tax_type)
-                    total_amount = ((net_amount * tax) / 100) + net_amount
-                    order_detail_dict['invoice_amount'] = total_amount
+                                         'shipment_date': shipment_date, 'address': address, 'price': unit_price,
+                                         'unit_price': unit_price}
+                    #tax = get_tax_value(user, order_detail_dict, product_type, tax_type)
+                    #total_amount = ((net_amount * tax) / 100) + net_amount
+                    order_detail_dict['invoice_amount'] = invoice_amount #total_amount
                     order_detail_dict.pop('price')
                     ord_obj = OrderDetail(**order_detail_dict)
                     ord_obj.save()
+                    cos_dict = {'order_id': ord_obj.id, 'cgst_tax': cgst_tax,
+                                'igst_tax': igst_tax, 'sgst_tax': sgst_tax
+                                }
+                    cos_obj = CustomerOrderSummary(**cos_dict)
+                    cos_obj.save()
                     sos_dict = {'quantity': quantity, 'pick_number': pick_number,
                                 'creation_date': datetime.datetime.now(), 'order_id': ord_obj.id,
                                 'challan_number': challan_number, 'order_status_flag': 'delivery_challans'}

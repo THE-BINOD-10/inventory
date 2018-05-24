@@ -82,6 +82,14 @@
                 	<th>PARTICULARS</th>
                 	<th>PKNG</th>
                 	<th>QTY</th>
+                    <th>Unit Price</th>
+                    <th>CGST (%)</th>
+                    <th>SGST (%)</th>
+                    <th>IGST (%)</th>
+                    <th>Taxable Amt</th>
+                    <th>Tax</th>
+                    <th>Invoice Amt</th>
+
                 	<th class="plus"></th>
                 </tr>
               </thead>
@@ -92,15 +100,36 @@
                       <input type="text" name="data-id" ng-model="product.pk" class="hide" ng-if="pop.update">
                       <input type="text" name="seller_po_id" ng-model="product.seller_po_id" class="hide" ng-if="pop.update">
              			</td>
-             			<td>
-                    <input ng-model="product.sku_class" title="{{ product.description }}" type="text" class="form-control">
+             			<td>{{product.sku_desc}}
+                    <!--<input ng-model="product.sku_class" title="{{ product.description }}" type="text" class="form-control">-->
                   </td>
                   <td>
                     <input ng-model="product.pkng" title="{{ product.pkng }}" type="text" class="form-control">
                   </td>
                   <td>
-                    <input ng-model="product.quantity" ng-keyup="pop.getTotals()" title="{{ product.quantity }}" type="text" class="form-control">
+                    <input ng-model="product.quantity" ng-keyup="pop.getTotals(); pop.changeUnitPrice(product)" title="{{ product.quantity }}" type="text" class="form-control">
                   </td>
+
+                  <td>
+                    <input ng-model="product.unit_price" ng-keyup="pop.changeUnitPrice(product)"
+                    title="{{ product.unit_price }}" type="text" class="form-control">
+                  </td>
+                  <td>
+                    <input ng-model="product.taxes.cgst_tax" ng-keyup="pop.changeUnitPrice(product)"
+                    title="{{ product.taxes.cgst_tax }}" type="text" class="form-control">
+                  </td>
+                  <td>
+                    <input ng-model="product.taxes.sgst_tax" ng-keyup="pop.changeUnitPrice(product)"
+                    title="{{ product.taxes.sgst_tax }}" type="text" class="form-control">
+                  </td>
+                  <td>
+                    <input ng-model="product.taxes.igst_tax" ng-keyup="pop.changeUnitPrice(product)"
+                    title="{{ product.taxes.igst_tax }}" type="text" class="form-control">
+                  </td>
+                  <td>{{product.amt}}</td>
+                  <td>{{product.tax}}</td>
+                  <td>{{product.invoice_amount}}</td>
+
                   <td>
                   	<i ng-click="pop.update_data($index)" ng-class="pop.service.isLast($last)"></i>
                   </td>

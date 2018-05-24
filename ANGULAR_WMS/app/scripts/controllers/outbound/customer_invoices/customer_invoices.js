@@ -16,7 +16,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.selectAll = false;
     vm.bt_disable = true;
     vm.display = false;
-    // vm.extra_width = {'width': '1100px'};
+    vm.extra_width = {'width': '1100px'};
 
     var send = {'tabType': 'CustomerInvoices'};
     vm.service.apiCall("customer_invoice_data/", "GET", send).then(function(data) {

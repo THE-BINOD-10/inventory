@@ -5681,7 +5681,7 @@ def get_po_segregation_data(request, user=''):
             if segregation_obj.batch_detail.buy_price != segregation_obj.purchase_order.open_po.price:
                 #deviation_remarks['Price Deviation'] = True
                 deviation_remarks.append('Price Deviation')
-            if segregation_obj.batch_detail.mrp != segregation_obj.purchase_order.open_po.sku.mrp:
+            if segregation_obj.batch_detail.mrp != segregation_obj.purchase_order.open_po.mrp:
                 #deviation_remarks['MRP Deviation'] = True
                 deviation_remarks.append('MRP Deviation')
             if segregation_obj.batch_detail.expiry_date and segregation_obj.purchase_order.open_po.sku.shelf_life\

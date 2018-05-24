@@ -468,6 +468,7 @@ data_datatable = {  # masters
     'ConfirmCycleCount': 'get_cycle_confirmed', 'VendorStockTable': 'get_vendor_stock', \
     'Available': 'get_available_stock', 'Available+Intransit': 'get_availintra_stock', 'Total': 'get_avinre_stock', \
     'StockSummaryAlt': 'get_stock_summary_size', 'SellerStockTable': 'get_seller_stock_data', \
+    'BatchLevelStock': 'get_batch_level_stock',
     # outbound
     'SKUView': 'get_batch_data', 'OrderView': 'get_order_results', 'OpenOrders': 'open_orders', \
     'PickedOrders': 'open_orders', 'BatchPicked': 'open_orders', \
@@ -4038,6 +4039,7 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
     zones_data = {}
     pallet_switch = get_misc_value('pallet_switch', user.id)
     availabe_quantity = {}
+    industry_type = user.userprofile.industry_type
     for stock in stock_data:
         res_qty = PicklistLocation.objects.filter(stock_id=stock.id, status=1, picklist__order__user=user.id). \
             aggregate(Sum('reserved'))['reserved__sum']
@@ -4051,13 +4053,17 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
             res_qty = float(res_qty) + float(raw_reserved)
         location = stock.location.location
         zone = stock.location.zone.zone
-        pallet_number = ''
+        pallet_number, batch, mrp = ['']*3
         if pallet_switch == 'true' and stock.pallet_detail:
             pallet_number = stock.pallet_detail.pallet_code
-        cond = str((zone, location, pallet_number))
+        if industry_type == "FMCG" and stock.batch_detail:
+            batch_detail = stock.batch_detail
+            batch = batch_detail.batch_no
+            mrp = batch_detail.mrp
+        cond = str((zone, location, pallet_number, batch, mrp))
         zones_data.setdefault(cond,
                               {'zone': zone, 'location': location, 'pallet_number': pallet_number, 'total_quantity': 0,
-                               'reserved_quantity': 0})
+                               'reserved_quantity': 0, 'batch': batch, 'mrp': mrp})
         zones_data[cond]['total_quantity'] += stock.quantity
         zones_data[cond]['reserved_quantity'] += res_qty
         availabe_quantity.setdefault(location, 0)
@@ -4264,6 +4270,11 @@ def generate_barcode_dict(pdf_format, myDict, user):
     barcodes_list = []
     user_prf = UserProfile.objects.filter(user_id=user.id)[0]
     barcode_opt = get_misc_value('barcode_generate_opt', user.id)
+    attribute_names = get_user_attributes(user, 'sku').values_list('attribute_name', flat=True)
+    format_type = "_".join(pdf_format.split("_")[:-1]) if "_" in pdf_format else (1, '60X30')
+    barcode_formats = BarcodeSettings.objects.filter(user=user_prf.user, format_type=str(format_type))
+    if barcode_formats:
+        show_fields = eval(barcode_formats[0].show_fields)
     for ind in range(0, len(myDict['wms_code'])):
         sku = myDict['wms_code'][ind]
         quant = myDict['quantity'][ind]
@@ -4276,6 +4287,11 @@ def generate_barcode_dict(pdf_format, myDict, user):
             else:
                 sku_data = SKUMaster.objects.filter(sku_code=sku, user=user.id)[0]
             single = {}  # copy.deepcopy(BARCODE_DICT[pdf_format])
+            for attribute_name in attribute_names:
+                if attribute_name in show_fields:
+                    attr_obj = sku_data.skuattributes_set.filter(attribute_name=attribute_name)
+                    if attr_obj.exists():
+                        single[attribute_name] = attr_obj[0].attribute_value
             single['SKUCode'] = sku if sku else label
             single['Label'] = label if label else sku
 
@@ -4561,7 +4577,13 @@ def build_invoice(invoice_data, user, css=False):
     if len(invoice_data['hsn_summary'].keys()) == 0:
         invoice_data['perm_hsn_summary'] = 'false'
     invoice_data['empty_tds'] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    inv_height = 1250  # total invoice height
+    invoice_height = 1358
+    if 'side_image' in invoice_data.keys() and 'top_image' in invoice_data.keys():
+        if not invoice_data['side_image'] and invoice_data['top_image']:
+            invoice_height = 1250
+        if not invoice_data['top_image'] and invoice_data['side_image']:
+            invoice_height = 1358
+    inv_height = invoice_height  # total invoice height
     inv_details = 317  # invoice details height
     inv_footer = 95  # invoice footer height
     inv_totals = 127  # invoice totals height
@@ -4602,7 +4624,7 @@ def build_invoice(invoice_data, user, css=False):
         no_of_skus += 2
     '''
     invoice_data['empty_data'] = []
-    if (data_length > no_of_skus):
+    if (data_length >= no_of_skus):
 
         needed_space = inv_footer + inv_footer + inv_total
         if (perm_hsn_summary == 'true'):
@@ -4637,6 +4659,7 @@ def build_invoice(invoice_data, user, css=False):
     else:
         temp = invoice_data['data']
         invoice_data['data'] = []
+        #empty_data = [""] * (no_of_skus - data_length)
         no_of_space = (13 - data_length)
         if no_of_space < 0:
             no_of_space = 0
@@ -6478,6 +6501,13 @@ def get_invoice_types(user):
     return invoice_types
 
 
+def get_mode_of_transport(user):
+    mode_of_transport = get_misc_value('mode_of_transport', user.id)
+    if mode_of_transport:
+        mode_of_transport = mode_of_transport.split(',')
+    return mode_of_transport
+
+
 def get_max_seller_transfer_id(user):
     trans_id = ''
     seller_obj = SellerTransfer.objects.filter(source_seller__user=user.id).\
@@ -6605,3 +6635,15 @@ def create_update_batch_data(batch_dict):
         else:
             batch_obj = batch_objs[0].id
     return batch_obj
+
+
+def get_batch_dict(transact_id, transact_type):
+    batch_dict = {}
+    batch_obj = BatchDetail.objects.filter(transact_id=transact_id, transact_type=transact_type)
+    if batch_obj:
+        batch_dict = batch_obj.values('batch_no', 'mrp', 'buy_price', 'expiry_date', 'manufactured_date')[0]
+        if batch_dict['expiry_date']:
+            batch_dict['expiry_date'] = batch_dict['expiry_date'].strftime('%m/%d/%Y')
+        if batch_dict['manufactured_date']:
+            batch_dict['manufactured_date'] = batch_dict['manufactured_date'].strftime('%m/%d/%Y')
+    return batch_dict

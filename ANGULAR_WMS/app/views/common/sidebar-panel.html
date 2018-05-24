@@ -374,12 +374,12 @@
     <!-- /uploaded pages -->
 
     <!--Targets-->
-    <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin'">
+    <!--<li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin'">
       <a ui-sref="app.targets">
       <i class="fa fa-book" aria-hidden="true"></i>
         <span>Targets</span>
       </a>
-    </li>
+    </li>-->
     <!--Targets-->
     <!-- extras -->
     <li data-ng-class="{open: $state.includes('app.reports')}" ng-show="show_tab('REPORTS')">
@@ -476,6 +476,11 @@
         <li ui-sref-active="active">
           <a ui-sref="app.reports.StockLedgerReport">
             <span>Stock Ledger</span>
+          </a>
+        </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.reports.ShipmentReport">
+            <span>Shipment</span>
           </a>
         </li>
       </ul>

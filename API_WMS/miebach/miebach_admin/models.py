@@ -353,6 +353,7 @@ class OpenPO(models.Model):
     cgst_tax = models.FloatField(default=0)
     igst_tax = models.FloatField(default=0)
     utgst_tax = models.FloatField(default=0)
+    mrp = models.FloatField(default=0)
     status = models.CharField(max_length=32)
     measurement_unit = models.CharField(max_length=32, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -450,6 +451,23 @@ class PalletMapping(models.Model):
         db_table = 'PALLET_MAPPING'
 
 
+class BatchDetail(models.Model):
+    id = BigAutoField(primary_key=True)
+    batch_no = models.CharField(max_length=64, default='')
+    buy_price = models.FloatField(default=0)
+    mrp = models.FloatField(default=0)
+    manufactured_date = models.DateField(null=True, blank=True)
+    expiry_date = models.DateField(null=True, blank=True)
+    tax_percent = models.FloatField(default=0)
+    transact_id = models.IntegerField(default=0)
+    transact_type = models.CharField(max_length=36, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'BATCH_DETAIL'
+
+
 class StockDetail(models.Model):
     id = BigAutoField(primary_key=True)
     receipt_number = models.PositiveIntegerField(db_index=True)
@@ -458,6 +476,7 @@ class StockDetail(models.Model):
     sku = models.ForeignKey(SKUMaster)
     location = models.ForeignKey(LocationMaster, db_index=True)
     pallet_detail = models.ForeignKey(PalletDetail, blank=True, null=True)
+    batch_detail = models.ForeignKey(BatchDetail, blank=True, null=True)
     quantity = models.FloatField(default=0)
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -465,7 +484,7 @@ class StockDetail(models.Model):
 
     class Meta:
         db_table = 'STOCK_DETAIL'
-        unique_together = ('receipt_number', 'receipt_date', 'sku', 'location', 'pallet_detail')
+        unique_together = ('receipt_number', 'receipt_date', 'sku', 'location', 'pallet_detail', 'batch_detail')
         index_together = (('sku', 'location', 'quantity'), ('location', 'sku', 'pallet_detail'))
 
     def __unicode__(self):
@@ -488,7 +507,8 @@ class Picklist(models.Model):
 
     class Meta:
         db_table = 'PICKLIST'
-        index_together = (('picklist_number', 'order', 'stock'), ('order', 'order_type', 'picked_quantity'))
+        index_together = (('picklist_number', 'order', 'stock'), ('order', 'order_type', 'picked_quantity'),
+                          ('picklist_number',))
 
     def __unicode__(self):
         return str(self.picklist_number)
@@ -652,6 +672,7 @@ class OrderShipment(models.Model):
     truck_number = models.CharField(max_length=64)
     shipment_reference = models.CharField(max_length=64)
     status = models.CharField(max_length=32)
+    courier_name = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -1290,6 +1311,7 @@ class CustomerOrderSummary(models.Model):
     invoice_type = models.CharField(max_length=64, default='Tax Invoice')
     client_name = models.CharField(max_length=64, default='')
     mode_of_transport = models.CharField(max_length=24, default='')
+    payment_status = models.CharField(max_length=64, default='')
 
     class Meta:
         db_table = 'CUSTOMER_ORDER_SUMMARY'
@@ -2573,23 +2595,6 @@ class UserAttributes(models.Model):
     class Meta:
         db_table = 'USER_ATTRIBUTES'
         unique_together = ('user', 'attribute_model', 'attribute_name')
-
-
-class BatchDetail(models.Model):
-    id = BigAutoField(primary_key=True)
-    batch_no = models.CharField(max_length=64, default='')
-    buy_price = models.FloatField(default=0)
-    mrp = models.FloatField(default=0)
-    manufactured_date = models.DateField(null=True, blank=True)
-    expiry_date = models.DateField(null=True, blank=True)
-    tax_percent = models.FloatField(default=0)
-    transact_id = models.IntegerField(default=0)
-    transact_type = models.CharField(max_length=36, default='')
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'BATCH_DETAIL'
 
 
 class PrimarySegregation(models.Model):

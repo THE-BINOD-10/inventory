@@ -945,7 +945,13 @@ var app = angular.module('urbanApp')
           templateUrl: 'views/stockLocator/stock_detail.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/stockLocator/stock_detail.js');
+                return $ocLazyLoad.load([
+                  'scripts/controllers/stockLocator/stock_detail.js'
+                ]).then( function() { 
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/stockLocator/batch_level_stock.js'
+                  ])
+                });
               }]
           },
           data: {
@@ -1009,6 +1015,10 @@ var app = angular.module('urbanApp')
             title: 'Move Inventory',
           }
         })
+          .state('app.stockLocator.MoveInventory.MoveLocationInventory', {
+            url: '/MoveLocationInventory',
+            templateUrl: 'views/stockLocator/toggles/mv_location_inventory_tg.html'
+          })
           .state('app.stockLocator.MoveInventory.Inventory', {
             url: '/Inventory',
             templateUrl: 'views/stockLocator/toggles/mv_inventory_tg.html'
@@ -1707,6 +1717,18 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'Stock Ledger',
+          }
+        })
+        .state('app.reports.ShipmentReport', {
+          url: '/ShipmentReport',
+          templateUrl: 'views/reports/shipment_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/shipment_report.js');
+              }]
+          },
+          data: {
+            title: 'Shipment Report',
           }
         })
 

@@ -200,6 +200,7 @@ urlpatterns = [
     url(r'^get_imei_details/$', get_imei_details),
     url(r'^change_imei_status/$', change_imei_status),
     url(r'^confirm_sku_substitution/$', confirm_sku_substitution),
+    url(r'^confirm_move_location_inventory/$', confirm_move_location_inventory),
 
     # OutBound
     url(r'^batch_generate_picklist/$', batch_generate_picklist),
@@ -332,6 +333,8 @@ urlpatterns = [
     url(r'^get_stock_ledger_report/$', get_stock_ledger_report),
     url(r'^print_stock_ledger_report/$', print_stock_ledger_report),
     url(r'^print_purchase_order_form/$', print_purchase_order_form),
+    url(r'^get_shipment_report/$', get_shipment_report),
+    url(r'^print_shipment_report/$', print_shipment_report),
 ]
 
 # urlpatterns += patterns('rest_api.views',

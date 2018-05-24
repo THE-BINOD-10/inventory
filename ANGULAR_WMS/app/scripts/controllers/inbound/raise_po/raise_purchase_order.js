@@ -14,6 +14,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     vm.update_part = true;
     vm.permissions = Session.roles.permissions;
+    vm.industry_type = Session.user_profile.industry_type;
+    vm.extra_width = { 'width': '1250px' };
+    vm.display_purchase_history_table = false;
 
     vm.filters = {'datatable': 'RaisePO', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
@@ -75,6 +78,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           var data = {supplier_id: aData['Supplier ID'], order_type: aData['Order Type']};
           vm.service.apiCall('generated_po_data/', 'GET', data).then(function(data){
             if (data.message) {
+
               //angular.copy(data.data, vm.model_data);
               var receipt_types = ['Buy & Sell', 'Purchase Order', 'Hosted Warehouse'];
               vm.update_part = false;
@@ -172,9 +176,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     angular.copy(empty_data, vm.model_data);
 
     vm.close = function () {
-
       vm.base();
       $state.go('app.inbound.RaisePo');
+      vm.display_purchase_history_table = false;
     }
 
     vm.b_close = vm.close;
@@ -214,6 +218,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             vm.default_status = false;
             vm.model_data.data[vm.model_data.data.length - 1].fields.dedicated_seller = vm.selected_seller;
             vm.getCompany();
+			vm.populate_last_transaction('')
           }
           vm.model_data.receipt_type = 'Purchase Order';
           if (Session.user_profile.user_type == 'marketplace_user') {
@@ -222,9 +227,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           $state.go('app.inbound.RaisePo.PurchaseOrder');
 
         }
-
       });
-
     }
 
     vm.update_data = function (index) {
@@ -240,6 +243,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             vm.delete_data('seller_po_id', vm.model_data.data[index].seller_po_id, index);
         } else {
             vm.delete_data('id', vm.model_data.data[index].pk, index);
+        }
+        if(vm.permissions.show_purchase_history) {
+            $timeout( function() {
+                vm.populate_last_transaction('delete')
+            }, 2000 );
         }
         vm.model_data.data.splice(index,1);
         vm.getTotals();
@@ -469,7 +477,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       vm.purchase_history_wms_code = item.wms_code;
       if(vm.permissions.show_purchase_history) {
 	    $timeout( function() {
-	        vm.populate_last_transaction()
+	        vm.populate_last_transaction('')
         }, 2000 );
       }
       product.fields.sku.wms_code = item.wms_code;
@@ -611,23 +619,32 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         }
     }
 
-    vm.populate_last_transaction = function() {
+    vm.populate_last_transaction = function(delete_obj) {
       vm.last_transaction_details = {}
-	  var elem = angular.element($('form').find('input[name=supplier_id]'));
+      var new_elem = []
+	  var elem = angular.element($('form').find('input[name=supplier_id], select[name=seller_id]'));
       elem = $(elem).serializeArray();
       var wms_code_flag = true;
-      angular.forEach(elem, function(list_obj) {
-        if (list_obj['name'] == 'wms_code') {
-            list_obj['value'] = vm.purchase_history_wms_code;
-            wms_code_flag = false;
-        }
-      })
-      if(wms_code_flag) {
+	  if (delete_obj == 'delete') {
+		vm.purchase_history_wms_code = angular.element($('form').find('input[name=wms_code]')).val();
+	  } else {
+		angular.forEach(elem, function(list_obj) {
+			if (list_obj['name'] == 'wms_code') {
+				list_obj['value'] = vm.purchase_history_wms_code;
+				wms_code_flag = false;
+			}
+			if (list_obj['value'] != '' && list_obj['value'] != '? undefined:undefined ?' ) {
+				new_elem.push(list_obj)
+			}
+		})
+	  }
+      if (wms_code_flag) {
 		var wms_code_dict = {'name':'wms_code', 'value':vm.purchase_history_wms_code}
-		elem.push(wms_code_dict)
+		new_elem.push(wms_code_dict)
       }
-	  vm.service.apiCall('last_transaction_details/', 'POST', elem, true).then(function(data) {
-        if(data.message) {
+	  vm.service.apiCall('last_transaction_details/', 'POST', new_elem, true).then(function(data) {
+        if (data.message) {
+			vm.display_purchase_history_table = true;
             vm.last_transaction_details = data.data;
 			vm.supplier_wise_table = data.data.supplier_wise_table_data;
 			vm.sku_wise_table = data.data.sku_wise_table_data;
@@ -641,7 +658,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 	vm.supplier_on_change = function () {
 		if(vm.permissions.show_purchase_history) {
         $timeout( function() {
-            vm.populate_last_transaction()
+            vm.populate_last_transaction('');
         }, 2000 );
       }
 	}

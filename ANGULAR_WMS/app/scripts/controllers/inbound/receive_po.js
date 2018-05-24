@@ -173,10 +173,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         if (vm.shelf_life && shelf_life_ratio) {
           var res_days = (vm.shelf_life * (shelf_life_ratio / 100));
           var cur_date = new Date();
-          if(new Date() < new Date(exp_date)){
+          if(new Date(exp_date) > new Date()){
 
-            var days_left = exp_date.getDate()-cur_date.getDate()
-            if (days_left < res_days) {
+            var timeDiff = Math.abs(exp_date.getTime() - cur_date.getTime());
+            var diffDays = Math.ceil(timeDiff / (1000 * 3600 * 24));
+
+            // alert('Result days are: '+res_days+'\n Days left are: '+diffDays);
+            if (diffDays < res_days) {
               Service.showNoty('Product has crossed acceptable shelf life ratio');
               //vm.model_data.data[0][0].exp_date = '';
             }

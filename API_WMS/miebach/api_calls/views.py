@@ -1156,6 +1156,7 @@ def get_mp_inventory(request):
             request_data = json.loads(request_data)
             limit = request_data.get('limit', 100)
             skus = request_data.get('sku', [])
+            skus = map(lambda sku: str(sku), skus)
             seller_id = request_data.get('seller_id', '')
             #skus = eval(skus)
             if skus:

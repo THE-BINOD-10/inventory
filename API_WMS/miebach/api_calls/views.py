@@ -40,7 +40,7 @@ def decide_and_return_response(request, **kwargs):
     return data
 
 def scroll_data(request, obj_lists, limit=''):
-    if not obj_lists: return {}
+    #if not obj_lists: return {}
     items, page_num = 10, 1
     if limit:
         items = limit
@@ -64,6 +64,7 @@ def scroll_data(request, obj_lists, limit=''):
     page_info = {'page_info': {'current_page': page_num,'total_pages': paginator.num_pages}}
     page_info.update({'data': records.object_list})
     return page_info
+
 
 @csrf_exempt
 def authenticate_user(request):
@@ -1149,16 +1150,18 @@ def get_mp_inventory(request):
     industry_type = user.userprofile.industry_type
     filter_params = {'user': user.id}
     error_status = []
-    limit = request.POST.get('limit', 10)
-    skus = request.POST.get('sku', [])
-    seller_id = request.POST.get('seller_id', '')
+    request_data = request.body
     try:
-        if skus:
-            try:
-                skus = eval(skus)
-            except:
-                return HttpResponse(json.dumps({'error_status': 'fail', 'message': 'Invalid SKU filter arguments'}))
-            filter_params['sku_code__in'] = skus
+        try:
+            request_data = json.loads(request_data)
+            limit = request_data.get('limit', 100)
+            skus = request_data.get('sku', [])
+            seller_id = request_data.get('seller_id', '')
+            #skus = eval(skus)
+            if skus:
+                filter_params['sku_code__in'] = skus
+        except:
+            return HttpResponse(json.dumps({'error_status': 'fail', 'message': 'Invalid SKU filter arguments'}))
         if not seller_id:
             return HttpResponse(json.dumps({'error_status': 'fail', 'message': 'Seller ID is Mandatory'}))
         try:
@@ -1172,6 +1175,8 @@ def get_mp_inventory(request):
         error_skus = set(skus) - set(sku_records.values_list('sku_code', flat=True))
         for error_sku in error_skus:
             error_status.append({'sku': error_sku, 'error': 'SKU Not found'})
+        page_info = scroll_data(request, sku_records, limit=limit)
+        sku_records = page_info['data']
         if industry_type == 'FMCG':
             stocks = SellerStock.objects.select_related('seller', 'stock', 'stock__location__zone').\
                           filter(seller_id=seller_master_id,stock__sku__user=user.id, stock__quantity__gt=0).\
@@ -1235,7 +1240,6 @@ def get_mp_inventory(request):
                     mrp_list = OrderedDict(( ('mrp', 0), ('inventory', 0),
                                           ('on_hold', 0), ('un_sellable', 0)))
                 data.append(OrderedDict(( ('sku', sku['sku_code']), ('data', mrp_list))))
-
         else:
             stocks = dict(SellerStock.objects.select_related('seller', 'stock', 'stock__location__zone').\
                           filter(seller_id=seller_master_id,stock__sku__user=user.id, stock__quantity__gt=0).\
@@ -1258,9 +1262,10 @@ def get_mp_inventory(request):
                 inventory -= reserved
                 data.append(OrderedDict(( ('sku', sku['sku_code']), ('inventory', int(inventory)),
                                           ('on_hold', int(reserved)), ('un_sellable', unsellable))))
-        data = scroll_data(request, data, limit=limit)
-        response_data = {'page_info': data.get('page_info', {}), 'status': 'success', 'error_status': error_status,
-                         'inventory_status': data['data']}
+        page_info['data'] = data
+        #data = scroll_data(request, data, limit=limit)
+        response_data = {'page_info': page_info.get('page_info', {}), 'status': 'success', 'error_status': error_status,
+                         'inventory_status': page_info['data']}
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

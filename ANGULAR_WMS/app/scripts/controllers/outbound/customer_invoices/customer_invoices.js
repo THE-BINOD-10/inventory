@@ -298,6 +298,18 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
     })
   }
 
+
+  vm.gst_calculate = function(record){
+    var gst_val = Number(record.taxes.cgst_tax) + Number(record.taxes.sgst_tax) + Number(record.taxes.igst_tax);
+    if (gst_val) {
+      gst_val = Number(record.base_price) * gst_val / 100;
+    }
+
+    record.invoice_amount = ((Number(record.base_price - Number(record.discount))/100)*record.tax)+(Number(record.base_price)-
+      Number(record.discount)) + gst_val;
+  }
+
+
   vm.changeUnitPrice = function(data) {
 
     data.base_price = data.quantity * Number(data.unit_price);
@@ -382,6 +394,7 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
 
     data.base_price = vm.service.multi(data.quantity, data.unit_price);
     vm.cal_percentage(data);
+    vm.gst_calculate(data);
   }
 
   vm.get_customer_sku_prices = function(sku) {
@@ -401,37 +414,39 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
   vm.get_tax_value = function(data) {
 
     var tax_perc = 0;
-	data.sgst_tax = 0;
-	data.cgst_tax = 0;
-	data.igst_tax = 0;
-	data.taxes = {"cgst_amt": "", "cgst_tax": 0, "sgst_amt": "", "sgst_tax": 0, "igst_amt": "", "igst_tax": 0};
-    for(var i = 0; i < data.taxes_data.length; i++) {
+  	// data.sgst_tax = 0;
+  	// data.cgst_tax = 0;
+  	// data.igst_tax = 0;
+	  // data.taxes = {"cgst_amt": "", "cgst_tax": 0, "sgst_amt": "", "sgst_tax": 0, "igst_amt": "", "igst_tax": 0};
+    if (data.taxes_data) {
+      for(var i = 0; i < data.taxes_data.length; i++) {
 
-      if(data.unit_price <= data.taxes_data[i].max_amt && data.unit_price >= data.taxes_data[i].min_amt) {
+        if(data.unit_price <= data.taxes_data[i].max_amt && data.unit_price >= data.taxes_data[i].min_amt) {
 
-        if(vm.model_data.tax_type == "0") {//intra_state
+          if(vm.model_data.tax_type == "0") {//intra_state
 
-		  tax_perc = data.taxes_data[i].sgst_tax + data.taxes_data[i].cgst_tax;
-		  data.sgst_tax = data.taxes_data[i].sgst_tax;
-		  data.cgst_tax = data.taxes_data[i].cgst_tax;
-		  data.taxes.sgst_tax = data.sgst_tax;
-		  data.taxes.cgst_tax = data.cgst_tax;
-        } else if (vm.model_data.tax_type == "1") {//inter_state
+            tax_perc = data.taxes_data[i].sgst_tax + data.taxes_data[i].cgst_tax;
+            data.sgst_tax = data.taxes_data[i].sgst_tax;
+            data.cgst_tax = data.taxes_data[i].cgst_tax;
+            data.taxes.sgst_tax = data.sgst_tax;
+            data.taxes.cgst_tax = data.cgst_tax;
+          } else if (vm.model_data.tax_type == "1") {//inter_state
 
-          data.igst_tax = data.taxes_data[i].igst_tax;
-          tax_perc = data.taxes_data[i].igst_tax;
-		  data.taxes.igst_tax = data.igst_tax;
-		}
-		data.taxes.cgst_amt = (data.amt * data.cgst_tax)/100;
-		data.taxes.sgst_amt = (data.amt * data.sgst_tax)/100;
-		data.taxes.igst_amt = (data.amt * data.igst_tax)/ 100;
-        break;
+            data.igst_tax = data.taxes_data[i].igst_tax;
+            tax_perc = data.taxes_data[i].igst_tax;
+            data.taxes.igst_tax = data.igst_tax;
+          }
+          data.taxes.cgst_amt = (data.amt * data.cgst_tax)/100;
+          data.taxes.sgst_amt = (data.amt * data.sgst_tax)/100;
+          data.taxes.igst_amt = (data.amt * data.igst_tax)/ 100;
+          break;
+        }
       }
     }
     /*tax_perc = data.taxes.sgst_tax + data.taxes.cgst_tax + data.taxes.igst_tax;
     data.taxes.sgst_amt = (data.unit_price * data.taxes.sgst_tax / 100) * data.quantity;
-	data.taxes.cgst_amt = (data.unit_price * data.taxes.cgst_tax / 100) * data.quantity;
-	data.taxes.igst_amt = (data.unit_price * data.taxes.igst_tax / 100) * data.quantity;*/
+  	data.taxes.cgst_amt = (data.unit_price * data.taxes.cgst_tax / 100) * data.quantity;
+  	data.taxes.igst_amt = (data.unit_price * data.taxes.igst_tax / 100) * data.quantity;*/
     data.tax = tax_perc;
     return tax_perc;
   }

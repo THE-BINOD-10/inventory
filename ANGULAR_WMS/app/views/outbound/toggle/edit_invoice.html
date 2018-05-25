@@ -96,17 +96,18 @@
         <td class="text-right">{{record.discount | number:2}}<br><span class="tax-percentage">@{{record.discount_percentage}}%</span></td>
         <td> {{record.amt | number:2}} </td>
         <td class="text-right">
-          <input type="text" name="cgst_tax" ng-model="record.taxes.cgst_tax" value="{{record.taxes.cgst_amt}}" class="form-control re-textbox-width">
+          <input type="text" name="cgst_tax" ng-model="record.taxes.cgst_tax" value="{{record.taxes.cgst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width">
           <!-- {{record.taxes.cgst_amt | number:2}} --><br><span class="tax-percentage">{{record.taxes.cgst_tax}}%</span></td>
         <td class="text-right">
-          <input type="text" name="sgst_amt" ng-model="record.taxes.sgst_amt" value="{{record.taxes.sgst_amt}}" class="form-control re-textbox-width">
+          <input type="text" name="sgst_tax" ng-model="record.taxes.sgst_tax" value="{{record.taxes.sgst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width">
           <!-- {{record.taxes.sgst_amt | number:2}} --><br><span class="tax-percentage">{{record.taxes.sgst_tax}}%</span></td>
         <td class="text-right">
-          <input type="text" name="igst_amt" ng-model="record.taxes.igst_amt" value="{{record.taxes.igst_amt}}" class="form-control re-textbox-width">
+          <input type="text" name="igst_tax" ng-model="record.taxes.igst_tax" value="{{record.taxes.igst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width">
           <!-- {{record.taxes.igst_amt | number:2}} --><br><span class="tax-percentage">{{record.taxes.igst_tax}}%</span></td>
+        <!-- <td ng-init="pop.gst_calculate(record)"> -->
         <td>
           {{record.invoice_amount | number:2}}
-          <input type="hidden" name="invoice_amount" value="{{record.invoice_amount}}" class="form-control">
+          <input type="hidden" name="invoice_amount" value="{{record.invoice_amount | number:2}}" class="form-control">
         </td>
         <td><i style="font-size: 20px;padding-top: 7px;cursor: pointer;"
             ng-click="pop.update_data($index, record, $last)" ng-class="pop.isLast($last)"></i>

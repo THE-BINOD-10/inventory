@@ -1161,7 +1161,7 @@ def get_mp_inventory(request):
             if skus:
                 filter_params['sku_code__in'] = skus
         except:
-            return HttpResponse(json.dumps({'error_status': 'fail', 'message': 'Invalid SKU filter arguments'}))
+            return HttpResponse(json.dumps({'error_status': 'fail', 'message': 'Invalid JSON Data'}))
         if not seller_id:
             return HttpResponse(json.dumps({'error_status': 'fail', 'message': 'Seller ID is Mandatory'}))
         try:

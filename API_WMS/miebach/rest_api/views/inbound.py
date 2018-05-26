@@ -744,7 +744,7 @@ def generated_po_data(request, user=''):
                                             'remarks': rec.remarks, 'dedicated_seller': str(
                         sell_po.seller.seller_id) + ':' + sell_po.seller.name,
                                             'sgst_tax': rec.sgst_tax, 'cgst_tax': rec.cgst_tax,
-                                            'igst_tax': rec.igst_tax, 'utgst_tax': rec.utgst_tax},
+                                            'igst_tax': rec.igst_tax, 'cess_tax': rec.cess_tax, 'utgst_tax': rec.utgst_tax},
                                  'pk': rec.id, 'seller_po_id': sell_po.id})
         else:
             ser_data.append({'fields': {'sku': {'wms_code': rec.sku.sku_code}, 'description': rec.sku.sku_desc,
@@ -753,7 +753,7 @@ def generated_po_data(request, user=''):
                                         'measurement_unit': rec.measurement_unit,
                                         'remarks': rec.remarks, 'dedicated_seller': '', 'sgst_tax': rec.sgst_tax,
                                         'cgst_tax': rec.cgst_tax,
-                                        'igst_tax': rec.igst_tax, 'utgst_tax': rec.utgst_tax}, 'pk': rec.id})
+                                        'igst_tax': rec.igst_tax, 'cess_tax': rec.cess_tax, 'utgst_tax': rec.utgst_tax}, 'pk': rec.id})
     vendor_id = ''
     if record[0].vendor:
         vendor_id = record[0].vendor.vendor_id
@@ -819,6 +819,7 @@ def modify_po_update(request, user=''):
             setattr(record, 'sgst_tax', value['sgst_tax'])
             setattr(record, 'cgst_tax', value['cgst_tax'])
             setattr(record, 'igst_tax', value['igst_tax'])
+            setattr(record, 'cess_tax', value['cess_tax'])
             setattr(record, 'utgst_tax', value['utgst_tax'])
             if record.mrp:
                 setattr(record, 'mrp', value['mrp'])
@@ -869,6 +870,7 @@ def modify_po_update(request, user=''):
         po_suggestions['sgst_tax'] = value['sgst_tax']
         po_suggestions['cgst_tax'] = value['cgst_tax']
         po_suggestions['igst_tax'] = value['igst_tax']
+        po_suggestions['cess_tax'] = value['cess_tax']
         po_suggestions['utgst_tax'] = value['utgst_tax']
 
         data = OpenPO(**po_suggestions)
@@ -1057,6 +1059,7 @@ def confirm_po(request, user=''):
             setattr(purchase_order, 'sgst_tax', value['sgst_tax'])
             setattr(purchase_order, 'cgst_tax', value['cgst_tax'])
             setattr(purchase_order, 'igst_tax', value['igst_tax'])
+            setattr(purchase_order, 'cess_tax', value['cess_tax'])
             setattr(purchase_order, 'utgst_tax', value['utgst_tax'])
             if myDict.get('vendor_id', ''):
                 vendor_master = VendorMaster.objects.get(vendor_id=value['vendor_id'], user=user.id)
@@ -1106,6 +1109,7 @@ def confirm_po(request, user=''):
             po_suggestions['sgst_tax'] = value['sgst_tax']
             po_suggestions['cgst_tax'] = value['cgst_tax']
             po_suggestions['igst_tax'] = value['igst_tax']
+            po_suggestions['cess_tax'] = value['cess_tax']
             po_suggestions['utgst_tax'] = value['utgst_tax']
             if value['measurement_unit']:
                 if value['measurement_unit'] != "":
@@ -1140,7 +1144,7 @@ def confirm_po(request, user=''):
         order.save()
 
         amount = float(purchase_order.order_quantity) * float(purchase_order.price)
-        tax = value['sgst_tax'] + value['cgst_tax'] + value['igst_tax'] + value['utgst_tax']
+        tax = value['sgst_tax'] + value['cgst_tax'] + value['igst_tax'] + value['cess_tax'] + value['utgst_tax']
         if not tax:
             total += amount
         else:
@@ -1156,7 +1160,7 @@ def confirm_po(request, user=''):
         po_temp_data = [wms_code, value['supplier_code'], purchase_order.sku.sku_desc, purchase_order.order_quantity,
                         value['measurement_unit'], purchase_order.price, amount, purchase_order.sgst_tax,
                         purchase_order.cgst_tax,
-                        purchase_order.igst_tax, purchase_order.utgst_tax]
+                        purchase_order.igst_tax, purchase_order.cess_tax, purchase_order.utgst_tax]
         if ean_flag:
             po_temp_data.insert(1, purchase_order.sku.ean_number)
         if display_remarks == 'true':
@@ -1314,6 +1318,7 @@ def get_raisepo_group_data(user, myDict):
         mrp = 0
         cgst_tax = 0
         igst_tax = 0
+        cess_tax = 0
         utgst_tax = 0
         if 'remarks' in myDict.keys():
             remarks = myDict['remarks'][i]
@@ -1348,6 +1353,9 @@ def get_raisepo_group_data(user, myDict):
         if 'igst_tax' in myDict.keys():
             if myDict['igst_tax'][i]:
                 igst_tax = float(myDict['igst_tax'][i])
+        if 'cess_tax' in myDict.keys():
+            if myDict['cess_tax'][i]:
+                cess_tax = float(myDict['cess_tax'][i])
         if 'utgst_tax' in myDict.keys():
             if myDict['utgst_tax'][i]:
                 utgst_tax = float(myDict['utgst_tax'][i])
@@ -1367,7 +1375,7 @@ def get_raisepo_group_data(user, myDict):
                                    'remarks': remarks, 'measurement_unit': measurement_unit,
                                    'vendor_id': vendor_id, 'ship_to': ship_to, 'sellers': {}, 'data_id': data_id,
                                    'order_type': order_type, 'mrp': mrp, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax,
-                                   'igst_tax': igst_tax,
+                                   'igst_tax': igst_tax, 'cess_tax': cess_tax,
                                    'utgst_tax': utgst_tax})
         all_data[cond]['order_quantity'] += float(myDict['order_quantity'][i])
         if 'dedicated_seller' in myDict:
@@ -1443,6 +1451,7 @@ def add_po(request, user=''):
             po_suggestions['sgst_tax'] = value['sgst_tax']
             po_suggestions['cgst_tax'] = value['cgst_tax']
             po_suggestions['igst_tax'] = value['igst_tax']
+            po_suggestions['cess_tax'] = value['cess_tax']
             po_suggestions['utgst_tax'] = value['utgst_tax']
             po_suggestions['order_type'] = value['order_type']
             if value.get('vendor_id', ''):
@@ -2227,7 +2236,7 @@ def update_seller_po(data, value, user, receipt_id='', invoice_number='', invoic
                     except:
                         margin_percent = 0
                     price = float(data.open_po.price)
-                    tax = data.open_po.cgst_tax + data.open_po.sgst_tax + data.open_po.igst_tax + data.open_po.utgst_tax
+                    tax = data.open_po.cgst_tax + data.open_po.sgst_tax + data.open_po.igst_tax + data.open_po.cess_tax + data.open_po.utgst_tax
                     price = price + ((price / 100) * float(tax))
                     unit_price = float(price) / (1 - (margin_percent / 100))
                     sell_po.unit_price = float(("%." + str(2) + "f") % (unit_price))
@@ -2322,7 +2331,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
         if 'unit' in myDict.keys():
             unit = myDict['unit'][i]
         cond = (data.id, purchase_data['wms_code'], unit, purchase_data['price'], purchase_data['cgst_tax'],
-                purchase_data['sgst_tax'], purchase_data['igst_tax'], purchase_data['utgst_tax'], purchase_data['sku_desc'])
+                purchase_data['sgst_tax'], purchase_data['igst_tax'], purchase_data['cess_tax'], purchase_data['utgst_tax'], purchase_data['sku_desc'])
         all_data.setdefault(cond, 0)
         all_data[cond] += float(value)
 
@@ -2408,7 +2417,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
                      ('GSTIN No', purchase_data['gstin_number']))
 
         price = float(value) * float(purchase_data['price'])
-        gst_taxes = purchase_data['cgst_tax'] + purchase_data['sgst_tax'] + purchase_data['igst_tax'] + purchase_data[
+        gst_taxes = purchase_data['cgst_tax'] + purchase_data['sgst_tax'] + purchase_data['igst_tax'] + purchase_data['cess_tax'] + purchase_data[
             'utgst_tax']
         if gst_taxes:
             price += (price / 100) * gst_taxes
@@ -4150,6 +4159,7 @@ def confirm_add_po(request, sales_data='', user=''):
         po_suggestions['sgst_tax'] = value['sgst_tax']
         po_suggestions['cgst_tax'] = value['cgst_tax']
         po_suggestions['igst_tax'] = value['igst_tax']
+        po_suggestions['cess_tax'] = value['cess_tax']
         po_suggestions['utgst_tax'] = value['utgst_tax']
         if value['measurement_unit']:
             if value['measurement_unit'] != "":
@@ -4186,7 +4196,7 @@ def confirm_add_po(request, sales_data='', user=''):
                                         receipt_type=value['receipt_type'])
 
         amount = float(purchase_order.order_quantity) * float(purchase_order.price)
-        tax = value['sgst_tax'] + value['cgst_tax'] + value['igst_tax'] + value['utgst_tax']
+        tax = value['sgst_tax'] + value['cgst_tax'] + value['igst_tax'] + value['cess_tax'] + value['utgst_tax']
         if not tax:
             total += amount
         else:
@@ -4203,12 +4213,14 @@ def confirm_add_po(request, sales_data='', user=''):
                         po_suggestions['measurement_unit'],
                         purchase_order.price, purchase_order.mrp, amount, purchase_order.sgst_tax, purchase_order.cgst_tax,
                         purchase_order.igst_tax,
+                        purchase_order.cess_tax,
                         purchase_order.utgst_tax]
         else:
             po_temp_data = [wms_code, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity,
                         po_suggestions['measurement_unit'],
                         purchase_order.price, amount, purchase_order.sgst_tax, purchase_order.cgst_tax,
                         purchase_order.igst_tax,
+                        purchase_order.cess_tax,
                         purchase_order.utgst_tax]
         if ean_flag:
             po_temp_data.insert(1, ean_number)
@@ -4242,10 +4254,10 @@ def confirm_add_po(request, sales_data='', user=''):
     po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
     if industry_type == 'FMCG':
         table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'MRP', 'Amount',
-                     'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)']
+                     'SGST(%)', 'CGST(%)', 'IGST(%)', 'CESS(%)', 'UTGST(%)']
     else:
         table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount',
-                     'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)']
+                     'SGST(%)', 'CGST(%)', 'IGST(%)', 'CESS(%)', 'UTGST(%)']
     if ean_flag:
         table_headers.insert(1, 'EAN Number')
     if display_remarks == 'true':
@@ -4370,7 +4382,7 @@ def confirm_po1(request, user=''):
                 order.save()
 
                 amount = float(purchase_order.order_quantity) * float(purchase_order.price)
-                tax = purchase_order.sgst_tax + purchase_order.cgst_tax + purchase_order.igst_tax + purchase_order.utgst_tax
+                tax = purchase_order.sgst_tax + purchase_order.cgst_tax + purchase_order.igst_tax + purchase_order.cess_tax + purchase_order.utgst_tax
                 if not tax:
                     total += amount
                 else:
@@ -4391,7 +4403,7 @@ def confirm_po1(request, user=''):
                 po_temp_data = [wms_code, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity,
                                 purchase_order.sku.measurement_type, purchase_order.price, amount,
                                 purchase_order.sgst_tax,
-                                purchase_order.cgst_tax, purchase_order.igst_tax, purchase_order.utgst_tax]
+                                purchase_order.cgst_tax, purchase_order.igst_tax, purchase_order.cess_tax, purchase_order.utgst_tax]
                 if ean_flag:
                     po_temp_data.insert(1, purchase_order.sku.ean_number)
                 if display_remarks == 'true':
@@ -5000,7 +5012,7 @@ def generate_seller_invoice(request, user=''):
     order_no = ''
     seller_address = []
     buyer_address = []
-    total_taxes = {'cgst_amt': 0, 'sgst_amt': 0, 'igst_amt': 0, 'utgst_amt': 0}
+    total_taxes = {'cgst_amt': 0, 'sgst_amt': 0, 'igst_amt': 0, 'cess_amt': 0, 'utgst_amt': 0}
     data_dict = dict(request.GET.iterlists())
     seller_summary_dat = data_dict.get('seller_summary_id', '')
     if data_dict.get('po_number', ''):
@@ -5063,19 +5075,22 @@ def generate_seller_invoice(request, user=''):
         cgst_tax = seller_po_summary.seller_po.open_po.cgst_tax
         sgst_tax = seller_po_summary.seller_po.open_po.sgst_tax
         igst_tax = seller_po_summary.seller_po.open_po.igst_tax
+        cess_tax = seller_po_summary.seller_po.open_po.cess_tax
         utgst_tax = seller_po_summary.seller_po.open_po.utgst_tax
         cgst_amt = cgst_tax * (float(amt) / 100)
         sgst_amt = sgst_tax * (float(amt) / 100)
         igst_amt = igst_tax * (float(amt) / 100)
+        cess_amt = cess_tax * (float(amt) / 100)
         utgst_amt = utgst_tax * (float(amt) / 100)
         total_taxes['cgst_amt'] += cgst_amt
         total_taxes['sgst_amt'] += sgst_amt
         total_taxes['igst_amt'] += igst_amt
+        total_taxes['cess_amt'] += cess_amt
         total_taxes['utgst_amt'] += utgst_amt
         tax = cgst_amt + sgst_amt + igst_amt + utgst_amt
-        taxes_dict = {'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax, 'utgst_tax': utgst_tax,
+        taxes_dict = {'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax, 'cess_tax': cess_tax,  'utgst_tax': utgst_tax,
                       'cgst_amt': '%.2f' % cgst_amt, 'sgst_amt': '%.2f' % sgst_amt, 'igst_amt': '%.2f' % igst_amt,
-                      'utgst_amt': utgst_amt}
+                      'cess_amt': cess_amt, 'utgst_amt': utgst_amt}
         invoice_amount = amt + tax - discount
 
         total_tax += float(tax)
@@ -5695,7 +5710,7 @@ def get_po_segregation_data(request, user=''):
             if segregation_obj.batch_detail.tax_percent:
                 open_po = segregation_obj.purchase_order.open_po
                 seg_tax = segregation_obj.batch_detail.tax_percent
-                po_tax = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax
+                po_tax = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.cess_tax + open_po.utgst_tax
                 if seg_tax != po_tax:
                     deviation_remarks.append('Tax Rate Deviation')
 
@@ -5856,7 +5871,7 @@ def last_transaction_details(request, user=''):
     supplier_wise_list = []
     for data in sku_wise_obj[0:3]:
         data_dict = {}
-        data_dict['total_tax'] = data.open_po.sgst_tax + data.open_po.igst_tax + data.open_po.cgst_tax + data.open_po.utgst_tax
+        data_dict['total_tax'] = data.open_po.sgst_tax + data.open_po.igst_tax + data.open_po.cess_tax + data.open_po.cgst_tax + data.open_po.utgst_tax
         data_dict['po_date'] = str(data.po_date)
         data_dict['supplier_name'] = data.open_po.supplier.name
         data_dict['received_quantity'] = data.received_quantity
@@ -5865,7 +5880,7 @@ def last_transaction_details(request, user=''):
         sku_wise_list.append(data_dict)
     for data in supplier_wise_obj[0:3]:
         supplier_data_dict = {}
-        supplier_data_dict['total_tax'] = data.open_po.sgst_tax + data.open_po.igst_tax + data.open_po.cgst_tax + data.open_po.utgst_tax
+        supplier_data_dict['total_tax'] = data.open_po.sgst_tax + data.open_po.igst_tax + data.open_po.cess_tax + data.open_po.cgst_tax + data.open_po.utgst_tax
         supplier_data_dict['po_date'] = str(data.po_date)
         supplier_data_dict['supplier_name'] = data.open_po.supplier.name
         supplier_data_dict['received_quantity'] = data.received_quantity

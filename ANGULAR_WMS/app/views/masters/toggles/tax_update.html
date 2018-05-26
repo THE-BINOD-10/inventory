@@ -31,6 +31,7 @@
                 <th>SGST</th>
                 <th>CGST</th>
                 <th>IGST</th>
+                <th>CESS</th>
                 <th class="plus"></th>
               </tr>
             </thead>
@@ -55,6 +56,9 @@
                 </td>
                 <td>
                    <input type="text" ng-model="product.igst_tax" name="igst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-readonly="product.tax_type != 'inter_state'" percentage-min-value="0">
+                </td>
+                <td>
+                   <input type="text" ng-model="product.cess_tax" name="cess_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" percentage-min-value="0">
                 </td>
                 <td><i ng-if="!product.id" ng-click="pop.update_data($index)" class="fa fa-minus-square-o"></i></td>
               </tr>

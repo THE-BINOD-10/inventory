@@ -1201,7 +1201,7 @@ def confirm_po(request, user=''):
         company_name = 'SHPROC Procurement Pvt. Ltd.'
 
     table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'Amount',
-                     'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)']
+                     'SGST(%)', 'CGST(%)', 'IGST(%)', 'CESS(%)', 'UTGST(%)']
     if ean_flag:
         table_headers.insert(1, 'EAN Number')
     if display_remarks == 'true':

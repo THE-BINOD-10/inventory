@@ -2685,24 +2685,25 @@ def get_sku_categories_data(request, user, request_data={}, is_catalog=''):
     sku_master = SKUMaster.objects.filter(**filter_params)
 
     categories = list(
-        sku_master.exclude(sku_category='').filter(**filter_params).values_list('sku_category', flat=True).distinct())
-    brands = list(sku_master.exclude(sku_brand='').values_list('sku_brand', flat=True).distinct())
-    sizes = list(sku_master.exclude(sku_brand='').values_list('sku_size', flat=True).order_by('sequence').distinct())
+        sku_master.exclude(sku_category='').filter(**filter_params).only('sku_category').values_list('sku_category', flat=True).distinct())
+    brands = list(sku_master.exclude(sku_brand='').only('sku_brand').values_list('sku_brand', flat=True).distinct())
+    sizes = list(sku_master.exclude(sku_brand='').only('sku_size').values_list('sku_size', flat=True).order_by('sequence').distinct())
     sizes = list(OrderedDict.fromkeys(sizes))
-    colors = list(sku_master.exclude(sku_brand='').exclude(color='').values_list('color', flat=True).distinct())
+    colors = list(sku_master.exclude(sku_brand='').exclude(color='').only('color').values_list('color', flat=True).distinct())
 
     primary_details = {'data': {}}
     primary_details['primary_categories'] = list(sku_master.exclude(primary_category='').filter(**filter_params). \
-                                                 values_list('primary_category', flat=True).distinct())
+                                                 only('primary_category').values_list('primary_category', flat=True).\
+                                                 distinct())
     primary_details['sub_category_list'] = {}
     for primary in primary_details['primary_categories']:
-        primary_filtered = sku_master.exclude(sku_category='').filter(primary_category=primary).\
+        primary_filtered = sku_master.exclude(sku_category='').filter(primary_category=primary).only('sku_category').\
                                     values_list('sku_category', flat=True).distinct()
         primary_details['data'][primary] = list(primary_filtered)
         for primary_filt in primary_filtered:
             primary_details['sub_category_list'][primary_filt] = list(sku_master.\
-                                            filter(sku_category=primary_filt).exclude(sub_category='').\
-                                            values_list('sub_category', flat=True).distinct())
+                                            filter(sku_category=primary_filt).exclude(sub_category=''). \
+                                            only('sub_category').values_list('sub_category', flat=True).distinct())
     _sizes = {}
     integer = []
     character = []
@@ -2818,9 +2819,7 @@ def resize_image(url, user):
 def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     if not request_data:
         request_data = request.POST
-    # from rest_api.views.outbound import get_style_variants
     filter_params = {'user': user.id}
-    # get_values = ['wms_code', 'sku_desc', 'image_url', 'sku_class', 'price', 'mrp', 'id', 'sku_category', 'sku_brand', 'sku_size', 'style_name', 'sale_through']
     sku_class = request_data.get('sku_class', '')
     sku_brand = request_data.get('brand', '')
     sku_category = request_data.get('category', '')
@@ -2853,44 +2852,11 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     customer_id = ''
 
     price_field = get_price_field(user)
-
-    if not customer_data_id:
-        request_user = ''
-        if request:
-            request_user = request.user.id
-        else:
-            request_user = user.id
-        user_type = CustomerUserMapping.objects.filter(user=request_user)
-        if user_type:
-            customer_master = user_type[0].customer
-            customer_data_id = user_type[0].customer.customer_id
-            customer_id = user_type[0].customer_id
-            is_distributor = user_type[0].customer.is_distributor
-            if is_distributor:
-                price_type = user_type[0].customer.price_type
-            else:  # Need to show R-C price grids in Catalogs and Download PDFs
-                price_type = 'R-C'
-    elif customer_id:
-        customer_master = CustomerMaster.objects.filter(customer_id=customer_id, user=user.id)
-        if customer_master:
-            price_type = customer_master[0].price_type
-    elif customer_data_id:
-        customer_master = CustomerMaster.objects.filter(customer_id=customer_data_id, user=user.id)
-        if customer_master:
-            price_type = customer_master[0].price_type
-
+    customer_master, price_type = get_customer_and_price_type(request, user, customer_data_id, customer_id)
     if not is_catalog:
         is_catalog = request_data.get('is_catalog', '')
 
     customer_id = ''
-    '''request_user = ''
-    if request:
-        request_user = request.user.id
-    else:
-        request_user = user.id
-    user_type = CustomerUserMapping.objects.filter(user = request_user)
-    if user_type:
-        customer_id = request_user'''
 
     indexes = request_data.get('index', '0:20')
     is_file = request_data.get('file', '')
@@ -2936,18 +2902,14 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         filter_params1['sku__sku_class__icontains'] = sku_class
 
     if is_margin_percentage == 'true':
-        all_pricing_ids = PriceMaster.objects.filter(sku__user=user.id, price_type=price_type).values_list('sku_id',
-                                                                                                           flat=True)
         if admin_user:
-            pricemaster = PriceMaster.objects.filter(sku__user=admin_user.id, price_type=price_type). \
+            pricemaster = PriceMaster.objects.prefetch_related('sku').filter(sku__user=admin_user.id, price_type=price_type). \
                 annotate(new_price=F('price') + ((F('price') / Value(100)) * Value(custom_margin))).filter(
                 **filter_params1)
         else:
-            pricemaster = PriceMaster.objects.filter(sku__user=user.id, price_type=price_type). \
+            pricemaster = PriceMaster.objects.prefetch_related('sku').filter(sku__user=user.id, price_type=price_type). \
                 annotate(new_price=F('price') + ((F('price') / Value(100)) * Value(custom_margin))).filter(
                 **filter_params1)
-        non_filtered = PriceMaster.objects.filter(sku__user=user.id, price_type=price_type).exclude(
-            id__in=pricemaster.values_list('sku_id', flat=True))
         if price_field == 'price':
             dis_percent = 0
             if customer_master:
@@ -2955,7 +2917,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
             sku_master1 = SKUMaster.objects.exclude(sku_class='').\
                     annotate(n_price=F(price_field)*(1-(Value(dis_percent)/Value(100)))).annotate(
                     new_price=F('n_price') + (F('n_price') / Value(100)) * Value(custom_margin)).\
-            filter(**filter_params).exclude(id__in=all_pricing_ids)
+            filter(pricemaster__isnull=True, **filter_params)
         else:
             markup = 0
             if customer_master:
@@ -2963,7 +2925,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
             sku_master1 = SKUMaster.objects.exclude(sku_class='').\
                 annotate(n_price=F(price_field) * (1+(Value(markup) / Value(100)))).\
                 annotate(new_price=F('n_price') + (F('n_price') / Value(100)) * Value(custom_margin)). \
-            filter(**filter_params).exclude(id__in=all_pricing_ids)
+            filter(pricemaster__isnull=True, **filter_params)
         if filter_params.has_key('new_price__lte'):
             del filter_params['new_price__lte']
         if filter_params.has_key('new_price__gte'):
@@ -2971,12 +2933,10 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         sku_master2 = SKUMaster.objects.exclude(sku_class='').filter(
             id__in=pricemaster.values_list('sku_id', flat=True)).filter(**filter_params)
         sku_master = sku_master1 | sku_master2
-        sku_prices = dict(sku_master.values_list('id', 'new_price'))
-        pricemaster_prices = dict(pricemaster.values_list('sku_id', 'new_price'))
+        sku_prices = dict(sku_master.only('id', 'new_price').values_list('id', 'new_price'))
+        pricemaster_prices = dict(pricemaster.only('sku_id', 'new_price').values_list('sku_id', 'new_price'))
         prices_dict = dict(sku_prices.items() + pricemaster_prices.items())
     else:
-        all_pricing_ids = PriceMaster.objects.filter(sku__user=user.id, price_type=price_type).values_list('sku_id',
-                                                                                                           flat=True)
         if admin_user:
             pricemaster = PriceMaster.objects.filter(sku__user=admin_user.id, price_type=price_type). \
                 annotate(new_price=F('price') + Value(custom_margin)).filter(**filter_params1)
@@ -2990,7 +2950,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
             sku_master1 = SKUMaster.objects.exclude(sku_class='').\
                             annotate(n_price=F(price_field)*(1-(Value(dis_percent)/Value(100)))).\
                             annotate(new_price=F('n_price') + Value(custom_margin)).\
-                            filter(**filter_params).exclude(id__in=all_pricing_ids)
+                            filter(pricemaster__isnull=True, **filter_params)
         else:
             markup = 0
             if customer_master:
@@ -2998,7 +2958,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
             sku_master1 = SKUMaster.objects.exclude(sku_class='').\
                             annotate(n_price=F(price_field)*(1+(Value(markup)/Value(100)))).\
                             annotate(new_price=F('n_price') + Value(custom_margin)).\
-                            filter(**filter_params).exclude(id__in=all_pricing_ids)
+                            filter(pricemaster__isnull=True, **filter_params)
 
         if filter_params.has_key('new_price__lte'):
             del filter_params['new_price__lte']
@@ -3007,8 +2967,8 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         sku_master2 = SKUMaster.objects.exclude(sku_class='').filter(
             id__in=pricemaster.values_list('sku_id', flat=True)).filter(**filter_params)
         sku_master = sku_master1 | sku_master2
-        sku_prices = dict(sku_master.values_list('id', 'new_price'))
-        pricemaster_prices = dict(pricemaster.values_list('sku_id', 'new_price'))
+        sku_prices = dict(sku_master.only('id', 'new_price').values_list('id', 'new_price'))
+        pricemaster_prices = dict(pricemaster.only('sku_id', 'new_price').values_list('sku_id', 'new_price'))
         prices_dict = dict(sku_prices.items() + pricemaster_prices.items())
     size_dict = request_data.get('size_filter', '')
     query_string = 'sku__sku_code'
@@ -3023,11 +2983,39 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     product_styles = list(OrderedDict.fromkeys(product_styles))
     if is_file:
         start, stop = 0, len(product_styles)
+
+    needed_stock_data = {}
+    gen_whs = get_gen_wh_ids(request, user, delivery_date)
+    needed_stock_data['gen_whs'] = gen_whs
+    needed_skus = list(sku_master.only('sku_code').values_list('sku_code', flat=True))
+    needed_stock_data['stock_objs'] = dict(StockDetail.objects.filter(sku__user__in=gen_whs, quantity__gt=0,
+                                            sku__sku_code__in=needed_skus).only('sku__sku_code', 'quantity').\
+                                    values_list('sku__sku_code').distinct().annotate(in_stock=Sum('quantity')))
+    needed_stock_data['reserved_quantities'] = dict(PicklistLocation.objects.filter(stock__sku__user__in=gen_whs, status=1,
+                                                          stock__sku__sku_code__in=needed_skus).\
+                                           only('stock__sku__sku_code', 'reserved').\
+                                    values_list('stock__sku__sku_code').distinct().annotate(in_reserved=Sum('reserved')))
+    needed_stock_data['enquiry_res_quantities'] = dict(EnquiredSku.objects.filter(sku__user__in=gen_whs,
+                                                                                  sku__sku_code__in=needed_skus).\
+                                                filter(~Q(enquiry__extend_status='rejected')).\
+                                only('sku__sku_code', 'quantity').values_list('sku__sku_code').\
+                                annotate(tot_qty=Sum('quantity')))
+
+    needed_stock_data['purchase_orders'] = dict(PurchaseOrder.objects.exclude(status__in=['location-assigned',
+                                                                                     'confirmed-putaway']).\
+                                          filter(open_po__sku__user=user.id, open_po__sku__sku_code__in=needed_skus).\
+                                          values_list('open_po__sku__sku_code').distinct().\
+                                            annotate(total_order=Sum('open_po__order_quantity'),
+                                                                             total_received=Sum('received_quantity')).\
+                                            annotate(tot_rem=F('total_order')-F('total_received')).\
+                                            values_list('open_po__sku__sku_code', 'tot_rem'))
+
     data = get_styles_data(user, product_styles, sku_master, start, stop, request, customer_id=customer_id,
                            customer_data_id=customer_data_id, is_file=is_file, prices_dict=prices_dict,
                            price_type=price_type, custom_margin=custom_margin, specific_margins=specific_margins,
                            is_margin_percentage=is_margin_percentage, stock_quantity=quantity,
-                           msp_min_price=msp_min_price, msp_max_price=msp_max_price, delivery_date=delivery_date)
+                           msp_min_price=msp_min_price, msp_max_price=msp_max_price, delivery_date=delivery_date,
+                           needed_stock_data=needed_stock_data)
     return data, start, stop
 
 
@@ -3942,81 +3930,49 @@ def get_cal_style_data(style_data, quantity):
             'total_amount': amount + tax_value}
     return data
 
-
+@fn_timer
 def get_styles_data(user, product_styles, sku_master, start, stop, request, customer_id='', customer_data_id='', is_file='',
                     prices_dict={}, price_type='', custom_margin=0, specific_margins=[], is_margin_percentage=0,
-                    stock_quantity=0, msp_min_price=0, msp_max_price=0, delivery_date=''):
+                    stock_quantity=0, msp_min_price=0, msp_max_price=0, delivery_date='', needed_stock_data={}):
     data = []
     style_quantities = eval(request.POST.get('required_quantity', '{}'))
-    from rest_api.views.outbound import get_style_variants
     levels_config = get_misc_value('generic_wh_level', user.id)
     get_values = ['wms_code', 'sku_desc', 'hsn_code', 'image_url', 'sku_class', 'cost_price', 'price', 'mrp', 'id',
                   'sku_category', 'sku_brand', 'sku_size', 'style_name', 'sale_through', 'product_type']
-    gen_whs = [user.id]
-    admin = get_priceband_admin_user(user)
-    res_lead_time = 0
-    if admin:
-        gen_whs = list(get_generic_warehouses_list(admin))
-        cm_obj = CustomerUserMapping.objects.filter(user=request.user.id)
-        if cm_obj:
-            cm_id = cm_obj[0].customer
-            res_lead_time = cm_obj[0].customer.lead_time
-            dist_wh_obj = WarehouseCustomerMapping.objects.filter(customer_id=cm_id)
-            if dist_wh_obj:
-                dist_wh_id = dist_wh_obj[0].warehouse.id
-                if dist_wh_id in gen_whs:
-                    gen_whs.remove(dist_wh_id)
-        if delivery_date:
-            del_date = datetime.datetime.strptime(delivery_date, '%m/%d/%Y').date()
-            today_date = datetime.datetime.today().date()
-            days_filter = (del_date - today_date).days
-            if res_lead_time:
-                day_filter = days_filter + res_lead_time
-            nw_gen_whs = NetworkMaster.objects.filter(source_location_code__in=gen_whs,
-                                                   dest_location_code=user.id, lead_time__lte=days_filter).\
-                values_list('source_location_code', flat=True)
-            gen_whs = [user.id]
-            gen_whs.extend(list(nw_gen_whs))
-    stock_objs = StockDetail.objects.filter(sku__user__in=gen_whs, quantity__gt=0).values('sku__sku_class').\
-        distinct().annotate(in_stock=Sum('quantity'))
-    reserved_quantities = PicklistLocation.objects.filter(stock__sku__user__in=gen_whs, status=1).values(
-        'stock__sku__sku_class').distinct().annotate(in_reserved=Sum('reserved'))
-    enquiry_res_quantities = EnquiredSku.objects.filter(sku__user__in=gen_whs).\
-        filter(~Q(enquiry__extend_status='rejected')).values('sku__sku_class').annotate(tot_qty=Sum('quantity'))
-    stock_skus = map(lambda d: d['sku__sku_class'], stock_objs)
-    stock_quans = map(lambda d: d['in_stock'], stock_objs)
-    reserved_skus = map(lambda d: d['stock__sku__sku_class'], reserved_quantities)
-    reserved_quans = map(lambda d: d['in_reserved'], reserved_quantities)
-    enq_res_skus = map(lambda d: d['sku__sku_class'], enquiry_res_quantities)
-    enq_res_quans = map(lambda d: d['tot_qty'], enquiry_res_quantities)
 
     #To fix quantity based filter
     product_styles_filtered = []
     product_styles_tot_qty_map = {}
-    for product in product_styles:
-        total_quantity = 0
-        if product in stock_skus:
-            total_quantity = stock_quans[stock_skus.index(product)]
-        if product in reserved_skus:
-            total_quantity = total_quantity - float(reserved_quans[reserved_skus.index(product)])
-        if product in enq_res_skus:
-            total_quantity = total_quantity - float(enq_res_quans[enq_res_skus.index(product)])
-        if total_quantity >= int(stock_quantity):
-            product_styles_filtered.append(product)
-        product_styles_tot_qty_map[product] = total_quantity
+    qty_dict_flag = False
+    product_styles_tot_qty_map = {}
+    if stock_quantity:
+        for product in product_styles:
+            total_quantity = 0
+            prd_sku_codes = sku_master.filter(sku_class=product).only('sku_code').values_list('sku_code', flat=True)
+            for prd_sku in prd_sku_codes:
+                total_quantity += needed_stock_data['stock_objs'].get(prd_sku, 0)
+                total_quantity = total_quantity - float(needed_stock_data['reserved_quantities'].get(prd_sku, 0))
+                total_quantity = total_quantity - float(needed_stock_data['enquiry_res_quantities'].get(prd_sku, 0))
+            if total_quantity >= int(stock_quantity):
+                product_styles_filtered.append(product)
+            product_styles_tot_qty_map[product] = total_quantity
+        qty_dict_flag = True
+    else:
+        product_styles_filtered = product_styles
 
     for product in product_styles_filtered[start: stop]:
         sku_object = sku_master.filter(user=user.id, sku_class=product)
         sku_styles = sku_object.values('image_url', 'sku_class', 'sku_desc', 'sequence', 'id'). \
             order_by('-image_url')
-        # total_quantity = 0
-        # if product in stock_skus:
-        #     total_quantity = stock_quans[stock_skus.index(product)]
-        # if product in reserved_skus:
-        #     total_quantity = total_quantity - float(reserved_quans[reserved_skus.index(product)])
-        # if product in enq_res_skus:
-        #     total_quantity = total_quantity - float(enq_res_quans[enq_res_skus.index(product)])
-        total_quantity = product_styles_tot_qty_map[product]
+        if qty_dict_flag:
+            total_quantity = product_styles_tot_qty_map[product]
+        else:
+            total_quantity = 0
+            prd_sku_codes = sku_master.filter(sku_class=product).only('sku_code').values_list('sku_code', flat=True)
+            for prd_sku in prd_sku_codes:
+                total_quantity += needed_stock_data['stock_objs'].get(prd_sku, 0)
+                total_quantity = total_quantity - float(needed_stock_data['reserved_quantities'].get(prd_sku, 0))
+                total_quantity = total_quantity - float(needed_stock_data['enquiry_res_quantities'].get(prd_sku, 0))
         if not total_quantity:
             total_quantity = 0
         if sku_styles:
@@ -4027,7 +3983,7 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
                                               customer_data_id=customer_data_id, prices_dict=prices_dict,
                                               levels_config=levels_config, price_type=price_type,
                                               default_margin=custom_margin, specific_margins=specific_margins,
-                                              is_margin_percentage=is_margin_percentage)
+                                              is_margin_percentage=is_margin_percentage, needed_stock_data=needed_stock_data)
             sku_styles[0]['variants'] = sku_variants
             sku_styles[0]['style_quantity'] = total_quantity
 
@@ -6745,3 +6701,216 @@ def get_batch_dict(transact_id, transact_type):
         if batch_dict['manufactured_date']:
             batch_dict['manufactured_date'] = batch_dict['manufactured_date'].strftime('%m/%d/%Y')
     return batch_dict
+
+
+def get_style_variants(sku_master, user, customer_id='', total_quantity=0, customer_data_id='',
+                       prices_dict={}, levels_config=0, dist_wh_id=0, level=0, specific_margins=[],
+                       is_margin_percentage=0, default_margin=0, price_type='', is_style_detail='',
+                       needed_stock_data=None):
+    stocks = needed_stock_data['stock_objs']
+
+    purchase_orders = needed_stock_data['purchase_orders']
+
+    reserved_quantities = needed_stock_data['reserved_quantities']
+
+    tax_master = TaxMaster.objects.filter(user_id=user.id)
+    rev_inter_states = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
+
+    price_band_flag = get_misc_value('priceband_sync', user.id)
+    if price_band_flag == 'true':
+        central_admin = get_admin(user)
+        tax_master = TaxMaster.objects.filter(user_id=central_admin.id)
+    else:
+        central_admin = user
+
+    for ind, sku in enumerate(sku_master):
+        stock_quantity = stocks.get(sku['wms_code'], 0)
+        intransit_quantity = purchase_orders.get(sku['wms_code'], 0)
+        if intransit_quantity < 0:
+            intransit_quantity = 0
+        res_value = reserved_quantities.get(sku['wms_code'], 0)
+        stock_quantity = stock_quantity - res_value
+        total_quantity = total_quantity + stock_quantity
+        sku_master[ind]['physical_stock'] = stock_quantity
+        sku_master[ind]['intransit_quantity'] = intransit_quantity
+        sku_master[ind]['style_quantity'] = total_quantity
+        sku_master[ind]['taxes'] = []
+        customer_data = []
+        sku_master[ind]['your_price'] = prices_dict.get(sku_master[ind]['id'], 0)
+        if customer_id:
+            customer_user = CustomerUserMapping.objects.filter(user=customer_id)[0].customer.customer_id
+            customer_data = CustomerMaster.objects.filter(customer_id=customer_user, user=user.id)
+        elif customer_data_id:
+            customer_data = CustomerMaster.objects.filter(customer_id=customer_data_id, user=user.id)
+        if customer_data:
+            taxes = {}
+            if customer_data[0].tax_type:
+                taxes = list(tax_master.filter(product_type=sku['product_type'],
+                                               inter_state=rev_inter_states.get(customer_data[0].tax_type, 2)). \
+                             values('product_type', 'inter_state', 'cgst_tax', 'sgst_tax', 'igst_tax', 'min_amt',
+                                    'max_amt'))
+            sku_master[ind]['taxes'] = taxes
+            if customer_data[0].price_type and levels_config != 'true':
+                price_data = PriceMaster.objects.filter(sku__user=user.id, sku__sku_code=sku['wms_code'],
+                                                        price_type=customer_data[0].price_type)
+                if price_data:
+                    sku_master[ind]['pricing_price'] = price_data[0].price
+                    if price_data[0].price > 0:
+                        sku_master[ind]['price'] = price_data[0].price
+                else:
+                    sku_master[ind]['pricing_price'] = 0
+            else:
+                buy_pm_objs = ''
+                is_distributor = customer_data[0].is_distributor
+                pricemaster_obj = PriceMaster.objects.filter(sku__user=central_admin.id,
+                                                             sku__sku_code=sku['wms_code'])
+                cm_id = customer_data[0].id
+                if is_distributor:
+                    dist_mapping = WarehouseCustomerMapping.objects.filter(customer_id=cm_id, status=1)
+                    if dist_mapping:
+                        dist_wh_id = dist_mapping[0].warehouse_id
+                        if not level:
+                            price_data = NetworkMaster.objects.filter(dest_location_code_id=dist_wh_id).\
+                                values_list('source_location_code_id', 'price_type')
+                        else:
+                            price_data = NetworkMaster.objects.filter(dest_location_code_id=dist_wh_id).filter(
+                                source_location_code_id__userprofile__warehouse_level=level). \
+                                values_list('source_location_code_id', 'price_type')
+                    sku_master[ind].setdefault('prices_map', {}).update(dict(price_data))
+                    nw_pricetypes = ['D-R']
+                    if is_style_detail == 'true':
+                        nw_pricetypes = [j for i, j in price_data]
+                    pricemaster_obj = pricemaster_obj.filter(price_type__in=nw_pricetypes)
+                    if pricemaster_obj:
+                        sku_master[ind]['price'] = pricemaster_obj[0].price
+                        sku_master[ind]['your_price'] = pricemaster_obj[0].price
+                    else:
+                        sku_master[ind]['your_price'] = 0
+                else:
+                    if is_style_detail != 'true':
+                        price_type = 'R-C'
+                        buy_pricetype = customer_data[0].price_type
+                        buy_pm_objs = pricemaster_obj.filter(price_type=buy_pricetype)
+                    if price_type != 'R-C':
+                        # Assuming Reseller, taking price type from Customer Master
+                        price_type = customer_data[0].price_type
+                        # Customer Level price types
+                        price_type = update_level_price_type(customer_data[0], level, price_type)
+
+                    pricemaster_obj = pricemaster_obj.filter(price_type=price_type)
+
+                if pricemaster_obj:
+                    sku_master[ind]['pricing_price'] = pricemaster_obj[0].price
+                    sku_master[ind]['price'] = pricemaster_obj[0].price
+                    sku_master[ind]['your_price'] = pricemaster_obj[0].price
+                    apply_margin_price(sku['wms_code'], sku_master[ind], specific_margins, is_margin_percentage,
+                                       default_margin, user)
+                    for pm_obj in pricemaster_obj:
+                        pm_obj_map = {'min_unit_range': pm_obj.min_unit_range, 'max_unit_range': pm_obj.max_unit_range,
+                                      'price': pm_obj.price}
+                        if buy_pm_objs:
+                            buy_pm_obj = buy_pm_objs.filter(min_unit_range=pm_obj.min_unit_range,
+                                                            max_unit_range=pm_obj.max_unit_range)
+                            pm_obj_map['buy_price'] = buy_pm_obj[0].price
+                        apply_margin_price(pm_obj.sku.sku_code, pm_obj_map, specific_margins, is_margin_percentage,
+                                           default_margin, user)
+                        sku_master[ind].setdefault('price_ranges', []).append(pm_obj_map)
+                else:
+                    price_field = get_price_field(user)
+                    is_sellingprice = False
+                    if price_field == 'price':
+                        is_sellingprice = True
+                    sku_master[ind]['price'], sku_master[ind]['mrp'] = get_customer_based_price(customer_data[0], sku_master[ind][price_field],
+                                                                        sku_master[ind]['mrp'],
+                                                                        is_sellingprice=is_sellingprice)
+                    apply_margin_price(sku['wms_code'], sku_master[ind], specific_margins, is_margin_percentage,
+                                       default_margin, user)
+                    # current_sku_price = sku_master[ind]['price']
+                    # sku_master[ind]['price'] = current_sku_price + float(default_margin)
+
+                    # sku_master[ind]['charge_remarks'] = pricemaster_obj[0].charge_remarks
+    return sku_master
+
+
+def apply_margin_price(sku, each_sku_map, specific_margins, is_margin_percentage, default_margin, user):
+    current_price = each_sku_map['price']
+    each_sku_map['price'] = current_price
+    if specific_margins:
+        specific_margins = json.loads(specific_margins)
+    specific_margin_skus = [(i['wms_code'], i['margin']) for i in specific_margins]
+    spc_margin_sku_map = dict(specific_margin_skus)
+    each_sku_map['margin'] = 0
+    if is_margin_percentage == 'false':
+        if sku in spc_margin_sku_map:
+            each_sku_map['price'] = current_price + float(spc_margin_sku_map[sku])
+            each_sku_map['margin'] = float(spc_margin_sku_map[sku])
+        elif default_margin:
+            each_sku_map['price'] = current_price + float(default_margin)
+            each_sku_map['margin'] = float(default_margin)
+    else:
+        if sku in spc_margin_sku_map:
+            raising_amt = (current_price * float(spc_margin_sku_map[sku])) / 100
+            each_sku_map['price'] = current_price + raising_amt
+            each_sku_map['margin'] = float(spc_margin_sku_map[sku])
+        elif default_margin:
+            raising_amt = (current_price * float(default_margin)) / 100
+            each_sku_map['price'] = current_price + raising_amt
+            each_sku_map['margin'] = float(default_margin)
+
+
+def get_customer_and_price_type(request, user, customer_data_id, customer_id):
+    customer_master = None
+    price_type = ''
+    if not customer_data_id:
+        if request:
+            request_user = request.user.id
+        else:
+            request_user = user.id
+        user_type = CustomerUserMapping.objects.filter(user=request_user)
+        if user_type:
+            customer_master = user_type[0].customer
+            customer_data_id = user_type[0].customer.customer_id
+            customer_id = user_type[0].customer_id
+            is_distributor = user_type[0].customer.is_distributor
+            if is_distributor:
+                price_type = user_type[0].customer.price_type
+            else:  # Need to show R-C price grids in Catalogs and Download PDFs
+                price_type = 'R-C'
+    elif customer_id:
+        customer_master = CustomerMaster.objects.filter(customer_id=customer_id, user=user.id)
+        if customer_master:
+            price_type = customer_master[0].price_type
+    elif customer_data_id:
+        customer_master = CustomerMaster.objects.filter(customer_id=customer_data_id, user=user.id)
+        if customer_master:
+            price_type = customer_master[0].price_type
+    return customer_master, price_type
+
+
+def get_gen_wh_ids(request, user, delivery_date):
+    gen_whs = [user.id]
+    admin = get_priceband_admin_user(user)
+    res_lead_time = 0
+    if admin:
+        gen_whs = list(get_generic_warehouses_list(admin))
+        cm_obj = CustomerUserMapping.objects.filter(user=request.user.id)
+        if cm_obj:
+            cm_id = cm_obj[0].customer
+            res_lead_time = cm_obj[0].customer.lead_time
+            dist_wh_obj = WarehouseCustomerMapping.objects.filter(customer_id=cm_id)
+            if dist_wh_obj:
+                dist_wh_id = dist_wh_obj[0].warehouse.id
+                if dist_wh_id in gen_whs:
+                    gen_whs.remove(dist_wh_id)
+        if delivery_date:
+            del_date = datetime.datetime.strptime(delivery_date, '%m/%d/%Y').date()
+            today_date = datetime.datetime.today().date()
+            days_filter = (del_date - today_date).days
+            if res_lead_time:
+                day_filter = days_filter + res_lead_time
+            nw_gen_whs = NetworkMaster.objects.filter(source_location_code__in=gen_whs,
+                                                   dest_location_code=user.id, lead_time__lte=days_filter).\
+                values_list('source_location_code', flat=True)
+            gen_whs = [user.id]
+            gen_whs.extend(list(nw_gen_whs))
+    return gen_whs

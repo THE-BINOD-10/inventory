@@ -2852,12 +2852,11 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     customer_id = ''
 
     price_field = get_price_field(user)
-    customer_master, price_type = get_customer_and_price_type(request, user, customer_data_id, customer_id)
+    customer_master, price_type, customer_data_id, customer_id = get_customer_and_price_type(request, user, customer_data_id, customer_id)
     if not is_catalog:
         is_catalog = request_data.get('is_catalog', '')
 
     customer_id = ''
-
     indexes = request_data.get('index', '0:20')
     is_file = request_data.get('file', '')
     sale_through = request_data.get('sale_through', '')
@@ -2884,11 +2883,11 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         filter_params['sale_through__iexact'] = sale_through
         filter_params1['sku__sale_through__iexact'] = sale_through
     if from_price:
-        filter_params['new_price__gte'] = int(from_price)
-        filter_params1['new_price__gte'] = int(from_price)
+        filter_params['new_price__gte'] = from_price
+        filter_params1['new_price__gte'] = from_price
     if to_price:
-        filter_params['new_price__lte'] = int(to_price)
-        filter_params1['new_price__lte'] = int(to_price)
+        filter_params['new_price__lte'] = to_price
+        filter_params1['new_price__lte'] = to_price
     if hot_release == 'true':
         hot_release_data = SKUFields.objects.filter(sku__user=user.id, field_type='hot_release',
                                                     field_value='1').values_list('sku_id', flat=True)
@@ -2978,6 +2977,10 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
             classes = get_sku_available_stock(user, sku_master, query_string, size_dict)
             sku_master = sku_master.filter(sku_class__in=classes)
 
+    if quantity:
+        filt_ids = sku_master.values('id').annotate(stock_sum=Sum('stockdetail__quantity')).\
+                                filter(stock_sum__gt=quantity).values_list('id', flat=True).distinct()
+        sku_master = sku_master.filter(id__in=filt_ids)
     sku_master = sku_master.order_by('sequence')
     product_styles = sku_master.values_list('sku_class', flat=True).distinct()
     product_styles = list(OrderedDict.fromkeys(product_styles))
@@ -3016,6 +3019,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
                            is_margin_percentage=is_margin_percentage, stock_quantity=quantity,
                            msp_min_price=msp_min_price, msp_max_price=msp_max_price, delivery_date=delivery_date,
                            needed_stock_data=needed_stock_data)
+    print data
     return data, start, stop
 
 
@@ -3905,6 +3909,7 @@ def get_categories_list(request, user=""):
 def get_generic_warehouses_list(user):
    return UserGroups.objects.filter(admin_user=user).values_list('user', flat=True)
 
+@fn_timer
 def get_cal_style_data(style_data, quantity):
 
     quantity = int(quantity)
@@ -6473,6 +6478,7 @@ def get_customer_based_price(customer_obj, price, mrp,is_sellingprice='', user_i
             price = mrp
     if not mrp:
         mrp = price
+    print price, mrp
     return price, mrp
 
 
@@ -6884,7 +6890,7 @@ def get_customer_and_price_type(request, user, customer_data_id, customer_id):
         customer_master = CustomerMaster.objects.filter(customer_id=customer_data_id, user=user.id)
         if customer_master:
             price_type = customer_master[0].price_type
-    return customer_master, price_type
+    return customer_master, price_type, customer_data_id, customer_id
 
 
 def get_gen_wh_ids(request, user, delivery_date):

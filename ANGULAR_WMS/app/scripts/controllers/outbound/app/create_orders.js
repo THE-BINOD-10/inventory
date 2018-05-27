@@ -242,7 +242,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.data_loading = true;
     var canceller = $q.defer();
     vm.service.apiCall("get_sku_catalogs/", "POST", data).then(function(response) {
-      if(response.message) {
+      if(response.message && response.data.search_key == vm.style) {
         vm.gotData = response.data;
         console.log("done");
         canceller.resolve("done");
@@ -414,7 +414,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
     vm.pdfDownloading = true;
     vm.catDisplay = true;
-    var data = {brand: vm.brand, sale_through: vm.order_type_value};
+    var data = {brand: vm.brand, category: vm.category, is_catalog: true, sale_through: vm.order_type_value};
     vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
       if(data.message) {
         vm.all_cate = data.data.categories;

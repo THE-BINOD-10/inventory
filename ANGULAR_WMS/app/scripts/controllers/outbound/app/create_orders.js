@@ -69,15 +69,18 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.filterData = {};
   
   vm.disable_brands_view = function(){
-    if(Session.roles.permissions.disable_brands_view){
+    if(Session.roles.permissions.disable_brands_view && $state.$current.name == "user.App.Brands"){
       $state.go('user.App.Categories');
     }
   }
   vm.disable_brands_view();
 
   vm.goBack = function(){
-
-    $state.go('user.App.Brands');
+    if(Session.roles.permissions.disable_brands_view){
+      $state.go('user.App.Categories');
+    } else {
+      $state.go('user.App.Brands');
+    }
   }
 
   function change_filter_data() {
@@ -89,7 +92,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         vm.categories = data.data.categories;
         vm.all_cate = data.data.categories;
         vm.filterData = data.data;
-        console.log(data.data);
         vm.filterData.brand_size_data = [];
         if(["reseller", "dist_customer"].indexOf(Session.roles.permissions.user_type) == -1) {
           if(data.data.size.type1) {
@@ -764,7 +766,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.from_cats = false;
     vm.hot_release = vm.filterData.hotRelease;
     vm.get_category(true);
-    if( $state.$current.name == "user.App.Brands" || $state.$current.name == "user.App.Categories") {
+    if($state.$current.name == "user.App.Brands" || $state.$current.name == "user.App.Categories") {
       $state.go('user.App.Products');
     }
     $window.scrollTo(0, angular.element(".app_body").offsetTop);

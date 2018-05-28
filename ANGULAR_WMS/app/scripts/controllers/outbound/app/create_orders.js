@@ -242,7 +242,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.data_loading = true;
     var canceller = $q.defer();
     vm.service.apiCall("get_sku_catalogs/", "POST", data).then(function(response) {
-      if(response.message && response.data.search_key == vm.style) {
+      if(response.message && response.data.search_key == vm.style || !vm.style) {
         vm.gotData = response.data;
         console.log("done");
         canceller.resolve("done");

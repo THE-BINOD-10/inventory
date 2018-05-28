@@ -3108,7 +3108,7 @@ def get_tax_data(request, user=''):
     if not taxes:
         response['msg'] = 'Product Type Not Found'
         return HttpResponse(response)
-
+        
     resp = {'data': []}
     resp['product_type'] = taxes[0].product_type
     for tax in taxes:
@@ -3197,7 +3197,7 @@ def add_or_update_tax(request, user=''):
             taxes = TaxMaster.objects.filter(user=user.id, product_type__exact=product_type)
             if taxes:
                 return HttpResponse('Product Type Already Exist')
-        columns = ['sgst_tax', 'cgst_tax', 'igst_tax', 'min_amt', 'max_amt']
+        columns = ['sgst_tax', 'cgst_tax', 'igst_tax', 'cess_tax', 'min_amt', 'max_amt']
         for data in tax_data['data']:
 
             data_dict = {'user_id': user.id}

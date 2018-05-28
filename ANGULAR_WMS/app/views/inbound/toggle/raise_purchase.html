@@ -97,6 +97,7 @@
                     <th class="w10">SGST(%)</th>
                     <th class="w10">CGST(%)</th>
                     <th class="w10">IGST(%)</th>
+                    <th class="w10">CESS(%)</th>
                     <th class="w10">UTGST(%)</th>
                     <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">Remarks</th>
                     <th ng-if="user.user_profile.user_type == 'marketplace_user'">Dedicated Seller</th>
@@ -141,6 +142,9 @@
                     </td>
                     <td>
                       <input type="text" ng-model="product.fields.igst_tax" name="igst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce>
+                    </td>
+                    <td>
+                      <input type="text" ng-model="product.fields.cess_tax" name="cess_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce>
                     </td>
                     <td>
                       <input type="text" ng-model="product.fields.utgst_tax" name="utgst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce>

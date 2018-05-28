@@ -6,6 +6,7 @@ angular.module('urbanApp', ['datatables'])
 function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
     var vm = this;
     vm.permissions = Session.roles.permissions;
+    vm.industry_type = Session.user_profile.industry_type;
     vm.apply_filters = colFilters;
     vm.service = Service;
     vm.filters = {'datatable': 'SellerStockTable', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':''}

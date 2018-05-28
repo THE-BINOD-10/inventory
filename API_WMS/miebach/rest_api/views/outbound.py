@@ -8880,5 +8880,4 @@ def print_cartons_data_view(request, user=''):
                   'shipment_number': shipment_number, 'company_address': address,
                   'shipment_date': shipment_date, 'company_name': company_name, 'truck_number':truck_number,
                   'courier_name': courier_name, 'data': data.values()}
-
     return render(request, 'templates/toggle/print_cartons_wise_qty.html', final_data)

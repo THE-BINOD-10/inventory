@@ -4561,6 +4561,7 @@ def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_
 @get_admin_user
 def get_sku_catalogs(request, user=''):
     checked_items = eval(request.POST.get('checked_items', '{}'))
+    search_key = request.POST.get('sku_class', '')
     if not checked_items:
         data, start, stop = get_sku_catalogs_data(request, user)
     else:
@@ -4627,7 +4628,7 @@ def get_sku_catalogs(request, user=''):
         file_.close()
         os.system("./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (file_name, pdf_file))
         return HttpResponse("static/pdf_files/" + str(request.user.id) + "_customer_search.pdf")
-    return HttpResponse(json.dumps({'data': data, 'next_index': str(start + 20) + ':' + str(stop + 20)},
+    return HttpResponse(json.dumps({'data': data, 'search_key':search_key, 'next_index': str(start + 20) + ':' + str(stop + 20)},
                                    cls=DjangoJSONEncoder))
 
 
@@ -8928,5 +8929,5 @@ def print_cartons_data_view(request, user=''):
                   'shipment_number': shipment_number, 'company_address': address,
                   'shipment_date': shipment_date, 'company_name': company_name, 'truck_number':truck_number,
                   'courier_name': courier_name, 'data': data.values()}
-
+                  
     return render(request, 'templates/toggle/print_cartons_wise_qty.html', final_data)

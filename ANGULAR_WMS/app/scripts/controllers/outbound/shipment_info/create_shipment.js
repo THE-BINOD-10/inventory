@@ -109,7 +109,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
           cancelButtonText: 'Cancel',
           showLoaderOnConfirm: true,
           inputOptions: 'Testing',
-          inputPlaceholder: 'Type Reason',
+          inputPlaceholder: 'Enter Carton',
           confirmButtonClass: 'btn btn-success',
           cancelButtonClass: 'btn btn-default',
           showCancelButton: true,

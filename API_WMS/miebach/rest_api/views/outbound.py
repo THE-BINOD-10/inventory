@@ -8862,6 +8862,7 @@ def print_cartons_data_view(request, user=''):
             continue
         if not truck_number:
             truck_number = orders.order_shipment.truck_number
+            shipment_date = get_local_date(user, orders.order_shipment.creation_date, True).strftime("%d %b, %Y")
         if not courier_name:
             courier_name = orders.order_shipment.courier_name
         title = orders.order.title

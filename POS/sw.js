@@ -355,8 +355,15 @@ importScripts('/app/data/offlineData.js');
                     var content='order=' + encodeURIComponent(JSON.stringify(sync_data));
                     
                     getServerData(REQUEST_METHOD_POST,SYNC_POS_ORDERS_API,content).
-                   				then(function(data){
-                                		return resolve(data);
+                   				then(function(sync_order_ids){
+                   					console.log("sync ids"+sync_order_ids);
+                   					var sync_data_list=JSON.parse(sync_order_ids);
+                                	clearPOSSyncItems(sync_data_list.order_ids).
+                                		then(function(clear_count){
+											sync_POS_Orders();										
+                   						}).catch(function(error){
+                   							console.log(error);
+                   						});
                    				}).catch(function(error){
                    					return reject(error);
                    				});

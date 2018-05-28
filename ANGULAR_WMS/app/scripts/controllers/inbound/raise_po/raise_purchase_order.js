@@ -506,7 +506,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
            sku_data.fields.sgst_tax = 0;
            sku_data.fields.cgst_tax = 0;
            sku_data.fields.igst_tax = sku_data.taxes[i].igst_tax;
-           sku_data.fields.cgst_tax = sku_data.taxes[i].cess_tax;
+           sku_data.fields.cess_tax = sku_data.taxes[i].cess_tax;
            tax = sku_data.taxes[i].igst_tax;
          }
          break;

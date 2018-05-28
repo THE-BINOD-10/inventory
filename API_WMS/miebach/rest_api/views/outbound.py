@@ -8778,7 +8778,7 @@ def print_cartons_data(request, user=''):
     count = 1
     customers_obj = OrderDetail.objects.select_related('customer_id', 'customer_name', 'marketplace').\
                                 filter(id__in=request_dict['id']).only('customer_id', 'customer_name', 'marketplace').\
-                                values('customer_id', 'customer_name', 'marketplace').distinct()
+                                values('customer_id', 'customer_name', 'marketplace', 'address').distinct()
     customer_info = {}
     if customers_obj.count() > 1:
         customer_info = {'name': customers_obj[0]['marketplace']}
@@ -8843,7 +8843,7 @@ def print_cartons_data_view(request, user=''):
                                                   order_shipment__shipment_number=shipment_number,
                                                   order_packaging__package_reference=selected_carton,
                                                   order_shipment__user=user.id)
-    customers_obj = shipment_orders.values('order__customer_id', 'order__customer_name', 'order__marketplace').\
+    customers_obj = shipment_orders.values('order__customer_id', 'order__customer_name', 'order__marketplace', 'order__address').\
                                     distinct()
     if customers_obj.count() > 1:
         customer_info = {'name': customers_obj[0]['order__marketplace']}

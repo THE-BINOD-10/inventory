@@ -2331,7 +2331,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
         if 'unit' in myDict.keys():
             unit = myDict['unit'][i]
         cond = (data.id, purchase_data['wms_code'], unit, purchase_data['price'], purchase_data['cgst_tax'],
-                purchase_data['sgst_tax'], purchase_data['igst_tax'], purchase_data['cess_tax'], purchase_data['utgst_tax'], purchase_data['sku_desc'])
+                purchase_data['sgst_tax'], purchase_data['igst_tax'], purchase_data['utgst_tax'], purchase_data['sku_desc'])
         all_data.setdefault(cond, 0)
         all_data[cond] += float(value)
 
@@ -2417,7 +2417,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
                      ('GSTIN No', purchase_data['gstin_number']))
 
         price = float(value) * float(purchase_data['price'])
-        gst_taxes = purchase_data['cgst_tax'] + purchase_data['sgst_tax'] + purchase_data['igst_tax'] + purchase_data['cess_tax'] + purchase_data[
+        gst_taxes = purchase_data['cgst_tax'] + purchase_data['sgst_tax'] + purchase_data['igst_tax'] + purchase_data[
             'utgst_tax']
         if gst_taxes:
             price += (price / 100) * gst_taxes

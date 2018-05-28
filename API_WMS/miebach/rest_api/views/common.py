@@ -6478,7 +6478,6 @@ def get_customer_based_price(customer_obj, price, mrp,is_sellingprice='', user_i
             price = mrp
     if not mrp:
         mrp = price
-    print price, mrp
     return price, mrp
 
 

@@ -192,6 +192,11 @@
             <span>Seller Invoices</span>
           </a>
         </li>
+        <li ui-sref-active="active" ng-show="user.user_profile['user_type'] != 'marketplace_user' && show_tab('inbound_supplier_invoice')">
+          <a ui-sref="app.inbound.SupplierInvoice">
+            <span>Supplier Invoices</span>
+          </a>
+        </li>
         <li ui-sref-active="active" ng-show="permissions.user_type == 'distributor' || (permissions.user_type == 'default' && permissions.priceband_sync)">
           <a ui-sref="app.inbound.AutoBackOrders">
             <span>Auto Back Orders</span>

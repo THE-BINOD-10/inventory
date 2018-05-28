@@ -453,7 +453,9 @@ data_datatable = {  # masters
     'QualityCheck': 'get_quality_check_data', 'POPutaway': 'get_order_data', \
     'ReturnsPutaway': 'get_order_returns_data', 'SalesReturns': 'get_order_returns', \
     'RaiseST': 'get_raised_stock_transfer', 'SellerInvoice': 'get_seller_invoice_data', \
-    'RaiseIO': 'get_intransit_orders', 'PrimarySegregation': 'get_segregation_pos',
+    'RaiseIO': 'get_intransit_orders', 'PrimarySegregation': 'get_segregation_pos', \
+    'ProcessedPOs': 'get_processed_po_data', 'POChallans': 'get_po_challans_data', \
+    'SupplierInvoices': 'get_supplier_invoice_data', \
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
     'PickelistGenerated': 'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo', \

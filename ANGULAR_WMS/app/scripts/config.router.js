@@ -759,6 +759,30 @@ var app = angular.module('urbanApp')
             url: '/InvoiceE',
             templateUrl: 'views/outbound/print/empty_invoice.html'
           })
+
+        .state('app.inbound.SupplierInvoice', {
+          url: '/SupplierInvoices',
+          templateUrl: 'views/inbound/supplier_invoices/supplier_invoices_main.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                    'scripts/controllers/inbound/supplier_invoices_main.js'
+                ]).then( function() {
+                    return $ocLazyLoad.load([
+                        'scripts/controllers/inbound/supplier_invoices/po_challan.js'
+                    ])
+                }).then(function() {
+                    return $ocLazyLoad.load([
+                        'scripts/controllers/inbound/supplier_invoices/supplier_invoices.js'
+                    ])
+                });
+            }]
+          },
+          data: {
+            title: 'Supplier Invoice',
+          }
+        })
+
         .state('app.inbound.AutoBackOrders', {
           url: '/AutoBackOrders?state',
           params: {

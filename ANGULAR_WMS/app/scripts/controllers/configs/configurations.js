@@ -22,6 +22,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'increment_invoice': false, 'create_shipment_type': false, 'auto_allocate_stock': false,
                     'generic_wh_level': false, 'auto_confirm_po': false, 'create_order_po': false, 'shipment_sku_scan': false,
                     'disable_brands_view': false, 'sellable_segregation': false, 'display_styles_price': false,
+                    'inbound_supplier_invoice': false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -38,7 +39,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      48: 'priceband_sync', 49: 'generic_wh_level', 50: 'auto_confirm_po', 51: 'create_order_po',
                      52: 'calculate_customer_price', 53: 'shipment_sku_scan', 54: 'disable_brands_view',
                      55: 'sellable_segregation', 56: 'display_styles_price', 57: 'show_purchase_history',
-                     58: 'shelf_life_ratio'}
+                     58: 'shelf_life_ratio', 59: 'inbound_supplier_invoice'}
 
   vm.check_box_data = [
     {
@@ -314,6 +315,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       class_name: "fa fa-rupee",
       display: true
     },
+    {
+      name: "Supplier Invoice Enable/Disable",
+      model_name: "inbound_supplier_invoice",
+      param_no: 59,
+      class_name: "fa fa-server",
+      display: true
+    },
 ]
 
   vm.empty = {};
@@ -459,7 +467,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       $(".stages").importTags(vm.model_data.all_stages);
       $(".extra_view_order_status").importTags(vm.model_data.extra_view_order_status);
       $(".invoice_types").importTags(vm.model_data.invoice_types);
-      $(".mode_of_transport").importTags(vm.model_data.mode_of_transport);
+      $(".mode_of_transport").importTags(vm.model_data.mode_of_transport||'');
       if (vm.model_data.invoice_titles) {
         $(".titles").importTags(vm.model_data.invoice_titles);
       }

@@ -156,6 +156,7 @@ urlpatterns = [
     url('^get_po_segregation_data/$', get_po_segregation_data),
     url('^confirm_primary_segregation/$', confirm_primary_segregation),
     url('^last_transaction_details/$', last_transaction_details),
+    url(r'^supplier_invoice_data/$', supplier_invoice_data),
 
     # Production
     url(r'^generated_jo_data/$', generated_jo_data),

@@ -957,6 +957,7 @@ def switches(request, user=''):
                        'shelf_life_ratio': 'shelf_life_ratio',
                        'mode_of_transport': 'mode_of_transport',
                        'show_purchase_history': 'show_purchase_history',
+                       'inbound_supplier_invoice': 'inbound_supplier_invoice',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -5878,3 +5879,119 @@ def last_transaction_details(request, user=''):
     data_resp['supplier_wise_table_data'] = supplier_wise_list
     return HttpResponse(json.dumps(data_resp))
 
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def supplier_invoice_data(request, user=''):
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    tab_type = request.GET.get('tabType', '')
+    if user_profile.warehouse_type == 'DIST':
+        headers = DIST_SUPPLIER_INVOICE_HEADERS
+    else:
+        if tab_type == 'POChallans':
+            headers = ['Challan ID'] + WH_SUPPLIER_INVOICE_HEADERS
+        elif tab_type == 'SupplierInvoices':
+            headers = ["Invoice ID"] + WH_SUPPLIER_INVOICE_HEADERS
+        else:
+            headers = WH_SUPPLIER_INVOICE_HEADERS
+    return HttpResponse(json.dumps({'headers': headers}))
+
+
+@csrf_exempt
+def get_supplier_invoice_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
+			      filters):
+    ''' Supplier Invoice datatable code '''
+
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    admin_user = get_priceband_admin_user(user)
+    if admin_user and user_profile.warehouse_type == 'DIST':
+        temp_data = get_levelbased_invoice_data(start_index, stop_index, temp_data, user, search_term)#where
+    else:
+        lis = ['order__order_id', 'order__order_id', 'order__customer_name', 'quantity', 'quantity', 'date_only',
+               'seller_order__order__original_order_id']
+        user_filter = {}
+        result_values = []
+        field_mapping = {}
+        pass
+        is_marketplace = False
+
+    if search_term:
+        search_term = search_term.replace('(', '\(').replace(')', '\)')
+        search_query = build_search_term_query(lis1, search_term)
+        order_id_search = ''.join(re.findall('\d+', search_term))
+        order_code_search = ''.join(re.findall('\D+', search_term))
+
+        master_data = []
+
+    elif order_term:
+        if order_term == 'asc' and (col_num or col_num == 0):
+            master_data = []
+
+        else:
+            master_data = []
+
+    else:
+        master_data =[]
+
+    pass
+    #temp_data['recordsTotal'] = master_data.count()
+    #temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+
+@csrf_exempt
+def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
+                         filters):
+    ''' Supplier Invoice datatable code '''
+
+    pass
+
+
+@csrf_exempt
+def get_processed_po_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
+                         filters):
+    col_num=0
+    ''' Supplier Invoice datatable code '''
+
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    admin_user = get_priceband_admin_user(user)
+    if admin_user and user_profile.warehouse_type == 'DIST':
+        temp_data = get_levelbased_invoice_data(start_index, stop_index, temp_data, user, search_term)
+    else:
+        lis = ['purchase_order_id', 'purchase_order_id', 'purchase_order__open_po__supplier__name',
+               'purchase_order__open_po__order_quantity', 'quantity']
+        user_filter = {}
+        result_values = ['receipt_number', 'purchase_order_id', 'purchase_order_id', 'purchase_order__open_po__supplier__name',
+                         'purchase_order__open_po__order_quantity', 'quantity']
+        field_mapping = {}
+        is_marketplace = False
+
+    if search_term:
+        search_term = search_term.replace('(', '\(').replace(')', '\)')
+        search_query = build_search_term_query(lis, search_term)
+    
+
+    elif order_term:
+        if order_term == 'asc' and (col_num or col_num == 0):
+            master_data = SellerPOSummary.objects.filter(**user_filter).values(*result_values).distinct()\
+                                         .annotate(total_quantity=Sum('quantity')).order_by(lis[col_num])
+        else:
+            master_data = SellerPOSummary.objects.filter(**user_filter).values(*result_values).distinct()\
+                                         .annotate(total_quantity=Sum('quantity')).order_by('-%s' % lis[col_num])
+
+    else:
+        master_data = SellerPOSummary.objects.filter(**user_filter)\
+                                     .values(*result_values).distinct().annotate(total_quantity=Sum('quantity'))
+
+    for data in master_data[start_index:stop_index]:
+
+        po = PurchaseOrder.objects.filter(id=data['purchase_order_id'])[0]
+        grn_number = "%s/%s" %(get_po_reference(po), data['receipt_number'])
+
+        data_dict = OrderedDict((('GRN No.', grn_number),
+                                 ('Supplier Name', data['purchase_order__open_po__supplier__name']),
+                                 ('check_field', 'GRN No.'),
+                                 ('PO Quantity', data['purchase_order__open_po__order_quantity']),
+                                 ('Received Quantity', data['quantity'])
+                               ))
+        temp_data['aaData'].append(data_dict)

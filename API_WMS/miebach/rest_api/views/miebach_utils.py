@@ -1299,6 +1299,17 @@ DIST_CUSTOMER_INVOICE_HEADERS = ['Gen Order Id', 'Order Ids', 'Customer Name', '
 
 # End of Customer Invoices page headers based on user type
 
+# Supplier Invoices page headers based on user type
+
+WH_SUPPLIER_INVOICE_HEADERS = ['GRN No.', 'Supplier Name', 'PO Quantity', 'Received Quantity',
+                               'Order Date&Time', 'Total Amount']
+
+DIST_SUPPLIER_INVOICE_HEADERS = ['GRN No.', 'Supplier Name', 'PO Quantity', 'Received Quantity',
+                                 'Order Date&Time', 'Total Amount']
+
+# End of Supplier Invoices page headers based on user type
+
+
 SUPPLIER_EXCEL_FIELDS = OrderedDict((('id', 0), ('name', 1), ('address', 2), ('email_id', 3), ('phone_number', 4),
                                      ('tin_number', 5), ('pan_number', 6), ('pincode', 7), ('city', 8), ('state', 9),
                                      ('country', 10), ('days_to_supply', 11), ('fulfillment_amt', 12),
@@ -1394,7 +1405,8 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'auto_confirm_po': 'auto_confirm_po', 'generic_wh_level': 'generic_wh_level',
                         'create_order_po': 'create_order_po', 'calculate_customer_price': 'calculate_customer_price',
                         'shipment_sku_scan': 'shipment_sku_scan', 'disable_brands_view':'disable_brands_view',
-                        'sellable_segregation': 'sellable_segregation', 'display_styles_price': 'display_styles_price', 'show_purchase_history':'show_purchase_history'
+                        'sellable_segregation': 'sellable_segregation', 'display_styles_price': 'display_styles_price',
+                        'show_purchase_history':'show_purchase_history', 'inbound_supplier_invoice': 'inbound_supplier_invoice'
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',

@@ -1,0 +1,21 @@
+<div>
+  <div class="page-layout">
+    <div class='layout-header'>
+      <div class="pull-left" ng-include="'views/common/title.html'"></div>
+      <div ng-include="'views/common/excel.html'"></div>
+    </div>
+    <div class="layout-body">
+      <tabset class="box-tab">
+        <tab heading="Processed POs">
+          <div ng-include="'views/inbound/supplier_invoices/processed_po.html'"></div>
+        </tab>
+        <tab heading="PO Challans">
+          <div ng-include="'views/inbound/supplier_invoices/po_challan.html'"></div>
+        </tab>
+        <tab heading="Supplier Invoices">
+          <div ng-include="'views/inbound/supplier_invoices/supplier_invoices.html'"></div>
+        </tab>
+      </tabset>
+    </div>
+  </div>
+</div>

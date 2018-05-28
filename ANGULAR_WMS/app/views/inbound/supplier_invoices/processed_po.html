@@ -1,0 +1,16 @@
+<div class="panel" ng-controller="SupplierInvoiceMainCtrl as showCase">
+    <div class="panel-body">
+        <div ng-if="showCase.display">
+        	<table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns"
+				   class="table custom-table table-condensed datatable no_click_tb" dt-instance="showCase.dtInstance">
+			</table>
+        	<div ui-view></div>
+    	</div>
+    </div>
+    <div class="panel-footer">
+        <button type="button" ng-if="showCase.user_type != 'distributor'" class="btn btn-primary pull-right"
+				ng-disabled="showCase.bt_disable" ng-click="showCase.move_to('move_to_po_challan')">Move to PO Challan</button>
+        <button type="button" ng-if="showCase.user_type != 'distributor'" class="btn btn-primary pull-right mr20"
+				ng-disabled="showCase.bt_disable" ng-click="showCase.move_to('move_to_inv')">Move to Invoice</button>
+    </div>
+</div>

@@ -1407,6 +1407,8 @@ def seller_stock_summary_data(request, user=''):
                                                                                     seller__seller_id=seller_id,
                                                                                     seller__user=user.id)
     zones_data = {}
+    industry_type = user.userprofile.industry_type
+    pallet_switch = get_misc_value('pallet_switch', user.id)
     for seller_stock in seller_stock_data:
         stock = seller_stock.stock
         res_qty = PicklistLocation.objects.filter(stock_id=stock.id, status=1, picklist__order__user=user.id). \
@@ -1419,12 +1421,24 @@ def seller_stock_summary_data(request, user=''):
             res_qty = 0
         if raw_reserved:
             res_qty = float(res_qty) + float(raw_reserved)
-        zones_data.setdefault(stock.location.zone.zone, {})
-        zones_data[stock.location.zone.zone].setdefault(stock.location.location, [0, 0])
-        zones_data[stock.location.zone.zone][stock.location.location][1] += res_qty
-        zones_data[stock.location.zone.zone][stock.location.location][0] += seller_stock.quantity
+        location = stock.location.location
+        zone = stock.location.zone.zone
+        pallet_number, batch, mrp = ['']*3
+        if pallet_switch == 'true' and stock.pallet_detail:
+            pallet_number = stock.pallet_detail.pallet_code
+        if industry_type == "FMCG" and stock.batch_detail:
+            batch_detail = stock.batch_detail
+            batch = batch_detail.batch_no
+            mrp = batch_detail.mrp
+        cond = str((zone, location, pallet_number, batch, mrp))
+        zones_data.setdefault(cond, {'zone': zone, 'location': location,
+                                                         'pallet_number': pallet_number, 'total_quantity': 0,
+                                                        'reserved_quantity': 0, 'batch': batch, 'mrp': mrp})
+        zones_data[cond]['total_quantity'] += seller_stock.quantity
+        zones_data[cond]['reserved_quantity'] += res_qty
+        #zones_data[stock.location.zone.zone][stock.location.location][0] += seller_stock.quantity
 
-    return HttpResponse(json.dumps({'zones_data': zones_data}))
+    return HttpResponse(json.dumps({'zones_data': zones_data.values()}))
 
 
 @csrf_exempt

@@ -6100,7 +6100,8 @@ def get_processed_po_data(start_index, stop_index, temp_data, search_term, order
 @csrf_exempt
 @get_admin_user
 def move_to_poc(request, user=''):
-    sell_ids = []
+    sell_ids = {}
+    seller_summary = SellerPOSummary.objects.none()
     cancel_flag = request.GET.get('cancel', '')
     if cancel_flag == 'true':
         status_flag = 'processed_pos'
@@ -6111,11 +6112,13 @@ def move_to_poc(request, user=''):
     if req_data:
         req_data = eval(req_data)
         for item in req_data:
-            sell_ids.append(item['seller_summary_id'])
-    seller_summary = SellerPOSummary.objects.filter(id__in=sell_ids)
+            sell_ids['purchase_order__order_id'] = item['purchase_order__order_id']
+            sell_ids['receipt_number'] = item['receipt_number']
+            seller_summary = seller_summary.union(SellerPOSummary.objects.filter(**sell_ids))
     chn_no, chn_sequence = get_po_challan_number(user, seller_summary)
     try:
         for sel_obj in seller_summary:
+            sel_obj.challan_number = chn_no
             sel_obj.order_status_flag = status_flag
             sel_obj.save()
         return HttpResponse(json.dumps({'message': 'success'}))
@@ -6130,13 +6133,15 @@ def move_to_poc(request, user=''):
 @get_admin_user
 def move_to_inv(request, user=''):
     cancel_flag = request.GET.get('cancel', '')
-    sell_ids = []
+    sell_ids = {}
+    seller_summary = SellerPOSummary.objects.none()
     req_data = request.GET.get('data', '')
     if req_data:
         req_data = eval(req_data)
         for item in req_data:
-            sell_ids.append(item['seller_summary_id'])
-    seller_summary = SellerOrderSummary.objects.filter(id__in=sell_ids)
+            sell_ids['purchase_order__order_id'] = item['purchase_order__order_id']
+            sell_ids['receipt_number'] = item['receipt_number']
+            seller_summary = seller_summary.union(SellerPOSummary.objects.filter(**sell_ids))
     try:
         for sel_obj in seller_summary:
             if cancel_flag == 'true':

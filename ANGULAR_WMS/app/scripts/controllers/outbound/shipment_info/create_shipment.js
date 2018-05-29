@@ -109,7 +109,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
           cancelButtonText: 'Cancel',
           showLoaderOnConfirm: true,
           inputOptions: 'Testing',
-          inputPlaceholder: 'Type Reason',
+          inputPlaceholder: 'Enter Carton',
           confirmButtonClass: 'btn btn-success',
           cancelButtonClass: 'btn btn-default',
           showCancelButton: true,
@@ -122,13 +122,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
           allowOutsideClick: false,
           // buttonsStyling: false
         }).then(function (text) {
-            swal2({
-              type: 'success',
-              title: 'Carton Code Added!',
-              // html: 'Submitted text is: ' + text
-            }), $('.swal2-confirm').click(function(){
-              $('#scan_sku').focus();
-            });
+            $('#scan_sku').focus();
+            // swal2({
+            //   type: 'success',
+            //   title: 'Carton Code Added!',
+            //   // html: 'Submitted text is: ' + text
+            // })
         });
     }
 

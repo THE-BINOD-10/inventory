@@ -152,7 +152,7 @@ class IncrementalTable(models.Model):
         db_table = 'INCREMENTAL_TABLE'
 
     def __unicode__(self):
-        return self.value
+        return str(self.value)
 
 
 class LocationMaster(models.Model):

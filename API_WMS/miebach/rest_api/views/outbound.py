@@ -6108,7 +6108,6 @@ def picklist_delete(request, user=""):
             not_picked_objs = picklist_objs.filter(picked_quantity=0)
             if not_picked_objs.exists():
                 not_picked_objs.delete()
-                check_and_update_picklist_number(picklist_id, user, 'picklist')
             if picked_objs.exists():
                 pick_obj_status = picked_objs[0].status
                 if 'batch' in pick_obj_status:
@@ -6123,6 +6122,7 @@ def picklist_delete(request, user=""):
                     pick_location.status = 0
                     pick_location.save()
                 picked_objs.update(reserved_quantity=0, status=pick_obj_status)
+            check_picklist_number_created(user, picklist_id)
             end_time = datetime.datetime.now()
             duration = end_time - st_time
             log.info("process completed")

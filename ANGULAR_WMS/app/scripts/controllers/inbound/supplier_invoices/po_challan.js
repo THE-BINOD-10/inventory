@@ -135,12 +135,23 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       angular.forEach(vm.selected, function(value, key) {
         if(value) {
           var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]['_aData'];
-          data.push(temp['id']);
+          // data.push(temp['id']);
+          var grn_no = temp['GRN No'];
+          grn_no = grn_no.split('/');
+
+          var send_data = JSON.stringify({
+            grn_no: grn_no, 
+            seller_summary_name: temp['Supplier Name'], 
+            seller_summary_id: temp['id'], 
+            purchase_order__order_id: temp['purchase_order__order_id'],
+            receipt_number: temp['receipt_number']
+          });
+          data.push(send_data);
         }
       });
-      var ids = data.join(",");
-      ids = ids.split('/');
-      var send = {grn_numbers: angular.toJson(ids), data: true};
+
+      var send = data.join(",");
+      send = {data: send}
       vm.service.apiCall("generate_supplier_invoice/", "GET", send).then(function(data){
 
         // if (data.message) {
@@ -176,7 +187,7 @@ function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Servi
   vm.priceband_sync = Session.roles.permissions.priceband_sync;
 
   vm.model_data = items;
-  model_data.order_charges = [];
+  vm.model_data.order_charges = [];
   vm.model_data.temp_sequence_number = vm.model_data.sequence_number;
 
   vm.model_data.default_charge = function(){

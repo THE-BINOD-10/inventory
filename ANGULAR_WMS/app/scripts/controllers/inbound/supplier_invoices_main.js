@@ -179,7 +179,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             var grn_no = temp['GRN No'];
             grn_no = grn_no.split('/');
 
-            var send_data = JSON.stringify({grn_no: grn_no, seller_summary_name: supplier_name});
+            var send_data = JSON.stringify({grn_no: grn_no, seller_summary_name: supplier_name, seller_summary_id: temp['id']});
 
             data.push(send_data);
           }

@@ -38,8 +38,8 @@
               <input name="invoice_date" ui-jq="datepicker" ng-model="pop.model_data.inv_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" readonly>
             </div>
           </div>
-          <div class="col-md-4 col-sm-4 col-xs-6">
-            <div class="form-group" ng-if="pop.permissions.increment_invoice && pop.model_data.temp_sequence_number">
+          <div class="col-md-4 col-sm-4 col-xs-6" ng-if="pop.permissions.increment_invoice && pop.model_data.temp_sequence_number">
+            <div class="form-group">
               <label class="control-label">Invoice Number</label>
               <input name="invoice_number" ng-model="pop.model_data.sequence_number" class="form-control" type="text" ng-required="true" decimal-number>
               <input name="marketplace" value="{{pop.model_data.marketplace}}" class="form-control" type="hidden">
@@ -66,7 +66,7 @@
         <!--<th ng-if="permissions.show_mrp">MRP</center></th>-->
         <th><center>Qty</center></th>
         <th><center>Base Price</center></th>
-        <th><center>Disc</center></th>
+        <!-- <th><center>Disc</center></th> -->
         <th><center>Taxable Value</center></th>
         <th><center>CGST</center></th>
         <th><center>SGST</center></th>
@@ -96,7 +96,7 @@
             ng-change="pop.change_quantity(record)" style="width: 50px" ng-readonly="pop.model_data.blind_order && pop.permissions.use_imei">
         </td>
         <td>{{record.base_price | number:2}}</td>
-        <td class="text-right">{{record.discount | number:2}}<br><span class="tax-percentage">@{{record.discount_percentage}}%</span></td>
+        <!-- <td class="text-right">{{record.discount | number:2}}<br><span class="tax-percentage">@{{record.discount_percentage}}%</span></td> -->
         <td> {{record.amt | number:2}} </td>
         <td class="text-right">
           <input type="text" name="cgst_tax" ng-model="record.taxes.cgst_tax" value="{{record.taxes.cgst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width">

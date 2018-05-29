@@ -228,6 +228,7 @@ function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Servi
   vm.priceband_sync = Session.roles.permissions.priceband_sync;
 
   vm.model_data = items;
+  vm.model_data.order_charges = [];
   vm.model_data.temp_sequence_number = vm.model_data.sequence_number;
 
   vm.model_data.default_charge = function(){

@@ -410,6 +410,7 @@ def customer_order(request):
                     except Exception as exece:
                         import traceback
                         log.debug(traceback.format_exc())
+                        check_picklist_number_created(user, picklist_number)
                         if "Duplicate entry" in exece[1]:
                             order_detail = OrderDetail.objects.get(user=user_id, \
                                                                    order_id=order_id, \

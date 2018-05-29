@@ -152,7 +152,7 @@ class IncrementalTable(models.Model):
         db_table = 'INCREMENTAL_TABLE'
 
     def __unicode__(self):
-        return self.value
+        return str(self.value)
 
 
 class LocationMaster(models.Model):
@@ -353,6 +353,7 @@ class OpenPO(models.Model):
     sgst_tax = models.FloatField(default=0)
     cgst_tax = models.FloatField(default=0)
     igst_tax = models.FloatField(default=0)
+    cess_tax = models.FloatField(default=0)
     utgst_tax = models.FloatField(default=0)
     mrp = models.FloatField(default=0)
     status = models.CharField(max_length=32)
@@ -2098,6 +2099,7 @@ class TaxMaster(models.Model):
     cgst_tax = models.FloatField(default=0)
     sgst_tax = models.FloatField(default=0)
     igst_tax = models.FloatField(default=0)
+    cess_tax = models.FloatField(default=0)
     utgst_tax = models.FloatField(default=0)
     min_amt = models.FloatField(default=0)
     max_amt = models.FloatField(default=0)
@@ -2117,6 +2119,7 @@ class TaxMaster(models.Model):
             'cgst_tax': self.cgst_tax,
             'sgst_tax': self.sgst_tax,
             'igst_tax': self.igst_tax,
+            'cess_tax': self.cess_tax,
             'utgst_tax': self.utgst_tax,
             'min_amt': self.min_amt,
             'max_amt': self.max_amt,

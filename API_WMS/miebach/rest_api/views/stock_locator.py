@@ -5,7 +5,7 @@ import copy
 import json
 from django.db.models import Q, F
 from itertools import chain
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from itertools import groupby
 from django.contrib.auth import authenticate
 from django.contrib import auth
@@ -949,7 +949,9 @@ def insert_move_inventory(request, user=''):
     dest_loc = request.GET['dest_loc']
     quantity = request.GET['quantity']
     seller_id = request.GET.get('seller_id', '')
-    status = move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id)
+    batch_no = request.GET.get('batch_number', '')
+    mrp =request.GET.get('mrp', '')
+    status = move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, seller_id, batch_no=batch_no, mrp=mrp)
     if 'success' in status.lower():
         update_filled_capacity([source_loc, dest_loc], user.id)
 
@@ -1405,6 +1407,8 @@ def seller_stock_summary_data(request, user=''):
                                                                                     seller__seller_id=seller_id,
                                                                                     seller__user=user.id)
     zones_data = {}
+    industry_type = user.userprofile.industry_type
+    pallet_switch = get_misc_value('pallet_switch', user.id)
     for seller_stock in seller_stock_data:
         stock = seller_stock.stock
         res_qty = PicklistLocation.objects.filter(stock_id=stock.id, status=1, picklist__order__user=user.id). \
@@ -1417,12 +1421,24 @@ def seller_stock_summary_data(request, user=''):
             res_qty = 0
         if raw_reserved:
             res_qty = float(res_qty) + float(raw_reserved)
-        zones_data.setdefault(stock.location.zone.zone, {})
-        zones_data[stock.location.zone.zone].setdefault(stock.location.location, [0, 0])
-        zones_data[stock.location.zone.zone][stock.location.location][1] += res_qty
-        zones_data[stock.location.zone.zone][stock.location.location][0] += seller_stock.quantity
+        location = stock.location.location
+        zone = stock.location.zone.zone
+        pallet_number, batch, mrp = ['']*3
+        if pallet_switch == 'true' and stock.pallet_detail:
+            pallet_number = stock.pallet_detail.pallet_code
+        if industry_type == "FMCG" and stock.batch_detail:
+            batch_detail = stock.batch_detail
+            batch = batch_detail.batch_no
+            mrp = batch_detail.mrp
+        cond = str((zone, location, pallet_number, batch, mrp))
+        zones_data.setdefault(cond, {'zone': zone, 'location': location,
+                                                         'pallet_number': pallet_number, 'total_quantity': 0,
+                                                        'reserved_quantity': 0, 'batch': batch, 'mrp': mrp})
+        zones_data[cond]['total_quantity'] += seller_stock.quantity
+        zones_data[cond]['reserved_quantity'] += res_qty
+        #zones_data[stock.location.zone.zone][stock.location.location][0] += seller_stock.quantity
 
-    return HttpResponse(json.dumps({'zones_data': zones_data}))
+    return HttpResponse(json.dumps({'zones_data': zones_data.values()}))
 
 
 @csrf_exempt
@@ -1615,6 +1631,7 @@ def confirm_sku_substitution(request, user=''):
     log.info("Substitution Done For " + str(json.dumps(sub_data)))
 
     return HttpResponse('Successfully Updated')
+
 
 @csrf_exempt
 def get_inventory_modification(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
@@ -1968,3 +1985,18 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
                                                     ('Location', data.location.location),
                                                     ('Quantity', get_decimal_limit(user.id, data.quantity)),
                                                     ('Receipt Type', data.receipt_type))))
+
+
+@login_required
+@get_admin_user
+def get_sku_batches(request, user=''):
+    sku_batches = defaultdict(list)
+    sku_code = request.GET.get('sku_code')
+    sku_id = SKUMaster.objects.filter(user=user.id, sku_code=sku_code).only('id')
+    if sku_id:
+        sku_id = sku_id[0].id
+        batch_obj = BatchDetail.objects.filter(stockdetail__sku=sku_id).values('batch_no', 'mrp').distinct()
+        for batch in batch_obj:
+            sku_batches[batch['batch_no']].append(batch['mrp'])
+        sku_batches[batch['batch_no']] = list(set(sku_batches[batch['batch_no']]))
+    return HttpResponse(json.dumps({"sku_batches": sku_batches}))

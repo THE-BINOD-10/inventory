@@ -370,7 +370,6 @@
              POS_ENABLE_SYNC=true;
             checkSyncData(SYNC_POS_DATA,new MessageChannel()).then(function(data){
                 console.log(" sync POS  data "+data);
-                
                 sync_getCurrentOrderId().then(function(){
                    return resolve();
                 }).catch(function(){
@@ -379,7 +378,6 @@
                 
             }).catch(function(error){
                 console.log(" sync POS DATA failed "+error);
-
                 sync_getCurrentOrderId().then(function(){
                    return resolve();
                 }).catch(function(){
@@ -818,7 +816,7 @@
     function get_POS_Sync_Orders(){
         return new Promise(function(resolve,reject){
             openDB().then(function(){
-            POS_TABLES.sync_orders.
+            POS_TABLES.sync_orders.limit(10).
             toArray().
             then(function(data){
                 console.log("get sync pos orders "+data.length);
@@ -833,6 +831,23 @@
                 return reject(error);
             });
         });
+    }
+
+    function clearPOSSyncItems(data){
+        return new Promise(function (resolve, reject){
+              var clear_order_ids=[];
+              data.forEach(function(item){clear_order_ids.push(item.toString())});
+
+              POS_TABLES.sync_orders.
+                         where("order_id").anyOf(clear_order_ids).delete().
+                         then(function(del_Count){
+                            return resolve(del_Count); 
+                         }).catch(function(error){
+                            console.log(error);
+                            return reject(error);
+                         });
+        });
+
     }
 
     //get POS sync orders
@@ -1581,16 +1596,12 @@
                 yield POS_TABLES.order_delivered.toArray(function(delivered_orders){
 
                     for(var orders=0;orders<delivered_orders.length;orders++){
-
                         POS_TABLES.sync_orders.
                         where("order_id").equals(delivered_orders[orders].order_id).
                         modify(function(modify_order){
                             modify_order.order.status="0";
-
                         }).then(function(data){
-
                             if(data.length==0){
-
                                 POS_TABLES.pre_orders.
                                 where("order_id").equals(delivered_orders[orders].order_id).
                                 modify(function(modify_order){
@@ -1601,7 +1612,6 @@
                             }
                         });
                     }
-
 
                 }).catch(function(error){
 

@@ -15,9 +15,28 @@
              <div class="col-md-4 col-sm-4 col-xs-6">
                <div class="form-group">
                  <label cla4ss= control-label"> WMS Code * </label>
-                 <input type="text" autocomplete="off" name="wms_code" class="form-control" placeholder="Search WMS Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="WMSCodesLoading" ng-model="showCase.model_data.wms_code" ng-blur="showCase.service.checkSearchValue(showCase.model_data.wms_code ,'search_wms_codes?', $event, '', 'WMS Code')" required>
+                 <input type="text" autocomplete="off" name="wms_code" class="form-control" placeholder="Search WMS Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="WMSCodesLoading" ng-model="showCase.model_data.wms_code" ng-blur="showCase.service.checkSearchValue(showCase.model_data.wms_code ,'search_wms_codes?', $event, '', 'WMS Code'); showCase.get_sku_batches(showCase.model_data.wms_code)" required>
                </div>
              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.industry_type == 'FMCG'">
+                <div class="form-group">
+                  <label class="control-label"> Batch Number</label>
+                  <select class="form-control" name="batch_number" ng-model="showCase.model_data.batch_number">
+                    <option value="">Select Batch Number</option>
+                    <option ng-repeat="batch_no in showCase.batch_nos" value="{{batch_no}}">{{batch_no}}</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.industry_type == 'FMCG'">
+                <div class="form-group">
+                  <label class="control-label"> MRP</label>
+                  <select class="form-control" name="mrp" ng-model="showCase.model_data.mrp" ng-readonly="">
+                    <option value="">Select MRP</option>
+                    <option ng-repeat="mrp in showCase.batches[showCase.model_data.batch_number]" value="{{mrp}}">{{mrp}}</option>
+                  </select>
+                </div>
+              </div>
+
              <div class="col-md-4 col-sm-4 col-xs-6">
                <div class="form-group">
                  <label class="control-label"> Location * </label>

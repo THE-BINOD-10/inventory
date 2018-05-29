@@ -1596,16 +1596,12 @@
                 yield POS_TABLES.order_delivered.toArray(function(delivered_orders){
 
                     for(var orders=0;orders<delivered_orders.length;orders++){
-
                         POS_TABLES.sync_orders.
                         where("order_id").equals(delivered_orders[orders].order_id).
                         modify(function(modify_order){
                             modify_order.order.status="0";
-
                         }).then(function(data){
-
                             if(data.length==0){
-
                                 POS_TABLES.pre_orders.
                                 where("order_id").equals(delivered_orders[orders].order_id).
                                 modify(function(modify_order){
@@ -1616,7 +1612,6 @@
                             }
                         });
                     }
-
 
                 }).catch(function(error){
 

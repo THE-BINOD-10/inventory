@@ -338,43 +338,65 @@ importScripts('/app/data/offlineData.js');
 
    }
 
-   //sync POS offline added orders
-   function sync_POS_Orders(){
-
+   //sync locla orders
+   function sync_local_orders(){
+		
    		return new Promise(function(resolve,reject){
-
-      		get_POS_Sync_Orders().
-         		then(function(data){
-                   
-                   if(data.length>0){
-                   	var sync_data=[]; 
-                   	data.forEach(function(item){
-                   		sync_data.push(JSON.parse(item.order));
-                   	});
-                    
-                    var content='order=' + encodeURIComponent(JSON.stringify(sync_data));
-                    
-                    getServerData(REQUEST_METHOD_POST,SYNC_POS_ORDERS_API,content).
-                   				then(function(sync_order_ids){
-                   					console.log("sync ids"+sync_order_ids);
-                   					var sync_data_list=JSON.parse(sync_order_ids);
-                                	clearPOSSyncItems(sync_data_list.order_ids).
-                                		then(function(clear_count){
-											sync_POS_Orders();										
-                   						}).catch(function(error){
-                   							console.log(error);
-                   						});
-                   				}).catch(function(error){
-                   					return reject(error);
-                   				});
-                   }else{
-                   		return resolve(true);
-                   }
-         		});
-	    });
+   			
+   			  get_POS_Sync_Orders().
+	         		then(function(data){
+	                   if(data.length>0){
+	                   	var sync_data=[]; 
+	                   	data.forEach(function(item){
+	                   		sync_data.push(JSON.parse(item.order));
+	                   	});
+	                    
+	                    var content='order=' + encodeURIComponent(JSON.stringify(sync_data));
+	                    
+	                    getServerData(REQUEST_METHOD_POST,SYNC_POS_ORDERS_API,content).
+	                   				then(function(sync_order_ids){
+	                   					console.log("sync ids"+sync_order_ids);
+	                   					var sync_data_list=JSON.parse(sync_order_ids);
+	                                	clearPOSSyncItems(sync_data_list.order_ids).
+	                                		then(function(clear_count){
+												return resolve(1);																		
+	                   						}).catch(function(error){
+	                   							return reject(error);
+	                   						});
+	                   				}).catch(function(error){
+	                   					return reject(error);
+	                   				});
+	                   }else{
+	                      return resolve(0);
+	                   }
+	         		});		
+   			     		
+	    });   	
    }
 
 
+   //sync POS offline added orders
+   function sync_POS_Orders(){
+
+		var local_sync=Promise.resolve();
+		var val=true;
+		SPWAN(function*(){
+			while(val){
+				yield sync_local_orders().
+	   				then(function(data){
+	   					if(data==0){
+	   						val=false;
+	   						return resolve(true);
+	   					}	
+	   				}).catch(function * (error){
+	   					val=false;
+						return resolve(error);
+	   				});
+	   		}
+   		});
+		
+		
+   }
 
 	//sync POS preorder transactions 
 	function sync_Preorder_offline_delivered(){
@@ -626,6 +648,4 @@ importScripts('/app/data/offlineData.js');
 			  });
 	  	});
 	}
-
- 
 }());

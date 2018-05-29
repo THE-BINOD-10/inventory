@@ -6747,3 +6747,30 @@ def get_batch_dict(transact_id, transact_type):
         if batch_dict['manufactured_date']:
             batch_dict['manufactured_date'] = batch_dict['manufactured_date'].strftime('%m/%d/%Y')
     return batch_dict
+
+
+def get_po_challan_number(user, seller_po_summary):
+    challan_num = ""
+    chn_date = datetime.datetime.now()
+    challan_num = seller_po_summary[0].challan_number
+    if not challan_num:
+        challan_sequence = ChallanSequence.objects.filter(user=user.id, status=1)
+        if not challan_sequence:
+            challan_sequence = ChallanSequence.objects.filter(user=user.id)
+        if challan_sequence:
+            challan_sequence = challan_sequence[0]
+            challan_num = int(challan_sequence.value)
+            order_no = challan_sequence.prefix + str(challan_num).zfill(3)
+            seller_po_summary.update(challan_number=order_no)
+            challan_sequence.value = challan_num + 1
+            challan_sequence.save()
+        else:
+            ChallanSequence.objects.create(prefix='CHN', value=1, status=1, user_id=user.id,
+                                           creation_date=datetime.datetime.now())
+            order_no = '001'
+            challan_num = int(order_no)
+    else:
+        log.info("Challan No not updated for seller_order_summary")
+    challan_number = 'CHN/%s/%s' % (chn_date.strftime('%m%y'), challan_num)
+
+    return challan_number, challan_num

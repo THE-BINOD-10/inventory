@@ -93,7 +93,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               status = true;
             }
             field_name = temp['check_field'];
-            data.push(temp['GRN No.']);
+            data.push(temp['GRN No']);
           }
         });
       }
@@ -143,7 +143,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               status = true;
             }
             field_name = temp['check_field'];
-            data.push(temp['GRN No.']);
+            data.push(temp['GRN No']);
           }
         });
       }
@@ -155,7 +155,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         var ids = data.join(",");
         ids = ids.split('/');
         var send = {grn_numbers: angular.toJson(ids)};
-        if(grn_no && field_name == 'GRN No.') {
+        if(grn_no && field_name == 'GRN No') {
           send['sor_id'] = grn_no;
         }
         if(click_type == 'edit'){

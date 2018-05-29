@@ -5909,7 +5909,8 @@ def get_supplier_invoice_data(start_index, stop_index, temp_data, search_term, o
            'purchase_order__open_po__order_quantity', 'quantity', 'date_only', 'id', 'invoice_number']
     user_filter = {'purchase_order__open_po__sku__user': user.id, 'order_status_flag': 'supplier_invoices'}
     result_values = ['receipt_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name',
-                     'purchase_order__creation_date', 'id', 'invoice_number']
+                     'invoice_number']
+                     #'purchase_order__creation_date', 'id', 'invoice_number']
     field_mapping = {'date_only': 'purchase_order__creation_date'}
     is_marketplace = False
 
@@ -5956,8 +5957,10 @@ def get_supplier_invoice_data(start_index, stop_index, temp_data, search_term, o
                                  ('PO Quantity', data['total_ordered']),
                                  ('Received Quantity', data['total_received']),
                                  ('Order Date', po_date),
-                                 ('Total Amount', 0), ('id', data['id']),
-                                 ('Invoice ID', data['invoice_number'])
+                                 ('Total Amount', 0), ('id', data.get('id', 0)),
+                                 ('Invoice ID', data['invoice_number']),
+                                 ('receipt_number', data['receipt_number']),
+                                 ('purchase_order__order_id', data['purchase_order__order_id'])
                                ))
         temp_data['aaData'].append(data_dict)
 
@@ -5972,8 +5975,8 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
     lis = ['purchase_order_id', 'purchase_order_id', 'purchase_order__open_po__supplier__name',
            'purchase_order__open_po__order_quantity', 'quantity', 'date_only', 'id', 'challan_number']
     user_filter = {'purchase_order__open_po__sku__user': user.id, 'order_status_flag': 'po_challans'}
-    result_values = ['challan_number', 'receipt_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name',
-                     'purchase_order__creation_date', 'id']
+    result_values = ['challan_number', 'receipt_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name']
+                     #'purchase_order__creation_date', 'id']
     field_mapping = {'date_only': 'purchase_order__creation_date'}
     is_marketplace = False
 
@@ -6020,8 +6023,10 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
                                  ('PO Quantity', data['total_ordered']),
                                  ('Received Quantity', data['total_received']),
                                  ('Order Date', po_date),
-                                 ('Total Amount', 0), ('id', data['id']),
-                                 ('Challan ID', data['challan_number'])
+                                 ('Total Amount', 0), ('id', data.get('id', 0)),
+                                 ('Challan ID', data['challan_number']),
+                                 ('receipt_number', data['receipt_number']),
+                                 ('purchase_order__order_id', data['purchase_order__order_id'])
                                ))
         temp_data['aaData'].append(data_dict)
 
@@ -6036,8 +6041,8 @@ def get_processed_po_data(start_index, stop_index, temp_data, search_term, order
     lis = ['purchase_order_id', 'purchase_order_id', 'purchase_order__open_po__supplier__name',
            'purchase_order__open_po__order_quantity', 'quantity', 'date_only', 'id']
     user_filter = {'purchase_order__open_po__sku__user': user.id, 'order_status_flag': 'processed_pos'}
-    result_values = ['receipt_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name',
-                     'purchase_order__creation_date', 'id']
+    result_values = ['receipt_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name']
+                     #'purchase_order__creation_date', 'id']
     field_mapping = {'date_only': 'purchase_order__creation_date'}
     is_marketplace = False
 
@@ -6045,6 +6050,7 @@ def get_processed_po_data(start_index, stop_index, temp_data, search_term, order
         search_term = search_term.replace('(', '\(').replace(')', '\)')
         search_query = build_search_term_query(lis, search_term)
    #need to add 
+
 
     elif order_term:
         if order_term == 'asc' and (col_num or col_num == 0):
@@ -6084,7 +6090,9 @@ def get_processed_po_data(start_index, stop_index, temp_data, search_term, order
                                  ('PO Quantity', data['total_ordered']),
                                  ('Received Quantity', data['total_received']),
                                  ('Order Date', po_date),
-                                 ('Total Amount', 0), ('id', data['id'])
+                                 ('Total Amount', 0), ('id', data.get('id', 0)),
+                                 ('receipt_number', data['receipt_number']),
+                                 ('purchase_order__order_id', data['purchase_order__order_id'])
                                ))
         temp_data['aaData'].append(data_dict)
 
@@ -6148,3 +6156,104 @@ def move_to_inv(request, user=''):
         return HttpResponse(json.dumps({'message': 'failed'}))
 
 
+
+@csrf_exempt
+@get_admin_user
+def generate_supplier_invoice(request, user=''):
+    data = []
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    order_date = ''
+    order_id = ''
+    total_quantity = 0
+    total_amt = 0
+    total_invoice = 0
+    total_tax = 0
+    total_mrp = 0
+    order_no = ''
+    merge_data = {}
+    data_dict = dict(request.GET.iterlists())
+    log.info('Request params for ' + user.username + ' is ' + str(request.GET.dict()))
+    admin_user = get_priceband_admin_user(user)
+    try:
+        seller_summary_dat = data_dict.get('seller_summary_id', '')
+        seller_summary_dat = seller_summary_dat[0]
+        sell_ids = {}
+        field_mapping = {}
+        sell_ids['order__user'] = user.id
+        field_mapping['order_id_in'] = 'order__order_id__in'
+        field_mapping['sku_code'] = 'order__sku__sku_code'
+        field_mapping['order_id'] = 'order_id'
+        seller_summary_dat = seller_summary_dat.split(',')
+        all_data = OrderedDict()
+        seller_order_ids = []
+        pick_number = 1
+        for data_id in seller_summary_dat:
+            splitted_data = data_id.split(':')
+            sell_ids.setdefault(field_mapping['order_id_in'], [])
+            sell_ids.setdefault('pick_number__in', [])
+            sell_ids[field_mapping['order_id_in']].append(splitted_data[0])
+            sell_ids['pick_number__in'].append(splitted_data[1])
+            pick_number = splitted_data[1]
+        seller_summary = SellerOrderSummary.objects.filter(**sell_ids)
+        order_ids = list(seller_summary.values_list(field_mapping['order_id'], flat=True))
+        order_ids = map(lambda x: str(x), order_ids)
+        order_ids = ','.join(order_ids)
+        summary_details = seller_summary.values(field_mapping['sku_code']).distinct().annotate(
+            total_quantity=Sum('quantity'))
+        for detail in summary_details:
+            if not detail[field_mapping['sku_code']] in merge_data.keys():
+                merge_data[detail[field_mapping['sku_code']]] = detail['total_quantity']
+            else:
+                merge_data[detail[field_mapping['sku_code']]] += detail['total_quantity']
+
+        invoice_data = get_invoice_data(order_ids, user, merge_data=merge_data, is_seller_order=True, sell_ids=sell_ids)
+        edit_invoice = request.GET.get('edit_invoice', '')
+        edit_dc = request.GET.get('edit_dc', '')
+        if edit_invoice != 'true' or edit_dc != 'true':
+            invoice_data = modify_invoice_data(invoice_data, user)
+        ord_ids = order_ids.split(",")
+        invoice_data = add_consignee_data(invoice_data, ord_ids, user)
+        invoice_date = datetime.datetime.now()
+        if seller_summary:
+            if seller_summary[0].seller_order:
+                seller = seller_summary[0].seller_order.seller
+                order = seller_summary[0].seller_order.order
+            else:
+                order = seller_summary[0].order
+
+            invoice_date = seller_summary.order_by('-creation_date')[0].creation_date
+        invoice_date = get_local_date(user, invoice_date, send_date='true')
+        inv_month_year = invoice_date.strftime("%m-%y")
+        invoice_data['invoice_time'] = invoice_date.strftime("%H:%M")
+        invoice_date = invoice_date.strftime("%d %b %Y")
+        invoice_no = invoice_data['invoice_no']
+        if is_marketplace:
+            # invoice_no = user_profile.prefix + '/' + str(inv_month_year) + '/' + 'A-' + str(order.order_id)
+            # invoice_data['order_id'] = sor_id
+            invoice_data['sor_id'] = sor_id
+        if not len(set(sell_ids.get('pick_number__in', ''))) > 1:
+            invoice_no = invoice_no + '/' + str(max(map(int, sell_ids.get('pick_number__in', ''))))
+        invoice_data['invoice_no'] = invoice_no
+        invoice_data['pick_number'] = pick_number
+        invoice_data = add_consignee_data(invoice_data, ord_ids, user)
+        return_data = request.GET.get('data', '')
+        delivery_challan = request.GET.get('delivery_challan', '')
+        if delivery_challan == "true":
+            invoice_data['total_items'] = len(invoice_data['data'])
+            invoice_data['data'] = pagination(invoice_data['data'])
+            invoice_data['username'] = user.username
+            return render(request, 'templates/toggle/delivery_challan.html', invoice_data)
+        elif return_data:
+            invoice_data = json.dumps(invoice_data)
+        elif get_misc_value('show_imei_invoice', user.id) == 'true':
+            invoice_data = build_marketplace_invoice(invoice_data, user, False)
+        else:
+            invoice_data = build_invoice(invoice_data, user, False)
+
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Create customer invoice failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.GET.dict()), str(e)))
+        return HttpResponse(json.dumps({'message': 'failed'}))
+    return HttpResponse(invoice_data)

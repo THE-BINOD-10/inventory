@@ -6090,13 +6090,18 @@ def get_processed_po_data(start_index, stop_index, temp_data, search_term, order
 @csrf_exempt
 @get_admin_user
 def move_to_poc(request, user=''):
+    sell_ids = []
     cancel_flag = request.GET.get('cancel', '')
     if cancel_flag == 'true':
         status_flag = 'processed_pos'
         # sell_ids = construct_sell_ids(request, user)
     else:
         status_flag = 'po_challans'
-    sell_ids = request.GET.get('supplier_summary_id')
+    req_data = request.GET.get('data', '')
+    if req_data:
+        req_data = eval(req_data)
+        for item in req_data:
+            sell_ids.append(item['seller_summary_id'])
     seller_summary = SellerPOSummary.objects.filter(id__in=sell_ids)
     chn_no, chn_sequence = get_po_challan_number(user, seller_summary)
     try:
@@ -6115,8 +6120,12 @@ def move_to_poc(request, user=''):
 @get_admin_user
 def move_to_inv(request, user=''):
     cancel_flag = request.GET.get('cancel', '')
-    #sell_ids = construct_sell_ids(request, user)
-    sell_ids = request.GET.get('supplier_summary_id')
+    sell_ids = []
+    req_data = request.GET.get('data', '')
+    if req_data:
+        req_data = eval(req_data)
+        for item in req_data:
+            sell_ids.append(item['seller_summary_id'])
     seller_summary = SellerOrderSummary.objects.filter(id__in=sell_ids)
     try:
         for sel_obj in seller_summary:

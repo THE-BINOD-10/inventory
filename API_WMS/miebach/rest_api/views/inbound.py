@@ -5906,10 +5906,10 @@ def get_supplier_invoice_data(start_index, stop_index, temp_data, search_term, o
     user_profile = UserProfile.objects.get(user_id=user.id)
     admin_user = get_priceband_admin_user(user)
     lis = ['purchase_order_id', 'purchase_order_id', 'purchase_order__open_po__supplier__name',
-           'purchase_order__open_po__order_quantity', 'quantity', 'date_only', 'id']
+           'purchase_order__open_po__order_quantity', 'quantity', 'date_only', 'id', 'invoice_number']
     user_filter = {'purchase_order__open_po__sku__user': user.id, 'order_status_flag': 'supplier_invoices'}
     result_values = ['receipt_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name',
-                     'purchase_order__creation_date', 'id']
+                     'purchase_order__creation_date', 'id', 'invoice_number']
     field_mapping = {'date_only': 'purchase_order__creation_date'}
     is_marketplace = False
 
@@ -5956,7 +5956,8 @@ def get_supplier_invoice_data(start_index, stop_index, temp_data, search_term, o
                                  ('PO Quantity', data['total_ordered']),
                                  ('Received Quantity', data['total_received']),
                                  ('Order Date', po_date),
-                                 ('Total Amount', 0), ('id', data['id'])
+                                 ('Total Amount', 0), ('id', data['id']),
+                                 ('Invoice ID', data['invoice_number'])
                                ))
         temp_data['aaData'].append(data_dict)
 
@@ -5969,9 +5970,9 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
     user_profile = UserProfile.objects.get(user_id=user.id)
     admin_user = get_priceband_admin_user(user)
     lis = ['purchase_order_id', 'purchase_order_id', 'purchase_order__open_po__supplier__name',
-           'purchase_order__open_po__order_quantity', 'quantity', 'date_only', 'id']
+           'purchase_order__open_po__order_quantity', 'quantity', 'date_only', 'id', 'challan_number']
     user_filter = {'purchase_order__open_po__sku__user': user.id, 'order_status_flag': 'po_challans'}
-    result_values = ['receipt_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name',
+    result_values = ['challan_number', 'receipt_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name',
                      'purchase_order__creation_date', 'id']
     field_mapping = {'date_only': 'purchase_order__creation_date'}
     is_marketplace = False
@@ -6019,7 +6020,8 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
                                  ('PO Quantity', data['total_ordered']),
                                  ('Received Quantity', data['total_received']),
                                  ('Order Date', po_date),
-                                 ('Total Amount', 0), ('id', data['id'])
+                                 ('Total Amount', 0), ('id', data['id']),
+                                 ('Challan ID', data['challan_number'])
                                ))
         temp_data['aaData'].append(data_dict)
 

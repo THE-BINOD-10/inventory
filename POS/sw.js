@@ -377,26 +377,24 @@ importScripts('/app/data/offlineData.js');
 
    //sync POS offline added orders
    function sync_POS_Orders(){
-
-		var local_sync=Promise.resolve();
-		var val=true;
-		SPWAN(function*(){
-			while(val){
-				yield sync_local_orders().
-	   				then(function(data){
-	   					if(data==0){
-	   						val=false;
-	   						return resolve(true);
-	   					}	
-	   				}).catch(function * (error){
-	   					val=false;
-						return resolve(error);
-	   				});
-	   		}
-   		});
-		
-		
-   }
+		return new Promise(function(resolve,reject){
+			var val=true;
+			SPWAN(function*(){
+				while(val){
+					yield sync_local_orders().
+		   				then(function(data){
+		   					if(data==0){
+		   						val=false;
+		   						return resolve(true);
+		   					}	
+		   				}).catch(function * (error){
+		   					val=false;
+							return reject(error);
+		   				});
+		   		}
+	   		});
+		});
+	}
 
 	//sync POS preorder transactions 
 	function sync_Preorder_offline_delivered(){

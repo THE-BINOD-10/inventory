@@ -957,6 +957,7 @@ def switches(request, user=''):
                        'shelf_life_ratio': 'shelf_life_ratio',
                        'mode_of_transport': 'mode_of_transport',
                        'show_purchase_history': 'show_purchase_history',
+                       'disable_categories_view': 'disable_categories_view'
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

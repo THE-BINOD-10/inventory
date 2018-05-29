@@ -97,7 +97,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           var grn_no = temp['GRN No'];
           grn_no = grn_no.split('/');
 
-          var send_data = JSON.stringify({grn_no: grn_no, seller_summary_name: supplier_name, seller_summary_id: temp['id']});
+          var send_data = JSON.stringify({
+            grn_no: grn_no, 
+            seller_summary_name: supplier_name, 
+            seller_summary_id: temp['id'], 
+            purchase_order__order_id: temp['purchase_order__order_id'],
+            receipt_number: temp['receipt_number']
+          });
 
           data.push(send_data);
         }
@@ -170,6 +176,7 @@ function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Servi
   vm.priceband_sync = Session.roles.permissions.priceband_sync;
 
   vm.model_data = items;
+  model_data.order_charges = [];
   vm.model_data.temp_sequence_number = vm.model_data.sequence_number;
 
   vm.model_data.default_charge = function(){

@@ -2840,11 +2840,6 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         custom_margin = 0
 
     admin_user = get_priceband_admin_user(user)
-    msp_min_price = msp_max_price = 0
-    if admin_user and from_price and to_price:
-        msp_min_price = from_price
-        msp_max_price = to_price
-        from_price = to_price = ''
     is_margin_percentage = request_data.get('is_margin_percentage', 'false')
     specific_margins = request_data.get('margin_data', [])
     customer_data_id = request_data.get('customer_data_id', '')
@@ -2894,21 +2889,21 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         filter_params['id__in'] = hot_release_data
         filter_params1['id__in'] = hot_release_data
 
+    if admin_user:
+        filter_params1['sku__user'] = admin_user.id
+    else:
+        filter_params1['sku__user'] = user.id
     start, stop = indexes.split(':')
     start, stop = int(start), int(stop)
     if sku_class:
         filter_params['sku_class__icontains'] = sku_class
         filter_params1['sku__sku_class__icontains'] = sku_class
 
+    all_pricing_ids = PriceMaster.objects.filter(sku__user=user.id, price_type=price_type).values_list('sku_id',
+                                                                                                       flat=True)
     if is_margin_percentage == 'true':
-        if admin_user:
-            pricemaster = PriceMaster.objects.prefetch_related('sku').filter(sku__user=admin_user.id, price_type=price_type). \
-                annotate(new_price=F('price') + ((F('price') / Value(100)) * Value(custom_margin))).filter(
-                **filter_params1)
-        else:
-            pricemaster = PriceMaster.objects.prefetch_related('sku').filter(sku__user=user.id, price_type=price_type). \
-                annotate(new_price=F('price') + ((F('price') / Value(100)) * Value(custom_margin))).filter(
-                **filter_params1)
+        pricemaster = PriceMaster.objects.prefetch_related('sku').filter(price_type=price_type).annotate(
+            new_price=F('price') + ((F('price') / Value(100)) * Value(custom_margin))).filter(**filter_params1)
         if price_field == 'price':
             dis_percent = 0
             if customer_master:
@@ -2916,32 +2911,28 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
             sku_master1 = SKUMaster.objects.exclude(sku_class='').\
                     annotate(n_price=F(price_field)*(1-(Value(dis_percent)/Value(100)))).annotate(
                     new_price=F('n_price') + (F('n_price') / Value(100)) * Value(custom_margin)).\
-            filter(pricemaster__isnull=True, **filter_params)
+            filter(**filter_params).exclude(id__in=all_pricing_ids)
         else:
             markup = 0
             if customer_master:
-                markup = customer_master.markup
+                markup = customer_master[0].markup
             sku_master1 = SKUMaster.objects.exclude(sku_class='').\
                 annotate(n_price=F(price_field) * (1+(Value(markup) / Value(100)))).\
                 annotate(new_price=F('n_price') + (F('n_price') / Value(100)) * Value(custom_margin)). \
-            filter(pricemaster__isnull=True, **filter_params)
+            filter(**filter_params).exclude(id__in=all_pricing_ids)
         if filter_params.has_key('new_price__lte'):
             del filter_params['new_price__lte']
         if filter_params.has_key('new_price__gte'):
             del filter_params['new_price__gte']
         sku_master2 = SKUMaster.objects.exclude(sku_class='').filter(
-            id__in=pricemaster.values_list('sku_id', flat=True)).filter(**filter_params)
+                sku_code__in=pricemaster.values_list('sku__sku_code', flat=True)).filter(**filter_params)
         sku_master = sku_master1 | sku_master2
         sku_prices = dict(sku_master.only('id', 'new_price').values_list('id', 'new_price'))
         pricemaster_prices = dict(pricemaster.only('sku_id', 'new_price').values_list('sku_id', 'new_price'))
         prices_dict = dict(sku_prices.items() + pricemaster_prices.items())
     else:
-        if admin_user:
-            pricemaster = PriceMaster.objects.filter(sku__user=admin_user.id, price_type=price_type). \
-                annotate(new_price=F('price') + Value(custom_margin)).filter(**filter_params1)
-        else:
-            pricemaster = PriceMaster.objects.filter(sku__user=user.id, price_type=price_type). \
-                annotate(new_price=F('price') + Value(custom_margin)).filter(**filter_params1)
+        pricemaster = PriceMaster.objects.filter(price_type=price_type).annotate(
+            new_price=F('price') + Value(custom_margin)).filter(**filter_params1)
         if price_field == 'price':
             dis_percent = 0
             if customer_master:
@@ -2949,15 +2940,15 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
             sku_master1 = SKUMaster.objects.exclude(sku_class='').\
                             annotate(n_price=F(price_field)*(1-(Value(dis_percent)/Value(100)))).\
                             annotate(new_price=F('n_price') + Value(custom_margin)).\
-                            filter(pricemaster__isnull=True, **filter_params)
+                            filter(**filter_params).exclude(id__in=all_pricing_ids)
         else:
             markup = 0
             if customer_master:
-                markup = customer_master.markup
+                markup = customer_master[0].markup
             sku_master1 = SKUMaster.objects.exclude(sku_class='').\
                             annotate(n_price=F(price_field)*(1+(Value(markup)/Value(100)))).\
                             annotate(new_price=F('n_price') + Value(custom_margin)).\
-                            filter(pricemaster__isnull=True, **filter_params)
+                            filter(**filter_params).exclude(id__in=all_pricing_ids)
 
         if filter_params.has_key('new_price__lte'):
             del filter_params['new_price__lte']
@@ -3017,9 +3008,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
                            customer_data_id=customer_data_id, is_file=is_file, prices_dict=prices_dict,
                            price_type=price_type, custom_margin=custom_margin, specific_margins=specific_margins,
                            is_margin_percentage=is_margin_percentage, stock_quantity=quantity,
-                           msp_min_price=msp_min_price, msp_max_price=msp_max_price, delivery_date=delivery_date,
                            needed_stock_data=needed_stock_data)
-    print data
     return data, start, stop
 
 
@@ -3938,7 +3927,7 @@ def get_cal_style_data(style_data, quantity):
 @fn_timer
 def get_styles_data(user, product_styles, sku_master, start, stop, request, customer_id='', customer_data_id='', is_file='',
                     prices_dict={}, price_type='', custom_margin=0, specific_margins=[], is_margin_percentage=0,
-                    stock_quantity=0, msp_min_price=0, msp_max_price=0, delivery_date='', needed_stock_data={}):
+                    stock_quantity=0, needed_stock_data={}):
     data = []
     style_quantities = eval(request.POST.get('required_quantity', '{}'))
     levels_config = get_misc_value('generic_wh_level', user.id)
@@ -4004,11 +3993,7 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
                     tax_percentage = float(tax['sgst_tax']) + float(tax['igst_tax']) + float(tax['cgst_tax'])
                     sku_styles[0]['tax_percentage'] = '%.1f'%tax_percentage
             if total_quantity >= int(stock_quantity):
-                if msp_min_price and msp_max_price:
-                    if float(msp_min_price) <= sku_variants[0]['your_price'] <= float(msp_max_price):
-                        data.append(sku_styles[0])
-                else:
-                    data.append(sku_styles[0])
+                data.append(sku_styles[0])
         if not is_file and len(data) >= 20:
             break
     return data
@@ -5548,14 +5533,16 @@ def get_warehouse_admin(user):
 @fn_timer
 def get_picklist_number(user):
     """ Get the Latest Picklist number"""
-    #picklist_obj = Picklist.objects.filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id)).values_list(
-    #    'picklist_number',
-    #    flat=True).distinct().order_by('-picklist_number')
-    picklist_obj = Picklist.objects.filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id))
-    if not picklist_obj.exists():
-        picklist_number = 1000
-    else:
-        picklist_number = picklist_obj.latest('picklist_number').picklist_number
+    # #picklist_obj = Picklist.objects.filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id)).values_list(
+    # #    'picklist_number',
+    # #    flat=True).distinct().order_by('-picklist_number')
+    # picklist_obj = Picklist.objects.filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id))
+    # if not picklist_obj.exists():
+    #     picklist_number = 1000
+    # else:
+    #     picklist_number = picklist_obj.latest('picklist_number').picklist_number
+    picklist_number = get_incremental(user, 'picklist')
+    picklist_number = picklist_number - 1
     return picklist_number
 
 
@@ -5904,7 +5891,6 @@ def open_orders_allocate_stock(request, user, sku_combos, sku_open_orders, all_s
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
                    'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
     remarks = 'Auto-generated Picklist'
-    from outbound import picklist_generation, get_sku_stock, get_picklist_number
     consumed_qty = 0
     for open_order in sku_open_orders:
         picklist_number = picklist_order_mapping.get(open_order.original_order_id, '')
@@ -5928,7 +5914,6 @@ def open_orders_allocate_stock(request, user, sku_combos, sku_open_orders, all_s
         else:
             stock_status, picklist_number = picklist_generation([open_order], request, picklist_number, user,
                                                                 sku_combos, stock_objs, switch_vals, status='open', remarks=remarks)
-
     return picklist_order_mapping
 
 
@@ -6015,6 +6000,9 @@ def order_allocate_stock(request, user, stock_data=[], mapping_type=''):
                 open_order_args.append(picklist_order_mapping)
                 picklist_order_mapping = open_orders_allocate_stock(*open_order_args)
 
+        suggested_picklist_numbers = list(set(picklist_order_mapping.values()))
+        for pick_number in suggested_picklist_numbers:
+            check_picklist_number_created(user, pick_number+1)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -6873,7 +6861,7 @@ def get_customer_and_price_type(request, user, customer_data_id, customer_id):
             request_user = user.id
         user_type = CustomerUserMapping.objects.filter(user=request_user)
         if user_type:
-            customer_master = user_type[0].customer
+            customer_master = [user_type[0].customer]
             customer_data_id = user_type[0].customer.customer_id
             customer_id = user_type[0].customer_id
             is_distributor = user_type[0].customer.is_distributor
@@ -6919,3 +6907,32 @@ def get_gen_wh_ids(request, user, delivery_date):
             gen_whs = [user.id]
             gen_whs.extend(list(nw_gen_whs))
     return gen_whs
+
+
+def get_incremental(user, type_name):
+    # custom sku counter
+    default = 1001
+    data = IncrementalTable.objects.filter(user=user.id, type_name=type_name)
+    if data:
+        data = data[0]
+        count = data.value + 1
+        data.value = data.value + 1
+        data.save()
+    else:
+        IncrementalTable.objects.create(user_id=user.id, type_name=type_name, value=1001)
+        count = default
+    return count
+
+
+def check_and_update_picklist_number(table_value, user, type_name):
+    table_value = int(table_value)
+    data = IncrementalTable.objects.filter(user=user.id, type_name=type_name)
+    if data and int(data[0].value) == table_value:
+        IncrementalTable.objects.filter(user=user.id, type_name=type_name).update(value=table_value-1)
+
+
+def check_picklist_number_created(user, picklist_number):
+    pick_check_obj = Picklist.objects.filter(Q(order__user=user.id) | Q(stock__sku__user=user.id),
+                                             picklist_number=picklist_number)
+    if not pick_check_obj.exists():
+        check_and_update_picklist_number(picklist_number, user, 'picklist')

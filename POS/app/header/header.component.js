@@ -123,6 +123,7 @@
 	window.addEventListener('offline', function(e) {
 	  console.log("Connection is flaky.");
 	  urlService.show_toast(NETWORK_ERROR);
+	  POS_ENABLE_SYNC=false;
 	}, false);
 
 	//show toast  message on POS

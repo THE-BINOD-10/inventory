@@ -559,6 +559,8 @@ def generate_picklist(request, user=''):
     else:
         stock_status = ''
 
+    check_picklist_number_created(user, picklist_number+1)
+
     show_image = 'false'
     use_imei = 'false'
     order_status = ''
@@ -657,6 +659,7 @@ def batch_generate_picklist(request, user=''):
     else:
         stock_status = ''
 
+    check_picklist_number_created(user, picklist_number + 1)
     order_status = ''
     data, sku_total_quantities = get_picklist_data(picklist_number + 1, user.id)
     if data:
@@ -2722,6 +2725,7 @@ def st_generate_picklist(request, user=''):
     else:
         stock_status = ''
 
+    check_picklist_number_created(user, picklist_number + 1)
     order_status = ''
     data, sku_total_quantities = get_picklist_data(picklist_number + 1, user.id)
     if data:
@@ -3583,6 +3587,7 @@ def check_stocks(order_sku, user, request, order_objs):
     for order_obj in order_objs:
         picklist_generation([order_obj], request, picklist_number, user, sku_combos, sku_stocks, switch_vals, status='open',
                             remarks='Auto-generated Picklist')
+    check_picklist_number_created(user, picklist_number + 1)
 
     return "Order created, Picklist generated Successfully"
 
@@ -5884,9 +5889,9 @@ def order_category_generate_picklist(request, user=''):
         stock_status = 'Insufficient Stock for SKU Codes ' + ', '.join(list(set(out_of_stock)))
     else:
         stock_status = ''
-
     order_status = ''
 
+    check_picklist_number_created(user, picklist_number + 1)
     data, sku_total_quantities = get_picklist_data(picklist_number + 1, user.id)
     if data:
         order_status = data[0]['status']
@@ -6103,6 +6108,7 @@ def picklist_delete(request, user=""):
             not_picked_objs = picklist_objs.filter(picked_quantity=0)
             if not_picked_objs.exists():
                 not_picked_objs.delete()
+                check_and_update_picklist_number(picklist_id, user, 'picklist')
             if picked_objs.exists():
                 pick_obj_status = picked_objs[0].status
                 if 'batch' in pick_obj_status:
@@ -6187,6 +6193,7 @@ def picklist_delete(request, user=""):
                         pick_location.save()
                     pick_order.update(reserved_quantity=0, status=pick_status)
 
+            check_picklist_number_created(user, picklist_id)
             end_time = datetime.datetime.now()
             duration = end_time - st_time
             log.info("process completed")
@@ -7645,6 +7652,7 @@ def seller_generate_picklist(request, user=''):
         else:
             stock_status = ''
 
+        check_picklist_number_created(user, picklist_number + 1)
         show_image = 'false'
         use_imei = 'false'
         order_status = ''
@@ -7925,21 +7933,6 @@ def get_sub_category_styles(request, user=''):
 
     resp['data'] = sku_data
     return HttpResponse(json.dumps(resp))
-
-
-def get_incremental(user, type_name):
-    # custom sku counter
-    default = 1000
-    data = IncrementalTable.objects.filter(user=user.id, type_name=type_name)
-    if data:
-        data = data[0]
-        count = data.value + 1
-        data.value = data.value + 1
-        data.save()
-    else:
-        IncrementalTable.objects.create(user_id=user.id, type_name=type_name, value=1001)
-        count = default
-    return count
 
 
 def save_custom_order_images(user, request, sku_class):
@@ -8880,5 +8873,4 @@ def print_cartons_data_view(request, user=''):
                   'shipment_number': shipment_number, 'company_address': address,
                   'shipment_date': shipment_date, 'company_name': company_name, 'truck_number':truck_number,
                   'courier_name': courier_name, 'data': data.values()}
-
     return render(request, 'templates/toggle/print_cartons_wise_qty.html', final_data)

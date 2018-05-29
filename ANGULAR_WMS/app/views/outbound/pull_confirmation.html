@@ -2,7 +2,7 @@
   <div class='layout-header'>
     <div class="pull-left" ng-include="'views/common/title.html'"></div>
   </div>
-  <div class="layout-body">
+  <div class="layout-body" ng-init="PickedOrders=false; BatchPicked=false">
     <tabset class="box-tab">
       <tab heading="Picklist Generated">
         <div class="panel" ng-controller="OpenOrders as showCase">
@@ -29,8 +29,8 @@
           </div>
         </div>
       </tab>
-      <tab heading="Picked Orders">
-        <div class="panel" ng-controller="PickedOrders as showCase">
+      <tab heading="Picked Orders" ng-click="PickedOrders=true">
+        <div class="panel" ng-if="PickedOrders" ng-controller="PickedOrders as showCase">
           <div class="panel-header panel-heading border" style="padding:0px;">
             <div class ="col-md-12" style="padding-left: 0px;">
               <div class="widget bg-white" style="margin-bottom: 0;text-align: center;padding:0px;padding-bottom: 5px;">
@@ -59,8 +59,8 @@
           </div>
         </div>
       </tab>
-      <tab heading="Batch Picked">
-        <div class="panel" ng-controller="BatchPicked as showCase">
+      <tab heading="Batch Picked" ng-click="BatchPicked=true">
+        <div class="panel" ng-if="BatchPicked" ng-controller="BatchPicked as showCase">
           <div class="panel-header">
             <button type="button" class="btn btn-primary pull-right" ng-click="showCase.excel()">Download Excel</button>
           </div>

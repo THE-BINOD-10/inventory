@@ -129,52 +129,62 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     }
   };
 
+  vm.reloadData = function () {
+    $('.custom-table').DataTable().draw();
+  };
+
     vm.edit_poc = function() {
 
-      var data = [];
+      var send_data = '';
+      var flag = false;
+      var send = {};
+      var sel_items = [];
       angular.forEach(vm.selected, function(value, key) {
+
         if(value) {
+          sel_items.push(key);
           var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]['_aData'];
-          // data.push(temp['id']);
           var grn_no = temp['GRN No'];
           grn_no = grn_no.split('/');
 
-          var send_data = JSON.stringify({
+          send_data = JSON.stringify({
             grn_no: grn_no, 
             seller_summary_name: temp['Supplier Name'], 
             seller_summary_id: temp['id'], 
             purchase_order__order_id: temp['purchase_order__order_id'],
             receipt_number: temp['receipt_number']
           });
-          data.push(send_data);
         }
       });
 
-      var send = data.join(",");
-      send = {data: send}
-      vm.service.apiCall("generate_supplier_invoice/", "GET", send).then(function(data){
+      if (sel_items.length == 1) {
+        send = {data: send_data};
+        vm.service.apiCall("generate_supplier_invoice/", "GET", send).then(function(data){
 
-        // if (data.message) {
-        var mod_data = data.data;
-        var modalInstance = $modal.open({
-          templateUrl: 'views/inbound/toggle/edit_invoice.html',
-          controller: 'EditInvoice',
-          controllerAs: 'pop',
-          size: 'lg',
-          backdrop: 'static',
-          keyboard: false,
-          resolve: {
-            items: function () {
-              return mod_data;
+          if (data.message) {
+          var mod_data = data.data;
+          var modalInstance = $modal.open({
+            templateUrl: 'views/inbound/toggle/edit_invoice.html',
+            controller: 'EditInvoice',
+            controllerAs: 'pop',
+            size: 'lg',
+            backdrop: 'static',
+            keyboard: false,
+            resolve: {
+              items: function () {
+                return mod_data;
+              }
             }
-          }
-        });
+          });
 
-        modalInstance.result.then(function (selectedItem) {
-          var data = selectedItem;
+          modalInstance.result.then(function (selectedItem) {
+            var data = selectedItem;
+          })
+          }
         })
-        // }
-      })
+      } else {
+        vm.service.showNoty("Something went wrong while, Please select signle item at a time");
+      }
     }
 
 }

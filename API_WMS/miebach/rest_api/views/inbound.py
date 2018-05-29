@@ -6111,10 +6111,11 @@ def move_to_poc(request, user=''):
     req_data = request.GET.get('data', '')
     if req_data:
         req_data = eval(req_data)
+        req_data = [req_data] if isinstance(req_data,dict) else req_data
         for item in req_data:
             sell_ids['purchase_order__order_id'] = item['purchase_order__order_id']
             sell_ids['receipt_number'] = item['receipt_number']
-            seller_summary = seller_summary.union(SellerPOSummary.objects.filter(**sell_ids))
+            seller_summary = seller_summary | SellerPOSummary.objects.filter(**sell_ids)
     chn_no, chn_sequence = get_po_challan_number(user, seller_summary)
     try:
         for sel_obj in seller_summary:
@@ -6141,7 +6142,7 @@ def move_to_inv(request, user=''):
         for item in req_data:
             sell_ids['purchase_order__order_id'] = item['purchase_order__order_id']
             sell_ids['receipt_number'] = item['receipt_number']
-            seller_summary = seller_summary.union(SellerPOSummary.objects.filter(**sell_ids))
+            seller_summary = seller_summary | SellerPOSummary.objects.filter(**sell_ids)
     try:
         for sel_obj in seller_summary:
             if cancel_flag == 'true':

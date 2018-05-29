@@ -2840,11 +2840,6 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         custom_margin = 0
 
     admin_user = get_priceband_admin_user(user)
-    msp_min_price = msp_max_price = 0
-    if admin_user and from_price and to_price:
-        msp_min_price = from_price
-        msp_max_price = to_price
-        from_price = to_price = ''
     is_margin_percentage = request_data.get('is_margin_percentage', 'false')
     specific_margins = request_data.get('margin_data', [])
     customer_data_id = request_data.get('customer_data_id', '')
@@ -2894,6 +2889,10 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         filter_params['id__in'] = hot_release_data
         filter_params1['id__in'] = hot_release_data
 
+    if admin_user:
+        filter_params1['sku__user'] = admin_user.id
+    else:
+        filter_params1['sku__user'] = user.id
     start, stop = indexes.split(':')
     start, stop = int(start), int(stop)
     if sku_class:
@@ -2901,14 +2900,8 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         filter_params1['sku__sku_class__icontains'] = sku_class
 
     if is_margin_percentage == 'true':
-        if admin_user:
-            pricemaster = PriceMaster.objects.prefetch_related('sku').filter(sku__user=admin_user.id, price_type=price_type). \
-                annotate(new_price=F('price') + ((F('price') / Value(100)) * Value(custom_margin))).filter(
-                **filter_params1)
-        else:
-            pricemaster = PriceMaster.objects.prefetch_related('sku').filter(sku__user=user.id, price_type=price_type). \
-                annotate(new_price=F('price') + ((F('price') / Value(100)) * Value(custom_margin))).filter(
-                **filter_params1)
+        pricemaster = PriceMaster.objects.prefetch_related('sku').filter(price_type=price_type).annotate(
+            new_price=F('price') + ((F('price') / Value(100)) * Value(custom_margin))).filter(**filter_params1)
         if price_field == 'price':
             dis_percent = 0
             if customer_master:
@@ -2930,18 +2923,14 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         if filter_params.has_key('new_price__gte'):
             del filter_params['new_price__gte']
         sku_master2 = SKUMaster.objects.exclude(sku_class='').filter(
-            id__in=pricemaster.values_list('sku_id', flat=True)).filter(**filter_params)
+                sku_code__in=pricemaster.values_list('sku__sku_code', flat=True)).filter(**filter_params)
         sku_master = sku_master1 | sku_master2
         sku_prices = dict(sku_master.only('id', 'new_price').values_list('id', 'new_price'))
         pricemaster_prices = dict(pricemaster.only('sku_id', 'new_price').values_list('sku_id', 'new_price'))
         prices_dict = dict(sku_prices.items() + pricemaster_prices.items())
     else:
-        if admin_user:
-            pricemaster = PriceMaster.objects.filter(sku__user=admin_user.id, price_type=price_type). \
-                annotate(new_price=F('price') + Value(custom_margin)).filter(**filter_params1)
-        else:
-            pricemaster = PriceMaster.objects.filter(sku__user=user.id, price_type=price_type). \
-                annotate(new_price=F('price') + Value(custom_margin)).filter(**filter_params1)
+        pricemaster = PriceMaster.objects.filter(price_type=price_type).annotate(
+            new_price=F('price') + Value(custom_margin)).filter(**filter_params1)
         if price_field == 'price':
             dis_percent = 0
             if customer_master:
@@ -3017,9 +3006,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
                            customer_data_id=customer_data_id, is_file=is_file, prices_dict=prices_dict,
                            price_type=price_type, custom_margin=custom_margin, specific_margins=specific_margins,
                            is_margin_percentage=is_margin_percentage, stock_quantity=quantity,
-                           msp_min_price=msp_min_price, msp_max_price=msp_max_price, delivery_date=delivery_date,
                            needed_stock_data=needed_stock_data)
-    print data
     return data, start, stop
 
 
@@ -3938,7 +3925,7 @@ def get_cal_style_data(style_data, quantity):
 @fn_timer
 def get_styles_data(user, product_styles, sku_master, start, stop, request, customer_id='', customer_data_id='', is_file='',
                     prices_dict={}, price_type='', custom_margin=0, specific_margins=[], is_margin_percentage=0,
-                    stock_quantity=0, msp_min_price=0, msp_max_price=0, delivery_date='', needed_stock_data={}):
+                    stock_quantity=0, needed_stock_data={}):
     data = []
     style_quantities = eval(request.POST.get('required_quantity', '{}'))
     levels_config = get_misc_value('generic_wh_level', user.id)
@@ -4004,11 +3991,7 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
                     tax_percentage = float(tax['sgst_tax']) + float(tax['igst_tax']) + float(tax['cgst_tax'])
                     sku_styles[0]['tax_percentage'] = '%.1f'%tax_percentage
             if total_quantity >= int(stock_quantity):
-                if msp_min_price and msp_max_price:
-                    if float(msp_min_price) <= sku_variants[0]['your_price'] <= float(msp_max_price):
-                        data.append(sku_styles[0])
-                else:
-                    data.append(sku_styles[0])
+                data.append(sku_styles[0])
         if not is_file and len(data) >= 20:
             break
     return data

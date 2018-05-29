@@ -1301,11 +1301,11 @@ DIST_CUSTOMER_INVOICE_HEADERS = ['Gen Order Id', 'Order Ids', 'Customer Name', '
 
 # Supplier Invoices page headers based on user type
 
-WH_SUPPLIER_INVOICE_HEADERS = ['GRN No.', 'Supplier Name', 'PO Quantity', 'Received Quantity',
-                               'Order Date&Time', 'Total Amount']
+WH_SUPPLIER_INVOICE_HEADERS = ['GRN No', 'Supplier Name', 'PO Quantity', 'Received Quantity',
+                               'Order Date', 'Total Amount']
 
-DIST_SUPPLIER_INVOICE_HEADERS = ['GRN No.', 'Supplier Name', 'PO Quantity', 'Received Quantity',
-                                 'Order Date&Time', 'Total Amount']
+DIST_SUPPLIER_INVOICE_HEADERS = ['GRN No', 'Supplier Name', 'PO Quantity', 'Received Quantity',
+                                 'Order Date', 'Total Amount']
 
 # End of Supplier Invoices page headers based on user type
 

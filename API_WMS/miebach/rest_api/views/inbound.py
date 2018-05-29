@@ -6005,7 +6005,7 @@ def get_processed_po_data(start_index, stop_index, temp_data, search_term, order
 
         data_dict = OrderedDict((('GRN No', grn_number),
                                  ('Supplier Name', data['purchase_order__open_po__supplier__name']),
-                                 ('check_field', 'GRN No'),
+                                 ('check_field', 'Supplier Name'),
                                  ('PO Quantity', data['total_ordered']),
                                  ('Received Quantity', data['total_received']),
                                  ('Order Date', po_date),
@@ -6040,9 +6040,9 @@ def move_to_poc(request, user=''):
         # sell_ids = construct_sell_ids(request, user)
     else:
         status_flag = 'po_challans'
-    sell_ids = request.GET.get()
-    seller_summary = SellerOrderSummary.objects.filter(**sell_ids)
-    chn_no, chn_sequence = get_challan_number(user, seller_summary)
+    sell_ids = request.GET.get('supplier_summary_id')
+    seller_summary = SellerPOSummary.objects.filter(id__in=sell_ids)
+    chn_no, chn_sequence = get_po_challan_number(user, seller_summary)
     try:
         for sel_obj in seller_summary:
             sel_obj.order_status_flag = status_flag
@@ -6059,8 +6059,9 @@ def move_to_poc(request, user=''):
 @get_admin_user
 def move_to_inv(request, user=''):
     cancel_flag = request.GET.get('cancel', '')
-    sell_ids = construct_sell_ids(request, user)
-    seller_summary = SellerOrderSummary.objects.filter(**sell_ids)
+    #sell_ids = construct_sell_ids(request, user)
+    sell_ids = request.GET.get('supplier_summary_id')
+    seller_summary = SellerOrderSummary.objects.filter(id__in=sell_ids)
     try:
         for sel_obj in seller_summary:
             if cancel_flag == 'true':

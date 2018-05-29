@@ -2225,6 +2225,22 @@ class InvoiceSequence(models.Model):
         unique_together = ('user', 'marketplace')
 
 
+class ChallanSequence(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    marketplace = models.CharField(max_length=64)
+    prefix = models.CharField(max_length=64)
+    value = models.PositiveIntegerField()
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'CHALLAN_SEQUENCE'
+        index_together = ('user', 'marketplace')
+        unique_together = ('user', 'marketplace')
+
+
 class OrderAwbMap(models.Model):
     user = models.ForeignKey(User)
     original_order_id = models.CharField(max_length=128, default='')

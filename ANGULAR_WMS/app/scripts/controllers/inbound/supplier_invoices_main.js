@@ -160,7 +160,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     }
 
     vm.move_to = function (click_type) {
-      var grn_no = '';
+      var supplier_name = '';
       var status = false;
       var field_name = "";
       var data = [];
@@ -170,13 +170,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         angular.forEach(vm.selected, function(value, key) {
           if(value) {
             var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]['_aData'];
-            if(!(grn_no)) {
-              grn_no = temp[temp['check_field']];
-            } else if (grn_no != temp[temp['check_field']]) {
+            if(!(supplier_name)) {
+              supplier_name = temp['Supplier Name'];
+            } else if (supplier_name != temp['Supplier Name']) {
               status = true;
             }
             field_name = temp['check_field'];
-            data.push(temp['GRN No.']);
+            var grn_no = temp['GRN No'];
+            grn_no = grn_no.split('/');
+
+            var send_data = JSON.stringify({grn_no: grn_no, seller_summary_name: supplier_name});
+
+            data.push(send_data);
           }
         });
       }
@@ -185,10 +190,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         vm.service.showNoty("Please select same "+field_name+"'s");
       } else {
 
-        var ids = data.join(",");
+        var send = data.join(",");
+        send = {data: send}
         var url = click_type === 'move_to_po_challan' ? 'move_to_po_challan/' : 'move_to_inv/';
-        ids = ids.split('/');
-        var send = {grn_numbers: angular.toJson(ids)};
         vm.bt_disable = true;
         vm.service.apiCall(url, "GET", send).then(function(data){
           if(data.message) {

@@ -1773,7 +1773,7 @@ class SellerPOSummary(models.Model):
     putaway_quantity = models.FloatField(default=0)
     quantity = models.FloatField(default=0)
     challan_number = models.CharField(max_length=64, default='')
-    order_status_flag = models.CharField(max_length=64, default='processed_orders')
+    order_status_flag = models.CharField(max_length=64, default='processed_pos')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

@@ -1,5 +1,5 @@
-var ENDPOINT="http://0.0.0.0:7654/"; //https://dev.stockone.in/
-var STOCKONE ="http://0.0.0.0:9002/"; //"http://beta.stockone.in/" ;
+var ENDPOINT="http://0.0.0.0:7654/";//"https://api.stockone.in/";
+var STOCKONE = "http://0.0.0.0:9002/";
 var APIENDPOINT=ENDPOINT+"rest_api/";
 var GET_SKU_MASTER_CHECKSUM_API=APIENDPOINT+"get_file_checksum/?name=sku_master";
 var GET_SKUDATA_API=APIENDPOINT+"get_file_content/?name=sku_master";

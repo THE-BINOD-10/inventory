@@ -2631,3 +2631,21 @@ class MasterDocs(models.Model):
     class Meta:
         db_table = 'MASTER_DOCS'
         index_together = ('master_id', 'master_type', 'uploaded_file')
+
+
+class WarehouseSKUMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    warehouse = models.ForeignKey(User)
+    sku = models.ForeignKey(SKUMaster)
+    priority = models.CharField(max_length=32)
+    moq = models.FloatField(default=0)
+    price = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'WAREHOUSE_SKU_MAPPING'
+        index_together = ('warehouse', 'sku')
+
+    def __unicode__(self):
+        return str(self.sku) + " : " + str(self.warehouse)

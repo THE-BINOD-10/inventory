@@ -81,6 +81,8 @@ ISSUE_DATA = {'issue_title': '', 'name': '', 'email_id': '',
 SUPPLIER_SKU_DATA = {'supplier_id': '', 'supplier_type': '',
                      'sku': '', 'supplier_code': '', 'preference': '', 'moq': '', 'price': ''}
 
+WAREHOUSE_SKU_DATA = {'warehouse': '', 'sku': '', 'priority': '', 'moq': '', 'price': ''}
+
 UPLOAD_ORDER_DATA = {'order_id': '', 'title': '', 'user': '',
                      'sku_id': '', 'status': 1, 'shipment_date': datetime.datetime.now()}
 
@@ -263,7 +265,7 @@ MARKETPLACE_LIST = ['Flipkart', 'Snapdeal', 'Paytm', 'Amazon', 'Shopclues', 'Hom
 ORDER_HEADERS = ['Order ID', 'Title', 'SKU Code', 'Quantity', 'Shipment Date(yyyy-mm-dd)', 'Channel Name',
                  'Customer ID', 'Customer Name', 'Email ID', 'Phone Number', 'Shipping Address', 'State', 'City',
                  'PIN Code', 'Invoice Amount(Without Tax and Discount)', 'Total Discount', 'CGST(%)', 'SGST(%)',
-                 'IGST(%)']
+                 'IGST(%)', 'Order Type']
 
 MARKETPLACE_ORDER_HEADERS = ['SOR ID', 'UOR ID', 'Seller ID', 'Order Status', 'Title', 'SKU Code', 'Quantity',
                              'Shipment Date(yyyy-mm-dd)', 'Channel Name', 'Customer ID', 'Customer Name', 'Email ID',
@@ -281,7 +283,7 @@ ORDER_DEF_EXCEL = OrderedDict((('order_id', 0), ('title', 1), ('sku_code', 2), (
                                ('customer_name', 7), ('email_id', 8),
                                ('telephone', 9), ('address', 10), ('state', 11), ('city', 12), ('pin_code', 13),
                                ('amount', 14), ('amount_discount', 15), ('cgst_tax', 16), ('sgst_tax', 17),
-                               ('igst_tax', 18)
+                               ('igst_tax', 18), ('order_type', 19)
                                ))
 
 MARKETPLACE_ORDER_DEF_EXCEL = OrderedDict(
@@ -514,6 +516,10 @@ PROCESSING_HEADER = ('WMS Code', 'Title', 'Zone', 'Location', 'Reserved Quantity
 SKU_SUPPLIER_MAPPING = OrderedDict(
     [('Supplier ID', 'supplier__id'), ('SKU CODE', 'sku__wms_code'), ('Supplier Code', 'supplier_code'),
      ('Priority', 'preference'), ('MOQ', 'moq')])
+
+SKU_WH_MAPPING = OrderedDict(
+    [('Warehouse Name', 'warehouse__username'), ('SKU CODE', 'sku__wms_code'), ('Priority', 'priority'),
+     ('MOQ', 'moq'), ('Price', 'price')])
 
 SUPPLIER_MASTER_HEADERS = OrderedDict(
     [('Supplier ID', 'id'), ('Name', 'name'), ('Address', 'address'), ('Phone Number', 'phone_number'),
@@ -1398,7 +1404,8 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'auto_confirm_po': 'auto_confirm_po', 'generic_wh_level': 'generic_wh_level',
                         'create_order_po': 'create_order_po', 'calculate_customer_price': 'calculate_customer_price',
                         'shipment_sku_scan': 'shipment_sku_scan', 'disable_brands_view':'disable_brands_view',
-                        'sellable_segregation': 'sellable_segregation', 'display_styles_price': 'display_styles_price', 'show_purchase_history':'show_purchase_history'
+                        'sellable_segregation': 'sellable_segregation', 'display_styles_price': 'display_styles_price',
+                        'show_purchase_history':'show_purchase_history', 'auto_raise_stock_transfer': 'auto_raise_stock_transfer',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',

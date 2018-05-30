@@ -6167,42 +6167,77 @@ def move_to_inv(request, user=''):
 @csrf_exempt
 @get_admin_user
 def generate_supplier_invoice(request, user=''):
-    data = []
-    user_profile = UserProfile.objects.get(user_id=user.id)
-    order_date = ''
-    order_id = ''
-    total_quantity = 0
-    total_amt = 0
-    total_invoice = 0
-    total_tax = 0
-    total_mrp = 0
-    order_no = ''
-    merge_data = {}
     sell_summary_param = {}
     result_data = {}
-    data_dict = dict(request.GET.iterlists())
     log.info('Request params for ' + user.username + ' is ' + str(request.GET.dict()))
     admin_user = get_priceband_admin_user(user)
     try:
         req_data = request.GET.get('data', '')
         if req_data:
             req_data = eval(req_data)
-            import pdb;pdb.set_trace()
             sell_summary_param['purchase_order__order_id'] = req_data.get('purchase_order__order_id', '')
             sell_summary_param['receipt_number'] = req_data.get('receipt_number', '')
             seller_summary = SellerPOSummary.objects.filter(**sell_summary_param)
             if seller_summary:
-                result_data["challan_no"] = seller_summary[0].challan_number
+                up = user.userprofile
+                supplier = seller_summary[0].purchase_order.open_po.supplier
+                order_date = get_local_date(user, seller_summary[0].purchase_order.creation_date, send_date=True)\
+                             .date().strftime("%d %b %Y")
+                company_details = {"name": up.company_name,
+                                   "address": up.address,
+                                   "phone_number": up.phone_number,
+                                   "email": user.email
+                                  }
+                supplier_details = {"address": supplier.address,
+                                    "id": supplier.id,
+                                    "name": supplier.name,
+                                    "phone_number": supplier.phone_number,
+                                    "tin_number": supplier.tin_number}
+                result_data = {"company_details": company_details,
+                               "supplier_details": supplier_details,
+                               "challan_no": seller_summary[0].challan_number,
+                               "invoice_date": '',
+                               "invoice_header": "Tax Invoice",
+                                "invoice_no": seller_summary[0].invoice_number,
+                                "order_date": order_date,
+                                "order_id": seller_summary[0].purchase_order.order_id,
+                                "receipt_number": seller_summary[0].receipt_number,
+                                "price_in_words": "",
+                                "total_tax": 0,
+                                "total_tax_words": ''
+
+                               }
+
                 result_data["challan_date"] = ''
-                result_data["rep"] = ''
-                result_data["order_no"] = ''
                 result_data["data"] = []
+                tot_cgst, tot_sgst, tot_igst, tot_utgst, tot_amt, tot_invoice, tot_qty, tot_tax = [0]*8
                 for seller_sum in seller_summary:
                     open_po = seller_sum.purchase_order.open_po
                     sku = open_po.sku
-                    taxes = {"cgst_tax": open_po.cgst_tax, "sgst_tax": open_po.sgst_tax,
-                             "igst_tax": open_po.igst_tax, "utgst_tax": open_po.utgst_tax,
-                             "cgst_amt": 0, "sgst_amt": 0, "igst_amt": 0, "utgst_amt": 0}
+                    unit_price = open_po.price
+                    qty = seller_sum.quantity
+                    cgst_tax = open_po.cgst_tax
+                    sgst_tax = open_po.sgst_tax
+                    igst_tax = open_po.igst_tax
+                    utgst_tax = open_po.utgst_tax
+                    cgst_amt = (unit_price * qty * cgst_tax) / 100
+                    sgst_amt = (unit_price * qty * sgst_tax) / 100
+                    igst_amt = (unit_price * qty * igst_tax) / 100
+                    utgst_amt = (unit_price * qty * utgst_tax) / 100
+                    tot_cgst += cgst_amt
+                    tot_sgst += sgst_tax
+                    tot_igst += igst_tax
+                    tot_utgst += utgst_tax
+                    amt = unit_price * qty
+                    invoice_amt = amt + cgst_amt + sgst_amt + igst_amt + utgst_amt
+                    tot_tax += (cgst_amt + sgst_amt + igst_amt + utgst_amt)
+                    tot_qty += qty
+                    tot_amt += amt
+                    tot_invoice += invoice_amt
+                    taxes = {"cgst_tax": cgst_tax, "sgst_tax": sgst_tax,
+                             "igst_tax": igst_tax, "utgst_tax": utgst_tax,
+                             "cgst_amt": cgst_amt, "sgst_amt": sgst_amt,
+                             "igst_amt": igst_amt, "utgst_amt": utgst_amt}
                     sku_data = {"id": sku.id,
                                 "sku_code": sku.wms_code,
                                 "title": sku.sku_desc,
@@ -6217,6 +6252,14 @@ def generate_supplier_invoice(request, user=''):
                                 }
                     result_data["data"].append(sku_data)
                     result_data["taxes"]= taxes
+                    result_data["sequence_number"] = sku.sequence
+                result_data["total_amt"] = tot_amt
+                result_data["total_invoice_amount"] = tot_invoice
+                result_data["rounded_invoice_amount"] = round(tot_invoice)
+                result_data["total_quantity"] = tot_qty
+                result_data["total_tax"] = tot_tax
+                result_data["total_taxes"] = {"cgst_amt": tot_cgst, "igst_amt": tot_igst,
+                                              "sgst_amt": tot_sgst, "utgst_amt": tot_utgst}
 
 
     except Exception as e:

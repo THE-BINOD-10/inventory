@@ -6219,10 +6219,10 @@ def generate_supplier_invoice(request, user=''):
                     sgst_tax = open_po.sgst_tax
                     igst_tax = open_po.igst_tax
                     utgst_tax = open_po.utgst_tax
-                    cgst_amt = (unit_price * qty * cgst_tax) / 100
-                    sgst_amt = (unit_price * qty * sgst_tax) / 100
-                    igst_amt = (unit_price * qty * igst_tax) / 100
-                    utgst_amt = (unit_price * qty * utgst_tax) / 100
+                    cgst_amt = float((unit_price * qty * cgst_tax) / 100)
+                    sgst_amt = float((unit_price * qty * sgst_tax) / 100)
+                    igst_amt = float((unit_price * qty * igst_tax) / 100)
+                    utgst_amt = float((unit_price * qty * utgst_tax) / 100)
                     tot_cgst += cgst_amt
                     tot_sgst += sgst_tax
                     tot_igst += igst_tax
@@ -6240,13 +6240,13 @@ def generate_supplier_invoice(request, user=''):
                     sku_data = {"id": sku.id,
                                 "sku_code": sku.wms_code,
                                 "title": sku.sku_desc,
-                                "unit_price": open_po.price,
+                                "unit_price": unit_price,
                                 "tax_type": open_po.tax_type,
-                                "invoice_amount": 0,
+                                "invoice_amount": invoice_amt,
                                 "id": 0,
                                 "hsn_code": '',
-                                "amt": 0,
-                                "quantity": seller_sum.quantity,
+                                "amt": amt,
+                                "quantity": qty,
                                 "shipment_date": ''
                                 }
                     result_data["data"].append(sku_data)
@@ -6266,3 +6266,6 @@ def generate_supplier_invoice(request, user=''):
         log.debug(traceback.format_exc())
         return HttpResponse(json.dumps({'message': 'failed'}))
     return HttpResponse(json.dumps(result_data))
+
+
+

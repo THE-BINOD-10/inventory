@@ -6187,6 +6187,7 @@ def generate_supplier_invoice(request, user=''):
         req_data = request.GET.get('data', '')
         if req_data:
             req_data = eval(req_data)
+            import pdb;pdb.set_trace()
             sell_summary_param['purchase_order__order_id'] = req_data.get('purchase_order__order_id', '')
             sell_summary_param['receipt_number'] = req_data.get('receipt_number', '')
             seller_summary = SellerPOSummary.objects.filter(**sell_summary_param)
@@ -6211,7 +6212,7 @@ def generate_supplier_invoice(request, user=''):
                                 "id": 0,
                                 "hsn_code": '',
                                 "amt": 0,
-                                "quantity": seller_sum.qunatity,
+                                "quantity": seller_sum.quantity,
                                 "shipment_date": ''
                                 }
                     result_data["data"].append(sku_data)

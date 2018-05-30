@@ -6139,6 +6139,7 @@ def move_to_inv(request, user=''):
     req_data = request.GET.get('data', '')
     if req_data:
         req_data = eval(req_data)
+        req_data = [req_data] if isinstance(req_data,dict) else req_data
         for item in req_data:
             sell_ids['purchase_order__order_id'] = item['purchase_order__order_id']
             sell_ids['receipt_number'] = item['receipt_number']
@@ -6177,10 +6178,25 @@ def generate_supplier_invoice(request, user=''):
     total_mrp = 0
     order_no = ''
     merge_data = {}
+    sell_summary_param = {}
+    result_data = {}
     data_dict = dict(request.GET.iterlists())
     log.info('Request params for ' + user.username + ' is ' + str(request.GET.dict()))
     admin_user = get_priceband_admin_user(user)
     try:
+        import pdb;pdb.set_trace()
+        sell_summary_param['purchase_order__order_id'] = request.GET.get('purchase_order__order_id', '')
+        sell_summary_param['receipt_number'] = request.GET.get('receipt_number', '')
+        seller_summary = SellerPOSummary.objects.filter(**sell_summary_param)
+        if seller_summary:
+            result_data["challan_no"] = seller_summary[0].challan_number
+            result_data["challan_date"] = ''
+            result_data["rep"] = ''
+            result_data["order_no"] = ''
+            for seller_sum in seller_summary:
+                sku = seller_sum.seller_po.open_po.sku.values('wms_code', 'desc' )
+
+
         seller_summary_dat = data_dict.get('seller_summary_id', '')
         seller_summary_dat = seller_summary_dat[0]
         sell_ids = {}

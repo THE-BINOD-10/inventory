@@ -782,6 +782,22 @@ var app = angular.module('urbanApp')
             title: 'Supplier Invoice',
           }
         })
+        .state('app.inbound.SupplierInvoices.InvoiceM', {
+            url: '/InvoiceM',
+            templateUrl: 'views/inbound/print/supplier_inv.html'
+         })
+         .state('app.inbound.SupplierInvoices.InvoiceN', {
+            url: '/InvoiceN',
+            templateUrl: 'views/inbound/print/generate_inv.html',
+          })
+         .state('app.inbound.SupplierInvoices.InvoiceE', {
+            url: '/InvoiceE',
+            templateUrl: 'views/inbound/print/empty_invoice.html'
+          })
+          .state('app.inbound.SupplierInvoices.InvoiceD', {
+            url: '/InvoiceD',
+            templateUrl: 'views/inbound/print/d_generate_inv.html'
+          })
 
         .state('app.inbound.AutoBackOrders', {
           url: '/AutoBackOrders?state',

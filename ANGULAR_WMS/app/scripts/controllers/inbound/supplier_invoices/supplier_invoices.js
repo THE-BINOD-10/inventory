@@ -136,7 +136,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     vm.generate_invoice = function(click_type, DC=false){
 
-      var grn_no = '';
+      var supplier_name = '';
       var status = false;
       var field_name = "";
       var data = [];
@@ -146,13 +146,24 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         angular.forEach(vm.selected, function(value, key) {
           if(value) {
             var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]['_aData'];
-            if(!(grn_no)) {
-              grn_no = temp[temp['check_field']];
-            } else if (grn_no != temp[temp['check_field']]) {
+            if(!(supplier_name)) {
+              supplier_name = temp['Supplier Name'];
+            } else if (supplier_name != temp['Supplier Name']) {
               status = true;
             }
             field_name = temp['check_field'];
-            data.push(temp['GRN No']);
+            var grn_no = temp['GRN No'];
+            grn_no = grn_no.split('/');
+
+            var send_data = JSON.stringify({
+              grn_no: grn_no, 
+              seller_summary_name: supplier_name, 
+              seller_summary_id: temp['id'], 
+              purchase_order__order_id: temp['purchase_order__order_id'],
+              receipt_number: temp['receipt_number']
+            });
+
+            data.push(send_data);
           }
         });
       }
@@ -161,11 +172,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         vm.service.showNoty("Please select same "+field_name+"'s");
       } else {
 
-        var ids = data.join(",");
-        ids = ids.split('/');
-        var send = {grn_numbers: angular.toJson(ids)};
-        if(grn_no && field_name == 'GRN No') {
-          send['sor_id'] = grn_no;
+        // var ids = data.join(",");
+        // ids = ids.split('/');
+        // var send = {grn_numbers: angular.toJson(ids)};
+        var send = data.join(",");
+        send = {data: send}
+        if(supplier_name && field_name == 'Supplier Name') {
+          send['sor_id'] = supplier_name;
         }
         if(click_type == 'edit'){
           send['data'] = true;
@@ -220,7 +233,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
 }
 
-function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items) {
+function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items) {
 
   var vm = this;
   vm.service = Service;
@@ -228,9 +241,23 @@ function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Servi
   vm.priceband_sync = Session.roles.permissions.priceband_sync;
 
   vm.model_data = items;
-  vm.model_data.order_charges = [];
   vm.model_data.temp_sequence_number = vm.model_data.sequence_number;
 
+  var empty_data = {data: [{sku_code: "", title: "", unit_price: "", quantity: "", base_price: "",
+              discount: "", amt: "", invoice_amount: "", discount_percentage: "",
+              discount: "", price: "", tax: "", total_amount: "",
+                            location: "", serials: [], serial: "", capacity: 0
+                          }],
+                    customer_id: "", payment_received: "", order_taken_by: "", other_charges: [],  shipment_time_slot: "",
+                    tax_type: "", blind_order: false, mode_of_transport: ""};
+
+  vm.model_data.data = [];
+  // var test = {
+  //     'amt':0, 'base_price':"0.00", 'discount':0, 'discount_percentage':0, 'hsn_code':"", 'id':"", 'imeis':[], 'invoice_amount':"",
+  //     'mrp_price':"", 'order_id':"", 'quantity':0, 'shipment_date':"", 'sku_category':"", 'sku_class':"", 'sku_code':"",
+  //     'sku_size':"", 'tax':"0.00", 'tax_type':"", 'title':"", 'unit_price':"0.00", 'vat':0 }
+  // vm.model_data.data.push(test);
+  vm.fields = Session.roles.permissions["order_headers"];
   vm.model_data.default_charge = function(){
 
     if (vm.model_data.order_charges.length == 1) {
@@ -275,7 +302,7 @@ function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Servi
       return false;
     }
     vm.process = true;
-    var data = $("form:visible").serializeArray()
+    var data = $("form").serializeArray()
     Service.apiCall("update_invoice/", "POST", data).then(function(data) {
 
       if(data.message) {
@@ -296,13 +323,25 @@ function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Servi
     })
   }
 
+
+  vm.gst_calculate = function(record){
+    var gst_val = Number(record.taxes.cgst_tax) + Number(record.taxes.sgst_tax) + Number(record.taxes.igst_tax);
+    if (gst_val) {
+      gst_val = Number(record.base_price) * gst_val / 100;
+    }
+
+    record.invoice_amount = ((Number(record.base_price - Number(record.discount))/100)*record.tax)+(Number(record.base_price)-
+      Number(record.discount)) + gst_val;
+  }
+
+
   vm.changeUnitPrice = function(data) {
 
     data.base_price = data.quantity * Number(data.unit_price);
     data.discount = (data.base_price/100)*Number(data.discount_percentage);
     data.amt = data.base_price - data.discount;
     var taxes = {cgst_amt: 'cgst_tax', sgst_amt: 'sgst_tax', igst_amt: 'igst_tax', utgst_amt: 'utgst_tax'};
-    data.total_tax_amount = 0;
+    data.tax = 0;
 
     angular.forEach(taxes, function(tax_name, tax_amount){
 
@@ -313,24 +352,241 @@ function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Servi
 
         data.taxes[tax_amount] = 0;
       }
-       data.total_tax_amount += data.taxes[tax_amount];
+       data.tax += data.taxes[tax_amount];
     })
-    data.invoice_amount = (data.amt + data.total_tax_amount);
+    data.invoice_amount = (data.amt + data.tax);
   }
+
+
+  vm.isLast = isLast;
+  function isLast(check) {
+
+    var cssClass = check ? "fa fa-plus-square-o" : "fa fa-minus-square-o";
+    return cssClass
+  }
+
+  vm.update_data = update_data;
+  function update_data(index, data, last) {
+    console.log(data);
+    if (last && (!vm.model_data.data[index].grn_no)) {
+      return false;
+    }
+    if (last) {
+    var temp = vm.model_data.data[0];
+    // temp.amt = temp.base_price = temp.discount = temp.id = temp.invoice_amount = temp.sku_code = temp.sku_size = temp.tax = temp.title = temp.unit_price = "";
+    var empty_data = {
+      'amt':0, 'base_price':"0.00", 'discount':0, 'discount_percentage':0, 'hsn_code':"", 'id':"", 'imeis':[], 'invoice_amount':"",
+      'mrp_price':"", 'order_id':"", 'quantity':0, 'shipment_date':"", 'sku_category':"", 'sku_class':"", 'sku_code':"",
+      'sku_size':"", 'tax':"0.00", 'tax_type':"", 'title':"", 'unit_price':"0.00", 'vat':0 }
+
+    empty_data["order_id"] = temp["order_id"];
+    empty_data["shipment_date"] = temp["shipment_date"];
+    empty_data["new_sku"] = true;
+    empty_data["taxes"] = temp["taxes"];
+    vm.model_data.data.push(empty_data);
+    } else {
+    var del_sku = vm.model_data.data[index];
+      if(!del_sku.new_sku) {
+      Service.apiCall("remove_sku/", "POST", del_sku).then(function(data) {
+      console.log(data);
+      });
+      }
+
+      vm.model_data.data.splice(index,1);
+      vm.cal_total();
+    }
+  }
+
+  vm.change_quantity = function(data) {
+
+    var flag = false;
+    if(data.priceRanges && data.priceRanges.length > 0) {
+
+      for(var skuRec = 0; skuRec < data.priceRanges.length; skuRec++){
+    
+        if(data.quantity >= data.priceRanges[skuRec].min_unit_range && data.quantity <= data.priceRanges[skuRec].max_unit_range){
+    
+          data.unit_price = data.priceRanges[skuRec].price;
+          flag = true;
+        }
+      }
+
+      if (!flag) {
+    
+        data.unit_price = data.priceRanges[data.priceRanges.length-1].price;
+      }
+    }
+
+    data.base_price = vm.service.multi(data.quantity, data.unit_price);
+    vm.cal_percentage(data);
+    vm.gst_calculate(data);
+  }
+
+  vm.get_customer_sku_prices = function(sku) {
+
+    var d = $q.defer();
+    var tax_dict = {0:"intra_state", 1:"inter_state", 2:"default"};
+    var data = {sku_codes: sku, cust_id: vm.model_data.customer_id, tax_type: tax_dict[vm.model_data.tax_type]}
+    vm.service.apiCall("get_customer_sku_prices/", "POST", data).then(function(data) {
+
+      if(data.message) {
+        d.resolve(data.data);
+      }
+    });
+    return d.promise;
+  }
+
+  vm.get_tax_value = function(data) {
+
+    var tax_perc = 0;
+    // data.sgst_tax = 0;
+    // data.cgst_tax = 0;
+    // data.igst_tax = 0;
+    // data.taxes = {"cgst_amt": "", "cgst_tax": 0, "sgst_amt": "", "sgst_tax": 0, "igst_amt": "", "igst_tax": 0};
+    if (data.taxes_data) {
+      for(var i = 0; i < data.taxes_data.length; i++) {
+
+        if(data.unit_price <= data.taxes_data[i].max_amt && data.unit_price >= data.taxes_data[i].min_amt) {
+
+          if(vm.model_data.tax_type == "0") {//intra_state
+
+            tax_perc = data.taxes_data[i].sgst_tax + data.taxes_data[i].cgst_tax;
+            data.sgst_tax = data.taxes_data[i].sgst_tax;
+            data.cgst_tax = data.taxes_data[i].cgst_tax;
+            data.taxes.sgst_tax = data.sgst_tax;
+            data.taxes.cgst_tax = data.cgst_tax;
+          } else if (vm.model_data.tax_type == "1") {//inter_state
+
+            data.igst_tax = data.taxes_data[i].igst_tax;
+            tax_perc = data.taxes_data[i].igst_tax;
+            data.taxes.igst_tax = data.igst_tax;
+          }
+          data.taxes.cgst_amt = (data.amt * data.cgst_tax)/100;
+          data.taxes.sgst_amt = (data.amt * data.sgst_tax)/100;
+          data.taxes.igst_amt = (data.amt * data.igst_tax)/ 100;
+          break;
+        }
+      }
+    }
+    /*tax_perc = data.taxes.sgst_tax + data.taxes.cgst_tax + data.taxes.igst_tax;
+    data.taxes.sgst_amt = (data.unit_price * data.taxes.sgst_tax / 100) * data.quantity;
+    data.taxes.cgst_amt = (data.unit_price * data.taxes.cgst_tax / 100) * data.quantity;
+    data.taxes.igst_amt = (data.unit_price * data.taxes.igst_tax / 100) * data.quantity;*/
+    data.tax = tax_perc;
+    return tax_perc;
+  }
+
+  vm.final_data = {total_quantity:0,total_amount:0}
+  vm.cal_total = function() {
+
+    vm.final_data.total_quantity = 0;
+    vm.final_data.total_amount = 0;
+    angular.forEach(vm.model_data.data, function(record){
+      vm.final_data.total_amount += Number(record.total_amount);
+      vm.final_data.total_quantity += Number(record.quantity);
+    })
+    if(vm.model_data.other_charges) {
+      angular.forEach(vm.model_data.other_charges, function(record){
+        if(record.amount){
+          vm.final_data.total_amount += Number(record.amount);
+        }
+      })
+    }
+  }
+
+  vm.discountChange = function(data) {
+
+    vm.cal_percentage(data, false); 
+  }
+
+  vm.discountPercentageChange = function(data, status) {
+
+    if(vm.fields.indexOf('Discount Percentage') != -1) {
+      return false;
+    }
+    if(!data.discount_percentage) {
+      data.discount_percentage = "";
+    }
+    var temp_perc = Number(data.discount_percentage);
+    data.discount = (Number(data.invoice_amount)*temp_perc)/100;
+  }
+
+
+  vm.cal_percentage = function(data, no_total) {
+
+    vm.discountPercentageChange(data, false);
+  data.amt = data.base_price - data.discount;
+    vm.get_tax_value(data);
+    var per = Number(data.tax);
+    data.invoice_amount = ((Number(data.base_price - Number(data.discount))/100)*per)+(Number(data.base_price)-Number(data.discount));
+
+    if(!no_total) {
+      vm.cal_total();
+    }
+  }
+
+  function check_exist(sku_data, index) {
+
+    for(var i = 0; i < vm.model_data.data.length; i++) {
+
+      if((vm.model_data.data[i].sku_code == sku_data.sku_code) && (index != i)) {
+
+        sku_data.sku_code = "";
+        vm.service.showNoty("It is already exist in index");
+        return false;
+      }
+    }
+    return true;
+  }
+
+  vm.get_sku_data = function(record, item, index) {
+
+    record.sku_code = item.wms_code;
+  record["title"] = item.sku_desc;
+  //record.unit_price = item.
+    if(!vm.model_data.blind_order && !(check_exist(record, index))){
+      return false;
+    }
+    //angular.copy(empty_data.data[0], record);
+    record.sku_code = item.wms_code;
+    record["title"] = item.sku_desc;
+
+    vm.get_customer_sku_prices(item.wms_code).then(function(data){
+      if(data.length > 0) {
+        data = data[0]
+        record["unit_price"] = data.price;
+        //record["description"] = data.sku_desc;
+        if (! vm.model_data.blind_order) {
+          if(!(record.quantity)) {
+            record.quantity = 1
+          }
+        }
+        record["taxes_data"] = data.taxes;
+    record["base_price"] = Number(record.unit_price)*Number(record.quantity);
+    record["discount"] = data.discount;
+    record["amt"] = record["base_price"] - record["discount"];
+        //record.invoice_amount = Number(record.price)*Number(record.quantity);
+        record["priceRanges"] = data.price_bands_map;
+        vm.cal_percentage(record);
+      }
+    })
+  }
+
+
 }
 stockone = angular.module('urbanApp');
 
-stockone.controller('EditInvoice', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', EditInvoice]);
+stockone.controller('EditInvoice', ['$scope', '$http', '$q', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', EditInvoice]);
 
-/*stockone.directive('genericCustomerInvoiceData', function() {
-  return {
-    restrict: 'E',
-    scope: {
-      invoice_data: '=data',
-    },
-    templateUrl: 'views/outbound/toggle/invoice_data_html.html',
-    link: function(scope, element, attributes, $http, Service){
-      console.log(scope);
-    }
-  };
-});*/
+// stockone.directive('genericCustomerInvoiceData', function() {
+//   return {
+//     restrict: 'E',
+//     scope: {
+//       invoice_data: '=data',
+//     },
+//     templateUrl: 'views/outbound/toggle/invoice_data_html.html',
+//     link: function(scope, element, attributes, $http, Service){
+//       console.log(scope);
+//     }
+//   };
+// });

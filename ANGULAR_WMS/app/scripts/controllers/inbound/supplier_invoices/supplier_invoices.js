@@ -193,16 +193,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             if(click_type == 'generate') {
               vm.pdf_data = data.data;
               if(typeof(vm.pdf_data) == "string" && vm.pdf_data.search("print-invoice") != -1) {
-                $state.go("app.outbound.CustomerInvoices.InvoiceE");
+                $state.go("app.inbound.SupplierInvoices.InvoiceE");
                 $timeout(function () {
                   $(".modal-body:visible").html(vm.pdf_data)
                 }, 3000);
               // } else if(Session.user_profile.user_type == "marketplace_user") {
-              //   $state.go("app.outbound.CustomerInvoices.InvoiceM");
+              //   $state.go("app.inbound.SupplierInvoices.InvoiceM");
               // } else if(vm.permissions.detailed_invoice) {
-              //   $state.go("app.outbound.CustomerInvoices.InvoiceD");
+              //   $state.go("app.inbound.SupplierInvoices.InvoiceD");
               } else {
-                $state.go("app.outbound.CustomerInvoices.InvoiceN");
+                $state.go("app.inbound.SupplierInvoices.InvoiceN");
               }
             } else {
               var mod_data = data.data;

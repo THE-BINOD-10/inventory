@@ -265,7 +265,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           var mod_data = data.data;
           var modalInstance = $modal.open({
             templateUrl: 'views/inbound/toggle/edit_invoice.html',
-            controller: 'EditInvoice',
+            controller: 'EditPOChallan',
             controllerAs: 'pop',
             size: 'lg',
             backdrop: 'static',
@@ -287,165 +287,72 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       }
     }
 
+    vm.close = function() {
+      $state.go("app.outbound.CustomerInvoices")
+    };
 }
 
-function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items) {
+function EditPOChallan($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items) {
 
   var vm = this;
   vm.service = Service;
+  vm.process = false;
   vm.permissions = Session.roles.permissions;
   vm.priceband_sync = Session.roles.permissions.priceband_sync;
 
   vm.model_data = items;
-  vm.model_data.temp_sequence_number = vm.model_data.sequence_number;
+  vm.model_data.total_qty = 0;
+  vm.model_data.total_items = 0;
 
-  var empty_data = {data: [{sku_code: "", title: "", unit_price: "", quantity: "", base_price: "",
-              discount: "", amt: "", invoice_amount: "", discount_percentage: "",
-              discount: "", price: "", tax: "", total_amount: "",
-                            location: "", serials: [], serial: "", capacity: 0
-                          }],
-                    customer_id: "", payment_received: "", order_taken_by: "", other_charges: [],  shipment_time_slot: "",
-                    tax_type: "", blind_order: false, mode_of_transport: ""};
-
-
-  vm.fields = Session.roles.permissions["order_headers"];
-  vm.model_data.default_charge = function(){
-
-    if (vm.model_data.order_charges.length == 1) {
-
-      vm.model_data.flag = true;
-    }
-  }
-
-  vm.delete_charge = function(id){
-
-    if (id) {
-
-      vm.service.apiCall("delete_order_charges?id="+id, "GET").then(function(data){
-
-        if(data.message){
-
-          Service.showNoty(data.data.message);
-        }
-      });
-    }
-  }
-
-  $timeout(function() {
-
-    $('[name="invoice_date"]').datepicker("setDate", new Date(vm.model_data.inv_date) );
-  },1000);
   vm.ok = function () {
-
     $modalInstance.close("close");
   };
 
-  vm.process = false;
-  vm.save = function(form) {
-
-    if (vm.permissions.increment_invoice && vm.model_data.sequence_number && form.invoice_number.$invalid) {
-
-      Service.showNoty("Please Fill Invoice Number");
-      return false;
-    } else if (!form.$valid) {
-
-      Service.showNoty("Please Fill the Mandatory Fields");
-      return false;
-    }
-    vm.process = true;
-    var data = $("form").serializeArray()
-    Service.apiCall("update_invoice/", "POST", data).then(function(data) {
-
-      if(data.message) {
-
-        if(data.data.msg == 'success') {
-
-          Service.showNoty("Updated Successfully");
-          $modalInstance.close("saved");
-        } else {
-
-          Service.showNoty(data.data.msg);
-        }
-      } else {
-
-        Service.showNoty("Update fail");
-      }
-      vm.process = false;
-    })
-  }
-
-
-  vm.gst_calculate = function(record){
-    var gst_val = Number(record.taxes.cgst_tax) + Number(record.taxes.sgst_tax) + Number(record.taxes.igst_tax);
-    if (gst_val) {
-      gst_val = Number(record.base_price) * gst_val / 100;
-    }
-
-    record.invoice_amount = ((Number(record.base_price - Number(record.discount))/100)*record.tax)+(Number(record.base_price)-
-      Number(record.discount)) + gst_val;
-  }
-
-
-  vm.changeUnitPrice = function(data) {
-
-    data.base_price = data.quantity * Number(data.unit_price);
-    data.discount = (data.base_price/100)*Number(data.discount_percentage);
-    data.amt = data.base_price - data.discount;
-    var taxes = {cgst_amt: 'cgst_tax', sgst_amt: 'sgst_tax', igst_amt: 'igst_tax', utgst_amt: 'utgst_tax'};
-    data.tax = 0;
-
-    angular.forEach(taxes, function(tax_name, tax_amount){
-
-      if (data.taxes[tax_name] > 0){
-
-        data.taxes[tax_amount] = (data.amt/100)*data.taxes[tax_name];
-      } else {
-
-        data.taxes[tax_amount] = 0;
-      }
-       data.tax += data.taxes[tax_amount];
-    })
-    data.invoice_amount = (data.amt + data.tax);
-  }
-
-
-  vm.isLast = isLast;
-  function isLast(check) {
-
-    var cssClass = check ? "fa fa-plus-square-o" : "fa fa-minus-square-o";
-    return cssClass
-  }
-
-  vm.update_data = update_data;
-  function update_data(index, data, last) {
-    console.log(data);
-    if (last && (!vm.model_data.data[index].sku_code)) {
-      return false;
-    }
-    if (last) {
-    var temp = vm.model_data.data[0];
-    // temp.amt = temp.base_price = temp.discount = temp.id = temp.invoice_amount = temp.sku_code = temp.sku_size = temp.tax = temp.title = temp.unit_price = "";
-    var empty_data = {
-      'amt':0, 'base_price':"0.00", 'discount':0, 'discount_percentage':0, 'hsn_code':"", 'id':"", 'imeis':[], 'invoice_amount':"",
-      'mrp_price':"", 'order_id':"", 'quantity':0, 'shipment_date':"", 'sku_category':"", 'sku_class':"", 'sku_code':"",
-      'sku_size':"", 'tax':"0.00", 'tax_type':"", 'title':"", 'unit_price':"0.00", 'vat':0 }
-
-    empty_data["order_id"] = temp["order_id"];
-    empty_data["shipment_date"] = temp["shipment_date"];
-    empty_data["new_sku"] = true;
-    empty_data["taxes"] = temp["taxes"];
-    vm.model_data.data.push(empty_data);
+  vm.update_data = function (index) {
+    console.log(index);
+    if (index == vm.model_data.data.length-1) {
+      vm.model_data.data.push({"sku_code": "", "sku_desc": "", "pkng": "", "quantity": 0,
+                "unit_price": 0, "taxes": {"cgst_tax": 0, "sgst_tax": 0,
+                "igst_tax": 0}, "amt": 0, "tax": 0, "invoice_amount": 0});
     } else {
-    var del_sku = vm.model_data.data[index];
-      if(!del_sku.new_sku) {
-      Service.apiCall("remove_sku/", "POST", del_sku).then(function(data) {
-      console.log(data);
-      });
+      if(vm.model_data.data[index].order_id){
+        vm.delete_data('order_id', vm.model_data.data[index].order_id, index);
+      } else {
+        vm.delete_data('id', vm.model_data.data[index].id, index);
       }
-
       vm.model_data.data.splice(index,1);
-      vm.cal_total();
+      vm.getTotals();
     }
+  };
+
+  vm.delete_data = function(key, id, index) {
+    if(id) {
+      var del_data = {}
+      del_data[key] = id;
+      vm.service.apiCall('delete_po/', 'GET', del_data).then(function(data){
+        if(data.message) {
+    vm.model_data.data[index].row_price = (vm.model_data.data[index].order_quantity * Number(vm.model_data.data[index].price))
+;
+    vm.model_data.total_price = 0;
+
+    angular.forEach(vm.model_data.data, function(one_row){
+      vm.model_data.total_price = vm.model_data.total_price + (one_row.order_quantity * one_row.price);
+    });
+          vm.service.pop_msg(data.data);
+        }
+      });
+    }
+  };
+
+  vm.getTotals = function(data) {
+    vm.model_data.total_items = vm.model_data.data.length;
+    vm.model_data.total_qty = 0;
+    angular.forEach(vm.model_data.data, function(sku_data){
+      if (sku_data.quantity != "" || typeof sku_data.quantity != 'undefined') {
+        // sku_data.quantity = ''
+        vm.model_data.total_qty += parseInt(sku_data.quantity);
+      }
+    })
   }
 
   vm.change_quantity = function(data) {
@@ -473,171 +380,113 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
     vm.gst_calculate(data);
   }
 
-  vm.get_customer_sku_prices = function(sku) {
+  vm.changeUnitPrice = function(data) {
 
-    var d = $q.defer();
+    data.base_price = data.quantity * Number(data.unit_price);
+    data.discount = (data.base_price/100)*Number(data.discount_percentage) | 0;
+    data.amt = data.base_price - data.discount;
+    var taxes = {cgst_amt: 'cgst_tax', sgst_amt: 'sgst_tax', igst_amt: 'igst_tax', utgst_amt: 'utgst_tax'};
+    data.tax = 0;
+
+    angular.forEach(taxes, function(tax_name, tax_amount){
+
+      if (data.taxes[tax_name] > 0){ 
+
+        data.taxes[tax_amount] = (data.unit_price/100)*data.taxes[tax_name];
+      } else {
+
+        data.taxes[tax_amount] = 0;
+      }   
+       data.tax += data.taxes[tax_amount];
+    })  
+    data.invoice_amount = (data.unit_price + data.tax);
+  }
+
+  vm.get_sku_details = function(product, item, index) {
+    product.wms_code = item.wms_code;
+    product.measurement_unit = item.measurement_unit;
+    product.sku_desc = item.sku_desc;
+    product.order_quantity = 1;
+    product.price = "";
+    product.sgst_tax = "";
+    product.cgst_tax = "";
+    product.igst_tax = "";
+    product.utgst_tax = "";
+    product.tax = "";
+    product.unit_price = 0;
+
     var tax_dict = {0:"intra_state", 1:"inter_state", 2:"default"};
-    var data = {sku_codes: sku, cust_id: vm.model_data.customer_id, tax_type: tax_dict[vm.model_data.tax_type]}
+    var data = {sku_codes: item.wms_code, cust_id: vm.model_data.customer_id, tax_type: tax_dict[vm.model_data.tax_type]}
     vm.service.apiCall("get_customer_sku_prices/", "POST", data).then(function(data) {
 
       if(data.message) {
-        d.resolve(data.data);
+        product.unit_price = data.data[0].price;
+      }
+    product.quantity = 1;
+    product.taxes = {"sgst_tax": 0, "cgst_tax": 0, "igst_tax": 0};
+    vm.getTotals();
+    vm.changeUnitPrice(product);
+    });
+
+    if(vm.model_data.receipt_type == 'Hosted Warehouse') {
+
+      vm.model_data.supplier_id = vm.model_data.seller_supplier_map[vm.model_data.seller_type.split(":")[0]];
+    }
+
+    if (!vm.model_data.supplier_id){
+      return false;
+    } else {
+      var supplier = vm.model_data.supplier_id;
+      $http.get(Session.url+'get_mapping_values/?wms_code='+product.wms_code+'&supplier_id='+supplier, {withCredentials : true}).success(function(data, status, headers, config) {
+        if(Object.values(data).length) {
+          product.price = data.price;
+          product.supplier_code = data.supplier_code;
+          product.ean_number = data.ean_number;
+
+          vm.model_data.data[index].row_price = (vm.model_data.data[index].order_quantity * Number(vm.model_data.data[index].price));
+          vm.getTotals();
+        }
+      });
+    }
+  }
+
+  vm.getTotals();
+
+  vm.update_poc = function(form_data) {
+    var update_poc_data = {};
+    update_poc_data.form_data = {
+      'challan_date': form_data.challan_date.$modelValue,
+      'challan_no': form_data.challan_no.$modelValue,
+      'rep': form_data.rep.$modelValue,
+      'order_no': form_data.order_no.$modelValue,
+      'pick_number': form_data.pick_number.$modelValue,
+      'customer_id': form_data.customer_id.$modelValue,
+      'lr_no': form_data.lr_no.$modelValue,
+      'carrier': form_data.carrier.$modelValue,
+      'terms': form_data.terms.$modelValue,
+      'pkgs': form_data.pkgs.$modelValue,
+      'address': form_data.address.$modelValue,
+      'wms_code': form_data.wms_code.$modelValue
+    };
+    update_poc_data.data = JSON.stringify(vm.model_data.data);
+    vm.process = true;
+
+    vm.service.apiCall('update_poc/', 'POST', update_poc_data).then(function(resp){
+      if(resp.message) {
+        console.log(resp);
+        if(resp.data.message == 'success') {
+          console.log('success');
+          Service.showNoty("Updated Successfully");
+          $modalInstance.close("saved");
+        }
+      } else {
+        Service.showNoty("Something went wrong !");
       }
     });
-    return d.promise;
-  }
-
-  vm.get_tax_value = function(data) {
-
-    var tax_perc = 0;
-    // data.sgst_tax = 0;
-    // data.cgst_tax = 0;
-    // data.igst_tax = 0;
-    // data.taxes = {"cgst_amt": "", "cgst_tax": 0, "sgst_amt": "", "sgst_tax": 0, "igst_amt": "", "igst_tax": 0};
-    if (data.taxes_data) {
-      for(var i = 0; i < data.taxes_data.length; i++) {
-
-        if(data.unit_price <= data.taxes_data[i].max_amt && data.unit_price >= data.taxes_data[i].min_amt) {
-
-          if(vm.model_data.tax_type == "0") {//intra_state
-
-            tax_perc = data.taxes_data[i].sgst_tax + data.taxes_data[i].cgst_tax;
-            data.sgst_tax = data.taxes_data[i].sgst_tax;
-            data.cgst_tax = data.taxes_data[i].cgst_tax;
-            data.taxes.sgst_tax = data.sgst_tax;
-            data.taxes.cgst_tax = data.cgst_tax;
-          } else if (vm.model_data.tax_type == "1") {//inter_state
-
-            data.igst_tax = data.taxes_data[i].igst_tax;
-            tax_perc = data.taxes_data[i].igst_tax;
-            data.taxes.igst_tax = data.igst_tax;
-          }
-          data.taxes.cgst_amt = (data.amt * data.cgst_tax)/100;
-          data.taxes.sgst_amt = (data.amt * data.sgst_tax)/100;
-          data.taxes.igst_amt = (data.amt * data.igst_tax)/ 100;
-          break;
-        }
-      }
-    }
-    /*tax_perc = data.taxes.sgst_tax + data.taxes.cgst_tax + data.taxes.igst_tax;
-    data.taxes.sgst_amt = (data.unit_price * data.taxes.sgst_tax / 100) * data.quantity;
-    data.taxes.cgst_amt = (data.unit_price * data.taxes.cgst_tax / 100) * data.quantity;
-    data.taxes.igst_amt = (data.unit_price * data.taxes.igst_tax / 100) * data.quantity;*/
-    data.tax = tax_perc;
-    return tax_perc;
-  }
-
-  vm.final_data = {total_quantity:0,total_amount:0}
-  vm.cal_total = function() {
-
-    vm.final_data.total_quantity = 0;
-    vm.final_data.total_amount = 0;
-    angular.forEach(vm.model_data.data, function(record){
-      vm.final_data.total_amount += Number(record.total_amount);
-      vm.final_data.total_quantity += Number(record.quantity);
-    })
-    if(vm.model_data.other_charges) {
-      angular.forEach(vm.model_data.other_charges, function(record){
-        if(record.amount){
-          vm.final_data.total_amount += Number(record.amount);
-        }
-      })
-    }
-  }
-
-  vm.discountChange = function(data) {
-
-    vm.cal_percentage(data, false); 
-  }
-
-  vm.discountPercentageChange = function(data, status) {
-
-    if(vm.fields.indexOf('Discount Percentage') != -1) {
-      return false;
-    }
-    if(!data.discount_percentage) {
-      data.discount_percentage = "";
-    }
-    var temp_perc = Number(data.discount_percentage);
-    data.discount = (Number(data.invoice_amount)*temp_perc)/100;
-  }
-
-
-  vm.cal_percentage = function(data, no_total) {
-
-    vm.discountPercentageChange(data, false);
-  data.amt = data.base_price - data.discount;
-    vm.get_tax_value(data);
-    var per = Number(data.tax);
-    data.invoice_amount = ((Number(data.base_price - Number(data.discount))/100)*per)+(Number(data.base_price)-Number(data.discount));
-
-    if(!no_total) {
-      vm.cal_total();
-    }
-  }
-
-  function check_exist(sku_data, index) {
-
-    for(var i = 0; i < vm.model_data.data.length; i++) {
-
-      if((vm.model_data.data[i].sku_code == sku_data.sku_code) && (index != i)) {
-
-        sku_data.sku_code = "";
-        vm.service.showNoty("It is already exist in index");
-        return false;
-      }
-    }
-    return true;
-  }
-
-  vm.get_sku_data = function(record, item, index) {
-
-    record.sku_code = item.wms_code;
-  record["title"] = item.sku_desc;
-  //record.unit_price = item.
-    if(!vm.model_data.blind_order && !(check_exist(record, index))){
-      return false;
-    }
-    //angular.copy(empty_data.data[0], record);
-    record.sku_code = item.wms_code;
-    record["title"] = item.sku_desc;
-
-    vm.get_customer_sku_prices(item.wms_code).then(function(data){
-      if(data.length > 0) {
-        data = data[0]
-        record["unit_price"] = data.price;
-        //record["description"] = data.sku_desc;
-        if (! vm.model_data.blind_order) {
-          if(!(record.quantity)) {
-            record.quantity = 1
-          }
-        }
-        record["taxes_data"] = data.taxes;
-    record["base_price"] = Number(record.unit_price)*Number(record.quantity);
-    record["discount"] = data.discount;
-    record["amt"] = record["base_price"] - record["discount"];
-        //record.invoice_amount = Number(record.price)*Number(record.quantity);
-        record["priceRanges"] = data.price_bands_map;
-        vm.cal_percentage(record);
-      }
-    })
-  }
-
+  };
 
 }
+
 stockone = angular.module('urbanApp');
 
-stockone.controller('EditInvoice', ['$scope', '$http', '$q', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', EditInvoice]);
-
-// stockone.directive('genericCustomerInvoiceData', function() {
-//   return {
-//     restrict: 'E',
-//     scope: {
-//       invoice_data: '=data',
-//     },
-//     templateUrl: 'views/outbound/toggle/invoice_data_html.html',
-//     link: function(scope, element, attributes, $http, Service){
-//       console.log(scope);
-//     }
-//   };
-// });
+stockone.controller('EditPOChallan', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', EditPOChallan]);

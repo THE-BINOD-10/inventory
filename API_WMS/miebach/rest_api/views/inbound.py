@@ -6203,7 +6203,6 @@ def generate_supplier_invoice(request, user=''):
                                 "order_id": seller_summary[0].purchase_order.order_id,
                                 "receipt_number": seller_summary[0].receipt_number,
                                 "price_in_words": "",
-                                "total_tax": 0,
                                 "total_tax_words": ''
 
                                }

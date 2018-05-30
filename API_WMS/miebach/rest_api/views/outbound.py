@@ -264,7 +264,8 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
     else:
         header = OPEN_PICK_LIST_HEADERS
 
-    all_picks = Picklist.objects.filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id), **filter_params)
+    all_picks = Picklist.objects.select_related('order', 'stock').\
+                                filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id), **filter_params)
 
     if search_term:
         master_data = all_picks.filter(
@@ -4428,7 +4429,10 @@ def get_leadtimes(user='', level=0):
     lead_times = NetworkMaster.objects.filter(dest_location_code=user,
                                               source_location_code_id__in=same_level_users). \
         values_list('lead_time', 'source_location_code').distinct()
-    return dict(lead_times)
+    lead_times_dict = {}
+    for lt, wh_code in lead_times:
+        lead_times_dict.setdefault(lt, []).append(wh_code)
+    return lead_times_dict
 
 
 def get_same_level_warehouses(level, central_admin):
@@ -6691,6 +6695,7 @@ def order_charges_obj_for_orderid(order_id, user_id):
 def get_customer_order_detail(request, user=""):
     """ Return customer order detail """
 
+    log.info('Request params for ' + user.username + ' is ' + str(request.GET.dict()))
     response_data = {'data': []}
     order_id = request.GET['order_id']
     if not order_id:
@@ -6711,6 +6716,8 @@ def get_customer_order_detail(request, user=""):
         response_data, res = prepare_your_orders_data(request, order_id, user.id, det_ids, order)
         response_data_list = [response_data]
         final_data = {'data': response_data_list}
+    log.info('Response data for parent user ' + user.username + ' request user ' + request.user.username + ' is ' + str(
+        final_data))
     return HttpResponse(json.dumps(final_data, cls=DjangoJSONEncoder))
 
 

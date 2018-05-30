@@ -4146,14 +4146,15 @@ def get_sku_available_dict(user, sku_code='', location='', available=False):
 
 
 def get_order_detail_objs(order_id, user, search_params={}, all_order_objs=[]):
-    if not search_params.has_key('user'):
-        search_params['user'] = user.id
+    search_param = copy.deepcopy(search_params)
+    if not search_param.has_key('user'):
+        search_param['user'] = user.id
     if not all_order_objs:
         all_order_objs = OrderDetail.objects.filter(user=user.id)
     order_id_search = ''.join(re.findall('\d+', order_id))
     order_code_search = ''.join(re.findall('\D+', order_id))
     order_detail_objs = OrderDetail.objects.filter(Q(order_id=order_id_search, order_code=order_code_search) |
-                                                   Q(original_order_id=order_id), **search_params)
+                                                   Q(original_order_id=order_id), **search_param)
     return order_detail_objs
 
 

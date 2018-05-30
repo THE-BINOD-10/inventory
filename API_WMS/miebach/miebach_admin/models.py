@@ -487,7 +487,8 @@ class Picklist(models.Model):
 
     class Meta:
         db_table = 'PICKLIST'
-        index_together = (('picklist_number', 'order', 'stock'), ('order', 'order_type', 'picked_quantity'))
+        index_together = (('picklist_number', 'order', 'stock'), ('order', 'order_type', 'picked_quantity'),
+                          ('picklist_number',))
 
     def __unicode__(self):
         return str(self.picklist_number)

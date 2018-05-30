@@ -253,23 +253,36 @@ var app = angular.module('urbanApp')
             url: '/Location',
             templateUrl: 'views/masters/toggles/add_location.html'
           })
-        .state('app.masters.supplierSKUMapping', {
-          url: '/SupplierSKUMapping',
+        .state('app.masters.sourceSKUMapping', {
+          url: '/SourceSKUMapping',
           permission: 'add_skusupplier',
-          templateUrl: 'views/masters/supplier_sku_mapping_datatable.html',
+          templateUrl: 'views/masters/source_sku_mapping.html',
+
           resolve: {
-            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/masters/supplierSKU.js');
-                    }]
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/masters/source_sku_mapping/supplierSKU.js'
+                ]).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/masters/source_sku_mapping/warehouseSKU.js'
+                  ])
+                });
+              }]
           },
+
           data: {
-            title: 'Supplier-SKU Mapping',
+            title: 'Source-SKU Mapping',
           }
         })
-          .state('app.masters.supplierSKUMapping.mapping', {
+          .state('app.masters.sourceSKUMapping.mapping', {
              url: '/supplierSKU',
              templateUrl: 'views/masters/toggles/supplier_sku_update.html'
            })
+          .state('app.masters.sourceSKUMapping.wh_mapping', {
+             url: '/warehouseSKU',
+             templateUrl: 'views/masters/toggles/warehouse_sku_update.html'
+           })
+
         .state('app.masters.SupplierMaster', {
           url: '/SupplierMaster',
           permission: 'add_suppliermaster',

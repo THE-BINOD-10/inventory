@@ -6203,7 +6203,6 @@ def generate_supplier_invoice(request, user=''):
                                 "order_id": seller_summary[0].purchase_order.order_id,
                                 "receipt_number": seller_summary[0].receipt_number,
                                 "price_in_words": "",
-                                "total_tax": 0,
                                 "total_tax_words": ''
 
                                }
@@ -6212,7 +6211,8 @@ def generate_supplier_invoice(request, user=''):
                 result_data["data"] = []
                 tot_cgst, tot_sgst, tot_igst, tot_utgst, tot_amt, tot_invoice, tot_qty, tot_tax = [0]*8
                 for seller_sum in seller_summary:
-                    open_po = seller_sum.purchase_order.open_po
+                    po = seller_sum.purchase_order
+                    open_po = po.open_po
                     sku = open_po.sku
                     unit_price = open_po.price
                     qty = seller_sum.quantity
@@ -6220,10 +6220,10 @@ def generate_supplier_invoice(request, user=''):
                     sgst_tax = open_po.sgst_tax
                     igst_tax = open_po.igst_tax
                     utgst_tax = open_po.utgst_tax
-                    cgst_amt = (unit_price * qty * cgst_tax) / 100
-                    sgst_amt = (unit_price * qty * sgst_tax) / 100
-                    igst_amt = (unit_price * qty * igst_tax) / 100
-                    utgst_amt = (unit_price * qty * utgst_tax) / 100
+                    cgst_amt = float((unit_price * qty * cgst_tax) / 100)
+                    sgst_amt = float((unit_price * qty * sgst_tax) / 100)
+                    igst_amt = float((unit_price * qty * igst_tax) / 100)
+                    utgst_amt = float((unit_price * qty * utgst_tax) / 100)
                     tot_cgst += cgst_amt
                     tot_sgst += sgst_tax
                     tot_igst += igst_tax
@@ -6239,19 +6239,20 @@ def generate_supplier_invoice(request, user=''):
                              "cgst_amt": cgst_amt, "sgst_amt": sgst_amt,
                              "igst_amt": igst_amt, "utgst_amt": utgst_amt}
                     sku_data = {"id": sku.id,
+                                "seller_summary_id": seller_sum.id,
+                                "open_po_id": open_po.id,
                                 "sku_code": sku.wms_code,
                                 "title": sku.sku_desc,
-                                "unit_price": open_po.price,
+                                "unit_price": unit_price,
                                 "tax_type": open_po.tax_type,
-                                "invoice_amount": 0,
-                                "id": 0,
+                                "invoice_amount": invoice_amt,
                                 "hsn_code": '',
-                                "amt": 0,
-                                "quantity": seller_sum.quantity,
-                                "shipment_date": ''
+                                "amt": amt,
+                                "quantity": qty,
+                                "shipment_date": '',
+                                "taxes": taxes
                                 }
                     result_data["data"].append(sku_data)
-                    result_data["taxes"]= taxes
                     result_data["sequence_number"] = sku.sequence
                 result_data["total_amt"] = tot_amt
                 result_data["total_invoice_amount"] = tot_invoice
@@ -6267,3 +6268,100 @@ def generate_supplier_invoice(request, user=''):
         log.debug(traceback.format_exc())
         return HttpResponse(json.dumps({'message': 'failed'}))
     return HttpResponse(json.dumps(result_data))
+
+
+@get_admin_user
+def update_poc(request, user=''):
+    form_dict = dict(request.POST.iterlists())
+    address = form_dict['form_data[address]'][0]
+    challan_number = form_dict['form_data[challan_no]'][0]
+    rep_id = form_dict['form_data[rep]']
+    lr_no = form_dict['form_data[lr_no]']
+    carrier = form_dict['form_data[carrier]']
+    sku_id = form_dict['form_data[wms_code]']
+    pkgs = form_dict['form_data[pkgs]']
+    terms = form_dict['form_data[terms]']
+    skus_data = form_dict['data']
+    order_id = form_dict['form_data[order_no]'][0]
+    pick_number = form_dict['form_data[pick_number]'][0]
+    import pdb;pdb.set_trace()
+    supp_id = form_dict['form_data[customer_id]'][0]
+    if not supp_id:
+        log.info("No  Supplier Id found")
+        return HttpResponse(json.dumps({'message': 'failed'}))
+    else:
+        supp_obj = SupplierMaster.objects.filter(id=supp_id)
+        if not supp_obj:
+            log.info('No Proper Supplier Object')
+            return HttpResponse(json.dumps({'message': 'failed'}))
+        else:
+            supp_obj = supp_obj[0]
+        supplier_id = supp_obj.id
+        customer_name = supp_obj.name
+    for sku_data in skus_data:
+        sku_data = eval(sku_data)
+        shipment_date = sku_data[0].get('shipment_date', '')
+        for each_sku in sku_data:
+            seller_summary_id = each_sku.get('seller_summary_id', '')
+            open_po_id = each_sku.get('open_po_id', '')
+            quantity = each_sku.get('quantity', '')
+            unit_price = each_sku.get('unit_price', '')
+            sgst_tax = each_sku['taxes'].get('sgst_tax', '')
+            cgst_tax = each_sku['taxes'].get('cgst_tax', '')
+            igst_tax = each_sku['taxes'].get('igst_tax', '')
+            invoice_amount = each_sku.get('invoice_amount', '')
+
+            if not quantity:
+                continue
+            if seller_summary_id:
+                ord_obj = SellerPOSummary.objects.filter(id=seller_summary_id)
+                if ord_obj:
+                    ord_obj[0].quantity = quantity
+                    ord_obj[0].invoice_amount = invoice_amount
+                    ord_obj[0].unit_price = unit_price
+                    cust_order_summary = CustomerOrderSummary.objects.filter(order_id = ord_obj[0].id)
+                    if cust_order_summary:
+                        if cgst_tax:
+                            cust_order_summary[0].cgst_tax = cgst_tax
+                        if sgst_tax:
+                            cust_order_summary[0].sgst_tax = sgst_tax
+                        if igst_tax:
+                            cust_order_summary[0].igst_tax = igst_tax
+                        cust_order_summary[0].save()
+
+                    ord_obj[0].save()
+            else:
+                sku_qs = SKUMaster.objects.filter(sku_code=each_sku['sku_code'], user=user.id)
+                if not sku_qs:
+                    continue
+                else:
+                    sku_id = sku_qs[0].id
+                    title = sku_qs[0].sku_desc
+                    product_type = sku_qs[0].product_type
+                    org_order_id = 'MN%s' % order_id
+                    order_detail_dict = {'sku_id': sku_id, 'title': title, 'quantity': quantity,
+                                         'order_id': order_id, 'original_order_id': org_order_id, 'user': user.id,
+                                         'customer_id': customer_id, 'customer_name': customer_name,
+                                         'shipment_date': shipment_date, 'address': address, 'price': unit_price,
+                                         'unit_price': unit_price}
+                    #tax = get_tax_value(user, order_detail_dict, product_type, tax_type)
+                    #total_amount = ((net_amount * tax) / 100) + net_amount
+                    order_detail_dict['invoice_amount'] = invoice_amount #total_amount
+                    order_detail_dict.pop('price')
+                    ord_obj = OrderDetail(**order_detail_dict)
+                    ord_obj.save()
+                    cos_dict = {'order_id': ord_obj.id, 'cgst_tax': cgst_tax,
+                                'igst_tax': igst_tax, 'sgst_tax': sgst_tax
+                                }
+                    cos_obj = CustomerOrderSummary(**cos_dict)
+                    cos_obj.save()
+                    sos_dict = {'quantity': quantity, 'pick_number': pick_number,
+                                'creation_date': datetime.datetime.now(), 'order_id': ord_obj.id,
+                                'challan_number': challan_number, 'order_status_flag': 'delivery_challans'}
+                    sos_obj = SellerOrderSummary(**sos_dict)
+                    sos_obj.save()
+
+    return HttpResponse(json.dumps({'message': 'success'}))
+
+
+

@@ -382,9 +382,9 @@ function EditPOChallan($scope, $http, $state, $timeout, Session, colFilters, Ser
 
   vm.changeUnitPrice = function(data) {
 
-    data.base_price = data.quantity * Number(data.unit_price);
+    var total = data.quantity * Number(data.unit_price);
     data.discount = (data.base_price/100)*Number(data.discount_percentage) | 0;
-    data.amt = data.base_price - data.discount;
+    data.amt = total;
     var taxes = {cgst_amt: 'cgst_tax', sgst_amt: 'sgst_tax', igst_amt: 'igst_tax', utgst_amt: 'utgst_tax'};
     data.tax = 0;
 
@@ -392,20 +392,21 @@ function EditPOChallan($scope, $http, $state, $timeout, Session, colFilters, Ser
 
       if (data.taxes[tax_name] > 0){ 
 
-        data.taxes[tax_amount] = (data.unit_price/100)*data.taxes[tax_name];
+        data.taxes[tax_amount] = (total/100)*data.taxes[tax_name];
       } else {
 
         data.taxes[tax_amount] = 0;
       }   
        data.tax += data.taxes[tax_amount];
     })  
-    data.invoice_amount = (data.unit_price + data.tax);
+    data.invoice_amount = (total) + (data.tax);
   }
 
   vm.get_sku_details = function(product, item, index) {
     product.wms_code = item.wms_code;
     product.measurement_unit = item.measurement_unit;
     product.sku_desc = item.sku_desc;
+    product.title = item.sku_desc;
     product.order_quantity = 1;
     product.price = "";
     product.sgst_tax = "";

@@ -123,19 +123,19 @@
                     title="{{ product.unit_price }}" type="text" class="form-control">
                   </td>
                   <td>
-                    <input ng-model="pop.model_data.taxes.cgst_tax" ng-keyup="pop.changeUnitPrice(product)"
-                    title="{{ pop.model_data.taxes.cgst_tax }}" type="text" class="form-control">
+                    <input ng-model="product.taxes.cgst_tax" ng-keyup="pop.changeUnitPrice(product)"
+                    title="{{ product.taxes.cgst_tax }}" type="text" class="form-control">
                   </td>
                   <td>
-                    <input ng-model="pop.model_data.taxes.sgst_tax" ng-keyup="pop.changeUnitPrice(product)"
-                    title="{{ pop.model_data.taxes.sgst_tax }}" type="text" class="form-control">
+                    <input ng-model="product.taxes.sgst_tax" ng-keyup="pop.changeUnitPrice(product)"
+                    title="{{ product.taxes.sgst_tax }}" type="text" class="form-control">
                   </td>
                   <td>
-                    <input ng-model="pop.model_data.taxes.igst_tax" ng-keyup="pop.changeUnitPrice(product)"
-                    title="{{ pop.model_data.taxes.igst_tax }}" type="text" class="form-control">
+                    <input ng-model="product.taxes.igst_tax" ng-keyup="pop.changeUnitPrice(product)"
+                    title="{{ product.taxes.igst_tax }}" type="text" class="form-control">
                   </td>
                   <td>{{product.amt}}</td>
-                  <td>{{product.invoice_amount - product.amt}}</td>
+                  <td>{{product.tax}}</td>
                   <td>{{product.invoice_amount}}</td>
 
                   <td>

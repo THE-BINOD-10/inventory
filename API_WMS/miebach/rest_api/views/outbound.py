@@ -1656,7 +1656,7 @@ def picklist_confirmation(request, user=''):
                     count = count - picking_count1
                     auto_skus.append(val['wms_code'])
 
-        if get_misc_value('auto_po_switch', user.id) == 'true' and auto_skus:
+        if auto_skus:
             auto_skus = list(set(auto_skus))
             price_band_flag = get_misc_value('priceband_sync', user.id)
             if price_band_flag == 'true':

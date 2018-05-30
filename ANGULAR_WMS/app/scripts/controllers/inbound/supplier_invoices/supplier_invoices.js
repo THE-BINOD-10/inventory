@@ -197,10 +197,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                 $timeout(function () {
                   $(".modal-body:visible").html(vm.pdf_data)
                 }, 3000);
-              } else if(Session.user_profile.user_type == "marketplace_user") {
-                $state.go("app.outbound.CustomerInvoices.InvoiceM");
-              } else if(vm.permissions.detailed_invoice) {
-                $state.go("app.outbound.CustomerInvoices.InvoiceD");
+              // } else if(Session.user_profile.user_type == "marketplace_user") {
+              //   $state.go("app.outbound.CustomerInvoices.InvoiceM");
+              // } else if(vm.permissions.detailed_invoice) {
+              //   $state.go("app.outbound.CustomerInvoices.InvoiceD");
               } else {
                 $state.go("app.outbound.CustomerInvoices.InvoiceN");
               }
@@ -229,7 +229,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         });
       }
     }
-
 
 }
 

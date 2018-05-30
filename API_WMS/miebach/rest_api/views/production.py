@@ -1229,7 +1229,7 @@ def rm_picklist_confirmation(request, user=''):
                         picklist.jo_material.job_order.save()
                         insert_rwo_po(rw_order, request, user)
 
-            if get_misc_value('auto_po_switch', user.id) == 'true' and auto_skus:
+            if auto_skus:
                 auto_po(list(set(auto_skus)), user.id)
 
     if mod_locations:

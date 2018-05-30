@@ -4,7 +4,8 @@ from miebach_utils import BigAutoField
 from datetime import date
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .choices import UNIT_TYPE_CHOICES, REMARK_CHOICES, TERMS_CHOICES, CUSTOMIZATION_TYPES, ROLE_TYPE_CHOICES
+from .choices import UNIT_TYPE_CHOICES, REMARK_CHOICES, TERMS_CHOICES, CUSTOMIZATION_TYPES, ROLE_TYPE_CHOICES, \
+    CUSTOMER_ROLE_CHOICES
 
 # from longerusername import MAX_USERNAME_LENGTH
 # Create your models here.
@@ -749,6 +750,7 @@ class CustomerMaster(models.Model):
     customer_type = models.CharField(max_length=64, default='')
     is_distributor = models.BooleanField(default=False)
     lead_time = models.PositiveIntegerField(blank=True, default=0)
+    role = models.CharField(max_length=64, choices=CUSTOMER_ROLE_CHOICES, default='customer_user')
 
     class Meta:
         db_table = 'CUSTOMER_MASTER'

@@ -2846,6 +2846,14 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     price_type = ''
     customer_id = ''
 
+    disp_sku_map = get_misc_value('display_sku_cust_mapping', user.id)
+    if disp_sku_map == 'true':
+        cust_mapped_skus = CustomerSKU.objects.filter(sku__user=user.id).values_list('sku_id', flat=True)
+        filtered_sku_master = SKUMaster.objects.exclude(sku_class='').filter(id__in=cust_mapped_skus)
+    else:
+        cust_mapped_skus = []
+        filtered_sku_master = SKUMaster.objects.exclude(sku_class='')
+
     price_field = get_price_field(user)
     customer_master, price_type, customer_data_id, customer_id = get_customer_and_price_type(request, user, customer_data_id, customer_id)
     if not is_catalog:
@@ -2906,24 +2914,25 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
             dis_percent = 0
             if customer_master:
                 dis_percent = customer_master.discount_percentage
-            sku_master1 = SKUMaster.objects.exclude(sku_class='').\
-                    annotate(n_price=F(price_field)*(1-(Value(dis_percent)/Value(100)))).annotate(
-                    new_price=F('n_price') + (F('n_price') / Value(100)) * Value(custom_margin)).\
-            filter(pricemaster__isnull=True, **filter_params)
+            sku_master1 = filtered_sku_master.annotate(
+                n_price=F(price_field) * (1 - (Value(dis_percent) / Value(100)))).annotate(
+                new_price=F('n_price') + (F('n_price') / Value(100)) * Value(custom_margin)).filter(
+                pricemaster__isnull=True, **filter_params)
         else:
             markup = 0
             if customer_master:
                 markup = customer_master.markup
-            sku_master1 = SKUMaster.objects.exclude(sku_class='').\
-                annotate(n_price=F(price_field) * (1+(Value(markup) / Value(100)))).\
-                annotate(new_price=F('n_price') + (F('n_price') / Value(100)) * Value(custom_margin)). \
-            filter(pricemaster__isnull=True, **filter_params)
+            sku_master1 = filtered_sku_master.annotate(
+                n_price=F(price_field) * (1 + (Value(markup) / Value(100)))).annotate(
+                new_price=F('n_price') + (F('n_price') / Value(100)) * Value(custom_margin)).filter(
+                pricemaster__isnull=True, **filter_params)
         if filter_params.has_key('new_price__lte'):
             del filter_params['new_price__lte']
         if filter_params.has_key('new_price__gte'):
             del filter_params['new_price__gte']
-        sku_master2 = SKUMaster.objects.exclude(sku_class='').filter(
-                sku_code__in=pricemaster.values_list('sku__sku_code', flat=True)).filter(**filter_params)
+
+        sku_master2 = filtered_sku_master.filter(
+            sku_code__in=pricemaster.values_list('sku__sku_code', flat=True)).filter(**filter_params)
         sku_master = sku_master1 | sku_master2
         sku_prices = dict(sku_master.only('id', 'new_price').values_list('id', 'new_price'))
         pricemaster_prices = dict(pricemaster.only('sku_id', 'new_price').values_list('sku_id', 'new_price'))
@@ -2935,25 +2944,26 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
             dis_percent = 0
             if customer_master:
                 dis_percent = customer_master.discount_percentage
-            sku_master1 = SKUMaster.objects.exclude(sku_class='').\
-                            annotate(n_price=F(price_field)*(1-(Value(dis_percent)/Value(100)))).\
-                            annotate(new_price=F('n_price') + Value(custom_margin)).\
-                            filter(pricemaster__isnull=True, **filter_params)
+            sku_master1 = filtered_sku_master.annotate(
+                n_price=F(price_field) * (1 - (Value(dis_percent) / Value(100)))).annotate(
+                new_price=F('n_price') + Value(custom_margin)).filter(pricemaster__isnull=True, **filter_params)
         else:
             markup = 0
             if customer_master:
                 markup = customer_master.markup
-            sku_master1 = SKUMaster.objects.exclude(sku_class='').\
-                            annotate(n_price=F(price_field)*(1+(Value(markup)/Value(100)))).\
-                            annotate(new_price=F('n_price') + Value(custom_margin)).\
-                            filter(pricemaster__isnull=True, **filter_params)
+            sku_master1 = filtered_sku_master.annotate(
+                n_price=F(price_field) * (1 + (Value(markup) / Value(100)))).annotate(
+                new_price=F('n_price') + Value(custom_margin)).filter(pricemaster__isnull=True, **filter_params)
 
         if filter_params.has_key('new_price__lte'):
             del filter_params['new_price__lte']
         if filter_params.has_key('new_price__gte'):
             del filter_params['new_price__gte']
-        sku_master2 = SKUMaster.objects.exclude(sku_class='').filter(
-            id__in=pricemaster.values_list('sku_id', flat=True)).filter(**filter_params)
+        if cust_mapped_skus:
+            sku_master2 = SKUMaster.objects.exclude(sku_class='').filter(id__in=cust_mapped_skus)
+        else:
+            sku_master2 = SKUMaster.objects.exclude(sku_class='')
+        sku_master2 = sku_master2.filter(id__in=pricemaster.values_list('sku_id', flat=True)).filter(**filter_params)
         sku_master = sku_master1 | sku_master2
         sku_prices = dict(sku_master.only('id', 'new_price').values_list('id', 'new_price'))
         pricemaster_prices = dict(pricemaster.only('sku_id', 'new_price').values_list('sku_id', 'new_price'))

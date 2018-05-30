@@ -349,6 +349,7 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
                          ('DT_RowId', data.customer_id), ('DT_RowClass', 'results'),
                          ('discount_percentage', data.discount_percentage), ('lead_time', data.lead_time),
                          ('is_distributor', str(data.is_distributor)), ('markup', data.markup),
+                         ('role', data.role),
                          )))
 
 

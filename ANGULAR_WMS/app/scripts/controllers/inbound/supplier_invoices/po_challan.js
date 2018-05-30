@@ -143,10 +143,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                 $timeout(function () {
                   $(".modal-body:visible").html(vm.pdf_data)
                 }, 3000);
-              } else if(Session.user_profile.user_type == "marketplace_user") {
-                $state.go("app.inbound.SupplierInvoices.InvoiceM");
-              } else if(vm.permissions.detailed_invoice) {
-                $state.go("app.inbound.SupplierInvoices.InvoiceD");
+              // } else if(Session.user_profile.user_type == "marketplace_user") {
+              //   $state.go("app.inbound.SupplierInvoices.InvoiceM");
+              // } else if(vm.permissions.detailed_invoice) {
+              //   $state.go("app.inbound.SupplierInvoices.InvoiceD");
               } else {
                 $state.go("app.inbound.SupplierInvoices.InvoiceN");
               }

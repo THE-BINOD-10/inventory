@@ -4,7 +4,7 @@
         <th><center>Qty</center></th>
         <th ng-if="permissions.show_mrp">MRP(&#8377;)</center></th>
         <th><center>Rate</center></th>
-        <th><center>Disc(&#8377;)</center></th>
+        <!-- <th><center>Disc(&#8377;)</center></th> -->
         <th><center>VAT(%)</center></th>
         <th><center>Tax(&#8377;)</center></th>
         <th><center>Total(&#8377;)</center></th>
@@ -19,23 +19,23 @@
         <td>{{record.quantity}}</td>
         <td ng-if="permissions.show_mrp">{{record.mrp_price | number:2}}</td>
         <td>{{record.unit_price | number:2}}</td>
-        <td>{{record.discount}}</td>
-        <td>{{record.vat}}</td>
-        <td>{{record.tax | number:2}}</td>
+        <!-- <td>{{record.discount}}</td> -->
+        <td>{{(record.taxes.cgst_tax) + (record.taxes.sgst_tax) + (record.taxes.igst_tax)}}</td>
+        <td>{{(record.taxes.cgst_amt) + (record.taxes.sgst_amt) + (record.taxes.igst_amt) | number:2}}</td>
         <td>{{record.invoice_amount | number:2}}</td> 
       </tr>
       <tr style="border-top: 1px solid rgba(128, 128, 128, 0.14)" class="rm-padding">
        <td style="text-align:left"><b>Total: &#8377;</b></td>
        <td>{{showCase.pdf_data.total_quantity}}</td>
        <td ng-if="permissions.show_mrp"></td>
-       <td></td>
+       <!-- <td></td> -->
        <td></td>
        <td></td>
        <td>{{showCase.pdf_data.total_tax | number:2}}</td>
        <td>{{showCase.pdf_data.total_invoice | number:2}}</td>
       </tr>
       <tr class="rm-padding" ng-if="showCase.pdf_data.order_charges">
-        <td colspan='{{(permissions.show_mrp)?9: 8;}}' style="text-align:left;">
+        <td colspan='{{(permissions.show_mrp)?8: 7;}}' style="text-align:left;">
           <div class="row">
             <div class="col-xs-6">
             </div>

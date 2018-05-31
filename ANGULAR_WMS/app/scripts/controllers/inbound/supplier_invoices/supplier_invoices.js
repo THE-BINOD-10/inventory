@@ -245,6 +245,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         });
       }
     }
+  vm.close = function() {
+    $state.go("app.inbound.SupplierInvoice")
+  };
 
 }
 
@@ -592,11 +595,6 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
       }
     })
   }
-
-  vm.close = function() {
-    $state.go("app.inbound.SupplierInvoice")
-  };
-
 
 }
 stockone = angular.module('urbanApp');

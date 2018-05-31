@@ -106,6 +106,17 @@ def get_inventory_excel_upload_headers(user):
     return excel_headers
 
 
+def get_move_inventory_excel_upload_headers(user):
+    excel_headers = copy.deepcopy(MOVE_INVENTORY_EXCEL_MAPPING)
+    userprofile = user.userprofile
+    if not userprofile.user_type == 'marketplace_user':
+        del excel_headers["Seller ID"]
+    if not userprofile.industry_type == 'FMCG':
+        del excel_headers["Batch Number"]
+        del excel_headers["MRP"]
+    return excel_headers
+
+
 '''def check_and_get_marketplace(reader, file_type, no_of_rows, no_of_cols):
     marketplace = ''
     if get_cell_data(0, 0, reader, file_type) == 'Order No.':
@@ -883,7 +894,8 @@ def move_inventory_form(request, user=''):
     inventory_file = request.GET['download-move-inventory-file']
     if inventory_file:
         return error_file_download(inventory_file)
-    wb, ws = get_work_sheet('Inventory', MOVE_INVENTORY_UPLOAD_FIELDS)
+    excel_headers = get_move_inventory_excel_upload_headers(user)
+    wb, ws = get_work_sheet('Inventory', excel_headers)
     return xls_to_response(wb, '%s.move_inventory_form.xls' % str(user.id))
 
 
@@ -2508,55 +2520,129 @@ def purchase_order_upload(request, user=''):
 
 
 @csrf_exempt
-def validate_move_inventory_form(open_sheet, user):
+def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
     mapping_dict = {}
     index_status = {}
     location = {}
-    for row_idx in range(0, open_sheet.nrows):
-        for col_idx in range(0, len(MOVE_INVENTORY_UPLOAD_FIELDS)):
-            cell_data = open_sheet.cell(row_idx, col_idx).value
-            if row_idx == 0:
-                if col_idx == 0 and cell_data != 'WMS Code':
-                    return 'Invalid File'
-                break
-            if col_idx == 0:
+    data_list = []
+    inv_mapping = get_move_inventory_excel_upload_headers(user)
+    inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
+    excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                                 inv_mapping)
+    if not set(['wms_code', 'source', 'destination', 'quantity']).issubset(excel_mapping.keys()):
+        return 'Invalid File'
+    fields_mapping = {'quantity': 'Quantity', 'mrp': 'MRP'}
+    number_fields = ['quantity', 'mrp']
+    for row_idx in range(1, no_of_rows):
+        data_dict = {}
+        for key, value in excel_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, value, reader, file_type)
+            if key == 'wms_code':
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
                 cell_data = str(cell_data)
-                # sku_master = SKUMaster.objects.filter(wms_code=cell_data, user=user)
-                _user = User.objects.get(id=user)
-                _sku_master = check_and_return_mapping_id(cell_data, "", _user, False)
-                sku_master = SKUMaster.objects.filter(id=_sku_master)
-                if not sku_master:
+                sku_id = check_and_return_mapping_id(cell_data, "", user, False)
+                if not sku_id:
                     index_status.setdefault(row_idx, set()).add('Invalid WMS Code')
-            elif col_idx == 1:
+                else:
+                    data_dict['sku_id'] = sku_id
+                    data_dict['wms_code'] = SKUMaster.objects.get(id=sku_id, user=user.id).wms_code
+            elif key == 'source':
                 if cell_data:
-                    location_master = LocationMaster.objects.filter(zone__user=user, location=cell_data)
+                    location_master = LocationMaster.objects.filter(zone__user=user.id, location=cell_data)
                     if not location_master:
                         index_status.setdefault(row_idx, set()).add('Invalid Source Location')
-                    if location_master and sku_master:
-                        source_stock = StockDetail.objects.filter(sku__user=user, location__location=cell_data,
-                                                                  sku_id=sku_master[0].id)
+                    else:
+                        data_dict[key] = location_master[0].location
+                        data_dict['source_id'] = location_master[0].id
+                    if location_master and sku_id:
+                        source_stock = StockDetail.objects.filter(sku__user=user.id, location__location=cell_data,
+                                                                  sku_id=sku_id)
                         if not source_stock:
                             index_status.setdefault(row_idx, set()).add('location not have the stock of wms code')
                 else:
                     index_status.setdefault(row_idx, set()).add('Source Location should not be empty')
-            elif col_idx == 2:
+            elif key == 'destination':
                 if cell_data:
-                    dest_location = LocationMaster.objects.filter(zone__user=user, location=cell_data)
+                    dest_location = LocationMaster.objects.filter(zone__user=user.id, location=cell_data)
                     if not dest_location:
                         index_status.setdefault(row_idx, set()).add('Invalid Destination Location')
+                    else:
+                        data_dict[key] = dest_location[0].location
+                        data_dict['destination_id'] = dest_location[0].id
                 else:
                     index_status.setdefault(row_idx, set()).add('Destination Location should not be empty')
-            elif col_idx == 3:
+            elif key == 'seller_id':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Seller ID should not be empty')
+                try:
+                    seller_id = int(cell_data)
+                    seller_master = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
+                    if not seller_master:
+                        index_status.setdefault(row_idx, set()).add('Invalid Seller ID')
+                    else:
+                        data_dict[key] = seller_master[0].seller_id
+                        data_dict['seller_master_id'] = seller_master[0].id
+                except:
+                    index_status.setdefault(row_idx, set()).add('Invalid Destination Location')
+            elif key == 'batch_no':
+                if isinstance(cell_data, float):
+                    cell_data = str(int(cell_data))
+                    data_dict[key] = cell_data
+            elif key in number_fields:
                 if cell_data and (not isinstance(cell_data, (int, float)) or int(cell_data) < 0):
-                    index_status.setdefault(row_idx, set()).add('Invalid Quantity')
+                    index_status.setdefault(row_idx, set()).add('Invalid %s' % fields_mapping[key])
+                else:
+                    data_dict[key] = cell_data
+        if row_idx not in index_status:
+            stock_dict = {"sku_id": data_dict['sku_id'],
+                          "location_id": data_dict['source_id'],
+                          "sku__user": user.id, "quantity__gt": 0}
+            reserved_dict = {'stock__sku_id': data_dict['sku_id'], 'stock__sku__user': user.id,
+                             'status': 1,
+                             'stock__location_id': data_dict['source_id']}
+            if data_dict.get('batch_no', ''):
+                stock_dict["batch_detail__batch_no"] = data_dict['batch_no']
+                reserved_dict["stock__batch_detail__batch_no"] = data_dict['batch_no']
+            if data_dict.get('mrp', ''):
+                try:
+                    mrp = data_dict['mrp']
+                except:
+                    mrp = 0
+                stock_dict["batch_detail__mrp"] = mrp
+                reserved_dict["stock__batch_detail__mrp"] = mrp
+            if data_dict.get('seller_master_id', ''):
+                stock_dict['sellerstock__seller_id'] = data_dict['seller_master_id']
+                stock_dict['sellerstock__quantity__gt'] = 0
+                reserved_dict["stock__sellerstock__seller_id"] = data_dict['seller_master_id']
+            stocks = StockDetail.objects.filter(**stock_dict)
+            if not stocks:
+                index_status.setdefault(row_idx, set()).add('No Stocks Found')
+            else:
+                stock_count = stocks.aggregate(Sum('quantity'))['quantity__sum']
+                reserved_quantity = PicklistLocation.objects.exclude(stock=None).filter(**reserved_dict).\
+                                        aggregate(Sum('reserved'))['reserved__sum']
+                if reserved_quantity:
+                    if (stock_count - reserved_quantity) < float(data_dict['quantity']):
+                        index_status.setdefault(row_idx, set()).add('Source Quantity reserved for Picklist')
+        data_list.append(data_dict)
 
     if not index_status:
-        return 'Success'
-    f_name = '%s.move_inventory_form.xls' % user
-    write_error_file(f_name, index_status, open_sheet, MOVE_INVENTORY_UPLOAD_FIELDS, 'Move Inventory')
-    return f_name
+        return 'Success', data_list
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
 
 
 @csrf_exempt
@@ -2565,12 +2651,14 @@ def validate_move_inventory_form(open_sheet, user):
 def move_inventory_upload(request, user=''):
     fname = request.FILES['files']
     try:
-        open_book = open_workbook(filename=None, file_contents=fname.read())
-        open_sheet = open_book.sheet_by_index(0)
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
     except:
         return HttpResponse('Invalid File')
-
-    status = validate_move_inventory_form(open_sheet, str(user.id))
+    status, data_list = validate_move_inventory_form(request, reader, user, no_of_rows,
+                                                     no_of_cols, fname, file_type)
     if status != 'Success':
         return HttpResponse(status)
     cycle_count = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
@@ -2579,22 +2667,19 @@ def move_inventory_upload(request, user=''):
     else:
         cycle_id = cycle_count[0].cycle + 1
     mod_locations = []
-    for row_idx in range(1, open_sheet.nrows):
-        location_data = ''
-        for col_idx in range(0, len(MOVE_INVENTORY_UPLOAD_FIELDS)):
-            cell_data = open_sheet.cell(row_idx, col_idx).value
-            if col_idx == 0 and cell_data:
-                if isinstance(cell_data, (int, float)):
-                    cell_data = int(cell_data)
-                cell_data = str(cell_data)
-                wms_code = cell_data
-            elif col_idx == 1:
-                source_loc = cell_data
-            elif col_idx == 2:
-                dest_loc = cell_data
-            elif col_idx == 3:
-                quantity = int(cell_data)
-        move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user)
+    for data_dict in data_list:
+        extra_dict = {}
+        wms_code = data_dict['wms_code']
+        source_loc = data_dict['source']
+        dest_loc = data_dict['destination']
+        quantity = data_dict['quantity']
+        if data_dict.get('seller_id', ''):
+            extra_dict['seller_id'] = data_dict['seller_id']
+        if data_dict.get('batch_no', ''):
+            extra_dict['batch_no'] = data_dict['batch_no']
+        if data_dict.get('mrp', ''):
+            extra_dict['mrp'] = data_dict['mrp']
+        move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user, **extra_dict)
         mod_locations.append(source_loc)
         mod_locations.append(dest_loc)
     update_filled_capacity(list(set(mod_locations)), user.id)

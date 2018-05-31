@@ -5905,7 +5905,7 @@ def get_supplier_invoice_data(start_index, stop_index, temp_data, search_term, o
 
     user_profile = UserProfile.objects.get(user_id=user.id)
     admin_user = get_priceband_admin_user(user)
-    lis = ['purchase_order_id', 'purchase_order_id', 'purchase_order__open_po__supplier__name',
+    lis = ['purchase_order__id', 'purchase_order__id', 'purchase_order__open_po__supplier__name',
            'purchase_order__open_po__order_quantity', 'quantity', 'date_only', 'id', 'invoice_number']
     user_filter = {'purchase_order__open_po__sku__user': user.id, 'order_status_flag': 'supplier_invoices'}
     result_values = ['receipt_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name',
@@ -5915,9 +5915,16 @@ def get_supplier_invoice_data(start_index, stop_index, temp_data, search_term, o
     is_marketplace = False
 
     if search_term:
+        if 'date_only' in lis:
+            lis1 = copy.deepcopy(lis)
+            lis1 = map(lambda x: x if x not in ['date_only'] else field_mapping['date_only'], lis1)
+
         search_term = search_term.replace('(', '\(').replace(')', '\)')
-        search_query = build_search_term_query(lis, search_term)
-   #need to add 
+        search_query = build_search_term_query(lis1, search_term)
+        master_data = SellerPOSummary.objects.filter(search_query, **user_filter)\
+                            .values(*result_values).distinct().annotate(total_received=Sum('quantity'),\
+                            total_ordered=Sum('purchase_order__open_po__order_quantity'),\
+                            date_only=Cast(field_mapping['date_only'], DateField()))
 
     elif order_term:
         if order_term == 'asc' and (col_num or col_num == 0):
@@ -5979,7 +5986,7 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
 
     user_profile = UserProfile.objects.get(user_id=user.id)
     admin_user = get_priceband_admin_user(user)
-    lis = ['purchase_order_id', 'purchase_order_id', 'purchase_order__open_po__supplier__name',
+    lis = ['purchase_order__id', 'purchase_order__id', 'purchase_order__open_po__supplier__name',
            'purchase_order__open_po__order_quantity', 'quantity', 'date_only', 'id', 'challan_number']
     user_filter = {'purchase_order__open_po__sku__user': user.id, 'order_status_flag': 'po_challans'}
     result_values = ['challan_number', 'receipt_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name']
@@ -5988,9 +5995,16 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
     is_marketplace = False
 
     if search_term:
+        if 'date_only' in lis:
+            lis1 = copy.deepcopy(lis)
+            lis1 = map(lambda x: x if x not in ['date_only'] else field_mapping['date_only'], lis1)
+
         search_term = search_term.replace('(', '\(').replace(')', '\)')
-        search_query = build_search_term_query(lis, search_term)
-   #need to add 
+        search_query = build_search_term_query(lis1, search_term)
+        master_data = SellerPOSummary.objects.filter(search_query, **user_filter)\
+                            .values(*result_values).distinct().annotate(total_received=Sum('quantity'),\
+                            total_ordered=Sum('purchase_order__open_po__order_quantity'),\
+                            date_only=Cast(field_mapping['date_only'], DateField()))
 
     elif order_term:
         if order_term == 'asc' and (col_num or col_num == 0):
@@ -6053,7 +6067,7 @@ def get_processed_po_data(start_index, stop_index, temp_data, search_term, order
 
     user_profile = UserProfile.objects.get(user_id=user.id)
     admin_user = get_priceband_admin_user(user)
-    lis = ['purchase_order_id', 'purchase_order_id', 'purchase_order__open_po__supplier__name',
+    lis = ['purchase_order__id', 'purchase_order__id', 'purchase_order__open_po__supplier__name',
            'purchase_order__open_po__order_quantity', 'quantity', 'date_only', 'id']
     user_filter = {'purchase_order__open_po__sku__user': user.id, 'order_status_flag': 'processed_pos'}
     result_values = ['receipt_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name']
@@ -6062,10 +6076,16 @@ def get_processed_po_data(start_index, stop_index, temp_data, search_term, order
     is_marketplace = False
 
     if search_term:
-        search_term = search_term.replace('(', '\(').replace(')', '\)')
-        search_query = build_search_term_query(lis, search_term)
-   #need to add 
+        if 'date_only' in lis:
+            lis1 = copy.deepcopy(lis)
+            lis1 = map(lambda x: x if x not in ['date_only'] else field_mapping['date_only'], lis1)
 
+        search_term = search_term.replace('(', '\(').replace(')', '\)')
+        search_query = build_search_term_query(lis1, search_term)
+        master_data = SellerPOSummary.objects.filter(search_query, **user_filter)\
+                            .values(*result_values).distinct().annotate(total_received=Sum('quantity'),\
+                            total_ordered=Sum('purchase_order__open_po__order_quantity'),\
+                            date_only=Cast(field_mapping['date_only'], DateField()))
 
     elif order_term:
         if order_term == 'asc' and (col_num or col_num == 0):

@@ -290,7 +290,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     }
 
     vm.close = function() {
-      $state.go("app.inbound.SupplierInvoices")
+      $state.go("app.inbound.SupplierInvoice")
     };
 }
 

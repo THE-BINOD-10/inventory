@@ -461,7 +461,7 @@ function EditPOChallan($scope, $http, $state, $timeout, Session, colFilters, Ser
       'rep': form_data.rep.$modelValue,
       'order_no': form_data.order_no.$modelValue,
       'pick_number': form_data.pick_number.$modelValue,
-      'customer_id': form_data.customer_id.$modelValue,
+      'supplier_id': form_data.supplier_id.$modelValue,
       'lr_no': form_data.lr_no.$modelValue,
       'carrier': form_data.carrier.$modelValue,
       'terms': form_data.terms.$modelValue,

@@ -6296,7 +6296,7 @@ def generate_supplier_invoice(request, user=''):
         result_data['total_items'] = len(result_data['data'])
         result_data['data'] = pagination(result_data['data'])
         result_data['username'] = user.username
-        return render(request, 'templates/toggle/delivery_challan.html', invoice_data)
+        return render(request, 'templates/toggle/delivery_challan.html', result_data)
 
     return HttpResponse(json.dumps(result_data))
 
@@ -6334,7 +6334,6 @@ def pagination(sku_list):
 
 @get_admin_user
 def update_poc(request, user=''):
-    import pdb;pdb.set_trace()
     form_dict = dict(request.POST.iterlists())
     address = form_dict['form_data[address]'][0]
     challan_number = form_dict['form_data[challan_no]'][0]
@@ -6349,6 +6348,8 @@ def update_poc(request, user=''):
     order_id = form_dict['form_data[order_no]'][0]
     pick_number = form_dict['form_data[pick_number]'][0]
     supp_id = form_dict['form_data[supplier_id]'][0]
+    invoice_number = int(form_dict.get('form_data[invoice_number]', [0])[0])
+    invoice_date = ''
     if not supp_id:
         log.info("No  Supplier Id found")
         return HttpResponse(json.dumps({'message': 'failed'}))
@@ -6368,11 +6369,12 @@ def update_poc(request, user=''):
             seller_summary_id = each_sku.get('seller_summary_id', '')
             open_po_id = each_sku.get('open_po_id', '')
             quantity = each_sku.get('quantity', '')
-            unit_price = each_sku.get('unit_price', '')
-            sgst_tax = each_sku['taxes'].get('sgst_tax', '')
-            cgst_tax = each_sku['taxes'].get('cgst_tax', '')
-            igst_tax = each_sku['taxes'].get('igst_tax', '')
-            invoice_amount = each_sku.get('invoice_amount', '')
+            unit_price = float(each_sku.get('unit_price', 0))
+            sgst_tax = float(each_sku['taxes'].get('sgst_tax', 0))
+            cgst_tax = float(each_sku['taxes'].get('cgst_tax', 0))
+            igst_tax = float(each_sku['taxes'].get('igst_tax', 0))
+            utgst_tax = float(each_sku['taxes'].get('utgst_tax', 0))
+            invoice_amount = float(each_sku.get('invoice_amount', 0))
 
             if not quantity:
                 continue
@@ -6402,7 +6404,7 @@ def update_poc(request, user=''):
                     sku_id = sku_qs[0].id
                     open_po_dict = {'sku_id': sku_id, 'order_quantity': open_po_obj[0].order_quantity,
                                     'supplier_id': supplier_id, 'status': 0, 'order_type': open_po_obj[0].order_type,
-                                    'shipment_date': shipment_date, 'address': address, 'price': unit_price,
+                                    'price': unit_price,
                                     'measurement_unit': sku_qs[0].measurement_type, 'cgst_tax': cgst_tax,
                                     'igst_tax': igst_tax, 'sgst_tax': sgst_tax, 'utgst_tax': utgst_tax}
                     open_po_obj = OpenPO(**open_po_dict)
@@ -6417,7 +6419,7 @@ def update_poc(request, user=''):
 
                     po_summary_dict = {"receipt_number": seller_po_summary_obj[0].receipt_number,
                                        "quantity": quantity, "purchase_order_id": purchase_order_obj.id,
-                                       "invoice_number": invoice_number, "invoice_date": invoice_date,
+                                       "invoice_number": invoice_number, #"invoice_date": invoice_date,
                                        "challan_number": challan_number, "order_status_flag": seller_po_summary_obj[0].order_status_flag,
                                        "putaway_quantity": 0}
                     po_summary_obj = SellerPOSummary(**po_summary_dict)
@@ -6444,7 +6446,6 @@ def update_poc(request, user=''):
 def update_po_invoice(request, user=''):
     """ update invoice data """
 
-    import pdb;pdb.set_trace()
     form_dict = dict(request.POST.iterlists())
     address = form_dict['form_data[address]'][0]
     challan_number = form_dict['form_data[challan_no]'][0]
@@ -6459,6 +6460,8 @@ def update_po_invoice(request, user=''):
     order_id = form_dict['form_data[order_no]'][0]
     pick_number = form_dict['form_data[pick_number]'][0]
     supp_id = form_dict['form_data[supplier_id]'][0]
+    invoice_number = int(form_dict.get('form_data[invoice_number]', [0])[0])
+    invoice_date = ''
     if not supp_id:
         log.info("No  Supplier Id found")
         return HttpResponse(json.dumps({'message': 'failed'}))
@@ -6478,11 +6481,12 @@ def update_po_invoice(request, user=''):
             seller_summary_id = each_sku.get('seller_summary_id', '')
             open_po_id = each_sku.get('open_po_id', '')
             quantity = each_sku.get('quantity', '')
-            unit_price = each_sku.get('unit_price', '')
-            sgst_tax = each_sku['taxes'].get('sgst_tax', '')
-            cgst_tax = each_sku['taxes'].get('cgst_tax', '')
-            igst_tax = each_sku['taxes'].get('igst_tax', '')
-            invoice_amount = each_sku.get('invoice_amount', '')
+            unit_price = float(each_sku.get('unit_price', 0))
+            sgst_tax = float(each_sku['taxes'].get('sgst_tax', 0))
+            cgst_tax = float(each_sku['taxes'].get('cgst_tax', 0))
+            igst_tax = float(each_sku['taxes'].get('igst_tax', 0))
+            utgst_tax = float(each_sku['taxes'].get('utgst_tax', 0))
+            invoice_amount = float(each_sku.get('invoice_amount', 0))
 
             if not quantity:
                 continue
@@ -6512,7 +6516,7 @@ def update_po_invoice(request, user=''):
                     sku_id = sku_qs[0].id
                     open_po_dict = {'sku_id': sku_id, 'order_quantity': open_po_obj[0].order_quantity,
                                     'supplier_id': supplier_id, 'status': 0, 'order_type': open_po_obj[0].order_type,
-                                    'shipment_date': shipment_date, 'address': address, 'price': unit_price,
+                                    'price': unit_price,
                                     'measurement_unit': sku_qs[0].measurement_type, 'cgst_tax': cgst_tax,
                                     'igst_tax': igst_tax, 'sgst_tax': sgst_tax, 'utgst_tax': utgst_tax}
                     open_po_obj = OpenPO(**open_po_dict)
@@ -6527,10 +6531,17 @@ def update_po_invoice(request, user=''):
 
                     po_summary_dict = {"receipt_number": seller_po_summary_obj[0].receipt_number,
                                        "quantity": quantity, "purchase_order_id": purchase_order_obj.id,
-                                       "invoice_number": invoice_number, "invoice_date": invoice_date,
+                                       "invoice_number": invoice_number, #"invoice_date": invoice_date,
                                        "challan_number": challan_number, "order_status_flag": seller_po_summary_obj[0].order_status_flag,
                                        "putaway_quantity": 0}
                     po_summary_obj = SellerPOSummary(**po_summary_dict)
                     po_summary_obj.save()
+
+
+                    """sos_dict = {'quantity': quantity, 'pick_number': pick_number,
+                                'creation_date': datetime.datetime.now(), 'order_id': ord_obj.id,
+                                'challan_number': challan_number, 'order_status_flag': 'delivery_challans'}
+                    sos_obj = SellerOrderSummary(**sos_dict)
+                    sos_obj.save()"""
 
     return HttpResponse(json.dumps({'message': 'success'}))

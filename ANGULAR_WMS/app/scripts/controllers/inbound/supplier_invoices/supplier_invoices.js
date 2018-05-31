@@ -321,6 +321,8 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
       'invoice_no': form_data.invoice_no.$modelValue,
       'invoice_date': form_data.invoice_date.$modelValue,
       'address': form_data.address.$modelValue,
+      'order_id': form_data.order_id.$modelValue,
+      'supplier_id': form_data.supplier_id.$modelValue,
     };
     update_edit_invoice_data.data = JSON.stringify(vm.model_data.data);
     update_edit_invoice_data.order_charges = JSON.stringify(vm.model_data.order_charges);

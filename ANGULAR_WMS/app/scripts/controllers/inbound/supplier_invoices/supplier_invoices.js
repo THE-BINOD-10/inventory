@@ -312,9 +312,19 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
       Service.showNoty("Please Fill the Mandatory Fields");
       return false;
     }
+
+    var update_edit_invoice_data = {};
+    update_edit_invoice_data.form = {
+      'invoice_no': form.invoice_no.$modelValue,
+      'invoice_date': form.invoice_date.$modelValue,
+      'ship_to': form.ship_to.$modelValue,
+    };
+    update_edit_invoice_data.data = JSON.stringify(vm.model_data.data);
+    update_edit_invoice_data.order_charges = JSON.stringify(vm.model_data.order_charges);
+
     vm.process = true;
-    var data = $("form").serializeArray()
-    Service.apiCall("update_po_invoice/", "POST", data).then(function(data) {
+    // var data = $("form").serializeArray()
+    Service.apiCall("update_po_invoice/", "POST", update_edit_invoice_data).then(function(data) {
 
       if(data.message) {
 

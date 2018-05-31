@@ -6296,7 +6296,7 @@ def generate_supplier_invoice(request, user=''):
         result_data['total_items'] = len(result_data['data'])
         result_data['data'] = pagination(result_data['data'])
         result_data['username'] = user.username
-        return render(request, 'templates/toggle/delivery_challan.html', result_data)
+        return render(request, 'templates/toggle/po_challan.html', result_data)
 
     return HttpResponse(json.dumps(result_data))
 
@@ -6402,8 +6402,9 @@ def update_poc(request, user=''):
                     continue
                 else:
                     sku_id = sku_qs[0].id
-                    open_po_dict = {'sku_id': sku_id, 'order_quantity': open_po_obj[0].order_quantity,
-                                    'supplier_id': supplier_id, 'status': 0, 'order_type': open_po_obj[0].order_type,
+                    open_po_dict = {'sku_id': sku_id, 'order_quantity': seller_po_summary_obj[0].purchase_order.open_po.order_quantity,
+                                    'supplier_id': supplier_id, 'status': 0,
+                                    'order_type': seller_po_summary_obj[0].purchase_order.open_po.order_type,
                                     'price': unit_price,
                                     'measurement_unit': sku_qs[0].measurement_type, 'cgst_tax': cgst_tax,
                                     'igst_tax': igst_tax, 'sgst_tax': sgst_tax, 'utgst_tax': utgst_tax}

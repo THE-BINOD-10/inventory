@@ -1,0 +1,148 @@
+      {% load tag_extras %}
+
+<div>
+  <style>
+    {% include 'toggle/page1.css' %}
+  </style>
+  {% for page in data %}
+  <div class="print-invoice2 mb20">
+    <div class="invoice-body">
+      <table class="table table-bordered m0">
+        <tbody>
+          <tr>
+            <td colspan="2">
+              <h3 class="m0" align="center"><b>Delivery Note</b></h3>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="2">
+       
+              <div class="row m0" style="height: 100px;overflow: hidden;">
+                <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
+                  <div class="col-md-12 p0">
+                    <h4 class="m0"><b>From:</b></h4>
+                  </div>
+                  <div>
+                    {% if supplier_details.0.name %}
+                    <p class="fs14 m0"><br>
+                    {{supplier_details.0.name}}</p>
+                    {% endif %}
+                    {% if supplier_details.0.address %}
+                    <p class="fs14 p0 m0 pre-custom">{{supplier_details.0.address}}</p><br>
+                    {% endif %}
+                    {% if supplier_details.0.tin_number %}
+                    <p class="fs14 m0"><br>
+                      <b>GSTIN No: </b>{{supplier_details.0.tin_number}}</p>
+                    {% endif %}
+                    <!--{% if supplier_details.0.email_id %}
+                    <p class="fs14 m0">
+                      <b>Email: </b>{{supplier_details.0.email_id}}</p>
+                    {% endif %}-->
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td class="fs14">
+              <div class="row m0">
+                <div class="col-xs-4 text-left">
+                  <strong>Ref No.:</strong>
+                </div>
+                <div class="col-xs-4 text-left">
+                  <strong>Date:</strong> {{invoice_date}}
+                </div>
+                <!--<div class="col-xs-4 text-left">
+                  <strong>Time:</strong> {{invoice_time}}
+                </div>-->
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td class="fs14">
+              <div class="row m0">
+                <div class="col-xs-6 text-left">
+                  <strong>Order No :</strong> {{order_id}}
+                </div>
+              </div>
+              <div class="row m0">
+                <div class="col-xs-6 text-left">
+                  <strong>L.R No &nbsp;&nbsp;&nbsp;&nbsp;:  </strong>
+                </div>
+                <div class="col-xs-6 text-left">
+                  <strong>Date :</strong> {{invoice_date}}
+                </div>
+              </div>
+              <div class="row m0">
+                <div class="col-xs-6 text-left">
+                  <strong>Carrier &nbsp;&nbsp;&nbsp;&nbsp;:</strong>
+                </div>
+                <div class="col-xs-6 text-left">
+                  <strong>Pkgs:</strong>
+                </div>
+              </div>
+              <div class="row m0">
+                <div class="col-xs-6 text-left">
+                  <strong>Terms.. &nbsp;&nbsp;&nbsp;:</strong> CASH
+                </div>
+                <div class="col-xs-6 text-left">
+                  <strong>Rep.:</strong>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <table class="table table-bordered bl br cal-table m0">
+        <thead>
+          <tr class="fs14">
+            <th class="w5"><center>SL NO</center></th>
+            <th><center>SKU Code</center></th>
+            <th><center>PARTICULARS</center></th>
+            <th class="w9"><center>PKNG</center></th>
+            <th class="w9"><center>QTY</center></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for record in page %}
+          <tr class="fs14 rm-border">
+            <td class="text-left">{{record.index}}</td>
+            <td class="text-left">{{record.sku_code}}</td>
+            <td class="text-left"><div class="wrap">{{record.title}}</div></td>
+            <td class="text-right"></td>
+            <td class="text-right"> {{record.quantity}} </td>
+          </tr>
+          {% endfor %}
+          {% if forloop.last %}
+          <tr style="border-top: 1px solid black;">
+            <td></td>
+            <td class="fs14" colspan="2">
+              <span class=>Tot Items: {{total_items}}</span>
+            </td>
+            <td class="fs14" colspan="2">
+              <span class="pull-right">Tot Qty: {{total_quantity}}</span>
+            </td>
+          </tr>
+          <tr>
+            <td class="fs14" colspan="2">
+              <div class="row m0">
+                <div class="col-xs-12 text-left">
+                  <br><br>
+                  <span>Wish You A Happy Day..</span>
+                </div>
+              </div>
+            </td>
+            <td class="fs14 text-center" colspan="3">
+              {% if username|lower == 'bluestar' %}
+                <h5 class="m0">For BLUE STAR TRADING CORPORATION 2018</h5></br></br>
+              {% else %}
+                <h5 class="m0">{{company_name}}</h5></br></br>
+              {% endif %}
+              <p class="m0" align="center">Signature of Receiver</p>
+            </td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endfor %}
+</div>

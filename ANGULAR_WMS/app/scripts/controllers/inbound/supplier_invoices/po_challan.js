@@ -77,8 +77,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       }
     });
 
-    vm.pdf_data = {};
-
     vm.generate_invoice = function(click_type, DC='false'){
 
       var supplier_name = '';
@@ -133,25 +131,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       if(status) {
         vm.service.showNoty("Please select same "+field_name+"'s");
       } else {
-
-        // var ids = data.join(",");
-        // ids = ids.split('/');
-        // var send = {grn_numbers: angular.toJson(ids)};
         var send = data.join(",");
         send = {data: send}
-        // if(supplier_name && field_name == 'Supplier Name') {
-        //   send['sor_id'] = supplier_name;
-        // }
-        // if(click_type == 'edit'){
-        //   send['data'] = true;
-        //   send['edit_invoice'] = true;
-        // }
-        // send['po_challan'] = DC;
         vm.delivery_challan = DC;
         vm.bt_disable = true;
         vm.service.apiCall("generate_supplier_invoice/", "GET", send).then(function(data){
 
-          // if(data.message) {
+          if(data.message) {
             if(click_type == 'generate') {
               vm.pdf_data = data.data;
               if(typeof(vm.pdf_data) == "string" && vm.pdf_data.search("print-invoice") != -1) {
@@ -186,7 +172,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                 var data = selectedItem;
               })
             }
-          // }
+          }
           vm.bt_disable = false;
         });
       }

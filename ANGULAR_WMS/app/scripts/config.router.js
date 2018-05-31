@@ -2101,8 +2101,17 @@ var app = angular.module('urbanApp')
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load('scripts/controllers/outbound/app/pending_order.js');
               }]
-            }
-          })
+              }
+            })
+            .state('user.App.PendingOrder.PendingApprovalData', {
+              url: '/PendingApprovalData',
+              templateUrl: 'views/outbound/app/create_orders/pending_approval_popup.html',
+              resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/outbound/app/pending_order.js');
+              }]
+              }
+            })
           .state('user.App.Categories', {
             url: '/Categories',
             templateUrl: 'views/outbound/app/create_orders/categories.html'

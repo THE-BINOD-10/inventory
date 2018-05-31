@@ -9,8 +9,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service = Service;
     vm.priceband_sync = Session.roles.permissions.priceband_sync;
     vm.display_sku_cust_mapping = Session.roles.permissions.display_sku_cust_mapping;
+    vm.user_role = Session.roles.user_role;
+    vm.model_data = {};
 
-    vm.filters = {'datatable': 'PendingOrder', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':''}
+    vm.filters = {'datatable': 'OrderApprovals', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -29,13 +31,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    vm.dtColumns = [
-        DTColumnBuilder.newColumn('user').withTitle('User'),
-        DTColumnBuilder.newColumn('date').withTitle('Date'),
-        DTColumnBuilder.newColumn('status').withTitle('Status'),
-        DTColumnBuilder.newColumn('remarks').withTitle('Remarks'),
-        DTColumnBuilder.newColumn('order_code').withTitle('Order Code'),
-    ];
+		vm.dtColumns = [
+			DTColumnBuilder.newColumn('id').withTitle('Serial No.'),
+			DTColumnBuilder.newColumn('user').withTitle('Customer User'),
+			//DTColumnBuilder.newColumn('remarks').withTitle('Remarks').notVisible(),
+			DTColumnBuilder.newColumn('status').withTitle('Status').renderWith(function(data, type, full, meta) {
+				var status_name;
+				if(data == 'pending'  &&  full.approving_user_role) {
+					status_name = "Pending - To be approved by "+ full.approving_user_role.toUpperCase();
+				} else {
+					status_name = 'Approved'
+				}
+				return status_name;
+			}).withOption('width', '230px'),
+			DTColumnBuilder.newColumn('date').withTitle('Date'),
+		];
 
     vm.dtInstance = {};
 
@@ -48,28 +58,27 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         $('td', nRow).unbind('click');
         $('td', nRow).bind('click', function() {
             $scope.$apply(function() {
-                vm.model_data['create_login'] = false;
+                console.log(vm.model_data)
                 angular.copy(aData, vm.model_data);
-                //vm.all_taxes = ['', 'VAT', 'CST']
                 vm.update = true;
-                vm.title = "Update Customer";
-                vm.message ="";
-                $state.go('app.masters.CustomerMaster.customer');
-                $timeout(function () {
-                  $(".customer_status").val(vm.model_data.status);
-                }, 500);
+                vm.title = "Modify Order Approvals";
+                vm.message = "";
+                $state.go('user.App.PendingOrder.PendingApprovalData');
             });
         });
     }
 
+  vm.close_popup = function() {
+    $state.go('user.App.PendingOrder');
+  }
+
+  /*
   vm.status_data = ["Inactive", "Active"];
   vm.customer_roles = ["User", "HOD", "Admin"];
   var empty_data = {customer_id: "", name: "", email_id: "", address: "", phone_number: "", status: "", create_login: false,
                     login_created: false, tax_type: "", margin: 0, customer_roles: ""};
-  vm.model_data = {};
 
   vm.base = function() {
-
     vm.title = "Add Customer";
     vm.update = false;
     angular.copy(empty_data, vm.model_data);
@@ -77,12 +86,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.model_data.role = vm.customer_roles[0];
   }
   vm.base();
-
-  vm.close = function() {
-
-    angular.copy(empty_data, vm.model_data);
-    $state.go('app.masters.CustomerMaster');
-  }
 
   vm.get_customer_id = function() {
 
@@ -110,10 +113,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
   vm.customer = function(url) {
     var send = {}
-    //angular.copy(vm.model_data, send)
-    //if(send.login_created) {
-    //    send.create_login = false;
-    //}
     var send = $("form").serializeArray()
     var data = $.param(send);
     vm.service.apiCall(url, 'POST', send, true).then(function(data){
@@ -147,6 +146,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.service.pop_msg('Please fill required fields');
     }
   }
+  */
 
 }
 

@@ -153,11 +153,17 @@ def add_user_permissions(request, response_data, user=''):
     status_dict = {1: 'true', 0: 'false'}
     multi_warehouse = 'false'
     user_profile = UserProfile.objects.get(user_id=user.id)
-    tax_type = CustomerUserMapping.objects.filter(user_id=request.user.id).values_list('customer__tax_type', flat=True)
+    cust_obj = CustomerUserMapping.objects.filter(user_id=request.user.id)
+    tax_type = cust_obj.values_list('customer__tax_type', flat=True)
     if tax_type:
-        tax_type = tax_type[0]
+	tax_type = tax_type[0]
     else:
         tax_type = ''
+    user_role = cust_obj.values_list('customer__role', flat=True)
+    if user_role:
+        user_role = user_role[0]
+    else:
+        user_role = ''
     request_user_profile = UserProfile.objects.get(user_id=request.user.id)
     show_pull_now = False
     integrations = Integrations.objects.filter(user=user.id, status=1)

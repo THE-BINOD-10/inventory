@@ -2747,6 +2747,48 @@ def get_customer_data(request, user=''):
     else:
         return HttpResponse('')
 
+@get_admin_user
+def update_cartdata_for_approval(request, user=''):
+    message = 'success'
+    cart_data = CustomerCartData.objects.filter(user_id=user.id, customer_user_id=request.user.id, approval_status='')
+    if cart_data:
+        cart_data.update(approval_status='pending', approving_user_role='hod')
+    else:
+        message = 'something went wrong'
+    return HttpResponse(json.dumps({'message': message}))
+
+
+def get_order_approval_statuses(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
+                                filters):
+    lis = ['id','customer_user__username', 'approval_status', 'creation_date']
+
+    search_params = get_filtered_params(filters, lis)
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if search_term:
+        cart_data = CustomerCartData.objects.filter(user_id=user.id,
+                                                    customer_user_id=request.user.id, **search_params).order_by(
+            order_data)
+
+    else:
+        cart_data = CustomerCartData.objects.filter(user_id=user.id,
+                                                    customer_user_id=request.user.id, **search_params).order_by(
+            order_data)
+    temp_data['recordsTotal'] = len(cart_data)
+    temp_data['recordsFiltered'] = len(cart_data)
+    for data in cart_data[start_index: stop_index]:
+        image = data.sku.image_url
+        sku_code = data.sku.sku_code
+        desc = data.sku.sku_desc
+        price = data.levelbase_price
+        temp_data['aaData'].append(
+            OrderedDict((('user', data.customer_user.username), ('date', data.creation_date.strftime('%d-%m-%Y')),
+                         ('status', data.approval_status), ('image', image), ('sku_code', sku_code),
+                         ('desc', desc), ('price', price), ('tax', data.tax), ('quantity', data.quantity),
+                         ('id', data.id), ('approving_user_role', data.approving_user_role)
+                         )))
+
 
 @fn_timer
 def validate_order_form(myDict, request, user):
@@ -3222,6 +3264,11 @@ def insert_order_data(request, user=''):
 
     log.info('Request params for ' + user.username + ' is ' + str(myDict))
 
+    # Using the display_sku_cust_mapping flag for ANT Stationers
+    # orders_for_approval_flag = get_misc_value('display_sku_cust_mapping', user.id)
+    # if orders_for_approval_flag == 'true':
+    #     status = update_cartdata_for_approval(request, user)
+    #     return HttpResponse(status)
     is_distributor = False
     cm_id = 0
     generic_order_id = 0
@@ -6706,7 +6753,7 @@ def get_customer_cart_data(request, user=""):
         corp_names = CorporateMaster.objects.filter(id__in=res_corps).values_list('name', flat=True).distinct()
         response['reseller_corporates'].extend(corp_names)
 
-    cart_data = CustomerCartData.objects.filter(user_id=user.id, customer_user_id=request.user.id)
+    cart_data = CustomerCartData.objects.filter(user_id=user.id, customer_user_id=request.user.id, approval_status='')
 
     if cart_data:
         cust_user_obj = CustomerUserMapping.objects.filter(user=request.user.id)
@@ -6854,7 +6901,8 @@ def insert_customer_cart_data(request, user=""):
         for record in cart_data:
             sku = SKUMaster.objects.get(sku_code=record['sku_id'], user=user.id)
             cart = CustomerCartData.objects.filter(user_id=user.id, customer_user_id=request.user.id,
-                                                   sku__sku_code=record['sku_id'], warehouse_level=record['level'])
+                                                   sku__sku_code=record['sku_id'], warehouse_level=record['level'],
+                                                   approval_status='')
             if not cart:
                 data = {'user_id': user.id, 'customer_user_id': request.user.id, 'sku_id': sku.id,
                         'quantity': record['quantity'], 'tax': record['tax'], 'warehouse_level': record['level'],
@@ -6912,7 +6960,7 @@ def delete_customer_cart_data(request, user=""):
             if level == '':
                 level = 0
             CustomerCartData.objects.filter(user_id=user.id, customer_user_id=request.user.id,
-                                            sku__sku_code=sku_code, warehouse_level=level).delete()
+                                            sku__sku_code=sku_code, warehouse_level=level, approval_status='').delete()
             response["msg"] = "Deleted Successfully"
     except Exception as e:
         import traceback

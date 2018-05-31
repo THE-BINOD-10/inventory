@@ -5,7 +5,7 @@ from datetime import date
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from .choices import UNIT_TYPE_CHOICES, REMARK_CHOICES, TERMS_CHOICES, CUSTOMIZATION_TYPES, ROLE_TYPE_CHOICES, \
-    CUSTOMER_ROLE_CHOICES
+    CUSTOMER_ROLE_CHOICES, APPROVAL_STATUSES
 
 # from longerusername import MAX_USERNAME_LENGTH
 # Create your models here.
@@ -750,7 +750,7 @@ class CustomerMaster(models.Model):
     customer_type = models.CharField(max_length=64, default='')
     is_distributor = models.BooleanField(default=False)
     lead_time = models.PositiveIntegerField(blank=True, default=0)
-    role = models.CharField(max_length=64, choices=CUSTOMER_ROLE_CHOICES, default='customer_user')
+    role = models.CharField(max_length=64, choices=CUSTOMER_ROLE_CHOICES, default='')
 
     class Meta:
         db_table = 'CUSTOMER_MASTER'
@@ -2070,6 +2070,8 @@ class CustomerCartData(models.Model):
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
     levelbase_price = models.FloatField(default=0)
+    approval_status = models.CharField(choices=APPROVAL_STATUSES, default='', max_length=32)
+    approving_user_role = models.CharField(max_length=64, default='')
 
     class Meta:
         db_table = "CUSTOMER_CART_DATA"

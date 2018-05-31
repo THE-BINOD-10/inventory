@@ -96,13 +96,24 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             var grn_no = temp['GRN No'];
             grn_no = grn_no.split('/');
 
-            var send_data = JSON.stringify({
-              grn_no: grn_no, 
-              seller_summary_name: supplier_name, 
-              seller_summary_id: temp['id'], 
-              purchase_order__order_id: temp['purchase_order__order_id'],
-              receipt_number: temp['receipt_number']
-            });
+            if (click_type == 'cancel_inv') {
+              var send_data = JSON.stringify({
+                grn_no: grn_no, 
+                seller_summary_name: supplier_name, 
+                seller_summary_id: temp['id'], 
+                purchase_order__order_id: temp['purchase_order__order_id'],
+                receipt_number: temp['receipt_number'],
+                cancel: 'true'
+              });
+            } else {
+              var send_data = JSON.stringify({
+                grn_no: grn_no, 
+                seller_summary_name: supplier_name, 
+                seller_summary_id: temp['id'], 
+                purchase_order__order_id: temp['purchase_order__order_id'],
+                receipt_number: temp['receipt_number']
+              });
+            }
 
             data.push(send_data);
           }
@@ -115,7 +126,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
         var send = data.join(",");
         send = {data: send}
-        var url = click_type === 'move_to_po_challan' ? 'move_to_po_challan/' : 'move_to_inv/';
+        var url = click_type;
         vm.bt_disable = true;
         vm.service.apiCall(url, "GET", send).then(function(data){
           if(data.message) {
@@ -134,7 +145,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     vm.pdf_data = {};
 
-    vm.generate_invoice = function(click_type, DC=false){
+    vm.generate_invoice = function(click_type, DC='false'){
 
       var supplier_name = '';
       var status = false;

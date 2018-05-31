@@ -10,41 +10,41 @@
             <div class="col-md-4">
               <div class="form-group">
                 <label class="control-label"> Serial No: * </label>
-                <input type="text" name="serial_no" class="form-control numvalid" ng-model="showCase.model_data.id" ng-readonly="true" required> </div>
+                <input type="text" name="serial_no" class="form-control numvalid" ng-model="showCase.model_data.id" ng-readonly="true"></div>
 	  		  </div>
 
             <div class="col-md-4">
               <div class="form-group">
                 <label class="control-label"> SKU Code: * </label>
-                <input type="text" name="sku_code" class="form-control" ng-model="showCase.model_data.sku_code" ng-readonly="true" required>
+                <input type="text" name="sku_code" class="form-control" ng-model="showCase.model_data.sku_code" ng-readonly="true">
 			  </div>
             </div>
 
 			<div class="col-md-4">
               <div class="form-group">
                 <label class="control-label"> SKU Description: * </label>
-                <input type="text" name="sku_desc" class="form-control" ng-model="showCase.model_data.desc" ng-readonly="true" required>
+                <input type="text" name="sku_desc" class="form-control" ng-model="showCase.model_data.desc" ng-readonly="true">
               </div>
             </div>
 
 			<div class="col-md-4">
               <div class="form-group">
                 <label class="control-label"> Quantity: * </label>
-                <input type="text" name="quantity" class="form-control numvalid" ng-model="showCase.model_data.quantity" ng-readonly="true" required>
+                <input type="text" name="quantity" class="form-control numvalid" ng-model="showCase.model_data.quantity" required>
               </div>
             </div>
 
 			<div class="col-md-4">
               <div class="form-group">
                 <label class="control-label"> Price: * </label>
-                <input type="text" name="price" class="form-control numvalid" ng-model="showCase.model_data.price" ng-readonly="true" required>
+                <input type="text" name="price" class="form-control numvalid" ng-model="showCase.model_data.price" ng-readonly="true">
               </div>
             </div>
 
 			<div class="col-md-4">
               <div class="form-group">
                 <label class="control-label"> Tax: * </label>
-                <input type="text" name="tax" class="form-control numvalid" ng-model="showCase.model_data.tax" ng-readonly="true" required>
+                <input type="text" name="tax" class="form-control numvalid" ng-model="showCase.model_data.tax" ng-readonly="true">
               </div>
             </div>
 
@@ -52,11 +52,19 @@
 		</div>
 
     	<div class="modal-footer">
-          <button type="button" class="btn pop pop-red" style="float:left;" ng-click="showCase.close_popup()">Deny</button>
-          <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process">
-            <span>Approve</span>
-            <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
-          </button>
+          <div ng-if="showCase.user_role == 'hod' || showCase.user_role == 'admin'">
+            <button type="button" class="btn pop pop-red" style="float:left;">Deny</button>
+            <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process">
+              <span>Approve</span>
+              <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+            </button>
+          </div>
+		  <div ng-if="showCase.user_role == 'User'">
+            <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process">
+              <span>Save</span>
+              <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+            </button>
+          </div>
         </div>
     </div>
   </form>

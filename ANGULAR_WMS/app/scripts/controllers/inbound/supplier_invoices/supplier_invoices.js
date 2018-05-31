@@ -304,23 +304,23 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
   };
 
   vm.process = false;
-  vm.save = function(form) {
+  vm.save = function(form_data) {
 
-    if (vm.permissions.increment_invoice && vm.model_data.sequence_number && form.invoice_number.$invalid) {
+    if (vm.permissions.increment_invoice && vm.model_data.sequence_number && form_data.invoice_number.$invalid) {
 
       Service.showNoty("Please Fill Invoice Number");
       return false;
-    } else if (!form.$valid) {
+    } else if (!form_data.$valid) {
 
       Service.showNoty("Please Fill the Mandatory Fields");
       return false;
     }
 
     var update_edit_invoice_data = {};
-    update_edit_invoice_data.form = {
-      'invoice_no': form.invoice_no.$modelValue,
-      'invoice_date': form.invoice_date.$modelValue,
-      'address': form.address.$modelValue,
+    update_edit_invoice_data.form_data = {
+      'invoice_no': form_data.invoice_no.$modelValue,
+      'invoice_date': form_data.invoice_date.$modelValue,
+      'address': form_data.address.$modelValue,
     };
     update_edit_invoice_data.data = JSON.stringify(vm.model_data.data);
     update_edit_invoice_data.order_charges = JSON.stringify(vm.model_data.order_charges);

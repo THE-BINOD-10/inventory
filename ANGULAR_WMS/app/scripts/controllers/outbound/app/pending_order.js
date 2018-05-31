@@ -72,6 +72,22 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     $state.go('user.App.PendingOrder');
   }
 
+  vm.submit = submit;
+  function submit(data) {
+    if (data.$valid) {
+      if (vm.model_data.tax_type) {
+        if ("Add Customer" == vm.title) {
+          vm.customer('insert_customer/');
+        } else {
+          vm.model_data['data-id'] = vm.model_data.DT_RowId;
+          vm.customer('update_customer_values/');
+        }
+      } else {
+        vm.service.pop_msg('Please select tax type');
+      }
+    }
+  }
+
   /*
   vm.status_data = ["Inactive", "Active"];
   vm.customer_roles = ["User", "HOD", "Admin"];

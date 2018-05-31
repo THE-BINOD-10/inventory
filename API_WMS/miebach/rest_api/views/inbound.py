@@ -6348,7 +6348,7 @@ def update_poc(request, user=''):
     order_id = form_dict['form_data[order_no]'][0]
     pick_number = form_dict['form_data[pick_number]'][0]
     supp_id = form_dict['form_data[supplier_id]'][0]
-    invoice_number = int(form_dict.get('form_data[invoice_number]', [0])[0])
+    invoice_number = form_dict.get('form_data[invoice_number]', [''])[0]
     invoice_date = ''
     if not supp_id:
         log.info("No  Supplier Id found")
@@ -6461,7 +6461,7 @@ def update_po_invoice(request, user=''):
     order_id = form_dict['form_data[order_no]'][0]
     pick_number = form_dict['form_data[pick_number]'][0]
     supp_id = form_dict['form_data[supplier_id]'][0]
-    invoice_number = int(form_dict.get('form_data[invoice_number]', [0])[0])
+    invoice_number = form_dict.get('form_data[invoice_number]', [''])[0]
     invoice_date = ''
     if not supp_id:
         log.info("No  Supplier Id found")
@@ -6515,8 +6515,9 @@ def update_po_invoice(request, user=''):
                     continue
                 else:
                     sku_id = sku_qs[0].id
-                    open_po_dict = {'sku_id': sku_id, 'order_quantity': open_po_obj[0].order_quantity,
-                                    'supplier_id': supplier_id, 'status': 0, 'order_type': open_po_obj[0].order_type,
+                    open_po_dict = {'sku_id': sku_id, 'order_quantity': seller_po_summary_obj[0].purchase_order.open_po.order_quantity,
+                                    'supplier_id': supplier_id, 'status': 0,
+                                    'order_type': seller_po_summary_obj[0].purchase_order.open_po.order_type,
                                     'price': unit_price,
                                     'measurement_unit': sku_qs[0].measurement_type, 'cgst_tax': cgst_tax,
                                     'igst_tax': igst_tax, 'sgst_tax': sgst_tax, 'utgst_tax': utgst_tax}

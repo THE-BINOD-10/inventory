@@ -198,7 +198,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             if(click_type == 'generate') {
               vm.pdf_data = data.data;
               if(typeof(vm.pdf_data) == "string" && vm.pdf_data.search("print-invoice") != -1) {
-                $state.go("app.inbound.SupplierInvoices.InvoiceE");
+                $state.go("app.inbound.SupplierInvoice.InvoiceE");
                 $timeout(function () {
                   $(".modal-body:visible").html(vm.pdf_data)
                 }, 3000);
@@ -207,7 +207,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               // } else if(vm.permissions.detailed_invoice) {
               //   $state.go("app.inbound.SupplierInvoices.InvoiceD");
               } else {
-                $state.go("app.inbound.SupplierInvoices.InvoiceN");
+                $state.go("app.inbound.SupplierInvoice.InvoiceN");
               }
             } else {
               var mod_data = data.data;

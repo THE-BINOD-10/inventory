@@ -1765,7 +1765,7 @@ class SellerPO(models.Model):
 class SellerPOSummary(models.Model):
     id = BigAutoField(primary_key=True)
     receipt_number = models.PositiveIntegerField(default=0)
-    invoice_number = models.PositiveIntegerField(default=0)
+    invoice_number = models.CharField(max_length=64, default='')
     invoice_date = models.DateField(blank=True, null=True)
     seller_po = models.ForeignKey(SellerPO, blank=True, null=True, db_index=True)
     purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True, db_index=True)

@@ -156,7 +156,7 @@ def add_user_permissions(request, response_data, user=''):
     cust_obj = CustomerUserMapping.objects.filter(user_id=request.user.id)
     tax_type = cust_obj.values_list('customer__tax_type', flat=True)
     if tax_type:
-        tax_type = tax_type[0]
+	tax_type = tax_type[0]
     else:
         tax_type = ''
     user_role = cust_obj.values_list('customer__role', flat=True)

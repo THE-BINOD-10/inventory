@@ -2094,6 +2094,24 @@ var app = angular.module('urbanApp')
             url: '/Products',
             templateUrl: 'views/outbound/app/create_orders/catlog.html'
           })
+          .state('user.App.PendingOrder', {
+            url: '/PendingOrder',
+            templateUrl: 'views/outbound/app/create_orders/pending_order.html',
+            resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/outbound/app/pending_order.js');
+              }]
+              }
+            })
+            .state('user.App.PendingOrder.PendingApprovalData', {
+              url: '/PendingApprovalData',
+              templateUrl: 'views/outbound/app/create_orders/pending_approval_popup.html',
+              resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/outbound/app/pending_order.js');
+              }]
+              }
+            })
           .state('user.App.Categories', {
             url: '/Categories',
             templateUrl: 'views/outbound/app/create_orders/categories.html'

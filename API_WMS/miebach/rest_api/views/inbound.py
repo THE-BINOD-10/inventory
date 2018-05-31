@@ -6195,6 +6195,7 @@ def generate_supplier_invoice(request, user=''):
     log.info('Request params for ' + user.username + ' is ' + str(request.GET.dict()))
     admin_user = get_priceband_admin_user(user)
     try:
+        true, false = ["true", "false"]
         req_data = request.GET.get('data', '')
         if req_data:
             req_data = eval(req_data)
@@ -6292,8 +6293,43 @@ def generate_supplier_invoice(request, user=''):
         return HttpResponse(json.dumps({'message': 'failed'}))
     po_challan = request.GET.get('po_challan', '')
     if po_challan == 'true':
-        return HttpResponse(json.dumps(result_data))
+        result_data['total_items'] = len(result_data['data'])
+        result_data['data'] = pagination(result_data['data'])
+        result_data['username'] = user.username
+        return render(request, 'templates/toggle/delivery_challan.html', invoice_data)
+
     return HttpResponse(json.dumps(result_data))
+
+
+def pagination(sku_list):
+    # header 220
+    # footer 125
+    # table header 44
+    # row 46
+    # total 1358
+    # default 24 items
+    # last page 21 items
+    mx = 24
+    mn = 22
+    #t = sku_list[0]
+    #for i in range(33): sku_list.append(copy.deepcopy(t))#remove it
+    sku_len = len(sku_list)
+    index = 1
+    for sku in sku_list:
+        sku['index'] = index
+        index = index + 1
+    temp = {"sku_code": "", "title": "", "quantity": ""}
+    sku_slices = [sku_list[i: i+mx] for i in range(0, len(sku_list), mx)] 
+    #extra_tuple = ('', '', '', '', '', '', '', '', '', '', '', '')
+    if len(sku_slices[-1]) == mx:
+        temp = sku_slices[-1]
+        sku_slices[-1] = temp[:mx-1]
+        temp = [temp[-1]]
+        for i in range(mn-1): temp.append(temp)
+        sku_slices.append(temp)
+    else:
+        for i in range((mn - len(sku_slices[-1]))): sku_slices[-1].append(temp)
+    return sku_slices
 
 
 @get_admin_user

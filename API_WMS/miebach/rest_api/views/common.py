@@ -183,6 +183,7 @@ def add_user_permissions(request, response_data, user=''):
     response_data['data']['parent'] = parent_data
     response_data['data']['roles'] = get_user_permissions(request, user)
     response_data['data']['roles']['tax_type'] = tax_type
+    response_data['data']['roles']['user_role'] = user_role
     response_data['data']['roles']['labels'] = get_label_permissions(request, user,
                                                                      response_data['data']['roles']['label_perms'],
                                                                      request_user_profile.user_type)
@@ -485,7 +486,7 @@ data_datatable = {  # masters
     'CustomerOrderView': 'get_order_view_data', 'CustomerCategoryView': 'get_order_category_view_data', \
     'CustomOrders': 'get_custom_order_data', \
     'ShipmentPickedAlternative': 'get_order_shipment_picked', 'CustomerInvoices': 'get_customer_invoice_data', \
-    'SellerOrderView': 'get_seller_order_view', \
+    'SellerOrderView': 'get_seller_order_view', 'OrderApprovals': 'get_order_approval_statuses',
     # manage users
     'ManageUsers': 'get_user_results', 'ManageGroups': 'get_user_groups',
     # retail one

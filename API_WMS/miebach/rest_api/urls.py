@@ -286,6 +286,7 @@ urlpatterns = [
     url(r'^update_cust_profile/$', update_cust_profile),
     url(r'^print_cartons_data/$', print_cartons_data),
     url(r'^print_cartons_data_view/$', print_cartons_data_view),
+    url(r'^update_cartdata_for_approval/$', update_cartdata_for_approval),
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),

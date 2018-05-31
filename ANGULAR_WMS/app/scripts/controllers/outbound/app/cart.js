@@ -96,6 +96,33 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
     //vm.model_data.shipment_date = (date.getMonth() + 1) + '/' + date.getDate() + '/' +  date.getFullYear();
   }
 
+vm.update_cartdata_for_approval = function() {
+    var send = {}
+    vm.service.apiCall("update_cartdata_for_approval/", "POST", send).then(function(response){
+        if(response.message) {
+          if(response.data.message == "success") {
+            Data.my_orders = [];
+            swal({
+              title: "Success!",
+              text: "Your Order Has Been Sent for Approval",
+              type: "success",
+              showCancelButton: false,
+              confirmButtonText: "OK",
+              closeOnConfirm: true
+              },
+              function(isConfirm){
+                $state.go("user.App.Brands");
+              }
+            )
+          } else {
+            vm.insert_cool = true;
+            vm.data_status = true;
+            vm.service.showNoty(response.data, "danger", "bottomRight");
+          }
+        }
+    });
+  }
+
   vm.update_customer_cart_data = function(data) {
 
     var send = {'sku_code': data.sku_id, 'quantity': data.quantity, 'level': data.warehouse_level, 'price': data.price}

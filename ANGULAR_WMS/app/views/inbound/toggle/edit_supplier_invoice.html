@@ -7,7 +7,8 @@
   }
 </style>
 <div id="page-pop">
-  <form name="form" role="form" ui-jq="validate" ui-options="pop.validationOpt">
+  <!-- <form name="form" role="form" ui-jq="validate" ui-options="pop.validationOpt"> -->
+  <form name="form" role="form" ui-jq="validate" ui-options="pop.validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
     <!-- <div class="model-custom" style="width:1100px"> -->
     <!-- <div class="modal-dialog model-custom modal-lgi modal-size" ng-style="pop.extra_width"> -->
     <div class="model-custom">
@@ -21,26 +22,36 @@
         <input type="hidden" name="order_id" value="{{pop.model_data.order_id}}">
         <input type="hidden" name="supplier_id" value="{{pop.model_data.supplier_id}}">
         <div class="row">
-          <div class="col-md-4 col-sm-4 col-xs-6">
+          <!-- <div class="col-md-4 col-sm-4 col-xs-6">
             <div class="form-group">
               <label class="control-label"> Order Reference </label>
               <input name="order_reference" ng-model="pop.model_data.order_reference" class="form-control" type="text">
             </div>
-          </div>
+          </div> -->
           <div class="col-md-4 col-sm-4 col-xs-6">
+            <div class="form-group">
+              <label class="control-label"> Invoice Number </label>
+              <input name="invoice_no" ng-model="pop.model_data.invoice_no" class="form-control" type="text">
+            </div>
+          </div>
+          <!-- <div class="col-md-4 col-sm-4 col-xs-6">
             <div class="form-group">
               <label class="control-label">Order Reference Date</label>
               <input name="order_reference_date" ui-jq="datepicker" ng-model="pop.model_data.order_reference_date_field" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" readonly>
             </div>
-          </div>
+          </div> -->
           <div class="col-md-4 col-sm-4 col-xs-6">
             <div class="form-group">
               <label class="control-label">Invoice Date</label>
-              <input name="invoice_date" ui-jq="datepicker" ng-model="pop.model_data.inv_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" readonly>
+              <input name="invoice_date" ui-jq="datepicker" ng-model="pop.model_data.invoice_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" readonly>
+<!-- 
+              <input name="invoice_date" ui-jq="datepicker" ng-model="pop.model_data.invoice_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{pop.date}}" readonly> -->
+<!-- 
+              <input name="invoice_date" ui-jq="datepicker" ng-model="pop.model_data.invoice_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" readonly> -->
             </div>
           </div>
-          <div class="col-md-4 col-sm-4 col-xs-6">
-            <div class="form-group" ng-if="pop.permissions.increment_invoice && pop.model_data.temp_sequence_number">
+          <div class="col-md-4 col-sm-4 col-xs-6" ng-if="pop.permissions.increment_invoice && pop.model_data.temp_sequence_number">
+            <div class="form-group">
               <label class="control-label">Invoice Number</label>
               <input name="invoice_number" ng-model="pop.model_data.sequence_number" class="form-control" type="text" ng-required="true" decimal-number>
               <input name="marketplace" value="{{pop.model_data.marketplace}}" class="form-control" type="hidden">
@@ -49,7 +60,7 @@
           <div class="col-md-4 col-sm-4 col-xs-6">
             <div class="form-group">
               <label class="control-label">Ship To Address</label>
-              <textarea rows="4" class="form-control" cols="27" name="ship_to" ng-model="pop.model_data.consignee"></textarea>
+              <textarea rows="4" class="form-control" cols="27" name="ship_to" ng-model="pop.model_data.supplier_details.address"></textarea>
             </div>
           </div>
           </hr>
@@ -65,8 +76,6 @@
         <th><center>Unit Rate</center></th>
         <!--<th ng-if="permissions.show_mrp">MRP</center></th>-->
         <th><center>Qty</center></th>
-        <th><center>Base Price</center></th>
-        <th><center>Disc</center></th>
         <th><center>Taxable Value</center></th>
         <th><center>CGST</center></th>
         <th><center>SGST</center></th>
@@ -93,8 +102,6 @@
             <input type="text" name="quantity" class="form-control" ng-model="record.quantity" ng-class="pop.service.get_decimal_perm()"
             ng-change="pop.change_quantity(record)" style="width: 50px" ng-readonly="pop.model_data.blind_order && pop.permissions.use_imei">
         </td>
-        <td>{{record.base_price | number:2}}</td>
-        <td class="text-right">{{record.discount | number:2}}<br><span class="tax-percentage">@{{record.discount_percentage}}%</span></td>
         <td> {{record.amt | number:2}} </td>
         <td class="text-right">
           <input type="text" name="cgst_tax" ng-model="record.taxes.cgst_tax" value="{{record.taxes.cgst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width">

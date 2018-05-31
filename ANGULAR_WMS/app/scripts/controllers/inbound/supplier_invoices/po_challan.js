@@ -77,14 +77,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       }
     });
 
-    vm.pdf_data = {};
-
-    vm.generate_invoice = function(click_type, DC=false){
+    vm.generate_invoice = function(click_type, DC='false'){
 
       var supplier_name = '';
       var status = false;
       var field_name = "";
       var data = [];
+      var send_data = {};
       if (vm.user_type == 'distributor') {
         data = vm.checked_ids;
       } else {
@@ -100,14 +99,29 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             var grn_no = temp['GRN No'];
             grn_no = grn_no.split('/');
 
-            var send_data = JSON.stringify({
-              grn_no: grn_no, 
-              seller_summary_name: supplier_name, 
-              seller_summary_id: temp['id'], 
-              purchase_order__order_id: temp['purchase_order__order_id'],
-              receipt_number: temp['receipt_number'],
-              challan_id: temp['Challan ID']
-            });
+            if(click_type == 'edit'){
+              send_data = JSON.stringify({
+                grn_no: grn_no, 
+                seller_summary_name: temp['Supplier Name'], 
+                seller_summary_id: temp['id'], 
+                purchase_order__order_id: temp['purchase_order__order_id'],
+                receipt_number: temp['receipt_number'],
+                challan_id: temp['Challan ID'],
+                data: 'true',
+                edit_invoice: 'true',
+                edit_poc: 'false',
+                po_challan: DC
+              });
+            } else {
+              send_data = JSON.stringify({
+                grn_no: grn_no, 
+                seller_summary_name: temp['Supplier Name'], 
+                seller_summary_id: temp['id'], 
+                purchase_order__order_id: temp['purchase_order__order_id'],
+                receipt_number: temp['receipt_number'],
+                challan_id: temp['Challan ID']
+              });
+            }
 
             data.push(send_data);
           }
@@ -117,25 +131,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       if(status) {
         vm.service.showNoty("Please select same "+field_name+"'s");
       } else {
-
-        // var ids = data.join(",");
-        // ids = ids.split('/');
-        // var send = {grn_numbers: angular.toJson(ids)};
         var send = data.join(",");
         send = {data: send}
-        if(supplier_name && field_name == 'Supplier Name') {
-          send['sor_id'] = supplier_name;
-        }
-        if(click_type == 'edit'){
-          send['data'] = true;
-          send['edit_invoice'] = true;
-        }
-        send['po_challan'] = DC;
         vm.delivery_challan = DC;
         vm.bt_disable = true;
         vm.service.apiCall("generate_supplier_invoice/", "GET", send).then(function(data){
 
-          // if(data.message) {
+          if(data.message) {
             if(click_type == 'generate') {
               vm.pdf_data = data.data;
               if(typeof(vm.pdf_data) == "string" && vm.pdf_data.search("print-invoice") != -1) {
@@ -170,7 +172,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                 var data = selectedItem;
               })
             }
-          // }
+          }
           vm.bt_disable = false;
         });
       }

@@ -170,6 +170,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
               modalInstance.result.then(function (selectedItem) {
                 var data = selectedItem;
+                vm.reloadData();
               })
             }
           }
@@ -263,7 +264,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         send = {data: send_data};
         vm.service.apiCall("generate_supplier_invoice/", "GET", send).then(function(data){
 
-          // if (data.message) {
+          if (data.message) {
           var mod_data = data.data;
           var modalInstance = $modal.open({
             templateUrl: 'views/inbound/toggle/edit_invoice.html',
@@ -281,8 +282,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
           modalInstance.result.then(function (selectedItem) {
             var data = selectedItem;
+            vm.reloadData();
           })
-          // }
+          }
         })
       } else {
         vm.service.showNoty("Something went wrong while, Please select signle item at a time");

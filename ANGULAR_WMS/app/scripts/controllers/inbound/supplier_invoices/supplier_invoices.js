@@ -261,6 +261,7 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
 
   vm.model_data = items;
   // vm.model_data.inv_date = "03/31/2018";
+  vm.model_data.supplier_id = vm.model_data.supplier_details.id;
   vm.model_data['order_charges'] = [];
   vm.model_data.temp_sequence_number = vm.model_data.sequence_number;
 
@@ -322,6 +323,7 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
       'invoice_no': form_data.invoice_no.$modelValue,
       'invoice_date': form_data.invoice_date.$modelValue,
       'address': form_data.address.$modelValue,
+      // 'order_id': form_data.order_id.$modelValue,
       'order_id': form_data.order_id.$modelValue,
       'supplier_id': form_data.supplier_id.$modelValue,
     };
@@ -334,13 +336,13 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
 
       if(data.message) {
 
-        if(data.data.msg == 'success') {
+        if(data.data.message == 'success') {
 
           Service.showNoty("Updated Successfully");
           $modalInstance.close("saved");
         } else {
 
-          Service.showNoty(data.data.msg);
+          Service.showNoty(data.data.message);
         }
       } else {
 

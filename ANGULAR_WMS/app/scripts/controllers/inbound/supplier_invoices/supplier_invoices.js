@@ -126,7 +126,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
         var send = data.join(",");
         send = {data: send}
-        var url = click_type;
+        var url = 'move_to_inv';
         vm.bt_disable = true;
         vm.service.apiCall(url, "GET", send).then(function(data){
           if(data.message) {
@@ -260,6 +260,7 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
   vm.date = new Date();
 
   vm.model_data = items;
+  // vm.model_data.inv_date = "03/31/2018";
   vm.model_data['order_charges'] = [];
   vm.model_data.temp_sequence_number = vm.model_data.sequence_number;
 
@@ -306,7 +307,7 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
   vm.process = false;
   vm.save = function(form_data) {
 
-    if (vm.permissions.increment_invoice && vm.model_data.sequence_number && form_data.invoice_number.$invalid) {
+    if (vm.permissions.increment_invoice && vm.model_data.invoice_date && form_data.invoice_no.$invalid) {
 
       Service.showNoty("Please Fill Invoice Number");
       return false;

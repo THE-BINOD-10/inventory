@@ -1233,57 +1233,76 @@ def auto_po_warehouses(sku, qty):
 
 @csrf_exempt
 def auto_po(wms_codes, user):
-    sku_codes = SKUMaster.objects.filter(wms_code__in=wms_codes, user=user, threshold_quantity__gt=0)
-    price_band_flag = get_misc_value('priceband_sync', user)
-    for sku in sku_codes:
-        taxes = {}
-        qty = get_auto_po_quantity(sku)
-        if qty > int(sku.threshold_quantity):
-            continue
-        if price_band_flag == 'true':
-            intransit_orders = IntransitOrders.objects.filter(sku=sku, user=sku.user, status=1). \
-                values('sku__sku_code').annotate(tot_qty=Sum('quantity'))
-            intr_qty = 0
-            if intransit_orders:
-                intr_order = intransit_orders[0]
-                intr_qty = intr_order['tot_qty']
-            supplier_master_id, price, taxes = auto_po_warehouses(sku, qty)
-            moq = qty + intr_qty
-            if not supplier_master_id:
+    from outbound import insert_st, confirm_stock_transfer
+    auto_po_switch = get_misc_value('auto_po_switch', user)
+    auto_raise_stock_transfer = get_misc_value('auto_raise_stock_transfer', user)
+    if 'true' in [auto_po_switch, auto_raise_stock_transfer]:
+        sku_codes = SKUMaster.objects.filter(wms_code__in=wms_codes, user=user, threshold_quantity__gt=0)
+        price_band_flag = get_misc_value('priceband_sync', user)
+        for sku in sku_codes:
+            taxes = {}
+            qty = get_auto_po_quantity(sku)
+            if qty > int(sku.threshold_quantity):
                 continue
-        else:
-            supplier_id = SKUSupplier.objects.filter(sku_id=sku.id, sku__user=user).order_by('preference')
-            if not supplier_id:
-                continue
-            moq = supplier_id[0].moq
-            if not moq:
-                moq = qty
-            supplier_master_id = supplier_id[0].supplier_id
-            price = supplier_id[0].price
+            if price_band_flag == 'true':
+                intransit_orders = IntransitOrders.objects.filter(sku=sku, user=sku.user, status=1). \
+                    values('sku__sku_code').annotate(tot_qty=Sum('quantity'))
+                intr_qty = 0
+                if intransit_orders:
+                    intr_order = intransit_orders[0]
+                    intr_qty = intr_order['tot_qty']
+                supplier_master_id, price, taxes = auto_po_warehouses(sku, qty)
+                moq = qty + intr_qty
+                if not supplier_master_id:
+                    continue
+            elif auto_po_switch == 'true':
+                supplier_id = SKUSupplier.objects.filter(sku_id=sku.id, sku__user=user).order_by('preference')
+                if not supplier_id:
+                    continue
+                moq = supplier_id[0].moq
+                if not moq:
+                    moq = qty
+                supplier_master_id = supplier_id[0].supplier_id
+                price = supplier_id[0].price
+            elif auto_raise_stock_transfer == 'true':
+                all_data = {}
+                user_obj = User.objects.get(id=user)
 
-        if moq <= 0:
-            continue
-        suggestions_data = OpenPO.objects.filter(sku_id=sku.id, sku__user=user, status__in=['Automated', 1])
-        if not suggestions_data:
-            po_suggestions = copy.deepcopy(PO_SUGGESTIONS_DATA)
-            po_suggestions['sku_id'] = sku.id
-            po_suggestions['supplier_id'] = supplier_master_id
-            po_suggestions['order_quantity'] = moq
-            po_suggestions['status'] = 'Automated'
-            po_suggestions['price'] = price
-            po_suggestions.update(taxes)
-            po = OpenPO(**po_suggestions)
-            po.save()
-            auto_confirm_po = get_misc_value('auto_confirm_po', user)
-            if auto_confirm_po == 'true':
-                po.status = 0
+                wh_sku = WarehouseSKUMapping.objects.filter(sku=sku, sku__user=user_obj.id).order_by("priority")
+                if wh_sku:
+                    wh_sku = wh_sku[0]
+                    cond = wh_sku.warehouse.username
+                    all_data[cond] = [[sku.wms_code, qty, wh_sku.price, '']]
+
+                    all_data = insert_st(all_data, user_obj)
+                    status = confirm_stock_transfer(all_data, user_obj, cond)
+                continue
+
+            if moq <= 0:
+                continue
+            suggestions_data = OpenPO.objects.filter(sku_id=sku.id, sku__user=user, status__in=['Automated', 1])
+            if not suggestions_data:
+                po_suggestions = copy.deepcopy(PO_SUGGESTIONS_DATA)
+                po_suggestions['sku_id'] = sku.id
+                po_suggestions['supplier_id'] = supplier_master_id
+                po_suggestions['order_quantity'] = moq
+                po_suggestions['status'] = 'Automated'
+                po_suggestions['price'] = price
+                po_suggestions.update(taxes)
+                po = OpenPO(**po_suggestions)
                 po.save()
-                po_order_id = get_purchase_order_id(User.objects.get(id=user))
-                user_profile = UserProfile.objects.get(user_id=sku.user)
-                PurchaseOrder.objects.create(open_po_id=po.id, order_id=po_order_id, status='',
-                                             received_quantity=0, po_date=datetime.datetime.now(),
-                                             prefix=user_profile.prefix,
-                                             creation_date=datetime.datetime.now())
+                auto_confirm_po = get_misc_value('auto_confirm_po', user)
+                if auto_confirm_po == 'true':
+                    po.status = 0
+                    po.save()
+                    po_order_id = get_purchase_order_id(User.objects.get(id=user))
+                    user_profile = UserProfile.objects.get(user_id=sku.user)
+                    PurchaseOrder.objects.create(open_po_id=po.id, order_id=po_order_id, status='',
+                                                 received_quantity=0, po_date=datetime.datetime.now(),
+                                                 prefix=user_profile.prefix,
+                                                 creation_date=datetime.datetime.now())
+    else:
+        pass
 
 
 @csrf_exempt

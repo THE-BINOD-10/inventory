@@ -1,5 +1,15 @@
+<style type="text/css">
+  .modal-content {
+    width: 1100px;
+  }
+  .re-textbox-width{
+    width: 60px
+  }
+</style>
 <div id="page-pop">
   <form name="form" role="form" ui-jq="validate" ui-options="pop.validationOpt">
+    <!-- <div class="model-custom" style="width:1100px"> -->
+    <!-- <div class="modal-dialog model-custom modal-lgi modal-size" ng-style="pop.extra_width"> -->
     <div class="model-custom">
       <div ng-include="'views/common/loader.html'"></div>
       <div class="modal-header">
@@ -47,11 +57,11 @@
   <hr>
   <table class="table table-bordered bl br cal-table">
     <thead>
-      <tr class="rm-padding">
+      <!-- <tr class="rm-padding"> -->
         <th><center>SKU Code</center></th>
         <th><center>HSN</center></th>
         <th><center>Description</center></th>
-        <th class="w10"><center>Unit Rate</center></th>
+        <th><center>Unit Rate</center></th>
         <!--<th ng-if="permissions.show_mrp">MRP</center></th>-->
         <th><center>Qty</center></th>
         <th><center>Base Price</center></th>
@@ -61,28 +71,48 @@
         <th><center>SGST</center></th>
         <th><center>IGST</center></th>
         <th><center>Total</center></th>
-      </tr>
+        <th class="plus"></th>
+      <!-- </tr> -->
     </thead>
     <tbody>
       <tr class="rm-padding rm-brdr text-right" ng-repeat="record in pop.model_data.data">
-        <td style="text-align: left;">{{record.sku_code}}</td>
+        <td style="text-align: left;">
+            <input type="text" autocomplete="off" name="sku_id" class="form-control" placeholder="Search WMS Code"
+            typeahead="address.wms_code+' : '+address.sku_desc for address in pop.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="record.sku_code" typeahead-on-select="pop.get_sku_data(record, $item, $index)">
+            <!--{{record.sku_code}}--></td>
         <td style="text-align: left;">{{record.hsn_code}}</td>
-        <td style="text-align: left;">{{record.title}}</td>
+        <td style="text-align: left;">
+            <input type="text" class="form-control" ng-model="record.title" name="title">
+        </td>
         <td>
           <input type="hidden" name="id" value="{{record.id}}">
-          <input type="text" name="unit_price" ng-readonly="pop.priceband_sync" class="form-control" ng-model="record.unit_price" style="padding: 5px 5px;height: 26px;" ng-change="pop.changeUnitPrice(record)" decimal-number required>
+          <input type="text" name="unit_price" ng-readonly="pop.priceband_sync" class="form-control" ng-model="record.unit_price" style="padding: 5px 5px;height: 34px;width: 60px" ng-change="pop.changeUnitPrice(record)" decimal-number required>
         </td>
-        <td>{{record.quantity}}</td>
+        <td>
+            <input type="text" name="quantity" class="form-control" ng-model="record.quantity" ng-class="pop.service.get_decimal_perm()"
+            ng-change="pop.change_quantity(record)" style="width: 50px" ng-readonly="pop.model_data.blind_order && pop.permissions.use_imei">
+        </td>
         <td>{{record.base_price | number:2}}</td>
         <td class="text-right">{{record.discount | number:2}}<br><span class="tax-percentage">@{{record.discount_percentage}}%</span></td>
         <td> {{record.amt | number:2}} </td>
-        <td class="text-right">{{record.taxes.cgst_amt | number:2}}<br><span class="tax-percentage">@{{record.taxes.cgst_tax}}%</span></td>
-        <td class="text-right">{{record.taxes.sgst_amt | number:2}}<br><span class="tax-percentage">@{{record.taxes.sgst_tax}}%</span></td>
-        <td class="text-right">{{record.taxes.igst_amt | number:2}}<br><span class="tax-percentage">@{{record.taxes.igst_tax}}%</span></td>
+        <td class="text-right">
+          <input type="text" name="cgst_tax" ng-model="record.taxes.cgst_tax" value="{{record.taxes.cgst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width">
+          <!-- {{record.taxes.cgst_amt | number:2}} --><br><span class="tax-percentage">{{record.taxes.cgst_tax}}%</span></td>
+        <td class="text-right">
+          <input type="text" name="sgst_tax" ng-model="record.taxes.sgst_tax" value="{{record.taxes.sgst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width">
+          <!-- {{record.taxes.sgst_amt | number:2}} --><br><span class="tax-percentage">{{record.taxes.sgst_tax}}%</span></td>
+        <td class="text-right">
+          <input type="text" name="igst_tax" ng-model="record.taxes.igst_tax" value="{{record.taxes.igst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width">
+          <!-- {{record.taxes.igst_amt | number:2}} --><br><span class="tax-percentage">{{record.taxes.igst_tax}}%</span></td>
+        <!-- <td ng-init="pop.gst_calculate(record)"> -->
         <td>
           {{record.invoice_amount | number:2}}
-          <input type="hidden" name="invoice_amount" value="{{record.invoice_amount}}" class="form-control">
+          <input type="hidden" name="invoice_amount" value="{{record.invoice_amount | number:2}}" class="form-control">
         </td>
+        <td><i style="font-size: 20px;padding-top: 7px;cursor: pointer;"
+            ng-click="pop.update_data($index, record, $last)" ng-class="pop.isLast($last)"></i>
+        </td>
+        <input name="customer_id" value="{{pop.model_data.customer_id}}" class="form-control" type="hidden">
       </tr>
     </tbody>
   </table>
@@ -127,7 +157,7 @@
 
       </div>
       <div class="modal-footer">
-        <button type="submit" class="btn pop pop-green col-md-3 col-sm-3 col-xs-12 pull-right" style="margin-left:0px;" ng-disabled="pop.process" ng-click="pop.save(form)">Save</button>
+        <button type="submit" class="btn pop pop-green pull-right" style="margin-left:0px;" ng-disabled="pop.process" ng-click="pop.save(form)">Save</button>
       </div>
     </div>
   </form>

@@ -480,6 +480,7 @@ data_datatable = {  # masters
     'CustomerOrderView': 'get_order_view_data', 'CustomerCategoryView': 'get_order_category_view_data', \
     'CustomOrders': 'get_custom_order_data', \
     'ShipmentPickedAlternative': 'get_order_shipment_picked', 'CustomerInvoices': 'get_customer_invoice_data', \
+    'ProcessedOrders': 'get_processed_orders_data', 'DeliveryChallans': 'get_delivery_challans_data',
     'SellerOrderView': 'get_seller_order_view', \
     # manage users
     'ManageUsers': 'get_user_results', 'ManageGroups': 'get_user_groups',
@@ -2261,6 +2262,39 @@ def get_financial_year(date):
         return str(financial_year_start_date.year)[2:] + '-' + str(financial_year_start_date.year + 1)[2:]
 
 
+def get_challan_number(user, seller_order_summary):
+    challan_num = ""
+    chn_date = datetime.datetime.now()
+    invoice_no_gen = MiscDetail.objects.filter(user=user.id, misc_type='increment_invoice')
+    if invoice_no_gen:
+        if seller_order_summary:
+            if seller_order_summary[0].seller_order:
+                order = seller_order_summary[0].seller_order.order
+            else:
+                order = seller_order_summary[0].order
+            challan_num = seller_order_summary[0].challan_number
+            if invoice_no_gen[0].misc_value == 'true' and not challan_num:
+                challan_sequence = ChallanSequence.objects.filter(user=user.id, status=1, marketplace=order.marketplace)
+                if not challan_sequence:
+                    challan_sequence = ChallanSequence.objects.filter(user=user.id, marketplace='')
+                if challan_sequence:
+                    challan_sequence = challan_sequence[0]
+                    challan_num = int(challan_sequence.value)
+                    order_no = challan_sequence.prefix + str(challan_num).zfill(3)
+                    seller_order_summary.update(challan_number=order_no)
+                    challan_sequence.value = challan_num + 1
+                    challan_sequence.save()
+                else:
+                    ChallanSequence.objects.create(marketplace='', prefix='CHN', value=1, status=1, user_id=user.id,
+                                                   creation_date=datetime.datetime.now())
+                    order_no = '001'
+                    challan_num = int(order_no)
+            else:
+                log.info("Challan No not updated for seller_order_summary")
+        challan_number = 'CHN/%s/%s' % (chn_date.strftime('%m%y'), challan_num)
+    return challan_number, challan_num
+
+
 def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos=False):
     invoice_number = ""
     inv_no = ""
@@ -2392,6 +2426,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     invoice_date = datetime.datetime.now()
     order_reference_date_field = ''
     order_charges = ''
+    customer_id = ''
 
     # Getting the values from database
     user_profile = UserProfile.objects.get(user_id=user.id)
@@ -2413,7 +2448,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     if order_ids:
         sor_id = ''
         order_ids = list(set(order_ids.split(',')))
-        order_data = OrderDetail.objects.filter(id__in=order_ids)
+        order_data = OrderDetail.objects.filter(id__in=order_ids).exclude(status=3)
         seller_summary = SellerOrderSummary.objects.filter(
             Q(seller_order__order_id__in=order_ids) | Q(order_id__in=order_ids))
         if seller_summary:
@@ -2434,9 +2469,10 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                                                'credit_period', 'phone_number'))
             else:
                 customer_details = list(CustomerMaster.objects.filter(user=user.id, customer_id=dat.customer_id).
-                                        values('customer_id', 'name', 'email_id', 'tin_number', 'address',
+                                        values('id', 'customer_id', 'name', 'email_id', 'tin_number', 'address',
                                                'credit_period', 'phone_number'))
             if customer_details:
+                customer_id = customer_details[0]['id']
                 customer_address = customer_details[0]['name'] + '\n' + customer_details[0]['address']
                 if customer_details[0]['phone_number']:
                     customer_address += ("\nCall: " + customer_details[0]['phone_number'])
@@ -2469,6 +2505,9 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 order_id = dat.order_code + order_no
             else:
                 order_no = str(dat.order_id)
+            shipment_date = ''
+            if dat.shipment_date:
+                shipment_date = dat.shipment_date.strftime('%Y-%m-%d %H:%M')
             order_reference = dat.order_reference
             order_reference_date = ''
             order_reference_date_field = ''
@@ -2596,6 +2635,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             total_taxable_amt += amt
 
             sku_code = dat.sku.sku_code
+            sku_desc = dat.sku.sku_desc
             if display_customer_sku == 'true':
                 customer_sku_code_ins = customer_sku_codes.filter(customer__customer_id=dat.customer_id,
                                                                   sku__sku_code=sku_code)
@@ -2612,15 +2652,18 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 #         if imei:
                 #             temp_imeis.append(imei.po_imei.imei_number)
                 imei_data.append(temp_imeis)
-
+            if sku_code in [x['sku_code'] for x in data]:
+                continue
             data.append(
-                {'order_id': order_id, 'sku_code': sku_code, 'title': title, 'invoice_amount': str(invoice_amount),
+                {'order_id': order_id, 'sku_code': sku_code, 'sku_desc': sku_desc,
+                 'title': title, 'invoice_amount': str(invoice_amount),
                  'quantity': quantity, 'tax': "%.2f" % (_tax), 'unit_price': unit_price, 'tax_type': tax_type,
                  'vat': vat, 'mrp_price': mrp_price, 'discount': discount, 'sku_class': dat.sku.sku_class,
                  'sku_category': dat.sku.sku_category, 'sku_size': dat.sku.sku_size, 'amt': amt, 'taxes': taxes_dict,
                  'base_price': base_price, 'hsn_code': hsn_code, 'imeis': temp_imeis,
-                 'discount_percentage': discount_percentage, 'id': dat.id})
+                 'discount_percentage': discount_percentage, 'id': dat.id, 'shipment_date': shipment_date})
     _invoice_no, _sequence = get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos)
+    challan_no, challan_sequence = get_challan_number(user, seller_summary)
     inv_date = invoice_date.strftime("%m/%d/%Y")
     invoice_date = invoice_date.strftime("%d %b %Y")
     order_charges = {}
@@ -2678,7 +2721,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'seller_company': seller_company, 'sequence_number': _sequence, 'order_reference': order_reference,
                     'order_reference_date_field': order_reference_date_field,
                     'order_reference_date': order_reference_date, 'invoice_header': invoice_header,
-                    'cin_no': cin_no
+                    'cin_no': cin_no, 'challan_no': challan_no, 'customer_id': customer_id,
                     }
     return invoice_data
 
@@ -4316,7 +4359,7 @@ def generate_barcode_dict(pdf_format, myDict, user):
     barcodes_list = []
     barcode_mapping_dict = {'Size': 'sku_size', 'Brand': 'sku_brand', 'SKUDes': 'sku_desc',
                             'UOM': 'measurement_type', 'Style': 'style_name', 'Color': 'color',
-                            'DesignNo': 'sku_class', 'Gender': 'style_name', 'MRP': 'mrp',
+                            'DesignNo': 'sku_class', 'MRP': 'mrp',
                             'SKUDes/Prod': 'sku_desc'}
     user_prf = UserProfile.objects.filter(user_id=user.id)[0]
     barcode_opt = get_misc_value('barcode_generate_opt', user.id)

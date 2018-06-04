@@ -100,6 +100,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
                 vm.model_data.seller_type = vm.model_data.data[0].fields.dedicated_seller;
               }
 
+              angular.forEach(vm.model_data.data, function(data){
+                if (!data.fields.cess_tax) {
+                  data.fields.cess_tax = 0;
+                }
+              });
+
               /*angular.forEach(vm.model_data.data, function(one_row){
                vm.model_data.total_price = vm.model_data.total_price + (one_row.fields.order_quantity * one_row.fields.price);
               });

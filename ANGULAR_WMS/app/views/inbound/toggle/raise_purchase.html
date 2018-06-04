@@ -1,3 +1,8 @@
+<style type="text/css">
+  .form-control{
+    padding: 6px 6px;
+  }
+</style>
 <div id="page-pop" class="modal fade in over-x">
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate">
     <div class="modal-dialog model-custom modal-lgi" ng-style="showCase.extra_width">
@@ -92,13 +97,13 @@
                     <!--<th ng-if="user.user_profile.user_type == 'marketplace_user'">Description</th>-->
                     <th class="w10">Quantity*</th>
                     <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">Measurement</th>
-                    <th>Unit Price</th>
                     <th ng-if="showCase.industry_type=='FMCG'">MRP</th>
+                    <th>Unit Price</th>
                     <th class="w10">SGST(%)</th>
                     <th class="w10">CGST(%)</th>
                     <th class="w10">IGST(%)</th>
-                    <th class="w10">CESS(%)</th>
                     <th class="w10">UTGST(%)</th>
+                    <th class="w10">CESS(%)</th>
                     <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">Remarks</th>
                     <th ng-if="user.user_profile.user_type == 'marketplace_user'">Dedicated Seller</th>
                     <th class="plus"></th>
@@ -129,11 +134,11 @@
                     <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
                       <input name="measurement_unit" ng-model="product.fields.measurement_unit" type="text" class="form-control" readonly>
                     </td>
+                    <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="product.fields.mrp" size="22" title="{{ product.fields.mrp }}" name="mrp" class="form-control" ng-class="service.get_decimal_perm()"></td>
                     <td>
                       <input type="text" ng-model="product.fields.price" name="price" class="form-control" decimal-number 
                              ng-readonly="showCase.default_status" ng-keyup="showCase.getTotals()">
                     </td>
-                    <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="product.fields.mrp" size="22" title="{{ product.fields.mrp }}" name="mrp" class="form-control" ng-class="service.get_decimal_perm()"></td>
                     <td>
                       <input type="text" ng-model="product.fields.sgst_tax" name="sgst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce>
                     </td>
@@ -144,10 +149,10 @@
                       <input type="text" ng-model="product.fields.igst_tax" name="igst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce>
                     </td>
                     <td>
-                      <input type="text" ng-model="product.fields.cess_tax" name="cess_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce>
+                      <input type="text" ng-model="product.fields.utgst_tax" name="utgst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce>
                     </td>
                     <td>
-                      <input type="text" ng-model="product.fields.utgst_tax" name="utgst_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce>
+                      <input type="text" ng-model="product.fields.cess_tax" name="cess_tax" class="form-control" percentage-field percentage-max-value="99.99" percentage-max-decimals="2" ng-change="showCase.taxChange(product);" ng-readonly="product.taxes.length!==0" ng-debounce>
                     </td>
                     <td ng-if="!(user.user_profile.user_type == 'marketplace_user')">
                       <input type="text" ng-model="product.fields.remarks" name="remarks" class="form-control" 
@@ -167,10 +172,10 @@
           <div class="col-md-6 col-sm-6">
           </div>
           <div class="col-md-3 col-sm-3 col-xs-12">
-            <p>Total Price: <b style="font-size:26px">{{showCase.model_data.total_price}}</b></p>
+            <p>Total Price: <b style="font-size:26px">{{showCase.model_data.total_price | number:2}}</b></p>
           </div>
           <div class="col-md-3 col-sm-3 col-xs-12">
-            <p>Sub Total: <b style="font-size:26px">{{showCase.model_data.sub_total}}</b></p>
+            <p>Sub Total: <b style="font-size:26px">{{showCase.model_data.sub_total | number:2}}</b></p>
           </div>
 		  <div class="col-md-12 col-sm-12 col-xs-12" ng-if="(showCase.permissions.show_purchase_history && showCase.display_purchase_history_table)">
 		  <div class="col-md-12 col-sm-12 col-xs-12">
@@ -211,12 +216,12 @@
             </thead>
             <tbody ng-repeat="data in showCase.last_transaction_table">
                 <tr class="field">
-				    <td>{{data.po_date}}</td>
-                    <td>{{data.po_number}}</td>
-					<td>{{data.supplier_name}}</td>
-					<td>{{data.received_quantity}}</td>
-					<td>{{data.price}}</td>
-					<td>{{data.total_tax}}</td>
+				          <td>{{data.po_date}}</td>
+                  <td>{{data.po_number}}</td>
+        					<td>{{data.supplier_name}}</td>
+        					<td>{{data.received_quantity}}</td>
+        					<td>{{data.price}}</td>
+        					<td>{{data.total_tax}}</td>
                 </tr>
             </tbody>
           </table>

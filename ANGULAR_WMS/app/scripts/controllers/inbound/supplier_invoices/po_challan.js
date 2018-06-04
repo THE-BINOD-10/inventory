@@ -184,6 +184,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     var status = false;
     var field_name = "";
     var data = [];
+    var send_data = {};
     if (vm.user_type == 'distributor') {
       data = vm.checked_ids;
     } else {
@@ -199,13 +200,24 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           var grn_no = temp['GRN No'];
           grn_no = grn_no.split('/');
 
-          var send_data = JSON.stringify({
-            grn_no: grn_no, 
-            seller_summary_name: supplier_name, 
-            seller_summary_id: temp['id'], 
-            purchase_order__order_id: temp['purchase_order__order_id'],
-            receipt_number: temp['receipt_number']
-          });
+          if(click_type == 'cancel_poc'){
+              send_data = JSON.stringify({
+                grn_no: grn_no, 
+                seller_summary_name: supplier_name, 
+                seller_summary_id: temp['id'], 
+                purchase_order__order_id: temp['purchase_order__order_id'],
+                receipt_number: temp['receipt_number'],
+                cancel: 'true'
+              });
+            } else {
+              send_data = JSON.stringify({
+                grn_no: grn_no, 
+                seller_summary_name: supplier_name, 
+                seller_summary_id: temp['id'], 
+                purchase_order__order_id: temp['purchase_order__order_id'],
+                receipt_number: temp['receipt_number']
+              });
+            }
 
           data.push(send_data);
         }
@@ -218,7 +230,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
       var send = data.join(",");
       send = {data: send}
-      var url = click_type === 'cancel_poc' ? 'move_to_poc/' : 'move_to_inv/';
+      var url = click_type === 'cancel_poc' ? 'move_to_po_challan/' : 'move_to_inv/';
       vm.bt_disable = true;
       vm.service.apiCall(url, "GET", send).then(function(data){
         if(data.message) {

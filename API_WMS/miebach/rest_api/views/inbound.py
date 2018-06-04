@@ -6239,7 +6239,7 @@ def generate_supplier_invoice(request, user=''):
                 result_data = {"company_details": company_details,
                                "supplier_details": supplier_details,
                                "challan_no": seller_summary[0].challan_number,
-                               "invoice_date": '',
+                               "inv_date": seller_summary[0].invoice_date.strftime("%m/%d/%Y") if seller_summary[0].invoice_date else '',
                                "invoice_header": "Tax Invoice",
                                 "invoice_no": seller_summary[0].invoice_number,
                                 "order_date": order_date,
@@ -6488,7 +6488,7 @@ def update_po_invoice(request, user=''):
     pick_number = form_dict.get('form_data[pick_number]', [''])[0]
     supp_id = form_dict.get('form_data[supplier_id]', [''])[0]
     invoice_number = form_dict.get('form_data[invoice_no]', [''])[0]
-    invoice_date = form_dict.get('form_data[inv_date]', [''])[0]
+    invoice_date = form_dict.get('form_data[invoice_date]', [''])[0]
     if not supp_id:
         log.info("No  Supplier Id found")
         return HttpResponse(json.dumps({'message': 'failed'}))
@@ -6502,7 +6502,7 @@ def update_po_invoice(request, user=''):
         supplier_id = supp_obj.id
         supplier_name = supp_obj.name
     if invoice_date:
-        invoice_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y")
+        invoice_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y").date()
     for sku_data in skus_data:
         sku_data = eval(sku_data)
         shipment_date = sku_data[0].get('shipment_date', '')

@@ -24,7 +24,7 @@
                         <span><b>SELLER:</b></span>
                       </div>
                       <div class="col-md-12">
-                        <pre class="fs12">{{showCase.pdf_data.seller_address}}</pre>
+                        <p class="pre-custom padding-none">{{showCase.pdf_data.seller_address}}</p>
                       </div>
                     </div>
                   </td>
@@ -34,7 +34,7 @@
                         <span><b>BUYER:</b></span>
                       </div>
                       <div class="col-md-12">
-                        <pre class="fs12">{{showCase.pdf_data.buyer_address}}</pre>
+                        <p class="pre-custom padding-none">{{showCase.pdf_data.customer_address}}</p>
                       </div>
                     </div>
                   </td>
@@ -42,13 +42,14 @@
                     <strong>Invoice No:</strong>{{showCase.pdf_data.invoice_no}}
                     <br>
                     <strong>Order Id:</strong>{{showCase.pdf_data.order_id}}
-                    <br>
-                    <strong>Payment Mode:</strong>{{showCase.pdf_data.payment_mode}}
+                    <!--<br>
+                    <strong>Payment Mode:</strong>{{showCase.pdf_data.payment_mode}}-->
                     <br>
                     <strong>Order Date:</strong>{{showCase.pdf_data.order_date}}
                     <br>
                     <strong>Invoice Date:</strong>{{showCase.pdf_data.invoice_date}}
                     <br>
+                    <span ng-if="showCase.pdf_data.purchase_type"><strong>Purchase Type:</strong>{{showCase.pdf_data.purchase_type}}</span>
                   </td>
                 </tr>
               </tbody>
@@ -95,7 +96,7 @@
                   <td>{{record.invoice_amount | number:2}}</td>
                   <td>{{record.quantity}}</td>
                   <td>{{record.discount}}</td>
-                  <td><b>{{record.amount | number:2}}</b></td>
+                  <td><b>{{record.invoice_amount | number:2}}</b></td>
                 </tr>
                 <tr style="border-top: 1px solid rgba(128, 128, 128, 0.14)" class="rm-padding">
                   <td style="text-align:left"><b>Total: </b>
@@ -103,9 +104,9 @@
                   <td></td>
                   <td></td>
                   <td></td>
+                  <td>{{showCase.pdf_data.total_tax}}</td>
                   <td></td>
-                  <td></td>
-                  <td></td>
+                  <td>{{showCase.pdf_data.total_quantity}}</td>
                   <td></td>
                   <td>{{showCase.pdf_data.total_invoice | number:2}}</td>
                 </tr>
@@ -121,8 +122,8 @@
                 </tr>
               </tfoot>
             </table>-->
-            <table ng-include="'views/outbound/print/gst/gst_table1.html'" ng-if="(!(showCase.pdf_data.detailed_invoice))" class="table table-bordered bl br cal-table"></table>
-            <table ng-include="'views/inbound/print/table2.html'" ng-if="showCase.pdf_data.detailed_invoice" class="table table-bordered bl br"></table>
+            <table ng-include="'views/inbound/print/table1.html'" ng-if="(!(showCase.pdf_data.detailed_invoice))" class="table table-bordered bl br"></table>
+            <table ng-include="'views/inbound/print/table2.html'" ng-if="showCase.pdf_data.detailed_invoice" class="table table-bordered bl br"></table> 
           </div>
          </div>
         </div>

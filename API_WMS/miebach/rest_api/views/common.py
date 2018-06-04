@@ -454,7 +454,9 @@ data_datatable = {  # masters
     'QualityCheck': 'get_quality_check_data', 'POPutaway': 'get_order_data', \
     'ReturnsPutaway': 'get_order_returns_data', 'SalesReturns': 'get_order_returns', \
     'RaiseST': 'get_raised_stock_transfer', 'SellerInvoice': 'get_seller_invoice_data', \
-    'RaiseIO': 'get_intransit_orders', 'PrimarySegregation': 'get_segregation_pos',
+    'RaiseIO': 'get_intransit_orders', 'PrimarySegregation': 'get_segregation_pos', \
+    'ProcessedPOs': 'get_processed_po_data', 'POChallans': 'get_po_challans_data', \
+    'SupplierInvoices': 'get_supplier_invoice_data', \
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
     'PickelistGenerated': 'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo', \
@@ -6999,3 +7001,30 @@ def check_picklist_number_created(user, picklist_number):
                                              picklist_number=picklist_number)
     if not pick_check_obj.exists():
         check_and_update_picklist_number(picklist_number, user, 'picklist')
+
+
+def get_po_challan_number(user, seller_po_summary):
+    challan_num = ""
+    chn_date = datetime.datetime.now()
+    challan_num = seller_po_summary[0].challan_number
+    if not challan_num:
+        challan_sequence = ChallanSequence.objects.filter(user=user.id, status=1)
+        if not challan_sequence:
+            challan_sequence = ChallanSequence.objects.filter(user=user.id)
+        if challan_sequence:
+            challan_sequence = challan_sequence[0]
+            challan_num = int(challan_sequence.value)
+            order_no = challan_sequence.prefix + str(challan_num).zfill(3)
+            seller_po_summary.update(challan_number=order_no)
+            challan_sequence.value = challan_num + 1
+            challan_sequence.save()
+        else:
+            ChallanSequence.objects.create(prefix='CHN', value=1, status=1, user_id=user.id,
+                                           creation_date=datetime.datetime.now())
+            order_no = '001'
+            challan_num = int(order_no)
+    else:
+        log.info("Challan No not updated for seller_order_summary")
+    challan_number = 'CHN/%s/%s' % (chn_date.strftime('%m%y'), challan_num)
+
+    return challan_number, challan_num

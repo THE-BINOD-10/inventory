@@ -6251,7 +6251,7 @@ def generate_supplier_invoice(request, user=''):
 
                                }
 
-                result_data["challan_date"] = ''
+                result_data["challan_date"] = seller_summary[0].challan_date.strftime("%m/%d/%Y")
                 result_data["data"] = []
                 tot_cgst, tot_sgst, tot_igst, tot_utgst, tot_amt, tot_invoice, tot_qty, tot_tax = [0]*8
                 for seller_sum in seller_summary:
@@ -6359,6 +6359,7 @@ def update_poc(request, user=''):
     challan_number = form_dict['form_data[challan_no]'][0]
     #receipt_number = form_dict['form_data[receipt_number]'][0]
     rep_id = form_dict['form_data[rep]']
+    challan_date = form_dict.get("form_data[challan_date]", [''])[0]
     lr_no = form_dict['form_data[lr_no]']
     carrier = form_dict['form_data[carrier]']
     sku_id = form_dict['form_data[wms_code]']
@@ -6382,6 +6383,8 @@ def update_poc(request, user=''):
             supp_obj = supp_obj[0]
         supplier_id = supp_obj.id
         supplier_name = supp_obj.name
+    if challan_date:
+        challan_date = datetime.datetime.strptime(challan_date, "%m/%d/%Y")
     for sku_data in skus_data:
         sku_data = eval(sku_data)
         shipment_date = sku_data[0].get('shipment_date', '')
@@ -6402,6 +6405,7 @@ def update_poc(request, user=''):
                 seller_po_summary_obj = SellerPOSummary.objects.filter(id=seller_summary_id)
                 if seller_po_summary_obj:
                     seller_po_summary_obj[0].quantity = quantity
+                    seller_po_summary_obj[0].challan_date = challan_date
                     seller_po_summary_obj[0].save()
 
                 if open_po_id:

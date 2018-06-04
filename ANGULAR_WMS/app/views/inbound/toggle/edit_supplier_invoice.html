@@ -19,8 +19,6 @@
         <h4 class="modal-title" id="myLargeModalLabel">Edit Invoice</h4>
       </div>
       <div class="modal-body">
-        <input type="hidden" name="order_id" value="{{pop.model_data.order_id}}">
-        <input type="hidden" name="supplier_id" value="{{pop.model_data.supplier_details.id}}">
         <div class="row">
           <!-- <div class="col-md-4 col-sm-4 col-xs-6">
             <div class="form-group">
@@ -43,7 +41,7 @@
           <div class="col-md-4 col-sm-4 col-xs-6">
             <div class="form-group">
               <label class="control-label">Invoice Date</label>
-              <input name="invoice_date" ui-jq="datepicker" ng-model="pop.model_data.inv_date" class="form-control stk-readonly ng-pristine" type="text" data-date-today-highlight="true" data-date-autoclose="true" readonly="">
+              <input name="invoice_date" ui-jq="datepicker" ng-model="pop.model_data.invoice_date" class="form-control stk-readonly ng-pristine" type="text" data-date-today-highlight="true" data-date-autoclose="true" readonly="">
             </div>
           </div>
           <div class="col-md-4 col-sm-4 col-xs-6" ng-if="pop.permissions.increment_invoice && pop.model_data.temp_sequence_number">
@@ -57,6 +55,8 @@
             <div class="form-group">
               <label class="control-label">Address</label>
               <textarea rows="4" class="form-control" cols="27" name="address" ng-model="pop.model_data.supplier_details.address"></textarea>
+              <input type="hidden" name="order_id" ng-model="pop.model_data.order_id" value="{{pop.model_data.order_id}}">
+              <input type="hidden" name="supplier_id" ng-model="pop.model_data.supplier_id" value="{{pop.model_data.supplier_id}}">
             </div>
           </div>
           </hr>
@@ -100,15 +100,14 @@
         </td>
         <td> {{record.amt | number:2}} </td>
         <td class="text-right">
-          <input type="text" name="cgst_tax" ng-model="record.taxes.cgst_tax" value="{{record.taxes.cgst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width">
+          <input type="text" name="cgst_tax" ng-model="record.taxes.cgst_tax" value="{{record.taxes.cgst_tax}}" ng-keyup="pop.changeUnitPrice(record)" class="form-control re-textbox-width">
           <!-- {{record.taxes.cgst_amt | number:2}} --><br><span class="tax-percentage">{{record.taxes.cgst_tax}}%</span></td>
         <td class="text-right">
-          <input type="text" name="sgst_tax" ng-model="record.taxes.sgst_tax" value="{{record.taxes.sgst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width">
+          <input type="text" name="sgst_tax" ng-model="record.taxes.sgst_tax" value="{{record.taxes.sgst_tax}}" ng-keyup="pop.changeUnitPrice(record)" class="form-control re-textbox-width">
           <!-- {{record.taxes.sgst_amt | number:2}} --><br><span class="tax-percentage">{{record.taxes.sgst_tax}}%</span></td>
         <td class="text-right">
-          <input type="text" name="igst_tax" ng-model="record.taxes.igst_tax" value="{{record.taxes.igst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width">
+          <input type="text" name="igst_tax" ng-model="record.taxes.igst_tax" value="{{record.taxes.igst_tax}}" ng-keyup="pop.changeUnitPrice(record)" class="form-control re-textbox-width">
           <!-- {{record.taxes.igst_amt | number:2}} --><br><span class="tax-percentage">{{record.taxes.igst_tax}}%</span></td>
-        <!-- <td ng-init="pop.gst_calculate(record)"> -->
         <td>
           {{record.invoice_amount | number:2}}
           <input type="hidden" name="invoice_amount" value="{{record.invoice_amount | number:2}}" class="form-control">
@@ -122,7 +121,7 @@
   </table>
 </div>
 
-  <div class="row mr10 ml10 mr10">
+  <!-- <div class="row mr10 ml10 mr10">
     <div class="col-md-12">
       <a href="javascript:;" class="btn btn-success btn-xs" ng-click="pop.model_data.order_charges.push({charge_id: '', charge_name: '', charge_amount: ''}); pop.model_data.default_charge()">Add Other Charges(+)</a>
     </div>
@@ -156,8 +155,7 @@
         </div>
       </div>
     </div>
-
-  </div>
+  </div> -->
 
       </div>
       <div class="modal-footer">

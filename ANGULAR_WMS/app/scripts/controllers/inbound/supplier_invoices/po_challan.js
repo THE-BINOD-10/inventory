@@ -170,6 +170,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
               modalInstance.result.then(function (selectedItem) {
                 var data = selectedItem;
+                vm.reloadData();
               })
             }
           }
@@ -217,7 +218,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
       var send = data.join(",");
       send = {data: send}
-      var url = click_type === 'move_to_po_challan' ? 'move_to_po_challan/' : 'move_to_inv/';
+      var url = click_type === 'cancel_poc' ? 'cancel_poc/' : 'move_to_inv/';
       vm.bt_disable = true;
       vm.service.apiCall(url, "GET", send).then(function(data){
         if(data.message) {
@@ -263,7 +264,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         send = {data: send_data};
         vm.service.apiCall("generate_supplier_invoice/", "GET", send).then(function(data){
 
-          // if (data.message) {
+          if (data.message) {
           var mod_data = data.data;
           var modalInstance = $modal.open({
             templateUrl: 'views/inbound/toggle/edit_invoice.html',
@@ -281,8 +282,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
           modalInstance.result.then(function (selectedItem) {
             var data = selectedItem;
+            vm.reloadData();
+            vm.bt_disable = true;
           })
-          // }
+          }
         })
       } else {
         vm.service.showNoty("Something went wrong while, Please select signle item at a time");
@@ -378,14 +381,13 @@ function EditPOChallan($scope, $http, $state, $timeout, Session, colFilters, Ser
     }
 
     data.base_price = vm.service.multi(data.quantity, data.unit_price);
-    vm.cal_percentage(data);
-    vm.gst_calculate(data);
+    vm.changeUnitPrice(data);
   }
 
   vm.changeUnitPrice = function(data) {
 
     var total = data.quantity * Number(data.unit_price);
-    data.discount = (data.base_price/100)*Number(data.discount_percentage) | 0;
+    // data.discount = (data.base_price/100)*Number(data.discount_percentage) | 0;
     data.amt = total;
     var taxes = {cgst_amt: 'cgst_tax', sgst_amt: 'sgst_tax', igst_amt: 'igst_tax', utgst_amt: 'utgst_tax'};
     data.tax = 0;
@@ -403,6 +405,10 @@ function EditPOChallan($scope, $http, $state, $timeout, Session, colFilters, Ser
     })  
     data.invoice_amount = (total) + (data.tax);
   }
+
+  angular.forEach(vm.model_data.data, function(sku){
+    vm.changeUnitPrice(sku);
+  });
 
   vm.get_sku_details = function(product, item, index) {
     product.wms_code = item.wms_code;

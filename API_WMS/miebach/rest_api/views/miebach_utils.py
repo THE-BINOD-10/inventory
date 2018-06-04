@@ -494,6 +494,7 @@ SALES_RETURNS_HEADERS = ['Return ID', 'Order ID', 'SKU Code', 'Return Quantity',
 INVENTORY_EXCEL_MAPPING = OrderedDict(( ('Seller ID', 'seller_id'), ('Receipt Date(YYYY-MM-DD)', 'receipt_date'), ('WMS SKU', 'wms_code'),
                               ('Location', 'location'), ('Quantity', 'quantity'),
                               ('Receipt Type', 'receipt_type'), ('Pallet Number', 'pallet_number'),
+                              ('Batch Number', 'batch_no'), ('MRP', 'mrp')
                             ))
 
 SKU_EXCEL = (
@@ -1299,13 +1300,14 @@ PERMISSION_IGNORE_LIST = ['session', 'webhookdata', 'swxmapping', 'userprofile',
 
 # Customer Invoices page headers based on user type
 MP_CUSTOMER_INVOICE_HEADERS = ['UOR ID', 'SOR ID', 'Seller ID', 'Customer Name', 'Order Quantity', 'Picked Quantity',
-                               'Order Date&Time',
+                               'Total Amount', 'Order Date&Time',
                                'Invoice Number']
 
-WH_CUSTOMER_INVOICE_HEADERS = ['Order ID', 'Customer Name', 'Order Quantity', 'Picked Quantity', 'Order Date&Time']
+WH_CUSTOMER_INVOICE_HEADERS = ['Order ID', 'Customer Name', 'Order Quantity', 'Picked Quantity', 'Order Date&Time',
+                               'Total Amount']
 
 DIST_CUSTOMER_INVOICE_HEADERS = ['Gen Order Id', 'Order Ids', 'Customer Name', 'Order Quantity', 'Picked Quantity',
-                                 'Order Date&Time']
+                                 'Order Date&Time', 'Total Amount']
 
 # End of Customer Invoices page headers based on user type
 

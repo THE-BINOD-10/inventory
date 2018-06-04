@@ -95,10 +95,14 @@ def generate_error_excel(index_status, fname, reader, file_type):
 def get_inventory_excel_upload_headers(user):
     excel_headers = copy.deepcopy(INVENTORY_EXCEL_MAPPING)
     pallet_switch = get_misc_value('pallet_switch', user.id)
+    userprofile = user.userprofile
     if not pallet_switch == 'true':
         del excel_headers["Pallet Number"]
-    if not user.userprofile.user_type == 'marketplace_user':
+    if not userprofile.user_type == 'marketplace_user':
         del excel_headers["Seller ID"]
+    if not userprofile.industry_type == 'FMCG':
+        del excel_headers["Batch Number"]
+        del excel_headers["MRP"]
     return excel_headers
 
 
@@ -1552,7 +1556,8 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
                                                  inv_mapping)
     if not set(['receipt_date', 'quantity', 'wms_code', 'location']).issubset(excel_mapping.keys()):
         return 'Invalid File'
-    number_fields = ['quantity']
+    number_fields = ['quantity', 'mrp']
+    optional_fields = ['mrp']
     mandatory_fields = ['receipt_date', 'location', 'quantity', 'receipt_type']
     location_master = LocationMaster.objects.filter(zone__user=user.id)
     data_list = []
@@ -1607,7 +1612,8 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
                 try:
                     data_dict[key] = float(cell_data)
                 except:
-                    index_status.setdefault(row_idx, set()).add('Invalid Value for %s' % inv_res[key])
+                    if key not in optional_fields:
+                        index_status.setdefault(row_idx, set()).add('Invalid Value for %s' % inv_res[key])
                 data_dict[key] = cell_data
             else:
                 data_dict[key] = cell_data
@@ -1661,6 +1667,16 @@ def inventory_excel_upload(request, user, data_list):
             pallet_number = inventory_data.get('pallet_number', '')
             if 'pallet_number' in inventory_data.keys():
                 del inventory_data['pallet_number']
+            batch_no = inventory_data.get('batch_no', '')
+            if 'batch_no' in inventory_data.keys():
+                del inventory_data['batch_no']
+            mrp = inventory_data.get('mrp', 0)
+            if 'mrp' in inventory_data.keys():
+                del inventory_data['mrp']
+
+            stock_query_filter = {'sku_id': inventory_data.get('sku_id', ''),
+                                  'location_id': inventory_data.get('location_id', ''),
+                                  'receipt_number': receipt_number, 'sku__user': user.id}
             if pallet_number:
                 pallet_data = {'pallet_code': pallet_number, 'quantity': int(inventory_data['quantity']),
                                'user': user.id,
@@ -1668,21 +1684,26 @@ def inventory_excel_upload(request, user, data_list):
                                'updation_date': str(datetime.datetime.now())}
                 pallet_detail = PalletDetail(**pallet_data)
                 pallet_detail.save()
-                inventory_status = StockDetail.objects.filter(sku_id=inventory_data.get('sku_id', ''),
-                                                              location_id=inventory_data.get('location_id', ''),
-                                                              receipt_number=receipt_number, sku__user=user.id,
-                                                              pallet_detail_id=pallet_detail.id)
-            else:
-                inventory_status = StockDetail.objects.filter(sku_id=inventory_data.get('sku_id', ''),
-                                                              location_id=inventory_data.get('location_id', ''),
-                                                              receipt_number=receipt_number, sku__user=user.id)
+                stock_query_filter['pallet_detail_id'] = pallet_detail.id
+                inventory_data['pallet_detail_id'] = pallet_detail.id
+            if mrp or batch_no:
+                try:
+                    mrp = float(mrp)
+                except:
+                    mrp = 0
+                if isinstance(batch_no, float):
+                    batch_no = str(int(batch_no))
+                batch_dict = {'batch_no': batch_no, 'mrp': mrp, 'creation_date': datetime.datetime.now()}
+                batch_obj = BatchDetail(**batch_dict)
+                batch_obj.save()
+                stock_query_filter['batch_detail_id'] = batch_obj.id
+                inventory_data['batch_detail_id'] = batch_obj.id
+            inventory_status = StockDetail.objects.filter(**stock_query_filter)
             if not inventory_status and inventory_data.get('quantity', ''):
                 inventory_data['status'] = 1
                 inventory_data['creation_date'] = str(datetime.datetime.now())
                 inventory_data['receipt_date'] = receipt_date
                 inventory_data['receipt_number'] = receipt_number
-                if pallet_number:
-                    inventory_data['pallet_detail_id'] = pallet_detail.id
                 sku_master = SKUMaster.objects.get(id=inventory_data['sku_id'])
                 if not sku_master.zone:
                     location_master = LocationMaster.objects.get(id=inventory_data['location_id'])
@@ -3623,7 +3644,7 @@ def network_excel_upload(request, reader, no_of_rows, file_type='xls', user=''):
             each_row_map['source_location_code_id'] = src_lc_code
             network_master = NetworkMaster(**dict(each_row_map))
             supplier = create_network_supplier(dest_lc_code, src_lc_code)
-            network_master.supplier = supplier.id
+            network_master.supplier_id = supplier.id
             network_master.save()
         else:
             network_obj[0].lead_time = each_row_map['lead_time']

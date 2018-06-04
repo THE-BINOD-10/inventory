@@ -2,6 +2,7 @@ import datetime
 import json
 from collections import OrderedDict
 from operator import itemgetter
+import traceback
 
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -11,6 +12,10 @@ from miebach_utils import OrderUploads, GenericOrderDetailMapping, CustomerOrder
 from common import get_filtered_params, get_admin
 from miebach_admin.custom_decorators import get_admin_user, login_required
 from miebach_admin.models import CustomerUserMapping, CustomerMaster, UserGroups
+from utils import *
+
+
+log = init_logger('logs/upload_po.log')
 
 
 def upload_po(request):
@@ -19,23 +24,30 @@ def upload_po(request):
     po_file = request.FILES.get('po_file', '')
     if not po_number and customer_name and po_file:
         return HttpResponse('Fields are missing.')
-
-    upload_po_map = {'uploaded_user_id': request.user.id, 'po_number': po_number,
-                     'customer_name': customer_name}
-    ord_obj = OrderUploads.objects.filter(**upload_po_map)
-    if ord_obj:
-        ord_obj = ord_obj[0]
-        ord_obj.uploaded_file = po_file
-        ord_obj.uploaded_date = datetime.datetime.today()
-    else:
-        upload_po_map['uploaded_file'] = po_file
-        upload_po_map['uploaded_date'] = datetime.datetime.today()
-        ord_obj = OrderUploads(**upload_po_map)
-    ord_obj.save()
+    try:
+        upload_po_map = {'uploaded_user_id': request.user.id, 'po_number': po_number,
+                         'customer_name': customer_name}
+        ord_obj = OrderUploads.objects.filter(**upload_po_map)
+        if ord_obj:
+            ord_obj = ord_obj[0]
+            ord_obj.uploaded_file = po_file
+            ord_obj.uploaded_date = datetime.datetime.today()
+        else:
+            upload_po_map['uploaded_file'] = po_file
+            upload_po_map['uploaded_date'] = datetime.datetime.today()
+            ord_obj = OrderUploads(**upload_po_map)
+        ord_obj.save()
+        log.info('Uploaded PO for user %s and params are %s' % (
+            str(request.user.username), str(request.POST.dict())))
+    except Exception as e:
+        log.debug(traceback.format_exc())
+        log.info('Upload PO is failed for user %s and params are %s and error statement is %s' % (
+            str(request.user.username), str(request.POST.dict()), str(e)))
     return HttpResponse('Uploaded Successfully')
 
 
 def get_updated_pos(request):
+    data = {}
     upload_po_id = request.POST.get('id', '')
     if not upload_po_id:
         return HttpResponse('Uploaded PO id is not found')
@@ -44,17 +56,22 @@ def get_updated_pos(request):
         return HttpResponse('No record found')
     else:
         up_obj = up_obj[0]
-    cm_user_map = CustomerUserMapping.objects.get(user_id=up_obj.uploaded_user.id)
-    cm_obj = CustomerMaster.objects.filter(id=cm_user_map.customer_id)
-    gen_ord_map = get_skucode_quantity(up_obj.po_number, up_obj.customer_name, cm_obj[0])
-    if up_obj.uploaded_file.name:
-        uploaded_file_url = up_obj.uploaded_file.url
-    else:
-        uploaded_file_url = ''
-    data = {'id': up_obj.id, 'uploaded_user': up_obj.uploaded_user.first_name, 'po_number': up_obj.po_number,
-            'uploaded_date': up_obj.uploaded_date.strftime('%Y-%m-%d'), 'customer_name': up_obj.customer_name,
-            'uploaded_file': uploaded_file_url, 'verification_flag': up_obj.verification_flag,
-            'remarks': up_obj.remarks, 'sku_quantity': gen_ord_map}
+    try:
+        cm_user_map = CustomerUserMapping.objects.get(user_id=up_obj.uploaded_user.id)
+        cm_obj = CustomerMaster.objects.filter(id=cm_user_map.customer_id)
+        gen_ord_map = get_skucode_quantity(up_obj.po_number, up_obj.customer_name, cm_obj[0])
+        if up_obj.uploaded_file.name:
+            uploaded_file_url = up_obj.uploaded_file.url
+        else:
+            uploaded_file_url = ''
+        data = {'id': up_obj.id, 'uploaded_user': up_obj.uploaded_user.first_name, 'po_number': up_obj.po_number,
+                'uploaded_date': up_obj.uploaded_date.strftime('%Y-%m-%d'), 'customer_name': up_obj.customer_name,
+                'uploaded_file': uploaded_file_url, 'verification_flag': up_obj.verification_flag,
+                'remarks': up_obj.remarks, 'sku_quantity': gen_ord_map}
+    except Exception as e:
+        log.debug(traceback.format_exc())
+        log.info('Getting updated POs failed for user %s and params are %s and error statement is %s' % (
+            str(request.user.username), str(request.POST.dict()), str(e)))
     return HttpResponse(json.dumps({'data': data}))
 
 
@@ -158,15 +175,21 @@ def validate_po(request, user=''):
     remarks = request.POST.get('remarks', '')
     if not po_number and uploaded_user and customer_name:
         return HttpResponse('Values Missing')
-    order_po_obj = OrderUploads.objects.filter(uploaded_user__first_name=uploaded_user, po_number=po_number,
-                                               customer_name=customer_name)
-    if not order_po_obj:
-        return HttpResponse('Record not found')
-    else:
-        order_po_obj = order_po_obj[0]
-        order_po_obj.verification_flag = verification_flag
-        order_po_obj.remarks = remarks
-        order_po_obj.save()
+    try:
+        order_po_obj = OrderUploads.objects.filter(uploaded_user__first_name=uploaded_user, po_number=po_number,
+                                                   customer_name=customer_name)
+        if not order_po_obj:
+            return HttpResponse('Record not found')
+        else:
+            order_po_obj = order_po_obj[0]
+            order_po_obj.verification_flag = verification_flag
+            order_po_obj.remarks = remarks
+            order_po_obj.save()
+    except Exception as e:
+        log.debug(traceback.format_exc())
+        log.info('Getting updated POs failed for user %s and params are %s and error statement is %s' % (
+            str(request.user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse('Update Failed')
     return HttpResponse('Updated Successfully')
 
 

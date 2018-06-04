@@ -3092,7 +3092,7 @@ def search_wms_data(request, user=''):
     if not search_key:
         return HttpResponse(json.dumps(total_data))
 
-    lis = ['wms_code', 'sku_desc']
+    lis = ['wms_code', 'sku_desc', 'mrp']
     query_objects = sku_master.filter(Q(wms_code__icontains=search_key) | Q(sku_desc__icontains=search_key),
                                       user=user.id)
 
@@ -3101,7 +3101,8 @@ def search_wms_data(request, user=''):
         master_data = master_data[0]
         total_data.append({'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc, \
                            'measurement_unit': master_data.measurement_type,
-                           'load_unit_handle': master_data.load_unit_handle})
+                           'load_unit_handle': master_data.load_unit_handle,
+                           'mrp': master_data.mrp})
 
     master_data = query_objects.filter(Q(wms_code__istartswith=search_key) | Q(sku_desc__istartswith=search_key),
                                        user=user.id)
@@ -3154,8 +3155,8 @@ def get_supplier_sku_prices(request, user=""):
             taxes_data = []
             for tax_master in tax_masters:
                 taxes_data.append(tax_master.json())
-        result_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'tax_type': tax_type,
-                            'taxes': taxes_data})
+            result_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'tax_type': tax_type,
+                            'taxes': taxes_data, 'mrp': data.mrp})
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -3253,7 +3254,8 @@ def build_search_data(to_data, from_data, limit):
                         break
                 if status:
                     to_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc,
-                                    'measurement_unit': data.measurement_type})
+                                    'measurement_unit': data.measurement_type,
+                                    'mrp': data.mrp})
         return to_data
 
 

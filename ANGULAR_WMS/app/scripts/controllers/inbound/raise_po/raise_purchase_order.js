@@ -119,7 +119,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
 
                   vm.default_status = (Session.user_profile.user_type == 'marketplace_user')? true : false;
                   vm.getCompany();
-                  vm.seller_change = function(type) {
+                  vm.seller_change1 = function(type) {
 
                     if(vm.model_data.receipt_type == 'Hosted Warehouse') {
 
@@ -519,6 +519,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
 
 
     vm.get_sku_details = function(product, item, index) {
+      console.log(item);
       vm.purchase_history_wms_code = item.wms_code;
       if(vm.permissions.show_purchase_history) {
 	    $timeout( function() {
@@ -530,6 +531,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       product.fields.description = item.sku_desc;
       product.fields.order_quantity = 1;
       product.fields.price = 0;
+      product.fields.mrp = item.mrp;
       product.fields.description = item.sku_desc;
       product.fields.sgst_tax = "";
       product.fields.cgst_tax = "";

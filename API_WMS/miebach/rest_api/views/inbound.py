@@ -815,6 +815,7 @@ def modify_po_update(request, user=''):
             record = OpenPO.objects.get(id=data_id, sku__user=user.id)
             setattr(record, 'order_quantity', value['order_quantity'])
             setattr(record, 'price', value['price'])
+            setattr(record, 'mrp', value['mrp'])
             setattr(record, 'remarks', value['remarks'])
             setattr(record, 'sgst_tax', value['sgst_tax'])
             setattr(record, 'cgst_tax', value['cgst_tax'])
@@ -1054,6 +1055,7 @@ def confirm_po(request, user=''):
             if not value['price']:
                 value['price'] = 0
             setattr(purchase_order, 'price', value['price'])
+            setattr(purchase_order, 'mrp', value['mrp'])
             setattr(purchase_order, 'po_name', value['po_name'])
             setattr(purchase_order, 'supplier_code', value['supplier_code'])
             setattr(purchase_order, 'remarks', value['remarks'])

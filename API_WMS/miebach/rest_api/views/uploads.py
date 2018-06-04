@@ -3644,7 +3644,7 @@ def network_excel_upload(request, reader, no_of_rows, file_type='xls', user=''):
             each_row_map['source_location_code_id'] = src_lc_code
             network_master = NetworkMaster(**dict(each_row_map))
             supplier = create_network_supplier(dest_lc_code, src_lc_code)
-            network_master.supplier = supplier.id
+            network_master.supplier_id = supplier.id
             network_master.save()
         else:
             network_obj[0].lead_time = each_row_map['lead_time']

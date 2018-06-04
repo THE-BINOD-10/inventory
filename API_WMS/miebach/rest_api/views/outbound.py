@@ -1852,6 +1852,7 @@ def update_invoice(request, user=''):
                     ship_date = shipment_date.split('/')
                     shipment_date = datetime.date(int(ship_date[2]), int(ship_date[0]), int(ship_date[1]))
                 order_id = org_ord_id.replace('MN', '')
+                ord_obj = OrderDetail.objects.filter(original_order_id=org_ord_id)
                 address = myDict['ship_to'][0]
                 sku_qs = SKUMaster.objects.filter(sku_code=sku_id, user=user.id)
                 if not sku_qs:
@@ -1871,7 +1872,8 @@ def update_invoice(request, user=''):
                     order_detail_dict = {'sku_id': sku_id, 'title': title, 'quantity': quantity, 'order_id': order_id,
                                          'original_order_id': org_ord_id, 'user': user.id, 'customer_id': customer_id,
                                          'customer_name': customer_name, 'shipment_date': shipment_date,
-                                         'address': address, 'unit_price': price, 'invoice_amount': invoice_amount}
+                                         'address': address, 'unit_price': price, 'invoice_amount': invoice_amount,
+                                         'creation_date': ord_obj[0].creation_date}
                     # tax = get_tax_value(user, order_detail_dict, product_type, tax_type)
                     # total_amount = ((net_amount * tax) / 100) + net_amount
                     # order_detail_dict['invoice_amount'] = invoice_amount

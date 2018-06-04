@@ -6472,6 +6472,7 @@ def update_poc(request, user=''):
 def update_po_invoice(request, user=''):
     """ update invoice data """
 
+    true, false = ["true", "false"]
     form_dict = dict(request.POST.iterlists())
     address = form_dict['form_data[address]'][0]
     challan_number = form_dict.get('form_data[challan_no]', [''])[0]
@@ -6483,11 +6484,11 @@ def update_po_invoice(request, user=''):
     pkgs = form_dict.get('form_data[pkgs]', '')
     terms = form_dict.get('form_data[terms]', '')
     skus_data = form_dict.get('data','')
-    order_id = form_dict.get('form_data[order_no]', [''])[0]
+    order_id = form_dict.get('form_data[order_id]', [''])[0]
     pick_number = form_dict.get('form_data[pick_number]', [''])[0]
     supp_id = form_dict.get('form_data[supplier_id]', [''])[0]
     invoice_number = form_dict.get('form_data[invoice_no]', [''])[0]
-    invoice_date = ''
+    invoice_date = form_dict.get('form_data[inv_date]', [''])[0]
     if not supp_id:
         log.info("No  Supplier Id found")
         return HttpResponse(json.dumps({'message': 'failed'}))
@@ -6500,6 +6501,8 @@ def update_po_invoice(request, user=''):
             supp_obj = supp_obj[0]
         supplier_id = supp_obj.id
         supplier_name = supp_obj.name
+    if invoice_date:
+        invoice_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y")
     for sku_data in skus_data:
         sku_data = eval(sku_data)
         shipment_date = sku_data[0].get('shipment_date', '')
@@ -6521,6 +6524,7 @@ def update_po_invoice(request, user=''):
                 if seller_po_summary_obj:
                     seller_po_summary_obj[0].quantity = quantity
                     seller_po_summary_obj[0].invoice_number = invoice_number
+                    seller_po_summary_obj[0].invoice_date = invoice_date
                     seller_po_summary_obj[0].save()
 
                 if open_po_id:

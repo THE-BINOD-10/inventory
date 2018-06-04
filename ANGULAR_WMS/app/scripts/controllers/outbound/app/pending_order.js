@@ -36,13 +36,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 			DTColumnBuilder.newColumn('user').withTitle('Customer User'),
 			//DTColumnBuilder.newColumn('remarks').withTitle('Remarks').notVisible(),
 			DTColumnBuilder.newColumn('status').withTitle('Status').renderWith(function(data, type, full, meta) {
-				var status_name;
-				if(data == 'pending'  &&  full.approving_user_role) {
-					status_name = "Pending - To be approved by "+ full.approving_user_role.toUpperCase();
-				} else {
-					status_name = 'Approved'
-				}
-				return status_name;
+              var status_name;
+                if (data == 'pending'  &&  full.approving_user_role) {
+                    status_name = "Pending - To be approved by "+ full.approving_user_role.toUpperCase();
+                } else if (data == 'accept') {
+                    status_name = 'Accepted'
+                } else if (data == 'reject') {
+                    status_name = 'Rejected'
+                }
+                return status_name;
 			}).withOption('width', '230px'),
 			DTColumnBuilder.newColumn('date').withTitle('Date'),
 		];

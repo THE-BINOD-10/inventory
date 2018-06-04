@@ -30,7 +30,7 @@
 			<div class="col-md-4">
               <div class="form-group">
                 <label class="control-label"> Quantity: * </label>
-                <input type="text" name="quantity" class="form-control numvalid" ng-model="showCase.model_data.quantity" required>
+                <input type="text" name="quantity" class="form-control numvalid" ng-model="showCase.model_data.quantity" ng-readonly="(showCase.model_data.approving_user_role | lowercase) == 'admin' || (showCase.model_data.approving_user_role | lowercase) == ''" required>
               </div>
             </div>
 
@@ -51,13 +51,8 @@
             <div class="col-md-4">
               <div class="form-group">
                 <label class="control-label"> Image: * </label>
-                <input type="text" name="tax" class="form-control" ng-model="showCase.model_data.image" ng-readonly="true">
-              </div>
-            </div>
-
-			<div class="col-md-4">
-              <div>
-                <img ng-src="{{showCase.model_data.image}}" alt="SKU image" style="width: 100%"/>
+                <img ng-if="showCase.model_data.image" ng-src="{{showCase.model_data.image}}" alt="SKU image" style="width: 100%"/>
+                <img ng-if="!(showCase.model_data.image)" ng-src="images/wms/dflt.jpg" alt="SKU image" style="width: 100%"/>
               </div>
             </div>
 
@@ -65,20 +60,32 @@
 		</div>
 
     	<div class="modal-footer">
-          <div ng-if="showCase.user_role == 'hod' || showCase.user_role == 'admin'">
-            <button type="button" class="btn pop pop-red" style="float:left;">Deny</button>
-            <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process">
-              <span>Approve</span>
-              <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
-            </button>
-          </div>
-		  <div ng-if="showCase.user_role == 'User'">
-            <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process">
-              <span>Save</span>
-              <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
-            </button>
+          <div ng-if="(showCase.user_role | lowercase) == 'hod' || (showCase.user_role | lowercase) == 'admin'">
+		    <div ng-if="(showCase.model_data.approving_user_role | lowercase) == (showCase.user_role | lowercase)">
+              <button type="button" class="btn pop pop-red" style="float:left;">Reject</button>
+              <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process">
+                <span>Accept</span>
+                <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+              </button>
+            </div>
+		    <div ng-if="(showCase.model_data.approving_user_role | lowercase) != (showCase.user_role | lowercase)" style="text-align: center;padding-bottom: 10px;">
+			  <h3 ng-if="showCase.model_data.approving_user_role == ''">Order Approved by Admin</h3>
+			  <h3 ng-if="showCase.model_data.approving_user_role != ''">Approval from {{ showCase.model_data.approving_user_role | uppercase }} is Pending</h3>
+		    </div>
+		  </div>
+		  <div ng-if="(showCase.user_role | lowercase) == 'user'">
+			<h3 ng-if="(showCase.model_data.approving_user_role | lowercase) == 'admin' || (showCase.model_data.approving_user_role | lowercase) == ''">
+				Order Approved
+			</h3>
+			<div ng-if="(showCase.model_data.approving_user_role | lowercase) != 'hod' || (showCase.model_data.approving_user_role | lowercase) != 'admin'">
+              <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process">
+                <span>Save</span>
+                <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+              </button>
+			</div>
           </div>
         </div>
     </div>
   </form>
 </div>
+

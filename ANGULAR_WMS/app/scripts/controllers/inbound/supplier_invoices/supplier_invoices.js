@@ -261,7 +261,7 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
   vm.date = new Date();
 
   vm.model_data = items;
-  // vm.model_data.inv_date = "03/31/2018";
+  
   vm.model_data.supplier_id = vm.model_data.supplier_details.id;
   vm.model_data['order_charges'] = [];
   vm.model_data.temp_sequence_number = vm.model_data.sequence_number;
@@ -299,7 +299,7 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
 
   $timeout(function() {
 
-    $('[name="invoice_date"]').datepicker("setDate", new Date(vm.model_data.inv_date) );
+    $('[name="invoice_date"]').datepicker("setDate", new Date(vm.model_data.invoice_date) );
   },1000);
   vm.ok = function () {
 
@@ -324,7 +324,6 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
       'invoice_no': form_data.invoice_no.$modelValue,
       'invoice_date': form_data.invoice_date.$modelValue,
       'address': form_data.address.$modelValue,
-      // 'order_id': form_data.order_id.$modelValue,
       'order_id': form_data.order_id.$modelValue,
       'supplier_id': form_data.supplier_id.$modelValue,
     };
@@ -353,23 +352,11 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
     })
   }
 
-
-  vm.gst_calculate = function(record){
-    var gst_val = Number(record.taxes.cgst_tax) + Number(record.taxes.sgst_tax) + Number(record.taxes.igst_tax);
-    if (gst_val) {
-      gst_val = Number(record.base_price) * gst_val / 100;
-    }
-
-    record.invoice_amount = ((Number(record.base_price - Number(record.discount))/100)*record.tax)+(Number(record.base_price)-
-      Number(record.discount)) + gst_val;
-  }
-
-
   vm.changeUnitPrice = function(data) {
 
     data.base_price = data.quantity * Number(data.unit_price);
-    data.discount = (data.base_price/100)*Number(data.discount_percentage);
-    data.amt = data.base_price - data.discount;
+    // data.discount = (data.base_price/100)*Number(data.discount_percentage);
+    // data.amt = data.base_price - data.discount;
     var taxes = {cgst_amt: 'cgst_tax', sgst_amt: 'sgst_tax', igst_amt: 'igst_tax', utgst_amt: 'utgst_tax'};
     data.tax = 0;
 
@@ -377,16 +364,19 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
 
       if (data.taxes[tax_name] > 0){
 
-        data.taxes[tax_amount] = (data.amt/100)*data.taxes[tax_name];
+        data.taxes[tax_amount] = (data.base_price/100)*data.taxes[tax_name];
       } else {
 
         data.taxes[tax_amount] = 0;
       }
        data.tax += data.taxes[tax_amount];
     })
-    data.invoice_amount = (data.amt + data.tax);
+    data.invoice_amount = (data.base_price + data.tax);
   }
 
+  angular.forEach(vm.model_data.data, function(sku){
+    vm.changeUnitPrice(sku);
+  });
 
   vm.isLast = isLast;
   function isLast(check) {
@@ -448,8 +438,8 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
     }
 
     data.base_price = vm.service.multi(data.quantity, data.unit_price);
-    vm.cal_percentage(data);
-    vm.gst_calculate(data);
+    // vm.cal_percentage(data);
+    vm.vm.changeUnitPrice(data);
   }
 
   vm.get_customer_sku_prices = function(sku) {
@@ -545,7 +535,7 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
   vm.cal_percentage = function(data, no_total) {
 
     vm.discountPercentageChange(data, false);
-  data.amt = data.base_price - data.discount;
+    data.amt = data.base_price - data.discount;
     vm.get_tax_value(data);
     var per = Number(data.tax);
     data.invoice_amount = ((Number(data.base_price - Number(data.discount))/100)*per)+(Number(data.base_price)-Number(data.discount));

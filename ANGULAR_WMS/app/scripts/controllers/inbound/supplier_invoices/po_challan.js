@@ -283,6 +283,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           modalInstance.result.then(function (selectedItem) {
             var data = selectedItem;
             vm.reloadData();
+            vm.bt_disable = true;
           })
           }
         })
@@ -380,14 +381,13 @@ function EditPOChallan($scope, $http, $state, $timeout, Session, colFilters, Ser
     }
 
     data.base_price = vm.service.multi(data.quantity, data.unit_price);
-    vm.cal_percentage(data);
-    vm.gst_calculate(data);
+    vm.changeUnitPrice(data);
   }
 
   vm.changeUnitPrice = function(data) {
 
     var total = data.quantity * Number(data.unit_price);
-    data.discount = (data.base_price/100)*Number(data.discount_percentage) | 0;
+    // data.discount = (data.base_price/100)*Number(data.discount_percentage) | 0;
     data.amt = total;
     var taxes = {cgst_amt: 'cgst_tax', sgst_amt: 'sgst_tax', igst_amt: 'igst_tax', utgst_amt: 'utgst_tax'};
     data.tax = 0;
@@ -405,6 +405,10 @@ function EditPOChallan($scope, $http, $state, $timeout, Session, colFilters, Ser
     })  
     data.invoice_amount = (total) + (data.tax);
   }
+
+  angular.forEach(vm.model_data.data, function(sku){
+    vm.changeUnitPrice(sku);
+  });
 
   vm.get_sku_details = function(product, item, index) {
     product.wms_code = item.wms_code;

@@ -100,15 +100,14 @@
         </td>
         <td> {{record.amt | number:2}} </td>
         <td class="text-right">
-          <input type="text" name="cgst_tax" ng-model="record.taxes.cgst_tax" value="{{record.taxes.cgst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width">
+          <input type="text" name="cgst_tax" ng-model="record.taxes.cgst_tax" value="{{record.taxes.cgst_tax}}" ng-keyup="pop.changeUnitPrice(record)" class="form-control re-textbox-width">
           <!-- {{record.taxes.cgst_amt | number:2}} --><br><span class="tax-percentage">{{record.taxes.cgst_tax}}%</span></td>
         <td class="text-right">
-          <input type="text" name="sgst_tax" ng-model="record.taxes.sgst_tax" value="{{record.taxes.sgst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width">
+          <input type="text" name="sgst_tax" ng-model="record.taxes.sgst_tax" value="{{record.taxes.sgst_tax}}" ng-keyup="pop.changeUnitPrice(record)" class="form-control re-textbox-width">
           <!-- {{record.taxes.sgst_amt | number:2}} --><br><span class="tax-percentage">{{record.taxes.sgst_tax}}%</span></td>
         <td class="text-right">
-          <input type="text" name="igst_tax" ng-model="record.taxes.igst_tax" value="{{record.taxes.igst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width">
+          <input type="text" name="igst_tax" ng-model="record.taxes.igst_tax" value="{{record.taxes.igst_tax}}" ng-keyup="pop.changeUnitPrice(record)" class="form-control re-textbox-width">
           <!-- {{record.taxes.igst_amt | number:2}} --><br><span class="tax-percentage">{{record.taxes.igst_tax}}%</span></td>
-        <!-- <td ng-init="pop.gst_calculate(record)"> -->
         <td>
           {{record.invoice_amount | number:2}}
           <input type="hidden" name="invoice_amount" value="{{record.invoice_amount | number:2}}" class="form-control">
@@ -122,7 +121,7 @@
   </table>
 </div>
 
-  <div class="row mr10 ml10 mr10">
+  <!-- <div class="row mr10 ml10 mr10">
     <div class="col-md-12">
       <a href="javascript:;" class="btn btn-success btn-xs" ng-click="pop.model_data.order_charges.push({charge_id: '', charge_name: '', charge_amount: ''}); pop.model_data.default_charge()">Add Other Charges(+)</a>
     </div>
@@ -156,8 +155,7 @@
         </div>
       </div>
     </div>
-
-  </div>
+  </div> -->
 
       </div>
       <div class="modal-footer">

@@ -1,0 +1,167 @@
+<style type="text/css">
+  .modal-content {
+    width: 1100px;
+  }
+  .re-textbox-width{
+    width: 60px
+  }
+</style>
+<div id="page-pop">
+  <form name="form" role="form" ui-jq="validate" ui-options="pop.validationOpt">
+    <div class="model-custom">
+      <div ng-include="'views/common/loader.html'"></div>
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="pop.ok()"><span aria-hidden="true">×</span>
+        </button>
+        <h4 class="modal-title" id="myLargeModalLabel">Edit PO Challan</h4>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-4 col-sm-4 col-xs-6">
+            <div class="form-group">
+              <label class="control-label"> Challan No </label>
+              <input name="challan_no" ng-model="pop.model_data.challan_no" class="form-control" type="text">
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-4 col-xs-6">
+            <div class="form-group">
+              <label class="control-label"> Challan Date </label>
+              <input name="challan_date" ui-jq="datepicker" ng-model="pop.model_data.challan_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" readonly>
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-4 col-xs-6">
+            <div class="form-group">
+              <label class="control-label"> Rep </label>
+              <input name="rep" ng-model="pop.model_data.rep" class="form-control" type="text">
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-4 col-sm-4 col-xs-6">
+            <div class="form-group">
+              <label class="control-label"> Order No </label>
+              <input name="order_no" ng-model="pop.model_data.order_id" class="form-control" type="text">
+              <input name="pick_number" ng-model="pop.model_data.pick_number" class="form-control" type="hidden">
+              <input name="supplier_id" ng-model="pop.model_data.supplier_details.id" class="form-control" type="hidden">
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-4 col-xs-6">
+            <div class="form-group">
+              <label class="control-label"> L.R No </label>
+              <input name="lr_no" ng-model="pop.model_data.lr_no" class="form-control" type="text">
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-4 col-xs-6">
+            <div class="form-group">
+              <label class="control-label"> Carrier </label>
+              <input name="carrier" ng-model="pop.model_data.carrier" class="form-control" type="text">
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-4 col-sm-4 col-xs-6">
+            <div class="form-group">
+              <label class="control-label"> Terms </label>
+              <input name="terms" ng-model="pop.model_data.terms" class="form-control" type="text">
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-4 col-xs-6">
+            <div class="form-group">
+              <label class="control-label"> Pkgs </label>
+              <input name="pkgs" ng-model="pop.model_data.pkgs" class="form-control" type="text">
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-4 col-xs-6">
+            <div class="form-group">
+              <label class="control-label"> Address </label>
+              <textarea rows="4" class="form-control" cols="27" name="address" ng-model="pop.model_data.supplier_details.address"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-12"><hr></div>
+        </div>
+        <div class="row">
+          <div class="col-md-12">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>SKU Code</th>
+                  <th>PARTICULARS</th>
+                  <th>PKNG</th>
+                  <th>QTY</th>
+                  <th>Unit Price</th>
+                  <th>CGST (%)</th>
+                  <th>SGST (%)</th>
+                  <th>IGST (%)</th>
+                  <th>Taxable Amt</th>
+                  <th>Tax</th>
+                  <th>Invoice Amt</th>
+
+                  <th class="plus"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr ng-repeat="product in pop.model_data.data">
+                  <td>
+                    <input type="text" autocomplete="off" name="wms_code" class="form-control" placeholder="Search WMS Code/Description" typeahead="address.wms_code for address in pop.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="product.sku_code" typeahead-on-select="pop.get_sku_details(product, $item, $index)" ng-keyup="$event.keyCode == 13 ? pop.key_event(product, $item) : null" ng-readonly="product.pk > 0">
+                      <input type="text" name="data-id" ng-model="product.pk" class="hide" ng-if="pop.update">
+                      <input type="text" name="seller_po_id" ng-model="product.seller_po_id" class="hide" ng-if="pop.update">
+                  </td>
+                  <td>{{product.title}}
+                    <!--<input ng-model="product.sku_class" title="{{ product.description }}" type="text" class="form-control">-->
+                  </td>
+                  <td>
+                    <input ng-model="product.pkng" title="{{ product.pkng }}" type="text" class="form-control">
+                  </td>
+                  <td>
+                    <input ng-model="product.quantity" style="width: 50px" ng-keyup="pop.getTotals(); pop.changeUnitPrice(product)" title="{{ product.quantity }}" type="text" class="form-control">
+                  </td>
+
+                  <td>
+                    <input ng-model="product.unit_price" ng-keyup="pop.changeUnitPrice(product)"
+                    title="{{ product.unit_price }}" type="text" class="form-control">
+                  </td>
+                  <td>
+                    <input ng-model="product.taxes.cgst_tax" ng-keyup="pop.changeUnitPrice(product)"
+                    title="{{ product.taxes.cgst_tax }}" type="text" class="form-control">
+                  </td>
+                  <td>
+                    <input ng-model="product.taxes.sgst_tax" ng-keyup="pop.changeUnitPrice(product)"
+                    title="{{ product.taxes.sgst_tax }}" type="text" class="form-control">
+                  </td>
+                  <td>
+                    <input ng-model="product.taxes.igst_tax" ng-keyup="pop.changeUnitPrice(product)"
+                    title="{{ product.taxes.igst_tax }}" type="text" class="form-control">
+                  </td>
+                  <td>{{product.amt}}</td>
+                  <td>{{product.tax}}</td>
+                  <td>{{product.invoice_amount}}</td>
+
+                  <td>
+                    <i ng-click="pop.update_data($index)" ng-class="pop.service.isLast($last)"></i>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="row" style="padding-bottom:0px;">
+          <div class="col-md-6 col-sm-6">
+          </div>
+          <div class="col-md-3 col-sm-3 col-xs-12">
+            <p>Total Items: <b style="font-size:26px">{{pop.model_data.total_items}}</b></p>
+          </div>
+          <div class="col-md-3 col-sm-3 col-xs-12">
+            <p>Total Quantity: <b style="font-size:26px">{{pop.model_data.total_qty}}</b></p>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn pop pop-green col-md-3 col-sm-3 col-xs-12 pull-right" style="margin-left:0px;" ng-disabled="pop.process" ng-click="pop.update_poc(form)">Save</button>
+      </div>
+    </div>
+  </form>
+</div>

@@ -299,7 +299,7 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
 
   $timeout(function() {
 
-    $('[name="invoice_date"]').datepicker("setDate", new Date(vm.model_data.invoice_date) );
+    $('[name="inv_date"]').datepicker("setDate", new Date(vm.model_data.inv_date) );
   },1000);
   vm.ok = function () {
 

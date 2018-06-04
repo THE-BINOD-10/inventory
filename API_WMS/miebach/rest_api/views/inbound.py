@@ -6369,7 +6369,7 @@ def update_poc(request, user=''):
     order_id = form_dict['form_data[order_no]'][0]
     pick_number = form_dict['form_data[pick_number]'][0]
     supp_id = form_dict['form_data[supplier_id]'][0]
-    invoice_number = form_dict.get('form_data[invoice_number]', [''])[0]
+    invoice_number = form_dict.get('form_data[invoice_no]', [''])[0]
     invoice_date = ''
     if not supp_id:
         log.info("No  Supplier Id found")
@@ -6406,6 +6406,7 @@ def update_poc(request, user=''):
                 if seller_po_summary_obj:
                     seller_po_summary_obj[0].quantity = quantity
                     seller_po_summary_obj[0].challan_date = challan_date
+                    seller_po_summary_obj[0].invoice_number
                     seller_po_summary_obj[0].save()
 
                 if open_po_id:
@@ -6485,7 +6486,7 @@ def update_po_invoice(request, user=''):
     order_id = form_dict.get('form_data[order_no]', [''])[0]
     pick_number = form_dict.get('form_data[pick_number]', [''])[0]
     supp_id = form_dict.get('form_data[supplier_id]', [''])[0]
-    invoice_number = form_dict.get('form_data[invoice_number]', [''])[0]
+    invoice_number = form_dict.get('form_data[invoice_no]', [''])[0]
     invoice_date = ''
     if not supp_id:
         log.info("No  Supplier Id found")
@@ -6519,6 +6520,7 @@ def update_po_invoice(request, user=''):
                 seller_po_summary_obj = SellerPOSummary.objects.filter(id=seller_summary_id)
                 if seller_po_summary_obj:
                     seller_po_summary_obj[0].quantity = quantity
+                    seller_po_summary_obj[0].invoice_number = invoice_number
                     seller_po_summary_obj[0].save()
 
                 if open_po_id:

@@ -2991,7 +2991,7 @@ def split_orders(**order_data):
         if not blocked_stock:
             blocked_stock = 0
         avail_stock = avail_stock - res_stock - blocked_stock
-        if not avail_stock:
+        if avail_stock <= 0:
             continue
         req_qty = req_stock - avail_stock
         if req_qty < avail_stock and req_qty < 0:
@@ -3314,7 +3314,7 @@ def insert_order_data(request, user=''):
                 for usr, qty in stock_wh_map.iteritems():
                     order_data['order_id'] = user_order_ids_map[usr]
                     order_data['user'] = usr
-                    if not qty:
+                    if qty <= 0:
                         continue
                     order_data['quantity'] = qty
                     creation_date = datetime.datetime.now()
@@ -8078,7 +8078,7 @@ def insert_enquiry_data(request, user=''):
                             'user': user.id, 'quantity': cart_item.quantity, 'sku_id': cart_item.sku.id}
             stock_wh_map = split_orders(**enquiry_data)
             for wh_code, qty in stock_wh_map.items():
-                if not qty:
+                if qty <= 0:
                     continue
                 wh_sku_id = get_syncedusers_mapped_sku(wh_code, cart_item.sku.id)
                 enq_sku_obj = EnquiredSku()

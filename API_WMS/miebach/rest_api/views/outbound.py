@@ -7813,7 +7813,7 @@ def update_dc(request, user=''):
                                          'order_id': order_id, 'original_order_id': org_order_id, 'user': user.id,
                                          'customer_id': customer_id, 'customer_name': customer_name,
                                          'shipment_date': shipment_date, 'address': address, 'price': unit_price,
-                                         'unit_price': unit_price}
+                                         'unit_price': unit_price, 'creation_date': ord_obj[0].creation_date}
                     #tax = get_tax_value(user, order_detail_dict, product_type, tax_type)
                     #total_amount = ((net_amount * tax) / 100) + net_amount
                     order_detail_dict['invoice_amount'] = invoice_amount #total_amount

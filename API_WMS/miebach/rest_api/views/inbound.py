@@ -6145,20 +6145,19 @@ def get_processed_po_data(start_index, stop_index, temp_data, search_term, order
 def move_to_poc(request, user=''):
     sell_ids = {}
     seller_summary = SellerPOSummary.objects.none()
-    cancel_flag = request.GET.get('cancel', '')
-    if cancel_flag == 'true':
-        status_flag = 'processed_pos'
-        # sell_ids = construct_sell_ids(request, user)
-    else:
-        status_flag = 'po_challans'
     req_data = request.GET.get('data', '')
     if req_data:
         req_data = eval(req_data)
         req_data = [req_data] if isinstance(req_data,dict) else req_data
         for item in req_data:
+            cancel_flag = item.get('cancel', '')
             sell_ids['purchase_order__order_id'] = item['purchase_order__order_id']
             sell_ids['receipt_number'] = item['receipt_number']
             seller_summary = seller_summary | SellerPOSummary.objects.filter(**sell_ids)
+        if cancel_flag == 'true':
+            status_flag = 'processed_pos'
+        else:
+            status_flag = 'po_challans'
     chn_no, chn_sequence = get_po_challan_number(user, seller_summary)
     try:
         for sel_obj in seller_summary:
@@ -6176,7 +6175,6 @@ def move_to_poc(request, user=''):
 @csrf_exempt
 @get_admin_user
 def move_to_inv(request, user=''):
-    cancel_flag = request.GET.get('cancel', '')
     sell_ids = {}
     seller_summary = SellerPOSummary.objects.none()
     req_data = request.GET.get('data', '')
@@ -6184,6 +6182,7 @@ def move_to_inv(request, user=''):
         req_data = eval(req_data)
         req_data = [req_data] if isinstance(req_data,dict) else req_data
         for item in req_data:
+            cancel_flag = item.get('cancel', '')
             sell_ids['purchase_order__order_id'] = item['purchase_order__order_id']
             sell_ids['receipt_number'] = item['receipt_number']
             seller_summary = seller_summary | SellerPOSummary.objects.filter(**sell_ids)
@@ -6251,7 +6250,8 @@ def generate_supplier_invoice(request, user=''):
 
                                }
 
-                result_data["challan_date"] = seller_summary[0].challan_date.strftime("%m/%d/%Y")
+                result_data["challan_date"] = seller_summary[0].challan_date
+                result_data["challan_date"] = result_data["challan_date"].strftime("%m/%d/%Y") if result_data["challan_date"] else ''
                 result_data["data"] = []
                 tot_cgst, tot_sgst, tot_igst, tot_utgst, tot_amt, tot_invoice, tot_qty, tot_tax = [0]*8
                 for seller_sum in seller_summary:

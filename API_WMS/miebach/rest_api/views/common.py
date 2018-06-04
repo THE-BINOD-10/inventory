@@ -3031,7 +3031,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
             classes = get_sku_available_stock(user, sku_master, query_string, size_dict)
             sku_master = sku_master.filter(sku_class__in=classes)
 
-    if quantity:
+    if quantity and not admin_user:
         filt_ids = sku_master.values('id').annotate(stock_sum=Sum('stockdetail__quantity')).\
                                 filter(stock_sum__gt=quantity).values_list('id', flat=True).distinct()
         sku_master = sku_master.filter(id__in=filt_ids)

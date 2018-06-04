@@ -159,6 +159,12 @@ urlpatterns = [
     url('^get_po_segregation_data/$', get_po_segregation_data),
     url('^confirm_primary_segregation/$', confirm_primary_segregation),
     url('^last_transaction_details/$', last_transaction_details),
+    url(r'^supplier_invoice_data/$', supplier_invoice_data),
+    url(r'^move_to_po_challan/$', move_to_poc),
+    url(r'^move_to_inv/$', move_to_inv),
+    url(r'^generate_supplier_invoice/$', generate_supplier_invoice),
+    url(r'^update_poc/$', update_poc),
+    url(r'^update_po_invoice/$', update_po_invoice),
 
     # Production
     url(r'^generated_jo_data/$', generated_jo_data),

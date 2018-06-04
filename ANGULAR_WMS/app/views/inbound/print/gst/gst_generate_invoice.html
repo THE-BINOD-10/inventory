@@ -1,0 +1,119 @@
+<div id="page-pop" style="display: block;" class="modal fade process-toggle in" id="location-toggle" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false">
+  <form name="form" role="form" id="add-customer">
+    <div class="modal-dialog modal-lg">
+      <!-- Modal content-->
+      <div class="modal-content model-custom">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span></button>
+         <h4 class="modal-title">Invoice</h4>
+        </div>
+        <div class="modal-body" style="overflow: hidden">
+         <div class="print print-invoice">
+          <div class="row col-md-12 no-padding">
+            <h4 style="margin-bottom:2px" align="center">Tax Invoice</h4>
+          </div>
+          <div class="row col-md-12 no-padding" style="margin-top: 0px;">
+            <table class="table table-bordered bl br mb0" style="margin-bottom:0px">
+              <tbody>
+                <tr class="rm-padding" ng-if="user.userName=='TranceHomeLinen'">
+                  <td>
+                    <p class="fs10" style="margin-bottom: 0px;" align="center">ORIGINAL INVOICE FOR RECEPIENT/DUPLICATE COPY FOR TRANSPORTER/TRIPLICATE COPY FOR SUPPLIER</p>
+                  </td>
+                </tr>
+                <tr class="rm-padding">
+                  <td>
+                    <div class="row">
+                      <div class="col-xs-6 text-left padding-none">
+                        <div class="row">
+                          <div class="col-md-2 col-sm-2 col-xs-2 padding-none" ng-if="showCase.pdf_data.image">
+                            <img src="data:image/jpg;base64, {{showCase.pdf_data.image}}" style="width:100%"/>
+                          </div>
+                          <div class="col-md-{{showCase.pdf_data.image ? 10 : 12}} col-sm-10 col-xs-10 fs10">
+                            <div class="col-md-12 padding-none">
+                              <span><b class="fs12">{{showCase.pdf_data.company_name}}</b></span>
+                            </div>
+                            <div class="col-md-12 padding-none">
+                              <span class="pre-custom rm-padding padding-none">{{showCase.pdf_data.company_address}}</span>
+                            </div>
+                            <div class="col-md-12 padding-none">
+                              <span>{{showCase.pdf_data.email}}</span>
+                            </div>
+                            <div class="col-md-12 padding-none">
+                              <span>GSTIN No: {{showCase.pdf_data.gstin_no}}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="col-xs-6 text-left padding-none ng-binding fs10">
+                        <strong>Invoice Number:</strong>{{showCase.pdf_data.invoice_no}}<br>
+                        <strong>Invoice Date:</strong>{{showCase.pdf_data.invoice_date}}<br>
+                        <strong>Order Number:</strong>{{showCase.pdf_data.order_id}}<br>
+                        <strong>Order Date:</strong>{{showCase.pdf_data.order_date}}<br>
+                        <span ng-if="showCase.pdf_data.purchase_type"><strong>Purchase Type:</strong>{{showCase.pdf_data.purchase_type}}</span>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                <tr class="rm-padding">
+                  <td>
+                    <div class="row">
+                      <div class="col-xs-6 text-left">
+                        <address class="no-margin">
+                      <strong>
+                        <span ng-if="user.userName != 'campus_sutra'">Bill To,</span>
+                        <span ng-if="user.userName == 'campus_sutra'">CONSIGNEE,</span>
+                      </strong><br>
+                      <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() == 'offline'">
+                        <p style="margin-bottom:0px" class="fs10" ng-if= "showCase.pdf_data.customer_details[0].name == ''">{{showCase.pdf_data.marketplace}}</p>
+                        <p style="margin-bottom:0px" class="cust_details fs10" ng-if="showCase.pdf_data.customer_details[0].name">
+                           {{showCase.pdf_data.customer_details[0].name}}</p>
+                        <p class="fs10 pre-custom" style="padding:0px" ng-if="showCase.pdf_data.customer_details[0].address">{{showCase.pdf_data.customer_details[0].address}}</p>
+                        <p style="margin-bottom:0px" class="cust_details fs10" ng-if="showCase.pdf_data.customer_details[0].tin_number">
+                           <b>GSTIN No: </b>{{showCase.pdf_data.customer_details[0].tin_number}}</p>
+                        <p style="margin-bottom:0px" class="cust_details fs10" ng-if="showCase.pdf_data.customer_details[0].email_id">
+                          {{showCase.pdf_data.customer_details[0].email_id}}</p>
+                      </div>
+                      <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() != 'offline'" class="fs10">
+                        {{showCase.pdf_data.marketplace}}<br>
+                      </div>
+                    </address>
+                      </div>
+                      <div class="col-xs-6 text-left padding-none">
+                        <address class="no-margin">
+                      <strong>
+                        <span>Ship To,</span>
+                      </strong><br>
+                      <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() == 'offline'">
+                        <p style="margin-bottom:0px" class="fs10" ng-if= "showCase.pdf_data.customer_details[0].name == ''">{{showCase.pdf_data.marketplace}}</p>
+                        <p style="margin-bottom:0px" class="cust_details fs10" ng-if="showCase.pdf_data.customer_details[0].name">
+                          {{showCase.pdf_data.customer_details[0].name}}</p>
+                        <p class="fs10 pre-custom" style="padding:0px" ng-if="showCase.pdf_data.customer_details[0].address">{{showCase.pdf_data.customer_details[0].address}}</>
+                        <p style="margin-bottom:0px" class="cust_details fs10" ng-if="showCase.pdf_data.customer_details[0].tin_number">
+                           <b>GSTIN No: </b>{{showCase.pdf_data.customer_details[0].tin_number}}</p>
+                        <p style="margin-bottom:0px" class="cust_details fs10" ng-if="showCase.pdf_data.customer_details[0].email_id">
+                           {{showCase.pdf_data.customer_details[0].email_id}}</p>
+                      </div>
+                      <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() != 'offline'" class="fs10">
+                        {{showCase.pdf_data.marketplace}}<br>
+                      </div>
+                    </address>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <table ng-include="'views/inbound/print/gst/gst_table1.html'" ng-if="(!(showCase.pdf_data.detailed_invoice))" class="table table-bordered bl br cal-table"></table>
+            <table ng-include="'views/inbound/print/table2.html'" ng-if="showCase.pdf_data.detailed_invoice" class="table table-bordered bl br"></table>
+          </div>
+         </div>
+        </div>
+        <div class="row">
+          <button type="button" class="btn btn-danger btn-block" style="width:100px;margin: auto;margin-bottom: 10px;" ng-click="showCase.service.generate_pdf_file(showCase.pdf_data)">
+            <i class="ti-printer mr5"></i>Print
+          </button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

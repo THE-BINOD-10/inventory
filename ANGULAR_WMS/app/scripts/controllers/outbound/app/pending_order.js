@@ -213,24 +213,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
   */
 
-  vm.update_cartdata_for_approval = function(approve_status, cart_id) {
+  vm.update_cartdata_for_approval = function(approve_status, cart_id, quantity) {
     var send = {}
     if (vm.display_sku_cust_mapping) {
       send['approval_status'] = approve_status
       send['approving_user_role'] = vm.user_role
 	  send['cart_id'] = cart_id
+      send['quantity'] = quantity
     }
     vm.service.apiCall("update_cartdata_for_approval/", "POST", send).then(function(response){
         if(response.message) {
           if(response.data.message == "success") {
-            swal({
-              title: "Success!",
-              text: "Your Order Has Been Sent for Approval",
-              type: "success",
-              showCancelButton: false,
-              confirmButtonText: "OK",
-              closeOnConfirm: true
-              })
+            vm.service.showNoty('Your Order Has Been Sent for Approval', "success", "topRight");
+            vm.service.refresh(vm.dtInstance);
+          	vm.close_popup();
           } else {
             vm.insert_cool = true;
             vm.data_status = true;

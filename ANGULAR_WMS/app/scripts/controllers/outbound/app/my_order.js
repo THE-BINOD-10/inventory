@@ -193,8 +193,8 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
       modalInstance.result.then(function (selectedItem) {
         var data = selectedItem;
       })
-    } else {
-      $state.go('user.App.OrderDetails', data);
+    // } else {
+    //   $state.go('user.App.OrderDetails', data);
     }
   }
   

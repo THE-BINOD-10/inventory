@@ -332,11 +332,17 @@
           </a>
         </li>
         <!--<li ui-sref-active="active">-->
-        <li ng-show="show_tab('add_sellerordersummary')" ui-sref-active="active">
+        <li ng-show="show_tab('add_sellerordersummary') && show_tab('customer_dc')" ui-sref-active="active">
           <a ui-sref="app.outbound.CustomerInvoices">
             <span>Customer Invoices</span>
           </a>
         </li>
+        <li ng-show="show_tab('add_sellerordersummary') && !show_tab('customer_dc')" ui-sref-active="active">
+          <a ui-sref="app.outbound.CustomerInvoicesMain">
+            <span>Customer Invoices</span>
+          </a>
+        </li>
+
         <li ui-sref-active="active" ng-show="user.userName == 'sagar_fab'">
           <a ui-sref="app.outbound.CreateCustomOrder">
             <span>Create Custom Order</span>

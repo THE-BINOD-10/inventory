@@ -7,9 +7,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     var vm = this;
     vm.apply_filters = colFilters;
     vm.service = Service;
-    vm.priceband_sync = Session.roles.permissions.priceband_sync;
-    vm.display_sku_cust_mapping = Session.roles.permissions.display_sku_cust_mapping;
-    vm.user_role = Session.roles.user_role;
+	vm.session_roles = Session.roles;
+    vm.priceband_sync = vm.session_roles.permissions.priceband_sync;
+    vm.display_sku_cust_mapping = vm.session_roles.permissions.display_sku_cust_mapping;
+    vm.user_role = vm.session_roles.user_role;
     vm.model_data = {};
 
     vm.filters = {'datatable': 'OrderApprovals', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':''}
@@ -36,13 +37,37 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 			DTColumnBuilder.newColumn('user').withTitle('Customer User'),
 			//DTColumnBuilder.newColumn('remarks').withTitle('Remarks').notVisible(),
 			DTColumnBuilder.newColumn('status').withTitle('Status').renderWith(function(data, type, full, meta) {
-				var status_name;
-				if(data == 'pending'  &&  full.approving_user_role) {
-					status_name = "Pending - To be approved by "+ full.approving_user_role.toUpperCase();
-				} else {
-					status_name = 'Approved'
-				}
-				return status_name;
+              var status_name = '';
+				console.log(vm.user_role);
+                if (data == 'accept' && full.approving_user_role == 'hod') {
+                    status_name = "Pending - To be approved by ADMIN";
+					if (vm.user_role == 'user') {
+                      vm.show_quantity = true;
+                    } else if (vm.user_role == 'hod') {
+                      vm.show_quantity = true;
+                    } else if (vm.user_role == 'admin') {
+                      vm.show_quantity = false;
+                    }
+                } else if (data == 'accept' && full.approving_user_role == 'admin') {
+                    status_name = "Accepted by Admin";
+                    vm.show_quantity = true;
+                } else if (data == 'pending' && full.approving_user_role == 'hod') {
+                    status_name = "Pending - To be approved by "+ full.approving_user_role.toUpperCase();
+					if (vm.user_role == 'user') {
+                      vm.show_quantity = true;
+					} else if (vm.user_role == 'hod') {
+					  vm.show_quantity = false;
+					} else if (vm.user_role == 'admin') {
+					  vm.show_quantity = true;
+					}
+                } else if (data == 'accept') {
+                    status_name = 'Accepted';
+                    vm.show_quantity = true;
+                } else if (data == 'reject') {
+                    status_name = 'Rejected by ' + full.approving_user_role.toUpperCase();
+                    vm.show_quantity = true;
+                }
+                return status_name;
 			}).withOption('width', '230px'),
 			DTColumnBuilder.newColumn('date').withTitle('Date'),
 		];
@@ -62,7 +87,31 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 angular.copy(aData, vm.model_data);
                 vm.update = true;
                 vm.title = "Modify Order Approvals";
-                vm.message = "";
+
+				if (vm.model_data.status == 'accept' && vm.model_data.approving_user_role == 'hod') {
+                    if (vm.user_role == 'user') {
+                      vm.show_quantity = true;  
+                    } else if (vm.user_role == 'hod') {
+                      vm.show_quantity = true;
+                    } else if (vm.user_role == 'admin') {
+                      vm.show_quantity = false;
+                    }
+                } else if (vm.model_data.status == 'accept' && vm.model_data.approving_user_role == 'admin') {
+                    vm.show_quantity = true;
+                } else if (vm.model_data.status == 'pending' && vm.model_data.approving_user_role == 'hod') {
+                    if (vm.user_role == 'user') {
+                      vm.show_quantity = false;  
+                    } else if (vm.user_role == 'hod') {
+                      vm.show_quantity = false;
+                    } else if (vm.user_role == 'admin') {
+                      vm.show_quantity = true;
+                    }
+                } else if (vm.model_data.status == 'accept') {
+                    vm.show_quantity = true;
+                } else if (vm.model_data.status == 'reject') {
+                    vm.show_quantity = true;
+                }
+
                 $state.go('user.App.PendingOrder.PendingApprovalData');
             });
         });
@@ -163,6 +212,35 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
   }
   */
+
+  vm.update_cartdata_for_approval = function(approve_status, cart_id) {
+    var send = {}
+    if (vm.display_sku_cust_mapping) {
+      send['approval_status'] = approve_status
+      send['approving_user_role'] = vm.user_role
+	  send['cart_id'] = cart_id
+    }
+    vm.service.apiCall("update_cartdata_for_approval/", "POST", send).then(function(response){
+        if(response.message) {
+          if(response.data.message == "success") {
+            swal({
+              title: "Success!",
+              text: "Your Order Has Been Sent for Approval",
+              type: "success",
+              showCancelButton: false,
+              confirmButtonText: "OK",
+              closeOnConfirm: true
+              })
+          } else {
+            vm.insert_cool = true;
+            vm.data_status = true;
+            vm.service.showNoty(response.data, "danger", "bottomRight");
+          }
+        }
+    });
+  }
+
+
 
 }
 

@@ -30,7 +30,7 @@
 			<div class="col-md-4">
               <div class="form-group">
                 <label class="control-label"> Quantity: * </label>
-                <input type="text" name="quantity" class="form-control numvalid" ng-model="showCase.model_data.quantity" ng-readonly="(showCase.model_data.approving_user_role | lowercase) == 'admin' || (showCase.model_data.approving_user_role | lowercase) == ''" required>
+                <input type="text" name="quantity" class="form-control numvalid" ng-model="showCase.model_data.quantity" ng-readonly="showCase.show_quantity" required>
               </div>
             </div>
 
@@ -58,49 +58,63 @@
 
 		</div>
 		</div>
-
     	<div class="modal-footer">
-			<!--
-			<p>{{showCase.user_role | lowercase}}</p>
-			<p>{{showCase.model_data.approving_user_role | lowercase}}</p>
-		    <p>{{showCase.model_data.status | lowercase}}</p>
-			-->
           <div ng-if="(showCase.user_role | lowercase) == 'hod' || (showCase.user_role | lowercase) == 'admin'">
-
-            <div ng-if="(showCase.model_data.status | lowercase) == 'accept'">
-                <h3 ng-if="(showCase.model_data.approving_user_role | lowercase) == 'admin' || (showCase.model_data.approving_user_role | lowercase) == '' || (showCase.model_data.approving_user_role | lowercase) == 'hod'" style="text-align: center;padding-bottom: 10px;">Order Approved</h3>
+			<div ng-if="(showCase.model_data.status | lowercase) == 'accept'">
+              <h3 ng-if="((showCase.model_data.approving_user_role | lowercase) == 'admin' || (showCase.model_data.approving_user_role | lowercase) == '') && (showCase.model_data.status | lowercase) == 'accept'" style="text-align: center;padding-bottom: 10px;">Order Accepted by {{ showCase.model_data.approving_user_role }}</h3>
+			  <div ng-if = "((showCase.model_data.approving_user_role | lowercase) == 'hod') && ((showCase.model_data.status | lowercase) == 'pending')">
+				<button type="button" class="btn pop pop-red" ng-click="showCase.update_cartdata_for_approval('reject', showCase.model_data.id)" style="float:left;">
+                <span>Reject</span>
+                <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+                </button>
+                <button type="submit" class="btn pop pop-green" ng-click="showCase.update_cartdata_for_approval('accept', showCase.model_data.id)" ng-disabled="process">
+                <span>Accept</span>
+                <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+                </button>
+			  </div>
             </div>
 
             <div ng-if="(showCase.model_data.status | lowercase) == 'reject'" style="text-align: center;padding-bottom: 10px;">
-              <h3>Order Rejected</h3>
+              <h3>Order Rejected by {{ showCase.model_data.approving_user_role }}</h3>
             </div>
 
+			<div ng-if="(showCase.model_data.approving_user_role | lowercase) == 'hod' && (showCase.user_role | lowercase) == 'hod' && (showCase.model_data.status | lowercase) == 'accept'" style="text-align: center;padding-bottom: 10px;"><h3>Order Accepted by {{ showCase.model_data.approving_user_role }}</h3>
+            </div>
 
-			<div ng-if="(showCase.model_data.status | lowercase) == 'pending'">
-		    <div ng-if="(showCase.model_data.approving_user_role | lowercase) == (showCase.user_role | lowercase)">
-              <button type="button" class="btn pop pop-red" ng-click="showCase.update_cartdata_for_approval('reject', showCase.model_data.id)" style="float:left;">
+			<div ng-if="(showCase.model_data.approving_user_role | lowercase) == 'hod' && (showCase.user_role | lowercase) == 'admin' && (showCase.model_data.status | lowercase) == 'accept'">
+				<button type="button" class="btn pop pop-red" ng-click="showCase.update_cartdata_for_approval('reject', showCase.model_data.id)" style="float:left;">
                 <span>Reject</span>
                 <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
-              </button>
-              <button type="submit" class="btn pop pop-green" ng-click="showCase.update_cartdata_for_approval('accept', showCase.model_data.id)" ng-disabled="process">
+                </button>
+                <button type="submit" class="btn pop pop-green" ng-click="showCase.update_cartdata_for_approval('accept', showCase.model_data.id)" ng-disabled="process">
                 <span>Accept</span>
                 <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
-              </button>
-            </div>
+                </button>
 			</div>
 
-
+			<div ng-if="(showCase.model_data.status | lowercase) == 'pending'">
+		      <div ng-if="(showCase.model_data.approving_user_role | lowercase) == (showCase.user_role | lowercase)">
+                <button type="button" class="btn pop pop-red" ng-click="showCase.update_cartdata_for_approval('reject', showCase.model_data.id)" style="float:left;">
+                <span>Reject</span>
+                <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+                </button>
+                <button type="submit" class="btn pop pop-green" ng-click="showCase.update_cartdata_for_approval('accept', showCase.model_data.id)" ng-disabled="process">
+                <span>Accept</span>
+                <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+                </button>
+              </div>
+			</div>
 		    <div ng-if="((showCase.model_data.approving_user_role | lowercase) != (showCase.user_role | lowercase)) && (showCase.model_data.status | lowercase) == 'pending'" style="text-align: center;padding-bottom: 10px;">
-			  <h3 ng-if="showCase.model_data.approving_user_role == '' && (showCase.model_data.status | lowercase) != ''">Order Approved by Admin</h3>
+			  <h3 ng-if="showCase.model_data.approving_user_role == '' && (showCase.model_data.status | lowercase) != ''">Order Accepted by Admin</h3>
 			  <h3 ng-if="showCase.model_data.approving_user_role != '' && (showCase.model_data.status | lowercase) == 'pending'">Approval from {{ showCase.model_data.approving_user_role | uppercase }} is Pending</h3>
 		    </div>
 		  </div>
 		  <div ng-if="(showCase.user_role | lowercase) == 'user'">
             <div ng-if="(showCase.model_data.status | lowercase) == 'accept'">
-                <h3 ng-if="(showCase.model_data.approving_user_role | lowercase) == 'admin' || (showCase.model_data.approving_user_role | lowercase) == '' || (showCase.model_data.approving_user_role | lowercase) == 'hod'" style="text-align: center;padding-bottom: 10px;">Order Approved</h3>
+                <h3 ng-if="(showCase.model_data.approving_user_role | lowercase) == 'admin' || (showCase.model_data.approving_user_role | lowercase) == '' || (showCase.model_data.approving_user_role | lowercase) == 'hod'" style="text-align: center;padding-bottom: 10px;">Order Accepted by {{ showCase.model_data.approving_user_role }}</h3>
             </div>
             <div ng-if="(showCase.model_data.status | lowercase) == 'reject'" style="text-align: center;padding-bottom: 10px;">
-                <h3>Order Rejected</h3>
+                <h3>Order Rejected by {{ showCase.model_data.approving_user_role }}</h3>
             </div>
             <div ng-if="((showCase.model_data.approving_user_role | lowercase) != 'hod' || (showCase.model_data.approving_user_role | lowercase) != 'admin') && (showCase.model_data.status | lowercase) == 'pending'">
               <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process">

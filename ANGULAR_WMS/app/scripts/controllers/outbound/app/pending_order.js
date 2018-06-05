@@ -38,12 +38,34 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 			//DTColumnBuilder.newColumn('remarks').withTitle('Remarks').notVisible(),
 			DTColumnBuilder.newColumn('status').withTitle('Status').renderWith(function(data, type, full, meta) {
               var status_name = '';
-                if (data == 'pending'  &&  full.approving_user_role) {
+				console.log(vm.user_role);
+                if (data == 'accept' && full.approving_user_role == 'hod') {
+                    status_name = "Pending - To be approved by ADMIN";
+					if (vm.user_role == 'user') {
+                      vm.show_quantity = true;
+                    } else if (vm.user_role == 'hod') {
+                      vm.show_quantity = true;
+                    } else if (vm.user_role == 'admin') {
+                      vm.show_quantity = false;
+                    }
+                } else if (data == 'accept' && full.approving_user_role == 'admin') {
+                    status_name = "Accepted by Admin";
+                    vm.show_quantity = true;
+                } else if (data == 'pending' && full.approving_user_role == 'hod') {
                     status_name = "Pending - To be approved by "+ full.approving_user_role.toUpperCase();
+					if (vm.user_role == 'user') {
+                      vm.show_quantity = true;
+					} else if (vm.user_role == 'hod') {
+					  vm.show_quantity = false;
+					} else if (vm.user_role == 'admin') {
+					  vm.show_quantity = true;
+					}
                 } else if (data == 'accept') {
-                    status_name = 'Accepted'
+                    status_name = 'Accepted';
+                    vm.show_quantity = true;
                 } else if (data == 'reject') {
-                    status_name = 'Rejected'
+                    status_name = 'Rejected by ' + full.approving_user_role.toUpperCase();
+                    vm.show_quantity = true;
                 }
                 return status_name;
 			}).withOption('width', '230px'),
@@ -65,6 +87,31 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 angular.copy(aData, vm.model_data);
                 vm.update = true;
                 vm.title = "Modify Order Approvals";
+
+				if (vm.model_data.status == 'accept' && vm.model_data.approving_user_role == 'hod') {
+                    if (vm.user_role == 'user') {
+                      vm.show_quantity = true;  
+                    } else if (vm.user_role == 'hod') {
+                      vm.show_quantity = true;
+                    } else if (vm.user_role == 'admin') {
+                      vm.show_quantity = false;
+                    }
+                } else if (vm.model_data.status == 'accept' && vm.model_data.approving_user_role == 'admin') {
+                    vm.show_quantity = true;
+                } else if (vm.model_data.status == 'pending' && vm.model_data.approving_user_role == 'hod') {
+                    if (vm.user_role == 'user') {
+                      vm.show_quantity = false;  
+                    } else if (vm.user_role == 'hod') {
+                      vm.show_quantity = false;
+                    } else if (vm.user_role == 'admin') {
+                      vm.show_quantity = true;
+                    }
+                } else if (vm.model_data.status == 'accept') {
+                    vm.show_quantity = true;
+                } else if (vm.model_data.status == 'reject') {
+                    vm.show_quantity = true;
+                }
+
                 $state.go('user.App.PendingOrder.PendingApprovalData');
             });
         });

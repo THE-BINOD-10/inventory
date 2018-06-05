@@ -961,6 +961,7 @@ def switches(request, user=''):
                        'show_purchase_history': 'show_purchase_history',
                        'auto_raise_stock_transfer': 'auto_raise_stock_transfer',
                        'inbound_supplier_invoice': 'inbound_supplier_invoice',
+                       'customer_dc': 'customer_dc',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

@@ -1421,6 +1421,38 @@ var app = angular.module('urbanApp')
             title: 'Customer Invoices',
           }
         })
+
+        .state('app.outbound.CustomerInvoicesMain', {
+          url: '/CustomerInvoicesMain',
+          templateUrl: 'views/outbound/customer_invoices_main.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/outbound/customer_invoices_main.js'
+                  ])   
+              }]   
+          },   
+          data: {
+            title: 'Customer Invoices',
+          }
+        })
+         .state('app.outbound.CustomerInvoicesMain.InvoiceM', {
+            url: '/InvoiceM',
+            templateUrl: 'views/outbound/print/customer_inv_main.html'
+         })
+         .state('app.outbound.CustomerInvoicesMain.InvoiceN', {
+            url: '/InvoiceN',
+            templateUrl: 'views/outbound/print/generate_inv_main.html',
+          })
+         .state('app.outbound.CustomerInvoicesMain.InvoiceE', {
+            url: '/InvoiceE',
+            templateUrl: 'views/outbound/print/empty_invoice_main.html'
+          })
+          .state('app.outbound.CustomerInvoicesMain.InvoiceD', {
+            url: '/InvoiceD',
+            templateUrl: 'views/outbound/print/d_generate_inv_main.html'
+          })
+
          .state('app.outbound.CustomerInvoices.InvoiceM', {
             url: '/InvoiceM',
             templateUrl: 'views/outbound/print/customer_inv.html'

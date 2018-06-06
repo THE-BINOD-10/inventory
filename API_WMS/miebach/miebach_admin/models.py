@@ -2684,3 +2684,16 @@ class WarehouseSKUMapping(models.Model):
 
     def __unicode__(self):
         return str(self.sku) + " : " + str(self.warehouse)
+
+
+class SellerOrderTransfer(models.Model):
+    id = BigAutoField(primary_key=True)
+    seller_transfer = models.ForeignKey(SellerTransfer)
+    seller_order = models.ForeignKey(SellerOrder)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'SELLER_ORDER_TRANSFER'
+        unique_together = ('seller_transfer', 'seller_order')
+        index_together = ('seller_transfer', 'seller_order')

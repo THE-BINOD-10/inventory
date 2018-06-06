@@ -1531,27 +1531,34 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
     stock_dict = {"sku_id": sku_id,
                   "location_id": source[0].id,
                   "sku__user": user.id}
+    reserved_dict = {'stock__sku_id': sku_id, 'stock__sku__user': user.id, 'status': 1,
+                     'stock__location_id': source[0].id}
     if batch_no:
         stock_dict["batch_detail__batch_no"] =  batch_no
+        reserved_dict["stock__batch_detail__batch_no"] =  batch_no
     if mrp:
         stock_dict["batch_detail__mrp"] = mrp
+        reserved_dict["stock__batch_detail__mrp"] = mrp
+    if seller_id:
+        stock_dict['sellerstock__seller_id'] = seller_id
+        reserved_dict["stock__sellerstock__seller_id"] = seller_id
     stocks = StockDetail.objects.filter(**stock_dict)
     if not stocks:
-        return 'No stock with given Batch Number'
-    #stocks = StockDetail.objects.filter(sku_id=sku_id, location_id=source[0].id, sku__user=user.id)
+        return 'No Stocks Found'
     stock_count = stocks.aggregate(Sum('quantity'))['quantity__sum']
+    #stocks = StockDetail.objects.filter(sku_id=sku_id, location_id=source[0].id, sku__user=user.id)
+    # stock_count = stocks.aggregate(Sum('quantity'))['quantity__sum']
+    # if seller_id:
+    #     stock_filter_ids = stocks.filter(quantity__gt=0).values_list('id', flat=True)
+    #     seller_stock = SellerStock.objects.filter(stock_id__in=stock_filter_ids, seller_id=seller_id)
+    #     if not seller_stock:
+    #         return 'Seller Stock Not Found'
     reserved_quantity = \
-    PicklistLocation.objects.exclude(stock=None).filter(stock__sku_id=sku_id, stock__sku__user=user.id, status=1,
-                                                        stock__location_id=source[0].id).aggregate(Sum('reserved'))[
+    PicklistLocation.objects.exclude(stock=None).filter(**reserved_dict).aggregate(Sum('reserved'))[
         'reserved__sum']
     if reserved_quantity:
         if (stock_count - reserved_quantity) < float(quantity):
             return 'Source Quantity reserved for Picklist'
-    if seller_id:
-        stock_filter_ids = stocks.filter(quantity__gt=0).values_list('id', flat=True)
-        seller_stock = SellerStock.objects.filter(stock_id__in=stock_filter_ids, seller_id=seller_id)
-        if not seller_stock:
-            return 'Seller Stock Not Found'
 
     stock_dict['location_id'] = dest[0].id
     dest_stocks = StockDetail.objects.filter(**stock_dict)
@@ -2403,7 +2410,6 @@ def get_mapping_imeis(user, dat, seller_summary, sor_id='', sell_ids=''):
             'quantity__sum']
         if not stop_index:
             stop_index = 0
-        print start_index, stop_index
     imeis = list(
         OrderIMEIMapping.objects.filter(order__user=user.id, order_id=dat.id, sor_id=sor_id).order_by('creation_date'). \
         values_list('po_imei__imei_number', flat=True))

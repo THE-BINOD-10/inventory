@@ -3143,7 +3143,7 @@ def search_wms_data(request, user=''):
     if not search_key:
         return HttpResponse(json.dumps(total_data))
 
-    lis = ['wms_code', 'sku_desc']
+    lis = ['wms_code', 'sku_desc', 'mrp']
     query_objects = sku_master.filter(Q(wms_code__icontains=search_key) | Q(sku_desc__icontains=search_key),
                                       user=user.id)
 
@@ -3152,7 +3152,8 @@ def search_wms_data(request, user=''):
         master_data = master_data[0]
         total_data.append({'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc, \
                            'measurement_unit': master_data.measurement_type,
-                           'load_unit_handle': master_data.load_unit_handle})
+                           'load_unit_handle': master_data.load_unit_handle,
+                           'mrp': master_data.mrp})
 
     master_data = query_objects.filter(Q(wms_code__istartswith=search_key) | Q(sku_desc__istartswith=search_key),
                                        user=user.id)
@@ -3205,8 +3206,8 @@ def get_supplier_sku_prices(request, user=""):
             taxes_data = []
             for tax_master in tax_masters:
                 taxes_data.append(tax_master.json())
-        result_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'tax_type': tax_type,
-                            'taxes': taxes_data})
+            result_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'tax_type': tax_type,
+                            'taxes': taxes_data, 'mrp': data.mrp})
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -3304,7 +3305,8 @@ def build_search_data(to_data, from_data, limit):
                         break
                 if status:
                     to_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc,
-                                    'measurement_unit': data.measurement_type})
+                                    'measurement_unit': data.measurement_type,
+                                    'mrp': data.mrp})
         return to_data
 
 
@@ -4531,6 +4533,7 @@ def get_purchase_order_data(order):
         sku = open_data.job_order.product_code
         order_type = ''
         price = 0
+        mrp = 0
         supplier_code = ''
         cgst_tax = 0
         sgst_tax = 0
@@ -4547,6 +4550,7 @@ def get_purchase_order_data(order):
         intransit_quantity = order.intransit_quantity
         sku = open_data.sku
         price = open_data.price
+        mrp = open_data.mrp
         unit = open_data.measurement_unit
         order_type = status_dict[order.open_po.order_type]
         supplier_code = open_data.supplier_code
@@ -4568,6 +4572,7 @@ def get_purchase_order_data(order):
         order_quantity = open_data.order_quantity
         sku = open_data.sku
         price = open_data.price
+        mrp = open_data.mrp
         order_type = ''
         supplier_code = ''
         cgst_tax = 0
@@ -4576,7 +4581,7 @@ def get_purchase_order_data(order):
         utgst_tax = 0
         tin_number = ''
 
-    order_data = {'order_quantity': order_quantity, 'price': price, 'wms_code': sku.wms_code,
+    order_data = {'order_quantity': order_quantity, 'price': price, 'mrp': mrp, 'wms_code': sku.wms_code,
                   'sku_code': sku.sku_code, 'supplier_id': user_data.id, 'zone': sku.zone,
                   'qc_check': sku.qc_check, 'supplier_name': username, 'gstin_number': gstin_number,
                   'sku_desc': sku.sku_desc, 'address': address, 'unit': unit, 'load_unit_handle': sku.load_unit_handle,
@@ -5213,6 +5218,7 @@ def check_and_add_dict(grouping_key, key_name, adding_dat, final_data_dict={}, i
 
 
 def update_order_dicts(orders, user='', company_name=''):
+    trans_mapping = {}
     status = {'status': 0, 'messages': ['Something went wrong']}
     for order_key, order in orders.iteritems():
         if not order.get('order_details', {}):
@@ -5237,7 +5243,8 @@ def update_order_dicts(orders, user='', company_name=''):
         if order.get('order_summary_dict', {}) and not order_obj:
             customer_order_summary = CustomerOrderSummary.objects.create(**order['order_summary_dict'])
         if order.get('seller_order_dict', {}):
-            check_create_seller_order(order['seller_order_dict'], order_detail, user, order.get('swx_mappings', []))
+            trans_mapping = check_create_seller_order(order['seller_order_dict'], order_detail, user,
+                                                      order.get('swx_mappings', []), trans_mapping=trans_mapping)
         status = {'status': 1, 'messages': ['Success']}
     return status
 
@@ -5313,7 +5320,9 @@ def update_ingram_order_dicts(orders, seller_obj, user=''):
     return status
 
 
-def check_create_seller_order(seller_order_dict, order, user, swx_mappings=[]):
+def check_create_seller_order(seller_order_dict, order, user, swx_mappings=[], trans_mapping=None):
+    if not trans_mapping:
+        trans_mapping = {}
     if seller_order_dict.get('seller_id', ''):
         sell_order_ins = SellerOrder.objects.filter(sor_id=seller_order_dict['sor_id'], order_id=order.id,
                                                     seller__user=user.id)
@@ -5321,6 +5330,10 @@ def check_create_seller_order(seller_order_dict, order, user, swx_mappings=[]):
         if not sell_order_ins:
             seller_order = SellerOrder(**seller_order_dict)
             seller_order.save()
+            if user.username == 'milkbasket':
+                aspl_seller = SellerMaster.objects.filter(user=user.id, name='ASPL')
+                if aspl_seller:
+                    trans_mapping = create_seller_order_transfer(seller_order, aspl_seller[0].id, trans_mapping)
             for swx_mapping in swx_mappings:
                 try:
                     create_swx_mapping(swx_mapping['swx_id'], seller_order.id, swx_mapping['swx_type'],
@@ -6627,13 +6640,7 @@ def get_mode_of_transport(user):
 
 
 def get_max_seller_transfer_id(user):
-    trans_id = ''
-    seller_obj = SellerTransfer.objects.filter(source_seller__user=user.id).\
-                                        aggregate(Max('transact_id'))['transact_id__max']
-    if seller_obj:
-        trans_id = seller_obj + 1
-    else:
-        trans_id = 1
+    trans_id = get_incremental(user, 'seller_stock_transfer')
     return trans_id
 
 
@@ -7034,3 +7041,36 @@ def get_po_challan_number(user, seller_po_summary):
     challan_number = 'CHN/%s/%s' % (chn_date.strftime('%m%y'), challan_num)
 
     return challan_number, challan_num
+
+
+def create_seller_order_transfer(seller_order, seller_id, trans_mapping):
+    """ Update Seller with ASPL Seller and creates SellerOrderTransfer table record"""
+    user = User.objects.get(id=seller_order.order.user)
+    try:
+        if not seller_order.seller.name == 'ASPL':
+            source_seller = seller_order.seller
+            group_key = '%s:%s' % (str(source_seller.id), str(seller_id))
+            seller_order.seller_id = seller_id
+            seller_order.save()
+            if group_key not in trans_mapping.keys():
+                trans_mapping[group_key] = get_incremental(user, 'seller_order_transfer')
+            order_transfer_id = trans_mapping[group_key]
+            seller_transfer_obj = SellerTransfer.objects.filter(source_seller_id=source_seller.id,
+                                                    dest_seller_id=seller_id, transact_id=order_transfer_id,
+                                                    transact_type='seller_order_transfer')
+            if not seller_transfer_obj:
+                new_seller_transfer_obj = SellerTransfer.objects.create(source_seller_id=source_seller.id,
+                                          dest_seller_id=seller_id, transact_id=order_transfer_id,
+                                          transact_type='seller_order_transfer', status=1,
+                                          creation_date=datetime.datetime.now())
+                seller_transfer_obj = [new_seller_transfer_obj]
+            SellerOrderTransfer.objects.create(seller_transfer_id=seller_transfer_obj[0].id,
+                                               seller_order_id=seller_order.id,
+                                               creation_date=datetime.datetime.now())
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        result_data = []
+        log.info('Create Seller Order Transfer Record failed for seller order id %s and destination seller id %s and request is %s and error statement is %s' % (
+            str(user.username), str(seller_order.id),str(seller_id), str(e)))
+    return trans_mapping

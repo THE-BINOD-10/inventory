@@ -100,6 +100,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
                 vm.model_data.seller_type = vm.model_data.data[0].fields.dedicated_seller;
               }
 
+              angular.forEach(vm.model_data.data, function(data){
+                if (!data.fields.cess_tax) {
+                  data.fields.cess_tax = 0;
+                }
+              });
+
               /*angular.forEach(vm.model_data.data, function(one_row){
                vm.model_data.total_price = vm.model_data.total_price + (one_row.fields.order_quantity * one_row.fields.price);
               });
@@ -119,7 +125,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
 
                   vm.default_status = (Session.user_profile.user_type == 'marketplace_user')? true : false;
                   vm.getCompany();
-                  vm.seller_change = function(type) {
+                  vm.seller_change1 = function(type) {
 
                     if(vm.model_data.receipt_type == 'Hosted Warehouse') {
 
@@ -519,6 +525,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
 
 
     vm.get_sku_details = function(product, item, index) {
+      console.log(item);
       vm.purchase_history_wms_code = item.wms_code;
       if(vm.permissions.show_purchase_history) {
 	    $timeout( function() {
@@ -530,6 +537,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       product.fields.description = item.sku_desc;
       product.fields.order_quantity = 1;
       product.fields.price = 0;
+      product.fields.mrp = item.mrp;
       product.fields.description = item.sku_desc;
       product.fields.sgst_tax = "";
       product.fields.cgst_tax = "";

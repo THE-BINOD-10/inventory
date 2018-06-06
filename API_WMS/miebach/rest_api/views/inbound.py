@@ -1573,6 +1573,7 @@ def get_supplier_data(request, user=''):
                             'value': get_decimal_limit(user.id, order.saved_quantity),
                             'receive_quantity': get_decimal_limit(user.id, order.received_quantity),
                             'price': order_data['price'],
+                            'mrp': order_data['mrp'],
                             'temp_wms': order_data['temp_wms'], 'order_type': order_data['order_type'],
                             'unit': order_data['unit'],
                             'dis': True,

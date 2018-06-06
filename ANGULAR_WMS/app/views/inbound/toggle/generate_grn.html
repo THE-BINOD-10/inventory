@@ -132,7 +132,7 @@
                       <input ng-if="!showCase.po_qc" type="hidden" name="imei_number" class="form-control" value="{{data.imei_list.join(',')}}">
                     </td>
                     <td><input type="text" ng-model="data.price" title="{{ data.price }}" size="22" name="price" class="form-control" value="" ng-readonly="records[0].dis"></td>
-                    <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.buy_price" size="22" title="{{ data.buy_price }}" name="buy_price" class="form-control" ng-class="service.get_decimal_perm()" ng-init="data.buy_price=0"  ng-class="service.get_decimal_perm()" value="{{data.buy_price}}"></td>
+                    <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.buy_price" size="22" title="{{ data.buy_price }}" name="buy_price" class="form-control" ng-class="service.get_decimal_perm()"  ng-class="service.get_decimal_perm()" value="{{data.buy_price}}"></td>
                     <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.mrp" size="22" title="{{ data.mrp }}" name="mrp" class="form-control" ng-class="service.get_decimal_perm()" value="{{data.mrp}}"></td>
                     <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.batch_no" title="{{ data.batch_no }}" name="batch_no" class="form-control" value="{{data.batch_no}}"></td>
                     <td ng-if="showCase.industry_type=='FMCG'">

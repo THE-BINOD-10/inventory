@@ -4482,6 +4482,7 @@ def get_purchase_order_data(order):
         sku = open_data.job_order.product_code
         order_type = ''
         price = 0
+        mrp = 0
         supplier_code = ''
         cgst_tax = 0
         sgst_tax = 0
@@ -4498,6 +4499,7 @@ def get_purchase_order_data(order):
         intransit_quantity = order.intransit_quantity
         sku = open_data.sku
         price = open_data.price
+        mrp = open_data.mrp
         unit = open_data.measurement_unit
         order_type = status_dict[order.open_po.order_type]
         supplier_code = open_data.supplier_code
@@ -4519,6 +4521,7 @@ def get_purchase_order_data(order):
         order_quantity = open_data.order_quantity
         sku = open_data.sku
         price = open_data.price
+        mrp = open_data.mrp
         order_type = ''
         supplier_code = ''
         cgst_tax = 0
@@ -4527,7 +4530,7 @@ def get_purchase_order_data(order):
         utgst_tax = 0
         tin_number = ''
 
-    order_data = {'order_quantity': order_quantity, 'price': price, 'wms_code': sku.wms_code,
+    order_data = {'order_quantity': order_quantity, 'price': price, 'mrp': mrp, 'wms_code': sku.wms_code,
                   'sku_code': sku.sku_code, 'supplier_id': user_data.id, 'zone': sku.zone,
                   'qc_check': sku.qc_check, 'supplier_name': username, 'gstin_number': gstin_number,
                   'sku_desc': sku.sku_desc, 'address': address, 'unit': unit, 'load_unit_handle': sku.load_unit_handle,

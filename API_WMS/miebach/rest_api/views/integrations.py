@@ -1765,10 +1765,6 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                     update_error_message(failed_status, 5022, 'SOR Id exists already', original_order_id)
                 sku_items = sub_order['items']
                 for sku_item in sku_items:
-                    try:
-                        shipment_date = NOW
-                    except:
-                        shipment_date = NOW
                     failed_sku_status = []
                     sku_code = sku_item['sku']
                     sku_master = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)

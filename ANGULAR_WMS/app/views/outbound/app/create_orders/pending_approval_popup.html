@@ -10,7 +10,7 @@
             <div class="col-md-4">
               <div class="form-group">
                 <label class="control-label"> Serial No: * </label>
-                <input type="text" name="serial_no" class="form-control numvalid" ng-model="showCase.model_data.id" ng-readonly="true"></div>
+                <input type="text" name="serial_no" class="form-control numvalid" ng-model="showCase.model_data.approve_id" ng-readonly="true"></div>
 	  		  </div>
 
             <div class="col-md-4">
@@ -63,11 +63,11 @@
 			<div ng-if="(showCase.model_data.status | lowercase) == 'accept'">
               <h3 ng-if="((showCase.model_data.approving_user_role | lowercase) == 'admin' || (showCase.model_data.approving_user_role | lowercase) == '') && (showCase.model_data.status | lowercase) == 'accept'" style="text-align: center;padding-bottom: 10px;">Order Accepted by {{ showCase.model_data.approving_user_role }}</h3>
 			  <div ng-if = "((showCase.model_data.approving_user_role | lowercase) == 'hod') && ((showCase.model_data.status | lowercase) == 'pending')">
-				<button type="button" class="btn pop pop-red" ng-click="showCase.update_cartdata_for_approval('reject', showCase.model_data.id, showCase.model_data.quantity)" style="float:left;">
+				<button type="button" class="btn pop pop-red" ng-click="showCase.update_cartdata_for_approval('reject', showCase.model_data.approve_id, showCase.model_data.quantity)" style="float:left;">
                 <span>Reject</span>
                 <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
                 </button>
-                <button type="submit" class="btn pop pop-green" ng-click="showCase.update_cartdata_for_approval('accept', showCase.model_data.id, showCase.model_data.quantity)" ng-disabled="process">
+                <button type="submit" class="btn pop pop-green" ng-click="showCase.update_cartdata_for_approval('accept', showCase.model_data.approve_id, showCase.model_data.quantity)" ng-disabled="process">
                 <span>Accept</span>
                 <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
                 </button>
@@ -82,11 +82,11 @@
             </div>
 
 			<div ng-if="(showCase.model_data.approving_user_role | lowercase) == 'hod' && (showCase.user_role | lowercase) == 'admin' && (showCase.model_data.status | lowercase) == 'accept'">
-				<button type="button" class="btn pop pop-red" ng-click="showCase.update_cartdata_for_approval('reject', showCase.model_data.id, showCase.model_data.quantity)" style="float:left;">
+				<button type="button" class="btn pop pop-red" ng-click="showCase.update_cartdata_for_approval('reject', showCase.model_data.approve_id, showCase.model_data.quantity)" style="float:left;">
                 <span>Reject</span>
                 <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
                 </button>
-                <button type="submit" class="btn pop pop-green" ng-click="showCase.update_cartdata_for_approval('accept', showCase.model_data.id, showCase.model_data.quantity)" ng-disabled="process">
+                <button type="submit" class="btn pop pop-green" ng-click="showCase.update_cartdata_for_approval('accept', showCase.model_data.approve_id, showCase.model_data.quantity)" ng-disabled="process">
                 <span>Accept</span>
                 <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
                 </button>
@@ -94,11 +94,11 @@
 
 			<div ng-if="(showCase.model_data.status | lowercase) == 'pending'">
 		      <div ng-if="(showCase.model_data.approving_user_role | lowercase) == (showCase.user_role | lowercase)">
-                <button type="button" class="btn pop pop-red" ng-click="showCase.update_cartdata_for_approval('reject', showCase.model_data.id, showCase.model_data.quantity)" style="float:left;">
+                <button type="button" class="btn pop pop-red" ng-click="showCase.update_cartdata_for_approval('reject', showCase.model_data.approve_id, showCase.model_data.quantity)" style="float:left;">
                 <span>Reject</span>
                 <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
                 </button>
-                <button type="submit" class="btn pop pop-green" ng-click="showCase.update_cartdata_for_approval('accept', showCase.model_data.id, showCase.model_data.quantity)" ng-disabled="process">
+                <button type="submit" class="btn pop pop-green" ng-click="showCase.update_cartdata_for_approval('accept', showCase.model_data.approve_id, showCase.model_data.quantity)" ng-disabled="process">
                 <span>Accept</span>
                 <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
                 </button>
@@ -119,7 +119,7 @@
             <div ng-if="((showCase.model_data.approving_user_role | lowercase) != 'hod' || (showCase.model_data.approving_user_role | lowercase) != 'admin') && (showCase.model_data.status | lowercase) == 'pending'">
               <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process">
                 <span>Save</span>
-                <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+                  <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process"></span>
               </button>
             </div>
           </div>

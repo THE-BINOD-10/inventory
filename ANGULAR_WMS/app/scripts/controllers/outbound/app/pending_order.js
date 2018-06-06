@@ -33,7 +33,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        });
 
 		vm.dtColumns = [
-			DTColumnBuilder.newColumn('id').withTitle('Serial No.'),
+			DTColumnBuilder.newColumn('approve_id').withTitle('Approval Id'),
 			DTColumnBuilder.newColumn('user').withTitle('Customer User'),
 			//DTColumnBuilder.newColumn('remarks').withTitle('Remarks').notVisible(),
 			DTColumnBuilder.newColumn('status').withTitle('Status').renderWith(function(data, type, full, meta) {
@@ -213,12 +213,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
   */
 
-  vm.update_cartdata_for_approval = function(approve_status, cart_id, quantity) {
+  vm.update_cartdata_for_approval = function(approve_status, approve_id, quantity) {
     var send = {}
     if (vm.display_sku_cust_mapping) {
       send['approval_status'] = approve_status
       send['approving_user_role'] = vm.user_role
-	  send['cart_id'] = cart_id
+	  send['approve_id'] = approve_id
       send['quantity'] = quantity
     }
     vm.service.apiCall("update_cartdata_for_approval/", "POST", send).then(function(response){

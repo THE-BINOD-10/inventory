@@ -2747,47 +2747,89 @@ def get_customer_data(request, user=''):
     else:
         return HttpResponse('')
 
+
 @get_admin_user
 def update_cartdata_for_approval(request, user=''):
     message = 'success'
-    cart_data = CustomerCartData.objects.filter(user_id=user.id, customer_user_id=request.user.id, approval_status='')
-    if cart_data:
-        cart_data.update(approval_status='pending', approving_user_role='hod')
+    approval_status = request.POST.get('approval_status', '')
+    approving_user_role = request.POST.get('approving_user_role', '')
+    approve_id = request.POST.get('approve_id', '')
+    if not approve_id:
+        return HttpResponse('Approve Id missing')
+    approve_data = ApprovingOrders.objects.filter(user_id=user.id, approve_id=approve_id)
+    if approve_data:
+        approve_data.update(approval_status=approval_status,
+                         approving_user_role=approving_user_role,
+                         approve_id=approve_id)
     else:
-        message = 'something went wrong'
+        message = 'failure'
+
     return HttpResponse(json.dumps({'message': message}))
 
 
 def get_order_approval_statuses(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                                 filters):
-    lis = ['id','customer_user__username', 'approval_status', 'creation_date']
-
+    lis = ['id', 'customer_user__username', 'approval_status', 'creation_date']
+    cust_obj = CustomerUserMapping.objects.filter(user_id=request.user.id)
+    if cust_obj:
+        customer_role = cust_obj[0].customer.role
+    else:
+        customer_role = ''
+    if customer_role.lower() == 'user':
+        user_filters = {'user_id': user.id, 'customer_user_id': request.user.id}
+    else:
+        user_filters = {'user_id': user.id}
     search_params = get_filtered_params(filters, lis)
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
     if search_term:
-        cart_data = CustomerCartData.objects.filter(user_id=user.id,
-                                                    customer_user_id=request.user.id, **search_params).order_by(
-            order_data)
-
+        cart_data = ApprovingOrders.objects.filter(**user_filters).filter(**search_params).order_by(order_data)
     else:
-        cart_data = CustomerCartData.objects.filter(user_id=user.id,
-                                                    customer_user_id=request.user.id, **search_params).order_by(
-            order_data)
+        cart_data = ApprovingOrders.objects.filter(**user_filters).order_by(order_data)
     temp_data['recordsTotal'] = len(cart_data)
     temp_data['recordsFiltered'] = len(cart_data)
     for data in cart_data[start_index: stop_index]:
         image = data.sku.image_url
         sku_code = data.sku.sku_code
         desc = data.sku.sku_desc
-        price = data.levelbase_price
+        price = data.unit_price
         temp_data['aaData'].append(
             OrderedDict((('user', data.customer_user.username), ('date', data.creation_date.strftime('%d-%m-%Y')),
                          ('status', data.approval_status), ('image', image), ('sku_code', sku_code),
                          ('desc', desc), ('price', price), ('tax', data.tax), ('quantity', data.quantity),
-                         ('id', data.id), ('approving_user_role', data.approving_user_role)
+                         ('approve_id', data.approve_id), ('approving_user_role', data.approving_user_role)
                          )))
+
+
+@get_admin_user
+def update_orders_for_approval(request, user=''):
+    message = 'success'
+    cart_data = CustomerCartData.objects.filter(user_id=user.id, customer_user_id=request.user.id)
+    if cart_data:
+        try:
+            approve_id = get_approval_id(request.user.id)
+            ap_orders = ApprovingOrders.objects.filter(user_id=user.id, customer_user_id=request.user.id,
+                                                       approve_id=approve_id)
+            for cart_item in cart_data:
+                approve_orders_map = {'user_id': user.id, 'customer_user_id': request.user.id,
+                                      'approve_id': approve_id, 'approval_status': 'pending',
+                                      'approving_user_role': 'hod', 'sku_id': cart_item.sku_id,
+                                      'quantity': cart_item.quantity, 'unit_price': cart_item.levelbase_price,
+                                      'tax': cart_item.tax, 'inter_state': cart_item.inter_state,
+                                      'cgst_tax': cart_item.cgst_tax, 'sgst_tax': cart_item.sgst_tax,
+                                      'igst_tax': cart_item.igst_tax, 'utgst_tax': cart_item.utgst_tax
+                                      }
+                if not ap_orders:
+                    ApprovingOrders.objects.create(**approve_orders_map)
+        except:
+            log.info('Update Orders Approval Failed')
+        else:
+            cart_data.delete()
+    else:
+        message = 'failure'
+
+    return HttpResponse(json.dumps({'message': message}))
 
 
 @fn_timer
@@ -6753,7 +6795,7 @@ def get_customer_cart_data(request, user=""):
         corp_names = CorporateMaster.objects.filter(id__in=res_corps).values_list('name', flat=True).distinct()
         response['reseller_corporates'].extend(corp_names)
 
-    cart_data = CustomerCartData.objects.filter(user_id=user.id, customer_user_id=request.user.id, approval_status='')
+    cart_data = CustomerCartData.objects.filter(user_id=user.id, customer_user_id=request.user.id)
 
     if cart_data:
         cust_user_obj = CustomerUserMapping.objects.filter(user=request.user.id)
@@ -6901,8 +6943,7 @@ def insert_customer_cart_data(request, user=""):
         for record in cart_data:
             sku = SKUMaster.objects.get(sku_code=record['sku_id'], user=user.id)
             cart = CustomerCartData.objects.filter(user_id=user.id, customer_user_id=request.user.id,
-                                                   sku__sku_code=record['sku_id'], warehouse_level=record['level'],
-                                                   approval_status='')
+                                                   sku__sku_code=record['sku_id'], warehouse_level=record['level'])
             if not cart:
                 data = {'user_id': user.id, 'customer_user_id': request.user.id, 'sku_id': sku.id,
                         'quantity': record['quantity'], 'tax': record['tax'], 'warehouse_level': record['level'],
@@ -6960,7 +7001,7 @@ def delete_customer_cart_data(request, user=""):
             if level == '':
                 level = 0
             CustomerCartData.objects.filter(user_id=user.id, customer_user_id=request.user.id,
-                                            sku__sku_code=sku_code, warehouse_level=level, approval_status='').delete()
+                                            sku__sku_code=sku_code, warehouse_level=level).delete()
             response["msg"] = "Deleted Successfully"
     except Exception as e:
         import traceback
@@ -8133,7 +8174,7 @@ def insert_enquiry_data(request, user=''):
                             'user': user.id, 'quantity': cart_item.quantity, 'sku_id': cart_item.sku.id}
             stock_wh_map = split_orders(**enquiry_data)
             for wh_code, qty in stock_wh_map.items():
-                if not qty:
+                if qty <= 0:
                     continue
                 wh_sku_id = get_syncedusers_mapped_sku(wh_code, cart_item.sku.id)
                 enq_sku_obj = EnquiredSku()

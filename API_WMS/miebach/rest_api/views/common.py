@@ -156,7 +156,7 @@ def add_user_permissions(request, response_data, user=''):
     cust_obj = CustomerUserMapping.objects.filter(user_id=request.user.id)
     tax_type = cust_obj.values_list('customer__tax_type', flat=True)
     if tax_type:
-	tax_type = tax_type[0]
+        tax_type = tax_type[0]
     else:
         tax_type = ''
     user_role = cust_obj.values_list('customer__role', flat=True)
@@ -2107,6 +2107,13 @@ def get_generic_order_id(customer_id):
 
     return gen_ord_id
 
+def get_approval_id(customer_id):
+    cust_cart_qs = ApprovingOrders.objects.filter(customer_user_id=customer_id).order_by('-approve_id')
+    cust_appr_id = 10001
+    if cust_cart_qs:
+        if cust_cart_qs[0].approve_id:
+            cust_appr_id = int(cust_cart_qs[0].approve_id) + 1
+    return cust_appr_id
 
 def get_intr_order_id(user_id):
     intr_ord_qs = IntransitOrders.objects.filter(user=user_id).order_by('-intr_order_id')

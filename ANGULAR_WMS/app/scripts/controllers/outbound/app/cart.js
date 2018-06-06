@@ -99,7 +99,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
 
 vm.update_cartdata_for_approval = function() {
     var send = {}
-    vm.service.apiCall("update_cartdata_for_approval/", "POST", send).then(function(response){
+    vm.service.apiCall("update_orders_for_approval/", "POST", send).then(function(response){
         if(response.message) {
           if(response.data.message == "success") {
             Data.my_orders = [];

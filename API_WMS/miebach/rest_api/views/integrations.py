@@ -1688,10 +1688,6 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
         if isinstance(orders, dict):
             orders = [orders]
         for ind, order in enumerate(orders):
-            try:
-                creation_date = datetime.datetime.strptime(order['order_date'], '%Y-%m-%d %H:%M:%S')
-            except:
-                update_error_message(failed_status, 5024, 'Invalid Order Date Format', original_order_id)
             order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
             channel_name = order['source']
             order_details = copy.deepcopy(ORDER_DATA)
@@ -1701,7 +1697,14 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
             order_id = ''.join(re.findall('\d+', original_order_id))
             filter_params = {'user': user.id, 'order_id': order_id}
             filter_params1 = {'user': user.id, 'original_order_id': original_order_id}
-
+            try:
+                creation_date = datetime.datetime.strptime(order['order_date'], '%Y-%m-%d %H:%M:%S')
+            except:
+                update_error_message(failed_status, 5024, 'Invalid Order Date Format', original_order_id)
+            try:
+                shipment_date = datetime.datetime.strptime(order['shipment_date'], '%Y-%m-%d %H:%M:%S')
+            except:
+                update_error_message(failed_status, 5024, 'Invalid Shipment Date Format', original_order_id)
             order_status = order['order_status']
             if order_status not in order_status_dict.keys():
                 error_message = 'Invalid Order Status - Should be ' + ','.join(order_status_dict.keys())

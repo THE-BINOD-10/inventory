@@ -5164,6 +5164,7 @@ def check_and_add_dict(grouping_key, key_name, adding_dat, final_data_dict={}, i
 
 
 def update_order_dicts(orders, user='', company_name=''):
+    trans_mapping = {}
     status = {'status': 0, 'messages': ['Something went wrong']}
     for order_key, order in orders.iteritems():
         if not order.get('order_details', {}):
@@ -5188,7 +5189,8 @@ def update_order_dicts(orders, user='', company_name=''):
         if order.get('order_summary_dict', {}) and not order_obj:
             customer_order_summary = CustomerOrderSummary.objects.create(**order['order_summary_dict'])
         if order.get('seller_order_dict', {}):
-            check_create_seller_order(order['seller_order_dict'], order_detail, user, order.get('swx_mappings', []))
+            trans_mapping = check_create_seller_order(order['seller_order_dict'], order_detail, user,
+                                                      order.get('swx_mappings', []), trans_mapping=trans_mapping)
         status = {'status': 1, 'messages': ['Success']}
     return status
 
@@ -5264,7 +5266,9 @@ def update_ingram_order_dicts(orders, seller_obj, user=''):
     return status
 
 
-def check_create_seller_order(seller_order_dict, order, user, swx_mappings=[]):
+def check_create_seller_order(seller_order_dict, order, user, swx_mappings=[], trans_mapping=None):
+    if not trans_mapping:
+        trans_mapping = {}
     if seller_order_dict.get('seller_id', ''):
         sell_order_ins = SellerOrder.objects.filter(sor_id=seller_order_dict['sor_id'], order_id=order.id,
                                                     seller__user=user.id)
@@ -5272,6 +5276,10 @@ def check_create_seller_order(seller_order_dict, order, user, swx_mappings=[]):
         if not sell_order_ins:
             seller_order = SellerOrder(**seller_order_dict)
             seller_order.save()
+            if user.username == 'milkbasket':
+                aspl_seller = SellerMaster.objects.filter(user=user.id, name='ASPL')
+                if aspl_seller:
+                    trans_mapping = create_seller_order_transfer(seller_order, aspl_seller[0].id, trans_mapping)
             for swx_mapping in swx_mappings:
                 try:
                     create_swx_mapping(swx_mapping['swx_id'], seller_order.id, swx_mapping['swx_type'],
@@ -6578,13 +6586,7 @@ def get_mode_of_transport(user):
 
 
 def get_max_seller_transfer_id(user):
-    trans_id = ''
-    seller_obj = SellerTransfer.objects.filter(source_seller__user=user.id).\
-                                        aggregate(Max('transact_id'))['transact_id__max']
-    if seller_obj:
-        trans_id = seller_obj + 1
-    else:
-        trans_id = 1
+    trans_id = get_incremental(user, 'seller_stock_transfer')
     return trans_id
 
 
@@ -6958,3 +6960,36 @@ def check_picklist_number_created(user, picklist_number):
                                              picklist_number=picklist_number)
     if not pick_check_obj.exists():
         check_and_update_picklist_number(picklist_number, user, 'picklist')
+
+
+def create_seller_order_transfer(seller_order, seller_id, trans_mapping):
+    """ Update Seller with ASPL Seller and creates SellerOrderTransfer table record"""
+    user = User.objects.get(id=seller_order.order.user)
+    try:
+        if not seller_order.seller.name == 'ASPL':
+            source_seller = seller_order.seller
+            group_key = '%s:%s' % (str(source_seller.id), str(seller_id))
+            seller_order.seller_id = seller_id
+            seller_order.save()
+            if group_key not in trans_mapping.keys():
+                trans_mapping[group_key] = get_incremental(user, 'seller_order_transfer')
+            order_transfer_id = trans_mapping[group_key]
+            seller_transfer_obj = SellerTransfer.objects.filter(source_seller_id=source_seller.id,
+                                                    dest_seller_id=seller_id, transact_id=order_transfer_id,
+                                                    transact_type='seller_order_transfer')
+            if not seller_transfer_obj:
+                new_seller_transfer_obj = SellerTransfer.objects.create(source_seller_id=source_seller.id,
+                                          dest_seller_id=seller_id, transact_id=order_transfer_id,
+                                          transact_type='seller_order_transfer', status=1,
+                                          creation_date=datetime.datetime.now())
+                seller_transfer_obj = [new_seller_transfer_obj]
+            SellerOrderTransfer.objects.create(seller_transfer_id=seller_transfer_obj[0].id,
+                                               seller_order_id=seller_order.id,
+                                               creation_date=datetime.datetime.now())
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        result_data = []
+        log.info('Create Seller Order Transfer Record failed for seller order id %s and destination seller id %s and request is %s and error statement is %s' % (
+            str(user.username), str(seller_order.id),str(seller_id), str(e)))
+    return trans_mapping

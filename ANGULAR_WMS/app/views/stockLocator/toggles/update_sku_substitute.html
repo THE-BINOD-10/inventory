@@ -1,3 +1,15 @@
+<style type="text/css">
+  .modal-lg{
+    width: 1200px
+  }
+  .rotate{
+    -webkit-transform: rotate(-90deg);
+    -moz-transform: rotate(-90deg);
+    -ms-transform: rotate(-90deg);
+    -o-transform: rotate(-90deg);
+  }
+</style>
+
 <div id="page-pop" style="overflow-y: visible;">
   <form name="myForm" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine" novalidate="novalidate">
     <div class="modal-header">
@@ -8,24 +20,40 @@
     </div>
 
     <div class="modal-body lebel-error-hide" id="modal-body">
-      <div class="row">
-        <div class="col-md-5 col-sm-5 col-xs-12">
-            <div class="col-md-6 col-sm-6 col-xs-6">
+      <div class="row modal-header" style="margin: 5px;">
+        <div class="col-md-4 col-sm-4 col-xs-6" style="margin: 10px">
+            <label class="control-label">Sellar ID</label>
+            <input type="text" autocomplete="off" name="sellar_id" class="form-control" placeholder="Search Sellar ID" typeahead="address.sellar_id for address in $ctrl.service.getSearchValues($viewValue, 'search_sellar_id?')" typeahead-loading="loadingLocations" typeahead-on-select="$ctrl.model_data.sellar_id = $item.sellar_id" ng-model="$ctrl.model_data.sellar_id">
+        </div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <div class="col-md-4 col-sm-12 col-xs-12">
+            <div class="col-md-6 col-sm-5 col-xs-12">
                 <label class="control-label">Source SKU Code</label>
                 <input type="text" autocomplete="off" name="src_sku_code" class="form-control" placeholder="Search SKU Code &sol; Desc" typeahead="address.wms_code+' : '+address.sku_desc for address in $ctrl.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" typeahead-on-select="$ctrl.model_data.src_sku_code = $item.wms_code; $ctrl.check_sku_code($item, $ctrl.model_data.src_location, 'src_sku')" ng-model="$ctrl.model_data.src_sku_code"  ng-blur="$ctrl.empty_sku()">
             </div>
             
-            <div class="col-md-6 col-sm-6 col-xs-6">
+            <div class="col-md-6 col-sm-5 col-xs-12">
                 <label class="control-label">Quantity</label>
                 <input type="text" name="src_quantity" class="form-control" decimal-number ng-model="$ctrl.model_data.src_quantity"  ng-disabled="$ctrl.model_data.src_available_quantity == 0" ng-change="$ctrl.check_validation()">
             </div>
 
-            <div class="col-md-6 col-sm-6 col-xs-6" style="margin-top: 10px">
+            <div class="col-md-6 col-sm-5 col-xs-12" style="margin-top: 10px">
                 <label class="control-label">Source Location</label>
                 <input type="text" name="src_location" class="form-control" ng-model="$ctrl.model_data.src_location" ng-disabled="!$ctrl.model_data.src_sku_code" ng-change="$ctrl.check_loc_wise_qty($ctrl.model_data.src_sku_code, $ctrl.model_data.src_location, 'src_sku')" ng-debounce>
             </div>
 
-            <div class="col-md-6 col-sm-6 col-xs-6" style="margin-top: 10px; text-align: center">
+            <div class="col-md-6 col-sm-5 col-xs-12" style="margin-top: 10px">
+                <label class="control-label"> Batch Number</label>
+                <input type="text" name="batch_number" class="form-control" ng-model="$ctrl.model_data.batch_number" ng-disabled="!$ctrl.model_data.src_sku_code" ng-debounce>
+            </div>
+
+            <div class="col-md-6 col-sm-5 col-xs-12" style="margin-top: 10px">
+                <label class="control-label"> MRP</label>
+                <input type="text" name="mrp" class="form-control" ng-model="$ctrl.model_data.mrp" ng-disabled="!$ctrl.model_data.src_sku_code" ng-debounce>
+            </div>
+
+            <div class="col-md-6 col-sm-5 col-xs-12" style="margin-top: 10px; text-align: center">
                 <label class="control-label">Available Quantity</label>
                 <div>
 
@@ -36,33 +64,66 @@
                   </span>
                 </div>
             </div>
+
         </div>
 
-        <div class="col-md-2 col-sm-2 col-xs-12">
+        <div class="col-md-1 col-sm-2 col-xs-2">
           <div style="margin: auto; width:24px; padding: 24px 0">
-            <span class="hidden-xs"><i class="fa fa-exchange fa-2x" aria-hidden="true"></i></span>
-            <span class="visible-xs"><i class="fa fa-exchange fa-2x fa-rotate-90" aria-hidden="true"></i></span>
+            <span class="hidden-xs hidden-sm"><i class="fa fa-exchange fa-2x" aria-hidden="true"></i></span>
+            <span class="visible-xs visible-sm"><i class="fa fa-exchange fa-2x fa-rotate-90" aria-hidden="true"></i></span>
           </div>
         </div>
 
-        <div class="col-md-5 col-sm-5 col-xs-12">
-            <div class="col-md-6 col-sm-6 col-xs-6">
+        <div class="col-md-7 col-sm-10 col-xs-12" style="float: right;" ng-repeat="data in $ctrl.model_data.dest_info">
+            <div class="col-md-2 col-sm-2 col-xs-12" style="margin-top: 10px">
+                <label class="control-label">Dest SKU Code</label>
+                <input type="text" autocomplete="off" name="dest_sku_code" class="form-control" placeholder="Search SKU Code  &sol; Desc" typeahead="address.wms_code+' : '+address.sku_desc for address in $ctrl.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" typeahead-on-select="data.dest_sku_code=$item.wms_code" ng-model="data.dest_sku_code" ng-disabled="$ctrl.model_data.src_quantity == 0">
+            </div>
+
+            <div class="col-md-2 col-sm-2 col-xs-12" style="margin-top: 10px">
+                <label class="control-label">Quantity</label>
+                <input type="text" name="dest_quantity" class="form-control" decimal-number ng-model="data.dest_quantity" ng-disabled="$ctrl.model_data.src_quantity == 0">
+            </div>
+
+            <div class="col-md-2 col-sm-2 col-xs-12" style="margin-top: 10px">
+                <label class="control-label">Dest Location</label>
+                <input type="text" name="dest_location" class="form-control" ng-model="data.dest_location" ng-disabled="$ctrl.model_data.src_quantity == 0">
+            </div>
+
+            <div class="col-md-2 col-sm-2 col-xs-12" style="margin-top: 10px">
+                <label class="control-label"> Batch Number</label>
+                <input type="text" name="batch_number" class="form-control" ng-model="data.batch_number" ng-disabled="!$ctrl.model_data.src_sku_code" ng-debounce>
+            </div>
+
+            <div class="col-md-2 col-sm-2 col-xs-12" style="margin-top: 10px">
+                <label class="control-label"> MRP</label>
+                <input type="text" name="mrp" class="form-control" ng-model="data.mrp" ng-disabled="!$ctrl.model_data.src_sku_code" ng-debounce>
+            </div>
+
+            <div class="col-md-2 col-sm-2 col-xs-12" style="margin-top: 10px">
+                <i style="font-size: 20px;cursor: pointer;margin-top: 33px;" ng-click="$ctrl.update_dest_info($index, data, $last)" ng-class="$ctrl.isLast($last)"></i>
+            </div>
+        </div>
+
+        <!-- <div class="col-md-5 col-sm-5 col-xs-12" ng-repeat="data in $ctrl.model_data.dest_info">
+            <div class="col-md-4 col-sm-4 col-xs-4">
                 <label class="control-label">Destination SKU Code</label>
                 <input type="text" autocomplete="off" name="dest_sku_code" class="form-control" placeholder="Search SKU Code  &sol; Desc" typeahead="address.wms_code+' : '+address.sku_desc for address in $ctrl.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" typeahead-on-select="$ctrl.model_data.dest_sku_code=$item.wms_code" ng-model="$ctrl.model_data.dest_sku_code" ng-disabled="$ctrl.model_data.src_quantity == 0">
             </div>
 
-            <div class="col-md-6 col-sm-6 col-xs-6">
+            <div class="col-md-4 col-sm-4 col-xs-4">
                 <label class="control-label">Quantity</label>
                 <input type="text" name="dest_quantity" class="form-control" decimal-number ng-model="$ctrl.model_data.dest_quantity" ng-disabled="$ctrl.model_data.src_quantity == 0">
             </div>
           
             <div>
-              <div class="col-md-6 col-sm-6 col-xs-6" style="margin-top: 10px">
+              <div class="col-md-4 col-sm-4 col-xs-4">
                   <label class="control-label">Destination Location</label>
                   <input type="text" name="dest_location" class="form-control" ng-model="$ctrl.model_data.dest_location" ng-disabled="$ctrl.model_data.src_quantity == 0">
               </div>
             </div>
-        </div>
+        </div> -->
+
       </div>
       <div class="row">
         <div class="col-md-4 col-md-offset-4" style="margin-top: 15px; text-align: center">

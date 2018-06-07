@@ -299,6 +299,29 @@
     $ctrl.success_resp = false;
     $ctrl.disabled_button = false;
     $ctrl.model_data.src_quantity = 0;
+    $ctrl.model_data.dest_info = [{dest_sku_code:'', dest_quantity:'', dest_location:'', batch_number:'', mrp:''}];
+
+    $ctrl.isLast = isLast;
+    function isLast(check) {
+
+      var cssClass = check ? "fa fa-plus-square-o" : "fa fa-minus-square-o";
+      return cssClass
+    }
+
+    $ctrl.update_dest_info = update_dest_info;
+    function update_dest_info(index, data, last) {
+      console.log(data);
+      if (last && (!data.dest_sku_code)) {
+        colFilters.showNoty("Please fill existing record properly");
+        return false;
+      }
+      if (last) {
+        $ctrl.model_data.dest_info.push({dest_sku_code:'', dest_quantity:'', dest_location:'', batch_number:'', mrp:''});
+      } else {
+        $ctrl.model_data.dest_info.splice(index,1);
+        // $ctrl.cal_total();
+      }
+    }
 
     $ctrl.empty_sku =function(){
 

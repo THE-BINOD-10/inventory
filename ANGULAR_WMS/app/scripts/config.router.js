@@ -2232,7 +2232,7 @@ var app = angular.module('urbanApp')
             params: {
               state: 'orders',
             },
-            templateUrl: 'views/outbound/app/create_orders/order_detail.html',
+            templateUrl: 'views/outbound/toggle/order_detail.html',
             resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load('scripts/controllers/outbound/app/order_details.js');

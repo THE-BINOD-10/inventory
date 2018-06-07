@@ -1,0 +1,31 @@
+<div id="page-pop" class="modal fade in over-x">
+  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate">
+    <div class="modal-dialog model-custom modal-lgi" ng-style="showCase.extra_width">
+      <div class="modal-content mw60">
+        <div ng-include="'views/common/loader.html'"></div>
+        <div class="modal-header">
+          <div class="row">
+            <div class="col-md-4 col-sm-4 col-xs-12">
+              <h4 class="modal-title pull-left">{{showCase.title}}</h4>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-12">
+              <h4 align="center"><b>{{showCase.model_data.company}}</b></h4>
+            </div>
+          </div>
+          <button type="button" class="close" ng-click="showCase.close()"><span>&times;</span> </button>
+        </div>
+
+        <div class="modal-body raise_po">
+          <div ng-include="'views/outbound/app/create_orders/order_detail.html'"></div>
+		    </div>
+
+        <div class="modal-footer">
+          <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop {{showCase.permissions.change_openpo?'pop-normal':'pop-green'}}" ng-click="showCase.save_raise_po(form)">{{showCase.permissions.change_openpo?'Save':'Send for Approval'}}</button>
+          <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-show="showCase.permissions.change_openpo" data-dismiss="modal" ng-click="showCase.confirm(form)">Confirm PO</button>
+          <button ng-if="showCase.print_enable" type="button" class="btn pop pop-normal" ng-click="showCase.barcode()">Print Barcodes</button>
+          <button ng-if="showCase.print_enable" type="button" class="btn pop pop-green" ng-click="showCase.print_grn()">Print</button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

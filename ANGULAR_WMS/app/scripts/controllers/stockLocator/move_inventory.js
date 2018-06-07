@@ -311,7 +311,6 @@
     $ctrl.update_dest_info = update_dest_info;
     function update_dest_info(index, data, last) {
       console.log(data);
-      data.dest_sku_code = 'test';
       if (last && (!data.dest_sku_code)) {
         colFilters.showNoty("Please fill existing record properly");
         return false;

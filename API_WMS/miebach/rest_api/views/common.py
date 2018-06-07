@@ -483,7 +483,7 @@ data_datatable = {  # masters
     'CustomOrders': 'get_custom_order_data', \
     'ShipmentPickedAlternative': 'get_order_shipment_picked', 'CustomerInvoices': 'get_customer_invoice_data', \
     'ProcessedOrders': 'get_processed_orders_data', 'DeliveryChallans': 'get_delivery_challans_data',
-    'SellerOrderView': 'get_seller_order_view', \
+    'SellerOrderView': 'get_seller_order_view', 'StockTransferInvoice' : 'get_stock_transfer_invoice_data', \
     # manage users
     'ManageUsers': 'get_user_results', 'ManageGroups': 'get_user_groups',
     # retail one

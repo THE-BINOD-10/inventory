@@ -477,6 +477,7 @@ urlpatterns += [
     url('^get_extra_fields/$', get_extra_fields),
     url('^get_staff_members_list/$', get_staff_members_list),
     url(r'^pos_tax_inclusive/$', pos_tax_inclusive),
+    url(r'^stock_transfer_invoice_data/$', stock_transfer_invoice_data),
 
 ]
 

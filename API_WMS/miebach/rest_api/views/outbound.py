@@ -7294,6 +7294,17 @@ def get_levelbased_invoice_data(start_index, stop_index, temp_data, user, search
     temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
     return temp_data
 
+@csrf_exempt
+def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    data_dict = {}
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    temp_data['recordsTotal'] = 0
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    stock_transfer_id = ''
+    ordered_quantity = ''
+    data_dict.update(OrderedDict((('Stock Transfer ID', stock_transfer_id), ('Order Quantity', ordered_quantity), ('Picked Quantity', ''), ('Total Amount', ''), ('Stock Transfer Date&Time', ''), ('Invoice Number', ''), ('Customer Name', '') )))
+    temp_data['aaData'].append(data_dict)
+
 
 @csrf_exempt
 def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
@@ -8320,6 +8331,12 @@ def customer_invoice_data(request, user=''):
             headers = WH_CUSTOMER_INVOICE_HEADERS
     return HttpResponse(json.dumps({'headers': headers}))
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def stock_transfer_invoice_data(request, user=''):
+    headers = STOCK_TRANSFER_INVOICE_HEADERS
+    return HttpResponse(json.dumps({'headers': headers}))
 
 @csrf_exempt
 @login_required

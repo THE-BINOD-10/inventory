@@ -1308,6 +1308,8 @@ MP_CUSTOMER_INVOICE_HEADERS = ['UOR ID', 'SOR ID', 'Seller ID', 'Customer Name',
 WH_CUSTOMER_INVOICE_HEADERS = ['Order ID', 'Customer Name', 'Order Quantity', 'Picked Quantity', 'Order Date&Time',
                                'Total Amount']
 
+STOCK_TRANSFER_INVOICE_HEADERS = ['Stock Transfer ID', 'Customer Name', 'Order Quantity', 'Picked Quantity', 'Stock Transfer Date&Time', 'Total Amount']
+
 DIST_CUSTOMER_INVOICE_HEADERS = ['Gen Order Id', 'Order Ids', 'Customer Name', 'Order Quantity', 'Picked Quantity',
                                  'Order Date&Time', 'Total Amount']
 

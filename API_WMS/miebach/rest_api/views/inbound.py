@@ -6237,6 +6237,7 @@ def generate_supplier_invoice(request, user=''):
             req_data = eval(req_data)
             sell_summary_param['purchase_order__order_id'] = req_data.get('purchase_order__order_id', '')
             sell_summary_param['receipt_number'] = req_data.get('receipt_number', '')
+            sell_summary_param['purchase_order__open_po__sku__user'] = user.id
             seller_summary = SellerPOSummary.objects.filter(**sell_summary_param)
             if seller_summary:
                 up = user.userprofile

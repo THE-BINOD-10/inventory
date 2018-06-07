@@ -6191,7 +6191,7 @@ def move_to_poc(request, user=''):
 
 @csrf_exempt
 @get_admin_user
-def move_to_inv(request, user=''):
+def move_to_invoice(request, user=''):
     sell_ids = {}
     seller_summary = SellerPOSummary.objects.none()
     req_data = request.GET.get('data', '')

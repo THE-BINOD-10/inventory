@@ -161,7 +161,7 @@ urlpatterns = [
     url('^last_transaction_details/$', last_transaction_details),
     url(r'^supplier_invoice_data/$', supplier_invoice_data),
     url(r'^move_to_po_challan/$', move_to_poc),
-    url(r'^move_to_inv/$', move_to_inv),
+    url(r'^move_to_invoice/$', move_to_invoice),
     url(r'^generate_supplier_invoice/$', generate_supplier_invoice),
     url(r'^update_poc/$', update_poc),
     url(r'^update_po_invoice/$', update_po_invoice),

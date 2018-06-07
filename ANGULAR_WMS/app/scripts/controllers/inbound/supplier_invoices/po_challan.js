@@ -230,7 +230,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
       var send = data.join(",");
       send = {data: send}
-      var url = click_type === 'cancel_poc' ? 'move_to_po_challan/' : 'move_to_inv/';
+      var url = click_type === 'cancel_poc' ? 'move_to_po_challan/' : 'move_to_invoice/';
       vm.bt_disable = true;
       vm.service.apiCall(url, "GET", send).then(function(data){
         if(data.message) {

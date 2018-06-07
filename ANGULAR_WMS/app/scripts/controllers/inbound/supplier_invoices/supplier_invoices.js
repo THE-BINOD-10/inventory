@@ -126,7 +126,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
         var send = data.join(",");
         send = {data: send}
-        var url = 'move_to_inv';
+        var url = 'move_to_invoice';
         vm.bt_disable = true;
         vm.service.apiCall(url, "GET", send).then(function(data){
           if(data.message) {

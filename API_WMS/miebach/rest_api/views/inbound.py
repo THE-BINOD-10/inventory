@@ -6401,8 +6401,7 @@ def update_poc(request, user=''):
             supp_obj = supp_obj[0]
         supplier_id = supp_obj.id
         supplier_name = supp_obj.name
-    if challan_date:
-        challan_date = datetime.datetime.strptime(challan_date, "%m/%d/%Y")
+    challan_date = datetime.datetime.strptime(challan_date, "%m/%d/%Y") if challan_date else None
     for sku_data in skus_data:
         sku_data = eval(sku_data)
         shipment_date = sku_data[0].get('shipment_date', '')
@@ -6519,8 +6518,7 @@ def update_po_invoice(request, user=''):
             supp_obj = supp_obj[0]
         supplier_id = supp_obj.id
         supplier_name = supp_obj.name
-    if invoice_date:
-        invoice_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y").date()
+    invoice_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y").date() if invoice_date else None
     for sku_data in skus_data:
         sku_data = eval(sku_data)
         shipment_date = sku_data[0].get('shipment_date', '')

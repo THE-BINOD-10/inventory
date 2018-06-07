@@ -184,6 +184,16 @@ MOVE_INVENTORY_EXCEL_MAPPING = OrderedDict((('Seller ID', 'seller_id'), ('WMS Co
                                             ('Quantity', 'quantity'), ('Batch Number', 'batch_no'),
                                             ('MRP', 'mrp')))
 
+SKU_SUBSTITUTION_EXCEL_MAPPING = OrderedDict((('Seller ID', 'seller_id'), ('Source SKU Code', 'source_sku_code'),
+                                              ('Source Location', 'source_location'),
+                                              ('Source Batch Number', 'source_batch_no'),
+                                              ('Source MRP', 'source_mrp'), ('Source Quantity', 'source_quantity'),
+                                              ('Destination SKU Code', 'dest_sku_code'),
+                                              ('Destination Location', 'dest_location'),
+                                              ('Destination Batch Number', 'dest_batch_no'),
+                                              ('Destination MRP', 'dest_mrp'), ('Destination Quantity', 'dest_quantity'),
+                                            ))
+
 SUPPLIER_HEADERS = ['Supplier Id', 'Supplier Name', 'Address', 'Email', 'Phone No.', 'GSTIN Number', 'PAN Number',
                     'PIN Code',
                     'City', 'State', 'Country', 'Days required to supply', 'Fulfillment Amount', 'Credibility',

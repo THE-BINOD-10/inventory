@@ -117,6 +117,19 @@ def get_move_inventory_excel_upload_headers(user):
     return excel_headers
 
 
+def get_sku_substitution_excel_headers(user):
+    excel_headers = copy.deepcopy(SKU_SUBSTITUTION_EXCEL_MAPPING)
+    userprofile = user.userprofile
+    if not userprofile.user_type == 'marketplace_user':
+        del excel_headers["Seller ID"]
+    if not userprofile.industry_type == 'FMCG':
+        del excel_headers["Source Batch Number"]
+        del excel_headers["Source MRP"]
+        del excel_headers["Destination Batch Number"]
+        del excel_headers["Destination MRP"]
+    return excel_headers
+
+
 '''def check_and_get_marketplace(reader, file_type, no_of_rows, no_of_cols):
     marketplace = ''
     if get_cell_data(0, 0, reader, file_type) == 'Order No.':
@@ -2584,7 +2597,7 @@ def validate_move_inventory_form(request, reader, user, no_of_rows, no_of_cols, 
                         data_dict[key] = seller_master[0].seller_id
                         data_dict['seller_master_id'] = seller_master[0].id
                 except:
-                    index_status.setdefault(row_idx, set()).add('Invalid Destination Location')
+                    index_status.setdefault(row_idx, set()).add('Invalid Seller ID')
             elif key == 'batch_no':
                 if isinstance(cell_data, float):
                     cell_data = str(int(cell_data))
@@ -4550,6 +4563,7 @@ def update_seller_transer_upload(user, data_list):
         stock_transfer_objs.append(seller_st_obj)
     SellerStockTransfer.objects.bulk_create(stock_transfer_objs)
 
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -4571,3 +4585,165 @@ def seller_transfer_upload(request, user=''):
         log.info('Seller-Seller Transfer Upload failed for %s and params are %s and error statement is %s' % (
                     str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse("Seller-Seller Transfer Upload Failed")
+
+
+@csrf_exempt
+def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
+    mapping_dict = {}
+    index_status = {}
+    location = {}
+    data_list = []
+    inv_mapping = get_sku_substitution_excel_headers(user)
+    inv_res = dict(zip(inv_mapping.values(), inv_mapping.keys()))
+    excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                                 inv_mapping)
+    if not set(['source_sku_code', 'source_location', 'source_quantity', 'dest_sku_code',
+                'dest_location', 'dest_quantity']).issubset(excel_mapping.keys()):
+        return 'Invalid File'
+    number_fields = ['source_quantity', 'source_mrp', 'dest_quantity', 'dest_mrp']
+    prev_data_dict = {}
+    for row_idx in range(1, no_of_rows):
+        data_dict = {}
+        for key, value in excel_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, value, reader, file_type)
+            if key in ['source_sku_code', 'dest_sku_code']:
+                if cell_data:
+                    if isinstance(cell_data, (int, float)):
+                        cell_data = int(cell_data)
+                    cell_data = str(cell_data)
+                    sku_id = check_and_return_mapping_id(cell_data, "", user, False)
+                    if not sku_id:
+                        index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])
+                    else:
+                        data_dict['%s_id' % key] = sku_id
+                        data_dict[key] = SKUMaster.objects.get(id=sku_id, user=user.id).wms_code
+                elif 'source' in key and prev_data_dict.get(key, ''):
+                    data_dict['%s_id' % key] = prev_data_dict['%s_id' % key]
+                    data_dict[key] = prev_data_dict[key]
+                else:
+                    index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])
+            elif key in ['source_location', 'dest_location']:
+                if cell_data:
+                    location_master = LocationMaster.objects.filter(zone__user=user.id, location=cell_data)
+                    if not location_master:
+                        index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])
+                    else:
+                        data_dict[key] = location_master[0].location
+                        data_dict['%s_id' % key] = location_master[0].id
+                elif 'source' in key and prev_data_dict.get(key, ''):
+                    data_dict['%s_id' % key] = prev_data_dict['%s_id' % key]
+                    data_dict[key] = prev_data_dict[key]
+                else:
+                    index_status.setdefault(row_idx, set()).add('%s should not be empty' % inv_res[key])
+            elif key == 'seller_id':
+                if cell_data:
+                    try:
+                        seller_id = int(cell_data)
+                        seller_master = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
+                        if not seller_master:
+                            index_status.setdefault(row_idx, set()).add('Invalid Seller ID')
+                        else:
+                            data_dict[key] = seller_master[0].seller_id
+                            data_dict['seller_master_id'] = seller_master[0].id
+                    except:
+                        index_status.setdefault(row_idx, set()).add('Invalid Seller ID')
+                elif prev_data_dict:
+                    data_dict[key] = prev_data_dict[key]
+                    data_dict['seller_master_id'] = prev_data_dict['seller_master_id']
+                else:
+                    index_status.setdefault(row_idx, set()).add('Seller ID should not be empty')
+            elif key in ['source_batch_no', 'dest_batch_no']:
+                if 'source' in key and not cell_data and prev_data_dict:
+                    data_dict[key] = prev_data_dict[key]
+                    continue
+                if isinstance(cell_data, float):
+                    cell_data = str(int(cell_data))
+                    data_dict[key] = cell_data
+            elif key in number_fields:
+                if cell_data and (not isinstance(cell_data, (int, float)) or int(cell_data) < 0):
+                    index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])
+                elif 'source' in key and prev_data_dict:
+                    data_dict[key] = prev_data_dict[key]
+                else:
+                    data_dict[key] = cell_data
+        if row_idx not in index_status:
+            prev_data_dict = copy.deepcopy(data_dict)
+            stock_dict = {"sku_id": data_dict['source_sku_code_id'],
+                          "location_id": data_dict['source_location_id'],
+                          "sku__user": user.id, "quantity__gt": 0}
+            reserved_dict = {'stock__sku_id': data_dict['source_sku_code_id'], 'stock__sku__user': user.id,
+                             'status': 1,
+                             'stock__location_id': data_dict['source_location_id']}
+            if data_dict.get('batch_no', ''):
+                stock_dict["batch_detail__batch_no"] = data_dict['source_batch_no']
+                reserved_dict["stock__batch_detail__batch_no"] = data_dict['source_batch_no']
+            if data_dict.get('mrp', ''):
+                try:
+                    mrp = data_dict['source_mrp']
+                except:
+                    mrp = 0
+                stock_dict["batch_detail__mrp"] = mrp
+                reserved_dict["stock__batch_detail__mrp"] = mrp
+            if data_dict.get('seller_master_id', ''):
+                stock_dict['sellerstock__seller_id'] = data_dict['seller_master_id']
+                stock_dict['sellerstock__quantity__gt'] = 0
+                reserved_dict["stock__sellerstock__seller_id"] = data_dict['seller_master_id']
+            stocks = StockDetail.objects.filter(**stock_dict)
+            if not stocks:
+                index_status.setdefault(row_idx, set()).add('No Stocks Found')
+            else:
+                stock_count = stocks.aggregate(Sum('quantity'))['quantity__sum']
+                reserved_quantity = PicklistLocation.objects.exclude(stock=None).filter(**reserved_dict).\
+                                        aggregate(Sum('reserved'))['reserved__sum']
+                if reserved_quantity:
+                    if (stock_count - reserved_quantity) < float(data_dict['quantity']):
+                        index_status.setdefault(row_idx, set()).add('Source Quantity reserved for Picklist')
+        data_list.append(data_dict)
+
+    if not index_status:
+        return 'Success', data_list
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def sku_substitution_form(request, user=''):
+    excel_file = request.GET['download-file']
+    if excel_file:
+        return error_file_download(excel_file)
+    excel_headers = get_sku_substitution_excel_headers(user)
+    wb, ws = get_work_sheet('SKU Substitution', excel_headers)
+    return xls_to_response(wb, '%s.sku_substitution_form.xls' % str(user.id))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def sku_substitution_upload(request, user=''):
+    fname = request.FILES['files']
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+    except:
+        return HttpResponse('Invalid File')
+    status, data_list = validate_sku_substitution_form(request, reader, user, no_of_rows,
+                                                     no_of_cols, fname, file_type)
+    if status != 'Success':
+        return HttpResponse(status)
+    return HttpResponse('Success')

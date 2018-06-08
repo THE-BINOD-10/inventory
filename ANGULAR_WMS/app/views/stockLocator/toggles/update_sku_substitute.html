@@ -20,32 +20,33 @@
     </div>
 
     <div class="modal-body lebel-error-hide" id="modal-body">
-      <div class="row modal-header" style="margin: 5px;">
+      <div class="row">
         <div class="col-md-4 col-sm-4 col-xs-6" style="margin: 10px">
             <label class="control-label">Sellar ID</label>
-            <input type="text" autocomplete="off" name="seller_id" class="form-control" placeholder="Search Seller ID" typeahead="address.seller_id for address in $ctrl.service.getSearchValues($viewValue, 'search_seller_data?')" typeahead-loading="loadingLocations" ng-model="$ctrl.model_data.seller_id" typeahead-on-select="$ctrl.model_data.seller_id=$item.seller_id" required>
+            <input type="text" autocomplete="off" name="seller_id" class="form-control" placeholder="Search Seller ID/Name/Number" typeahead="address.seller_id+' : '+address.name+' : '+address.phone_number for address in $ctrl.service.getSearchValues($viewValue, 'search_seller_data?')" typeahead-loading="loadingLocations" ng-model="$ctrl.model_data.seller_id" typeahead-on-select="$ctrl.model_data.seller_id=$item.seller_id" required>
         </div>
       </div>
+      <hr>
       <div class="row" style="margin-top:10px">
         <div class="col-md-4 col-sm-12 col-xs-12">
             <div class="col-md-6 col-sm-5 col-xs-12">
                 <label class="control-label">Source SKU Code</label>
-                <input type="text" autocomplete="off" name="src_sku_code" class="form-control" placeholder="Search SKU Code &sol; Desc" typeahead="address.wms_code+' : '+address.sku_desc for address in $ctrl.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" typeahead-on-select="$ctrl.model_data.src_sku_code = $item.wms_code; $ctrl.check_sku_code($item, $ctrl.model_data.src_location, 'src_sku')" ng-model="$ctrl.model_data.src_sku_code"  ng-blur="$ctrl.empty_sku()">
+                <input type="text" autocomplete="off" name="src_sku_code" class="form-control" placeholder="Search SKU Code &sol; Desc" typeahead="address.wms_code+' : '+address.sku_desc for address in $ctrl.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" typeahead-on-select="$ctrl.model_data.src_sku_code = $item.wms_code; $ctrl.check_sku_code($item, $ctrl.model_data.src_location, 'src_sku')" ng-model="$ctrl.model_data.src_sku_code"  ng-blur="$ctrl.empty_sku(); $ctrl.get_sku_batches($ctrl.model_data.src_sku_code)">
             </div>
 
-            <div class="col-md-6 col-sm-5 col-xs-12" style="margin-top: 10px">
+            <div class="col-md-6 col-sm-5 col-xs-12" ng-if="$ctrl.industry_type == 'FMCG'" style="margin-top: 10px">
                 <label class="control-label"> Batch Number</label>
-                <select class="form-control" name="batch_number" ng-model="showCase.model_data.batch_number">
+                <select class="form-control" name="batch_number" ng-model="$ctrl.model_data.batch_number">
                   <option value="">Select Batch Number</option>
-                  <option ng-repeat="batch_no in showCase.batch_nos" value="{{batch_no}}">{{batch_no}}</option>
+                  <option ng-repeat="batch_no in $ctrl.batch_nos" value="{{batch_no}}">{{batch_no}}</option>
                 </select>
             </div>
 
-            <div class="col-md-6 col-sm-5 col-xs-12" style="margin-top: 10px">
+            <div class="col-md-6 col-sm-5 col-xs-12" ng-if="$ctrl.industry_type == 'FMCG'" style="margin-top: 10px">
                 <label class="control-label"> MRP</label>
-                <select class="form-control" name="mrp" ng-model="showCase.model_data.mrp" ng-readonly="showCase.batches['showCase.model_data.batch_number']">
+                <select class="form-control" name="mrp" ng-model="$ctrl.model_data.mrp" ng-readonly="$ctrl.batches['$ctrl.model_data.batch_number']">
                   <option value="">Select MRP</option>
-                  <option ng-repeat="mrp in showCase.batches[showCase.model_data.batch_number]" value="{{mrp}}">{{mrp}}</option>
+                  <option ng-repeat="mrp in $ctrl.batches[$ctrl.model_data.batch_number]" value="{{mrp}}">{{mrp}}</option>
                 </select>
             </div>
 
@@ -111,51 +112,12 @@
             </div>
         </div>
 
-        <!-- <div class="col-md-5 col-sm-5 col-xs-12" ng-repeat="data in $ctrl.model_data.dest_info">
-            <div class="col-md-4 col-sm-4 col-xs-4">
-                <label class="control-label">Destination SKU Code</label>
-                <input type="text" autocomplete="off" name="dest_sku_code" class="form-control" placeholder="Search SKU Code  &sol; Desc" typeahead="address.wms_code+' : '+address.sku_desc for address in $ctrl.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" typeahead-on-select="$ctrl.model_data.dest_sku_code=$item.wms_code" ng-model="$ctrl.model_data.dest_sku_code" ng-disabled="$ctrl.model_data.src_quantity == 0">
-            </div>
-
-            <div class="col-md-4 col-sm-4 col-xs-4">
-                <label class="control-label">Quantity</label>
-                <input type="text" name="dest_quantity" class="form-control" decimal-number ng-model="$ctrl.model_data.dest_quantity" ng-disabled="$ctrl.model_data.src_quantity == 0">
-            </div>
-          
-            <div>
-              <div class="col-md-4 col-sm-4 col-xs-4">
-                  <label class="control-label">Destination Location</label>
-                  <input type="text" name="dest_location" class="form-control" ng-model="$ctrl.model_data.dest_location" ng-disabled="$ctrl.model_data.src_quantity == 0">
-              </div>
-            </div>
-        </div> -->
-
       </div>
       <div class="row">
         <div class="col-md-4 col-md-offset-4" style="margin-top: 15px; text-align: center">
           <span>{{$ctrl.api_message}}</span>
         </div>
       </div>
-<!-- 
-      <div class="row">
-        <div class="col-md-6 col-sm-6">
-          <div>
-            <div class="col-md-6 col-sm-6 col-xs-6">
-                <label class="control-label">Source Location *</label>
-                <input type="text" name="source_location" class="form-control" ng-model="$ctrl.model_data.source_location" required>
-            </div>
-          </div>  
-        </div>
-
-        <div class="col-md-6 col-sm-6">
-          <div>
-            <div class="col-md-6 col-sm-6 col-xs-6">
-                <label class="control-label">Destination Location *</label>
-                <input type="text" name="dest_location" class="form-control" ng-model="$ctrl.model_data.dest_location" required>
-            </div>
-          </div>
-        </div>
-      </div> -->
     </div>
 
     <div class="modal-footer">

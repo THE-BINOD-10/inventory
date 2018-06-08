@@ -5449,6 +5449,49 @@ def payment_tracker(request, user=''):
                      'total_payment_receivable': "%.2f" % total_payment_receivable})
     return HttpResponse(json.dumps(response))
 
+@csrf_exempt
+#for testing changing the api name: get_inv_based_payment_data
+def get_processed_orders_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
+                         filters):
+    ''' Invoice Based Payment Tracker datatable code '''
+
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    admin_user = get_priceband_admin_user(user)
+    lis = ['invoice_number', 'order__customer_name']#for filter purpose
+    user_filter = {'order__user': user.id}
+    result_values = ['invoice_number', 'order__customer_name']#to make distinct grouping
+    #invoice date= seller order summary creation date
+    #invoice_date = get_local_date(user, invoice_date, send_date='true')
+    #invoice_date = invoice_date.strftime("%d %b %Y")
+
+    if search_term:
+        pass
+    elif order_term:
+        pass
+    else:
+        pass
+    master_data = SellerOrderSummary.objects.filter(**user_filter)\
+                        .exclude(invoice_number='')\
+                        .values(*result_values).distinct()\
+                        .annotate(payment_received = Sum('order__payment_received'), invoice_amount = Sum('order__invoice_amount'),\
+                        invoice_date = Cast('order__customerordersummary__invoice_date', DateField()))
+    import pdb;pdb.set_trace()
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    for data in master_data[start_index:stop_index]:
+        invoice_date = str(data['invoice_date']) if data['invoice_date'] else ''
+        payment_receivable = data['invoice_amount'] - data['payment_received']
+        data_dict = OrderedDict((('invoice_number', data['invoice_number']),
+                                ('invoice_date', invoice_date),
+                                ('customer_name', data['order__customer_name']),
+                                ('invoice_amount', data['invoice_amount']),
+                                ('payment_received', data['payment_received']),
+                                ('payment_receivable', payment_receivable)
+                               ))
+        temp_data['aaData'].append(data_dict)
+    import pdb;pdb.set_trace()
+
 
 @login_required
 @csrf_exempt
@@ -7428,7 +7471,8 @@ def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, o
 
 
 @csrf_exempt
-def get_processed_orders_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
+#for testing changing name dat== data
+def get_processed_orders_dat(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                               filters):
     ''' Customer Invoice datatable code '''
 
@@ -7494,6 +7538,7 @@ def get_processed_orders_data(start_index, stop_index, temp_data, search_term, o
                 *result_values).distinct(). \
                 annotate(total_quantity=Sum('quantity'), total_order=Sum(field_mapping['order_quantity_field']))
 
+        import pdb;pdb.set_trace()
         temp_data['recordsTotal'] = master_data.count()
         temp_data['recordsFiltered'] = temp_data['recordsTotal']
 

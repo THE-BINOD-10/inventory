@@ -5451,7 +5451,7 @@ def payment_tracker(request, user=''):
 
 @csrf_exempt
 #for testing changing the api name: get_inv_based_payment_data
-def get_processed_orders_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
+def get_inv_based_payment_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                          filters):
     ''' Invoice Based Payment Tracker datatable code '''
 
@@ -7472,7 +7472,7 @@ def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, o
 
 @csrf_exempt
 #for testing changing name dat== data
-def get_processed_orders_dat(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
+def get_processed_orders_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                               filters):
     ''' Customer Invoice datatable code '''
 

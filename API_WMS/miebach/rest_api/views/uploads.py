@@ -4653,7 +4653,7 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
                 else:
                     index_status.setdefault(row_idx, set()).add('Seller ID should not be empty')
             elif key in ['source_batch_no', 'dest_batch_no']:
-                if 'source' in key and not cell_data and prev_data_dict:
+                if 'source' in key and not cell_data and prev_data_dict.get(key, ''):
                     data_dict[key] = prev_data_dict[key]
                     continue
                 if isinstance(cell_data, float):
@@ -4662,7 +4662,7 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
             elif key in number_fields:
                 if cell_data and (not isinstance(cell_data, (int, float)) or int(cell_data) < 0):
                     index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])
-                elif 'source' in key and prev_data_dict:
+                elif 'source' in key and prev_data_dict.get(key, ''):
                     data_dict[key] = prev_data_dict[key]
                 else:
                     data_dict[key] = cell_data
@@ -4674,10 +4674,10 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
             reserved_dict = {'stock__sku_id': data_dict['source_sku_code_id'], 'stock__sku__user': user.id,
                              'status': 1,
                              'stock__location_id': data_dict['source_location_id']}
-            if data_dict.get('batch_no', ''):
+            if data_dict.get('source_batch_no', ''):
                 stock_dict["batch_detail__batch_no"] = data_dict['source_batch_no']
                 reserved_dict["stock__batch_detail__batch_no"] = data_dict['source_batch_no']
-            if data_dict.get('mrp', ''):
+            if data_dict.get('source_mrp', ''):
                 try:
                     mrp = data_dict['source_mrp']
                 except:

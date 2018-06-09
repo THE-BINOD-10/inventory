@@ -91,7 +91,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             if(!(po_number)) {
               po_number = temp[temp['check_field']];
             } else if (po_number != temp[temp['check_field']]) {
-              status = true;
+              //status = true;
+              console.log("true");
             }
             field_name = temp['check_field'];
             data.push(temp['id']);

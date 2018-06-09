@@ -229,9 +229,12 @@ def add_user_permissions(request, response_data, user=''):
             else:
                 user_type = 'dist_customer'  # distributor customer login
     elif request_user_profile.warehouse_type == 'CENTRAL_ADMIN':
-        user_type = 'central_admin'
-    elif user_profile.warehouse_type == 'CENTRAL_ADMIN':
-        user_type = 'default'
+        if not request_user_profile.zone:
+            user_type = 'central_admin'
+        else:
+            user_type = 'admin_sub_user'
+    # elif user_profile.warehouse_type == 'CENTRAL_ADMIN':
+    #     user_type = 'default'
     else:
         user_type = request_user_profile.user_type
     response_data['data']['roles']['permissions']['user_type'] = user_type
@@ -483,7 +486,7 @@ data_datatable = {  # masters
     'CustomOrders': 'get_custom_order_data', \
     'ShipmentPickedAlternative': 'get_order_shipment_picked', 'CustomerInvoices': 'get_customer_invoice_data', \
     'ProcessedOrders': 'get_processed_orders_data', 'DeliveryChallans': 'get_delivery_challans_data',
-    'SellerOrderView': 'get_seller_order_view', \
+    'CustomerInvoicesTab': 'get_customer_invoice_tab_data', 'SellerOrderView': 'get_seller_order_view', \
     # manage users
     'ManageUsers': 'get_user_results', 'ManageGroups': 'get_user_groups',
     # retail one
@@ -2490,6 +2493,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     customer_address += ("\nGSTIN No: " + customer_details[0]['tin_number'])
                 consignee = customer_address
             else:
+                customer_id = dat.customer_id
                 customer_address = dat.customer_name + '\n' + dat.address + "\nCall: " \
                                    + str(dat.telephone) + "\nEmail: " + str(dat.email_id)
         if not customer_address:

@@ -21,7 +21,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     var send = {'tabType': 'CustomerInvoices'};
     vm.service.apiCall("customer_invoice_data/", "GET", send).then(function(data) {
       if(data.message) {
-        vm.filters = {'datatable': 'CustomerInvoices', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
+        vm.filters = {'datatable': 'CustomerInvoicesTab', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
         vm.dtOptions = DTOptionsBuilder.newOptions()
           .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -91,7 +91,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             if(!(po_number)) {
               po_number = temp[temp['check_field']];
             } else if (po_number != temp[temp['check_field']]) {
-              status = true;
+              //status = true;
+              console.log("true");
             }
             field_name = temp['check_field'];
             data.push(temp['id']);
@@ -115,7 +116,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         send['delivery_challan'] = DC;
         vm.delivery_challan = DC;
         vm.bt_disable = true;
-        vm.service.apiCall("generate_customer_invoice/", "GET", send).then(function(data){
+        vm.service.apiCall("generate_customer_invoice_tab/", "GET", send).then(function(data){
 
           if(data.message) {
             if(click_type == 'generate') {

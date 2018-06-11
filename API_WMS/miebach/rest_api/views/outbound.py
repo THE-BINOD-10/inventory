@@ -1885,7 +1885,7 @@ def update_invoice(request, user=''):
                                          'original_order_id': org_ord_id, 'user': user.id, 'customer_id': customer_id,
                                          'customer_name': customer_name, 'shipment_date': shipment_date,
                                          'address': address, 'unit_price': price, 'invoice_amount': invoice_amount,
-                                         'creation_date': ord_obj[0].creation_date}
+                                         'creation_date': ord_obj[0].creation_date if ord_obj else None}
                     # tax = get_tax_value(user, order_detail_dict, product_type, tax_type)
                     # total_amount = ((net_amount * tax) / 100) + net_amount
                     # order_detail_dict['invoice_amount'] = invoice_amount
@@ -8081,6 +8081,7 @@ def generate_customer_invoice_tab(request, user=''):
             #sell_ids['pick_number__in'].append(splitted_data[1])
             pick_number = splitted_data[1]
         seller_summary = SellerOrderSummary.objects.filter(**sell_ids)
+        sequence_number = seller_summary[0].invoice_number
         sell_ids['pick_number__in'] = seller_summary.values_list('pick_number', flat=True)
         order_ids = list(seller_summary.values_list(field_mapping['order_id'], flat=True))
         order_ids = map(lambda x: str(x), order_ids)
@@ -8100,6 +8101,7 @@ def generate_customer_invoice_tab(request, user=''):
             invoice_data = modify_invoice_data(invoice_data, user)
         ord_ids = order_ids.split(",")
         invoice_data = add_consignee_data(invoice_data, ord_ids, user)
+        invoice_data['sequence_number'] = sequence_number
         invoice_date = datetime.datetime.now()
         if seller_summary:
             if seller_summary[0].seller_order:

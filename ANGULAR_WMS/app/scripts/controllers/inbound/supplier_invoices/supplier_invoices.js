@@ -327,6 +327,10 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
       'order_id': form_data.order_id.$modelValue,
       'supplier_id': form_data.supplier_id.$modelValue,
     };
+
+    angular.forEach(vm.removed_data, function(data){
+      vm.model_data.data.push(data);
+    });
     update_edit_invoice_data.data = JSON.stringify(vm.model_data.data);
     update_edit_invoice_data.order_charges = JSON.stringify(vm.model_data.order_charges);
 
@@ -385,6 +389,7 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
     return cssClass
   }
 
+  vm.removed_data = [];
   vm.update_data = update_data;
   function update_data(index, data, last) {
     
@@ -412,6 +417,8 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
       });
       }
 
+      vm.model_data.data[index].quantity = 0;
+      vm.removed_data.push(vm.model_data.data[index]);
       vm.model_data.data.splice(index,1);
       vm.cal_total();
     }

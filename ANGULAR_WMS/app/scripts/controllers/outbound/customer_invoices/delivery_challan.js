@@ -281,6 +281,8 @@ function EditDeliveryChallan($scope, $http, $state, $timeout, Session, colFilter
     $modalInstance.close("close");
   };
 
+  vm.removed_data = [];
+
   vm.update_data = function (index) {
     console.log(index);
     if (index == vm.model_data.data.length-1) {
@@ -293,6 +295,8 @@ function EditDeliveryChallan($scope, $http, $state, $timeout, Session, colFilter
       } else {
         vm.delete_data('id', vm.model_data.data[index].id, index);
       }
+      vm.model_data.data[index].quantity = 0;
+      vm.removed_data.push(vm.model_data.data[index]);
       vm.model_data.data.splice(index,1);
       vm.getTotals();
     }
@@ -361,7 +365,7 @@ function EditDeliveryChallan($scope, $http, $state, $timeout, Session, colFilter
     product.igst_tax = "";
     product.utgst_tax = "";
     product.tax = "";
-	product.unit_price = 0;
+	  product.unit_price = 0;
 
     var tax_dict = {0:"intra_state", 1:"inter_state", 2:"default"};
     var data = {sku_codes: item.wms_code, cust_id: vm.model_data.customer_id, tax_type: tax_dict[vm.model_data.tax_type]}
@@ -416,6 +420,11 @@ function EditDeliveryChallan($scope, $http, $state, $timeout, Session, colFilter
       'address': form_data.address.$modelValue,
       'wms_code': form_data.wms_code.$modelValue
     };
+
+    angular.forEach(vm.removed_data, function(data){
+      vm.model_data.data.push(data);
+    });
+
     update_dc_data.data = JSON.stringify(vm.model_data.data);
     vm.process = true;
 

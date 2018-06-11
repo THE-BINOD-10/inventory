@@ -325,18 +325,38 @@ function EditPOChallan($scope, $http, $state, $timeout, Session, colFilters, Ser
     $modalInstance.close("close");
   };
 
+  vm.removed_data = [];
   vm.update_data = function (index) {
     console.log(index);
     if (index == vm.model_data.data.length-1) {
       vm.model_data.data.push({"sku_code": "", "sku_desc": "", "pkng": "", "quantity": 0,
                 "unit_price": 0, "taxes": {"cgst_tax": 0, "sgst_tax": 0,
                 "igst_tax": 0}, "amt": 0, "tax": 0, "invoice_amount": 0});
+
+      /*vm.model_data.data.push(
+        "sku_code":"",
+        "taxes":{"igst_tax":0,"cgst_amt":0,"cgst_tax":0,"sgst_amt":0,"igst_amt":0,"utgst_tax":0,"utgst_amt":0,"sgst_tax":0},
+        "amt":0,
+        "open_po_id":0,
+        "title":"",
+        "tax_type":"",
+        "seller_summary_id":0,
+        "unit_price":0,
+        "hsn_code":"",
+        "shipment_date":"",
+        "invoice_amount":0,
+        "quantity":0,
+        "tax":0,
+      );*/
     } else {
       if(vm.model_data.data[index].order_id){
         vm.delete_data('order_id', vm.model_data.data[index].order_id, index);
       } else {
         vm.delete_data('id', vm.model_data.data[index].id, index);
       }
+
+      vm.model_data.data[index].quantity = 0;
+      vm.removed_data.push(vm.model_data.data[index]);
       vm.model_data.data.splice(index,1);
       vm.getTotals();
     }
@@ -489,6 +509,11 @@ function EditPOChallan($scope, $http, $state, $timeout, Session, colFilters, Ser
       'address': form_data.address.$modelValue,
       'wms_code': form_data.wms_code.$modelValue
     };
+
+    angular.forEach(vm.removed_data, function(data){
+      vm.model_data.data.push(data);
+    });
+
     update_poc_data.data = JSON.stringify(vm.model_data.data);
     vm.process = true;
 

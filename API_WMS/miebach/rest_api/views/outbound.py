@@ -7294,6 +7294,7 @@ def get_levelbased_invoice_data(start_index, stop_index, temp_data, user, search
     temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
     return temp_data
 
+'''
 @csrf_exempt
 def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     data_dict = {}
@@ -7302,8 +7303,90 @@ def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_t
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     stock_transfer_id = ''
     ordered_quantity = ''
-    data_dict.update(OrderedDict((('Stock Transfer ID', stock_transfer_id), ('Order Quantity', ordered_quantity), ('Picked Quantity', ''), ('Total Amount', ''), ('Stock Transfer Date&Time', ''), ('Invoice Number', ''), ('Customer Name', '') )))
-    temp_data['aaData'].append(data_dict)
+    #st_orders_id = STOrder.objects.filter(picklist__stock__sku__user = user.id).distinct().values_list('picklist__picklist_number', flat=True)
+    #st_order_ids = STOrder.objects.filter(stock_transfer__st_po__open_st__sku__user = user.id).distinct().values_list('stock_transfer__order_id', flat=True)
+    st_order_ids = STOrder.objects.filter(picklist__stock__sku__user = user.id).distinct().values_list('stock_transfer__order_id', flat=True)
+    #get warehouse list
+    user_list = []
+    admin_user = UserGroups.objects.filter(Q(admin_user__username__iexact=user.username) | Q(user__username__iexact=user.username)).values_list('admin_user_id', flat=True)
+
+    user_groups = UserGroups.objects.filter(admin_user_id__in=admin_user).values('user__username', 'admin_user__username')
+    for users in user_groups:
+        for key, value in users.iteritems():
+            if user.username != value and value not in user_list:
+                user_list.append(value)
+
+    for ord_id in st_order_ids:
+	picked_qty = 0
+	st_obj = StockTransfer.objects.filter(order_id = ord_id, st_po__open_st__warehouse__username__in = user_list).exclude(st_po__open_st__warehouse__username = '')
+	#first_name = st_obj[0].values('st_po__open_st__warehouse__first_name')['st_po__open_st__warehouse__first_name']
+	try:
+	    first_name = st_obj[0].st_po.open_st.warehouse.username
+	except:
+	    first_name = ''
+
+	picklist_obj = Picklist.objects.filter(order__order_id = ord_id)
+	#picked_qty = picklist_obj.aggregate(Sum('picked_quantity'))['picked_quantity__sum']
+	reserved_qty = picklist_obj.aggregate(Sum('reserved_quantity'))['reserved_quantity__sum']
+	total_price = 0
+	picked_quantity = 0
+	total_picked_quantity = 0
+	for get_sku in picklist_obj:
+	    sku_code = get_sku.sku_code
+	    if sku_code:
+		#get_picked_qty = picklist_obj.filter(sku_code = sku_code)
+		#picked_quantity = get_picked_qty[0].picked_quantity
+		unique_sku_obj = st_obj.filter(st_po__open_st__sku__sku_code = sku_code)
+		try:
+		    picked_quantity = unique_sku_obj[0].st_po.open_st.order_quantity
+		    #total_amount = unique_sku_obj[0].st_po.open_st.price * picked_quantity
+		    #total_amount = get_picked_qty[0].order.sku.price * picked_quantity
+		    total_amount = unique_sku_obj[0].st_po.open_st.price * picked_quantity
+		except:
+		    total_amount = 0
+		total_price = total_amount + total_price
+		total_picked_quantity = picked_quantity + total_picked_quantity
+	temp_data['aaData'].append({'Stock Transfer ID' : ord_id, 'Order Quantity' : '', 'Picked Quantity' : total_picked_quantity, 'Total Amount' : total_price, 'Stock Transfer Date&Time' : '', 'Customer Name': first_name})
+'''
+
+@csrf_exempt
+def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    data_dict = {}
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    temp_data['recordsTotal'] = 0
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    stock_transfer_id = ''
+    ordered_quantity = ''
+    st_orders_id = STOrder.objects.filter(picklist__stock__sku__user = user.id).distinct().values_list('picklist__picklist_number', flat=True)
+    for picklist_num in st_orders_id:
+    	data = get_picked_data(picklist_num, user.id, marketplace='')
+	for obj in data:
+	    try:
+	        ord_id = str(int(obj['order_id']))
+	    except:
+		ord_id = str(obj['order_id'])
+	    total_picked_quantity = obj['picked_quantity']
+	    sku = obj['wms_code']
+	    get_stock_transfer = StockTransfer.objects.filter(sku__sku_code=obj['wms_code'], order_id = ord_id).distinct()
+	    for obj in get_stock_transfer:
+	        try:
+		    shipment_date = str(obj.updation_date)
+		    warehouse = obj.st_po.open_st.warehouse.username
+		    sku_price = obj.st_po.open_st.price
+		    total_price = obj.st_po.open_st.price * total_picked_quantity
+	        except:
+		    continue
+		search_val = ''
+		try:
+		    search_val = (item for idx,item in enumerate(temp_data['aaData']) if item["Stock Transfer ID"] == ord_id and item["Warehouse Name"] == warehouse).next()
+		    if search_val:
+		        exist_qty = search_val['Picked Quantity']
+		        new_qty = total_picked_quantity
+		        exist_amt = search_val['Total Amount']
+		        new_amt = total_price
+		        search_val.update({'Picked Quantity' : exist_qty + new_qty, 'Total Amount' : exist_amt + new_amt})
+		except:
+	    	    temp_data['aaData'].append({'Stock Transfer ID' : ord_id, 'Picked Quantity' : total_picked_quantity, 'Total Amount' : total_price, 'Stock Transfer Date&Time' : shipment_date, 'Warehouse Name': warehouse})
 
 
 @csrf_exempt

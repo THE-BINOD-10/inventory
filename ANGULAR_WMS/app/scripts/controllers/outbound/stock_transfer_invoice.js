@@ -12,10 +12,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.user_type = Session.roles.permissions.user_type;
 
     vm.selected = {};
+    vm.selectedRows = {};
     vm.checked_items = {};
     vm.selectAll = false;
     vm.bt_disable = true;
     vm.display = false;
+    var titleHtml = '<input type="checkbox" class="data-select" ng-model="showCase.selectAll" ng-change="showCase.bt_disable = showCase.toggleAll(showCase.selectAll, showCase.selected); $event.stopPropagation();">';
 
     vm.service.apiCall("stock_transfer_invoice_data/").then(function(data) {
         if(data.message) {
@@ -54,14 +56,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           var not_sort = ['Order Quantity', 'Picked Quantity']
           vm.dtColumns = vm.service.build_colums(columns, not_sort);
           var row_click_bind = 'td';
-          vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle('').notSortable().withOption('width', '20px')
+          vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle().notSortable().withOption('width', '20px')
                  .renderWith(function(data, type, full, meta) {
-                   // if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
-                   //   vm.selected = {};
-                   // }
-                   // vm.selected[meta.row] = vm.selectAll;
-                   return "<i style='cursor: pointer' ng-click='showCase.addRowData($event, "+JSON.stringify(full)+")' class='fa fa-plus-square'></i>";
-                 }))
+                   //vm.selected[meta.row] = vm.selectAll;
+				   vm.selected[meta.row] = false;
+                   vm.selectedRows[meta.row] = full;
+                   var titleHtml = '<input type="checkbox" class="data-select" ng-model="showCase.selected[meta.row]" ng-change="showCase.service.toggleOne(showCase.selected);$event.stopPropagation();"/>'
+				   return titleHtml
+                 }).notSortable())
           row_click_bind = 'td:not(td:first)';
           vm.dtInstance = {};
 
@@ -208,6 +210,45 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     }
 
     vm.delivery_challan = false;
+	vm.toggleAlls = toggleAlls;
+    function toggleAlls (selectAll, selectedItems, event) {
+        for (var id in selectedItems) {
+            if (selectedItems.hasOwnProperty(id)) {
+                selectedItems[id] = selectAll;
+            }
+        }
+        vm.button_fun();
+    }
+
+    vm.toggleOnes = toggleOnes;
+    function toggleOnes (selectedItems) {
+        for (var id in selectedItems) {
+            if (selectedItems.hasOwnProperty(id)) {
+                if(!selectedItems[id]) {
+                    vm.selectAll = false;
+                    vm.button_fun();
+                    return;
+                }
+            }
+        }
+        vm.button_fun();
+    }
+
+    vm.bt_disable = true;
+    vm.button_fun = function() {
+
+      var enable = true
+      for (var id in vm.selected) {
+        if(vm.selected[id]) {
+          vm.bt_disable = false
+          enable = false
+          break;
+        }
+      }
+      if (enable) {
+        vm.bt_disable = true;
+      }
+    }
 
     vm.pdf_data = {};
     vm.generate_invoice = function(click_type, DC=false){
@@ -249,7 +290,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         send['delivery_challan'] = DC;
         vm.delivery_challan = DC;
         vm.bt_disable = true;
-        vm.service.apiCall("generate_customer_invoice/", "GET", send).then(function(data){
+        vm.service.apiCall("generate_stock_transfer_invoice/", "GET", send).then(function(data){
 
           if(data.message) {
             if(click_type == 'generate') {

@@ -4707,6 +4707,13 @@ def get_sku_variants(request, user=''):
                                             stock_dict[sku_id] += int(item['Inventory'])
                                         else:
                                             stock_dict[sku_id] = int(item['Inventory'])
+                                        expected_items = item['Expected']
+                                        if isinstance(expected_items, list) and expected_items:
+                                            asn_stock_map.setdefault(sku_id, []).extend(expected_items)
+                                        wait_on_qc = [v for d in item['OnHoldDetails'] for k, v in d.items()
+                                                      if k == 'WAITONQC']
+                                        if wait_on_qc:
+                                            stock_dict[sku_id] += int(wait_on_qc[0])
                                     else:
                                         if sku_id in stock_dict:
                                             stock_dict[sku_id] += int(item['FG'])
@@ -8889,6 +8896,11 @@ def insert_enquiry_data(request, user=''):
     customer_id = request.user.id
     corporate_name = request.POST.get('name', '')
     admin_user = get_priceband_admin_user(user)
+    enq_limit = get_misc_value('auto_expire_enq_limit', admin_user.id)
+    if enq_limit:
+        enq_limit = int(enq_limit)
+    else:
+        enq_limit = 7
     cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
     if not cum_obj:
         return "No Customer User Mapping Object"
@@ -8902,7 +8914,7 @@ def insert_enquiry_data(request, user=''):
         customer_details = get_order_customer_details(customer_details, request)
         customer_details['customer_id'] = cm_id  # Updating Customer Master ID
         enquiry_map = {'user': user.id, 'enquiry_id': enquiry_id,
-                       'extend_date': datetime.datetime.today() + datetime.timedelta(days=3)}
+                       'extend_date': datetime.datetime.today() + datetime.timedelta(days=enq_limit)}
         if corporate_name:
             enquiry_map['corporate_name'] = corporate_name
         enquiry_map.update(customer_details)

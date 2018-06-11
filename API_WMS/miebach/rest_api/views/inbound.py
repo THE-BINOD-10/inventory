@@ -6194,7 +6194,7 @@ def move_to_poc(request, user=''):
 
 @csrf_exempt
 @get_admin_user
-def move_to_inv(request, user=''):
+def move_to_invoice(request, user=''):
     sell_ids = {}
     seller_summary = SellerPOSummary.objects.none()
     req_data = request.GET.get('data', '')
@@ -6240,6 +6240,7 @@ def generate_supplier_invoice(request, user=''):
             req_data = eval(req_data)
             sell_summary_param['purchase_order__order_id'] = req_data.get('purchase_order__order_id', '')
             sell_summary_param['receipt_number'] = req_data.get('receipt_number', '')
+            sell_summary_param['purchase_order__open_po__sku__user'] = user.id
             seller_summary = SellerPOSummary.objects.filter(**sell_summary_param)
             if seller_summary:
                 up = user.userprofile
@@ -6403,8 +6404,7 @@ def update_poc(request, user=''):
             supp_obj = supp_obj[0]
         supplier_id = supp_obj.id
         supplier_name = supp_obj.name
-    if challan_date:
-        challan_date = datetime.datetime.strptime(challan_date, "%m/%d/%Y")
+    challan_date = datetime.datetime.strptime(challan_date, "%m/%d/%Y") if challan_date else None
     for sku_data in skus_data:
         sku_data = eval(sku_data)
         shipment_date = sku_data[0].get('shipment_date', '')
@@ -6521,8 +6521,7 @@ def update_po_invoice(request, user=''):
             supp_obj = supp_obj[0]
         supplier_id = supp_obj.id
         supplier_name = supp_obj.name
-    if invoice_date:
-        invoice_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y").date()
+    invoice_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y").date() if invoice_date else None
     for sku_data in skus_data:
         sku_data = eval(sku_data)
         shipment_date = sku_data[0].get('shipment_date', '')

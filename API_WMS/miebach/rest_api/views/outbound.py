@@ -1850,6 +1850,9 @@ def update_invoice(request, user=''):
             else:
                 sku_id = myDict['sku_id'][index]
                 quantity = myDict['quantity'][index]
+                sgst_tax = float(myDict['sgst_tax'][index])
+                cgst_tax = float(myDict['cgst_tax'][index])
+                igst_tax = float(myDict['igst_tax'][index])
                 invoice_amount = float(myDict['invoice_amount'][index].replace(',', ''))
                 if invoice_amount == 'NaN':
                     invoice_amount = 0
@@ -1882,7 +1885,7 @@ def update_invoice(request, user=''):
                                          'original_order_id': org_ord_id, 'user': user.id, 'customer_id': customer_id,
                                          'customer_name': customer_name, 'shipment_date': shipment_date,
                                          'address': address, 'unit_price': price, 'invoice_amount': invoice_amount,
-                                         'creation_date': ord_obj[0].creation_date}
+                                         'creation_date': ord_obj[0].creation_date if ord_obj else None}
                     # tax = get_tax_value(user, order_detail_dict, product_type, tax_type)
                     # total_amount = ((net_amount * tax) / 100) + net_amount
                     # order_detail_dict['invoice_amount'] = invoice_amount
@@ -1897,6 +1900,9 @@ def update_invoice(request, user=''):
                     else:
                         ord_obj = OrderDetail(**order_detail_dict)
                         ord_obj.save()
+
+                    CustomerOrderSummary.objects.create(order=ord_obj, sgst_tax=sgst_tax,cgst_tax=cgst_tax,
+                                                        igst_tax=igst_tax, tax_type=tax_type)
                     sos_dict = {'quantity': quantity, 'pick_number': 1,
                                 'creation_date': datetime.datetime.now(), 'order_id': ord_obj.id,
                                 'invoice_number': invoice_number, 'order_status_flag': 'customer_invoices'}
@@ -1960,15 +1966,24 @@ def update_invoice(request, user=''):
                 order_id.quantity = int(myDict['quantity'][unit_price_index])
                 print str(order_id.sku_id) + "= " + str(order_id.quantity)
                 order_id.save()
+                sgst_tax = float(myDict['sgst_tax'][unit_price_index])
+                cgst_tax = float(myDict['cgst_tax'][unit_price_index])
+                igst_tax = float(myDict['igst_tax'][unit_price_index])
                 cust_objs = CustomerOrderSummary.objects.filter(order__id=order_id.id)
                 if cust_objs:
                     cust_obj = cust_objs[0]
+                    cust_obj.sgst_tax = sgst_tax
+                    cust_obj.cgst_tax = cgst_tax
+                    cust_obj.igst_tax = igst_tax
                     cust_obj.consignee = consignee
                     if invoice_date:
                         cust_obj.invoice_date = invoice_date
                     if discount_percentage:
                         cust_obj.discount = ((order_id.quantity * order_id.unit_price)/100) * float(discount_percentage)
                     cust_obj.save()
+                else:
+                    CustomerOrderSummary.objects.create(order=order_id, sgst_tax=sgst_tax, cgst_tax=cgst_tax,
+                                                        igst_tax=igst_tax, tax_type=tax_type)
                 sos_obj = SellerOrderSummary.objects.filter(order_id=order_id)
                 if sos_obj:
                     sos_obj = sos_obj[0]
@@ -8066,6 +8081,7 @@ def generate_customer_invoice_tab(request, user=''):
             #sell_ids['pick_number__in'].append(splitted_data[1])
             pick_number = splitted_data[1]
         seller_summary = SellerOrderSummary.objects.filter(**sell_ids)
+        sequence_number = seller_summary[0].invoice_number
         sell_ids['pick_number__in'] = seller_summary.values_list('pick_number', flat=True)
         order_ids = list(seller_summary.values_list(field_mapping['order_id'], flat=True))
         order_ids = map(lambda x: str(x), order_ids)
@@ -8085,6 +8101,7 @@ def generate_customer_invoice_tab(request, user=''):
             invoice_data = modify_invoice_data(invoice_data, user)
         ord_ids = order_ids.split(",")
         invoice_data = add_consignee_data(invoice_data, ord_ids, user)
+        invoice_data['sequence_number'] = sequence_number
         invoice_date = datetime.datetime.now()
         if seller_summary:
             if seller_summary[0].seller_order:

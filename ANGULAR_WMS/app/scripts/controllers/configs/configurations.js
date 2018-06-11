@@ -40,7 +40,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      52: 'calculate_customer_price', 53: 'shipment_sku_scan', 54: 'disable_brands_view',
                      55: 'sellable_segregation', 56: 'display_styles_price', 57: 'show_purchase_history',
                      58: 'shelf_life_ratio', 59: 'auto_raise_stock_transfer', 60: 'inbound_supplier_invoice',
-                     61: 'customer_dc'}
+                     61: 'customer_dc', 62: 'auto_expire_enq_limit'}
 
   vm.check_box_data = [
     {
@@ -334,6 +334,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       name: "Customer DC Enable/Disable",
       model_name: "customer_dc",
       param_no: 61,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+      name: "Auto Expiry Days for Enquiry Orders",
+      model_name: "auto_expire_enq_limit",
+      param_no: 62,
       class_name: "fa fa-server",
       display: true
     },

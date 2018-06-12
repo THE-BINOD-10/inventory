@@ -1536,7 +1536,10 @@ var app = angular.module('urbanApp')
             title: 'Pending Payment Tracker'
           }
         })
-
+      .state('app.PaymentTrackerInvBased.Inv_Details', {
+            url: '/Inv_Details',
+            templateUrl: 'views/payment_tracker/toggles/inv_details.html',
+          })
       // Orders Sync Issues
       .state('app.OrdersSyncIssues', {
           url: '/OrdersSyncIssues',

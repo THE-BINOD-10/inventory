@@ -71,39 +71,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       $(elem).addClass('fa fa-plus-square');
       Service.showNoty('Something went wrong')
     }
-    /*vm.addRowData = function(event, data) {
-      console.log(data);
-      var elem = event.target;
-      if (!$(elem).hasClass('fa')) {
-        return false;
-      }
-      var data_tr = angular.element(elem).parent().parent();
-      if ($(elem).hasClass('fa-plus-square')) {
-        $(elem).removeClass('fa-plus-square');
-        $(elem).removeClass();
-        $(elem).addClass('glyphicon glyphicon-refresh glyphicon-refresh-animate');
-        Service.apiCall('get_receive_po_style_view/?order_id='+data['PO No'].split("_")[1]).then(function(resp){
-          if (resp.message){
-
-            if(resp.data.status) {
-              var html = $compile("<tr class='row-expansion' style='display: none'><td colspan='13'><dt-po-data data='"+JSON.stringify(resp.data)+"' preview='showCase.preview'></dt-po-data></td></tr>")($scope);
-              data_tr.after(html)
-              data_tr.next().toggle(1000);
-              $(elem).removeClass();
-              $(elem).addClass('fa fa-minus-square');
-            } else {
-              vm.poDataNotFound();
-            }
-          } else {
-            vm.poDataNotFound();
-          }
-        })
-      } else {
-        $(elem).removeClass('fa-minus-square');
-        $(elem).addClass('fa-plus-square');
-        data_tr.next().remove();
-      }
-    }*/
 
     $scope.$on('change_filters_data', function(){
       vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
@@ -120,8 +87,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     angular.copy(data.data, vm.model_data);
                     vm.title = "Invoice Based Payment";
                     vm.update = true;
-                    
+
                     $state.go('app.PaymentTrackerInvBased.Inv_Details');
+                    $timeout(function () {
+                      $(".customer_status").val(vm.model_data.status);
+                    }, 500);
                   }
                 });
             });
@@ -187,4 +157,5 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
 }
+
 })();

@@ -1538,7 +1538,7 @@ var app = angular.module('urbanApp')
         })
       .state('app.PaymentTrackerInvBased.Inv_Details', {
             url: '/Inv_Details',
-            templateUrl: 'views/payment_tracker/toggles/inv_details.html',
+            templateUrl: 'views/payment_tracker/toggle/inv_details.html',
           })
       // Orders Sync Issues
       .state('app.OrdersSyncIssues', {

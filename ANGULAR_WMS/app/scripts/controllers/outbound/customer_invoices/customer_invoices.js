@@ -267,40 +267,40 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
   };
 
   vm.process = false;
-  vm.save = function(form) {
+  vm.save = function(form_data) {
     var updated_inv_data = {};
-    if (vm.permissions.increment_invoice && vm.model_data.sequence_number && form.invoice_number.$invalid) {
+    if (vm.permissions.increment_invoice && vm.model_data.sequence_number && form_data.invoice_number.$invalid) {
 
       Service.showNoty("Please Fill Invoice Number");
       return false;
-    } else if (!form.$valid) {
+    } else if (!form_data.$valid) {
 
       Service.showNoty("Please Fill the Mandatory Fields");
       return false;
     }
     vm.process = true;
 
-    var data = $("form").serializeArray();
+    // var data = $("form").serializeArray();
 
-    // updated_inv_data.form_data = {
-    //   'order_id': form_data.order_id.$modelValue,
-    //   'order_reference': form_data.order_reference.$modelValue,
-    //   'order_reference_date': form_data.order_reference_date.$modelValue,
-    //   'invoice_date': form_data.invoice_date.$modelValue,
-    //   'invoice_number': form_data.invoice_number.$modelValue,
-    //   'marketplace': form_data.marketplace.$modelValue,
-    //   'ship_to': form_data.ship_to.$modelValue,
-    //   'sku_id': form_data.sku_id.$modelValue,
-    //   'title': form_data.title.$modelValue
-    // };
+    updated_inv_data.form_data = {
+      'order_id': form_data.order_id.$modelValue,
+      'order_reference': form_data.order_reference.$modelValue,
+      'order_reference_date': form_data.order_reference_date.$modelValue,
+      'invoice_date': form_data.invoice_date.$modelValue,
+      'invoice_number': form_data.invoice_number.$modelValue,
+      'marketplace': form_data.marketplace.$modelValue,
+      'ship_to': form_data.ship_to.$modelValue,
+      'sku_id': form_data.sku_id.$modelValue,
+      'title': form_data.title.$modelValue
+    };
 
     angular.forEach(vm.removed_data, function(data){
       vm.model_data.data.push(data);
     });
 
-    // updated_inv_data.data = JSON.stringify(vm.model_data.data);
+    updated_inv_data.data = JSON.stringify(vm.model_data.data);
 
-    Service.apiCall("update_invoice/", "POST", data).then(function(data) {
+    Service.apiCall("update_invoice/", "POST", updated_inv_data).then(function(data) {
 
       if(data.message) {
 
@@ -384,11 +384,11 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
     vm.model_data.data.push(empty_data);
     } else {
 	  var del_sku = vm.model_data.data[index];
-      if(!del_sku.new_sku) {
-  	    Service.apiCall("remove_sku/", "POST", del_sku).then(function(data) {
-  		    console.log(data);
-  	    });
-      }
+      // if(!del_sku.new_sku) {
+  	   //  Service.apiCall("remove_sku/", "POST", del_sku).then(function(data) {
+  		  //   console.log(data);
+  	   //  });
+      // }
 
       vm.model_data.data[index].quantity = 0;
       vm.removed_data.push(vm.model_data.data[index]);

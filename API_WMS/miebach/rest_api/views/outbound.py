@@ -5498,10 +5498,11 @@ def get_inv_based_payment_data(start_index, stop_index, temp_data, search_term, 
 def get_invoice_payment_tracker(request, user=''):
     response = {}
     invoice_number = request.GET.get('invoice_number', '')
+    customer_id = request.GET.get('customer_id', '')
     if not invoice_number:
         return "Invoice number is missing"
-    user_filter = {'order__user': user.id, "invoice_number": invoice_number}
-    result_values = ['order__order_id', 'order__order_code', 'order__original_order_id',
+    user_filter = {'order__user': user.id, "invoice_number": invoice_number, "order__customer_id": customer_id}
+    result_values = ['order__order_id', 'order__original_order_id',
                      'order__payment_mode', 'order__customer_id', 'order__customer_name']
     #customer_id = request.GET['id']
     customer_name = request.GET.get('customer_name')

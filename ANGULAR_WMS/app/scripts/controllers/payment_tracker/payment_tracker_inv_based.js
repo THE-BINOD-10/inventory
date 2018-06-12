@@ -114,8 +114,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         $(row_click_bind, nRow).unbind('click');
         $(row_click_bind, nRow).bind('click', function() {
             $scope.$apply(function() {
-
-                vm.service.apiCall('get_invoice_payment_tracker/', 'GET', {customer_id: aData['DT_RowId'],customer_name:}).then(function(data){
+                vm.service.apiCall('get_invoice_payment_tracker/', 'GET', aData).then(function(data){
                   if(data.message) {
                     vm.serial_numbers = [];
                     angular.copy(data.data, vm.model_data);

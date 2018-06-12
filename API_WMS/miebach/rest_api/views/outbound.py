@@ -5457,9 +5457,9 @@ def get_inv_based_payment_data(start_index, stop_index, temp_data, search_term, 
 
     user_profile = UserProfile.objects.get(user_id=user.id)
     admin_user = get_priceband_admin_user(user)
-    lis = ['invoice_number', 'order__customer_name']#for filter purpose
+    lis = ['invoice_number', 'order__customer_name', 'order__customer_id']#for filter purpose
     user_filter = {'order__user': user.id}
-    result_values = ['invoice_number', 'order__customer_name']#to make distinct grouping
+    result_values = ['invoice_number', 'order__customer_name', 'order__customer_id']#to make distinct grouping
     #invoice date= seller order summary creation date
     #invoice_date = get_local_date(user, invoice_date, send_date='true')
     #invoice_date = invoice_date.strftime("%d %b %Y")
@@ -5475,7 +5475,6 @@ def get_inv_based_payment_data(start_index, stop_index, temp_data, search_term, 
                         .values(*result_values).distinct()\
                         .annotate(payment_received = Sum('order__payment_received'), invoice_amount = Sum('order__invoice_amount'),\
                         invoice_date = Cast('order__customerordersummary__invoice_date', DateField()))
-    import pdb;pdb.set_trace()
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
@@ -5485,12 +5484,42 @@ def get_inv_based_payment_data(start_index, stop_index, temp_data, search_term, 
         data_dict = OrderedDict((('invoice_number', data['invoice_number']),
                                 ('invoice_date', invoice_date),
                                 ('customer_name', data['order__customer_name']),
+                                ('customer_id', data['order__customer_id']),
                                 ('invoice_amount', data['invoice_amount']),
                                 ('payment_received', data['payment_received']),
                                 ('payment_receivable', payment_receivable)
                                ))
         temp_data['aaData'].append(data_dict)
-    import pdb;pdb.set_trace()
+
+
+@login_required
+@csrf_exempt
+@get_admin_user
+def get_invoice_payment_tracker(request, user=''):
+    response = {}
+    invoice_number = request.GET.get('invoice_number', '')
+    if not invoice_number:
+        return "Invoice number is missing"
+    user_filter = {'order__user': user.id, "invoice_number": invoice_number}
+    result_values = ['order__order_id', 'order__order_code', 'order__original_order_id',
+                     'order__payment_mode', 'order__customer_id', 'order_customer_name']
+    #customer_id = request.GET['id']
+    customer_name = request.GET.get('customer_name')
+    master_data = SellerOrderSummary.objects.filter(**user_filter).filter(*result_values).distinct()
+
+    order_data = []
+    for data in master_data:
+        order_data.append(
+            {'order_id': str(data['order__order_id']), 'display_order': data['order__original_order_id'],
+             'account': data['order__payment_mode'],
+             'inv_amount': "%.2f" % sum_data['invoice_amount__sum'],
+             'receivable': "%.2f" % (sum_data['invoice_amount__sum'] - sum_data['payment_received__sum']),
+             'received': '%.2f' % sum_data['payment_received__sum'], 'order_status': '',
+             'expected_date': expected_date})
+    response["data"] = order_data
+    return HttpResponse(json.dumps(response))
+
+
 
 
 @login_required

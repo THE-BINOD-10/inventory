@@ -126,7 +126,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     var value = $(parent).find("input").val();
     if(value) {
       var data = {order_id: order.order_id, amount: value}
-      vm.service.apiCall("update_payment_inv_base_status/", "GET", data).then(function(data){
+      vm.service.apiCall("update_payment_status/", "GET", data).then(function(data){
         if(data.message) {
 
           $(parent).find("input").val("");

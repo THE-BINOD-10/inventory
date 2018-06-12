@@ -100,7 +100,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     vm.filter_enable = true;
-    vm.print_enable = false;
     vm.update = false;
     vm.model_data = {};
 
@@ -154,8 +153,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     function close() {
       vm.model_data = {};
       $state.go('app.PaymentTrackerInvBased');
+      vm.reloadData();
     }
 
+    vm.reloadData = function () {
+      $('.custom-table').DataTable().draw();
+    };
 }
 
 })();

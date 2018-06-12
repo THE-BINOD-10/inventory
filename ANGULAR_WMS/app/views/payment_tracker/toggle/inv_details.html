@@ -7,7 +7,7 @@
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
   <div class="modal-dialog model-custom modal-lg" ng-style="showCase.extra_width">
     <div class="modal-content mw100">
-      <div class="process-overlay" ng-if="process || showCase.fb.process"><div class="process-text">Loading...</div></div>
+      <!-- <div class="process-overlay" ng-if="process || showCase.fb.process"><div class="process-text">Loading...</div></div> -->
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span> </button>
         <h4 class="modal-title">{{showCase.title}}</h4> </div>
@@ -16,7 +16,7 @@
         
         <div class="row">
               <div class="col-md-12 col-sm-12 col-xs-12">
-                <table class="table table-stk" style="margin-bottom: 0px;background: #f0f0f0">
+                <table class="table table-stk" style="margin-bottom: 0px;">
                   <thead>
                     <tr>
                       <th>Order ID</th>
@@ -24,18 +24,18 @@
                       <th>Received</th>
                       <th>Receivable</th>
                       <th>Expected Date</th>
-                      <th>Order Status</th>
+                      <th>Account</th>
                       <th style="width: 200px;">Update Amount</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr ng-repeat="data in showCase.inv_based_data">
+                    <tr ng-repeat="data in showCase.model_data.data">
                       <td>{{data.display_order}}</td>
                       <td>{{data.inv_amount}}</td>
                       <td>{{data.received}}</td>
                       <td>{{data.receivable}}</td>
                       <td>{{data.expected_date}}</td>
-                      <td>{{data.order_status}}</td>
+                      <td>{{data.account}}</td>
                       <td class="order-edit">
                         <div class="order-update">
                           <span style="color: #2ECC71;text-decoration: underline;cursor: pointer;" ng-click="showCase.order_update($event)">Update</span>
@@ -55,8 +55,8 @@
       </div>
       <!-- body end-->
       <div class="modal-footer">
-        <button ng-if="(!(showCase.print_enable))" type="button" class="pull-left btn pop pop-green col-xs-12 col-sm-3 col-md-2" ng-click="showCase.close_po(form)">Close PO</button>
-        <button ng-if="(!(showCase.print_enable))" type="button" class="btn pop pop-green pull-right col-xs-12 col-sm-3 col-md-2" ng-click="showCase.submit(form)">Save</button>
+        <button ng-if="(!(showCase.print_enable))" type="button" class="pull-right btn pop pop-green col-xs-12 col-sm-3 col-md-2" ng-click="showCase.close_po(form)">Close PO</button>
+        <!-- <button ng-if="(!(showCase.print_enable))" type="button" class="btn pop pop-green pull-right col-xs-12 col-sm-3 col-md-2" ng-click="showCase.submit(form)">Save</button> -->
       </div>
     </div>
     <!-- /.modal-content -->

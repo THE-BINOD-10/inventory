@@ -1578,58 +1578,67 @@ def get_stock_summary_serials_excel(filter_params, temp_data, headers, user, req
 def confirm_sku_substitution(request, user=''):
     ''' Moving stock from one location to other location with SKU substitution '''
 
+    data_dict = dict(request.POST.iterlists())
     src_sku = request.POST.get('src_sku_code', '')
-    dest_sku = request.POST.get('dest_sku_code', '')
     src_qty = request.POST.get('src_quantity', '')
-    dest_qty = request.POST.get('dest_quantity', '')
     src_loc = request.POST.get('src_location', '')
-    dest_loc = request.POST.get('dest_location', '')
-
+    seller_id = request.POST.get('seller_id', '')
+    if user.userprofile.user_type == 'marketplace_user' and not seller_id:
+        return HttpResponse('Seller ID is Mandatory')
     if not src_sku and not dest_sku and not src_qty and not dest_qty and not src_loc and not dest_loc:
         return HttpResponse('Please Send Required Field')
-
+    if seller_id:
+        seller = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
+        if not seller:
+            return HttpResponse('Invalid Seller Id')
+        else:
+            seller_id = seller[0].id
     src_sku = SKUMaster.objects.filter(user=user.id, sku_code=src_sku)
-    dest_sku = SKUMaster.objects.filter(user=user.id, sku_code=dest_sku)
+    if not src_sku:
+        return HttpResponse('Source SKU Code Not Found')
+    source_sku = src_sku[0]
     src_loc = LocationMaster.objects.filter(zone__user=user.id, location=src_loc)
-    dest_loc = LocationMaster.objects.filter(zone__user=user.id, location=dest_loc)
+    if not src_loc:
+        return HttpResponse('Source Location Not Found')
+    source_location = src_loc[0]
     try:
         src_qty = float(src_qty)
     except ValueError:
         log.info("Substitution: Source Quantity Should Be Number ," + src_qty)
         return HttpResponse('Source Quantity Should Be Number')
-    try:
-        dest_qty = float(dest_qty)
-    except ValueError:
-        log.info("Substitution: Destination Quantity Should Be Number ," + dest_qty)
-        return HttpResponse('Destination Quantity Should Be Number')
-    if not src_sku:
-        return HttpResponse('Source SKU Code Not Found')
-    elif not dest_sku:
-        return HttpResponse('Destination SKU Code Not Found')
-    elif float(src_qty) <= 0:
+    if float(src_qty) <= 0:
         return HttpResponse('Source Quantity Should Greater Than Zero')
-    elif float(dest_qty) <= 0:
-        return HttpResponse('Destination Quantity Should Greater Than Zero')
-    elif not src_loc:
-        return HttpResponse('Source Location Not Found')
-    elif not dest_loc:
-        return HttpResponse('Destination Location Not Found')
+    dest_list = []
+    for ind in range(0, len(data_dict['dest_sku_code'])):
+        dest_sku = SKUMaster.objects.filter(user=user.id, sku_code=data_dict['dest_sku_code'][ind])
+        if not dest_sku:
+            return HttpResponse('Destination SKU Code Not Found')
+        dest_loc = LocationMaster.objects.filter(zone__user=user.id, location=data_dict['dest_location'][ind])
+        if not dest_loc:
+            return HttpResponse('Destination Location Not Found')
+        dest_qty = data_dict['dest_quantity'][ind]
+        try:
+            dest_qty = float(dest_qty)
+        except ValueError:
+            log.info("Substitution: Destination Quantity Should Be Number ," + dest_qty)
+            return HttpResponse('Destination Quantity Should Be Number')
+        if float(dest_qty) <= 0:
+            return HttpResponse('Destination Quantity Should Greater Than Zero')
+        dest_list.append({'dest_sku': dest_sku[0], 'dest_loc': dest_loc[0], 'dest_qty': dest_qty})
 
-    src_sku, dest_sku, src_loc, dest_loc = src_sku[0], dest_sku[0], src_loc[0], dest_loc[0]
-    src_stocks = StockDetail.objects.filter(sku_id=src_sku.id, location_id=src_loc.id, sku__user=user.id)
+    stock_dict = {"sku_id": source_sku.id, "location_id": source_location.id,
+                  "sku__user": user.id, "quantity__gt": 0}
+    src_stocks = StockDetail.objects.filter(**stock_dict)
     src_stock_count = src_stocks.aggregate(Sum('quantity'))['quantity__sum']
     if not src_stock_count:
         return HttpResponse('Source SKU Code Don\'t Have Stock')
     elif src_stock_count < src_qty:
         return HttpResponse('Source SKU Code Have Stock, ' + str(src_stock_count))
-    dest_stocks = StockDetail.objects.filter(sku_id=dest_sku.id, location_id=dest_loc.id, sku__user=user.id)
-    update_stocks_data(src_stocks, float(src_qty), dest_stocks, float(dest_qty), user, [dest_loc], dest_sku.id, '')
-    sub_data = {'source_sku_code_id': src_sku.id, 'source_location': src_loc.location, 'source_quantity': src_qty,
-                'destination_sku_code_id': dest_sku.id, 'destination_location': dest_loc.location,
-                'destination_quantity': dest_qty}
-    SubstitutionSummary.objects.create(**sub_data)
-    log.info("Substitution Done For " + str(json.dumps(sub_data)))
-
+    source_updated = False
+    for dest_dict in dest_list:
+        update_substitution_data(src_stocks, source_sku, source_location, src_qty, dest_dict['dest_sku'],
+                                 dest_dict['dest_loc'], dest_dict['dest_qty'], user, seller_id, source_updated)
+        source_updated = True
     return HttpResponse('Successfully Updated')
 
 

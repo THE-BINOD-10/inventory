@@ -1850,6 +1850,9 @@ def update_invoice(request, user=''):
             else:
                 sku_id = myDict['sku_id'][index]
                 quantity = myDict['quantity'][index]
+                sgst_tax = float(myDict['sgst_tax'][index])
+                cgst_tax = float(myDict['cgst_tax'][index])
+                igst_tax = float(myDict['igst_tax'][index])
                 invoice_amount = float(myDict['invoice_amount'][index].replace(',', ''))
                 if invoice_amount == 'NaN':
                     invoice_amount = 0
@@ -1897,6 +1900,9 @@ def update_invoice(request, user=''):
                     else:
                         ord_obj = OrderDetail(**order_detail_dict)
                         ord_obj.save()
+
+                    CustomerOrderSummary.objects.create(order=ord_obj, sgst_tax=sgst_tax,cgst_tax=cgst_tax,
+                                                        igst_tax=igst_tax, tax_type=tax_type)
                     sos_dict = {'quantity': quantity, 'pick_number': 1,
                                 'creation_date': datetime.datetime.now(), 'order_id': ord_obj.id,
                                 'invoice_number': invoice_number, 'order_status_flag': 'customer_invoices'}
@@ -1960,15 +1966,24 @@ def update_invoice(request, user=''):
                 order_id.quantity = int(myDict['quantity'][unit_price_index])
                 print str(order_id.sku_id) + "= " + str(order_id.quantity)
                 order_id.save()
+                sgst_tax = float(myDict['sgst_tax'][unit_price_index])
+                cgst_tax = float(myDict['cgst_tax'][unit_price_index])
+                igst_tax = float(myDict['igst_tax'][unit_price_index])
                 cust_objs = CustomerOrderSummary.objects.filter(order__id=order_id.id)
                 if cust_objs:
                     cust_obj = cust_objs[0]
+                    cust_obj.sgst_tax = sgst_tax
+                    cust_obj.cgst_tax = cgst_tax
+                    cust_obj.igst_tax = igst_tax
                     cust_obj.consignee = consignee
                     if invoice_date:
                         cust_obj.invoice_date = invoice_date
                     if discount_percentage:
                         cust_obj.discount = ((order_id.quantity * order_id.unit_price)/100) * float(discount_percentage)
                     cust_obj.save()
+                else:
+                    CustomerOrderSummary.objects.create(order=order_id, sgst_tax=sgst_tax, cgst_tax=cgst_tax,
+                                                        igst_tax=igst_tax, tax_type=tax_type)
                 sos_obj = SellerOrderSummary.objects.filter(order_id=order_id)
                 if sos_obj:
                     sos_obj = sos_obj[0]
@@ -4692,6 +4707,13 @@ def get_sku_variants(request, user=''):
                                             stock_dict[sku_id] += int(item['Inventory'])
                                         else:
                                             stock_dict[sku_id] = int(item['Inventory'])
+                                        expected_items = item['Expected']
+                                        if isinstance(expected_items, list) and expected_items:
+                                            asn_stock_map.setdefault(sku_id, []).extend(expected_items)
+                                        wait_on_qc = [v for d in item['OnHoldDetails'] for k, v in d.items()
+                                                      if k == 'WAITONQC']
+                                        if wait_on_qc:
+                                            stock_dict[sku_id] += int(wait_on_qc[0])
                                     else:
                                         if sku_id in stock_dict:
                                             stock_dict[sku_id] += int(item['FG'])
@@ -8874,6 +8896,11 @@ def insert_enquiry_data(request, user=''):
     customer_id = request.user.id
     corporate_name = request.POST.get('name', '')
     admin_user = get_priceband_admin_user(user)
+    enq_limit = get_misc_value('auto_expire_enq_limit', admin_user.id)
+    if enq_limit:
+        enq_limit = int(enq_limit)
+    else:
+        enq_limit = 7
     cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
     if not cum_obj:
         return "No Customer User Mapping Object"
@@ -8887,7 +8914,7 @@ def insert_enquiry_data(request, user=''):
         customer_details = get_order_customer_details(customer_details, request)
         customer_details['customer_id'] = cm_id  # Updating Customer Master ID
         enquiry_map = {'user': user.id, 'enquiry_id': enquiry_id,
-                       'extend_date': datetime.datetime.today() + datetime.timedelta(days=3)}
+                       'extend_date': datetime.datetime.today() + datetime.timedelta(days=enq_limit)}
         if corporate_name:
             enquiry_map['corporate_name'] = corporate_name
         enquiry_map.update(customer_details)

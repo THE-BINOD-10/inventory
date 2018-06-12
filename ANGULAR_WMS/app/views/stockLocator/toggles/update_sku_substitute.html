@@ -36,7 +36,7 @@
 
             <div class="col-md-6 col-sm-5 col-xs-12" ng-if="$ctrl.industry_type == 'FMCG'" style="margin-top: 10px">
                 <label class="control-label"> Batch Number</label>
-                <select class="form-control" name="batch_number" ng-model="$ctrl.model_data.batch_number">
+                <select class="form-control" name="src_batch_number" ng-model="$ctrl.model_data.batch_number">
                   <option value="">Select Batch Number</option>
                   <option ng-repeat="batch_no in $ctrl.batch_nos" value="{{batch_no}}">{{batch_no}}</option>
                 </select>
@@ -44,7 +44,7 @@
 
             <div class="col-md-6 col-sm-5 col-xs-12" ng-if="$ctrl.industry_type == 'FMCG'" style="margin-top: 10px">
                 <label class="control-label"> MRP</label>
-                <select class="form-control" name="mrp" ng-model="$ctrl.model_data.mrp" ng-readonly="$ctrl.batches['$ctrl.model_data.batch_number']">
+                <select class="form-control" name="src_mrp" ng-model="$ctrl.model_data.mrp" ng-readonly="$ctrl.batches['$ctrl.model_data.batch_number']">
                   <option value="">Select MRP</option>
                   <option ng-repeat="mrp in $ctrl.batches[$ctrl.model_data.batch_number]" value="{{mrp}}">{{mrp}}</option>
                 </select>
@@ -89,12 +89,12 @@
 
             <div class="col-md-2 col-sm-2 col-xs-12" style="margin-top: 10px">
                 <label class="control-label"> Batch Number</label>
-                <input type="text" name="batch_number" class="form-control" ng-model="data.batch_number" ng-disabled="!$ctrl.model_data.src_sku_code" ng-debounce>
+                <input type="text" name="dest_batch_number" class="form-control" ng-model="data.batch_number" ng-disabled="!$ctrl.model_data.src_sku_code" ng-debounce>
             </div>
 
             <div class="col-md-2 col-sm-2 col-xs-12" style="margin-top: 10px">
                 <label class="control-label"> MRP</label>
-                <input type="text" name="mrp" class="form-control" ng-model="data.mrp" ng-disabled="!$ctrl.model_data.src_sku_code" ng-debounce>
+                <input type="text" name="dest_mrp" class="form-control" ng-model="data.mrp" ng-disabled="!$ctrl.model_data.src_sku_code" ng-debounce>
             </div>
 
             <div class="col-md-2 col-sm-2 col-xs-12" style="margin-top: 10px">

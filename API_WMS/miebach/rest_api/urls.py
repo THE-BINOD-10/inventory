@@ -252,6 +252,7 @@ urlpatterns = [
     url(r'^get_stock_location_quantity/$', get_stock_location_quantity),
     url(r'^payment_tracker/$', payment_tracker),
     url(r'^get_customer_payment_tracker/$', get_customer_payment_tracker),
+    url(r'^get_invoice_payment_tracker/$', get_invoice_payment_tracker),
     url(r'^get_customer_master_id/$', get_customer_master_id),
     url(r'^get_corporate_master_id/$', get_corporate_master_id),
     url(r'^search_wms_data/$', search_wms_data),

@@ -5502,11 +5502,11 @@ def get_invoice_payment_tracker(request, user=''):
         return "Invoice number is missing"
     user_filter = {'order__user': user.id, "invoice_number": invoice_number}
     result_values = ['order__order_id', 'order__order_code', 'order__original_order_id',
-                     'order__payment_mode', 'order__customer_id', 'order_customer_name']
+                     'order__payment_mode', 'order__customer_id', 'order__customer_name']
     #customer_id = request.GET['id']
     customer_name = request.GET.get('customer_name')
-    master_data = SellerOrderSummary.objects.filter(**user_filter).filter(*result_values).distinct()\
-                                    .aggregate(invoice_amount_sum = Sum('order__invoice_amount'),\
+    master_data = SellerOrderSummary.objects.filter(**user_filter).values(*result_values).distinct()\
+                                    .annotate(invoice_amount_sum = Sum('order__invoice_amount'),\
                                     payment_received_sum = Sum('order__payment_received'))
 
     order_data = []
@@ -5520,7 +5520,6 @@ def get_invoice_payment_tracker(request, user=''):
              'received': '%.2f' % data['payment_received_sum'],
              'expected_date': expected_date})
     response["data"] = order_data
-    import pdb;pdb.set_trace()
     return HttpResponse(json.dumps(response))
 
 
@@ -7571,7 +7570,6 @@ def get_processed_orders_data(start_index, stop_index, temp_data, search_term, o
                 *result_values).distinct(). \
                 annotate(total_quantity=Sum('quantity'), total_order=Sum(field_mapping['order_quantity_field']))
 
-        import pdb;pdb.set_trace()
         temp_data['recordsTotal'] = master_data.count()
         temp_data['recordsFiltered'] = temp_data['recordsTotal']
 

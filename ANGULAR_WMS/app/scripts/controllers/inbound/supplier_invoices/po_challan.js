@@ -349,35 +349,10 @@ function EditPOChallan($scope, $http, $state, $timeout, Session, colFilters, Ser
         "tax":0,
       );*/
     } else {
-      if(vm.model_data.data[index].order_id){
-        vm.delete_data('order_id', vm.model_data.data[index].order_id, index);
-      } else {
-        vm.delete_data('id', vm.model_data.data[index].id, index);
-      }
-
       vm.model_data.data[index].quantity = 0;
       vm.removed_data.push(vm.model_data.data[index]);
       vm.model_data.data.splice(index,1);
       vm.getTotals();
-    }
-  };
-
-  vm.delete_data = function(key, id, index) {
-    if(id) {
-      var del_data = {}
-      del_data[key] = id;
-      vm.service.apiCall('delete_po/', 'GET', del_data).then(function(data){
-        if(data.message) {
-    vm.model_data.data[index].row_price = (vm.model_data.data[index].order_quantity * Number(vm.model_data.data[index].price))
-;
-    vm.model_data.total_price = 0;
-
-    angular.forEach(vm.model_data.data, function(one_row){
-      vm.model_data.total_price = vm.model_data.total_price + (one_row.order_quantity * one_row.price);
-    });
-          vm.service.pop_msg(data.data);
-        }
-      });
     }
   };
 

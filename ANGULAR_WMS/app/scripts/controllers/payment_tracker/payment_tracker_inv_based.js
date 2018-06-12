@@ -53,10 +53,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    // var columns = ['Invoice Data', 'Invoice Number', 'Customer Name', 'Payment Received', 'Payment Receivable', 'Payment Invoice Amount'];
-    var columns = ['PO No', 'PO Reference', 'Customer Name', 'Order Date', 'Expected Date', 'Total Qty', 'Receivable Qty', 'Received Qty',
-                   'Remarks', 'Supplier ID/Name', 'Order Type', 'Receive Status'];
-    vm.dtColumns = vm.service.build_colums(columns);
+    vm.dtColumns = [
+        DTColumnBuilder.newColumn('invoice_date').withTitle('Invoice Date'),
+        DTColumnBuilder.newColumn('invoice_number').withTitle('Invoice Number'),
+        DTColumnBuilder.newColumn('customer_name').withTitle('Customer Name'),
+        DTColumnBuilder.newColumn('invoice_amount').withTitle('Invoice Amount'),
+        DTColumnBuilder.newColumn('payment_received').withTitle('Payment Received'),
+        DTColumnBuilder.newColumn('payment_receivable').withTitle('Payment Receivable'),
+    ];
 
     var row_click_bind = 'td';
     
@@ -110,7 +114,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         $(row_click_bind, nRow).unbind('click');
         $(row_click_bind, nRow).bind('click', function() {
             $scope.$apply(function() {
-                vm.service.apiCall('get_invoice_payment_tracker/', 'GET', {supplier_id: aData['DT_RowId']}).then(function(data){
+
+                vm.service.apiCall('get_invoice_payment_tracker/', 'GET', {customer_id: aData['DT_RowId'],customer_name:}).then(function(data){
                   if(data.message) {
                     vm.serial_numbers = [];
                     angular.copy(data.data, vm.model_data);

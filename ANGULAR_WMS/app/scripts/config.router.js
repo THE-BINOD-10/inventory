@@ -1533,7 +1533,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Pending Payment Tracker'
+            title: 'Invoice Amount'
           }
         })
       .state('app.PaymentTrackerInvBased.Inv_Details', {

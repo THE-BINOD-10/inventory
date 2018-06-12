@@ -61,7 +61,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                    //vm.selected[meta.row] = vm.selectAll;
 				   vm.selected[meta.row] = false;
                    vm.selectedRows[meta.row] = full;
-                   var titleHtml = '<input type="checkbox" class="data-select" ng-model="showCase.selected[meta.row]" ng-change="showCase.service.toggleOne(showCase.selected);$event.stopPropagation();"/>'
+                   var titleHtml = '<input type="checkbox" class="data-select" ng-model="showCase.selected['+meta.row+']" ng-change="showCase.toggleOnes(showCase.selected);$event.stopPropagation();"/>'
 				   return titleHtml
                  }).notSortable())
           row_click_bind = 'td:not(td:first)';
@@ -169,8 +169,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     }
 
     vm.close = function() {
-
-      $state.go("app.outbound.CustomerInvoices")
+      $state.go("app.outbound.CustomerInvoicesMain")
     }
 
     vm.edit_invoice = function() {
@@ -251,88 +250,43 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     }
 
     vm.pdf_data = {};
-    vm.generate_invoice = function(click_type, DC=false){
-
+    vm.generate_invoice = function(click_type, DC=false) {
       var po_number = '';
       var status = false;
       var field_name = "";
-      var data = [];
-      if (vm.user_type == 'distributor') {
-        data = vm.checked_ids;
-      } else {
-        angular.forEach(vm.selected, function(value, key) {
-          if(value) {
-            var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]['_aData'];
-            if(!(po_number)) {
-              po_number = temp[temp['check_field']];
-            } else if (po_number != temp[temp['check_field']]) {
-              status = true;
-            }
-            field_name = temp['check_field'];
-            data.push(temp['id']);
-          }
-        });
-      }
+      var checkbox_valid = [];
+	  var key = 0;
+	  angular.forEach(vm.selected, function(obj, idx) {
+		if (obj) {
+		  checkbox_valid.push(obj)
+		  key = parseInt(idx);
+		  if (checkbox_valid.length	< 1) {
+			vm.service.showNoty("Please select only one row");
+			return false;
+		  }
+		}
+	  });
+	  var selected_row = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]['_aData'];
+	  var send = {};
+	  send['order_id'] = selected_row['Stock Transfer ID'];
+	  send['warehouse_name'] = selected_row['Warehouse Name'];
+	  send['picklist_number'] = selected_row['Picklist Number'];
+	  send['picked_qty'] = selected_row['Picklist Quantity'];
+	  send['stock_transfer_datetime'] = selected_row['Stock Transfer Date&Time'];
+	  send['total_amount'] = selected_row['Total Amount'];
+	  send['invoice_date'] = selected_row['Invoice Date'];
+	  send['order_date'] = selected_row['Order Date'];
 
-      if(status) {
-        vm.service.showNoty("Please select same "+field_name+"'s");
-      } else {
-
-        var ids = data.join(",");
-        var send = {seller_summary_id: ids};
-        if(po_number && field_name == 'SOR ID') {
-          send['sor_id'] = po_number;
-        }
-        if(click_type == 'edit'){
-          send['data'] = true;
-          send['edit_invoice'] = true;
-        }
-        send['delivery_challan'] = DC;
-        vm.delivery_challan = DC;
-        vm.bt_disable = true;
-        vm.service.apiCall("generate_stock_transfer_invoice/", "GET", send).then(function(data){
-
+	  vm.service.apiCall("generate_stock_transfer_invoice/", "GET", send).then(function(data) {
           if(data.message) {
             if(click_type == 'generate') {
-              vm.pdf_data = data.data;
-              if(typeof(vm.pdf_data) == "string" && vm.pdf_data.search("print-invoice") != -1) {
-                $state.go("app.outbound.CustomerInvoices.InvoiceE");
-                $timeout(function () {
-                  $(".modal-body:visible").html(vm.pdf_data)
-                }, 3000);
-              } else if(Session.user_profile.user_type == "marketplace_user") {
-                $state.go("app.outbound.CustomerInvoices.InvoiceM");
-              } else if(vm.permissions.detailed_invoice) {
-                $state.go("app.outbound.CustomerInvoices.InvoiceD");
-              } else {
-                $state.go("app.outbound.CustomerInvoices.InvoiceN");
-              }
-            } else {
-              var mod_data = data.data;
-              var modalInstance = $modal.open({
-              templateUrl: 'views/outbound/toggle/edit_invoice.html',
-              controller: 'EditInvoice',
-              controllerAs: 'pop',
-              size: 'lg',
-              backdrop: 'static',
-              keyboard: false,
-              resolve: {
-                items: function () {
-                  return mod_data;
-                }
-              }
-              });
-
-              modalInstance.result.then(function (selectedItem) {
-                var data = selectedItem;
-              })
+              vm.pdf_data = data.data.resp;
+              $state.go("app.outbound.CustomerInvoicesMain.StockTransferInvoiceGen");
             }
           }
           vm.bt_disable = false;
-        });
-      }
+      });
     }
-
     vm.inv_height = 1358; //total invoice height
     vm.inv_details = 292; //invoice details height
     vm.inv_footer = 95;   //invoice footer height
@@ -341,7 +295,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.inv_product = 47;  //invoice products cell height
     vm.inv_summary = 47;  //invoice summary headers height
     vm.inv_total = 27;    //total display height
-
     vm.render_data = []
   }
 

@@ -1460,6 +1460,10 @@ var app = angular.module('urbanApp')
             url: '/InvoiceD',
             templateUrl: 'views/outbound/print/d_generate_inv_main.html'
           })
+		  .state('app.outbound.CustomerInvoicesMain.StockTransferInvoiceGen', {
+            url: '/StockTransferInvoiceGen',
+            templateUrl: 'views/outbound/print/stock_transfer_inv_gen.html'
+          })
 
          .state('app.outbound.CustomerInvoices.InvoiceM', {
             url: '/InvoiceM',
@@ -1477,6 +1481,7 @@ var app = angular.module('urbanApp')
             url: '/InvoiceD',
             templateUrl: 'views/outbound/print/d_generate_inv.html'
           })
+
       // Upload route
       .state('app.uploads', {
           url: '/uploads',

@@ -5505,18 +5505,22 @@ def get_invoice_payment_tracker(request, user=''):
                      'order__payment_mode', 'order__customer_id', 'order_customer_name']
     #customer_id = request.GET['id']
     customer_name = request.GET.get('customer_name')
-    master_data = SellerOrderSummary.objects.filter(**user_filter).filter(*result_values).distinct()
+    master_data = SellerOrderSummary.objects.filter(**user_filter).filter(*result_values).distinct()\
+                                    .aggregate(invoice_amount_sum = Sum('order__invoice_amount'),\
+                                    payment_received_sum = Sum('order__payment_received'))
 
     order_data = []
+    expected_date = ''
     for data in master_data:
         order_data.append(
             {'order_id': str(data['order__order_id']), 'display_order': data['order__original_order_id'],
              'account': data['order__payment_mode'],
-             'inv_amount': "%.2f" % sum_data['invoice_amount__sum'],
-             'receivable': "%.2f" % (sum_data['invoice_amount__sum'] - sum_data['payment_received__sum']),
-             'received': '%.2f' % sum_data['payment_received__sum'], 'order_status': '',
+             'inv_amount': "%.2f" % data['invoice_amount_sum'],
+             'receivable': "%.2f" % (data['invoice_amount_sum'] - data['payment_received_sum']),
+             'received': '%.2f' % data['payment_received_sum'],
              'expected_date': expected_date})
     response["data"] = order_data
+    import pdb;pdb.set_trace()
     return HttpResponse(json.dumps(response))
 
 

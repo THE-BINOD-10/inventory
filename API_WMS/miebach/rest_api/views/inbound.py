@@ -757,7 +757,8 @@ def generated_po_data(request, user=''):
     vendor_id = ''
     if record[0].vendor:
         vendor_id = record[0].vendor.vendor_id
-    return HttpResponse(json.dumps({'supplier_id': record[0].supplier_id, 'vendor_id': vendor_id,
+    return HttpResponse(json.dumps({'supplier_id': record[0].supplier_id, 'supplier_name': record[0].supplier.name,
+                                    'vendor_id': vendor_id,
                                     'Order Type': status_dict[record[0].order_type], 'po_name': record[0].po_name,
                                     'ship_to': '',
                                     'data': ser_data, 'receipt_type': receipt_type, 'receipt_types': PO_RECEIPT_TYPES}))

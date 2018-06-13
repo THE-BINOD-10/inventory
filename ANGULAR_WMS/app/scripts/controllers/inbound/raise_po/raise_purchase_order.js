@@ -91,6 +91,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
                       "total_price": 0,
                       "tax": "",
                       "sub_total": "",
+                      "supplier_name": data.data.supplier_name,
                       "data": data.data.data,
               };
               vm.model_data = {};

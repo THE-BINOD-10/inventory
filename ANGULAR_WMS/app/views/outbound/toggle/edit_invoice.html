@@ -18,7 +18,7 @@
         <h4 class="modal-title" id="myLargeModalLabel">Edit Invoice</h4>
       </div>
       <div class="modal-body">
-        <input type="hidden" name="order_id" value="{{pop.model_data.order_id}}">
+        <input type="hidden" name="order_id" ng-model="pop.model_data.order_id" value="{{pop.model_data.order_id}}">
         <div class="row">
           <div class="col-md-4 col-sm-4 col-xs-6">
             <div class="form-group">
@@ -42,7 +42,7 @@
             <div class="form-group" ng-if="pop.permissions.increment_invoice && pop.model_data.temp_sequence_number">
               <label class="control-label">Invoice Number</label>
               <input name="invoice_number" ng-model="pop.model_data.sequence_number" class="form-control" type="text" ng-required="true" decimal-number>
-              <input name="marketplace" value="{{pop.model_data.marketplace}}" class="form-control" type="hidden">
+              <input name="marketplace" ng-model="pop.model_data.marketplace" value="{{pop.model_data.marketplace}}" class="form-control" type="hidden">
             </div>
           </div>
           <div class="col-md-4 col-sm-4 col-xs-6">

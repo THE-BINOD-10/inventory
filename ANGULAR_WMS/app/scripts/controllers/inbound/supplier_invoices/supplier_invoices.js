@@ -411,11 +411,11 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
     vm.model_data.data.push(empty_data);
     } else {
     var del_sku = vm.model_data.data[index];
-      if(!del_sku.new_sku) {
-      Service.apiCall("remove_sku/", "POST", del_sku).then(function(data) {
-      console.log(data);
-      });
-      }
+      // if(!del_sku.new_sku) {
+      //   Service.apiCall("remove_sku/", "POST", del_sku).then(function(data) {
+      //     console.log(data);
+      //   });
+      // }
 
       vm.model_data.data[index].quantity = 0;
       vm.removed_data.push(vm.model_data.data[index]);

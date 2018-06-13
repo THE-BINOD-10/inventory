@@ -12,6 +12,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     vm.selected = {};
     vm.selectAll = false;
 
+    vm.date = new Date();
     vm.update_part = true;
     vm.permissions = Session.roles.permissions;
     vm.industry_type = Session.user_profile.industry_type;

@@ -43,7 +43,7 @@
               <div class="form-group">
                 <label class="control-label"> Supplier ID/Name * </label>
                 <input type="text" autocomplete="off" ng-if="(!(showCase.update))" ng-model="showCase.model_data.supplier_full_info" name="supplier_full_info" placeholder="Search Supplier" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?')" typeahead-loading="loadingLocations" class="form-control" typeahead-on-select="showCase.model_data.supplier_id = showCase.service.change_search_value(showCase.model_data.supplier_full_info)" ng-blur="showCase.service.checkSearchValue(showCase.model_data.supplier_id, 'search_supplier?', $event, '', 'Supplier');showCase.supplier_on_change();" ng-required="(showCase.model_data.receipt_type != 'Hosted Warehouse')? true: false;" ng-disabled="showCase.update">
-                <input name="supplier_full_info" class="form-control" ng-if="showCase.update" type="text" value="{{showCase.model_data.supplier_id+':'+showCase.model_data.supplier_id}}" ng-readonly="showCase.update">
+                <input name="supplier_full_info" class="form-control" ng-if="showCase.update" type="text" value="{{showCase.model_data.supplier_id+':'+showCase.model_data.supplier_name}}" ng-readonly="showCase.update">
 
                 <input name="supplier_id" class="form-control" type="hidden" value="{{showCase.model_data.supplier_id}}" ng-model="showCase.model_data.supplier_id">
               </div>

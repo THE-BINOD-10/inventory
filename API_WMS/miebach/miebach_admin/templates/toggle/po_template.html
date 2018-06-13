@@ -93,7 +93,9 @@
               </tr>
             </tbody>
           </table>
+          {% if expiry_date %}
           <span>This purchase order is valid only until Date: {{expiry_date}}</span>
+          {% endif %}
         </div>
       </div>
       <div class="modal-footer hide">

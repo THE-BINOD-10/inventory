@@ -4258,7 +4258,10 @@ def confirm_add_po(request, sales_data='', user=''):
     gstin_no = purchase_order.supplier.tin_number
     po_exp_duration = purchase_order.supplier.po_exp_duration
     order_date = get_local_date(request.user, order.creation_date)
-    expiry_date = order.creation_date + datetime.timedelta(days=po_exp_duration)
+    if po_exp_duration:
+        expiry_date = order.creation_date + datetime.timedelta(days=po_exp_duration)
+    else:
+        expiry_date = ''
     po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
     if industry_type == 'FMCG':
         table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'MRP', 'Amount',

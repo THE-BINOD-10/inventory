@@ -7893,7 +7893,6 @@ def update_dc(request, user=''):
             igst_tax = each_sku['taxes'].get('igst_tax', '')
             invoice_amount = each_sku.get('invoice_amount', '')
 
-            import pdb;pdb.set_trace()
             if not int(quantity):
                 if ord_det_id:
                     ord_obj = OrderDetail.objects.filter(id=ord_det_id)

@@ -6198,6 +6198,7 @@ def move_to_invoice(request, user=''):
     sell_ids = {}
     seller_summary = SellerPOSummary.objects.none()
     req_data = request.GET.get('data', '')
+    invoice_number = request.GET.get('inv_number', '')
     if req_data:
         req_data = eval(req_data)
         req_data = [req_data] if isinstance(req_data,dict) else req_data
@@ -6216,6 +6217,7 @@ def move_to_invoice(request, user=''):
             else:
                 status_flag = 'supplier_invoices'
             sel_obj.order_status_flag = status_flag
+            sel_obj.invoice_number = invoice_number
             sel_obj.save()
         return HttpResponse(json.dumps({'message': 'success'}))
     except Exception as e:

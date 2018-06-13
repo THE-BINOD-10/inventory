@@ -110,6 +110,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
           modalInstance.result.then(function (selectedItem) {
             var data = selectedItem;
+            vm.reloadData();
           })
         }
       });
@@ -252,6 +253,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
               modalInstance.result.then(function (selectedItem) {
                 var data = selectedItem;
+                vm.reloadData();
               })
             }
           }

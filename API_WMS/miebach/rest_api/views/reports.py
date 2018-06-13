@@ -754,8 +754,8 @@ def print_po_reports(request, user=''):
     'UTGST(%)', 'Amount', 'Description')
 
     title = 'Purchase Order'
-    if receipt_type == 'Hosted Warehouse':
-        title = 'Stock Transfer Note'
+    #if receipt_type == 'Hosted Warehouse':
+    #    title = 'Stock Transfer Note'
     return render(request, 'templates/toggle/c_putaway_toggle.html',
                   {'table_headers': table_headers, 'data': po_data, 'data_slices': sku_slices, 'address': address,
                    'order_id': order_id, 'telephone': str(telephone), 'name': name, 'order_date': order_date,
@@ -1032,8 +1032,8 @@ def print_purchase_order_form(request, user=''):
     title = 'Purchase Order'
     receipt_type = request.GET.get('receipt_type', '')
     # if receipt_type == 'Hosted Warehouse':
-    if request.POST.get('seller_id', ''):
-        title = 'Stock Transfer Note'
+    #if request.POST.get('seller_id', ''):
+    #    title = 'Stock Transfer Note'
     if request.POST.get('seller_id', '') and 'shproc' in str(request.POST.get('seller_id').split(":")[1]).lower():
         company_name = 'SHPROC Procurement Pvt. Ltd.'
         title = 'Purchase Order'

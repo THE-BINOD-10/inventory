@@ -1200,8 +1200,8 @@ def confirm_po(request, user=''):
     company_name = profile.company_name
     title = 'Purchase Order'
     receipt_type = request.POST.get('receipt_type', '')
-    if request.POST.get('seller_id', ''):
-        title = 'Stock Transfer Note'
+    #if request.POST.get('seller_id', ''):
+    #    title = 'Stock Transfer Note'
     if request.POST.get('seller_id', '') and str(request.POST.get('seller_id').split(":")[1]).lower() == 'shproc':
         company_name = 'SHPROC Procurement Pvt. Ltd.'
 
@@ -4275,8 +4275,8 @@ def confirm_add_po(request, sales_data='', user=''):
     title = 'Purchase Order'
     receipt_type = request.GET.get('receipt_type', '')
     # if receipt_type == 'Hosted Warehouse':
-    if request.POST.get('seller_id', ''):
-        title = 'Stock Transfer Note'
+    #if request.POST.get('seller_id', ''):
+    #    title = 'Stock Transfer Note'
     if request.POST.get('seller_id', '') and 'shproc' in str(request.POST.get('seller_id').split(":")[1]).lower():
         company_name = 'SHPROC Procurement Pvt. Ltd.'
         title = 'Purchase Order'

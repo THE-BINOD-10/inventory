@@ -4603,7 +4603,7 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
     number_fields = ['source_quantity', 'source_mrp', 'dest_quantity', 'dest_mrp']
     prev_data_dict = {}
     for row_idx in range(1, no_of_rows):
-        data_dict = {}
+        data_dict = {'source_updated': False}
         for key, value in excel_mapping.iteritems():
             cell_data = get_cell_data(row_idx, value, reader, file_type)
             if key in ['source_sku_code', 'dest_sku_code']:
@@ -4615,11 +4615,13 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
                     if not sku_id:
                         index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])
                     else:
-                        data_dict['%s_id' % key] = sku_id
-                        data_dict[key] = SKUMaster.objects.get(id=sku_id, user=user.id).wms_code
+                        sku_master = SKUMaster.objects.get(id=sku_id, user=user.id)
+                        data_dict['%s_obj' % key] = sku_master
+                        data_dict[key] = sku_master.wms_code
                 elif 'source' in key and prev_data_dict.get(key, ''):
-                    data_dict['%s_id' % key] = prev_data_dict['%s_id' % key]
+                    data_dict['%s_obj' % key] = prev_data_dict['%s_obj' % key]
                     data_dict[key] = prev_data_dict[key]
+                    data_dict['source_updated'] = True
                 else:
                     index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])
             elif key in ['source_location', 'dest_location']:
@@ -4629,10 +4631,11 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
                         index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])
                     else:
                         data_dict[key] = location_master[0].location
-                        data_dict['%s_id' % key] = location_master[0].id
+                        data_dict['%s_obj' % key] = location_master[0]
                 elif 'source' in key and prev_data_dict.get(key, ''):
-                    data_dict['%s_id' % key] = prev_data_dict['%s_id' % key]
+                    data_dict['%s_obj' % key] = prev_data_dict['%s_obj' % key]
                     data_dict[key] = prev_data_dict[key]
+                    data_dict['source_updated'] = True
                 else:
                     index_status.setdefault(row_idx, set()).add('%s should not be empty' % inv_res[key])
             elif key == 'seller_id':
@@ -4650,11 +4653,13 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
                 elif prev_data_dict:
                     data_dict[key] = prev_data_dict[key]
                     data_dict['seller_master_id'] = prev_data_dict['seller_master_id']
+                    data_dict['source_updated'] = True
                 else:
                     index_status.setdefault(row_idx, set()).add('Seller ID should not be empty')
             elif key in ['source_batch_no', 'dest_batch_no']:
                 if 'source' in key and not cell_data and prev_data_dict.get(key, ''):
                     data_dict[key] = prev_data_dict[key]
+                    data_dict['source_updated'] = True
                     continue
                 if isinstance(cell_data, float):
                     cell_data = str(int(cell_data))
@@ -4664,16 +4669,17 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
                     index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])
                 elif 'source' in key and prev_data_dict.get(key, ''):
                     data_dict[key] = prev_data_dict[key]
+                    data_dict['source_updated'] = True
                 else:
                     data_dict[key] = cell_data
         if row_idx not in index_status:
             prev_data_dict = copy.deepcopy(data_dict)
-            stock_dict = {"sku_id": data_dict['source_sku_code_id'],
-                          "location_id": data_dict['source_location_id'],
+            stock_dict = {"sku_id": data_dict['source_sku_code_obj'].id,
+                          "location_id": data_dict['source_location_obj'].id,
                           "sku__user": user.id, "quantity__gt": 0}
-            reserved_dict = {'stock__sku_id': data_dict['source_sku_code_id'], 'stock__sku__user': user.id,
+            reserved_dict = {'stock__sku_id': data_dict['source_sku_code_obj'].id, 'stock__sku__user': user.id,
                              'status': 1,
-                             'stock__location_id': data_dict['source_location_id']}
+                             'stock__location_id': data_dict['source_location_obj'].id}
             if data_dict.get('source_batch_no', ''):
                 stock_dict["batch_detail__batch_no"] = data_dict['source_batch_no']
                 reserved_dict["stock__batch_detail__batch_no"] = data_dict['source_batch_no']
@@ -4689,6 +4695,7 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
                 stock_dict['sellerstock__quantity__gt'] = 0
                 reserved_dict["stock__sellerstock__seller_id"] = data_dict['seller_master_id']
             stocks = StockDetail.objects.filter(**stock_dict)
+            data_dict['src_stocks'] = stocks
             if not stocks:
                 index_status.setdefault(row_idx, set()).add('No Stocks Found')
             else:
@@ -4746,4 +4753,21 @@ def sku_substitution_upload(request, user=''):
                                                      no_of_cols, fname, file_type)
     if status != 'Success':
         return HttpResponse(status)
+
+    for data_dict in data_list:
+        dest_filter = {'sku_id': data_dict['dest_sku_code_obj'].id, 'location_id': data_dict['dest_location_obj'].id,
+                       'sku__user': user.id, 'quantity__gt': 0}
+        mrp_dict = {}
+        if data_dict.get('dest_batch_no', ''):
+            dest_filter['batch_detail__batch_no'] = data_dict['dest_batch_no']
+            mrp_dict['batch_no'] = data_dict['dest_batch_no']
+        if data_dict.get('dest_mrp', 0):
+            dest_filter['batch_detail__mrp'] = data_dict['dest_mrp']
+            mrp_dict['mrp'] = data_dict['dest_mrp']
+        dest_stocks = StockDetail.objects.filter(**dest_filter)
+        update_substitution_data(data_dict['src_stocks'], dest_stocks, data_dict['source_sku_code_obj'],
+                                 data_dict['source_location_obj'], data_dict['source_quantity'],
+                                 data_dict['dest_sku_code_obj'], data_dict['dest_location_obj'],
+                                 data_dict['dest_quantity'],user, data_dict['seller_master_id'],
+                                 data_dict['source_updated'], mrp_dict)
     return HttpResponse('Success')

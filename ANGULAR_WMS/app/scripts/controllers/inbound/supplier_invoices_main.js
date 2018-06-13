@@ -138,12 +138,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     if(status) {
       vm.service.showNoty("Please select same "+field_name+"'s");
     } else {
-      var flag = false;
-
       if (click_type == 'move_to_inv') {
         vm.inv_number = '';
-        // var elem = angular.element($('form'));
-        // vm.closed_po['elem'] = $(elem[0]).serializeArray();
         swal2({
           title: 'Please enter invoice number',
           text: '',
@@ -163,9 +159,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               vm.inv_number = text;
               if (text === "") {
                 $('.swal2-validationerror').remove();
+                vm.service.showNoty("Please enter proper invoice number");
                 $('.swal2-loading') = {};
-              } else {
-                flag = true;
               }
               resolve();
             })
@@ -173,30 +168,34 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           allowOutsideClick: false,
           // buttonsStyling: false
         }).then(function (text) {
-            swal2({
+            /*swal2({
               type: 'success',
               title: 'Your entered invoice number saved!',
               // html: 'Submitted text is: ' + text
-            })
+            }),*/
+            // $('.swal2-confirm').click(function(){
+              vm.move_to_api(click_type, data);
+            // })
         });
       } else {
-        flag = true;
-      }
-      if (flag) {
-        var send = data.join(",");
-        send = {data: send}
-        var url = click_type === 'move_to_po_challan' ? 'move_to_po_challan/' : 'move_to_invoice/';
-        vm.bt_disable = true;
-        vm.service.apiCall(url, "GET", send).then(function(data){
-          if(data.message) {
-            console.log(data.message);
-            vm.reloadData();
-          } else {
-            vm.service.showNoty("Something went wrong while moving to po challan !!!");
-          }
-        });
+        vm.move_to_api(click_type, data);
       }
     }
   };
+
+  vm.move_to_api = function(click_type, data){
+    var send = data.join(",");
+    send = {data: send, inv_number: vm.inv_number}
+    var url = click_type === 'move_to_po_challan' ? 'move_to_po_challan/' : 'move_to_invoice/';
+    vm.bt_disable = true;
+    vm.service.apiCall(url, "GET", send).then(function(data){
+      if(data.message) {
+        console.log(data.message);
+        vm.reloadData();
+      } else {
+        vm.service.showNoty("Something went wrong while moving to po challan !!!");
+      }
+    });
+  }
 
 }

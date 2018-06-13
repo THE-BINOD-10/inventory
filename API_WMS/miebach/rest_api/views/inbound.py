@@ -4274,7 +4274,12 @@ def confirm_add_po(request, sales_data='', user=''):
     supplier_email = purchase_order.supplier.email_id
     phone_no = purchase_order.supplier.phone_number
     gstin_no = purchase_order.supplier.tin_number
+    po_exp_duration = purchase_order.supplier.po_exp_duration
     order_date = get_local_date(request.user, order.creation_date)
+    if po_exp_duration:
+        expiry_date = order.creation_date + datetime.timedelta(days=po_exp_duration)
+    else:
+        expiry_date = ''
     po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
     if industry_type == 'FMCG':
         table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price', 'MRP', 'Amount',
@@ -4307,7 +4312,7 @@ def confirm_add_po(request, sales_data='', user=''):
                  'w_address': get_purchase_company_address(profile),
                  'company_name': company_name, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                  'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title,
-                 'gstin_no': gstin_no, 'industry_type': industry_type}
+                 'gstin_no': gstin_no, 'industry_type': industry_type, 'expiry_date': expiry_date}
 
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)

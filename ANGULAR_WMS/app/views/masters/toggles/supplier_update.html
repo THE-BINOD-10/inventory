@@ -64,6 +64,42 @@
                  </div>
               </div>
               <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Owner's Name </label>
+                  <input type="text" name="owner_name" class="form-control" ng-model="showCase.model_data.owner_name" maxlength="256">
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Owner's Number </label>
+                  <input name="owner_number" type="text" class="form-control" ng-model="showCase.model_data.owner_number" minlength="10" maxlength="10" ng-pattern="/^\+?\d{2}[- ]?\d{3}[- ]?\d{5}$/" quantity-number>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Owner's Email </label>
+                 <input type="email" name="owner_email_id" class="form-control" ng-model="showCase.model_data.owner_email_id" maxlength="64">
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> SPOC Name </label>
+                  <input type="text" name="spoc_name" class="form-control" ng-model="showCase.model_data.spoc_name" maxlength="256">
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> SPOC Number </label>
+                  <input name="spoc_number" type="text" class="form-control" ng-model="showCase.model_data.spoc_number" minlength="10" maxlength="10" ng-pattern="/^\+?\d{2}[- ]?\d{3}[- ]?\d{5}$/" quantity-number>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> SPOC Email </label>
+                 <input type="email" name="spoc_email_id" class="form-control" ng-model="showCase.model_data.spoc_email_id" maxlength="64">
+                </div>
+              </div>
+              <div class="col-md-4">
                  <div class="form-group">
                    <label class="control-label"> City </label>
                    <input type="text" name="city" class="form-control" ng-model="showCase.model_data.city" maxlength="64">
@@ -120,7 +156,19 @@
                   <input type="text" name="credibility" class="form-control" ng-model="showCase.model_data.credibility" maxlength="64">
                 </div>
               </div>
-              
+
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Lead Time (Days) </label>
+                  <input name="lead_time" type="text" class="form-control" ng-model="showCase.model_data.lead_time" quantity-number>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Credit Period (Days) </label>
+                  <input name="credit_period" type="text" class="form-control" ng-model="showCase.model_data.credit_period" quantity-number>
+                </div>
+              </div>
               <div class="col-md-4">
                 <div class="form-group">
                   <label class="control-label"> Status </label>
@@ -129,6 +177,42 @@
                   </select>
                 </div>
               </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> PO Expiry Duration </label>
+                  <input type="text" name="po_exp_duration" class="form-control" ng-model="showCase.model_data.po_exp_duration">
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Bank Name </label>
+                  <input type="text" name="bank_name" class="form-control" ng-model="showCase.model_data.bank_name" maxlength="256">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> IFSC Code </label>
+                  <input type="text" name="ifsc_code" class="form-control" ng-model="showCase.model_data.ifsc_code" maxlength="256">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Branch Name </label>
+                  <input type="text" name="branch_name" class="form-control" ng-model="showCase.model_data.branch_name" maxlength="256">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Account Number </label>
+                  <input name="account_number" type="text" class="form-control" ng-model="showCase.model_data.account_number" maxlength="20" quantity-number>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label"> Account Holder Name </label>
+                  <input type="text" name="account_holder_name" class="form-control" ng-model="showCase.model_data.account_holder_name" maxlength="256">
+                </div>
+            </div>
             </div>
             <div class="row">
               <div class="col-md-8">

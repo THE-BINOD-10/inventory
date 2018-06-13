@@ -405,9 +405,11 @@ urlpatterns += [
     url(r'^marketplace_serial_upload/$', marketplace_serial_upload),
     url(r'^seller_transfer_form/$', seller_transfer_form),
     url(r'^seller_transfer_upload/$', seller_transfer_upload),
-
     url(r'^network_master_form/$', network_master_form),
     url(r'^network_master_upload/$', network_master_upload),
+    url(r'^sku_substitution_form/$', sku_substitution_form),
+    url(r'^sku_substitution_upload/$', sku_substitution_upload),
+
     # configurations
     url(r'^configurations/$', configurations),
     url(r'^switches/$', switches),

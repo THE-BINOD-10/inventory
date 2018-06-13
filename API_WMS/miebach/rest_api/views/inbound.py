@@ -757,9 +757,13 @@ def generated_po_data(request, user=''):
     vendor_id = ''
     if record[0].vendor:
         vendor_id = record[0].vendor.vendor_id
-    return HttpResponse(json.dumps({'supplier_id': record[0].supplier_id, 'vendor_id': vendor_id,
+    po_delivery_date = ''
+    if record[0].delivery_date:
+        po_delivery_date = record[0].delivery_date.strftime('%m/%d/%Y')
+    return HttpResponse(json.dumps({'supplier_id': record[0].supplier_id, 'supplier_name': record[0].supplier.name,
+                                    'vendor_id': vendor_id,
                                     'Order Type': status_dict[record[0].order_type], 'po_name': record[0].po_name,
-                                    'ship_to': '',
+                                    'ship_to': '', 'po_delivery_date': po_delivery_date,
                                     'data': ser_data, 'receipt_type': receipt_type, 'receipt_types': PO_RECEIPT_TYPES}))
 
 
@@ -822,6 +826,8 @@ def modify_po_update(request, user=''):
             setattr(record, 'igst_tax', value['igst_tax'])
             setattr(record, 'cess_tax', value['cess_tax'])
             setattr(record, 'utgst_tax', value['utgst_tax'])
+            if value['po_delivery_date']:
+                setattr(record, 'delivery_date', value['po_delivery_date'])
             if record.mrp:
                 setattr(record, 'mrp', value['mrp'])
             record.save()
@@ -873,7 +879,8 @@ def modify_po_update(request, user=''):
         po_suggestions['igst_tax'] = value['igst_tax']
         po_suggestions['cess_tax'] = value['cess_tax']
         po_suggestions['utgst_tax'] = value['utgst_tax']
-
+        if value['po_delivery_date']:
+            po_suggestions['delivery_date'] = value['po_delivery_date']
         data = OpenPO(**po_suggestions)
         data.save()
         if value['sellers']:
@@ -1066,6 +1073,8 @@ def confirm_po(request, user=''):
             setattr(purchase_order, 'igst_tax', value['igst_tax'])
             setattr(purchase_order, 'cess_tax', value['cess_tax'])
             setattr(purchase_order, 'utgst_tax', value['utgst_tax'])
+            if value['po_delivery_date']:
+                setattr(purchase_order, 'delivery_date', value['po_delivery_date'])
             if myDict.get('vendor_id', ''):
                 vendor_master = VendorMaster.objects.get(vendor_id=value['vendor_id'], user=user.id)
                 setattr(purchase_order, 'vendor_id', vendor_master.id)
@@ -1116,6 +1125,8 @@ def confirm_po(request, user=''):
             po_suggestions['igst_tax'] = value['igst_tax']
             po_suggestions['cess_tax'] = value['cess_tax']
             po_suggestions['utgst_tax'] = value['utgst_tax']
+            if value['po_delivery_date']:
+                po_suggestions['delivery_date'] = value['po_delivery_date']
             if value['measurement_unit']:
                 if value['measurement_unit'] != "":
                     po_suggestions['measurement_unit'] = value['measurement_unit']
@@ -1200,8 +1211,8 @@ def confirm_po(request, user=''):
     company_name = profile.company_name
     title = 'Purchase Order'
     receipt_type = request.POST.get('receipt_type', '')
-    if request.POST.get('seller_id', ''):
-        title = 'Stock Transfer Note'
+    #if request.POST.get('seller_id', ''):
+    #    title = 'Stock Transfer Note'
     if request.POST.get('seller_id', '') and str(request.POST.get('seller_id').split(":")[1]).lower() == 'shproc':
         company_name = 'SHPROC Procurement Pvt. Ltd.'
 
@@ -1318,6 +1329,7 @@ def get_raisepo_group_data(user, myDict):
         data_id = ''
         seller_po_id = ''
         supplier_id = ''
+        po_delivery_date = ''
         order_type = 'SR'
         sgst_tax = 0
         mrp = 0
@@ -1331,6 +1343,8 @@ def get_raisepo_group_data(user, myDict):
             supplier_code = myDict['supplier_code'][i]
         if 'po_name' in myDict.keys():
             po_name = myDict['po_name'][0]
+        if 'po_delivery_date' in myDict.keys() and myDict['po_delivery_date'][0]:
+            po_delivery_date = datetime.datetime.strptime(str(myDict['po_delivery_date'][0]), "%m/%d/%Y")
         if 'measurement_unit' in myDict.keys():
             measurement_unit = myDict['measurement_unit'][i]
         if 'vendor_id' in myDict.keys():
@@ -1381,7 +1395,7 @@ def get_raisepo_group_data(user, myDict):
                                    'vendor_id': vendor_id, 'ship_to': ship_to, 'sellers': {}, 'data_id': data_id,
                                    'order_type': order_type, 'mrp': mrp, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax,
                                    'igst_tax': igst_tax, 'cess_tax': cess_tax,
-                                   'utgst_tax': utgst_tax})
+                                   'utgst_tax': utgst_tax, 'po_delivery_date': po_delivery_date})
         all_data[cond]['order_quantity'] += float(myDict['order_quantity'][i])
         if 'dedicated_seller' in myDict:
             seller = myDict['dedicated_seller'][i]
@@ -1459,6 +1473,8 @@ def add_po(request, user=''):
             po_suggestions['cess_tax'] = value['cess_tax']
             po_suggestions['utgst_tax'] = value['utgst_tax']
             po_suggestions['order_type'] = value['order_type']
+            if value['po_delivery_date']:
+                po_suggestions['delivery_date'] = value['po_delivery_date']
             if value.get('vendor_id', ''):
                 vendor_master = VendorMaster.objects.get(vendor_id=value['vendor_id'], user=user.id)
                 po_suggestions['vendor_id'] = vendor_master.id
@@ -4167,6 +4183,8 @@ def confirm_add_po(request, sales_data='', user=''):
         po_suggestions['igst_tax'] = value['igst_tax']
         po_suggestions['cess_tax'] = value['cess_tax']
         po_suggestions['utgst_tax'] = value['utgst_tax']
+        if value['po_delivery_date']:
+            po_suggestions['delivery_date'] = value['po_delivery_date']
         if value['measurement_unit']:
             if value['measurement_unit'] != "":
                 po_suggestions['measurement_unit'] = value['measurement_unit']
@@ -4275,8 +4293,8 @@ def confirm_add_po(request, sales_data='', user=''):
     title = 'Purchase Order'
     receipt_type = request.GET.get('receipt_type', '')
     # if receipt_type == 'Hosted Warehouse':
-    if request.POST.get('seller_id', ''):
-        title = 'Stock Transfer Note'
+    #if request.POST.get('seller_id', ''):
+    #    title = 'Stock Transfer Note'
     if request.POST.get('seller_id', '') and 'shproc' in str(request.POST.get('seller_id').split(":")[1]).lower():
         company_name = 'SHPROC Procurement Pvt. Ltd.'
         title = 'Purchase Order'

@@ -125,6 +125,7 @@ urlpatterns = [
     url(r'^close_po/$', close_po),
     url(r'^check_returns/$', check_returns),
     url(r'^check_sku/$', check_sku),
+    url(r'^create_orders_check_ean/$', create_orders_check_ean),
     url(r'^confirm_sales_return/$', confirm_sales_return),
     url(r'^get_received_orders/$', get_received_orders),
     url(r'^putaway_data/$', putaway_data),

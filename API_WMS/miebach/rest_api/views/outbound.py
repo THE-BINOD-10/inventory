@@ -9724,3 +9724,32 @@ def print_cartons_data_view(request, user=''):
                   'shipment_date': shipment_date, 'company_name': company_name, 'truck_number':truck_number,
                   'courier_name': courier_name, 'data': data.values()}
     return render(request, 'templates/toggle/print_cartons_wise_qty.html', final_data)
+
+@csrf_exempt
+@get_admin_user
+def create_orders_check_ean(request, user=''):
+    data = {}
+    sku_code = ''
+    ean = request.GET.get('ean')
+    sku_obj = SKUMaster.objects.filter(ean_number=ean, user=user.id)
+    if sku_obj:
+        sku_code = sku_obj[0].sku_code
+    """
+    #sku_code = request.GET.get('sku_code')
+    #allocate_order = request.GET.get('allocate_order', 'false')
+    #check = False
+    sku_id = check_and_return_mapping_id(sku_code, '', user, check)
+    if not sku_id:
+        try:
+            sku_id = SKUMaster.objects.filter(ean_number=ean, user=user.id)
+        except:
+            sku_id = ''
+    if sku_id:
+        sku_data = SKUMaster.objects.get(id=sku_id)
+        if allocate_order == 'true':
+            data = allocate_order_returns(user, sku_data, request)
+        if not data:
+            data = {"status": 'confirmed', 'sku_code': sku_data.sku_code, 'description': sku_data.sku_desc,
+                    'order_id': '', 'ship_quantity': '', 'unit_price': '', 'return_quantity': 1}
+    """
+    return HttpResponse(json.dumps({ 'sku' : sku_code }))

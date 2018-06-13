@@ -156,6 +156,15 @@
             </div>
           </div>
         </div>
+
+        <div class="col-md-4 col-sm-4 col-xs-6">
+		<br>
+		  <div class="form-group">
+            <label class="control-label">Scan EAN</label>
+			<textarea class="form-control ng-valid ng-dirty valid" rows="1" ng-model="showCase.model_data.scan_ean" type="text" name="scan_ean" ng-keydown="showCase.scan_ean($event, showCase.model_data.scan_ean)" focus-on="focusSKU" auto-focus="" aria-invalid="false" placeholder="Scan EAN"></textarea>
+          </div>
+		</div>
+
       </div>
       <div class="row" ng-if="showCase.permissions.create_seller_order"><hr></div>
       <div class="row" ng-if="showCase.permissions.create_seller_order">

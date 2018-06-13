@@ -1945,7 +1945,6 @@ def update_invoice(request, user=''):
             unit_price_index = myDict['id'].index(str(order_id.id))
             # if order_id.unit_price != float(myDict['unit_price'][unit_price_index]):
             if int(myDict['quantity'][unit_price_index]) == 0:
-                order_id.delete()
                 cust_objs = CustomerOrderSummary.objects.filter(order__id=order_id.id)
                 if cust_objs:
                     cust_obj = cust_objs[0]
@@ -1954,6 +1953,7 @@ def update_invoice(request, user=''):
                 if sos_obj:
                     sos_obj = sos_obj[0]
                     sos_obj.delete()
+                order_id.delete()
                 continue
             else:
                 cust_obj = order_id.customerordersummary_set.all()
@@ -7893,12 +7893,26 @@ def update_dc(request, user=''):
             igst_tax = each_sku['taxes'].get('igst_tax', '')
             invoice_amount = each_sku.get('invoice_amount', '')
 
-            if not quantity:
+            import pdb;pdb.set_trace()
+            if not int(quantity):
+                if ord_det_id:
+                    ord_obj = OrderDetail.objects.filter(id=ord_det_id)
+                    if ord_obj:
+                        ord_obj = ord_obj[0]
+                        cust_objs = CustomerOrderSummary.objects.filter(order__id=ord_obj.id)
+                        if cust_objs:
+                            cust_obj = cust_objs[0]
+                            cust_obj.delete()
+                        sos_obj = SellerOrderSummary.objects.filter(order_id=ord_obj)
+                        if sos_obj:
+                            sos_obj = sos_obj[0]
+                            sos_obj.delete()
+                        ord_obj.delete()
                 continue
             if ord_det_id:
                 ord_obj = OrderDetail.objects.filter(id=ord_det_id)
                 if ord_obj:
-                    ord_obj[0].quantity = quantity
+                    ord_obj[0].quantity = int(quantity)
                     ord_obj[0].invoice_amount = invoice_amount
                     ord_obj[0].unit_price = unit_price
                     cust_order_summary = CustomerOrderSummary.objects.filter(order_id = ord_obj[0].id)
@@ -8088,7 +8102,7 @@ def generate_customer_invoice_tab(request, user=''):
             #sell_ids['pick_number__in'].append(splitted_data[1])
             pick_number = splitted_data[1]
         seller_summary = SellerOrderSummary.objects.filter(**sell_ids)
-        sequence_number = seller_summary[0].invoice_number
+        sequence_number = seller_summary[0].invoice_number if seller_summary else ''
         sell_ids['pick_number__in'] = seller_summary.values_list('pick_number', flat=True)
         order_ids = list(seller_summary.values_list(field_mapping['order_id'], flat=True))
         order_ids = map(lambda x: str(x), order_ids)

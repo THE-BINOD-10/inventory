@@ -9,12 +9,8 @@
     </thead>
     <tbody>
       <tr class="rm-padding rm-brdr" ng-repeat="record in showCase.pdf_data">
-        <td style="text-align: left;">
-        {{record.sku_code}}
-        </td>
-        <td style="text-align: left;">
-        {{record.title}}
-        </td>
+        <td style="text-align: left;">{{record.sku_code}}</td>
+        <td style="text-align: left;">{{record.sku_description}}</td>
         <td>{{record.picked_quantity}}</td>
         <td>{{record.rate | number:2}}</td>
         <td>{{record.amount | number:2}}</td>

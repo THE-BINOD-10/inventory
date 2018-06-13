@@ -1905,7 +1905,6 @@ def update_invoice(request, user=''):
                                                                                  "%m/%d/%Y").date()
             if update_dict:
                 ord_ids.update(**update_dict)
-
         if increment_invoice == 'true' and invoice_number:
             invoice_sequence = InvoiceSequence.objects.filter(user_id=user.id, marketplace=marketplace)
             if not invoice_sequence:
@@ -7961,6 +7960,8 @@ def generate_stock_transfer_invoice(request, user=''):
     country = user_profile[0]['country']
     address = user_profile[0]['address']
     cin_number = user_profile[0]['cin_number']
+
+    increment_invoice = get_misc_value('increment_invoice', user.id)
     from_warehouse = {}
     from_warehouse = { 'city' : city, 'company_name' : company_name, 'state' : state, 'location' : location, 'phone_number' : phone_number, 'cin_number' : cin_number, 'pin_code' : pin_code, 'country' : country }
 
@@ -7992,6 +7993,7 @@ def generate_stock_transfer_invoice(request, user=''):
 		rate = obj.st_po.open_st.price
 		total_price = rate * total_picked_quantity
 		invoice_amt = total_price + invoice_amt
+                sku_description = obj.sku.sku_desc
 		try:
 		    resp_list['resp'][0].update({'invoice_amount':invoice_amt})
 		except:
@@ -8008,7 +8010,11 @@ def generate_stock_transfer_invoice(request, user=''):
 		    new_amt = total_price
 		    search_val.update({'picked_quantity' : exist_qty + new_qty, 'amount' : exist_amt + new_amt})
 	    except:
-		resp_list['resp'].append({'order_id' : ord_id, 'picked_quantity' : total_picked_quantity, 'rate' : rate, 'amount' : total_price, 'stock_transfer_date_time' : str(shipment_date), 'warehouse_name': warehouse, 'sku_code' : sku, 'invoice_date' : str(invoice_date), 'from_warehouse' : from_warehouse, 'to_warehouse' : to_warehouse, 'invoice_amount' : invoice_amt})
+                if increment_invoice == 'false':
+                    invoice_number = ord_id
+                else:
+                    invoice_number = ''
+		resp_list['resp'].append({'order_id' : ord_id, 'picked_quantity' : total_picked_quantity, 'rate' : rate, 'amount' : total_price, 'stock_transfer_date_time' : str(shipment_date), 'warehouse_name': warehouse, 'sku_code' : sku, 'invoice_date' : str(invoice_date), 'from_warehouse' : from_warehouse, 'to_warehouse' : to_warehouse, 'invoice_amount' : invoice_amt, 'sku_description' : sku_description, 'invoice_number' : invoice_number })
     return HttpResponse(json.dumps(resp_list))
 
 @csrf_exempt

@@ -1529,7 +1529,11 @@ var app = angular.module('urbanApp')
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load([
                   'scripts/controllers/payment_tracker/payment_tracker_inv_based.js'
-                ]);
+                ]).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/payment_tracker/inbound_payment_tracker.js'
+                  ])
+                });
               }]
           },
           data: {

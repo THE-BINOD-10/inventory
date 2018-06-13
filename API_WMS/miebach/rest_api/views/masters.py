@@ -238,7 +238,17 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
                                                 ('status', status), ('supplier_type', data.supplier_type),
                                                 ('tax_type', TAX_TYPE_ATTRIBUTES.get(data.tax_type, '')),
                                                 ('username', username), ('login_created', login_created),
-                                                ('DT_RowId', data.id), ('DT_RowClass', 'results'))))
+                                                ('DT_RowId', data.id), ('DT_RowClass', 'results'),
+                                                ('po_exp_duration', data.po_exp_duration),
+                                                ('owner_name', data.owner_name), ('owner_number', data.owner_number),
+                                                ('owner_email_id', data.owner_email_id), ('spoc_name', data.spoc_name),
+                                                ('spoc_number', data.spoc_number), ('lead_time', data.lead_time),
+                                                ('spoc_email_id', data.spoc_email_id),
+                                                ('credit_period', data.credit_period),
+                                                ('bank_name', data.bank_name), ('ifsc_code', data.ifsc_code),
+                                                ('branch_name', data.branch_name),
+                                                ('account_number', data.account_number),
+                                                ('account_holder_name', data.account_holder_name))))
 
 
 @csrf_exempt
@@ -375,7 +385,7 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
                          ('DT_RowId', data.customer_id), ('DT_RowClass', 'results'),
                          ('discount_percentage', data.discount_percentage), ('lead_time', data.lead_time),
                          ('is_distributor', str(data.is_distributor)), ('markup', data.markup),
-                         )))
+                         ('spoc_name', data.spoc_name))))
 
 
 @csrf_exempt
@@ -1092,7 +1102,7 @@ def insert_supplier(request, user=''):
         if rep_phone and request.POST['phone_number']:
             return HttpResponse('Phone Number already exists')
 
-	create_login = request.POST.get('create_login', '')
+        create_login = request.POST.get('create_login', '')
         password = request.POST.get('password', '')
         username = request.POST.get('username', '')
         login_created = request.POST.get('login_created', '')
@@ -1115,8 +1125,8 @@ def insert_supplier(request, user=''):
             upload_master_file(request, supplier_master.id, "SupplierMaster")
             supplier_master.save()
             status_msg = 'New Supplier Added'
-	    if create_login == 'true':
-	        data = supplier_master
+            if create_login == 'true':
+                data = supplier_master
                 status_msg, new_user_id = create_update_user(data.name, data.email_id, data.phone_number,
                                                          password, username, role_name='supplier')
                 if 'already' in status_msg:

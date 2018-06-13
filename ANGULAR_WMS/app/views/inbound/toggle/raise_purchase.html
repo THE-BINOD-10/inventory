@@ -42,8 +42,10 @@
             <div class="col-md-4 col-sm-4 col-xs-6" ng-show="showCase.model_data.receipt_type != 'Hosted Warehouse'">
               <div class="form-group">
                 <label class="control-label"> Supplier ID/Name * </label>
-                <input type="text" autocomplete="off" ng-if="(!(showCase.update))" ng-model="showCase.model_data.supplier_id" name="supplier_id" placeholder="Search Supplier" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?')" typeahead-loading="loadingLocations" class="form-control" typeahead-on-select="showCase.model_data.supplier_id = showCase.service.change_search_value(showCase.model_data.supplier_id)" ng-blur="showCase.service.checkSearchValue(showCase.model_data.supplier_id, 'search_supplier?', $event, '', 'Supplier');showCase.supplier_on_change();" ng-required="(showCase.model_data.receipt_type != 'Hosted Warehouse')? true: false;" ng-disabled="showCase.update">
-                <input name="supplier_id" class="form-control" ng-if="showCase.update" type="text" ng-model="showCase.model_data.supplier_id" ng-readonly="showCase.update">
+                <input type="text" autocomplete="off" ng-if="(!(showCase.update))" ng-model="showCase.model_data.supplier_full_info" name="supplier_full_info" placeholder="Search Supplier" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?')" typeahead-loading="loadingLocations" class="form-control" typeahead-on-select="showCase.model_data.supplier_id = showCase.service.change_search_value(showCase.model_data.supplier_full_info)" ng-blur="showCase.service.checkSearchValue(showCase.model_data.supplier_id, 'search_supplier?', $event, '', 'Supplier');showCase.supplier_on_change();" ng-required="(showCase.model_data.receipt_type != 'Hosted Warehouse')? true: false;" ng-disabled="showCase.update">
+                <input name="supplier_full_info" class="form-control" ng-if="showCase.update" type="text" value="{{showCase.model_data.supplier_id+':'+showCase.model_data.supplier_name}}" ng-readonly="showCase.update">
+
+                <input name="supplier_id" class="form-control" type="hidden" value="{{showCase.model_data.supplier_id}}" ng-model="showCase.model_data.supplier_id">
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.vendor_receipt">
@@ -63,8 +65,8 @@
                 <label class="control-label"> Ship To </label>
                 <input type="text" ng-model="showCase.model_data.ship_to" name="ship_to" class="form-control"> </div>
             </div>
-            <div class="col-md-4 col-sm-4 col-xs-6">
-              <div class="form-group" ng-if="user.user_profile.user_type == 'marketplace_user'">
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="user.user_profile.user_type == 'marketplace_user'">
+              <div class="form-group">
                 <label class="control-label"> Seller </label>
                 <select class="form-control zone" name="seller_id" ng-model="showCase.model_data.seller_type"
                         ng-change="showCase.seller_change(showCase.model_data.seller_type)" ng-init="showCase.model_data.seller_type=showCase.model_data.seller_types[0]; showCase.seller_change(showCase.model_data.seller_type)">
@@ -72,14 +74,20 @@
                 </select>
               </div>
             </div>
-            <div class="col-md-4 col-sm-4 col-xs-6">
-              <div class="form-group" ng-if="user.user_profile.user_type == 'marketplace_user'">
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="user.user_profile.user_type == 'marketplace_user'">
+              <div class="form-group">
                 <label class="control-label"> Receipt Type </label>
                 <select class="form-control zone" name="receipt_type" ng-model="showCase.model_data.receipt_type" ng-change="showCase.model_data.supplier_id = (showCase.model_data.receipt_type == 'Hosted Warehouse')? '': showCase.model_data.supplier_id;" ng-if="!showCase.update">
                   <option ng-repeat="value in showCase.model_data.receipt_types" value="{{value}}" ng-selected="value == showCase.model_data.receipt_type">{{value}}</option>
                 </select>
                 <input name="receipt_type" class="form-control" type="text" ng-model="showCase.model_data.receipt_type"
                        ng-readonly="showCase.update" ng-if="showCase.update">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">PO Delivery Date</label>
+                <input name="po_delivery_date" ui-jq="datepicker" ng-model="showCase.model_data.po_delivery_date" class="form-control stk-readonly" type="text" id="po_delivery_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}">
               </div>
             </div>
           </div>

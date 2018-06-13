@@ -12,6 +12,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     vm.selected = {};
     vm.selectAll = false;
 
+    vm.date = new Date();
     vm.update_part = true;
     vm.permissions = Session.roles.permissions;
     vm.industry_type = Session.user_profile.industry_type;
@@ -90,6 +91,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
                       "total_price": 0,
                       "tax": "",
                       "sub_total": "",
+                      "po_delivery_date": data.data.po_delivery_date, 
+                      "supplier_name": data.data.supplier_name,
                       "data": data.data.data,
               };
               vm.model_data = {};
@@ -225,7 +228,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
             vm.default_status = false;
             vm.model_data.data[vm.model_data.data.length - 1].fields.dedicated_seller = vm.selected_seller;
             vm.getCompany();
-			vm.populate_last_transaction('')
+			      vm.populate_last_transaction('');
           }
           vm.model_data.receipt_type = 'Purchase Order';
           if (Session.user_profile.user_type == 'marketplace_user') {

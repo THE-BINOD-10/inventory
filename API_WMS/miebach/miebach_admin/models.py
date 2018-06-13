@@ -201,6 +201,20 @@ class SupplierMaster(models.Model):
     days_to_supply = models.IntegerField(default=0)
     fulfillment_amt = models.FloatField(default=0)
     credibility = models.CharField(max_length=32, default='')
+    po_exp_duration = models.IntegerField(default=0)
+    owner_name = models.CharField(max_length=256, default='')
+    owner_number = models.CharField(max_length=64, default='')
+    owner_email_id = models.EmailField(max_length=64, default='')
+    spoc_name = models.CharField(max_length=256, default='')
+    spoc_number = models.CharField(max_length=64, default='')
+    spoc_email_id = models.EmailField(max_length=64, default='')
+    lead_time = models.IntegerField(default=0)
+    credit_period = models.IntegerField(default=0)
+    bank_name = models.CharField(max_length=256, default='')
+    ifsc_code = models.CharField(max_length=64, default='')
+    branch_name = models.CharField(max_length=256, default='')
+    account_number = models.BigIntegerField(default=0)
+    account_holder_name = models.CharField(max_length=256, default='')
 
     class Meta:
         db_table = 'SUPPLIER_MASTER'
@@ -749,6 +763,7 @@ class CustomerMaster(models.Model):
     customer_type = models.CharField(max_length=64, default='')
     is_distributor = models.BooleanField(default=False)
     lead_time = models.PositiveIntegerField(blank=True, default=0)
+    spoc_name = models.CharField(max_length=256, default='')
 
     class Meta:
         db_table = 'CUSTOMER_MASTER'

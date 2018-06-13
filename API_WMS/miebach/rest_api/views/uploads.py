@@ -1805,7 +1805,11 @@ def validate_supplier_form(open_sheet, user_id):
     supplier_ids = []
     mapping_dict = copy.deepcopy(SUPPLIER_EXCEL_FIELDS)
     messages_dict = {'phone_number': 'Phone Number', 'days_to_supply': 'Days required to supply',
-                     'fulfillment_amt': 'Fulfillment Amount'}
+                     'fulfillment_amt': 'Fulfillment Amount', 'owner_number': 'Owner Number',
+                     'spoc_number': 'SPOC Number', 'lead_time': 'Lead Time', 'credit_period': 'Credit Period',
+                     'account_number': 'Account Number'}
+    number_str_fields = ['pincode', 'phone_number', 'days_to_supply', 'fulfillment_amt',
+                         'owner_number', 'spoc_number', 'lead_time', 'credit_period', 'account_number']
     for row_idx in range(0, open_sheet.nrows):
         for key, value in mapping_dict.iteritems():
             cell_data = open_sheet.cell(row_idx, mapping_dict[key]).value
@@ -1835,7 +1839,7 @@ def validate_supplier_form(open_sheet, user_id):
                 if cell_data and validate_email(cell_data):
                     index_status.setdefault(row_idx, set()).add('Enter Valid Email address')
 
-            elif key in ['phone_number', 'days_to_supply', 'fulfillment_amt']:
+            elif key in number_str_fields:
                 if cell_data:
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(row_idx, set()).add('Invalid %s' % messages_dict[key])
@@ -1851,7 +1855,8 @@ def validate_supplier_form(open_sheet, user_id):
 
 def supplier_excel_upload(request, open_sheet, user, demo_data=False):
     mapping_dict = copy.deepcopy(SUPPLIER_EXCEL_FIELDS)
-    number_str_fields = ['pincode', 'phone_number', 'days_to_supply', 'fulfillment_amt']
+    number_str_fields = ['pincode', 'phone_number', 'days_to_supply', 'fulfillment_amt',
+                         'owner_number', 'spoc_number', 'lead_time', 'credit_period', 'account_number']
     rev_tax_types = dict(zip(TAX_TYPE_ATTRIBUTES.values(), TAX_TYPE_ATTRIBUTES.keys()))
     for row_idx in range(1, open_sheet.nrows):
         sku_code = ''
@@ -3070,8 +3075,7 @@ def validate_customer_form(request, reader, user, no_of_rows, fname, file_type='
     if not mapping_dict:
         return "Headers not Matching"
     number_fields = {'credit_period': 'Credit Period', 'phone_number': 'Phone Number', 'pincode': 'PIN Code',
-                     'phone': 'Phone Number',
-                     'discount_percentage': 'Discount Percentage'}
+                     'phone': 'Phone Number', 'discount_percentage': 'Discount Percentage'}
     for row_idx in range(1, no_of_rows):
         if not mapping_dict:
             break

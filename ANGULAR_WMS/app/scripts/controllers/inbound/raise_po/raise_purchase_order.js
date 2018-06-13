@@ -226,7 +226,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
             vm.default_status = false;
             vm.model_data.data[vm.model_data.data.length - 1].fields.dedicated_seller = vm.selected_seller;
             vm.getCompany();
-			vm.populate_last_transaction('')
+			      vm.populate_last_transaction('');
           }
           vm.model_data.receipt_type = 'Purchase Order';
           if (Session.user_profile.user_type == 'marketplace_user') {

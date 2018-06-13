@@ -1582,6 +1582,8 @@ def confirm_sku_substitution(request, user=''):
     src_sku = request.POST.get('src_sku_code', '')
     src_qty = request.POST.get('src_quantity', '')
     src_loc = request.POST.get('src_location', '')
+    src_batch_no = request.POST.get('src_batch_number', '')
+    src_mrp = request.POST.get('mrp', 0)
     seller_id = request.POST.get('seller_id', '')
     if user.userprofile.user_type == 'marketplace_user' and not seller_id:
         return HttpResponse('Seller ID is Mandatory')
@@ -1608,6 +1610,21 @@ def confirm_sku_substitution(request, user=''):
         return HttpResponse('Source Quantity Should Be Number')
     if float(src_qty) <= 0:
         return HttpResponse('Source Quantity Should Greater Than Zero')
+    stock_dict = {"sku_id": source_sku.id, "location_id": source_location.id,
+                  "sku__user": user.id, "quantity__gt": 0}
+    if seller_id:
+        stock_dict['sellerstock__seller_id'] = seller_id
+    if src_batch_no:
+        stock_dict['batch_detail__batch_no'] = src_batch_no
+    if src_mrp:
+        stock_dict['batch_detail__mrp'] = src_mrp
+    src_stocks = StockDetail.objects.filter(**stock_dict)
+    src_stock_count = src_stocks.aggregate(Sum('quantity'))['quantity__sum']
+    if not src_stock_count:
+        return HttpResponse('Source SKU Code Don\'t Have Stock')
+    elif src_stock_count < src_qty:
+        return HttpResponse('Source SKU Code Have Stock, ' + str(src_stock_count))
+
     dest_list = []
     for ind in range(0, len(data_dict['dest_sku_code'])):
         dest_sku = SKUMaster.objects.filter(user=user.id, sku_code=data_dict['dest_sku_code'][ind])
@@ -1624,20 +1641,22 @@ def confirm_sku_substitution(request, user=''):
             return HttpResponse('Destination Quantity Should Be Number')
         if float(dest_qty) <= 0:
             return HttpResponse('Destination Quantity Should Greater Than Zero')
-        dest_list.append({'dest_sku': dest_sku[0], 'dest_loc': dest_loc[0], 'dest_qty': dest_qty})
-
-    stock_dict = {"sku_id": source_sku.id, "location_id": source_location.id,
-                  "sku__user": user.id, "quantity__gt": 0}
-    src_stocks = StockDetail.objects.filter(**stock_dict)
-    src_stock_count = src_stocks.aggregate(Sum('quantity'))['quantity__sum']
-    if not src_stock_count:
-        return HttpResponse('Source SKU Code Don\'t Have Stock')
-    elif src_stock_count < src_qty:
-        return HttpResponse('Source SKU Code Have Stock, ' + str(src_stock_count))
+        dest_filter = {'sku_id': dest_sku[0].id, 'location_id': dest_loc[0].id,
+                       'sku__user': user.id}
+        mrp_dict = {}
+        if 'dest_batch_number' in data_dict.keys():
+            mrp_dict['batch_no'] = data_dict['dest_batch_number'][ind]
+            mrp_dict['mrp'] = data_dict['dest_mrp'][ind]
+            dest_filter['batch_detail__batch_no'] = data_dict['dest_batch_number'][ind]
+            dest_filter['batch_detail__mrp'] = data_dict['dest_mrp'][ind]
+        dest_stocks = StockDetail.objects.filter(**dest_filter)
+        dest_list.append({'dest_sku': dest_sku[0], 'dest_loc': dest_loc[0], 'dest_qty': dest_qty,
+                          'dest_stocks': dest_stocks, 'mrp_dict': mrp_dict})
     source_updated = False
     for dest_dict in dest_list:
-        update_substitution_data(src_stocks, source_sku, source_location, src_qty, dest_dict['dest_sku'],
-                                 dest_dict['dest_loc'], dest_dict['dest_qty'], user, seller_id, source_updated)
+        update_substitution_data(src_stocks, dest_stocks, source_sku, source_location, src_qty, dest_dict['dest_sku'],
+                                 dest_dict['dest_loc'], dest_dict['dest_qty'], user, seller_id,
+                                 source_updated, dest_dict['mrp_dict'])
         source_updated = True
     return HttpResponse('Successfully Updated')
 

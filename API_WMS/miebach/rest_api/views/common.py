@@ -1466,7 +1466,7 @@ def change_seller_stock(seller_id='', stock='', user='', quantity=0, status='dec
 
 
 def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id='',
-                       dest_seller_id='', source_updated=False):
+                       dest_seller_id='', source_updated=False, mrp_dict=None):
     batch_obj = ''
     if not source_updated:
         for stock in stocks:
@@ -1488,14 +1488,16 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
                 break
     else:
         batch_obj = stocks[0].batch_detail
-
     if not dest_stocks:
         dict_values = {'receipt_number': 1, 'receipt_date': datetime.datetime.now(),
                        'quantity': float(quantity), 'status': 1,
                        'creation_date': datetime.datetime.now(),
                        'updation_date': datetime.datetime.now(),
                        'location_id': dest[0].id, 'sku_id': sku_id}
-        if batch_obj:
+        if mrp_dict:
+            mrp_dict['creation_date'] = datetime.datetime.now()
+            dict_values['batch_detail_id'] = BatchDetail.objects.create(**mrp_dict).id
+        elif batch_obj:
             dict_values['batch_detail'] = batch_obj
         dest_stocks = StockDetail(**dict_values)
         dest_stocks.save()
@@ -7079,11 +7081,11 @@ def create_seller_order_transfer(seller_order, seller_id, trans_mapping):
     return trans_mapping
 
 
-def update_substitution_data(src_stocks, src_sku, src_loc, src_qty, dest_sku, dest_loc, dest_qty, user, seller_id,
-                             source_updated):
-    dest_stocks = StockDetail.objects.filter(sku_id=dest_sku.id, location_id=dest_loc.id, sku__user=user.id)
+def update_substitution_data(src_stocks, dest_stocks, src_sku, src_loc, src_qty, dest_sku, dest_loc, dest_qty, user, seller_id,
+                             source_updated, mrp_dict):
     update_stocks_data(src_stocks, float(src_qty), dest_stocks, float(dest_qty), user, [dest_loc], dest_sku.id,
-                       src_seller_id=seller_id, dest_seller_id=seller_id, source_updated=source_updated)
+                       src_seller_id=seller_id, dest_seller_id=seller_id, source_updated=source_updated,
+                       mrp_dict=mrp_dict)
     sub_data = {'source_sku_code_id': src_sku.id, 'source_location': src_loc.location, 'source_quantity': src_qty,
                 'destination_sku_code_id': dest_sku.id, 'destination_location': dest_loc.location,
                 'destination_quantity': dest_qty}

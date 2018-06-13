@@ -5465,16 +5465,31 @@ def get_inv_based_payment_data(start_index, stop_index, temp_data, search_term, 
     #invoice_date = invoice_date.strftime("%d %b %Y")
 
     if search_term:
-        pass
-    elif order_term:
-        pass
-    else:
-        pass
-    master_data = SellerOrderSummary.objects.filter(**user_filter)\
+        search_term = search_term.replace('(', '\(').replace(')', '\)')
+        search_query = build_search_term_query(lis, search_term)
+        master_data = SellerOrderSummary.objects.filter(search_query, **user_filter)\
                         .exclude(invoice_number='')\
                         .values(*result_values).distinct()\
                         .annotate(payment_received = Sum('order__payment_received'), invoice_amount = Sum('order__invoice_amount'),\
                         invoice_date = Cast('order__customerordersummary__invoice_date', DateField()))
+
+    elif order_term:
+        if order_term == 'asc' and (col_num or col_num == 0):
+            order_by = '%s' % lis[col_num]
+        else:
+            order_by = '-%s' % lis[col_num]
+        master_data = SellerOrderSummary.objects.filter(**user_filter)\
+                        .exclude(invoice_number='')\
+                        .values(*result_values).distinct()\
+                        .annotate(payment_received = Sum('order__payment_received'), invoice_amount = Sum('order__invoice_amount'),\
+                        invoice_date = Cast('order__customerordersummary__invoice_date', DateField()))\
+                        .order_by('-%s' % lis[col_num])
+    else:
+        master_data = SellerOrderSummary.objects.filter(**user_filter)\
+                            .exclude(invoice_number='')\
+                            .values(*result_values).distinct()\
+                            .annotate(payment_received = Sum('order__payment_received'), invoice_amount = Sum('order__invoice_amount'),\
+                            invoice_date = Cast('order__customerordersummary__invoice_date', DateField()))
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
 

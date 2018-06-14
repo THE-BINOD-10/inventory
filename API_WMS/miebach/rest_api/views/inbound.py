@@ -6421,7 +6421,17 @@ def update_poc(request, user=''):
             utgst_tax = float(each_sku['taxes'].get('utgst_tax', 0))
             invoice_amount = float(each_sku.get('invoice_amount', 0))
 
-            if not quantity:
+            if not int(quantity):
+                #if seller_summary_id:
+                    #seller_po_summary_obj = SellerPOSummary.objects.filter(id=seller_summary_id)
+                    #if seller_po_summary_obj:
+                        #seller_po_summary_obj = seller_po_summary_obj[0]
+                        #seller_po_summary_obj.delete()
+                if open_po_id:
+                    open_po_obj = OpenPO.objects.filter(id=open_po_id)
+                    if open_po_obj:
+                        open_po_obj = open_po_obj[0]
+                        open_po_obj.delete()
                 continue
             if seller_summary_id:
                 seller_po_summary_obj = SellerPOSummary.objects.filter(id=seller_summary_id)
@@ -6483,11 +6493,6 @@ def update_poc(request, user=''):
     return HttpResponse(json.dumps({'message': 'success'}))
 
 
-
-
-
-
-
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -6538,7 +6543,17 @@ def update_po_invoice(request, user=''):
             utgst_tax = float(each_sku['taxes'].get('utgst_tax', 0))
             invoice_amount = float(each_sku.get('invoice_amount', 0))
 
-            if not quantity:
+            if not int(quantity):
+                #if seller_summary_id:
+                    #seller_po_summary_obj = SellerPOSummary.objects.filter(id=seller_summary_id)
+                    #if seller_po_summary_obj:
+                        #seller_po_summary_obj = seller_po_summary_obj[0]
+                        #seller_po_summary_obj.delete()
+                if open_po_id:
+                    open_po_obj = OpenPO.objects.filter(id=open_po_id)
+                    if open_po_obj:
+                        open_po_obj = open_po_obj[0]
+                        open_po_obj.delete()
                 continue
             if seller_summary_id:
                 seller_po_summary_obj = SellerPOSummary.objects.filter(id=seller_summary_id)

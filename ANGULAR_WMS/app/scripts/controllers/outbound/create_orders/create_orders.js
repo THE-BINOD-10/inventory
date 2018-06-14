@@ -1403,46 +1403,35 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     if (event.keyCode == 13 && field.length > 0) {
       console.log(field);
 	  vm.scan_ean_disable = true;
-	  vm.service.apiCall('create_orders_check_ean/', 'GET',{'ean': field}).then(function(data) {
+	  vm.service.apiCall('create_orders_check_ean/', 'GET', {'ean': field}).then(function(data) {
 		$('textarea[name="scan_ean"]').trigger('focus').val('');
-		if(data.message) {
+        if(data.message) {
+		  if(data.data.sku) {
 		  vm.get_customer_sku_prices(data.data.sku).then(function(resp) {
 		  if(resp.length > 0) {
 			resp = resp[0]
-			//Check SKU already present in vm.model_data else append new model_data
-			//already present then add qty only
-			//var items = [{  id: "5", country: "UAE" }, { id: "4",  country: "India" }];
-    		//search value
-    		//filter the array
 			var foundItem = $filter('filter')(vm.model_data.data, {'sku_id':resp.wms_code}, true)[0];
-    		//get the index
 			if (foundItem) {
 				var index = vm.model_data.data.indexOf(foundItem);
 				var exist_qty = vm.model_data.data[index]['quantity']
-				vm.model_data.data[index]['quantity'] = 1 + exist_qty
+				vm.model_data.data[index]['quantity'] = 1 + parseInt(exist_qty)
+                vm.change_quantity(vm.model_data.data[index])
 			} else {
-				vm.model_data.data = []
-				vm.model_data.data.push({ 'capacity': 0, 'description':resp.sku_desc, 'discount': 0, 'discount_percentage':'', 'invoice_amount': resp.price, 'location':'', 'price': resp.price, 'priceRanges':[], 'quantity': 1,'serial':'', 'serials':[], 'sku_id': resp.wms_code, 'tax': 0, 'taxes':[], 'total_amount': resp.price, 'unit_price': resp.price })
+                if (vm.model_data.data.length) {
+                    if (vm.model_data.data[0]['sku_id'] == '') {
+                        vm.model_data.data = []
+                    }
+                }
+                vm.model_data.data.push({ 'capacity': 0, 'description':resp.sku_desc, 'discount': 0, 'discount_percentage':'', 'invoice_amount': resp.price, 'location':'', 'price': resp.price, 'priceRanges':[], 'quantity': 1, 'serial':'', 'serials':[], 'sku_id': resp.wms_code, 'tax': 0, 'taxes':[], 'total_amount': resp.price, 'unit_price': resp.price })
+                vm.change_quantity(vm.model_data.data[0])
 			}
-
-			/*record["price"] = data.price;
-			record["description"] = data.sku_desc;
-			if (! vm.model_data.blind_order) {
-			  if(!(record.quantity)) {
-				record.quantity = 1
-			  }
-			}
-			record["taxes"] = data.taxes;
-			record.invoice_amount = Number(record.price)*Number(record.quantity);
-			record["priceRanges"] = data.price_bands_map;
-			vm.cal_percentage(record);
-			vm.update_availabe_stock(record)
-			*/
 		  }
 		  })
-		} else {
-		  Service.showNoty("SKU Not Found");
-		}
+		  } else {
+		    Service.showNoty("SKU Not Found");
+            return false;
+		  }
+        }
 	  })
 	}
   }

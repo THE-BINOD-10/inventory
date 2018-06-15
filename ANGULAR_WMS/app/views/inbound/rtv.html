@@ -30,7 +30,7 @@
                   <input name="supplier_id" class="form-control" type="hidden" value="{{showCase.model_data.supplier_id}}" ng-model="showCase.model_data.supplier_id"> -->
 
 
-                  <input type="text" autocomplete="off" name="supplier_id" class="form-control" placeholder="Search Supplier ID/Name" typeahead="address.supplier_id+' : '+address.name+' : '+address.phone_number for address in $ctrl.service.getSearchValues($viewValue, 'search_supplier?')" typeahead-loading="loadingLocations" ng-model="$ctrl.model_data.supplier_id" typeahead-on-select="$ctrl.model_data.supplier_id=$item.supplier_id" required>
+                  <input type="text" autocomplete="off" name="supplier_id" class="form-control" placeholder="Search Supplier ID/Name" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?')" typeahead-loading="loadingLocations" ng-model="showCase.model_data.supplier_id" typeahead-on-select="showCase.model_data.supplier_id=$item.supplier_id" required>
                 </div>
               </div>
               <div class="col-md-4 col-sm-4 col-xs-6">

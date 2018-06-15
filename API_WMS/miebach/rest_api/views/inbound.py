@@ -6651,11 +6651,11 @@ def po_get_invoice_payment_tracker(request, user=''):
         return "Invoice number is missing"
     user_filter = {'purchase_order__open_po__sku__user': user.id, "invoice_number": invoice_number, "purchase_order__open_po__supplier__id": supplier_id}
     result_values = ['purchase_order__order_id', 'purchase_order__open_po__supplier__name', 'purchase_order__open_po__supplier__id']
-    import pdb;pdb.set_trace()
     master_data = SellerPOSummary.objects.filter(**user_filter).values(*result_values).distinct()\
                                  .annotate(tot_price = Sum(F('purchase_order__open_po__price')*F('quantity')),\
                                  tot_tax_perc = Sum(F('purchase_order__open_po__cgst_tax') +\
-                                 F('purchase_order__open_po__sgst_tax') + F('purchase_order__open_po__igst_tax')))
+                                 F('purchase_order__open_po__sgst_tax') + F('purchase_order__open_po__igst_tax')),\
+                                 paynemt_received = Sum('purchase_order__payment_received'))
                                  #.annotate(invoice_amount_sum = Sum(('purchase_order__open_po__price'*int('quantity')) + \
                                  #(('purchase_order__open_po__price'*int('quantity')) *\
                                  #(int('purchase_order__open_po__cgst_tax') + int('purchase_order__open_po__sgst_tax') + \
@@ -6663,15 +6663,21 @@ def po_get_invoice_payment_tracker(request, user=''):
                                  #payment_received_sum = Sum('purchase_order__payment_received'))
     order_data = []
     expected_date = ''
-    order_data.append(
-            {'order_id': ''})
-    import pdb;pdb.set_trace()
-    tot_amt = 0
-    for seller_sum in master_data:
-        price = seller_sum.purchase_order.open_po.price
-        quantity = int(seller_sum.quantity)
-        tot_price = price * quantity
-        tot_tax_perc = seller_sum.purchase_order.open_po.cgst_tax +\
-                       seller_sum.purchase_order.open_po.sgst_tax + seller_sum.purchase_order.open_po.igst_tax
-        tot_tax = float(tot_price * tot_tax_perc) / 100
-        tot_amt += (tot_price + tot_tax)
+    for data in master_data:
+        order_data.append(
+                {'order_id': data['purchase_order__order_id'],
+                 'display_order': data['purchase_order__order_id'],
+                 'inv_amount': data['tot_price']+(data['tot_price']*data['tot_tax_perc']),
+                 'received': data['paynemt_received'],
+                 'receivable': (data['tot_price']+(data['tot_price']*data['tot_tax_perc'])) - data['paynemt_received']})
+    response["data"] = order_data
+    return HttpResponse(json.dumps(response))
+    #tot_amt = 0
+    #for seller_sum in master_data:
+        #price = seller_sum.purchase_order.open_po.price
+        #quantity = int(seller_sum.quantity)
+        #tot_price = price * quantity
+        #tot_tax_perc = seller_sum.purchase_order.open_po.cgst_tax +\
+                       #seller_sum.purchase_order.open_po.sgst_tax + seller_sum.purchase_order.open_po.igst_tax
+        #tot_tax = float(tot_price * tot_tax_perc) / 100
+        #tot_amt += (tot_price + tot_tax)

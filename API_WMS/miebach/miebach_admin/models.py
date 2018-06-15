@@ -2712,3 +2712,15 @@ class SellerOrderTransfer(models.Model):
         db_table = 'SELLER_ORDER_TRANSFER'
         unique_together = ('seller_transfer', 'seller_order')
         index_together = ('seller_transfer', 'seller_order')
+
+
+class ReturnToVendor(models.Model):
+    id = BigAutoField(primary_key=True)
+    seller_po_summary = models.ForeignKey(SellerPOSummary, blank=True, null=True)
+    quantity = models.FloatField(default=0)
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'RETURN_TO_VENDOR'

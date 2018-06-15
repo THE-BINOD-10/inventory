@@ -14,6 +14,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service = Service;
     vm.self_life_ratio = Number(vm.permissions.shelf_life_ratio) || 0;
     vm.industry_type = Session.user_profile.industry_type;
+    vm.expect_date = false;
 
     //process type;
     vm.po_qc = true;
@@ -53,7 +54,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        });
 
     vm.dtColumns = [
-        DTColumnBuilder.newColumn('invoice_date').withTitle('Invoice Date'),
+        // DTColumnBuilder.newColumn('invoice_date').withTitle('Invoice Date'),
         DTColumnBuilder.newColumn('invoice_number').withTitle('Invoice Number'),
         DTColumnBuilder.newColumn('supplier_name').withTitle('Supplier Name'),
         DTColumnBuilder.newColumn('invoice_amount').withTitle('Invoice Amount'),

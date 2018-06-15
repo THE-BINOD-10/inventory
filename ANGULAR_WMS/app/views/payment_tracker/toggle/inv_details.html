@@ -23,7 +23,7 @@
                       <th>Invoice Amount</th>
                       <th>Received</th>
                       <th>Receivable</th>
-                      <th>Expected Date</th>
+                      <th ng-if="showCase.expect_date">Expected Date</th>
                       <th>Account</th>
                       <th style="width: 200px;">Update Amount</th>
                     </tr>
@@ -34,7 +34,7 @@
                       <td>{{data.inv_amount}}</td>
                       <td>{{data.received}}</td>
                       <td>{{data.receivable}}</td>
-                      <td>{{data.expected_date}}</td>
+                      <td ng-if="showCase.expect_date">{{data.expected_date}}</td>
                       <td>{{data.account}}</td>
                       <td class="order-edit">
                         <div class="order-update">

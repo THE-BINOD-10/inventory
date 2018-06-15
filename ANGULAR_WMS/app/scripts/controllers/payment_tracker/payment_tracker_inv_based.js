@@ -14,6 +14,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service = Service;
     vm.self_life_ratio = Number(vm.permissions.shelf_life_ratio) || 0;
     vm.industry_type = Session.user_profile.industry_type;
+    vm.expect_date = true;
 
     //process type;
     vm.po_qc = true;
@@ -23,8 +24,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     var sort_no = (vm.g_data.style_view)? 1: 0;
     vm.filters = {'datatable': 'PaymentTrackerInvBased', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 
     				'search4': '', 'search5': ''};
-    // vm.filters = {'datatable': 'ReceivePO', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': '', 'search5': '',
-    //               'search6': '', 'search7': '', 'search8': '', 'search9': '', 'search10': '', 'style_view': vm.g_data.style_view};
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -54,7 +53,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        });
 
     vm.dtColumns = [
-        DTColumnBuilder.newColumn('invoice_date').withTitle('Invoice Date'),
+        // DTColumnBuilder.newColumn('invoice_date').withTitle('Invoice Date'),
         DTColumnBuilder.newColumn('invoice_number').withTitle('Invoice Number'),
         DTColumnBuilder.newColumn('customer_name').withTitle('Customer Name'),
         DTColumnBuilder.newColumn('invoice_amount').withTitle('Invoice Amount'),

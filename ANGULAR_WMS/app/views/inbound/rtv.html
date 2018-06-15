@@ -1,0 +1,79 @@
+<div ng-controller="RTVCtrl as showCase">
+  <div class="page-layout reports">
+    <div class='layout-header'>
+      <div class="row">
+        <div class="col-md-6 col-sm-6 col-xs-12">
+          <div class="pull-left" ng-include="'views/common/title.html'"></div>
+        </div>
+        <div class="col-md-6 col-sm-6 col-xs-12">
+          <button type="button" style="margin-left: 10px" class="btn btn-primary pull-right" ng-click="showCase.service.print_excel(showCase.model_data, showCase.dtInstance, showCase.dtColumns, 'sku_list')" ng-disabled="showCase.service.print_enable">Download Excel</button>
+        </div>
+      </div>
+    </div>
+    <div class="layout-sub-header">
+        <form name="form" role="form" class="filters">
+          <div class="clearfix">
+            <div class="row col-md-12">
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <div class="form-group">
+                  <label class="control-label">SKU Code</label>
+                  <input type="text" autocomplete="off" name="sku_code" class="form-control" placeholder="Search WMS Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="loadingLocations" ng-blur="showCase.service.checkSearchValue2(showCase.model_data,'search_wms_codes?', $event)" ng-model="showCase.model_data.sku_code">
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <div class="form-group">
+
+                  <label class="control-label">Supplier ID</label>
+                  <!-- <input type="text" autocomplete="off" ng-if="(!(showCase.update))" ng-model="showCase.model_data.supplier_full_info" name="supplier_full_info" placeholder="Search Supplier ID/Name" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?')" typeahead-loading="loadingLocations" class="form-control" typeahead-on-select="showCase.model_data.supplier_id = showCase.service.change_search_value(showCase.model_data.supplier_full_info)" ng-blur="showCase.service.checkSearchValue(showCase.model_data.supplier_id, 'search_supplier?', $event, '', 'Supplier');showCase.supplier_on_change();" ng-required="(showCase.model_data.receipt_type != 'Hosted Warehouse')? true: false;" ng-disabled="showCase.update"> -->
+                  <!-- <input name="supplier_full_info" class="form-control" ng-if="showCase.update" type="text" value="{{showCase.model_data.supplier_id+':'+showCase.model_data.supplier_name}}" ng-readonly="showCase.update">
+
+                  <input name="supplier_id" class="form-control" type="hidden" value="{{showCase.model_data.supplier_id}}" ng-model="showCase.model_data.supplier_id"> -->
+
+
+                  <input type="text" autocomplete="off" name="supplier_id" class="form-control" placeholder="Search Supplier ID/Name" typeahead="address.supplier_id+' : '+address.name+' : '+address.phone_number for address in $ctrl.service.getSearchValues($viewValue, 'search_supplier?')" typeahead-loading="loadingLocations" ng-model="$ctrl.model_data.supplier_id" typeahead-on-select="$ctrl.model_data.supplier_id=$item.supplier_id" required>
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <div class="form-group">
+                  <label class="control-label">From Date *</label>
+                  <input name="from_date" ui-jq="datepicker" ng-model="showCase.model_data.from_date" class="form-control stk-readonly" type="text" id="from_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}" required>
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <div class="form-group">
+                  <label class="control-label">To Date</label>
+                  <input name="to_date" ui-jq="datepicker" ng-model="showCase.model_data.to_date" class="form-control stk-readonly" type="text" id="to_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}">
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <div class="form-group">
+                  <label class="control-label">PO Number</label>
+                  <input name="po_number" class="form-control" type="text" ng-model="showCase.model_data.po_number">
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <div class="form-group">
+                  <label class="control-label">Invoice Number</label>
+                  <input name="invoice_number" class="form-control" type="text" ng-model="showCase.model_data.invoice_number">
+                </div>
+              </div>
+            </div>
+            <div class="col-md-12">
+              <div class="filter-controls">
+                <button type="button" class="btn btn-default" id="add-shippment-btn" style="margin-right: 10px" ng-click="showCase.service.reset_data(showCase.empty_data, showCase.model_data);showCase.service.generate_report(showCase.dtInstance, showCase.model_data)"> Reset </button>
+                <button type="button" class="btn btn-success" id="add-shippment-btn" data-toggle="modal" data-target="#myModal" ng-click="showCase.service.generate_report(showCase.dtInstance, showCase.model_data)"> Search </button>
+              </div>
+            </div>
+          </div>
+        </form>
+    </div>
+    <div class="layout-body">
+      <div class="panel">
+        <div class="panel-body" style="padding-left: 0px; padding-right: 0px">
+          <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="table custom-table table-condensed datatable no_click_tb"></table>
+          <div ui-view></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

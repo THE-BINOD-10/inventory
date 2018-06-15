@@ -6619,3 +6619,58 @@ def update_po_invoice(request, user=''):
                     sos_obj.save()"""
 
     return HttpResponse(json.dumps({'message': 'success'}))
+
+
+@csrf_exempt
+def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    #lis = ['supplier__id', 'supplier__id', 'supplier__name', 'total', 'order_type']
+    lis = ['purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name',
+            'purchase_order__order_id', 'purchase_order_date', 'invoice_number', 'invoice_date']
+
+    search_params = get_filtered_params(filters, lis[1:])
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+
+    search_params['purchase_order__open_po__sku_id__in'] = sku_master_ids
+
+    if search_term:
+        results = OpenPO.objects.exclude(status=0).values('supplier_id', 'supplier__name', 'supplier__tax_type',
+                                                          'order_type').distinct().annotate(
+            total=Sum('order_quantity')). \
+            filter(Q(supplier__id__icontains=search_term) | Q(supplier__name__icontains=search_term) |
+                   Q(total__icontains=search_term), sku__user=user.id, **search_params).order_by(order_data)
+
+    elif order_term:
+        results = SellerPOSummary.objects.filter(purchase_order__status='confirmed-putaway').\
+            values('purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name',
+                   'purchase_order__order_id', 'invoice_number', 'invoice_date',).distinct().annotate(
+            total=Sum('quantity'), purchase_order_date=Cast('purchase_order__creation_date', DateField())). \
+            filter(purchase_order__open_po__sku__user=user.id, **search_params).order_by(order_data)
+
+    temp_data['recordsTotal'] = results.count()
+    temp_data['recordsFiltered'] = results.count()
+
+    count = 0
+    for result in results[start_index: stop_index]:
+        purchase_order = PurchaseOrder.objects.filter(order_id=result['purchase_order__order_id'],
+                                                      open_po__sku__user=user.id)
+        order_reference = get_po_reference(purchase_order[0])
+        checkbox = "<input type='checkbox' name='data_id' value='%s:%s'>" % (result['purchase_order__order_id'],
+                                                                     result['invoice_number'])
+        po_date = get_local_date(request.user, purchase_order[0].creation_date, send_date=True).strftime("%d %b, %Y")
+        invoice_number = ''
+        if result['invoice_number']:
+            invoice_number = result['invoice_number']
+        invoice_date = po_date
+        if result['invoice_date']:
+            invoice_date = result['invoice_date'].strftime("%d %b, %Y")
+        temp_data['aaData'].append(OrderedDict((('', checkbox),
+                                                ('Supplier ID', result['purchase_order__open_po__supplier_id']),
+                                                ('Supplier Name', result['purchase_order__open_po__supplier__name']),
+                                                ('PO Number', order_reference), ('PO Date', po_date),
+                                                ('Invoice Number', invoice_number), ('Invoice Date', invoice_date),
+                                                ('id', count),
+                                                ('DT_RowClass', 'results'))))
+        count += 1

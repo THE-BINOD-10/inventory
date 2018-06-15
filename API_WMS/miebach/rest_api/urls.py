@@ -165,6 +165,7 @@ urlpatterns = [
     url(r'^generate_supplier_invoice/$', generate_supplier_invoice),
     url(r'^update_poc/$', update_poc),
     url(r'^update_po_invoice/$', update_po_invoice),
+    url(r'^po_get_invoice_payment_tracker/$', po_get_invoice_payment_tracker),
 
     # Production
     url(r'^generated_jo_data/$', generated_jo_data),

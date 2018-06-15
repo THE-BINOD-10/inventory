@@ -457,6 +457,7 @@ data_datatable = {  # masters
     'RaiseIO': 'get_intransit_orders', 'PrimarySegregation': 'get_segregation_pos', \
     'ProcessedPOs': 'get_processed_po_data', 'POChallans': 'get_po_challans_data', \
     'SupplierInvoices': 'get_supplier_invoice_data', \
+    'POPaymentTrackerInvBased': 'get_inv_based_po_payment_data', \
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
     'PickelistGenerated': 'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo', \

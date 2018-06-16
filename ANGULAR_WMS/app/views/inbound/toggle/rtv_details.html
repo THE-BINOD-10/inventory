@@ -13,65 +13,32 @@
         <h4 class="modal-title">{{showCase.title}}</h4> </div>
       <!-- body-->
       <div class="modal-body">
-          <!-- <div class="row">
+          <div class="row">
             <div class="col-md-8 col-sm-8 col-xs-12">
               <h4>Details :</h4>
-              <div class="row" ng-repeat="model_name in showCase.grn_details_keys" ng-if="showCase.model_data[model_name]">
-                <div class="col-xs-4"><b>{{showCase.grn_details[model_name]}}</b></div>
+              <div class="row" ng-repeat="model_name in showCase.rtv_details_keys">
+                <div class="col-xs-4"><b>{{showCase.rtv_details[model_name]}}</b></div>
                 <div class="col-xs-8">: {{showCase.model_data[model_name]}}</div>
               </div>
+              <div class="row" ng-if="showCase.user_type=='marketplace_user'">
+                <div class="col-xs-4"><b>Seller ID</b></div>
+                <div class="col-xs-8">: {{showCase.model_data['seller_id']}}</div>
+              </div>
+              <div class="row" ng-if="showCase.user_type=='marketplace_user'">
+                <div class="col-xs-4"><b>Seller Name</b></div>
+                <div class="col-xs-8">: {{showCase.model_data['seller_name']}}</div>
+              </div>
+              
             </div>
             <div class="col-sm-12"><hr></div>
-          </div> -->
-          <div class="row">
-            <div class="col-md-4 col-sm-4 col-xs-6">
-                <div class="form-group">
-                  <label class="control-label">Supplier ID</label>
-                  <input type="text" autocomplete="off" ng-if="(!(showCase.update))" ng-model="showCase.model_data.supplier_id" name="supplier_id" placeholder="Search Supplier ID/Name" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?')" typeahead-loading="loadingLocations" class="form-control" typeahead-on-select="showCase.model_data.supplier_id = showCase.service.change_search_value(showCase.model_data.supplier_id)" ng-blur="showCase.service.checkSearchValue(showCase.model_data.supplier_id, 'search_supplier?', $event, '', 'Supplier');showCase.supplier_on_change();" ng-required="(showCase.model_data.receipt_type != 'Hosted Warehouse')? true: false;" ng-disabled="showCase.update">
-                </div>
-              </div>
-            <div class="col-md-4 col-sm-4 col-xs-6">
-              <div class="form-group">
-                <label class="control-label"> Supplier Name </label>
-                <input class="form-control" ng-model="showCase.model_data.supplier_name" type="text" name="supplier_name">
-              </div>
-            </div>
-            <div class="col-md-4 col-sm-6 col-xs-6">
-              <div class="form-group">
-                <label class="control-label"> PO Number </label>
-                <input class="form-control" ng-model="showCase.model_data.po_number" type="text" name="po_number">
-              </div>
-            </div>
-            <div class="col-md-4 col-sm-4 col-xs-6">
-              <div class="form-group">
-                <label class="control-label">PO Date</label>
-                <input name="po_date" ui-jq="datepicker" ng-model="showCase.model_data.po_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}">
-              </div>
-            </div>
-            <div class="col-md-4 col-sm-4 col-xs-6">
-              <div class="form-group">
-                <label for="invoice_number" class="control-label"> Invoice Number </label>
-                <input class="form-control" ng-model="showCase.model_data.invoice_number" type="text" name="invoice_number" natural-number>
-              </div>
-            </div>
-            <div class="col-md-4 col-sm-4 col-xs-6">
-              <div class="form-group">
-                <label for="invoice_date" class="control-label">Invoice Date</label>
-                <input name="invoice_date" ui-jq="datepicker" ng-model="showCase.model_data.invoice_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true">
-              </div>
-            </div>
           </div>
-          <div class="row">
-            <div class="col-md-12">
-              <hr>
-            </div>
-          </div>
+
           <div class="row">
             <div class="col-md-12">
               <table class="table">
                 <thead>
                   <tr>
-                    <th>WMS CODE</th>
+                    <th>SKU CODE</th>
                     <th>SKU Desc</th>
                     <th>Received Quantity</th>
                     <th>Batch No</th>
@@ -101,11 +68,11 @@
                     <td>
                       <input type="text" ng-model="data.sku_desc" size="50" title="{{ data.sku_desc }}" class="form-control" value="{{data.sku_desc}}" readonly>
                     </td>
-                    <td><input type="text" ng-model="data.value" ng-init="data.value=0" name="quantity" class="form-control" ng-class="service.get_decimal_perm()" required ng-readonly="showCase.permissions.use_imei" ng-change="showCase.receive_quantity_change(data)"></td>
+                    <td><input type="text" ng-model="data.value" ng-init="data.value=0" name="quantity" class="form-control" ng-class="service.get_decimal_perm()" readonly ng-change="showCase.receive_quantity_change(data)"></td>
                     <td><input type="text" ng-model="data.batch_no" title="{{ data.batch_no }}" name="batch_no" class="form-control" value="{{data.batch_no}}"></td>
                     <td><input type="text" ng-model="data.mrp" size="22" title="{{ data.mrp }}" name="mrp" class="form-control" ng-class="service.get_decimal_perm()" value="{{data.mrp}}"></td>
                     <td><input type="text" ng-model="data.location" size="22" title="{{ data.location }}" name="location" class="form-control" ng-class="service.get_decimal_perm()" value="{{data.location}}"></td>
-                    <td><input type="text" ng-model="data.return_qty" size="22" title="{{ data.return_qty }}" name="return_qty" class="form-control" ng-class="service.get_decimal_perm()" value="{{data.return_qty}}"></td>
+                    <td><input type="text" ng-model="data.return_qty" size="22" title="{{ data.return_qty }}" name="return_qty" class="form-control" ng-class="service.get_decimal_perm()" value="{{data.return_qty}}" required></td>
 
 <!-- 
                     <td><input type="text" ng-model="data.po_quantity" title="{{ data.po_quantity }}" name="po_quantity" class="form-control" ng-readonly="records[0].dis" ng-class="service.get_decimal_perm()"></td>

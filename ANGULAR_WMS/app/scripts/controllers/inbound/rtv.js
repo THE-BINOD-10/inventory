@@ -18,6 +18,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.selectAll = false;
     vm.bt_disable = true;
     vm.datatable = 'ReturnToVendor';
+    vm.user_type = Session.user_profile.user_type;
 
     vm.filters = {'datatable': vm.datatable, 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': ''
                   , 'search5': '', 'search6': '', 'search7': ''};
@@ -80,23 +81,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.service.refresh(vm.dtInstance);
     });
 
-    // function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-    //     $(row_click_bind, nRow).unbind('click');
-    //     $(row_click_bind, nRow).bind('click', function() {
-    //         $scope.$apply(function() {
-    //             vm.service.apiCall('get_rtv_data/', 'GET', {supplier_id: aData['DT_RowId']}).then(function(data){
-    //               if(data.message) {
-    //                 vm.serial_numbers = [];
-    //                 angular.copy(data.data, vm.model_data);
-    //                 vm.title = "Return to Vendor";
-    //                 $state.go('app.inbound.rtv.details');
-    //               }
-    //             });
-    //         });
-    //     });
-    //     return nRow;
-    // }
-
     vm.reloadData = function () {
       $('.custom-table').DataTable().draw();
     };
@@ -104,7 +88,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.filter_enable = true;
     vm.print_enable = false;
     vm.update = false;
-    // vm.model_data = {'sku_code':'','supplier_id':'','from_date':new Date(),'to_date':'','po_number':'','invoice_number':'',};
     vm.dis = true;
 
     vm.close = close;
@@ -126,6 +109,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }
       });
     }
+
+    //RTV Pop Data
+    vm.rtv_details = {supplier_id:'Supplier ID', supplier_name:'Supplier Name', po_number:'PO Number', po_date:'PO Date',
+                      invoice_number:'Invoice Number', invoice_date:'Invoice Date'};
+    vm.rtv_details_keys = Object.keys(vm.rtv_details);
 
     vm.update_data = update_data;
     function update_data(index, data) {

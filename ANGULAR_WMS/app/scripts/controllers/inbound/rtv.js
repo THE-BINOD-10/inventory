@@ -14,13 +14,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service = Service;
     vm.date = new Date();
 
+    vm.date_format_convert = function(utc_date){
+      var date = utc_date.toLocaleDateString();
+      var datearray = date.split("/");
+      vm.date = datearray[1] + '/' + datearray[0] + '/' + datearray[2];
+    }
+
+    vm.date_format_convert(vm.date);
     vm.selected = {};
     vm.selectAll = false;
     vm.bt_disable = true;
-    vm.rtv_datatable = Data.rtv_datatable;
+    vm.datatable = Data.datatable;
     vm.user_type = Session.user_profile.user_type;
 
-    vm.filters = {'datatable': vm.rtv_datatable, 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': ''
+    vm.filters = {'datatable': vm.datatable, 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': ''
                   , 'search5': '', 'search6': '', 'search7': ''};
     
     vm.dtOptions = DTOptionsBuilder.newOptions()
@@ -62,8 +69,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('Total Quantity').withTitle('Total Quantity'),
         DTColumnBuilder.newColumn('Total Amount').withTitle('Total Amount'),
     ];
-
-
 
     vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
                 .renderWith(function(data, type, full, meta) {

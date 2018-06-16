@@ -151,7 +151,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
     self.styles_data = {};
     self.tot_corporates = [];
     self.shipment_number = '';
-    self.rtv_datatable = 'ReturnToVendor';
+    self.datatable = 'ReturnToVendor';
 
     /** login page maintainance **/
     self.login_data = {

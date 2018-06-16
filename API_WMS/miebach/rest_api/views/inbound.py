@@ -6624,9 +6624,8 @@ def update_po_invoice(request, user=''):
 @csrf_exempt
 def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
-    #lis = ['supplier__id', 'supplier__id', 'supplier__name', 'total', 'order_type']
-    lis = ['purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name',
-            'purchase_order__order_id', 'purchase_order_date', 'invoice_number', 'invoice_date']
+    lis = ['purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name',
+            'purchase_order__order_id', 'purchase_order_date', 'invoice_number', 'invoice_date', 'total', 'total']
 
     search_params = get_filtered_params(filters, lis[1:])
     order_data = lis[col_num]
@@ -6654,23 +6653,32 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
 
     count = 0
     for result in results[start_index: stop_index]:
-        purchase_order = PurchaseOrder.objects.filter(order_id=result['purchase_order__order_id'],
+        purchase_orders = PurchaseOrder.objects.filter(order_id=result['purchase_order__order_id'],
                                                       open_po__sku__user=user.id)
-        order_reference = get_po_reference(purchase_order[0])
+        order_reference = get_po_reference(purchase_orders[0])
         checkbox = "<input type='checkbox' name='data_id' value='%s:%s'>" % (result['purchase_order__order_id'],
                                                                      result['invoice_number'])
-        po_date = get_local_date(request.user, purchase_order[0].creation_date, send_date=True).strftime("%d %b, %Y")
+        po_date = get_local_date(request.user, purchase_orders[0].creation_date, send_date=True).strftime("%d %b, %Y")
         invoice_number = ''
         if result['invoice_number']:
             invoice_number = result['invoice_number']
         invoice_date = po_date
         if result['invoice_date']:
             invoice_date = result['invoice_date'].strftime("%d %b, %Y")
+        total_amt = 0
+        for purchase_order in purchase_orders:
+            seg_objs = purchase_order.primarysegregation_set.filter()
+            for seg_obj in seg_objs:
+                if seg_obj.batch_detail:
+                    total_amt += seg_obj.quantity * seg_obj.batch_detail.buy_price
+                else:
+                    total_amt += seg_obj.quantity * seg_obj.purchase_order.open_po.price
         temp_data['aaData'].append(OrderedDict((('', checkbox),
                                                 ('Supplier ID', result['purchase_order__open_po__supplier_id']),
                                                 ('Supplier Name', result['purchase_order__open_po__supplier__name']),
                                                 ('PO Number', order_reference), ('PO Date', po_date),
                                                 ('Invoice Number', invoice_number), ('Invoice Date', invoice_date),
+                                                ('Total Quantity', result['total']), ('Total Amount', total_amt),
                                                 ('id', count),
                                                 ('DT_RowClass', 'results'))))
         count += 1

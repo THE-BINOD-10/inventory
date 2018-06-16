@@ -2225,7 +2225,7 @@ def update_seller_po(data, value, user, receipt_id='', invoice_number='', invoic
         return
     seller_pos = SellerPO.objects.filter(seller__user=user.id, open_po_id=data.open_po_id, status=1)
     seller_received_list = []
-    invoice_number = int(invoice_number)
+    #invoice_number = int(invoice_number)
     if not invoice_date:
         invoice_date = datetime.datetime.now().date()
     if user.userprofile.user_type == 'warehouse_user':
@@ -6622,24 +6622,40 @@ def update_po_invoice(request, user=''):
 
 
 @csrf_exempt
-def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, col_filters={}):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
+    search_params = {}
+    search_params['purchase_order__open_po__sku_id__in'] = sku_master_ids
     lis = ['purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name',
             'purchase_order__order_id', 'purchase_order_date', 'invoice_number', 'invoice_date', 'total', 'total']
 
-    search_params = get_filtered_params(filters, lis[1:])
+    headers1, filters, filter_params1 = get_search_params(request)
+    if 'from_date' in filters:
+        search_params['purchase_order__creation_date__startswith'] = filters['from_date']
+    if 'to_date' in filters:
+        to_date = datetime.datetime.combine(filters['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_params['purchase_order__creation_date__lt'] = to_date
+    if 'sku_code' in filters:
+        search_params['purchase_order__open_po__sku__sku_code'] = filters['sku_code'].upper()
+    if 'supplier' in filters:
+        search_params['purchase_order__open_po__supplier_id'] = filters['supplier']
+    if 'open_po' in filters and filters['open_po']:
+        temp = re.findall('\d+', filters['open_po'])
+        if temp:
+            search_params['purchase_order__order_id'] = temp[-1]
+    if 'invoice_number' in filters:
+        search_params['invoice_number'] = filters['invoice_number']
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
 
-    search_params['purchase_order__open_po__sku_id__in'] = sku_master_ids
-
     if search_term:
-        results = OpenPO.objects.exclude(status=0).values('supplier_id', 'supplier__name', 'supplier__tax_type',
-                                                          'order_type').distinct().annotate(
-            total=Sum('order_quantity')). \
-            filter(Q(supplier__id__icontains=search_term) | Q(supplier__name__icontains=search_term) |
-                   Q(total__icontains=search_term), sku__user=user.id, **search_params).order_by(order_data)
+        results = SellerPOSummary.objects.filter(purchase_order__status='confirmed-putaway').\
+            values('purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name',
+                   'purchase_order__order_id', 'invoice_number', 'invoice_date',).distinct().annotate(
+            total=Sum('quantity'), purchase_order_date=Cast('purchase_order__creation_date', DateField())). \
+            filter(purchase_order__open_po__sku__user=user.id, **search_params).order_by(order_data)
 
     elif order_term:
         results = SellerPOSummary.objects.filter(purchase_order__status='confirmed-putaway').\

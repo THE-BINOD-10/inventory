@@ -17,10 +17,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.selected = {};
     vm.selectAll = false;
     vm.bt_disable = true;
-    vm.datatable = 'ReturnToVendor';
+    vm.rtv_datatable = Data.rtv_datatable;
     vm.user_type = Session.user_profile.user_type;
 
-    vm.filters = {'datatable': vm.datatable, 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': ''
+    vm.filters = {'datatable': vm.rtv_datatable, 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': ''
                   , 'search5': '', 'search6': '', 'search7': ''};
     
     vm.dtOptions = DTOptionsBuilder.newOptions()
@@ -98,8 +98,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     vm.create_rtv = function(){
-      // $state.go('app.inbound.rtv.details');
-      // vm.title = "Generate RTV";
+        // $state.go('app.inbound.rtv.details');
+        // vm.title = "Generate RTV";
       vm.service.apiCall('get_rtv_data/', 'GET', {selected_items: vm.selected}).then(function(data){
         if(data.message) {
           vm.serial_numbers = [];

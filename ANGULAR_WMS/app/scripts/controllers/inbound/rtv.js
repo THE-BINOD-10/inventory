@@ -17,40 +17,39 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.selected = {};
     vm.selectAll = false;
     vm.bt_disable = true;
+    vm.datatable = 'ReturnToVendor';
 
-    vm.filters = {'datatable': 'ReturnToVendor', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': ''
+    vm.filters = {'datatable': vm.datatable, 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': ''
                   , 'search5': '', 'search6': '', 'search7': ''};
+    
     vm.dtOptions = DTOptionsBuilder.newOptions()
-       .withOption('ajax', {
-              url: Session.url+'results_data/',
-              type: 'POST',
-              data: vm.filters,
-              xhrFields: {
-                withCredentials: true
-              }
-           })
-       .withDataProp('data')
-       .withOption('drawCallback', function(settings) {
-         vm.service.make_selected(settings, vm.selected);
-       })
-       .withOption('processing', true)
-       .withOption('serverSide', true)
-       .withOption('createdRow', function(row, data, dataIndex) {
-            $compile(angular.element(row).contents())($scope);
-        })
-        .withOption('headerCallback', function(header) {
-            if (!vm.headerCompiled) {
-                vm.headerCompiled = true;
-                $compile(angular.element(header).contents())($scope);
+     .withOption('ajax', {
+            url: Session.url+'results_data/',
+            type: 'POST',
+            data: vm.filters,
+            xhrFields: {
+              withCredentials: true
             }
-        })
-       .withPaginationType('full_numbers')
-       .withOption('initComplete', function( settings ) {
-         vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
-       });
-
-    // var columns = ["PO Number", "Seller Name", "Receipt Date", "Order Quantity", "Received Quantity", "Invoice Number"];
-    // vm.dtColumns = vm.service.build_colums(columns);
+         })
+     .withDataProp('data')
+     .withOption('drawCallback', function(settings) {
+       vm.service.make_selected(settings, vm.selected);
+     })
+     .withOption('processing', true)
+     .withOption('serverSide', true)
+     .withOption('createdRow', function(row, data, dataIndex) {
+          $compile(angular.element(row).contents())($scope);
+      })
+      .withOption('headerCallback', function(header) {
+          if (!vm.headerCompiled) {
+              vm.headerCompiled = true;
+              $compile(angular.element(header).contents())($scope);
+          }
+      })
+     .withPaginationType('full_numbers')
+     .withOption('initComplete', function( settings ) {
+       vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
+     });
 
     vm.dtColumns = [
         DTColumnBuilder.newColumn('Supplier ID').withTitle('Supplier ID'),
@@ -62,6 +61,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('Total Quantity').withTitle('Total Quantity'),
         DTColumnBuilder.newColumn('Total Amount').withTitle('Total Amount'),
     ];
+
+
 
     vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
                 .renderWith(function(data, type, full, meta) {
@@ -79,27 +80,31 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.service.refresh(vm.dtInstance);
     });
 
-    function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-        $(row_click_bind, nRow).unbind('click');
-        $(row_click_bind, nRow).bind('click', function() {
-            $scope.$apply(function() {
-                vm.service.apiCall('get_rtv_data/', 'GET', {supplier_id: aData['DT_RowId']}).then(function(data){
-                  if(data.message) {
-                    vm.serial_numbers = [];
-                    angular.copy(data.data, vm.model_data);
-                    vm.title = "Return to Vendor";
-                    $state.go('app.inbound.rtv.details');
-                  }
-                });
-            });
-        });
-        return nRow;
-    }
+    // function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
+    //     $(row_click_bind, nRow).unbind('click');
+    //     $(row_click_bind, nRow).bind('click', function() {
+    //         $scope.$apply(function() {
+    //             vm.service.apiCall('get_rtv_data/', 'GET', {supplier_id: aData['DT_RowId']}).then(function(data){
+    //               if(data.message) {
+    //                 vm.serial_numbers = [];
+    //                 angular.copy(data.data, vm.model_data);
+    //                 vm.title = "Return to Vendor";
+    //                 $state.go('app.inbound.rtv.details');
+    //               }
+    //             });
+    //         });
+    //     });
+    //     return nRow;
+    // }
+
+    vm.reloadData = function () {
+      $('.custom-table').DataTable().draw();
+    };
 
     vm.filter_enable = true;
     vm.print_enable = false;
     vm.update = false;
-    vm.model_data = {};
+    // vm.model_data = {'sku_code':'','supplier_id':'','from_date':new Date(),'to_date':'','po_number':'','invoice_number':'',};
     vm.dis = true;
 
     vm.close = close;
@@ -107,6 +112,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       vm.model_data = {};
       $state.go('app.inbound.rtv');
+    }
+
+    vm.create_rtv = function(){
+      // $state.go('app.inbound.rtv.details');
+      // vm.title = "Generate RTV";
+      vm.service.apiCall('get_rtv_data/', 'GET', {selected_items: vm.selected}).then(function(data){
+        if(data.message) {
+          vm.serial_numbers = [];
+          angular.copy(data.data, vm.model_data);
+            vm.title = "Generate RTV";
+            $state.go('app.inbound.rtv.details');
+        }
+      });
     }
 
     vm.update_data = update_data;
@@ -137,6 +155,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                                 "sku_details": [{"fields": {"load_unit_handle": ""}}]}]);
       //vm.new_sku = true
     }
+
     vm.get_sku_details = function(data, selected) {
 
       data.sku_details[0].fields.load_unit_handle = selected.load_unit_handle;

@@ -1786,6 +1786,7 @@ class SellerPOSummary(models.Model):
     seller_po = models.ForeignKey(SellerPO, blank=True, null=True, db_index=True)
     purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True, db_index=True)
     location = models.ForeignKey(LocationMaster, blank=True, null=True)
+    batch_detail = models.ForeignKey(BatchDetail, blank=True, null=True)
     putaway_quantity = models.FloatField(default=0)
     quantity = models.FloatField(default=0)
     challan_number = models.CharField(max_length=64, default='')

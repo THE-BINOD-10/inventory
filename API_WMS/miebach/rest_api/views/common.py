@@ -6768,7 +6768,20 @@ def create_update_batch_data(batch_dict):
             batch_dict['creation_date'] = datetime.datetime.now()
             batch_obj = BatchDetail.objects.create(**batch_dict)
         else:
-            batch_obj = batch_objs[0].id
+            batch_obj = batch_objs[0]
+    return batch_obj
+
+
+def get_or_create_batch_detail(batch_dict, temp_dict):
+    batch_obj = None
+    batch_dict1 = copy.deepcopy(batch_dict)
+    if 'batch_no' in batch_dict:
+        batch_obj = create_update_batch_data(batch_dict1)
+    elif 'quality_check' in temp_dict:
+        batch_obj = BatchDetail.objects.filter(transact_id=temp_dict['quality_check'].po_location.id,
+                                               transact_type='po_loc')
+        if batch_obj:
+            batch_obj = batch_obj[0]
     return batch_obj
 
 

@@ -12,6 +12,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     var vm = this;
     vm.apply_filters = colFilters;
     vm.service = Service;
+    vm.industry_type = Session.user_profile.industry_type;
     vm.date = new Date();
 
     vm.date_format_convert = function(utc_date){
@@ -97,8 +98,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.close = close;
     function close() {
-
-      vm.model_data = {};
       $state.go('app.inbound.rtv');
     }
 
@@ -107,7 +106,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         // vm.title = "Generate RTV";
       vm.service.apiCall('get_rtv_data/', 'GET', {selected_items: vm.selected}).then(function(data){
         if(data.message) {
-          vm.serial_numbers = [];
           angular.copy(data.data, vm.model_data);
             vm.title = "Generate RTV";
             $state.go('app.inbound.rtv.details');

@@ -22,7 +22,9 @@
               </div>
               <div class="row" ng-if="showCase.user_type=='marketplace_user'">
                 <div class="col-xs-4"><b>Seller ID</b></div>
-                <div class="col-xs-8">: {{showCase.model_data['seller_id']}}</div>
+                <div class="col-xs-8">: {{showCase.model_data['seller_id']}}
+                  <input type="hidden" ng-model="showCase.model_data['seller_id']" title="{{ showCase.model_data['seller_id'] }}" name="seller_id" class="form-control" value="{{showCase.model_data['seller_id']}}">
+                </div>
               </div>
               <div class="row" ng-if="showCase.user_type=='marketplace_user'">
                 <div class="col-xs-4"><b>Seller Name</b></div>
@@ -41,8 +43,8 @@
                     <th>SKU CODE</th>
                     <th>SKU Desc</th>
                     <th>Received Quantity</th>
-                    <th>Batch No</th>
-                    <th>MRP</th>
+                    <th ng-if="showCase.industry_type=='FMCG'">Batch No</th>
+                    <th ng-if="showCase.industry_type=='FMCG'">MRP</th>
                     <th>Location</th>
                     <th>Returning Quantity</th>
                     <!-- <th ng-if="showCase.permissions.pallet_switch || showCase.industry_type=='FMCG'" class="plus"></th>
@@ -69,28 +71,10 @@
                       <input type="text" ng-model="data.sku_desc" size="50" title="{{ data.sku_desc }}" class="form-control" value="{{data.sku_desc}}" readonly>
                     </td>
                     <td><input type="text" ng-model="data.value" ng-init="data.value=0" name="quantity" class="form-control" ng-class="service.get_decimal_perm()" readonly ng-change="showCase.receive_quantity_change(data)"></td>
-                    <td><input type="text" ng-model="data.batch_no" title="{{ data.batch_no }}" name="batch_no" class="form-control" value="{{data.batch_no}}"></td>
-                    <td><input type="text" ng-model="data.mrp" size="22" title="{{ data.mrp }}" name="mrp" class="form-control" ng-class="service.get_decimal_perm()" value="{{data.mrp}}"></td>
+                    <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.batch_no" title="{{ data.batch_no }}" name="batch_no" class="form-control" value="{{data.batch_no}}"></td>
+                    <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.mrp" size="22" title="{{ data.mrp }}" name="mrp" class="form-control" ng-class="service.get_decimal_perm()" value="{{data.mrp}}"></td>
                     <td><input type="text" ng-model="data.location" size="22" title="{{ data.location }}" name="location" class="form-control" ng-class="service.get_decimal_perm()" value="{{data.location}}"></td>
                     <td><input type="text" ng-model="data.return_qty" size="22" title="{{ data.return_qty }}" name="return_qty" class="form-control" ng-class="service.get_decimal_perm()" value="{{data.return_qty}}" required></td>
-
-<!-- 
-                    <td><input type="text" ng-model="data.po_quantity" title="{{ data.po_quantity }}" name="po_quantity" class="form-control" ng-readonly="records[0].dis" ng-class="service.get_decimal_perm()"></td>
-                    <td ng-if="showCase.permissions.pallet_switch"><input type="text" ng-show=" data.sku_details[0].fields.load_unit_handle == 'pallet'" ng-model="data.pallet_number" name="pallet_number" class="form-control"></td>
-                    
-                    <td><input type="text" ng-model="data.unit" size="26" title="{{ data.unit }}" name="unit" class="form-control" readonly></td>
-                    <td ng-if="showCase.permissions.use_imei">
-                      <input type="text" name="imei" attr-name="{{'imei_'+data.wms_code}}" ng-model="data.imei_number" class="form-control" ng-readonly="data.po_quantity == data.value || data.disable" ng-keydown="showCase.check_imei_exists($event, data, $parent.$parent.$index)">
-                      <input ng-if="!showCase.po_qc" type="hidden" name="imei_number" class="form-control" value="{{data.imei_list.join(',')}}">
-                    </td>
-                    <td><input type="text" ng-model="data.price" title="{{ data.price }}" size="22" name="price" class="form-control" value="" ng-readonly="records[0].dis"></td>
-                    <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.buy_price" size="22" title="{{ data.buy_price }}" name="buy_price" class="form-control" ng-class="service.get_decimal_perm()"  ng-class="service.get_decimal_perm()" value="{{data.buy_price}}"></td>
-                    
-                    <td ng-if="showCase.industry_type=='FMCG'">
-                      <input name="mfg_date" ui-jq="datepicker" size="33" title="{{ data.mfg_date }}" ng-model="data.mfg_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}"></td>
-                    <td ng-if="showCase.industry_type=='FMCG'">
-                      <input name="exp_date" ng-readonly="" ui-jq="datepicker" size="33" title="{{ data.exp_date }}" ng-model="data.exp_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}" ng-change="showCase.check_exp_date(data.exp_date, showCase.self_life_ratio)"></td>
-                    <td><input type="text" ng-model="data.tax_percent" title="{{ data.tax_percent }}"  ng-class="service.get_decimal_perm()" name="tax_percent" class="form-control" maxlength="2" value="{{data.tax_percent}}"></td> -->
 
                     <!-- <td ng-if="showCase.permissions.pallet_switch || showCase.industry_type=='FMCG'"><i ng-click="showCase.update_data($index, records)" ng-class="showCase.service.isLast($last)"></i></td> -->
                     <!-- <td ng-include="'views/production/toggle/common/custom_sku_details.html'">
@@ -109,12 +93,8 @@
       </div>
       <!-- body end-->
       <div class="modal-footer">
-        <!-- <button ng-if="(!(showCase.print_enable))" type="button" class="pull-left btn pop pop-green col-xs-12 col-sm-3 col-md-2" ng-click="showCase.close_po(form)">Close PO</button> -->
         <button ng-if="(!(showCase.print_enable))" type="button" class="btn pop pop-green pull-right col-xs-12 col-sm-3 col-md-2" ng-click="showCase.submit(form)">Save</button>
         <button ng-if="(!(showCase.print_enable))" type="button" class="btn pop pop-normal pull-right col-xs-12 col-sm-4 col-md-3" data-dismiss="modal" ng-click="showCase.close()">Close</button>
-        <!-- <button ng-if="(!(showCase.print_enable))" type="button" class="btn pop pop-normal pull-right col-xs-12 col-sm-4 col-md-3" data-dismiss="modal" ng-click="showCase.confirm_grn(form)">Generate RTV</button> -->
-        <!-- <button ng-if="showCase.print_enable" type="button" class="btn pop pop-green pull-right" ng-click="showCase.print_grn()">Print</button>
-        <button ng-if="showCase.print_enable" type="button" class="btn pop pop-normal" ng-click="showCase.barcode()">Print Barcodes</button> -->
       </div>
     </div>
     <!-- /.modal-content -->

@@ -102,15 +102,28 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     vm.create_rtv = function(){
-        // $state.go('app.inbound.rtv.details');
-        // vm.title = "Generate RTV";
-      vm.service.apiCall('get_rtv_data/', 'GET', {selected_items: vm.selected}).then(function(data){
-        if(data.message) {
-          angular.copy(data.data, vm.model_data);
-            vm.title = "Generate RTV";
-            $state.go('app.inbound.rtv.details');
+      var flag = false;
+      angular.forEach(vm.selected, function(item){
+        if (item && !flag) {
+          flag = true;
+        } else {
+          Service.showNoty('You can select one sku at a time');
+          return false;
         }
       });
+
+      if (flag) {
+        // $state.go('app.inbound.rtv.details');
+        // vm.title = "Generate RTV";
+
+        vm.service.apiCall('get_rtv_data/', 'GET', {selected_items: vm.selected}).then(function(data){
+          if(data.message) {
+            angular.copy(data.data, vm.model_data);
+              vm.title = "Generate RTV";
+              $state.go('app.inbound.rtv.details');
+          }
+        });
+      }
     }
 
     //RTV Pop Data
@@ -141,10 +154,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.new_sku = false
     vm.add_wms_code = add_wms_code;
     function add_wms_code() {
-      vm.model_data.data.push([{"wms_code":"", "po_quantity":"", "receive_quantity":"", "price":"", "dis": false,
-                                "order_id": vm.model_data.data[0][0].order_id, is_new: true, "unit": "",
-                                "sku_details": [{"fields": {"load_unit_handle": ""}}]}]);
-      //vm.new_sku = true
+      if (vm.industry_type == 'FMCG') {
+        vm.model_data.data.push([{"wms_code":"", "sku_desc":"", "received_quantity":"", "batch_no":"", "mrp": '',
+                                "location": '', is_new: true, "return_qty": ""}]);
+      } else {
+        vm.model_data.data.push([{"wms_code":"", "sku_desc":"", "received_quantity":"", "location": '', 
+                                  is_new: true, "return_qty": ""}]);
+      }
     }
 
     vm.get_sku_details = function(data, selected) {

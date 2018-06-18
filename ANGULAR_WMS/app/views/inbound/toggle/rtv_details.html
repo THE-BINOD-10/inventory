@@ -20,6 +20,14 @@
                 <div class="col-xs-4"><b>{{showCase.rtv_details[model_name]}}</b></div>
                 <div class="col-xs-8">: {{showCase.model_data[model_name]}}</div>
               </div>
+              <div class="row">
+                <div class="col-xs-4"><b>PO Number</b></div>
+                <div class="col-xs-8">: {{showCase.model_data['po_reference']}}</div>
+              </div>
+              <div class="row">
+                <div class="col-xs-4"><b>PO Date</b></div>
+                <div class="col-xs-8">: {{showCase.model_data['order_date']}}</div>
+              </div>
               <div class="row" ng-if="showCase.user_type=='marketplace_user'">
                 <div class="col-xs-4"><b>Seller ID</b></div>
                 <div class="col-xs-8">: {{showCase.model_data.seller_details['seller_id']}}
@@ -43,40 +51,35 @@
                     <th>SKU CODE</th>
                     <th>SKU Desc</th>
                     <th>Received Quantity</th>
+                    <th>Unit Price</th>
                     <th ng-if="showCase.industry_type=='FMCG'">Batch No</th>
                     <th ng-if="showCase.industry_type=='FMCG'">MRP</th>
+                    <th>Amount</th>
                     <th>Location</th>
+                    <th>Tax</th>
                     <th>Returning Quantity</th>
-                    <!-- <th ng-if="showCase.permissions.pallet_switch || showCase.industry_type=='FMCG'" class="plus"></th>
-                    <th class="detail"></th> -->
+                    <th class="plus"></th>
                   <tr>
                 </thead>
                 <!-- <tbody ng-repeat="records in showCase.model_data.data"> -->
                   <tbody>
                   <tr ng-repeat="data in showCase.model_data.data[0]">
-                    <!-- <input type="hidden" name="supplier_id" value="{{showCase.model_data.supplier_id}}">
-                    <input type="hidden" name="id" value="{{data.order_id}}">
-                    <input type="hidden" name="new_sku" value="{{data.is_new}}">
-                    <input ng-if="showCase.po_qc" type="hidden" class="form-control" value="{{data.accepted_quantity}}" name="accepted_quantity">
-                    <input ng-if="showCase.po_qc" type="hidden" class="form-control" value="{{data.rejected_quantity}}" name="rejected_quantity">
-                    <input ng-if="showCase.po_qc" type="hidden" class="form-control" value="{{data.accept_imei.join(',')}}" name="accepted">
-                    <input ng-if="showCase.po_qc" type="hidden" class="form-control" value="{{data.reject_imei.join(',')}}" name="rejected"> -->
-
                     <td>
                       <input type="text" autocomplete="off" name="sku_code" class="form-control" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" ng-model="data.sku_code" title="{{ data.wms_code }}" typeahead-on-select="showCase.get_sku_details(data, $item, $index)">
                     </td>
                     <td>
                       <input type="text" name="sku_desc" ng-model="data.sku_desc" size="50" title="{{ data.sku_desc }}" class="form-control" value="{{data.sku_desc}}" readonly>
                     </td>
-                    <td><input type="text" ng-model="data.quantity" ng-init="data.value=0" name="received_quantity" class="form-control" ng-class="service.get_decimal_perm()" readonly ng-change="showCase.receive_quantity_change(data)"></td>
-                    <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.batch_no" title="{{ data.batch_no }}" name="batch_no" class="form-control" value="{{data.batch_no}}"></td>
-                    <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.mrp" size="22" title="{{ data.mrp }}" name="mrp" class="form-control" ng-class="service.get_decimal_perm()" value="{{data.mrp}}"></td>
+                    <td><input type="text" ng-model="data.quantity" name="received_quantity" class="form-control" ng-class="service.get_decimal_perm()" value="{{data.quantity}}" readonly ng-change="showCase.receive_quantity_change(data)"></td>
+                    <td><input type="text" ng-model="data.price" name="unit_price" class="form-control" ng-class="service.get_decimal_perm()" value="{{data.price}}" readonly></td>
+                    <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.batch_no" title="{{ data.batch_no }}" name="batch_no" class="form-control" value="{{data.batch_no}}" readonly></td>
+                    <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.mrp" size="22" title="{{ data.mrp }}" name="mrp" class="form-control" ng-class="service.get_decimal_perm()" value="{{data.mrp}}" readonly></td>
+                    <td><input type="text" ng-model="data.amount" name="amount" class="form-control" ng-class="service.get_decimal_perm()" value="{{data.amount}}" readonly></td>
                     <td><input type="text" ng-model="data.location" size="22" title="{{ data.location }}" name="location" class="form-control" ng-class="service.get_decimal_perm()" value="{{data.location}}"></td>
+                    <td><input type="text" ng-model="data.tax_value" name="tax_value" class="form-control" ng-class="service.get_decimal_perm()" value="{{data.tax_value}}" readonly></td>
                     <td><input type="text" ng-model="data.return_qty" size="22" title="{{ data.return_qty }}" name="return_qty" class="form-control" ng-class="service.get_decimal_perm()" value="{{data.return_qty}}" required></td>
 
-                    <!-- <td ng-if="showCase.permissions.pallet_switch || showCase.industry_type=='FMCG'"><i ng-click="showCase.update_data($index, records)" ng-class="showCase.service.isLast($last)"></i></td> -->
-                    <!-- <td ng-include="'views/production/toggle/common/custom_sku_details.html'">
-                    </td> -->
+                    <td><i ng-click="showCase.update_data($index, showCase.model_data.data[0])" ng-class="showCase.service.isLast($last)"></i></td>
                   </tr>
                 </tbody>
               </table>

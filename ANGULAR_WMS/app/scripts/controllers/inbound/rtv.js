@@ -14,6 +14,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service = Service;
     vm.industry_type = Session.user_profile.industry_type;
     vm.date = new Date();
+    vm.extra_width = {width:'1100px'};
 
     vm.date_format_convert = function(utc_date){
       var date = utc_date.toLocaleDateString();
@@ -128,28 +129,23 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     //RTV Pop Data
-    vm.rtv_details = {supplier_id:'Supplier ID', supplier_name:'Supplier Name', po_number:'PO Number', po_date:'PO Date',
+    vm.rtv_details = {supplier_id:'Supplier ID', supplier_name:'Supplier Name', 
                       invoice_number:'Invoice Number', invoice_date:'Invoice Date'};
     vm.rtv_details_keys = Object.keys(vm.rtv_details);
 
     vm.update_data = update_data;
     function update_data(index, data) {
-      if (Session.roles.permissions['pallet_switch'] || vm.industry_type == 'FMCG') {
+      // if (Session.roles.permissions['pallet_switch'] || vm.industry_type == 'FMCG') {
         if (index == data.length-1) {
           var new_dic = {};
-          angular.copy(data[0], new_dic);
-          new_dic.receive_quantity = 0;
-          new_dic.value = "";
-          new_dic.pallet_number = "";
-          new_dic.batch_no = "";
-          new_dic.manf_date = "";
-          new_dic.exp_date = "";
-          new_dic.tax_percent = "";
+          angular.copy(data[index], new_dic);
+          new_dic.location = '';
+          new_dic.return_qty='';
           data.push(new_dic);
         } else {
           data.splice(index,1);
         }
-      }
+      // }
     }
     
     vm.new_sku = false

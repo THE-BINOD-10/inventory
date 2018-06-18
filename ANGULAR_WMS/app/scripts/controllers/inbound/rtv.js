@@ -137,20 +137,25 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     function update_data(index, data) {
       // if (Session.roles.permissions['pallet_switch'] || vm.industry_type == 'FMCG') {
         if (index == data.length-1) {
-          var total_qty = 0;
+          if (data[index].return_qty) {
+            var total_qty = 0;
 
-          angular.forEach(data, function(row){
-            total_qty += row.return_qty ;
-          });
+            angular.forEach(data, function(row){
+              total_qty += Number(row.return_qty) ;
+            });
 
-          if (total_qty < data[index].quantity) {
-            var new_dic = {};
-            angular.copy(data[index], new_dic);
-            new_dic.location = '';
-            new_dic.return_qty='';
-            data.push(new_dic);
+            if (total_qty < Number(data[index].quantity)) {
+              var new_dic = {};
+              data[index].rest_qty = Number(data[index].quantity) - total_qty;
+              angular.copy(data[index], new_dic);
+              new_dic.location = '';
+              new_dic.return_qty='';
+              data.push(new_dic);
+            } else {
+              Service.showNoty("You don't have quantity to enter");
+            }
           } else {
-            Service.showNoty("You don't have quantity to enter");
+            Service.showNoty("Please enter returning quantity");
           }
         } else {
           data.splice(index,1);
@@ -158,19 +163,45 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       // }
     }
 
-    vm.check_quantity = function(index, data){
-      var total_qty = 0;
-      angular.forEach(data, function(row){
-        total_qty += Number(row.return_qty) ;
-      });
+    vm.check_quantity = function(index, data, sku){
+      vm.total_qty = 0;
+      vm.rest_qty = 0;
+      sku.rest_qty = 0;
+      vm.totol_qty_check(data);
 
-      if (total_qty > data[index].quantity) {
-        data[index].return_qty = data[index].quantity - total_qty;
-
-        Service.showNoty("You can enter only "+(data[index].quantity - total_qty)+" quantity");
+      if (Number(sku.return_qty) >= Number(sku.quantity) && !sku.rest_qty) {
+        vm.check_rest_qty(sku, data);
+        sku.return_qty = vm.rest_qty;
+        
+        sku.rest_qty = 0;
+      } else if (Number(sku.return_qty) >= Number(sku.quantity) && sku.rest_qty) {
+        vm.check_rest_qty(sku, data);
+        sku.return_qty = vm.rest_qty;
+        sku.rest_qty = 0;
+      } else {
+        // vm.check_rest_qty(sku, data)
+        // sku.return_qty = sku.return_qty - (Number(sku.quantity) - Number(vm.total_qty));
+        sku.rest_qty = Number(sku.quantity) - Number(vm.total_qty);
       }
+
     }
     
+    vm.check_rest_qty = function(sku, data){
+      var total_qty = 0;
+      for (var i = 0; i < data.length-1; i++) {
+        total_qty += Number(data[i].return_qty);
+      }
+
+      vm.rest_qty = sku.quantity - total_qty; 
+    }
+
+    vm.totol_qty_check = function(data){
+      angular.forEach(data, function(row){
+        vm.total_qty += Number(row.return_qty);
+      });
+
+    }
+
     vm.new_sku = false
     vm.add_wms_code = add_wms_code;
     function add_wms_code() {

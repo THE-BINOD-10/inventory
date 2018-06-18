@@ -6674,6 +6674,7 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
                                                         purchase_order__order_id=result['purchase_order__order_id'],
                                                         invoice_number=result['invoice_number'])
         order_reference = get_po_reference(seller_summarys[0].purchase_order)
+        open_po = seller_summarys[0].purchase_order.open_po
         data_id = '%s:%s' % (result['purchase_order__order_id'], result['invoice_number'])
         checkbox = "<input type='checkbox' name='data_id' value='%s'>" % (data_id)
         po_date = get_local_date(request.user, seller_summarys[0].purchase_order.creation_date,
@@ -6685,11 +6686,13 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
         if result['invoice_date']:
             invoice_date = result['invoice_date'].strftime("%d %b, %Y")
         total_amt = 0
+        tax = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax
         for seller_summary in seller_summarys:
             if seller_summary.batch_detail:
                 total_amt += seller_summary.quantity * seller_summary.batch_detail.buy_price
             else:
                 total_amt += seller_summary.quantity * seller_summary.purchase_order.open_po.price
+        total_amt = total_amt + ((total_amt/100) * tax)
         temp_data['aaData'].append(OrderedDict((('', checkbox),('data_id', data_id),
                                                 ('Supplier ID', result['purchase_order__open_po__supplier_id']),
                                                 ('Supplier Name', result['purchase_order__open_po__supplier__name']),
@@ -6713,22 +6716,28 @@ def get_po_putaway_summary(request, user=''):
     if not seller_summary_objs:
         return HttpResponse("No Data found")
     po_reference = get_po_reference(seller_summary_objs[0].purchase_order)
+    invoice_number = seller_summary_objs[0].invoice_number
+    invoice_date = get_local_date(user, seller_summary_objs[0].creation_date, send_date=True).strftime("%d %b, %Y")
+    if seller_summary_objs[0].invoice_date:
+        invoice_date = seller_summary_objs[0].invoice_date.strftime("%d %b, %Y")
     orders = []
     order_data = {}
     order_ids = []
     seller_details = {}
     for seller_summary in seller_summary_objs:
         order = seller_summary.purchase_order
+        open_po = seller_summary.purchase_order.open_po
         order_data = get_purchase_order_data(order)
         quantity = seller_summary.quantity
-        sku = seller_summary.purchase_order.open_po.sku
+        sku = open_po.sku
         data_dict = {'summary_id': seller_summary.id, 'order_id': order.id, 'sku_code': sku.sku_code,
-                     'sku_desc': sku.sku_desc, 'quantity': quantity, 'price': order_data['price'],}
+                     'sku_desc': sku.sku_desc, 'quantity': quantity, 'price': order_data['price']}
+        data_dict['tax_percent'] = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax
         if seller_summary.batch_detail:
             batch_detail = seller_summary.batch_detail
             data_dict['batch_no'] = batch_detail.batch_no
             data_dict['mrp'] = batch_detail.mrp
-            data_dict['buy_price'] = batch_detail.buy_price
+            data_dict['price'] = batch_detail.buy_price
             data_dict['mfg_date'] = ''
             if batch_detail.manufactured_date:
                 data_dict['mfg_date'] = batch_detail.manufactured_date.strftime('%m/%d/%Y')
@@ -6736,12 +6745,14 @@ def get_po_putaway_summary(request, user=''):
             if batch_detail.manufactured_date:
                 data_dict['exp_date'] = batch_detail.expiry_date.strftime('%m/%d/%Y')
             data_dict['tax_percent'] = batch_detail.tax_percent
+        data_dict['amount'] = data_dict['quantity'] * data_dict['price']
+        data_dict['tax_value'] = (data_dict['amount']/100) * data_dict['tax_percent']
         orders.append([data_dict])
     supplier_name, order_date, expected_date, remarks = '', '', '', ''
     if seller_summary_objs.exists():
         purchase_order = seller_summary_objs[0].purchase_order
         supplier_name = purchase_order.open_po.supplier.name
-        order_date = get_local_date(user, purchase_order.creation_date)
+        order_date = get_local_date(user, purchase_order.creation_date, send_date=True).strftime("%d %b, %Y")
         remarks = purchase_order.remarks
         if seller_summary_objs[0].seller_po:
             seller = seller_summary_objs[0].seller_po.seller
@@ -6750,5 +6761,6 @@ def get_po_putaway_summary(request, user=''):
                                     'supplier_id': order_data['supplier_id'],\
                                     'po_reference': po_reference, 'order_ids': order_ids,
                                     'supplier_name': supplier_name, 'order_date': order_date,
-                                    'remarks': remarks, 'seller_details': seller_details
+                                    'remarks': remarks, 'seller_details': seller_details,
+                                    'invoice_number': invoice_number, 'invoice_date': invoice_date
                         }))

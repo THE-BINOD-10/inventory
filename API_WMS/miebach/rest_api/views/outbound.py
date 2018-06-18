@@ -2589,6 +2589,9 @@ def check_imei(request, user=''):
 def print_picklist_excel(request, user=''):
     headers = copy.deepcopy(PICKLIST_EXCEL)
     data_id = request.GET['data_id']
+    display_order_id = request.GET.get('display_order_id', 'false')
+    if display_order_id == 'false':
+        headers.pop('Order ID')
     data, sku_total_quantities = get_picklist_data(data_id, user.id)
     all_data = []
     for dat in data:
@@ -2604,6 +2607,7 @@ def print_picklist(request, user=''):
     temp = []
     title = 'Picklist ID'
     data_id = request.GET['data_id']
+    display_order_id = request.GET.get('display_order_id', 'false')
     data, sku_total_quantities = get_picklist_data(data_id, user.id)
     date_data = {}
     picklist_orders = Picklist.objects.filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id),
@@ -2621,7 +2625,7 @@ def print_picklist(request, user=''):
     customer_address = ''
     if data:
         customer_address = data[0].get('customer_address', '')
-    order_ids = ''
+    order_ids = 'false'
     order_data = list(set(map(lambda d: d.get('order_no', ''), data)))
     order_data = filter(lambda x: len(x) > 0, order_data)
     original_order_ids = ''
@@ -2639,15 +2643,11 @@ def print_picklist(request, user=''):
     else:
         marketplace = ','.join(market_place)
     #marketplace check
-    print_display_order_ids = True
-    #print_display_order_ids = 
-    if print_display_order_ids:
+    if display_order_id == 'true':
         if len(original_order_data):
             order_ids = ','.join(original_order_data)
         elif len(order_data):
             order_ids = ','.join(order_data)
-    else:
-        order_ids = ''
     total = 0
     total_price = 0
     type_mapping = SkuTypeMapping.objects.filter(user=user.id)

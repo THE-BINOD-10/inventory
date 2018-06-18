@@ -10,10 +10,27 @@
         </div>
         <div class="modal-body">
           <div class="row" ng-hide="pop.permissions.user_type == 'warehouse' || pop.permissions.user_type == 'distributor'">
-            <div class="col-md-11 col-sm-11 col-xs-10">
+			<div class="col-md-6 col-sm-6 col-xs-6" style="margin-bottom: 10px;">
+            <div class="col-md-6 col-sm-6 col-xs-5">
+              <p align="right">Display Order ID in Print View</p>
+            </div>
+            <div>
+              <label class="switch switch-sm square">
+                <div>
+                  <input type="hidden" value="{{pop.display_order_id}}" name="display_order_id">
+                  <input type="checkbox" ng-model="pop.display_order_id">
+                  <span>
+                    <i class="handle"></i>
+                  </span>
+                </div>
+              </label>
+            </div>
+			</div>
+			<div class="col-md-6 col-sm-6 col-xs-6" style="margin-bottom: 10px;">
+            <div class="col-md-6 col-sm-6 col-xs-5">
               <p align="right">Merged Invoice</p>
             </div>
-            <div class="col-md-1 col-sm-1 col-xs-2">
+            <div>
               <label class="switch switch-sm square">
                 <div>
                   <input type="hidden" value="{{pop.merge_invoice}}" name="merge_invoice">
@@ -24,6 +41,9 @@
                 </div>
               </label>
             </div>
+			</div>
+
+
           </div>
           <!--<div class="row" ng-if="pop.state_data.page == 'ViewOrders'">
             <div class="col-md-3 col-sm-4 col-xs-6">

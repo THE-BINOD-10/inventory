@@ -195,7 +195,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var elem = [];
       elem.push({'name': 'seller_id', 'value': vm.model_data.seller_details.seller_id});
 
-      angular.forEach(vm.model_data.data[0], function(row){
+      angular.forEach(vm.model_data.data, function(row){
         elem.push({'name': 'sku_code', 'value': row.sku_code});
         elem.push({'name': 'order_id', 'value': row.order_id});
         elem.push({'name': 'price', 'value': row.price});

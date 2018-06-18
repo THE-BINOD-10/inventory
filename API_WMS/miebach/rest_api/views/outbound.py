@@ -7483,28 +7483,27 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
     else:
         if user_profile.user_type == 'marketplace_user':
             lis = ['seller_order__sor_id', 'seller_order__sor_id',
-                   'seller_order__seller__seller_id', 'seller_order__order__original_order_id',
-                   'seller_order__order__customer_name', 'quantity', 'quantity', 'date_only', 'id']
+                   'seller_order__seller__seller_id', 'seller_order__order__customer_name', 'quantity', 'quantity', 'id']
             user_filter = {'seller_order__seller__user': user.id}
             result_values = ['invoice_number', 'seller_order__seller__name',
                              'seller_order__sor_id']
             field_mapping = {'order_quantity_field': 'seller_order__quantity', 'date_only': 'seller_order__creation_date'}
             is_marketplace = True
         else:
-            lis = ['order__customer_name', 'order__customer_name', 'quantity', 'quantity', 'date_only',
-                   'seller_order__order__original_order_id']
+            lis = ['invoice_number', 'order__customer_name', 'invoice_number', 'invoice_number',
+                   'invoice_number', 'invoice_number', 'invoice_number']
             user_filter = {'order__user': user.id, 'order_status_flag': 'customer_invoices'}
             result_values = ['invoice_number']
             field_mapping = {'order_quantity_field': 'order__quantity', 'date_only': 'order__creation_date'}
             is_marketplace = False
 
         if search_term:
-            if 'date_only' in lis:
-                lis1 = copy.deepcopy(lis)
-                lis1 = map(lambda x: x if x not in ['date_only', 'seller_order__order__order_id', 'order__order_id'] else
-                field_mapping['date_only'], lis1)
+            #if 'date_only' in lis:
+                #lis1 = copy.deepcopy(lis)
+                #lis1 = map(lambda x: x if x not in ['date_only', 'seller_order__order__order_id', 'order__order_id'] else
+                #field_mapping['date_only'], lis1)
             search_term = search_term.replace('(', '\(').replace(')', '\)')
-            search_query = build_search_term_query(lis1, search_term)
+            search_query = build_search_term_query(lis, search_term)
             order_id_search = ''.join(re.findall('\d+', search_term))
             order_code_search = ''.join(re.findall('\D+', search_term))
             if not is_marketplace:
@@ -7542,6 +7541,7 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
         seller_orders = SellerOrder.objects.filter(seller__user=user.id)
         orders = OrderDetail.objects.filter(user=user.id)
         for data in master_data[start_index:stop_index]:
+            invoice_date = ''
             if is_marketplace:
                 summary = order_summaries.filter(seller_order__order__order_id=data['invoice_number'],
                                                  seller_order__seller__name=data['seller_order__seller__name'])[0]
@@ -7556,7 +7556,13 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
                                                .annotate(cur_amt=(F('order__invoice_amount')/F('order__quantity'))* F('pic_qty'))\
                                                .aggregate(Sum('cur_amt'))['cur_amt__sum']
             else:
-                order = order_summaries.filter(invoice_number=data['invoice_number'])[0].order
+                seller_order_summaries = order_summaries.filter(invoice_number=data['invoice_number'])
+                order_ids = seller_order_summaries.values_list('order__id', flat= True)
+                order = seller_order_summaries[0].order
+                invoice_date = CustomerOrderSummary.objects.filter(order_id__in=order_ids)\
+                                                   .order_by('-invoice_date').values_list('invoice_date', flat=True)[0]
+                if not invoice_date:
+                    invoice_date = seller_order_summaries.order_by('-updation_date')[0].updation_date
                 #order = orders.filter(original_order_id=data['order__original_order_id'])[0]
                 #invoice_number = order.sellerordersummary_set.values_list('invoice_number', flat=True)
                 #if invoice_number:
@@ -7578,6 +7584,7 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
                 data['ordered_quantity'] = 0
 
             order_date = get_local_date(user, order.creation_date)
+            invoice_date = invoice_date.strftime("%d %b %Y") if invoice_date else order.creation_date.strftime("%d %b %Y")
 
             if is_marketplace:
                 data_dict = OrderedDict((('UOR ID', order_id), ('SOR ID', summary.seller_order.sor_id),
@@ -7593,7 +7600,7 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
             data_dict.update(OrderedDict((('Customer Name', order.customer_name),
                                           ('Order Quantity', data['ordered_quantity']), ('Picked Quantity', data['total_quantity']),
                                           ('Total Amount', picked_amount),
-                                          ('Order Date&Time', order_date), ('Invoice Number', '')
+                                          ('Order Date&Time', invoice_date), ('Invoice Number', '')
                                           )))
             temp_data['aaData'].append(data_dict)
         log.info('Customer Invoice filtered %s for %s ' % (str(temp_data['recordsTotal']), user.username))

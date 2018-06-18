@@ -202,7 +202,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
           if(click_type == 'cancel_poc'){
               send_data = JSON.stringify({
-                grn_no: grn_no, 
+                grn_no: grn_no,
+                invoice_number: temp['invoice_number'],
                 seller_summary_name: supplier_name, 
                 seller_summary_id: temp['id'], 
                 purchase_order__order_id: temp['purchase_order__order_id'],
@@ -211,7 +212,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               });
             } else {
               send_data = JSON.stringify({
-                grn_no: grn_no, 
+                grn_no: grn_no,
+                invoice_number: temp['invoice_number'],
                 seller_summary_name: supplier_name, 
                 seller_summary_id: temp['id'], 
                 purchase_order__order_id: temp['purchase_order__order_id'],

@@ -1786,6 +1786,7 @@ class SellerPOSummary(models.Model):
     seller_po = models.ForeignKey(SellerPO, blank=True, null=True, db_index=True)
     purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True, db_index=True)
     location = models.ForeignKey(LocationMaster, blank=True, null=True)
+    batch_detail = models.ForeignKey(BatchDetail, blank=True, null=True)
     putaway_quantity = models.FloatField(default=0)
     quantity = models.FloatField(default=0)
     challan_number = models.CharField(max_length=64, default='')
@@ -2712,3 +2713,15 @@ class SellerOrderTransfer(models.Model):
         db_table = 'SELLER_ORDER_TRANSFER'
         unique_together = ('seller_transfer', 'seller_order')
         index_together = ('seller_transfer', 'seller_order')
+
+
+class ReturnToVendor(models.Model):
+    id = BigAutoField(primary_key=True)
+    seller_po_summary = models.ForeignKey(SellerPOSummary, blank=True, null=True)
+    quantity = models.FloatField(default=0)
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'RETURN_TO_VENDOR'

@@ -403,7 +403,7 @@ def get_search_params(request, user=''):
                     'order_id': 'order_id', 'job_code': 'job_code', 'job_order_code': 'job_order_code',
                     'fg_sku_code': 'fg_sku_code',
                     'rm_sku_code': 'rm_sku_code', 'pallet': 'pallet',
-                    'staff_id': 'id', 'ean': 'ean' }
+                    'staff_id': 'id', 'ean': 'ean', 'invoice_number': 'invoice_number'}
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
                       'search2': 'search_2', 'search3': 'search_3',
@@ -460,6 +460,7 @@ data_datatable = {  # masters
     'RaiseIO': 'get_intransit_orders', 'PrimarySegregation': 'get_segregation_pos', \
     'ProcessedPOs': 'get_processed_po_data', 'POChallans': 'get_po_challans_data', \
     'SupplierInvoices': 'get_supplier_invoice_data', \
+    'ReturnToVendor': 'get_po_putaway_data', \
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
     'PickelistGenerated': 'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo', \
@@ -4581,7 +4582,7 @@ def get_purchase_order_data(order):
         order_quantity = open_data.order_quantity
         sku = open_data.sku
         price = open_data.price
-        mrp = open_data.mrp
+        mrp = 0
         order_type = ''
         supplier_code = ''
         cgst_tax = 0
@@ -6767,7 +6768,20 @@ def create_update_batch_data(batch_dict):
             batch_dict['creation_date'] = datetime.datetime.now()
             batch_obj = BatchDetail.objects.create(**batch_dict)
         else:
-            batch_obj = batch_objs[0].id
+            batch_obj = batch_objs[0]
+    return batch_obj
+
+
+def get_or_create_batch_detail(batch_dict, temp_dict):
+    batch_obj = None
+    batch_dict1 = copy.deepcopy(batch_dict)
+    if 'batch_no' in batch_dict:
+        batch_obj = create_update_batch_data(batch_dict1)
+    elif 'quality_check' in temp_dict:
+        batch_obj = BatchDetail.objects.filter(transact_id=temp_dict['quality_check'].po_location.id,
+                                               transact_type='po_loc')
+        if batch_obj:
+            batch_obj = batch_obj[0]
     return batch_obj
 
 

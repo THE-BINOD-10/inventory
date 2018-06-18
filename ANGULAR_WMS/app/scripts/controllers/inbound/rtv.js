@@ -103,20 +103,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.create_rtv = function(){
       var flag = false;
-      angular.forEach(vm.selected, function(item){
-        if (item && !flag) {
+      var id = '';
+      angular.forEach(vm.selected, function(value, key){
+        if (value && !flag) {
           flag = true;
-        } else {
+          id = vm.dtInstance.DataTable.context[0].aoData[key]._aData.data_id;
+        } else if (value && flag) {
           Service.showNoty('You can select one sku at a time');
+          flag = false;
           return false;
         }
       });
 
       if (flag) {
-        // $state.go('app.inbound.rtv.details');
-        // vm.title = "Generate RTV";
 
-        vm.service.apiCall('get_rtv_data/', 'GET', {selected_items: vm.selected}).then(function(data){
+        vm.service.apiCall('get_po_putaway_summary/', 'GET', {data_id: id}).then(function(data){
           if(data.message) {
             angular.copy(data.data, vm.model_data);
               vm.title = "Generate RTV";

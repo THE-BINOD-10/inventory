@@ -1404,7 +1404,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
       console.log(field);
 	  vm.scan_ean_disable = true;
 	  vm.service.apiCall('create_orders_check_ean/', 'GET', {'ean': field}).then(function(data) {
-		$('textarea[name="scan_ean"]').trigger('focus').val('');
+		$('.scan_ean').trigger('focus').val('');
         if(data.message) {
 		  if(data.data.sku) {
 		  vm.get_customer_sku_prices(data.data.sku).then(function(resp) {

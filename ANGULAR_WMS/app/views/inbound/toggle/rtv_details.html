@@ -31,7 +31,7 @@
               <div class="row" ng-if="showCase.user_type=='marketplace_user'">
                 <div class="col-xs-4"><b>Seller ID</b></div>
                 <div class="col-xs-8">: {{showCase.model_data.seller_details['seller_id']}}
-                  <input type="hidden" ng-model="showCase.model_data['seller_id']" title="{{ showCase.model_data['seller_id'] }}" name="seller_id" class="form-control" value="{{showCase.model_data.seller_details['seller_id']}}">
+                  <input type="hidden" ng-model="showCase.model_data.seller_details['seller_id']" title="{{ showCase.model_data.seller_details['seller_id'] }}" name="seller_id" class="form-control" value="{{showCase.model_data.seller_details['seller_id']}}">
                 </div>
               </div>
               <div class="row" ng-if="showCase.user_type=='marketplace_user'">
@@ -55,8 +55,8 @@
                     <th ng-if="showCase.industry_type=='FMCG'">Batch No</th>
                     <th ng-if="showCase.industry_type=='FMCG'">MRP</th>
                     <th>Amount</th>
-                    <th>Location</th>
                     <th>Tax</th>
+                    <th>Location</th>
                     <th>Returning Quantity</th>
                     <th class="plus"></th>
                   <tr>
@@ -75,8 +75,8 @@
                     <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.batch_no" title="{{ data.batch_no }}" name="batch_no" class="form-control" value="{{data.batch_no}}" readonly></td>
                     <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.mrp" size="22" title="{{ data.mrp }}" name="mrp" class="form-control" ng-class="service.get_decimal_perm()" value="{{data.mrp}}" readonly></td>
                     <td><input type="text" ng-model="data.amount" name="amount" class="form-control" ng-class="service.get_decimal_perm()" value="{{data.amount}}" readonly></td>
-                    <td><input type="text" ng-model="data.location" size="22" title="{{ data.location }}" name="location" class="form-control" ng-class="service.get_decimal_perm()" value="{{data.location}}"></td>
                     <td><input type="text" ng-model="data.tax_value" name="tax_value" class="form-control" ng-class="service.get_decimal_perm()" value="{{data.tax_value}}" readonly></td>
+                    <td><input type="text" ng-model="data.location" size="22" title="{{ data.location }}" name="location" class="form-control" value="{{data.location}}"></td>
                     <td><input type="text" ng-model="data.return_qty" size="22" title="{{ data.return_qty }}" name="return_qty" class="form-control" ng-class="service.get_decimal_perm()" value="{{data.return_qty}}" required></td>
 
                     <td><i ng-click="showCase.update_data($index, showCase.model_data.data[0])" ng-class="showCase.service.isLast($last)"></i></td>

@@ -169,18 +169,26 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.submit = submit;
     function submit(form) {
-      var data = [];
+      var elem = [];
+      elem.push({'name': 'seller_id', 'value': vm.model_data.seller_details.seller_id});
 
-      for(var i=0; i<vm.model_data.data.length; i++)  {
-        var temp = vm.model_data.data[i][0];
-        if(!temp.is_new) {
-          data.push({name: temp.order_id, value: temp.value});
-        }
-      }
-      data.push({name: 'remarks', value: vm.model_data.remarks});
-      data.push({name: 'expected_date', value: vm.model_data.expected_date});
-      data.push({name: 'remainder_mail', value: vm.model_data.remainder_mail});
-      vm.service.apiCall('update_putaway/', 'GET', data, true).then(function(data){
+      angular.forEach(vm.model_data.data[0], function(row){
+        elem.push({'name': 'sku_code', 'value': row.sku_code});
+        elem.push({'name': 'order_id', 'value': row.order_id});
+        elem.push({'name': 'price', 'value': row.price});
+        elem.push({'name': 'quantity', 'value': row.quantity});
+        elem.push({'name': 'amount', 'value': row.amount});
+        elem.push({'name': 'sku_desc', 'value': row.sku_desc});
+        elem.push({'name': 'summary_id', 'value': row.summary_id});
+        elem.push({'name': 'tax_percent', 'value': row.tax_percent});
+        elem.push({'name': 'tax_value', 'value': row.tax_value});
+        elem.push({'name': 'location', 'value': row.location});
+        elem.push({'name': 'return_qty', 'value': row.return_qty});
+        elem.push({'name': 'batch_no', 'value': row.batch_no});
+        elem.push({'name': 'mrp', 'value': row.mrp});
+      });
+
+      vm.service.apiCall('create_rtv/', 'GET', elem, true).then(function(data){
         if(data.message) {
           if(data.data == 'Updated Successfully') {
             vm.close();

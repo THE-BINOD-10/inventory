@@ -6674,8 +6674,8 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
                                                         purchase_order__order_id=result['purchase_order__order_id'],
                                                         invoice_number=result['invoice_number'])
         order_reference = get_po_reference(seller_summarys[0].purchase_order)
-        checkbox = "<input type='checkbox' name='data_id' value='%s:%s'>" % (result['purchase_order__order_id'],
-                                                                     result['invoice_number'])
+        data_id = '%s:%s' % (result['purchase_order__order_id'], result['invoice_number'])
+        checkbox = "<input type='checkbox' name='data_id' value='%s'>" % (data_id)
         po_date = get_local_date(request.user, seller_summarys[0].purchase_order.creation_date,
                                  send_date=True).strftime("%d %b, %Y")
         invoice_number = ''
@@ -6690,7 +6690,7 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
                 total_amt += seller_summary.quantity * seller_summary.batch_detail.buy_price
             else:
                 total_amt += seller_summary.quantity * seller_summary.purchase_order.open_po.price
-        temp_data['aaData'].append(OrderedDict((('', checkbox),
+        temp_data['aaData'].append(OrderedDict((('', checkbox),('data_id', data_id),
                                                 ('Supplier ID', result['purchase_order__open_po__supplier_id']),
                                                 ('Supplier Name', result['purchase_order__open_po__supplier__name']),
                                                 ('PO Number', order_reference), ('PO Date', po_date),

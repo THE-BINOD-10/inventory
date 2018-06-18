@@ -60,7 +60,7 @@ $(document).ready(function(){
       <span class="pull-left" style="float: left;"><b>Date: <span id="date">{{date_data.date}}</span></b></span>
     </div>
     <div class="col-md-6" style="float: right;">
-      <span class="pull-right"><b>Order ID: {% if not marketplace %}{{ order_ids }} {% endif %}</b></span>
+      <span class="pull-right" ng-if="order_ids"><b>Order ID: {{ order_ids }} </b></span>
     </div>
   </div>
   <br>

@@ -6713,6 +6713,10 @@ def get_po_putaway_summary(request, user=''):
     if not seller_summary_objs:
         return HttpResponse("No Data found")
     po_reference = get_po_reference(seller_summary_objs[0].purchase_order)
+    invoice_number = seller_summary_objs[0].invoice_number
+    invoice_date = get_local_date(user, seller_summary_objs[0].creation_date)
+    if seller_summary_objs[0].invoice_date:
+        invoice_date = seller_summary_objs[0].invoice_date.strftime("%d %b, %Y")
     orders = []
     order_data = {}
     order_ids = []
@@ -6741,7 +6745,7 @@ def get_po_putaway_summary(request, user=''):
     if seller_summary_objs.exists():
         purchase_order = seller_summary_objs[0].purchase_order
         supplier_name = purchase_order.open_po.supplier.name
-        order_date = get_local_date(user, purchase_order.creation_date)
+        order_date = get_local_date(user, purchase_order.creation_date, send_date=True).strftime("%d %b, %Y")
         remarks = purchase_order.remarks
         if seller_summary_objs[0].seller_po:
             seller = seller_summary_objs[0].seller_po.seller
@@ -6750,5 +6754,6 @@ def get_po_putaway_summary(request, user=''):
                                     'supplier_id': order_data['supplier_id'],\
                                     'po_reference': po_reference, 'order_ids': order_ids,
                                     'supplier_name': supplier_name, 'order_date': order_date,
-                                    'remarks': remarks, 'seller_details': seller_details
+                                    'remarks': remarks, 'seller_details': seller_details,
+                                    'invoice_number': invoice_number, 'invoice_date': invoice_date
                         }))

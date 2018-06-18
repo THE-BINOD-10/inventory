@@ -1820,8 +1820,8 @@ def validate_supplier_form(open_sheet, user_id):
     messages_dict = {'phone_number': 'Phone Number', 'days_to_supply': 'Days required to supply',
                      'fulfillment_amt': 'Fulfillment Amount', 'owner_number': 'Owner Number',
                      'spoc_number': 'SPOC Number', 'lead_time': 'Lead Time', 'credit_period': 'Credit Period',
-                     'account_number': 'Account Number'}
-    number_str_fields = ['pincode', 'phone_number', 'days_to_supply', 'fulfillment_amt',
+                     'account_number': 'Account Number', 'po_exp_duration': 'PO Expiry Duration'}
+    number_str_fields = ['pincode', 'phone_number', 'days_to_supply', 'fulfillment_amt', 'po_exp_duration',
                          'owner_number', 'spoc_number', 'lead_time', 'credit_period', 'account_number']
     for row_idx in range(0, open_sheet.nrows):
         for key, value in mapping_dict.iteritems():
@@ -1868,7 +1868,7 @@ def validate_supplier_form(open_sheet, user_id):
 
 def supplier_excel_upload(request, open_sheet, user, demo_data=False):
     mapping_dict = copy.deepcopy(SUPPLIER_EXCEL_FIELDS)
-    number_str_fields = ['pincode', 'phone_number', 'days_to_supply', 'fulfillment_amt',
+    number_str_fields = ['pincode', 'phone_number', 'days_to_supply', 'fulfillment_amt', 'po_exp_duration',
                          'owner_number', 'spoc_number', 'lead_time', 'credit_period', 'account_number']
     rev_tax_types = dict(zip(TAX_TYPE_ATTRIBUTES.values(), TAX_TYPE_ATTRIBUTES.keys()))
     for row_idx in range(1, open_sheet.nrows):

@@ -137,15 +137,38 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     function update_data(index, data) {
       // if (Session.roles.permissions['pallet_switch'] || vm.industry_type == 'FMCG') {
         if (index == data.length-1) {
-          var new_dic = {};
-          angular.copy(data[index], new_dic);
-          new_dic.location = '';
-          new_dic.return_qty='';
-          data.push(new_dic);
+          var total_qty = 0;
+
+          angular.forEach(data, function(row){
+            total_qty += row.return_qty ;
+          });
+
+          if (total_qty < data[index].quantity) {
+            var new_dic = {};
+            angular.copy(data[index], new_dic);
+            new_dic.location = '';
+            new_dic.return_qty='';
+            data.push(new_dic);
+          } else {
+            Service.showNoty("You don't have quantity to enter");
+          }
         } else {
           data.splice(index,1);
         }
       // }
+    }
+
+    vm.check_quantity = function(index, data){
+      var total_qty = 0;
+      angular.forEach(data, function(row){
+        total_qty += Number(row.return_qty) ;
+      });
+
+      if (total_qty > data[index].quantity) {
+        data[index].return_qty = data[index].quantity - total_qty;
+
+        Service.showNoty("You can enter only "+(data[index].quantity - total_qty)+" quantity");
+      }
     }
     
     vm.new_sku = false
@@ -188,7 +211,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         elem.push({'name': 'mrp', 'value': row.mrp});
       });
 
-      vm.service.apiCall('create_rtv/', 'GET', elem, true).then(function(data){
+      vm.service.apiCall('create_rtv/', 'POST', elem, true).then(function(data){
         if(data.message) {
           if(data.data == 'Updated Successfully') {
             vm.close();

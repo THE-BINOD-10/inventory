@@ -6747,7 +6747,7 @@ def get_po_putaway_summary(request, user=''):
             data_dict['tax_percent'] = batch_detail.tax_percent
         data_dict['amount'] = data_dict['quantity'] * data_dict['price']
         data_dict['tax_value'] = (data_dict['amount']/100) * data_dict['tax_percent']
-        orders.append([data_dict])
+        orders.append(data_dict)
     supplier_name, order_date, expected_date, remarks = '', '', '', ''
     if seller_summary_objs.exists():
         purchase_order = seller_summary_objs[0].purchase_order
@@ -6764,3 +6764,11 @@ def get_po_putaway_summary(request, user=''):
                                     'remarks': remarks, 'seller_details': seller_details,
                                     'invoice_number': invoice_number, 'invoice_date': invoice_date
                         }))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def create_rtv(request, user=''):
+    import pdb;pdb.set_trace()
+    return HttpResponse("Success")

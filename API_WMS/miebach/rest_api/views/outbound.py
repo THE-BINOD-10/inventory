@@ -2642,7 +2642,6 @@ def print_picklist(request, user=''):
         marketplace = ''
     else:
         marketplace = ','.join(market_place)
-    #marketplace check
     if display_order_id == 'true':
         if len(original_order_data):
             order_ids = ','.join(original_order_data)

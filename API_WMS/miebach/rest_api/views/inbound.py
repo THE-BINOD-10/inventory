@@ -1583,6 +1583,8 @@ def get_supplier_data(request, user=''):
                                                                             mapping_type='PO',
                                                                             sku_id=order_data['sku_id'],
                                                                             order_ids=order_ids)
+            tax_percent = order_data['cgst_tax'] + order_data['sgst_tax'] + order_data['igst_tax'] +\
+                          order_data['utgst_tax']
             orders.append([{'order_id': order.id, 'wms_code': order_data['wms_code'],
                             'sku_desc': order_data['sku_desc'],
                             'po_quantity': float(order_data['order_quantity']) - float(order.received_quantity),
@@ -1596,7 +1598,8 @@ def get_supplier_data(request, user=''):
                             'unit': order_data['unit'],
                             'dis': True,
                             'sku_extra_data': sku_extra_data, 'product_images': product_images,
-                            'sku_details': sku_details, 'shelf_life': order_data['shelf_life']}])
+                            'sku_details': sku_details, 'shelf_life': order_data['shelf_life'],
+                            'tax_percent': tax_percent}])
     supplier_name, order_date, expected_date, remarks = '', '', '', ''
     if purchase_orders:
         purchase_order = purchase_orders[0]

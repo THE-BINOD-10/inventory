@@ -708,7 +708,7 @@ def print_po_reports(request, user=''):
             total_qty += quantity
             total_tax += (open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax)
         else:
-            bill_date = seller_summary_obj.invoice_date if seller_summary_obj.invoice_date else data.creation_date
+            bill_date = data.invoice_date if data.invoice_date else data.creation_date
             bill_no = data.invoice_number if data.invoice_number else ''
             po_order = data.purchase_order
             open_data = po_order.open_po

@@ -260,6 +260,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.service.apiCall('create_rtv/', 'POST', elem, true).then(function(data){
         if(data.message) {
           if(data.data == 'Success') {
+
+            vm.close();
+            vm.service.refresh(vm.dtInstance);
+          } else {
             if(data.data.search("<div") != -1) {
               vm.title = "Debit Note";
               vm.extra_width = {}
@@ -275,11 +279,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             } else {
               pop_msg(data.data)
             }
-
-            // vm.close();
-            // vm.service.refresh(vm.dtInstance);
-          } else {
-            pop_msg(data.data);
           }
         }
         vm.conf_disable = false;

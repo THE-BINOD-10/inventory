@@ -272,10 +272,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               angular.element(".modal-body").html($(data.data));
               vm.print_enable = true;
               vm.service.refresh(vm.dtInstance);
-              // if(vm.permissions.use_imei) {
-              //   fb.generate = true;
-              //   fb.remove_po(fb.poData["id"]);
-              // }
             } else {
               pop_msg(data.data)
             }
@@ -283,6 +279,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }
         vm.conf_disable = false;
       });
+    }
+
+    vm.print_rtv = function() {
+      vm.service.print_data(vm.html, "Debit Note");
     }
 
     function check_receive() {

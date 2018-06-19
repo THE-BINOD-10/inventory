@@ -168,31 +168,37 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       sku.rest_qty = 0;
       vm.totol_qty_check(data);
 
-      if (Number(sku.return_qty) >= Number(sku.quantity) && !sku.rest_qty) {
+      if (Number(vm.total_qty) > Number(sku.quantity) && !sku.rest_qty) {
         vm.check_rest_qty(sku, data);
         sku.return_qty = vm.rest_qty;
         Service.showNoty("You can enter "+sku.return_qty+" quantity");
         
         sku.rest_qty = 0;
-      } else if (Number(sku.return_qty) >= Number(sku.quantity) && sku.rest_qty) {
+      } else if (Number(vm.total_qty) > Number(sku.quantity) && sku.rest_qty) {
         vm.check_rest_qty(sku, data);
         sku.return_qty = vm.rest_qty;
         Service.showNoty("You can enter "+sku.return_qty+" quantity");
         sku.rest_qty = 0;
       } else {
-        if (index) {
-          sku.return_qty = data[index-1].rest_qty;
+        if (index && sku.return_qty > data[index-1].rest_qty) {
           Service.showNoty("You can enter "+sku.return_qty+" quantity");
+          sku.rest_qty = 0;
+        } else {
+          sku.rest_qty = Number(sku.quantity) - Number(vm.total_qty);
         }
-        sku.rest_qty = Number(sku.quantity) - Number(vm.total_qty);
       }
 
     }
     
     vm.check_rest_qty = function(sku, data){
       var total_qty = 0;
-      for (var i = 0; i < data.length-1; i++) {
+      for (var i = 0; i < data.length; i++) {
         total_qty += Number(data[i].return_qty);
+      }
+
+      if(total_qty > sku.quantity){
+          total_qty = total_qty - sku.return_qty;
+          sku.return_qty = sku.quantity - total_qty;
       }
 
       vm.rest_qty = sku.quantity - total_qty; 
@@ -200,6 +206,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.totol_qty_check = function(data){
       angular.forEach(data, function(row){
+        if (!row.return_qty) {
+          row.return_qty = '';
+        }
         vm.total_qty += Number(row.return_qty);
       });
 

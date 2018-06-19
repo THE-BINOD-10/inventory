@@ -7010,9 +7010,12 @@ def get_gen_wh_ids(request, user, delivery_date):
     return gen_whs
 
 
-def get_incremental(user, type_name):
+def get_incremental(user, type_name, default_val=''):
     # custom sku counter
-    default = 1001
+    if not default_val:
+        default = 1001
+    else:
+        default = default_val
     data = IncrementalTable.objects.filter(user=user.id, type_name=type_name)
     if data:
         data = data[0]
@@ -7020,7 +7023,7 @@ def get_incremental(user, type_name):
         data.value = data.value + 1
         data.save()
     else:
-        IncrementalTable.objects.create(user_id=user.id, type_name=type_name, value=1001)
+        IncrementalTable.objects.create(user_id=user.id, type_name=type_name, value=default)
         count = default
     return count
 
@@ -7109,3 +7112,24 @@ def update_substitution_data(src_stocks, dest_stocks, src_sku, src_loc, src_qty,
                 'destination_quantity': dest_qty}
     SubstitutionSummary.objects.create(**sub_data)
     log.info("Substitution Done For " + str(json.dumps(sub_data)))
+
+def update_stock_detail(stocks, quantity, user):
+    for stock in stocks:
+        if stock.quantity > quantity:
+            stock.quantity -= quantity
+            seller_stock = stock.sellerstock_set.filter()
+            if seller_stock.exists():
+                change_seller_stock(seller_stock[0].seller_id, stock, user, quantity, 'dec')
+            quantity = 0
+            if stock.quantity < 0:
+                stock.quantity = 0
+            stock.save()
+        elif stock.quantity <= quantity:
+            quantity -= stock.quantity
+            seller_stock = stock.sellerstock_set.filter()
+            if seller_stock.exists():
+                change_seller_stock(seller_stock[0].seller_id, stock, user, stock.quantity, 'dec')
+            stock.quantity = 0
+            stock.save()
+        if quantity == 0:
+            break

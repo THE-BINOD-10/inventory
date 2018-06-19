@@ -110,6 +110,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
           modalInstance.result.then(function (selectedItem) {
             var data = selectedItem;
+            vm.reloadData();
           })
         }
       });
@@ -252,6 +253,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
               modalInstance.result.then(function (selectedItem) {
                 var data = selectedItem;
+                vm.reloadData();
               })
             }
           }
@@ -281,6 +283,8 @@ function EditDeliveryChallan($scope, $http, $state, $timeout, Session, colFilter
     $modalInstance.close("close");
   };
 
+  vm.removed_data = [];
+
   vm.update_data = function (index) {
     console.log(index);
     if (index == vm.model_data.data.length-1) {
@@ -288,34 +292,36 @@ function EditDeliveryChallan($scope, $http, $state, $timeout, Session, colFilter
 							  "unit_price": 0, "taxes": {"cgst_tax": 0, "sgst_tax": 0,
 							  "igst_tax": 0}, "amt": 0, "tax": 0, "invoice_amount": 0});
     } else {
-      if(vm.model_data.data[index].order_id){
-        vm.delete_data('order_id', vm.model_data.data[index].order_id, index);
-      } else {
-        vm.delete_data('id', vm.model_data.data[index].id, index);
-      }
+      // if(vm.model_data.data[index].order_id){
+      //   vm.delete_data('order_id', vm.model_data.data[index].order_id, index);
+      // } else {
+      //   vm.delete_data('id', vm.model_data.data[index].id, index);
+      // }
+      vm.model_data.data[index].quantity = 0;
+      vm.removed_data.push(vm.model_data.data[index]);
       vm.model_data.data.splice(index,1);
       vm.getTotals();
     }
   };
 
-  vm.delete_data = function(key, id, index) {
-    if(id) {
-      var del_data = {}
-      del_data[key] = id;
-      vm.service.apiCall('delete_po/', 'GET', del_data).then(function(data){
-        if(data.message) {
-    vm.model_data.data[index].row_price = (vm.model_data.data[index].order_quantity * Number(vm.model_data.data[index].price))
-;
-    vm.model_data.total_price = 0;
+//   vm.delete_data = function(key, id, index) {
+//     if(id) {
+//       var del_data = {}
+//       del_data[key] = id;
+//       vm.service.apiCall('delete_po/', 'GET', del_data).then(function(data){
+//         if(data.message) {
+//     vm.model_data.data[index].row_price = (vm.model_data.data[index].order_quantity * Number(vm.model_data.data[index].price))
+// ;
+//     vm.model_data.total_price = 0;
 
-    angular.forEach(vm.model_data.data, function(one_row){
-      vm.model_data.total_price = vm.model_data.total_price + (one_row.order_quantity * one_row.price);
-    });
-          vm.service.pop_msg(data.data);
-        }
-      });
-    }
-  };
+//     angular.forEach(vm.model_data.data, function(one_row){
+//       vm.model_data.total_price = vm.model_data.total_price + (one_row.order_quantity * one_row.price);
+//     });
+//           vm.service.pop_msg(data.data);
+//         }
+//       });
+//     }
+//   };
 
   vm.getTotals = function(data) {
     vm.model_data.total_items = vm.model_data.data.length;
@@ -361,7 +367,7 @@ function EditDeliveryChallan($scope, $http, $state, $timeout, Session, colFilter
     product.igst_tax = "";
     product.utgst_tax = "";
     product.tax = "";
-	product.unit_price = 0;
+	  product.unit_price = 0;
 
     var tax_dict = {0:"intra_state", 1:"inter_state", 2:"default"};
     var data = {sku_codes: item.wms_code, cust_id: vm.model_data.customer_id, tax_type: tax_dict[vm.model_data.tax_type]}
@@ -416,6 +422,11 @@ function EditDeliveryChallan($scope, $http, $state, $timeout, Session, colFilter
       'address': form_data.address.$modelValue,
       'wms_code': form_data.wms_code.$modelValue
     };
+
+    angular.forEach(vm.removed_data, function(data){
+      vm.model_data.data.push(data);
+    });
+
     update_dc_data.data = JSON.stringify(vm.model_data.data);
     vm.process = true;
 

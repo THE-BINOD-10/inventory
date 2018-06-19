@@ -8,6 +8,9 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
 
     var vm = this;
     vm.colFilters = colFilters
+    vm.searched_wms_code = "";
+    vm.searched_sup_code = '';
+    vm.is_came_from_raise_po = false;
 
     DTDefaultOptions.setLanguage({
     // ...

@@ -103,6 +103,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.filter_enable = true;
     vm.update = false;
     vm.model_data = {};
+    vm.bank_names = {'abc': 'abc',
+                     'xyz': 'xyz',
+                     'pqr': 'pqr'};
+    vm.payment_modes = {'cheque': 'cheque',
+                        'NEFT': 'NEFT'};
+    vm.default_bank = "abc";
+    vm.default_mode = "cheque";
 
   vm.change_amount = function(data) {
 
@@ -117,6 +124,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 	  var parent = angular.element(temp).parents(".order-edit");
 	  angular.element(parent).find(".order-update").addClass("hide");
 	  angular.element(parent).find(".order-save").removeClass("hide");
+      $(".update_fields").removeClass("hide");
 	}
 
 	vm.order_save = function(event, index, order){
@@ -124,14 +132,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     var temp = event.target;
     var parent = angular.element(temp).parents(".order-edit");
     var value = $(parent).find("input").val();
+    var row = $($(parent).parent());
+    var bank = row.find("[name='bank']").val();
+    var mode_of_payment = row.find("[name='mode_of_payment']").val();
+    var remarks = row.find("[name='remarks']").val();
     if(value) {
-      var data = {order_id: order.order_id, amount: value}
+      var data = {order_id: order.order_id, amount: value,
+				  bank: bank, remarks: remarks,
+				  mode_of_payment: mode_of_payment}
       vm.service.apiCall("po_update_payment_status/", "GET", data).then(function(data){
         if(data.message) {
 
           $(parent).find("input").val("");
           angular.element(parent).find(".order-update").removeClass("hide");
           angular.element(parent).find(".order-save").addClass("hide");
+          $(".update_fields").addClass("hide");
 
           order.receivable = Number(order.receivable) - Number(value);
           order.received = Number(order.received) + Number(value);

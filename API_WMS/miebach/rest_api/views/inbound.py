@@ -6602,12 +6602,22 @@ def get_inv_based_po_payment_data(start_index, stop_index, temp_data, search_ter
     result_values = ['invoice_number', 'purchase_order__open_po__supplier__name',
                      'purchase_order__open_po__supplier__id']#to make distinct grouping
     if search_term:
-        pass
+        search_term = search_term.replace('(', '\(').replace(')', '\)')
+        search_query = build_search_term_query(lis, search_term)
+        master_data = SellerPOSummary.objects.filter(search_query, **user_filter)\
+                                     .values(*result_values).distinct()\
+                                     .annotate(payment_received=Sum('purchase_order__payment_received'),\
+                                     invoice_date=Cast('creation_date', DateField()))
     elif order_term:
-        pass
+        if order_term == 'asc' and (col_num or col_num == 0):
+            order_by = '%s' % lis[col_num]
+        else:
+            order_by = '-%s' % lis[col_num]
+        master_data = SellerPOSummary.objects.filter(**user_filter).values(*result_values).distinct()\
+                                     .annotate(payment_received=Sum('purchase_order__payment_received'),\
+                                     invoice_date=Cast('creation_date', DateField())).order_by('-%s' % lis[col_num])
     else:
-        pass
-    master_data = SellerPOSummary.objects.filter(**user_filter)\
+        master_data = SellerPOSummary.objects.filter(**user_filter)\
                                  .values(*result_values).distinct().annotate(payment_received=Sum('purchase_order__payment_received'),\
                                  invoice_date=Cast('creation_date', DateField()))
 
@@ -6672,3 +6682,59 @@ def po_get_invoice_payment_tracker(request, user=''):
                  'receivable': (data['tot_price']+(data['tot_price']*data['tot_tax_perc'])) - data['paynemt_received']})
     response["data"] = order_data
     return HttpResponse(json.dumps(response))
+
+
+@login_required
+@csrf_exempt
+@get_admin_user
+def po_update_payment_status(request, user=''):
+    data_dict = dict(request.GET.iterlists())
+    for i in range(0, len(data_dict['order_id'])):
+        if not data_dict['amount'][i]:
+            continue
+        payment = float(data_dict['amount'][i])
+        seller_summary_obj = SellerPOSummary.objects.filter(purchase_order__open_po__sku__user=user.id,\
+                                                    purchase_order__order_id=data_dict['order_id'][i])
+        invoice_amt = 0
+        for seller_sum in seller_summary_obj:
+            price = seller_sum.purchase_order.open_po.price
+            quantity = seller_sum.quantity
+            tot_price = price * quantity
+            tot_tax_perc = seller_sum.purchase_order.open_po.cgst_tax +\
+                           seller_sum.purchase_order.open_po.sgst_tax + seller_sum.purchase_order.open_po.igst_tax
+            tot_tax = float(tot_price * tot_tax_perc) / 100
+            invoice_amt += (tot_price + tot_tax)
+        po_objs = PurchaseOrder.objects.filter(order_id=data_dict['order_id'][i],\
+                                              open_po__sku__user=user.id,\
+                                              payment_received__lt=invoice_amt)
+        for order in po_objs:
+            if not payment:
+                break
+            sel_po_sum = order.sellerposummary_set.all()[0]
+            price = order.open_po.price
+            quantity = sel_po_sum.quantity
+            tot_price = price * quantity
+            tot_tax_perc = order.open_po.cgst_tax + order.open_po.sgst_tax + order.open_po.igst_tax
+            tot_tax = float(tot_price * tot_tax_perc) / 100
+            invoice_amt = tot_price + tot_tax
+
+            if float(invoice_amt) > float(order.payment_received):
+                diff = float(invoice_amt) - float(order.payment_received)
+                bank = request.GET.get('bank', '')
+                mode_of_pay = request.GET.get('mode_of_payment', '')
+                remarks = request.GET.get('remarks', '')
+                if payment > diff:
+                    order.payment_received = diff
+                    payment -= diff
+                    POPaymentSummary.objects.create(order_id=order.id, creation_date=datetime.datetime.now(),\
+                                                  payment_received=diff, bank=bank, mode_of_pay=mode_of_pay,\
+                                                  remarks=remarks)
+                else:
+                    POPaymentSummary.objects.create(order_id=order.id, creation_date=datetime.datetime.now(),\
+                                                  payment_received=payment, bank=bank,\
+                                                  mode_of_pay=mode_of_pay, remarks=remarks)
+                    order.payment_received = float(order.payment_received) + float(payment)
+                    payment = 0
+                order.save()
+    return HttpResponse("Success")
+

@@ -166,6 +166,7 @@ urlpatterns = [
     url(r'^update_poc/$', update_poc),
     url(r'^update_po_invoice/$', update_po_invoice),
     url(r'^po_get_invoice_payment_tracker/$', po_get_invoice_payment_tracker),
+    url(r'^po_update_payment_status/$', po_update_payment_status),
 
     # Production
     url(r'^generated_jo_data/$', generated_jo_data),
@@ -258,6 +259,7 @@ urlpatterns = [
     url(r'^get_corporate_master_id/$', get_corporate_master_id),
     url(r'^search_wms_data/$', search_wms_data),
     url(r'^update_payment_status/$', update_payment_status),
+    url(r'^update_inv_payment_status/$', update_inv_payment_status),
     url(r'^create_orders_data/$', create_orders_data),
     url(r'^order_category_generate_picklist/$', order_category_generate_picklist),
     url(r'^get_customer_orders/$', get_customer_orders),

@@ -2717,6 +2717,7 @@ class SellerOrderTransfer(models.Model):
 
 class ReturnToVendor(models.Model):
     id = BigAutoField(primary_key=True)
+    rtv_number = models.CharField(max_length=32)
     seller_po_summary = models.ForeignKey(SellerPOSummary, blank=True, null=True)
     quantity = models.FloatField(default=0)
     status = models.IntegerField(default=1)

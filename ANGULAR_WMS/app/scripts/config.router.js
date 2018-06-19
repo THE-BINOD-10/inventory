@@ -731,7 +731,7 @@ var app = angular.module('urbanApp')
             url: '/Confirmation',
             templateUrl: 'views/inbound/toggle/putaway_confirm.html'
           })
-        /*.state('app.inbound.rtv', {
+        .state('app.inbound.rtv', {
           url: '/rtv',
           // permission: 'add_polocation',
           templateUrl: 'views/inbound/rtv.html',
@@ -749,7 +749,7 @@ var app = angular.module('urbanApp')
         .state('app.inbound.rtv.details', {
             url: '/details',
             templateUrl: 'views/inbound/toggle/rtv_details.html'
-          })*/
+          })
         .state('app.inbound.SalesReturns', {
           url: '/SalesReturns',
           permission: 'add_orderreturns',

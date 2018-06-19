@@ -6671,18 +6671,27 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
     if order_term == 'desc':
         order_data = '-%s' % order_data
 
+    ret_params = {}
+    for key, value in search_params.iteritems():
+        ret_params['seller_po_summary__%s' % key] = value
+    return_ids = ReturnToVendor.objects.filter(**ret_params).values_list('seller_po_summary_id').distinct().\
+                                        annotate(tot_proc=Sum('quantity'), tot=Sum('seller_po_summary__quantity'),
+                                                 tot_count=Count('seller_po_summary__quantity')).\
+                                        annotate(final_val=F('tot')/Cast(F('tot_count'), FloatField())).\
+                                        filter(tot_proc__gte=F('final_val')).\
+                                        values_list('seller_po_summary_id', flat=True)
     if search_term:
-        results = SellerPOSummary.objects.filter(purchase_order__status='confirmed-putaway').\
+        results = SellerPOSummary.objects.exclude(id__in=return_ids).filter(purchase_order__status='confirmed-putaway').\
             values('purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name',
                    'purchase_order__order_id', 'invoice_number', 'invoice_date',).distinct().annotate(
             total=Sum('quantity'), purchase_order_date=Cast('purchase_order__creation_date', DateField())). \
             filter(purchase_order__open_po__sku__user=user.id, **search_params).order_by(order_data)
 
     elif order_term:
-        results = SellerPOSummary.objects.filter(purchase_order__status='confirmed-putaway').\
+        results = SellerPOSummary.objects.exclude(id__in=return_ids).filter(purchase_order__status='confirmed-putaway').\
             values('purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name',
                    'purchase_order__order_id', 'invoice_number', 'invoice_date',).distinct().annotate(
-            total=Sum('quantity'), purchase_order_date=Cast('purchase_order__creation_date', DateField())). \
+            total=Sum('quantity'), purchase_order_date=Cast('purchase_order__creation_date', DateField())).\
             filter(purchase_order__open_po__sku__user=user.id, **search_params).order_by(order_data)
 
     temp_data['recordsTotal'] = results.count()
@@ -6690,12 +6699,14 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
 
     count = 0
     for result in results[start_index: stop_index]:
+        rem_quantity = result['total']
         seller_summarys = SellerPOSummary.objects.filter(purchase_order__open_po__sku__user=user.id,
                                                         purchase_order__order_id=result['purchase_order__order_id'],
                                                         invoice_number=result['invoice_number'])
         order_reference = get_po_reference(seller_summarys[0].purchase_order)
-        checkbox = "<input type='checkbox' name='data_id' value='%s:%s'>" % (result['purchase_order__order_id'],
-                                                                     result['invoice_number'])
+        open_po = seller_summarys[0].purchase_order.open_po
+        data_id = '%s:%s' % (result['purchase_order__order_id'], result['invoice_number'])
+        checkbox = "<input type='checkbox' name='data_id' value='%s'>" % (data_id)
         po_date = get_local_date(request.user, seller_summarys[0].purchase_order.creation_date,
                                  send_date=True).strftime("%d %b, %Y")
         invoice_number = ''
@@ -6705,17 +6716,22 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
         if result['invoice_date']:
             invoice_date = result['invoice_date'].strftime("%d %b, %Y")
         total_amt = 0
+        tax = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax
         for seller_summary in seller_summarys:
+            processed_val = seller_summary.returntovendor_set.filter().aggregate(Sum('quantity'))['quantity__sum']
+            if processed_val:
+                rem_quantity -= processed_val
             if seller_summary.batch_detail:
-                total_amt += seller_summary.quantity * seller_summary.batch_detail.buy_price
+                total_amt += rem_quantity * seller_summary.batch_detail.buy_price
             else:
-                total_amt += seller_summary.quantity * seller_summary.purchase_order.open_po.price
-        temp_data['aaData'].append(OrderedDict((('', checkbox),
+                total_amt += rem_quantity * seller_summary.purchase_order.open_po.price
+        total_amt = total_amt + ((total_amt/100) * tax)
+        temp_data['aaData'].append(OrderedDict((('', checkbox),('data_id', data_id),
                                                 ('Supplier ID', result['purchase_order__open_po__supplier_id']),
                                                 ('Supplier Name', result['purchase_order__open_po__supplier__name']),
                                                 ('PO Number', order_reference), ('PO Date', po_date),
                                                 ('Invoice Number', invoice_number), ('Invoice Date', invoice_date),
-                                                ('Total Quantity', result['total']), ('Total Amount', total_amt),
+                                                ('Total Quantity', rem_quantity), ('Total Amount', total_amt),
                                                 ('id', count),
                                                 ('DT_RowClass', 'results'))))
         count += 1
@@ -6733,22 +6749,33 @@ def get_po_putaway_summary(request, user=''):
     if not seller_summary_objs:
         return HttpResponse("No Data found")
     po_reference = get_po_reference(seller_summary_objs[0].purchase_order)
+    invoice_number = seller_summary_objs[0].invoice_number
+    invoice_date = get_local_date(user, seller_summary_objs[0].creation_date, send_date=True).strftime("%d %b, %Y")
+    if seller_summary_objs[0].invoice_date:
+        invoice_date = seller_summary_objs[0].invoice_date.strftime("%d %b, %Y")
     orders = []
     order_data = {}
     order_ids = []
     seller_details = {}
     for seller_summary in seller_summary_objs:
         order = seller_summary.purchase_order
+        open_po = seller_summary.purchase_order.open_po
         order_data = get_purchase_order_data(order)
         quantity = seller_summary.quantity
-        sku = seller_summary.purchase_order.open_po.sku
+        sku = open_po.sku
+        processed_val = seller_summary.returntovendor_set.filter().aggregate(Sum('quantity'))['quantity__sum']
+        if processed_val:
+            quantity -= processed_val
+        if quantity <= 0:
+            continue
         data_dict = {'summary_id': seller_summary.id, 'order_id': order.id, 'sku_code': sku.sku_code,
-                     'sku_desc': sku.sku_desc, 'quantity': quantity, 'price': order_data['price'],}
+                     'sku_desc': sku.sku_desc, 'quantity': quantity, 'price': order_data['price']}
+        data_dict['tax_percent'] = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax
         if seller_summary.batch_detail:
             batch_detail = seller_summary.batch_detail
             data_dict['batch_no'] = batch_detail.batch_no
             data_dict['mrp'] = batch_detail.mrp
-            data_dict['buy_price'] = batch_detail.buy_price
+            data_dict['price'] = batch_detail.buy_price
             data_dict['mfg_date'] = ''
             if batch_detail.manufactured_date:
                 data_dict['mfg_date'] = batch_detail.manufactured_date.strftime('%m/%d/%Y')
@@ -6756,12 +6783,14 @@ def get_po_putaway_summary(request, user=''):
             if batch_detail.manufactured_date:
                 data_dict['exp_date'] = batch_detail.expiry_date.strftime('%m/%d/%Y')
             data_dict['tax_percent'] = batch_detail.tax_percent
+        data_dict['amount'] = data_dict['quantity'] * data_dict['price']
+        data_dict['tax_value'] = (data_dict['amount']/100) * data_dict['tax_percent']
         orders.append([data_dict])
     supplier_name, order_date, expected_date, remarks = '', '', '', ''
     if seller_summary_objs.exists():
         purchase_order = seller_summary_objs[0].purchase_order
         supplier_name = purchase_order.open_po.supplier.name
-        order_date = get_local_date(user, purchase_order.creation_date)
+        order_date = get_local_date(user, purchase_order.creation_date, send_date=True).strftime("%d %b, %Y")
         remarks = purchase_order.remarks
         if seller_summary_objs[0].seller_po:
             seller = seller_summary_objs[0].seller_po.seller
@@ -6770,5 +6799,71 @@ def get_po_putaway_summary(request, user=''):
                                     'supplier_id': order_data['supplier_id'],\
                                     'po_reference': po_reference, 'order_ids': order_ids,
                                     'supplier_name': supplier_name, 'order_date': order_date,
-                                    'remarks': remarks, 'seller_details': seller_details
+                                    'remarks': remarks, 'seller_details': seller_details,
+                                    'invoice_number': invoice_number, 'invoice_date': invoice_date
                         }))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def create_rtv(request, user=''):
+    request_data = dict(request.POST.iterlists())
+    data_list = []
+    try:
+        for ind in range(0, len(request_data['summary_id'])):
+            data_dict = {}
+            if request_data['location'][ind] and request_data['return_qty'][ind]:
+                quantity = request_data['return_qty'][ind]
+                seller_summary = SellerPOSummary.objects.get(id=request_data['summary_id'][ind])
+                data_dict['summary_id'] = request_data['summary_id'][ind]
+                data_dict['quantity'] = quantity
+                stock_filter = {'sku__user': user.id, 'quantity__gt': 0,
+                                'sku_id': seller_summary.purchase_order.open_po.sku_id}
+                reserved_dict = {'stock__sku_id': seller_summary.purchase_order.open_po.sku_id,
+                                 'stock__sku__user': user.id, 'status': 1}
+                location_master = LocationMaster.objects.filter(location=request_data['location'][ind],
+                                                                zone__user=user.id)
+                if location_master:
+                    data_dict['location'] = location_master[0]
+                    stock_filter['location_id'] = location_master[0].id
+                    reserved_dict['stock__location_id'] = location_master[0].id
+                else:
+                    return HttpResponse("%s is Invalid Location" % (request_data['location'][ind]))
+                if seller_summary.batch_detail:
+                    if seller_summary.batch_detail.batch_no:
+                        stock_filter['batch_detail__batch_no'] = seller_summary.batch_detail.batch_no
+                        reserved_dict['stock__batch_detail__batch_no'] = seller_summary.batch_detail.batch_no
+                    if seller_summary.batch_detail.mrp:
+                        stock_filter['batch_detail__mrp'] = seller_summary.batch_detail.mrp
+                        reserved_dict['stock__batch_detail__mrp'] = seller_summary.batch_detail.mrp
+                    if seller_summary.seller_po:
+                        stock_filter['sellerstock__seller_id'] = seller_summary.seller_po.seller_id
+                        reserved_dict["stock__sellerstock__seller_id"] = seller_summary.seller_po.seller_id
+                stocks = StockDetail.objects.filter(**stock_filter)
+                if not stocks:
+                    return HttpResponse('No Stocks Found')
+                data_dict['stocks'] = stocks
+                stock_count = stocks.aggregate(Sum('quantity'))['quantity__sum']
+                reserved_quantity = \
+                    PicklistLocation.objects.exclude(stock=None).filter(**reserved_dict).aggregate(Sum('reserved'))[
+                        'reserved__sum']
+                if reserved_quantity:
+                    if (stock_count - reserved_quantity) < float(quantity):
+                        return HttpResponse('Source Quantity reserved for Picklist')
+                data_list.append(data_dict)
+        if data_list:
+            rtv_no = get_incremental(user, 'rtv')
+            date_val = datetime.datetime.now().strftime('%Y%m%d')
+            rtv_number = '%s-%s-%s' % ('RTV', date_val, rtv_no)
+        for final_dict in data_list:
+            update_stock_detail(final_dict['stocks'], float(final_dict['quantity']), user)
+            ReturnToVendor.objects.create(rtv_number=rtv_number, seller_po_summary_id=final_dict['summary_id'],
+                                          quantity=final_dict['quantity'], status=0, creation_date=datetime.datetime.now())
+        return HttpResponse("Success")
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Exception raised while creating RTV for user %s and request data is %s and error is %s" %
+                 (str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Create RTV Failed")

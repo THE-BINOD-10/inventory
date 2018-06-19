@@ -231,31 +231,49 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       elem.push({'name': 'seller_id', 'value': vm.model_data.seller_details.seller_id});
 
       angular.forEach(vm.model_data.data, function(row){
-        elem.push({'name': 'sku_code', 'value': row.sku_code});
-        elem.push({'name': 'order_id', 'value': row.order_id});
-        elem.push({'name': 'price', 'value': row.price});
-        elem.push({'name': 'quantity', 'value': row.quantity});
-        elem.push({'name': 'amount', 'value': row.amount});
-        elem.push({'name': 'sku_desc', 'value': row.sku_desc});
-        elem.push({'name': 'summary_id', 'value': row.summary_id});
-        elem.push({'name': 'tax_percent', 'value': row.tax_percent});
-        elem.push({'name': 'tax_value', 'value': row.tax_value});
-        elem.push({'name': 'location', 'value': row.location});
-        elem.push({'name': 'return_qty', 'value': row.return_qty});
-        elem.push({'name': 'batch_no', 'value': row.batch_no});
-        elem.push({'name': 'mrp', 'value': row.mrp});
+        angular.forEach(row, function(sku){
+          elem.push({'name': 'sku_code', 'value': sku.sku_code});
+          elem.push({'name': 'order_id', 'value': sku.order_id});
+          elem.push({'name': 'price', 'value': sku.price});
+          elem.push({'name': 'quantity', 'value': sku.quantity});
+          elem.push({'name': 'amount', 'value': sku.amount});
+          elem.push({'name': 'sku_desc', 'value': sku.sku_desc});
+          elem.push({'name': 'summary_id', 'value': sku.summary_id});
+          elem.push({'name': 'tax_percent', 'value': sku.tax_percent});
+          elem.push({'name': 'tax_value', 'value': sku.tax_value});
+          elem.push({'name': 'location', 'value': sku.location});
+          elem.push({'name': 'return_qty', 'value': sku.return_qty});
+          elem.push({'name': 'batch_no', 'value': sku.batch_no});
+          elem.push({'name': 'mrp', 'value': sku.mrp});
+        });
       });
 
       vm.service.apiCall('create_rtv/', 'POST', elem, true).then(function(data){
         if(data.message) {
           if(data.data == 'Success') {
-            vm.close();
-            vm.service.refresh(vm.dtInstance);
+            if(data.data.search("<div") != -1) {
+              vm.title = "Debit Note";
+              vm.extra_width = {}
+              vm.html = $(data.data);
+              vm.extra_width = {}
+              angular.element(".modal-body").html($(data.data));
+              vm.print_enable = true;
+              vm.service.refresh(vm.dtInstance);
+              // if(vm.permissions.use_imei) {
+              //   fb.generate = true;
+              //   fb.remove_po(fb.poData["id"]);
+              // }
+            } else {
+              pop_msg(data.data)
+            }
+
+            // vm.close();
+            // vm.service.refresh(vm.dtInstance);
           } else {
-            vm.conf_disable = false;
             pop_msg(data.data);
           }
         }
+        vm.conf_disable = false;
       });
     }
 
@@ -286,54 +304,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.goBack = function() {
 
       $state.go('app.inbound.RevceivePo.GRN');
-    }
-
-    vm.gen_barcode = function() {
-      vm.barcode_title = 'Barcode Generation';
-      vm.model_data['barcodes'] = [];
-
-      angular.forEach(vm.model_data.data, function(barcode_data){
-        var quant = barcode_data[0].po_quantity;
-        var sku_det = barcode_data[0].wms_code;
-        /*var list_of_sku = barcode_data[0].serial_number.split(',');
-        angular.forEach(list_of_sku, function(serial) {
-          console.log(vm.sku_det);
-          var serial_number = vm.sku_det+'/00'+serial;
-          vm.model_data['barcodes'].push({'sku_code': serial_number, 'quantity': 1})
-        })*/
-       vm.model_data['barcodes'].push({'sku_code': sku_det, 'quantity': quant})
-
-      })
-
-      vm.model_data['format_types'] = [];
-      var key_obj = {};//{'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details', 'Bulk Barcode': 'Details'};
-      vm.service.apiCall('get_format_types/').then(function(data){
-        $.each(data['data']['data'], function(ke, val){
-          vm.model_data['format_types'].push(ke);
-          });
-          key_obj = data['data']['data'];
-      });
-
-      vm.model_data.have_data = true;
-      //$state.go('app.inbound.RevceivePo.barcode');
-      var modalInstance = $modal.open({
-        templateUrl: 'views/outbound/toggle/barcodes.html',
-        controller: 'Barcodes',
-        controllerAs: 'pop',
-        size: 'lg',
-        backdrop: 'static',
-        keyboard: false,
-        windowClass: 'z-2021',
-        resolve: {
-          items: function () {
-            return vm.model_data;
-          }
-        }
-      });
-
-      modalInstance.result.then(function (selectedItem) {
-        console.log(selectedItem);
-      }); 
     }
 }
 

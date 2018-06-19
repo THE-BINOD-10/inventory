@@ -87,6 +87,11 @@ $(document).ready(function(){
       </tr>
       {% for record in data %}
       <tr id="{{ record.id }}">
+        {% if display_order_id == 'true' %}
+        <td>
+          {{ record.original_order_id }}
+        </td>
+        {% endif %}
         <td>
           {% if record.wms_code == 'TEMP' %}
           <input type="" name="wmscode_{{ record.id }}" value="{{ record.sku_code }}">

@@ -12244,3 +12244,29 @@ def add_inventory_data(request, user=''):
     if stock_data_list:
         StockDetail.objects.bulk_create(stock_data_list)
     return HttpResponse(json.dumps('Inventory Added Successfully'))
+
+@get_admin_user
+def print_picklist_milk_basket(request, user=''):
+    temp = []
+    title = 'Job Code'
+    data_id = request.GET['data_id']
+    data = get_raw_picklist_data(data_id, user)
+    all_data = {}
+    total = 0
+    total_price = 0
+    import pdb;pdb.set_trace()
+    type_mapping = SkuTypeMapping.objects.filter(user=user.id)
+    for record in data:
+        for mapping in type_mapping:
+            if mapping.prefix in record['wms_code']:
+                cond = (mapping.item_type)
+                all_data.setdefault(cond, [0,0])
+                all_data[cond][0] += record['reserved_quantity']
+                break
+        else:
+            total += record['reserved_quantity']
+    for key,value in all_data.iteritems():
+        total += int(value[0])
+        total_price += int(value[1])
+    return render(request, 'templates/toggle/print_picklist.html', { 'data': data, 'all_data': all_data, 'headers': PRINT_PICKLIST_HEADERS, 'picklist_id': data_id, 'total_quantity': total, 'total_price': total_price, 'title': title })
+

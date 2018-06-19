@@ -2642,11 +2642,7 @@ def print_picklist(request, user=''):
         marketplace = ''
     else:
         marketplace = ','.join(market_place)
-    if display_order_id == 'true':
-        if len(original_order_data):
-            order_ids = ','.join(original_order_data)
-        elif len(order_data):
-            order_ids = ','.join(order_data)
+
     total = 0
     total_price = 0
     type_mapping = SkuTypeMapping.objects.filter(user=user.id)
@@ -2672,12 +2668,19 @@ def print_picklist(request, user=''):
     show_picklist_display_address = get_misc_value('picklist_display_address', user.id)
     if show_picklist_display_address == "false":
         customer_address = ''
+    headers = copy.deepcopy(PRINT_OUTBOUND_PICKLIST_HEADERS)
+    if display_order_id == 'true':
+        if len(original_order_data):
+            order_ids = ','.join(original_order_data)
+        elif len(order_data):
+            order_ids = ','.join(order_data)
+        headers = ('Order ID',) + headers
     return render(request, 'templates/toggle/print_picklist.html',
-                  {'data': data, 'all_data': all_data, 'headers': PRINT_OUTBOUND_PICKLIST_HEADERS,
+                  {'data': data, 'all_data': all_data, 'headers': headers,
                    'picklist_id': data_id, 'total_quantity': total,
                    'total_price': total_price, 'picklist_id': data_id,
                    'customer_name': customer_name, 'customer_address': customer_address, 'order_ids': order_ids,
-                   'marketplace': marketplace, 'date_data': date_data, 'remarks': remarks_data, 'user': user})
+                   'marketplace': marketplace, 'date_data': date_data, 'remarks': remarks_data, 'user': user, 'display_order_id': display_order_id})
 
 
 @csrf_exempt

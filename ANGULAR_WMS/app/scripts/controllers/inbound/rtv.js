@@ -26,6 +26,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.selected = {};
     vm.selectAll = false;
     vm.bt_disable = true;
+    vm.conf_disable = false;
     vm.datatable = Data.datatable;
     vm.user_type = Session.user_profile.user_type;
 
@@ -121,7 +122,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.service.apiCall('get_po_putaway_summary/', 'GET', {data_id: id}).then(function(data){
           if(data.message) {
             angular.copy(data.data, vm.model_data);
-              vm.title = "Generate RTV";
+              vm.title = "Create RTV";
               $state.go('app.inbound.rtv.details');
           }
         });
@@ -135,42 +136,75 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.update_data = update_data;
     function update_data(index, data) {
-      // if (Session.roles.permissions['pallet_switch'] || vm.industry_type == 'FMCG') {
         if (index == data.length-1) {
-          var total_qty = 0;
+          if (data[index].return_qty) {
+            var total_qty = 0;
 
-          angular.forEach(data, function(row){
-            total_qty += row.return_qty ;
-          });
+            angular.forEach(data, function(row){
+              total_qty += Number(row.return_qty) ;
+            });
 
-          if (total_qty < data[index].quantity) {
-            var new_dic = {};
-            angular.copy(data[index], new_dic);
-            new_dic.location = '';
-            new_dic.return_qty='';
-            data.push(new_dic);
+            if (total_qty < Number(data[index].quantity)) {
+              var new_dic = {};
+              data[index].rest_qty = Number(data[index].quantity) - total_qty;
+              angular.copy(data[index], new_dic);
+              new_dic.location = '';
+              new_dic.return_qty='';
+              data.push(new_dic);
+            } else {
+              Service.showNoty("You don't have quantity to enter");
+            }
           } else {
-            Service.showNoty("You don't have quantity to enter");
+            Service.showNoty("Please enter returning quantity");
           }
         } else {
           data.splice(index,1);
         }
-      // }
     }
 
-    vm.check_quantity = function(index, data){
-      var total_qty = 0;
-      angular.forEach(data, function(row){
-        total_qty += Number(row.return_qty) ;
-      });
+    vm.check_quantity = function(index, data, sku){
+      vm.total_qty = 0;
+      vm.rest_qty = 0;
+      sku.rest_qty = 0;
+      vm.totol_qty_check(data);
 
-      if (total_qty > data[index].quantity) {
-        data[index].return_qty = data[index].quantity - total_qty;
-
-        Service.showNoty("You can enter only "+(data[index].quantity - total_qty)+" quantity");
+      if (Number(sku.return_qty) >= Number(sku.quantity) && !sku.rest_qty) {
+        vm.check_rest_qty(sku, data);
+        sku.return_qty = vm.rest_qty;
+        Service.showNoty("You can enter "+sku.return_qty+" quantity");
+        
+        sku.rest_qty = 0;
+      } else if (Number(sku.return_qty) >= Number(sku.quantity) && sku.rest_qty) {
+        vm.check_rest_qty(sku, data);
+        sku.return_qty = vm.rest_qty;
+        Service.showNoty("You can enter "+sku.return_qty+" quantity");
+        sku.rest_qty = 0;
+      } else {
+        if (index) {
+          sku.return_qty = data[index-1].rest_qty;
+          Service.showNoty("You can enter "+sku.return_qty+" quantity");
+        }
+        sku.rest_qty = Number(sku.quantity) - Number(vm.total_qty);
       }
+
     }
     
+    vm.check_rest_qty = function(sku, data){
+      var total_qty = 0;
+      for (var i = 0; i < data.length-1; i++) {
+        total_qty += Number(data[i].return_qty);
+      }
+
+      vm.rest_qty = sku.quantity - total_qty; 
+    }
+
+    vm.totol_qty_check = function(data){
+      angular.forEach(data, function(row){
+        vm.total_qty += Number(row.return_qty);
+      });
+
+    }
+
     vm.new_sku = false
     vm.add_wms_code = add_wms_code;
     function add_wms_code() {
@@ -192,6 +226,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.submit = submit;
     function submit(form) {
+      vm.conf_disable = true;
       var elem = [];
       elem.push({'name': 'seller_id', 'value': vm.model_data.seller_details.seller_id});
 
@@ -213,10 +248,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       vm.service.apiCall('create_rtv/', 'POST', elem, true).then(function(data){
         if(data.message) {
-          if(data.data == 'Updated Successfully') {
+          if(data.data == 'Success') {
             vm.close();
             vm.service.refresh(vm.dtInstance);
           } else {
+            vm.conf_disable = false;
             pop_msg(data.data);
           }
         }

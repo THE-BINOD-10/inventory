@@ -6747,7 +6747,7 @@ def get_po_putaway_summary(request, user=''):
             data_dict['tax_percent'] = batch_detail.tax_percent
         data_dict['amount'] = data_dict['quantity'] * data_dict['price']
         data_dict['tax_value'] = (data_dict['amount']/100) * data_dict['tax_percent']
-        orders.append(data_dict)
+        orders.append([data_dict])
     supplier_name, order_date, expected_date, remarks = '', '', '', ''
     if seller_summary_objs.exists():
         purchase_order = seller_summary_objs[0].purchase_order

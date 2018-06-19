@@ -83,40 +83,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       Service.showNoty('Something went wrong')
     }
 
-    vm.addRowData = function(event, data) {
-      console.log(data);
-      var elem = event.target;
-      // if (!$(elem).hasClass('fa')) {
-      //   return false;
-      // }
-      var data_tr = angular.element(elem).parent().parent();
-      // if ($(elem).hasClass('fa-plus-square')) {
-        // $(elem).removeClass('fa-plus-square');
-        // $(elem).removeClass();
-        // $(elem).addClass('glyphicon glyphicon-refresh glyphicon-refresh-animate');
-        var data = {invoice_id: data.invoice_number}
-      // vm.service.apiCall("update_payment_status/", "GET", data).then(function(resp){
-        Service.apiCall('update_payment_status/', 'GET', data).then(function(resp){
-          // if (resp.message){
 
-          //   if(resp.data.status) {
-              var html = $compile("<tr class='row-expansion' style='display: none'><td colspan='13'><dt-po-data data='"+JSON.stringify(resp.data)+"' preview='showCase.preview'></dt-po-data></td></tr>")($scope);
-              data_tr.after(html)
-              data_tr.next().toggle(1000);
-              // $(elem).removeClass();
-              // $(elem).addClass('fa fa-edit');
-            // } else {
-            //   vm.poDataNotFound();
-            // }
-          // } else {
-          //   vm.poDataNotFound();
-          // }
-        })
-      // } else {
-      //   // $(elem).removeClass('fa-fa-edit');
-      //   // $(elem).addClass('fa-fa-edit');
-      //   data_tr.next().remove();
-      // }
+    vm.row_data = {};
+    vm.addRowData = function(event, data) {
+      vm.row_data = {};
+      vm.row_data = data
+      var elem = event.target;
+      var data_tr = angular.element(elem).parent().parent();
+      var html = $compile("<tr class='row-expansion' style='display: none'><td colspan='13'><dt-po-data data='"+JSON.stringify(vm.row_data)+"' preview='showCase.preview'></dt-po-data></td></tr>")($scope);
+      data_tr.after(html);
+      data_tr.next().toggle(1000);
     }
 
     $scope.$on('change_filters_data', function(){
@@ -163,6 +139,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 	    data.amount = data.receivable;
 	  }
 	}
+
+  vm.invoice_update = function(form){
+    var data = {order_id: order.order_id, amount: value,
+                  bank: bank, mode_of_payment: mode_of_payment,
+                  remarks: remarks};
+
+    vm.service.apiCall("update_payment_status/", "GET", data).then(function(data){
+        if(data.message) {
+          console.log(data);
+        }
+      })
+  }
 
 	vm.order_update = function(event){
 
@@ -223,4 +211,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     };
 }
 
+stockone.directive('dtPoData', function() {
+  return {
+    restrict: 'E',
+    scope: {
+      po_data: '=data',
+      preview: '=preview'
+    },
+    templateUrl: 'views/payment_tracker/update_amt_datatable.html',
+    link: function(scope, element, attributes, $http){
+      console.log(scope);
+    }
+  };
+});
 })();

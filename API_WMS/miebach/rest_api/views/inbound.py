@@ -319,7 +319,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
     for supplier in data:
         order_type = 'Purchase Order'
         receive_status = 'Yet To Receive'
-        order_data = get_purchase_order_data(supplier)
+        #order_data = get_purchase_order_data(supplier)
         if supplier.open_po and supplier.open_po.order_type == 'VR':
             order_type = 'Vendor Receipt'
         if supplier.rwpurchase_set.filter():
@@ -330,7 +330,8 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         supplier.prefix, str(supplier.creation_date).split(' ')[0].replace('-', ''), supplier.order_id)
         _date = get_local_date(user, supplier.po_date, True)
         _date = _date.strftime("%d %b, %Y")
-        supplier_id_name = '%s/%s' % (str(order_data['supplier_id']), str(order_data['supplier_name']))
+        #supplier_id_name = '%s/%s' % (str(order_data['supplier_id']), str(order_data['supplier_name']))
+        supplier_id_name = ''
 
         columns = ['PO No', 'PO Reference', 'Order Date', 'Supplier ID/Name', 'Total Qty', 'Receivable Qty', 'Received Qty',
                    'Expected Date', 'Remarks', 'Order Type', 'Receive Status']
@@ -346,7 +347,8 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         customer_data = OrderMapping.objects.filter(mapping_id=supplier.id, mapping_type='PO')
         customer_name = ''
         if customer_data:
-            customer_name = customer_data[0].order.customer_name
+            #customer_name = customer_data[0].order.customer_name
+            customer_name = ''
         else:
             if supplier_parent:
                 customer_name = supplier_parent.username
@@ -2538,14 +2540,7 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'btn_class': btn_class, 'bill_date': bill_date }
 
             misc_detail = get_misc_value('receive_po', user.id)
-            if misc_detail == 'true':
-                t = loader.get_template('templates/toggle/grn_form.html')
-                rendered = t.render(report_data_dict)
-                write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
-                                   order_date, internal=True, report_type="Goods Receipt Note")
-            return render(request, 'templates/toggle/c_putaway_toggle.html', report_data_dict)
-        else:
-            return HttpResponse(status_msg)
+        return render(request, 'templates/toggle/milk_basket_print.html', report_data_dict)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -6752,3 +6747,31 @@ def get_po_putaway_summary(request, user=''):
                                     'supplier_name': supplier_name, 'order_date': order_date,
                                     'remarks': remarks, 'seller_details': seller_details
                         }))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def print_picklist_milk_basket(request, user=''):
+    temp = []
+    title = 'Job Code'
+    data_id = request.GET['data_id']
+    data = get_raw_picklist_data(data_id, user)
+    all_data = {}
+    total = 0
+    total_price = 0
+    import pdb;pdb.set_trace()
+    type_mapping = SkuTypeMapping.objects.filter(user=user.id)
+    for record in data:
+        for mapping in type_mapping:
+            if mapping.prefix in record['wms_code']:
+                cond = (mapping.item_type)
+                all_data.setdefault(cond, [0,0])
+                all_data[cond][0] += record['reserved_quantity']
+                break
+        else:
+            total += record['reserved_quantity']
+    for key,value in all_data.iteritems():
+        total += int(value[0])
+        total_price += int(value[1])
+    return render(request, 'templates/toggle/print_picklist_milk_basket.html', { 'data': data, 'all_data': all_data, 'headers': PRINT_PICKLIST_HEADERS, 'picklist_id': data_id, 'total_quantity': total, 'total_price': total_price, 'title': title })
+

@@ -281,16 +281,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       // data.push({name: 'po_unit', value: form.po_unit.$viewValue});
       // data.push({name: 'tax_per', value: form.tax_per.$viewValue});
 
+     
      if(check_receive()){
       var that = vm;
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
-      var url = "confirm_grn/"
-      if(vm.po_qc) {
-        url = "confirm_receive_qc/"
-      }
-      vm.service.apiCall(url, 'POST', elem, true).then(function(data){
+      vm.service.apiCall("confirm_grn/", 'POST', elem, true).then(function(data){
         if(data.message) {
           if(data.data.search("<div") != -1) {
             vm.extra_width = {}

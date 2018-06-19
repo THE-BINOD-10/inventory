@@ -26,6 +26,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.selected = {};
     vm.selectAll = false;
     vm.bt_disable = true;
+    vm.conf_disable = false;
     vm.datatable = Data.datatable;
     vm.user_type = Session.user_profile.user_type;
 
@@ -121,7 +122,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.service.apiCall('get_po_putaway_summary/', 'GET', {data_id: id}).then(function(data){
           if(data.message) {
             angular.copy(data.data, vm.model_data);
-              vm.title = "Generate RTV";
+              vm.title = "Create RTV";
               $state.go('app.inbound.rtv.details');
           }
         });
@@ -225,6 +226,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.submit = submit;
     function submit(form) {
+      vm.conf_disable = true;
       var elem = [];
       elem.push({'name': 'seller_id', 'value': vm.model_data.seller_details.seller_id});
 
@@ -246,10 +248,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       vm.service.apiCall('create_rtv/', 'POST', elem, true).then(function(data){
         if(data.message) {
-          if(data.data == 'Updated Successfully') {
+          if(data.data == 'Success') {
             vm.close();
             vm.service.refresh(vm.dtInstance);
           } else {
+            vm.conf_disable = false;
             pop_msg(data.data);
           }
         }

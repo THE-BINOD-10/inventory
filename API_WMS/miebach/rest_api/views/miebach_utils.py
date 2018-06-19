@@ -2109,7 +2109,7 @@ def get_po_filter_data(search_params, user, sub_user):
                                                     ('PO Number', po_number),
                                                     ('Supplier ID', data[field_mapping['supplier_id']]),
                                                     ('Supplier Name', data[field_mapping['supplier_name']]),
-                                                    ('Recepient', 'SHProc'),
+                                                    ('Recepient', user.userprofile.company_name),
                                                     ('SKU Code', data['purchase_order__open_po__sku__sku_code']),
                                                     ('SKU Description', data['purchase_order__open_po__sku__sku_desc']),
                                                     ('SKU Class', data['purchase_order__open_po__sku__sku_class']),

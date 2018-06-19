@@ -141,7 +141,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                       vm.extra_width = {};
                     }
                     vm.shelf_life = vm.model_data.data[0][0].shelf_life;
-                    vm.model_data.data[0][0]['buy_price'] = vm.model_data.data[0][0].price;
+
+                    angular.forEach(vm.model_data.data, function(row){
+                      angular.forEach(row, function(sku){
+                        sku['buy_price'] = sku.price;
+                      });
+                    });
+
                     console.log('MRP is: '+vm.model_data.data[0][0].buy_price);
                     if(vm.permissions.use_imei) {
                       fb.push_po(vm.model_data);

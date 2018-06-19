@@ -6598,7 +6598,7 @@ def get_inv_based_po_payment_data(start_index, stop_index, temp_data, search_ter
     user_profile = UserProfile.objects.get(user_id=user.id)
     admin_user = get_priceband_admin_user(user)
     lis = ['invoice_number', 'purchase_order__open_po__supplier__name', 'purchase_order__open_po__supplier__id']#for filter purpose
-    user_filter = {'purchase_order__open_po__sku__user': user.id}
+    user_filter = {'purchase_order__open_po__sku__user': user.id, 'order_status_flag': 'supplier_invoices'}
     result_values = ['invoice_number', 'purchase_order__open_po__supplier__name',
                      'purchase_order__open_po__supplier__id']#to make distinct grouping
     if search_term:
@@ -6609,8 +6609,9 @@ def get_inv_based_po_payment_data(start_index, stop_index, temp_data, search_ter
         pass
     master_data = SellerPOSummary.objects.filter(**user_filter)\
                                  .values(*result_values).distinct().annotate(payment_received=Sum('purchase_order__payment_received'),\
-                                 invoice_date=Cast('invoice_date', DateField()))
+                                 invoice_date=Cast('creation_date', DateField()))
 
+    #master_data = master_data.exclude(invoice_amount=F('payment_received'))
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
@@ -6628,15 +6629,20 @@ def get_inv_based_po_payment_data(start_index, stop_index, temp_data, search_ter
             tot_amt += (tot_price + tot_tax)
 
         payment_receivable = tot_amt - data['payment_received']
-        data_dict = OrderedDict((('invoice_number', data['invoice_number']),
-                                 ('invoice_date', str(data['invoice_date']) if data['invoice_date'] else ''),
-                                 ('supplier_name', data['purchase_order__open_po__supplier__name']),
-                                 ('supplier_id', data['purchase_order__open_po__supplier__id']),
-                                 ('invoice_amount', tot_amt),
-                                 ('payment_received', data['payment_received']),
-                                 ('payment_receivable', payment_receivable)
-                               ))
-        temp_data['aaData'].append(data_dict)
+        if payment_receivable != 0:
+            credit_period, due_date, invoice_date = 0, '', ''
+            if data['invoice_date']:
+                due_date = str(data['invoice_date'] + datetime.timedelta(days=credit_period))
+                invoice_date = str(data['invoice_date'])
+            data_dict = OrderedDict((('invoice_number', data['invoice_number']),
+                                     ('invoice_date', invoice_date), ('due_date', due_date),
+                                     ('supplier_name', data['purchase_order__open_po__supplier__name']),
+                                     ('supplier_id', data['purchase_order__open_po__supplier__id']),
+                                     ('invoice_amount', "%.2f" % tot_amt),
+                                     ('payment_received', "%.2f" % data['payment_received']),
+                                     ('payment_receivable', "%.2f" % payment_receivable)
+                                   ))
+            temp_data['aaData'].append(data_dict)
 
 
 @login_required
@@ -6656,13 +6662,7 @@ def po_get_invoice_payment_tracker(request, user=''):
                                  tot_tax_perc = Sum(F('purchase_order__open_po__cgst_tax') +\
                                  F('purchase_order__open_po__sgst_tax') + F('purchase_order__open_po__igst_tax')),\
                                  paynemt_received = Sum('purchase_order__payment_received'))
-                                 #.annotate(invoice_amount_sum = Sum(('purchase_order__open_po__price'*int('quantity')) + \
-                                 #(('purchase_order__open_po__price'*int('quantity')) *\
-                                 #(int('purchase_order__open_po__cgst_tax') + int('purchase_order__open_po__sgst_tax') + \
-                                 #int('purchase_order__open_po__igst_tax'))/100)),\
-                                 #payment_received_sum = Sum('purchase_order__payment_received'))
     order_data = []
-    expected_date = ''
     for data in master_data:
         order_data.append(
                 {'order_id': data['purchase_order__order_id'],
@@ -6672,12 +6672,3 @@ def po_get_invoice_payment_tracker(request, user=''):
                  'receivable': (data['tot_price']+(data['tot_price']*data['tot_tax_perc'])) - data['paynemt_received']})
     response["data"] = order_data
     return HttpResponse(json.dumps(response))
-    #tot_amt = 0
-    #for seller_sum in master_data:
-        #price = seller_sum.purchase_order.open_po.price
-        #quantity = int(seller_sum.quantity)
-        #tot_price = price * quantity
-        #tot_tax_perc = seller_sum.purchase_order.open_po.cgst_tax +\
-                       #seller_sum.purchase_order.open_po.sgst_tax + seller_sum.purchase_order.open_po.igst_tax
-        #tot_tax = float(tot_price * tot_tax_perc) / 100
-        #tot_amt += (tot_price + tot_tax)

@@ -19,12 +19,15 @@
                 <table class="table table-stk" style="margin-bottom: 0px;">
                   <thead>
                     <tr>
-                      <th>Order ID</th>
+                      <th>Challan No</th>
                       <th>Invoice Amount</th>
                       <th>Received</th>
                       <th>Receivable</th>
-                      <th ng-if="showCase.expect_date">Expected Date</th>
-                      <th>Account</th>
+                      <th class="update_fields hide">Bank</th>
+                      <th class="update_fields hide">Mode of Pay</th>
+                      <th class="update_fields hide">Remarks</th>
+                      <!--<th ng-if="showCase.expect_date">Expected Date</th>
+                      <th>Account</th>-->
                       <th style="width: 200px;">Update Amount</th>
                     </tr>
                   </thead>
@@ -34,8 +37,16 @@
                       <td>{{data.inv_amount}}</td>
                       <td>{{data.received}}</td>
                       <td>{{data.receivable}}</td>
-                      <td ng-if="showCase.expect_date">{{data.expected_date}}</td>
-                      <td>{{data.account}}</td>
+                      <td class="update_fields hide"><select name="bank" ng-options="key as bank for (key, bank) in showCase.bank_names"
+                                  ng-init="showCase.default_bank" ng-model="showCase.default_bank"
+                                  ng-selected="bank == showCase.default_bank"></select></td>
+                      <td class="update_fields hide"><select name="mode_of_payment"
+                                  ng-options="key as mode for (key, mode) in showCase.payment_modes"
+                                  ng-init="showCase.default_mode" ng-model="showCase.default_mode"
+                                  ng-selected="mode == showCase.default_mode"></select></td>
+                      <td class="update_fields hide"><textarea rows="1" class="form-control" cols="10" name="remarks"></textarea></td>
+                      <!--<td ng-if="showCase.expect_date">{{data.expected_date}}</td>
+                      <td>{{data.account}}</td>-->
                       <td class="order-edit">
                         <div class="order-update">
                           <span style="color: #2ECC71;text-decoration: underline;cursor: pointer;" ng-click="showCase.order_update($event)">Update</span>

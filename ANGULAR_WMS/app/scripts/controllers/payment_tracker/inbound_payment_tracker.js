@@ -54,12 +54,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        });
 
     vm.dtColumns = [
-        // DTColumnBuilder.newColumn('invoice_date').withTitle('Invoice Date'),
         DTColumnBuilder.newColumn('invoice_number').withTitle('Invoice Number'),
         DTColumnBuilder.newColumn('supplier_name').withTitle('Supplier Name'),
         DTColumnBuilder.newColumn('invoice_amount').withTitle('Invoice Amount'),
         DTColumnBuilder.newColumn('payment_received').withTitle('Payment Received'),
         DTColumnBuilder.newColumn('payment_receivable').withTitle('Payment Receivable'),
+        DTColumnBuilder.newColumn('invoice_date').withTitle('Invoice Date'),
+        DTColumnBuilder.newColumn('due_date').withTitle('Due Date'),
     ];
 
     var row_click_bind = 'td';

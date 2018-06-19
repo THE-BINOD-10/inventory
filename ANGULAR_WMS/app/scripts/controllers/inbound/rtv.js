@@ -168,31 +168,37 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       sku.rest_qty = 0;
       vm.totol_qty_check(data);
 
-      if (Number(sku.return_qty) >= Number(sku.quantity) && !sku.rest_qty) {
+      if (Number(vm.total_qty) > Number(sku.quantity) && !sku.rest_qty) {
         vm.check_rest_qty(sku, data);
         sku.return_qty = vm.rest_qty;
         Service.showNoty("You can enter "+sku.return_qty+" quantity");
         
         sku.rest_qty = 0;
-      } else if (Number(sku.return_qty) >= Number(sku.quantity) && sku.rest_qty) {
+      } else if (Number(vm.total_qty) > Number(sku.quantity) && sku.rest_qty) {
         vm.check_rest_qty(sku, data);
         sku.return_qty = vm.rest_qty;
         Service.showNoty("You can enter "+sku.return_qty+" quantity");
         sku.rest_qty = 0;
       } else {
-        if (index) {
-          sku.return_qty = data[index-1].rest_qty;
+        if (index && sku.return_qty > data[index-1].rest_qty) {
           Service.showNoty("You can enter "+sku.return_qty+" quantity");
+          sku.rest_qty = 0;
+        } else {
+          sku.rest_qty = Number(sku.quantity) - Number(vm.total_qty);
         }
-        sku.rest_qty = Number(sku.quantity) - Number(vm.total_qty);
       }
 
     }
     
     vm.check_rest_qty = function(sku, data){
       var total_qty = 0;
-      for (var i = 0; i < data.length-1; i++) {
+      for (var i = 0; i < data.length; i++) {
         total_qty += Number(data[i].return_qty);
+      }
+
+      if(total_qty > sku.quantity){
+          total_qty = total_qty - sku.return_qty;
+          sku.return_qty = sku.quantity - total_qty;
       }
 
       vm.rest_qty = sku.quantity - total_qty; 
@@ -200,6 +206,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.totol_qty_check = function(data){
       angular.forEach(data, function(row){
+        if (!row.return_qty) {
+          row.return_qty = '';
+        }
         vm.total_qty += Number(row.return_qty);
       });
 
@@ -251,6 +260,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.service.apiCall('create_rtv/', 'POST', elem, true).then(function(data){
         if(data.message) {
           if(data.data == 'Success') {
+
+            vm.close();
+            vm.service.refresh(vm.dtInstance);
+          } else {
             if(data.data.search("<div") != -1) {
               vm.title = "Debit Note";
               vm.extra_width = {}
@@ -259,22 +272,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               angular.element(".modal-body").html($(data.data));
               vm.print_enable = true;
               vm.service.refresh(vm.dtInstance);
-              // if(vm.permissions.use_imei) {
-              //   fb.generate = true;
-              //   fb.remove_po(fb.poData["id"]);
-              // }
             } else {
               pop_msg(data.data)
             }
-
-            // vm.close();
-            // vm.service.refresh(vm.dtInstance);
-          } else {
-            pop_msg(data.data);
           }
         }
         vm.conf_disable = false;
       });
+    }
+
+    vm.print_rtv = function() {
+      vm.service.print_data(vm.html, "Debit Note");
     }
 
     function check_receive() {

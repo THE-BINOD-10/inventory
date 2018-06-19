@@ -14,6 +14,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service = Service;
     vm.industry_type = Session.user_profile.industry_type;
     vm.date = new Date();
+    vm.extra_width = {width:'1100px'};
 
     vm.date_format_convert = function(utc_date){
       var date = utc_date.toLocaleDateString();
@@ -25,6 +26,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.selected = {};
     vm.selectAll = false;
     vm.bt_disable = true;
+    vm.conf_disable = false;
     vm.datatable = Data.datatable;
     vm.user_type = Session.user_profile.user_type;
 
@@ -103,23 +105,24 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.create_rtv = function(){
       var flag = false;
-      angular.forEach(vm.selected, function(item){
-        if (item && !flag) {
+      var id = '';
+      angular.forEach(vm.selected, function(value, key){
+        if (value && !flag) {
           flag = true;
-        } else {
+          id = vm.dtInstance.DataTable.context[0].aoData[key]._aData.data_id;
+        } else if (value && flag) {
           Service.showNoty('You can select one sku at a time');
+          flag = false;
           return false;
         }
       });
 
       if (flag) {
-        // $state.go('app.inbound.rtv.details');
-        // vm.title = "Generate RTV";
 
-        vm.service.apiCall('get_rtv_data/', 'GET', {selected_items: vm.selected}).then(function(data){
+        vm.service.apiCall('get_po_putaway_summary/', 'GET', {data_id: id}).then(function(data){
           if(data.message) {
             angular.copy(data.data, vm.model_data);
-              vm.title = "Generate RTV";
+              vm.title = "Create RTV";
               $state.go('app.inbound.rtv.details');
           }
         });
@@ -127,30 +130,90 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     //RTV Pop Data
-    vm.rtv_details = {supplier_id:'Supplier ID', supplier_name:'Supplier Name', po_number:'PO Number', po_date:'PO Date',
+    vm.rtv_details = {supplier_id:'Supplier ID', supplier_name:'Supplier Name', 
                       invoice_number:'Invoice Number', invoice_date:'Invoice Date'};
     vm.rtv_details_keys = Object.keys(vm.rtv_details);
 
     vm.update_data = update_data;
     function update_data(index, data) {
-      if (Session.roles.permissions['pallet_switch'] || vm.industry_type == 'FMCG') {
         if (index == data.length-1) {
-          var new_dic = {};
-          angular.copy(data[0], new_dic);
-          new_dic.receive_quantity = 0;
-          new_dic.value = "";
-          new_dic.pallet_number = "";
-          new_dic.batch_no = "";
-          new_dic.manf_date = "";
-          new_dic.exp_date = "";
-          new_dic.tax_percent = "";
-          data.push(new_dic);
+          if (data[index].return_qty) {
+            var total_qty = 0;
+
+            angular.forEach(data, function(row){
+              total_qty += Number(row.return_qty) ;
+            });
+
+            if (total_qty < Number(data[index].quantity)) {
+              var new_dic = {};
+              data[index].rest_qty = Number(data[index].quantity) - total_qty;
+              angular.copy(data[index], new_dic);
+              new_dic.location = '';
+              new_dic.return_qty='';
+              data.push(new_dic);
+            } else {
+              Service.showNoty("You don't have quantity to enter");
+            }
+          } else {
+            Service.showNoty("Please enter returning quantity");
+          }
         } else {
           data.splice(index,1);
         }
+    }
+
+    vm.check_quantity = function(index, data, sku){
+      vm.total_qty = 0;
+      vm.rest_qty = 0;
+      sku.rest_qty = 0;
+      vm.totol_qty_check(data);
+
+      if (Number(vm.total_qty) > Number(sku.quantity) && !sku.rest_qty) {
+        vm.check_rest_qty(sku, data);
+        sku.return_qty = vm.rest_qty;
+        Service.showNoty("You can enter "+sku.return_qty+" quantity");
+        
+        sku.rest_qty = 0;
+      } else if (Number(vm.total_qty) > Number(sku.quantity) && sku.rest_qty) {
+        vm.check_rest_qty(sku, data);
+        sku.return_qty = vm.rest_qty;
+        Service.showNoty("You can enter "+sku.return_qty+" quantity");
+        sku.rest_qty = 0;
+      } else {
+        if (index && sku.return_qty > data[index-1].rest_qty) {
+          Service.showNoty("You can enter "+sku.return_qty+" quantity");
+          sku.rest_qty = 0;
+        } else {
+          sku.rest_qty = Number(sku.quantity) - Number(vm.total_qty);
+        }
       }
+
     }
     
+    vm.check_rest_qty = function(sku, data){
+      var total_qty = 0;
+      for (var i = 0; i < data.length; i++) {
+        total_qty += Number(data[i].return_qty);
+      }
+
+      if(total_qty > sku.quantity){
+          total_qty = total_qty - sku.return_qty;
+          sku.return_qty = sku.quantity - total_qty;
+      }
+
+      vm.rest_qty = sku.quantity - total_qty; 
+    }
+
+    vm.totol_qty_check = function(data){
+      angular.forEach(data, function(row){
+        if (!row.return_qty) {
+          row.return_qty = '';
+        }
+        vm.total_qty += Number(row.return_qty);
+      });
+
+    }
+
     vm.new_sku = false
     vm.add_wms_code = add_wms_code;
     function add_wms_code() {
@@ -172,27 +235,54 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.submit = submit;
     function submit(form) {
-      var data = [];
+      vm.conf_disable = true;
+      var elem = [];
+      elem.push({'name': 'seller_id', 'value': vm.model_data.seller_details.seller_id});
 
-      for(var i=0; i<vm.model_data.data.length; i++)  {
-        var temp = vm.model_data.data[i][0];
-        if(!temp.is_new) {
-          data.push({name: temp.order_id, value: temp.value});
-        }
-      }
-      data.push({name: 'remarks', value: vm.model_data.remarks});
-      data.push({name: 'expected_date', value: vm.model_data.expected_date});
-      data.push({name: 'remainder_mail', value: vm.model_data.remainder_mail});
-      vm.service.apiCall('update_putaway/', 'GET', data, true).then(function(data){
+      angular.forEach(vm.model_data.data, function(row){
+        angular.forEach(row, function(sku){
+          elem.push({'name': 'sku_code', 'value': sku.sku_code});
+          elem.push({'name': 'order_id', 'value': sku.order_id});
+          elem.push({'name': 'price', 'value': sku.price});
+          elem.push({'name': 'quantity', 'value': sku.quantity});
+          elem.push({'name': 'amount', 'value': sku.amount});
+          elem.push({'name': 'sku_desc', 'value': sku.sku_desc});
+          elem.push({'name': 'summary_id', 'value': sku.summary_id});
+          elem.push({'name': 'tax_percent', 'value': sku.tax_percent});
+          elem.push({'name': 'tax_value', 'value': sku.tax_value});
+          elem.push({'name': 'location', 'value': sku.location});
+          elem.push({'name': 'return_qty', 'value': sku.return_qty});
+          elem.push({'name': 'batch_no', 'value': sku.batch_no});
+          elem.push({'name': 'mrp', 'value': sku.mrp});
+        });
+      });
+
+      vm.service.apiCall('create_rtv/', 'POST', elem, true).then(function(data){
         if(data.message) {
-          if(data.data == 'Updated Successfully') {
+          if(data.data == 'Success') {
+
             vm.close();
             vm.service.refresh(vm.dtInstance);
           } else {
-            pop_msg(data.data);
+            if(data.data.search("<div") != -1) {
+              vm.title = "Debit Note";
+              vm.extra_width = {}
+              vm.html = $(data.data);
+              vm.extra_width = {}
+              angular.element(".modal-body").html($(data.data));
+              vm.print_enable = true;
+              vm.service.refresh(vm.dtInstance);
+            } else {
+              pop_msg(data.data)
+            }
           }
         }
+        vm.conf_disable = false;
       });
+    }
+
+    vm.print_rtv = function() {
+      vm.service.print_data(vm.html, "Debit Note");
     }
 
     function check_receive() {
@@ -222,54 +312,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.goBack = function() {
 
       $state.go('app.inbound.RevceivePo.GRN');
-    }
-
-    vm.gen_barcode = function() {
-      vm.barcode_title = 'Barcode Generation';
-      vm.model_data['barcodes'] = [];
-
-      angular.forEach(vm.model_data.data, function(barcode_data){
-        var quant = barcode_data[0].po_quantity;
-        var sku_det = barcode_data[0].wms_code;
-        /*var list_of_sku = barcode_data[0].serial_number.split(',');
-        angular.forEach(list_of_sku, function(serial) {
-          console.log(vm.sku_det);
-          var serial_number = vm.sku_det+'/00'+serial;
-          vm.model_data['barcodes'].push({'sku_code': serial_number, 'quantity': 1})
-        })*/
-       vm.model_data['barcodes'].push({'sku_code': sku_det, 'quantity': quant})
-
-      })
-
-      vm.model_data['format_types'] = [];
-      var key_obj = {};//{'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details', 'Bulk Barcode': 'Details'};
-      vm.service.apiCall('get_format_types/').then(function(data){
-        $.each(data['data']['data'], function(ke, val){
-          vm.model_data['format_types'].push(ke);
-          });
-          key_obj = data['data']['data'];
-      });
-
-      vm.model_data.have_data = true;
-      //$state.go('app.inbound.RevceivePo.barcode');
-      var modalInstance = $modal.open({
-        templateUrl: 'views/outbound/toggle/barcodes.html',
-        controller: 'Barcodes',
-        controllerAs: 'pop',
-        size: 'lg',
-        backdrop: 'static',
-        keyboard: false,
-        windowClass: 'z-2021',
-        resolve: {
-          items: function () {
-            return vm.model_data;
-          }
-        }
-      });
-
-      modalInstance.result.then(function (selectedItem) {
-        console.log(selectedItem);
-      }); 
     }
 }
 

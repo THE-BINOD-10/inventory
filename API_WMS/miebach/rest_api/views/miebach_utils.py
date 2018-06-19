@@ -66,11 +66,11 @@ SKU_STOCK_DATA = {'sku_id': '', 'total_quantity': 0,
                   'online_quantity': 0, 'offline_quantity': 0}
 
 SUPPLIER_DATA = {'name': '', 'address': '', 'phone_number': '', 'email_id': '',
-                 'status': 1, 'tax_type': '', 'po_exp_duration': '',
+                 'status': 1, 'tax_type': '', 'po_exp_duration': 0,
                  'owner_name': '', 'owner_number': '', 'owner_email_id': '',
                  'spoc_name': '', 'spoc_number': '', 'spoc_email_id': '',
                  'lead_time': 0, 'credit_period': 0, 'bank_name': '', 'ifsc_code': '',
-                 'branch_name': '', 'account_number': '', 'account_holder_name': ''
+                 'branch_name': '', 'account_number': 0, 'account_holder_name': ''
                  }
 
 SIZE_DATA = {'size_name': '', 'size_value': '', 'creation_date': datetime.datetime.now()}
@@ -1330,11 +1330,11 @@ DIST_CUSTOMER_INVOICE_HEADERS = ['Gen Order Id', 'Order Ids', 'Customer Name', '
 
 # Supplier Invoices page headers based on user type
 
-WH_SUPPLIER_INVOICE_HEADERS = ['GRN No', 'Supplier Name', 'PO Quantity', 'Received Quantity',
-                               'Order Date', 'Total Amount']
+WH_SUPPLIER_INVOICE_HEADERS = ['Supplier Name', 'PO Quantity', 'Received Quantity', 'Total Amount']
+WH_SUPPLIER_PO_CHALLAN_HEADERS = ['GRN No', 'Supplier Name', 'PO Quantity', 'Received Quantity',
+                                  'Order Date', 'Total Amount']
 
-DIST_SUPPLIER_INVOICE_HEADERS = ['GRN No', 'Supplier Name', 'PO Quantity', 'Received Quantity',
-                                 'Order Date', 'Total Amount']
+DIST_SUPPLIER_INVOICE_HEADERS = ['Supplier Name', 'PO Quantity', 'Received Quantity', 'Total Amount']
 
 # End of Supplier Invoices page headers based on user type
 
@@ -2105,7 +2105,7 @@ def get_po_filter_data(search_params, user, sub_user):
                                                     ('PO Number', po_number),
                                                     ('Supplier ID', data[field_mapping['supplier_id']]),
                                                     ('Supplier Name', data[field_mapping['supplier_name']]),
-                                                    ('Recepient', 'SHProc'),
+                                                    ('Recepient', user.userprofile.company_name),
                                                     ('SKU Code', data['purchase_order__open_po__sku__sku_code']),
                                                     ('SKU Description', data['purchase_order__open_po__sku__sku_desc']),
                                                     ('SKU Class', data['purchase_order__open_po__sku__sku_class']),

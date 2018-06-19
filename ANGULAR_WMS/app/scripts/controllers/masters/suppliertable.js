@@ -81,7 +81,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.close = function() {
 
     angular.copy(empty_data, vm.model_data);
-    $state.go('app.masters.SupplierMaster');
+    vm.service.searched_wms_code = '';
+    vm.service.searched_sup_code = '';
+    if (vm.service.is_came_from_raise_po) {
+        vm.service.searched_sup_code = vm.service.search_key;
+        $state.go('app.inbound.RaisePo.PurchaseOrder');
+      }else{
+        $state.go('app.masters.SupplierMaster');
+      }
   }
 
   vm.get_supplier_master_data = function() {
@@ -117,9 +124,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if(data.message) {
 
         if (data.data == 'New Supplier Added' || data.data == 'Updated Successfully')  {
-
-          vm.service.refresh(vm.dtInstance);
-          vm.close();
+          if (data.data == 'New Supplier Added' && Service.is_came_from_raise_po) {
+            vm.service.searched_sup_code = vm.model_data.id;
+            $state.go('app.inbound.RaisePo.PurchaseOrder');
+          } else {
+            vm.service.refresh(vm.dtInstance);
+            vm.close();
+          }
         } else {
 
           vm.service.pop_msg(data.data);

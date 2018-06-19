@@ -135,7 +135,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.update_data = update_data;
     function update_data(index, data) {
-      // if (Session.roles.permissions['pallet_switch'] || vm.industry_type == 'FMCG') {
         if (index == data.length-1) {
           if (data[index].return_qty) {
             var total_qty = 0;
@@ -160,7 +159,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         } else {
           data.splice(index,1);
         }
-      // }
     }
 
     vm.check_quantity = function(index, data, sku){
@@ -172,15 +170,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if (Number(sku.return_qty) >= Number(sku.quantity) && !sku.rest_qty) {
         vm.check_rest_qty(sku, data);
         sku.return_qty = vm.rest_qty;
+        Service.showNoty("You can enter "+sku.return_qty+" quantity");
         
         sku.rest_qty = 0;
       } else if (Number(sku.return_qty) >= Number(sku.quantity) && sku.rest_qty) {
         vm.check_rest_qty(sku, data);
         sku.return_qty = vm.rest_qty;
+        Service.showNoty("You can enter "+sku.return_qty+" quantity");
         sku.rest_qty = 0;
       } else {
-        // vm.check_rest_qty(sku, data)
-        // sku.return_qty = sku.return_qty - (Number(sku.quantity) - Number(vm.total_qty));
+        if (index) {
+          sku.return_qty = data[index-1].rest_qty;
+          Service.showNoty("You can enter "+sku.return_qty+" quantity");
+        }
         sku.rest_qty = Number(sku.quantity) - Number(vm.total_qty);
       }
 

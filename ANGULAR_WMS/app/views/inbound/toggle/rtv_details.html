@@ -62,8 +62,6 @@
                   <tr>
                 </thead>
                 <tbody ng-repeat="records in showCase.model_data.data">
-                  <!-- <tbody> -->
-                  <!-- <tr ng-repeat="data in showCase.model_data.data"> -->
                     <tr ng-repeat="data in records">
                     <td>
                       <input type="text" autocomplete="off" name="sku_code" class="form-control" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" ng-model="data.sku_code" title="{{ data.wms_code }}" typeahead-on-select="showCase.get_sku_details(data, $item, $index)" readonly>

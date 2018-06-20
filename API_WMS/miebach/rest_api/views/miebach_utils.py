@@ -66,11 +66,11 @@ SKU_STOCK_DATA = {'sku_id': '', 'total_quantity': 0,
                   'online_quantity': 0, 'offline_quantity': 0}
 
 SUPPLIER_DATA = {'name': '', 'address': '', 'phone_number': '', 'email_id': '',
-                 'status': 1, 'tax_type': '', 'po_exp_duration': '',
+                 'status': 1, 'tax_type': '', 'po_exp_duration': 0,
                  'owner_name': '', 'owner_number': '', 'owner_email_id': '',
                  'spoc_name': '', 'spoc_number': '', 'spoc_email_id': '',
                  'lead_time': 0, 'credit_period': 0, 'bank_name': '', 'ifsc_code': '',
-                 'branch_name': '', 'account_number': '', 'account_holder_name': ''
+                 'branch_name': '', 'account_number': 0, 'account_holder_name': ''
                  }
 
 SIZE_DATA = {'size_name': '', 'size_value': '', 'creation_date': datetime.datetime.now()}
@@ -187,6 +187,16 @@ MOVE_INVENTORY_EXCEL_MAPPING = OrderedDict((('Seller ID', 'seller_id'), ('WMS Co
                                             ('Destination Location', 'destination'),
                                             ('Quantity', 'quantity'), ('Batch Number', 'batch_no'),
                                             ('MRP', 'mrp')))
+
+SKU_SUBSTITUTION_EXCEL_MAPPING = OrderedDict((('Seller ID', 'seller_id'), ('Source SKU Code', 'source_sku_code'),
+                                              ('Source Location', 'source_location'),
+                                              ('Source Batch Number', 'source_batch_no'),
+                                              ('Source MRP', 'source_mrp'), ('Source Quantity', 'source_quantity'),
+                                              ('Destination SKU Code', 'dest_sku_code'),
+                                              ('Destination Location', 'dest_location'),
+                                              ('Destination Batch Number', 'dest_batch_no'),
+                                              ('Destination MRP', 'dest_mrp'), ('Destination Quantity', 'dest_quantity'),
+                                            ))
 
 SUPPLIER_HEADERS = ['Supplier Id', 'Supplier Name', 'Address', 'Email', 'Phone No.', 'GSTIN Number', 'PAN Number',
                     'PIN Code', 'City', 'State', 'Country', 'Days required to supply', 'Fulfillment Amount',
@@ -711,11 +721,11 @@ ADD_WAREHOUSE_DICT = {'user_id': '', 'city': '', 'is_active': 1, 'country': '', 
                       'address': '', 'phone_number': '', 'prefix': '', 'location': '', 'warehouse_type': '',
                       'warehouse_level': 0, 'min_order_val': 0, 'level_name': '', 'zone': ''}
 
-PICKLIST_EXCEL = OrderedDict((('WMS Code', 'wms_code'), ('Title', 'title'), ('Category', 'category'), ('Zone', 'zone'),
-                              ('Location', 'location'),
-                              ('Reserved Quantity', 'reserved_quantity'), ('Stock Left', 'stock_left'),
-                              ('Last Picked Location', 'last_picked_locs')
-                              ))
+PICKLIST_EXCEL = OrderedDict((
+                              ('Order ID', 'original_order_id'), ('WMS Code', 'wms_code'), ('Title', 'title'), ('Category', 'category'),
+                              ('Zone', 'zone'), ('Location', 'location'), ('Reserved Quantity', 'reserved_quantity'),
+                              ('Stock Left', 'stock_left'),('Last Picked Location', 'last_picked_locs')
+                            ))
 
 # Campus Sutra
 SHOPCLUES_EXCEL = {'original_order_id': 0, 'order_id': 0, 'quantity': 14, 'title': 7, 'invoice_amount': 44,
@@ -1320,11 +1330,11 @@ DIST_CUSTOMER_INVOICE_HEADERS = ['Gen Order Id', 'Order Ids', 'Customer Name', '
 
 # Supplier Invoices page headers based on user type
 
-WH_SUPPLIER_INVOICE_HEADERS = ['GRN No', 'Supplier Name', 'PO Quantity', 'Received Quantity',
-                               'Order Date', 'Total Amount']
+WH_SUPPLIER_INVOICE_HEADERS = ['Supplier Name', 'PO Quantity', 'Received Quantity', 'Total Amount']
+WH_SUPPLIER_PO_CHALLAN_HEADERS = ['GRN No', 'Supplier Name', 'PO Quantity', 'Received Quantity',
+                                  'Order Date', 'Total Amount']
 
-DIST_SUPPLIER_INVOICE_HEADERS = ['GRN No', 'Supplier Name', 'PO Quantity', 'Received Quantity',
-                                 'Order Date', 'Total Amount']
+DIST_SUPPLIER_INVOICE_HEADERS = ['Supplier Name', 'PO Quantity', 'Received Quantity', 'Total Amount']
 
 # End of Supplier Invoices page headers based on user type
 
@@ -2095,7 +2105,7 @@ def get_po_filter_data(search_params, user, sub_user):
                                                     ('PO Number', po_number),
                                                     ('Supplier ID', data[field_mapping['supplier_id']]),
                                                     ('Supplier Name', data[field_mapping['supplier_name']]),
-                                                    ('Recepient', 'SHProc'),
+                                                    ('Recepient', user.userprofile.company_name),
                                                     ('SKU Code', data['purchase_order__open_po__sku__sku_code']),
                                                     ('SKU Description', data['purchase_order__open_po__sku__sku_desc']),
                                                     ('SKU Class', data['purchase_order__open_po__sku__sku_class']),

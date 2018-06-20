@@ -12,6 +12,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     vm.selected = {};
     vm.selectAll = false;
 
+    vm.date = new Date();
     vm.update_part = true;
     vm.permissions = Session.roles.permissions;
     vm.industry_type = Session.user_profile.industry_type;
@@ -90,6 +91,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
                       "total_price": 0,
                       "tax": "",
                       "sub_total": "",
+                      "po_delivery_date": data.data.po_delivery_date, 
+                      "supplier_name": data.data.supplier_name,
                       "data": data.data.data,
               };
               vm.model_data = {};
@@ -202,6 +205,14 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       vm.print_enable = false;
       vm.vendor_receipt = false;
       angular.copy(empty_data, vm.model_data);
+
+      if (vm.service.is_came_from_raise_po) {
+        vm.model_data.supplier_id = vm.service.searched_sup_code;
+        vm.model_data.data[0].fields.sku.wms_code = vm.service.searched_wms_code;
+        Service.is_came_from_raise_po = false;
+        vm.service.searched_sup_code = '';
+        vm.service.searched_wms_code = '';
+      }
     }
     vm.base();
 
@@ -225,7 +236,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
             vm.default_status = false;
             vm.model_data.data[vm.model_data.data.length - 1].fields.dedicated_seller = vm.selected_seller;
             vm.getCompany();
-			vm.populate_last_transaction('')
+			      vm.populate_last_transaction('');
           }
           vm.model_data.receipt_type = 'Purchase Order';
           if (Session.user_profile.user_type == 'marketplace_user') {
@@ -582,11 +593,16 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
        } else {
          var supplier = vm.model_data.supplier_id;
          $http.get(Session.url+'get_mapping_values/?wms_code='+product.fields.sku.wms_code+'&supplier_id='+supplier, {withCredentials : true}).success(function(data, status, headers, config) {
-           if(Object.values(data).length){
+           if(Object.keys(data).length){
              product.fields.price = data.price;
              product.fields.supplier_code = data.supplier_code;
              product.fields.sku.wms_code = data.sku;
              product.fields.ean_number = data.ean_number;
+           } else {
+             Service.searched_sup_code = supplier;
+             Service.searched_wms_code = product.fields.sku.wms_code;
+             Service.is_came_from_raise_po = true;
+             $state.go('app.masters.SKUMaster');
            }
          });
        }
@@ -729,4 +745,20 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       }
 	}
 
+  vm.checkSupplierExist = function (sup_id) {
+    console.log(sup_id);
+    $http.get(Session.url + 'search_supplier?', {
+      params: {
+        q: sup_id,
+        type: ''
+      }
+    }).then(function(resp){
+      if (resp.data.length == 0) {
+        Service.searched_sup_code = sup_id;
+        Service.is_came_from_raise_po = true;
+        $state.go('app.masters.SupplierMaster.supplier');
+      };
+    });
   }
+
+}

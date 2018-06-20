@@ -125,6 +125,7 @@ urlpatterns = [
     url(r'^close_po/$', close_po),
     url(r'^check_returns/$', check_returns),
     url(r'^check_sku/$', check_sku),
+    url(r'^create_orders_check_ean/$', create_orders_check_ean),
     url(r'^confirm_sales_return/$', confirm_sales_return),
     url(r'^get_received_orders/$', get_received_orders),
     url(r'^putaway_data/$', putaway_data),
@@ -165,6 +166,8 @@ urlpatterns = [
     url(r'^generate_supplier_invoice/$', generate_supplier_invoice),
     url(r'^update_poc/$', update_poc),
     url(r'^update_po_invoice/$', update_po_invoice),
+    url(r'^get_po_putaway_summary/$', get_po_putaway_summary),
+    url(r'^create_rtv/$', create_rtv),
 
     # Production
     url(r'^generated_jo_data/$', generated_jo_data),
@@ -405,9 +408,11 @@ urlpatterns += [
     url(r'^marketplace_serial_upload/$', marketplace_serial_upload),
     url(r'^seller_transfer_form/$', seller_transfer_form),
     url(r'^seller_transfer_upload/$', seller_transfer_upload),
-
     url(r'^network_master_form/$', network_master_form),
     url(r'^network_master_upload/$', network_master_upload),
+    url(r'^sku_substitution_form/$', sku_substitution_form),
+    url(r'^sku_substitution_upload/$', sku_substitution_upload),
+
     # configurations
     url(r'^configurations/$', configurations),
     url(r'^switches/$', switches),

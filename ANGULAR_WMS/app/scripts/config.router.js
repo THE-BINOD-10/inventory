@@ -731,6 +731,25 @@ var app = angular.module('urbanApp')
             url: '/Confirmation',
             templateUrl: 'views/inbound/toggle/putaway_confirm.html'
           })
+        .state('app.inbound.rtv', {
+          url: '/rtv',
+          // permission: 'add_polocation',
+          templateUrl: 'views/inbound/rtv.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/inbound/rtv.js'
+                ]);
+              }]
+          },
+          data: {
+            title: 'Return to Vendor',
+          }
+        })
+        .state('app.inbound.rtv.details', {
+            url: '/details',
+            templateUrl: 'views/inbound/toggle/rtv_details.html'
+          })
         .state('app.inbound.SalesReturns', {
           url: '/SalesReturns',
           permission: 'add_orderreturns',

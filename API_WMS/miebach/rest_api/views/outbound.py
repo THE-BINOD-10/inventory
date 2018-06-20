@@ -723,6 +723,8 @@ def get_picklist_data(data_id, user_id):
             category = ''
             customer_address = ''
             original_order_id = ''
+            order_id = ''
+            order_code = ''
             if order.stock:
                 stock_id = pick_stocks.get(id=order.stock_id)
             if order.order:
@@ -733,6 +735,7 @@ def get_picklist_data(data_id, user_id):
                 marketplace = order.order.marketplace
                 remarks = order.order.remarks
                 order_id = str(order.order.order_id)
+                order_code = str(order.order.order_code)
                 original_order_id = order.order.original_order_id
                 load_unit_handle = order.order.sku.load_unit_handle
                 category = order.order.sku.sku_category
@@ -750,8 +753,6 @@ def get_picklist_data(data_id, user_id):
                 load_unit_handle = st_order[0].stock_transfer.sku.load_unit_handle
                 category = st_order[0].stock_transfer.sku.sku_category
                 marketplace = ""
-                order_id = ''
-
             pallet_code = ''
             pallet_detail = ''
             if stock_id and stock_id.pallet_detail:
@@ -788,6 +789,8 @@ def get_picklist_data(data_id, user_id):
                                       order_by('-updation_date').values_list('location__location',
                                                                              flat=True).distinct()[:2]
                     last_picked_locs = ','.join(last_picked)
+                if not original_order_id:
+                    original_order_id = str(order_id) + str(order_code)
 
                 batch_data[match_condition] = {'wms_code': wms_code, 'zone': zone, 'sequence': sequence,
                                                'location': location, 'reserved_quantity': order.reserved_quantity,
@@ -829,12 +832,15 @@ def get_picklist_data(data_id, user_id):
             category = ''
             customer_address = ''
             original_order_id = ''
+            order_code = ''
+            order_id = ''
             if order.order:
                 wms_code = order.order.sku.wms_code
                 if order.order_type == 'combo' and order.sku_code:
                     wms_code = order.sku_code
                 invoice_amount = order.order.invoice_amount
                 order_id = str(order.order.order_id)
+                order_code = str(order.order.order_code)
                 original_order_id = order.order.original_order_id
                 sku_code = order.order.sku_code
                 title = order.order.title
@@ -891,6 +897,8 @@ def get_picklist_data(data_id, user_id):
                                   order_by('-updation_date').values_list('location__location',
                                                                          flat=True).distinct()[:2]
                 last_picked_locs = ','.join(last_picked)
+            if not original_order_id:
+                original_order_id = str(order_id) + str(order_code)
 
             data.append(
                 {'wms_code': wms_code, 'zone': zone, 'location': location, 'reserved_quantity': order.reserved_quantity,
@@ -919,6 +927,9 @@ def get_picklist_data(data_id, user_id):
             wms_code = order.order.sku.wms_code
             marketplace = order.order.marketplace
             remarks = order.order.remarks
+            order_id = ''
+            order_code = ''
+            original_order_id = ''
             if order.stock_id:
                 stock_id = pick_stocks.get(id=order.stock_id)
 
@@ -942,7 +953,9 @@ def get_picklist_data(data_id, user_id):
             customer_name = ''
             if order.order:
                 customer_name = order.order.customer_name
-
+                order_id = str(order.order.order_id)
+                order_code = str(order.order.order_code)
+                original_order_id = str(order.order.original_order_id)
             pallet_code = ""
             if order.reserved_quantity == 0:
                 continue
@@ -954,10 +967,12 @@ def get_picklist_data(data_id, user_id):
                                   order_by('-updation_date').values_list('location__location',
                                                                          flat=True).distinct()[:2]
                 last_picked_locs = ','.join(last_picked)
+            if not original_order_id:
+                original_order_id = str(order_id) + str(order_code)
 
             data.append(
                 {'wms_code': wms_code, 'zone': zone, 'location': location, 'reserved_quantity': order.reserved_quantity,
-                 'picklist_number': data_id, 'order_id': str(order.order_id), 'stock_id': st_id,
+                 'picklist_number': data_id, 'order_id': order_id, 'stock_id': st_id,
                  'picked_quantity': order.reserved_quantity, 'id': order.id, 'sequence': sequence,
                  'invoice_amount': order.order.invoice_amount,
                  'price': order.order.invoice_amount * order.reserved_quantity,
@@ -965,7 +980,7 @@ def get_picklist_data(data_id, user_id):
                  'title': order.order.title, 'stock_left': stock_left, 'last_picked_locs': last_picked_locs,
                  'customer_name': customer_name, 'remarks': remarks, 'load_unit_handle': load_unit_handle,
                  'category': category,
-                 'marketplace': marketplace})
+                 'marketplace': marketplace, 'original_order_id' : original_order_id})
 
             if wms_code in sku_total_quantities.keys():
                 sku_total_quantities[wms_code] += float(order.reserved_quantity)
@@ -1945,7 +1960,6 @@ def update_invoice(request, user=''):
             unit_price_index = myDict['id'].index(str(order_id.id))
             # if order_id.unit_price != float(myDict['unit_price'][unit_price_index]):
             if int(myDict['quantity'][unit_price_index]) == 0:
-                order_id.delete()
                 cust_objs = CustomerOrderSummary.objects.filter(order__id=order_id.id)
                 if cust_objs:
                     cust_obj = cust_objs[0]
@@ -1954,6 +1968,7 @@ def update_invoice(request, user=''):
                 if sos_obj:
                     sos_obj = sos_obj[0]
                     sos_obj.delete()
+                order_id.delete()
                 continue
             else:
                 cust_obj = order_id.customerordersummary_set.all()
@@ -2574,6 +2589,9 @@ def check_imei(request, user=''):
 def print_picklist_excel(request, user=''):
     headers = copy.deepcopy(PICKLIST_EXCEL)
     data_id = request.GET['data_id']
+    display_order_id = request.GET.get('display_order_id', 'false')
+    if display_order_id == 'false':
+        headers.pop('Order ID')
     data, sku_total_quantities = get_picklist_data(data_id, user.id)
     all_data = []
     for dat in data:
@@ -2589,6 +2607,7 @@ def print_picklist(request, user=''):
     temp = []
     title = 'Picklist ID'
     data_id = request.GET['data_id']
+    display_order_id = request.GET.get('display_order_id', 'false')
     data, sku_total_quantities = get_picklist_data(data_id, user.id)
     date_data = {}
     picklist_orders = Picklist.objects.filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id),
@@ -2606,10 +2625,12 @@ def print_picklist(request, user=''):
     customer_address = ''
     if data:
         customer_address = data[0].get('customer_address', '')
-    order_ids = ''
+    order_ids = 'false'
     order_data = list(set(map(lambda d: d.get('order_no', ''), data)))
     order_data = filter(lambda x: len(x) > 0, order_data)
-
+    original_order_ids = ''
+    original_order_data = list(set(map(lambda d: d.get('original_order_id', ''), data)))
+    original_order_data = filter(lambda x: len(x) > 0, original_order_data)
     remarks_data = ''
     remarks_data = list(set(map(lambda d: d.get('remarks', ''), data)))
     remarks_data = filter(lambda x: len(x) > 0, remarks_data)
@@ -2618,12 +2639,10 @@ def print_picklist(request, user=''):
     market_place = list(set(map(lambda d: d.get('marketplace', ''), data)))
     filtered_market = filter(lambda a: a != "Offline", market_place)
     if not filtered_market:
-        marketplace = ""
+        marketplace = ''
     else:
         marketplace = ','.join(market_place)
 
-    if order_data:
-        order_ids = ','.join(order_data)
     total = 0
     total_price = 0
     type_mapping = SkuTypeMapping.objects.filter(user=user.id)
@@ -2649,12 +2668,19 @@ def print_picklist(request, user=''):
     show_picklist_display_address = get_misc_value('picklist_display_address', user.id)
     if show_picklist_display_address == "false":
         customer_address = ''
+    headers = copy.deepcopy(PRINT_OUTBOUND_PICKLIST_HEADERS)
+    if display_order_id == 'true':
+        if len(original_order_data):
+            order_ids = ','.join(original_order_data)
+        elif len(order_data):
+            order_ids = ','.join(order_data)
+        headers = ('Order ID',) + headers
     return render(request, 'templates/toggle/print_picklist.html',
-                  {'data': data, 'all_data': all_data, 'headers': PRINT_OUTBOUND_PICKLIST_HEADERS,
+                  {'data': data, 'all_data': all_data, 'headers': headers,
                    'picklist_id': data_id, 'total_quantity': total,
                    'total_price': total_price, 'picklist_id': data_id,
                    'customer_name': customer_name, 'customer_address': customer_address, 'order_ids': order_ids,
-                   'marketplace': marketplace, 'date_data': date_data, 'remarks': remarks_data, 'user': user})
+                   'marketplace': marketplace, 'date_data': date_data, 'remarks': remarks_data, 'user': user, 'display_order_id': display_order_id})
 
 
 @csrf_exempt
@@ -7486,28 +7512,27 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
     else:
         if user_profile.user_type == 'marketplace_user':
             lis = ['seller_order__sor_id', 'seller_order__sor_id',
-                   'seller_order__seller__seller_id', 'seller_order__order__original_order_id',
-                   'seller_order__order__customer_name', 'quantity', 'quantity', 'date_only', 'id']
+                   'seller_order__seller__seller_id', 'seller_order__order__customer_name', 'quantity', 'quantity', 'id']
             user_filter = {'seller_order__seller__user': user.id}
             result_values = ['invoice_number', 'seller_order__seller__name',
                              'seller_order__sor_id']
             field_mapping = {'order_quantity_field': 'seller_order__quantity', 'date_only': 'seller_order__creation_date'}
             is_marketplace = True
         else:
-            lis = ['order__customer_name', 'order__customer_name', 'quantity', 'quantity', 'date_only',
-                   'seller_order__order__original_order_id']
+            lis = ['invoice_number', 'order__customer_name', 'invoice_number', 'invoice_number',
+                   'invoice_number', 'invoice_number', 'invoice_number']
             user_filter = {'order__user': user.id, 'order_status_flag': 'customer_invoices'}
             result_values = ['invoice_number']
             field_mapping = {'order_quantity_field': 'order__quantity', 'date_only': 'order__creation_date'}
             is_marketplace = False
 
         if search_term:
-            if 'date_only' in lis:
-                lis1 = copy.deepcopy(lis)
-                lis1 = map(lambda x: x if x not in ['date_only', 'seller_order__order__order_id', 'order__order_id'] else
-                field_mapping['date_only'], lis1)
+            #if 'date_only' in lis:
+                #lis1 = copy.deepcopy(lis)
+                #lis1 = map(lambda x: x if x not in ['date_only', 'seller_order__order__order_id', 'order__order_id'] else
+                #field_mapping['date_only'], lis1)
             search_term = search_term.replace('(', '\(').replace(')', '\)')
-            search_query = build_search_term_query(lis1, search_term)
+            search_query = build_search_term_query(lis, search_term)
             order_id_search = ''.join(re.findall('\d+', search_term))
             order_code_search = ''.join(re.findall('\D+', search_term))
             if not is_marketplace:
@@ -7545,6 +7570,7 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
         seller_orders = SellerOrder.objects.filter(seller__user=user.id)
         orders = OrderDetail.objects.filter(user=user.id)
         for data in master_data[start_index:stop_index]:
+            invoice_date = ''
             if is_marketplace:
                 summary = order_summaries.filter(seller_order__order__order_id=data['invoice_number'],
                                                  seller_order__seller__name=data['seller_order__seller__name'])[0]
@@ -7559,7 +7585,13 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
                                                .annotate(cur_amt=(F('order__invoice_amount')/F('order__quantity'))* F('pic_qty'))\
                                                .aggregate(Sum('cur_amt'))['cur_amt__sum']
             else:
-                order = order_summaries.filter(invoice_number=data['invoice_number'])[0].order
+                seller_order_summaries = order_summaries.filter(invoice_number=data['invoice_number'])
+                order_ids = seller_order_summaries.values_list('order__id', flat= True)
+                order = seller_order_summaries[0].order
+                invoice_date = CustomerOrderSummary.objects.filter(order_id__in=order_ids)\
+                                                   .order_by('-invoice_date').values_list('invoice_date', flat=True)[0]
+                if not invoice_date:
+                    invoice_date = seller_order_summaries.order_by('-updation_date')[0].updation_date
                 #order = orders.filter(original_order_id=data['order__original_order_id'])[0]
                 #invoice_number = order.sellerordersummary_set.values_list('invoice_number', flat=True)
                 #if invoice_number:
@@ -7581,6 +7613,7 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
                 data['ordered_quantity'] = 0
 
             order_date = get_local_date(user, order.creation_date)
+            invoice_date = invoice_date.strftime("%d %b %Y") if invoice_date else order.creation_date.strftime("%d %b %Y")
 
             if is_marketplace:
                 data_dict = OrderedDict((('UOR ID', order_id), ('SOR ID', summary.seller_order.sor_id),
@@ -7596,7 +7629,7 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
             data_dict.update(OrderedDict((('Customer Name', order.customer_name),
                                           ('Order Quantity', data['ordered_quantity']), ('Picked Quantity', data['total_quantity']),
                                           ('Total Amount', picked_amount),
-                                          ('Order Date&Time', order_date), ('Invoice Number', '')
+                                          ('Order Date&Time', invoice_date), ('Invoice Number', '')
                                           )))
             temp_data['aaData'].append(data_dict)
         log.info('Customer Invoice filtered %s for %s ' % (str(temp_data['recordsTotal']), user.username))
@@ -7896,12 +7929,25 @@ def update_dc(request, user=''):
             igst_tax = each_sku['taxes'].get('igst_tax', '')
             invoice_amount = each_sku.get('invoice_amount', '')
 
-            if not quantity:
+            if not int(quantity):
+                if ord_det_id:
+                    ord_obj = OrderDetail.objects.filter(id=ord_det_id)
+                    if ord_obj:
+                        ord_obj = ord_obj[0]
+                        cust_objs = CustomerOrderSummary.objects.filter(order__id=ord_obj.id)
+                        if cust_objs:
+                            cust_obj = cust_objs[0]
+                            cust_obj.delete()
+                        sos_obj = SellerOrderSummary.objects.filter(order_id=ord_obj)
+                        if sos_obj:
+                            sos_obj = sos_obj[0]
+                            sos_obj.delete()
+                        ord_obj.delete()
                 continue
             if ord_det_id:
                 ord_obj = OrderDetail.objects.filter(id=ord_det_id)
                 if ord_obj:
-                    ord_obj[0].quantity = quantity
+                    ord_obj[0].quantity = int(quantity)
                     ord_obj[0].invoice_amount = invoice_amount
                     ord_obj[0].unit_price = unit_price
                     cust_order_summary = CustomerOrderSummary.objects.filter(order_id = ord_obj[0].id)
@@ -8091,7 +8137,7 @@ def generate_customer_invoice_tab(request, user=''):
             #sell_ids['pick_number__in'].append(splitted_data[1])
             pick_number = splitted_data[1]
         seller_summary = SellerOrderSummary.objects.filter(**sell_ids)
-        sequence_number = seller_summary[0].invoice_number
+        sequence_number = seller_summary[0].invoice_number if seller_summary else ''
         sell_ids['pick_number__in'] = seller_summary.values_list('pick_number', flat=True)
         order_ids = list(seller_summary.values_list(field_mapping['order_id'], flat=True))
         order_ids = map(lambda x: str(x), order_ids)
@@ -9724,3 +9770,14 @@ def print_cartons_data_view(request, user=''):
                   'shipment_date': shipment_date, 'company_name': company_name, 'truck_number':truck_number,
                   'courier_name': courier_name, 'data': data.values()}
     return render(request, 'templates/toggle/print_cartons_wise_qty.html', final_data)
+
+@csrf_exempt
+@get_admin_user
+def create_orders_check_ean(request, user=''):
+    data = {}
+    sku_code = ''
+    ean = request.GET.get('ean')
+    sku_obj = SKUMaster.objects.filter(ean_number=ean, user=user.id)
+    if sku_obj:
+        sku_code = sku_obj[0].sku_code
+    return HttpResponse(json.dumps({ 'sku' : sku_code }))

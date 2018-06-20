@@ -403,7 +403,7 @@ def get_search_params(request, user=''):
                     'order_id': 'order_id', 'job_code': 'job_code', 'job_order_code': 'job_order_code',
                     'fg_sku_code': 'fg_sku_code',
                     'rm_sku_code': 'rm_sku_code', 'pallet': 'pallet',
-                    'staff_id': 'id', 'ean': 'ean' }
+                    'staff_id': 'id', 'ean': 'ean', 'invoice_number': 'invoice_number'}
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
                       'search2': 'search_2', 'search3': 'search_3',
@@ -460,6 +460,7 @@ data_datatable = {  # masters
     'RaiseIO': 'get_intransit_orders', 'PrimarySegregation': 'get_segregation_pos', \
     'ProcessedPOs': 'get_processed_po_data', 'POChallans': 'get_po_challans_data', \
     'SupplierInvoices': 'get_supplier_invoice_data', \
+    'ReturnToVendor': 'get_po_putaway_data', \
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
     'PickelistGenerated': 'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo', \
@@ -1469,33 +1470,38 @@ def change_seller_stock(seller_id='', stock='', user='', quantity=0, status='dec
 
 
 def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id='',
-                       dest_seller_id=''):
+                       dest_seller_id='', source_updated=False, mrp_dict=None):
     batch_obj = ''
-    for stock in stocks:
-        batch_obj = stock.batch_detail
-        if stock.quantity > move_quantity:
-            stock.quantity -= move_quantity
-            change_seller_stock(src_seller_id, stock, user, move_quantity, 'dec')
-            move_quantity = 0
-            if stock.quantity < 0:
+    if not source_updated:
+        for stock in stocks:
+            batch_obj = stock.batch_detail
+            if stock.quantity > move_quantity:
+                stock.quantity -= move_quantity
+                change_seller_stock(src_seller_id, stock, user, move_quantity, 'dec')
+                move_quantity = 0
+                if stock.quantity < 0:
+                    stock.quantity = 0
+                stock.save()
+            elif stock.quantity <= move_quantity:
+
+                move_quantity -= stock.quantity
+                change_seller_stock(src_seller_id, stock, user, stock.quantity, 'dec')
                 stock.quantity = 0
-            stock.save()
-        elif stock.quantity <= move_quantity:
-
-            move_quantity -= stock.quantity
-            change_seller_stock(src_seller_id, stock, user, stock.quantity, 'dec')
-            stock.quantity = 0
-            stock.save()
-        if move_quantity == 0:
-            break
-
+                stock.save()
+            if move_quantity == 0:
+                break
+    else:
+        batch_obj = stocks[0].batch_detail
     if not dest_stocks:
         dict_values = {'receipt_number': 1, 'receipt_date': datetime.datetime.now(),
                        'quantity': float(quantity), 'status': 1,
                        'creation_date': datetime.datetime.now(),
                        'updation_date': datetime.datetime.now(),
                        'location_id': dest[0].id, 'sku_id': sku_id}
-        if batch_obj:
+        if mrp_dict:
+            mrp_dict['creation_date'] = datetime.datetime.now()
+            dict_values['batch_detail_id'] = BatchDetail.objects.create(**mrp_dict).id
+        elif batch_obj:
             dict_values['batch_detail'] = batch_obj
         dest_stocks = StockDetail(**dict_values)
         dest_stocks.save()
@@ -4576,7 +4582,7 @@ def get_purchase_order_data(order):
         order_quantity = open_data.order_quantity
         sku = open_data.sku
         price = open_data.price
-        mrp = open_data.mrp
+        mrp = 0
         order_type = ''
         supplier_code = ''
         cgst_tax = 0
@@ -6762,7 +6768,20 @@ def create_update_batch_data(batch_dict):
             batch_dict['creation_date'] = datetime.datetime.now()
             batch_obj = BatchDetail.objects.create(**batch_dict)
         else:
-            batch_obj = batch_objs[0].id
+            batch_obj = batch_objs[0]
+    return batch_obj
+
+
+def get_or_create_batch_detail(batch_dict, temp_dict):
+    batch_obj = None
+    batch_dict1 = copy.deepcopy(batch_dict)
+    if 'batch_no' in batch_dict:
+        batch_obj = create_update_batch_data(batch_dict1)
+    elif 'quality_check' in temp_dict:
+        batch_obj = BatchDetail.objects.filter(transact_id=temp_dict['quality_check'].po_location.id,
+                                               transact_type='po_loc')
+        if batch_obj:
+            batch_obj = batch_obj[0]
     return batch_obj
 
 
@@ -6991,9 +7010,12 @@ def get_gen_wh_ids(request, user, delivery_date):
     return gen_whs
 
 
-def get_incremental(user, type_name):
+def get_incremental(user, type_name, default_val=''):
     # custom sku counter
-    default = 1001
+    if not default_val:
+        default = 1001
+    else:
+        default = default_val
     data = IncrementalTable.objects.filter(user=user.id, type_name=type_name)
     if data:
         data = data[0]
@@ -7001,7 +7023,7 @@ def get_incremental(user, type_name):
         data.value = data.value + 1
         data.save()
     else:
-        IncrementalTable.objects.create(user_id=user.id, type_name=type_name, value=1001)
+        IncrementalTable.objects.create(user_id=user.id, type_name=type_name, value=default)
         count = default
     return count
 
@@ -7078,3 +7100,36 @@ def create_seller_order_transfer(seller_order, seller_id, trans_mapping):
         log.info('Create Seller Order Transfer Record failed for seller order id %s and destination seller id %s and request is %s and error statement is %s' % (
             str(user.username), str(seller_order.id),str(seller_id), str(e)))
     return trans_mapping
+
+
+def update_substitution_data(src_stocks, dest_stocks, src_sku, src_loc, src_qty, dest_sku, dest_loc, dest_qty, user, seller_id,
+                             source_updated, mrp_dict):
+    update_stocks_data(src_stocks, float(src_qty), dest_stocks, float(dest_qty), user, [dest_loc], dest_sku.id,
+                       src_seller_id=seller_id, dest_seller_id=seller_id, source_updated=source_updated,
+                       mrp_dict=mrp_dict)
+    sub_data = {'source_sku_code_id': src_sku.id, 'source_location': src_loc.location, 'source_quantity': src_qty,
+                'destination_sku_code_id': dest_sku.id, 'destination_location': dest_loc.location,
+                'destination_quantity': dest_qty}
+    SubstitutionSummary.objects.create(**sub_data)
+    log.info("Substitution Done For " + str(json.dumps(sub_data)))
+
+def update_stock_detail(stocks, quantity, user):
+    for stock in stocks:
+        if stock.quantity > quantity:
+            stock.quantity -= quantity
+            seller_stock = stock.sellerstock_set.filter()
+            if seller_stock.exists():
+                change_seller_stock(seller_stock[0].seller_id, stock, user, quantity, 'dec')
+            quantity = 0
+            if stock.quantity < 0:
+                stock.quantity = 0
+            stock.save()
+        elif stock.quantity <= quantity:
+            quantity -= stock.quantity
+            seller_stock = stock.sellerstock_set.filter()
+            if seller_stock.exists():
+                change_seller_stock(seller_stock[0].seller_id, stock, user, stock.quantity, 'dec')
+            stock.quantity = 0
+            stock.save()
+        if quantity == 0:
+            break

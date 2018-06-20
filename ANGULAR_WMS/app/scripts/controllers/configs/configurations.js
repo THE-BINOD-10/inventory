@@ -22,7 +22,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'increment_invoice': false, 'create_shipment_type': false, 'auto_allocate_stock': false,
                     'generic_wh_level': false, 'auto_confirm_po': false, 'create_order_po': false, 'shipment_sku_scan': false,
                     'disable_brands_view': false, 'sellable_segregation': false, 'display_styles_price': false,
-                    'invoice_based_payment_tracker': false
+                    'invoice_based_payment_tracker': false,
                     'auto_raise_stock_transfer': false, 'inbound_supplier_invoice': false, 'customer_dc': false,
                   };
   vm.all_mails = '';

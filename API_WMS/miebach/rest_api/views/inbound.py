@@ -6652,7 +6652,8 @@ def get_inv_based_po_payment_data(start_index, stop_index, temp_data, search_ter
     ''' Invoice Based PO Payment Tracker datatable code '''
     user_profile = UserProfile.objects.get(user_id=user.id)
     admin_user = get_priceband_admin_user(user)
-    lis = ['invoice_number', 'purchase_order__open_po__supplier__name', 'purchase_order__open_po__supplier__id']#for filter purpose
+    lis = ['invoice_number', 'purchase_order__open_po__supplier__name', 'invoice_number', 'invoice_number',
+           'invoice_number', 'invoice_number', 'invoice_number']#for filter purpose
     user_filter = {'purchase_order__open_po__sku__user': user.id, 'order_status_flag': 'supplier_invoices'}
     result_values = ['invoice_number', 'purchase_order__open_po__supplier__name',
                      'purchase_order__open_po__supplier__id']#to make distinct grouping
@@ -6661,20 +6662,18 @@ def get_inv_based_po_payment_data(start_index, stop_index, temp_data, search_ter
         search_query = build_search_term_query(lis, search_term)
         master_data = SellerPOSummary.objects.filter(search_query, **user_filter)\
                                      .values(*result_values).distinct()\
-                                     .annotate(payment_received=Sum('purchase_order__payment_received'),\
-                                     invoice_date=Cast('creation_date', DateField()))
+                                     .annotate(payment_received=Sum('purchase_order__payment_received'))
     elif order_term:
         if order_term == 'asc' and (col_num or col_num == 0):
             order_by = '%s' % lis[col_num]
         else:
             order_by = '-%s' % lis[col_num]
         master_data = SellerPOSummary.objects.filter(**user_filter).values(*result_values).distinct()\
-                                     .annotate(payment_received=Sum('purchase_order__payment_received'),\
-                                     invoice_date=Cast('creation_date', DateField())).order_by('-%s' % lis[col_num])
+                                     .annotate(payment_received=Sum('purchase_order__payment_received'))\
+                                     .order_by('-%s' % lis[col_num])
     else:
         master_data = SellerPOSummary.objects.filter(**user_filter)\
-                                 .values(*result_values).distinct().annotate(payment_received=Sum('purchase_order__payment_received'),\
-                                 invoice_date=Cast('creation_date', DateField()))
+                                 .values(*result_values).distinct().annotate(payment_received=Sum('purchase_order__payment_received'))
 
     #master_data = master_data.exclude(invoice_amount=F('payment_received'))
     temp_data['recordsTotal'] = master_data.count()
@@ -6682,7 +6681,10 @@ def get_inv_based_po_payment_data(start_index, stop_index, temp_data, search_ter
 
     for data in master_data[start_index:stop_index]:
         seller_summary_obj = SellerPOSummary.objects.filter(invoice_number=data['invoice_number'],\
-                                                            purchase_order__open_po__supplier__name=data['purchase_order__open_po__supplier__name'])
+                                             purchase_order__open_po__supplier__name=data['purchase_order__open_po__supplier__name'])
+        invoice_date = seller_summary_obj.order_by('-invoice_date').values_list('invoice_date', flat=True)[0]
+        if not invoice_date:
+            invoice_date = seller_summary_obj.order_by('updation_date')[0].updation_date
         tot_amt = 0
         for seller_sum in seller_summary_obj:
             price = seller_sum.purchase_order.open_po.price
@@ -6695,10 +6697,9 @@ def get_inv_based_po_payment_data(start_index, stop_index, temp_data, search_ter
 
         payment_receivable = tot_amt - data['payment_received']
         if payment_receivable != 0:
-            credit_period, due_date, invoice_date = 0, '', ''
-            if data['invoice_date']:
-                due_date = str(data['invoice_date'] + datetime.timedelta(days=credit_period))
-                invoice_date = str(data['invoice_date'])
+            credit_period, due_date = 0, ''
+            due_date = (invoice_date + datetime.timedelta(days=credit_period)).strftime("%d %b %Y")
+            invoice_date = invoice_date.strftime("%d %b %Y")
             data_dict = OrderedDict((('invoice_number', data['invoice_number']),
                                      ('invoice_date', invoice_date), ('due_date', due_date),
                                      ('supplier_name', data['purchase_order__open_po__supplier__name']),

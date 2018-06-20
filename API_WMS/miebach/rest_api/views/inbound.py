@@ -6800,6 +6800,78 @@ def get_po_putaway_summary(request, user=''):
                                     'remarks': remarks, 'seller_details': seller_details,
                                     'invoice_number': invoice_number, 'invoice_date': invoice_date}))
 
+def get_debit_note_data(rtv_number, user):
+	return_to_vendor = ReturnToVendor.objects.filter(rtv_number=rtv_number)
+	data_dict = {}
+	total_invoice_value = 0
+	total_qty = 0
+	total_with_gsts = 0
+	total_qty = 0
+	total_invoice_value = 0
+	total_without_discount = 0
+	total_only_discount = 0
+	total_taxable_value = 0
+	total_cgst_value = 0
+	total_sgst_value = 0
+	total_igst_value = 0
+	total_utgst_value = 0
+	#warehouse_details
+	ware_house = UserProfile.objects.filter(user = user).values('company_name', 'cin_number', 'location', 'city', 'state', 'country', 'phone_number', 'pin_code')
+	data_dict.setdefault('warehouse_details', [])
+	if len(ware_house):
+		data_dict['warehouse_details'].append({'company_name' : ware_house[0]['company_name'], 'cin_number' : ware_house[0]['cin_number'], 'location' : ware_house[0]['location'], 'city' : ware_house[0]['city'], 'state' : ware_house[0]['state'], 'country' : ware_house[0]['country'], 'phone_number' : ware_house[0]['phone_number'], 'pin_code' : ware_house[0]['pin_code']})
+	for obj in return_to_vendor:
+		get_po = obj.seller_po_summary.purchase_order.open_po
+		data_dict['supplier_name'] = get_po.supplier.name
+		data_dict['supplier_address'] = get_po.supplier.address
+		data_dict['city'] = get_po.supplier.city
+		data_dict['state'] = get_po.supplier.state
+		data_dict['pincode'] = get_po.supplier.pincode
+		data_dict['pan'] = get_po.supplier.pan_number
+		data_dict.setdefault('item_details', [])
+		data_dict_item = {}
+		data_dict_item['sku_code'] = get_po.sku.sku_code
+		data_dict_item['sku_desc'] = get_po.sku.sku_desc
+		data_dict_item['hsn_code'] = str(get_po.sku.hsn_code)
+		data_dict_item['order_qty'] = get_po.order_quantity
+		data_dict_item['price'] = get_po.sku.price
+		data_dict_item['measurement_unit'] = get_po.sku.measurement_type
+		data_dict_item['discount'] = get_po.sku.discount_percentage
+		data_dict_item['total_amt'] = data_dict_item['price'] * data_dict_item['order_qty']
+		data_dict_item['discount_amt'] = ((data_dict_item['total_amt'] * data_dict_item['discount'])/100)
+		data_dict_item['taxable_value'] = data_dict_item['total_amt'] - data_dict_item['discount_amt']
+		data_dict_item['cgst'] = get_po.cgst_tax
+		data_dict_item['cgst_value'] = ((data_dict_item['taxable_value'] * data_dict_item['cgst'])/100)
+		data_dict_item['igst'] = get_po.igst_tax
+		data_dict_item['igst_value'] = ((data_dict_item['taxable_value'] * data_dict_item['igst'])/100)
+		data_dict_item['sgst'] = get_po.sgst_tax
+		data_dict_item['sgst_value'] = ((data_dict_item['taxable_value'] * data_dict_item['sgst'])/100)
+		data_dict_item['utgst'] = get_po.utgst_tax
+		data_dict_item['utgst_value'] = ((data_dict_item['taxable_value'] * data_dict_item['utgst'])/100)
+		data_dict_item['total_with_gsts'] = data_dict_item['taxable_value'] + data_dict_item['cgst_value'] + data_dict_item['igst_value'] + data_dict_item['sgst_value'] + data_dict_item['utgst_value']
+		total_with_gsts = total_with_gsts + data_dict_item['total_with_gsts']
+		total_qty = total_qty + data_dict_item['order_qty']
+		total_invoice_value = total_invoice_value + data_dict_item['total_with_gsts']
+		total_without_discount = total_without_discount + data_dict_item['total_amt']
+		total_only_discount = total_only_discount + data_dict_item['discount']
+		total_taxable_value = total_taxable_value + data_dict_item['taxable_value']
+		total_cgst_value = total_cgst_value + data_dict_item['cgst_value']
+		total_sgst_value = total_sgst_value + data_dict_item['sgst_value']
+		total_igst_value = total_igst_value + data_dict_item['igst_value']
+		total_utgst_value = total_utgst_value + data_dict_item['utgst_value']
+		data_dict['item_details'].append(data_dict_item)
+	data_dict['total_qty'] = total_qty
+	data_dict['total_without_discount'] = total_without_discount
+	data_dict['total_only_discount'] = total_only_discount
+	data_dict['total_taxable_value'] = total_taxable_value
+	data_dict['total_cgst_value'] = total_cgst_value
+	data_dict['total_sgst_value'] = total_sgst_value
+	data_dict['total_igst_value'] = total_igst_value
+	data_dict['total_utgst_value'] = total_utgst_value
+	data_dict['total_with_gsts'] = total_with_gsts
+	data_dict['total_invoice_value'] = total_invoice_value
+	return data_dict
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -6807,6 +6879,7 @@ def create_rtv(request, user=''):
     request_data = dict(request.POST.iterlists())
     data_list = []
     try:
+		"""
         for ind in range(0, len(request_data['summary_id'])):
             data_dict = {}
             if request_data['location'][ind] and request_data['return_qty'][ind]:
@@ -6856,10 +6929,21 @@ def create_rtv(request, user=''):
             update_stock_detail(final_dict['stocks'], float(final_dict['quantity']), user)
             ReturnToVendor.objects.create(rtv_number=rtv_number, seller_po_summary_id=final_dict['summary_id'],
                                           quantity=final_dict['quantity'], status=0, creation_date=datetime.datetime.now())
-        return HttpResponse("Success")
+		get_debit_note_details = get_debit_note_data(rtv_number, user)
+		#func1(rtv_no, user)]
+		#return_to_vendor check mode
+		#return HttpResponse("Success")
+		report_data_dict = {}
+		return render(request, 'templates/toggle/milk_basket_print.html', report_data_dict)
+		"""
+		report_data_dict = {}
+		show_data_invoice = get_debit_note_data('rtv1', 3)
+		import pdb;pdb.set_trace()
+		return render(request, 'templates/toggle/milk_basket_print.html', { 'show_data_invoice' : [show_data_invoice]})
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info("Exception raised while creating RTV for user %s and request data is %s and error is %s" %
                  (str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse("Create RTV Failed")
+

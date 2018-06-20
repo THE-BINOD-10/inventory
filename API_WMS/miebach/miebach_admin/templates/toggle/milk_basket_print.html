@@ -4,7 +4,7 @@
   <style>
     {% include 'toggle/page1.css' %}
   </style>
-  {% for page in data_slices %}
+  {% for page in show_data_invoice %}
   <div class="print-invoice2 mb20">
     <div class="invoice-body">
       <table class="table table-bordered m0">
@@ -16,10 +16,13 @@
           </tr>
           <tr>
             <td colspan="2">
-              <h3 class="m0" align="center"><b>{{ company_name }}</b></h3>
-              <p class="m0" align="center">{{ company_address }}</p>
-              <center><p>Email Id : </p></center>
-              <center><p>PH No : </p></center>
+                <p>{{page}}</p>
+              <h3 class="m0" align="center"><b>{{ page.warehouse_details.0.company_name }}</b></h3>
+              <p class="m0" align="center">{{ page.warehouse_details.0.location }}</p>
+              <p class="m0" align="center">{{ page.warehouse_details.0.city }}</p>
+              <p class="m0" align="center">{{ page.warehouse_details0.state }}</p>
+              <p class="m0" align="center">{{ page.warehouse_details.0.country }}</p>
+              <center><p>PH No : {{ page.warehouse_details.0.phone_number }}</p></center>
             </td>
           </tr>
           <tr>
@@ -51,11 +54,12 @@
                 <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
                   <div class="col-md-12 p0">
                     <h4>Details of Receiver (Billed to) :</h4>
-                    <span><b>Address  line 1 :</b></span><br>
+                    <span><b>Name :</b></span>{{ page.supplier_name }}<br>
+                    <span><b>Address  line 1 :</b></span>{{ page.supplier_address }}<br>
                     <span><b>Address  line 2 :</b></span><br>
-                    <span><b>City :</b></span><br>
-                    <span><b>Pincode :</b></span><br>
-                    <span><b>PAN No :</b></span><br>
+                    <span><b>City :</b></span>{{ page.city }}<br>
+                    <span><b>Pincode :</b></span>{{ page.pincode }}<br>
+                    <span><b>PAN No :</b></span>{{ page.pan }}<br>
                   </div>
                 </div>
               </div>
@@ -65,11 +69,12 @@
                 <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
                   <div class="col-md-12 p0">
                     <h4>Details of Consignee (Shipped to) :</h4>
-                    <span><b>Address  line 1 :</b></span><br>
+                    <span><b>Name :</b></span> {{ page.supplier_name }}<br>
+                    <span><b>Address  line 1 :</b></span>{{ page.supplier_address }} <br>
                     <span><b>Address  line 2 :</b></span><br>
-                    <span><b>City :</b></span><br>
-                    <span><b>Pincode :</b></span><br>
-                    <span><b>PAN No :</b></span><br>
+                    <span><b>City :</b></span>{{ page.city }}<br>
+                    <span><b>Pincode :</b></span>{{ page.pincode }}<br>
+                    <span><b>PAN No :</b></span>{{ page.pan }}<br>
                   </div>
                 </div>
               </div>
@@ -80,7 +85,7 @@
       <table class="table table-bordered bl br cal-table m0">
 		<thead>
 		<tr align="center">
-			<th style="padding:2.5px;" rowspan="2">S.No</th>
+			<th style="padding:2.5px;" rowspan="2">SKU Code</th>
 			<th style="padding:2.5px;" rowspan="2">Description of Goods</th>
 			<th style="padding:2.5px;" rowspan="2">HSN Code</th>
 			<th style="padding:2.5px;" rowspan="2">RCM (Y/N)</th>
@@ -104,24 +109,24 @@
 		</tr>
 		</thead>
         <tbody>
-          {% for i in page %}
+          {% for i in page.item_details %}
           <tr class="fs14 rm-border">
-            <td class="text-left" style="padding:2.5px;">1</td>
-            <td class="text-left" style="padding:2.5px;">Goods</td>
-            <td class="text-left" style="padding:2.5px;">HSN</div></td>
-            <td class="text-left" style="padding:2.5px;">RCM</td>
-            <td class="text-left" style="padding:2.5px;">QTY</td>
-            <td class="text-right" style="padding:2.5px;">Unit</td>
-            <td class="text-right" style="padding:2.5px;">Rate</td>
-            <td class="text-right" style="padding:2.5px;">Total</td>
-			<td class="text-right" style="padding:2.5px;">Discount</td>
-            <td class="text-left" style="padding:2.5px;">value</td>
-            <td class="text-right" style="padding:2.5px;">1</td>
-			<td class="text-right" style="padding:2.5px;">10</td>
-			<td class="text-right" style="padding:2.5px;">2</td>
-            <td class="text-right" style="padding:2.5px;">20</td>
-			<td class="text-right" style="padding:2.5px;">3</td>
-            <td class="text-right" style="padding:2.5px;">30</td>
+            <td class="text-left" style="padding:2.5px;">{{ i.sku_code }}</td>
+            <td class="text-left" style="padding:2.5px;">{{ i.sku_desc }}</td>
+            <td class="text-left" style="padding:2.5px;">{{ i.hsn_code }}</div></td>
+            <td class="text-left" style="padding:2.5px;"></td>
+            <td class="text-left" style="padding:2.5px;">{{ i.order_qty }}</td>
+            <td class="text-right" style="padding:2.5px;">{{ i.measurement_unit }}</td>
+            <td class="text-right" style="padding:2.5px;">{{ i.price }}</td>
+            <td class="text-right" style="padding:2.5px;">{{ i.total_amt }}</td>
+			<td class="text-right" style="padding:2.5px;">{{ i.discount }}</td>
+            <td class="text-left" style="padding:2.5px;">{{ i.taxable_value }}</td>
+            <td class="text-right" style="padding:2.5px;"> {{ i.cgst }}</td>
+			<td class="text-right" style="padding:2.5px;">{{ i.cgst_value }}</td>
+			<td class="text-right" style="padding:2.5px;">{{ i.sgst }}</td>
+            <td class="text-right" style="padding:2.5px;">{{ i.sgst_value }}</td>
+			<td class="text-right" style="padding:2.5px;">{{ i.igst }}</td>
+            <td class="text-right" style="padding:2.5px;">{{ i.igst_value }}</td>
           </tr>
           {% endfor %}
 		  <tr style="border-top: 1px solid black;">
@@ -129,18 +134,18 @@
             <td class="text-left" style="padding:2.5px;"></td>
             <td class="text-left" style="padding:2.5px;"></div></td>
             <td class="text-left" style="padding:2.5px;"></td>
-            <td class="text-left" style="padding:2.5px;">100</td>
+            <td class="text-left" style="padding:2.5px;">{{ page.total_qty }}</td>
             <td class="text-right" style="padding:2.5px;"></td>
             <td class="text-right" style="padding:2.5px;"></td>
-            <td class="text-right" style="padding:2.5px;">200</td>
-            <td class="text-right" style="padding:2.5px;">300</td>
-            <td class="text-left" style="padding:2.5px;">400</td>
+            <td class="text-right" style="padding:2.5px;"><{{page.total_without_discount}}</td>
+            <td class="text-right" style="padding:2.5px;">{{ page.total_only_discount }}</td>
+            <td class="text-left" style="padding:2.5px;">{{ page.total_taxable_value }}</td>
             <td class="text-right" style="padding:2.5px;"></td>
-            <td class="text-right" style="padding:2.5px;">500</td>
+            <td class="text-right" style="padding:2.5px;">{{ page.total_cgst_value }}</td>
             <td class="text-right" style="padding:2.5px;"></td>
-            <td class="text-right" style="padding:2.5px;">600</td>
+            <td class="text-right" style="padding:2.5px;">{{ page.total_sgst_value }}</td>
             <td class="text-right" style="padding:2.5px;"></td>
-            <td class="text-right" style="padding:2.5px;"></td>
+            <td class="text-right" style="padding:2.5px;">{{ page.total_igst_value }}</td>
 		  </tr>
 		  <tr>
             <td class="text-left" style="padding:2.5px;"></td>
@@ -156,7 +161,7 @@
             <td class="text-right" style="padding:2.5px;"></td>
             <td class="text-right" style="padding:2.5px;"></td>
             <td class="text-right" style="padding:2.5px;" colspan="3">Total Invoice Value</td>
-            <td class="text-right" style="padding:2.5px;">8181</td>
+            <td class="text-right" style="padding:2.5px;">{{ page.total_invoice_value }}</td>
           </tr>
           {% if forloop.last %}
           <tr>

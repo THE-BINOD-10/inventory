@@ -88,7 +88,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var elem = event.target;
       var data_tr = angular.element(elem).parent().parent();
       if ($(elem).hasClass('invoice_data_show')) {
-        var html = $compile("<tr class='row-expansion' style='display: none'><td colspan='13'><dt-po-data data='"+JSON.stringify(vm.row_data)+"' preview='showCase.preview'></dt-po-data></td></tr>")($scope);
+        var html = $compile("<tr class='row-expansion' style='display: none'><td colspan='13'><dt-po-data-out data='"+JSON.stringify(vm.row_data)+"' preview='showCase.preview'></dt-po-data-out></td></tr>")($scope);
         data_tr.after(html);
         data_tr.next().toggle(1000);
         
@@ -220,7 +220,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     };
 }
 
-stockone.directive('dtPoData', function() {
+stockone.directive('dtPoDataOut', function() {
   return {
     restrict: 'E',
     scope: {

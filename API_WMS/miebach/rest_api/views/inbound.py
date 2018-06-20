@@ -319,7 +319,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
     for supplier in data:
         order_type = 'Purchase Order'
         receive_status = 'Yet To Receive'
-        #order_data = get_purchase_order_data(supplier)
+        order_data = get_purchase_order_data(supplier)
         if supplier.open_po and supplier.open_po.order_type == 'VR':
             order_type = 'Vendor Receipt'
         if supplier.rwpurchase_set.filter():
@@ -330,8 +330,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         supplier.prefix, str(supplier.creation_date).split(' ')[0].replace('-', ''), supplier.order_id)
         _date = get_local_date(user, supplier.po_date, True)
         _date = _date.strftime("%d %b, %Y")
-        #supplier_id_name = '%s/%s' % (str(order_data['supplier_id']), str(order_data['supplier_name']))
-        supplier_id_name = ''
+        supplier_id_name = '%s/%s' % (str(order_data['supplier_id']), str(order_data['supplier_name']))
 
         columns = ['PO No', 'PO Reference', 'Order Date', 'Supplier ID/Name', 'Total Qty', 'Receivable Qty', 'Received Qty',
                    'Expected Date', 'Remarks', 'Order Type', 'Receive Status']
@@ -347,8 +346,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         customer_data = OrderMapping.objects.filter(mapping_id=supplier.id, mapping_type='PO')
         customer_name = ''
         if customer_data:
-            #customer_name = customer_data[0].order.customer_name
-            customer_name = ''
+            customer_name = customer_data[0].order.customer_name
         else:
             if supplier_parent:
                 customer_name = supplier_parent.username
@@ -2541,9 +2539,14 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'po_number': po_number, 'bill_no': request.POST.get('invoice_number', ''),
                                 'order_date': order_date, 'order_id': order_id,
                                 'btn_class': btn_class, 'bill_date': bill_date }
-
             misc_detail = get_misc_value('receive_po', user.id)
-        return render(request, 'templates/toggle/milk_basket_print.html', report_data_dict)
+            if misc_detail == 'true':
+                t = loader.get_template('templates/toggle/grn_form.html')
+                rendered = t.render(report_data_dict)
+                write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data, order_date, internal=True, report_type="Goods Receipt Note")
+            return render(request, 'templates/toggle/c_putaway_toggle.html', report_data_dict)
+        else:
+            return HttpResponse(status_msg)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -6801,76 +6804,78 @@ def get_po_putaway_summary(request, user=''):
                                     'invoice_number': invoice_number, 'invoice_date': invoice_date}))
 
 def get_debit_note_data(rtv_number, user):
-	return_to_vendor = ReturnToVendor.objects.filter(rtv_number=rtv_number)
-	data_dict = {}
-	total_invoice_value = 0
-	total_qty = 0
-	total_with_gsts = 0
-	total_qty = 0
-	total_invoice_value = 0
-	total_without_discount = 0
-	total_only_discount = 0
-	total_taxable_value = 0
-	total_cgst_value = 0
-	total_sgst_value = 0
-	total_igst_value = 0
-	total_utgst_value = 0
-	#warehouse_details
-	ware_house = UserProfile.objects.filter(user = user).values('company_name', 'cin_number', 'location', 'city', 'state', 'country', 'phone_number', 'pin_code')
-	data_dict.setdefault('warehouse_details', [])
-	if len(ware_house):
-		data_dict['warehouse_details'].append({'company_name' : ware_house[0]['company_name'], 'cin_number' : ware_house[0]['cin_number'], 'location' : ware_house[0]['location'], 'city' : ware_house[0]['city'], 'state' : ware_house[0]['state'], 'country' : ware_house[0]['country'], 'phone_number' : ware_house[0]['phone_number'], 'pin_code' : ware_house[0]['pin_code']})
-	for obj in return_to_vendor:
-		get_po = obj.seller_po_summary.purchase_order.open_po
-		data_dict['supplier_name'] = get_po.supplier.name
-		data_dict['supplier_address'] = get_po.supplier.address
-		data_dict['city'] = get_po.supplier.city
-		data_dict['state'] = get_po.supplier.state
-		data_dict['pincode'] = get_po.supplier.pincode
-		data_dict['pan'] = get_po.supplier.pan_number
-		data_dict.setdefault('item_details', [])
-		data_dict_item = {}
-		data_dict_item['sku_code'] = get_po.sku.sku_code
-		data_dict_item['sku_desc'] = get_po.sku.sku_desc
-		data_dict_item['hsn_code'] = str(get_po.sku.hsn_code)
-		data_dict_item['order_qty'] = get_po.order_quantity
-		data_dict_item['price'] = get_po.sku.price
-		data_dict_item['measurement_unit'] = get_po.sku.measurement_type
-		data_dict_item['discount'] = get_po.sku.discount_percentage
-		data_dict_item['total_amt'] = data_dict_item['price'] * data_dict_item['order_qty']
-		data_dict_item['discount_amt'] = ((data_dict_item['total_amt'] * data_dict_item['discount'])/100)
-		data_dict_item['taxable_value'] = data_dict_item['total_amt'] - data_dict_item['discount_amt']
-		data_dict_item['cgst'] = get_po.cgst_tax
-		data_dict_item['cgst_value'] = ((data_dict_item['taxable_value'] * data_dict_item['cgst'])/100)
-		data_dict_item['igst'] = get_po.igst_tax
-		data_dict_item['igst_value'] = ((data_dict_item['taxable_value'] * data_dict_item['igst'])/100)
-		data_dict_item['sgst'] = get_po.sgst_tax
-		data_dict_item['sgst_value'] = ((data_dict_item['taxable_value'] * data_dict_item['sgst'])/100)
-		data_dict_item['utgst'] = get_po.utgst_tax
-		data_dict_item['utgst_value'] = ((data_dict_item['taxable_value'] * data_dict_item['utgst'])/100)
-		data_dict_item['total_with_gsts'] = data_dict_item['taxable_value'] + data_dict_item['cgst_value'] + data_dict_item['igst_value'] + data_dict_item['sgst_value'] + data_dict_item['utgst_value']
-		total_with_gsts = total_with_gsts + data_dict_item['total_with_gsts']
-		total_qty = total_qty + data_dict_item['order_qty']
-		total_invoice_value = total_invoice_value + data_dict_item['total_with_gsts']
-		total_without_discount = total_without_discount + data_dict_item['total_amt']
-		total_only_discount = total_only_discount + data_dict_item['discount']
-		total_taxable_value = total_taxable_value + data_dict_item['taxable_value']
-		total_cgst_value = total_cgst_value + data_dict_item['cgst_value']
-		total_sgst_value = total_sgst_value + data_dict_item['sgst_value']
-		total_igst_value = total_igst_value + data_dict_item['igst_value']
-		total_utgst_value = total_utgst_value + data_dict_item['utgst_value']
-		data_dict['item_details'].append(data_dict_item)
-	data_dict['total_qty'] = total_qty
-	data_dict['total_without_discount'] = total_without_discount
-	data_dict['total_only_discount'] = total_only_discount
-	data_dict['total_taxable_value'] = total_taxable_value
-	data_dict['total_cgst_value'] = total_cgst_value
-	data_dict['total_sgst_value'] = total_sgst_value
-	data_dict['total_igst_value'] = total_igst_value
-	data_dict['total_utgst_value'] = total_utgst_value
-	data_dict['total_with_gsts'] = total_with_gsts
-	data_dict['total_invoice_value'] = total_invoice_value
-	return data_dict
+    return_to_vendor = ReturnToVendor.objects.filter(rtv_number=rtv_number)
+    data_dict = {}
+    total_invoice_value = 0
+    total_qty = 0
+    total_with_gsts = 0
+    total_qty = 0
+    total_invoice_value = 0
+    total_without_discount = 0
+    total_only_discount = 0
+    total_taxable_value = 0
+    total_cgst_value = 0
+    total_sgst_value = 0
+    total_igst_value = 0
+    total_utgst_value = 0
+    ware_house = UserProfile.objects.filter(user = user).values('company_name', 'cin_number', 'location', 'city', 'state', 'country', 'phone_number', 'pin_code')
+    data_dict.setdefault('warehouse_details', [])
+    if len(ware_house):
+        data_dict['warehouse_details'].append({'company_name' : ware_house[0]['company_name'], 'cin_number' : ware_house[0]['cin_number'], 'location' : ware_house[0]['location'], 'city' : ware_house[0]['city'], 'state' : ware_house[0]['state'], 'country' : ware_house[0]['country'], 'phone_number' : ware_house[0]['phone_number'], 'pin_code' : ware_house[0]['pin_code']})
+    for obj in return_to_vendor:
+        get_po = obj.seller_po_summary.purchase_order.open_po
+        data_dict['supplier_name'] = get_po.supplier.name
+        data_dict['supplier_address'] = get_po.supplier.address
+        data_dict['city'] = get_po.supplier.city
+        data_dict['state'] = get_po.supplier.state
+        data_dict['pincode'] = get_po.supplier.pincode
+        data_dict['pan'] = get_po.supplier.pan_number
+        data_dict.setdefault('item_details', [])
+        data_dict_item = {}
+        data_dict_item['sku_code'] = get_po.sku.sku_code
+        data_dict_item['sku_desc'] = get_po.sku.sku_desc
+        data_dict_item['hsn_code'] = str(get_po.sku.hsn_code)
+        data_dict_item['order_qty'] = get_po.order_quantity
+        data_dict_item['price'] = get_po.sku.price
+        data_dict_item['measurement_unit'] = get_po.sku.measurement_type
+        data_dict_item['discount'] = get_po.sku.discount_percentage
+        data_dict_item['total_amt'] = data_dict_item['price'] * data_dict_item['order_qty']
+        data_dict_item['discount_amt'] = ((data_dict_item['total_amt'] * data_dict_item['discount'])/100)
+        data_dict_item['taxable_value'] = data_dict_item['total_amt'] - data_dict_item['discount_amt']
+        data_dict_item['cgst'] = get_po.cgst_tax
+        data_dict_item['cgst_value'] = ((data_dict_item['taxable_value'] * data_dict_item['cgst'])/100)
+        data_dict_item['igst'] = get_po.igst_tax
+        data_dict_item['igst_value'] = ((data_dict_item['taxable_value'] * data_dict_item['igst'])/100)
+        data_dict_item['sgst'] = get_po.sgst_tax
+        data_dict_item['sgst_value'] = ((data_dict_item['taxable_value'] * data_dict_item['sgst'])/100)
+        data_dict_item['utgst'] = get_po.utgst_tax
+        data_dict_item['utgst_value'] = ((data_dict_item['taxable_value'] * data_dict_item['utgst'])/100)
+        data_dict_item['total_with_gsts'] = data_dict_item['taxable_value'] + data_dict_item['cgst_value'] + data_dict_item['igst_value'] + data_dict_item['sgst_value'] + data_dict_item['utgst_value']
+        data_dict['rtv_creation_date'] = obj.creation_date
+        data_dict['date_of_issue_of_original_invoice'] = obj.seller_po_summary.creation_date
+        total_with_gsts = total_with_gsts + data_dict_item['total_with_gsts']
+        total_qty = total_qty + data_dict_item['order_qty']
+        total_invoice_value = total_invoice_value + data_dict_item['total_with_gsts']
+        total_without_discount = total_without_discount + data_dict_item['total_amt']
+        total_only_discount = total_only_discount + data_dict_item['discount']
+        total_taxable_value = total_taxable_value + data_dict_item['taxable_value']
+        total_cgst_value = total_cgst_value + data_dict_item['cgst_value']
+        total_sgst_value = total_sgst_value + data_dict_item['sgst_value']
+        total_igst_value = total_igst_value + data_dict_item['igst_value']
+        total_utgst_value = total_utgst_value + data_dict_item['utgst_value']
+        data_dict['item_details'].append(data_dict_item)
+    data_dict['total_qty'] = total_qty
+    data_dict['total_without_discount'] = total_without_discount
+    data_dict['total_only_discount'] = total_only_discount
+    data_dict['total_taxable_value'] = total_taxable_value
+    data_dict['total_cgst_value'] = total_cgst_value
+    data_dict['total_sgst_value'] = total_sgst_value
+    data_dict['total_igst_value'] = total_igst_value
+    data_dict['total_utgst_value'] = total_utgst_value
+    data_dict['total_with_gsts'] = total_with_gsts
+    data_dict['total_invoice_value'] = total_invoice_value
+    data_dict['rtv_number'] = rtv_number
+    return data_dict
 
 @csrf_exempt
 @login_required
@@ -6879,7 +6884,7 @@ def create_rtv(request, user=''):
     request_data = dict(request.POST.iterlists())
     data_list = []
     try:
-		"""
+        """
         for ind in range(0, len(request_data['summary_id'])):
             data_dict = {}
             if request_data['location'][ind] and request_data['return_qty'][ind]:
@@ -6935,11 +6940,11 @@ def create_rtv(request, user=''):
 		#return HttpResponse("Success")
 		report_data_dict = {}
 		return render(request, 'templates/toggle/milk_basket_print.html', report_data_dict)
-		"""
-		report_data_dict = {}
-		show_data_invoice = get_debit_note_data('rtv1', 3)
-		import pdb;pdb.set_trace()
-		return render(request, 'templates/toggle/milk_basket_print.html', { 'show_data_invoice' : [show_data_invoice]})
+        """
+        report_data_dict = {}
+        show_data_invoice = get_debit_note_data('rtv1', 3)
+        #common.py - get_po_reference - order_id user / PO - seller_po_summary - receit_no creation_date
+        return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice' : [show_data_invoice]})
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

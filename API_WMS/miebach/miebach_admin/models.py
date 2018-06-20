@@ -205,7 +205,7 @@ class SupplierMaster(models.Model):
     owner_name = models.CharField(max_length=256, default='')
     owner_number = models.CharField(max_length=64, default='')
     owner_email_id = models.EmailField(max_length=64, default='')
-    #spoc_name = models.CharField(max_length=256, default='')
+    spoc_name = models.CharField(max_length=256, default='')
     spoc_number = models.CharField(max_length=64, default='')
     spoc_email_id = models.EmailField(max_length=64, default='')
     lead_time = models.IntegerField(default=0)

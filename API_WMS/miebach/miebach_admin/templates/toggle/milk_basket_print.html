@@ -32,10 +32,10 @@
                   <div class="col-md-12 p0">
                     <span><b>GSTIN :</b></span><br>
                     <span><b>PAN No :</b></span><br>
-                    <span><b>Serial no. of  Debit Note :</b></span><br>
-                    <span><b>Date of Debit Note :</b></span><br>
+                    <span><b>Serial no. of Debit Note :</b>{{ page.rtv_number }}</span><br>
+                    <span><b>Date of Debit Note :</b> {{ page.rtv_creation_date }}</span><br>
                     <span><b>Original Invoice No. :</b></span><br>
-                    <span><b>Date of Issue of the Original Invoice :</b></span><br>
+                    <span><b>Date of Issue of the Original Invoice :</b>{{ page.date_of_issue_of_original_invoice }}</span><br>
                   </div>
                 </div>
               </div>
@@ -113,7 +113,7 @@
           <tr class="fs14 rm-border">
             <td class="text-left" style="padding:2.5px;">{{ i.sku_code }}</td>
             <td class="text-left" style="padding:2.5px;">{{ i.sku_desc }}</td>
-            <td class="text-left" style="padding:2.5px;">{{ i.hsn_code }}</div></td>
+            <td class="text-left" style="padding:2.5px;">{{ i.hsn_code }}</td>
             <td class="text-left" style="padding:2.5px;"></td>
             <td class="text-left" style="padding:2.5px;">{{ i.order_qty }}</td>
             <td class="text-right" style="padding:2.5px;">{{ i.measurement_unit }}</td>
@@ -121,7 +121,7 @@
             <td class="text-right" style="padding:2.5px;">{{ i.total_amt }}</td>
 			<td class="text-right" style="padding:2.5px;">{{ i.discount }}</td>
             <td class="text-left" style="padding:2.5px;">{{ i.taxable_value }}</td>
-            <td class="text-right" style="padding:2.5px;"> {{ i.cgst }}</td>
+            <td class="text-right" style="padding:2.5px;">{{ i.cgst }}</td>
 			<td class="text-right" style="padding:2.5px;">{{ i.cgst_value }}</td>
 			<td class="text-right" style="padding:2.5px;">{{ i.sgst }}</td>
             <td class="text-right" style="padding:2.5px;">{{ i.sgst_value }}</td>
@@ -132,12 +132,12 @@
 		  <tr style="border-top: 1px solid black;">
 			<td class="text-left" style="padding:2.5px;"></td>
             <td class="text-left" style="padding:2.5px;"></td>
-            <td class="text-left" style="padding:2.5px;"></div></td>
             <td class="text-left" style="padding:2.5px;"></td>
-            <td class="text-left" style="padding:2.5px;">{{ page.total_qty }}</td>
+			<td class="text-left" style="padding:2.5px;"></td>
+			<td class="text-left" style="padding:2.5px;">{{ page.total_qty }}</td>
+			<td class="text-right" style="padding:2.5px;"></td>
             <td class="text-right" style="padding:2.5px;"></td>
-            <td class="text-right" style="padding:2.5px;"></td>
-            <td class="text-right" style="padding:2.5px;"><{{page.total_without_discount}}</td>
+            <td class="text-right" style="padding:2.5px;">{{page.total_without_discount}}</td>
             <td class="text-right" style="padding:2.5px;">{{ page.total_only_discount }}</td>
             <td class="text-left" style="padding:2.5px;">{{ page.total_taxable_value }}</td>
             <td class="text-right" style="padding:2.5px;"></td>

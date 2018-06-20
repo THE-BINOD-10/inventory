@@ -2268,15 +2268,15 @@ def update_seller_po(data, value, user, receipt_id='', invoice_number='', invoic
                     unit_price = float(price) / (1 - (margin_percent / 100))
                     sell_po.unit_price = float(("%." + str(2) + "f") % (unit_price))
                     sell_po.margin_percent = margin_percent
-            seller_quantity = sell_po.seller_quantity
-            sell_quan = value
-            if seller_quantity < value:
-                sell_quan = seller_quantity
-                value -= seller_quantity
-            elif seller_quantity >= value:
-                sell_quan = value
-                value = 0
-            sell_po.received_quantity += sell_quan
+            # seller_quantity = sell_po.seller_quantity
+            # sell_quan = value
+            # if seller_quantity < value:
+            #     sell_quan = seller_quantity
+            #     value -= seller_quantity
+            # elif seller_quantity >= value:
+            #     sell_quan = value
+            #     value = 0
+            sell_po.received_quantity += value
             if sell_po.seller_quantity <= sell_po.received_quantity:
                 sell_po.status = 0
             sell_po.save()
@@ -2284,12 +2284,12 @@ def update_seller_po(data, value, user, receipt_id='', invoice_number='', invoic
             # seller_received_list.append({'seller_id': sell_po.seller_id, 'sku_id': data.open_po.sku_id, 'quantity': sell_quan})
             seller_po_summary, created = SellerPOSummary.objects.get_or_create(seller_po_id=sell_po.id,
                                                                                receipt_number=receipt_id,
-                                                                               quantity=sell_quan,
-                                                                               putaway_quantity=sell_quan,
+                                                                               quantity=value,
+                                                                               putaway_quantity=value,
                                                                                purchase_order_id=data.id,
                                                                                creation_date=datetime.datetime.now())
             seller_received_list.append(
-                {'seller_id': sell_po.seller_id, 'sku_id': data.open_po.sku_id, 'quantity': sell_quan,
+                {'seller_id': sell_po.seller_id, 'sku_id': data.open_po.sku_id, 'quantity': value,
                  'id': seller_po_summary.id})
     return seller_received_list
 

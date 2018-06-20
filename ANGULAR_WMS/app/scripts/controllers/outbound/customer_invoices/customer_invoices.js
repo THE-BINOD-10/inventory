@@ -281,28 +281,22 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
     }
     vm.process = true;
 
-    // var data = $("form").serializeArray();
+    var data = $("form").serializeArray();
 
-    updated_inv_data.form_data = {
-      'order_id': form_data.order_id.$modelValue,
-      'order_reference': form_data.order_reference.$modelValue,
-      'order_reference_date': form_data.order_reference_date.$modelValue,
-      'invoice_date': form_data.invoice_date.$modelValue,
-      'invoice_number': form_data.invoice_number.$modelValue,
-      'marketplace': form_data.marketplace.$modelValue,
-      'ship_to': form_data.ship_to.$modelValue,
-      'sku_id': form_data.sku_id.$modelValue,
-      'title': form_data.title.$modelValue,
-      'customer_id': form_data.customer_id.$modelValue
-    };
-
-    angular.forEach(vm.removed_data, function(data){
-      vm.model_data.data.push(data);
+    angular.forEach(vm.removed_data, function(sku){
+      data.push({name:'sku_id', value: sku.sku_code});
+      data.push({name:'title', value: sku.title});
+      data.push({name:'id', value: sku.id});
+      data.push({name:'unit_price', value: sku.unit_price});
+      data.push({name:'quantity', value: sku.quantity});
+      data.push({name:'cgst_tax', value: sku.taxes['cgst_tax']});
+      data.push({name:'sgst_tax', value: sku.taxes['sgst_tax']});
+      data.push({name:'igst_tax', value: sku.taxes['igst_tax']});
+      data.push({name:'invoice_amount', value: sku.invoice_amount});
+      data.push({name:'customer_id', value: vm.model_data.customer_id});
     });
 
-    updated_inv_data.data = JSON.stringify(vm.model_data.data);
-
-    Service.apiCall("update_invoice/", "POST", updated_inv_data).then(function(data) {
+    Service.apiCall("update_invoice/", "POST", data).then(function(data) {
 
       if(data.message) {
 

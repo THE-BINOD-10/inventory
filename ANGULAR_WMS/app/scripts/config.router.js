@@ -1571,7 +1571,30 @@ var app = angular.module('urbanApp')
             title: 'Pending Payment Tracker'
           }
         })
-
+      // Track Orders Invoice Based
+      .state('app.PaymentTrackerInvBased', {
+          url: '/PaymentTrackerInvBased',
+          templateUrl: 'views/payment_tracker/payment_tracker_inv_based.html',
+          authRequired: true,
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/payment_tracker/payment_tracker_inv_based.js'
+                ]).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/payment_tracker/inbound_payment_tracker.js'
+                  ])
+                });
+              }]
+          },
+          data: {
+            title: 'Invoice Amount'
+          }
+        })
+      .state('app.PaymentTrackerInvBased.Inv_Details', {
+            url: '/Inv_Details',
+            templateUrl: 'views/payment_tracker/toggle/inv_details.html',
+          })
       // Orders Sync Issues
       .state('app.OrdersSyncIssues', {
           url: '/OrdersSyncIssues',

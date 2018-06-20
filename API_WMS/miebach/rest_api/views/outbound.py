@@ -5522,6 +5522,139 @@ def payment_tracker(request, user=''):
                      'total_payment_receivable': "%.2f" % total_payment_receivable})
     return HttpResponse(json.dumps(response))
 
+@csrf_exempt
+def get_inv_based_payment_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
+                         filters):
+    ''' Invoice Based Payment Tracker datatable code '''
+
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    admin_user = get_priceband_admin_user(user)
+    lis = ['invoice_number', 'order__customer_name', 'order__customer_id']#for filter purpose
+    user_filter = {'order__user': user.id, 'order_status_flag': 'customer_invoices'}
+    result_values = ['invoice_number', 'order__customer_name', 'order__customer_id']#to make distinct grouping
+    #invoice date= seller order summary creation date
+    #invoice_date = get_local_date(user, invoice_date, send_date='true')
+    #invoice_date = invoice_date.strftime("%d %b %Y")
+
+    if search_term:
+        search_term = search_term.replace('(', '\(').replace(')', '\)')
+        search_query = build_search_term_query(lis, search_term)
+        master_data = SellerOrderSummary.objects.filter(search_query, **user_filter)\
+                        .exclude(invoice_number='')\
+                        .values(*result_values).distinct()\
+                        .annotate(payment_received = Sum('order__payment_received'), invoice_amount = Sum('order__invoice_amount'))
+
+    elif order_term:
+        if order_term == 'asc' and (col_num or col_num == 0):
+            order_by = '%s' % lis[col_num]
+        else:
+            order_by = '-%s' % lis[col_num]
+        master_data = SellerOrderSummary.objects.filter(**user_filter)\
+                        .exclude(invoice_number='')\
+                        .values(*result_values).distinct()\
+                        .annotate(payment_received = Sum('order__payment_received'), invoice_amount = Sum('order__invoice_amount'))\
+                        .order_by('-%s' % lis[col_num])
+    else:
+        master_data = SellerOrderSummary.objects.filter(**user_filter)\
+                            .exclude(invoice_number='')\
+                            .values(*result_values).distinct()\
+                            .annotate(payment_received = Sum('order__payment_received'), invoice_amount = Sum('order__invoice_amount'))
+    master_data = master_data.exclude(invoice_amount=F('payment_received'))
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    for data in master_data[start_index:stop_index]:
+        credit_period, due_date, invoice_date = 0, '', ''
+        seller_ord_summary = SellerOrderSummary.objects.filter(**user_filter)\
+                                      .filter(invoice_number=data['invoice_number'])
+        order_ids = seller_ord_summary.values_list('order__id', flat= True)
+        invoice_date = CustomerOrderSummary.objects.filter(order_id__in=order_ids)\
+                                           .order_by('-invoice_date').values_list('invoice_date', flat=True)[0]
+        if not invoice_date:
+            invoice_date = seller_ord_summary.order_by('-updation_date')[0].updation_date
+        customer_order_sum = CustomerOrderSummary.objects.filter()
+        customer_master_obj = CustomerMaster.objects.filter(customer_id = data['order__customer_id'])
+        if customer_master_obj:
+            credit_period = customer_master_obj[0].credit_period
+        if invoice_date:
+            due_date = (invoice_date + datetime.timedelta(days=credit_period)).strftime("%d %b %Y")
+            invoice_date = invoice_date.strftime("%d %b %Y")
+        payment_receivable = data['invoice_amount'] - data['payment_received']
+        data_dict = OrderedDict((('invoice_number', data['invoice_number']),
+                                ('invoice_date', invoice_date),
+                                ('due_date', due_date),
+                                ('customer_name', data['order__customer_name']),
+                                ('customer_id', data['order__customer_id']),
+                                ('invoice_amount', "%.2f" % data['invoice_amount']),
+                                ('payment_received', "%.2f" % data['payment_received']),
+                                ('payment_receivable', "%.2f" % payment_receivable)
+                               ))
+        temp_data['aaData'].append(data_dict)
+
+
+@login_required
+@csrf_exempt
+@get_admin_user
+def get_invoice_payment_tracker(request, user=''):
+    response = {}
+    invoice_number = request.GET.get('invoice_number', '')
+    customer_id = request.GET.get('customer_id', '')
+    if not invoice_number:
+        return "Invoice number is missing"
+    user_filter = {'order__user': user.id, "invoice_number": invoice_number, "order__customer_id": customer_id}
+    result_values = ['challan_number', 'order__order_id', 'order__original_order_id',
+                     'order__customer_id', 'order__customer_name']
+    #customer_id = request.GET['id']
+    customer_name = request.GET.get('customer_name')
+    master_data = SellerOrderSummary.objects.filter(**user_filter).values(*result_values).distinct()\
+                                    .annotate(invoice_amount_sum = Sum('order__invoice_amount'),\
+                                    payment_received_sum = Sum('order__payment_received'))
+    order_data = []
+    expected_date = ''
+    for data in master_data:
+        order_data.append(
+            {'order_id': str(data['order__order_id']), 'display_order': data['challan_number'],
+             'account': '', 'original_order_id': data['order__original_order_id'],
+             'inv_amount': "%.2f" % data['invoice_amount_sum'],
+             'receivable': "%.2f" % (data['invoice_amount_sum'] - data['payment_received_sum']),
+             'received': '%.2f' % data['payment_received_sum'],
+             'expected_date': expected_date})
+    response["data"] = order_data
+    return HttpResponse(json.dumps(response))
+
+
+
+@login_required
+@csrf_exempt
+@get_admin_user
+def update_inv_payment_status(request, user=''):
+    data_dict = dict(request.GET.iterlists())
+    for i in range(0, len(data_dict['order_id'])):
+        if not data_dict['amount'][i]:
+            continue
+        payment = float(data_dict['amount'][i])
+        order_details = OrderDetail.objects.filter(order_id=data_dict['order_id'][i], user=user.id,
+                                                   payment_received__lt=F('invoice_amount'))
+        for order in order_details:
+            if not payment:
+                break
+            if float(order.invoice_amount) > float(order.payment_received):
+                diff = float(order.invoice_amount) - float(order.payment_received)
+                if payment > diff:
+                    order.payment_received = diff
+                    payment -= diff
+                    PaymentSummary.objects.create(order_id=order.id, creation_date=datetime.datetime.now(),
+                                                  payment_received=diff)
+                else:
+                    PaymentSummary.objects.create(order_id=order.id, creation_date=datetime.datetime.now(),
+                                                  payment_received=payment)
+                    order.payment_received = float(order.payment_received) + float(payment)
+                    payment = 0
+                order.save()
+    return HttpResponse("Success")
+
+
+
 
 @login_required
 @csrf_exempt
@@ -5620,6 +5753,15 @@ def get_customer_master_id(request, user=''):
 @get_admin_user
 def update_payment_status(request, user=''):
     data_dict = dict(request.GET.iterlists())
+    invoice_number = request.GET.get('invoice_number', '')
+    if invoice_number:
+        sell_ids = {}
+        sell_ids['order__user'] = user.id
+        sell_ids['invoice_number'] = invoice_number
+        seller_summary = SellerOrderSummary.objects.filter(**sell_ids)
+        order_ids = list(set(seller_summary.values_list('order__order_id', flat=True)))
+        order_ids = map(lambda x: str(x), order_ids)
+        data_dict['order_id'] = order_ids
     for i in range(0, len(data_dict['order_id'])):
         if not data_dict['amount'][i]:
             continue
@@ -5631,14 +5773,19 @@ def update_payment_status(request, user=''):
                 break
             if float(order.invoice_amount) > float(order.payment_received):
                 diff = float(order.invoice_amount) - float(order.payment_received)
+                bank = request.GET.get('bank', '')
+                mode_of_pay = request.GET.get('mode_of_payment', '')
+                remarks = request.GET.get('remarks', '')
                 if payment > diff:
                     order.payment_received = diff
                     payment -= diff
-                    PaymentSummary.objects.create(order_id=order.id, creation_date=datetime.datetime.now(),
-                                                  payment_received=diff)
+                    PaymentSummary.objects.create(order_id=order.id, creation_date=datetime.datetime.now(),\
+                                                  payment_received=diff, bank=bank, mode_of_pay=mode_of_pay,\
+                                                  remarks=remarks)
                 else:
-                    PaymentSummary.objects.create(order_id=order.id, creation_date=datetime.datetime.now(),
-                                                  payment_received=payment)
+                    PaymentSummary.objects.create(order_id=order.id, creation_date=datetime.datetime.now(),\
+                                                  payment_received=payment, bank=bank,\
+                                                  mode_of_pay=mode_of_pay, remarks=remarks)
                     order.payment_received = float(order.payment_received) + float(payment)
                     payment = 0
                 order.save()

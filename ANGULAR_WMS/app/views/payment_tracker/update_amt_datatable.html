@@ -29,7 +29,7 @@
     <div class="col-md-2 col-sm-2 col-xs-6">
       <div class="form-group">
         <label class="control-label"> Amount </label>
-        <input class="form-control" ng-model="po_data.amount" ng-class="po_data.service.get_decimal_perm()" type="text" name="amount">
+        <input class="form-control" ng-model="po_data.amount" ng-change="po_data.change_amount(po_data.amount, true)" ng-class="po_data.service.get_decimal_perm()" type="text" name="amount">
       </div>
     </div>
     <div class="col-md-2 col-sm-2 col-xs-6">

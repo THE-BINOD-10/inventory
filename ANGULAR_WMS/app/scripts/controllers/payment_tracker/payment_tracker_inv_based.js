@@ -16,6 +16,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.industry_type = Session.user_profile.industry_type;
     vm.expect_date = true;
     vm.extra_width = {width: '1050px'};
+    vm.amount = '';
     // vm.invoice_data = Data.invoice_data;
 
     //process type;
@@ -139,11 +140,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.default_bank = "abc";
     vm.default_mode = "cheque";
 
-    vm.change_amount = function(data) {
+  vm.change_amount = function(data, flag='') {
 
-	  if(Number(data.amount) > data.receivable) {
-	    data.amount = data.receivable;
-	  }
+    if (!flag) {
+      if(Number(data.amount) > Number(data.receivable)) {
+        data.amount = data.receivable;
+        Service.showNoty('You can enter '+data.receivable+' amount only');
+      }
+    } else {
+      if (Number(data) > Number(Data.invoice_data.payment_receivable)) {
+        vm.amount = Data.invoice_data.payment_receivable;
+        Service.showNoty('You can enter '+Data.invoice_data.payment_receivable+' amount only');
+      }
+    }
 	}
 
   vm.invoice_update = function(form){

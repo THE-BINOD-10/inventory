@@ -1600,7 +1600,7 @@ def get_supplier_data(request, user=''):
                             'dis': True,
                             'sku_extra_data': sku_extra_data, 'product_images': product_images,
                             'sku_details': sku_details, 'shelf_life': order_data['shelf_life'],
-                            'tax_percent': tax_percent}])
+                            'tax_percent': tax_percent, 'cess_percent': order_data['cess_tax'], 'total_amt': 0}])
     supplier_name, order_date, expected_date, remarks = '', '', '', ''
     if purchase_orders:
         purchase_order = purchase_orders[0]
@@ -2358,7 +2358,8 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
         if 'unit' in myDict.keys():
             unit = myDict['unit'][i]
         cond = (data.id, purchase_data['wms_code'], unit, purchase_data['price'], purchase_data['cgst_tax'],
-                purchase_data['sgst_tax'], purchase_data['igst_tax'], purchase_data['utgst_tax'], purchase_data['sku_desc'])
+                purchase_data['sgst_tax'], purchase_data['igst_tax'], purchase_data['utgst_tax'],
+                purchase_data['sku_desc'], purchase_data['cess_tax'])
         all_data.setdefault(cond, 0)
         all_data[cond] += float(value)
 
@@ -5303,7 +5304,7 @@ def confirm_receive_qc(request, user=''):
     data_dict = ''
     headers = (
     'WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
-    'UTGST(%)', 'Amount', 'Description')
+    'UTGST(%)', 'Amount', 'Description', 'CESS(%)')
     putaway_data = {headers: []}
     total_received_qty = 0
     total_order_qty = 0
@@ -5346,15 +5347,15 @@ def confirm_receive_qc(request, user=''):
 
         for key, value in all_data.iteritems():
             entry_price = float(key[3]) * float(value)
-            entry_tax = float(key[4]) + float(key[5]) + float(key[6]) + float(key[7])
+            entry_tax = float(key[4]) + float(key[5]) + float(key[6]) + float(key[7] + float(key[9]))
             if entry_tax:
                 entry_price += (float(entry_price) / 100) * entry_tax
             putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5],
-                                          key[6], key[7], entry_price, key[8]))
+                                          key[6], key[7], entry_price, key[8], key[9]))
             total_order_qty += order_quantity_dict[key[0]]
             total_received_qty += value
             total_price += entry_price
-            total_tax += (key[4] + key[5] + key[6] + key[7])
+            total_tax += (key[4] + key[5] + key[6] + key[7] + key[9])
 
         if not status_msg:
             if not purchase_data:

@@ -1596,6 +1596,26 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       });
     });
   }
+
+  vm.calc_total_amt = function(event, data, index) {
+      var sku_row_data = {};
+      angular.copy(data.data[0][index], sku_row_data);
+      if(sku_row_data.buy_price == ''){
+        sku_row_data.buy_price = 0;
+      }
+      if(sku_row_data.value == ''){
+        sku_row_data.value = 0;
+      }
+      if(sku_row_data.tax_percent == ''){
+        sku_row_data.tax_percent = 0;
+      }
+      if(sku_row_data.cess_percent == ''){
+        sku_row_data.cess_percent = 0;
+      }
+      var wo_tax_amt = Number(sku_row_data.value)*Number(sku_row_data.buy_price);
+      var tot_tax = Number(sku_row_data.tax_percent) + Number(sku_row_data.cess_percent);
+      data.data[0][index].total_amt = wo_tax_amt + (wo_tax_amt * (tot_tax/100));
+    }
 }
 
 stockone.directive('dtPoData', function() {

@@ -37,14 +37,14 @@
                       <td>{{data.inv_amount}}</td>
                       <td>{{data.received}}</td>
                       <td>{{data.receivable}}</td>
-                      <td class="update_fields hide"><select name="bank" ng-options="key as bank for (key, bank) in showCase.bank_names"
+                      <td class="update_fields hide"><select class="form-control" name="bank" ng-options="key as bank for (key, bank) in showCase.bank_names"
                                   ng-init="showCase.default_bank" ng-model="showCase.default_bank"
                                   ng-selected="bank == showCase.default_bank"></select></td>
-                      <td class="update_fields hide"><select name="mode_of_payment"
+                      <td class="update_fields hide"><select class="form-control" name="mode_of_payment"
                                   ng-options="key as mode for (key, mode) in showCase.payment_modes"
                                   ng-init="showCase.default_mode" ng-model="showCase.default_mode"
                                   ng-selected="mode == showCase.default_mode"></select></td>
-                      <td class="update_fields hide"><textarea rows="1" class="form-control" cols="10" name="remarks"></textarea></td>
+                      <td class="update_fields hide"><textarea class="form-control" rows="1" cols="10" name="remarks"></textarea></td>
                       <!--<td ng-if="showCase.expect_date">{{data.expected_date}}</td>
                       <td>{{data.account}}</td>-->
                       <td class="order-edit">

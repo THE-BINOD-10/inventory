@@ -6689,11 +6689,11 @@ def po_get_invoice_payment_tracker(request, user=''):
 @get_admin_user
 def po_update_payment_status(request, user=''):
     data_dict = dict(request.GET.iterlists())
-    invoice_number = ''
+    invoice_number = request.GET.get('invoice_number', '')
     if invoice_number:
         sell_ids = {}
         sell_ids['purchase_order__open_po__sku__user'] = user.id
-        sell_ids['invoice_number'] = ''
+        sell_ids['invoice_number'] = invoice_number
         seller_summary = SellerPOSummary.objects.filter(**sell_ids)
         order_ids = list(set(seller_summary.values_list('purchase_order__order_id', flat=True)))
         order_ids = map(lambda x: str(x), order_ids)

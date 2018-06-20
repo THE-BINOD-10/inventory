@@ -602,7 +602,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
              Service.searched_sup_code = supplier;
              Service.searched_wms_code = product.fields.sku.wms_code;
              Service.is_came_from_raise_po = true;
-             $state.go('app.masters.SKUMaster.update');
+             $state.go('app.masters.SKUMaster');
            }
          });
        }

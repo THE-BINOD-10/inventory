@@ -12,6 +12,10 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
                       style_view: false
                     }
 
+  self.payment_based_invoice = {
+                                  style_view: true
+                                }
+
   /*** Production Data ***/
 
   // Receive Job Order
@@ -151,6 +155,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
     self.styles_data = {};
     self.tot_corporates = [];
     self.shipment_number = '';
+    self.invoice_data = {};
     self.datatable = 'ReturnToVendor';
 
     /** login page maintainance **/

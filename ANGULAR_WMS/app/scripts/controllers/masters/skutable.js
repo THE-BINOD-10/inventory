@@ -351,10 +351,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.combo = false;
     angular.copy(empty_data, vm.model_data);
   }
-  vm.base();
-  if (Service.searched_wms_code != '') {
-    vm.model_data.sku_data.sku_code = Service.searched_wms_code;
-  };
 
   vm.add = function() {
 
@@ -385,6 +381,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     $state.go('app.masters.SKUMaster.update');
   }
 
+  vm.base();
+  if (Service.searched_wms_code != '') {
+    vm.add();
+    vm.model_data.sku_data.sku_code = Service.searched_wms_code;
+  };
 
   vm.barcode = function() {
 

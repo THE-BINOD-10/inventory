@@ -138,6 +138,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.default_bank = "abc";
     vm.default_mode = "cheque";
 
+  vm.invoice_update = function(form){
+
+    var elem = angular.element($('form'));
+    elem = elem[0];
+    elem = $(elem).serializeArray();
+    elem.push({'name':'invoice_number', 'value':Data.invoice_data.invoice_number});
+
+    vm.service.apiCall("po_update_payment_status/", "GET", elem).then(function(data){
+      if(data.message) {
+        console.log(data);
+        vm.reloadData();
+      }
+    })
+  }
+
   vm.change_amount = function(data) {
 
 	  if(Number(data.amount) > data.receivable) {
@@ -204,7 +219,7 @@ stockone.directive('dtPoData', function() {
       po_data: '=data',
       preview: '=preview'
     },
-    templateUrl: 'views/payment_tracker/update_amt_datatable.html',
+    templateUrl: 'views/payment_tracker/po_update_amt_datatable.html',
     link: function(scope, element, attributes, $http){
       console.log(scope);
     }

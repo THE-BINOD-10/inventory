@@ -15,6 +15,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.self_life_ratio = Number(vm.permissions.shelf_life_ratio) || 0;
     vm.industry_type = Session.user_profile.industry_type;
     vm.expect_date = true;
+    vm.extra_width = {width: '1050px'};
     // vm.invoice_data = Data.invoice_data;
 
     //process type;
@@ -153,10 +154,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     elem.push({'name':'invoice_number', 'value':Data.invoice_data.invoice_number});
 
     vm.service.apiCall("update_payment_status/", "GET", elem).then(function(data){
-        if(data.message) {
-          console.log(data);
-        }
-      })
+      if(data.message) {
+        console.log(data);
+        vm.reloadData();
+      }
+    })
   }
 
 	vm.order_update = function(event){

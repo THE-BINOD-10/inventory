@@ -182,6 +182,11 @@
             <span>Put away Confirmation</span>
           </a>
         </li>
+        <li ng-show="show_tab('add_returntovendor')" ui-sref-active="active">
+          <a ui-sref="app.inbound.rtv">
+            <span>RTV</span>
+          </a>
+        </li>
         <li ng-show="show_tab('add_orderreturns')" ui-sref-active="active">
           <a ui-sref="app.inbound.SalesReturns">
             <span>Sales Returns</span>
@@ -197,7 +202,7 @@
             <span>Supplier Invoices</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="permissions.user_type == 'distributor' || (permissions.user_type == 'default' && permissions.priceband_sync)">
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'distributor' || (permissions.user_type == 'admin_sub_user' && permissions.priceband_sync)">
           <a ui-sref="app.inbound.AutoBackOrders">
             <span>Auto Back Orders</span>
           </a>
@@ -316,7 +321,7 @@
           </a>
         </li>
         <!--<li ng-show="permissions.user_type == 'distributor'" ui-sref-active="active">-->
-        <li ng-show="show_tab('add_enquirymaster') && (permissions.user_type == 'distributor' || permissions.user_type == 'central_admin' || permissions.user_type == 'default')" ui-sref-active="active">
+        <li ng-show="show_tab('add_enquirymaster') && (permissions.user_type == 'distributor' || permissions.user_type == 'central_admin' || permissions.user_type == 'admin_sub_user')" ui-sref-active="active">
           <a ui-sref="app.outbound.EnquiryOrders">
             <span>Marketing Enquiry Orders</span>
           </a>
@@ -332,11 +337,17 @@
           </a>
         </li>
         <!--<li ui-sref-active="active">-->
-        <li ng-show="show_tab('add_sellerordersummary')" ui-sref-active="active">
+        <li ng-show="show_tab('add_sellerordersummary') && show_tab('customer_dc')" ui-sref-active="active">
           <a ui-sref="app.outbound.CustomerInvoices">
             <span>Customer Invoices</span>
           </a>
         </li>
+        <li ng-show="show_tab('add_sellerordersummary') && !show_tab('customer_dc')" ui-sref-active="active">
+          <a ui-sref="app.outbound.CustomerInvoicesMain">
+            <span>Customer Invoices</span>
+          </a>
+        </li>
+
         <li ui-sref-active="active" ng-show="user.userName == 'sagar_fab'">
           <a ui-sref="app.outbound.CreateCustomOrder">
             <span>Create Custom Order</span>
@@ -376,7 +387,7 @@
     <!-- /ready pages -->
 
     <!-- uploaded pages -->
-    <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || (show_tab('add_orderuploads') && (permissions.user_type == 'distributor' || permissions.user_type == 'default'))">
+    <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || (show_tab('add_orderuploads') && (permissions.user_type == 'distributor' || permissions.user_type == 'admin_sub_user'))">
       <a ui-sref="app.uploadedPOs">
       <i class="fa fa-book" aria-hidden="true"></i>
         <span>Uploaded PO's</span>

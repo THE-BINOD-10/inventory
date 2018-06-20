@@ -1133,7 +1133,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
                            'SUNGLASS-LADIES WAYFARER': 'SUNGLASS-LADIES WAYFARER.jpg',
                            'SUNGLASS-WAYFARER': 'SUNGLASS-WAYFARER.jpg',
                            'TRAVEL GEAR-WAISTBAGS': 'TG-WAISTBAGS.jpg',
-                           'TRAVEL GEAR-DUFFEL BAGS': 'TG-DUFFELBAGS.jpg',
+                           'TRAVEL GEAR-DUFFLE BAGS': 'TG-DUFFELBAGS.jpg',
 
                            //SAILESH
                            'FULL SLEEVE SHIRT': 'FULL SLEEVE SHIRT.png',

@@ -110,6 +110,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.market_data = [];
     vm.files = [];
     vm.mix_sku_list = {"No Mix": "no_mix", "Mix Within Group": "mix_group"};
+
+    if (Service.searched_wms_code != '') {
+      vm.model_data.sku_data.sku_code = Service.searched_wms_code;
+    };
     
     function readImage(input) {
       var deferred = $.Deferred();
@@ -214,6 +218,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
                     vm.model_data.sku_data.ean_number = "";
                   }
+                  if (vm.model_data.sku_data.ean_numbers) {
+                     $(".").importTags(vm.model_data.sku_data.ean_numbers);
+                  }
                   $state.go('app.masters.SKUMaster.update');
                  }
                 });
@@ -226,7 +233,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.close = function() {
 
       angular.copy(empty_data, vm.model_data);
-      $state.go('app.masters.SKUMaster');
+      vm.service.searched_wms_code = "";
+      vm.service.searched_sup_code = '';
+      if (vm.service.is_came_from_raise_po) {
+        vm.service.searched_wms_code = vm.model_data.sku_data.sku_code;
+        $state.go('app.inbound.RaisePo.PurchaseOrder');
+      }else{
+        $state.go('app.masters.SKUMaster');
+      }
     }
 
     vm.b_close = vm.close;
@@ -289,8 +303,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             },
             'success': function(response) {
               if(response.indexOf("Added") > -1 || response.indexOf("Updated") > -1) {
-                vm.service.refresh(vm.dtInstance);
-                vm.close();
+                if (vm.service.is_came_from_raise_po && response.indexOf("Added") > -1) {
+                  vm.service.searched_wms_code = vm.model_data.sku_data.sku_code;
+                  $state.go('app.inbound.RaisePo.PurchaseOrder');
+                } else {
+                  vm.service.refresh(vm.dtInstance);
+                  vm.close();
+                }
               } else {
                 vm.pop_msg(response); 
               }
@@ -332,7 +351,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.combo = false;
     angular.copy(empty_data, vm.model_data);
   }
-  vm.base();
 
   vm.add = function() {
 
@@ -363,6 +381,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     $state.go('app.masters.SKUMaster.update');
   }
 
+  vm.base();
+  if (Service.searched_wms_code != '') {
+    vm.add();
+    vm.model_data.sku_data.sku_code = Service.searched_wms_code;
+  };
 
   vm.barcode = function() {
 

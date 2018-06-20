@@ -342,6 +342,16 @@
           <div class="col-md-1 col-sm-1 col-xs-2"><i ng-if="showCase.alert_enable_save" ng-click="showCase.alert_enable_save = false; showCase.switches(showCase.model_data.mail_alerts,13)" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i></div>
         </div>
       </div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i class="fa fa-th fa-15px pull-left" style="line-height: 34px;"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Days to Auto Expiring of Enquiry Orders</strong>
+        </div>
+        <div class="col-md-1 col-sm-2 col-xs-3">
+            <input type="text" class="form-control number" id="auto_expire_enq_limit" ng-model="showCase.model_data.auto_expire_enq_limit">
+        </div>
+        <div class="col-md-1 col-sm-1 col-xs-1"><i ng-click="showCase.switches(showCase.model_data.auto_expire_enq_limit, 62)" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i></div>
+      </div>
       <div class="row col-md-12" style="padding-bottom: 15px" ng-init="showCase.prefix_enable_save = false">
         <div class="col-md-5 col-sm-8 col-xs-12">
           <i class="fa fa-outdent fa-15px pull-left" style="line-height: 34px;"></i>

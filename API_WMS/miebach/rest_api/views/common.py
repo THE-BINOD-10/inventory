@@ -229,9 +229,12 @@ def add_user_permissions(request, response_data, user=''):
             else:
                 user_type = 'dist_customer'  # distributor customer login
     elif request_user_profile.warehouse_type == 'CENTRAL_ADMIN':
-        user_type = 'central_admin'
-    elif user_profile.warehouse_type == 'CENTRAL_ADMIN':
-        user_type = 'default'
+        if not request_user_profile.zone:
+            user_type = 'central_admin'
+        else:
+            user_type = 'admin_sub_user'
+    # elif user_profile.warehouse_type == 'CENTRAL_ADMIN':
+    #     user_type = 'default'
     else:
         user_type = request_user_profile.user_type
     response_data['data']['roles']['permissions']['user_type'] = user_type
@@ -400,7 +403,7 @@ def get_search_params(request, user=''):
                     'order_id': 'order_id', 'job_code': 'job_code', 'job_order_code': 'job_order_code',
                     'fg_sku_code': 'fg_sku_code',
                     'rm_sku_code': 'rm_sku_code', 'pallet': 'pallet',
-                    'staff_id': 'id', 'ean': 'ean' }
+                    'staff_id': 'id', 'ean': 'ean', 'invoice_number': 'invoice_number'}
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
                       'search2': 'search_2', 'search3': 'search_3',
@@ -458,6 +461,7 @@ data_datatable = {  # masters
     'ProcessedPOs': 'get_processed_po_data', 'POChallans': 'get_po_challans_data', \
     'SupplierInvoices': 'get_supplier_invoice_data', \
     'POPaymentTrackerInvBased': 'get_inv_based_po_payment_data', \
+    'ReturnToVendor': 'get_po_putaway_data', \
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
     'PickelistGenerated': 'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo', \
@@ -484,7 +488,7 @@ data_datatable = {  # masters
     'CustomOrders': 'get_custom_order_data', \
     'ShipmentPickedAlternative': 'get_order_shipment_picked', 'CustomerInvoices': 'get_customer_invoice_data', \
     'ProcessedOrders': 'get_processed_orders_data', 'DeliveryChallans': 'get_delivery_challans_data',
-    'SellerOrderView': 'get_seller_order_view', \
+    'CustomerInvoicesTab': 'get_customer_invoice_tab_data', 'SellerOrderView': 'get_seller_order_view', \
     # manage users
     'ManageUsers': 'get_user_results', 'ManageGroups': 'get_user_groups',
     # retail one
@@ -1469,33 +1473,38 @@ def change_seller_stock(seller_id='', stock='', user='', quantity=0, status='dec
 
 
 def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest, sku_id, src_seller_id='',
-                       dest_seller_id=''):
+                       dest_seller_id='', source_updated=False, mrp_dict=None):
     batch_obj = ''
-    for stock in stocks:
-        batch_obj = stock.batch_detail
-        if stock.quantity > move_quantity:
-            stock.quantity -= move_quantity
-            change_seller_stock(src_seller_id, stock, user, move_quantity, 'dec')
-            move_quantity = 0
-            if stock.quantity < 0:
+    if not source_updated:
+        for stock in stocks:
+            batch_obj = stock.batch_detail
+            if stock.quantity > move_quantity:
+                stock.quantity -= move_quantity
+                change_seller_stock(src_seller_id, stock, user, move_quantity, 'dec')
+                move_quantity = 0
+                if stock.quantity < 0:
+                    stock.quantity = 0
+                stock.save()
+            elif stock.quantity <= move_quantity:
+
+                move_quantity -= stock.quantity
+                change_seller_stock(src_seller_id, stock, user, stock.quantity, 'dec')
                 stock.quantity = 0
-            stock.save()
-        elif stock.quantity <= move_quantity:
-
-            move_quantity -= stock.quantity
-            change_seller_stock(src_seller_id, stock, user, stock.quantity, 'dec')
-            stock.quantity = 0
-            stock.save()
-        if move_quantity == 0:
-            break
-
+                stock.save()
+            if move_quantity == 0:
+                break
+    else:
+        batch_obj = stocks[0].batch_detail
     if not dest_stocks:
         dict_values = {'receipt_number': 1, 'receipt_date': datetime.datetime.now(),
                        'quantity': float(quantity), 'status': 1,
                        'creation_date': datetime.datetime.now(),
                        'updation_date': datetime.datetime.now(),
                        'location_id': dest[0].id, 'sku_id': sku_id}
-        if batch_obj:
+        if mrp_dict:
+            mrp_dict['creation_date'] = datetime.datetime.now()
+            dict_values['batch_detail_id'] = BatchDetail.objects.create(**mrp_dict).id
+        elif batch_obj:
             dict_values['batch_detail'] = batch_obj
         dest_stocks = StockDetail(**dict_values)
         dest_stocks.save()
@@ -1534,27 +1543,34 @@ def move_stock_location(cycle_id, wms_code, source_loc, dest_loc, quantity, user
     stock_dict = {"sku_id": sku_id,
                   "location_id": source[0].id,
                   "sku__user": user.id}
+    reserved_dict = {'stock__sku_id': sku_id, 'stock__sku__user': user.id, 'status': 1,
+                     'stock__location_id': source[0].id}
     if batch_no:
         stock_dict["batch_detail__batch_no"] =  batch_no
+        reserved_dict["stock__batch_detail__batch_no"] =  batch_no
     if mrp:
         stock_dict["batch_detail__mrp"] = mrp
+        reserved_dict["stock__batch_detail__mrp"] = mrp
+    if seller_id:
+        stock_dict['sellerstock__seller_id'] = seller_id
+        reserved_dict["stock__sellerstock__seller_id"] = seller_id
     stocks = StockDetail.objects.filter(**stock_dict)
     if not stocks:
-        return 'No stock with given Batch Number'
-    #stocks = StockDetail.objects.filter(sku_id=sku_id, location_id=source[0].id, sku__user=user.id)
+        return 'No Stocks Found'
     stock_count = stocks.aggregate(Sum('quantity'))['quantity__sum']
+    #stocks = StockDetail.objects.filter(sku_id=sku_id, location_id=source[0].id, sku__user=user.id)
+    # stock_count = stocks.aggregate(Sum('quantity'))['quantity__sum']
+    # if seller_id:
+    #     stock_filter_ids = stocks.filter(quantity__gt=0).values_list('id', flat=True)
+    #     seller_stock = SellerStock.objects.filter(stock_id__in=stock_filter_ids, seller_id=seller_id)
+    #     if not seller_stock:
+    #         return 'Seller Stock Not Found'
     reserved_quantity = \
-    PicklistLocation.objects.exclude(stock=None).filter(stock__sku_id=sku_id, stock__sku__user=user.id, status=1,
-                                                        stock__location_id=source[0].id).aggregate(Sum('reserved'))[
+    PicklistLocation.objects.exclude(stock=None).filter(**reserved_dict).aggregate(Sum('reserved'))[
         'reserved__sum']
     if reserved_quantity:
         if (stock_count - reserved_quantity) < float(quantity):
             return 'Source Quantity reserved for Picklist'
-    if seller_id:
-        stock_filter_ids = stocks.filter(quantity__gt=0).values_list('id', flat=True)
-        seller_stock = SellerStock.objects.filter(stock_id__in=stock_filter_ids, seller_id=seller_id)
-        if not seller_stock:
-            return 'Seller Stock Not Found'
 
     stock_dict['location_id'] = dest[0].id
     dest_stocks = StockDetail.objects.filter(**stock_dict)
@@ -2406,7 +2422,6 @@ def get_mapping_imeis(user, dat, seller_summary, sor_id='', sell_ids=''):
             'quantity__sum']
         if not stop_index:
             stop_index = 0
-        print start_index, stop_index
     imeis = list(
         OrderIMEIMapping.objects.filter(order__user=user.id, order_id=dat.id, sor_id=sor_id).order_by('creation_date'). \
         values_list('po_imei__imei_number', flat=True))
@@ -2487,6 +2502,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     customer_address += ("\nGSTIN No: " + customer_details[0]['tin_number'])
                 consignee = customer_address
             else:
+                customer_id = dat.customer_id
                 customer_address = dat.customer_name + '\n' + dat.address + "\nCall: " \
                                    + str(dat.telephone) + "\nEmail: " + str(dat.email_id)
         if not customer_address:
@@ -3140,7 +3156,7 @@ def search_wms_data(request, user=''):
     if not search_key:
         return HttpResponse(json.dumps(total_data))
 
-    lis = ['wms_code', 'sku_desc']
+    lis = ['wms_code', 'sku_desc', 'mrp']
     query_objects = sku_master.filter(Q(wms_code__icontains=search_key) | Q(sku_desc__icontains=search_key),
                                       user=user.id)
 
@@ -3149,7 +3165,8 @@ def search_wms_data(request, user=''):
         master_data = master_data[0]
         total_data.append({'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc, \
                            'measurement_unit': master_data.measurement_type,
-                           'load_unit_handle': master_data.load_unit_handle})
+                           'load_unit_handle': master_data.load_unit_handle,
+                           'mrp': master_data.mrp})
 
     master_data = query_objects.filter(Q(wms_code__istartswith=search_key) | Q(sku_desc__istartswith=search_key),
                                        user=user.id)
@@ -3202,8 +3219,8 @@ def get_supplier_sku_prices(request, user=""):
             taxes_data = []
             for tax_master in tax_masters:
                 taxes_data.append(tax_master.json())
-        result_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'tax_type': tax_type,
-                            'taxes': taxes_data})
+            result_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'tax_type': tax_type,
+                            'taxes': taxes_data, 'mrp': data.mrp})
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -3301,7 +3318,8 @@ def build_search_data(to_data, from_data, limit):
                         break
                 if status:
                     to_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc,
-                                    'measurement_unit': data.measurement_type})
+                                    'measurement_unit': data.measurement_type,
+                                    'mrp': data.mrp})
         return to_data
 
 
@@ -4528,6 +4546,7 @@ def get_purchase_order_data(order):
         sku = open_data.job_order.product_code
         order_type = ''
         price = 0
+        mrp = 0
         supplier_code = ''
         cgst_tax = 0
         sgst_tax = 0
@@ -4544,6 +4563,7 @@ def get_purchase_order_data(order):
         intransit_quantity = order.intransit_quantity
         sku = open_data.sku
         price = open_data.price
+        mrp = open_data.mrp
         unit = open_data.measurement_unit
         order_type = status_dict[order.open_po.order_type]
         supplier_code = open_data.supplier_code
@@ -4565,6 +4585,7 @@ def get_purchase_order_data(order):
         order_quantity = open_data.order_quantity
         sku = open_data.sku
         price = open_data.price
+        mrp = 0
         order_type = ''
         supplier_code = ''
         cgst_tax = 0
@@ -4573,7 +4594,7 @@ def get_purchase_order_data(order):
         utgst_tax = 0
         tin_number = ''
 
-    order_data = {'order_quantity': order_quantity, 'price': price, 'wms_code': sku.wms_code,
+    order_data = {'order_quantity': order_quantity, 'price': price, 'mrp': mrp, 'wms_code': sku.wms_code,
                   'sku_code': sku.sku_code, 'supplier_id': user_data.id, 'zone': sku.zone,
                   'qc_check': sku.qc_check, 'supplier_name': username, 'gstin_number': gstin_number,
                   'sku_desc': sku.sku_desc, 'address': address, 'unit': unit, 'load_unit_handle': sku.load_unit_handle,
@@ -5210,6 +5231,7 @@ def check_and_add_dict(grouping_key, key_name, adding_dat, final_data_dict={}, i
 
 
 def update_order_dicts(orders, user='', company_name=''):
+    trans_mapping = {}
     status = {'status': 0, 'messages': ['Something went wrong']}
     for order_key, order in orders.iteritems():
         if not order.get('order_details', {}):
@@ -5234,7 +5256,8 @@ def update_order_dicts(orders, user='', company_name=''):
         if order.get('order_summary_dict', {}) and not order_obj:
             customer_order_summary = CustomerOrderSummary.objects.create(**order['order_summary_dict'])
         if order.get('seller_order_dict', {}):
-            check_create_seller_order(order['seller_order_dict'], order_detail, user, order.get('swx_mappings', []))
+            trans_mapping = check_create_seller_order(order['seller_order_dict'], order_detail, user,
+                                                      order.get('swx_mappings', []), trans_mapping=trans_mapping)
         status = {'status': 1, 'messages': ['Success']}
     return status
 
@@ -5310,7 +5333,9 @@ def update_ingram_order_dicts(orders, seller_obj, user=''):
     return status
 
 
-def check_create_seller_order(seller_order_dict, order, user, swx_mappings=[]):
+def check_create_seller_order(seller_order_dict, order, user, swx_mappings=[], trans_mapping=None):
+    if not trans_mapping:
+        trans_mapping = {}
     if seller_order_dict.get('seller_id', ''):
         sell_order_ins = SellerOrder.objects.filter(sor_id=seller_order_dict['sor_id'], order_id=order.id,
                                                     seller__user=user.id)
@@ -5318,6 +5343,10 @@ def check_create_seller_order(seller_order_dict, order, user, swx_mappings=[]):
         if not sell_order_ins:
             seller_order = SellerOrder(**seller_order_dict)
             seller_order.save()
+            if user.username == 'milkbasket':
+                aspl_seller = SellerMaster.objects.filter(user=user.id, name='ASPL')
+                if aspl_seller:
+                    trans_mapping = create_seller_order_transfer(seller_order, aspl_seller[0].id, trans_mapping)
             for swx_mapping in swx_mappings:
                 try:
                     create_swx_mapping(swx_mapping['swx_id'], seller_order.id, swx_mapping['swx_type'],
@@ -6624,13 +6653,7 @@ def get_mode_of_transport(user):
 
 
 def get_max_seller_transfer_id(user):
-    trans_id = ''
-    seller_obj = SellerTransfer.objects.filter(source_seller__user=user.id).\
-                                        aggregate(Max('transact_id'))['transact_id__max']
-    if seller_obj:
-        trans_id = seller_obj + 1
-    else:
-        trans_id = 1
+    trans_id = get_incremental(user, 'seller_stock_transfer')
     return trans_id
 
 
@@ -6748,7 +6771,20 @@ def create_update_batch_data(batch_dict):
             batch_dict['creation_date'] = datetime.datetime.now()
             batch_obj = BatchDetail.objects.create(**batch_dict)
         else:
-            batch_obj = batch_objs[0].id
+            batch_obj = batch_objs[0]
+    return batch_obj
+
+
+def get_or_create_batch_detail(batch_dict, temp_dict):
+    batch_obj = None
+    batch_dict1 = copy.deepcopy(batch_dict)
+    if 'batch_no' in batch_dict:
+        batch_obj = create_update_batch_data(batch_dict1)
+    elif 'quality_check' in temp_dict:
+        batch_obj = BatchDetail.objects.filter(transact_id=temp_dict['quality_check'].po_location.id,
+                                               transact_type='po_loc')
+        if batch_obj:
+            batch_obj = batch_obj[0]
     return batch_obj
 
 
@@ -6977,9 +7013,12 @@ def get_gen_wh_ids(request, user, delivery_date):
     return gen_whs
 
 
-def get_incremental(user, type_name):
+def get_incremental(user, type_name, default_val=''):
     # custom sku counter
-    default = 1001
+    if not default_val:
+        default = 1001
+    else:
+        default = default_val
     data = IncrementalTable.objects.filter(user=user.id, type_name=type_name)
     if data:
         data = data[0]
@@ -6987,7 +7026,7 @@ def get_incremental(user, type_name):
         data.value = data.value + 1
         data.save()
     else:
-        IncrementalTable.objects.create(user_id=user.id, type_name=type_name, value=1001)
+        IncrementalTable.objects.create(user_id=user.id, type_name=type_name, value=default)
         count = default
     return count
 
@@ -7031,3 +7070,69 @@ def get_po_challan_number(user, seller_po_summary):
     challan_number = 'CHN/%s/%s' % (chn_date.strftime('%m%y'), challan_num)
 
     return challan_number, challan_num
+
+
+def create_seller_order_transfer(seller_order, seller_id, trans_mapping):
+    """ Update Seller with ASPL Seller and creates SellerOrderTransfer table record"""
+    user = User.objects.get(id=seller_order.order.user)
+    try:
+        if not seller_order.seller.name == 'ASPL':
+            source_seller = seller_order.seller
+            group_key = '%s:%s' % (str(source_seller.id), str(seller_id))
+            seller_order.seller_id = seller_id
+            seller_order.save()
+            if group_key not in trans_mapping.keys():
+                trans_mapping[group_key] = get_incremental(user, 'seller_order_transfer')
+            order_transfer_id = trans_mapping[group_key]
+            seller_transfer_obj = SellerTransfer.objects.filter(source_seller_id=source_seller.id,
+                                                    dest_seller_id=seller_id, transact_id=order_transfer_id,
+                                                    transact_type='seller_order_transfer')
+            if not seller_transfer_obj:
+                new_seller_transfer_obj = SellerTransfer.objects.create(source_seller_id=source_seller.id,
+                                          dest_seller_id=seller_id, transact_id=order_transfer_id,
+                                          transact_type='seller_order_transfer', status=1,
+                                          creation_date=datetime.datetime.now())
+                seller_transfer_obj = [new_seller_transfer_obj]
+            SellerOrderTransfer.objects.create(seller_transfer_id=seller_transfer_obj[0].id,
+                                               seller_order_id=seller_order.id,
+                                               creation_date=datetime.datetime.now())
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        result_data = []
+        log.info('Create Seller Order Transfer Record failed for seller order id %s and destination seller id %s and request is %s and error statement is %s' % (
+            str(user.username), str(seller_order.id),str(seller_id), str(e)))
+    return trans_mapping
+
+
+def update_substitution_data(src_stocks, dest_stocks, src_sku, src_loc, src_qty, dest_sku, dest_loc, dest_qty, user, seller_id,
+                             source_updated, mrp_dict):
+    update_stocks_data(src_stocks, float(src_qty), dest_stocks, float(dest_qty), user, [dest_loc], dest_sku.id,
+                       src_seller_id=seller_id, dest_seller_id=seller_id, source_updated=source_updated,
+                       mrp_dict=mrp_dict)
+    sub_data = {'source_sku_code_id': src_sku.id, 'source_location': src_loc.location, 'source_quantity': src_qty,
+                'destination_sku_code_id': dest_sku.id, 'destination_location': dest_loc.location,
+                'destination_quantity': dest_qty}
+    SubstitutionSummary.objects.create(**sub_data)
+    log.info("Substitution Done For " + str(json.dumps(sub_data)))
+
+def update_stock_detail(stocks, quantity, user):
+    for stock in stocks:
+        if stock.quantity > quantity:
+            stock.quantity -= quantity
+            seller_stock = stock.sellerstock_set.filter()
+            if seller_stock.exists():
+                change_seller_stock(seller_stock[0].seller_id, stock, user, quantity, 'dec')
+            quantity = 0
+            if stock.quantity < 0:
+                stock.quantity = 0
+            stock.save()
+        elif stock.quantity <= quantity:
+            quantity -= stock.quantity
+            seller_stock = stock.sellerstock_set.filter()
+            if seller_stock.exists():
+                change_seller_stock(seller_stock[0].seller_id, stock, user, stock.quantity, 'dec')
+            stock.quantity = 0
+            stock.save()
+        if quantity == 0:
+            break

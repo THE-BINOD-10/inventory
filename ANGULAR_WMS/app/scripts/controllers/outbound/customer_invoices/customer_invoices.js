@@ -21,7 +21,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     var send = {'tabType': 'CustomerInvoices'};
     vm.service.apiCall("customer_invoice_data/", "GET", send).then(function(data) {
       if(data.message) {
-        vm.filters = {'datatable': 'CustomerInvoices', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
+        vm.filters = {'datatable': 'CustomerInvoicesTab', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
         vm.dtOptions = DTOptionsBuilder.newOptions()
           .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -91,7 +91,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             if(!(po_number)) {
               po_number = temp[temp['check_field']];
             } else if (po_number != temp[temp['check_field']]) {
-              status = true;
+              //status = true;
+              console.log("true");
             }
             field_name = temp['check_field'];
             data.push(temp['id']);
@@ -115,7 +116,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         send['delivery_challan'] = DC;
         vm.delivery_challan = DC;
         vm.bt_disable = true;
-        vm.service.apiCall("generate_customer_invoice/", "GET", send).then(function(data){
+        vm.service.apiCall("generate_customer_invoice_tab/", "GET", send).then(function(data){
 
           if(data.message) {
             if(click_type == 'generate') {
@@ -150,6 +151,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
               modalInstance.result.then(function (selectedItem) {
                 var data = selectedItem;
+                vm.reloadData();
               })
             }
           }
@@ -172,7 +174,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             if(!(po_number)) {
               po_number = temp[temp['check_field']];
             } else if (po_number != temp[temp['check_field']]) {
-              status = true;
+              //status = true;
+              console.log("true");
             }
             field_name = temp['check_field'];
             data.push(temp['id']);
@@ -265,19 +268,34 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
   };
 
   vm.process = false;
-  vm.save = function(form) {
-
-    if (vm.permissions.increment_invoice && vm.model_data.sequence_number && form.invoice_number.$invalid) {
+  vm.save = function(form_data) {
+    var updated_inv_data = {};
+    if (vm.permissions.increment_invoice && vm.model_data.sequence_number && form_data.invoice_number.$invalid) {
 
       Service.showNoty("Please Fill Invoice Number");
       return false;
-    } else if (!form.$valid) {
+    } else if (!form_data.$valid) {
 
       Service.showNoty("Please Fill the Mandatory Fields");
       return false;
     }
     vm.process = true;
-    var data = $("form").serializeArray()
+
+    var data = $("form").serializeArray();
+
+    angular.forEach(vm.removed_data, function(sku){
+      data.push({name:'sku_id', value: sku.sku_code});
+      data.push({name:'title', value: sku.title});
+      data.push({name:'id', value: sku.id});
+      data.push({name:'unit_price', value: sku.unit_price});
+      data.push({name:'quantity', value: sku.quantity});
+      data.push({name:'cgst_tax', value: sku.taxes['cgst_tax']});
+      data.push({name:'sgst_tax', value: sku.taxes['sgst_tax']});
+      data.push({name:'igst_tax', value: sku.taxes['igst_tax']});
+      data.push({name:'invoice_amount', value: sku.invoice_amount});
+      data.push({name:'customer_id', value: vm.model_data.customer_id});
+    });
+
     Service.apiCall("update_invoice/", "POST", data).then(function(data) {
 
       if(data.message) {
@@ -340,6 +358,7 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
     return cssClass
   }
 
+  vm.removed_data = [];
   vm.update_data = update_data;
   function update_data(index, data, last) {
     console.log(data);
@@ -361,11 +380,14 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
     vm.model_data.data.push(empty_data);
     } else {
 	  var del_sku = vm.model_data.data[index];
-      if(!del_sku.new_sku) {
-	    Service.apiCall("remove_sku/", "POST", del_sku).then(function(data) {
-		  console.log(data);
-	    });
-      }
+      // if(!del_sku.new_sku) {
+  	   //  Service.apiCall("remove_sku/", "POST", del_sku).then(function(data) {
+  		  //   console.log(data);
+  	   //  });
+      // }
+
+      vm.model_data.data[index].quantity = 0;
+      vm.removed_data.push(vm.model_data.data[index]);
 
       vm.model_data.data.splice(index,1);
       vm.cal_total();

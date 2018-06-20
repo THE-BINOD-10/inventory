@@ -16,7 +16,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.selectAll = false;
     vm.bt_disable = true;
     vm.display = false;
-    vm.extra_width = {'width': '1100px'};
 
     if (vm.user_type == 'distributor') {
       vm.service.apiCall("customer_invoice_data/").then(function(data) {
@@ -77,10 +76,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         }
       });
     } else {
-      var send = {'tabType': 'ProcessedOrders'};
-      vm.service.apiCall("customer_invoice_data/", "GET", send).then(function(data) {
+      vm.service.apiCall("customer_invoice_data/").then(function(data) {
         if(data.message) {
-          vm.filters = {'datatable': 'ProcessedOrders', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
+          vm.filters = {'datatable': 'CustomerInvoices', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
           vm.dtOptions = DTOptionsBuilder.newOptions()
             .withOption('ajax', {
                 url: Session.url+'results_data/',
@@ -166,16 +164,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           if(data.message) {
           vm.pdf_data = data.data;
           if(typeof(vm.pdf_data) == "string" && vm.pdf_data.search("print-invoice") != -1) {
-            $state.go("app.outbound.CustomerInvoices.InvoiceE");
+            $state.go("app.outbound.CustomerInvoicesMain.InvoiceE");
             $timeout(function () {
               $(".modal-body:visible").html(vm.pdf_data)
             }, 3000);
           } else if(Session.user_profile.user_type == "marketplace_user") {
-            $state.go("app.outbound.CustomerInvoices.InvoiceM");
+            $state.go("app.outbound.CustomerInvoicesMain.InvoiceM");
           } else if(vm.permissions.detailed_invoice) {
-            $state.go("app.outbound.CustomerInvoices.InvoiceD");
+            $state.go("app.outbound.CustomerInvoicesMain.InvoiceD");
           } else {
-            $state.go("app.outbound.CustomerInvoices.InvoiceN");
+            $state.go("app.outbound.CustomerInvoicesMain.InvoiceN");
           }
           }
           vm.service.showNoty("Invoice generated");
@@ -232,7 +230,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     vm.close = function() {
 
-      $state.go("app.outbound.CustomerInvoices")
+      $state.go("app.outbound.CustomerInvoicesMain")
     }
 
     vm.edit_invoice = function() {
@@ -274,53 +272,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.delivery_challan = false;
 
     vm.pdf_data = {};
-
-    vm.move_to = function (click_type) {
-      var po_number = '';
-      var status = false;
-      var field_name = "";
-      var data = [];
-      if (vm.user_type == 'distributor') {
-        data = vm.checked_ids;
-      } else {
-        angular.forEach(vm.selected, function(value, key) {
-          if(value) {
-            var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]['_aData'];
-            if(!(po_number)) {
-              po_number = temp[temp['check_field']];
-            } else if (po_number != temp[temp['check_field']]) {
-              //status = true;
-              console.log("true");
-            }
-            field_name = temp['check_field'];
-            data.push(temp['id']);
-          }
-        });
-      }
-
-      if(status) {
-        vm.service.showNoty("Please select same "+field_name+"'s");
-      } else {
-
-        var ids = data.join(",");
-        var url = click_type === 'move_to_dc' ? 'move_to_dc/' : 'move_to_inv/';
-        var send = {seller_summary_id: ids};
-        vm.bt_disable = true;
-        vm.service.apiCall(url, "GET", send).then(function(data){
-          if(data.message) {
-            console.log(data.message);
-            vm.reloadData();
-          } else {
-            vm.service.showNoty("Something went wrong while moving to DC !!!");
-          }
-        })
-      }
-    };
-
-    vm.reloadData = function () {
-      $('.custom-table').DataTable().draw();
-    };
-
     vm.generate_invoice = function(click_type, DC=false){
 
       var po_number = '';
@@ -366,16 +317,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             if(click_type == 'generate') {
               vm.pdf_data = data.data;
               if(typeof(vm.pdf_data) == "string" && vm.pdf_data.search("print-invoice") != -1) {
-                $state.go("app.outbound.CustomerInvoices.InvoiceE");
+                $state.go("app.outbound.CustomerInvoicesMain.InvoiceE");
                 $timeout(function () {
                   $(".modal-body:visible").html(vm.pdf_data)
                 }, 3000);
               } else if(Session.user_profile.user_type == "marketplace_user") {
-                $state.go("app.outbound.CustomerInvoices.InvoiceM");
+                $state.go("app.outbound.CustomerInvoicesMain.InvoiceM");
               } else if(vm.permissions.detailed_invoice) {
-                $state.go("app.outbound.CustomerInvoices.InvoiceD");
+                $state.go("app.outbound.CustomerInvoicesMain.InvoiceD");
               } else {
-                $state.go("app.outbound.CustomerInvoices.InvoiceN");
+                $state.go("app.outbound.CustomerInvoicesMain.InvoiceN");
               }
             } else {
               var mod_data = data.data;

@@ -202,7 +202,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
           if(click_type == 'cancel_poc'){
               send_data = JSON.stringify({
-                grn_no: grn_no, 
+                grn_no: grn_no,
+                invoice_number: temp['invoice_number'],
                 seller_summary_name: supplier_name, 
                 seller_summary_id: temp['id'], 
                 purchase_order__order_id: temp['purchase_order__order_id'],
@@ -211,7 +212,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               });
             } else {
               send_data = JSON.stringify({
-                grn_no: grn_no, 
+                grn_no: grn_no,
+                invoice_number: temp['invoice_number'],
                 seller_summary_name: supplier_name, 
                 seller_summary_id: temp['id'], 
                 purchase_order__order_id: temp['purchase_order__order_id'],
@@ -228,20 +230,65 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       vm.service.showNoty("Please select same "+field_name+"'s");
     } else {
 
-      var send = data.join(",");
-      send = {data: send}
-      var url = click_type === 'cancel_poc' ? 'move_to_po_challan/' : 'move_to_inv/';
-      vm.bt_disable = true;
-      vm.service.apiCall(url, "GET", send).then(function(data){
-        if(data.message) {
-          console.log(data.message);
-          vm.reloadData();
-        } else {
-          vm.service.showNoty("Something went wrong while moving to po challan !!!");
-        }
-      })
+      if (click_type == 'move_to_inv') {
+        vm.inv_number = '';
+        swal2({
+          title: 'Please enter invoice number',
+          text: '',
+          input: 'text',
+          confirmButtonColor: '#d33',
+          // cancelButtonColor: '#d33',
+          confirmButtonText: 'Confirm',
+          cancelButtonText: 'Cancel',
+          showLoaderOnConfirm: true,
+          inputOptions: 'Testing',
+          inputPlaceholder: 'Type Reason',
+          confirmButtonClass: 'btn btn-danger',
+          cancelButtonClass: 'btn btn-default',
+          showCancelButton: true,
+          preConfirm: function (text) {
+            return new Promise(function (resolve, reject) {
+              vm.inv_number = text;
+              if (text === "") {
+                $('.swal2-validationerror').remove();
+                vm.service.showNoty("Please enter proper invoice number");
+                $('.swal2-loading') = {};
+              }
+              resolve();
+            })
+          },
+          allowOutsideClick: false,
+          // buttonsStyling: false
+        }).then(function (text) {
+            /*swal2({
+              type: 'success',
+              title: 'Your entered invoice number saved!',
+              // html: 'Submitted text is: ' + text
+            }),*/
+            // $('.swal2-confirm').click(function(){
+              vm.move_to_api(click_type, data);
+            // })
+        });
+      } else {
+        vm.move_to_api(click_type, data);
+      }
     }
   };
+
+  vm.move_to_api = function(click_type, data){
+    var send = data.join(",");
+    send = {data: send, inv_number: vm.inv_number}
+    var url = click_type === 'cancel_poc' ? 'move_to_po_challan/' : 'move_to_invoice/';
+    vm.bt_disable = true;
+    vm.service.apiCall(url, "GET", send).then(function(data){
+      if(data.message) {
+        console.log(data.message);
+        vm.reloadData();
+      } else {
+        vm.service.showNoty("Something went wrong while moving to po challan !!!");
+      }
+    });
+  }
 
   vm.reloadData = function () {
     $('.custom-table').DataTable().draw();
@@ -325,39 +372,34 @@ function EditPOChallan($scope, $http, $state, $timeout, Session, colFilters, Ser
     $modalInstance.close("close");
   };
 
+  vm.removed_data = [];
   vm.update_data = function (index) {
     console.log(index);
     if (index == vm.model_data.data.length-1) {
       vm.model_data.data.push({"sku_code": "", "sku_desc": "", "pkng": "", "quantity": 0,
                 "unit_price": 0, "taxes": {"cgst_tax": 0, "sgst_tax": 0,
                 "igst_tax": 0}, "amt": 0, "tax": 0, "invoice_amount": 0});
+
+      /*vm.model_data.data.push(
+        "sku_code":"",
+        "taxes":{"igst_tax":0,"cgst_amt":0,"cgst_tax":0,"sgst_amt":0,"igst_amt":0,"utgst_tax":0,"utgst_amt":0,"sgst_tax":0},
+        "amt":0,
+        "open_po_id":0,
+        "title":"",
+        "tax_type":"",
+        "seller_summary_id":0,
+        "unit_price":0,
+        "hsn_code":"",
+        "shipment_date":"",
+        "invoice_amount":0,
+        "quantity":0,
+        "tax":0,
+      );*/
     } else {
-      if(vm.model_data.data[index].order_id){
-        vm.delete_data('order_id', vm.model_data.data[index].order_id, index);
-      } else {
-        vm.delete_data('id', vm.model_data.data[index].id, index);
-      }
+      vm.model_data.data[index].quantity = 0;
+      vm.removed_data.push(vm.model_data.data[index]);
       vm.model_data.data.splice(index,1);
       vm.getTotals();
-    }
-  };
-
-  vm.delete_data = function(key, id, index) {
-    if(id) {
-      var del_data = {}
-      del_data[key] = id;
-      vm.service.apiCall('delete_po/', 'GET', del_data).then(function(data){
-        if(data.message) {
-    vm.model_data.data[index].row_price = (vm.model_data.data[index].order_quantity * Number(vm.model_data.data[index].price))
-;
-    vm.model_data.total_price = 0;
-
-    angular.forEach(vm.model_data.data, function(one_row){
-      vm.model_data.total_price = vm.model_data.total_price + (one_row.order_quantity * one_row.price);
-    });
-          vm.service.pop_msg(data.data);
-        }
-      });
     }
   };
 
@@ -489,6 +531,11 @@ function EditPOChallan($scope, $http, $state, $timeout, Session, colFilters, Ser
       'address': form_data.address.$modelValue,
       'wms_code': form_data.wms_code.$modelValue
     };
+
+    angular.forEach(vm.removed_data, function(data){
+      vm.model_data.data.push(data);
+    });
+
     update_poc_data.data = JSON.stringify(vm.model_data.data);
     vm.process = true;
 

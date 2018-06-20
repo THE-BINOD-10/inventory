@@ -29,6 +29,7 @@ def update_inventory(company_name):
                     stock_dict = {}
                     for item in warehouse["Result"]["InventoryStatus"]:
                         sku_id = item["SKUId"]
+                        actual_sku_id = sku_id
                         if sku_id[-3:]=="-TU":
                             sku_id = sku_id[:-3]
                             if sku_id in stock_dict:
@@ -40,6 +41,12 @@ def update_inventory(company_name):
                                 stock_dict[sku_id] += int(item['FG'])
                             else:
                                 stock_dict[sku_id] = int(item['FG'])
+                        wait_on_qc = [v for d in item['OnHoldDetails'] for k, v in d.items()
+                                      if k == 'WAITONQC']
+                        if wait_on_qc:
+                            if int(wait_on_qc[0]):
+                                log.info("Wait ON QC Value %s for SKU %s" % (actual_sku_id, wait_on_qc))
+                            stock_dict[sku_id] += int(wait_on_qc[0])
 
                     for sku_id, inventory in stock_dict.iteritems():
                         sku = SKUMaster.objects.filter(user = user_id, sku_code = sku_id)

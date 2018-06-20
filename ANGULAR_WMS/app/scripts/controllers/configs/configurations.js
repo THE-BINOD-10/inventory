@@ -22,8 +22,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'increment_invoice': false, 'create_shipment_type': false, 'auto_allocate_stock': false,
                     'generic_wh_level': false, 'auto_confirm_po': false, 'create_order_po': false, 'shipment_sku_scan': false,
                     'disable_brands_view': false, 'sellable_segregation': false, 'display_styles_price': false,
-                    'auto_raise_stock_transfer': false, 'inbound_supplier_invoice': false,
                     'invoice_based_payment_tracker': false
+                    'auto_raise_stock_transfer': false, 'inbound_supplier_invoice': false, 'customer_dc': false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -41,7 +41,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      52: 'calculate_customer_price', 53: 'shipment_sku_scan', 54: 'disable_brands_view',
                      55: 'sellable_segregation', 56: 'display_styles_price', 57: 'show_purchase_history',
                      58: 'shelf_life_ratio', 59: 'auto_raise_stock_transfer', 60: 'inbound_supplier_invoice',
-                     61: 'invoice_based_payment_tracker'}
+                     61: 'customer_dc', 62: 'auto_expire_enq_limit', 63: 'invoice_based_payment_tracker'}
 
   vm.check_box_data = [
     {
@@ -332,13 +332,26 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       display: true
     },
     {
-      name: "Invoice Based Payment Tracker Enable/Disable",
-      model_name: "invoice_based_payment_tracker",
+      name: "Customer DC Enable/Disable",
+      model_name: "customer_dc",
       param_no: 61,
       class_name: "fa fa-server",
       display: true
     },
-
+    {
+      name: "Auto Expiry Days for Enquiry Orders",
+      model_name: "auto_expire_enq_limit",
+      param_no: 62,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+     name: "Invoice Based Payment Tracker Enable/Disable",
+     model_name: "invoice_based_payment_tracker",
+     param_no: 63,
+     class_name: "fa fa-server",
+     display: true
+    }
 ]
 
   vm.empty = {};

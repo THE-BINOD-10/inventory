@@ -124,7 +124,6 @@
             }
           });
         }
-
       }
 
       /*vm.batch_wise_mrps = [];
@@ -258,7 +257,7 @@
       }
 
       //margin value
-    vm.marginData = {margin_type: '', margin: 0, margin_percentage: 0, margin_value: 0, is_margin_percentage: true};
+    vm.marginData = {margin_type: '', margin: 0, margin_percentage: 0, margin_value: 0, is_margin_percentage: true, industry_type: vm.industry_type};
     vm.add_sku_substitute = function() {
 
       var mod_data = vm.marginData;
@@ -294,11 +293,48 @@
     $ctrl.marginData = items;
     $ctrl.service = Service;
     $ctrl.model_data = {};
+    $ctrl.industry_type = items.industry_type;
     $ctrl.model_data.src_available_quantity = 0;
     $ctrl.data_available = true;
     $ctrl.success_resp = false;
     $ctrl.disabled_button = false;
     $ctrl.model_data.src_quantity = 0;
+    $ctrl.model_data.dest_info = [{dest_sku_code:'', dest_quantity:'', dest_location:'', batch_number:'', mrp:''}];
+    $ctrl.batch_nos = [];
+    $ctrl.batches = {};
+
+    $ctrl.isLast = isLast;
+    function isLast(check) {
+
+      var cssClass = check ? "fa fa-plus-square-o" : "fa fa-minus-square-o";
+      return cssClass
+    }
+
+    $ctrl.get_sku_batches = function(sku_code){
+        if(sku_code && $ctrl.industry_type==="FMCG"){
+          $ctrl.service.apiCall('get_sku_batches/?sku_code='+sku_code).then(function(data){
+            if(data.message) {
+              $ctrl.batches = data.data.sku_batches;
+              $ctrl.batch_nos = Object.keys($ctrl.batches);
+            }
+          });
+        }
+      }
+
+    $ctrl.update_dest_info = update_dest_info;
+    function update_dest_info(index, data, last) {
+      console.log(data);
+      if (last && (!data.dest_sku_code)) {
+        colFilters.showNoty("Please fill existing record properly");
+        return false;
+      }
+      if (last) {
+        $ctrl.model_data.dest_info.push({dest_sku_code:'', dest_quantity:'', dest_location:'', batch_number:'', mrp:''});
+      } else {
+        $ctrl.model_data.dest_info.splice(index,1);
+        // $ctrl.cal_total();
+      }
+    }
 
     $ctrl.empty_sku =function(){
 

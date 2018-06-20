@@ -125,6 +125,7 @@ urlpatterns = [
     url(r'^close_po/$', close_po),
     url(r'^check_returns/$', check_returns),
     url(r'^check_sku/$', check_sku),
+    url(r'^create_orders_check_ean/$', create_orders_check_ean),
     url(r'^confirm_sales_return/$', confirm_sales_return),
     url(r'^get_received_orders/$', get_received_orders),
     url(r'^putaway_data/$', putaway_data),
@@ -161,12 +162,14 @@ urlpatterns = [
     url('^last_transaction_details/$', last_transaction_details),
     url(r'^supplier_invoice_data/$', supplier_invoice_data),
     url(r'^move_to_po_challan/$', move_to_poc),
-    url(r'^move_to_inv/$', move_to_inv),
+    url(r'^move_to_invoice/$', move_to_invoice),
     url(r'^generate_supplier_invoice/$', generate_supplier_invoice),
     url(r'^update_poc/$', update_poc),
     url(r'^update_po_invoice/$', update_po_invoice),
     url(r'^po_get_invoice_payment_tracker/$', po_get_invoice_payment_tracker),
     url(r'^po_update_payment_status/$', po_update_payment_status),
+    url(r'^get_po_putaway_summary/$', get_po_putaway_summary),
+    url(r'^create_rtv/$', create_rtv),
 
     # Production
     url(r'^generated_jo_data/$', generated_jo_data),
@@ -270,6 +273,7 @@ urlpatterns = [
     url(r'^update_customer_cart_data/$', update_customer_cart_data),
     url(r'^delete_customer_cart_data/$', delete_customer_cart_data),
     url(r'^generate_customer_invoice/$', generate_customer_invoice),
+    url(r'^generate_customer_invoice_tab/$', generate_customer_invoice_tab),
     url(r'^seller_generate_picklist/$', seller_generate_picklist),
     url(r'^customer_invoice_data/$', customer_invoice_data),
     url('^get_custom_template_styles/$', get_custom_template_styles),
@@ -408,9 +412,11 @@ urlpatterns += [
     url(r'^marketplace_serial_upload/$', marketplace_serial_upload),
     url(r'^seller_transfer_form/$', seller_transfer_form),
     url(r'^seller_transfer_upload/$', seller_transfer_upload),
-
     url(r'^network_master_form/$', network_master_form),
     url(r'^network_master_upload/$', network_master_upload),
+    url(r'^sku_substitution_form/$', sku_substitution_form),
+    url(r'^sku_substitution_upload/$', sku_substitution_upload),
+
     # configurations
     url(r'^configurations/$', configurations),
     url(r'^switches/$', switches),

@@ -723,6 +723,8 @@ def get_picklist_data(data_id, user_id):
             category = ''
             customer_address = ''
             original_order_id = ''
+            order_id = ''
+            order_code = ''
             if order.stock:
                 stock_id = pick_stocks.get(id=order.stock_id)
             if order.order:
@@ -733,6 +735,7 @@ def get_picklist_data(data_id, user_id):
                 marketplace = order.order.marketplace
                 remarks = order.order.remarks
                 order_id = str(order.order.order_id)
+                order_code = str(order.order.order_code)
                 original_order_id = order.order.original_order_id
                 load_unit_handle = order.order.sku.load_unit_handle
                 category = order.order.sku.sku_category
@@ -750,8 +753,6 @@ def get_picklist_data(data_id, user_id):
                 load_unit_handle = st_order[0].stock_transfer.sku.load_unit_handle
                 category = st_order[0].stock_transfer.sku.sku_category
                 marketplace = ""
-                order_id = ''
-
             pallet_code = ''
             pallet_detail = ''
             if stock_id and stock_id.pallet_detail:
@@ -788,6 +789,8 @@ def get_picklist_data(data_id, user_id):
                                       order_by('-updation_date').values_list('location__location',
                                                                              flat=True).distinct()[:2]
                     last_picked_locs = ','.join(last_picked)
+                if not original_order_id:
+                    original_order_id = str(order_id) + str(order_code)
 
                 batch_data[match_condition] = {'wms_code': wms_code, 'zone': zone, 'sequence': sequence,
                                                'location': location, 'reserved_quantity': order.reserved_quantity,
@@ -829,12 +832,15 @@ def get_picklist_data(data_id, user_id):
             category = ''
             customer_address = ''
             original_order_id = ''
+            order_code = ''
+            order_id = ''
             if order.order:
                 wms_code = order.order.sku.wms_code
                 if order.order_type == 'combo' and order.sku_code:
                     wms_code = order.sku_code
                 invoice_amount = order.order.invoice_amount
                 order_id = str(order.order.order_id)
+                order_code = str(order.order.order_code)
                 original_order_id = order.order.original_order_id
                 sku_code = order.order.sku_code
                 title = order.order.title
@@ -891,6 +897,8 @@ def get_picklist_data(data_id, user_id):
                                   order_by('-updation_date').values_list('location__location',
                                                                          flat=True).distinct()[:2]
                 last_picked_locs = ','.join(last_picked)
+            if not original_order_id:
+                original_order_id = str(order_id) + str(order_code)
 
             data.append(
                 {'wms_code': wms_code, 'zone': zone, 'location': location, 'reserved_quantity': order.reserved_quantity,
@@ -919,6 +927,9 @@ def get_picklist_data(data_id, user_id):
             wms_code = order.order.sku.wms_code
             marketplace = order.order.marketplace
             remarks = order.order.remarks
+            order_id = ''
+            order_code = ''
+            original_order_id = ''
             if order.stock_id:
                 stock_id = pick_stocks.get(id=order.stock_id)
 
@@ -942,7 +953,9 @@ def get_picklist_data(data_id, user_id):
             customer_name = ''
             if order.order:
                 customer_name = order.order.customer_name
-
+                order_id = str(order.order.order_id)
+                order_code = str(order.order.order_code)
+                original_order_id = str(order.order.original_order_id)
             pallet_code = ""
             if order.reserved_quantity == 0:
                 continue
@@ -954,10 +967,12 @@ def get_picklist_data(data_id, user_id):
                                   order_by('-updation_date').values_list('location__location',
                                                                          flat=True).distinct()[:2]
                 last_picked_locs = ','.join(last_picked)
+            if not original_order_id:
+                original_order_id = str(order_id) + str(order_code)
 
             data.append(
                 {'wms_code': wms_code, 'zone': zone, 'location': location, 'reserved_quantity': order.reserved_quantity,
-                 'picklist_number': data_id, 'order_id': str(order.order_id), 'stock_id': st_id,
+                 'picklist_number': data_id, 'order_id': order_id, 'stock_id': st_id,
                  'picked_quantity': order.reserved_quantity, 'id': order.id, 'sequence': sequence,
                  'invoice_amount': order.order.invoice_amount,
                  'price': order.order.invoice_amount * order.reserved_quantity,
@@ -965,7 +980,7 @@ def get_picklist_data(data_id, user_id):
                  'title': order.order.title, 'stock_left': stock_left, 'last_picked_locs': last_picked_locs,
                  'customer_name': customer_name, 'remarks': remarks, 'load_unit_handle': load_unit_handle,
                  'category': category,
-                 'marketplace': marketplace})
+                 'marketplace': marketplace, 'original_order_id' : original_order_id})
 
             if wms_code in sku_total_quantities.keys():
                 sku_total_quantities[wms_code] += float(order.reserved_quantity)
@@ -2574,6 +2589,9 @@ def check_imei(request, user=''):
 def print_picklist_excel(request, user=''):
     headers = copy.deepcopy(PICKLIST_EXCEL)
     data_id = request.GET['data_id']
+    display_order_id = request.GET.get('display_order_id', 'false')
+    if display_order_id == 'false':
+        headers.pop('Order ID')
     data, sku_total_quantities = get_picklist_data(data_id, user.id)
     all_data = []
     for dat in data:
@@ -2589,6 +2607,7 @@ def print_picklist(request, user=''):
     temp = []
     title = 'Picklist ID'
     data_id = request.GET['data_id']
+    display_order_id = request.GET.get('display_order_id', 'false')
     data, sku_total_quantities = get_picklist_data(data_id, user.id)
     date_data = {}
     picklist_orders = Picklist.objects.filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id),
@@ -2606,10 +2625,12 @@ def print_picklist(request, user=''):
     customer_address = ''
     if data:
         customer_address = data[0].get('customer_address', '')
-    order_ids = ''
+    order_ids = 'false'
     order_data = list(set(map(lambda d: d.get('order_no', ''), data)))
     order_data = filter(lambda x: len(x) > 0, order_data)
-
+    original_order_ids = ''
+    original_order_data = list(set(map(lambda d: d.get('original_order_id', ''), data)))
+    original_order_data = filter(lambda x: len(x) > 0, original_order_data)
     remarks_data = ''
     remarks_data = list(set(map(lambda d: d.get('remarks', ''), data)))
     remarks_data = filter(lambda x: len(x) > 0, remarks_data)
@@ -2618,12 +2639,10 @@ def print_picklist(request, user=''):
     market_place = list(set(map(lambda d: d.get('marketplace', ''), data)))
     filtered_market = filter(lambda a: a != "Offline", market_place)
     if not filtered_market:
-        marketplace = ""
+        marketplace = ''
     else:
         marketplace = ','.join(market_place)
 
-    if order_data:
-        order_ids = ','.join(order_data)
     total = 0
     total_price = 0
     type_mapping = SkuTypeMapping.objects.filter(user=user.id)
@@ -2649,12 +2668,19 @@ def print_picklist(request, user=''):
     show_picklist_display_address = get_misc_value('picklist_display_address', user.id)
     if show_picklist_display_address == "false":
         customer_address = ''
+    headers = copy.deepcopy(PRINT_OUTBOUND_PICKLIST_HEADERS)
+    if display_order_id == 'true':
+        if len(original_order_data):
+            order_ids = ','.join(original_order_data)
+        elif len(order_data):
+            order_ids = ','.join(order_data)
+        headers = ('Order ID',) + headers
     return render(request, 'templates/toggle/print_picklist.html',
-                  {'data': data, 'all_data': all_data, 'headers': PRINT_OUTBOUND_PICKLIST_HEADERS,
+                  {'data': data, 'all_data': all_data, 'headers': headers,
                    'picklist_id': data_id, 'total_quantity': total,
                    'total_price': total_price, 'picklist_id': data_id,
                    'customer_name': customer_name, 'customer_address': customer_address, 'order_ids': order_ids,
-                   'marketplace': marketplace, 'date_data': date_data, 'remarks': remarks_data, 'user': user})
+                   'marketplace': marketplace, 'date_data': date_data, 'remarks': remarks_data, 'user': user, 'display_order_id': display_order_id})
 
 
 @csrf_exempt

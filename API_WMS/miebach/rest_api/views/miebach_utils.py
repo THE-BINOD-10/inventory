@@ -721,11 +721,11 @@ ADD_WAREHOUSE_DICT = {'user_id': '', 'city': '', 'is_active': 1, 'country': '', 
                       'address': '', 'phone_number': '', 'prefix': '', 'location': '', 'warehouse_type': '',
                       'warehouse_level': 0, 'min_order_val': 0, 'level_name': '', 'zone': ''}
 
-PICKLIST_EXCEL = OrderedDict((('WMS Code', 'wms_code'), ('Title', 'title'), ('Category', 'category'), ('Zone', 'zone'),
-                              ('Location', 'location'),
-                              ('Reserved Quantity', 'reserved_quantity'), ('Stock Left', 'stock_left'),
-                              ('Last Picked Location', 'last_picked_locs')
-                              ))
+PICKLIST_EXCEL = OrderedDict((
+                              ('Order ID', 'original_order_id'), ('WMS Code', 'wms_code'), ('Title', 'title'), ('Category', 'category'),
+                              ('Zone', 'zone'), ('Location', 'location'), ('Reserved Quantity', 'reserved_quantity'),
+                              ('Stock Left', 'stock_left'),('Last Picked Location', 'last_picked_locs')
+                            ))
 
 # Campus Sutra
 SHOPCLUES_EXCEL = {'original_order_id': 0, 'order_id': 0, 'quantity': 14, 'title': 7, 'invoice_amount': 44,

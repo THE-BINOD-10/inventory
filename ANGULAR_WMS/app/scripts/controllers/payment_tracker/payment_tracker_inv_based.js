@@ -15,6 +15,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.self_life_ratio = Number(vm.permissions.shelf_life_ratio) || 0;
     vm.industry_type = Session.user_profile.industry_type;
     vm.expect_date = true;
+    // vm.invoice_data = Data.invoice_data;
 
     //process type;
     vm.po_qc = true;
@@ -69,10 +70,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var toggle = DTColumnBuilder.newColumn('Update').withTitle('').notSortable()
 
                  .withOption('width', '25px').renderWith(function(data, type, full, meta) {
-                   // return "<i ng-click='showCase.addRowData($event, "+JSON.stringify(full)+")' class='fa fa-edit'></i>";
-                   return "<span style='color: #2ECC71;text-decoration: underline;cursor: pointer;' ng-click='showCase.addRowData($event, "+JSON.stringify(full)+"); $event.stopPropagation()'>Update</span>";
+                   return "<span style='color: #2ECC71;text-decoration: underline;cursor: pointer;' class='invoice_data_show' ng-click='showCase.addRowData($event, "+JSON.stringify(full)+"); $event.stopPropagation()'>Update</span>";
                  })
-      // row_click_bind = 'td:not(td:last)';
     }
 
     vm.dtColumns.push(toggle);
@@ -83,16 +82,22 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       Service.showNoty('Something went wrong')
     }
 
-
-    vm.row_data = {};
     vm.addRowData = function(event, data) {
-      vm.row_data = {};
-      vm.row_data = data
+      Data.invoice_data = data;
       var elem = event.target;
       var data_tr = angular.element(elem).parent().parent();
-      var html = $compile("<tr class='row-expansion' style='display: none'><td colspan='13'><dt-po-data data='"+JSON.stringify(vm.row_data)+"' preview='showCase.preview'></dt-po-data></td></tr>")($scope);
-      data_tr.after(html);
-      data_tr.next().toggle(1000);
+      if ($(elem).hasClass('invoice_data_show')) {
+        var html = $compile("<tr class='row-expansion' style='display: none'><td colspan='13'><dt-po-data data='"+JSON.stringify(vm.row_data)+"' preview='showCase.preview'></dt-po-data></td></tr>")($scope);
+        data_tr.after(html);
+        data_tr.next().toggle(1000);
+        
+        $(elem).removeClass();
+        $(elem).addClass('invoice_data_hide');
+      } else {
+        $(elem).removeClass('invoice_data_hide');
+        $(elem).addClass('invoice_data_show');
+        data_tr.next().remove();
+      }
     }
 
     $scope.$on('change_filters_data', function(){
@@ -141,11 +146,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 	}
 
   vm.invoice_update = function(form){
-    var data = {order_id: order.order_id, amount: value,
-                  bank: bank, mode_of_payment: mode_of_payment,
-                  remarks: remarks};
 
-    vm.service.apiCall("update_payment_status/", "GET", data).then(function(data){
+    var elem = angular.element($('form'));
+    elem = elem[0];
+    elem = $(elem).serializeArray();
+    elem.push({'name':'invoice_number', 'value':Data.invoice_data.invoice_number});
+
+    vm.service.apiCall("update_payment_status/", "GET", elem).then(function(data){
         if(data.message) {
           console.log(data);
         }

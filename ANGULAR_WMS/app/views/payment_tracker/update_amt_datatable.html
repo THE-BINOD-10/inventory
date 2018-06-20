@@ -28,49 +28,17 @@
     </div>
     <div class="col-md-2 col-sm-2 col-xs-6">
       <div class="form-group">
-        <label class="control-label"> Account </label>
-        <input class="form-control" ng-model="po_data.amount" ng-class="service.get_decimal_perm()" type="text" name="amount">
+        <label class="control-label"> Amount </label>
+        <input class="form-control" ng-model="po_data.amount" ng-class="po_data.service.get_decimal_perm()" type="text" name="amount">
       </div>
     </div>
     <div class="col-md-2 col-sm-2 col-xs-6">
       <div class="form-group">
-        <button type="button" class="pull-right btn btn-success mt20" ng-click="po_data.invoice_update(from)">Save</button>
+        <input type="button" name="save" class="pull-right btn btn-success mt20" ng-click="po_data.invoice_update(update_invoice)" value="Save">
       </div>
     </div>
     <div class="col-md-1 col-sm-1 col-xs-6"></div>
   </div>
-  <!-- <div class="row">
-    <button type="button" class="pull-right btn pop pop-green col-xs-12 col-sm-3 col-md-2" ng-click="po_data.invoice_update(from)">Save</button>
-  </div> -->
-  <!-- <table class="table table-bordered mb20">
-    <thead>
-      <tr>
-        <th>Bank</th>
-        <th>Mode of Pay</th>
-        <th>Remarks</th>
-        <th>Account</th>
-        <th style="width: 200px;">Update Amount</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td><select class="form-control" name="bank" ng-options="key as bank for (key, bank) in po_data.bank_names"
-                  ng-init="po_data.default_bank" ng-model="po_data.default_bank"
-                  ng-selected="bank == po_data.default_bank"></select></td>
-        <td><select class="form-control" name="mode_of_payment"
-                    ng-options="key as mode for (key, mode) in po_data.payment_modes"
-                    ng-init="po_data.default_mode" ng-model="po_data.default_mode"
-                    ng-selected="mode == po_data.default_mode"></select></td>
-        <td><textarea rows="1" class="form-control" cols="10" name="remarks" ng-model="po_data.remarks"></textarea></td>
-        <td><input class="form-control" ng-model="po_data.amount" ng-class="service.get_decimal_perm()" type="text" name="amount" natural-number></td>
-        <td><button type="button" class="pull-right btn pop pop-green col-xs-12 col-sm-3 col-md-2" ng-click="po_data.invoice_update(form)">Save</button></td>
-      </tr>
-      <tr>
-        
-      </tr>
-    </tbody>
-  </table> -->
-  <!-- <span style="cursor: pointer;color: #2ecc71; text-decoration: underline; font-size: 16px;" ng-if="po_data.order_detail_id" ng-click="preview(po_data.order_detail_id);">Custom Order Preview</span> -->
 </div>
 </form>
 </div>

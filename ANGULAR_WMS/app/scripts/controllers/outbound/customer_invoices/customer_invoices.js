@@ -292,7 +292,8 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
       'marketplace': form_data.marketplace.$modelValue,
       'ship_to': form_data.ship_to.$modelValue,
       'sku_id': form_data.sku_id.$modelValue,
-      'title': form_data.title.$modelValue
+      'title': form_data.title.$modelValue,
+      'customer_id': form_data.customer_id.$modelValue
     };
 
     angular.forEach(vm.removed_data, function(data){

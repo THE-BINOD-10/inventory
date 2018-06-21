@@ -1639,6 +1639,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var wo_tax_amt = Number(sku_row_data.value)*Number(sku_row_data.buy_price);
       var tot_tax = Number(sku_row_data.tax_percent) + Number(sku_row_data.cess_percent);
       data.data[0][index].total_amt = wo_tax_amt + (wo_tax_amt * (tot_tax/100));
+
+      var totals = 0;
+      var rows = data.data[0];
+      for(var d in rows) {
+        if(!isNaN(rows[d]['total_amt'])) {
+            totals += rows[d]['total_amt'];
+        }
+      }
+
+      $('.totals').text('Totals: ' + totals);
     }
 }
 

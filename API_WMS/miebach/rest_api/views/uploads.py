@@ -130,6 +130,14 @@ def get_sku_substitution_excel_headers(user):
     return excel_headers
 
 
+def get_purchase_order_excel_headers(user):
+    excel_headers = copy.deepcopy(PURCHASE_ORDER_UPLOAD_MAPPING)
+    userprofile = user.userprofile
+    if not userprofile.user_type == 'marketplace_user':
+        del excel_headers["Seller ID"]
+    return excel_headers
+
+
 '''def check_and_get_marketplace(reader, file_type, no_of_rows, no_of_cols):
     marketplace = ''
     if get_cell_data(0, 0, reader, file_type) == 'Order No.':
@@ -892,9 +900,10 @@ def purchase_order_form(request, user=''):
         response = read_and_send_excel(order_file)
         return response
     wb = Workbook()
-    ws = wb.add_sheet('supplier')
+    ws = wb.add_sheet('Purchase Order')
     header_style = easyxf('font: bold on')
-    for count, header in enumerate(PURCHASE_ORDER_HEADERS):
+    excel_headers = get_purchase_order_excel_headers(user)
+    for count, header in enumerate(excel_headers):
         ws.write(0, count, header, header_style)
 
     return xls_to_response(wb, '%s.purchase_order_form.xls' % str(user.id))
@@ -2284,130 +2293,150 @@ def location_upload(request, user=''):
 
 
 @csrf_exempt
-def validate_purchase_order(open_sheet, user):
+def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname, file_type, demo_data=False):
     index_status = {}
-    for row_idx in range(0, open_sheet.nrows):
-        for col_idx in range(0, len(PURCHASE_ORDER_HEADERS)):
-            cell_data = open_sheet.cell(row_idx, col_idx).value
-            if row_idx == 0:
-                if col_idx == 0 and cell_data != 'PO Reference':
-                    return 'Invalid File'
-                break
-            if col_idx == 2:
+    data_list = []
+    purchase_mapping = get_purchase_order_excel_headers(user)
+    purchase_res = dict(zip(purchase_mapping.values(), purchase_mapping.keys()))
+    excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                                 purchase_mapping)
+    if not set(['po_name', 'po_date', 'po_delivery_date', 'supplier_id', 'wms_code', 'quantity', 'price', 'mrp',
+                'cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax', 'ship_to']).issubset(excel_mapping.keys()):
+        return 'Invalid File', []
+    mapping_fields = {'po_date': 'PO Date', 'po_delivery_date': 'PO Delivery Date', 'mrp': 'MRP',
+                      'cgst_tax': 'CGST Tax', 'sgst_tax': 'SGST Tax', 'igst_tax': 'IGST Tax', 'utgst_tax': 'UTGST Tax',
+                      'cess_tax': 'CESS Tax'}
+    number_fields = ['mrp', 'cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax', 'cess_tax']
+    user_profile = user.userprofile
+    for row_idx in range(1, no_of_rows):
+        data_dict = {}
+        for key, value in excel_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, value, reader, file_type)
+            if key == 'supplier_id':
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))
+                if demo_data:
+                    cell_data = user_profile.prefix + '_' + cell_data
                 if cell_data:
-                    supplier = SupplierMaster.objects.filter(user=user, id=cell_data.upper())
+                    supplier = SupplierMaster.objects.filter(user=user.id, id=cell_data.upper())
                     if not supplier:
                         index_status.setdefault(row_idx, set()).add("Supplier ID doesn't exist")
+                    else:
+                        data_dict['supplier'] = supplier[0]
                 else:
                     index_status.setdefault(row_idx, set()).add('Missing Supplier ID')
-            elif col_idx == 1:
+            elif key in ['po_date', 'po_delivery_date']:
                 if cell_data:
                     try:
                         if isinstance(cell_data, float):
-                            po_date = xldate_as_tuple(cell_data, 0)
+                            data_dict[key] = xldate_as_tuple(cell_data, 0)
                         elif '-' in cell_data:
-                            po_date = datetime.datetime.strptime(cell_data, "%m-%d-%Y")
+                            data_dict[key] = datetime.datetime.strptime(cell_data, "%m-%d-%Y")
                         else:
-                            index_status.setdefault(row_idx, set()).add('Check the date format')
+                            index_status.setdefault(row_idx, set()).add('Check the date format for %s' %
+                                                                        mapping_fields[key])
                     except:
-                        index_status.setdefault(row_idx, set()).add('Check the date format')
-            elif col_idx == 3:
+                        index_status.setdefault(row_idx, set()).add('Check the date format for %s' %
+                                                                    mapping_fields[key])
+            elif key == 'wms_code':
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add('Missing WMS Code')
                 else:
                     if isinstance(cell_data, (int, float)):
                         cell_data = str(int(cell_data))
-                    sku_master = SKUMaster.objects.filter(wms_code=cell_data.upper())
+                    sku_master = SKUMaster.objects.filter(wms_code=cell_data.upper(), user=user.id)
                     if not sku_master:
                         index_status.setdefault(row_idx, set()).add("WMS Code doesn't exist")
-            elif col_idx == 4:
+                    else:
+                        data_dict['sku'] = sku_master[0]
+            elif key == 'seller_id':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Missing Seller ID')
+                else:
+                    if not isinstance(cell_data, (int, float)):
+                        index_status.setdefault(row_idx, set()).add('Seller ID is Number Field')
+                    else:
+                        cell_data = int(cell_data)
+                        seller_master = SellerMaster.objects.filter(seller_id=cell_data, user=user.id)
+                        if not seller_master:
+                            index_status.setdefault(row_idx, set()).add("Seller doesn't exist")
+                        else:
+                            data_dict['seller'] = seller_master[0]
+            elif key == 'quantity':
                 if cell_data:
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(row_idx, set()).add('Quantity should be integer')
+                    else:
+                        data_dict[key] = float(cell_data)
                 else:
                     index_status.setdefault(row_idx, set()).add('Missing Quantity')
-            elif col_idx == 5:
+            elif key == 'price':
                 if cell_data != '':
                     if not isinstance(cell_data, (int, float)):
-                        index_status.setdefault(row_idx, set()).add('Price should be a number')
-
+                        index_status.setdefault(row_idx, set()).add('Unit Price should be a number')
+                    else:
+                        data_dict[key] = float(cell_data)
+            elif key in ['po_name', 'ship_to']:
+                data_dict[key] = cell_data
+            elif cell_data:
+                if key in number_fields:
+                    try:
+                        cell_data = float(cell_data)
+                        data_dict[key] = cell_data
+                    except:
+                        index_status.setdefault(row_idx, set()).add('%s is Number Field' % mapping_fields[key])
+                else:
+                    data_dict[key] = cell_data
+        data_list.append(data_dict)
     if not index_status:
-        return 'Success'
-    wb = Workbook()
-    ws = wb.add_sheet('Purchase Order')
-    header_style = easyxf('font: bold on')
-    headers = copy.copy(PURCHASE_ORDER_HEADERS)
-    headers.append('Status')
-    for count, header in enumerate(headers):
-        ws.write(0, count, header, header_style)
+        return 'Success', data_list
 
-    for row_idx in range(1, open_sheet.nrows):
-        for col_idx in range(0, len(PURCHASE_ORDER_HEADERS)):
-            ws.write(row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value)
-        else:
-            index_data = index_status.get(row_idx, '')
-            if index_data:
-                index_data = ', '.join(index_data)
-            ws.write(row_idx, col_idx + 1, index_data)
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
 
-    wb.save('%s.purchase_order_form.xls' % user)
-    return '%s.purchase_order_form.xls' % user
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
 
 
-def purchase_order_excel_upload(request, open_sheet, user, demo_data=False):
+def purchase_order_excel_upload(request, user, data_list, demo_data=False):
     order_ids = {}
     data_req = {}
     mail_result_data = ""
-    for row_idx in range(1, open_sheet.nrows):
+    user_profile = user.userprofile
+    creation_date = datetime.datetime.now()
+    for final_dict in data_list:
         order_data = copy.deepcopy(PO_SUGGESTIONS_DATA)
         data = copy.deepcopy(PO_DATA)
-        for col_idx in range(0, len(PURCHASE_ORDER_HEADERS)):
-            cell_data = open_sheet.cell(row_idx, col_idx).value
-            if col_idx == 2:
-                if type(cell_data) == float:
-                    cell_data = int(cell_data)
-                else:
-                    cell_data = cell_data.upper()
-                if demo_data:
-                    user_profile = UserProfile.objects.filter(user_id=user.id)
-                    if user_profile:
-                        cell_data = user_profile[0].prefix + '_' + cell_data
-                supplier = SupplierMaster.objects.filter(user=user.id, id=cell_data)
-                if supplier:
-                    order_data['supplier_id'] = cell_data
-            elif col_idx == 3:
-                if type(cell_data) == float:
-                    cell_data = int(cell_data)
-                else:
-                    cell_data = cell_data.upper()
-                sku_master = SKUMaster.objects.filter(wms_code=cell_data, user=user.id)
-                if sku_master:
-                    order_data['sku_id'] = sku_master[0].id
-            elif col_idx == 4:
-                order_data['order_quantity'] = int(cell_data)
-            elif col_idx == 5:
-                try:
-                    cell_data = float(cell_data)
-                except:
-                    cell_data = 0
-                order_data['price'] = cell_data
-            elif col_idx == 1:
-                if cell_data and '-' in str(cell_data):
-                    order_date = cell_data.split('-')
-                    data['po_date'] = datetime.date(int(order_date[2]), int(order_date[0]), int(order_date[1]))
-                elif isinstance(cell_data, float):
-                    year, month, day, hour, minute, second = xldate_as_tuple(cell_data, 0)
-                    data['po_date'] = datetime.datetime(year, month, day, hour, minute, second)
-            elif col_idx == 0:
-                if type(cell_data) == float:
-                    cell_data = int(cell_data)
-                order_data['po_name'] = str(cell_data)
-            elif col_idx == 6:
-                data['ship_to'] = cell_data
-
-        if (order_data['po_name'], order_data['supplier_id'], data['po_date']) not in order_ids.keys():
+        order_data['supplier_id'] = final_dict['supplier'].id
+        order_data['sku_id'] = final_dict['sku'].id
+        order_data['order_quantity'] = final_dict['quantity']
+        order_data['price'] = final_dict['price']
+        order_data['po_name'] = final_dict['po_name']
+        order_data['mrp'] = final_dict.get('mrp', 0)
+        order_data['cgst_tax'] = final_dict.get('cgst_tax', 0)
+        order_data['sgst_tax'] = final_dict.get('sgst_tax', 0)
+        order_data['igst_tax'] = final_dict.get('igst_tax', 0)
+        order_data['utgst_tax'] = final_dict.get('utgst_tax', 0)
+        order_data['cess_tax'] = final_dict.get('cess_tax', 0)
+        order_data['measurement_unit'] = final_dict['sku'].measurement_type
+        order_data['creation_date'] = creation_date
+        if final_dict.get('po_delivery_date', ''):
+            order_data['delivery_date'] = final_dict['po_delivery_date']
+        data['po_date'] = final_dict['po_date']
+        data['ship_to'] = final_dict['ship_to']
+        data['creation_date'] = creation_date
+        seller_id = ''
+        if final_dict.get('seller', ''):
+            seller_id = final_dict['seller'].id
+        if (order_data['po_name'], order_data['supplier_id'], data['po_date'], seller_id) not in order_ids.keys():
             po_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id).order_by('-order_id')
             if not po_data:
                 po_id = 0
@@ -2422,6 +2451,10 @@ def purchase_order_excel_upload(request, open_sheet, user, demo_data=False):
         order_data['status'] = 0
         data1 = OpenPO(**order_data)
         data1.save()
+        if seller_id:
+            SellerPO.objects.create(seller_id=seller_id, open_po_id=data1.id,
+                                    seller_quantity=order_data['order_quantity'], unit_price=order_data['price'],
+                                    creation_date=creation_date)
         purchase_order = OpenPO.objects.get(id=data1.id, sku__user=user.id)
         sup_id = purchase_order.id
         supplier = purchase_order.supplier_id
@@ -2430,15 +2463,14 @@ def purchase_order_excel_upload(request, open_sheet, user, demo_data=False):
             ids_dict[supplier] = po_id
         data['open_po_id'] = sup_id
         data['order_id'] = ids_dict[supplier]
-        user_profile = UserProfile.objects.filter(user_id=user.id)
         if user_profile:
-            data['prefix'] = user_profile[0].prefix
+            data['prefix'] = user_profile.prefix
         order = PurchaseOrder(**data)
         order.save()
         order.po_date = data['po_date']
         order.save()
         mail_result_data = purchase_order_dict(data1, data_req, purchase_order, user, order)
-    if mail_result_data:
+    if mail_result_data and get_misc_value('raise_po', user.id) == 'true':
         mail_status = purchase_upload_mail(request, mail_result_data, user)
     return 'success'
 
@@ -2521,19 +2553,17 @@ def purchase_upload_mail(request, data_to_send, user):
 @login_required
 @get_admin_user
 def purchase_order_upload(request, user=''):
-    fname = request.FILES['files']
-    if fname.name.split('.')[-1] == 'xls' or fname.name.split('.')[-1] == 'xlsx':
-        try:
-            open_book = open_workbook(filename=None, file_contents=fname.read())
-            open_sheet = open_book.sheet_by_index(0)
-        except:
-            return HttpResponse('Invalid File')
-        status = validate_purchase_order(open_sheet, str(user.id))
-        if status != 'Success':
-            return HttpResponse(status)
-
-        purchase_order_excel_upload(request, open_sheet, user)
-
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+    except:
+        return HttpResponse('Invalid File')
+    status, data_list = validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname, file_type)
+    if status != 'Success':
+        return HttpResponse(status)
+    purchase_order_excel_upload(request, user, data_list)
     return HttpResponse('Success')
 
 

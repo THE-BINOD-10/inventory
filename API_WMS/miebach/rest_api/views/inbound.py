@@ -6818,10 +6818,10 @@ def get_debit_note_data(rtv_number, user):
     total_sgst_value = 0
     total_igst_value = 0
     total_utgst_value = 0
-    ware_house = UserProfile.objects.filter(user = user).values('company_name', 'cin_number', 'location', 'city', 'state', 'country', 'phone_number', 'pin_code')
+    ware_house = UserProfile.objects.filter(user = user).values('company_name', 'cin_number', 'location', 'city', 'state', 'country', 'phone_number', 'pin_code', 'gst_number')
     data_dict.setdefault('warehouse_details', [])
     if len(ware_house):
-        data_dict['warehouse_details'].append({'company_name' : ware_house[0]['company_name'], 'cin_number' : ware_house[0]['cin_number'], 'location' : ware_house[0]['location'], 'city' : ware_house[0]['city'], 'state' : ware_house[0]['state'], 'country' : ware_house[0]['country'], 'phone_number' : ware_house[0]['phone_number'], 'pin_code' : ware_house[0]['pin_code']})
+        data_dict['warehouse_details'].append({'company_name' : ware_house[0]['company_name'], 'cin_number' : ware_house[0]['cin_number'], 'location' : ware_house[0]['location'], 'city' : ware_house[0]['city'], 'state' : ware_house[0]['state'], 'country' : ware_house[0]['country'], 'phone_number' : ware_house[0]['phone_number'], 'pin_code' : ware_house[0]['pin_code'], 'gst_number' : ware_house[0]['gst_number'] })
     for obj in return_to_vendor:
         get_po = obj.seller_po_summary.purchase_order.open_po
         data_dict['supplier_name'] = get_po.supplier.name
@@ -6851,8 +6851,8 @@ def get_debit_note_data(rtv_number, user):
         data_dict_item['utgst'] = get_po.utgst_tax
         data_dict_item['utgst_value'] = ((data_dict_item['taxable_value'] * data_dict_item['utgst'])/100)
         data_dict_item['total_with_gsts'] = data_dict_item['taxable_value'] + data_dict_item['cgst_value'] + data_dict_item['igst_value'] + data_dict_item['sgst_value'] + data_dict_item['utgst_value']
-        data_dict['rtv_creation_date'] = obj.creation_date
-        data_dict['date_of_issue_of_original_invoice'] = obj.seller_po_summary.creation_date
+        data_dict['rtv_creation_date'] = get_local_date(user, obj.creation_date)
+        data_dict['date_of_issue_of_original_invoice'] = get_local_date(user, obj.seller_po_summary.creation_date)
         total_with_gsts = total_with_gsts + data_dict_item['total_with_gsts']
         total_qty = total_qty + data_dict_item['order_qty']
         total_invoice_value = total_invoice_value + data_dict_item['total_with_gsts']
@@ -6863,6 +6863,7 @@ def get_debit_note_data(rtv_number, user):
         total_sgst_value = total_sgst_value + data_dict_item['sgst_value']
         total_igst_value = total_igst_value + data_dict_item['igst_value']
         total_utgst_value = total_utgst_value + data_dict_item['utgst_value']
+        data_dict['grn_no'] = get_po_reference(obj.seller_po_summary.purchase_order) + '/' + str(obj.seller_po_summary.receipt_number)
         data_dict['item_details'].append(data_dict_item)
     data_dict['total_qty'] = total_qty
     data_dict['total_without_discount'] = total_without_discount
@@ -6942,7 +6943,7 @@ def create_rtv(request, user=''):
 		return render(request, 'templates/toggle/milk_basket_print.html', report_data_dict)
         """
         report_data_dict = {}
-        show_data_invoice = get_debit_note_data('rtv1', 3)
+        show_data_invoice = get_debit_note_data('rtv1', user)
         #common.py - get_po_reference - order_id user / PO - seller_po_summary - receit_no creation_date
         return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice' : [show_data_invoice]})
     except Exception as e:

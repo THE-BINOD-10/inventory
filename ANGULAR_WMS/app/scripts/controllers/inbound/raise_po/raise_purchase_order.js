@@ -126,7 +126,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
                     vm.model_data.seller_types.push(seller_single.id + ':' + seller_single.name);
                   });
 
-                  vm.default_status = (Session.user_profile.user_type == 'marketplace_user')? true : false;
+                  vm.default_status = (Session.user_profile.user_type == 'marketplace_user' && Session.user_profile.industry_type != 'FMCG')? true : false;
                   vm.getCompany();
                   vm.seller_change1 = function(type) {
 

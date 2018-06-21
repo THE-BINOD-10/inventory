@@ -291,6 +291,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var that = vm;
       var elem = angular.element($('form'));
       elem = elem[0];
+
+      var buy_price = parseInt($(elem).find('input[name="buy_price"]').val());
+      var mrp = parseInt($(elem).find('input[name="mrp"]').val());
+
+      if(buy_price > mrp) {
+        pop_msg("Buy Price should be less than or equal to MRP");
+        return false;
+      }
       elem = $(elem).serializeArray();
       var url = "confirm_grn/"
       if(vm.po_qc) {

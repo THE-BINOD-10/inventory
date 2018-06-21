@@ -164,6 +164,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         return nRow;
     }
 
+    $scope.getExpiryDate = function(index){
+        var mfg_date = new Date(vm.model_data.data[0][index].mfg_date);
+        var expiry = new Date(mfg_date.getFullYear(),mfg_date.getMonth(),mfg_date.getDate()+vm.shelf_life);
+        vm.model_data.data[0][index].exp_date = (expiry.getMonth() + 1) + "/" + expiry.getDate() + "/" + expiry.getFullYear() ;
+    }
+
     vm.check_exp_date = function(sel_date, shelf_life_ratio){
       var mfg_date = new Date(vm.model_data.data[0][0].mfg_date);
       var exp_date = new Date(sel_date);
@@ -290,6 +296,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var that = vm;
       var elem = angular.element($('form'));
       elem = elem[0];
+
+      var buy_price = parseInt($(elem).find('input[name="buy_price"]').val());
+      var mrp = parseInt($(elem).find('input[name="mrp"]').val());
+
+      if(buy_price > mrp) {
+        pop_msg("Buy Price should be less than or equal to MRP");
+        return false;
+      }
       elem = $(elem).serializeArray();
       var url = "confirm_grn/"
       if(vm.po_qc) {

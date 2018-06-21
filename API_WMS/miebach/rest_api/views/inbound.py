@@ -6885,7 +6885,6 @@ def create_rtv(request, user=''):
     request_data = dict(request.POST.iterlists())
     data_list = []
     try:
-        """
         for ind in range(0, len(request_data['summary_id'])):
             data_dict = {}
             if request_data['location'][ind] and request_data['return_qty'][ind]:
@@ -6935,16 +6934,8 @@ def create_rtv(request, user=''):
             update_stock_detail(final_dict['stocks'], float(final_dict['quantity']), user)
             ReturnToVendor.objects.create(rtv_number=rtv_number, seller_po_summary_id=final_dict['summary_id'],
                                           quantity=final_dict['quantity'], status=0, creation_date=datetime.datetime.now())
-		get_debit_note_details = get_debit_note_data(rtv_number, user)
-		#func1(rtv_no, user)]
-		#return_to_vendor check mode
-		#return HttpResponse("Success")
-		report_data_dict = {}
-		return render(request, 'templates/toggle/milk_basket_print.html', report_data_dict)
-        """
         report_data_dict = {}
-        show_data_invoice = get_debit_note_data('rtv1', user)
-        #common.py - get_po_reference - order_id user / PO - seller_po_summary - receit_no creation_date
+        show_data_invoice = get_debit_note_data(rtv_number, user)
         return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice' : [show_data_invoice]})
     except Exception as e:
         import traceback

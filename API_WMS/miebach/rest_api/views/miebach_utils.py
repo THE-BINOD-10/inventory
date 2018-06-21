@@ -243,6 +243,17 @@ MARKETPLACE_SKU_HEADERS = ['WMS Code', 'Flipkart SKU', 'Snapdeal SKU', 'Paytm SK
 PURCHASE_ORDER_HEADERS = ['PO Reference', 'PO Date(MM-DD-YYYY)', 'Supplier ID', 'WMS SKU Code', 'Quantity', 'Price',
                           'Ship TO']
 
+PURCHASE_ORDER_UPLOAD_MAPPING = OrderedDict((('Seller ID', 'seller_id'), ('PO Reference', 'po_name'),
+                                            ('PO Date(MM-DD-YYYY)', 'po_date'),
+                                            ('PO Delivery Date(MM-DD-YYYY)', 'po_delivery_date'),
+                                            ('Supplier ID', 'supplier_id'),
+                                            ('WMS SKU Code', 'wms_code'), ('Quantity', 'quantity'),
+                                            ('Unit Price', 'price'), ('MRP', 'mrp'), ('CGST(%)', 'cgst_tax'),
+                                            ('SGST(%)', 'sgst_tax'), ('IGST(%)', 'igst_tax'),
+                                            ('UTGST(%)', 'utgst_tax'), ('CESS(%)', 'cess_tax'),
+                                            ('Ship TO', 'ship_to'),
+                                            ))
+
 LOCK_FIELDS = ['', 'Inbound', 'Outbound', 'Inbound and Outbound']
 
 LOCATION_FIELDS = ((('Zone ID *', 'zone_id'), ('Location *', 'location')),

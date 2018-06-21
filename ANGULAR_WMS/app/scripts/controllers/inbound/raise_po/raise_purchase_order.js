@@ -98,6 +98,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
               vm.model_data = {};
               angular.copy(empty_data, vm.model_data);
 
+              vm.model_data['supplier_id_name'] = vm.model_data.supplier_id + ":" + vm.model_data.supplier_name;
+
               if(vm.model_data.receipt_type == 'Hosted Warehouse') {
 
                 vm.model_data.seller_type = vm.model_data.data[0].fields.dedicated_seller;
@@ -126,7 +128,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
                     vm.model_data.seller_types.push(seller_single.id + ':' + seller_single.name);
                   });
 
-                  vm.default_status = (Session.user_profile.user_type == 'marketplace_user')? true : false;
+                  vm.default_status = (Session.user_profile.user_type == 'marketplace_user' && Session.user_profile.industry_type != 'FMCG')? true : false;
                   vm.getCompany();
                   vm.seller_change1 = function(type) {
 

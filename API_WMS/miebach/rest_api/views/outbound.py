@@ -8050,6 +8050,9 @@ def update_dc(request, user=''):
     order_id = form_dict['form_data[order_no]'][0]
     pick_number = form_dict['form_data[pick_number]'][0]
     cm_id = form_dict['form_data[customer_id]'][0]
+    req_data = eval(request.POST.get("data"))
+    if req_data:
+        original_order_id = req_data[0]["order_id"]
     if not cm_id:
         log.info("No Customer Master Id found")
         return HttpResponse(json.dumps({'message': 'failed'}))
@@ -8081,6 +8084,7 @@ def update_dc(request, user=''):
                     ord_obj = OrderDetail.objects.filter(id=ord_det_id)
                     if ord_obj:
                         ord_obj = ord_obj[0]
+                        original_order_id = ord_obj.original_order_id
                         cust_objs = CustomerOrderSummary.objects.filter(order__id=ord_obj.id)
                         if cust_objs:
                             cust_obj = cust_objs[0]
@@ -8094,6 +8098,7 @@ def update_dc(request, user=''):
             if ord_det_id:
                 ord_obj = OrderDetail.objects.filter(id=ord_det_id)
                 if ord_obj:
+                    original_order_id = ord_obj[0].original_order_id
                     ord_obj[0].quantity = int(quantity)
                     ord_obj[0].invoice_amount = invoice_amount
                     ord_obj[0].unit_price = unit_price
@@ -8123,9 +8128,8 @@ def update_dc(request, user=''):
                     else:
                         price = sku_qs[0].price
                     net_amount = price * int(quantity)"""
-                    org_order_id = 'MN%s' % order_id
                     order_detail_dict = {'sku_id': sku_id, 'title': title, 'quantity': quantity,
-                                         'order_id': order_id, 'original_order_id': org_order_id, 'user': user.id,
+                                         'order_id': order_id, 'original_order_id': original_order_id, 'user': user.id,
                                          'customer_id': customer_id, 'customer_name': customer_name,
                                          'shipment_date': shipment_date, 'address': address, 'price': unit_price,
                                          'unit_price': unit_price, 'creation_date': ord_obj[0].creation_date}

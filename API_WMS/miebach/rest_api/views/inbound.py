@@ -2010,7 +2010,6 @@ def save_po_location(put_zone, temp_dict, seller_received_list=[], run_segregati
         temp_dict['seller_id'] = po_received.get('seller_id', '')
         batch_dict['transact_type'] = 'po'
         batch_dict['transact_id'] = data.id
-        print batch_dict
         batch_obj = get_or_create_batch_detail(batch_dict, temp_dict)
         if sellable_segregation == 'true' and run_segregation:
             if batch_obj and po_received.get('id', ''):
@@ -2475,7 +2474,7 @@ def confirm_grn(request, confirm_returns='', user=''):
     data_dict = ''
     headers = (
     'WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
-    'UTGST(%)', 'Amount', 'Description')
+    'UTGST(%)', 'Amount', 'Description', 'CESS(%)')
     putaway_data = {headers: []}
     total_received_qty = 0
     total_order_qty = 0
@@ -2503,15 +2502,15 @@ def confirm_grn(request, confirm_returns='', user=''):
 
         for key, value in all_data.iteritems():
             entry_price = float(key[3]) * float(value)
-            entry_tax = float(key[4]) + float(key[5]) + float(key[6]) + float(key[7])
+            entry_tax = float(key[4]) + float(key[5]) + float(key[6]) + float(key[7] + float(key[9]))
             if entry_tax:
                 entry_price += (float(entry_price) / 100) * entry_tax
             putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5],
-                                          key[6], key[7], entry_price, key[8]))
+                                          key[6], key[7], entry_price, key[8], key[9]))
             total_order_qty += order_quantity_dict[key[0]]
             total_received_qty += value
             total_price += entry_price
-            total_tax += (key[4] + key[5] + key[6] + key[7])
+            total_tax += (key[4] + key[5] + key[6] + key[7], key[9])
 
         if is_putaway == 'true':
             btn_class = 'inb-putaway'
@@ -2554,13 +2553,11 @@ def confirm_grn(request, confirm_returns='', user=''):
                                 'po_number': po_number, 'bill_no': request.POST.get('invoice_number', ''),
                                 'order_date': order_date, 'order_id': order_id,
                                 'btn_class': btn_class, 'bill_date': bill_date }
-
             misc_detail = get_misc_value('receive_po', user.id)
             if misc_detail == 'true':
                 t = loader.get_template('templates/toggle/grn_form.html')
                 rendered = t.render(report_data_dict)
-                write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
-                                   order_date, internal=True, report_type="Goods Receipt Note")
+                write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data, order_date, internal=True, report_type="Goods Receipt Note")
             return render(request, 'templates/toggle/c_putaway_toggle.html', report_data_dict)
         else:
             return HttpResponse(status_msg)
@@ -6976,9 +6973,96 @@ def get_po_putaway_summary(request, user=''):
                                     'po_reference': po_reference, 'order_ids': order_ids,
                                     'supplier_name': supplier_name, 'order_date': order_date,
                                     'remarks': remarks, 'seller_details': seller_details,
-                                    'invoice_number': invoice_number, 'invoice_date': invoice_date
-                        }))
+                                    'invoice_number': invoice_number, 'invoice_date': invoice_date}))
 
+def get_debit_note_data(rtv_number, user):
+    return_to_vendor = ReturnToVendor.objects.filter(rtv_number=rtv_number)
+    data_dict = {}
+    total_invoice_value = 0
+    total_qty = 0
+    total_with_gsts = 0
+    total_qty = 0
+    total_invoice_value = 0
+    total_without_discount = 0
+    total_only_discount = 0
+    total_taxable_value = 0
+    total_cgst_value = 0
+    total_sgst_value = 0
+    total_igst_value = 0
+    total_utgst_value = 0
+    ware_house = UserProfile.objects.filter(user = user).values('company_name', 'cin_number', 'location', 'city', 'state', 'country', 'phone_number', 'pin_code', 'gst_number')
+    data_dict.setdefault('warehouse_details', [])
+    if len(ware_house):
+        data_dict['warehouse_details'].append({'company_name' : ware_house[0]['company_name'], 'cin_number' : ware_house[0]['cin_number'], 'location' : ware_house[0]['location'], 'city' : ware_house[0]['city'], 'state' : ware_house[0]['state'], 'country' : ware_house[0]['country'], 'phone_number' : ware_house[0]['phone_number'], 'pin_code' : ware_house[0]['pin_code'], 'gst_number' : ware_house[0]['gst_number'] })
+    for obj in return_to_vendor:
+        get_po = obj.seller_po_summary.purchase_order.open_po
+        data_dict['supplier_name'] = get_po.supplier.name
+        data_dict['supplier_address'] = get_po.supplier.address
+        data_dict['city'] = get_po.supplier.city
+        data_dict['state'] = get_po.supplier.state
+        data_dict['pincode'] = get_po.supplier.pincode
+        data_dict['pan'] = get_po.supplier.pan_number
+        data_dict.setdefault('item_details', [])
+        data_dict_item = {}
+        data_dict_item['sku_code'] = get_po.sku.sku_code
+        data_dict_item['sku_desc'] = get_po.sku.sku_desc
+        data_dict_item['hsn_code'] = str(get_po.sku.hsn_code)
+        data_dict_item['order_qty'] = get_po.order_quantity
+        data_dict_item['price'] = get_po.sku.price
+        data_dict_item['measurement_unit'] = get_po.sku.measurement_type
+        data_dict_item['discount'] = get_po.sku.discount_percentage
+        data_dict['invoice_num'] = obj.seller_po_summary.invoice_number
+        data_dict_item['cgst'] = get_po.cgst_tax
+        data_dict_item['sgst'] = get_po.sgst_tax
+        data_dict_item['igst'] = get_po.igst_tax
+        data_dict_item['utgst'] = get_po.utgst_tax
+        batch_detail = obj.seller_po_summary.batch_detail
+        if batch_detail:
+            if batch_detail.buy_price:
+                data_dict_item['price'] = batch_detail.buy_price
+            if batch_detail.tax_percent:
+                temp_tax_percent = batch_detail.tax_percent
+                if get_po.supplier.tax_type == 'intra_state':
+                    temp_tax_percent = temp_tax_percent/ 2
+                    data_dict_item['cgst'] = truncate_float(temp_tax_percent, 1)
+                    data_dict_item['sgst'] = truncate_float(temp_tax_percent, 1)
+                else:
+                    data_dict_item['igst'] = temp_tax_percent
+        data_dict_item['total_amt'] = data_dict_item['price'] * data_dict_item['order_qty']
+        data_dict_item['discount_amt'] = ((data_dict_item['total_amt'] * data_dict_item['discount'])/100)
+        data_dict_item['taxable_value'] = data_dict_item['total_amt'] - data_dict_item['discount_amt']
+        data_dict_item['cgst_value'] = ((data_dict_item['taxable_value'] * data_dict_item['cgst'])/100)
+        data_dict_item['igst_value'] = ((data_dict_item['taxable_value'] * data_dict_item['igst'])/100)
+        data_dict_item['sgst_value'] = ((data_dict_item['taxable_value'] * data_dict_item['sgst'])/100)
+        data_dict_item['utgst_value'] = ((data_dict_item['taxable_value'] * data_dict_item['utgst'])/100)
+        data_dict_item['total_with_gsts'] = data_dict_item['taxable_value'] + data_dict_item['cgst_value'] + \
+                                            data_dict_item['igst_value'] + data_dict_item['sgst_value'] + data_dict_item['utgst_value']
+        data_dict['rtv_creation_date'] = get_local_date(user, obj.creation_date)
+        data_dict['date_of_issue_of_original_invoice'] = get_local_date(user, obj.seller_po_summary.creation_date)
+        total_with_gsts = total_with_gsts + data_dict_item['total_with_gsts']
+        total_qty = total_qty + data_dict_item['order_qty']
+        total_invoice_value = total_invoice_value + data_dict_item['total_with_gsts']
+        total_without_discount = total_without_discount + data_dict_item['total_amt']
+        total_only_discount = total_only_discount + data_dict_item['discount']
+        total_taxable_value = total_taxable_value + data_dict_item['taxable_value']
+        total_cgst_value = total_cgst_value + data_dict_item['cgst_value']
+        total_sgst_value = total_sgst_value + data_dict_item['sgst_value']
+        total_igst_value = total_igst_value + data_dict_item['igst_value']
+        total_utgst_value = total_utgst_value + data_dict_item['utgst_value']
+        data_dict['grn_no'] = get_po_reference(obj.seller_po_summary.purchase_order) + '/' + str(obj.seller_po_summary.receipt_number)
+        data_dict['item_details'].append(data_dict_item)
+    data_dict['total_qty'] = total_qty
+    data_dict['total_without_discount'] = total_without_discount
+    data_dict['total_only_discount'] = total_only_discount
+    data_dict['total_taxable_value'] = total_taxable_value
+    data_dict['total_cgst_value'] = total_cgst_value
+    data_dict['total_sgst_value'] = total_sgst_value
+    data_dict['total_igst_value'] = total_igst_value
+    data_dict['total_utgst_value'] = total_utgst_value
+    data_dict['total_with_gsts'] = total_with_gsts
+    data_dict['total_invoice_value'] = total_invoice_value
+    data_dict['rtv_number'] = rtv_number
+    return data_dict
 
 @csrf_exempt
 @login_required
@@ -7036,10 +7120,13 @@ def create_rtv(request, user=''):
             update_stock_detail(final_dict['stocks'], float(final_dict['quantity']), user)
             ReturnToVendor.objects.create(rtv_number=rtv_number, seller_po_summary_id=final_dict['summary_id'],
                                           quantity=final_dict['quantity'], status=0, creation_date=datetime.datetime.now())
-        return HttpResponse("Success")
+        report_data_dict = {}
+        show_data_invoice = get_debit_note_data(rtv_number, user)
+        return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice' : [show_data_invoice]})
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info("Exception raised while creating RTV for user %s and request data is %s and error is %s" %
                  (str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse("Create RTV Failed")
+

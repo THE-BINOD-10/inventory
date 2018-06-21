@@ -164,10 +164,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         return nRow;
     }
 
-    $scope.getExpiryDate = function(index){
-        var mfg_date = new Date(vm.model_data.data[0][index].mfg_date);
+    $scope.getExpiryDate = function(index, parent_index){
+        var mfg_date = new Date(vm.model_data.data[parent_index][index].mfg_date);
         var expiry = new Date(mfg_date.getFullYear(),mfg_date.getMonth(),mfg_date.getDate()+vm.shelf_life);
-        vm.model_data.data[0][index].exp_date = (expiry.getMonth() + 1) + "/" + expiry.getDate() + "/" + expiry.getFullYear() ;
+        vm.model_data.data[parent_index][index].exp_date = (expiry.getMonth() + 1) + "/" + expiry.getDate() + "/" + expiry.getFullYear() ;
         $('.mfgDate').each(function(){
             if($(this).val() != ""){
                 var mfg_date = new Date($(this).val());
@@ -180,17 +180,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     }
 
-    vm.check_exp_date = function(sel_date, shelf_life_ratio, index){
-      var mfg_date = new Date(vm.model_data.data[0][index].mfg_date);
+    vm.check_exp_date = function(sel_date, shelf_life_ratio, index, parent_index){
+      var mfg_date = new Date(vm.model_data.data[parent_index][index].mfg_date);
       var exp_date = new Date(sel_date);
 
-      if (exp_date < mfg_date && vm.model_data.data[0][index].mfg_date) {
+      if (exp_date < mfg_date && vm.model_data.data[parent_index][index].mfg_date) {
         Service.showNoty('Your selected date is less than manufacturer date.');
-        vm.model_data.data[0][index].exp_date = '';
-      } else if(!vm.model_data.data[0][index].mfg_date){
+        vm.model_data.data[parent_index][index].exp_date = '';
+      } else if(!vm.model_data.data[parent_index][index].mfg_date){
 
         Service.showNoty('Please choose manufacturer date first');
-        vm.model_data.data[0][index].exp_date = '';
+        vm.model_data.data[parent_index][index].exp_date = '';
       } else {
         if (vm.shelf_life && shelf_life_ratio) {
           var res_days = (vm.shelf_life * (shelf_life_ratio / 100));
@@ -208,7 +208,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             
           } else {
             Service.showNoty('Please choose proper date');
-            vm.model_data.data[0][index].exp_date = '';
+            vm.model_data.data[parent_index][index].exp_date = '';
           }
         }
       }
@@ -258,6 +258,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     function add_wms_code() {
       vm.model_data.data.push([{"wms_code":"", "po_quantity":"", "receive_quantity":"", "price":"", "dis": false,
                                 "order_id": vm.model_data.data[0][0].order_id, is_new: true, "unit": "",
+                                "buy_price": "", "cess_percent": "", "tax_percent": "", "total_amt": "",
                                 "sku_details": [{"fields": {"load_unit_handle": ""}}]}]);
       //vm.new_sku = true
     }
@@ -1620,9 +1621,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     });
   }
 
-  vm.calc_total_amt = function(event, data, index) {
+  vm.calc_total_amt = function(event, data, index, parent_index) {
       var sku_row_data = {};
-      angular.copy(data.data[0][index], sku_row_data);
+      angular.copy(data.data[parent_index][index], sku_row_data);
       if(sku_row_data.buy_price == ''){
         sku_row_data.buy_price = 0;
       }
@@ -1637,13 +1638,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
       var wo_tax_amt = Number(sku_row_data.value)*Number(sku_row_data.buy_price);
       var tot_tax = Number(sku_row_data.tax_percent) + Number(sku_row_data.cess_percent);
-      data.data[0][index].total_amt = wo_tax_amt + (wo_tax_amt * (tot_tax/100));
+      data.data[parent_index][index].total_amt = wo_tax_amt + (wo_tax_amt * (tot_tax/100));
 
       var totals = 0;
-      var rows = data.data[0];
-      for(var d in rows) {
-        if(!isNaN(rows[d]['total_amt'])) {
-            totals += rows[d]['total_amt'];
+      for(var index in data.data) {
+        var rows = data.data[index];
+        for (var d in rows) {
+            if(!isNaN(rows[d]['total_amt'])) {
+                totals += rows[d]['total_amt'];
+            }
         }
       }
 

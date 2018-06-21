@@ -5601,7 +5601,8 @@ def get_invoice_payment_tracker(request, user=''):
     customer_id = request.GET.get('customer_id', '')
     if not invoice_number:
         return "Invoice number is missing"
-    user_filter = {'order__user': user.id, "invoice_number": invoice_number, "order__customer_id": customer_id}
+    user_filter = {'order__user': user.id, "invoice_number": invoice_number,
+                   "order__customer_id": customer_id, 'order_status_flag__in': ['delivery_challans', 'customer_invoices']}
     result_values = ['challan_number', 'order__order_id', 'order__original_order_id',
                      'order__customer_id', 'order__customer_name']
     #customer_id = request.GET['id']
@@ -5762,10 +5763,10 @@ def update_payment_status(request, user=''):
         order_ids = list(set(seller_summary.values_list('order__order_id', flat=True)))
         order_ids = map(lambda x: str(x), order_ids)
         data_dict['order_id'] = order_ids
+    payment = float(data_dict['amount'][0])
     for i in range(0, len(data_dict['order_id'])):
-        if not data_dict['amount'][i]:
+        if not data_dict['amount']:
             continue
-        payment = float(data_dict['amount'][i])
         order_details = OrderDetail.objects.filter(order_id=data_dict['order_id'][i], user=user.id,
                                                    payment_received__lt=F('invoice_amount'))
         for order in order_details:
@@ -7599,7 +7600,8 @@ def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, o
                                                         sor_id=data['seller_order__sor_id']).aggregate(Sum('quantity'))[
                     'quantity__sum']
                 total_quantity = data['total_quantity']
-                picked_amount = order_summaries.filter(order__original_order_id=data['order__original_order_id'])\
+                picked_amount = order_summaries.filter(seller_order__order__original_order_id=\
+                                               data['seller_order__order__original_order_id'])\
                                                .values('order__sku_id', 'order__invoice_amount', 'order__quantity').distinct()\
                                                .annotate(pic_qty=Sum('quantity'))\
                                                .annotate(cur_amt=(F('order__invoice_amount')/F('order__quantity'))* F('pic_qty'))\

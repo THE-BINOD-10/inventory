@@ -153,12 +153,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     })
   }
 
-  vm.change_amount = function(data) {
+  vm.change_amount = function(data, flag='') {
 
-	  if(Number(data.amount) > data.receivable) {
-	    data.amount = data.receivable;
-	  }
-	}
+    if (!flag) {
+      if(Number(data.amount) > Number(data.receivable)) {
+        data.amount = data.receivable;
+        Service.showNoty('You can enter '+data.receivable+' amount only');
+      }
+    } else {
+      if (Number(data) > Number(Data.invoice_data.payment_receivable)) {
+        vm.amount = Data.invoice_data.payment_receivable;
+        Service.showNoty('You can enter '+Data.invoice_data.payment_receivable+' amount only');
+      }
+    }
+  }
 
 	vm.order_update = function(event){
 

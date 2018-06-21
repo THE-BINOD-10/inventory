@@ -286,8 +286,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       // data.push({name: 'exp_date', value: form.exp_date.$viewValue});
       // data.push({name: 'po_unit', value: form.po_unit.$viewValue});
       // data.push({name: 'tax_per', value: form.tax_per.$viewValue});
-
-     if(check_receive()){
+    if(check_receive()){
       var that = vm;
       var elem = angular.element($('form'));
       elem = elem[0];

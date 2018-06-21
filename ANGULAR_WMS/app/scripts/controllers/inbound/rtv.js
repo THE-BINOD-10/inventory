@@ -123,6 +123,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           if(data.message) {
             angular.copy(data.data, vm.model_data);
               vm.title = "Create RTV";
+              vm.print_enable = false;
               $state.go('app.inbound.rtv.details');
           }
         });

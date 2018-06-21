@@ -2010,7 +2010,6 @@ def save_po_location(put_zone, temp_dict, seller_received_list=[], run_segregati
         temp_dict['seller_id'] = po_received.get('seller_id', '')
         batch_dict['transact_type'] = 'po'
         batch_dict['transact_id'] = data.id
-        print batch_dict
         batch_obj = get_or_create_batch_detail(batch_dict, temp_dict)
         if sellable_segregation == 'true' and run_segregation:
             if batch_obj and po_received.get('id', ''):
@@ -7012,18 +7011,32 @@ def get_debit_note_data(rtv_number, user):
         data_dict_item['price'] = get_po.sku.price
         data_dict_item['measurement_unit'] = get_po.sku.measurement_type
         data_dict_item['discount'] = get_po.sku.discount_percentage
+        data_dict['invoice_num'] = obj.seller_po_summary.invoice_number
+        data_dict_item['cgst'] = get_po.cgst_tax
+        data_dict_item['sgst'] = get_po.sgst_tax
+        data_dict_item['igst'] = get_po.igst_tax
+        data_dict_item['utgst'] = get_po.utgst_tax
+        batch_detail = obj.seller_po_summary.batch_detail
+        if batch_detail:
+            if batch_detail.buy_price:
+                data_dict_item['price'] = batch_detail.buy_price
+            if batch_detail.tax_percent:
+                temp_tax_percent = batch_detail.tax_percent
+                if get_po.supplier.tax_type == 'intra_state':
+                    temp_tax_percent = temp_tax_percent/ 2
+                    data_dict_item['cgst'] = truncate_float(temp_tax_percent, 1)
+                    data_dict_item['sgst'] = truncate_float(temp_tax_percent, 1)
+                else:
+                    data_dict_item['igst'] = temp_tax_percent
         data_dict_item['total_amt'] = data_dict_item['price'] * data_dict_item['order_qty']
         data_dict_item['discount_amt'] = ((data_dict_item['total_amt'] * data_dict_item['discount'])/100)
         data_dict_item['taxable_value'] = data_dict_item['total_amt'] - data_dict_item['discount_amt']
-        data_dict_item['cgst'] = get_po.cgst_tax
         data_dict_item['cgst_value'] = ((data_dict_item['taxable_value'] * data_dict_item['cgst'])/100)
-        data_dict_item['igst'] = get_po.igst_tax
         data_dict_item['igst_value'] = ((data_dict_item['taxable_value'] * data_dict_item['igst'])/100)
-        data_dict_item['sgst'] = get_po.sgst_tax
         data_dict_item['sgst_value'] = ((data_dict_item['taxable_value'] * data_dict_item['sgst'])/100)
-        data_dict_item['utgst'] = get_po.utgst_tax
         data_dict_item['utgst_value'] = ((data_dict_item['taxable_value'] * data_dict_item['utgst'])/100)
-        data_dict_item['total_with_gsts'] = data_dict_item['taxable_value'] + data_dict_item['cgst_value'] + data_dict_item['igst_value'] + data_dict_item['sgst_value'] + data_dict_item['utgst_value']
+        data_dict_item['total_with_gsts'] = data_dict_item['taxable_value'] + data_dict_item['cgst_value'] + \
+                                            data_dict_item['igst_value'] + data_dict_item['sgst_value'] + data_dict_item['utgst_value']
         data_dict['rtv_creation_date'] = get_local_date(user, obj.creation_date)
         data_dict['date_of_issue_of_original_invoice'] = get_local_date(user, obj.seller_po_summary.creation_date)
         total_with_gsts = total_with_gsts + data_dict_item['total_with_gsts']

@@ -2511,7 +2511,7 @@ def confirm_grn(request, confirm_returns='', user=''):
             total_order_qty += order_quantity_dict[key[0]]
             total_received_qty += value
             total_price += entry_price
-            total_tax += (key[4] + key[5] + key[6] + key[7], key[9])
+            total_tax += (key[4] + key[5] + key[6] + key[7] + key[9])
 
         if is_putaway == 'true':
             btn_class = 'inb-putaway'

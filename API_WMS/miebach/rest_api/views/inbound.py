@@ -2354,11 +2354,17 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
         purchase_data = get_purchase_order_data(data)
         temp_quantity = data.received_quantity
         unit = ''
+        sku_row_buy_price = 0
+        sku_row_cess_percent = 0
+        sku_row_tax_percent = 0
         if 'unit' in myDict.keys():
             unit = myDict['unit'][i]
-        sku_row_buy_price = myDict['buy_price'][i]
-        sku_row_cess_percent = myDict['cess_percent'][i]
-        sku_row_tax_percent = myDict['tax_percent'][i]
+        if 'buy_price' in myDict:
+            sku_row_buy_price = myDict['buy_price'][i]
+        if 'cess_percent' in myDict:
+            sku_row_cess_percent = myDict['cess_percent'][i]
+        if 'tax_percent' in myDict:
+            sku_row_tax_percent = myDict['tax_percent'][i]
         if sku_row_buy_price:
             purchase_data['price'] = float(sku_row_buy_price)
         if sku_row_cess_percent:
@@ -2510,7 +2516,7 @@ def confirm_grn(request, confirm_returns='', user=''):
             total_order_qty += order_quantity_dict[key[0]]
             total_received_qty += value
             total_price += entry_price
-            total_tax += (key[4] + key[5] + key[6] + key[7], key[9])
+            total_tax += (key[4] + key[5] + key[6] + key[7] + key[9])
 
         if is_putaway == 'true':
             btn_class = 'inb-putaway'

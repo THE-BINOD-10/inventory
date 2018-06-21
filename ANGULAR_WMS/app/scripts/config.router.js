@@ -734,12 +734,16 @@ var app = angular.module('urbanApp')
         .state('app.inbound.rtv', {
           url: '/rtv',
           // permission: 'add_polocation',
-          templateUrl: 'views/inbound/rtv.html',
+          templateUrl: 'views/inbound/total_rtvs.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load([
                   'scripts/controllers/inbound/rtv.js'
-                ]);
+                ]).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/inbound/created_rtv.js'
+                  ])
+                });
               }]
           },
           data: {

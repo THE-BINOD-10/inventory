@@ -5,7 +5,7 @@ FUN = {};
 'use strict';
 
 var stockone = angular.module('urbanApp', ['datatables'])
-stockone.controller('RTVCtrl',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', '$q', 'SweetAlert', 'focus', '$modal', '$compile', 'Data', ServerSideProcessingCtrl]);
+stockone.controller('CreatedRTVCtrl',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', '$q', 'SweetAlert', 'focus', '$modal', '$compile', 'Data', ServerSideProcessingCtrl]);
 
 function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, $q, SweetAlert, focus, $modal, $compile, Data) {
 
@@ -27,7 +27,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.selectAll = false;
     vm.bt_disable = true;
     vm.conf_disable = false;
-    vm.datatable = Data.datatable;
+    vm.datatable = 'CreatedRTV';
     vm.user_type = Session.user_profile.user_type;
 
     vm.filters = {'datatable': vm.datatable, 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': ''
@@ -232,44 +232,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       data.sku_details[0].fields.load_unit_handle = selected.load_unit_handle;
       data.wms_code = selected.wms_code;
       $timeout(function() {$scope.$apply();}, 1000);
-    }
-
-    vm.save = save;
-    function save(form) {
-      vm.conf_disable = true;
-      var elem = [];
-      elem.push({'name': 'seller_id', 'value': vm.model_data.seller_details.seller_id});
-
-      angular.forEach(vm.model_data.data, function(row){
-        angular.forEach(row, function(sku){
-          elem.push({'name': 'sku_code', 'value': sku.sku_code});
-          elem.push({'name': 'order_id', 'value': sku.order_id});
-          elem.push({'name': 'price', 'value': sku.price});
-          elem.push({'name': 'quantity', 'value': sku.quantity});
-          elem.push({'name': 'amount', 'value': sku.amount});
-          elem.push({'name': 'sku_desc', 'value': sku.sku_desc});
-          elem.push({'name': 'summary_id', 'value': sku.summary_id});
-          elem.push({'name': 'tax_percent', 'value': sku.tax_percent});
-          elem.push({'name': 'tax_value', 'value': sku.tax_value});
-          elem.push({'name': 'location', 'value': sku.location});
-          elem.push({'name': 'return_qty', 'value': sku.return_qty});
-          elem.push({'name': 'batch_no', 'value': sku.batch_no});
-          elem.push({'name': 'mrp', 'value': sku.mrp});
-        });
-      });
-
-      vm.service.apiCall('save_rtv/', 'POST', elem, true).then(function(data){
-        if(data.message) {
-          if(data.data == 'Success') {
-
-            vm.close();
-            vm.service.refresh(vm.dtInstance);
-          }
-        } else {
-          pop_msg(data.data)
-        }
-        vm.conf_disable = false;
-      });
     }
 
     vm.submit = submit;

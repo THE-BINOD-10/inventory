@@ -397,6 +397,7 @@ class PurchaseOrder(models.Model):
     remarks = models.TextField(default='')
     expected_date = models.DateField(blank=True, null=True)
     remainder_mail = models.IntegerField(default=0)
+    payment_received = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -1701,11 +1702,27 @@ class PaymentSummary(models.Model):
     id = BigAutoField(primary_key=True)
     order = models.ForeignKey(OrderDetail, blank=True, null=True)
     payment_received = models.FloatField(default=0)
+    bank = models.CharField(max_length=64, default='')
+    mode_of_pay = models.CharField(max_length=64, default='')
+    remarks = models.CharField(max_length=128, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'PAYMENT_SUMMARY'
+
+class POPaymentSummary(models.Model):
+    id = BigAutoField(primary_key=True)
+    order = models.ForeignKey(PurchaseOrder, blank=True, null=True)
+    payment_received = models.FloatField(default=0)
+    bank = models.CharField(max_length=64, default='')
+    mode_of_pay = models.CharField(max_length=64, default='')
+    remarks = models.CharField(max_length=128, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'PO_PAYMENT_SUMMARY'
 
 
 class FileDump(models.Model):

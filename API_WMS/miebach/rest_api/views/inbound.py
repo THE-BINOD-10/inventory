@@ -2475,7 +2475,7 @@ def confirm_grn(request, confirm_returns='', user=''):
     data_dict = ''
     headers = (
     'WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
-    'UTGST(%)', 'Amount', 'Description')
+    'UTGST(%)', 'Amount', 'Description', 'CESS(%)')
     putaway_data = {headers: []}
     total_received_qty = 0
     total_order_qty = 0
@@ -2503,15 +2503,15 @@ def confirm_grn(request, confirm_returns='', user=''):
 
         for key, value in all_data.iteritems():
             entry_price = float(key[3]) * float(value)
-            entry_tax = float(key[4]) + float(key[5]) + float(key[6]) + float(key[7])
+            entry_tax = float(key[4]) + float(key[5]) + float(key[6]) + float(key[7] + float(key[9]))
             if entry_tax:
                 entry_price += (float(entry_price) / 100) * entry_tax
             putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5],
-                                          key[6], key[7], entry_price, key[8]))
+                                          key[6], key[7], entry_price, key[8], key[9]))
             total_order_qty += order_quantity_dict[key[0]]
             total_received_qty += value
             total_price += entry_price
-            total_tax += (key[4] + key[5] + key[6] + key[7])
+            total_tax += (key[4] + key[5] + key[6] + key[7], key[9])
 
         if is_putaway == 'true':
             btn_class = 'inb-putaway'

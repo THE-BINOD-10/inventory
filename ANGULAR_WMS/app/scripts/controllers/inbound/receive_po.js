@@ -164,6 +164,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         return nRow;
     }
 
+    $scope.getExpiryDate = function(index){
+        var mfg_date = new Date(vm.model_data.data[0][index].mfg_date);
+        var expiry = new Date(mfg_date.getFullYear(),mfg_date.getMonth(),mfg_date.getDate()+vm.shelf_life);
+        vm.model_data.data[0][index].exp_date = (expiry.getMonth() + 1) + "/" + expiry.getDate() + "/" + expiry.getFullYear() ;
+    }
+
     vm.check_exp_date = function(sel_date, shelf_life_ratio){
       var mfg_date = new Date(vm.model_data.data[0][0].mfg_date);
       var exp_date = new Date(sel_date);

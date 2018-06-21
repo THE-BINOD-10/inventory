@@ -2357,6 +2357,19 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
         unit = ''
         if 'unit' in myDict.keys():
             unit = myDict['unit'][i]
+        sku_row_buy_price = myDict['buy_price'][i]
+        sku_row_cess_percent = myDict['cess_percent'][i]
+        sku_row_tax_percent = myDict['tax_percent'][i]
+        if sku_row_buy_price:
+            purchase_data['price'] = float(sku_row_buy_price)
+        if sku_row_cess_percent:
+            purchase_data['cess_tax'] = float(sku_row_cess_percent)
+        if sku_row_tax_percent:
+            if purchase_data['igst_tax']:
+                purchase_data['igst_tax'] = float(sku_row_tax_percent)
+            else:
+                purchase_data['sgst_tax'] = float(sku_row_tax_percent)/2
+                purchase_data['cgst_tax'] = float(sku_row_tax_percent)/2
         cond = (data.id, purchase_data['wms_code'], unit, purchase_data['price'], purchase_data['cgst_tax'],
                 purchase_data['sgst_tax'], purchase_data['igst_tax'], purchase_data['utgst_tax'],
                 purchase_data['sku_desc'], purchase_data['cess_tax'])

@@ -460,6 +460,7 @@ data_datatable = {  # masters
     'RaiseIO': 'get_intransit_orders', 'PrimarySegregation': 'get_segregation_pos', \
     'ProcessedPOs': 'get_processed_po_data', 'POChallans': 'get_po_challans_data', \
     'SupplierInvoices': 'get_supplier_invoice_data', \
+    'POPaymentTrackerInvBased': 'get_inv_based_po_payment_data', \
     'ReturnToVendor': 'get_po_putaway_data', \
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
@@ -499,6 +500,8 @@ data_datatable = {  # masters
     'EnquiryOrders': 'get_enquiry_orders',
     'ManualEnquiryOrders': 'get_manual_enquiry_orders',
     'Targets': 'get_distributor_targets',
+    #invoice based payment tracker
+    'PaymentTrackerInvBased': 'get_inv_based_payment_data',
 }
 
 
@@ -4549,6 +4552,7 @@ def get_purchase_order_data(order):
         sgst_tax = 0
         igst_tax = 0
         utgst_tax = 0
+        cess_tax = 0
         tin_number = ''
     elif order.open_po:
         open_data = order.open_po
@@ -4569,6 +4573,7 @@ def get_purchase_order_data(order):
         sgst_tax = open_data.sgst_tax
         igst_tax = open_data.igst_tax
         utgst_tax = open_data.utgst_tax
+        cess_tax = open_data.cess_tax
         tin_number = open_data.supplier.tin_number
         if sku.wms_code == 'TEMP':
             temp_wms = open_data.wms_code
@@ -4589,6 +4594,7 @@ def get_purchase_order_data(order):
         sgst_tax = 0
         igst_tax = 0
         utgst_tax = 0
+        cess_tax = 0
         tin_number = ''
 
     order_data = {'order_quantity': order_quantity, 'price': price, 'mrp': mrp, 'wms_code': sku.wms_code,
@@ -4599,7 +4605,7 @@ def get_purchase_order_data(order):
                   'sku_group': sku.sku_group, 'sku_id': sku.id, 'sku': sku, 'temp_wms': temp_wms,
                   'order_type': order_type,
                   'supplier_code': supplier_code, 'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax,
-                  'utgst_tax': utgst_tax, 'intransit_quantity': intransit_quantity,
+                  'utgst_tax': utgst_tax, 'cess_tax':cess_tax, 'intransit_quantity': intransit_quantity,
                   'tin_number': tin_number, 'shelf_life': sku.shelf_life}
 
     return order_data

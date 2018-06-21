@@ -723,6 +723,8 @@ def get_picklist_data(data_id, user_id):
             category = ''
             customer_address = ''
             original_order_id = ''
+            order_id = ''
+            order_code = ''
             if order.stock:
                 stock_id = pick_stocks.get(id=order.stock_id)
             if order.order:
@@ -733,6 +735,7 @@ def get_picklist_data(data_id, user_id):
                 marketplace = order.order.marketplace
                 remarks = order.order.remarks
                 order_id = str(order.order.order_id)
+                order_code = str(order.order.order_code)
                 original_order_id = order.order.original_order_id
                 load_unit_handle = order.order.sku.load_unit_handle
                 category = order.order.sku.sku_category
@@ -750,8 +753,6 @@ def get_picklist_data(data_id, user_id):
                 load_unit_handle = st_order[0].stock_transfer.sku.load_unit_handle
                 category = st_order[0].stock_transfer.sku.sku_category
                 marketplace = ""
-                order_id = ''
-
             pallet_code = ''
             pallet_detail = ''
             if stock_id and stock_id.pallet_detail:
@@ -788,6 +789,8 @@ def get_picklist_data(data_id, user_id):
                                       order_by('-updation_date').values_list('location__location',
                                                                              flat=True).distinct()[:2]
                     last_picked_locs = ','.join(last_picked)
+                if not original_order_id:
+                    original_order_id = str(order_id) + str(order_code)
 
                 batch_data[match_condition] = {'wms_code': wms_code, 'zone': zone, 'sequence': sequence,
                                                'location': location, 'reserved_quantity': order.reserved_quantity,
@@ -829,12 +832,15 @@ def get_picklist_data(data_id, user_id):
             category = ''
             customer_address = ''
             original_order_id = ''
+            order_code = ''
+            order_id = ''
             if order.order:
                 wms_code = order.order.sku.wms_code
                 if order.order_type == 'combo' and order.sku_code:
                     wms_code = order.sku_code
                 invoice_amount = order.order.invoice_amount
                 order_id = str(order.order.order_id)
+                order_code = str(order.order.order_code)
                 original_order_id = order.order.original_order_id
                 sku_code = order.order.sku_code
                 title = order.order.title
@@ -891,6 +897,8 @@ def get_picklist_data(data_id, user_id):
                                   order_by('-updation_date').values_list('location__location',
                                                                          flat=True).distinct()[:2]
                 last_picked_locs = ','.join(last_picked)
+            if not original_order_id:
+                original_order_id = str(order_id) + str(order_code)
 
             data.append(
                 {'wms_code': wms_code, 'zone': zone, 'location': location, 'reserved_quantity': order.reserved_quantity,
@@ -919,6 +927,9 @@ def get_picklist_data(data_id, user_id):
             wms_code = order.order.sku.wms_code
             marketplace = order.order.marketplace
             remarks = order.order.remarks
+            order_id = ''
+            order_code = ''
+            original_order_id = ''
             if order.stock_id:
                 stock_id = pick_stocks.get(id=order.stock_id)
 
@@ -942,7 +953,9 @@ def get_picklist_data(data_id, user_id):
             customer_name = ''
             if order.order:
                 customer_name = order.order.customer_name
-
+                order_id = str(order.order.order_id)
+                order_code = str(order.order.order_code)
+                original_order_id = str(order.order.original_order_id)
             pallet_code = ""
             if order.reserved_quantity == 0:
                 continue
@@ -954,10 +967,12 @@ def get_picklist_data(data_id, user_id):
                                   order_by('-updation_date').values_list('location__location',
                                                                          flat=True).distinct()[:2]
                 last_picked_locs = ','.join(last_picked)
+            if not original_order_id:
+                original_order_id = str(order_id) + str(order_code)
 
             data.append(
                 {'wms_code': wms_code, 'zone': zone, 'location': location, 'reserved_quantity': order.reserved_quantity,
-                 'picklist_number': data_id, 'order_id': str(order.order_id), 'stock_id': st_id,
+                 'picklist_number': data_id, 'order_id': order_id, 'stock_id': st_id,
                  'picked_quantity': order.reserved_quantity, 'id': order.id, 'sequence': sequence,
                  'invoice_amount': order.order.invoice_amount,
                  'price': order.order.invoice_amount * order.reserved_quantity,
@@ -965,7 +980,7 @@ def get_picklist_data(data_id, user_id):
                  'title': order.order.title, 'stock_left': stock_left, 'last_picked_locs': last_picked_locs,
                  'customer_name': customer_name, 'remarks': remarks, 'load_unit_handle': load_unit_handle,
                  'category': category,
-                 'marketplace': marketplace})
+                 'marketplace': marketplace, 'original_order_id' : original_order_id})
 
             if wms_code in sku_total_quantities.keys():
                 sku_total_quantities[wms_code] += float(order.reserved_quantity)
@@ -2574,6 +2589,9 @@ def check_imei(request, user=''):
 def print_picklist_excel(request, user=''):
     headers = copy.deepcopy(PICKLIST_EXCEL)
     data_id = request.GET['data_id']
+    display_order_id = request.GET.get('display_order_id', 'false')
+    if display_order_id == 'false':
+        headers.pop('Order ID')
     data, sku_total_quantities = get_picklist_data(data_id, user.id)
     all_data = []
     for dat in data:
@@ -2589,6 +2607,7 @@ def print_picklist(request, user=''):
     temp = []
     title = 'Picklist ID'
     data_id = request.GET['data_id']
+    display_order_id = request.GET.get('display_order_id', 'false')
     data, sku_total_quantities = get_picklist_data(data_id, user.id)
     date_data = {}
     picklist_orders = Picklist.objects.filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id),
@@ -2606,10 +2625,12 @@ def print_picklist(request, user=''):
     customer_address = ''
     if data:
         customer_address = data[0].get('customer_address', '')
-    order_ids = ''
+    order_ids = 'false'
     order_data = list(set(map(lambda d: d.get('order_no', ''), data)))
     order_data = filter(lambda x: len(x) > 0, order_data)
-
+    original_order_ids = ''
+    original_order_data = list(set(map(lambda d: d.get('original_order_id', ''), data)))
+    original_order_data = filter(lambda x: len(x) > 0, original_order_data)
     remarks_data = ''
     remarks_data = list(set(map(lambda d: d.get('remarks', ''), data)))
     remarks_data = filter(lambda x: len(x) > 0, remarks_data)
@@ -2618,12 +2639,10 @@ def print_picklist(request, user=''):
     market_place = list(set(map(lambda d: d.get('marketplace', ''), data)))
     filtered_market = filter(lambda a: a != "Offline", market_place)
     if not filtered_market:
-        marketplace = ""
+        marketplace = ''
     else:
         marketplace = ','.join(market_place)
 
-    if order_data:
-        order_ids = ','.join(order_data)
     total = 0
     total_price = 0
     type_mapping = SkuTypeMapping.objects.filter(user=user.id)
@@ -2649,12 +2668,19 @@ def print_picklist(request, user=''):
     show_picklist_display_address = get_misc_value('picklist_display_address', user.id)
     if show_picklist_display_address == "false":
         customer_address = ''
+    headers = copy.deepcopy(PRINT_OUTBOUND_PICKLIST_HEADERS)
+    if display_order_id == 'true':
+        if len(original_order_data):
+            order_ids = ','.join(original_order_data)
+        elif len(order_data):
+            order_ids = ','.join(order_data)
+        headers = ('Order ID',) + headers
     return render(request, 'templates/toggle/print_picklist.html',
-                  {'data': data, 'all_data': all_data, 'headers': PRINT_OUTBOUND_PICKLIST_HEADERS,
+                  {'data': data, 'all_data': all_data, 'headers': headers,
                    'picklist_id': data_id, 'total_quantity': total,
                    'total_price': total_price, 'picklist_id': data_id,
                    'customer_name': customer_name, 'customer_address': customer_address, 'order_ids': order_ids,
-                   'marketplace': marketplace, 'date_data': date_data, 'remarks': remarks_data, 'user': user})
+                   'marketplace': marketplace, 'date_data': date_data, 'remarks': remarks_data, 'user': user, 'display_order_id': display_order_id})
 
 
 @csrf_exempt
@@ -5496,6 +5522,139 @@ def payment_tracker(request, user=''):
                      'total_payment_receivable': "%.2f" % total_payment_receivable})
     return HttpResponse(json.dumps(response))
 
+@csrf_exempt
+def get_inv_based_payment_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
+                         filters):
+    ''' Invoice Based Payment Tracker datatable code '''
+
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    admin_user = get_priceband_admin_user(user)
+    lis = ['invoice_number', 'order__customer_name', 'order__customer_id']#for filter purpose
+    user_filter = {'order__user': user.id, 'order_status_flag': 'customer_invoices'}
+    result_values = ['invoice_number', 'order__customer_name', 'order__customer_id']#to make distinct grouping
+    #invoice date= seller order summary creation date
+    #invoice_date = get_local_date(user, invoice_date, send_date='true')
+    #invoice_date = invoice_date.strftime("%d %b %Y")
+
+    if search_term:
+        search_term = search_term.replace('(', '\(').replace(')', '\)')
+        search_query = build_search_term_query(lis, search_term)
+        master_data = SellerOrderSummary.objects.filter(search_query, **user_filter)\
+                        .exclude(invoice_number='')\
+                        .values(*result_values).distinct()\
+                        .annotate(payment_received = Sum('order__payment_received'), invoice_amount = Sum('order__invoice_amount'))
+
+    elif order_term:
+        if order_term == 'asc' and (col_num or col_num == 0):
+            order_by = '%s' % lis[col_num]
+        else:
+            order_by = '-%s' % lis[col_num]
+        master_data = SellerOrderSummary.objects.filter(**user_filter)\
+                        .exclude(invoice_number='')\
+                        .values(*result_values).distinct()\
+                        .annotate(payment_received = Sum('order__payment_received'), invoice_amount = Sum('order__invoice_amount'))\
+                        .order_by('-%s' % lis[col_num])
+    else:
+        master_data = SellerOrderSummary.objects.filter(**user_filter)\
+                            .exclude(invoice_number='')\
+                            .values(*result_values).distinct()\
+                            .annotate(payment_received = Sum('order__payment_received'), invoice_amount = Sum('order__invoice_amount'))
+    master_data = master_data.exclude(invoice_amount=F('payment_received'))
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    for data in master_data[start_index:stop_index]:
+        credit_period, due_date, invoice_date = 0, '', ''
+        seller_ord_summary = SellerOrderSummary.objects.filter(**user_filter)\
+                                      .filter(invoice_number=data['invoice_number'])
+        order_ids = seller_ord_summary.values_list('order__id', flat= True)
+        invoice_date = CustomerOrderSummary.objects.filter(order_id__in=order_ids)\
+                                           .order_by('-invoice_date').values_list('invoice_date', flat=True)[0]
+        if not invoice_date:
+            invoice_date = seller_ord_summary.order_by('-updation_date')[0].updation_date
+        customer_order_sum = CustomerOrderSummary.objects.filter()
+        customer_master_obj = CustomerMaster.objects.filter(customer_id = data['order__customer_id'])
+        if customer_master_obj:
+            credit_period = customer_master_obj[0].credit_period
+        if invoice_date:
+            due_date = (invoice_date + datetime.timedelta(days=credit_period)).strftime("%d %b %Y")
+            invoice_date = invoice_date.strftime("%d %b %Y")
+        payment_receivable = data['invoice_amount'] - data['payment_received']
+        data_dict = OrderedDict((('invoice_number', data['invoice_number']),
+                                ('invoice_date', invoice_date),
+                                ('due_date', due_date),
+                                ('customer_name', data['order__customer_name']),
+                                ('customer_id', data['order__customer_id']),
+                                ('invoice_amount', "%.2f" % data['invoice_amount']),
+                                ('payment_received', "%.2f" % data['payment_received']),
+                                ('payment_receivable', "%.2f" % payment_receivable)
+                               ))
+        temp_data['aaData'].append(data_dict)
+
+
+@login_required
+@csrf_exempt
+@get_admin_user
+def get_invoice_payment_tracker(request, user=''):
+    response = {}
+    invoice_number = request.GET.get('invoice_number', '')
+    customer_id = request.GET.get('customer_id', '')
+    if not invoice_number:
+        return "Invoice number is missing"
+    user_filter = {'order__user': user.id, "invoice_number": invoice_number, "order__customer_id": customer_id}
+    result_values = ['challan_number', 'order__order_id', 'order__original_order_id',
+                     'order__customer_id', 'order__customer_name']
+    #customer_id = request.GET['id']
+    customer_name = request.GET.get('customer_name')
+    master_data = SellerOrderSummary.objects.filter(**user_filter).values(*result_values).distinct()\
+                                    .annotate(invoice_amount_sum = Sum('order__invoice_amount'),\
+                                    payment_received_sum = Sum('order__payment_received'))
+    order_data = []
+    expected_date = ''
+    for data in master_data:
+        order_data.append(
+            {'order_id': str(data['order__order_id']), 'display_order': data['challan_number'],
+             'account': '', 'original_order_id': data['order__original_order_id'],
+             'inv_amount': "%.2f" % data['invoice_amount_sum'],
+             'receivable': "%.2f" % (data['invoice_amount_sum'] - data['payment_received_sum']),
+             'received': '%.2f' % data['payment_received_sum'],
+             'expected_date': expected_date})
+    response["data"] = order_data
+    return HttpResponse(json.dumps(response))
+
+
+
+@login_required
+@csrf_exempt
+@get_admin_user
+def update_inv_payment_status(request, user=''):
+    data_dict = dict(request.GET.iterlists())
+    for i in range(0, len(data_dict['order_id'])):
+        if not data_dict['amount'][i]:
+            continue
+        payment = float(data_dict['amount'][i])
+        order_details = OrderDetail.objects.filter(order_id=data_dict['order_id'][i], user=user.id,
+                                                   payment_received__lt=F('invoice_amount'))
+        for order in order_details:
+            if not payment:
+                break
+            if float(order.invoice_amount) > float(order.payment_received):
+                diff = float(order.invoice_amount) - float(order.payment_received)
+                if payment > diff:
+                    order.payment_received = diff
+                    payment -= diff
+                    PaymentSummary.objects.create(order_id=order.id, creation_date=datetime.datetime.now(),
+                                                  payment_received=diff)
+                else:
+                    PaymentSummary.objects.create(order_id=order.id, creation_date=datetime.datetime.now(),
+                                                  payment_received=payment)
+                    order.payment_received = float(order.payment_received) + float(payment)
+                    payment = 0
+                order.save()
+    return HttpResponse("Success")
+
+
+
 
 @login_required
 @csrf_exempt
@@ -5594,6 +5753,15 @@ def get_customer_master_id(request, user=''):
 @get_admin_user
 def update_payment_status(request, user=''):
     data_dict = dict(request.GET.iterlists())
+    invoice_number = request.GET.get('invoice_number', '')
+    if invoice_number:
+        sell_ids = {}
+        sell_ids['order__user'] = user.id
+        sell_ids['invoice_number'] = invoice_number
+        seller_summary = SellerOrderSummary.objects.filter(**sell_ids)
+        order_ids = list(set(seller_summary.values_list('order__order_id', flat=True)))
+        order_ids = map(lambda x: str(x), order_ids)
+        data_dict['order_id'] = order_ids
     for i in range(0, len(data_dict['order_id'])):
         if not data_dict['amount'][i]:
             continue
@@ -5605,14 +5773,19 @@ def update_payment_status(request, user=''):
                 break
             if float(order.invoice_amount) > float(order.payment_received):
                 diff = float(order.invoice_amount) - float(order.payment_received)
+                bank = request.GET.get('bank', '')
+                mode_of_pay = request.GET.get('mode_of_payment', '')
+                remarks = request.GET.get('remarks', '')
                 if payment > diff:
                     order.payment_received = diff
                     payment -= diff
-                    PaymentSummary.objects.create(order_id=order.id, creation_date=datetime.datetime.now(),
-                                                  payment_received=diff)
+                    PaymentSummary.objects.create(order_id=order.id, creation_date=datetime.datetime.now(),\
+                                                  payment_received=diff, bank=bank, mode_of_pay=mode_of_pay,\
+                                                  remarks=remarks)
                 else:
-                    PaymentSummary.objects.create(order_id=order.id, creation_date=datetime.datetime.now(),
-                                                  payment_received=payment)
+                    PaymentSummary.objects.create(order_id=order.id, creation_date=datetime.datetime.now(),\
+                                                  payment_received=payment, bank=bank,\
+                                                  mode_of_pay=mode_of_pay, remarks=remarks)
                     order.payment_received = float(order.payment_received) + float(payment)
                     payment = 0
                 order.save()
@@ -9744,3 +9917,14 @@ def print_cartons_data_view(request, user=''):
                   'shipment_date': shipment_date, 'company_name': company_name, 'truck_number':truck_number,
                   'courier_name': courier_name, 'data': data.values()}
     return render(request, 'templates/toggle/print_cartons_wise_qty.html', final_data)
+
+@csrf_exempt
+@get_admin_user
+def create_orders_check_ean(request, user=''):
+    data = {}
+    sku_code = ''
+    ean = request.GET.get('ean')
+    sku_obj = SKUMaster.objects.filter(ean_number=ean, user=user.id)
+    if sku_obj:
+        sku_code = sku_obj[0].sku_code
+    return HttpResponse(json.dumps({ 'sku' : sku_code }))

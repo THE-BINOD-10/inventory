@@ -1,0 +1,76 @@
+<style>
+  .form-control{
+    padding: 6px 8px;
+  }
+</style>
+<div id="page-pop" class="modal fade in over-x" tabindex="-1" role="dialog">
+  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
+  <div class="modal-dialog model-custom modal-lg" ng-style="showCase.extra_width">
+    <div class="modal-content mw100">
+      <!-- <div class="process-overlay" ng-if="process || showCase.fb.process"><div class="process-text">Loading...</div></div> -->
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span> </button>
+        <h4 class="modal-title">{{showCase.title}}</h4> </div>
+      <!-- body-->
+      <div class="modal-body">
+        
+        <div class="row">
+              <div class="col-md-12 col-sm-12 col-xs-12">
+                <table class="table table-stk" style="margin-bottom: 0px;">
+                  <thead>
+                    <tr>
+                      <th>Challan No</th>
+                      <th>Invoice Amount</th>
+                      <th>Received</th>
+                      <th>Receivable</th>
+                      <th class="update_fields hide">Bank</th>
+                      <th class="update_fields hide">Mode of Pay</th>
+                      <th class="update_fields hide">Remarks</th>
+                      <!--<th ng-if="showCase.expect_date">Expected Date</th>
+                      <th>Account</th>-->
+                      <th style="width: 200px;">Update Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr ng-repeat="data in showCase.model_data.data">
+                      <td>{{data.display_order}}</td>
+                      <td>{{data.inv_amount}}</td>
+                      <td>{{data.received}}</td>
+                      <td>{{data.receivable}}</td>
+                      <td class="update_fields hide"><select class="form-control" name="bank" ng-options="key as bank for (key, bank) in showCase.bank_names"
+                                  ng-init="showCase.default_bank" ng-model="showCase.default_bank"
+                                  ng-selected="bank == showCase.default_bank"></select></td>
+                      <td class="update_fields hide"><select class="form-control" name="mode_of_payment"
+                                  ng-options="key as mode for (key, mode) in showCase.payment_modes"
+                                  ng-init="showCase.default_mode" ng-model="showCase.default_mode"
+                                  ng-selected="mode == showCase.default_mode"></select></td>
+                      <td class="update_fields hide"><textarea class="form-control" rows="1" cols="10" name="remarks"></textarea></td>
+                      <!--<td ng-if="showCase.expect_date">{{data.expected_date}}</td>
+                      <td>{{data.account}}</td>-->
+                      <td class="order-edit">
+                        <div class="order-update">
+                          <span style="color: #2ECC71;text-decoration: underline;cursor: pointer;" ng-click="showCase.order_update($event)">Update</span>
+                        </div>
+                        <div style="width: 200px;" class="order-save hide">
+                          <input type="text" style="width: 100px !important;" class="form-control pull-left" placeholder="Amount" decimal-number ng-model="data.amount" ng-change="showCase.change_amount(data)">
+                          <button style="width: 60px;margin-left: 10px;" type="button" class="btn btn-success pull-left" ng-click="showCase.order_save($event, $index, data)">Save</button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+        <div class="row insert-status"><h4 align="center">{{showCase.message}}</h4></div>
+      </div>
+      <!-- body end-->
+      <div class="modal-footer">
+        <button type="button" class="pull-right btn pop pop-green col-xs-12 col-sm-3 col-md-2" ng-click="showCase.close(form)">Close</button>
+      </div>
+    </div>
+    <!-- /.modal-content -->
+  </div>
+  </form>
+  <!-- /.modal-dialog -->
+</div>

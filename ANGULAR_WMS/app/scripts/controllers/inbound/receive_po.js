@@ -168,19 +168,29 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         var mfg_date = new Date(vm.model_data.data[0][index].mfg_date);
         var expiry = new Date(mfg_date.getFullYear(),mfg_date.getMonth(),mfg_date.getDate()+vm.shelf_life);
         vm.model_data.data[0][index].exp_date = (expiry.getMonth() + 1) + "/" + expiry.getDate() + "/" + expiry.getFullYear() ;
+        $('.mfgDate').each(function(){
+            if($(this).val() != ""){
+                var mfg_date = new Date($(this).val());
+                var expiry = new Date(mfg_date.getFullYear(),mfg_date.getMonth(),mfg_date.getDate()+vm.shelf_life);
+                var response = (expiry.getMonth() + 1) + "/" + expiry.getDate() + "/" + expiry.getFullYear() ;
+                $(this).parent().next().find('.expiryDatePicker').datepicker("setDate", response);
+            }
+        });
+
+
     }
 
-    vm.check_exp_date = function(sel_date, shelf_life_ratio){
-      var mfg_date = new Date(vm.model_data.data[0][0].mfg_date);
+    vm.check_exp_date = function(sel_date, shelf_life_ratio, index){
+      var mfg_date = new Date(vm.model_data.data[0][index].mfg_date);
       var exp_date = new Date(sel_date);
 
-      if (exp_date < mfg_date && vm.model_data.data[0][0].mfg_date) {
+      if (exp_date < mfg_date && vm.model_data.data[0][index].mfg_date) {
         Service.showNoty('Your selected date is less than manufacturer date.');
-        vm.model_data.data[0][0].exp_date = '';
-      } else if(!vm.model_data.data[0][0].mfg_date){
+        vm.model_data.data[0][index].exp_date = '';
+      } else if(!vm.model_data.data[0][index].mfg_date){
 
         Service.showNoty('Please choose manufacturer date first');
-        vm.model_data.data[0][0].exp_date = '';
+        vm.model_data.data[0][index].exp_date = '';
       } else {
         if (vm.shelf_life && shelf_life_ratio) {
           var res_days = (vm.shelf_life * (shelf_life_ratio / 100));
@@ -198,7 +208,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             
           } else {
             Service.showNoty('Please choose proper date');
-            vm.model_data.data[0][0].exp_date = '';
+            vm.model_data.data[0][index].exp_date = '';
           }
         }
       }
@@ -1628,6 +1638,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var wo_tax_amt = Number(sku_row_data.value)*Number(sku_row_data.buy_price);
       var tot_tax = Number(sku_row_data.tax_percent) + Number(sku_row_data.cess_percent);
       data.data[0][index].total_amt = wo_tax_amt + (wo_tax_amt * (tot_tax/100));
+
+      var totals = 0;
+      var rows = data.data[0];
+      for(var d in rows) {
+        if(!isNaN(rows[d]['total_amt'])) {
+            totals += rows[d]['total_amt'];
+        }
+      }
+
+      $('.totals').text('Totals: ' + totals);
     }
 }
 

@@ -2310,6 +2310,8 @@ def get_challan_number(user, seller_order_summary):
                                                    creation_date=datetime.datetime.now())
                     order_no = '001'
                     challan_num = int(order_no)
+            elif invoice_no_gen[0].misc_value == 'true' and challan_num:
+                seller_order_summary.update(challan_number=challan_num)
             else:
                 log.info("Challan No not updated for seller_order_summary")
         challan_number = 'CHN/%s/%s' % (chn_date.strftime('%m%y'), challan_num)

@@ -14,6 +14,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service = Service;
     vm.self_life_ratio = Number(vm.permissions.shelf_life_ratio) || 0;
     vm.industry_type = Session.user_profile.industry_type;
+    vm.order_id = 0;
     // vm.industry_type = 'FMCG';
 
     //default values
@@ -96,7 +97,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         $(elem).removeClass('fa-plus-square');
         $(elem).removeClass();
         $(elem).addClass('glyphicon glyphicon-refresh glyphicon-refresh-animate');
-        Service.apiCall('get_receive_po_style_view/?order_id='+data['PO No'].split("_")[1]).then(function(resp){
+        vm.order_id = data['PO No'].split("_")[1];
+        Service.apiCall('get_receive_po_style_view/?order_id='+vm.order_id).then(function(resp){
           if (resp.message){
 
             if(resp.data.status) {
@@ -1598,9 +1600,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       $state.go($state.current, {}, {reload: true});
   }
 
-  vm.preview = function(order_detail_id) {
-
-    var data = {order_id: order_detail_id};
+  vm.preview = function(order_detail_id, flag=false) {
+    if (flag) {
+      var data = {order_id: vm.order_id};
+    } else {
+      var data = {order_id: order_detail_id};
+    }
     vm.service.apiCall("get_view_order_details/", "GET", data).then(function(data){
 
       var all_order_details = data.data.data_dict[0].ord_data;

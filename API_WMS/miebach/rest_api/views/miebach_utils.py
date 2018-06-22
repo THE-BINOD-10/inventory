@@ -413,13 +413,14 @@ GRN_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'type': 'dat
                         {'label': 'PO Number', 'name': 'open_po', 'type': 'input'},
                         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'}],
             'dt_headers': ['PO Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity'],
-            'mk_dt_headers': ['Received Date', 'PO Date', 'PO Number', 'Supplier ID', 'Supplier Name', 'Recepient',
-                              'SKU Code',
-                              'SKU Description', 'SKU Class', 'SKU Style Name', 'SKU Brand', 'SKU Category',
-                              'Received Qty', 'Unit Rate',
-                              'Pre-Tax Received Value', 'CGST(%)', 'SGST(%)', 'IGST(%)', 'UTGST(%)',
-                              'Post-Tax Received Value',
-                              'Margin %', 'Margin', 'Invoiced Unit Rate', 'Invoiced Total Amount'],
+            'mk_dt_headers': ['PO Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity'],
+            # 'mk_dt_headers': ['Received Date', 'PO Date', 'PO Number', 'Supplier ID', 'Supplier Name', 'Recepient',
+            #                   'SKU Code',
+            #                   'SKU Description', 'SKU Class', 'SKU Style Name', 'SKU Brand', 'SKU Category',
+            #                   'Received Qty', 'Unit Rate',
+            #                   'Pre-Tax Received Value', 'CGST(%)', 'SGST(%)', 'IGST(%)', 'UTGST(%)',
+            #                   'Post-Tax Received Value',
+            #                   'Margin %', 'Margin', 'Invoiced Unit Rate', 'Invoiced Total Amount'],
             'dt_url': 'get_po_filter', 'excel_name': 'goods_receipt', 'print_url': '',
             }
 
@@ -1967,8 +1968,8 @@ def get_po_filter_data(search_params, user, sub_user):
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     user_profile = UserProfile.objects.get(user_id=user.id)
     is_market_user = False
-    if user_profile.user_type == 'marketplace_user':
-        is_market_user = True
+    #if user_profile.user_type == 'marketplace_user':
+    #    is_market_user = True
     if is_market_user:
         unsorted_dict = {14: 'Pre-Tax Received Value', 19: 'Post-Tax Received Value', 20: 'Margin',
                          22: 'Invoiced Unit Rate',

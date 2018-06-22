@@ -57,6 +57,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               $compile(angular.element(header).contents())($scope);
           }
       })
+     .withOption('rowCallback', rowCallback)
      .withPaginationType('full_numbers')
      .withOption('initComplete', function( settings ) {
        vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
@@ -73,14 +74,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('Total Amount').withTitle('Total Amount'),
     ];
 
-    vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
-                .renderWith(function(data, type, full, meta) {
-                  if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
-                    vm.selected = {};
-                  }
-                  vm.selected[meta.row] = vm.selectAll;
-                  return vm.service.frontHtml + meta.row + vm.service.endHtml;
-                }))
+    // vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
+    //             .renderWith(function(data, type, full, meta) {
+    //               if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
+    //                 vm.selected = {};
+    //               }
+    //               vm.selected[meta.row] = vm.selectAll;
+    //               return vm.service.frontHtml + meta.row + vm.service.endHtml;
+    //             }))
 
     vm.dtInstance = {};
 
@@ -92,6 +93,24 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.reloadData = function () {
       $('.custom-table').DataTable().draw();
     };
+
+    function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
+        $(row_click_bind, nRow).unbind('click');
+        $(row_click_bind, nRow).bind('click', function() {
+          $scope.$apply(function() {
+            vm.service.apiCall('get_po_putaway_summary/', 'GET', {data_id: id}).then(function(data){
+            // vm.service.apiCall('get_supplier_data/', 'GET', {supplier_id: aData['DT_RowId']}).then(function(data){
+              if(data.message) {
+                angular.copy(data.data, vm.model_data);
+                vm.title = "Update RTV";
+                vm.print_enable = false;
+                $state.go('app.inbound.rtv.details');
+              }
+            });
+          });
+        });
+        return nRow;
+    }
 
     vm.filter_enable = true;
     vm.print_enable = false;

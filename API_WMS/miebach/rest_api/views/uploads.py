@@ -2377,6 +2377,8 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                     else:
                         data_dict[key] = float(cell_data)
             elif key in ['po_name', 'ship_to']:
+                if isinstance(cell_data, (int, float)):
+                    cell_data = str(int(cell_data))
                 data_dict[key] = cell_data
             elif cell_data:
                 if key in number_fields:
@@ -2436,15 +2438,16 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         seller_id = ''
         if final_dict.get('seller', ''):
             seller_id = final_dict['seller'].id
-        if (order_data['po_name'], order_data['supplier_id'], data['po_date'], seller_id) not in order_ids.keys():
+        group_key = (order_data['po_name'], order_data['supplier_id'], data['po_date'], seller_id)
+        if group_key not in order_ids.keys():
             po_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id).order_by('-order_id')
             if not po_data:
                 po_id = 0
             else:
                 po_id = po_data[0].order_id
-            order_ids[order_data['po_name'], order_data['supplier_id'], data['po_date']] = po_id
+            order_ids[group_key] = po_id
         else:
-            po_id = order_ids[order_data['po_name'], order_data['supplier_id'], data['po_date']]
+            po_id = order_ids[group_key]
         ids_dict = {}
         po_data = []
         total = 0
@@ -2563,6 +2566,7 @@ def purchase_order_upload(request, user=''):
     status, data_list = validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname, file_type)
     if status != 'Success':
         return HttpResponse(status)
+    print data_list
     purchase_order_excel_upload(request, user, data_list)
     return HttpResponse('Success')
 

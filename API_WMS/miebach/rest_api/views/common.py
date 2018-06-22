@@ -1982,17 +1982,20 @@ def load_demo_data(request, user=''):
 
     user_profile = UserProfile.objects.get(user_id=user.id)
     delete_user_demo_data(user.id)
-    upload_files_path = OrderedDict((('sku_upload', {'file_name': 'sku_form.xls', 'function_name': 'sku_excel_upload'}),
+    upload_files_path = OrderedDict((('sku_upload', {'file_name': 'sku_form.xls', 'function_name': 'sku_excel_upload',
+                                                     'validate_func_name': 'validate_sku_form'}),
                                      ('location_upload',
                                       {'file_name': 'location_form.xls', 'function_name': 'process_location'}),
                                      ('supplier_upload',
                                       {'file_name': 'supplier_form.xls', 'function_name': 'supplier_excel_upload'}),
                                      ('inventory_upload',
-                                      {'file_name': 'inventory_form.xls', 'function_name': 'inventory_excel_upload'}),
+                                      {'file_name': 'inventory_form.xls', 'function_name': 'inventory_excel_upload',
+                                       'validate_func_name': 'validate_inventory_form'}),
                                      ('order_upload',
                                       {'file_name': 'order_form.xls', 'function_name': 'order_csv_xls_upload'}),
                                      ('purchase_order_upload', {'file_name': 'purchase_order_form.xls',
-                                                                'function_name': 'purchase_order_excel_upload'})
+                                                                'function_name': 'purchase_order_excel_upload',
+                                                                'validate_func_name':'validate_purchase_order'})
 
                                      ))
 
@@ -2000,19 +2003,31 @@ def load_demo_data(request, user=''):
         open_book = open_workbook(os.path.join(settings.BASE_DIR + "/rest_api/demo_data/", value['file_name']))
         open_sheet = open_book.sheet_by_index(0)
         func_params = [request, open_sheet, user]
-        if key == 'inventory_upload':
+        if key in ['purchase_order_upload', 'inventory_upload']:
             reader = open_sheet
             no_of_rows = reader.nrows
             file_type = 'xls'
             no_of_cols = open_sheet.ncols
-            in_status, data_list = validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, open_sheet.name,
-                                                           file_type)
-            inventory_excel_upload(request, user, data_list)
+            func_params = [request, reader, user, no_of_rows, no_of_cols, open_sheet.name,file_type]
+            if key in ['purchase_order_upload']:
+                func_params.append(True)
+            in_status, data_list = eval(value['validate_func_name'])(*func_params)
+            eval(value['function_name'])(request, user, data_list)
             continue
-        elif key in ['order_upload', 'sku_upload']:
+        elif key in ['sku_upload']:
+            reader = open_sheet
+            no_of_rows = reader.nrows
+            file_type = 'xls'
+            no_of_cols = open_sheet.ncols
+            in_status = eval(value['validate_func_name'])(request, reader, user, no_of_rows, no_of_cols, open_sheet,
+                                                           file_type)
+            eval(value['function_name'])(request, reader, user, no_of_rows, no_of_cols, open_sheet,
+                                              file_type='xls')
+            continue
+        elif key in ['order_upload']:
             func_params.append(open_sheet.nrows)
             func_params.append(value['file_name'])
-        elif key in ['supplier_upload', 'purchase_order_upload']:
+        elif key in ['supplier_upload']:
             func_params.append(True)
         eval(value['function_name'])(*func_params)
 

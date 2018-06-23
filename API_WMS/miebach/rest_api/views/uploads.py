@@ -2329,7 +2329,8 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                 if cell_data:
                     try:
                         if isinstance(cell_data, float):
-                            data_dict[key] = xldate_as_tuple(cell_data, 0)
+                            year, month, day, hour, minute, second = xldate_as_tuple(cell_data, 0)
+                            data_dict[key] = datetime.datetime(year, month, day, hour, minute, second)
                         elif '-' in cell_data:
                             data_dict[key] = datetime.datetime.strptime(cell_data, "%m-%d-%Y")
                         else:
@@ -2566,7 +2567,6 @@ def purchase_order_upload(request, user=''):
     status, data_list = validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname, file_type)
     if status != 'Success':
         return HttpResponse(status)
-    print data_list
     purchase_order_excel_upload(request, user, data_list)
     return HttpResponse('Success')
 

@@ -194,6 +194,9 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
           if(data_dict && data_dict.is_sample){
             elem.push({'name': 'is_sample', 'value': true})
           }
+          if(data_dict && data_dict.is_central_order){
+            elem.push({'name': 'is_central_order', 'value': true})
+          }
           vm.place_order_loading = true;
           vm.service.apiCall('insert_order_data/', 'POST', elem).then(function(data){
             if(data.message) {

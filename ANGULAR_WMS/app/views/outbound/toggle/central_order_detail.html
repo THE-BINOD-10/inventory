@@ -1,0 +1,62 @@
+<div id="page-pop" class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
+  <div class="modal-dialog model-custom modal-lg">
+    <form name="form" class="ng-pristine ng-valid" role="form" ui-jq="validate" ui-options="validationOpt">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">Update</h4>
+      </div>
+      <div class="modal-body" id="update_sku">
+        <div class="row">
+            <input type="hidden" name="data_id" ng-model="showCase.form.data_id" class="form-control" value="">
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Order ID</label>
+                <input type="text" name="order_id" class="form-control" ng-model="showCase.model_data.order_id">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> SKU Code </label>
+                <input type="text" name="sku_code" class="form-control" ng-model="showCase.model_data.sku_code" maxlength="256">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> SKU Description </label>
+                <input type="text" name="sku_desc" class="form-control" ng-model="showCase.model_data.sku_desc" maxlength="256">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Product Quantity </label>
+                <input type="text" name="quantity" class="form-control" ng-model="showCase.model_data.quantity" maxlength="256">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Status </label>
+                <input type="text" name="status" class="form-control" ng-model="showCase.model_data.status" maxlength="256">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Warehouses </label>
+                <select class="form-control zone" name="warehouse" ng-model="showCase.model_data.warehouses" ></select>
+              </div>
+            </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div class="form-group" style="margin-bottom:0px;">
+          <button type="button" class="btn pop pop-normal" ng-click="showCase.close()">Close</button>
+          <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process">
+            <span>Save</span>
+            <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+          </button>
+        </div>
+      </div>
+    </div><!-- /.modal-content -->
+    </form>
+  </div><!-- /.modal-dialog -->
+</div>

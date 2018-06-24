@@ -484,7 +484,7 @@ data_datatable = {  # masters
     'PullToLocate': 'get_cancelled_putaway', \
     'StockTransferOrders': 'get_stock_transfer_orders', 'OutboundBackOrders': 'get_back_order_data', \
     'CustomerOrderView': 'get_order_view_data', 'CustomerCategoryView': 'get_order_category_view_data', \
-    'CustomOrders': 'get_custom_order_data', \
+    'CustomOrders': 'get_custom_order_data', 'CentralOrders': 'get_central_orders_data',
     'ShipmentPickedAlternative': 'get_order_shipment_picked', 'CustomerInvoices': 'get_customer_invoice_data', \
     'ProcessedOrders': 'get_processed_orders_data', 'DeliveryChallans': 'get_delivery_challans_data',
     'CustomerInvoicesTab': 'get_customer_invoice_tab_data', 'SellerOrderView': 'get_seller_order_view', \
@@ -2157,6 +2157,15 @@ def get_enquiry_id(customer_id):
     else:
         enq_id = 10001
     return enq_id
+
+
+def get_central_order_id(customer_id):
+    inter_qs = IntermediateOrders.objects.filter(customer_user_id=customer_id).order_by('-interm_order_id')
+    if inter_qs:
+        interm_id = int(inter_qs[0].interm_order_id) + 1
+    else:
+        interm_id = 10001
+    return interm_id
 
 
 def check_and_update_stock(wms_codes, user):

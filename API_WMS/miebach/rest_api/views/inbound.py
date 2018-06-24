@@ -970,6 +970,7 @@ def switches(request, user=''):
                        'auto_raise_stock_transfer': 'auto_raise_stock_transfer',
                        'inbound_supplier_invoice': 'inbound_supplier_invoice',
                        'customer_dc': 'customer_dc', 'auto_expire_enq_limit': 'auto_expire_enq_limit',
+                       'central_order_mgmt': 'central_order_mgmt',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

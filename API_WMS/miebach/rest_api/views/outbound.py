@@ -3287,6 +3287,29 @@ def sku_level_total_qtys(myDict, sku_total_qty_map):
             sku_total_qty_map[sku_id] = int(quantity)
 
 
+def create_central_order(request, user):
+    message = 'Success'
+    customer_id = request.user.id
+    interm_order_id = get_central_order_id(customer_id)
+    cart_items = CustomerCartData.objects.filter(customer_user_id=customer_id)
+    if not cart_items:
+        return HttpResponse('No Data in Cart')
+    try:
+        interm_order_map = {'user_id': user.id, 'interm_order_id': interm_order_id, 'customer_user_id': customer_id}
+        for cart_item in cart_items:
+            interm_order_map['quantity'] = cart_item.quantity
+            interm_order_map['unit_price'] = cart_item.levelbase_price
+            interm_order_map['sku_id'] = cart_item.sku_id
+            IntermediateOrders.objects.create(**interm_order_map)
+    except:
+        import traceback
+        log.debug(traceback.format_exc())
+        message = 'Failed'
+    else:
+        CustomerCartData.objects.filter(customer_user=request.user.id).delete()
+    return HttpResponse(message)
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -3337,6 +3360,7 @@ def insert_order_data(request, user=''):
     sample_client_name = request.POST.get('sample_client_name', '')
     mode_of_transport = request.POST.get('mode_of_transport','')
     dist_shipment_address = request.POST.get('manual_shipment_addr', '')
+    is_central_order = request.POST.get('is_central_order', '')
     if dist_shipment_address:
         ship_to = dist_shipment_address
     created_order_id = ''
@@ -3345,6 +3369,11 @@ def insert_order_data(request, user=''):
     po_data = []
     if valid_status:
         return HttpResponse(valid_status)
+
+    if is_central_order:
+        message = create_central_order(request, user)
+        return HttpResponse(message)
+
 
     log.info('Request params for ' + user.username + ' is ' + str(myDict))
 
@@ -5927,6 +5956,49 @@ def get_custom_order_data(start_index, stop_index, temp_data, search_term, order
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
     temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
+
+
+@csrf_exempt
+def get_central_orders_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
+                          filters={}, user_dict={}):
+    lis = ['id', 'interm_order_id', 'sku__sku_code', 'sku__sku_desc', 'quantity']
+    data_dict = {'user': user.id, 'quantity__gt': 0}
+    all_orders = IntermediateOrders.objects.filter(**data_dict)
+    index = 0
+    for dat in all_orders:
+        order_id = int(dat.interm_order_id)
+        sku_code = dat.sku.sku_code
+        sku_desc = dat.sku.sku_desc
+        quantity = dat.quantity
+        status = 1
+        # creation_date = dat.creation_date
+        # creation_date = get_local_date(request.user, creation_date, True).strftime("%d %b, %Y")
+
+        temp_data['aaData'].append(
+            OrderedDict((('Order ID', order_id), ('SKU Code', sku_code), ('SKU Desc', sku_desc),
+                         ('Product Quantity', quantity), ('data_id', dat.id),
+                         ('Warehouse', ''), ('Status', status),
+                         ('id', index), ('DT_RowClass', 'results'), )))
+        index += 1
+
+    col_val = ['id', 'SKU Code', 'SKU Desc', 'Product Quantity', 'Status']
+
+    temp_data['aaData'] = apply_search_sort(col_val, temp_data['aaData'], order_term, search_term, col_num)
+    temp_data['recordsTotal'] = len(temp_data['aaData'])
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
+
+
+def get_central_order_detail(request):
+    central_order_id = request.GET.get('central_order_id', '')
+    interm_obj = IntermediateOrders.objects.filter(id=central_order_id)
+    interm_obj = interm_obj[0]
+    warehouses = UserGroups.objects.filter(admin_user_id=interm_obj.user).values_list('user_id', flat=True)
+    resp = {'warehouses': list(warehouses), 'interm_order_id': interm_obj.interm_order_id,
+            'sku_code': interm_obj.sku.sku_code, 'sku_desc': interm_obj.sku.sku_desc,
+            'quantity': int(interm_obj.quantity), 'status': interm_obj.status}
+    return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
 
 
 @csrf_exempt

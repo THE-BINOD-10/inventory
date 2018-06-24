@@ -309,6 +309,48 @@ class GenericOrderDetailMapping(models.Model):
         db_table = 'GENERIC_ORDERDETAIL_MAPPING'
         unique_together = ('generic_order_id', 'orderdetail', 'customer_id', 'cust_wh_id')
 
+
+class IntermediateOrders(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    customer_user = models.ForeignKey(User, related_name='customer', blank=True, null=True)
+    order_assigned_wh = models.ForeignKey(User, related_name='warehouse', blank=True, null=True)
+    interm_order_id = models.DecimalField(max_digits=50, decimal_places=0)
+    sku = models.ForeignKey(SKUMaster)
+    quantity = models.FloatField(default=1)
+    unit_price = models.FloatField(default=0)
+    tax = models.FloatField(default=0)
+    inter_state = models.IntegerField(default=0)
+    cgst_tax = models.FloatField(default=0)
+    sgst_tax = models.FloatField(default=0)
+    igst_tax = models.FloatField(default=0)
+    utgst_tax = models.FloatField(default=0)
+    status = models.CharField(max_length=32, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "INTERMEDIATE_ORDERS"
+        unique_together = ('interm_order_id', 'sku')
+
+    def json(self):
+        invoice_amount = self.quantity * self.sku.price
+        return {
+            'sku_id': self.sku.sku_code,
+            'quantity': self.quantity,
+            'price': self.sku.price,
+            'unit_price': self.sku.price,
+            'invoice_amount': invoice_amount,
+            'tax': self.tax,
+            'total_amount': ((invoice_amount * self.tax) / 100) + invoice_amount,
+            'image_url': self.sku.image_url,
+            'cgst_tax': self.cgst_tax,
+            'sgst_tax': self.sgst_tax,
+            'igst_tax': self.igst_tax,
+            'utgst_tax': self.utgst_tax,
+        }
+
+
 class OrderFields(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.PositiveIntegerField()

@@ -3291,11 +3291,17 @@ def create_central_order(request, user):
     message = 'Success'
     customer_id = request.user.id
     interm_order_id = get_central_order_id(customer_id)
+    ship_date = request.POST.get('shipment_date', '')
+    if not ship_date:
+        return HttpResponse('Failed')
+    ship_date = ship_date.split('/')
+    shipment_date = datetime.date(int(ship_date[2]), int(ship_date[0]), int(ship_date[1]))
     cart_items = CustomerCartData.objects.filter(customer_user_id=customer_id)
     if not cart_items:
         return HttpResponse('No Data in Cart')
     try:
-        interm_order_map = {'user_id': user.id, 'interm_order_id': interm_order_id, 'customer_user_id': customer_id}
+        interm_order_map = {'user_id': user.id, 'interm_order_id': interm_order_id, 
+                            'customer_user_id': customer_id, 'shipment_date': shipment_date}
         for cart_item in cart_items:
             interm_order_map['quantity'] = cart_item.quantity
             interm_order_map['unit_price'] = cart_item.levelbase_price
@@ -3307,6 +3313,50 @@ def create_central_order(request, user):
         message = 'Failed'
     else:
         CustomerCartData.objects.filter(customer_user=request.user.id).delete()
+    return HttpResponse(message)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+@fn_timer
+def create_order_from_intermediate_order(request, user):
+    order_dict = {}
+    message = 'Success'
+    wh_id = request.POST.get('warehouse', '')
+    interm_det_id = request.POST.get('interm_det_id', '')
+    status = request.POST.get('status', '')
+    if not status:
+        return HttpResponse('Status Missing')
+    interm_qs = IntermediateOrders.objects.filter(id=interm_det_id)
+    if not interm_qs:
+        return HttpResponse('Failed')
+    try:
+        interm_obj = interm_qs[0]
+        order_dict['user'] = wh_id
+        sku_id = get_syncedusers_mapped_sku(wh=wh_id, sku_id=interm_obj.sku.id)
+        order_dict['sku_id'] = sku_id
+        order_dict['title'] = interm_obj.sku.sku_desc
+        order_dict['sku_code'] = interm_obj.sku.sku_code
+        order_dict['customer_id'] = interm_obj.customer_user.id
+        order_dict['quantity'] = interm_obj.quantity
+        order_dict['order_code'] = 'MN'
+        order_dict['shipment_date'] = interm_obj.shipment_date
+        order_dict['order_id'] = get_order_id(wh_id)
+        order_dict['status'] = 1
+        ord_obj = OrderDetail(**order_dict)
+        ord_obj.save()
+        cust_ord_dict = {'order_id': ord_obj.id, 'sgst_tax': interm_obj.sgst_tax, 'cgst_tax': interm_obj.cgst_tax,
+                         'igst_tax': interm_obj.igst_tax}
+        CustomerOrderSummary.objects.create(**cust_ord_dict)
+    except:
+        import traceback
+        log.debug(traceback.format_exc())
+        message = 'Failed'
+    else:
+        interm_obj.status = status
+        interm_obj.order_assigned_wh_id = wh_id
+        interm_obj.save()
     return HttpResponse(message)
 
 
@@ -5967,17 +6017,17 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
     index = 0
     for dat in all_orders:
         order_id = int(dat.interm_order_id)
-        sku_code = dat.sku.sku_code
-        sku_desc = dat.sku.sku_desc
-        quantity = dat.quantity
-        status = 1
+        if dat.order_assigned_wh:
+            wh_name = dat.order_assigned_wh.id
+        else:
+            wh_name = ''
         # creation_date = dat.creation_date
         # creation_date = get_local_date(request.user, creation_date, True).strftime("%d %b, %Y")
 
         temp_data['aaData'].append(
-            OrderedDict((('Order ID', order_id), ('SKU Code', sku_code), ('SKU Desc', sku_desc),
-                         ('Product Quantity', quantity), ('data_id', dat.id),
-                         ('Warehouse', ''), ('Status', status),
+            OrderedDict((('Order ID', order_id), ('SKU Code', dat.sku.sku_code), ('SKU Desc', dat.sku.sku_desc),
+                         ('Product Quantity', dat.quantity), ('data_id', dat.id),
+                         ('Warehouse', wh_name), ('Status', dat.status),
                          ('id', index), ('DT_RowClass', 'results'), )))
         index += 1
 
@@ -5994,10 +6044,15 @@ def get_central_order_detail(request):
     central_order_id = request.GET.get('central_order_id', '')
     interm_obj = IntermediateOrders.objects.filter(id=central_order_id)
     interm_obj = interm_obj[0]
+    if interm_obj.order_assigned_wh:
+        wh_name = interm_obj.order_assigned_wh.first_name
+    else:
+        wh_name = ''
     warehouses = UserGroups.objects.filter(admin_user_id=interm_obj.user).values_list('user_id', flat=True)
     resp = {'warehouses': list(warehouses), 'interm_order_id': interm_obj.interm_order_id,
             'sku_code': interm_obj.sku.sku_code, 'sku_desc': interm_obj.sku.sku_desc,
-            'quantity': int(interm_obj.quantity), 'status': interm_obj.status}
+            'quantity': int(interm_obj.quantity), 'status': interm_obj.status,
+            'warehouse': wh_name, 'data_id': interm_obj.id}
     return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
 
 

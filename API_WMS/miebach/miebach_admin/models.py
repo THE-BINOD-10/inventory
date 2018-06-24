@@ -326,6 +326,7 @@ class IntermediateOrders(models.Model):
     igst_tax = models.FloatField(default=0)
     utgst_tax = models.FloatField(default=0)
     status = models.CharField(max_length=32, default='')
+    shipment_date = models.DateTimeField()
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

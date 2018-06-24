@@ -301,7 +301,8 @@ urlpatterns = [
     url(r'^move_to_inv/$', move_to_inv),
     url(r'^update_dc/$', update_dc),
     url(r'^remove_sku/$', remove_sku),
-    url(r'get_central_order_detail/$', get_central_order_detail),
+    url(r'^get_central_order_detail/$', get_central_order_detail),
+    url(r'^create_order_from_intermediate_order/$', create_order_from_intermediate_order),
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),

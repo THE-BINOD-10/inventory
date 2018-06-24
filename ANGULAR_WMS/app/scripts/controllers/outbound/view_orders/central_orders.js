@@ -78,6 +78,8 @@ var vm = this;
                   vm.model_data.warehouses = resp_data.warehouses;
                   vm.model_data.status = resp_data.status;
                   vm.model_data.quantity = resp_data.quantity;
+                  vm.model_data.data_id = resp_data.data_id;
+                  vm.model_data.warehouse = resp_data.warehouse;
                   $state.go('app.outbound.ViewOrders.CentralOrderDetails');
                 });
             });
@@ -98,4 +100,18 @@ var vm = this;
       vm.count_sku_quantity();
     }
 
+    vm.submit = submit;
+    function submit(wh, status, data_id){
+        var elem = {'warehouse': wh, 'status': status, 'interm_det_id': data_id};
+        vm.service.apiCall('create_order_from_intermediate_order/', 'POST', elem, true).then(function(data){
+          if(data.message) {
+            if(data.data == 'Success') {
+              vm.service.refresh(vm.dtInstance);
+              vm.close();
+            } else {
+              vm.service.pop_msg(data.data);
+            }
+          }
+        });
+    }
 }

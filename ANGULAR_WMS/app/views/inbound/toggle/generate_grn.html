@@ -111,7 +111,7 @@
                 <tbody ng-repeat="records in showCase.model_data.data" ng-init="outerIndex=$index">
                   <tr ng-repeat="data in records" ng-init="innerIndex=$index">
                     <input type="hidden" name="supplier_id" value="{{showCase.model_data.supplier_id}}">
-                    <input type="hidden" name="id" value="{{data.order_id}}">
+                    <input type="hidden" name="id" value="{{data.order_id}}" ng-model="data.order_id">
                     <input type="hidden" name="new_sku" value="{{data.is_new}}">
                     <input ng-if="showCase.po_qc" type="hidden" class="form-control" value="{{data.accepted_quantity}}" name="accepted_quantity">
                     <input ng-if="showCase.po_qc" type="hidden" class="form-control" value="{{data.rejected_quantity}}" name="rejected_quantity">

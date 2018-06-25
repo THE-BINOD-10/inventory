@@ -274,10 +274,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var data = [];
 
       for(var i=0; i<vm.model_data.data.length; i++)  {
-        var temp = vm.model_data.data[i][0];
-        if(!temp.is_new) {
-          data.push({name: temp.order_id, value: temp.value});
-        }
+        angular.forEach(vm.model_data.data[i], function(sku){
+          if(!sku.is_new) {
+            data.push({name: sku.order_id, value: sku.value});
+          }
+        });
       }
       data.push({name: 'remarks', value: vm.model_data.remarks});
       data.push({name: 'expected_date', value: vm.model_data.expected_date});

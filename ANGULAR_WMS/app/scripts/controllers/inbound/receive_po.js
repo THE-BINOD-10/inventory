@@ -359,7 +359,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         angular.forEach(vm.model_data.data[i], function(sku){
           if(sku.value > 0) {
             status = true;
-            break;
+            // break;
           }
         });
       }

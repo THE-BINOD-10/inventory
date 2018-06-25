@@ -339,13 +339,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       display: true
     },
     {
-      name: "Auto Expiry Days for Enquiry Orders",
-      model_name: "auto_expire_enq_limit",
-      param_no: 62,
-      class_name: "fa fa-server",
-      display: true
-    },
-    {
      name: "Invoice Based Payment Tracker Enable/Disable",
      model_name: "invoice_based_payment_tracker",
      param_no: 63,

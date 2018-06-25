@@ -257,12 +257,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.add_wms_code = add_wms_code;
     function add_wms_code() {
       vm.model_data.data.push([{"wms_code":"", "po_quantity":"", "receive_quantity":"", "price":"", "dis": false,
-                                "order_id": vm.model_data.data[0][0].order_id, is_new: true, "unit": "",
+                                "order_id": '', is_new: true, "unit": "",
                                 "buy_price": "", "cess_percent": "", "tax_percent": "", "total_amt": "",
                                 "sku_details": [{"fields": {"load_unit_handle": ""}}]}]);
       //vm.new_sku = true
     }
     vm.get_sku_details = function(data, selected) {
+
+      data.wms_code = selected.wms_code;
+      data.measurement_unit = selected.measurement_unit;
+      data.sku_desc = selected.sku_desc;
+      data.po_quantity = 1;
+      data.price = 0;
+      data.mrp = selected.mrp;
+      data.description = selected.sku_desc;
+      data.tax_percent = "";
 
       data.sku_details[0].fields.load_unit_handle = selected.load_unit_handle;
       data.wms_code = selected.wms_code;
@@ -452,7 +461,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 } else {
 
                   for(var i=0; i<vm.model_data.data.length; i++) {
-                    var temp = vm.model_data.data[i][0]
+                    var temp = vm.model_data.data[i][0];
                     if(temp.wms_code == sku_code) {
                       if(vm.po_qc) {
                         vm.current_index = i;

@@ -494,7 +494,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     $('textarea[name="scan_sku"]').trigger('focus').val('');
                   }
                 }
-                if (vm.sku_list_1.indexOf(field) == -1){
+                if (vm.sku_list_1.indexOf(vm.field) == -1){
                   Service.showNoty(field+" Does Not Exist");
                 }
               }

@@ -347,11 +347,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     function check_receive() {
       var status = false;
       for(var i=0; i<vm.model_data.data.length; i++)  {
-        if(vm.model_data.data[i][0].value > 0) {
-          status = true;
-          break;
-        }
+        angular.forEach(vm.model_data.data[i], function(sku){
+          if(sku.value > 0) {
+            status = true;
+            break;
+          }
+        });
       }
+
+      // for(var i=0; i<vm.model_data.data.length; i++)  {
+
+      //   if(vm.model_data.data[i][0].value > 0) {
+      //     status = true;
+      //     break;
+      //   }
+      // }
       if(status){
         return true;
       } else {

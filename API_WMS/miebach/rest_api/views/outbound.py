@@ -4414,7 +4414,7 @@ def get_leadtimes(user='', level=0):
     same_level_users = get_same_level_warehouses(level, central_admin)
     lead_times = NetworkMaster.objects.filter(dest_location_code=user,
                                               source_location_code_id__in=same_level_users). \
-        values_list('lead_time', 'source_location_code').distinct()
+        values_list('lead_time', 'source_location_code').distinct().order_by('lead_time')
     lead_times_dict = {}
     for lt, wh_code in lead_times:
         lead_times_dict.setdefault(lt, []).append(wh_code)
@@ -4734,9 +4734,6 @@ def get_sku_variants(request, user=''):
                                             stock_dict[sku_id] += int(item['Inventory'])
                                         else:
                                             stock_dict[sku_id] = int(item['Inventory'])
-                                        expected_items = item['Expected']
-                                        if isinstance(expected_items, list) and expected_items:
-                                            asn_stock_map.setdefault(sku_id, []).extend(expected_items)
                                     else:
                                         if sku_id in stock_dict:
                                             stock_dict[sku_id] += int(item['FG'])

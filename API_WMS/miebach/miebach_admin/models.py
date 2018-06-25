@@ -816,6 +816,7 @@ class UserProfile(models.Model):
     customer_logo = models.ImageField(upload_to='static/images/customer_logos/', default='')
     bank_details = models.TextField(default='')
     industry_type = models.CharField(max_length=32, default='')
+    order_prefix = models.CharField(max_length=32, default='', null=True, blank=True)
 
     class Meta:
         db_table = 'USER_PROFILE'

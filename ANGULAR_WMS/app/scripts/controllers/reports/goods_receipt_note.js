@@ -62,6 +62,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.empty_data = {}
   vm.model_data = {};
 
+  vm.toggle_sku_wise = false;
+
   vm.title = "Purchase Order";
 
   vm.row_call = function(aData) {
@@ -86,22 +88,41 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   }
 
   vm.report_data = {};
-  vm.service.get_report_data("grn_report").then(function(data){
 
-    angular.copy(data, vm.report_data);
-    vm.report_data["row_call"] = vm.row_call;
-    vm.service.get_report_dt(vm.empty_data, vm.report_data).then(function(data){
+  vm.reports = {}
+  vm.toggle_grn = function() {
+    var send = {};
+	var name;
+	if (vm.toggle_sku_wise) {
+      name = 'sku_wise_grn_report';
+    } else {
+      name = 'grn_report';
+    }
+    vm.service.apiCall("get_report_data/", "GET", {report_name: name}).then(function(data) {
+	if(data.message) {
+	  if ($.isEmptyObject(data.data.data)) {
+		vm.datatable = false;
+		vm.dtInstance = {};
+	  } else {
+	  vm.reports[name] = data.data.data;
+	  angular.copy(data.data.data, vm.report_data);
+      vm.report_data["row_call"] = vm.row_call;
+      vm.service.get_report_dt(vm.empty_data, vm.report_data).then(function(datam) {
+        vm.empty_data = datam.empty_data;
+        angular.copy(vm.empty_data, vm.model_data);
+        vm.dtOptions = datam.dtOptions;
+        vm.dtColumns = datam.dtColumns;
+        vm.datatable = true;
+        vm.dtInstance = {};
+        vm.report_data['excel2'] = true;
+		vm.report_data['row_click'] = true;
+      })
+	}
+	}
+	})
+  }
 
-      vm.empty_data = data.empty_data;
-      angular.copy(vm.empty_data, vm.model_data);
-      vm.dtOptions = data.dtOptions;
-      vm.dtColumns = data.dtColumns;
-      vm.datatable = true;
-      vm.dtInstance = {};
-      vm.report_data['excel2'] = true;
-    })
-  })
-
+  vm.toggle_grn()
 
   vm.print_page = "";
   vm.dtInstance = {};

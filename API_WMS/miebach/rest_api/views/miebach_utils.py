@@ -424,6 +424,17 @@ GRN_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'type': 'dat
             'dt_url': 'get_po_filter', 'excel_name': 'goods_receipt', 'print_url': '',
             }
 
+SKU_WISE_GRN_DICT = {'filters' : [
+			{'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+                        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+                        {'label': 'PO Number', 'name': 'open_po', 'type': 'input'},
+                        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'}
+		    ],
+		'dt_headers': ["Received Date", "PO Date", "PO Number", "Supplier ID", "Supplier Name", "Recepient", "SKU Code", "SKU Description", "SKU Class", "SKU Style Name", "SKU Brand", "SKU Category", "Received Qty", "Unit Rate", "Pre-Tax Received Value", "CGST(%)", "SGST(%)", "IGST(%)", "UTGST(%)", "Post-Tax Received Value", "Invoiced Unit Rate", "Invoiced Total Amount"],
+		'mk_dt_headers': [ "Received Date", "PO Date", "PO Number", "Supplier ID", "Supplier Name", "Recepient", "SKU Code", "SKU Description", "SKU Class", "SKU Style Name", "SKU Brand", "SKU Category", "Received Qty", "Unit Rate", "Pre-Tax Received Value", "CGST(%)", "SGST(%)", "IGST(%)", "UTGST(%)", "Post-Tax Received Value", "Margin %", "Margin", "Invoiced Unit Rate", "Invoiced Total Amount" ],
+		'dt_url': 'get_sku_wise_po_filter', 'excel_name': 'goods_receipt', 'print_url': '',
+	   }
+
 SELLER_INVOICE_DETAILS_DICT = {
     'filters': [{'label': 'From Date', 'name': 'from_date', 'type': 'date'},
                 {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
@@ -480,7 +491,7 @@ SHIPMENT_REPORT_DICT = {
 
 REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report': OPEN_JO_REP_DICT,
                      'sku_wise_po_report': SKU_WISE_PO_DICT,
-                     'grn_report': GRN_DICT, 'seller_invoice_details': SELLER_INVOICE_DETAILS_DICT,
+                     'grn_report': GRN_DICT, 'sku_wise_grn_report' : SKU_WISE_GRN_DICT, 'seller_invoice_details': SELLER_INVOICE_DETAILS_DICT,
                      'rm_picklist_report': RM_PICKLIST_REPORT_DICT, 'stock_ledger_report': STOCK_LEDGER_REPORT_DICT,
                      'shipment_report': SHIPMENT_REPORT_DICT}
 
@@ -1961,6 +1972,10 @@ def sku_wise_purchase_data(search_params, user, sub_user):
 
     return temp_data
 
+def get_sku_wise_po_filter_data(search_params, user, sub_user):
+    temp_data = {}
+    temp_data['aaData'] = []
+    return temp_data
 
 def get_po_filter_data(search_params, user, sub_user):
     from miebach_admin.models import *

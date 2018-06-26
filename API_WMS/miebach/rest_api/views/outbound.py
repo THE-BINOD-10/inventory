@@ -1935,7 +1935,6 @@ def update_invoice(request, user=''):
                                                                                  "%m/%d/%Y").date()
             if update_dict:
                 ord_ids.update(**update_dict)
-
         if increment_invoice == 'true' and invoice_number:
             invoice_sequence = InvoiceSequence.objects.filter(user_id=user.id, marketplace=marketplace)
             if not invoice_sequence:
@@ -7512,6 +7511,100 @@ def get_levelbased_invoice_data(start_index, stop_index, temp_data, user, search
     temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
     return temp_data
 
+'''
+@csrf_exempt
+def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    data_dict = {}
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    temp_data['recordsTotal'] = 0
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    stock_transfer_id = ''
+    ordered_quantity = ''
+    #st_orders_id = STOrder.objects.filter(picklist__stock__sku__user = user.id).distinct().values_list('picklist__picklist_number', flat=True)
+    #st_order_ids = STOrder.objects.filter(stock_transfer__st_po__open_st__sku__user = user.id).distinct().values_list('stock_transfer__order_id', flat=True)
+    st_order_ids = STOrder.objects.filter(picklist__stock__sku__user = user.id).distinct().values_list('stock_transfer__order_id', flat=True)
+    #get warehouse list
+    user_list = []
+    admin_user = UserGroups.objects.filter(Q(admin_user__username__iexact=user.username) | Q(user__username__iexact=user.username)).values_list('admin_user_id', flat=True)
+
+    user_groups = UserGroups.objects.filter(admin_user_id__in=admin_user).values('user__username', 'admin_user__username')
+    for users in user_groups:
+        for key, value in users.iteritems():
+            if user.username != value and value not in user_list:
+                user_list.append(value)
+
+    for ord_id in st_order_ids:
+	picked_qty = 0
+	st_obj = StockTransfer.objects.filter(order_id = ord_id, st_po__open_st__warehouse__username__in = user_list).exclude(st_po__open_st__warehouse__username = '')
+	#first_name = st_obj[0].values('st_po__open_st__warehouse__first_name')['st_po__open_st__warehouse__first_name']
+	try:
+	    first_name = st_obj[0].st_po.open_st.warehouse.username
+	except:
+	    first_name = ''
+
+	picklist_obj = Picklist.objects.filter(order__order_id = ord_id)
+	#picked_qty = picklist_obj.aggregate(Sum('picked_quantity'))['picked_quantity__sum']
+	reserved_qty = picklist_obj.aggregate(Sum('reserved_quantity'))['reserved_quantity__sum']
+	total_price = 0
+	picked_quantity = 0
+	total_picked_quantity = 0
+	for get_sku in picklist_obj:
+	    sku_code = get_sku.sku_code
+	    if sku_code:
+		#get_picked_qty = picklist_obj.filter(sku_code = sku_code)
+		#picked_quantity = get_picked_qty[0].picked_quantity
+		unique_sku_obj = st_obj.filter(st_po__open_st__sku__sku_code = sku_code)
+		try:
+		    picked_quantity = unique_sku_obj[0].st_po.open_st.order_quantity
+		    #total_amount = unique_sku_obj[0].st_po.open_st.price * picked_quantity
+		    #total_amount = get_picked_qty[0].order.sku.price * picked_quantity
+		    total_amount = unique_sku_obj[0].st_po.open_st.price * picked_quantity
+		except:
+		    total_amount = 0
+		total_price = total_amount + total_price
+		total_picked_quantity = picked_quantity + total_picked_quantity
+	temp_data['aaData'].append({'Stock Transfer ID' : ord_id, 'Order Quantity' : '', 'Picked Quantity' : total_picked_quantity, 'Total Amount' : total_price, 'Stock Transfer Date&Time' : '', 'Customer Name': first_name})
+'''
+
+@csrf_exempt
+def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    data_dict = {}
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    temp_data['recordsTotal'] = 0
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    stock_transfer_id = ''
+    ordered_quantity = ''
+    st_orders_id = STOrder.objects.filter(picklist__stock__sku__user = user.id).distinct().values_list('picklist__picklist_number', flat=True)
+    for picklist_num in st_orders_id:
+    	data = get_picked_data(picklist_num, user.id, marketplace='')
+	for obj in data:
+	    try:
+	        ord_id = str(int(obj['order_id']))
+	    except:
+		ord_id = str(obj['order_id'])
+	    total_picked_quantity = obj['picked_quantity']
+	    sku = obj['wms_code']
+	    get_stock_transfer = StockTransfer.objects.filter(sku__sku_code=obj['wms_code'], order_id = ord_id).distinct()
+	    for obj in get_stock_transfer:
+	        try:
+		    shipment_date = str(obj.updation_date)
+		    warehouse = obj.st_po.open_st.warehouse.username
+		    sku_price = obj.st_po.open_st.price
+		    total_price = obj.st_po.open_st.price * total_picked_quantity
+	        except:
+		    continue
+		search_val = ''
+		try:
+		    search_val = (item for idx,item in enumerate(temp_data['aaData']) if item["Stock Transfer ID"] == ord_id and item["Warehouse Name"] == warehouse).next()
+		    if search_val:
+		        exist_qty = search_val['Picked Quantity']
+		        new_qty = total_picked_quantity
+		        exist_amt = search_val['Total Amount']
+		        new_amt = total_price
+		        search_val.update({'Picked Quantity' : exist_qty + new_qty, 'Total Amount' : exist_amt + new_amt})
+		except:
+	    	    temp_data['aaData'].append({'Stock Transfer ID' : ord_id, 'Picked Quantity' : total_picked_quantity, 'Total Amount' : total_price, 'Stock Transfer Date&Time' : shipment_date, 'Warehouse Name': warehouse, 'Picklist Number' : picklist_num})
+
 
 @csrf_exempt
 def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
@@ -8356,6 +8449,85 @@ def generate_customer_invoice_tab(request, user=''):
 
 @csrf_exempt
 @get_admin_user
+def generate_stock_transfer_invoice(request, user=''):
+    resp_list = {}
+    resp_list['resp'] = []
+    data_dict = dict(request.GET.iterlists())
+    order_id = data_dict.get('order_id', '')
+    warehouse_name = data_dict.get('warehouse_name', '')
+    picklist_number = data_dict.get('picklist_number', '')
+    picked_qty = data_dict.get('picked_qty', '')
+    stock_transfer_datetime = data_dict.get('stock_transfer_datetime', '')
+    total_amount = data_dict.get('total_amount', '')
+    user_profile = UserProfile.objects.filter(user_id=user.id).values('city', 'company_name', 'state', 'location', 'phone_number', 'pin_code', 'country', 'address', 'cin_number')
+    city = user_profile[0]['city']
+    company_name = user_profile[0]['company_name']
+    state = user_profile[0]['state']
+    location = user_profile[0]['location']
+    phone_number = user_profile[0]['phone_number']
+    pin_code = user_profile[0]['pin_code']
+    country = user_profile[0]['country']
+    address = user_profile[0]['address']
+    cin_number = user_profile[0]['cin_number']
+
+    increment_invoice = get_misc_value('increment_invoice', user.id)
+    from_warehouse = {}
+    from_warehouse = { 'city' : city, 'company_name' : company_name, 'state' : state, 'location' : location, 'phone_number' : phone_number, 'cin_number' : cin_number, 'pin_code' : pin_code, 'country' : country }
+
+    user_profile = UserProfile.objects.filter(user_id=user.id).values('city', 'company_name', 'state', 'location', 'phone_number', 'pin_code', 'country', 'address', 'cin_number')
+
+    stock_transfer_id = ''
+    ordered_quantity = ''
+    data = get_picked_data(picklist_number[0], user.id, marketplace='')
+    picklist_obj = Picklist.objects.filter(picklist_number = picklist_number[0]).order_by('-creation_date').values('creation_date')
+    invoice_date = picklist_obj[0]['creation_date']
+    invoice_amt = 0
+    for obj in data:
+	try:
+	    ord_id = str(int(obj['order_id']))
+	except:
+	    ord_id = str(obj['order_id'])
+	total_picked_quantity = obj['picked_quantity']
+	sku = obj['wms_code']
+	get_stock_transfer = StockTransfer.objects.filter(sku__sku_code=obj['wms_code'], order_id = ord_id).distinct()
+	for obj in get_stock_transfer:
+	    try:
+		shipment_date = str(obj.updation_date)
+		warehouse_user_id = obj.st_po.open_st.warehouse.id
+		to_warehouse_details = UserProfile.objects.filter(user_id = warehouse_user_id).values('city', 'company_name', 'state', 'location', 'phone_number', 'pin_code', 'country', 'address', 'cin_number')
+		to_warehouse = {}
+    		to_warehouse = { 'city' : to_warehouse_details[0]['city'], 'company_name' : to_warehouse_details[0]['company_name'], 'state' : to_warehouse_details[0]['state'], 'location' : to_warehouse_details[0]['location'], 'phone_number' : to_warehouse_details[0]['phone_number'], 'cin_number' : to_warehouse_details[0]['cin_number'], 'pin_code' : to_warehouse_details[0]['pin_code'], 'country' : to_warehouse_details[0]['country'] }
+		warehouse = obj.st_po.open_st.warehouse.username
+		sku_price = obj.st_po.open_st.price
+		rate = obj.st_po.open_st.price
+		total_price = rate * total_picked_quantity
+		invoice_amt = total_price + invoice_amt
+                sku_description = obj.sku.sku_desc
+		try:
+		    resp_list['resp'][0].update({'invoice_amount':invoice_amt})
+		except:
+		    pass
+	    except:
+		continue
+	    search_val = ''
+	    try:
+		search_val = (item for idx,item in enumerate(resp_list['resp']) if item["order_id"] == ord_id and item["warehouse_name"] == warehouse and item['sku_code'] == sku).next()
+		if search_val:
+		    exist_qty = search_val['picked_quantity']
+		    new_qty = total_picked_quantity
+		    exist_amt = search_val['amount']
+		    new_amt = total_price
+		    search_val.update({'picked_quantity' : exist_qty + new_qty, 'amount' : exist_amt + new_amt})
+	    except:
+                if increment_invoice == 'false':
+                    invoice_number = ord_id
+                else:
+                    invoice_number = ''
+		resp_list['resp'].append({'order_id' : ord_id, 'picked_quantity' : total_picked_quantity, 'rate' : rate, 'amount' : total_price, 'stock_transfer_date_time' : str(shipment_date), 'warehouse_name': warehouse, 'sku_code' : sku, 'invoice_date' : str(invoice_date), 'from_warehouse' : from_warehouse, 'to_warehouse' : to_warehouse, 'invoice_amount' : invoice_amt, 'sku_description' : sku_description, 'invoice_number' : invoice_number })
+    return HttpResponse(json.dumps(resp_list))
+
+@csrf_exempt
+@get_admin_user
 def generate_customer_invoice(request, user=''):
     data = []
     user_profile = UserProfile.objects.get(user_id=user.id)
@@ -8829,6 +9001,12 @@ def customer_invoice_data(request, user=''):
             headers = WH_CUSTOMER_INVOICE_HEADERS
     return HttpResponse(json.dumps({'headers': headers}))
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def stock_transfer_invoice_data(request, user=''):
+    headers = STOCK_TRANSFER_INVOICE_HEADERS
+    return HttpResponse(json.dumps({'headers': headers}))
 
 @csrf_exempt
 @login_required
@@ -9921,6 +10099,7 @@ def print_cartons_data_view(request, user=''):
                   'courier_name': courier_name, 'data': data.values()}
     return render(request, 'templates/toggle/print_cartons_wise_qty.html', final_data)
 
+
 @csrf_exempt
 @get_admin_user
 def create_orders_check_ean(request, user=''):
@@ -9931,3 +10110,4 @@ def create_orders_check_ean(request, user=''):
     if sku_obj:
         sku_code = sku_obj[0].sku_code
     return HttpResponse(json.dumps({ 'sku' : sku_code }))
+

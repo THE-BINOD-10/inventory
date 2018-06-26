@@ -67,24 +67,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.title = "Purchase Order";
 
   vm.row_call = function(aData) {
+    if (!vm.toggle_sku_wise) {
+        if(aData.receipt_type == "Hosted Warehouse") {
 
-    console.log(aData);
-
-    if(aData.receipt_type == "Hosted Warehouse") {
-
-      vm.title = "Stock transfer Note";
+          vm.title = "Stock transfer Note";
+        }
+        $http.get(Session.url+'print_po_reports/?'+aData.key+'='+aData.DT_RowAttr["data-id"]+'&receipt_no='+aData.receipt_no, {withCredential: true}).success(function(data, status, headers, config) {
+            var html = $(data);
+            vm.print_page = $(html).clone();
+            //html = $(html).find(".modal-body > .form-group");
+            //$(html).find(".modal-footer").remove()
+            $(".modal-body").html(html);
+          });
+          $state.go('app.reports.GoodsReceiptNote.PurchaseOrder');
     }
-
-    $http.get(Session.url+'print_po_reports/?'+aData.key+'='+aData.DT_RowAttr["data-id"]+'&receipt_no='+aData.receipt_no, {withCredential: true})
-      .success(function(data, status, headers, config) {
-        console.log(data);
-        var html = $(data);
-        vm.print_page = $(html).clone();
-        //html = $(html).find(".modal-body > .form-group");
-        //$(html).find(".modal-footer").remove()
-        $(".modal-body").html(html);
-      });
-      $state.go('app.reports.GoodsReceiptNote.PurchaseOrder');
   }
 
   vm.report_data = {};

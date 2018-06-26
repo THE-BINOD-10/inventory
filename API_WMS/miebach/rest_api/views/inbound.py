@@ -4713,23 +4713,43 @@ def create_purchase_order(request, myDict, i, user=''):
     else:
         if po_order:
             po_order_id = po_order[0].order_id
-        new_data = {'supplier_id': [myDict['supplier_id'][i]], 'wms_code': [myDict['wms_code'][i]],
-                    'order_quantity': [myDict['po_quantity'][i]], 'price': [myDict['price'][i]],
-                    'po_order_id': po_order_id}
-        get_data = confirm_add_po(request, new_data)
-        get_data = get_data.content
-        myDict['id'][i] = get_data.split(',')[0]
+        sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i], user=user.id)
+        supplier_master = SupplierMaster.objects.filter(id=myDict['supplier_id'][i], user=user.id)
+        new_data = {'supplier_id': supplier_master[0].id, 'sku_id': sku_master[0].id,
+                    'order_quantity': myDict['po_quantity'][i], 'price': myDict['price'][i],
+                    'po_name': po_order[0].open_po.po_name,
+                    'order_type': po_order[0].open_po.order_type, 'tax_type': po_order[0].open_po.tax_type,
+                    'measurement_unit': sku_master[0].measurement_type,
+                    'creation_date': datetime.datetime.now()}
+        if 'mrp' in myDict.keys():
+            new_data['mrp'] = myDict['po_quantity'][i]
+        if 'tax_percent' in myDict.keys() and myDict['tax_percent'][i]:
+            if supplier_master[0].tax_type == 'intra_state':
+                new_data['cgst_tax'] = float(myDict['tax_percent'][i])/2
+                new_data['sgst_tax'] = float(myDict['tax_percent'][i])/2
+            else:
+                new_data['igst_tax'] = float(myDict['tax_percent'][i])
+        if 'cess_percent' in myDict.keys() and myDict['cess_percent'][i]:
+            new_data['cess_tax'] = float(myDict['cess_percent'][i])
+        open_po = OpenPO.objects.create(**new_data)
+        purchase_order = PurchaseOrder.objects.create(order_id=po_order_id, open_po_id=open_po.id,
+                                    received_quantity=myDict['quantity'][i], po_date=po_order[0].po_date,
+                                    ship_to=po_order[0].ship_to, prefix=user.userprofile.prefix,
+                                    creation_date=datetime.datetime.now())
+        #get_data = confirm_add_po(request, new_data)
+        #get_data = get_data.content
+        myDict['id'][i] = purchase_order.id
         if po_order[0].open_po and po_order[0].open_po.sellerpo_set.filter():
             seller_po = po_order[0].open_po.sellerpo_set.filter()
             temp_purchase_obj = PurchaseOrder.objects.get(id=myDict['id'][i])
             exist_seller_po = SellerPO.objects.filter(seller_id=seller_po[0].seller_id,
-                                                      open_po_id=temp_purchase_obj.open_po_id)
+                                                      open_po_id=open_po.id)
             if not exist_seller_po:
-                SellerPO.objects.create(seller_id=seller_po[0].seller_id, open_po_id=temp_purchase_obj.open_po_id,
+                SellerPO.objects.create(seller_id=seller_po[0].seller_id, open_po_id=open_po.id,
                                     seller_quantity=myDict['po_quantity'][i],
                                     received_quantity=myDict['po_quantity'][i],
                                     receipt_type=seller_po[0].receipt_type, unit_price=myDict['price'][i],
-                                    status=0)
+                                    status=1)
     return myDict['id'][i]
 
 

@@ -4719,6 +4719,17 @@ def create_purchase_order(request, myDict, i, user=''):
         get_data = confirm_add_po(request, new_data)
         get_data = get_data.content
         myDict['id'][i] = get_data.split(',')[0]
+        if po_order[0].open_po and po_order[0].open_po.sellerpo_set.filter():
+            seller_po = po_order[0].open_po.sellerpo_set.filter()
+            temp_purchase_obj = PurchaseOrder.objects.get(id=myDict['id'][i])
+            exist_seller_po = SellerPO.objects.filter(seller_id=seller_po[0].seller_id,
+                                                      open_po_id=temp_purchase_obj.open_po_id)
+            if not exist_seller_po:
+                SellerPO.objects.create(seller_id=seller_po[0].seller_id, open_po_id=temp_purchase_obj.open_po_id,
+                                    seller_quantity=myDict['po_quantity'][i],
+                                    received_quantity=myDict['po_quantity'][i],
+                                    receipt_type=seller_po[0].receipt_type, unit_price=myDict['price'][i],
+                                    status=0)
     return myDict['id'][i]
 
 

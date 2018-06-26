@@ -257,12 +257,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.add_wms_code = add_wms_code;
     function add_wms_code() {
       vm.model_data.data.push([{"wms_code":"", "po_quantity":"", "receive_quantity":"", "price":"", "dis": false,
-                                "order_id": vm.model_data.data[0][0].order_id, is_new: true, "unit": "",
+                                "order_id": '', is_new: true, "unit": "",
                                 "buy_price": "", "cess_percent": "", "tax_percent": "", "total_amt": "",
                                 "sku_details": [{"fields": {"load_unit_handle": ""}}]}]);
       //vm.new_sku = true
     }
     vm.get_sku_details = function(data, selected) {
+
+      data.wms_code = selected.wms_code;
+      data.measurement_unit = selected.measurement_unit;
+      data.sku_desc = selected.sku_desc;
+      data.po_quantity = 1;
+      data.price = 0;
+      data.mrp = selected.mrp;
+      data.description = selected.sku_desc;
+      data.tax_percent = "";
 
       data.sku_details[0].fields.load_unit_handle = selected.load_unit_handle;
       data.wms_code = selected.wms_code;
@@ -274,10 +283,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var data = [];
 
       for(var i=0; i<vm.model_data.data.length; i++)  {
-        var temp = vm.model_data.data[i][0];
-        if(!temp.is_new) {
-          data.push({name: temp.order_id, value: temp.value});
-        }
+        angular.forEach(vm.model_data.data[i], function(sku){
+          if(!sku.is_new) {
+            data.push({name: sku.order_id, value: sku.value});
+          }
+        });
       }
       data.push({name: 'remarks', value: vm.model_data.remarks});
       data.push({name: 'expected_date', value: vm.model_data.expected_date});
@@ -346,11 +356,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     function check_receive() {
       var status = false;
       for(var i=0; i<vm.model_data.data.length; i++)  {
-        if(vm.model_data.data[i][0].value > 0) {
-          status = true;
-          break;
-        }
+        angular.forEach(vm.model_data.data[i], function(sku){
+          if(sku.value > 0) {
+            status = true;
+            // break;
+          }
+        });
       }
+
+      // for(var i=0; i<vm.model_data.data.length; i++)  {
+
+      //   if(vm.model_data.data[i][0].value > 0) {
+      //     status = true;
+      //     break;
+      //   }
+      // }
       if(status){
         return true;
       } else {
@@ -441,7 +461,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 } else {
 
                   for(var i=0; i<vm.model_data.data.length; i++) {
-                    var temp = vm.model_data.data[i][0]
+                    var temp = vm.model_data.data[i][0];
                     if(temp.wms_code == sku_code) {
                       if(vm.po_qc) {
                         vm.current_index = i;

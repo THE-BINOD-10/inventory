@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('RaisePurchaseOrderCtrl',['$scope', '$http', '$q', '$state', '$compile', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
+  .controller('RaisePurchaseOrderCtrl',['$scope', '$http', '$q', '$state', '$compile', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'colFilters', 'Service', 'Data', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, colFilters, Service) {
+function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, colFilters, Service, Data) {
 
     var vm = this;
     vm.apply_filters = colFilters;
@@ -127,7 +127,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
                   angular.forEach(seller_data, function(seller_single){
                     vm.model_data.seller_types.push(seller_single.id + ':' + seller_single.name);
                   });
-
+                  Data.seller_types = vm.model_data.seller_types;
                   vm.default_status = (Session.user_profile.user_type == 'marketplace_user' && Session.user_profile.industry_type != 'FMCG')? true : false;
                   vm.getCompany();
                   vm.seller_change1 = function(type) {
@@ -207,6 +207,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       vm.print_enable = false;
       vm.vendor_receipt = false;
       angular.copy(empty_data, vm.model_data);
+      vm.model_data.seller_types = Data.seller_types;
 
       if (vm.service.is_came_from_raise_po) {
         vm.model_data.supplier_id = vm.service.searched_sup_code;
@@ -229,6 +230,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
           angular.forEach(seller_data, function(seller_single){
               vm.model_data.seller_types.push(seller_single.id + ':' + seller_single.name);
           });
+          Data.seller_types = vm.model_data.seller_types;
 
           vm.default_status = (Session.user_profile.user_type == 'marketplace_user') ? true: false;
 

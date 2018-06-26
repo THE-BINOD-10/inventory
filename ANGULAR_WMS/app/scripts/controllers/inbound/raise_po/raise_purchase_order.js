@@ -220,7 +220,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     vm.base();
 
     vm.add = function () {
-
+      vm.model_data.seller_types = [];
       vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
         if (data.message) {
           var seller_data = data.data.sellers;
@@ -234,14 +234,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
 
           vm.default_status = (Session.user_profile.user_type == 'marketplace_user') ? true: false;
 
-          vm.seller_change = function(type) {
-
-            vm.selected_seller = type;
-            vm.default_status = false;
-            vm.model_data.data[vm.model_data.data.length - 1].fields.dedicated_seller = vm.selected_seller;
-            vm.getCompany();
-			      vm.populate_last_transaction('');
-          }
+          
           vm.model_data.receipt_type = 'Purchase Order';
           if (Session.user_profile.user_type == 'marketplace_user') {
             vm.model_data.receipt_type = 'Hosted Warehouse';
@@ -250,6 +243,15 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
 
         }
       });
+    }
+
+    vm.seller_change = function(type) {
+
+      vm.selected_seller = type;
+      vm.default_status = false;
+      vm.model_data.data[vm.model_data.data.length - 1].fields.dedicated_seller = vm.selected_seller;
+      vm.getCompany();
+      vm.populate_last_transaction('');
     }
 
     vm.update_data = function (index) {

@@ -4749,7 +4749,7 @@ def create_purchase_order(request, myDict, i, user=''):
                                     seller_quantity=myDict['po_quantity'][i],
                                     received_quantity=myDict['po_quantity'][i],
                                     receipt_type=seller_po[0].receipt_type, unit_price=myDict['price'][i],
-                                    status=0)
+                                    status=1)
     return myDict['id'][i]
 
 

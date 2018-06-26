@@ -147,6 +147,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     angular.forEach(vm.model_data.data, function(row){
                       angular.forEach(row, function(sku){
                         sku['buy_price'] = sku.price;
+                        sku['discount_percentage'] = 0;
                       });
                     });
 
@@ -273,8 +274,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       data.price = 0;
       data.mrp = selected.mrp;
       data.description = selected.sku_desc;
-      data.tax_percent = "";
-      data.cess_percent = "";
+      data.tax_percent = 0;
+      data.cess_percent = 0;
 
       data.sku_details[0].fields.load_unit_handle = selected.load_unit_handle;
       $timeout(function() {$scope.$apply();}, 1000);
@@ -1714,8 +1715,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if(sku_row_data.cess_percent == ''){
         sku_row_data.cess_percent = 0;
       }
-      var wo_tax_amt = Number(sku_row_data.value)*Number(sku_row_data.buy_price);
+
+      var total_amt = Number(sku_row_data.value)*Number(sku_row_data.buy_price);
+      var total_amt_dis = Number(total_amt) * Number(sku_row_data.discount_percentage) / 100;
       var tot_tax = Number(sku_row_data.tax_percent) + Number(sku_row_data.cess_percent);
+      var wo_tax_amt = Number(total_amt)-Number(total_amt_dis);
       data.data[parent_index][index].total_amt = wo_tax_amt + (wo_tax_amt * (tot_tax/100));
 
       var totals = 0;

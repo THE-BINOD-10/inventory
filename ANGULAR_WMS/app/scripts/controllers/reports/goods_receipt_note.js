@@ -112,6 +112,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
         vm.dtInstance = {};
         vm.report_data['excel2'] = true;
 		vm.report_data['row_click'] = true;
+        if (vm.toggle_sku_wise) {
+            vm.report_data['excel_name'] = 'sku_wise_goods_receipt'
+        } else {
+            vm.report_data['excel_name'] = 'goods_receipt'
+        }
       })
 	}
 	}

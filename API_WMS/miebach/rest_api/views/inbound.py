@@ -4345,23 +4345,35 @@ def confirm_add_po(request, sales_data='', user=''):
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
 
+def create_mail_attachments(f_name, html_data):
+    from random import randint
+    attachments = []
+    if not isinstance(html_data, list):
+        html_data = [html_data]
+    for data in html_data:
+        temp_name = f_name + str(randint(100, 9999))
+        file_name = '%s.html' % temp_name
+        pdf_file = '%s.pdf' % temp_name
+        path = 'static/temp_files/'
+        folder_check(path)
+        file = open(path + file_name, "w+b")
+        file.write(data)
+        file.close()
+        os.system(
+            "./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (path + file_name, path + pdf_file))
+        attachments.append({'path': path + pdf_file, 'name': pdf_file})
+    return attachments
+
+
 def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_no, po_data, order_date, ean_flag=False,
                        internal=False, report_type='Purchase Order'):
-    file_name = '%s.html' % f_name
-    pdf_file = '%s.pdf' % f_name
     receivers = []
+    attachments = create_mail_attachments(f_name, html_data)
     internal_mail = MiscDetail.objects.filter(user=request.user.id, misc_type='Internal Emails')
     misc_internal_mail = MiscDetail.objects.filter(user=request.user.id, misc_type='internal_mail', misc_value='true')
     if misc_internal_mail and internal_mail:
         internal_mail = internal_mail[0].misc_value.split(",")
         receivers.extend(internal_mail)
-    path = 'static/temp_files/'
-    folder_check(path)
-    file = open(path + file_name, "w+b")
-    file.write(html_data)
-    file.close()
-    os.system(
-        "./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (path + file_name, path + pdf_file))
 
     if supplier_email:
         receivers.append(supplier_email)
@@ -4382,7 +4394,7 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
         email_body = 'Please find the %s with Job Code: <b>%s</b> in the attachment' % (report_type, f_name)
         email_subject = '%s %s with Job Code %s' % (company_name, report_type, f_name)
     if supplier_email or internal or internal_mail:
-        send_mail_attachment(receivers, email_subject, email_body, files=[{'path': path + pdf_file, 'name': pdf_file}])
+        send_mail_attachment(receivers, email_subject, email_body, files=attachments)
 
     if phone_no:
         if report_type == 'Purchase Order':

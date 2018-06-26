@@ -14,6 +14,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service = Service;
     vm.self_life_ratio = Number(vm.permissions.shelf_life_ratio) || 0;
     vm.industry_type = Session.user_profile.industry_type;
+    vm.supplier_id = '';
     // vm.industry_type = 'FMCG';
 
     //default values
@@ -128,6 +129,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         $(row_click_bind, nRow).unbind('click');
         $(row_click_bind, nRow).bind('click', function() {
             $scope.$apply(function() {
+              vm.supplier_id = aData['DT_RowId'];
                 vm.service.apiCall('get_supplier_data/', 'GET', {supplier_id: aData['DT_RowId']}).then(function(data){
                   if(data.message) {
                     vm.serial_numbers = [];
@@ -256,8 +258,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.new_sku = false
     vm.add_wms_code = add_wms_code;
     function add_wms_code() {
-      vm.model_data.data.push([{"wms_code":"", "po_quantity":"", "receive_quantity":"", "price":"", "dis": false,
-                                "order_id": '', is_new: true, "unit": "",
+      vm.model_data.data.push([{"wms_code":"", "po_quantity":0, "receive_quantity":"", "price":"", "dis": false,
+                                "order_id": '', "is_new": true, "unit": "",
                                 "buy_price": "", "cess_percent": "", "tax_percent": "", "total_amt": "",
                                 "sku_details": [{"fields": {"load_unit_handle": ""}}]}]);
       //vm.new_sku = true
@@ -267,16 +269,80 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       data.wms_code = selected.wms_code;
       data.measurement_unit = selected.measurement_unit;
       data.sku_desc = selected.sku_desc;
-      data.po_quantity = 1;
+      data.po_quantity = 0;
       data.price = 0;
       data.mrp = selected.mrp;
       data.description = selected.sku_desc;
       data.tax_percent = "";
+      data.cess_percent = "";
 
       data.sku_details[0].fields.load_unit_handle = selected.load_unit_handle;
-      data.wms_code = selected.wms_code;
       $timeout(function() {$scope.$apply();}, 1000);
+
+      if (!vm.supplier_id){
+        return false;
+      } else {
+        var supplier = vm.supplier_id;
+        // $http.get(Session.url+'get_mapping_values/?wms_code='+product.fields.sku.wms_code+'&supplier_id='+supplier, {withCredentials : true}).success(function(data, status, headers, config) {
+        //   if(Object.values(data).length) {
+        //     product.fields.price = data.price;
+        //     product.fields.supplier_code = data.supplier_code;
+        //     product.fields.ean_number = data.ean_number;
+
+        //     vm.model_data.data[index].fields.row_price = (vm.model_data.data[index].fields.order_quantity * Number(vm.model_data.data[index].fields.price));
+        //     vm.getTotals();
+        //   }
+        // });
+        vm.get_supplier_sku_prices(data.wms_code).then(function(sku_data){
+            sku_data = sku_data[0];
+            data.tax_type = sku_data.tax_type.replace(" ","_").toLowerCase();
+            // data.tax_type = 'intra_state';
+
+            // data["taxes"] = [];
+            // data.taxes.push({'cgst_tax':0.25, 'sgst_tax':0.25, 'cess_tax': 5});
+            data["taxes"] = sku_data.taxes;
+            vm.get_tax_value(data);
+        })
+      }
     }
+
+    vm.get_supplier_sku_prices = function(sku) {
+
+       var d = $q.defer();
+       var data = {sku_codes: sku, suppli_id: vm.supplier_id}
+       // var data = {sku_codes: sku, suppli_id: 825}
+       vm.service.apiCall("get_supplier_sku_prices/", "POST", data).then(function(data) {
+
+         if(data.message) {
+           d.resolve(data.data);
+         }
+       });
+       return d.promise;
+    }
+
+    vm.get_tax_value = function(sku_data) {
+
+     var tax = 0;
+     for(var i = 0; i < sku_data.taxes.length; i++) {
+
+       // if(sku_data.fields.price <= sku_data.taxes[i].max_amt && sku_data.fields.price >= sku_data.taxes[i].min_amt) {
+
+         if(sku_data.tax_type == "intra_state") {
+
+           tax = sku_data.taxes[i].sgst_tax + sku_data.taxes[i].cgst_tax;
+           sku_data.cess_percent = sku_data.taxes[i].cess_tax;
+         } else if (sku_data.tax_type == "inter_state") {
+
+           sku_data.cess_percent = sku_data.taxes[i].cess_tax;
+           tax = sku_data.taxes[i].igst_tax;
+         }
+         break;
+       // }
+     }
+
+     sku_data.tax_percent = tax;
+     return tax;
+   }
 
     vm.submit = submit;
     function submit(form) {
@@ -359,18 +425,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         angular.forEach(vm.model_data.data[i], function(sku){
           if(sku.value > 0) {
             status = true;
-            // break;
           }
         });
       }
 
-      // for(var i=0; i<vm.model_data.data.length; i++)  {
-
-      //   if(vm.model_data.data[i][0].value > 0) {
-      //     status = true;
-      //     break;
-      //   }
-      // }
       if(status){
         return true;
       } else {

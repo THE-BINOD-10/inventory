@@ -2078,7 +2078,11 @@ def get_po_filter_data(search_params, user, sub_user):
 
     purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user=user.id)
     for data in model_data:
-        result = purchase_orders.filter(order_id=data[field_mapping['order_id']], open_po__sku__user=user.id)[0]
+        po_result = purchase_orders.filter(order_id=data[field_mapping['order_id']], open_po__sku__user=user.id)
+        result = po_result[0]
+        total_ordered = po_result.aggregate(Sum('open_po__order_quantity'))['open_po__order_quantity__sum']
+        if not total_ordered:
+            total_ordered = 0
         po_number = '%s%s_%s' % (
         data[field_mapping['prefix']], str(result.creation_date).split(' ')[0].replace('-', ''),
         data[field_mapping['order_id']])
@@ -2094,7 +2098,7 @@ def get_po_filter_data(search_params, user, sub_user):
             temp_data['aaData'].append(
                 OrderedDict((('PO Number', po_number), ('Supplier ID', data[field_mapping['supplier_id']]),
                              ('Supplier Name', data[field_mapping['supplier_name']]),
-                             ('Order Quantity', data['ordered_qty']),
+                             ('Order Quantity', total_ordered),
                              ('Received Quantity', received_qty),
                              ('DT_RowClass', 'results'), ('DT_RowAttr', {'data-id': data[field_mapping['order_id']]}),
                              ('key', 'po_id'), ('receipt_type', 'Purchase Order'), ('receipt_no', receipt_no),

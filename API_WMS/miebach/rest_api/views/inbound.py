@@ -4434,12 +4434,12 @@ def confirm_po1(request, user=''):
     total = 0
     total_qty = 0
     status_dict = {'Self Receipt': 'SR', 'Vendor Receipt': 'VR', 'Hosted Warehouse': 'HW'}
-    myDict = dict(request.GET.iterlists())
+    myDict = dict(request.POST.iterlists())
     ean_flag = False
     display_remarks = get_misc_value('display_remarks_mail', user.id)
     for key, value in myDict.iteritems():
         for val in value:
-            purchase_orders = OpenPO.objects.filter(supplier_id=val, status__in=['Manual', 'Automated'],
+            purchase_orders = OpenPO.objects.filter(supplier_id=val, status__in=['Manual', 'Automated', ''],
                                                     order_type=status_dict[key],
                                                     sku__user=user.id)
             if list(purchase_orders.exclude(sku__ean_number=0).values_list('sku__ean_number', flat=True)):
@@ -4544,7 +4544,7 @@ def delete_po_group(request, user=''):
     myDict = dict(request.GET.iterlists())
     for key, value in myDict.iteritems():
         for val in value:
-            purchase_order = OpenPO.objects.filter(supplier_id=val, status__in=['Manual', 'Automated'],
+            purchase_order = OpenPO.objects.filter(supplier_id=val, status__in=['Manual', 'Automated', ''],
                                                    order_type=status_dict[key],
                                                    sku__user=user.id).delete()
 

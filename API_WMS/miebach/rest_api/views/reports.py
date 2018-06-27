@@ -680,6 +680,8 @@ def print_po_reports(request, user=''):
     po_data = {headers: []}
     if po_id:
         results = PurchaseOrder.objects.filter(order_id=po_id, open_po__sku__user=user.id)
+        if receipt_no:
+            results = results.filter(sellerposummary__receipt_number=receipt_no)
     elif po_summary_id:
         results = SellerPOSummary.objects.filter(id=po_summary_id, purchase_order__open_po__sku__user=user.id)
     total = 0

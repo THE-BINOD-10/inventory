@@ -7582,34 +7582,34 @@ def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_t
     ordered_quantity = ''
     st_orders_id = STOrder.objects.filter(picklist__stock__sku__user = user.id).distinct().values_list('picklist__picklist_number', flat=True)
     for picklist_num in st_orders_id:
-    	data = get_picked_data(picklist_num, user.id, marketplace='')
-	for obj in data:
-	    try:
-	        ord_id = str(int(obj['order_id']))
-	    except:
-		ord_id = str(obj['order_id'])
-	    total_picked_quantity = obj['picked_quantity']
-	    sku = obj['wms_code']
-	    get_stock_transfer = StockTransfer.objects.filter(sku__sku_code=obj['wms_code'], order_id = ord_id).distinct()
-	    for obj in get_stock_transfer:
-	        try:
-		    shipment_date = str(obj.updation_date)
-		    warehouse = obj.st_po.open_st.warehouse.username
-		    sku_price = obj.st_po.open_st.price
-		    total_price = obj.st_po.open_st.price * total_picked_quantity
-	        except:
-		    continue
-		search_val = ''
-		try:
-		    search_val = (item for idx,item in enumerate(temp_data['aaData']) if item["Stock Transfer ID"] == ord_id and item["Warehouse Name"] == warehouse).next()
-		    if search_val:
-		        exist_qty = search_val['Picked Quantity']
-		        new_qty = total_picked_quantity
-		        exist_amt = search_val['Total Amount']
-		        new_amt = total_price
-		        search_val.update({'Picked Quantity' : exist_qty + new_qty, 'Total Amount' : exist_amt + new_amt})
-		except:
-	    	    temp_data['aaData'].append({'Stock Transfer ID' : ord_id, 'Picked Quantity' : total_picked_quantity, 'Total Amount' : total_price, 'Stock Transfer Date&Time' : shipment_date, 'Warehouse Name': warehouse, 'Picklist Number' : picklist_num})
+        data = get_picked_data(picklist_num, user.id, marketplace='')
+        for obj in data:
+            try:
+                ord_id = str(int(obj['order_id']))
+            except:
+                ord_id = str(obj['order_id'])
+            total_picked_quantity = obj['picked_quantity']
+            sku = obj['wms_code']
+            get_stock_transfer = StockTransfer.objects.filter(sku__sku_code=obj['wms_code'], order_id = ord_id).distinct()
+            for obj in get_stock_transfer:
+                try:
+                    shipment_date = str(obj.updation_date)
+                    warehouse = obj.st_po.open_st.warehouse.username
+                    sku_price = obj.st_po.open_st.price
+                    total_price = obj.st_po.open_st.price * total_picked_quantity
+                except:
+                    continue
+            search_val = ''
+            try:
+                search_val = (item for idx,item in enumerate(temp_data['aaData']) if item["Stock Transfer ID"] == ord_id and item["Warehouse Name"] == warehouse).next()
+                if search_val:
+                    exist_qty = search_val['Picked Quantity']
+                    new_qty = total_picked_quantity
+                    exist_amt = search_val['Total Amount']
+                    new_amt = total_price
+                    search_val.update({'Picked Quantity' : exist_qty + new_qty, 'Total Amount' : exist_amt + new_amt})
+            except:
+                temp_data['aaData'].append({'Stock Transfer ID' : ord_id, 'Picked Quantity' : total_picked_quantity, 'Total Amount' : total_price, 'Stock Transfer Date&Time' : shipment_date, 'Warehouse Name': warehouse, 'Picklist Number' : picklist_num})
 
 
 @csrf_exempt
@@ -7634,7 +7634,7 @@ def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, o
         else:
             lis = ['order__order_id', 'order__order_id', 'order__customer_name', 'quantity', 'quantity', 'date_only',
                    'seller_order__order__original_order_id']
-            user_filter = {'order__user': user.id, 'order_status_flag': 'customer_invoices'}
+            user_filter = {'order__user': user.id}
             result_values = ['order__order_id', 'pick_number', 'order__original_order_id']
             field_mapping = {'order_quantity_field': 'order__quantity', 'date_only': 'order__creation_date'}
             is_marketplace = False

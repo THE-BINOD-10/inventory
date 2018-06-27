@@ -161,6 +161,15 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       return nRow;
     }
 
+  $(document).on('keydown', 'input.detectTab', function(e) { 
+    var keyCode = e.keyCode || e.which; 
+
+    if (keyCode == 9) { 
+      e.preventDefault(); 
+      vm.update_data(Number(this.parentNode.children[1].value));
+    }
+  });
+
     vm.update = false;
     vm.title = 'Raise PO';
     vm.bt_disable = true;

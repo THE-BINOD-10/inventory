@@ -171,9 +171,9 @@
                       <input type="text" ng-model="product.fields.remarks" name="remarks" class="form-control" 
                              ng-readonly="showCase.default_status">
                     </td>
-                    <td ng-if="user.user_profile.user_type == 'marketplace_user'">
-                      <input type="text" ng-model="product.fields.dedicated_seller" name="dedicated_seller" class="form-control" 
-                             ng-readonly="showCase.default_status">
+                    <td ng-if="user.user_profile.user_type == 'marketplace_user'" id="tabChangeParent">
+                      <input type="text" ng-model="product.fields.dedicated_seller" id="tabChange" name="dedicated_seller" class="form-control detectTab" ng-readonly="showCase.default_status">
+                      <input type="hidden" id="skuIndex" name="sku_index" class="form-control" value="{{$index}}">
                     </td>
                     <td><i ng-click="showCase.update_data($index)" ng-class="showCase.service.isLast($last)"></i></td>
                   </tr>

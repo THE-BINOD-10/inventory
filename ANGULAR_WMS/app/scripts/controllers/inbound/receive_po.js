@@ -166,6 +166,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         return nRow;
     }
 
+    $(document).on('keydown', 'input.detectTab', function(e) { 
+      var keyCode = e.keyCode || e.which; 
+
+      if (keyCode == 9) { 
+        e.preventDefault();
+        vm.add_wms_code();
+      }
+    });
+
     $scope.getExpiryDate = function(index, parent_index){
         var mfg_date = new Date(vm.model_data.data[parent_index][index].mfg_date);
         var expiry = new Date(mfg_date.getFullYear(),mfg_date.getMonth(),mfg_date.getDate()+vm.shelf_life);

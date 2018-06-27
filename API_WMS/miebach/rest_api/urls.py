@@ -360,6 +360,8 @@ urlpatterns = [
     url(r'^print_purchase_order_form/$', print_purchase_order_form),
     url(r'^get_shipment_report/$', get_shipment_report),
     url(r'^print_shipment_report/$', print_shipment_report),
+    url(r'^get_dist_sales_report/$', get_dist_sales_report),
+    url(r'^print_dist_sales_report/$', print_dist_sales_report),
 ]
 
 # urlpatterns += patterns('rest_api.views',

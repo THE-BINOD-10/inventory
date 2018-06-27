@@ -478,11 +478,29 @@ SHIPMENT_REPORT_DICT = {
     'print_url': 'print_shipment_report',
 }
 
+DIST_SALES_REPORT_DICT = {
+    'filters': [
+        {'label': 'Zone Code', 'name': 'zone_code', 'type': 'input'},
+        {'label': 'Distributor Code', 'name': 'dist_code', 'type': 'input'},
+        {'label': 'Order No', 'name': 'order_id', 'type': 'input'},
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'Order Status', 'name': 'status', 'type': 'input'},
+        {'label': 'Product Category', 'name': 'category', 'type': 'input'},
+        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+    ],
+    'dt_headers': ['Zone Code', 'Distributor Code', 'Order No', 'Product Category', 'SKU Code', 'SKU Quantity',
+                   'Value Before Tax', 'GST Rate', 'GST Value', 'Value After Tax', 'Order Status'],
+    'dt_url': 'get_dist_sales_report', 'excel_name': 'get_dist_sales_report',
+    'print_url': 'print_dist_sales_report',
+
+}
+
 REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report': OPEN_JO_REP_DICT,
                      'sku_wise_po_report': SKU_WISE_PO_DICT,
                      'grn_report': GRN_DICT, 'seller_invoice_details': SELLER_INVOICE_DETAILS_DICT,
                      'rm_picklist_report': RM_PICKLIST_REPORT_DICT, 'stock_ledger_report': STOCK_LEDGER_REPORT_DICT,
-                     'shipment_report': SHIPMENT_REPORT_DICT}
+                     'shipment_report': SHIPMENT_REPORT_DICT, 'dist_sales_report': DIST_SALES_REPORT_DICT}
 
 SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', 'sku-wise', 1, 2, 'sku-wise-report'): (
 ['SKU Code', 'WMS Code', 'Product Description', 'SKU Category', 'Total Quantity'], (
@@ -3229,4 +3247,78 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
                                                 ('Courier Name', data['order_shipment__courier_name']),
                                                 ('Payment Status', data['order__customerordersummary__payment_status']),
                                                 ('Pack Reference', data['order_packaging__package_reference']))))
+    return temp_data
+
+
+def get_dist_sales_report_data(search_params, user, sub_user):
+    from rest_api.views.common import get_sku_master, get_order_detail_objs
+    from rest_api.views.outbound import get_same_level_warehouses
+    from miebach_admin.models import OrderDetail
+    # sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    search_parameters = {}
+    lis = ['original_order_id', 'sku__sku_code', 'quantity', 'status']
+    distributors = get_same_level_warehouses(2, user)
+    search_parameters['user__in'] = distributors
+    search_parameters['quantity__gt'] = 0
+    temp_data = copy.deepcopy(AJAX_DATA)
+    zones_map = dict(UserProfile.objects.filter(user__in=distributors).values_list('user_id', 'zone'))
+    names_map = dict(UserProfile.objects.filter(user__in=distributors).values_list('user_id', 'user__first_name'))
+
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_parameters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'sku_code' in search_params:
+        search_parameters['sku__sku_code'] = search_params['sku_code']
+    if 'order_id' in search_params:
+        order_detail = get_order_detail_objs(search_params['order_id'], user, search_params=search_parameters,
+                                             all_order_objs=[])
+        if order_detail:
+            search_parameters['id__in'] = order_detail.values_list('id', flat=True)
+        else:
+            search_parameters['id__in'] = []
+
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    model_data = OrderDetail.objects.filter(**search_parameters).\
+                                    values('order_id', 'id', 'order_code', 'user',
+                                           'original_order_id', 'sku__sku_code', 'sku__sku_category',
+                                           'quantity', 'creation_date', 'status', 'unit_price', 'invoice_amount'
+                                           )
+    if search_params.get('order_term'):
+        order_data = lis[search_params['order_index']]
+        if search_params['order_term'] == 'desc':
+            order_data = "-%s" % order_data
+        model_data = model_data.order_by(order_data)
+
+    temp_data['recordsTotal'] = model_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    if stop_index:
+        model_data = model_data[start_index:stop_index]
+
+    for data in model_data:
+        order_id = data['original_order_id']
+        if not order_id:
+            order_id = data['order_code'] + str(data['order_id'])
+        dist_code = names_map.get(data['user'], '')
+        prod_catg = data['sku__sku_category']
+        net_amt = round(data['quantity'] * data['unit_price'], 2)
+        gross_amt = round(data['invoice_amount'], 2)
+        gst_value = round(gross_amt - net_amt, 2)
+        zone_code = zones_map.get(data['user'], '')
+        temp_data['aaData'].append(OrderedDict((('Zone Code', zone_code), ('Distributor Code', dist_code),
+                                                ('Order No', order_id), ('Product Category', prod_catg),
+                                                ('SKU Code', data['sku__sku_code']),
+                                                ('SKU Quantity', data['quantity']),
+                                                ('Value Before Tax', net_amt),
+                                                ('GST Rate', ''),
+                                                ('GST Value', gst_value),
+                                                ('Value After Tax', gross_amt),
+                                                ('Order Status', data['status']),
+                                                )))
     return temp_data

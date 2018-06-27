@@ -4260,7 +4260,7 @@ def get_sku_available_dict(user, sku_code='', location='', available=False):
 
 def get_order_detail_objs(order_id, user, search_params={}, all_order_objs=[]):
     search_param = copy.deepcopy(search_params)
-    if not search_param.has_key('user'):
+    if not search_param.has_key('user') and not search_param.has_key('user__in'):
         search_param['user'] = user.id
     if not all_order_objs:
         all_order_objs = OrderDetail.objects.filter(user=user.id)

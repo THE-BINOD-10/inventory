@@ -1870,6 +1870,18 @@ var app = angular.module('urbanApp')
             title: 'Shipment Report',
           }
         })
+        .state('app.reports.DistributorWiseSalesReport', {
+          url: '/DistributorSalesReport',
+          templateUrl: 'views/reports/dist_sales_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/dist_sales_report.js');
+              }]
+          },
+          data: {
+            title: 'Distributor Wise Sales Report',
+          }
+        })
 
       // configuration route
       .state('app.configurations', {

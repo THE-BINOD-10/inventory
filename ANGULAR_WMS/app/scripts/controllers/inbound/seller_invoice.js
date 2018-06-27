@@ -96,7 +96,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           if(data.message) {
             console.log(data.data);
             vm.pdf_data = data.data;
-            $state.go("app.inbound.SellerInvoice.InvoiceE");
+            $state.go("app.inbound.SupplierInvoice.InvoiceE");
             $timeout(function () {
               $(".modal-body:visible").html(vm.pdf_data)
             }, 3000);

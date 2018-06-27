@@ -65,9 +65,13 @@ VENDOR_DATA = {'vendor_id': '', 'name': '', 'address': '', 'phone_number': '', '
 SKU_STOCK_DATA = {'sku_id': '', 'total_quantity': 0,
                   'online_quantity': 0, 'offline_quantity': 0}
 
-SUPPLIER_DATA = {'name': '', 'address': '',
-                 'phone_number': '', 'email_id': '',
-                 'status': 1, 'tax_type': ''}
+SUPPLIER_DATA = {'name': '', 'address': '', 'phone_number': '', 'email_id': '',
+                 'status': 1, 'tax_type': '', 'po_exp_duration': 0,
+                 'owner_name': '', 'owner_number': '', 'owner_email_id': '',
+                 'spoc_name': '', 'spoc_number': '', 'spoc_email_id': '',
+                 'lead_time': 0, 'credit_period': 0, 'bank_name': '', 'ifsc_code': '',
+                 'branch_name': '', 'account_number': 0, 'account_holder_name': ''
+                 }
 
 SIZE_DATA = {'size_name': '', 'size_value': '', 'creation_date': datetime.datetime.now()}
 
@@ -80,6 +84,8 @@ ISSUE_DATA = {'issue_title': '', 'name': '', 'email_id': '',
 
 SUPPLIER_SKU_DATA = {'supplier_id': '', 'supplier_type': '',
                      'sku': '', 'supplier_code': '', 'preference': '', 'moq': '', 'price': ''}
+
+WAREHOUSE_SKU_DATA = {'warehouse': '', 'sku': '', 'priority': '', 'moq': '', 'price': ''}
 
 UPLOAD_ORDER_DATA = {'order_id': '', 'title': '', 'user': '',
                      'sku_id': '', 'status': 1, 'shipment_date': datetime.datetime.now()}
@@ -174,26 +180,42 @@ ADJUST_INVENTORY_FIELDS = ( (('WMS Code *','wms_code'),('Location *','location')
                             (('Physical Quantity *','quantity'),('Reason','reason')),
                             (('Pallet Code', 'pallet_no'),) )
 
-MOVE_INVENTORY_UPLOAD_FIELDS = ['WMS Code', 'Source Location', 'Destination Location', 'Quantity']
+#MOVE_INVENTORY_UPLOAD_FIELDS = ['WMS Code', 'Source Location', 'Destination Location', 'Quantity']
+
+MOVE_INVENTORY_EXCEL_MAPPING = OrderedDict((('Seller ID', 'seller_id'), ('WMS Code', 'wms_code'),
+                                            ('Source Location', 'source'),
+                                            ('Destination Location', 'destination'),
+                                            ('Quantity', 'quantity'), ('Batch Number', 'batch_no'),
+                                            ('MRP', 'mrp')))
+
+SKU_SUBSTITUTION_EXCEL_MAPPING = OrderedDict((('Seller ID', 'seller_id'), ('Source SKU Code', 'source_sku_code'),
+                                              ('Source Location', 'source_location'),
+                                              ('Source Batch Number', 'source_batch_no'),
+                                              ('Source MRP', 'source_mrp'), ('Source Quantity', 'source_quantity'),
+                                              ('Destination SKU Code', 'dest_sku_code'),
+                                              ('Destination Location', 'dest_location'),
+                                              ('Destination Batch Number', 'dest_batch_no'),
+                                              ('Destination MRP', 'dest_mrp'), ('Destination Quantity', 'dest_quantity'),
+                                            ))
 
 SUPPLIER_HEADERS = ['Supplier Id', 'Supplier Name', 'Address', 'Email', 'Phone No.', 'GSTIN Number', 'PAN Number',
-                    'PIN Code',
-                    'City', 'State', 'Country', 'Days required to supply', 'Fulfillment Amount', 'Credibility',
-                    'Tax Type(Options: Inter State, Intra State)']
+                    'PIN Code', 'City', 'State', 'Country', 'Days required to supply', 'Fulfillment Amount',
+                    'Credibility', 'Tax Type(Options: Inter State, Intra State)', 'PO Expiry Duration',
+                    'Owner Name', 'Owner Number', 'Owner Email', 'SPOC Name', 'SPOC Number', 'SPOC Email',
+                    'Lead Time', 'Credit Period', 'Bank Name', 'IFSC Code', 'Branch Name',
+                    'Account Number', 'Account Holder Name']
 
 VENDOR_HEADERS = ['Vendor Id', 'Vendor Name', 'Address', 'Email', 'Phone No.']
 
 CUSTOMER_HEADERS = ['Customer Id', 'Customer Name', 'Credit Period', 'CST Number', 'TIN Number', 'PAN Number', 'Email',
-                    'Phone No.',
-                    'City', 'State', 'Country', 'Pin Code', 'Address', 'Selling Price Type',
-                    'Tax Type(Options: Inter State, Intra State)',
-                    'Discount Percentage(%)', 'Markup(%)']
+                    'Phone No.', 'City', 'State', 'Country', 'Pin Code', 'Address', 'Selling Price Type',
+                    'Tax Type(Options: Inter State, Intra State)', 'Discount Percentage(%)', 'Markup(%)', 'SPOC Name']
 
 CUSTOMER_EXCEL_MAPPING = OrderedDict(
     (('customer_id', 0), ('name', 1), ('credit_period', 2), ('cst_number', 3), ('tin_number', 4),
      ('pan_number', 5), ('email_id', 6), ('phone_number', 7), ('city', 8), ('state', 9), ('country', 10),
      ('pincode', 11), ('address', 12), ('price_type', 13), ('tax_type', 14), ('discount_percentage', 15),
-     ('markup', 16)
+     ('markup', 16), ('spoc_name', 17)
      ))
 
 MARKETPLACE_CUSTOMER_EXCEL_MAPPING = OrderedDict(
@@ -220,6 +242,17 @@ MARKETPLACE_SKU_HEADERS = ['WMS Code', 'Flipkart SKU', 'Snapdeal SKU', 'Paytm SK
 
 PURCHASE_ORDER_HEADERS = ['PO Reference', 'PO Date(MM-DD-YYYY)', 'Supplier ID', 'WMS SKU Code', 'Quantity', 'Price',
                           'Ship TO']
+
+PURCHASE_ORDER_UPLOAD_MAPPING = OrderedDict((('Seller ID', 'seller_id'), ('PO Reference', 'po_name'),
+                                            ('PO Date(MM-DD-YYYY)', 'po_date'),
+                                            ('PO Delivery Date(MM-DD-YYYY)', 'po_delivery_date'),
+                                            ('Supplier ID', 'supplier_id'),
+                                            ('WMS SKU Code', 'wms_code'), ('Quantity', 'quantity'),
+                                            ('Unit Price', 'price'), ('MRP', 'mrp'), ('CGST(%)', 'cgst_tax'),
+                                            ('SGST(%)', 'sgst_tax'), ('IGST(%)', 'igst_tax'),
+                                            ('UTGST(%)', 'utgst_tax'), ('CESS(%)', 'cess_tax'),
+                                            ('Ship TO', 'ship_to'),
+                                            ))
 
 LOCK_FIELDS = ['', 'Inbound', 'Outbound', 'Inbound and Outbound']
 
@@ -263,7 +296,7 @@ MARKETPLACE_LIST = ['Flipkart', 'Snapdeal', 'Paytm', 'Amazon', 'Shopclues', 'Hom
 ORDER_HEADERS = ['Order ID', 'Title', 'SKU Code', 'Quantity', 'Shipment Date(yyyy-mm-dd)', 'Channel Name',
                  'Customer ID', 'Customer Name', 'Email ID', 'Phone Number', 'Shipping Address', 'State', 'City',
                  'PIN Code', 'Invoice Amount(Without Tax and Discount)', 'Total Discount', 'CGST(%)', 'SGST(%)',
-                 'IGST(%)']
+                 'IGST(%)', 'Order Type']
 
 MARKETPLACE_ORDER_HEADERS = ['SOR ID', 'UOR ID', 'Seller ID', 'Order Status', 'Title', 'SKU Code', 'Quantity',
                              'Shipment Date(yyyy-mm-dd)', 'Channel Name', 'Customer ID', 'Customer Name', 'Email ID',
@@ -281,7 +314,7 @@ ORDER_DEF_EXCEL = OrderedDict((('order_id', 0), ('title', 1), ('sku_code', 2), (
                                ('customer_name', 7), ('email_id', 8),
                                ('telephone', 9), ('address', 10), ('state', 11), ('city', 12), ('pin_code', 13),
                                ('amount', 14), ('amount_discount', 15), ('cgst_tax', 16), ('sgst_tax', 17),
-                               ('igst_tax', 18)
+                               ('igst_tax', 18), ('order_type', 19)
                                ))
 
 MARKETPLACE_ORDER_DEF_EXCEL = OrderedDict(
@@ -380,13 +413,14 @@ GRN_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'type': 'dat
                         {'label': 'PO Number', 'name': 'open_po', 'type': 'input'},
                         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'}],
             'dt_headers': ['PO Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity'],
-            'mk_dt_headers': ['Received Date', 'PO Date', 'PO Number', 'Supplier ID', 'Supplier Name', 'Recepient',
-                              'SKU Code',
-                              'SKU Description', 'SKU Class', 'SKU Style Name', 'SKU Brand', 'SKU Category',
-                              'Received Qty', 'Unit Rate',
-                              'Pre-Tax Received Value', 'CGST(%)', 'SGST(%)', 'IGST(%)', 'UTGST(%)',
-                              'Post-Tax Received Value',
-                              'Margin %', 'Margin', 'Invoiced Unit Rate', 'Invoiced Total Amount'],
+            'mk_dt_headers': ['PO Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity'],
+            # 'mk_dt_headers': ['Received Date', 'PO Date', 'PO Number', 'Supplier ID', 'Supplier Name', 'Recepient',
+            #                   'SKU Code',
+            #                   'SKU Description', 'SKU Class', 'SKU Style Name', 'SKU Brand', 'SKU Category',
+            #                   'Received Qty', 'Unit Rate',
+            #                   'Pre-Tax Received Value', 'CGST(%)', 'SGST(%)', 'IGST(%)', 'UTGST(%)',
+            #                   'Post-Tax Received Value',
+            #                   'Margin %', 'Margin', 'Invoiced Unit Rate', 'Invoiced Total Amount'],
             'dt_url': 'get_po_filter', 'excel_name': 'goods_receipt', 'print_url': '',
             }
 
@@ -492,6 +526,7 @@ SALES_RETURNS_HEADERS = ['Return ID', 'Order ID', 'SKU Code', 'Return Quantity',
 INVENTORY_EXCEL_MAPPING = OrderedDict(( ('Seller ID', 'seller_id'), ('Receipt Date(YYYY-MM-DD)', 'receipt_date'), ('WMS SKU', 'wms_code'),
                               ('Location', 'location'), ('Quantity', 'quantity'),
                               ('Receipt Type', 'receipt_type'), ('Pallet Number', 'pallet_number'),
+                              ('Batch Number', 'batch_no'), ('MRP', 'mrp')
                             ))
 
 SKU_EXCEL = (
@@ -514,6 +549,10 @@ PROCESSING_HEADER = ('WMS Code', 'Title', 'Zone', 'Location', 'Reserved Quantity
 SKU_SUPPLIER_MAPPING = OrderedDict(
     [('Supplier ID', 'supplier__id'), ('SKU CODE', 'sku__wms_code'), ('Supplier Code', 'supplier_code'),
      ('Priority', 'preference'), ('MOQ', 'moq')])
+
+SKU_WH_MAPPING = OrderedDict(
+    [('Warehouse Name', 'warehouse__username'), ('SKU CODE', 'sku__wms_code'), ('Priority', 'priority'),
+     ('MOQ', 'moq'), ('Price', 'price')])
 
 SUPPLIER_MASTER_HEADERS = OrderedDict(
     [('Supplier ID', 'id'), ('Name', 'name'), ('Address', 'address'), ('Phone Number', 'phone_number'),
@@ -636,7 +675,7 @@ CUSTOMER_FIELDS = ((('Customer ID *', 'id', 60), ('Customer Name *', 'name', 256
                    (('Address *', 'address'), ('Status', 'status', 11)),)
 
 CUSTOMER_DATA = {'name': '', 'address': '', 'phone_number': '', 'email_id': '', 'status': 1, 'price_type': '',
-                 'tax_type': '', 'lead_time': 0, 'is_distributor': 0}
+                 'tax_type': '', 'lead_time': 0, 'is_distributor': 0, 'spoc_name': ''}
 
 CORPORATE_DATA = {'name': '', 'address': '', 'phone_number': '', 'email_id': '', 'status': 1, 'tax_type': ''}
 
@@ -694,11 +733,11 @@ ADD_WAREHOUSE_DICT = {'user_id': '', 'city': '', 'is_active': 1, 'country': '', 
                       'address': '', 'phone_number': '', 'prefix': '', 'location': '', 'warehouse_type': '',
                       'warehouse_level': 0, 'min_order_val': 0, 'level_name': '', 'zone': ''}
 
-PICKLIST_EXCEL = OrderedDict((('WMS Code', 'wms_code'), ('Title', 'title'), ('Category', 'category'), ('Zone', 'zone'),
-                              ('Location', 'location'),
-                              ('Reserved Quantity', 'reserved_quantity'), ('Stock Left', 'stock_left'),
-                              ('Last Picked Location', 'last_picked_locs')
-                              ))
+PICKLIST_EXCEL = OrderedDict((
+                              ('Order ID', 'original_order_id'), ('WMS Code', 'wms_code'), ('Title', 'title'), ('Category', 'category'),
+                              ('Zone', 'zone'), ('Location', 'location'), ('Reserved Quantity', 'reserved_quantity'),
+                              ('Stock Left', 'stock_left'),('Last Picked Location', 'last_picked_locs')
+                            ))
 
 # Campus Sutra
 SHOPCLUES_EXCEL = {'original_order_id': 0, 'order_id': 0, 'quantity': 14, 'title': 7, 'invoice_amount': 44,
@@ -1293,20 +1332,40 @@ PERMISSION_IGNORE_LIST = ['session', 'webhookdata', 'swxmapping', 'userprofile',
 
 # Customer Invoices page headers based on user type
 MP_CUSTOMER_INVOICE_HEADERS = ['UOR ID', 'SOR ID', 'Seller ID', 'Customer Name', 'Order Quantity', 'Picked Quantity',
-                               'Order Date&Time',
+                               'Total Amount', 'Order Date&Time',
                                'Invoice Number']
 
-WH_CUSTOMER_INVOICE_HEADERS = ['Order ID', 'Customer Name', 'Order Quantity', 'Picked Quantity', 'Order Date&Time']
+WH_CUSTOMER_INVOICE_HEADERS = ['Order ID', 'Customer Name', 'Order Quantity', 'Picked Quantity', 'Order Date&Time',
+                               'Total Amount']
+WH_CUSTOMER_INVOICE_HEADERS_TAB = ['Customer Name', 'Order Quantity', 'Picked Quantity', 'Order Date&Time', 'Total Amount']
+
+STOCK_TRANSFER_INVOICE_HEADERS = ['Stock Transfer ID', 'Warehouse Name', 'Picked Quantity', 'Stock Transfer Date&Time', 'Total Amount']
 
 DIST_CUSTOMER_INVOICE_HEADERS = ['Gen Order Id', 'Order Ids', 'Customer Name', 'Order Quantity', 'Picked Quantity',
-                                 'Order Date&Time']
+                                 'Order Date&Time', 'Total Amount']
 
 # End of Customer Invoices page headers based on user type
+
+# Supplier Invoices page headers based on user type
+
+WH_SUPPLIER_INVOICE_HEADERS = ['Supplier Name', 'PO Quantity', 'Received Quantity', 'Total Amount']
+WH_SUPPLIER_PO_CHALLAN_HEADERS = ['GRN No', 'Supplier Name', 'PO Quantity', 'Received Quantity',
+                                  'Order Date', 'Total Amount']
+
+DIST_SUPPLIER_INVOICE_HEADERS = ['Supplier Name', 'PO Quantity', 'Received Quantity', 'Total Amount']
+
+# End of Supplier Invoices page headers based on user type
+
 
 SUPPLIER_EXCEL_FIELDS = OrderedDict((('id', 0), ('name', 1), ('address', 2), ('email_id', 3), ('phone_number', 4),
                                      ('tin_number', 5), ('pan_number', 6), ('pincode', 7), ('city', 8), ('state', 9),
                                      ('country', 10), ('days_to_supply', 11), ('fulfillment_amt', 12),
-                                     ('credibility', 13), ('tax_type', 14)
+                                     ('credibility', 13), ('tax_type', 14), ('po_exp_duration', 15),
+                                     ('owner_name', 16), ('owner_number', 17), ('owner_email_id', 18),
+                                     ('spoc_name', 19), ('spoc_number', 20), ('spoc_email_id', 21),
+                                     ('lead_time', 22), ('credit_period', 23), ('bank_name', 24),
+                                     ('ifsc_code', 25), ('branch_name', 26), ('account_number', 27),
+                                     ('account_holder_name', 28),
                                      ))
 STATUS_DICT = {1: True, 0: False}
 
@@ -1398,7 +1457,10 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'auto_confirm_po': 'auto_confirm_po', 'generic_wh_level': 'generic_wh_level',
                         'create_order_po': 'create_order_po', 'calculate_customer_price': 'calculate_customer_price',
                         'shipment_sku_scan': 'shipment_sku_scan', 'disable_brands_view':'disable_brands_view',
-                        'sellable_segregation': 'sellable_segregation', 'display_styles_price': 'display_styles_price', 'show_purchase_history':'show_purchase_history'
+                        'sellable_segregation': 'sellable_segregation', 'display_styles_price': 'display_styles_price',
+                        'show_purchase_history':'show_purchase_history', 'auto_raise_stock_transfer': 'auto_raise_stock_transfer',
+                        'invoice_based_payment_tracker': 'invoice_based_payment_tracker',
+                        'inbound_supplier_invoice': 'inbound_supplier_invoice', 'customer_dc': 'customer_dc'
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
@@ -1410,6 +1472,7 @@ CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
                      'invoice_types': 'invoice_types',
                      'mode_of_transport': 'mode_of_transport',
                      'shelf_life_ratio': 'shelf_life_ratio',
+                     'auto_expire_enq_limit': 'auto_expire_enq_limit',
                      }
 
 CONFIG_DEF_DICT = {'receive_options': dict(RECEIVE_OPTIONS),
@@ -1911,8 +1974,8 @@ def get_po_filter_data(search_params, user, sub_user):
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     user_profile = UserProfile.objects.get(user_id=user.id)
     is_market_user = False
-    if user_profile.user_type == 'marketplace_user':
-        is_market_user = True
+    #if user_profile.user_type == 'marketplace_user':
+    #    is_market_user = True
     if is_market_user:
         unsorted_dict = {14: 'Pre-Tax Received Value', 19: 'Post-Tax Received Value', 20: 'Margin',
                          22: 'Invoiced Unit Rate',
@@ -2015,7 +2078,11 @@ def get_po_filter_data(search_params, user, sub_user):
 
     purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user=user.id)
     for data in model_data:
-        result = purchase_orders.filter(order_id=data[field_mapping['order_id']], open_po__sku__user=user.id)[0]
+        po_result = purchase_orders.filter(order_id=data[field_mapping['order_id']], open_po__sku__user=user.id)
+        result = po_result[0]
+        total_ordered = po_result.aggregate(Sum('open_po__order_quantity'))['open_po__order_quantity__sum']
+        if not total_ordered:
+            total_ordered = 0
         po_number = '%s%s_%s' % (
         data[field_mapping['prefix']], str(result.creation_date).split(' ')[0].replace('-', ''),
         data[field_mapping['order_id']])
@@ -2031,7 +2098,7 @@ def get_po_filter_data(search_params, user, sub_user):
             temp_data['aaData'].append(
                 OrderedDict((('PO Number', po_number), ('Supplier ID', data[field_mapping['supplier_id']]),
                              ('Supplier Name', data[field_mapping['supplier_name']]),
-                             ('Order Quantity', data['ordered_qty']),
+                             ('Order Quantity', total_ordered),
                              ('Received Quantity', received_qty),
                              ('DT_RowClass', 'results'), ('DT_RowAttr', {'data-id': data[field_mapping['order_id']]}),
                              ('key', 'po_id'), ('receipt_type', 'Purchase Order'), ('receipt_no', receipt_no),
@@ -2061,7 +2128,7 @@ def get_po_filter_data(search_params, user, sub_user):
                                                     ('PO Number', po_number),
                                                     ('Supplier ID', data[field_mapping['supplier_id']]),
                                                     ('Supplier Name', data[field_mapping['supplier_name']]),
-                                                    ('Recepient', 'SHProc'),
+                                                    ('Recepient', user.userprofile.company_name),
                                                     ('SKU Code', data['purchase_order__open_po__sku__sku_code']),
                                                     ('SKU Description', data['purchase_order__open_po__sku__sku_desc']),
                                                     ('SKU Class', data['purchase_order__open_po__sku__sku_class']),

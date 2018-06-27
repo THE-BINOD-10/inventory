@@ -461,7 +461,8 @@ def customer_order(request):
                     else:
                         recpt_no = StockDetail.objects.filter(sku__user=user_id) \
                                        .aggregate(Max('receipt_number')) \
-                                       .get('receipt_number__max', 0) + 1
+                                       .get('receipt_number__max', 0)
+                        recpt_no = recpt_no + 1 if recpt_no else 0
                         put_zone = ZoneMaster.objects.filter(zone='DEFAULT', \
                                                              user=user_id)
                         if not put_zone:

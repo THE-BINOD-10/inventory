@@ -243,6 +243,15 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    dparam: "download-file",
                    value: "",
                    perm: "add_sellerstocktransfer"
+                  }, {
+                   title: "SKU Substitution form Download/ Upload",
+                   download: "Download SKU Substitution Form",
+                   upload: "Upload SKU Substitution Form",
+                   durl: "sku_substitution_form/",
+                   uurl: "sku_substitution_upload/",
+                   dparam: "download-file",
+                   value: "",
+                   //perm: "add_sellerstocktransfer"
                   }
                 ]
 

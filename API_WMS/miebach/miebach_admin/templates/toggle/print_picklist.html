@@ -60,7 +60,11 @@ $(document).ready(function(){
       <span class="pull-left" style="float: left;"><b>Date: <span id="date">{{date_data.date}}</span></b></span>
     </div>
     <div class="col-md-6" style="float: right;">
-      <span class="pull-right"><b>Order ID: {% if not marketplace %}{{ order_ids }} {% endif %}</b></span>
+      {% if order_ids != 'false' %}
+        <span class="pull-right"><b>Order ID: {{ order_ids }} </b></span>
+      {% else %}
+        <span class="pull-right"><b></b></span>
+      {% endif %}
     </div>
   </div>
   <br>
@@ -83,6 +87,11 @@ $(document).ready(function(){
       </tr>
       {% for record in data %}
       <tr id="{{ record.id }}">
+        {% if display_order_id == 'true' %}
+        <td>
+          {{ record.original_order_id }}
+        </td>
+        {% endif %}
         <td>
           {% if record.wms_code == 'TEMP' %}
           <input type="" name="wmscode_{{ record.id }}" value="{{ record.sku_code }}">

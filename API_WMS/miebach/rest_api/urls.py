@@ -34,7 +34,9 @@ urlpatterns = [
     url(r'^update_supplier_values/$', update_supplier_values),
     url(r'^insert_supplier/$', insert_supplier),
     url(r'^update_sku_supplier_values/$', update_sku_supplier_values),
+    url(r'^update_sku_warehouse_values/$', update_sku_warehouse_values),
     url(r'^insert_mapping/$', insert_mapping),
+    url(r'^insert_wh_mapping/$', insert_wh_mapping),
     url(r'^update_customer_values/$', update_customer_values),
     url(r'^insert_customer/$', insert_customer),
     url(r'^update_corporate_values/$', update_corporate_values),
@@ -48,6 +50,7 @@ urlpatterns = [
     url(r'^get_warehouse_user_data/$', get_warehouse_user_data),
     url(r'^create_user/$', create_user),
     url(r'^get_supplier_list/$', get_supplier_list),
+    url(r'^get_warehouse_list/$', get_warehouse_list),
     url(r'^search_customer_sku_mapping/$', search_customer_sku_mapping),
     url(r'^delete_bom_data/$', delete_bom_data),
     url(r'^delete_market_mapping/$', delete_market_mapping),
@@ -122,6 +125,7 @@ urlpatterns = [
     url(r'^close_po/$', close_po),
     url(r'^check_returns/$', check_returns),
     url(r'^check_sku/$', check_sku),
+    url(r'^create_orders_check_ean/$', create_orders_check_ean),
     url(r'^confirm_sales_return/$', confirm_sales_return),
     url(r'^get_received_orders/$', get_received_orders),
     url(r'^putaway_data/$', putaway_data),
@@ -156,6 +160,16 @@ urlpatterns = [
     url('^get_po_segregation_data/$', get_po_segregation_data),
     url('^confirm_primary_segregation/$', confirm_primary_segregation),
     url('^last_transaction_details/$', last_transaction_details),
+    url(r'^supplier_invoice_data/$', supplier_invoice_data),
+    url(r'^move_to_po_challan/$', move_to_poc),
+    url(r'^move_to_invoice/$', move_to_invoice),
+    url(r'^generate_supplier_invoice/$', generate_supplier_invoice),
+    url(r'^update_poc/$', update_poc),
+    url(r'^update_po_invoice/$', update_po_invoice),
+    url(r'^po_get_invoice_payment_tracker/$', po_get_invoice_payment_tracker),
+    url(r'^po_update_payment_status/$', po_update_payment_status),
+    url(r'^get_po_putaway_summary/$', get_po_putaway_summary),
+    url(r'^create_rtv/$', create_rtv),
 
     # Production
     url(r'^generated_jo_data/$', generated_jo_data),
@@ -243,10 +257,12 @@ urlpatterns = [
     url(r'^get_stock_location_quantity/$', get_stock_location_quantity),
     url(r'^payment_tracker/$', payment_tracker),
     url(r'^get_customer_payment_tracker/$', get_customer_payment_tracker),
+    url(r'^get_invoice_payment_tracker/$', get_invoice_payment_tracker),
     url(r'^get_customer_master_id/$', get_customer_master_id),
     url(r'^get_corporate_master_id/$', get_corporate_master_id),
     url(r'^search_wms_data/$', search_wms_data),
     url(r'^update_payment_status/$', update_payment_status),
+    url(r'^update_inv_payment_status/$', update_inv_payment_status),
     url(r'^create_orders_data/$', create_orders_data),
     url(r'^order_category_generate_picklist/$', order_category_generate_picklist),
     url(r'^get_customer_orders/$', get_customer_orders),
@@ -257,6 +273,8 @@ urlpatterns = [
     url(r'^update_customer_cart_data/$', update_customer_cart_data),
     url(r'^delete_customer_cart_data/$', delete_customer_cart_data),
     url(r'^generate_customer_invoice/$', generate_customer_invoice),
+    url(r'^generate_customer_invoice_tab/$', generate_customer_invoice_tab),
+    url(r'^generate_stock_transfer_invoice/$', generate_stock_transfer_invoice),
     url(r'^seller_generate_picklist/$', seller_generate_picklist),
     url(r'^customer_invoice_data/$', customer_invoice_data),
     url('^get_custom_template_styles/$', get_custom_template_styles),
@@ -286,6 +304,10 @@ urlpatterns = [
     url(r'^update_cust_profile/$', update_cust_profile),
     url(r'^print_cartons_data/$', print_cartons_data),
     url(r'^print_cartons_data_view/$', print_cartons_data_view),
+    url(r'^move_to_dc/$', move_to_dc),
+    url(r'^move_to_inv/$', move_to_inv),
+    url(r'^update_dc/$', update_dc),
+    url(r'^remove_sku/$', remove_sku),
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),
@@ -391,9 +413,11 @@ urlpatterns += [
     url(r'^marketplace_serial_upload/$', marketplace_serial_upload),
     url(r'^seller_transfer_form/$', seller_transfer_form),
     url(r'^seller_transfer_upload/$', seller_transfer_upload),
-
     url(r'^network_master_form/$', network_master_form),
     url(r'^network_master_upload/$', network_master_upload),
+    url(r'^sku_substitution_form/$', sku_substitution_form),
+    url(r'^sku_substitution_upload/$', sku_substitution_upload),
+
     # configurations
     url(r'^configurations/$', configurations),
     url(r'^switches/$', switches),
@@ -464,6 +488,7 @@ urlpatterns += [
     url('^get_extra_fields/$', get_extra_fields),
     url('^get_staff_members_list/$', get_staff_members_list),
     url(r'^pos_tax_inclusive/$', pos_tax_inclusive),
+    url(r'^stock_transfer_invoice_data/$', stock_transfer_invoice_data),
 
 ]
 

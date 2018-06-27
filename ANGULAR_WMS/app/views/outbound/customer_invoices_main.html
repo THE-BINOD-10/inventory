@@ -1,0 +1,17 @@
+<div class="page-layout">
+  <div class='layout-header'>
+    <div class="pull-left" ng-include="'views/common/title.html'"></div>
+  </div>
+  <div class="layout-body">
+    <tabset class="box-tab">
+      <tab heading="Customer Invoice">
+        <div ng-include="'views/outbound/customer_invoices_tab1.html'"></div>
+      </tab>
+
+      <tab heading="Stock Transfer Invoice" ng-if="show_tab('multi_warehouse')">
+        <div ng-include="'views/outbound/customer_invoices_tab2.html'"></div>
+      </tab>
+
+    </tabset>
+  </div>
+</div>

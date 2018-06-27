@@ -139,7 +139,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     vm.title = "Generate GRN";
                     if (vm.industry_type == 'FMCG') {
                       vm.extra_width = {
-                        'width': '1250px'
+                        'width': '1400px'
                       };
                     } else {
                       vm.extra_width = {};

@@ -15,6 +15,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.self_life_ratio = Number(vm.permissions.shelf_life_ratio) || 0;
     vm.industry_type = Session.user_profile.industry_type;
     vm.supplier_id = '';
+    vm.order_id = 0;
     // vm.industry_type = 'FMCG';
 
     //default values
@@ -97,7 +98,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         $(elem).removeClass('fa-plus-square');
         $(elem).removeClass();
         $(elem).addClass('glyphicon glyphicon-refresh glyphicon-refresh-animate');
-        Service.apiCall('get_receive_po_style_view/?order_id='+data['PO No'].split("_")[1]).then(function(resp){
+        vm.order_id = data['PO No'].split("_")[1];
+        Service.apiCall('get_receive_po_style_view/?order_id='+vm.order_id).then(function(resp){
           if (resp.message){
 
             if(resp.data.status) {
@@ -147,6 +149,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     angular.forEach(vm.model_data.data, function(row){
                       angular.forEach(row, function(sku){
                         sku['buy_price'] = sku.price;
+                        sku['discount_percentage'] = 0;
                       });
                     });
 
@@ -273,8 +276,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       data.price = 0;
       data.mrp = selected.mrp;
       data.description = selected.sku_desc;
-      data.tax_percent = "";
-      data.cess_percent = "";
+      data.tax_percent = 0;
+      data.cess_percent = 0;
 
       data.sku_details[0].fields.load_unit_handle = selected.load_unit_handle;
       $timeout(function() {$scope.$apply();}, 1000);
@@ -1676,9 +1679,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       $state.go($state.current, {}, {reload: true});
   }
 
-  vm.preview = function(order_detail_id) {
-
-    var data = {order_id: order_detail_id};
+  vm.preview = function(order_detail_id, flag=false) {
+    if (flag) {
+      var data = {order_id: vm.order_id};
+    } else {
+      var data = {order_id: order_detail_id};
+    }
     vm.service.apiCall("get_view_order_details/", "GET", data).then(function(data){
 
       var all_order_details = data.data.data_dict[0].ord_data;
@@ -1714,8 +1720,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if(sku_row_data.cess_percent == ''){
         sku_row_data.cess_percent = 0;
       }
-      var wo_tax_amt = Number(sku_row_data.value)*Number(sku_row_data.buy_price);
+
+      var total_amt = Number(sku_row_data.value)*Number(sku_row_data.buy_price);
+      var total_amt_dis = Number(total_amt) * Number(sku_row_data.discount_percentage) / 100;
       var tot_tax = Number(sku_row_data.tax_percent) + Number(sku_row_data.cess_percent);
+      var wo_tax_amt = Number(total_amt)-Number(total_amt_dis);
       data.data[parent_index][index].total_amt = wo_tax_amt + (wo_tax_amt * (tot_tax/100));
 
       var totals = 0;

@@ -4959,6 +4959,9 @@ def generate_order_jo_data(request, user=''):
                     order_code=order_code) | Q(original_order_id=main_id), user=user.id)
         else:
             order_details = OrderDetail.objects.filter(id__in=data_dict['id'], user=user.id)
+            if order_details:
+                original_order_id = order_details[0].original_order_id
+                order_details = OrderDetail.objects.filter(original_order_id=original_order_id, user=user.id)
     if table_type_name == 'stock_transfer_order':
         for sku_id in stock_transfer_obj.values('sku__id').distinct():
             stock_transfer = stock_transfer_obj.filter(sku__id=sku_id['sku__id'])
@@ -5045,6 +5048,9 @@ def generate_order_po_data(request, user=''):
                 original_order_id=main_id), user=user.id)
     else:
         order_details = OrderDetail.objects.filter(id__in=request_dict['id'], user=user.id)
+        if order_details:
+            original_order_id = order_details[0].original_order_id
+            order_details = OrderDetail.objects.filter(original_order_id=original_order_id, user=user.id)
     if table_type_name == 'stock_transfer_order':
         for sku_id in stock_transfer_obj.values('sku__id').distinct():
             order_detail = stock_transfer_obj.filter(sku__id=sku_id['sku__id'])

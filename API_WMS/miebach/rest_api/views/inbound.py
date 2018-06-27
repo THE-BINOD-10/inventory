@@ -2224,7 +2224,7 @@ def create_update_primary_segregation(data, quantity, temp_dict, batch_obj=None)
                                                                     creation_date=datetime.datetime.now(),
                                                                     batch_detail_id=batch_obj.id)
 
-def update_seller_po(data, value, user, receipt_id='', invoice_number='', invoice_date=''):
+def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number='', invoice_date=''):
     if not receipt_id:
         return
     seller_pos = SellerPO.objects.filter(seller__user=user.id, open_po_id=data.open_po_id, status=1)
@@ -2232,6 +2232,9 @@ def update_seller_po(data, value, user, receipt_id='', invoice_number='', invoic
     #invoice_number = int(invoice_number)
     if not invoice_date:
         invoice_date = datetime.datetime.now().date()
+    discount_percent = 0
+    if 'discount_percentage' in myDict.keys():
+        discount_percent = myDict['discount_percentage'][i]
     if user.userprofile.user_type == 'warehouse_user':
         seller_po_summary, created = SellerPOSummary.objects.get_or_create(receipt_number=receipt_id,
                                                                            invoice_number=invoice_number,
@@ -2239,7 +2242,8 @@ def update_seller_po(data, value, user, receipt_id='', invoice_number='', invoic
                                                                            putaway_quantity=value,
                                                                            purchase_order_id=data.id,
                                                                            creation_date=datetime.datetime.now(),
-                                                                           invoice_date=invoice_date)
+                                                                           invoice_date=invoice_date,
+                                                                           discount_percent=discount_percent)
         seller_received_list.append(
             {'seller_id': '', 'sku_id': data.open_po.sku_id, 'quantity': value,
              'id': seller_po_summary.id})
@@ -2286,7 +2290,8 @@ def update_seller_po(data, value, user, receipt_id='', invoice_number='', invoic
                                                                                quantity=value,
                                                                                putaway_quantity=value,
                                                                                purchase_order_id=data.id,
-                                                                               creation_date=datetime.datetime.now())
+                                                                               creation_date=datetime.datetime.now(),
+                                                                               discount_percent=discount_percent)
             seller_received_list.append(
                 {'seller_id': sell_po.seller_id, 'sku_id': data.open_po.sku_id, 'quantity': value,
                  'id': seller_po_summary.id})
@@ -2357,6 +2362,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
         sku_row_buy_price = 0
         sku_row_cess_percent = 0
         sku_row_tax_percent = 0
+        sku_row_discount_percent = 0
         if 'unit' in myDict.keys():
             unit = myDict['unit'][i]
         if 'buy_price' in myDict:
@@ -2369,6 +2375,8 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
             purchase_data['price'] = float(sku_row_buy_price)
         if sku_row_cess_percent:
             purchase_data['cess_tax'] = float(sku_row_cess_percent)
+        if 'discount_percentage' in myDict and myDict['discount_percentage'][i]:
+            sku_row_discount_percent = float(myDict['discount_percentage'][i])
         if sku_row_tax_percent:
             if purchase_data['igst_tax']:
                 purchase_data['igst_tax'] = float(sku_row_tax_percent)
@@ -2377,7 +2385,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
                 purchase_data['cgst_tax'] = float(sku_row_tax_percent)/2
         cond = (data.id, purchase_data['wms_code'], unit, purchase_data['price'], purchase_data['cgst_tax'],
                 purchase_data['sgst_tax'], purchase_data['igst_tax'], purchase_data['utgst_tax'],
-                purchase_data['sku_desc'], purchase_data['cess_tax'])
+                purchase_data['sku_desc'], purchase_data['cess_tax'], sku_row_discount_percent)
         all_data.setdefault(cond, 0)
         all_data[cond] += float(value)
 
@@ -2396,7 +2404,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
         if data.open_po:
             if not seller_receipt_id:
                 seller_receipt_id = get_seller_receipt_id(data.open_po)
-            seller_received_list = update_seller_po(data, value, user, receipt_id=seller_receipt_id,
+            seller_received_list = update_seller_po(data, value, user, myDict, i, receipt_id=seller_receipt_id,
                                                     invoice_number=invoice_number, invoice_date=bill_date)
         if 'wms_code' in myDict.keys():
             if myDict['wms_code'][i]:
@@ -2508,6 +2516,8 @@ def confirm_grn(request, confirm_returns='', user=''):
 
         for key, value in all_data.iteritems():
             entry_price = float(key[3]) * float(value)
+            if key[10]:
+                entry_price -= (entry_price * (float(key[10])/100))
             entry_tax = float(key[4]) + float(key[5]) + float(key[6]) + float(key[7] + float(key[9]))
             if entry_tax:
                 entry_price += (float(entry_price) / 100) * entry_tax
@@ -4345,23 +4355,35 @@ def confirm_add_po(request, sales_data='', user=''):
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
 
+def create_mail_attachments(f_name, html_data):
+    from random import randint
+    attachments = []
+    if not isinstance(html_data, list):
+        html_data = [html_data]
+    for data in html_data:
+        temp_name = f_name + str(randint(100, 9999))
+        file_name = '%s.html' % temp_name
+        pdf_file = '%s.pdf' % temp_name
+        path = 'static/temp_files/'
+        folder_check(path)
+        file = open(path + file_name, "w+b")
+        file.write(data)
+        file.close()
+        os.system(
+            "./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (path + file_name, path + pdf_file))
+        attachments.append({'path': path + pdf_file, 'name': pdf_file})
+    return attachments
+
+
 def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_no, po_data, order_date, ean_flag=False,
                        internal=False, report_type='Purchase Order'):
-    file_name = '%s.html' % f_name
-    pdf_file = '%s.pdf' % f_name
     receivers = []
+    attachments = create_mail_attachments(f_name, html_data)
     internal_mail = MiscDetail.objects.filter(user=request.user.id, misc_type='Internal Emails')
     misc_internal_mail = MiscDetail.objects.filter(user=request.user.id, misc_type='internal_mail', misc_value='true')
     if misc_internal_mail and internal_mail:
         internal_mail = internal_mail[0].misc_value.split(",")
         receivers.extend(internal_mail)
-    path = 'static/temp_files/'
-    folder_check(path)
-    file = open(path + file_name, "w+b")
-    file.write(html_data)
-    file.close()
-    os.system(
-        "./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (path + file_name, path + pdf_file))
 
     if supplier_email:
         receivers.append(supplier_email)
@@ -4382,7 +4404,7 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
         email_body = 'Please find the %s with Job Code: <b>%s</b> in the attachment' % (report_type, f_name)
         email_subject = '%s %s with Job Code %s' % (company_name, report_type, f_name)
     if supplier_email or internal or internal_mail:
-        send_mail_attachment(receivers, email_subject, email_body, files=[{'path': path + pdf_file, 'name': pdf_file}])
+        send_mail_attachment(receivers, email_subject, email_body, files=attachments)
 
     if phone_no:
         if report_type == 'Purchase Order':
@@ -5394,6 +5416,8 @@ def confirm_receive_qc(request, user=''):
 
         for key, value in all_data.iteritems():
             entry_price = float(key[3]) * float(value)
+            if key[10]:
+                entry_price -= (entry_price * (float(key[10])/100))
             entry_tax = float(key[4]) + float(key[5]) + float(key[6]) + float(key[7] + float(key[9]))
             if entry_tax:
                 entry_price += (float(entry_price) / 100) * entry_tax

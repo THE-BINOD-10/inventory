@@ -2593,7 +2593,7 @@ def confirm_back_order(request, user=''):
                     else:
                         temp_data[key] = value
                 t = loader.get_template('templates/customOrderDetailsTwo.html')
-                rendered1 = t.render(temp_data)
+                #rendered1 = t.render(temp_data)
         job_order_id = ''
         if 'job_order_id' in request.POST.keys() and data_dict['job_order_id'][i]:
             job_order_id = data_dict['job_order_id'][i]

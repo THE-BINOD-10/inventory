@@ -2233,7 +2233,7 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
     if not invoice_date:
         invoice_date = datetime.datetime.now().date()
     discount_percent = 0
-    if 'discount_percentage' in myDict.keys():
+    if 'discount_percentage' in myDict.keys() and myDict['discount_percentage'][i]:
         discount_percent = myDict['discount_percentage'][i]
     if user.userprofile.user_type == 'warehouse_user':
         seller_po_summary, created = SellerPOSummary.objects.get_or_create(receipt_number=receipt_id,

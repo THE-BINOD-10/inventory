@@ -763,7 +763,7 @@ def generated_po_data(request, user=''):
     return HttpResponse(json.dumps({'supplier_id': record[0].supplier_id, 'supplier_name': record[0].supplier.name,
                                     'vendor_id': vendor_id,
                                     'Order Type': status_dict[record[0].order_type], 'po_name': record[0].po_name,
-                                    'ship_to': '', 'po_delivery_date': po_delivery_date,
+                                    'ship_to': record[0].ship_to, 'po_delivery_date': po_delivery_date,
                                     'data': ser_data, 'receipt_type': receipt_type, 'receipt_types': PO_RECEIPT_TYPES}))
 
 
@@ -826,6 +826,7 @@ def modify_po_update(request, user=''):
             setattr(record, 'igst_tax', value['igst_tax'])
             setattr(record, 'cess_tax', value['cess_tax'])
             setattr(record, 'utgst_tax', value['utgst_tax'])
+            setattr(record, 'ship_to', value['ship_to'])
             if value['po_delivery_date']:
                 setattr(record, 'delivery_date', value['po_delivery_date'])
             if record.mrp:
@@ -879,6 +880,7 @@ def modify_po_update(request, user=''):
         po_suggestions['igst_tax'] = value['igst_tax']
         po_suggestions['cess_tax'] = value['cess_tax']
         po_suggestions['utgst_tax'] = value['utgst_tax']
+        po_suggestions['ship_to'] = value['ship_to']
         if value['po_delivery_date']:
             po_suggestions['delivery_date'] = value['po_delivery_date']
         data = OpenPO(**po_suggestions)
@@ -1126,6 +1128,7 @@ def confirm_po(request, user=''):
             po_suggestions['igst_tax'] = value['igst_tax']
             po_suggestions['cess_tax'] = value['cess_tax']
             po_suggestions['utgst_tax'] = value['utgst_tax']
+            po_suggestions['ship_to'] = value['ship_to']
             if value['po_delivery_date']:
                 po_suggestions['delivery_date'] = value['po_delivery_date']
             if value['measurement_unit']:
@@ -1190,6 +1193,8 @@ def confirm_po(request, user=''):
 
     address = purchase_order.supplier.address
     address = '\n'.join(address.split(','))
+    ship_to_address = purchase_order.ship_to
+    ship_to_address = '\n'.join(ship_to_address.split(','))
     telephone = purchase_order.supplier.phone_number
     name = purchase_order.supplier.name
     supplier_email = purchase_order.supplier.email_id
@@ -1229,7 +1234,7 @@ def confirm_po(request, user=''):
                  'company_name': company_name,
                  'location': profile.location, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                  'vendor_telephone': vendor_telephone, 'total_qty': total_qty, 'receipt_type': receipt_type,
-                 'title': title,
+                 'title': title, 'ship_to_address': ship_to_address,
                  'gstin_no': gstin_no, 'w_address': get_purchase_company_address(profile)}
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
@@ -1346,6 +1351,8 @@ def get_raisepo_group_data(user, myDict):
             po_name = myDict['po_name'][0]
         if 'po_delivery_date' in myDict.keys() and myDict['po_delivery_date'][0]:
             po_delivery_date = datetime.datetime.strptime(str(myDict['po_delivery_date'][0]), "%m/%d/%Y")
+        if 'ship_to' in myDict.keys():
+            ship_to = myDict['ship_to'][0]
         if 'measurement_unit' in myDict.keys():
             measurement_unit = myDict['measurement_unit'][i]
         if 'vendor_id' in myDict.keys():
@@ -1474,6 +1481,7 @@ def add_po(request, user=''):
             po_suggestions['cess_tax'] = value['cess_tax']
             po_suggestions['utgst_tax'] = value['utgst_tax']
             po_suggestions['order_type'] = value['order_type']
+            po_suggestions['ship_to'] = value['ship_to']
             if value['po_delivery_date']:
                 po_suggestions['delivery_date'] = value['po_delivery_date']
             if value.get('vendor_id', ''):
@@ -4219,6 +4227,7 @@ def confirm_add_po(request, sales_data='', user=''):
         po_suggestions['igst_tax'] = value['igst_tax']
         po_suggestions['cess_tax'] = value['cess_tax']
         po_suggestions['utgst_tax'] = value['utgst_tax']
+        po_suggestions['ship_to'] = value['ship_to']
         if value['po_delivery_date']:
             po_suggestions['delivery_date'] = value['po_delivery_date']
         if value['measurement_unit']:
@@ -4242,7 +4251,7 @@ def confirm_add_po(request, sales_data='', user=''):
             ids_dict[supplier] = po_id
         data['open_po_id'] = sup_id
         data['order_id'] = ids_dict[supplier]
-        data['ship_to'] = value['ship_to']
+        #data['ship_to'] = value['ship_to']
         user_profile = UserProfile.objects.filter(user_id=user.id)
         industry_type = user_profile[0].industry_type
         if user_profile:
@@ -4296,6 +4305,8 @@ def confirm_add_po(request, sales_data='', user=''):
         return HttpResponse(status)
     address = purchase_order.supplier.address
     address = '\n'.join(address.split(','))
+    ship_to_address = purchase_order.ship_to
+    ship_to_address = '\n'.join(ship_to_address.split(','))
     vendor_name = ''
     vendor_address = ''
     vendor_telephone = ''
@@ -4341,7 +4352,7 @@ def confirm_add_po(request, sales_data='', user=''):
         title = 'Purchase Order'
 
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
-                 'telephone': str(telephone),
+                 'telephone': str(telephone), 'ship_to_address': ship_to_address,
                  'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference,
                  'user_name': request.user.username,
                  'total_qty': total_qty, 'company_name': company_name, 'location': profile.location,
@@ -4493,6 +4504,8 @@ def confirm_po1(request, user=''):
 
             address = purchase_orders[0].supplier.address
             address = '\n'.join(address.split(','))
+            ship_to_address = purchase_order[0].ship_to
+            ship_to_address = '\n'.join(ship_to_address.split(','))
             telephone = purchase_orders[0].supplier.phone_number
             name = purchase_orders[0].supplier.name
             supplier_email = purchase_orders[0].supplier.email_id
@@ -4524,7 +4537,7 @@ def confirm_po1(request, user=''):
                          'po_reference': po_reference,
                          'total_qty': total_qty, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                          'vendor_telephone': vendor_telephone, 'gstin_no': gstin_no,
-                         'w_address': get_purchase_company_address(profile)}
+                         'w_address': get_purchase_company_address(profile), 'ship_to_address': ship_to_address}
 
             t = loader.get_template('templates/toggle/po_download.html')
             rendered = t.render(data_dict)

@@ -85,7 +85,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
               vm.update_part = false;
               var empty_data = {"supplier_id":vm.supplier_id,
                       "po_name": "",
-                      "ship_to": "",
+                      "ship_to": data.data.ship_to,
                       "receipt_type": data.data.receipt_type,
                       "seller_types": [],
                       "total_price": 0,

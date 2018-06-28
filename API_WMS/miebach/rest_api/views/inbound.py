@@ -7072,7 +7072,7 @@ def get_debit_note_data(rtv_number, user):
         data_dict_item['sku_code'] = get_po.sku.sku_code
         data_dict_item['sku_desc'] = get_po.sku.sku_desc
         data_dict_item['hsn_code'] = str(get_po.sku.hsn_code)
-        data_dict_item['order_qty'] = get_po.order_quantity
+        data_dict_item['order_qty'] = obj.quantity
         data_dict_item['price'] = get_po.sku.price
         data_dict_item['measurement_unit'] = get_po.sku.measurement_type
         data_dict_item['discount'] = get_po.sku.discount_percentage
@@ -7187,6 +7187,7 @@ def create_rtv(request, user=''):
                                           quantity=final_dict['quantity'], status=0, creation_date=datetime.datetime.now())
         report_data_dict = {}
         show_data_invoice = get_debit_note_data(rtv_number, user)
+
         return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice' : [show_data_invoice]})
     except Exception as e:
         import traceback

@@ -2301,6 +2301,7 @@ def get_financial_year(date):
 
 def get_challan_number(user, seller_order_summary):
     challan_num = ""
+    challan_number = ""
     chn_date = datetime.datetime.now()
     invoice_no_gen = MiscDetail.objects.filter(user=user.id, misc_type='increment_invoice')
     if invoice_no_gen:

@@ -4414,7 +4414,7 @@ def get_leadtimes(user='', level=0):
     lead_times = NetworkMaster.objects.filter(dest_location_code=user,
                                               source_location_code_id__in=same_level_users). \
         values_list('lead_time', 'source_location_code').distinct().order_by('lead_time')
-    lead_times_dict = {}
+    lead_times_dict = OrderedDict()
     for lt, wh_code in lead_times:
         lead_times_dict.setdefault(lt, []).append(wh_code)
     return lead_times_dict

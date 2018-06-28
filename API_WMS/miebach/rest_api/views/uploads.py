@@ -413,7 +413,7 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
                 order_detail.creation_date = exist_order_ins[0].creation_date
                 order_detail.shipment_date = exist_order_ins[0].shipment_date
                 order_detail.save()
-                if order_data['order_type'] == 'Returnable Order':
+                if order_data.get('order_type', '') == 'Returnable Order':
                     order_obj_list.append(order_obj)
             check_create_seller_order(seller_order_dict, order_detail, user)
             if order_data['sku_id'] not in sku_ids:
@@ -429,7 +429,7 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
             order_obj = order_obj[0]
             order_obj.quantity = order_obj.quantity + order_data['quantity']
             order_obj.save()
-            if order_data['order_type'] == 'Returnable Order':
+            if order_data.get('order_type', '') == 'Returnable Order':
                 order_obj_list.append(order_obj)
             check_create_seller_order(seller_order_dict, order_obj, user)
         elif order_obj and order_create and seller_order_dict.get('seller_id', '') and \
@@ -439,7 +439,7 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
                 order_obj.status = 1
                 update_seller_order(seller_order_dict, order_obj, user)
                 order_obj.save()
-                if order_data['order_type'] == 'Returnable Order':
+                if order_data.get('order_type', '') == 'Returnable Order':
                     order_obj_list.append(order_obj)
         create_order_pos(user, order_obj_list)
         log.info("Order Saving Ended %s" % (datetime.datetime.now()))
@@ -479,12 +479,13 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             cell_data = get_cell_data(row_idx, order_mapping['order_id'], reader, file_type)
             if not cell_data:
                 index_status.setdefault(count, set()).add('Order Id should not be empty')
-            order_type = get_cell_data(row_idx, order_mapping['order_type'], reader, file_type)
-            if cell_data in order_id_order_type.keys():
-                if order_id_order_type[cell_data] != order_type:
-                    index_status.setdefault(count, set()).add('Order Type are different for same orders')
-            else:
-                order_id_order_type[cell_data]=order_type
+            if 'order_type' in order_mapping:
+                order_type = get_cell_data(row_idx, order_mapping['order_type'], reader, file_type)
+                if cell_data in order_id_order_type.keys():
+                    if order_id_order_type[cell_data] != order_type:
+                        index_status.setdefault(count, set()).add('Order Type are different for same orders')
+                else:
+                    order_id_order_type[cell_data]=order_type
         cell_data = get_cell_data(row_idx, order_mapping['sku_code'], reader, file_type)
         title = ''
         if order_mapping.has_key('title'):

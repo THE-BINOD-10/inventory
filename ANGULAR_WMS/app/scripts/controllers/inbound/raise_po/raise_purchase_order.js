@@ -85,7 +85,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
               vm.update_part = false;
               var empty_data = {"supplier_id":vm.supplier_id,
                       "po_name": "",
-                      "ship_to": "",
+                      "ship_to": data.data.ship_to,
                       "receipt_type": data.data.receipt_type,
                       "seller_types": [],
                       "total_price": 0,
@@ -434,9 +434,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
                   vm.title = $(data.data).find('.modal-header h4').text().trim();
 
                 }
-                vm.html = $(data.data)[0];
-                var html = $(vm.html).closest("form").clone();
-                angular.element(".modal-body").html($(html).find(".modal-body > .form-group"));
+                //vm.html = $(data.data)[0];
+                //var html = $(vm.html).closest("form").clone();
+                //angular.element(".modal-body").html($(html).find(".modal-body > .form-group"));
+                vm.extra_width = {'width': '990px'};
+                vm.html = $(data.data);
+                angular.element(".modal-body").html($(data.data));
                 vm.print_enable = true;
               } else {
                 vm.service.pop_msg(data.data);

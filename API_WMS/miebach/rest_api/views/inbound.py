@@ -2295,7 +2295,9 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
                                                                                putaway_quantity=value,
                                                                                purchase_order_id=data.id,
                                                                                creation_date=datetime.datetime.now(),
-                                                                               discount_percent=discount_percent)
+                                                                               discount_percent=discount_percent,
+                                                                               invoice_number=invoice_number,
+                                                                               invoice_date=invoice_date)
             seller_received_list.append(
                 {'seller_id': sell_po.seller_id, 'sku_id': data.open_po.sku_id, 'quantity': value,
                  'id': seller_po_summary.id})
@@ -2312,7 +2314,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
     remarks = request.POST.get('remarks', '')
     expected_date = request.POST.get('expected_date', '')
     remainder_mail = request.POST.get('remainder_mail', '')
-    invoice_number = request.POST.get('invoice_number', 0)
+    invoice_number = request.POST.get('invoice_number', '')
     bill_date = datetime.datetime.now().date()
     if request.POST.get('invoice_date', ''):
         bill_date = datetime.datetime.strptime(request.POST.get('invoice_date', ''), "%m/%d/%Y").date()
@@ -2403,8 +2405,6 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
         data.saved_quantity = 0
 
         seller_received_list = []
-        if not invoice_number:
-            invoice_number = 0
         if data.open_po:
             if not seller_receipt_id:
                 seller_receipt_id = get_seller_receipt_id(data.open_po)
@@ -6890,11 +6890,11 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
 
     headers1, filters, filter_params1 = get_search_params(request)
     if 'from_date' in filters:
-        search_params['purchase_order__creation_date__startswith'] = filters['from_date']
+        search_params['creation_date__startswith'] = filters['from_date']
     if 'to_date' in filters:
         to_date = datetime.datetime.combine(filters['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
-        search_params['purchase_order__creation_date__lt'] = to_date
+        search_params['creation_date__lt'] = to_date
     if 'sku_code' in filters:
         search_params['purchase_order__open_po__sku__sku_code'] = filters['sku_code'].upper()
     if 'supplier' in filters:
@@ -6905,6 +6905,7 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
             search_params['purchase_order__order_id'] = temp[-1]
     if 'invoice_number' in filters:
         search_params['invoice_number'] = filters['invoice_number']
+
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data

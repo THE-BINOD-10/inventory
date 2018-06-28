@@ -57,12 +57,10 @@ def get_report_data(request, user=''):
             data['filters'][data_index]['values'] = list(
                 OrderDetail.objects.exclude(sku__sku_category='').filter(user=user.id).values_list('sku__sku_category',
                                                                                                    flat=True).distinct())
-
         if 'order_report_status' in filter_keys:
             data_index = data['filters'].index(
                 filter(lambda person: 'order_report_status' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = ORDER_SUMMARY_REPORT_STATUS
-
     return HttpResponse(json.dumps({'data': data}))
 
 
@@ -123,6 +121,13 @@ def get_po_filter(request, user=''):
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_sku_wise_po_filter(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_sku_wise_po_filter_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 @csrf_exempt
 @login_required

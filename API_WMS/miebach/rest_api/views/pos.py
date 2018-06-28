@@ -233,7 +233,7 @@ def picklist_creation(request, stock_detail, stock_quantity, order_detail, \
                                                              picklist=None, \
                                                              quantity=order_detail.quantity, \
                                                              invoice_number=invoice_number)
-    if stock_quantity < int(order_detail.quantity):
+    if stock_quantity < float(order_detail.quantity):
         picklist = Picklist.objects.create(picklist_number=picklist_number, \
                                            reserved_quantity=0, \
                                            picked_quantity=stock_diff, \
@@ -269,7 +269,7 @@ def picklist_creation(request, stock_detail, stock_quantity, order_detail, \
                                                   stock_diff, user, order_detail.quantity)
         if not stock_count:
             continue
-        stock.quantity = int(stock.quantity) - stock_count
+        stock.quantity = float(stock.quantity) - stock_count
         stock.save()
         picklist = Picklist.objects.create(picklist_number=picklist_number, \
                                            reserved_quantity=0, \
@@ -419,7 +419,7 @@ def customer_order(request):
                             log.info("Duplicate order: id=%s, qty=%s, invoice_amt=%s, paymnt_received=%s"\
                                     %(str(order_detail.original_order_id), str(order_detail.quantity),\
                                     str(order_detail.invoice_amount), str(order_detail.payment_received)))
-                            new_sku_count = order_detail.quantity + item['quantity']
+                            new_sku_count = float(order_detail.quantity) + item['quantity']
                             new_invoice_amount = order_detail.invoice_amount + item['price']
                             new_payment_received = order_detail.payment_received + payment_received
                             #order_detail.quantity = new_sku_count
@@ -476,7 +476,7 @@ def customer_order(request):
                             receipt_date=NOW, \
                             creation_date=NOW, \
                             location=put_zone.locationmaster_set.all()[0])
-                    sku_stocks_.quantity = int(sku_stocks_.quantity) + item['quantity']
+                    sku_stocks_.quantity = float(sku_stocks_.quantity) + item['quantity']
                     sku_stocks_.save()
                     log.info("return item, stock increased: sku_id=%s, user=%s, qty=%s, new_stock=%s"\
                             %(str(sku.id), str(user_id), str(item['quantity']), str(sku_stocks_.quantity)))
@@ -561,8 +561,8 @@ def prepare_delivery_challan_json(request, order_id, user_id, parent_user=''):
             tax_master = order_summary.values('sgst_tax', 'cgst_tax', 'igst_tax', 'utgst_tax')[0]
         else:
             tax_master = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0}
-        item_sgst = (order.invoice_amount/order.quantity) * tax_master['sgst_tax']/100
-        item_cgst = (order.invoice_amount/order.quantity) * tax_master['cgst_tax']/100
+        item_sgst = (order.invoice_amount/float(order.quantity)) * tax_master['sgst_tax']/100
+        item_cgst = (order.invoice_amount/float(order.quantity)) * tax_master['cgst_tax']/100
         selling_price -= (item_cgst + item_sgst)
         gst_based.setdefault(tax_master['cgst_tax'], {'taxable_amt': 0,
                                                       'cgst_percent': tax_master["cgst_tax"],
@@ -577,7 +577,7 @@ def prepare_delivery_challan_json(request, order_id, user_id, parent_user=''):
         gst_based[tax_master['cgst_tax']]['cgst'] += order.invoice_amount * tax_master["cgst_tax"] / 100
 
         sku_data.append({'name': order.title,
-                         'quantity': order.quantity,
+                         'quantity': float(order.quantity),
                          'sku_code': order.sku.sku_code,
                          'price': order.invoice_amount,
                          'unit_price': selling_price,
@@ -586,7 +586,7 @@ def prepare_delivery_challan_json(request, order_id, user_id, parent_user=''):
                          'sgst': item_sgst,
                          'cgst': item_cgst
                          })
-        total_quantity += int(order.quantity)
+        total_quantity += float(order.quantity)
         #total_amount += (float(order.invoice_amount) + discount + \
         #                 (float(order.invoice_amount) * tax_master["sgst_tax"] / 100) + \
         #                 (float(order.invoice_amount) * tax_master["cgst_tax"] / 100) );
@@ -697,8 +697,8 @@ def get_order_details(order_id, user_id, mobile, customer_name, request_from, su
                                                                 'selling_price': selling_price,
                                                                 'order_id': order_id,
                                                                 'id': order.id})
-        total_quantity += int(order.quantity)
-        total_amount += int(order.invoice_amount)
+        total_quantity += float(order.quantity)
+        total_amount += float(order.invoice_amount)
         status = order.status
 
         order_data[order_id]['customer_data'] = {'Name': order.customer_name,

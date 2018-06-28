@@ -20,9 +20,10 @@
     text-shadow: 1px 1px 1px #fff;
 }
 .zui-table tbody td.align_right {
-    text-align: right;
-	font-weight : bold;
+    text-align: left;
+	font-weight: bold;
 	text-transform: uppercase;
+    width: 200px;
 }
 .zui-table tbody td.align_left {
     text-align: left;
@@ -78,12 +79,10 @@
 			{% if value != 'none' and value != '' %}
 				{% if not forloop.first %}
 					<span> , </span>
-				{% else %}
-					<span>{{ value }}</span>
 				{% endif %}
+				<span>{{ value }}</span>
 			{% endif %}
 		  {% endfor %}
-		  <!--<span ng-repeat="(key, value) in customData.fabric.fabrics" ng-if="value != 'none' && value != ''"><span ng-if="!$first">, </span>{{value}}</span>-->
 	    </td>
       </tr>
 	  {% endif %}
@@ -308,13 +307,13 @@
                   </tr>
                   <tr>
 					{% for name, value in data.items %}
-					{% with customData.sizeValues|lookup:size as size_list %}
-                    {% if size_list|lookup:name %}
+					  {% with customData.sizeValues|lookup:size as size_list %}
+                        {% if size_list|lookup:name %}
 					  <td>
 					    {{ size_list|lookup:name }}
 					  </td>
-                    {% endif %}
-					{% endwith %}
+                        {% endif %}
+					  {% endwith %}
                     {% endfor %}
                     <td>
 					  {{ customData.sizeTotals|lookup:size }}
@@ -327,8 +326,6 @@
 		{% endfor %}
 		</tbody>
 	  </table>
-
-
     </div>
     </div>
   </div>

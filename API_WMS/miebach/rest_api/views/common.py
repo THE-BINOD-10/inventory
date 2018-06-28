@@ -6139,6 +6139,8 @@ def get_user_profile_data(request, user=''):
     data['main_user'] = request.user.is_staff
     data['company_name'] = main_user.company_name
     data['cin_number'] = request.user.userprofile.cin_number
+    data['wh_address'] = main_user.wh_address
+    data['wh_phone_number'] = main_user.wh_phone_number
     return HttpResponse(json.dumps({'msg': 1, 'data': data}))
 
 
@@ -6205,11 +6207,15 @@ def update_profile_data(request, user=''):
     company_name = request.POST.get('company_name', '')
     email = request.POST.get('email', '')
     cin_number = request.POST.get('cin_number', '')
+    wh_address = request.POST.get('wh_address', '')
+    wh_phone_number = request.POST.get('wh_phone_number', '')
     main_user = UserProfile.objects.get(user_id=user.id)
     main_user.address = address
     main_user.gst_number = gst_number
     main_user.company_name = company_name
     main_user.cin_number = cin_number
+    main_user.wh_address = wh_address
+    main_user.wh_phone_number = wh_phone_number
     main_user.save()
     user.email = email
     user.save()

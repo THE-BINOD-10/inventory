@@ -1193,8 +1193,13 @@ def confirm_po(request, user=''):
 
     address = purchase_order.supplier.address
     address = '\n'.join(address.split(','))
-    ship_to_address = purchase_order.ship_to
+    wh_address = user.userprofile.wh_address
+    if wh_address:
+        ship_to_address = wh_address
+    else:
+        ship_to_address = purchase_order.ship_to
     ship_to_address = '\n'.join(ship_to_address.split(','))
+    wh_telephone = user.userprofile.wh_phone_number
     telephone = purchase_order.supplier.phone_number
     name = purchase_order.supplier.name
     supplier_email = purchase_order.supplier.email_id
@@ -1235,7 +1240,7 @@ def confirm_po(request, user=''):
                  'location': profile.location, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                  'vendor_telephone': vendor_telephone, 'total_qty': total_qty, 'receipt_type': receipt_type,
                  'title': title, 'ship_to_address': ship_to_address,
-                 'gstin_no': gstin_no, 'w_address': get_purchase_company_address(profile)}
+                 'gstin_no': gstin_no, 'w_address': get_purchase_company_address(profile), 'wh_telephone': wh_telephone}
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
     if get_misc_value('raise_po', user.id) == 'true':
@@ -4305,7 +4310,12 @@ def confirm_add_po(request, sales_data='', user=''):
         return HttpResponse(status)
     address = purchase_order.supplier.address
     address = '\n'.join(address.split(','))
-    ship_to_address = purchase_order.ship_to
+    wh_address = user.userprofile.wh_address
+    if wh_address:
+        ship_to_address = wh_address
+    else:
+        ship_to_address = purchase_order.ship_to
+    wh_telephone = user.userprofile.wh_phone_number
     ship_to_address = '\n'.join(ship_to_address.split(','))
     vendor_name = ''
     vendor_address = ''
@@ -4359,7 +4369,8 @@ def confirm_add_po(request, sales_data='', user=''):
                  'w_address': get_purchase_company_address(profile),
                  'company_name': company_name, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                  'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title,
-                 'gstin_no': gstin_no, 'industry_type': industry_type, 'expiry_date': expiry_date}
+                 'gstin_no': gstin_no, 'industry_type': industry_type, 'expiry_date': expiry_date,
+                 'wh_telephone': wh_telephone}
 
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
@@ -4504,8 +4515,13 @@ def confirm_po1(request, user=''):
 
             address = purchase_orders[0].supplier.address
             address = '\n'.join(address.split(','))
-            ship_to_address = purchase_order[0].ship_to
+            wh_address = user.userprofile.wh_address
+            if wh_address:
+                ship_to_address = wh_address
+            else:
+                ship_to_address = purchase_order[0].ship_to
             ship_to_address = '\n'.join(ship_to_address.split(','))
+            wh_telephone = user.userprofile.wh_phone_number
             telephone = purchase_orders[0].supplier.phone_number
             name = purchase_orders[0].supplier.name
             supplier_email = purchase_orders[0].supplier.email_id
@@ -4537,7 +4553,8 @@ def confirm_po1(request, user=''):
                          'po_reference': po_reference,
                          'total_qty': total_qty, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                          'vendor_telephone': vendor_telephone, 'gstin_no': gstin_no,
-                         'w_address': get_purchase_company_address(profile), 'ship_to_address': ship_to_address}
+                         'w_address': get_purchase_company_address(profile), 'ship_to_address': ship_to_address,
+                         'wh_telephone': wh_telephone}
 
             t = loader.get_template('templates/toggle/po_download.html')
             rendered = t.render(data_dict)

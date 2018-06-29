@@ -270,6 +270,7 @@ def picklist_creation(request, stock_detail, stock_quantity, order_detail, \
         if not stock_count:
             continue
         stock.quantity = float(stock.quantity) - stock_count
+        stock.quantity = get_decimal_limit(user.id, float(stock.quantity))
         stock.save()
         picklist = Picklist.objects.create(picklist_number=picklist_number, \
                                            reserved_quantity=0, \

@@ -686,7 +686,7 @@ def print_po_reports(request, user=''):
     if po_id:
         results = PurchaseOrder.objects.filter(order_id=po_id, open_po__sku__user=user.id)
         if receipt_no:
-            results = results.filter(sellerposummary__receipt_number=receipt_no)
+            results = results.distinct().filter(sellerposummary__receipt_number=receipt_no)
     elif po_summary_id:
         results = SellerPOSummary.objects.filter(id=po_summary_id, purchase_order__open_po__sku__user=user.id)
     total = 0
@@ -698,8 +698,9 @@ def print_po_reports(request, user=''):
             quantity = data.received_quantity
             bill_date = data.updation_date
             if receipt_no:
-                seller_summary_obj = data.sellerposummary_set.filter(receipt_number=receipt_no)[0]
-                quantity = seller_summary_obj.quantity
+                seller_summary_objs = data.sellerposummary_set.filter(receipt_number=receipt_no)
+                seller_summary_obj = seller_summary_objs[0]
+                quantity = seller_summary_objs.aggregate(Sum('quantity'))['quantity__sum']
                 bill_no = seller_summary_obj.invoice_number if seller_summary_obj.invoice_number else ''
                 bill_date = seller_summary_obj.invoice_date if seller_summary_obj.invoice_date else data.updation_date
             open_data = data.open_po

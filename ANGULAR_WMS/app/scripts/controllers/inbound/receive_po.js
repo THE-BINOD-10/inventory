@@ -171,7 +171,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       if (keyCode == 9) { 
         e.preventDefault();
-        vm.add_wms_code();
+        vm.add_wms_code(Number(this.parentNode.children[1].value), false);
       }
     });
 
@@ -266,12 +266,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     
     vm.new_sku = false
     vm.add_wms_code = add_wms_code;
-    function add_wms_code() {
-      vm.model_data.data.push([{"wms_code":"", "po_quantity":0, "receive_quantity":"", "price":"", "dis": false,
+    function add_wms_code(index=0, flag=true) {
+      if (index==vm.model_data.data.length-1 && !flag || !index && flag) {
+        vm.model_data.data.push([{"wms_code":"", "po_quantity":0, "receive_quantity":"", "price":"", "dis": false,
                                 "order_id": '', "is_new": true, "unit": "",
                                 "buy_price": "", "cess_percent": "", "tax_percent": "", "total_amt": "",
                                 "sku_details": [{"fields": {"load_unit_handle": ""}}]}]);
-      //vm.new_sku = true
+        //vm.new_sku = true
+      }
     }
     vm.get_sku_details = function(data, selected) {
 

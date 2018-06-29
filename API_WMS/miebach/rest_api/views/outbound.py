@@ -3157,7 +3157,7 @@ def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, cus
     continue_list = ['payment_received', 'charge_name', 'charge_amount', 'custom_order', 'user_type', 'invoice_amount',
                      'description', 'extra_data', 'location', 'serials', 'direct_dispatch', 'seller_id', 'sor_id',
                      'ship_to', 'client_name', 'po_number', 'corporate_po_number', 'address_selected', 'is_sample',
-                     'invoice_type', 'default_shipment_addr', 'manual_shipment_addr', 'sample_client_name', 'mode_of_transport', 'payment_status']
+                     'invoice_type', 'default_shipment_addr', 'manual_shipment_addr', 'sample_client_name', 'mode_of_transport', 'payment_status', 'courier_name']
     inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
     order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
     sku_master = {}
@@ -3361,6 +3361,7 @@ def insert_order_data(request, user=''):
     invoice_type = request.POST.get('invoice_type', '')
     sample_client_name = request.POST.get('sample_client_name', '')
     mode_of_transport = request.POST.get('mode_of_transport','')
+    courier_name = request.POST.get('courier_name', '')
     dist_shipment_address = request.POST.get('manual_shipment_addr', '')
     if dist_shipment_address:
         ship_to = dist_shipment_address
@@ -3423,7 +3424,6 @@ def insert_order_data(request, user=''):
                     order_data['warehouse_level'] = 0
                 stock_wh_map = split_orders(**order_data)
                 fetch_order_ids(stock_wh_map, user_order_ids_map)
-                
                 if not is_distributor and user_order_ids_map.has_key(user.id) and stock_wh_map.has_key(user.id):
                     order_data['order_id'] = user_order_ids_map[user.id]
                     order_data['user'] = user.id
@@ -3457,7 +3457,7 @@ def insert_order_data(request, user=''):
                         create_grouping_order_for_generic(generic_order_id, order_obj, cm_id, user.id,
                                                           order_data['quantity'], corporate_po_number, client_name,
                                                           order_data['unit_price'], el_price, del_date)
-                        create_ordersummary_data(order_summary_dict, order_obj, ship_to)
+                        create_ordersummary_data(order_summary_dict, order_obj, ship_to, courier_name)
                 for usr, qty in stock_wh_map.iteritems():
                     order_data['order_id'] = user_order_ids_map[usr]
                     order_data['user'] = usr

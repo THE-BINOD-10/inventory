@@ -131,7 +131,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         $(row_click_bind, nRow).unbind('click');
         $(row_click_bind, nRow).bind('click', function() {
             $scope.$apply(function() {
-              vm.supplier_id = aData['DT_RowId'];
+              // vm.supplier_id = aData['DT_RowId'];
+                vm.supplier_id = aData['Supplier ID/Name'].split('/')[0];
                 vm.service.apiCall('get_supplier_data/', 'GET', {supplier_id: aData['DT_RowId']}).then(function(data){
                   if(data.message) {
                     vm.serial_numbers = [];
@@ -264,6 +265,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.model_data.data.push([{"wms_code":"", "po_quantity":0, "receive_quantity":"", "price":"", "dis": false,
                                 "order_id": '', "is_new": true, "unit": "",
                                 "buy_price": "", "cess_percent": "", "tax_percent": "", "total_amt": "",
+                                "discount_percentage": 0,
                                 "sku_details": [{"fields": {"load_unit_handle": ""}}]}]);
       //vm.new_sku = true
     }
@@ -278,6 +280,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       data.description = selected.sku_desc;
       data.tax_percent = 0;
       data.cess_percent = 0;
+      data.discount_percentage = 0;
 
       data.sku_details[0].fields.load_unit_handle = selected.load_unit_handle;
       $timeout(function() {$scope.$apply();}, 1000);
@@ -286,16 +289,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         return false;
       } else {
         var supplier = vm.supplier_id;
-        // $http.get(Session.url+'get_mapping_values/?wms_code='+product.fields.sku.wms_code+'&supplier_id='+supplier, {withCredentials : true}).success(function(data, status, headers, config) {
-        //   if(Object.values(data).length) {
-        //     product.fields.price = data.price;
-        //     product.fields.supplier_code = data.supplier_code;
-        //     product.fields.ean_number = data.ean_number;
+        vm.service.apiCall('get_mapping_values/', 'GET', {'wms_code':data.wms_code, 'supplier_id': supplier}).then(function(resp){
+          if(Object.values(resp).length) {
+            data.price = resp.data.price;
+            data.supplier_code = resp.data.supplier_code;
+            data.ean_number = resp.data.ean_number;
+            data.buy_price = resp.data.price;
 
-        //     vm.model_data.data[index].fields.row_price = (vm.model_data.data[index].fields.order_quantity * Number(vm.model_data.data[index].fields.price));
-        //     vm.getTotals();
-        //   }
-        // });
+            data.row_price = (Number(data.value) * Number(data.price));
+            vm.getTotals();
+          }
+        });
         vm.get_supplier_sku_prices(data.wms_code).then(function(sku_data){
             sku_data = sku_data[0];
             data.tax_type = sku_data.tax_type.replace(" ","_").toLowerCase();
@@ -1719,6 +1723,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
       if(sku_row_data.cess_percent == ''){
         sku_row_data.cess_percent = 0;
+      }
+      if(sku_row_data.discount_percentage == ''){
+        sku_row_data.discount_percentage = 0;
       }
 
       var total_amt = Number(sku_row_data.value)*Number(sku_row_data.buy_price);

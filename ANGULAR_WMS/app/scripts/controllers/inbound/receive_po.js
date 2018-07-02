@@ -292,6 +292,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             data.price = resp.data.price;
             data.supplier_code = resp.data.supplier_code;
             data.ean_number = resp.data.ean_number;
+            data.buy_price = resp.data.price;
 
             data.row_price = (Number(data.value) * Number(data.price));
             vm.getTotals();

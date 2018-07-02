@@ -7086,6 +7086,7 @@ def get_debit_note_data(rtv_number, user):
     total_sgst_value = 0
     total_igst_value = 0
     total_utgst_value = 0
+    total_cess_value = 0
     ware_house = UserProfile.objects.filter(user = user).values('company_name', 'cin_number', 'location', 'city', 'state', 'country', 'phone_number', 'pin_code', 'gst_number')
     data_dict.setdefault('warehouse_details', [])
     if len(ware_house):
@@ -7113,6 +7114,7 @@ def get_debit_note_data(rtv_number, user):
         data_dict_item['sgst'] = get_po.sgst_tax
         data_dict_item['igst'] = get_po.igst_tax
         data_dict_item['utgst'] = get_po.utgst_tax
+        data_dict_item['cess'] = get_po.cess_tax
         batch_detail = obj.seller_po_summary.batch_detail
         if batch_detail:
             if batch_detail.buy_price:
@@ -7132,8 +7134,10 @@ def get_debit_note_data(rtv_number, user):
         data_dict_item['igst_value'] = ((data_dict_item['taxable_value'] * data_dict_item['igst'])/100)
         data_dict_item['sgst_value'] = ((data_dict_item['taxable_value'] * data_dict_item['sgst'])/100)
         data_dict_item['utgst_value'] = ((data_dict_item['taxable_value'] * data_dict_item['utgst'])/100)
+        data_dict_item['cess_value'] = ((data_dict_item['taxable_value'] * data_dict_item['cess'])/100)
         data_dict_item['total_with_gsts'] = data_dict_item['taxable_value'] + data_dict_item['cgst_value'] + \
-                                            data_dict_item['igst_value'] + data_dict_item['sgst_value'] + data_dict_item['utgst_value']
+                                            data_dict_item['igst_value'] + data_dict_item['sgst_value'] + data_dict_item['utgst_value'] + \
+                                            data_dict_item['cess_value']
         data_dict['rtv_creation_date'] = get_local_date(user, obj.creation_date)
         data_dict['date_of_issue_of_original_invoice'] = get_local_date(user, obj.seller_po_summary.creation_date)
         total_with_gsts = total_with_gsts + data_dict_item['total_with_gsts']
@@ -7146,6 +7150,7 @@ def get_debit_note_data(rtv_number, user):
         total_sgst_value = total_sgst_value + data_dict_item['sgst_value']
         total_igst_value = total_igst_value + data_dict_item['igst_value']
         total_utgst_value = total_utgst_value + data_dict_item['utgst_value']
+        total_cess_value = total_cess_value + data_dict_item['cess_value']
         data_dict['grn_no'] = get_po_reference(obj.seller_po_summary.purchase_order) + '/' + str(obj.seller_po_summary.receipt_number)
         data_dict['item_details'].append(data_dict_item)
     data_dict['total_qty'] = total_qty
@@ -7156,6 +7161,7 @@ def get_debit_note_data(rtv_number, user):
     data_dict['total_sgst_value'] = total_sgst_value
     data_dict['total_igst_value'] = total_igst_value
     data_dict['total_utgst_value'] = total_utgst_value
+    data_dict['total_cess_value'] = total_cess_value
     data_dict['total_with_gsts'] = total_with_gsts
     data_dict['total_invoice_value'] = total_invoice_value
     data_dict['rtv_number'] = rtv_number

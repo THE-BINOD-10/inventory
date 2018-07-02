@@ -239,7 +239,7 @@
                 console.log(self.style_based_sku_data[item]);
             }
             if(!self.style_based_sku_data[item]["quantity"]) self.style_based_sku_data[item]["quantity"] = 0;
-            self.tot_style_qty += parseInt(self.style_based_sku_data[item]["quantity"]);
+            self.tot_style_qty += parseFloat(self.style_based_sku_data[item]["quantity"]);
             console.log(parseInt(self.style_based_sku_data[item]["quantity"]) * self.style_based_sku_data[item]["price"]);
             self.tot_style_amount += (parseInt(self.style_based_sku_data[item]["quantity"]) * self.style_based_sku_data[item]["price"]);
         }
@@ -620,7 +620,7 @@
                   } else {
                     quantity = 1;
                   }
-                  self.skus[j].quantity = parseInt(self.skus[j].quantity) + quantity;
+                  self.skus[j].quantity = parseFloat(self.skus[j].quantity) + quantity;
                   self.skus[j].price = self.skus[j].quantity * self.skus[j].unit_price;
                   self.repeated_data = true;
                   self.skus[j].return_status = self.return_switch.toString();
@@ -808,7 +808,7 @@
 
             } else {
 
-              self.skus[i].quantity = parseInt(item.quantity);
+              self.skus[i].quantity = parseFloat(item.quantity);
               self.skus[i].discount = (item.discount) ? parseFloat(item.discount) : 0;
               self.skus[i].unit_price = (item.selling_price - ((item.selling_price/100)*item.discount));
               if(self.tax_inclusive) {
@@ -839,7 +839,7 @@
 				          item.cgst=item.sgst=item.utgst=item.igst=0;
                 } else {
                   item.selling_price = item.price;
-                  self.skus[i].quantity = parseInt(item.quantity);
+                  self.skus[i].quantity = parseFloat(item.quantity);
                   self.skus[i].discount = (item.discount && self.skus[i].return_status==='false') ? parseFloat(item.discount) : 0;
                   self.skus[i].sgst = item.price * self.skus[i]['sgst_percent'] / 100;
         				  self.skus[i].cgst = item.price * self.skus[i]['cgst_percent'] / 100;

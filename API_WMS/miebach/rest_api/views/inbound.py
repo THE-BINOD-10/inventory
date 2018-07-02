@@ -6950,14 +6950,14 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
                                         filter(tot_proc__gte=F('final_val')).\
                                         values_list('seller_po_summary_id', flat=True)
     if search_term:
-        results = SellerPOSummary.objects.exclude(id__in=return_ids).filter(purchase_order__status='confirmed-putaway').\
+        results = SellerPOSummary.objects.exclude(id__in=return_ids).filter(purchase_order__polocation__status=0).\
             values('purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name',
                    'purchase_order__order_id', 'invoice_number', 'invoice_date',).distinct().annotate(
             total=Sum('quantity'), purchase_order_date=Cast('purchase_order__creation_date', DateField())). \
             filter(purchase_order__open_po__sku__user=user.id, **search_params).order_by(order_data)
 
     elif order_term:
-        results = SellerPOSummary.objects.exclude(id__in=return_ids).filter(purchase_order__status='confirmed-putaway').\
+        results = SellerPOSummary.objects.exclude(id__in=return_ids).filter(purchase_order__polocation__status=0).\
             values('purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name',
                    'purchase_order__order_id', 'invoice_number', 'invoice_date',).distinct().annotate(
             total=Sum('quantity'), purchase_order_date=Cast('purchase_order__creation_date', DateField())).\
@@ -7104,7 +7104,8 @@ def get_debit_note_data(rtv_number, user):
         data_dict_item['sku_desc'] = get_po.sku.sku_desc
         data_dict_item['hsn_code'] = str(get_po.sku.hsn_code)
         data_dict_item['order_qty'] = obj.quantity
-        data_dict_item['price'] = get_po.price
+        #data_dict_item['price'] = get_po.price
+        data_dict_item['price'] = 0
         data_dict_item['measurement_unit'] = get_po.sku.measurement_type
         data_dict_item['discount'] = get_po.sku.discount_percentage
         data_dict['invoice_num'] = obj.seller_po_summary.invoice_number

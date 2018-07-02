@@ -87,7 +87,7 @@
 		</thead>
         <tbody>
           {% for dat in data %}
-            <tr class="fs14 rm-border">
+            <tr class="fs14">
               {% for d in dat %}
                 {% if d|get_variable_type == 'list' %}
                   <td style="text-align: center;">
@@ -101,7 +101,7 @@
               {% endfor %}
             </tr>
 			{% if forloop.last %}
-				<tr>
+				<tr class="fs14 rm-border">
 					<td class="fs14" colspan="5">
 				  		<div class="row m0">
 							<div class="col-xs-12 text-left">

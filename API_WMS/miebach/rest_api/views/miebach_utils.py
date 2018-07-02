@@ -1798,7 +1798,8 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False):
                'picked_quantity', 'picked_quantity', 'updation_date', 'updation_date']
         model_obj = Picklist
         param_keys = {'wms_code': 'stock__sku__wms_code', 'sku_code': 'stock__sku__sku_code'}
-        search_parameters['status__in'] = ['picked', 'batch_picked', 'dispatched']
+        search_parameters['status__in'] = ['open', 'batch_open', 'picked', 'batch_picked', 'dispatched']
+        search_parameters['picked_quantity__gt'] = 0
         search_parameters['stock__gt'] = 0
         search_parameters['order__user'] = user.id
         search_parameters['stock__sku_id__in'] = sku_master_ids
@@ -1852,7 +1853,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False):
         if not serial_view:
             pick_locs = data.picklistlocation_set.exclude(reserved=0, quantity=0)
             for pick_loc in pick_locs:
-                picked_quantity = pick_loc.quantity
+                picked_quantity = float(pick_loc.quantity) - float(pick_loc.reserved)
                 date = get_local_date(user, data.updation_date).split(' ')
                 order_id = data.order.original_order_id
                 if not order_id:

@@ -131,7 +131,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         $(row_click_bind, nRow).unbind('click');
         $(row_click_bind, nRow).bind('click', function() {
             $scope.$apply(function() {
-              vm.supplier_id = aData['DT_RowId'];
+              // vm.supplier_id = aData['DT_RowId'];
+                vm.supplier_id = aData['Supplier ID/Name'].split('/')[0];
                 vm.service.apiCall('get_supplier_data/', 'GET', {supplier_id: aData['DT_RowId']}).then(function(data){
                   if(data.message) {
                     vm.serial_numbers = [];
@@ -286,16 +287,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         return false;
       } else {
         var supplier = vm.supplier_id;
-        // $http.get(Session.url+'get_mapping_values/?wms_code='+product.fields.sku.wms_code+'&supplier_id='+supplier, {withCredentials : true}).success(function(data, status, headers, config) {
-        //   if(Object.values(data).length) {
-        //     product.fields.price = data.price;
-        //     product.fields.supplier_code = data.supplier_code;
-        //     product.fields.ean_number = data.ean_number;
+        vm.service.apiCall('get_mapping_values/', 'GET', {'wms_code':data.wms_code, 'supplier_id': supplier}).then(function(resp){
+          if(Object.values(resp).length) {
+            data.price = resp.data.price;
+            data.supplier_code = resp.data.supplier_code;
+            data.ean_number = resp.data.ean_number;
 
-        //     vm.model_data.data[index].fields.row_price = (vm.model_data.data[index].fields.order_quantity * Number(vm.model_data.data[index].fields.price));
-        //     vm.getTotals();
-        //   }
-        // });
+            data.row_price = (Number(data.value) * Number(data.price));
+            vm.getTotals();
+          }
+        });
         vm.get_supplier_sku_prices(data.wms_code).then(function(sku_data){
             sku_data = sku_data[0];
             data.tax_type = sku_data.tax_type.replace(" ","_").toLowerCase();

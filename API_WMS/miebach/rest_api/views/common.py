@@ -3998,7 +3998,7 @@ def get_categories_list(request, user=""):
 
 
 def get_generic_warehouses_list(user):
-   return UserGroups.objects.filter(admin_user=user).values_list('user', flat=True)
+   return UserGroups.objects.filter(admin_user=user).exclude(user__userprofile__warehouse_level=2).values_list('user', flat=True)
 
 @fn_timer
 def get_cal_style_data(style_data, quantity):
@@ -7009,6 +7009,7 @@ def get_gen_wh_ids(request, user, delivery_date):
     res_lead_time = 0
     if admin:
         gen_whs = list(get_generic_warehouses_list(admin))
+        gen_whs.append(user.id)
         cm_obj = CustomerUserMapping.objects.filter(user=request.user.id)
         if cm_obj:
             cm_id = cm_obj[0].customer

@@ -5433,6 +5433,8 @@ def confirm_receive_qc(request, user=''):
         po_data, status_msg, all_data, order_quantity_dict, \
         purchase_data, data, data_dict, seller_receipt_id = generate_grn(myDict, request, user, is_confirm_receive=True)
         for i in range(0, len(myDict['id'])):
+            if not myDict['id'][i]:
+                continue
             quality_checks = QualityCheck.objects.filter(purchase_order_id=myDict['id'][i],
                                                          po_location__location__zone__user=user.id,
                                                          status='qc_pending')

@@ -251,7 +251,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           new_dic.batch_no = "";
           new_dic.manf_date = "";
           new_dic.exp_date = "";
-          new_dic.tax_percent = "";
           data.push(new_dic);
         } else {
           data.splice(index,1);
@@ -262,9 +261,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.new_sku = false
     vm.add_wms_code = add_wms_code;
     function add_wms_code() {
-      vm.model_data.data.push([{"wms_code":"", "po_quantity":0, "receive_quantity":"", "price":"", "dis": false,
-                                "order_id": '', "is_new": true, "unit": "",
-                                "buy_price": "", "cess_percent": "", "tax_percent": "", "total_amt": "",
+      vm.model_data.data.push([{"wms_code":"", "po_quantity":0, "receive_quantity":0, "price":0, "dis": false,
+                                "order_id": '', "is_new": true, 'mrp': 0, "unit": "",
+                                "buy_price": 0, "cess_percent": 0, "tax_percent": 0, "total_amt": 0,
                                 "sku_details": [{"fields": {"load_unit_handle": ""}}]}]);
       //vm.new_sku = true
     }
@@ -275,7 +274,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       data.sku_desc = selected.sku_desc;
       data.po_quantity = 0;
       data.price = 0;
-      data.mrp = selected.mrp;
+      if (Number(selected.mrp)) {
+        data.mrp = selected.mrp;
+      } else {
+        data.mrp = 0;
+      }
       data.description = selected.sku_desc;
       data.tax_percent = 0;
       data.cess_percent = 0;
@@ -556,26 +559,37 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               if (vm.permissions.use_imei) {
                 vm.sku_list_1 = [];
                 for(var i=0; i<vm.model_data.data.length; i++) {
-                  vm.sku_list_1.push(vm.model_data.data[i][0]["wms_code"]);
-                  if(vm.field == vm.model_data.data[i][0]["wms_code"]){
-                    $("input[attr-name='imei_"+vm.field+"']").trigger('focus');
-                  }
+                  
+                  angular.forEach(vm.model_data.data[i], function(sku){
+                  
+                    vm.sku_list_1.push(sku.wms_code);
+                    if(vm.field == sku.wms_code){
+                      $("input[attr-name='imei_"+vm.field+"']").trigger('focus');
+                    }
+                  });
                 }
+
+
+
                 if (vm.sku_list_1.indexOf(vm.field) == -1){
                   Service.showNoty(field+" Does Not Exist");
                 }
               } else {
                 vm.sku_list_1 = [];
                 for(var i=0; i<vm.model_data.data.length; i++) {
-                  vm.sku_list_1.push(vm.model_data.data[i][0]["wms_code"]);
-                  if(vm.field == vm.model_data.data[i][0]["wms_code"]){
-                    if(vm.model_data.data[i][0].value < vm.model_data.data[i][0].po_quantity) {
-                      vm.model_data.data[i][0]["value"] = Number(vm.model_data.data[i][0]["value"]) + 1;
-                    } else {
-                       Service.showNoty("Received Quantity Equal To PO Quantity");
+                  
+                  angular.forEach(vm.model_data.data[i], function(sku){
+                  
+                    vm.sku_list_1.push(sku.wms_code);
+                    if(vm.field == sku.wms_code){
+                      if(sku.value < sku.po_quantity) {
+                        sku["value"] = Number(sku["value"]) + 1;
+                      } else {
+                         Service.showNoty("Received Quantity Equal To PO Quantity");
+                      }
+                      $('textarea[name="scan_sku"]').trigger('focus').val('');
                     }
-                    $('textarea[name="scan_sku"]').trigger('focus').val('');
-                  }
+                  });
                 }
                 if (vm.sku_list_1.indexOf(vm.field) == -1){
                   Service.showNoty(field+" Does Not Exist");

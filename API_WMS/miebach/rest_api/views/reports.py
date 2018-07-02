@@ -57,12 +57,10 @@ def get_report_data(request, user=''):
             data['filters'][data_index]['values'] = list(
                 OrderDetail.objects.exclude(sku__sku_category='').filter(user=user.id).values_list('sku__sku_category',
                                                                                                    flat=True).distinct())
-
         if 'order_report_status' in filter_keys:
             data_index = data['filters'].index(
                 filter(lambda person: 'order_report_status' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = ORDER_SUMMARY_REPORT_STATUS
-
     return HttpResponse(json.dumps({'data': data}))
 
 
@@ -123,6 +121,13 @@ def get_po_filter(request, user=''):
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_sku_wise_po_filter(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_sku_wise_po_filter_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 @csrf_exempt
 @login_required
@@ -680,6 +685,8 @@ def print_po_reports(request, user=''):
     po_data = {headers: []}
     if po_id:
         results = PurchaseOrder.objects.filter(order_id=po_id, open_po__sku__user=user.id)
+        if receipt_no:
+            results = results.distinct().filter(sellerposummary__receipt_number=receipt_no)
     elif po_summary_id:
         results = SellerPOSummary.objects.filter(id=po_summary_id, purchase_order__open_po__sku__user=user.id)
     total = 0
@@ -691,8 +698,9 @@ def print_po_reports(request, user=''):
             quantity = data.received_quantity
             bill_date = data.updation_date
             if receipt_no:
-                seller_summary_obj = data.sellerposummary_set.filter(receipt_number=receipt_no)[0]
-                quantity = seller_summary_obj.quantity
+                seller_summary_objs = data.sellerposummary_set.filter(receipt_number=receipt_no)
+                seller_summary_obj = seller_summary_objs[0]
+                quantity = seller_summary_objs.aggregate(Sum('quantity'))['quantity__sum']
                 bill_no = seller_summary_obj.invoice_number if seller_summary_obj.invoice_number else ''
                 bill_date = seller_summary_obj.invoice_date if seller_summary_obj.invoice_date else data.updation_date
             open_data = data.open_po

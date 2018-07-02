@@ -763,7 +763,7 @@ def generated_po_data(request, user=''):
     return HttpResponse(json.dumps({'supplier_id': record[0].supplier_id, 'supplier_name': record[0].supplier.name,
                                     'vendor_id': vendor_id,
                                     'Order Type': status_dict[record[0].order_type], 'po_name': record[0].po_name,
-                                    'ship_to': '', 'po_delivery_date': po_delivery_date,
+                                    'ship_to': record[0].ship_to, 'po_delivery_date': po_delivery_date,
                                     'data': ser_data, 'receipt_type': receipt_type, 'receipt_types': PO_RECEIPT_TYPES}))
 
 
@@ -826,6 +826,7 @@ def modify_po_update(request, user=''):
             setattr(record, 'igst_tax', value['igst_tax'])
             setattr(record, 'cess_tax', value['cess_tax'])
             setattr(record, 'utgst_tax', value['utgst_tax'])
+            setattr(record, 'ship_to', value['ship_to'])
             if value['po_delivery_date']:
                 setattr(record, 'delivery_date', value['po_delivery_date'])
             if record.mrp:
@@ -879,6 +880,7 @@ def modify_po_update(request, user=''):
         po_suggestions['igst_tax'] = value['igst_tax']
         po_suggestions['cess_tax'] = value['cess_tax']
         po_suggestions['utgst_tax'] = value['utgst_tax']
+        po_suggestions['ship_to'] = value['ship_to']
         if value['po_delivery_date']:
             po_suggestions['delivery_date'] = value['po_delivery_date']
         data = OpenPO(**po_suggestions)
@@ -1126,6 +1128,7 @@ def confirm_po(request, user=''):
             po_suggestions['igst_tax'] = value['igst_tax']
             po_suggestions['cess_tax'] = value['cess_tax']
             po_suggestions['utgst_tax'] = value['utgst_tax']
+            po_suggestions['ship_to'] = value['ship_to']
             if value['po_delivery_date']:
                 po_suggestions['delivery_date'] = value['po_delivery_date']
             if value['measurement_unit']:
@@ -1190,6 +1193,13 @@ def confirm_po(request, user=''):
 
     address = purchase_order.supplier.address
     address = '\n'.join(address.split(','))
+    wh_address = user.userprofile.wh_address
+    if wh_address:
+        ship_to_address = wh_address
+    else:
+        ship_to_address = purchase_order.ship_to
+    ship_to_address = '\n'.join(ship_to_address.split(','))
+    wh_telephone = user.userprofile.wh_phone_number
     telephone = purchase_order.supplier.phone_number
     name = purchase_order.supplier.name
     supplier_email = purchase_order.supplier.email_id
@@ -1229,8 +1239,8 @@ def confirm_po(request, user=''):
                  'company_name': company_name,
                  'location': profile.location, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                  'vendor_telephone': vendor_telephone, 'total_qty': total_qty, 'receipt_type': receipt_type,
-                 'title': title,
-                 'gstin_no': gstin_no, 'w_address': get_purchase_company_address(profile)}
+                 'title': title, 'ship_to_address': ship_to_address,
+                 'gstin_no': gstin_no, 'w_address': get_purchase_company_address(profile), 'wh_telephone': wh_telephone}
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
     if get_misc_value('raise_po', user.id) == 'true':
@@ -1346,6 +1356,8 @@ def get_raisepo_group_data(user, myDict):
             po_name = myDict['po_name'][0]
         if 'po_delivery_date' in myDict.keys() and myDict['po_delivery_date'][0]:
             po_delivery_date = datetime.datetime.strptime(str(myDict['po_delivery_date'][0]), "%m/%d/%Y")
+        if 'ship_to' in myDict.keys():
+            ship_to = myDict['ship_to'][0]
         if 'measurement_unit' in myDict.keys():
             measurement_unit = myDict['measurement_unit'][i]
         if 'vendor_id' in myDict.keys():
@@ -1474,6 +1486,7 @@ def add_po(request, user=''):
             po_suggestions['cess_tax'] = value['cess_tax']
             po_suggestions['utgst_tax'] = value['utgst_tax']
             po_suggestions['order_type'] = value['order_type']
+            po_suggestions['ship_to'] = value['ship_to']
             if value['po_delivery_date']:
                 po_suggestions['delivery_date'] = value['po_delivery_date']
             if value.get('vendor_id', ''):
@@ -2295,7 +2308,9 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
                                                                                putaway_quantity=value,
                                                                                purchase_order_id=data.id,
                                                                                creation_date=datetime.datetime.now(),
-                                                                               discount_percent=discount_percent)
+                                                                               discount_percent=discount_percent,
+                                                                               invoice_number=invoice_number,
+                                                                               invoice_date=invoice_date)
             seller_received_list.append(
                 {'seller_id': sell_po.seller_id, 'sku_id': data.open_po.sku_id, 'quantity': value,
                  'id': seller_po_summary.id})
@@ -2312,7 +2327,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
     remarks = request.POST.get('remarks', '')
     expected_date = request.POST.get('expected_date', '')
     remainder_mail = request.POST.get('remainder_mail', '')
-    invoice_number = request.POST.get('invoice_number', 0)
+    invoice_number = request.POST.get('invoice_number', '')
     bill_date = datetime.datetime.now().date()
     if request.POST.get('invoice_date', ''):
         bill_date = datetime.datetime.strptime(request.POST.get('invoice_date', ''), "%m/%d/%Y").date()
@@ -2403,8 +2418,6 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
         data.saved_quantity = 0
 
         seller_received_list = []
-        if not invoice_number:
-            invoice_number = 0
         if data.open_po:
             if not seller_receipt_id:
                 seller_receipt_id = get_seller_receipt_id(data.open_po)
@@ -4219,6 +4232,7 @@ def confirm_add_po(request, sales_data='', user=''):
         po_suggestions['igst_tax'] = value['igst_tax']
         po_suggestions['cess_tax'] = value['cess_tax']
         po_suggestions['utgst_tax'] = value['utgst_tax']
+        po_suggestions['ship_to'] = value['ship_to']
         if value['po_delivery_date']:
             po_suggestions['delivery_date'] = value['po_delivery_date']
         if value['measurement_unit']:
@@ -4242,7 +4256,7 @@ def confirm_add_po(request, sales_data='', user=''):
             ids_dict[supplier] = po_id
         data['open_po_id'] = sup_id
         data['order_id'] = ids_dict[supplier]
-        data['ship_to'] = value['ship_to']
+        #data['ship_to'] = value['ship_to']
         user_profile = UserProfile.objects.filter(user_id=user.id)
         industry_type = user_profile[0].industry_type
         if user_profile:
@@ -4296,6 +4310,13 @@ def confirm_add_po(request, sales_data='', user=''):
         return HttpResponse(status)
     address = purchase_order.supplier.address
     address = '\n'.join(address.split(','))
+    wh_address = user.userprofile.wh_address
+    if wh_address:
+        ship_to_address = wh_address
+    else:
+        ship_to_address = purchase_order.ship_to
+    wh_telephone = user.userprofile.wh_phone_number
+    ship_to_address = '\n'.join(ship_to_address.split(','))
     vendor_name = ''
     vendor_address = ''
     vendor_telephone = ''
@@ -4341,14 +4362,15 @@ def confirm_add_po(request, sales_data='', user=''):
         title = 'Purchase Order'
 
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
-                 'telephone': str(telephone),
+                 'telephone': str(telephone), 'ship_to_address': ship_to_address,
                  'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference,
                  'user_name': request.user.username,
                  'total_qty': total_qty, 'company_name': company_name, 'location': profile.location,
                  'w_address': get_purchase_company_address(profile),
                  'company_name': company_name, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                  'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title,
-                 'gstin_no': gstin_no, 'industry_type': industry_type, 'expiry_date': expiry_date}
+                 'gstin_no': gstin_no, 'industry_type': industry_type, 'expiry_date': expiry_date,
+                 'wh_telephone': wh_telephone}
 
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
@@ -4434,12 +4456,12 @@ def confirm_po1(request, user=''):
     total = 0
     total_qty = 0
     status_dict = {'Self Receipt': 'SR', 'Vendor Receipt': 'VR', 'Hosted Warehouse': 'HW'}
-    myDict = dict(request.GET.iterlists())
+    myDict = dict(request.POST.iterlists())
     ean_flag = False
     display_remarks = get_misc_value('display_remarks_mail', user.id)
     for key, value in myDict.iteritems():
         for val in value:
-            purchase_orders = OpenPO.objects.filter(supplier_id=val, status__in=['Manual', 'Automated'],
+            purchase_orders = OpenPO.objects.filter(supplier_id=val, status__in=['Manual', 'Automated', ''],
                                                     order_type=status_dict[key],
                                                     sku__user=user.id)
             if list(purchase_orders.exclude(sku__ean_number=0).values_list('sku__ean_number', flat=True)):
@@ -4493,6 +4515,13 @@ def confirm_po1(request, user=''):
 
             address = purchase_orders[0].supplier.address
             address = '\n'.join(address.split(','))
+            wh_address = user.userprofile.wh_address
+            if wh_address:
+                ship_to_address = wh_address
+            else:
+                ship_to_address = purchase_order[0].ship_to
+            ship_to_address = '\n'.join(ship_to_address.split(','))
+            wh_telephone = user.userprofile.wh_phone_number
             telephone = purchase_orders[0].supplier.phone_number
             name = purchase_orders[0].supplier.name
             supplier_email = purchase_orders[0].supplier.email_id
@@ -4524,7 +4553,8 @@ def confirm_po1(request, user=''):
                          'po_reference': po_reference,
                          'total_qty': total_qty, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                          'vendor_telephone': vendor_telephone, 'gstin_no': gstin_no,
-                         'w_address': get_purchase_company_address(profile)}
+                         'w_address': get_purchase_company_address(profile), 'ship_to_address': ship_to_address,
+                         'wh_telephone': wh_telephone}
 
             t = loader.get_template('templates/toggle/po_download.html')
             rendered = t.render(data_dict)
@@ -4544,7 +4574,7 @@ def delete_po_group(request, user=''):
     myDict = dict(request.GET.iterlists())
     for key, value in myDict.iteritems():
         for val in value:
-            purchase_order = OpenPO.objects.filter(supplier_id=val, status__in=['Manual', 'Automated'],
+            purchase_order = OpenPO.objects.filter(supplier_id=val, status__in=['Manual', 'Automated', ''],
                                                    order_type=status_dict[key],
                                                    sku__user=user.id).delete()
 
@@ -6890,11 +6920,11 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
 
     headers1, filters, filter_params1 = get_search_params(request)
     if 'from_date' in filters:
-        search_params['purchase_order__creation_date__startswith'] = filters['from_date']
+        search_params['creation_date__startswith'] = filters['from_date']
     if 'to_date' in filters:
         to_date = datetime.datetime.combine(filters['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
-        search_params['purchase_order__creation_date__lt'] = to_date
+        search_params['creation_date__lt'] = to_date
     if 'sku_code' in filters:
         search_params['purchase_order__open_po__sku__sku_code'] = filters['sku_code'].upper()
     if 'supplier' in filters:
@@ -6905,6 +6935,7 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
             search_params['purchase_order__order_id'] = temp[-1]
     if 'invoice_number' in filters:
         search_params['invoice_number'] = filters['invoice_number']
+
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -7072,8 +7103,8 @@ def get_debit_note_data(rtv_number, user):
         data_dict_item['sku_code'] = get_po.sku.sku_code
         data_dict_item['sku_desc'] = get_po.sku.sku_desc
         data_dict_item['hsn_code'] = str(get_po.sku.hsn_code)
-        data_dict_item['order_qty'] = get_po.order_quantity
-        data_dict_item['price'] = get_po.sku.price
+        data_dict_item['order_qty'] = obj.quantity
+        data_dict_item['price'] = get_po.price
         data_dict_item['measurement_unit'] = get_po.sku.measurement_type
         data_dict_item['discount'] = get_po.sku.discount_percentage
         data_dict['invoice_num'] = obj.seller_po_summary.invoice_number
@@ -7187,6 +7218,7 @@ def create_rtv(request, user=''):
                                           quantity=final_dict['quantity'], status=0, creation_date=datetime.datetime.now())
         report_data_dict = {}
         show_data_invoice = get_debit_note_data(rtv_number, user)
+
         return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice' : [show_data_invoice]})
     except Exception as e:
         import traceback

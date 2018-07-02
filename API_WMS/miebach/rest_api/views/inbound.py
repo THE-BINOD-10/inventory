@@ -7039,7 +7039,7 @@ def get_po_putaway_summary(request, user=''):
             continue
         data_dict = {'summary_id': seller_summary.id, 'order_id': order.id, 'sku_code': sku.sku_code,
                      'sku_desc': sku.sku_desc, 'quantity': quantity, 'price': order_data['price']}
-        data_dict['tax_percent'] = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax
+        data_dict['tax_percent'] = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax + open_po.cess_tax
         if seller_summary.batch_detail:
             batch_detail = seller_summary.batch_detail
             data_dict['batch_no'] = batch_detail.batch_no

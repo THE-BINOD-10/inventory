@@ -705,6 +705,7 @@ def get_picklist_data(data_id, user_id):
     stock_skus = map(lambda d: d['sku__wms_code'], stocks)
     reserved_skus = map(lambda d: d['stock__sku__wms_code'], reserved_instances)
     data = []
+    import pdb;pdb.set_trace()
     if not picklist_orders:
         return data, sku_total_quantities, courier_name
     order_status = ''
@@ -2479,6 +2480,7 @@ def awb_direct_insert_shipment_info(data_params, order_awb_obj, user=''):
 @get_admin_user
 def get_customer_sku(request, user=''):
     data = []
+    courier_name = ''
     sku_grouping = request.GET.get('sku_grouping', 'false')
     datatable_view = request.GET.get('view', '')
     search_params = {'user': user.id}
@@ -2499,15 +2501,17 @@ def get_customer_sku(request, user=''):
         if filter_order_ids:
             search_params['id__in'] = filter_order_ids
     ship_no = get_shipment_number(user)
-
     all_orders = OrderDetail.objects.filter(**search_params)
+    for obj in all_orders:
+        customer_order_summary = obj.customerordersummary_set.filter()
+        if customer_order_summary:
+            courier_name = customer_order_summary[0].courier_name
     data = get_shipment_quantity(user, all_orders, sku_grouping)
-
     if data:
         return HttpResponse(json.dumps({'data': data,
                                         'shipment_id': '',
                                         'display_fields': '',
-                                        'marketplace': '', 'shipment_number': ship_no}, cls=DjangoJSONEncoder))
+                                        'marketplace': '', 'shipment_number': ship_no, 'courier_name': courier_name}, cls=DjangoJSONEncoder))
     return HttpResponse(json.dumps({'status': 'No Orders found'}))
 
 
@@ -6284,7 +6288,6 @@ def update_order_data(request, user=""):
             tax_type = 0
         elif tax_name == 'inter_state':
             tax_type = 1
-
         if older_objs:
             older_order = older_objs[0]
             order_creation_date = older_order.creation_date
@@ -6310,6 +6313,12 @@ def update_order_data(request, user=""):
             sku_order = older_objs.filter(order_id=order_id, order_code=order_code, sku=sku_id)
             if not sku_order:
                 default_dict['status'] = 1
+            if older_order:
+                to_save_courier_name = CustomerOrderSummary.objects.filter(order=older_order.id)
+                if to_save_courier_name:
+                    to_save_courier_name = to_save_courier_name[0]
+                    to_save_courier_name.courier_name = courier_name
+                    to_save_courier_name.save()
             elif int(sku_order[0].status) == 0:
                 continue
             order_obj, created = OrderDetail.objects.update_or_create(

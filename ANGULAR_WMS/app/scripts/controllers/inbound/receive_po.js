@@ -264,6 +264,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.model_data.data.push([{"wms_code":"", "po_quantity":0, "receive_quantity":0, "price":0, "dis": false,
                                 "order_id": '', "is_new": true, 'mrp': 0, "unit": "",
                                 "buy_price": 0, "cess_percent": 0, "tax_percent": 0, "total_amt": 0,
+                                "discount_percentage": 0,
                                 "sku_details": [{"fields": {"load_unit_handle": ""}}]}]);
       //vm.new_sku = true
     }
@@ -282,6 +283,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       data.description = selected.sku_desc;
       data.tax_percent = 0;
       data.cess_percent = 0;
+      data.discount_percentage = 0;
 
       data.sku_details[0].fields.load_unit_handle = selected.load_unit_handle;
       $timeout(function() {$scope.$apply();}, 1000);
@@ -1735,6 +1737,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
       if(sku_row_data.cess_percent == ''){
         sku_row_data.cess_percent = 0;
+      }
+      if(sku_row_data.discount_percentage == ''){
+        sku_row_data.discount_percentage = 0;
       }
 
       var total_amt = Number(sku_row_data.value)*Number(sku_row_data.buy_price);

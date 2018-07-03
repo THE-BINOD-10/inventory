@@ -5433,6 +5433,8 @@ def confirm_receive_qc(request, user=''):
         po_data, status_msg, all_data, order_quantity_dict, \
         purchase_data, data, data_dict, seller_receipt_id = generate_grn(myDict, request, user, is_confirm_receive=True)
         for i in range(0, len(myDict['id'])):
+            if not myDict['id'][i]:
+                continue
             quality_checks = QualityCheck.objects.filter(purchase_order_id=myDict['id'][i],
                                                          po_location__location__zone__user=user.id,
                                                          status='qc_pending')
@@ -6950,14 +6952,14 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
                                         filter(tot_proc__gte=F('final_val')).\
                                         values_list('seller_po_summary_id', flat=True)
     if search_term:
-        results = SellerPOSummary.objects.exclude(id__in=return_ids).filter(purchase_order__status='confirmed-putaway').\
+        results = SellerPOSummary.objects.exclude(id__in=return_ids).filter(purchase_order__polocation__status=0).\
             values('purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name',
                    'purchase_order__order_id', 'invoice_number', 'invoice_date',).distinct().annotate(
             total=Sum('quantity'), purchase_order_date=Cast('purchase_order__creation_date', DateField())). \
             filter(purchase_order__open_po__sku__user=user.id, **search_params).order_by(order_data)
 
     elif order_term:
-        results = SellerPOSummary.objects.exclude(id__in=return_ids).filter(purchase_order__status='confirmed-putaway').\
+        results = SellerPOSummary.objects.exclude(id__in=return_ids).filter(purchase_order__polocation__status=0).\
             values('purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name',
                    'purchase_order__order_id', 'invoice_number', 'invoice_date',).distinct().annotate(
             total=Sum('quantity'), purchase_order_date=Cast('purchase_order__creation_date', DateField())).\
@@ -7039,7 +7041,7 @@ def get_po_putaway_summary(request, user=''):
             continue
         data_dict = {'summary_id': seller_summary.id, 'order_id': order.id, 'sku_code': sku.sku_code,
                      'sku_desc': sku.sku_desc, 'quantity': quantity, 'price': order_data['price']}
-        data_dict['tax_percent'] = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax
+        data_dict['tax_percent'] = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax + open_po.cess_tax
         if seller_summary.batch_detail:
             batch_detail = seller_summary.batch_detail
             data_dict['batch_no'] = batch_detail.batch_no
@@ -7086,6 +7088,7 @@ def get_debit_note_data(rtv_number, user):
     total_sgst_value = 0
     total_igst_value = 0
     total_utgst_value = 0
+    total_cess_value = 0
     ware_house = UserProfile.objects.filter(user = user).values('company_name', 'cin_number', 'location', 'city', 'state', 'country', 'phone_number', 'pin_code', 'gst_number')
     data_dict.setdefault('warehouse_details', [])
     if len(ware_house):
@@ -7104,7 +7107,8 @@ def get_debit_note_data(rtv_number, user):
         data_dict_item['sku_desc'] = get_po.sku.sku_desc
         data_dict_item['hsn_code'] = str(get_po.sku.hsn_code)
         data_dict_item['order_qty'] = obj.quantity
-        data_dict_item['price'] = get_po.price
+        #data_dict_item['price'] = get_po.price
+        data_dict_item['price'] = 0
         data_dict_item['measurement_unit'] = get_po.sku.measurement_type
         data_dict_item['discount'] = get_po.sku.discount_percentage
         data_dict['invoice_num'] = obj.seller_po_summary.invoice_number
@@ -7112,6 +7116,7 @@ def get_debit_note_data(rtv_number, user):
         data_dict_item['sgst'] = get_po.sgst_tax
         data_dict_item['igst'] = get_po.igst_tax
         data_dict_item['utgst'] = get_po.utgst_tax
+        data_dict_item['cess'] = get_po.cess_tax
         batch_detail = obj.seller_po_summary.batch_detail
         if batch_detail:
             if batch_detail.buy_price:
@@ -7131,8 +7136,10 @@ def get_debit_note_data(rtv_number, user):
         data_dict_item['igst_value'] = ((data_dict_item['taxable_value'] * data_dict_item['igst'])/100)
         data_dict_item['sgst_value'] = ((data_dict_item['taxable_value'] * data_dict_item['sgst'])/100)
         data_dict_item['utgst_value'] = ((data_dict_item['taxable_value'] * data_dict_item['utgst'])/100)
+        data_dict_item['cess_value'] = ((data_dict_item['taxable_value'] * data_dict_item['cess'])/100)
         data_dict_item['total_with_gsts'] = data_dict_item['taxable_value'] + data_dict_item['cgst_value'] + \
-                                            data_dict_item['igst_value'] + data_dict_item['sgst_value'] + data_dict_item['utgst_value']
+                                            data_dict_item['igst_value'] + data_dict_item['sgst_value'] + data_dict_item['utgst_value'] + \
+                                            data_dict_item['cess_value']
         data_dict['rtv_creation_date'] = get_local_date(user, obj.creation_date)
         data_dict['date_of_issue_of_original_invoice'] = get_local_date(user, obj.seller_po_summary.creation_date)
         total_with_gsts = total_with_gsts + data_dict_item['total_with_gsts']
@@ -7145,6 +7152,7 @@ def get_debit_note_data(rtv_number, user):
         total_sgst_value = total_sgst_value + data_dict_item['sgst_value']
         total_igst_value = total_igst_value + data_dict_item['igst_value']
         total_utgst_value = total_utgst_value + data_dict_item['utgst_value']
+        total_cess_value = total_cess_value + data_dict_item['cess_value']
         data_dict['grn_no'] = get_po_reference(obj.seller_po_summary.purchase_order) + '/' + str(obj.seller_po_summary.receipt_number)
         data_dict['item_details'].append(data_dict_item)
     data_dict['total_qty'] = total_qty
@@ -7155,6 +7163,7 @@ def get_debit_note_data(rtv_number, user):
     data_dict['total_sgst_value'] = total_sgst_value
     data_dict['total_igst_value'] = total_igst_value
     data_dict['total_utgst_value'] = total_utgst_value
+    data_dict['total_cess_value'] = total_cess_value
     data_dict['total_with_gsts'] = total_with_gsts
     data_dict['total_invoice_value'] = total_invoice_value
     data_dict['rtv_number'] = rtv_number

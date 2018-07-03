@@ -57,13 +57,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
                 $http.get(Session.url+'print_purchase_order_form/?po_id='+aData['order_id'], {withCredential: true})
                 .success(function(data, status, headers, config) {
-                  vm.html = $(data)[0];
-                  $(html).find(".modal-dialog").removeClass('modal-lg');
-                  $(html).find(".modal-dialog").addClass('modal-lgi');
-                  $(html).find(".modal-dialog").addClass('modal-size');
-                  var html = $(vm.html).closest("form").clone();
-                  vm.print_page = $(html).clone();
-                  $(".modal-body").html($(html).find(".modal-body > .form-group"));
+//                  vm.html = $(data)[0];
+//                  $(html).find(".modal-dialog").removeClass('modal-lg');
+//                  $(html).find(".modal-dialog").addClass('modal-lgi');
+//                  $(html).find(".modal-dialog").addClass('modal-size');
+//                  var html = $(vm.html).closest("form").clone();
+//                  vm.print_page = $(html).clone();
+//                  $(".modal-body").html($(html).find(".modal-body > .form-group"));
+                  //vm.extra_width = {'width': '990px'};
+                  //vm.html = $(data.data);
+                  //angular.element(".modal-body").html($(data.data));
+                  $(".modal-body").html($(data).html());
+                  vm.print_page = $($(data).html()).clone();
+                  vm.print_enable = true;
                 });
                 $state.go("app.reports.SupplierWisePOs.POs");
             });

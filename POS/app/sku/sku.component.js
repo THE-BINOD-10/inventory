@@ -131,7 +131,11 @@
 	  self.check_sku = check_sku;
 	  self.checked_sku = false;
 	  function check_sku(sku_code) {
-		var check_box = $('input[name="selected_sku"][value="'+sku_code+'"]');
+        if(sku_code.includes('"')){
+            var check_box = $("input[name='selected_sku'][value='"+sku_code+"']");
+        } else {
+		    var check_box = $('input[name="selected_sku"][value="'+sku_code+'"]');
+        }
 		if(check_box.prop("checked")) {
 			check_box.prop("checked", false);
             var indx = self.selected_skus.indexOf(sku_code);
@@ -208,7 +212,11 @@
 	  self.checkbox_click = checkbox_click;
 	 function checkbox_click($event, sku_code, index) {
 		//$event.stopPropagation();
-		var check_box = $('input[name="selected_sku"][value="'+sku_code+'"]');
+        if(sku_code.includes('"')){
+            var check_box = $("input[name='selected_sku'][value='"+sku_code+"']");
+        } else {
+		    var check_box = $('input[name="selected_sku"][value="'+sku_code+'"]');
+        }
 		if(check_box.prop("checked")) {
 			check_box.prop("checked", false);
 		} else {
@@ -639,7 +647,11 @@
                   //Change the quantity to 1
                   var quantity = 1;
                   self.selected_skus.push(filter_data[0]["SKUCode"]);
-                  $('input[name="selected_sku"][value="'+filter_data[0]["SKUCode"]+'"]').prop("checked", true);
+                  if(filter_data[0]['SKUCode'].includes('"')){
+                    $("input[name='selected_sku'][value='"+filter_data[0]['SKUCode']+"']").prop("checked", true);
+                  } else {
+                    $('input[name="selected_sku"][value="'+filter_data[0]["SKUCode"]+'"]').prop("checked", true);
+                  }
 
                   var sgst = filter_data[i].price * filter_data[i].sgst / 100;
                           var cgst = filter_data[i].price * filter_data[i].cgst / 100;
@@ -804,7 +816,11 @@
               cal_total();
               var indx = self.selected_skus.indexOf(item.sku_code);
               self.selected_skus.splice(indx, 1);
-              $('input[name="selected_sku"][value="'+item.sku_code+'"]').prop("checked", false);
+              if(item.sku_code.includes('"')){
+                $("input[name='selected_sku'][value='"+item.sku_code+"']").prop("checked", false);
+              } else {
+                $('input[name="selected_sku"][value="'+item.sku_code+'"]').prop("checked", false);
+              }
 
             } else {
 

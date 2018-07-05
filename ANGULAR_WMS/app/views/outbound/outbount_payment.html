@@ -1,0 +1,44 @@
+<div class="page-layout" ng-controller="OutboundPaymentCtrl as showCase" scrolly="showCase.scroll(e)">
+  <div>
+    <div class="layout-header">
+      <h4 class="pull-left ng-binding">{{showCase.title}}</h4>
+    </div>
+   <div class="layout-body" style="background-color: white; padding: 15px">
+
+  <div class="mr20 ml20">
+  <form id="order-create" name="form" role="form" ui-jq="validate">
+    <div class="clearfix">
+      <div class="row">
+        <div class="col-md-4 col-sm-4 col-xs-6">
+          <div class="form-group">
+            <label class="control-label">Customers </label>
+              <select id="style_headers" class="selectpicker show-menu-arrow form-control" ng-model="showCase.customers" multiple ng-change="showCase.multi_select_switch('#style_headers')">
+                <option ng-selected="showCase.check_selected(value, 'style_headers')" ng-repeat="(key, value) in showCase.model_data.customers" value="{{value}}"> {{key}}</option>
+              </select>
+          </div>
+        </div>
+        <div class="col-md-4 col-sm-4 col-xs-6"></div>
+        <div class="col-md-4 col-sm-4 col-xs-6">
+          <div class="form-group">
+            <label class="control-label">Telephone</label>
+            <input name="telephone" ng-model="showCase.model_data.telephone" class="form-control" type="text" whole-number maxlength="10" readonly>
+          </div>
+        </div>
+      </div>
+      <div class="row mb10">
+        <hr>
+        <div class="col-md-6 col-sm-6 col-xs-6">
+            <button type="submit" class="btn btn-primary pull-right" style="margin: auto;display: block;" ng-disabled="showCase.bt_disable" ng-click="showCase.insert_order_data(form)">Create Order </button>
+        </div>
+        <div class="col-md-6 col-sm-6 col-xs-6">
+          <button type="button" class="btn btn-primary pull-left" style="margin: auto;display: block;" ng-if="showCase.custom_order" ng-click="showCase.show()">Create Custom SKU</button>
+        </div>
+      </div>
+    </div>
+</form>
+<!-- <div ui-view></div> -->
+</div>
+
+   </div>
+ </div>
+</div>

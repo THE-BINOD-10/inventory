@@ -804,6 +804,7 @@ def validate_wms(request, user=''):
 @get_admin_user
 def modify_po_update(request, user=''):
     myDict = dict(request.POST.iterlists())
+    terms_condition = request.POST.get('terms_condition','')
     wrong_wms = []
 
     all_data = get_raisepo_group_data(user, myDict)
@@ -827,6 +828,7 @@ def modify_po_update(request, user=''):
             setattr(record, 'cess_tax', value['cess_tax'])
             setattr(record, 'utgst_tax', value['utgst_tax'])
             setattr(record, 'ship_to', value['ship_to'])
+            setattr(record, 'terms', terms_condition)
             if value['po_delivery_date']:
                 setattr(record, 'delivery_date', value['po_delivery_date'])
             if record.mrp:
@@ -4135,6 +4137,8 @@ def confirm_add_po(request, sales_data='', user=''):
     po_order_id = ''
     status = ''
     suggestion = ''
+    terms_condition = request.POST.get('terms_condition', '')
+
     if not request.POST:
         return HttpResponse('Updated Successfully')
     sku_id = ''
@@ -4370,7 +4374,7 @@ def confirm_add_po(request, sales_data='', user=''):
                  'company_name': company_name, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                  'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title,
                  'gstin_no': gstin_no, 'industry_type': industry_type, 'expiry_date': expiry_date,
-                 'wh_telephone': wh_telephone}
+                 'wh_telephone': wh_telephone, 'terms_condition' : terms_condition}
 
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)

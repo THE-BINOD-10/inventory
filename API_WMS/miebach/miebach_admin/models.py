@@ -375,6 +375,7 @@ class OpenPO(models.Model):
     ship_to = models.CharField(max_length=128, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
+    terms = models.TextField(default='', max_length=256)
 
     class Meta:
         db_table = 'OPEN_PO'

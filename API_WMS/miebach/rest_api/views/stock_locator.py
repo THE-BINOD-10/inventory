@@ -688,7 +688,7 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     lis = ['receipt_number', 'receipt_date', 'sku_id__wms_code', 'sku_id__sku_desc', 'location__zone__zone',
            'location__location', 'quantity',
-           'receipt_type', 'pallet_detail__pallet_code']
+           'receipt_type', 'stock_value', 'pallet_detail__pallet_code']
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -697,21 +697,10 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
         search_params['receipt_date__regex'] = search_params['receipt_date__icontains']
         del search_params['receipt_date__icontains']
     search_params['sku_id__in'] = sku_master_ids
-
     if search_term:
-        master_data = StockDetail.objects.exclude(receipt_number=0).filter(Q(receipt_number__icontains=search_term) |
-                                                                           Q(sku__wms_code__icontains=search_term) | Q(
-            quantity__icontains=search_term) |
-                                                                           Q(
-                                                                               location__zone__zone__icontains=search_term) | Q(
-            sku__sku_code__icontains=search_term) |
-                                                                           Q(sku__sku_desc__icontains=search_term) | Q(
-            location__location__icontains=search_term),
-                                                                           sku__user=user.id).filter(
-            **search_params).order_by(order_data)
-
+        master_data = StockDetail.objects.exclude(receipt_number=0).annotate( stock_value=Sum(F('quantity') * F('sku__cost_price')) ).filter(Q(receipt_number__icontains=search_term) | Q(sku__wms_code__icontains=search_term) | Q(quantity__icontains=search_term) | Q(location__zone__zone__icontains=search_term) | Q(sku__sku_code__icontains=search_term) | Q(sku__sku_desc__icontains=search_term) | Q(location__location__icontains=search_term) | Q(stock_value__icontains=search_term),sku__user=user.id).filter(**search_params).order_by(order_data)
     else:
-        master_data = StockDetail.objects.exclude(receipt_number=0).filter(sku__user=user.id, **search_params). \
+        master_data = StockDetail.objects.exclude(receipt_number=0).annotate( stock_value=Sum(F('quantity') * F('sku__cost_price')) ).filter(sku__user=user.id, **search_params). \
             order_by(order_data)
 
     temp_data['recordsTotal'] = len(master_data)

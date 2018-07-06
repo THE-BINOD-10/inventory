@@ -496,6 +496,7 @@ class StockDetail(models.Model):
     pallet_detail = models.ForeignKey(PalletDetail, blank=True, null=True)
     batch_detail = models.ForeignKey(BatchDetail, blank=True, null=True)
     quantity = models.FloatField(default=0)
+    unit_price = models.FloatField(default=0)
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)

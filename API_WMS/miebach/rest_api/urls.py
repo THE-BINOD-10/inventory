@@ -263,6 +263,7 @@ urlpatterns = [
     url(r'^search_wms_data/$', search_wms_data),
     url(r'^update_payment_status/$', update_payment_status),
     url(r'^update_inv_payment_status/$', update_inv_payment_status),
+    url(r'^get_customer_list/$', get_customer_list),
     url(r'^create_orders_data/$', create_orders_data),
     url(r'^order_category_generate_picklist/$', order_category_generate_picklist),
     url(r'^get_customer_orders/$', get_customer_orders),

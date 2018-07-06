@@ -7127,8 +7127,11 @@ def get_debit_note_data(rtv_number, user):
                     temp_tax_percent = temp_tax_percent/ 2
                     data_dict_item['cgst'] = truncate_float(temp_tax_percent, 1)
                     data_dict_item['sgst'] = truncate_float(temp_tax_percent, 1)
+                    data_dict_item['igst'] = 0
                 else:
                     data_dict_item['igst'] = temp_tax_percent
+                    data_dict_item['sgst'] = 0
+                    data_dict_item['cgst'] = 0
         data_dict_item['total_amt'] = data_dict_item['price'] * data_dict_item['order_qty']
         data_dict_item['discount_amt'] = ((data_dict_item['total_amt'] * data_dict_item['discount'])/100)
         data_dict_item['taxable_value'] = data_dict_item['total_amt'] - data_dict_item['discount_amt']

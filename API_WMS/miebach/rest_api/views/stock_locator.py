@@ -713,11 +713,12 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
             order_by(order_data)
 
     temp_data['recordsTotal'] = len(master_data)
-    temp_data['recordsFiltered'] = len(master_data)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for data in master_data[start_index:stop_index]:
         pallet_switch = get_misc_value('pallet_switch', user.id)
         _date = get_local_date(user, data.receipt_date, True)
         _date = _date.strftime("%d %b, %Y")
+        stock_quantity = get_decimal_limit(user.id, data.quantity)
         if pallet_switch == 'true':
             pallet_code = ''
             if data.pallet_detail:
@@ -728,8 +729,10 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
                                                     ('Product Description', data.sku.sku_desc),
                                                     ('Zone', data.location.zone.zone),
                                                     ('Location', data.location.location),
-                                                    ('Quantity', get_decimal_limit(user.id, data.quantity)),
-                                                    ('Pallet Code', pallet_code), ('Receipt Type', data.receipt_type))))
+                                                    ('Quantity', stock_quantity),
+                                                    ('Pallet Code', pallet_code), ('Receipt Type', data.receipt_type),
+                                                    ('Stock Value', data.sku.cost_price * stock_quantity)
+                                                    )))
         else:
             temp_data['aaData'].append(OrderedDict((('Receipt ID', data.receipt_number), ('DT_RowClass', 'results'),
                                                     ('Receipt Date', _date), ('SKU Code', data.sku.sku_code),
@@ -737,8 +740,10 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
                                                     ('Product Description', data.sku.sku_desc),
                                                     ('Zone', data.location.zone.zone),
                                                     ('Location', data.location.location),
-                                                    ('Quantity', get_decimal_limit(user.id, data.quantity)),
-                                                    ('Receipt Type', data.receipt_type))))
+                                                    ('Quantity', stock_quantity),
+                                                    ('Receipt Type', data.receipt_type),
+                                                    ('Stock Value', data.sku.cost_price * stock_quantity)
+                                                    )))
 
 
 @csrf_exempt

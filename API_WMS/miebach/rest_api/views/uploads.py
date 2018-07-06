@@ -103,6 +103,8 @@ def get_inventory_excel_upload_headers(user):
     if not userprofile.industry_type == 'FMCG':
         del excel_headers["Batch Number"]
         del excel_headers["MRP"]
+        del excel_headers["Manufactured Date(YYYY-MM-DD)"]
+        del excel_headers["Expiry Date(YYYY-MM-DD)"]
     return excel_headers
 
 
@@ -1594,6 +1596,7 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
     number_fields = ['quantity', 'mrp']
     optional_fields = ['mrp']
     mandatory_fields = ['receipt_date', 'location', 'quantity', 'receipt_type']
+    fields_mapping = {'manufactured_date': 'Manufactured Date', 'expiry_date': 'Expiry Date'}
     location_master = LocationMaster.objects.filter(zone__user=user.id)
     data_list = []
     for row_idx in range(1, no_of_rows):
@@ -1615,6 +1618,18 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
                     data_dict[key] = receipt_date
                 except:
                     index_status.setdefault(row_idx, set()).add('Invalid Receipt Date format')
+            elif key in ['manufactured_date', 'expiry_date']:
+                if cell_data:
+                    try:
+                        if isinstance(cell_data, float):
+                            year, month, day, hour, minute, second = xldate_as_tuple(cell_data, 0)
+                            data_dict[key] = datetime.datetime(year, month, day, hour, minute, second)
+                        elif '-' in cell_data:
+                            data_dict[key] = datetime.datetime.strptime(cell_data, "%Y-%m-%d")
+                        else:
+                            index_status.setdefault(row_idx, set()).add('Invalid %s format' % (fields_mapping[key]))
+                    except:
+                        index_status.setdefault(row_idx, set()).add('Invalid %s format' % (fields_mapping[key]))
             elif key == 'wms_code':
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))
@@ -1652,6 +1667,12 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
                 data_dict[key] = cell_data
             else:
                 data_dict[key] = cell_data
+        if user.userprofile.industry_type == 'FMCG':
+            if not data_dict.get('manufactured_date', ''):
+                data_dict['manufactured_date'] = datetime.datetime.now()
+            if not data_dict.get('expiry_date', ''):
+                sku_master = SKUMaster.objects.get(id=data_dict['sku_id'])
+                data_dict['expiry_date'] = data_dict['manufactured_date'] + datetime.timedelta(sku_master.shelf_life)
         data_list.append(data_dict)
 
     if not index_status:
@@ -1708,6 +1729,12 @@ def inventory_excel_upload(request, user, data_list):
             mrp = inventory_data.get('mrp', 0)
             if 'mrp' in inventory_data.keys():
                 del inventory_data['mrp']
+            mfg_date = inventory_data.get('manufactured_date', '')
+            if 'manufactured_date' in inventory_data.keys():
+                del inventory_data['manufactured_date']
+            exp_date = inventory_data.get('expiry_date', '')
+            if 'expiry_date' in inventory_data.keys():
+                del inventory_data['expiry_date']
 
             stock_query_filter = {'sku_id': inventory_data.get('sku_id', ''),
                                   'location_id': inventory_data.get('location_id', ''),
@@ -1721,7 +1748,7 @@ def inventory_excel_upload(request, user, data_list):
                 pallet_detail.save()
                 stock_query_filter['pallet_detail_id'] = pallet_detail.id
                 inventory_data['pallet_detail_id'] = pallet_detail.id
-            if mrp or batch_no:
+            if mrp or batch_no or mfg_date or exp_date:
                 try:
                     mrp = float(mrp)
                 except:
@@ -1729,6 +1756,10 @@ def inventory_excel_upload(request, user, data_list):
                 if isinstance(batch_no, float):
                     batch_no = str(int(batch_no))
                 batch_dict = {'batch_no': batch_no, 'mrp': mrp, 'creation_date': datetime.datetime.now()}
+                if mfg_date:
+                    batch_dict['manufactured_date'] = mfg_date
+                if exp_date:
+                    batch_dict['expiry_date'] = exp_date
                 batch_obj = BatchDetail(**batch_dict)
                 batch_obj.save()
                 stock_query_filter['batch_detail_id'] = batch_obj.id
@@ -2378,6 +2409,8 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                         index_status.setdefault(row_idx, set()).add('Unit Price should be a number')
                     else:
                         data_dict[key] = float(cell_data)
+                else:
+                    data_dict[key] = 0
             elif key in ['po_name', 'ship_to']:
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))
@@ -2422,7 +2455,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         order_data['supplier_id'] = final_dict['supplier'].id
         order_data['sku_id'] = final_dict['sku'].id
         order_data['order_quantity'] = final_dict['quantity']
-        order_data['price'] = final_dict['price']
+        order_data['price'] = final_dict.get('price', 0)
         order_data['po_name'] = final_dict['po_name']
         order_data['mrp'] = final_dict.get('mrp', 0)
         order_data['cgst_tax'] = final_dict.get('cgst_tax', 0)

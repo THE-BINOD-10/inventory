@@ -22,15 +22,15 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     sku_master, sku_master_ids = get_sku_master(user, request.user)
 
     lis = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_brand', 'sku__sku_category', 'total', 'total', 'total',
-           'sku__measurement_type', 'sku__measurement_type']
+           'sku__measurement_type', 'stock_value']
     lis1 = ['product_code__wms_code', 'product_code__sku_desc', 'product_code__sku_brand', 'product_code__sku_category',
             'total',
-            'total', 'total', 'product_code__measurement_type', 'product_code__measurement_type']
+            'total', 'total', 'product_code__measurement_type', 'stock_value']
     sort_cols = ['WMS Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Quantity', 'Reserved Quantity',
                  'Total Quantity',
                  'Unit of Measurement', 'Stock Value']
     lis2 = ['wms_code', 'sku_desc', 'sku_brand', 'sku_category', 'threshold_quantity', 'threshold_quantity',
-            'threshold_quantity', 'measurement_type', 'stock_value']
+            'threshold_quantity', 'measurement_type', 'measurement_type']
     search_params = get_filtered_params(filters, lis)
     search_params1 = get_filtered_params(filters, lis1)
     search_params2 = get_filtered_params(filters, lis2)
@@ -74,11 +74,13 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
         master_data = StockDetail.objects.exclude(receipt_number=0).values_list('sku__wms_code', 'sku__sku_desc',
                                                                                 'sku__sku_category',
                                                                                 'sku__sku_brand'). \
-            distinct().annotate(total=Sum('quantity')).filter(Q(sku__wms_code__icontains=search_term) |
+            distinct().annotate(total=Sum('quantity'), stock_value=Sum(F('quantity') * F('sku__cost_price'))).filter(Q(sku__wms_code__icontains=search_term) |
                                                               Q(sku__sku_desc__icontains=search_term) | Q(
             sku__sku_category__icontains=search_term) |
-                                                              Q(total__icontains=search_term), sku__user=user.id,
+                                                              Q(total__icontains=search_term) | Q(stock_value__icontains=search_term), sku__user=user.id,
                                                               status=1, **search_params)
+
+
         wms_codes = map(lambda d: d[0], master_data)
         master_data1 = job_order.exclude(product_code__wms_code__in=wms_codes).filter(
             Q(product_code__wms_code__icontains=search_term) |
@@ -94,14 +96,21 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
         master_data = StockDetail.objects.exclude(receipt_number=0).values_list('sku__wms_code', 'sku__sku_desc',
                                                                                 'sku__sku_category',
                                                                                 'sku__sku_brand').distinct(). \
-            annotate(total=Sum('quantity')).filter(sku__user=user.id, **search_params). \
+            annotate(total=Sum('quantity'), stock_value=Sum(F('quantity') * F('sku__cost_price'))).filter(sku__user=user.id, **search_params). \
             order_by(order_data)
         wms_codes = map(lambda d: d[0], master_data)
         quantity_master_data = master_data.aggregate(Sum('total'))
+	if 'stock_value__icontains' in search_params1.keys():
+	    del search_params1['stock_value__icontains']
         master_data1 = job_order.exclude(product_code__wms_code__in=wms_codes).filter(**search_params1).values_list(
             'product_code__wms_code',
             'product_code__sku_desc', 'product_code__sku_category', 'product_code__sku_brand').distinct()
         master_data = list(chain(master_data, master_data1))
+
+    if 'stock_value__icontains' in search_params1.keys():
+        del search_params1['stock_value__icontains']
+
+
     zero_quantity = sku_master.exclude(wms_code__in=wms_codes).filter(user=user.id)
     if search_params2:
         zero_quantity = zero_quantity.filter(**search_params2)

@@ -132,18 +132,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         return nRow;
     }
 
-    /*vm.service.apiCall("customer_invoice_data/", "GET", send).then(function(data) {
+    vm.service.apiCall("get_customer_list/").then(function(data) {
       if(data.message) {
         console.log(data);
+        vm.model_data['customers_info'] = data.data.data;
       }
-    });*/
+    });
 
     vm.multi_select_switch = function(selector) {
       var data = $(selector).val();
       if(!data) {
         data = [];
       }
-      var send = data.join(",");
+      var send = data.join(" ,");
       vm.switches(send);
     }
 
@@ -154,10 +155,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
       if (value) {
 
-        var sel_records = value.split(',');
+        var sel_records = value.split(' ,');
         
         for (var i = 0; i < sel_records.length; i++) {
-          vm.model_data.sel_customers.push({'name':sel_records[i], 'amount':100});
+          vm.model_data.sel_customers.push(angular.fromJson(sel_records[i]));
         }
       }
     }

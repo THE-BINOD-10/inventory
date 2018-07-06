@@ -1444,34 +1444,6 @@ var app = angular.module('urbanApp')
           }
         })
 
-        .state('app.outbound.OutboundPayment', {
-            url: '/OutboundPayment',
-            templateUrl: 'views/outbound/outbount_payment.html',
-            authRequired: true,
-            resolve: {
-              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load([
-                  {
-                    insertBefore: '#load_styles_before',
-                    files: [
-                                  'scripts/extentions/plugins/multiselect/multi-select.css'
-                              ]
-                          },
-                  {
-                    serie: true,
-                    files: [
-                                  'scripts/extentions/plugins/multiselect/jquery.multi-select.js'
-                              ]
-                          }]).then(function () {
-                  return $ocLazyLoad.load('scripts/controllers/outbound/payment/outbound_payment.js');
-                });
-                      }]
-            },
-            data: {
-              title: 'Outbound Payments'
-            }
-        })
-
         .state('app.outbound.CustomerInvoicesMain', {
           url: '/CustomerInvoicesMain',
           templateUrl: 'views/outbound/customer_invoices_main.html',
@@ -1625,6 +1597,21 @@ var app = angular.module('urbanApp')
                   return $ocLazyLoad.load([
                     'scripts/controllers/payment_tracker/inbound_payment_tracker.js'
                   ])
+                }).then( function() {
+                    return $ocLazyLoad.load([{
+
+                      insertBefore: '#load_styles_before',
+                      files: [
+                                'scripts/extentions/plugins/multiselect/multi-select.css'
+                              ]
+                      }, {
+                      serie: true,
+                      files: [
+                                'scripts/extentions/plugins/multiselect/jquery.multi-select.js'
+                              ]
+                      }]).then(function () {
+                        return $ocLazyLoad.load('scripts/controllers/payment_tracker/outbound_payment.js');
+                  });
                 });
               }]
           },
@@ -1632,6 +1619,7 @@ var app = angular.module('urbanApp')
             title: 'Invoice Amount'
           }
         })
+
       .state('app.PaymentTrackerInvBased.Inv_Details', {
             url: '/Inv_Details',
             templateUrl: 'views/payment_tracker/toggle/inv_details.html',

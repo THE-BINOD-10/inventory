@@ -1,9 +1,9 @@
 <div class="page-layout" ng-controller="OutboundPaymentCtrl as showCase" scrolly="showCase.scroll(e)">
   <div>
-    <div class="layout-header">
+    <!-- <div class="layout-header">
       <h4 class="pull-left ng-binding">{{showCase.title}}</h4>
-    </div>
-   <div class="layout-body" style="background-color: white; padding: 15px; overflow:visible">
+    </div> -->
+   <div class="layout-header" style="background-color: white; padding: 15px 15px 0px 15px; overflow:visible">
 
   <div class="mr20 ml20">
   <form id="order-create" name="form" role="form" ui-jq="validate">
@@ -66,7 +66,7 @@
             <label class="control-label">Bank Name </label>
             <select class="form-control" name="bank_name" ng-model="showCase.model_data.bank_name">
               <option value="">Select Bank</option>
-              <option value="{{bank}}" ng-repeat="bank in showCase.model_data.banks">{{bank}}</option>
+              <option value="{{bank}}" ng-repeat="bank in showCase.bank_names">{{bank}}</option>
             </select>
           </div>
         </div>
@@ -79,13 +79,21 @@
       </dir>
       <div class="row mb10">
         <div class="col-md-6 col-sm-6 col-xs-6">
-            <button type="submit" class="btn btn-primary pull-right" style="margin: auto;display: block;" ng-disabled="!showCase.model_data.payment" ng-click="showCase.markAsPaid(form)">Mark As Paid </button>
+            <button type="submit" class="btn btn-primary pull-right" style="margin: auto;display: block;" ng-disabled="!showCase.model_data.payment" ng-click="showCase.markAsPaid(form)">Generate </button>
         </div>
       </div>
+      <hr>
     </div>
 </form>
 </div>
-
    </div>
  </div>
+  <div class="layout-body">
+    <div class="panel">
+      <!-- <div class="panel-header">
+        <div ng-include="'views/common/excel.html'"></div>
+      </div> -->
+      <div ng-include="'views/common/datatable.html'"></div>
+    </div>
+  </div>
 </div>

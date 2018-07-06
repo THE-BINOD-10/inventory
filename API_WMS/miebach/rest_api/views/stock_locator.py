@@ -20,20 +20,21 @@ log = init_logger('logs/stock_locator.log')
 @csrf_exempt
 def get_stock_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
+
     lis = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_brand', 'sku__sku_category', 'total', 'total', 'total',
-           'sku__measurement_type']
+           'sku__measurement_type', 'sku__measurement_type']
     lis1 = ['product_code__wms_code', 'product_code__sku_desc', 'product_code__sku_brand', 'product_code__sku_category',
             'total',
-            'total', 'total', 'product_code__measurement_type']
+            'total', 'total', 'product_code__measurement_type', 'product_code__measurement_type']
     sort_cols = ['WMS Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Quantity', 'Reserved Quantity',
                  'Total Quantity',
-                 'Unit of Measurement']
+                 'Unit of Measurement', 'Stock Value']
     lis2 = ['wms_code', 'sku_desc', 'sku_brand', 'sku_category', 'threshold_quantity', 'threshold_quantity',
-            'threshold_quantity', 'measurement_type']
+            'threshold_quantity', 'measurement_type', 'stock_value']
     search_params = get_filtered_params(filters, lis)
     search_params1 = get_filtered_params(filters, lis1)
     search_params2 = get_filtered_params(filters, lis2)
-
+    
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -161,6 +162,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
             reserved += float(reserved_quantities[reserveds.index(data[0])])
         if data[0] in raw_reserveds:
             reserved += float(raw_reserved_quantities[raw_reserveds.index(data[0])])
+        sku_price = sku.cost_price
 
         quantity = total - reserved
         if quantity < 0:
@@ -169,8 +171,8 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                                                 ('SKU Category', data[2]), ('SKU Brand', data[3]),
                                                 ('Available Quantity', quantity),
                                                 ('Reserved Quantity', reserved), ('Total Quantity', total),
-                                                ('Unit of Measurement', sku.measurement_type),
-                                                ('DT_RowId', data[0]))))
+                                                ('Unit of Measurement', sku.measurement_type), ('Stock Value', sku_price*quantity ),
+                                                ('DT_RowId', data[0]) )))
 
         # sort_col = sort_cols[col_num]
         # if order_term == 'asc':

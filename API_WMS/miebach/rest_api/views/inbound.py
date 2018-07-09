@@ -2722,8 +2722,7 @@ def check_returns(request, user=''):
             if order_track_obj:
                 order_track_quantity = int(order_track_obj.aggregate(Sum('quantity'))['quantity__sum'])
                 if value == order_track_quantity:
-                    status = str(key[0]) + ' Order ID Already Returned'
-                    return HttpResponse(status)
+                    continue
                 else:
                     remaining_return = int(value) - int(order_track_quantity)
                     data.append({'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2],
@@ -2732,6 +2731,9 @@ def check_returns(request, user=''):
             else:
                 data.append({'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2],
                              'ship_quantity': value, 'return_quantity': value, 'damaged_quantity': 0})
+        if not data:
+            status = str(key[0]) + ' Order ID Already Returned'
+            return HttpResponse(status)
     elif request_return_id:
         order_returns = OrderReturns.objects.filter(return_id=request_return_id, sku__user=user.id)
         if not order_returns:

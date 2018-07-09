@@ -1056,7 +1056,6 @@ def confirm_po(request, user=''):
         'ean_number').exclude(ean_number=0)
     if ean_data:
         ean_flag = True
-
     all_data = get_raisepo_group_data(user, myDict)
     for key, value in all_data.iteritems():
         price = value['price']
@@ -3435,7 +3434,7 @@ def putaway_data(request, user=''):
                 order_data = get_purchase_order_data(data.purchase_order)
                 putaway_location(data, value, exc_loc, user, 'purchase_order_id', data.purchase_order_id)
                 stock_check_params = {'location_id': exc_loc, 'receipt_number':data.purchase_order.order_id,
-                                     'sku_id': order_data['sku_id'], 'sku__user': user.id}
+                                     'sku_id': order_data['sku_id'], 'sku__user': user.id, 'unit_price': order_data['price'] }
                 if batch_obj:
                     stock_check_params['batch_detail_id'] = batch_obj[0].id
                 pallet_mapping = PalletMapping.objects.filter(po_location_id=data.id, status=1)
@@ -3449,6 +3448,7 @@ def putaway_data(request, user=''):
                 if loc1.pallet_filled > loc1.pallet_capacity:
                     setattr(loc1, 'pallet_capacity', loc1.pallet_filled)
                 loc1.save()
+
                 if stock_data:
                     stock_data = stock_data[0]
                     add_quan = float(stock_data.quantity) + float(value)
@@ -3474,7 +3474,7 @@ def putaway_data(request, user=''):
                                    'sku_id': order_data['sku_id'],
                                    'quantity': value, 'status': 1, 'receipt_type': 'purchase order',
                                    'creation_date': datetime.datetime.now(),
-                                   'updation_date': datetime.datetime.now()}
+                                   'updation_date': datetime.datetime.now(), 'unit_price': order_data['price']}
                     if batch_obj:
                         record_data['batch_detail_id'] = batch_obj[0].id
                     if pallet_mapping:

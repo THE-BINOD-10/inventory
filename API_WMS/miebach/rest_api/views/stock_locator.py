@@ -34,7 +34,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     search_params = get_filtered_params(filters, lis)
     search_params1 = get_filtered_params(filters, lis1)
     search_params2 = get_filtered_params(filters, lis2)
-    
+
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -73,7 +73,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     if search_term:
         master_data = StockDetail.objects.exclude(receipt_number=0).values_list('sku__wms_code', 'sku__sku_desc',
                                                                                 'sku__sku_category',
-                                                                                'sku__sku_brand'). \
+                                                                                'sku__sku_brand', 'unit_price'). \
             distinct().annotate(total=Sum('quantity'), stock_value=Sum(F('quantity') * F('sku__cost_price'))).filter(Q(sku__wms_code__icontains=search_term) |
                                                               Q(sku__sku_desc__icontains=search_term) | Q(
             sku__sku_category__icontains=search_term) |
@@ -90,12 +90,10 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                                           'product_code__sku_brand').distinct()
         quantity_master_data = master_data.aggregate(Sum('total'))
         master_data = list(chain(master_data, master_data1))
-
-
     else:
         master_data = StockDetail.objects.exclude(receipt_number=0).values_list('sku__wms_code', 'sku__sku_desc',
                                                                                 'sku__sku_category',
-                                                                                'sku__sku_brand').distinct(). \
+                                                                                'sku__sku_brand', 'unit_price').distinct(). \
             annotate(total=Sum('quantity'), stock_value=Sum(F('quantity') * F('sku__cost_price'))).filter(sku__user=user.id, **search_params). \
             order_by(order_data)
         wms_codes = map(lambda d: d[0], master_data)
@@ -109,7 +107,6 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
 
     if 'stock_value__icontains' in search_params1.keys():
         del search_params1['stock_value__icontains']
-
 
     zero_quantity = sku_master.exclude(wms_code__in=wms_codes).filter(user=user.id)
     if search_params2:
@@ -158,21 +155,23 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     raw_reserved_quantities = map(lambda d: d['rm_reserved'], raw_res_instances)
     # temp_data['totalQuantity'] = sum([data[4] for data in master_data])
     for ind, data in enumerate(master_data[start_index:stop_index]):
+        taken_unit_price = 0
         reserved = 0
         # total = data[4] if len(data) > 4 else 0
         total = 0
-        if len(data) >= 5:
-            if data[4] != None:
-                if len(data) > 4:
-                    total = data[4]
+        if len(data) >= 6:
+            if data[5] != None:
+                if len(data) > 5:
+                    total = data[5]
 
         sku = sku_master.get(wms_code=data[0], user=user.id)
         if data[0] in reserveds:
             reserved += float(reserved_quantities[reserveds.index(data[0])])
         if data[0] in raw_reserveds:
             reserved += float(raw_reserved_quantities[raw_reserveds.index(data[0])])
-        sku_price = sku.cost_price
-
+        taken_unit_price = data[4]
+        if not taken_unit_price:
+            taken_unit_price = sku.cost_price
         quantity = total - reserved
         if quantity < 0:
             quantity = 0
@@ -180,7 +179,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                                                 ('SKU Category', data[2]), ('SKU Brand', data[3]),
                                                 ('Available Quantity', quantity),
                                                 ('Reserved Quantity', reserved), ('Total Quantity', total),
-                                                ('Unit of Measurement', sku.measurement_type), ('Stock Value', sku_price*quantity ),
+                                                ('Unit of Measurement', sku.measurement_type), ('Stock Value', taken_unit_price * quantity ),
                                                 ('DT_RowId', data[0]) )))
 
         # sort_col = sort_cols[col_num]
@@ -719,6 +718,9 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
         _date = get_local_date(user, data.receipt_date, True)
         _date = _date.strftime("%d %b, %Y")
         stock_quantity = get_decimal_limit(user.id, data.quantity)
+        taken_unit_price = data.unit_price
+        if not taken_unit_price:
+            taken_unit_price = data.sku.cost_price
         if pallet_switch == 'true':
             pallet_code = ''
             if data.pallet_detail:
@@ -731,7 +733,7 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
                                                     ('Location', data.location.location),
                                                     ('Quantity', stock_quantity),
                                                     ('Pallet Code', pallet_code), ('Receipt Type', data.receipt_type),
-                                                    ('Stock Value', data.sku.cost_price * stock_quantity)
+                                                    ('Stock Value', taken_unit_price * stock_quantity)
                                                     )))
         else:
             temp_data['aaData'].append(OrderedDict((('Receipt ID', data.receipt_number), ('DT_RowClass', 'results'),

@@ -7194,7 +7194,7 @@ def prepare_rtv_json_data(request_data, user):
                 stock_filter['location_id'] = location_master[0].id
                 reserved_dict['stock__location_id'] = location_master[0].id
             else:
-                return HttpResponse("%s is Invalid Location" % (request_data['location'][ind]))
+                return data_list, "%s is Invalid Location" % (request_data['location'][ind])
             if seller_summary.batch_detail:
                 if seller_summary.batch_detail.batch_no:
                     stock_filter['batch_detail__batch_no'] = seller_summary.batch_detail.batch_no
@@ -7207,7 +7207,7 @@ def prepare_rtv_json_data(request_data, user):
                     reserved_dict["stock__sellerstock__seller_id"] = seller_summary.seller_po.seller_id
             stocks = StockDetail.objects.filter(**stock_filter)
             if not stocks:
-                return HttpResponse('No Stocks Found')
+                return data_list, 'No Stocks Found'
             data_dict['stocks'] = stocks
             stock_count = stocks.aggregate(Sum('quantity'))['quantity__sum']
             reserved_quantity = \
@@ -7215,9 +7215,9 @@ def prepare_rtv_json_data(request_data, user):
                     'reserved__sum']
             if reserved_quantity:
                 if (stock_count - reserved_quantity) < float(quantity):
-                    return HttpResponse('Source Quantity reserved for Picklist')
+                    return data_list, 'Source Quantity reserved for Picklist'
             data_list.append(data_dict)
-    return data_list
+    return data_list, ''
 
 @csrf_exempt
 @login_required
@@ -7225,7 +7225,9 @@ def prepare_rtv_json_data(request_data, user):
 def save_rtv(request, user=''):
     request_data = dict(request.POST.iterlists())
     try:
-        data_list = prepare_rtv_json_data(request_data, user)
+        data_list, status = prepare_rtv_json_data(request_data, user)
+        if status:
+            return HttpResponse(status)
         if data_list:
             for final_dict in data_list:
                 ReturnToVendor.objects.create(seller_po_summary_id=final_dict['summary_id'],
@@ -7248,47 +7250,9 @@ def create_rtv(request, user=''):
     request_data = dict(request.POST.iterlists())
     data_list = []
     try:
-        for ind in range(0, len(request_data['summary_id'])):
-            data_dict = {}
-            if request_data['location'][ind] and request_data['return_qty'][ind]:
-                quantity = request_data['return_qty'][ind]
-                seller_summary = SellerPOSummary.objects.get(id=request_data['summary_id'][ind])
-                data_dict['summary_id'] = request_data['summary_id'][ind]
-                data_dict['quantity'] = quantity
-                stock_filter = {'sku__user': user.id, 'quantity__gt': 0,
-                                'sku_id': seller_summary.purchase_order.open_po.sku_id}
-                reserved_dict = {'stock__sku_id': seller_summary.purchase_order.open_po.sku_id,
-                                 'stock__sku__user': user.id, 'status': 1}
-                location_master = LocationMaster.objects.filter(location=request_data['location'][ind],
-                                                                zone__user=user.id)
-                if location_master:
-                    data_dict['location'] = location_master[0]
-                    stock_filter['location_id'] = location_master[0].id
-                    reserved_dict['stock__location_id'] = location_master[0].id
-                else:
-                    return HttpResponse("%s is Invalid Location" % (request_data['location'][ind]))
-                if seller_summary.batch_detail:
-                    if seller_summary.batch_detail.batch_no:
-                        stock_filter['batch_detail__batch_no'] = seller_summary.batch_detail.batch_no
-                        reserved_dict['stock__batch_detail__batch_no'] = seller_summary.batch_detail.batch_no
-                    if seller_summary.batch_detail.mrp:
-                        stock_filter['batch_detail__mrp'] = seller_summary.batch_detail.mrp
-                        reserved_dict['stock__batch_detail__mrp'] = seller_summary.batch_detail.mrp
-                    if seller_summary.seller_po:
-                        stock_filter['sellerstock__seller_id'] = seller_summary.seller_po.seller_id
-                        reserved_dict["stock__sellerstock__seller_id"] = seller_summary.seller_po.seller_id
-                stocks = StockDetail.objects.filter(**stock_filter)
-                if not stocks:
-                    return HttpResponse('No Stocks Found')
-                data_dict['stocks'] = stocks
-                stock_count = stocks.aggregate(Sum('quantity'))['quantity__sum']
-                reserved_quantity = \
-                    PicklistLocation.objects.exclude(stock=None).filter(**reserved_dict).aggregate(Sum('reserved'))[
-                        'reserved__sum']
-                if reserved_quantity:
-                    if (stock_count - reserved_quantity) < float(quantity):
-                        return HttpResponse('Source Quantity reserved for Picklist')
-                data_list.append(data_dict)
+        data_list, status = prepare_rtv_json_data(request_data, user)
+        if status:
+            return HttpResponse(status)
         if data_list:
             rtv_no = get_incremental(user, 'rtv')
             date_val = datetime.datetime.now().strftime('%Y%m%d')

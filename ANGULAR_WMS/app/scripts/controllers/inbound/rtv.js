@@ -264,6 +264,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
             vm.close();
             vm.service.refresh(vm.dtInstance);
+          }  else {
+            pop_msg(data.data)
           }
         } else {
           pop_msg(data.data)

@@ -120,15 +120,16 @@
         </tbody>
       </table>
     </div>
-
+    {% if terms_condition %}
     <div class= "col-lg-12 col-md-12 col-sm-12 col-xs-12" style="margin-top:10px">
         <div class="col-md-12 col-sm-12 col-xs-12">
             <b>Terms and Condition :</b>
         </div>
         <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-            <p>{{ terms_condition }}</p>
+            <p>{{ terms_condition|linebreaksbr }}</p>
         </div>
     </div>
+    {% endif %}
 
   </div>
 </div>

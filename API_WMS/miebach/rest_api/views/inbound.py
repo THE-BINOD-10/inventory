@@ -1060,7 +1060,6 @@ def confirm_po(request, user=''):
         'ean_number').exclude(ean_number=0)
     if ean_data:
         ean_flag = True
-
     all_data = get_raisepo_group_data(user, myDict)
     for key, value in all_data.iteritems():
         price = value['price']
@@ -4372,7 +4371,6 @@ def confirm_add_po(request, sales_data='', user=''):
     if request.POST.get('seller_id', '') and 'shproc' in str(request.POST.get('seller_id').split(":")[1]).lower():
         company_name = 'SHPROC Procurement Pvt. Ltd.'
         title = 'Purchase Order'
-
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
                  'telephone': str(telephone), 'ship_to_address': ship_to_address,
                  'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference,
@@ -4383,7 +4381,6 @@ def confirm_add_po(request, sales_data='', user=''):
                  'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title,
                  'gstin_no': gstin_no, 'industry_type': industry_type, 'expiry_date': expiry_date,
                  'wh_telephone': wh_telephone, 'terms_condition' : terms_condition}
-
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
     if get_misc_value('raise_po', user.id) == 'true':
@@ -4547,6 +4544,7 @@ def confirm_po1(request, user=''):
                 vendor_address = '\n'.join(vendor_address.split(','))
                 vendor_name = purchase_orders[0].vendor.name
                 vendor_telephone = purchase_orders[0].vendor.phone_number
+            terms_condition = purchase_orders[0].terms
             profile = UserProfile.objects.get(user=user.id)
             po_reference = '%s%s_%s' % (str(profile.prefix), str(order_date).split(' ')[0].replace('-', ''), order_id)
             # table_headers = ('WMS CODE', 'Supplier Name', 'Description', 'Quantity', 'Unit Price', 'Amount')
@@ -4565,8 +4563,7 @@ def confirm_po1(request, user=''):
                          'total_qty': total_qty, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                          'vendor_telephone': vendor_telephone, 'gstin_no': gstin_no,
                          'w_address': get_purchase_company_address(profile), 'ship_to_address': ship_to_address,
-                         'wh_telephone': wh_telephone}
-
+                         'wh_telephone': wh_telephone, 'terms_condition' : terms_condition}
             t = loader.get_template('templates/toggle/po_download.html')
             rendered = t.render(data_dict)
             if get_misc_value('raise_po', user.id) == 'true':

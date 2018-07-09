@@ -6,7 +6,7 @@
    <div class="layout-header" style="background-color: white; padding: 15px 15px 0px 15px; overflow:visible">
 
   <div class="mr20 ml20">
-  <form id="order-create" name="form" role="form" ui-jq="validate">
+  <form name="form" role="form" ui-jq="validate">
     <div class="clearfix">
       <div class="row">
         <div class="col-md-4 col-sm-4 col-xs-12">
@@ -73,13 +73,13 @@
         <div class="col-md-4 col-sm-4 col-xs-6">
           <div class="form-group">
             <label class="control-label">NEFT / CHEQUE</label>
-              <input type="text" class="form-control" ng-model="data.location" name="location" ng-blur="showCase.checkCapacity($index, data, 'location', $event)" ng-required="data.sku_id.length > 0">
+              <input type="text" class="form-control" ng-model="showCase.model_data.neft_cheque" name="neft_cheque">
           </div>
         </div>
       </dir>
       <div class="row mb10">
         <div class="col-md-6 col-sm-6 col-xs-6">
-            <button type="submit" class="btn btn-primary pull-right" style="margin: auto;display: block;" ng-disabled="!showCase.model_data.payment" ng-click="showCase.markAsPaid(form)">Generate </button>
+            <button type="submit" class="btn btn-primary pull-right" style="margin: auto;display: block;" ng-disabled="!showCase.model_data.payment" ng-click="showCase.payment_generate(form)">Generate </button>
         </div>
       </div>
       <hr>

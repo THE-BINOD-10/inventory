@@ -28,36 +28,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     // vm.g_data.style_view = true;
 
     var sort_no = (vm.g_data.style_view)? 1: 0;
-    vm.filters = {'datatable': 'OutboundPaymentBased', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 
+    vm.filters = {'datatable': 'PaymentTrackerInvBased', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 
             'search4': '', 'search5': ''};
 
     vm.dtOptions = DTOptionsBuilder.newOptions()
-       .withOption('ajax', {
-              url: Session.url+'results_data/',
-              type: 'POST',
-              data: vm.filters,
-              xhrFields: {
-                withCredentials: true
-              }
-           })
-       .withDataProp('data')
-       .withOption('order', [sort_no, 'desc'])
-       .withOption('processing', true)
-       .withOption('serverSide', true)
-       .withOption('createdRow', function(row, data, dataIndex) {
-            $compile(angular.element(row).contents())($scope);
-        })
-        .withOption('headerCallback', function(header) {
-            if (!vm.headerCompiled) {
-                vm.headerCompiled = true;
-                $compile(angular.element(header).contents())($scope);
-            }
-        })
-       .withPaginationType('full_numbers')
-       .withOption('rowCallback', rowCallback)
-       // .withOption('initComplete', function( settings ) {
-       //   vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
-       // });
 
     vm.dtColumns = [
         DTColumnBuilder.newColumn('invoice_number').withTitle('Invoice Number'),
@@ -138,6 +112,36 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         vm.model_data['customers_info'] = data.data.data;
       }
     });
+
+    vm.payment_generate = function(form){
+      vm.dtOptions = DTOptionsBuilder.newOptions()
+      .withOption('ajax', {
+              url: Session.url+'results_data/',
+              type: 'POST',
+              data: vm.filters,
+              xhrFields: {
+                withCredentials: true
+              }
+           })
+       .withDataProp('data')
+       .withOption('order', [sort_no, 'desc'])
+       .withOption('processing', true)
+       .withOption('serverSide', true)
+       .withOption('createdRow', function(row, data, dataIndex) {
+            $compile(angular.element(row).contents())($scope);
+        })
+        .withOption('headerCallback', function(header) {
+            if (!vm.headerCompiled) {
+                vm.headerCompiled = true;
+                $compile(angular.element(header).contents())($scope);
+            }
+        })
+       .withPaginationType('full_numbers')
+       .withOption('rowCallback', rowCallback)
+       // .withOption('initComplete', function( settings ) {
+       //   vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
+       // });
+    }
 
     vm.multi_select_switch = function(selector) {
       var data = $(selector).val();

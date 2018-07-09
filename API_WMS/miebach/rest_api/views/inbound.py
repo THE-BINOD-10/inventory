@@ -7347,15 +7347,17 @@ def get_saved_rtvs(start_index, stop_index, temp_data, search_term, order_term, 
     count = 0
     for result in results[start_index: stop_index]:
         rem_quantity = result['total']
-        seller_summarys = SellerPOSummary.objects.select_related('purchase_order__open_po__sku', 'purchase_order').\
-                                                    filter(purchase_order__open_po__sku__user=user.id,
-                                                        purchase_order__order_id=result['seller_po_summary__purchase_order__order_id'],
-                                                        invoice_number=result['seller_po_summary__invoice_number'])
-        order_reference = get_po_reference(seller_summarys[0].purchase_order)
-        open_po = seller_summarys[0].purchase_order.open_po
+        rtvs = ReturnToVendor.objects.select_related('seller_po_summary__purchase_order__open_po__sku',
+                                                                'seller_po_summary__purchase_order').\
+                                                    filter(seller_po_summary__purchase_order__open_po__sku__user=user.id,
+                                                           seller_po_summary__purchase_order__order_id=result['seller_po_summary__purchase_order__order_id'],
+                                                           seller_po_summary__invoice_number=result['seller_po_summary__invoice_number'])
+        seller_summary = rtvs[0].seller_po_summary
+        order_reference = get_po_reference(seller_summary.purchase_order)
+        open_po = seller_summary.purchase_order.open_po
         data_id = '%s:%s' % (result['seller_po_summary__purchase_order__order_id'], result['seller_po_summary__invoice_number'])
         checkbox = "<input type='checkbox' name='data_id' value='%s'>" % (data_id)
-        po_date = get_local_date(request.user, seller_summarys[0].purchase_order.creation_date,
+        po_date = get_local_date(request.user, seller_summary.purchase_order.creation_date,
                                  send_date=True).strftime("%d %b, %Y")
         invoice_number = ''
         if result['seller_po_summary__invoice_number']:
@@ -7365,14 +7367,11 @@ def get_saved_rtvs(start_index, stop_index, temp_data, search_term, order_term, 
             invoice_date = result['seller_po_summary__invoice_date'].strftime("%d %b, %Y")
         total_amt = 0
         tax = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax
-        for seller_summary in seller_summarys:
-            processed_val = seller_summary.returntovendor_set.filter().aggregate(Sum('quantity'))['quantity__sum']
-            if processed_val:
-                rem_quantity -= processed_val
-            if seller_summary.batch_detail:
-                total_amt += rem_quantity * seller_summary.batch_detail.buy_price
+        for rtv in rtvs:
+            if rtv.seller_po_summary.batch_detail:
+                total_amt += rtv.quantity * rtv.seller_po_summary.batch_detail.buy_price
             else:
-                total_amt += rem_quantity * seller_summary.purchase_order.open_po.price
+                total_amt += rtv.quantity * rtv.seller_po_summary.purchase_order.open_po.price
         total_amt = total_amt + ((total_amt/100) * tax)
         temp_data['aaData'].append(OrderedDict((('', checkbox),('data_id', data_id),
                                                 ('Supplier ID', result['seller_po_summary__purchase_order__open_po__supplier_id']),

@@ -3433,6 +3433,7 @@ def putaway_data(request, user=''):
                     count = 0
                 order_data = get_purchase_order_data(data.purchase_order)
                 putaway_location(data, value, exc_loc, user, 'purchase_order_id', data.purchase_order_id)
+                taken_unit_price = order_data['price']
                 if batch_obj:
                     stock_check_params['batch_detail_id'] = batch_obj[0].id
                     taken_unit_price = batch_obj[0].buy_price

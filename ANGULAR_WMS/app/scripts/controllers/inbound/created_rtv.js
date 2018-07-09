@@ -74,6 +74,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('Total Amount').withTitle('Total Amount'),
     ];
 
+    var row_click_bind = 'td';
+
     // vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
     //             .renderWith(function(data, type, full, meta) {
     //               if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {

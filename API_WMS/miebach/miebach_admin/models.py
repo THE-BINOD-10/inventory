@@ -2727,6 +2727,7 @@ class ReturnToVendor(models.Model):
     id = BigAutoField(primary_key=True)
     rtv_number = models.CharField(max_length=32, default='')
     seller_po_summary = models.ForeignKey(SellerPOSummary, blank=True, null=True)
+    location = models.ForeignKey(LocationMaster, blank=True, null=True)
     quantity = models.FloatField(default=0)
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)

@@ -14,6 +14,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service = Service;
     vm.self_life_ratio = Number(vm.permissions.shelf_life_ratio) || 0;
     vm.industry_type = Session.user_profile.industry_type;
+    vm.user_type = Session.user_profile.user_type;
     vm.supplier_id = '';
     vm.order_id = 0;
     // vm.industry_type = 'FMCG';
@@ -356,28 +357,34 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.submit = submit;
     function submit(form) {
-      var data = [];
+      if (form.$valid) {
+        var data = [];
 
-      for(var i=0; i<vm.model_data.data.length; i++)  {
-        angular.forEach(vm.model_data.data[i], function(sku){
-          if(!sku.is_new) {
-            data.push({name: sku.order_id, value: sku.value});
+        for(var i=0; i<vm.model_data.data.length; i++)  {
+          angular.forEach(vm.model_data.data[i], function(sku){
+            if(!sku.is_new) {
+              data.push({name: sku.order_id, value: sku.value});
+            }
+          });
+        }
+        data.push({name: 'remarks', value: vm.model_data.remarks});
+        data.push({name: 'expected_date', value: vm.model_data.expected_date});
+        data.push({name: 'remainder_mail', value: vm.model_data.remainder_mail});
+        data.push({name: 'invoice_number', value: vm.model_data.invoice_number});
+        data.push({name: 'invoice_date', value: vm.model_data.invoice_date});
+        vm.service.apiCall('update_putaway/', 'GET', data, true).then(function(data){
+          if(data.message) {
+            if(data.data == 'Updated Successfully') {
+              vm.close();
+              vm.service.refresh(vm.dtInstance);
+            } else {
+              pop_msg(data.data);
+            }
           }
         });
+      } else {
+        colFilters.showNoty("Fill Required Fields");
       }
-      data.push({name: 'remarks', value: vm.model_data.remarks});
-      data.push({name: 'expected_date', value: vm.model_data.expected_date});
-      data.push({name: 'remainder_mail', value: vm.model_data.remainder_mail});
-      vm.service.apiCall('update_putaway/', 'GET', data, true).then(function(data){
-        if(data.message) {
-          if(data.data == 'Updated Successfully') {
-            vm.close();
-            vm.service.refresh(vm.dtInstance);
-          } else {
-            pop_msg(data.data);
-          }
-        }
-      });
     }
 
     vm.html = "";

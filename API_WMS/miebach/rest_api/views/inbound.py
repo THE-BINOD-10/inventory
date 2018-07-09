@@ -7217,6 +7217,8 @@ def prepare_rtv_json_data(request_data, user):
                 if (stock_count - reserved_quantity) < float(quantity):
                     return data_list, 'Source Quantity reserved for Picklist'
             data_list.append(data_dict)
+        elif request_data['location'][ind] or request_data['return_qty'][ind]:
+            return data_list, 'Location or Quantity Missing'
     return data_list, ''
 
 @csrf_exempt
@@ -7354,7 +7356,7 @@ def get_saved_rtvs(start_index, stop_index, temp_data, search_term, order_term, 
 def get_saved_rtv_data(request, user=''):
     order_id, invoice_num = request.GET['data_id'].split(':')
     rtv_filter = {'seller_po_summary__purchase_order__open_po__sku__user': user.id,
-                      'seller_po_summary__purchase_order__order_id': order_id,
+                    'seller_po_summary__purchase_order__order_id': order_id,
                   'status': 1}
     if invoice_num:
         rtv_filter['seller_po_summary__invoice_number'] = invoice_num

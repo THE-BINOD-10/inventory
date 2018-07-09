@@ -1882,6 +1882,42 @@ var app = angular.module('urbanApp')
             title: 'Distributor Wise Sales Report',
           }
         })
+        .state('app.reports.ResellerWiseSalesReport', {
+          url: '/ResellerSalesReport',
+          templateUrl: 'views/reports/reseller_sales_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/reseller_sales_report.js');
+              }]
+          },
+          data: {
+            title: 'Reseller Wise Sales Report',
+          }
+        })
+        .state('app.reports.DistTargetReport', {
+          url: '/DistTargetReport',
+          templateUrl: 'views/reports/dist_target_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/dist_target_report.js');
+              }]
+          },
+          data: {
+            title: 'Distributor Targets Report',
+          }
+        })
+        .state('app.reports.ResellerTargetReport', {
+          url: '/ResellerTargetReport',
+          templateUrl: 'views/reports/reseller_target_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/reseller_target_report.js');
+              }]
+          },
+          data: {
+            title: 'Reseller Targets Report',
+          }
+        })
 
       // configuration route
       .state('app.configurations', {

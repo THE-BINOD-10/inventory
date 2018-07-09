@@ -4506,6 +4506,119 @@ def seller_transfer_form(request, user=''):
     return xls_to_response(wb, '%s.seller_transfer_form.xls' % str(user.id))
 
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def targets_form(request, user=''):
+    excel_file = request.GET['download-file']
+    if excel_file:
+        return error_file_download(excel_file)
+    excel_headers = TARGET_MASTER_HEADERS
+    wb, ws = get_work_sheet('Targets', excel_headers)
+    return xls_to_response(wb, '%s.targets_form.xls' % str(user.id))
+
+
+def validate_targets_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type='xls'):
+    index_status = {}
+    TARGET_LEVELS = ['DIST', 'RESELLER', 'CORPORATE']
+    target_file_mapping = copy.deepcopy(TARGET_DEF_EXCEL)
+    if not target_file_mapping:
+        return 'Invalid File'
+    warehouse_users = UserGroups.objects.filter(admin_user=user.id).values_list('user_id__username', flat=True)
+    for row_idx in range(1, no_of_rows):
+        for key, value in target_file_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, target_file_mapping[key], reader, file_type)
+            if key == 'user_id':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add("User ID Missing")
+                else:
+                    if cell_data not in warehouse_users:
+                        index_status.setdefault(row_idx, set()).add('Invalid User ID')
+            elif key == 'target_level':
+                if cell_data:
+                    if cell_data not in TARGET_LEVELS:
+                        index_status.setdefault(row_idx, set()).add('Invalid Target Level (DIST/RESELLER/CORPORATE)')
+                else:
+                    index_status.setdefault(row_idx, set()).add('Target Level (DIST/RESELLER/CORPORATE) Missing')
+            elif key == 'target_amt':
+                if cell_data:
+                    if not isinstance(cell_data, (int, float)):
+                        index_status.setdefault(row_idx, set()).add('Invalid Target Amount')
+                else:
+                    index_status.setdefault(row_idx, set()).add('Target Amount Missing')
+            elif key == 'target_duration':
+                if cell_data:
+                    if not isinstance(cell_data, (int, float)):
+                        index_status.setdefault(row_idx, set()).add('Invalid Target Duration')
+                else:
+                    index_status.setdefault(row_idx, set()).add('Target Duration Missing')
+            else:
+                index_status.setdefault(row_idx, set()).add('Invalid Field')
+
+    if not index_status:
+        return 'Success'
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def targets_upload(request, user=''):
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+        status = validate_targets_form(request, reader, user, no_of_rows,
+                                                  no_of_cols,fname, file_type=file_type)
+        if status != 'Success':
+            return HttpResponse(status)
+        update_targets_upload(request, reader, no_of_rows, file_type, user)
+        return HttpResponse('Success')
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Targets Upload failed for %s and params are %s and error statement is %s' % (
+                    str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Targets Upload Failed")
+
+
+def update_targets_upload(request, reader, no_of_rows, file_type='xls', user=''):
+    users_map = dict(UserGroups.objects.filter(admin_user=user).values_list('user__username', 'user_id'))
+    target_file_mapping = copy.deepcopy(TARGET_DEF_EXCEL)
+    for row_idx in range(1, no_of_rows):
+        if not target_file_mapping:
+            continue
+        each_row_map = copy.deepcopy(TARGET_DEF_EXCEL)
+        for key, value in target_file_mapping.iteritems():
+            each_row_map[key] = get_cell_data(row_idx, value, reader, file_type)
+        user_id = users_map[each_row_map.pop('user_id')]
+        target_obj = TargetMaster.objects.filter(user_id=user_id)
+        if not target_obj:
+            each_row_map['user_id'] = user_id
+            target_master = TargetMaster(**dict(each_row_map))
+            target_master.save()
+        else:
+            target_obj[0].target_amt = each_row_map['target_amt']
+            target_obj[0].target_level = each_row_map['target_level']
+            target_obj[0].target_duration = each_row_map['target_duration']
+            target_obj[0].save()
+    return 'success'
+
+
 def validate_seller_transfer_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type='xls'):
     log.info("Validate Seller Transfer upload started")
     st_time = datetime.datetime.now()

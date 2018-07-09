@@ -384,6 +384,10 @@ def get_trial_user_data(request):
 
 
 def get_search_params(request, user=''):
+    """
+    Zone Code is (NORTH, EAST, WEST, SOUTH)
+    Zone Id is Warehouse Zone.
+    """
     search_params = {}
     filter_params = {}
     headers = []
@@ -403,13 +407,15 @@ def get_search_params(request, user=''):
                     'order_id': 'order_id', 'job_code': 'job_code', 'job_order_code': 'job_order_code',
                     'fg_sku_code': 'fg_sku_code',
                     'rm_sku_code': 'rm_sku_code', 'pallet': 'pallet',
-                    'staff_id': 'id', 'ean': 'ean', 'invoice_number': 'invoice_number'}
+                    'staff_id': 'id', 'ean': 'ean', 'invoice_number': 'invoice_number',
+                    'zone_code': 'zone_code', 'dist_code': 'dist_code', 'reseller_code': 'reseller_code'}
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
                       'search2': 'search_2', 'search3': 'search_3',
                       'search4': 'search_4', 'search5': 'search_5',
                       'search6': 'search_6', 'search7': 'search_7',
-                      'search8': 'search_8', 'search9': 'search_9', 'search10': 'search_10', 'search11': 'search_11'}
+                      'search8': 'search_8', 'search9': 'search_9',
+                      'search10': 'search_10', 'search11': 'search_11'}
     request_data = request.POST
     if not request_data:
         request_data = request.GET

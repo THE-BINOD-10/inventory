@@ -7075,7 +7075,9 @@ def get_po_putaway_summary(request, user=''):
                                     'invoice_number': invoice_number, 'invoice_date': invoice_date}))
 
 def get_debit_note_data(rtv_number, user):
-    return_to_vendor = ReturnToVendor.objects.filter(rtv_number=rtv_number)
+    return_to_vendor = ReturnToVendor.objects.select_related('seller_po_summary__purchase_order__open_po__sku').\
+                                                        filter(rtv_number=rtv_number,
+                                                     seller_po_summary__purchase_order__open_po__sku__user=user.id)
     data_dict = {}
     total_invoice_value = 0
     total_qty = 0
@@ -7178,6 +7180,8 @@ def prepare_rtv_json_data(request_data, user):
     data_list = []
     for ind in range(0, len(request_data['summary_id'])):
         data_dict = {}
+        if 'rtv_id' in request_data:
+            data_dict['rtv_id'] = request_data['rtv_id'][ind]
         if request_data['location'][ind] and request_data['return_qty'][ind]:
             quantity = request_data['return_qty'][ind]
             seller_summary = SellerPOSummary.objects.get(id=request_data['summary_id'][ind])
@@ -7214,13 +7218,31 @@ def prepare_rtv_json_data(request_data, user):
                 PicklistLocation.objects.exclude(stock=None).filter(**reserved_dict).aggregate(Sum('reserved'))[
                     'reserved__sum']
             if reserved_quantity:
-                if (stock_count - reserved_quantity) < float(quantity):
-                    return data_list, 'Source Quantity reserved for Picklist'
+                stock_count = stock_count - reserved_quantity
+            if stock_count < float(quantity):
+                return data_list, 'Return Quantity Exceeded available quantity'
             data_list.append(data_dict)
         elif request_data['location'][ind] or request_data['return_qty'][ind]:
             return data_list, 'Location or Quantity Missing'
     return data_list, ''
 
+
+def save_update_rtv(data_list):
+    updated_rtvs = []
+    for ind, final_dict in enumerate(data_list):
+        if final_dict.get('rtv_id', '') and final_dict['rtv_id'] not in updated_rtvs:
+            rtv_obj = ReturnToVendor.objects.get(id=final_dict['rtv_id'])
+            rtv_obj.location_id = final_dict['location'].id
+            rtv_obj.quantity = final_dict['quantity']
+            rtv_obj.save()
+            updated_rtvs.append(final_dict['rtv_id'])
+        else:
+            rtv_obj = ReturnToVendor.objects.create(seller_po_summary_id=final_dict['summary_id'],
+                                                    quantity=final_dict['quantity'], status=1,
+                                                    location_id=final_dict['location'].id,
+                                                    creation_date=datetime.datetime.now())
+            data_list[ind]['rtv_id'] = rtv_obj.id
+    return data_list
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -7231,11 +7253,7 @@ def save_rtv(request, user=''):
         if status:
             return HttpResponse(status)
         if data_list:
-            for final_dict in data_list:
-                ReturnToVendor.objects.create(seller_po_summary_id=final_dict['summary_id'],
-                                              quantity=final_dict['quantity'], status=1,
-                                              location_id=final_dict['location'].id,
-                                              creation_date=datetime.datetime.now())
+            data_list = save_update_rtv(data_list)
         return HttpResponse("Saved Successfully")
     except Exception as e:
         import traceback
@@ -7256,17 +7274,22 @@ def create_rtv(request, user=''):
         if status:
             return HttpResponse(status)
         if data_list:
+            data_list = save_update_rtv(data_list)
             rtv_no = get_incremental(user, 'rtv')
             date_val = datetime.datetime.now().strftime('%Y%m%d')
             rtv_number = '%s-%s-%s' % ('RTV', date_val, rtv_no)
-        for final_dict in data_list:
-            update_stock_detail(final_dict['stocks'], float(final_dict['quantity']), user)
-            ReturnToVendor.objects.create(rtv_number=rtv_number, seller_po_summary_id=final_dict['summary_id'],
-                                          quantity=final_dict['quantity'], status=0, creation_date=datetime.datetime.now())
-        report_data_dict = {}
-        show_data_invoice = get_debit_note_data(rtv_number, user)
+            for final_dict in data_list:
+                update_stock_detail(final_dict['stocks'], float(final_dict['quantity']), user)
+                #ReturnToVendor.objects.create(rtv_number=rtv_number, seller_po_summary_id=final_dict['summary_id'],
+                #                              quantity=final_dict['quantity'], status=0, creation_date=datetime.datetime.now())
+                rtv_obj = ReturnToVendor.objects.get(id=final_dict['rtv_id'])
+                rtv_obj.rtv_number = rtv_number
+                rtv_obj.status=0
+                rtv_obj.save()
+            report_data_dict = {}
+            show_data_invoice = get_debit_note_data(rtv_number, user)
 
-        return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice' : [show_data_invoice]})
+            return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice' : [show_data_invoice]})
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -7384,7 +7407,8 @@ def get_saved_rtv_data(request, user=''):
             continue
         data_dict = {'summary_id': seller_summary.id, 'order_id': order.id, 'sku_code': sku.sku_code,
                      'sku_desc': sku.sku_desc, 'quantity': quantity, 'price': order_data['price'],
-                     'rtv_id': rtv_obj.id}
+                     'rtv_id': rtv_obj.id, 'location': rtv_obj.location.location,
+                     'return_qty': rtv_obj.quantity}
         data_dict['tax_percent'] = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + \
                                    open_po.utgst_tax + open_po.cess_tax
         if seller_summary.batch_detail:

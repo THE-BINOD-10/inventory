@@ -2945,6 +2945,11 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         custom_margin = 0
 
     admin_user = get_priceband_admin_user(user)
+    msp_min_price = msp_max_price = 0
+    if admin_user and from_price and to_price:
+        msp_min_price = from_price
+        msp_max_price = to_price
+        from_price = to_price = ''
     is_margin_percentage = request_data.get('is_margin_percentage', 'false')
     specific_margins = request_data.get('margin_data', [])
     customer_data_id = request_data.get('customer_data_id', '')
@@ -3080,7 +3085,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     sku_master = sku_master.order_by('sequence')
     product_styles = sku_master.values_list('sku_class', flat=True).distinct()
     product_styles = list(OrderedDict.fromkeys(product_styles))
-    if is_file:
+    if is_file or (msp_min_price and msp_max_price):
         start, stop = 0, len(product_styles)
 
     needed_stock_data = {}
@@ -3113,7 +3118,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
                            customer_data_id=customer_data_id, is_file=is_file, prices_dict=prices_dict,
                            price_type=price_type, custom_margin=custom_margin, specific_margins=specific_margins,
                            is_margin_percentage=is_margin_percentage, stock_quantity=quantity,
-                           needed_stock_data=needed_stock_data)
+                           needed_stock_data=needed_stock_data, msp_min_price=msp_min_price, msp_max_price=msp_max_price)
     return data, start, stop
 
 
@@ -4034,7 +4039,7 @@ def get_cal_style_data(style_data, quantity):
 @fn_timer
 def get_styles_data(user, product_styles, sku_master, start, stop, request, customer_id='', customer_data_id='', is_file='',
                     prices_dict={}, price_type='', custom_margin=0, specific_margins=[], is_margin_percentage=0,
-                    stock_quantity=0, needed_stock_data={}):
+                    stock_quantity=0, needed_stock_data={}, msp_min_price=0, msp_max_price=0):
     data = []
     style_quantities = eval(request.POST.get('required_quantity', '{}'))
     levels_config = get_misc_value('generic_wh_level', user.id)
@@ -4043,7 +4048,6 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
 
     #To fix quantity based filter
     product_styles_filtered = []
-    product_styles_tot_qty_map = {}
     qty_dict_flag = False
     product_styles_tot_qty_map = {}
     if stock_quantity:
@@ -4100,9 +4104,13 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
                     tax_percentage = float(tax['sgst_tax']) + float(tax['igst_tax']) + float(tax['cgst_tax'])
                     sku_styles[0]['tax_percentage'] = '%.1f'%tax_percentage
             if total_quantity >= int(stock_quantity):
-                data.append(sku_styles[0])
-        if not is_file and len(data) >= 20:
-            break
+                if msp_min_price and msp_max_price:
+                    if float(msp_min_price) <= sku_variants[0]['your_price'] <= float(msp_max_price):
+                        data.append(sku_styles[0])
+                else:
+                    data.append(sku_styles[0])
+        # if not is_file and len(data) >= 20:
+        #     break
     return data
 
 

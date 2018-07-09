@@ -260,7 +260,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       vm.service.apiCall('save_rtv/', 'POST', elem, true).then(function(data){
         if(data.message) {
-          if(data.data == 'Success') {
+          if(data.data == 'Saved Successfully') {
 
             vm.close();
             vm.service.refresh(vm.dtInstance);

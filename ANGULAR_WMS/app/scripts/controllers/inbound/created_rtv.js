@@ -100,8 +100,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         $(row_click_bind, nRow).unbind('click');
         $(row_click_bind, nRow).bind('click', function() {
           $scope.$apply(function() {
-            vm.service.apiCall('get_po_putaway_summary/', 'GET', {data_id: id}).then(function(data){
-            // vm.service.apiCall('get_supplier_data/', 'GET', {supplier_id: aData['DT_RowId']}).then(function(data){
+            vm.service.apiCall('get_saved_rtv_data/', 'GET', {data_id: aData.data_id, invoice_number: aData['Invoice Number']}).then(function(data){
               if(data.message) {
                 angular.copy(data.data, vm.model_data);
                 vm.title = "Update RTV";

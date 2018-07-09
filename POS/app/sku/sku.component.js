@@ -131,7 +131,11 @@
 	  self.check_sku = check_sku;
 	  self.checked_sku = false;
 	  function check_sku(sku_code) {
-		var check_box = $('input[name="selected_sku"][value="'+sku_code+'"]');
+        if(sku_code.includes('"')){
+            var check_box = $("input[name='selected_sku'][value='"+sku_code+"']");
+        } else {
+		    var check_box = $('input[name="selected_sku"][value="'+sku_code+'"]');
+        }
 		if(check_box.prop("checked")) {
 			check_box.prop("checked", false);
             var indx = self.selected_skus.indexOf(sku_code);
@@ -208,7 +212,11 @@
 	  self.checkbox_click = checkbox_click;
 	 function checkbox_click($event, sku_code, index) {
 		//$event.stopPropagation();
-		var check_box = $('input[name="selected_sku"][value="'+sku_code+'"]');
+        if(sku_code.includes('"')){
+            var check_box = $("input[name='selected_sku'][value='"+sku_code+"']");
+        } else {
+		    var check_box = $('input[name="selected_sku"][value="'+sku_code+'"]');
+        }
 		if(check_box.prop("checked")) {
 			check_box.prop("checked", false);
 		} else {
@@ -239,7 +247,7 @@
                 console.log(self.style_based_sku_data[item]);
             }
             if(!self.style_based_sku_data[item]["quantity"]) self.style_based_sku_data[item]["quantity"] = 0;
-            self.tot_style_qty += parseInt(self.style_based_sku_data[item]["quantity"]);
+            self.tot_style_qty += parseFloat(self.style_based_sku_data[item]["quantity"]);
             console.log(parseInt(self.style_based_sku_data[item]["quantity"]) * self.style_based_sku_data[item]["price"]);
             self.tot_style_amount += (parseInt(self.style_based_sku_data[item]["quantity"]) * self.style_based_sku_data[item]["price"]);
         }
@@ -620,7 +628,7 @@
                   } else {
                     quantity = 1;
                   }
-                  self.skus[j].quantity = parseInt(self.skus[j].quantity) + quantity;
+                  self.skus[j].quantity = parseFloat(self.skus[j].quantity) + quantity;
                   self.skus[j].price = self.skus[j].quantity * self.skus[j].unit_price;
                   self.repeated_data = true;
                   self.skus[j].return_status = self.return_switch.toString();
@@ -639,7 +647,11 @@
                   //Change the quantity to 1
                   var quantity = 1;
                   self.selected_skus.push(filter_data[0]["SKUCode"]);
-                  $('input[name="selected_sku"][value="'+filter_data[0]["SKUCode"]+'"]').prop("checked", true);
+                  if(filter_data[0]['SKUCode'].includes('"')){
+                    $("input[name='selected_sku'][value='"+filter_data[0]['SKUCode']+"']").prop("checked", true);
+                  } else {
+                    $('input[name="selected_sku"][value="'+filter_data[0]["SKUCode"]+'"]').prop("checked", true);
+                  }
 
                   var sgst = filter_data[i].price * filter_data[i].sgst / 100;
                           var cgst = filter_data[i].price * filter_data[i].cgst / 100;
@@ -804,11 +816,15 @@
               cal_total();
               var indx = self.selected_skus.indexOf(item.sku_code);
               self.selected_skus.splice(indx, 1);
-              $('input[name="selected_sku"][value="'+item.sku_code+'"]').prop("checked", false);
+              if(item.sku_code.includes('"')){
+                $("input[name='selected_sku'][value='"+item.sku_code+"']").prop("checked", false);
+              } else {
+                $('input[name="selected_sku"][value="'+item.sku_code+'"]').prop("checked", false);
+              }
 
             } else {
 
-              self.skus[i].quantity = parseInt(item.quantity);
+              self.skus[i].quantity = parseFloat(item.quantity);
               self.skus[i].discount = (item.discount) ? parseFloat(item.discount) : 0;
               self.skus[i].unit_price = (item.selling_price - ((item.selling_price/100)*item.discount));
               if(self.tax_inclusive) {
@@ -839,7 +855,7 @@
 				          item.cgst=item.sgst=item.utgst=item.igst=0;
                 } else {
                   item.selling_price = item.price;
-                  self.skus[i].quantity = parseInt(item.quantity);
+                  self.skus[i].quantity = parseFloat(item.quantity);
                   self.skus[i].discount = (item.discount && self.skus[i].return_status==='false') ? parseFloat(item.discount) : 0;
                   self.skus[i].sgst = item.price * self.skus[i]['sgst_percent'] / 100;
         				  self.skus[i].cgst = item.price * self.skus[i]['cgst_percent'] / 100;

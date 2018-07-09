@@ -1,0 +1,81 @@
+<div id="page-pop" style="display: block;" class="modal fade process-toggle in" id="location-toggle" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false">
+  <form name="form" role="form">
+    <div class="modal-dialog modal-lg">
+      <link rel="stylesheet" media="all" href="styles/custom/page.css">
+      <!-- Modal content-->
+      <div class="modal-content model-custom">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span>
+          </button>
+          <h4 class="modal-title">Invoice</h4>
+        </div>
+        <div class="modal-body print print-invoice" style="over-flow: hidden">
+         <div class="detail_invoice">
+          <div class="row col-md-12">
+            <h4 style="margin-bottom:2px" align="center"><b>INVOICE</b></h4>
+          </div>
+          <div class="row col-md-12" style="text-align:center">
+			<p>(NON COMMERCIAL INVOICE)</p>
+		  </div>
+          <div class="row col-md-12" style="margin-top: 0px;">
+            <table class="top-table table table-bordered bl br mb0" style="margin-bottom: -1px;">
+              <tbody class="rm-padding">
+                <tr>
+                  <td style="width: 30%;text-align:left" class="align-left">
+                    <div class="row company_details">
+                      <div class="col-md-12">
+                        <span><b>FROM WAREHOUSE:</b></span>
+                      </div>
+                      <div class="col-md-12">
+                        <p class="pre-custom padding-none">{{ showCase.pdf_data[0].from_warehouse.company_name }}</p>
+						<p class="pre-custom padding-none">{{ showCase.pdf_data[0].from_warehouse.location }}</p>
+						<p class="pre-custom padding-none">{{ showCase.pdf_data[0].from_warehouse.state }}</p>
+						<p class="pre-custom padding-none">{{ showCase.pdf_data[0].from_warehouse.country }}</p>
+						<p class="pre-custom padding-none">PH No. : {{ showCase.pdf_data[0].from_warehouse.phone_number }}</p>
+						<p class="pre-custom padding-none">CIN No. : {{ showCase.pdf_data[0].from_warehouse.cin_number }}</p>
+						<p class="pre-custom padding-none">PIN No. : {{ showCase.pdf_data[0].from_warehouse.pin_code }}</p>
+                      </div>
+                    </div>
+                  </td>
+				  <td style="width: 30%;text-align:left">
+                    <div class="row company_details">
+                      <div class="col-md-12">
+                        <span><b>TO WAREHOUSE:</b></span>
+                      </div>
+                      <div class="col-md-12">
+                        <p class="pre-custom padding-none">{{ showCase.pdf_data[0].to_warehouse.company_name }}</p>
+						<p class="pre-custom padding-none">{{ showCase.pdf_data[0].to_warehouse.location }}</p>
+						<p class="pre-custom padding-none">{{ showCase.pdf_data[0].to_warehouse.state }}</p>
+						<p class="pre-custom padding-none">{{ showCase.pdf_data[0].to_warehouse.country }}</p>
+						<p class="pre-custom padding-none">PH No. : {{ showCase.pdf_data[0].to_warehouse.phone_number }}</p>
+						<p class="pre-custom padding-none">CIN No. : {{ showCase.pdf_data[0].to_warehouse.cin_number }}</p>
+						<p class="pre-custom padding-none">PIN No. : {{ showCase.pdf_data[0].to_warehouse.pin_code }}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td style="width: 40%;text-align:left">
+                    <strong>Invoice No:</strong>{{showCase.pdf_data[0].invoice_number}}
+                    <br>
+                    <strong>Order Id:</strong>{{showCase.pdf_data[0].order_id}}
+                    <br>
+                    <strong>Order Date:</strong>{{showCase.pdf_data[0].stock_transfer_date_time}}
+                    <br>
+                    <strong>Invoice Date:</strong>{{showCase.pdf_data[0].invoice_date}}
+                    <br>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+			<table ng-include="'views/outbound/print/sub_stock_transfer_inv_gen.html'" class="table table-bordered bl br"></table>
+          </div>
+         </div>
+        </div>
+        <div class="row">
+          <button type="button" class="btn btn-danger btn-block" style="width:100px;margin: auto;margin-bottom: 10px;" ng-click="showCase.service.print_invoice($('.print'), 'invoice')">
+            <i class="ti-printer mr5"></i>Print
+          </button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

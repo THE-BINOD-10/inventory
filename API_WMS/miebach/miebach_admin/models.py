@@ -372,6 +372,7 @@ class OpenPO(models.Model):
     delivery_date = models.DateField(blank=True, null=True)
     status = models.CharField(max_length=32)
     measurement_unit = models.CharField(max_length=32, default='')
+    ship_to = models.CharField(max_length=128, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -801,6 +802,8 @@ class UserProfile(models.Model):
     country = models.CharField(max_length=60, default='')
     pin_code = models.PositiveIntegerField(default=0)
     address = models.CharField(max_length=256, default='')
+    wh_address = models.CharField(max_length=256, default='')
+    wh_phone_number = models.CharField(max_length=32, default='')
     gst_number = models.CharField(max_length=32, default='')
     multi_warehouse = models.IntegerField(default=0)
     is_trail = models.IntegerField(default=0)
@@ -816,6 +819,7 @@ class UserProfile(models.Model):
     customer_logo = models.ImageField(upload_to='static/images/customer_logos/', default='')
     bank_details = models.TextField(default='')
     industry_type = models.CharField(max_length=32, default='')
+    order_prefix = models.CharField(max_length=32, default='', null=True, blank=True)
 
     class Meta:
         db_table = 'USER_PROFILE'
@@ -1809,6 +1813,7 @@ class SellerPOSummary(models.Model):
     challan_number = models.CharField(max_length=64, default='')
     order_status_flag = models.CharField(max_length=64, default='processed_pos')
     challan_date = models.DateField(blank=True, null=True)
+    discount_percent = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -2263,20 +2268,6 @@ class InvoiceSequence(models.Model):
         index_together = ('user', 'marketplace')
         unique_together = ('user', 'marketplace')
 
-class ChallanSequence(models.Model):
-    id = BigAutoField(primary_key=True)
-    user = models.ForeignKey(User)
-    marketplace = models.CharField(max_length=64)
-    prefix = models.CharField(max_length=64)
-    value = models.PositiveIntegerField()
-    status = models.IntegerField(default=1)
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'CHALLAN_SEQUENCE'
-        index_together = ('user', 'marketplace')
-        unique_together = ('user', 'marketplace')
 
 class ChallanSequence(models.Model):
     id = BigAutoField(primary_key=True)

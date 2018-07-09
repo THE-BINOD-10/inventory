@@ -103,6 +103,8 @@ def get_inventory_excel_upload_headers(user):
     if not userprofile.industry_type == 'FMCG':
         del excel_headers["Batch Number"]
         del excel_headers["MRP"]
+        del excel_headers["Manufactured Date(YYYY-MM-DD)"]
+        del excel_headers["Expiry Date(YYYY-MM-DD)"]
     return excel_headers
 
 
@@ -413,7 +415,7 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
                 order_detail.creation_date = exist_order_ins[0].creation_date
                 order_detail.shipment_date = exist_order_ins[0].shipment_date
                 order_detail.save()
-                if order_data['order_type'] == 'Returnable Order':
+                if order_data.get('order_type', '') == 'Returnable Order':
                     order_obj_list.append(order_obj)
             check_create_seller_order(seller_order_dict, order_detail, user)
             if order_data['sku_id'] not in sku_ids:
@@ -429,7 +431,7 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
             order_obj = order_obj[0]
             order_obj.quantity = order_obj.quantity + order_data['quantity']
             order_obj.save()
-            if order_data['order_type'] == 'Returnable Order':
+            if order_data.get('order_type', '') == 'Returnable Order':
                 order_obj_list.append(order_obj)
             check_create_seller_order(seller_order_dict, order_obj, user)
         elif order_obj and order_create and seller_order_dict.get('seller_id', '') and \
@@ -439,7 +441,7 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
                 order_obj.status = 1
                 update_seller_order(seller_order_dict, order_obj, user)
                 order_obj.save()
-                if order_data['order_type'] == 'Returnable Order':
+                if order_data.get('order_type', '') == 'Returnable Order':
                     order_obj_list.append(order_obj)
         create_order_pos(user, order_obj_list)
         log.info("Order Saving Ended %s" % (datetime.datetime.now()))
@@ -479,12 +481,13 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             cell_data = get_cell_data(row_idx, order_mapping['order_id'], reader, file_type)
             if not cell_data:
                 index_status.setdefault(count, set()).add('Order Id should not be empty')
-            order_type = get_cell_data(row_idx, order_mapping['order_type'], reader, file_type)
-            if cell_data in order_id_order_type.keys():
-                if order_id_order_type[cell_data] != order_type:
-                    index_status.setdefault(count, set()).add('Order Type are different for same orders')
-            else:
-                order_id_order_type[cell_data]=order_type
+            if 'order_type' in order_mapping:
+                order_type = get_cell_data(row_idx, order_mapping['order_type'], reader, file_type)
+                if cell_data in order_id_order_type.keys():
+                    if order_id_order_type[cell_data] != order_type:
+                        index_status.setdefault(count, set()).add('Order Type are different for same orders')
+                else:
+                    order_id_order_type[cell_data]=order_type
         cell_data = get_cell_data(row_idx, order_mapping['sku_code'], reader, file_type)
         title = ''
         if order_mapping.has_key('title'):
@@ -1593,6 +1596,7 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
     number_fields = ['quantity', 'mrp']
     optional_fields = ['mrp']
     mandatory_fields = ['receipt_date', 'location', 'quantity', 'receipt_type']
+    fields_mapping = {'manufactured_date': 'Manufactured Date', 'expiry_date': 'Expiry Date'}
     location_master = LocationMaster.objects.filter(zone__user=user.id)
     data_list = []
     for row_idx in range(1, no_of_rows):
@@ -1614,6 +1618,18 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
                     data_dict[key] = receipt_date
                 except:
                     index_status.setdefault(row_idx, set()).add('Invalid Receipt Date format')
+            elif key in ['manufactured_date', 'expiry_date']:
+                if cell_data:
+                    try:
+                        if isinstance(cell_data, float):
+                            year, month, day, hour, minute, second = xldate_as_tuple(cell_data, 0)
+                            data_dict[key] = datetime.datetime(year, month, day, hour, minute, second)
+                        elif '-' in cell_data:
+                            data_dict[key] = datetime.datetime.strptime(cell_data, "%Y-%m-%d")
+                        else:
+                            index_status.setdefault(row_idx, set()).add('Invalid %s format' % (fields_mapping[key]))
+                    except:
+                        index_status.setdefault(row_idx, set()).add('Invalid %s format' % (fields_mapping[key]))
             elif key == 'wms_code':
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))
@@ -1651,6 +1667,12 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
                 data_dict[key] = cell_data
             else:
                 data_dict[key] = cell_data
+        if user.userprofile.industry_type == 'FMCG':
+            if not data_dict.get('manufactured_date', ''):
+                data_dict['manufactured_date'] = datetime.datetime.now()
+            if not data_dict.get('expiry_date', ''):
+                sku_master = SKUMaster.objects.get(id=data_dict['sku_id'])
+                data_dict['expiry_date'] = data_dict['manufactured_date'] + datetime.timedelta(sku_master.shelf_life)
         data_list.append(data_dict)
 
     if not index_status:
@@ -1707,6 +1729,12 @@ def inventory_excel_upload(request, user, data_list):
             mrp = inventory_data.get('mrp', 0)
             if 'mrp' in inventory_data.keys():
                 del inventory_data['mrp']
+            mfg_date = inventory_data.get('manufactured_date', '')
+            if 'manufactured_date' in inventory_data.keys():
+                del inventory_data['manufactured_date']
+            exp_date = inventory_data.get('expiry_date', '')
+            if 'expiry_date' in inventory_data.keys():
+                del inventory_data['expiry_date']
 
             stock_query_filter = {'sku_id': inventory_data.get('sku_id', ''),
                                   'location_id': inventory_data.get('location_id', ''),
@@ -1720,7 +1748,7 @@ def inventory_excel_upload(request, user, data_list):
                 pallet_detail.save()
                 stock_query_filter['pallet_detail_id'] = pallet_detail.id
                 inventory_data['pallet_detail_id'] = pallet_detail.id
-            if mrp or batch_no:
+            if mrp or batch_no or mfg_date or exp_date:
                 try:
                     mrp = float(mrp)
                 except:
@@ -1728,6 +1756,10 @@ def inventory_excel_upload(request, user, data_list):
                 if isinstance(batch_no, float):
                     batch_no = str(int(batch_no))
                 batch_dict = {'batch_no': batch_no, 'mrp': mrp, 'creation_date': datetime.datetime.now()}
+                if mfg_date:
+                    batch_dict['manufactured_date'] = mfg_date
+                if exp_date:
+                    batch_dict['expiry_date'] = exp_date
                 batch_obj = BatchDetail(**batch_dict)
                 batch_obj.save()
                 stock_query_filter['batch_detail_id'] = batch_obj.id
@@ -2329,7 +2361,8 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                 if cell_data:
                     try:
                         if isinstance(cell_data, float):
-                            data_dict[key] = xldate_as_tuple(cell_data, 0)
+                            year, month, day, hour, minute, second = xldate_as_tuple(cell_data, 0)
+                            data_dict[key] = datetime.datetime(year, month, day, hour, minute, second)
                         elif '-' in cell_data:
                             data_dict[key] = datetime.datetime.strptime(cell_data, "%m-%d-%Y")
                         else:
@@ -2376,7 +2409,11 @@ def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname
                         index_status.setdefault(row_idx, set()).add('Unit Price should be a number')
                     else:
                         data_dict[key] = float(cell_data)
+                else:
+                    data_dict[key] = 0
             elif key in ['po_name', 'ship_to']:
+                if isinstance(cell_data, (int, float)):
+                    cell_data = str(int(cell_data))
                 data_dict[key] = cell_data
             elif cell_data:
                 if key in number_fields:
@@ -2418,7 +2455,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         order_data['supplier_id'] = final_dict['supplier'].id
         order_data['sku_id'] = final_dict['sku'].id
         order_data['order_quantity'] = final_dict['quantity']
-        order_data['price'] = final_dict['price']
+        order_data['price'] = final_dict.get('price', 0)
         order_data['po_name'] = final_dict['po_name']
         order_data['mrp'] = final_dict.get('mrp', 0)
         order_data['cgst_tax'] = final_dict.get('cgst_tax', 0)
@@ -2436,15 +2473,16 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         seller_id = ''
         if final_dict.get('seller', ''):
             seller_id = final_dict['seller'].id
-        if (order_data['po_name'], order_data['supplier_id'], data['po_date'], seller_id) not in order_ids.keys():
+        group_key = (order_data['po_name'], order_data['supplier_id'], data['po_date'], seller_id)
+        if group_key not in order_ids.keys():
             po_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id).order_by('-order_id')
             if not po_data:
                 po_id = 0
             else:
                 po_id = po_data[0].order_id
-            order_ids[order_data['po_name'], order_data['supplier_id'], data['po_date']] = po_id
+            order_ids[group_key] = po_id
         else:
-            po_id = order_ids[order_data['po_name'], order_data['supplier_id'], data['po_date']]
+            po_id = order_ids[group_key]
         ids_dict = {}
         po_data = []
         total = 0

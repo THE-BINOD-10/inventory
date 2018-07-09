@@ -157,6 +157,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
     self.shipment_number = '';
     self.invoice_data = {};
     self.datatable = 'ReturnToVendor';
+    self.seller_types = [];
 
     /** login page maintainance **/
     self.login_data = {

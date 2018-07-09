@@ -73,7 +73,11 @@
           {% for i in page %}
           <!--'WMS CODE', 'Order Qty', 'Received Qty', 'Measurement', 'Unit Price', 'CSGT', 'SGST', 'IGST, UTGST, Amt, Desc, Ser. No'-->
           <tr class="fs14 rm-border">
-            <td class="text-left">{{ i.11 }}</td>
+            {% if i.0 %}
+              <td class="text-left">{{ forloop.counter }}</td>
+            {% else %}
+              <td class="text-left"></td>
+            {% endif %}
             <td class="text-left"><div class="wrap">{{i.0}}</div></td>
             <td class="text-left"><div class="wrap">{{i.10}}</div></td>
             <td class="text-right"></td>

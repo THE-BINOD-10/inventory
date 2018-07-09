@@ -1217,6 +1217,8 @@ var app = angular.module('urbanApp')
             title: 'Customize Your Orders',
           }
         })
+
+
         .state('app.outbound.ViewOrders', {
           url: '/ViewOrders',
           permission: 'add_picklist',
@@ -1230,15 +1232,16 @@ var app = angular.module('urbanApp')
                     'scripts/controllers/outbound/view_orders/stock_transfer_orders.js'
                   ])
                 }).then(function () {
-
                 return $ocLazyLoad.load('scripts/controllers/outbound/view_orders/orders.js');
               });
-                    }]
+            }]
           },
           data: {
             title: 'View Orders',
           }
         })
+
+
           .state('app.outbound.ViewOrders.Picklist', {
             url: '/Picklist',
             templateUrl: 'views/outbound/toggle/batch_tg.html'
@@ -1449,16 +1452,21 @@ var app = angular.module('urbanApp')
           url: '/CustomerInvoicesMain',
           templateUrl: 'views/outbound/customer_invoices_main.html',
           resolve: {
-              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+              return $ocLazyLoad.load([
+                       'scripts/controllers/outbound/customer_invoices_main.js'
+                        ]).then( function() {
                   return $ocLazyLoad.load([
-                    'scripts/controllers/outbound/customer_invoices_main.js'
-                  ])   
-              }]   
-          },   
+                    'scripts/controllers/outbound/stock_transfer_invoice.js'
+                  ])
+                })
+            }]
+          },
           data: {
             title: 'Customer Invoices',
           }
         })
+
          .state('app.outbound.CustomerInvoicesMain.InvoiceM', {
             url: '/InvoiceM',
             templateUrl: 'views/outbound/print/customer_inv_main.html'
@@ -1474,6 +1482,10 @@ var app = angular.module('urbanApp')
           .state('app.outbound.CustomerInvoicesMain.InvoiceD', {
             url: '/InvoiceD',
             templateUrl: 'views/outbound/print/d_generate_inv_main.html'
+          })
+		  .state('app.outbound.CustomerInvoicesMain.StockTransferInvoiceGen', {
+            url: '/StockTransferInvoiceGen',
+            templateUrl: 'views/outbound/print/stock_transfer_inv_gen.html'
           })
 
          .state('app.outbound.CustomerInvoices.InvoiceM', {
@@ -1492,6 +1504,7 @@ var app = angular.module('urbanApp')
             url: '/InvoiceD',
             templateUrl: 'views/outbound/print/d_generate_inv.html'
           })
+
       // Upload route
       .state('app.uploads', {
           url: '/uploads',

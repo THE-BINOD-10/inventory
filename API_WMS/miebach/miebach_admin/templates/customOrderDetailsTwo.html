@@ -1,0 +1,335 @@
+{% load tag_extras %}
+<style>
+{% include 'templates/toggle/bootstrap.min.css' %}
+
+.zui-table {
+    border-collapse: collapse;
+    border-spacing: 0;
+    font: normal 13px Arial, sans-serif;
+}
+.zui-table thead th {
+    background-color: #DDEFEF;
+    color: #336B6B;
+    padding: 10px;
+    text-align: left;
+    text-shadow: 1px 1px 1px #fff;
+}
+.zui-table tbody td {
+    color: #333;
+    padding: 10px;
+    text-shadow: 1px 1px 1px #fff;
+}
+.zui-table tbody td.align_right {
+    text-align: right;
+	font-weight : bold;
+	text-transform: uppercase;
+}
+.zui-table tbody td.align_left {
+    text-align: left;
+}
+
+</style>
+<div>
+  <!-- Modal -->
+	<div class="col-md-12">
+        <h4>Order Details<span><b>&nbsp;#{{order_id}}</b></span></h4>
+        <h5><b>CUSTOMER DETAILS</b></h5>
+    </div>
+    <table class="zui-table">
+    <tbody>
+	  <tr>
+		<td class="align_right">ID : </td>
+		<td class="align_left">{{customer_id}}</td>
+        <td style="width:200px;" class="align_right">NAME : </td>
+        <td class="align_left">{{cust_name}}</td>
+	  </tr>
+	  <tr>
+        <td class="align_right">MARKETPLACE : </td>
+        <td class="align_left">{{market_place}}</td>
+		<td style="width:200px;" class="align_right">PIN : </td>
+        <td class="align_left">{{pin}}</td>
+      </tr>
+	  <tr>
+        <td class="align_right">CITY : </td>
+        <td class="align_left">{{city}}</td>
+        <td style="width:200px;" class="align_right">STATE : </td>
+        <td class="align_left">{{state}}</td>
+      </tr>
+	</tbody>
+	</table>
+	<div class="row"><hr></div>
+
+	{% if customData.bodyColor and customData.style_pro.body_color %}
+        <img style="width: 100px;float:right" title="customData.bodyColor" src="{{ image_url }}">
+	{% endif %}
+
+	<table class="zui-table">
+	<tbody>
+	  {% if customData.style_pro.fabric %}
+	  <tr>
+		<td class="align_right">STYLE : </td>
+        <td class="align_left">{{customData.style}}</td>
+	  </tr>
+	  <tr>
+        <td style="width:100px;" class="align_right">FABRIC : </td>
+        <td class="align_left">
+		  {% if customData.fabric.fabric %} Single Fabric {% else %} Multi Fabric {% endif %}
+		  {% for key, value in customData.fabric.fabrics.items %}
+			{% if value != 'none' and value != '' %}
+				{% if not forloop.first %}
+					<span> , </span>
+				{% else %}
+					<span>{{ value }}</span>
+				{% endif %}
+			{% endif %}
+		  {% endfor %}
+		  <!--<span ng-repeat="(key, value) in customData.fabric.fabrics" ng-if="value != 'none' && value != ''"><span ng-if="!$first">, </span>{{value}}</span>-->
+	    </td>
+      </tr>
+	  {% endif %}
+
+	  {% if customData.bodyColor and customData.style_pro.body_color %}
+	  <tr>
+		<td class="align_right">BODY COLOR : </td>
+        <td class="align_left">{{customData.bodyColor}}</td>
+	  </tr>
+	  {% endif %}
+
+	  {% if customData.style_pro.design %}
+		<tr>
+		  <td class="align_right">DESIGN : </td>
+		  <td class="align_left">
+			{% if customData.design.designType %} Plain {% else %} Panel {% endif %}
+			{% if not customData.design.designType %}
+			<div class="row no-margin">
+              <table class="table table-bordered mt10 mb5">
+                <tbody>
+				<tr>
+				  <td>Front</td><td>{{customData.design.place.front_design}}</td><td>{{customData.design.place.front_color}}</td>
+				</tr>
+				<tr>
+				  <td>Back</td><td>{{customData.design.place.back_design}}</td><td>{{customData.design.place.back_color}}</td>
+				</tr>
+                </tbody>
+              </table>
+            </div>
+			{% endif %}
+		  </td>
+	    </tr>
+	  {% endif %}
+
+	  {% if customData.piping.piping and customData.style_pro.piping %}
+		<tr>
+          <td class="align_right">PIPING : </td>
+          <td class="align_left">{{customData.piping.piping_design}}</td>
+		  {% if customData.piping.reglanPiping.piping or customData.piping.shoulderPiping.piping %}
+		  <table class="table table-bordered mt10 mb5">
+		  <tbody>
+			{% if customData.piping.reglanPiping.piping %}
+			<tr>
+			  <td>Reglan</td><td>{{customData.piping.reglanPiping.color}}</td>
+			</tr>
+			{% endif %}
+			{% if customData.piping.shoulderPiping.piping %}
+			<tr>
+			  <td>Shoulder</td><td>{{customData.piping.shoulderPiping.color}}</td>
+			</tr>
+			{% endif %}
+		  </tbody>
+		  </table>
+		  {% endif %}
+	    </tr>
+	  {% endif %}
+
+	  {% if customData.style_pro.sleeve %}
+		<tr>
+		  <td class="align_right">SLEEVE : </td>
+		  <td class="align_left">{{customData.sleeve.sleeve}}</td>
+
+		  {% if customData.sleeve.colorType == 'Choose Colour' %}
+		  <table>
+			<tbody>
+              <tr>
+                <td>Colour</td><td>{{customData.sleeve.color}}</td>
+              </tr>
+			</tbody>
+		  </table>
+		  {% endif %}
+
+		</tr>
+	  {% endif %}
+
+	  {% if customData.pocket.pocket and customData.style_pro.pocket %}
+		<tr>
+		  <td class="align_right">POCKET : </td>
+		  <td class="align_left">{{customData.pocket.pocketDesign}}</td>
+		</tr>
+	  {% endif %}
+
+	  {% if customData.style_pro.placket %}
+		<tr>
+          <td class="align_right">PLACKET : </td>
+          <td class="align_left">
+
+			{% if customData.placket.button %}
+			  Button
+			{% else %}
+			  &nbsp;
+			{% endif %}
+
+			{% if customData.placket.placketType %}
+			  Box Type
+			{% else %}
+			  Crushed
+			{% endif %}
+
+			{% if customData.placket.placketDesign %}
+			  , {{customData.placket.placketDesign}}
+			{% endif %}
+		  </td>
+        </tr>
+	  {% endif %}
+
+	  </table>
+
+	  <div class="row"><hr></div>
+
+	  <table class="zui-table">
+	    <tbody>
+		{% if customData.printEmbroidery and customData.print.print and customData.style_pro.print_embroidery %}
+		<tr>
+		  <td class="align_right">PRINT : </td>
+          <td class="align_left">{% if customData.print.singlePrint %} Single Print {% else %} Multi Print {% endif %}</td>
+		  <td class="align_right" style="width : 200px;">PRINT TYPE : </td>
+		  <td class="align_left">{{customData.print.printOption}}</td>
+		</tr>
+		<tr>
+          <td class="align_right">PRINTING PLACES : </td>
+          <td class="align_left">
+			{% for key, value in customData.print.places %}
+				{% if value %}
+				  <span>{{ key }}</span>
+				  {% if not forloop.last %}
+					 <span>,</span>
+				  {% endif %}
+				{% endif %}
+				<img src="{{customData.print.singlePrint}}" style="width:100%;">
+				<p align="center">{{key}}</p>
+			{% endfor %}
+		  </td>
+		</tr>
+		{% endif %}
+
+		{% if customData.printEmbroidery and customData.embroidery.embroidery and customData.style_pro.print_embroidery %}
+			<tr>
+			  <td class="align_right">EMBROIDERY : </td>
+			  <td class="align_left">
+				<span>{% if customData.embroidery.singleEmbroidery %} Single Embroidery {% else %} Multi Embroidery {% endif %}</span><br>
+				<p>Embroidery Places : </p>
+				{% for key, value in customData.embroidery.places %}
+					{% if value %}
+						<span>{{ key }}</span>
+						{% if not forloop.last %}
+						  <span>,</span>
+						{% endif %}
+					{% endif %}
+					<div>
+					  <img src="{{customData.embroidery.singleEmbroidery}}" style="width:100%;">
+					  <p> {{ key }}</p>
+					</div>
+				{% endfor %}
+			  </td>
+			</tr>
+		{% endif %}
+
+		{% if customData.collarTip.collarTip and customData.style_pro.collar_tape %}
+			<tr>
+			  <td class="align_right">Collar Tip :</td>
+			  <td class="align_left">
+				<span>{{customData.collarTip.collarRib}}, {{customData.collarTip.color}}</span>
+			  </td>
+			</tr>
+		{% endif %}
+
+		{% if customData.style_pro.neck_tape %}
+		  <tr>
+			<td class="align_right">Neck Tape Material : </td>
+			<td class="align_left">
+			  {{customData.neckType.type}}
+			</td>
+		  </tr>
+		{% endif %}
+
+		{% if customData.style_pro.bottom %}
+          <tr>
+            <td class="align_right">T-shirt Slit Style : </td>
+            <td class="align_left">
+              {{customData.bottom.bottom}}
+            </td>
+          </tr>
+		{% endif %}
+
+		{% if customData.style_pro.slit_type %}
+		  <tr>
+            <td class="align_right">Slit Type : </td>
+            <td class="align_left">
+              {{customData.slit.slitType}}
+				{% if customData.slit.bottom %}
+			    <div>
+				  <div>Bottom Piping</div>
+				  <div><{{customData.slit.bottomColor}}</div>
+			    </div>
+				{% endif %}
+            </td>
+          </tr>
+		{% endif %}
+
+		{% if customData.style_pro.label %}
+		  <tr>
+			<td class="align_right">Label : </td>
+            <td class="align_left"> {{customData.label.label}} <td>
+		  </tr>
+		{% endif %}
+		{% for size, data in customData.sizes.items %}
+			{% if customData.sizeEnable|lookup:size and customData.sizeTotals|lookup:size %}
+		  <tr>
+            <td class="align_right">{{size}} :</td>
+            <td class="align_left">
+			  <table>
+				  <tr>
+					{% for name, value in data.items %}
+                        {% with customData.sizeValues|lookup:size as size_list %}
+                            {% if size_list|lookup:name %}
+            					<td style="text-align:center"> {{name}} ({{value}}) </td>
+                            {% endif %}
+                        {% endwith %}
+					{% endfor %}
+                    <td class="text-center">Total</td>
+                  </tr>
+                  <tr>
+					{% for name, value in data.items %}
+					{% with customData.sizeValues|lookup:size as size_list %}
+                    {% if size_list|lookup:name %}
+					  <td>
+					    {{ size_list|lookup:name }}
+					  </td>
+                    {% endif %}
+					{% endwith %}
+                    {% endfor %}
+                    <td>
+					  {{ customData.sizeTotals|lookup:size }}
+					</td>
+                  </tr>
+              </table>
+			</td>
+          </tr>
+			{% endif %}
+		{% endfor %}
+		</tbody>
+	  </table>
+
+
+    </div>
+    </div>
+  </div>
+<div>

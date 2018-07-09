@@ -20,7 +20,6 @@ log = init_logger('logs/stock_locator.log')
 @csrf_exempt
 def get_stock_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
-
     lis = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_brand', 'sku__sku_category', 'total', 'total', 'total',
            'sku__measurement_type', 'stock_value']
     lis1 = ['product_code__wms_code', 'product_code__sku_desc', 'product_code__sku_brand', 'product_code__sku_category',
@@ -34,7 +33,6 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     search_params = get_filtered_params(filters, lis)
     search_params1 = get_filtered_params(filters, lis1)
     search_params2 = get_filtered_params(filters, lis2)
-
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data

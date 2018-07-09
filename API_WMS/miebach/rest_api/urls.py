@@ -171,6 +171,7 @@ urlpatterns = [
     url(r'^get_po_putaway_summary/$', get_po_putaway_summary),
     url(r'^create_rtv/$', create_rtv),
     url(r'^save_rtv/$', save_rtv),
+    url(r'^get_saved_rtv_data/$', get_saved_rtv_data),
 
     # Production
     url(r'^generated_jo_data/$', generated_jo_data),

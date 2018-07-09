@@ -7346,3 +7346,72 @@ def get_saved_rtvs(start_index, stop_index, temp_data, search_term, order_term, 
                                                 ('id', count),
                                                 ('DT_RowClass', 'results'))))
         count += 1
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_saved_rtv_data(request, user=''):
+    order_id, invoice_num = request.GET['data_id'].split(':')
+    rtv_filter = {'seller_po_summary__purchase_order__open_po__sku__user': user.id,
+                      'seller_po_summary__purchase_order__order_id': order_id,
+                  'status': 1}
+    if invoice_num:
+        rtv_filter['seller_po_summary__invoice_number'] = invoice_num
+    rtv_objs = ReturnToVendor.objects.filter(**rtv_filter)
+    if not rtv_objs:
+        return HttpResponse("No Data found")
+    seller_summary = rtv_objs[0].seller_po_summary
+    po_reference = get_po_reference(seller_summary.purchase_order)
+    invoice_number = seller_summary.invoice_number
+    invoice_date = get_local_date(user, seller_summary.creation_date, send_date=True).strftime("%d %b, %Y")
+    if seller_summary.invoice_date:
+        invoice_date = seller_summary.invoice_date.strftime("%d %b, %Y")
+    orders = []
+    order_data = {}
+    order_ids = []
+    seller_details = {}
+    for rtv_obj in rtv_objs:
+        seller_summary = rtv_obj.seller_po_summary
+        order = seller_summary.purchase_order
+        open_po = order.open_po
+        order_data = get_purchase_order_data(order)
+        quantity = rtv_obj.quantity
+        sku = open_po.sku
+        if quantity <= 0:
+            continue
+        data_dict = {'summary_id': seller_summary.id, 'order_id': order.id, 'sku_code': sku.sku_code,
+                     'sku_desc': sku.sku_desc, 'quantity': quantity, 'price': order_data['price'],
+                     'rtv_id': rtv_obj.id}
+        data_dict['tax_percent'] = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + \
+                                   open_po.utgst_tax + open_po.cess_tax
+        if seller_summary.batch_detail:
+            batch_detail = seller_summary.batch_detail
+            data_dict['batch_no'] = batch_detail.batch_no
+            data_dict['mrp'] = batch_detail.mrp
+            data_dict['price'] = batch_detail.buy_price
+            data_dict['mfg_date'] = ''
+            if batch_detail.manufactured_date:
+                data_dict['mfg_date'] = batch_detail.manufactured_date.strftime('%m/%d/%Y')
+            data_dict['exp_date'] = ''
+            if batch_detail.manufactured_date:
+                data_dict['exp_date'] = batch_detail.expiry_date.strftime('%m/%d/%Y')
+            data_dict['tax_percent'] = batch_detail.tax_percent
+        data_dict['amount'] = data_dict['quantity'] * data_dict['price']
+        data_dict['tax_value'] = (data_dict['amount']/100) * data_dict['tax_percent']
+        orders.append([data_dict])
+    supplier_name, order_date, expected_date, remarks = '', '', '', ''
+    if rtv_objs.exists():
+        purchase_order = rtv_objs[0].seller_po_summary.purchase_order
+        supplier_name = purchase_order.open_po.supplier.name
+        order_date = get_local_date(user, purchase_order.creation_date, send_date=True).strftime("%d %b, %Y")
+        remarks = purchase_order.remarks
+        if rtv_objs[0].seller_po_summary.seller_po:
+            seller = rtv_objs[0].seller_po_summary.seller_po.seller
+            seller_details = {'seller_id': seller.seller_id, 'name': seller.name}
+    return HttpResponse(json.dumps({'data': orders, 'order_id': order_id, \
+                                    'supplier_id': order_data['supplier_id'],\
+                                    'po_reference': po_reference, 'order_ids': order_ids,
+                                    'supplier_name': supplier_name, 'order_date': order_date,
+                                    'remarks': remarks, 'seller_details': seller_details,
+                                    'invoice_number': invoice_number, 'invoice_date': invoice_date}))

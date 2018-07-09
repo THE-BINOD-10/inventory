@@ -49,7 +49,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       var toggle = DTColumnBuilder.newColumn('Update').withTitle('').notSortable()
 
                  .withOption('width', '25px').renderWith(function(data, type, full, meta) {
-                   return "<button type='submit' class='btn btn-primary pull-right' style='margin: auto;display: block;' class='invoice_data_show' ng-click='showCase.addRowData($event, "+JSON.stringify(full)+"); $event.stopPropagation()'>Mark As Paid</button>";
+                   return "<button type='submit' class='btn btn-primary pull-right invoice_data_show' style='margin: auto;display: block;' ng-click='showCase.addRowData($event, "+JSON.stringify(full)+"); $event.stopPropagation()'>Mark As Paid</button>";
                  })
     }
 
@@ -71,10 +71,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         data_tr.next().toggle(1000);
         
         $(elem).removeClass();
-        $(elem).addClass('invoice_data_hide');
+        $(elem).addClass('btn btn-primary pull-right invoice_data_hide');
       } else {
         $(elem).removeClass('invoice_data_hide');
-        $(elem).addClass('invoice_data_show');
+        $(elem).addClass('btn btn-primary pull-right invoice_data_show');
         data_tr.next().remove();
       }
     }
@@ -113,7 +113,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       }
     });
 
-    vm.payment_generate = function(form){
+    vm.outbound_payment_dt = function(cust_ids){
+      vm.filters['customer_ids'] = cust_ids;
       vm.dtOptions = DTOptionsBuilder.newOptions()
       .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -147,6 +148,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       var data = $(selector).val();
       if(!data) {
         data = [];
+      } else {
+        vm.customer_ids = [];
+        for (var i = 0; i < data.length; i++) {
+          vm.customer_ids.push(angular.fromJson(data[i]).customer_id);
+        }
       }
       var send = data.join(" ,");
       vm.switches(send);
@@ -164,6 +170,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         for (var i = 0; i < sel_records.length; i++) {
           vm.model_data.sel_customers.push(angular.fromJson(sel_records[i]));
         }
+        vm.outbound_payment_dt(vm.customer_ids.join(" ,"));
       }
     }
 

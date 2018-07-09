@@ -77,8 +77,6 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
             sku__sku_category__icontains=search_term) |
                                                               Q(total__icontains=search_term) | Q(stock_value__icontains=search_term), sku__user=user.id,
                                                               status=1, **search_params)
-
-
         wms_codes = map(lambda d: d[0], master_data)
         master_data1 = job_order.exclude(product_code__wms_code__in=wms_codes).filter(
             Q(product_code__wms_code__icontains=search_term) |
@@ -96,16 +94,14 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
             order_by(order_data)
         wms_codes = map(lambda d: d[0], master_data)
         quantity_master_data = master_data.aggregate(Sum('total'))
-	if 'stock_value__icontains' in search_params1.keys():
-	    del search_params1['stock_value__icontains']
+        if 'stock_value__icontains' in search_params1.keys():
+            del search_params1['stock_value__icontains']
         master_data1 = job_order.exclude(product_code__wms_code__in=wms_codes).filter(**search_params1).values_list(
             'product_code__wms_code',
             'product_code__sku_desc', 'product_code__sku_category', 'product_code__sku_brand').distinct()
         master_data = list(chain(master_data, master_data1))
-
     if 'stock_value__icontains' in search_params1.keys():
         del search_params1['stock_value__icontains']
-
     zero_quantity = sku_master.exclude(wms_code__in=wms_codes).filter(user=user.id)
     if search_params2:
         zero_quantity = zero_quantity.filter(**search_params2)

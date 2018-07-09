@@ -3449,7 +3449,6 @@ def putaway_data(request, user=''):
                 if loc1.pallet_filled > loc1.pallet_capacity:
                     setattr(loc1, 'pallet_capacity', loc1.pallet_filled)
                 loc1.save()
-
                 if stock_data:
                     stock_data = stock_data[0]
                     add_quan = float(stock_data.quantity) + float(value)

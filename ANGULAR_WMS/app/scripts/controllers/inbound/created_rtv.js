@@ -30,6 +30,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.datatable = 'CreatedRTV';
     vm.user_type = Session.user_profile.user_type;
 
+    //RTV Pop Data
+
     vm.filters = {'datatable': vm.datatable, 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': ''
                   , 'search5': '', 'search6': '', 'search7': ''};
     
@@ -96,13 +98,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       $('.custom-table').DataTable().draw();
     };
 
+    vm.rtv_details = {supplier_id:'Supplier ID', supplier_name:'Supplier Name', 
+                      invoice_number:'Invoice Number', invoice_date:'Invoice Date'};
+    vm.rtv_details_keys = Object.keys(vm.rtv_details);
+
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
         $(row_click_bind, nRow).unbind('click');
         $(row_click_bind, nRow).bind('click', function() {
           $scope.$apply(function() {
             vm.service.apiCall('get_saved_rtv_data/', 'GET', {data_id: aData.data_id, invoice_number: aData['Invoice Number']}).then(function(data){
               if(data.message) {
-                angular.copy(data.data, vm.model_data);
+                // angular.copy(data.data, vm.model_data);
+                vm.model_data = data.data;
                 vm.title = "Update RTV";
                 vm.print_enable = false;
                 $state.go('app.inbound.rtv.details');

@@ -6922,11 +6922,11 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
 
     headers1, filters, filter_params1 = get_search_params(request)
     if 'from_date' in filters:
-        search_params['creation_date__gt'] = filters['from_date']
+        search_params['purchase_order__creation_date__gt'] = filters['from_date']
     if 'to_date' in filters:
         to_date = datetime.datetime.combine(filters['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
-        search_params['creation_date__lt'] = to_date
+        search_params['purchase_order__creation_date__lt'] = to_date
     if 'sku_code' in filters:
         search_params['purchase_order__open_po__sku__sku_code'] = filters['sku_code'].upper()
     if 'supplier' in filters:
@@ -6952,21 +6952,21 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
                                         filter(tot_proc__gte=F('final_val')).\
                                         values_list('seller_po_summary_id', flat=True)
     if search_term:
-        results = SellerPOSummary.objects.exclude(id__in=return_ids).filter(purchase_order__polocation__status=0).\
+        results = SellerPOSummary.objects.exclude(id__in=return_ids).filter(purchase_order__polocation__status=0,
+                                            purchase_order__open_po__sku__user=user.id, **search_params).\
             values('purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name',
                    'purchase_order__order_id', 'invoice_number', 'invoice_date',).distinct().annotate(
-            total=Sum('quantity'), purchase_order_date=Cast('purchase_order__creation_date', DateField())). \
-            filter(purchase_order__open_po__sku__user=user.id, **search_params).order_by(order_data)
+            total=Sum('quantity'), purchase_order_date=Cast('purchase_order__creation_date', DateField())).order_by(order_data)
 
     elif order_term:
-        results = SellerPOSummary.objects.exclude(id__in=return_ids).filter(purchase_order__polocation__status=0).\
+        results = SellerPOSummary.objects.exclude(id__in=return_ids).select_related('purchase_order__open_po__supplier', 'purchase_order').\
+                                            filter(purchase_order__polocation__status=0, purchase_order__open_po__sku__user=user.id, **search_params).\
             values('purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name',
                    'purchase_order__order_id', 'invoice_number', 'invoice_date',).distinct().annotate(
-            total=Sum('quantity'), purchase_order_date=Cast('purchase_order__creation_date', DateField())).\
-            filter(purchase_order__open_po__sku__user=user.id, **search_params).order_by(order_data)
+            total=Sum('quantity'), purchase_order_date=Cast('purchase_order__creation_date', DateField())).order_by(order_data)
 
     temp_data['recordsTotal'] = results.count()
-    temp_data['recordsFiltered'] = results.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
     count = 0
     for result in results[start_index: stop_index]:

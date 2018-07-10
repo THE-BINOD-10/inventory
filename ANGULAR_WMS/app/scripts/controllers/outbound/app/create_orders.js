@@ -129,7 +129,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         'MARSH':'MARSH.jpg',
         'CORP ATTIRE': 'CORP ATTIRE.jpg',
         '6 Degree (220 GSM)': 'six-degrees-220.jpg',
-        'SWISS-MISS':'SWISS-MISS.JPG',
+        'Swiss Miss':'SWISS-MISS.JPG',
         }
 
         vm.brands_logos = {'6 Degree': 'six-degrees-1.png', 'AWG (All Weather Gear)': 'awg-1.png', 'BIO WASH': 'bio-wash-1.png',

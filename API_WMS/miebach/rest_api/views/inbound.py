@@ -1240,8 +1240,7 @@ def confirm_po(request, user=''):
                  'vendor_telephone': vendor_telephone, 'total_qty': total_qty, 'receipt_type': receipt_type,
                  'title': title, 'ship_to_address': ship_to_address,
                  'gstin_no': gstin_no, 'w_address': get_purchase_company_address(profile), 'wh_telephone': wh_telephone}
-    #t = loader.get_template('templates/toggle/po_download.html')
-    t = loader.get_template('templates/toggle/po_template.html')
+    t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
     if get_misc_value('raise_po', user.id) == 'true':
         write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
@@ -4377,8 +4376,7 @@ def confirm_add_po(request, sales_data='', user=''):
                  'gstin_no': gstin_no, 'industry_type': industry_type, 'expiry_date': expiry_date,
                  'wh_telephone': wh_telephone}
 
-    #t = loader.get_template('templates/toggle/po_download.html')
-    t = loader.get_template('templates/toggle/po_template.html')
+    t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
     if get_misc_value('raise_po', user.id) == 'true':
         write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, phone_no, po_data,
@@ -4562,8 +4560,7 @@ def confirm_po1(request, user=''):
                          'w_address': get_purchase_company_address(profile), 'ship_to_address': ship_to_address,
                          'wh_telephone': wh_telephone}
 
-            #t = loader.get_template('templates/toggle/po_download.html')
-            t = loader.get_template('templates/toggle/po_template.html')
+            t = loader.get_template('templates/toggle/po_download.html')
             rendered = t.render(data_dict)
             if get_misc_value('raise_po', user.id) == 'true':
                 write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,

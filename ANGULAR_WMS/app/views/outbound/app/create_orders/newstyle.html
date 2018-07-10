@@ -1,13 +1,13 @@
 <style>
 	.card {
 		transform: translate3d(0px, 0px, 0px);
-    transition-duration: 0.25s;
-    transition-property: transform, opacity, margin-top;
-    transition-timing-function: ease-in-out;
-    background-color: #fff;
-    border-radius: 3px;
-    /*box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);*/
-    box-shadow: none;
+	    transition-duration: 0.25s;
+	    transition-property: transform, opacity, margin-top;
+	    transition-timing-function: ease-in-out;
+	    background-color: #fff;
+	    border-radius: 3px;
+	    /*box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);*/
+	    box-shadow: none;
 	}
 
 	.card > .item {
@@ -32,6 +32,17 @@
 		width: 40px;
 		height: 20px
 	}
+	
+	ul {list-style: none;padding: 0px;margin: 0px;}
+	ul li {display: block;position: relative;float: left}
+	li ul {display: none;}
+	ul li a {display: block;padding: 10px 30px 10px 30px;text-decoration: none; white-space: nowrap;color: #fff;}
+	ul li a:hover {background: #000;}
+	li:hover ul {display: block; position: absolute;z-index: 1000}
+	li:hover li {float: none;z-index: 1000}
+	li:hover a {background: #ed1c24;z-index: 1}
+	li:hover li a:hover {background: #000;z-index: 1}
+	#drop-nav li ul li {border-top: 0px;}
 </style>
 
 <div class="clearfix" ng-controller="AppNewStyle as Style" style="background: #f0f0f0;">
@@ -41,6 +52,23 @@
   </div>
 
   <div class="row style-menu" style="line-height: 40px;">
+  	<div class="col-md-10 col-sm-10 col-xs-2">
+      <div class="menu-left">
+        <ul id="drop-nav">
+			<li ng-repeat="list in Style.main_menus"><a href="#">{{list.name}}</a>
+				<ul ng-if="list.sub_menus">
+			      <li ng-repeat="sub_list in list.sub_menus"><a href="#">{{sub_list}}</a></li>
+			    </ul>
+		  	</li>
+		</ul>
+      </div>
+    </div>
+    <div class="col-md-2 col-sm-2 col-xs-2">
+      <a class="fa fa-power-off pull-right fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" ng-click="showCase.logout()"></a>
+    </div>
+  </div>
+
+  <!-- <div class="row style-menu" style="line-height: 40px;">
   	<div class="col-md-4 col-sm-4 col-xs-8">
       <div class="menu-left">
         <span ng-click="$state.go('user.App.Products'); showCase.redirect_from_orders(false, false)"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i>&nbsp; Back</span>
@@ -52,7 +80,7 @@
     <div class="col-md-4 col-sm-4 col-xs-4">
       <a class="fa fa-power-off pull-right fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" ng-click="showCase.logout()"></a>
     </div>
-  </div>
+  </div> -->
 
   <!-- Search box div -->
   <div class="row search-items pt15 search-box" style="background: #fff">
@@ -125,11 +153,17 @@
 		<div class="col-lg-3 col-md-3 visible-md visible-lg mt10">
 			<div class="card" style="padding: 10px">
 				<h5>Price Details</h5>
-				<ul class="list-group">
-				  <li class="list-group-item">Sub Total (15 Qty)<span class="badge">Rs 12.00</span></li>
-				  <li class="list-group-item">Tax Amount <span class="badge">Rs 25.00</span></li> 
-				  <li class="list-group-item">Total Amount <span class="badge">Rs 500.00</span></li> 
-				</ul>
+				<div class="list-group">
+					<div class="list-group-item">
+						Sub Total (15 Qty)<span class="badge">Rs 12.00</span>
+					</div>
+					<div class="list-group-item">
+						Tax Amount <span class="badge">Rs 25.00</span>
+					</div>
+					<div class="list-group-item">
+						Total Amount <span class="badge">Rs 500.00</span>
+					</div>
+				</div>
 			</div>
 		</div>
   </div>

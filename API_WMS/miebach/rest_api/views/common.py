@@ -403,7 +403,8 @@ def get_search_params(request, user=''):
                     'order_id': 'order_id', 'job_code': 'job_code', 'job_order_code': 'job_order_code',
                     'fg_sku_code': 'fg_sku_code',
                     'rm_sku_code': 'rm_sku_code', 'pallet': 'pallet',
-                    'staff_id': 'id', 'ean': 'ean', 'invoice_number': 'invoice_number'}
+                    'staff_id': 'id', 'ean': 'ean', 'invoice_number': 'invoice_number',
+                    'supplier_id': 'supplier_id'}
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
                       'search2': 'search_2', 'search3': 'search_3',
@@ -462,6 +463,7 @@ data_datatable = {  # masters
     'SupplierInvoices': 'get_supplier_invoice_data', \
     'POPaymentTrackerInvBased': 'get_inv_based_po_payment_data', \
     'ReturnToVendor': 'get_po_putaway_data', \
+    'CreatedRTV': 'get_saved_rtvs', \
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
     'PickelistGenerated': 'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo', \
@@ -2301,6 +2303,7 @@ def get_financial_year(date):
 
 def get_challan_number(user, seller_order_summary):
     challan_num = ""
+    challan_number = ""
     chn_date = datetime.datetime.now()
     invoice_no_gen = MiscDetail.objects.filter(user=user.id, misc_type='increment_invoice')
     if invoice_no_gen:
@@ -2326,6 +2329,8 @@ def get_challan_number(user, seller_order_summary):
                                                    creation_date=datetime.datetime.now())
                     order_no = '001'
                     challan_num = int(order_no)
+            elif invoice_no_gen[0].misc_value == 'true' and challan_num:
+                seller_order_summary.update(challan_number=challan_num)
             else:
                 log.info("Challan No not updated for seller_order_summary")
         challan_number = 'CHN/%s/%s' % (chn_date.strftime('%m%y'), challan_num)
@@ -3998,7 +4003,7 @@ def get_categories_list(request, user=""):
 
 
 def get_generic_warehouses_list(user):
-   return UserGroups.objects.filter(admin_user=user).values_list('user', flat=True)
+   return UserGroups.objects.filter(admin_user=user).exclude(user__userprofile__warehouse_level=2).values_list('user', flat=True)
 
 @fn_timer
 def get_cal_style_data(style_data, quantity):
@@ -6138,6 +6143,8 @@ def get_user_profile_data(request, user=''):
     data['main_user'] = request.user.is_staff
     data['company_name'] = main_user.company_name
     data['cin_number'] = request.user.userprofile.cin_number
+    data['wh_address'] = main_user.wh_address
+    data['wh_phone_number'] = main_user.wh_phone_number
     return HttpResponse(json.dumps({'msg': 1, 'data': data}))
 
 
@@ -6204,11 +6211,15 @@ def update_profile_data(request, user=''):
     company_name = request.POST.get('company_name', '')
     email = request.POST.get('email', '')
     cin_number = request.POST.get('cin_number', '')
+    wh_address = request.POST.get('wh_address', '')
+    wh_phone_number = request.POST.get('wh_phone_number', '')
     main_user = UserProfile.objects.get(user_id=user.id)
     main_user.address = address
     main_user.gst_number = gst_number
     main_user.company_name = company_name
     main_user.cin_number = cin_number
+    main_user.wh_address = wh_address
+    main_user.wh_phone_number = wh_phone_number
     main_user.save()
     user.email = email
     user.save()
@@ -7009,6 +7020,7 @@ def get_gen_wh_ids(request, user, delivery_date):
     res_lead_time = 0
     if admin:
         gen_whs = list(get_generic_warehouses_list(admin))
+        gen_whs.append(user.id)
         cm_obj = CustomerUserMapping.objects.filter(user=request.user.id)
         if cm_obj:
             cm_id = cm_obj[0].customer

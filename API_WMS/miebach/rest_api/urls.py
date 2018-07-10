@@ -170,6 +170,8 @@ urlpatterns = [
     url(r'^po_update_payment_status/$', po_update_payment_status),
     url(r'^get_po_putaway_summary/$', get_po_putaway_summary),
     url(r'^create_rtv/$', create_rtv),
+    url(r'^save_rtv/$', save_rtv),
+    url(r'^get_saved_rtv_data/$', get_saved_rtv_data),
 
     # Production
     url(r'^generated_jo_data/$', generated_jo_data),
@@ -322,6 +324,7 @@ urlpatterns = [
     url(r'^get_supplier_details/$', get_supplier_details),
     url(r'^get_sku_filter/$', get_sku_filter),
     url(r'^get_po_filter/$', get_po_filter),
+    url(r'^get_sku_wise_po_filter/$', get_sku_wise_po_filter),
     url(r'^get_location_filter/$', get_location_filter),
     url(r'^get_receipt_filter/$', get_receipt_filter),
     url(r'^get_dispatch_filter/$', get_dispatch_filter),

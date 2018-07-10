@@ -73,10 +73,11 @@
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="user.user_profile.user_type == 'marketplace_user'">
               <div class="form-group">
                 <label class="control-label"> Seller </label>
-                <select class="form-control zone" name="seller_id" ng-model="showCase.model_data.seller_type"
+                <select ng-if="!showCase.update" class="form-control zone" name="seller_id" ng-model="showCase.model_data.seller_type"
                         ng-change="showCase.seller_change(showCase.model_data.seller_type)" ng-init="showCase.model_data.seller_type=showCase.model_data.seller_types[0]; showCase.seller_change(showCase.model_data.seller_type)">
-                  <option ng-repeat="type in showCase.model_data.seller_types" value="{{type}}">{{type}}</option>
+                  <option ng-repeat="type in showCase.model_data.seller_types" ng-selected="showCase.model_data.seller_type==type" value="{{type}}">{{type}}</option>
                 </select>
+                <input type="text" ng-if="showCase.update" ng-model="showCase.model_data.seller_type" name="seller_id" class="form-control">
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="user.user_profile.user_type == 'marketplace_user'">
@@ -171,10 +172,11 @@
                       <input type="text" ng-model="product.fields.remarks" name="remarks" class="form-control" 
                              ng-readonly="showCase.default_status">
                     </td>
-                    <td ng-if="user.user_profile.user_type == 'marketplace_user'" id="tabChangeParent">
-                      <input type="text" ng-model="product.fields.dedicated_seller" id="tabChange" name="dedicated_seller" class="form-control detectTab" ng-readonly="showCase.default_status">
+                    <td ng-if="user.user_profile.user_type == 'marketplace_user'" id="tabChangeParent" ng-init="product.fields.dedicated_seller = showCase.model_data.seller_type">
+                      <input type="text" ng-model="product.fields.dedicated_seller" id="tabChange" name="dedicated_seller" class="form-control detectTab" ng-readonly="showCase.update && !product.fields.is_new">
                       <input type="hidden" id="skuIndex" name="sku_index" class="form-control" value="{{$index}}">
                     </td>
+
                     <td><i ng-click="showCase.update_data($index)" ng-class="showCase.service.isLast($last)"></i></td>
                   </tr>
                 </tbody>

@@ -85,7 +85,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
               vm.update_part = false;
               var empty_data = {"supplier_id":vm.supplier_id,
                       "po_name": "",
-                      "ship_to": "",
+                      "ship_to": data.data.ship_to,
                       "receipt_type": data.data.receipt_type,
                       "seller_types": [],
                       "total_price": 0,
@@ -103,6 +103,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
               if(vm.model_data.receipt_type == 'Hosted Warehouse') {
 
                 vm.model_data.seller_type = vm.model_data.data[0].fields.dedicated_seller;
+                vm.dedicated_seller = vm.model_data.data[0].fields.dedicated_seller;
               }
 
               angular.forEach(vm.model_data.data, function(data){
@@ -124,10 +125,16 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
                   vm.model_data.tax = data.data.tax;
                   vm.model_data.seller_supplier_map = data.data.seller_supplier_map;
                   vm.model_data["receipt_types"] = data.data.receipt_types;
+                  vm.model_data.seller_type = vm.dedicated_seller;
                   angular.forEach(seller_data, function(seller_single){
                     vm.model_data.seller_types.push(seller_single.id + ':' + seller_single.name);
                   });
-                  Data.seller_types = vm.model_data.seller_types;
+
+                  angular.forEach(vm.model_data.data, function(data){
+
+                    data.fields.dedicated_seller = vm.dedicated_seller;
+                  })
+
                   vm.default_status = (Session.user_profile.user_type == 'marketplace_user' && Session.user_profile.industry_type != 'FMCG')? true : false;
                   vm.getCompany();
                   vm.seller_change1 = function(type) {
@@ -150,6 +157,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
 
               vm.model_data.suppliers = [vm.model_data.supplier_id];
               vm.model_data.supplier_id = vm.model_data.suppliers[0];
+              // vm.model_data.seller_type = vm.model_data.dedicated_seller;
               vm.vendor_receipt = (vm.model_data["Order Type"] == "Vendor Receipt")? true: false;
               vm.title = 'Update PO';
               vm.update = true;
@@ -267,8 +275,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       if (index == vm.model_data.data.length-1) {
         if (vm.model_data.data[index]["fields"]["sku"]["wms_code"] && vm.model_data.data[index]["fields"]["order_quantity"]) {
           vm.model_data.data.push({"fields": {"wms_code":"", "ean_number": "", "supplier_code":"", "order_quantity":"", "price":0,
-                                   "measurement_unit": "", "dedicated_seller": vm.selected_seller, "order_quantity": "","row_price": 0,
-                                   "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "cess_tax": "", "utgst_tax": "", "tax": ""
+                                   "measurement_unit": "", "dedicated_seller": vm.model_data.seller_type, "order_quantity": "","row_price": 0,
+                                   "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "cess_tax": "", "utgst_tax": "", "tax": "", "is_new":true
                                    }});
         }
       } else {
@@ -437,9 +445,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
                   vm.title = $(data.data).find('.modal-header h4').text().trim();
 
                 }
-                vm.html = $(data.data)[0];
-                var html = $(vm.html).closest("form").clone();
-                angular.element(".modal-body").html($(html).find(".modal-body > .form-group"));
+                //vm.html = $(data.data)[0];
+                //var html = $(vm.html).closest("form").clone();
+                //angular.element(".modal-body").html($(html).find(".modal-body > .form-group"));
+                vm.extra_width = {'width': '990px'};
+                vm.html = $(data.data);
+                angular.element(".modal-body").html($(data.data));
                 vm.print_enable = true;
               } else {
                 vm.service.pop_msg(data.data);

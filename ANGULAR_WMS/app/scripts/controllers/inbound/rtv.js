@@ -31,7 +31,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.user_type = Session.user_profile.user_type;
 
     vm.filters = {'datatable': vm.datatable, 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': ''
-                  , 'search5': '', 'search6': '', 'search7': ''};
+                  , 'search5': '', 'search6': '', 'search7': '', 'from_date': vm.date};
     
     vm.dtOptions = DTOptionsBuilder.newOptions()
      .withOption('ajax', {

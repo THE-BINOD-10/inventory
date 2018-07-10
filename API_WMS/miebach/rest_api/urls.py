@@ -364,6 +364,14 @@ urlpatterns = [
     url(r'^print_purchase_order_form/$', print_purchase_order_form),
     url(r'^get_shipment_report/$', get_shipment_report),
     url(r'^print_shipment_report/$', print_shipment_report),
+    url(r'^get_dist_sales_report/$', get_dist_sales_report),
+    url(r'^print_dist_sales_report/$', print_dist_sales_report),
+    url(r'^get_reseller_sales_report/$', get_reseller_sales_report),
+    url(r'^print_reseller_sales_report/$', print_reseller_sales_report),
+    url(r'^get_reseller_target_report/$', get_reseller_target_report),
+    url(r'^print_reseller_target_report/$', print_reseller_target_report),
+    url(r'^get_dist_target_report/$', get_dist_target_report),
+    url(r'^print_dist_target_report/$', print_dist_target_report),
 ]
 
 # urlpatterns += patterns('rest_api.views',
@@ -420,6 +428,8 @@ urlpatterns += [
     url(r'^network_master_upload/$', network_master_upload),
     url(r'^sku_substitution_form/$', sku_substitution_form),
     url(r'^sku_substitution_upload/$', sku_substitution_upload),
+    url(r'^targets_form/$', targets_form),
+    url(r'^targets_upload/$', targets_upload),
 
     # configurations
     url(r'^configurations/$', configurations),

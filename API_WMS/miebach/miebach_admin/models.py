@@ -2736,3 +2736,16 @@ class ReturnToVendor(models.Model):
 
     class Meta:
         db_table = 'RETURN_TO_VENDOR'
+
+
+class TargetMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User, blank=True, null=True)
+    target_level = models.CharField(max_length=64, default='')
+    target_amt = models.FloatField(default=0)
+    target_duration = models.IntegerField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'TARGET_MASTER'

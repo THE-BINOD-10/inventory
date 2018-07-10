@@ -505,6 +505,26 @@
             <span>Shipment</span>
           </a>
         </li>
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin'">
+          <a ui-sref="app.reports.DistributorWiseSalesReport">
+            <span>Distributor Wise Sales Report</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin'">
+          <a ui-sref="app.reports.ResellerWiseSalesReport">
+            <span>Reseller Wise Sales Report</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin'">
+          <a ui-sref="app.reports.DistTargetReport">
+            <span>Distributor Targets Report</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin'">
+          <a ui-sref="app.reports.ResellerTargetReport">
+            <span>Reseller Targets Report</span>
+          </a>
+        </li>
       </ul>
     </li>
     <!-- /extras -->

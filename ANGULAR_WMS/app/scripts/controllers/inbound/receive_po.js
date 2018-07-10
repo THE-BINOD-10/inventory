@@ -171,6 +171,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         return nRow;
     }
 
+    $(document).on('keydown', 'input.detectTab', function(e) { 
+      var keyCode = e.keyCode || e.which; 
+
+      if (keyCode == 9) { 
+        e.preventDefault();
+        vm.add_wms_code(Number(this.parentNode.children[1].value), false);
+      }
+    });
+
     $scope.getExpiryDate = function(index, parent_index){
         var mfg_date = new Date(vm.model_data.data[parent_index][index].mfg_date);
         var expiry = new Date(mfg_date.getFullYear(),mfg_date.getMonth(),mfg_date.getDate()+vm.shelf_life);
@@ -261,13 +270,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     
     vm.new_sku = false
     vm.add_wms_code = add_wms_code;
-    function add_wms_code() {
-      vm.model_data.data.push([{"wms_code":"", "po_quantity":0, "receive_quantity":0, "price":0, "dis": false,
+    function add_wms_code(index=0, flag=true) {
+      if (index==vm.model_data.data.length-1 && !flag || !index && flag) {
+        vm.model_data.data.push([{"wms_code":"", "po_quantity":0, "receive_quantity":"", "price":"", "dis": false,
                                 "order_id": '', "is_new": true, 'mrp': 0, "unit": "",
-                                "buy_price": 0, "cess_percent": 0, "tax_percent": 0, "total_amt": 0,
+                                "buy_price": "", "cess_percent": "", "tax_percent": "", "total_amt": "",
                                 "discount_percentage": 0,
                                 "sku_details": [{"fields": {"load_unit_handle": ""}}]}]);
-      //vm.new_sku = true
+        //vm.new_sku = true
+      }
     }
     vm.get_sku_details = function(data, selected) {
 

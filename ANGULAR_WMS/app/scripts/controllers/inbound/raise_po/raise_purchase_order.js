@@ -169,6 +169,15 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       return nRow;
     }
 
+  $(document).on('keydown', 'input.detectTab', function(e) { 
+    var keyCode = e.keyCode || e.which; 
+
+    if (keyCode == 9) { 
+      e.preventDefault(); 
+      vm.update_data(Number(this.parentNode.children[1].value), false);
+    }
+  });
+
     vm.update = false;
     vm.title = 'Raise PO';
     vm.bt_disable = true;
@@ -262,7 +271,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       vm.populate_last_transaction('');
     }
 
-    vm.update_data = function (index) {
+    vm.update_data = function (index, flag=true) {
       if (index == vm.model_data.data.length-1) {
         if (vm.model_data.data[index]["fields"]["sku"]["wms_code"] && vm.model_data.data[index]["fields"]["order_quantity"]) {
           vm.model_data.data.push({"fields": {"wms_code":"", "ean_number": "", "supplier_code":"", "order_quantity":"", "price":0,
@@ -271,18 +280,20 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
                                    }});
         }
       } else {
-        if(vm.model_data.data[index].seller_po_id){
-            vm.delete_data('seller_po_id', vm.model_data.data[index].seller_po_id, index);
-        } else {
-            vm.delete_data('id', vm.model_data.data[index].pk, index);
+        if (flag) {
+          if(vm.model_data.data[index].seller_po_id){
+              vm.delete_data('seller_po_id', vm.model_data.data[index].seller_po_id, index);
+          } else {
+              vm.delete_data('id', vm.model_data.data[index].pk, index);
+          }
+          if(vm.permissions.show_purchase_history) {
+              $timeout( function() {
+                  vm.populate_last_transaction('delete')
+              }, 2000 );
+          }
+          vm.model_data.data.splice(index,1);
+          vm.getTotals();
         }
-        if(vm.permissions.show_purchase_history) {
-            $timeout( function() {
-                vm.populate_last_transaction('delete')
-            }, 2000 );
-        }
-        vm.model_data.data.splice(index,1);
-        vm.getTotals();
       }
     }
 

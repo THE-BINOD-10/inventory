@@ -358,7 +358,7 @@ class OpenPO(models.Model):
     order_quantity = models.FloatField(default=0, db_index=True)
     price = models.FloatField(default=0)
     wms_code = models.CharField(max_length=32, default='')
-    po_name = models.CharField(max_length=32, default='')
+    po_name = models.CharField(max_length=128, default='')
     supplier_code = models.CharField(max_length=32, default='')
     order_type = models.CharField(max_length=32, default='SR')
     remarks = models.CharField(max_length=256, default='')
@@ -372,6 +372,7 @@ class OpenPO(models.Model):
     delivery_date = models.DateField(blank=True, null=True)
     status = models.CharField(max_length=32)
     measurement_unit = models.CharField(max_length=32, default='')
+    ship_to = models.CharField(max_length=128, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -495,13 +496,14 @@ class StockDetail(models.Model):
     pallet_detail = models.ForeignKey(PalletDetail, blank=True, null=True)
     batch_detail = models.ForeignKey(BatchDetail, blank=True, null=True)
     quantity = models.FloatField(default=0)
+    unit_price = models.FloatField(default=0)
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'STOCK_DETAIL'
-        unique_together = ('receipt_number', 'receipt_date', 'sku', 'location', 'pallet_detail', 'batch_detail')
+        unique_together = ('receipt_number', 'receipt_date', 'sku', 'location', 'pallet_detail', 'batch_detail', 'unit_price')
         index_together = (('sku', 'location', 'quantity'), ('location', 'sku', 'pallet_detail'))
 
     def __unicode__(self):
@@ -801,6 +803,8 @@ class UserProfile(models.Model):
     country = models.CharField(max_length=60, default='')
     pin_code = models.PositiveIntegerField(default=0)
     address = models.CharField(max_length=256, default='')
+    wh_address = models.CharField(max_length=256, default='')
+    wh_phone_number = models.CharField(max_length=32, default='')
     gst_number = models.CharField(max_length=32, default='')
     multi_warehouse = models.IntegerField(default=0)
     is_trail = models.IntegerField(default=0)
@@ -1810,6 +1814,7 @@ class SellerPOSummary(models.Model):
     challan_number = models.CharField(max_length=64, default='')
     order_status_flag = models.CharField(max_length=64, default='processed_pos')
     challan_date = models.DateField(blank=True, null=True)
+    discount_percent = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -2264,20 +2269,6 @@ class InvoiceSequence(models.Model):
         index_together = ('user', 'marketplace')
         unique_together = ('user', 'marketplace')
 
-class ChallanSequence(models.Model):
-    id = BigAutoField(primary_key=True)
-    user = models.ForeignKey(User)
-    marketplace = models.CharField(max_length=64)
-    prefix = models.CharField(max_length=64)
-    value = models.PositiveIntegerField()
-    status = models.IntegerField(default=1)
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'CHALLAN_SEQUENCE'
-        index_together = ('user', 'marketplace')
-        unique_together = ('user', 'marketplace')
 
 class ChallanSequence(models.Model):
     id = BigAutoField(primary_key=True)
@@ -2737,6 +2728,7 @@ class ReturnToVendor(models.Model):
     id = BigAutoField(primary_key=True)
     rtv_number = models.CharField(max_length=32, default='')
     seller_po_summary = models.ForeignKey(SellerPOSummary, blank=True, null=True)
+    location = models.ForeignKey(LocationMaster, blank=True, null=True)
     quantity = models.FloatField(default=0)
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)

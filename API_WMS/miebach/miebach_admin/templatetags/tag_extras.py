@@ -219,3 +219,12 @@ def get_page_number_8(index, total):
     for i in range(total):
         if i*8 <= index and (i+1)*8 > index:
             return i+1
+
+@register.filter(name='lookup')
+def lookup(value, arg):
+    try:
+        lookup_value = value[arg]
+    except:
+        lookup_value = ''
+    return lookup_value
+

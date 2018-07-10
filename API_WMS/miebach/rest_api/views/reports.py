@@ -57,12 +57,10 @@ def get_report_data(request, user=''):
             data['filters'][data_index]['values'] = list(
                 OrderDetail.objects.exclude(sku__sku_category='').filter(user=user.id).values_list('sku__sku_category',
                                                                                                    flat=True).distinct())
-
         if 'order_report_status' in filter_keys:
             data_index = data['filters'].index(
                 filter(lambda person: 'order_report_status' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = ORDER_SUMMARY_REPORT_STATUS
-
     return HttpResponse(json.dumps({'data': data}))
 
 
@@ -123,6 +121,13 @@ def get_po_filter(request, user=''):
 
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_sku_wise_po_filter(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_sku_wise_po_filter_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 @csrf_exempt
 @login_required
@@ -377,10 +382,17 @@ def print_sku_wise_purchase(request, user=''):
 def get_supplier_details_data(search_params, user, sub_user):
     from rest_api.views.common import get_sku_master
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    order_term = search_params.get('order_term', 'asc')
+    order_index = search_params.get('order_index', 0)
     search_parameters = {}
     search_parameters['open_po__sku_id__in'] = sku_master_ids
     supplier_data = {'aaData': []}
     supplier_name = search_params.get('supplier')
+    lis = ['creation_date', 'order_id', 'open_po__supplier__name', 'total_ordered', 'total_received', 'order_id',
+           'order_id']
+    order_val = lis[order_index]
+    if order_term == 'desc':
+        order_val = '-%s' % lis[order_index]
     if supplier_name:
         suppliers = PurchaseOrder.objects.exclude(status='location-assigned').filter(
             open_po__supplier__id=supplier_name, received_quantity__lt=F('open_po__order_quantity'),
@@ -388,45 +400,51 @@ def get_supplier_details_data(search_params, user, sub_user):
     else:
         suppliers = PurchaseOrder.objects.exclude(status='location-assigned').filter(
             received_quantity__lt=F('open_po__order_quantity'), open_po__sku__user=user.id, **search_parameters)
+    purchase_orders = suppliers.values('order_id').distinct().annotate(total_ordered=Sum('open_po__order_quantity'),
+                                                                       total_received=Sum('received_quantity')). \
+                                                            order_by(order_val)
 
-    supplier_data['recordsTotal'] = len(suppliers)
-    supplier_data['recordsFiltered'] = len(suppliers)
+    supplier_data['recordsTotal'] = suppliers.count()
+    supplier_data['recordsFiltered'] = suppliers.count()
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
     all_amount = [(supplier.open_po.order_quantity * supplier.open_po.price) for supplier in suppliers]
     total_charge = sum(all_amount)
     if stop_index:
-        suppliers = suppliers[start_index:stop_index]
+        purchase_orders = purchase_orders[start_index:stop_index]
 
-    for supplier in suppliers:
-        price, quantity = supplier.open_po.price, supplier.open_po.order_quantity
-
-        amount = price * quantity
-        design_codes = SKUSupplier.objects.filter(supplier=supplier.open_po.supplier, sku=supplier.open_po.sku,
+    for purchase_order in purchase_orders:
+        po_data = suppliers.filter(order_id=purchase_order['order_id'])
+        total_amt = 0
+        for po in po_data:
+            price, quantity = po.open_po.price, po.open_po.order_quantity
+            taxes = po.open_po.cgst_tax + po.open_po.sgst_tax + po.open_po.igst_tax + po.open_po.utgst_tax
+            amt = price * quantity
+            total_amt += amt + ((amt/100)*taxes)
+        total_amt = truncate_float(total_amt, 2)
+        po_obj = po_data[0]
+        design_codes = SKUSupplier.objects.filter(supplier=po_obj.open_po.supplier, sku=po_obj.open_po.sku,
                                                   sku__user=user.id)
         supplier_code = ''
         if design_codes:
             supplier_code = design_codes[0].supplier_code
         status = ''
-        if supplier.received_quantity == 0:
+        if purchase_order['total_received'] == 0:
             status = 'Yet to Receive'
-        elif (supplier.open_po.order_quantity - supplier.received_quantity) == 0:
+        elif purchase_order['total_ordered'] - purchase_order['total_received'] <= 0:
             status = 'Received'
         else:
             status = 'Partially Received'
-        supplier_data['aaData'].append(OrderedDict((('Order Date', str(supplier.po_date).split(' ')[0]),
-                                                    ('PO Number', '%s%s_%s' % (supplier.prefix,
-                                                                               str(supplier.po_date).split(' ')[
-                                                                                   0].replace('-', ''),
-                                                                               supplier.order_id)),
-                                                    ('Supplier Name', supplier.open_po.supplier.name),
-                                                    ('WMS Code', supplier.open_po.sku.wms_code),
+        supplier_data['aaData'].append(OrderedDict((('Order Date', get_local_date(user, po_obj.po_date)),
+                                                    ('PO Number', get_po_reference(po_obj)),
+                                                    ('Supplier Name', po_obj.open_po.supplier.name),
+                                                    ('WMS Code', po_obj.open_po.sku.wms_code),
                                                     ('Design', supplier_code),
-                                                    ('Ordered Quantity', supplier.open_po.order_quantity),
-                                                    ('Amount', amount),
-                                                    ('Received Quantity', supplier.received_quantity),
-                                                    ('Status', status), ('order_id', supplier.order_id))))
+                                                    ('Ordered Quantity', purchase_order['total_ordered']),
+                                                    ('Amount', total_amt),
+                                                    ('Received Quantity', purchase_order['total_received']),
+                                                    ('Status', status), ('order_id', po_obj.order_id))))
     supplier_data['total_charge'] = total_charge
     return supplier_data
 
@@ -680,6 +698,8 @@ def print_po_reports(request, user=''):
     po_data = {headers: []}
     if po_id:
         results = PurchaseOrder.objects.filter(order_id=po_id, open_po__sku__user=user.id)
+        if receipt_no:
+            results = results.distinct().filter(sellerposummary__receipt_number=receipt_no)
     elif po_summary_id:
         results = SellerPOSummary.objects.filter(id=po_summary_id, purchase_order__open_po__sku__user=user.id)
     total = 0
@@ -691,8 +711,9 @@ def print_po_reports(request, user=''):
             quantity = data.received_quantity
             bill_date = data.updation_date
             if receipt_no:
-                seller_summary_obj = data.sellerposummary_set.filter(receipt_number=receipt_no)[0]
-                quantity = seller_summary_obj.quantity
+                seller_summary_objs = data.sellerposummary_set.filter(receipt_number=receipt_no)
+                seller_summary_obj = seller_summary_objs[0]
+                quantity = seller_summary_objs.aggregate(Sum('quantity'))['quantity__sum']
                 bill_no = seller_summary_obj.invoice_number if seller_summary_obj.invoice_number else ''
                 bill_date = seller_summary_obj.invoice_date if seller_summary_obj.invoice_date else data.updation_date
             open_data = data.open_po

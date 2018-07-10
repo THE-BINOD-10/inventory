@@ -170,6 +170,8 @@ urlpatterns = [
     url(r'^po_update_payment_status/$', po_update_payment_status),
     url(r'^get_po_putaway_summary/$', get_po_putaway_summary),
     url(r'^create_rtv/$', create_rtv),
+    url(r'^save_rtv/$', save_rtv),
+    url(r'^get_saved_rtv_data/$', get_saved_rtv_data),
 
     # Production
     url(r'^generated_jo_data/$', generated_jo_data),
@@ -274,6 +276,7 @@ urlpatterns = [
     url(r'^delete_customer_cart_data/$', delete_customer_cart_data),
     url(r'^generate_customer_invoice/$', generate_customer_invoice),
     url(r'^generate_customer_invoice_tab/$', generate_customer_invoice_tab),
+    url(r'^generate_stock_transfer_invoice/$', generate_stock_transfer_invoice),
     url(r'^seller_generate_picklist/$', seller_generate_picklist),
     url(r'^customer_invoice_data/$', customer_invoice_data),
     url('^get_custom_template_styles/$', get_custom_template_styles),
@@ -321,6 +324,7 @@ urlpatterns = [
     url(r'^get_supplier_details/$', get_supplier_details),
     url(r'^get_sku_filter/$', get_sku_filter),
     url(r'^get_po_filter/$', get_po_filter),
+    url(r'^get_sku_wise_po_filter/$', get_sku_wise_po_filter),
     url(r'^get_location_filter/$', get_location_filter),
     url(r'^get_receipt_filter/$', get_receipt_filter),
     url(r'^get_dispatch_filter/$', get_dispatch_filter),
@@ -497,6 +501,7 @@ urlpatterns += [
     url('^get_extra_fields/$', get_extra_fields),
     url('^get_staff_members_list/$', get_staff_members_list),
     url(r'^pos_tax_inclusive/$', pos_tax_inclusive),
+    url(r'^stock_transfer_invoice_data/$', stock_transfer_invoice_data),
 
 ]
 

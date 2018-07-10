@@ -424,6 +424,17 @@ GRN_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'type': 'dat
             'dt_url': 'get_po_filter', 'excel_name': 'goods_receipt', 'print_url': '',
             }
 
+SKU_WISE_GRN_DICT = {'filters' : [
+			{'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+                        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+                        {'label': 'PO Number', 'name': 'open_po', 'type': 'input'},
+                        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'}
+		    ],
+		'dt_headers': ["Received Date", "PO Date", "PO Number", "Supplier ID", "Supplier Name", "Recepient", "SKU Code", "SKU Description", "SKU Class", "SKU Style Name", "SKU Brand", "SKU Category", "Received Qty", "Unit Rate", "Pre-Tax Received Value", "CGST(%)", "SGST(%)", "IGST(%)", "UTGST(%)", "Post-Tax Received Value", "Invoiced Unit Rate", "Invoiced Total Amount"],
+		'mk_dt_headers': [ "Received Date", "PO Date", "PO Number", "Supplier ID", "Supplier Name", "Recepient", "SKU Code", "SKU Description", "SKU Class", "SKU Style Name", "SKU Brand", "SKU Category", "Received Qty", "Unit Rate", "Pre-Tax Received Value", "CGST(%)", "SGST(%)", "IGST(%)", "UTGST(%)", "Post-Tax Received Value", "Margin %", "Margin", "Invoiced Unit Rate", "Invoiced Total Amount" ],
+		'dt_url': 'get_sku_wise_po_filter', 'excel_name': 'goods_receipt', 'print_url': '',
+	   }
+
 SELLER_INVOICE_DETAILS_DICT = {
     'filters': [{'label': 'From Date', 'name': 'from_date', 'type': 'date'},
                 {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
@@ -549,7 +560,7 @@ RESELLER_TARGET_REPORT = {
 
 REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report': OPEN_JO_REP_DICT,
                      'sku_wise_po_report': SKU_WISE_PO_DICT,
-                     'grn_report': GRN_DICT, 'seller_invoice_details': SELLER_INVOICE_DETAILS_DICT,
+                     'grn_report': GRN_DICT, 'sku_wise_grn_report' : SKU_WISE_GRN_DICT, 'seller_invoice_details': SELLER_INVOICE_DETAILS_DICT,
                      'rm_picklist_report': RM_PICKLIST_REPORT_DICT, 'stock_ledger_report': STOCK_LEDGER_REPORT_DICT,
                      'shipment_report': SHIPMENT_REPORT_DICT, 'dist_sales_report': DIST_SALES_REPORT_DICT,
                      'reseller_sales_report': RESELLER_SALES_REPORT_DICT, 'dist_target_report': DIST_TARGET_REPORT,
@@ -597,7 +608,9 @@ SALES_RETURNS_HEADERS = ['Return ID', 'Order ID', 'SKU Code', 'Return Quantity',
 INVENTORY_EXCEL_MAPPING = OrderedDict(( ('Seller ID', 'seller_id'), ('Receipt Date(YYYY-MM-DD)', 'receipt_date'), ('WMS SKU', 'wms_code'),
                               ('Location', 'location'), ('Quantity', 'quantity'),
                               ('Receipt Type', 'receipt_type'), ('Pallet Number', 'pallet_number'),
-                              ('Batch Number', 'batch_no'), ('MRP', 'mrp')
+                              ('Batch Number', 'batch_no'), ('MRP', 'mrp'),
+                              ('Manufactured Date(YYYY-MM-DD)', 'manufactured_date'),
+                              ('Expiry Date(YYYY-MM-DD)', 'expiry_date')
                             ))
 
 SKU_EXCEL = (
@@ -1045,6 +1058,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_shipment_report': 'get_shipment_report_data',
                         'get_dist_sales_report': 'get_dist_sales_report_data',
                         'get_reseller_sales_report': 'get_reseller_sales_report_data',
+                        'sku_wise_goods_receipt' : 'get_sku_wise_po_filter_data'
                         }
 # End of Download Excel Report Mapping
 
@@ -1407,6 +1421,8 @@ MP_CUSTOMER_INVOICE_HEADERS = ['UOR ID', 'SOR ID', 'Seller ID', 'Customer Name',
 WH_CUSTOMER_INVOICE_HEADERS = ['Order ID', 'Customer Name', 'Order Quantity', 'Picked Quantity', 'Order Date&Time',
                                'Total Amount']
 WH_CUSTOMER_INVOICE_HEADERS_TAB = ['Customer Name', 'Order Quantity', 'Picked Quantity', 'Order Date&Time', 'Total Amount']
+
+STOCK_TRANSFER_INVOICE_HEADERS = ['Stock Transfer ID', 'Warehouse Name', 'Picked Quantity', 'Stock Transfer Date&Time', 'Total Amount']
 
 DIST_CUSTOMER_INVOICE_HEADERS = ['Gen Order Id', 'Order Ids', 'Customer Name', 'Order Quantity', 'Picked Quantity',
                                  'Order Date&Time', 'Total Amount']
@@ -1861,7 +1877,8 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False):
                'picked_quantity', 'picked_quantity', 'updation_date', 'updation_date']
         model_obj = Picklist
         param_keys = {'wms_code': 'stock__sku__wms_code', 'sku_code': 'stock__sku__sku_code'}
-        search_parameters['status__in'] = ['picked', 'batch_picked', 'dispatched']
+        search_parameters['status__in'] = ['open', 'batch_open', 'picked', 'batch_picked', 'dispatched']
+        search_parameters['picked_quantity__gt'] = 0
         search_parameters['stock__gt'] = 0
         search_parameters['order__user'] = user.id
         search_parameters['stock__sku_id__in'] = sku_master_ids
@@ -1915,7 +1932,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False):
         if not serial_view:
             pick_locs = data.picklistlocation_set.exclude(reserved=0, quantity=0)
             for pick_loc in pick_locs:
-                picked_quantity = pick_loc.quantity
+                picked_quantity = float(pick_loc.quantity) - float(pick_loc.reserved)
                 date = get_local_date(user, data.updation_date).split(' ')
                 order_id = data.order.original_order_id
                 if not order_id:
@@ -2042,21 +2059,20 @@ def sku_wise_purchase_data(search_params, user, sub_user):
 
     return temp_data
 
-
-def get_po_filter_data(search_params, user, sub_user):
+def get_sku_wise_po_filter_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     user_profile = UserProfile.objects.get(user_id=user.id)
     is_market_user = False
-    #if user_profile.user_type == 'marketplace_user':
-    #    is_market_user = True
+    if user_profile.user_type == 'marketplace_user':
+        is_market_user = True
     if is_market_user:
         unsorted_dict = {14: 'Pre-Tax Received Value', 19: 'Post-Tax Received Value', 20: 'Margin',
                          22: 'Invoiced Unit Rate',
                          23: 'Invoiced Total Amount'}
         lis = ['purchase_order__updation_date', 'purchase_order__creation_date', 'purchase_order__order_id',
-               'purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name', 'id',
+     	       'purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name', 'id',
                'purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
                'purchase_order__open_po__sku__sku_class',
                'purchase_order__open_po__sku__style_name', 'purchase_order__open_po__sku__sku_brand',
@@ -2085,54 +2101,67 @@ def get_po_filter_data(search_params, user, sub_user):
                          'purchase_order__open_po__utgst_tax',
                          'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price', 'id',
                          'seller_po__receipt_type', 'receipt_number']
-        excl_status = {'purchase_order__status': ''}
-        ord_quan = 'quantity'
-        rec_quan = 'quantity'
-        rec_quan1 = 'quantity'
     else:
-        lis = ['order_id', 'open_po__supplier_id', 'open_po__supplier__name', 'ordered_qty']
-        unsorted_dict = {}
-        model_name = PurchaseOrder
-        field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date', 'order_id': 'order_id',
-                         'wms_code': 'open_po__sku__wms_code__iexact', 'user': 'open_po__sku__user',
-                         'sku_id__in': 'open_po__sku_id__in',
-                         'prefix': 'prefix', 'supplier_id': 'open_po__supplier_id',
-                         'supplier_name': 'open_po__supplier__name'}
-        result_values = ['order_id', 'open_po__supplier_id', 'open_po__supplier__name', 'prefix',
-                         'sellerposummary__receipt_number']
-        excl_status = {'status': ''}
-        ord_quan = 'open_po__order_quantity'
-        rec_quan = 'received_quantity'
-        rec_quan1 = 'sellerposummary__quantity'
+        unsorted_dict = {14: 'Pre-Tax Received Value', 19: 'Post-Tax Received Value', 20: 'Margin',
+                         22: 'Invoiced Unit Rate',
+                         23: 'Invoiced Total Amount'}
+        model_name = SellerPOSummary
+        lis = ['purchase_order__updation_date', 'purchase_order__creation_date', 'purchase_order__order_id',
+               'purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name', 'id',
+               'purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
+               'purchase_order__open_po__sku__sku_class',
+               'purchase_order__open_po__sku__style_name', 'purchase_order__open_po__sku__sku_brand',
+               'purchase_order__open_po__sku__sku_category', 'total_received', 'purchase_order__open_po__price', 'id',
+               'purchase_order__open_po__cgst_tax', 'purchase_order__open_po__sgst_tax',
+               'purchase_order__open_po__igst_tax',
+               'purchase_order__open_po__utgst_tax', 'id', 'seller_po__margin_percent', 'id', 'id', 'id',
+               'seller_po__receipt_type']
+        field_mapping = {'from_date': 'purchase_order__creation_date', 'to_date': 'purchase_order__creation_date',
+                         'order_id': 'purchase_order__order_id',
+                         'wms_code': 'purchase_order__open_po__sku__wms_code__iexact',
+                         'user': 'purchase_order__open_po__sku__user',
+                         'sku_id__in': 'purchase_order__open_po__sku_id__in',
+                         'prefix': 'purchase_order__prefix', 'supplier_id': 'purchase_order__open_po__supplier_id',
+                         'supplier_name': 'purchase_order__open_po__supplier__name',
+                         'receipt_type': 'seller_po__receipt_type'}
+        result_values = ['purchase_order__order_id', 'purchase_order__open_po__supplier_id',
+                         'purchase_order__open_po__supplier__name',
+                         'purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
+                         'purchase_order__open_po__sku__sku_class', 'purchase_order__open_po__sku__style_name',
+                         'purchase_order__open_po__sku__sku_brand', 'purchase_order__open_po__sku__sku_category',
+                         'purchase_order__received_quantity', 'purchase_order__open_po__price',
+                         'purchase_order__open_po__cgst_tax',
+                         'purchase_order__open_po__sgst_tax', 'purchase_order__open_po__igst_tax',
+                         'purchase_order__open_po__utgst_tax',
+                         'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price', 'id',
+                         'seller_po__receipt_type', 'receipt_number']
+    excl_status = {'purchase_order__status': ''}
+    ord_quan = 'quantity'
+    rec_quan = 'quantity'
+    rec_quan1 = 'quantity'
+
 
     search_parameters = {}
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
-
     temp_data = copy.deepcopy(AJAX_DATA)
     temp_data['draw'] = search_params.get('draw')
-
     if 'from_date' in search_params:
         search_parameters[field_mapping['from_date'] + '__gte'] = search_params['from_date']
     if 'to_date' in search_params:
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
         search_parameters[field_mapping['to_date'] + '__lte'] = search_params['to_date']
-
     if 'open_po' in search_params and search_params['open_po']:
         temp = re.findall('\d+', search_params['open_po'])
         if temp:
-            search_parameters[field_mapping['order_id']] = temp[-1]
-
+			search_parameters[field_mapping['order_id']] = temp[-1]
     if 'sku_code' in search_params:
         search_parameters[field_mapping['wms_code']] = search_params['sku_code']
-
     search_parameters[field_mapping['user']] = user.id
     search_parameters[field_mapping['sku_id__in']] = sku_master_ids
     query_data = model_name.objects.exclude(**excl_status).filter(**search_parameters)
-    model_data = query_data.values(*result_values).distinct().annotate(ordered_qty=Sum(ord_quan),
-                                                                       total_received=Sum(rec_quan),
-                                                                       grn_rec=Sum(rec_quan1))
+    model_data = query_data.values(*result_values).distinct().annotate(ordered_qty=Sum(ord_quan), total_received=Sum(rec_quan), grn_rec=Sum(rec_quan1))
     col_num = search_params.get('order_index', 0)
     order_term = search_params.get('order_term', 'asc')
     if order_term:
@@ -2140,94 +2169,153 @@ def get_po_filter_data(search_params, user, sub_user):
         if order_term == 'desc':
             order_data = "-%s" % order_data
         model_data = model_data.order_by(order_data)
-
     temp_data['recordsTotal'] = model_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
-
     custom_search = False
     if col_num in unsorted_dict.keys():
         custom_search = True
-
     if stop_index and not custom_search:
         model_data = model_data[start_index:stop_index]
-
     purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user=user.id)
     for data in model_data:
         result = purchase_orders.filter(order_id=data[field_mapping['order_id']], open_po__sku__user=user.id)[0]
-        po_number = '%s%s_%s' % (
-        data[field_mapping['prefix']], str(result.creation_date).split(' ')[0].replace('-', ''),
-        data[field_mapping['order_id']])
-        if not is_market_user:
-            receipt_no = data['sellerposummary__receipt_number']
-            if not receipt_no:
-                receipt_no = ''
-            else:
-                po_number = '%s/%s' % (po_number, receipt_no)
-            received_qty = data['total_received']
-            if data['grn_rec']:
-                received_qty = data['grn_rec']
-            temp_data['aaData'].append(
-                OrderedDict((('PO Number', po_number), ('Supplier ID', data[field_mapping['supplier_id']]),
-                             ('Supplier Name', data[field_mapping['supplier_name']]),
-                             ('Order Quantity', data['ordered_qty']),
-                             ('Received Quantity', received_qty),
-                             ('DT_RowClass', 'results'), ('DT_RowAttr', {'data-id': data[field_mapping['order_id']]}),
-                             ('key', 'po_id'), ('receipt_type', 'Purchase Order'), ('receipt_no', receipt_no),
-                             )))
-        else:
-            receipt_no = data['receipt_number']
-            if not receipt_no:
-                receipt_no = ''
-            amount = float(data['total_received'] * data['purchase_order__open_po__price'])
-            tot_tax = float(data['purchase_order__open_po__cgst_tax']) + float(
-                data['purchase_order__open_po__sgst_tax']) + \
-                      float(data['purchase_order__open_po__igst_tax']) + float(
-                data['purchase_order__open_po__utgst_tax'])
-            aft_unit_price = float(data['purchase_order__open_po__price']) + (
-            float(data['purchase_order__open_po__price'] / 100) * tot_tax)
-            post_amount = aft_unit_price * float(data['total_received'])
-            margin_price = float(data['seller_po__unit_price'] - aft_unit_price)
-            if margin_price < 0:
-                margin_price = 0
-            margin_price = "%.2f" % (margin_price * float(data['total_received']))
-            final_price = data['seller_po__unit_price']
-            if not final_price:
-                final_price = aft_unit_price
-            invoice_total_amount = float(final_price) * float(data['total_received'])
-            temp_data['aaData'].append(OrderedDict((('Received Date', get_local_date(user, result.updation_date)),
-                                                    ('PO Date', get_local_date(user, result.creation_date)),
-                                                    ('PO Number', po_number),
-                                                    ('Supplier ID', data[field_mapping['supplier_id']]),
-                                                    ('Supplier Name', data[field_mapping['supplier_name']]),
-                                                    ('Recepient', user.userprofile.company_name),
-                                                    ('SKU Code', data['purchase_order__open_po__sku__sku_code']),
-                                                    ('SKU Description', data['purchase_order__open_po__sku__sku_desc']),
-                                                    ('SKU Class', data['purchase_order__open_po__sku__sku_class']),
-                                                    (
-                                                    'SKU Style Name', data['purchase_order__open_po__sku__style_name']),
-                                                    ('SKU Brand', data['purchase_order__open_po__sku__sku_brand']),
-                                                    (
-                                                    'SKU Category', data['purchase_order__open_po__sku__sku_category']),
-                                                    ('Received Qty', data['total_received']),
-                                                    ('Unit Rate', data['purchase_order__open_po__price']),
-                                                    ('Pre-Tax Received Value', amount),
-                                                    ('CGST(%)', data['purchase_order__open_po__cgst_tax']),
-                                                    ('SGST(%)', data['purchase_order__open_po__sgst_tax']),
-                                                    ('IGST(%)', data['purchase_order__open_po__igst_tax']),
-                                                    ('UTGST(%)', data['purchase_order__open_po__utgst_tax']),
-                                                    ('Post-Tax Received Value', post_amount),
-                                                    ('Margin %', data['seller_po__margin_percent']),
-                                                    ('Margin', margin_price),
-                                                    ('Invoiced Unit Rate', final_price),
-                                                    ('Invoiced Total Amount', invoice_total_amount),
-                                                    ('DT_RowAttr', {'data-id': data['id']}), ('key', 'po_summary_id'),
-                                                    ('receipt_type', data['seller_po__receipt_type']),
-                                                    ('receipt_no', 'receipt_no')
-                                                    )))
+        po_number = '%s%s_%s' % (data[field_mapping['prefix']], str(result.creation_date).split(' ')[0].replace('-', ''),data[field_mapping['order_id']])
+        receipt_no = data['receipt_number']
+        if not receipt_no:
+            receipt_no = ''
+        amount = float(data['total_received'] * data['purchase_order__open_po__price'])
+        tot_tax = float(data['purchase_order__open_po__cgst_tax']) + float(data['purchase_order__open_po__sgst_tax']) + float(data['purchase_order__open_po__igst_tax']) + float(data['purchase_order__open_po__utgst_tax'])
+        aft_unit_price = float(data['purchase_order__open_po__price']) + (float(data['purchase_order__open_po__price'] / 100) * tot_tax)
+        post_amount = aft_unit_price * float(data['total_received'])
+        seller_po_unit_price = data['seller_po__unit_price']
+        if not data['seller_po__unit_price']:
+            seller_po_unit_price = 0
+        margin_price = seller_po_unit_price - aft_unit_price
+        margin_price = float(abs(margin_price))
+        if margin_price < 0:
+            margin_price = 0
+        margin_price = "%.2f" % (margin_price * float(data['total_received']))
+        final_price = data['seller_po__unit_price']
+        if not final_price:
+            final_price = aft_unit_price
+        invoice_total_amount = float(final_price) * float(data['total_received'])
+        temp_data['aaData'].append(OrderedDict((('Received Date', get_local_date(user, result.updation_date)),
+                            ('PO Date', get_local_date(user, result.creation_date)),
+                            ('PO Number', po_number),
+                            ('Supplier ID', data[field_mapping['supplier_id']]),
+                            ('Supplier Name', data[field_mapping['supplier_name']]),
+                            ('Recepient', user.userprofile.company_name),
+                            ('SKU Code', data['purchase_order__open_po__sku__sku_code']),
+                            ('SKU Description', data['purchase_order__open_po__sku__sku_desc']),
+                            ('SKU Class', data['purchase_order__open_po__sku__sku_class']),
+                            (
+                            'SKU Style Name', data['purchase_order__open_po__sku__style_name']),
+                            ('SKU Brand', data['purchase_order__open_po__sku__sku_brand']),
+                            (
+                            'SKU Category', data['purchase_order__open_po__sku__sku_category']),
+                            ('Received Qty', data['total_received']),
+                            ('Unit Rate', data['purchase_order__open_po__price']),
+                            ('Pre-Tax Received Value', amount),
+                            ('CGST(%)', data['purchase_order__open_po__cgst_tax']),
+                            ('SGST(%)', data['purchase_order__open_po__sgst_tax']),
+                            ('IGST(%)', data['purchase_order__open_po__igst_tax']),
+                            ('UTGST(%)', data['purchase_order__open_po__utgst_tax']),
+                            ('Post-Tax Received Value', post_amount),
+                            ('Margin %', data['seller_po__margin_percent']),
+                            ('Margin', margin_price),
+                            ('Invoiced Unit Rate', final_price),
+                            ('Invoiced Total Amount', invoice_total_amount),
+                            ('DT_RowAttr', {'data-id': data['id']}), ('key', 'po_summary_id'),
+                            ('receipt_type', data['seller_po__receipt_type']),
+                            ('receipt_no', 'receipt_no')
+	)))
     if stop_index and custom_search:
         if temp_data['aaData']:
-            temp_data['aaData'] = apply_search_sort(temp_data['aaData'][0].keys(), temp_data['aaData'], order_term, '',
-                                                    col_num, exact=False)
+            temp_data['aaData'] = apply_search_sort(temp_data['aaData'][0].keys(), temp_data['aaData'], order_term, '', col_num, exact=False)
+            temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
+    return temp_data
+
+
+def get_po_filter_data(search_params, user, sub_user):
+    from miebach_admin.models import *
+    from rest_api.views.common import get_sku_master, get_local_date, apply_search_sort
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    lis = ['order_id', 'open_po__supplier_id', 'open_po__supplier__name', 'ordered_qty']
+    unsorted_dict = {}
+    model_name = PurchaseOrder
+    field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date', 'order_id': 'order_id', 'wms_code': 'open_po__sku__wms_code__iexact', 'user': 'open_po__sku__user', 'sku_id__in': 'open_po__sku_id__in', 'prefix': 'prefix', 'supplier_id': 'open_po__supplier_id', 'supplier_name': 'open_po__supplier__name'}
+    result_values = ['order_id', 'open_po__supplier_id', 'open_po__supplier__name', 'prefix',
+					 'sellerposummary__receipt_number']
+    excl_status = {'status': ''}
+    ord_quan = 'open_po__order_quantity'
+    rec_quan = 'received_quantity'
+    rec_quan1 = 'sellerposummary__quantity'
+    search_parameters = {}
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+    temp_data = copy.deepcopy(AJAX_DATA)
+    temp_data['draw'] = search_params.get('draw')
+    if 'from_date' in search_params:
+            search_parameters[field_mapping['from_date'] + '__gte'] = search_params['from_date']
+    if 'to_date' in search_params:
+            search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                         datetime.time())
+            search_parameters[field_mapping['to_date'] + '__lte'] = search_params['to_date']
+    if 'open_po' in search_params and search_params['open_po']:
+            temp = re.findall('\d+', search_params['open_po'])
+            if temp:
+                    search_parameters[field_mapping['order_id']] = temp[-1]
+    if 'sku_code' in search_params:
+            search_parameters[field_mapping['wms_code']] = search_params['sku_code']
+    search_parameters[field_mapping['user']] = user.id
+    search_parameters[field_mapping['sku_id__in']] = sku_master_ids
+    query_data = model_name.objects.exclude(**excl_status).filter(**search_parameters)
+    model_data = query_data.values(*result_values).distinct().annotate(ordered_qty=Sum(ord_quan),
+                                                                   total_received=Sum(rec_quan),
+                                                                   grn_rec=Sum(rec_quan1))
+    col_num = search_params.get('order_index', 0)
+    order_term = search_params.get('order_term', 'asc')
+    if order_term:
+            order_data = lis[col_num]
+            if order_term == 'desc':
+                    order_data = "-%s" % order_data
+            model_data = model_data.order_by(order_data)
+    temp_data['recordsTotal'] = model_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    custom_search = False
+    if col_num in unsorted_dict.keys():
+            custom_search = True
+    if stop_index and not custom_search:
+            model_data = model_data[start_index:stop_index]
+    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user=user.id)
+    for data in model_data:
+        po_result = purchase_orders.filter(order_id=data[field_mapping['order_id']], open_po__sku__user=user.id)
+        result = po_result[0]
+        total_ordered = po_result.aggregate(Sum('open_po__order_quantity'))['open_po__order_quantity__sum']
+        if not total_ordered:
+            total_ordered = 0
+        po_number = '%s%s_%s' % (data[field_mapping['prefix']], str(result.creation_date).split(' ')[0].replace('-', ''),
+    data[field_mapping['order_id']])
+        receipt_no = data['sellerposummary__receipt_number']
+        if not receipt_no:
+            receipt_no = ''
+        else:
+            po_number = '%s/%s' % (po_number, receipt_no)
+        received_qty = data['total_received']
+        if data['grn_rec']:
+            received_qty = data['grn_rec']
+        temp_data['aaData'].append(OrderedDict((('PO Number', po_number),
+                                                ('Supplier ID', data[field_mapping['supplier_id']]),
+                                                ('Supplier Name', data[field_mapping['supplier_name']]),
+                                                ('Order Quantity', total_ordered),
+                                                ('Received Quantity', received_qty),
+                                                ('DT_RowClass', 'results'), ('DT_RowAttr', {'data-id': data[field_mapping['order_id']]}),
+                                                ('key', 'po_id'), ('receipt_type', 'Purchase Order'), ('receipt_no', receipt_no),
+                                            )))
+    if stop_index and custom_search:
+        if temp_data['aaData']:
+                    temp_data['aaData'] = apply_search_sort(temp_data['aaData'][0].keys(), temp_data['aaData'], order_term, '', col_num, exact=False)
         temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
     return temp_data
 

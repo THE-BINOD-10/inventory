@@ -4524,7 +4524,11 @@ def validate_targets_form(request, reader, user, no_of_rows, no_of_cols, fname, 
     target_file_mapping = copy.deepcopy(TARGET_DEF_EXCEL)
     if not target_file_mapping:
         return 'Invalid File'
-    warehouse_users = UserGroups.objects.filter(admin_user=user.id).values_list('user_id__username', flat=True)
+    warehouse_qs = UserGroups.objects.filter(admin_user=user.id)
+    warehouse_users = warehouse_qs.values_list('user_id__username', flat=True)
+    wh_userids = warehouse_qs.values_list('user_id', flat=True)
+    reseller_users = CustomerUserMapping.objects.filter(customer__user__in=wh_userids).\
+        values_list('user_id__username', flat=True)
     for row_idx in range(1, no_of_rows):
         for key, value in target_file_mapping.iteritems():
             cell_data = get_cell_data(row_idx, target_file_mapping[key], reader, file_type)
@@ -4532,7 +4536,7 @@ def validate_targets_form(request, reader, user, no_of_rows, no_of_cols, fname, 
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add("User ID Missing")
                 else:
-                    if cell_data not in warehouse_users:
+                    if cell_data not in warehouse_users and cell_data not in reseller_users:
                         index_status.setdefault(row_idx, set()).add('Invalid User ID')
             elif key == 'target_level':
                 if cell_data:
@@ -4597,7 +4601,11 @@ def targets_upload(request, user=''):
 
 
 def update_targets_upload(request, reader, no_of_rows, file_type='xls', user=''):
-    users_map = dict(UserGroups.objects.filter(admin_user=user).values_list('user__username', 'user_id'))
+    wh_users_map = dict(UserGroups.objects.filter(admin_user=user).values_list('user__username', 'user_id'))
+    reseller_users_map = dict(CustomerUserMapping.objects.filter(customer__user__in=wh_users_map.values()). \
+        values_list('user_id__username', 'user_id'))
+    users_map = wh_users_map.copy()
+    users_map.update(reseller_users_map)
     target_file_mapping = copy.deepcopy(TARGET_DEF_EXCEL)
     for row_idx in range(1, no_of_rows):
         if not target_file_mapping:

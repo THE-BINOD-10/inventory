@@ -1241,7 +1241,8 @@ def confirm_po(request, user=''):
                  'vendor_telephone': vendor_telephone, 'total_qty': total_qty, 'receipt_type': receipt_type,
                  'title': title, 'ship_to_address': ship_to_address,
                  'gstin_no': gstin_no, 'w_address': get_purchase_company_address(profile), 'wh_telephone': wh_telephone}
-    t = loader.get_template('templates/toggle/po_download.html')
+    #t = loader.get_template('templates/toggle/po_download.html')
+    t = loader.get_template('templates/toggle/po_template.html')
     rendered = t.render(data_dict)
     if get_misc_value('raise_po', user.id) == 'true':
         write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
@@ -2722,8 +2723,7 @@ def check_returns(request, user=''):
             if order_track_obj:
                 order_track_quantity = int(order_track_obj.aggregate(Sum('quantity'))['quantity__sum'])
                 if value == order_track_quantity:
-                    status = str(key[0]) + ' Order ID Already Returned'
-                    return HttpResponse(status)
+                    continue
                 else:
                     remaining_return = int(value) - int(order_track_quantity)
                     data.append({'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2],
@@ -2732,6 +2732,9 @@ def check_returns(request, user=''):
             else:
                 data.append({'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2],
                              'ship_quantity': value, 'return_quantity': value, 'damaged_quantity': 0})
+        if not data:
+            status = str(key[0]) + ' Order ID Already Returned'
+            return HttpResponse(status)
     elif request_return_id:
         order_returns = OrderReturns.objects.filter(return_id=request_return_id, sku__user=user.id)
         if not order_returns:
@@ -4372,7 +4375,8 @@ def confirm_add_po(request, sales_data='', user=''):
                  'gstin_no': gstin_no, 'industry_type': industry_type, 'expiry_date': expiry_date,
                  'wh_telephone': wh_telephone}
 
-    t = loader.get_template('templates/toggle/po_download.html')
+    #t = loader.get_template('templates/toggle/po_download.html')
+    t = loader.get_template('templates/toggle/po_template.html')
     rendered = t.render(data_dict)
     if get_misc_value('raise_po', user.id) == 'true':
         write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, phone_no, po_data,
@@ -4556,7 +4560,8 @@ def confirm_po1(request, user=''):
                          'w_address': get_purchase_company_address(profile), 'ship_to_address': ship_to_address,
                          'wh_telephone': wh_telephone}
 
-            t = loader.get_template('templates/toggle/po_download.html')
+            #t = loader.get_template('templates/toggle/po_download.html')
+            t = loader.get_template('templates/toggle/po_template.html')
             rendered = t.render(data_dict)
             if get_misc_value('raise_po', user.id) == 'true':
                 write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,

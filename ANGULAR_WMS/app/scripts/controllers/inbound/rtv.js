@@ -28,9 +28,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.bt_disable = true;
     vm.conf_disable = false;
     vm.datatable = Data.datatable;
+    // vm.datatable = 'ReturnToVendor';
     vm.user_type = Session.user_profile.user_type;
 
-    vm.filters = {'datatable': vm.datatable, 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': ''
+    vm.filters = {'datatable': 'ReturnToVendor', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': ''
                   , 'search5': '', 'search6': '', 'search7': '', 'from_date': vm.date};
     
     vm.dtOptions = DTOptionsBuilder.newOptions()
@@ -88,6 +89,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
       vm.service.refresh(vm.dtInstance);
     });
+
+    vm.reset_data = function(data){
+      data.sku_code = '';
+      data.supplier_id = '';
+      data.from_date = '';
+      data.to_date = '';
+      data.open_po = '';
+      data.invoice_number = '';
+    }
 
     vm.reloadData = function () {
       $('.custom-table').DataTable().draw();

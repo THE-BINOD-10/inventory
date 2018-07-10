@@ -1240,8 +1240,7 @@ def confirm_po(request, user=''):
                  'vendor_telephone': vendor_telephone, 'total_qty': total_qty, 'receipt_type': receipt_type,
                  'title': title, 'ship_to_address': ship_to_address,
                  'gstin_no': gstin_no, 'w_address': get_purchase_company_address(profile), 'wh_telephone': wh_telephone}
-    #t = loader.get_template('templates/toggle/po_download.html')
-    t = loader.get_template('templates/toggle/po_template.html')
+    t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
     if get_misc_value('raise_po', user.id) == 'true':
         write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
@@ -3436,12 +3435,12 @@ def putaway_data(request, user=''):
                     count = 0
                 order_data = get_purchase_order_data(data.purchase_order)
                 putaway_location(data, value, exc_loc, user, 'purchase_order_id', data.purchase_order_id)
-                taken_unit_price = order_data['price']
+                stock_check_params = {'location_id': exc_loc, 'receipt_number':data.purchase_order.order_id,
+                                     'sku_id': order_data['sku_id'], 'sku__user': user.id,
+                                      'unit_price': order_data['price']}
                 if batch_obj:
                     stock_check_params['batch_detail_id'] = batch_obj[0].id
-                    taken_unit_price = batch_obj[0].buy_price
-                stock_check_params = {'location_id': exc_loc, 'receipt_number':data.purchase_order.order_id,
-                                     'sku_id': order_data['sku_id'], 'sku__user': user.id, 'unit_price': taken_unit_price }
+                    stock_check_params['unit_price'] = batch_obj[0].buy_price
                 pallet_mapping = PalletMapping.objects.filter(po_location_id=data.id, status=1)
                 if pallet_mapping:
                     stock_check_params['pallet_detail_id'] = pallet_mapping[0].pallet_detail.id
@@ -3481,6 +3480,7 @@ def putaway_data(request, user=''):
                                    'updation_date': datetime.datetime.now(), 'unit_price': order_data['price']}
                     if batch_obj:
                         record_data['batch_detail_id'] = batch_obj[0].id
+                        record_data['unit_price'] = batch_obj[0].buy_price
                     if pallet_mapping:
                         record_data['pallet_detail_id'] = pallet_mapping[0].pallet_detail.id
                         pallet_mapping[0].status = 0
@@ -4376,8 +4376,7 @@ def confirm_add_po(request, sales_data='', user=''):
                  'gstin_no': gstin_no, 'industry_type': industry_type, 'expiry_date': expiry_date,
                  'wh_telephone': wh_telephone}
 
-    #t = loader.get_template('templates/toggle/po_download.html')
-    t = loader.get_template('templates/toggle/po_template.html')
+    t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
     if get_misc_value('raise_po', user.id) == 'true':
         write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, phone_no, po_data,
@@ -4561,8 +4560,7 @@ def confirm_po1(request, user=''):
                          'w_address': get_purchase_company_address(profile), 'ship_to_address': ship_to_address,
                          'wh_telephone': wh_telephone}
 
-            #t = loader.get_template('templates/toggle/po_download.html')
-            t = loader.get_template('templates/toggle/po_template.html')
+            t = loader.get_template('templates/toggle/po_download.html')
             rendered = t.render(data_dict)
             if get_misc_value('raise_po', user.id) == 'true':
                 write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
@@ -6976,8 +6974,9 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
 
     count = 0
     for result in results[start_index: stop_index]:
-        rem_quantity = result['total']
-        seller_summarys = SellerPOSummary.objects.select_related('purchase_order__open_po__sku', 'purchase_order').\
+        rem_quantity = 0
+        seller_summarys = SellerPOSummary.objects.exclude(id__in=return_ids).\
+                                            select_related('purchase_order__open_po__sku', 'purchase_order').\
                                                     filter(purchase_order__open_po__sku__user=user.id,
                                                         purchase_order__order_id=result['purchase_order__order_id'],
                                                         invoice_number=result['invoice_number'])
@@ -6996,13 +6995,15 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
         total_amt = 0
         tax = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax
         for seller_summary in seller_summarys:
+            temp_qty = float(seller_summary.quantity)
             processed_val = seller_summary.returntovendor_set.filter().aggregate(Sum('quantity'))['quantity__sum']
             if processed_val:
-                rem_quantity -= processed_val
+                temp_qty -= processed_val
             if seller_summary.batch_detail:
-                total_amt += rem_quantity * seller_summary.batch_detail.buy_price
+                total_amt += temp_qty * seller_summary.batch_detail.buy_price
             else:
-                total_amt += rem_quantity * seller_summary.purchase_order.open_po.price
+                total_amt += temp_qty * seller_summary.purchase_order.open_po.price
+            rem_quantity += temp_qty
         total_amt = total_amt + ((total_amt/100) * tax)
         temp_data['aaData'].append(OrderedDict((('', checkbox),('data_id', data_id),
                                                 ('Supplier ID', result['purchase_order__open_po__supplier_id']),

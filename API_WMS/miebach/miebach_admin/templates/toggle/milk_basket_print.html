@@ -97,6 +97,7 @@
 			<th style="padding:2.5px;" colspan="2"><center>CGST</center></th>
 			<th style="padding:2.5px;" colspan="2"><center>SGST/UTGST</center></th>
 			<th style="padding:2.5px;" colspan="2"><center>IGST</center></th>
+            <th style="padding:2.5px;" colspan="2"><center>CESS</center></th>
 		</tr>
 		<tr>
 			<th>Rate</th>
@@ -104,6 +105,8 @@
 			<th>Rate</th>
 			<th>Amount</th>
 			<th>Rate</th>
+            <th>Amount</th>
+            <th>Rate</th>
             <th>Amount</th>
 		</tr>
 		</thead>
@@ -125,6 +128,8 @@
             <td class="text-right" style="padding:2.5px;">{{ i.sgst_value }}</td>
 			<td class="text-right" style="padding:2.5px;">{{ i.igst }}</td>
             <td class="text-right" style="padding:2.5px;">{{ i.igst_value }}</td>
+            <td class="text-right" style="padding:2.5px;">{{ i.cess }}</td>
+            <td class="text-right" style="padding:2.5px;">{{ i.cess_value }}</td>
           </tr>
           {% endfor %}
 		  <tr style="border-top: 1px solid black;">
@@ -143,6 +148,8 @@
             <td class="text-right" style="padding:2.5px;">{{ page.total_sgst_value }}</td>
             <td class="text-right" style="padding:2.5px;"></td>
             <td class="text-right" style="padding:2.5px;">{{ page.total_igst_value }}</td>
+            <td class="text-right" style="padding:2.5px;"></td>
+            <td class="text-right" style="padding:2.5px;">{{ page.total_cess_value }}</td>
 		  </tr>
 		  <tr>
             <td class="text-left" style="padding:2.5px;"></td>
@@ -154,6 +161,8 @@
             <td class="text-right" style="padding:2.5px;"></td>
             <td class="text-right" style="padding:2.5px;"></td>
             <td class="text-left" style="padding:2.5px;"></td>
+            <td class="text-right" style="padding:2.5px;"></td>
+            <td class="text-right" style="padding:2.5px;"></td>
             <td class="text-right" style="padding:2.5px;"></td>
             <td class="text-right" style="padding:2.5px;"></td>
             <td class="text-right" style="padding:2.5px;" colspan="3">Total Invoice Value</td>

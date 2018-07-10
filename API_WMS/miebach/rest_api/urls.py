@@ -170,6 +170,8 @@ urlpatterns = [
     url(r'^po_update_payment_status/$', po_update_payment_status),
     url(r'^get_po_putaway_summary/$', get_po_putaway_summary),
     url(r'^create_rtv/$', create_rtv),
+    url(r'^save_rtv/$', save_rtv),
+    url(r'^get_saved_rtv_data/$', get_saved_rtv_data),
 
     # Production
     url(r'^generated_jo_data/$', generated_jo_data),
@@ -322,6 +324,7 @@ urlpatterns = [
     url(r'^get_supplier_details/$', get_supplier_details),
     url(r'^get_sku_filter/$', get_sku_filter),
     url(r'^get_po_filter/$', get_po_filter),
+    url(r'^get_sku_wise_po_filter/$', get_sku_wise_po_filter),
     url(r'^get_location_filter/$', get_location_filter),
     url(r'^get_receipt_filter/$', get_receipt_filter),
     url(r'^get_dispatch_filter/$', get_dispatch_filter),
@@ -361,6 +364,14 @@ urlpatterns = [
     url(r'^print_purchase_order_form/$', print_purchase_order_form),
     url(r'^get_shipment_report/$', get_shipment_report),
     url(r'^print_shipment_report/$', print_shipment_report),
+    url(r'^get_dist_sales_report/$', get_dist_sales_report),
+    url(r'^print_dist_sales_report/$', print_dist_sales_report),
+    url(r'^get_reseller_sales_report/$', get_reseller_sales_report),
+    url(r'^print_reseller_sales_report/$', print_reseller_sales_report),
+    url(r'^get_reseller_target_report/$', get_reseller_target_report),
+    url(r'^print_reseller_target_report/$', print_reseller_target_report),
+    url(r'^get_dist_target_report/$', get_dist_target_report),
+    url(r'^print_dist_target_report/$', print_dist_target_report),
 ]
 
 # urlpatterns += patterns('rest_api.views',
@@ -417,6 +428,8 @@ urlpatterns += [
     url(r'^network_master_upload/$', network_master_upload),
     url(r'^sku_substitution_form/$', sku_substitution_form),
     url(r'^sku_substitution_upload/$', sku_substitution_upload),
+    url(r'^targets_form/$', targets_form),
+    url(r'^targets_upload/$', targets_upload),
 
     # configurations
     url(r'^configurations/$', configurations),

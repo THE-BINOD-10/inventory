@@ -5,7 +5,7 @@ FUN = {};
 'use strict';
 
 var stockone = angular.module('urbanApp', ['datatables'])
-stockone.controller('RTVCtrl',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', '$q', 'SweetAlert', 'focus', '$modal', '$compile', 'Data', ServerSideProcessingCtrl]);
+stockone.controller('CreatedRTVCtrl',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', '$q', 'SweetAlert', 'focus', '$modal', '$compile', 'Data', ServerSideProcessingCtrl]);
 
 function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, $q, SweetAlert, focus, $modal, $compile, Data) {
 
@@ -27,12 +27,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.selectAll = false;
     vm.bt_disable = true;
     vm.conf_disable = false;
-    vm.datatable = Data.datatable;
-    // vm.datatable = 'ReturnToVendor';
+    vm.datatable = 'CreatedRTV';
     vm.user_type = Session.user_profile.user_type;
 
-    vm.filters = {'datatable': 'ReturnToVendor', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': ''
-                  , 'search5': '', 'search6': '', 'search7': '', 'from_date': vm.date};
+    //RTV Pop Data
+
+    vm.filters = {'datatable': vm.datatable, 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': ''
+                  , 'search5': '', 'search6': '', 'search7': ''};
     
     vm.dtOptions = DTOptionsBuilder.newOptions()
      .withOption('ajax', {
@@ -58,6 +59,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               $compile(angular.element(header).contents())($scope);
           }
       })
+     .withOption('rowCallback', rowCallback)
      .withPaginationType('full_numbers')
      .withOption('initComplete', function( settings ) {
        vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
@@ -74,14 +76,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('Total Amount').withTitle('Total Amount'),
     ];
 
-    vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
-                .renderWith(function(data, type, full, meta) {
-                  if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
-                    vm.selected = {};
-                  }
-                  vm.selected[meta.row] = vm.selectAll;
-                  return vm.service.frontHtml + meta.row + vm.service.endHtml;
-                }))
+    var row_click_bind = 'td';
+
+    // vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
+    //             .renderWith(function(data, type, full, meta) {
+    //               if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
+    //                 vm.selected = {};
+    //               }
+    //               vm.selected[meta.row] = vm.selectAll;
+    //               return vm.service.frontHtml + meta.row + vm.service.endHtml;
+    //             }))
 
     vm.dtInstance = {};
 
@@ -90,18 +94,31 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.service.refresh(vm.dtInstance);
     });
 
-    vm.reset_data = function(data){
-      data.sku_code = '';
-      data.supplier_id = '';
-      data.from_date = '';
-      data.to_date = '';
-      data.open_po = '';
-      data.invoice_number = '';
-    }
-
     vm.reloadData = function () {
       $('.custom-table').DataTable().draw();
     };
+
+    vm.rtv_details = {supplier_id:'Supplier ID', supplier_name:'Supplier Name', 
+                      invoice_number:'Invoice Number', invoice_date:'Invoice Date'};
+    vm.rtv_details_keys = Object.keys(vm.rtv_details);
+
+    function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
+        $(row_click_bind, nRow).unbind('click');
+        $(row_click_bind, nRow).bind('click', function() {
+          $scope.$apply(function() {
+            vm.service.apiCall('get_saved_rtv_data/', 'GET', {data_id: aData.data_id, invoice_number: aData['Invoice Number']}).then(function(data){
+              if(data.message) {
+                // angular.copy(data.data, vm.model_data);
+                vm.model_data = data.data;
+                vm.title = "Update RTV";
+                vm.print_enable = false;
+                $state.go('app.inbound.rtv.details');
+              }
+            });
+          });
+        });
+        return nRow;
+    }
 
     vm.filter_enable = true;
     vm.print_enable = false;
@@ -265,6 +282,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           elem.push({'name': 'return_qty', 'value': sku.return_qty});
           elem.push({'name': 'batch_no', 'value': sku.batch_no});
           elem.push({'name': 'mrp', 'value': sku.mrp});
+          elem.push({'name': 'rtv_id', 'value': sku.rtv_id});
         });
       });
 
@@ -305,6 +323,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           elem.push({'name': 'return_qty', 'value': sku.return_qty});
           elem.push({'name': 'batch_no', 'value': sku.batch_no});
           elem.push({'name': 'mrp', 'value': sku.mrp});
+          elem.push({'name': 'rtv_id', 'value': sku.rtv_id});
         });
       });
 

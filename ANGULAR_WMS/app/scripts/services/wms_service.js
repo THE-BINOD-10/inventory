@@ -161,7 +161,12 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
         }
       }
 
-      send.dtColumns = vm.build_colums(data.dt_headers);
+      if(data.dt_unsort) {
+        send.dtColumns = vm.build_colums(data.dt_headers, data.dt_unsort);
+      }
+      else {
+        send.dtColumns = vm.build_colums(data.dt_headers);
+      }
 
       if(data["row_call"]) {
 

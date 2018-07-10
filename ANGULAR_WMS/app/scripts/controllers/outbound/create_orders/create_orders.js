@@ -1436,6 +1436,43 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
 	}
   }
 
+  vm.assign_tab_event = '';
+  var array_list = ['SKU Code', 'Description']
+  if (vm.model_data.blind_order) {
+	array_list = array_list.push('Location')
+  }
+  if (vm.model_data.blind_order && vm.permissions.use_imei) {
+	array_list = array_list.push('Serial Scan')
+  }
+  var a = ['Quantity', 'Unit Price', 'Amount', 'Discount', 'Discount Percentage']
+  array_list = array_list.concat(a)
+  if(vm.fields.indexOf('Tax') == -1 && vm.model_data.tax_type == 'intra_state') {
+	var b = ['SGST(%)', 'CGST(%)']
+	array_list = array_list.concat(b)
+  }
+  if(vm.fields.indexOf('Tax') == -1 && vm.model_data.tax_type == 'inter_state') {
+    array_list = array_list.push('IGST(%)')
+  }
+  var c = ['Total Amount', 'Remarks']
+  array_list = array_list.concat(c)
+
+  angular.forEach(vm.fields, function(obj) {
+    var index = array_list.indexOf(obj);
+    if (index > -1) {
+      array_list.splice(index, 1);
+    }
+  })
+
+  if (array_list) {
+	vm.assign_tab_event = array_list.reverse()[0]
+  }
+
+  vm.tab_event_check = function($event, assign_tab_event, current_value, index, data) {
+	if (($event.keyCode == 13 || $event.keyCode == 9) && assign_tab_event == current_value) {
+		update_data(index, data, true);
+    }
+  }
+
 }
 angular
   .module('urbanApp')

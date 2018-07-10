@@ -384,6 +384,10 @@ def get_trial_user_data(request):
 
 
 def get_search_params(request, user=''):
+    """
+    Zone Code is (NORTH, EAST, WEST, SOUTH)
+    Zone Id is Warehouse Zone.
+    """
     search_params = {}
     filter_params = {}
     headers = []
@@ -403,13 +407,16 @@ def get_search_params(request, user=''):
                     'order_id': 'order_id', 'job_code': 'job_code', 'job_order_code': 'job_order_code',
                     'fg_sku_code': 'fg_sku_code',
                     'rm_sku_code': 'rm_sku_code', 'pallet': 'pallet',
-                    'staff_id': 'id', 'ean': 'ean', 'invoice_number': 'invoice_number'}
+                    'staff_id': 'id', 'ean': 'ean', 'invoice_number': 'invoice_number',
+                    'zone_code': 'zone_code', 'dist_code': 'dist_code', 'reseller_code': 'reseller_code',
+                    'supplier_id': 'supplier_id'}
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
                       'search2': 'search_2', 'search3': 'search_3',
                       'search4': 'search_4', 'search5': 'search_5',
                       'search6': 'search_6', 'search7': 'search_7',
-                      'search8': 'search_8', 'search9': 'search_9', 'search10': 'search_10', 'search11': 'search_11'}
+                      'search8': 'search_8', 'search9': 'search_9',
+                      'search10': 'search_10', 'search11': 'search_11'}
     request_data = request.POST
     if not request_data:
         request_data = request.GET
@@ -462,6 +469,7 @@ data_datatable = {  # masters
     'SupplierInvoices': 'get_supplier_invoice_data', \
     'POPaymentTrackerInvBased': 'get_inv_based_po_payment_data', \
     'ReturnToVendor': 'get_po_putaway_data', \
+    'CreatedRTV': 'get_saved_rtvs', \
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
     'PickelistGenerated': 'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo', \
@@ -2301,6 +2309,7 @@ def get_financial_year(date):
 
 def get_challan_number(user, seller_order_summary):
     challan_num = ""
+    challan_number = ""
     chn_date = datetime.datetime.now()
     invoice_no_gen = MiscDetail.objects.filter(user=user.id, misc_type='increment_invoice')
     if invoice_no_gen:
@@ -2326,6 +2335,8 @@ def get_challan_number(user, seller_order_summary):
                                                    creation_date=datetime.datetime.now())
                     order_no = '001'
                     challan_num = int(order_no)
+            elif invoice_no_gen[0].misc_value == 'true' and challan_num:
+                seller_order_summary.update(challan_number=challan_num)
             else:
                 log.info("Challan No not updated for seller_order_summary")
         challan_number = 'CHN/%s/%s' % (chn_date.strftime('%m%y'), challan_num)
@@ -2940,6 +2951,11 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         custom_margin = 0
 
     admin_user = get_priceband_admin_user(user)
+    msp_min_price = msp_max_price = 0
+    if admin_user and from_price and to_price:
+        msp_min_price = from_price
+        msp_max_price = to_price
+        from_price = to_price = ''
     is_margin_percentage = request_data.get('is_margin_percentage', 'false')
     specific_margins = request_data.get('margin_data', [])
     customer_data_id = request_data.get('customer_data_id', '')
@@ -3075,7 +3091,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     sku_master = sku_master.order_by('sequence')
     product_styles = sku_master.values_list('sku_class', flat=True).distinct()
     product_styles = list(OrderedDict.fromkeys(product_styles))
-    if is_file:
+    if is_file or (msp_min_price and msp_max_price):
         start, stop = 0, len(product_styles)
 
     needed_stock_data = {}
@@ -3108,7 +3124,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
                            customer_data_id=customer_data_id, is_file=is_file, prices_dict=prices_dict,
                            price_type=price_type, custom_margin=custom_margin, specific_margins=specific_margins,
                            is_margin_percentage=is_margin_percentage, stock_quantity=quantity,
-                           needed_stock_data=needed_stock_data)
+                           needed_stock_data=needed_stock_data, msp_min_price=msp_min_price, msp_max_price=msp_max_price)
     return data, start, stop
 
 
@@ -3998,7 +4014,7 @@ def get_categories_list(request, user=""):
 
 
 def get_generic_warehouses_list(user):
-   return UserGroups.objects.filter(admin_user=user).values_list('user', flat=True)
+   return UserGroups.objects.filter(admin_user=user).exclude(user__userprofile__warehouse_level=2).values_list('user', flat=True)
 
 @fn_timer
 def get_cal_style_data(style_data, quantity):
@@ -4029,7 +4045,7 @@ def get_cal_style_data(style_data, quantity):
 @fn_timer
 def get_styles_data(user, product_styles, sku_master, start, stop, request, customer_id='', customer_data_id='', is_file='',
                     prices_dict={}, price_type='', custom_margin=0, specific_margins=[], is_margin_percentage=0,
-                    stock_quantity=0, needed_stock_data={}):
+                    stock_quantity=0, needed_stock_data={}, msp_min_price=0, msp_max_price=0):
     data = []
     style_quantities = eval(request.POST.get('required_quantity', '{}'))
     levels_config = get_misc_value('generic_wh_level', user.id)
@@ -4038,7 +4054,6 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
 
     #To fix quantity based filter
     product_styles_filtered = []
-    product_styles_tot_qty_map = {}
     qty_dict_flag = False
     product_styles_tot_qty_map = {}
     if stock_quantity:
@@ -4095,9 +4110,13 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
                     tax_percentage = float(tax['sgst_tax']) + float(tax['igst_tax']) + float(tax['cgst_tax'])
                     sku_styles[0]['tax_percentage'] = '%.1f'%tax_percentage
             if total_quantity >= int(stock_quantity):
-                data.append(sku_styles[0])
-        if not is_file and len(data) >= 20:
-            break
+                if msp_min_price and msp_max_price:
+                    if float(msp_min_price) <= sku_variants[0]['your_price'] <= float(msp_max_price):
+                        data.append(sku_styles[0])
+                else:
+                    data.append(sku_styles[0])
+        # if not is_file and len(data) >= 20:
+        #     break
     return data
 
 
@@ -4261,7 +4280,7 @@ def get_sku_available_dict(user, sku_code='', location='', available=False):
 
 def get_order_detail_objs(order_id, user, search_params={}, all_order_objs=[]):
     search_param = copy.deepcopy(search_params)
-    if not search_param.has_key('user'):
+    if not search_param.has_key('user') and not search_param.has_key('user__in'):
         search_param['user'] = user.id
     if not all_order_objs:
         all_order_objs = OrderDetail.objects.filter(user=user.id)
@@ -6138,6 +6157,8 @@ def get_user_profile_data(request, user=''):
     data['main_user'] = request.user.is_staff
     data['company_name'] = main_user.company_name
     data['cin_number'] = request.user.userprofile.cin_number
+    data['wh_address'] = main_user.wh_address
+    data['wh_phone_number'] = main_user.wh_phone_number
     return HttpResponse(json.dumps({'msg': 1, 'data': data}))
 
 
@@ -6204,11 +6225,15 @@ def update_profile_data(request, user=''):
     company_name = request.POST.get('company_name', '')
     email = request.POST.get('email', '')
     cin_number = request.POST.get('cin_number', '')
+    wh_address = request.POST.get('wh_address', '')
+    wh_phone_number = request.POST.get('wh_phone_number', '')
     main_user = UserProfile.objects.get(user_id=user.id)
     main_user.address = address
     main_user.gst_number = gst_number
     main_user.company_name = company_name
     main_user.cin_number = cin_number
+    main_user.wh_address = wh_address
+    main_user.wh_phone_number = wh_phone_number
     main_user.save()
     user.email = email
     user.save()
@@ -7009,6 +7034,7 @@ def get_gen_wh_ids(request, user, delivery_date):
     res_lead_time = 0
     if admin:
         gen_whs = list(get_generic_warehouses_list(admin))
+        gen_whs.append(user.id)
         cm_obj = CustomerUserMapping.objects.filter(user=request.user.id)
         if cm_obj:
             cm_id = cm_obj[0].customer

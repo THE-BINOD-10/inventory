@@ -6929,8 +6929,8 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
         search_params['purchase_order__creation_date__lt'] = to_date
     if 'sku_code' in filters:
         search_params['purchase_order__open_po__sku__sku_code'] = filters['sku_code'].upper()
-    if 'supplier' in filters:
-        search_params['purchase_order__open_po__supplier_id'] = filters['supplier']
+    if 'supplier_id' in filters:
+        search_params['purchase_order__open_po__supplier_id'] = filters['supplier_id']
     if 'open_po' in filters and filters['open_po']:
         temp = re.findall('\d+', filters['open_po'])
         if temp:

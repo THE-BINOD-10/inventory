@@ -6976,8 +6976,9 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
 
     count = 0
     for result in results[start_index: stop_index]:
-        rem_quantity = result['total']
-        seller_summarys = SellerPOSummary.objects.select_related('purchase_order__open_po__sku', 'purchase_order').\
+        rem_quantity = 0
+        seller_summarys = SellerPOSummary.objects.exclude(id__in=return_ids).\
+                                            select_related('purchase_order__open_po__sku', 'purchase_order').\
                                                     filter(purchase_order__open_po__sku__user=user.id,
                                                         purchase_order__order_id=result['purchase_order__order_id'],
                                                         invoice_number=result['invoice_number'])
@@ -6996,13 +6997,15 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
         total_amt = 0
         tax = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax
         for seller_summary in seller_summarys:
+            temp_qty = float(seller_summary.quantity)
             processed_val = seller_summary.returntovendor_set.filter().aggregate(Sum('quantity'))['quantity__sum']
             if processed_val:
-                rem_quantity -= processed_val
+                temp_qty -= processed_val
             if seller_summary.batch_detail:
-                total_amt += rem_quantity * seller_summary.batch_detail.buy_price
+                total_amt += temp_qty * seller_summary.batch_detail.buy_price
             else:
-                total_amt += rem_quantity * seller_summary.purchase_order.open_po.price
+                total_amt += temp_qty * seller_summary.purchase_order.open_po.price
+            rem_quantity += temp_qty
         total_amt = total_amt + ((total_amt/100) * tax)
         temp_data['aaData'].append(OrderedDict((('', checkbox),('data_id', data_id),
                                                 ('Supplier ID', result['purchase_order__open_po__supplier_id']),

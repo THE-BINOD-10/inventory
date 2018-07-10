@@ -1241,7 +1241,8 @@ def confirm_po(request, user=''):
                  'vendor_telephone': vendor_telephone, 'total_qty': total_qty, 'receipt_type': receipt_type,
                  'title': title, 'ship_to_address': ship_to_address,
                  'gstin_no': gstin_no, 'w_address': get_purchase_company_address(profile), 'wh_telephone': wh_telephone}
-    t = loader.get_template('templates/toggle/po_download.html')
+    #t = loader.get_template('templates/toggle/po_download.html')
+    t = loader.get_template('templates/toggle/po_template.html')
     rendered = t.render(data_dict)
     if get_misc_value('raise_po', user.id) == 'true':
         write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
@@ -2722,8 +2723,7 @@ def check_returns(request, user=''):
             if order_track_obj:
                 order_track_quantity = int(order_track_obj.aggregate(Sum('quantity'))['quantity__sum'])
                 if value == order_track_quantity:
-                    status = str(key[0]) + ' Order ID Already Returned'
-                    return HttpResponse(status)
+                    continue
                 else:
                     remaining_return = int(value) - int(order_track_quantity)
                     data.append({'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2],
@@ -2732,6 +2732,9 @@ def check_returns(request, user=''):
             else:
                 data.append({'order_id': key[0], 'sku_code': key[1], 'sku_desc': key[2],
                              'ship_quantity': value, 'return_quantity': value, 'damaged_quantity': 0})
+        if not data:
+            status = str(key[0]) + ' Order ID Already Returned'
+            return HttpResponse(status)
     elif request_return_id:
         order_returns = OrderReturns.objects.filter(return_id=request_return_id, sku__user=user.id)
         if not order_returns:
@@ -4372,7 +4375,8 @@ def confirm_add_po(request, sales_data='', user=''):
                  'gstin_no': gstin_no, 'industry_type': industry_type, 'expiry_date': expiry_date,
                  'wh_telephone': wh_telephone}
 
-    t = loader.get_template('templates/toggle/po_download.html')
+    #t = loader.get_template('templates/toggle/po_download.html')
+    t = loader.get_template('templates/toggle/po_template.html')
     rendered = t.render(data_dict)
     if get_misc_value('raise_po', user.id) == 'true':
         write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, phone_no, po_data,
@@ -4556,7 +4560,8 @@ def confirm_po1(request, user=''):
                          'w_address': get_purchase_company_address(profile), 'ship_to_address': ship_to_address,
                          'wh_telephone': wh_telephone}
 
-            t = loader.get_template('templates/toggle/po_download.html')
+            #t = loader.get_template('templates/toggle/po_download.html')
+            t = loader.get_template('templates/toggle/po_template.html')
             rendered = t.render(data_dict)
             if get_misc_value('raise_po', user.id) == 'true':
                 write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
@@ -6922,7 +6927,7 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
 
     headers1, filters, filter_params1 = get_search_params(request)
     if 'from_date' in filters:
-        search_params['creation_date__startswith'] = filters['from_date']
+        search_params['creation_date__gt'] = filters['from_date']
     if 'to_date' in filters:
         to_date = datetime.datetime.combine(filters['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
@@ -6971,7 +6976,8 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
     count = 0
     for result in results[start_index: stop_index]:
         rem_quantity = result['total']
-        seller_summarys = SellerPOSummary.objects.filter(purchase_order__open_po__sku__user=user.id,
+        seller_summarys = SellerPOSummary.objects.select_related('purchase_order__open_po__sku', 'purchase_order').\
+                                                    filter(purchase_order__open_po__sku__user=user.id,
                                                         purchase_order__order_id=result['purchase_order__order_id'],
                                                         invoice_number=result['invoice_number'])
         order_reference = get_po_reference(seller_summarys[0].purchase_order)
@@ -7074,7 +7080,9 @@ def get_po_putaway_summary(request, user=''):
                                     'invoice_number': invoice_number, 'invoice_date': invoice_date}))
 
 def get_debit_note_data(rtv_number, user):
-    return_to_vendor = ReturnToVendor.objects.filter(rtv_number=rtv_number)
+    return_to_vendor = ReturnToVendor.objects.select_related('seller_po_summary__purchase_order__open_po__sku').\
+                                                        filter(rtv_number=rtv_number,
+                                                     seller_po_summary__purchase_order__open_po__sku__user=user.id)
     data_dict = {}
     total_invoice_value = 0
     total_qty = 0
@@ -7172,6 +7180,94 @@ def get_debit_note_data(rtv_number, user):
     data_dict['rtv_number'] = rtv_number
     return data_dict
 
+
+def prepare_rtv_json_data(request_data, user):
+    data_list = []
+    for ind in range(0, len(request_data['summary_id'])):
+        data_dict = {}
+        if 'rtv_id' in request_data:
+            data_dict['rtv_id'] = request_data['rtv_id'][ind]
+        if request_data['location'][ind] and request_data['return_qty'][ind]:
+            quantity = request_data['return_qty'][ind]
+            seller_summary = SellerPOSummary.objects.get(id=request_data['summary_id'][ind])
+            data_dict['summary_id'] = request_data['summary_id'][ind]
+            data_dict['quantity'] = quantity
+            stock_filter = {'sku__user': user.id, 'quantity__gt': 0,
+                            'sku_id': seller_summary.purchase_order.open_po.sku_id}
+            reserved_dict = {'stock__sku_id': seller_summary.purchase_order.open_po.sku_id,
+                             'stock__sku__user': user.id, 'status': 1}
+            location_master = LocationMaster.objects.filter(location=request_data['location'][ind],
+                                                            zone__user=user.id)
+            if location_master:
+                data_dict['location'] = location_master[0]
+                stock_filter['location_id'] = location_master[0].id
+                reserved_dict['stock__location_id'] = location_master[0].id
+            else:
+                return data_list, "%s is Invalid Location" % (request_data['location'][ind])
+            if seller_summary.batch_detail:
+                if seller_summary.batch_detail.batch_no:
+                    stock_filter['batch_detail__batch_no'] = seller_summary.batch_detail.batch_no
+                    reserved_dict['stock__batch_detail__batch_no'] = seller_summary.batch_detail.batch_no
+                if seller_summary.batch_detail.mrp:
+                    stock_filter['batch_detail__mrp'] = seller_summary.batch_detail.mrp
+                    reserved_dict['stock__batch_detail__mrp'] = seller_summary.batch_detail.mrp
+                if seller_summary.seller_po:
+                    stock_filter['sellerstock__seller_id'] = seller_summary.seller_po.seller_id
+                    reserved_dict["stock__sellerstock__seller_id"] = seller_summary.seller_po.seller_id
+            stocks = StockDetail.objects.filter(**stock_filter)
+            if not stocks:
+                return data_list, 'No Stocks Found'
+            data_dict['stocks'] = stocks
+            stock_count = stocks.aggregate(Sum('quantity'))['quantity__sum']
+            reserved_quantity = \
+                PicklistLocation.objects.exclude(stock=None).filter(**reserved_dict).aggregate(Sum('reserved'))[
+                    'reserved__sum']
+            if reserved_quantity:
+                stock_count = stock_count - reserved_quantity
+            if stock_count < float(quantity):
+                return data_list, 'Return Quantity Exceeded available quantity'
+            data_list.append(data_dict)
+        elif request_data['location'][ind] or request_data['return_qty'][ind]:
+            return data_list, 'Location or Quantity Missing'
+    return data_list, ''
+
+
+def save_update_rtv(data_list):
+    updated_rtvs = []
+    for ind, final_dict in enumerate(data_list):
+        if final_dict.get('rtv_id', '') and final_dict['rtv_id'] not in updated_rtvs:
+            rtv_obj = ReturnToVendor.objects.get(id=final_dict['rtv_id'])
+            rtv_obj.location_id = final_dict['location'].id
+            rtv_obj.quantity = final_dict['quantity']
+            rtv_obj.save()
+            updated_rtvs.append(final_dict['rtv_id'])
+        else:
+            rtv_obj = ReturnToVendor.objects.create(seller_po_summary_id=final_dict['summary_id'],
+                                                    quantity=final_dict['quantity'], status=1,
+                                                    location_id=final_dict['location'].id,
+                                                    creation_date=datetime.datetime.now())
+            data_list[ind]['rtv_id'] = rtv_obj.id
+    return data_list
+@csrf_exempt
+@login_required
+@get_admin_user
+def save_rtv(request, user=''):
+    request_data = dict(request.POST.iterlists())
+    try:
+        data_list, status = prepare_rtv_json_data(request_data, user)
+        if status:
+            return HttpResponse(status)
+        if data_list:
+            data_list = save_update_rtv(data_list)
+        return HttpResponse("Saved Successfully")
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Exception raised while saving RTV for user %s and request data is %s and error is %s" %
+                 (str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Save RTV Failed")
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -7179,59 +7275,26 @@ def create_rtv(request, user=''):
     request_data = dict(request.POST.iterlists())
     data_list = []
     try:
-        for ind in range(0, len(request_data['summary_id'])):
-            data_dict = {}
-            if request_data['location'][ind] and request_data['return_qty'][ind]:
-                quantity = request_data['return_qty'][ind]
-                seller_summary = SellerPOSummary.objects.get(id=request_data['summary_id'][ind])
-                data_dict['summary_id'] = request_data['summary_id'][ind]
-                data_dict['quantity'] = quantity
-                stock_filter = {'sku__user': user.id, 'quantity__gt': 0,
-                                'sku_id': seller_summary.purchase_order.open_po.sku_id}
-                reserved_dict = {'stock__sku_id': seller_summary.purchase_order.open_po.sku_id,
-                                 'stock__sku__user': user.id, 'status': 1}
-                location_master = LocationMaster.objects.filter(location=request_data['location'][ind],
-                                                                zone__user=user.id)
-                if location_master:
-                    data_dict['location'] = location_master[0]
-                    stock_filter['location_id'] = location_master[0].id
-                    reserved_dict['stock__location_id'] = location_master[0].id
-                else:
-                    return HttpResponse("%s is Invalid Location" % (request_data['location'][ind]))
-                if seller_summary.batch_detail:
-                    if seller_summary.batch_detail.batch_no:
-                        stock_filter['batch_detail__batch_no'] = seller_summary.batch_detail.batch_no
-                        reserved_dict['stock__batch_detail__batch_no'] = seller_summary.batch_detail.batch_no
-                    if seller_summary.batch_detail.mrp:
-                        stock_filter['batch_detail__mrp'] = seller_summary.batch_detail.mrp
-                        reserved_dict['stock__batch_detail__mrp'] = seller_summary.batch_detail.mrp
-                    if seller_summary.seller_po:
-                        stock_filter['sellerstock__seller_id'] = seller_summary.seller_po.seller_id
-                        reserved_dict["stock__sellerstock__seller_id"] = seller_summary.seller_po.seller_id
-                stocks = StockDetail.objects.filter(**stock_filter)
-                if not stocks:
-                    return HttpResponse('No Stocks Found')
-                data_dict['stocks'] = stocks
-                stock_count = stocks.aggregate(Sum('quantity'))['quantity__sum']
-                reserved_quantity = \
-                    PicklistLocation.objects.exclude(stock=None).filter(**reserved_dict).aggregate(Sum('reserved'))[
-                        'reserved__sum']
-                if reserved_quantity:
-                    if (stock_count - reserved_quantity) < float(quantity):
-                        return HttpResponse('Source Quantity reserved for Picklist')
-                data_list.append(data_dict)
+        data_list, status = prepare_rtv_json_data(request_data, user)
+        if status:
+            return HttpResponse(status)
         if data_list:
+            data_list = save_update_rtv(data_list)
             rtv_no = get_incremental(user, 'rtv')
             date_val = datetime.datetime.now().strftime('%Y%m%d')
             rtv_number = '%s-%s-%s' % ('RTV', date_val, rtv_no)
-        for final_dict in data_list:
-            update_stock_detail(final_dict['stocks'], float(final_dict['quantity']), user)
-            ReturnToVendor.objects.create(rtv_number=rtv_number, seller_po_summary_id=final_dict['summary_id'],
-                                          quantity=final_dict['quantity'], status=0, creation_date=datetime.datetime.now())
-        report_data_dict = {}
-        show_data_invoice = get_debit_note_data(rtv_number, user)
+            for final_dict in data_list:
+                update_stock_detail(final_dict['stocks'], float(final_dict['quantity']), user)
+                #ReturnToVendor.objects.create(rtv_number=rtv_number, seller_po_summary_id=final_dict['summary_id'],
+                #                              quantity=final_dict['quantity'], status=0, creation_date=datetime.datetime.now())
+                rtv_obj = ReturnToVendor.objects.get(id=final_dict['rtv_id'])
+                rtv_obj.rtv_number = rtv_number
+                rtv_obj.status=0
+                rtv_obj.save()
+            report_data_dict = {}
+            show_data_invoice = get_debit_note_data(rtv_number, user)
 
-        return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice' : [show_data_invoice]})
+            return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice' : [show_data_invoice]})
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -7239,3 +7302,147 @@ def create_rtv(request, user=''):
                  (str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse("Create RTV Failed")
 
+
+def get_saved_rtvs(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, col_filters={}):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    search_params = {}
+    search_params['status'] = 1
+    search_params['seller_po_summary__purchase_order__open_po__sku_id__in'] = sku_master_ids
+    lis = ['seller_po_summary__purchase_order__open_po__supplier_id',
+           'seller_po_summary__purchase_order__open_po__supplier_id',
+           'seller_po_summary__purchase_order__open_po__supplier__name',
+           'seller_po_summary__purchase_order__order_id', 'purchase_order_date',
+           'seller_po_summary__invoice_number', 'seller_po_summary__invoice_date', 'total', 'total']
+
+    headers1, filters, filter_params1 = get_search_params(request)
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+
+    if search_term:
+        results = ReturnToVendor.objects.values('seller_po_summary__purchase_order__open_po__supplier_id',
+                   'seller_po_summary__purchase_order__open_po__supplier__name',
+                   'seller_po_summary__purchase_order__order_id',
+                   'seller_po_summary__invoice_number', 'seller_po_summary__invoice_date',).distinct().annotate(
+            total=Sum('quantity'), purchase_order_date=Cast('seller_po_summary__purchase_order__creation_date', DateField())). \
+            filter(seller_po_summary__purchase_order__open_po__sku__user=user.id, **search_params).order_by(order_data)
+
+    else:
+        results = ReturnToVendor.objects.values('seller_po_summary__purchase_order__open_po__supplier_id',
+                   'seller_po_summary__purchase_order__open_po__supplier__name',
+                   'seller_po_summary__purchase_order__order_id',
+                   'seller_po_summary__invoice_number', 'seller_po_summary__invoice_date',).distinct().annotate(
+            total=Sum('quantity'), purchase_order_date=Cast('seller_po_summary__purchase_order__creation_date', DateField())). \
+            filter(seller_po_summary__purchase_order__open_po__sku__user=user.id, **search_params).order_by(order_data)
+
+    temp_data['recordsTotal'] = results.count()
+    temp_data['recordsFiltered'] = results.count()
+
+    count = 0
+    for result in results[start_index: stop_index]:
+        rem_quantity = result['total']
+        rtvs = ReturnToVendor.objects.select_related('seller_po_summary__purchase_order__open_po__sku',
+                                                                'seller_po_summary__purchase_order').\
+                                                    filter(seller_po_summary__purchase_order__open_po__sku__user=user.id,
+                                                           seller_po_summary__purchase_order__order_id=result['seller_po_summary__purchase_order__order_id'],
+                                                           seller_po_summary__invoice_number=result['seller_po_summary__invoice_number'])
+        seller_summary = rtvs[0].seller_po_summary
+        order_reference = get_po_reference(seller_summary.purchase_order)
+        open_po = seller_summary.purchase_order.open_po
+        data_id = '%s:%s' % (result['seller_po_summary__purchase_order__order_id'], result['seller_po_summary__invoice_number'])
+        checkbox = "<input type='checkbox' name='data_id' value='%s'>" % (data_id)
+        po_date = get_local_date(request.user, seller_summary.purchase_order.creation_date,
+                                 send_date=True).strftime("%d %b, %Y")
+        invoice_number = ''
+        if result['seller_po_summary__invoice_number']:
+            invoice_number = result['seller_po_summary__invoice_number']
+        invoice_date = po_date
+        if result['seller_po_summary__invoice_date']:
+            invoice_date = result['seller_po_summary__invoice_date'].strftime("%d %b, %Y")
+        total_amt = 0
+        tax = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax
+        for rtv in rtvs:
+            if rtv.seller_po_summary.batch_detail:
+                total_amt += rtv.quantity * rtv.seller_po_summary.batch_detail.buy_price
+            else:
+                total_amt += rtv.quantity * rtv.seller_po_summary.purchase_order.open_po.price
+        total_amt = total_amt + ((total_amt/100) * tax)
+        temp_data['aaData'].append(OrderedDict((('', checkbox),('data_id', data_id),
+                                                ('Supplier ID', result['seller_po_summary__purchase_order__open_po__supplier_id']),
+                                                ('Supplier Name', result['seller_po_summary__purchase_order__open_po__supplier__name']),
+                                                ('PO Number', order_reference), ('PO Date', po_date),
+                                                ('Invoice Number', invoice_number), ('Invoice Date', invoice_date),
+                                                ('Total Quantity', rem_quantity), ('Total Amount', total_amt),
+                                                ('id', count),
+                                                ('DT_RowClass', 'results'))))
+        count += 1
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_saved_rtv_data(request, user=''):
+    order_id, invoice_num = request.GET['data_id'].split(':')
+    rtv_filter = {'seller_po_summary__purchase_order__open_po__sku__user': user.id,
+                    'seller_po_summary__purchase_order__order_id': order_id,
+                  'status': 1}
+    if invoice_num:
+        rtv_filter['seller_po_summary__invoice_number'] = invoice_num
+    rtv_objs = ReturnToVendor.objects.filter(**rtv_filter)
+    if not rtv_objs:
+        return HttpResponse("No Data found")
+    seller_summary = rtv_objs[0].seller_po_summary
+    po_reference = get_po_reference(seller_summary.purchase_order)
+    invoice_number = seller_summary.invoice_number
+    invoice_date = get_local_date(user, seller_summary.creation_date, send_date=True).strftime("%d %b, %Y")
+    if seller_summary.invoice_date:
+        invoice_date = seller_summary.invoice_date.strftime("%d %b, %Y")
+    orders = []
+    order_data = {}
+    order_ids = []
+    seller_details = {}
+    for rtv_obj in rtv_objs:
+        seller_summary = rtv_obj.seller_po_summary
+        order = seller_summary.purchase_order
+        open_po = order.open_po
+        order_data = get_purchase_order_data(order)
+        quantity = rtv_obj.quantity
+        sku = open_po.sku
+        if quantity <= 0:
+            continue
+        data_dict = {'summary_id': seller_summary.id, 'order_id': order.id, 'sku_code': sku.sku_code,
+                     'sku_desc': sku.sku_desc, 'quantity': quantity, 'price': order_data['price'],
+                     'rtv_id': rtv_obj.id, 'location': rtv_obj.location.location,
+                     'return_qty': rtv_obj.quantity}
+        data_dict['tax_percent'] = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + \
+                                   open_po.utgst_tax + open_po.cess_tax
+        if seller_summary.batch_detail:
+            batch_detail = seller_summary.batch_detail
+            data_dict['batch_no'] = batch_detail.batch_no
+            data_dict['mrp'] = batch_detail.mrp
+            data_dict['price'] = batch_detail.buy_price
+            data_dict['mfg_date'] = ''
+            if batch_detail.manufactured_date:
+                data_dict['mfg_date'] = batch_detail.manufactured_date.strftime('%m/%d/%Y')
+            data_dict['exp_date'] = ''
+            if batch_detail.manufactured_date:
+                data_dict['exp_date'] = batch_detail.expiry_date.strftime('%m/%d/%Y')
+            data_dict['tax_percent'] = batch_detail.tax_percent
+        data_dict['amount'] = data_dict['quantity'] * data_dict['price']
+        data_dict['tax_value'] = (data_dict['amount']/100) * data_dict['tax_percent']
+        orders.append([data_dict])
+    supplier_name, order_date, expected_date, remarks = '', '', '', ''
+    if rtv_objs.exists():
+        purchase_order = rtv_objs[0].seller_po_summary.purchase_order
+        supplier_name = purchase_order.open_po.supplier.name
+        order_date = get_local_date(user, purchase_order.creation_date, send_date=True).strftime("%d %b, %Y")
+        remarks = purchase_order.remarks
+        if rtv_objs[0].seller_po_summary.seller_po:
+            seller = rtv_objs[0].seller_po_summary.seller_po.seller
+            seller_details = {'seller_id': seller.seller_id, 'name': seller.name}
+    return HttpResponse(json.dumps({'data': orders, 'order_id': order_id, \
+                                    'supplier_id': order_data['supplier_id'],\
+                                    'po_reference': po_reference, 'order_ids': order_ids,
+                                    'supplier_name': supplier_name, 'order_date': order_date,
+                                    'remarks': remarks, 'seller_details': seller_details,
+                                    'invoice_number': invoice_number, 'invoice_date': invoice_date}))

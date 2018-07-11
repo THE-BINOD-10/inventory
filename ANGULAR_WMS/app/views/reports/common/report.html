@@ -26,8 +26,7 @@
     <div class="layout-body">
 	  <div class="col-md-12 col-sm-12 col-xs-12">
       <div class="panel" ng-if="showCase.datatable">
-
-        <div class="col-md-12 col-sm-12 col-xs-12">
+        <div class="col-md-12 col-sm-12 col-xs-12" ng-if="($state.current.data.title | lowercase) == 'goods receipt note'">
 		  <div class="col-md-11 col-sm-11 col-xs-11" style="padding: 7px;text-align: right;">
 			<span>Toggle GRN</span>
 		  </div>
@@ -40,7 +39,6 @@
 			</label>
 		  </div>
 		</div>
-
         <div ng-if="!(showCase.report_data.row_click)" ng-include="'views/common/no-onclick-table.html'"></div>
         <div ng-if="showCase.report_data.row_click" ng-include="'views/common/datatable.html'"></div>
       </div>

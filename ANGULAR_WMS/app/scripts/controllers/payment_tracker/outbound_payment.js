@@ -52,13 +52,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     var row_click_bind = 'td';
 
     
-    /*if(vm.g_data.style_view) {
+    if(vm.g_data.style_view) {
       var toggle = DTColumnBuilder.newColumn(null).withTitle('').notSortable()
                  .withOption('width', '25px').renderWith(function(data, type, full, meta) {
-                   return "<button type='submit' class='btn btn-primary pull-right invoice_data_show' style='margin: auto;display: block;' ng-click='showCase.addRowData($event, "+JSON.stringify(full)+"); $event.stopPropagation()'>Mark As Paid</button>";
+                   return "<span style='color: #2ECC71;text-decoration: underline;cursor: pointer;' class='invoice_data_show' ng-click='showCase.addRowData($event, "+JSON.stringify(full)+"); $event.stopPropagation()'>Update</span>";
                  })
     }
-    vm.dtColumns.push(toggle);*/
+    vm.dtColumns.push(toggle);
     
     vm.dtInstance = {};
     vm.poDataNotFound = function() {
@@ -67,46 +67,53 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       Service.showNoty('Something went wrong')
     }
 
+    vm.change_payment = function(payment){
+      vm.model_data.balance = payment;
+    }
+
     vm.dt_rows_changed = [];
     vm.calDtRowAmount = function(event, data){
-      var elem = event.target;
-      if ($(elem).hasClass('paid_mode')) {
-      
-        data.payment_received = Number(vm.model_data.payment);
-        data.payment_receivable = Number(data.payment_receivable) - Number(data.payment_received);
-        data.enter_amount = Number(vm.model_data.payment);
-        data.bank_name = vm.model_data.bank_name;
-        data.balance = Number(data.payment_receivable);
-        data.date = vm.model_data.date;
-        data.mode_of_pay = vm.model_data.mode_of_pay;
-        data.neft_cheque = vm.model_data.neft_cheque;
-        data.update_tds = vm.model_data.update_tds;
-        vm.model_data.balance = Number(data.payment_receivable);
 
-        vm.dt_rows_changed.push(data);
-        // vm.dt_rows_changed[data.invoice_number] = data;
+      if (vm.model_data.payment) {
+        var elem = event.target;
+        if ($(elem).hasClass('paid_mode')) {
+        
+          data.payment_received = Number(data.payment_received) + Number(vm.model_data.payment);
+          // data.payment_receivable = Number(data.payment_receivable) - Number(data.payment_received);
+          data.enter_amount = Number(vm.model_data.payment);
+          data.bank_name = vm.model_data.bank_name;
+          data.balance = Number(vm.model_data.payment) - Number(data.payment_receivable);
+          data.date = vm.model_data.date;
+          data.mode_of_pay = vm.model_data.mode_of_pay;
+          data.neft_cheque = vm.model_data.neft_cheque;
+          data.update_tds = vm.model_data.update_tds;
+          vm.model_data.balance = Number(vm.model_data.payment) - Number(data.payment_receivable);
 
-        $(elem).removeClass();
-        $(elem).text('Mark As Unpaid');
-        $(elem).addClass('btn btn-danger pull-right un_paid_mode');      
+          vm.dt_rows_changed.push(data);
+          // vm.dt_rows_changed[data.invoice_number] = data;
+
+          $(elem).removeClass();
+          $(elem).text('Mark As Unpaid');
+          $(elem).addClass('btn btn-danger pull-right un_paid_mode');      
+        } else {
+
+          for (var i = 0; i < vm.dt_rows_changed.length; i++) {
+            if (data.invoice_number == vm.dt_rows_changed[i]['invoice_number']) {
+
+              vm.dt_rows_changed[i].payment_received = Number(vm.dt_rows_changed[i].payment_received) - Number(vm.model_data.payment);
+              vm.model_data.balance = vm.model_data.payment;
+              break;
+            }
+          }
+
+          $(elem).removeClass();
+          $(elem).text('Mark As Paid');
+          $(elem).addClass('btn btn-primary pull-right paid_mode');
+        }
       } else {
 
-        for (var i = 0; i < vm.dt_rows_changed.length; i++) {
-          if (data.invoice_number == vm.dt_rows_changed[i]['invoice_number']) {
-
-            data.payment_received = Number(vm.dt_rows_changed[i].payment_received) + Number(vm.model_data.payment);
-            data.payment_receivable = Number(vm.dt_rows_changed[i].payment_receivable) + Number(vm.dt_rows_changed[i].payment_received);
-            vm.model_data.balance = Number(data.payment_receivable);
-            break;
-          }
-        }
-
-        $(elem).removeClass();
-        $(elem).text('Mark As Paid');
-        $(elem).addClass('btn btn-primary pull-right paid_mode');
+        vm.service.showNoty('Please enter payment first');
       }
-
-      
     }
 
     vm.sendChangedData = function(){
@@ -136,10 +143,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         data_tr.next().toggle(1000);
         
         $(elem).removeClass();
-        $(elem).addClass('btn btn-primary pull-right invoice_data_hide');
+        $(elem).addClass('invoice_data_hide');
       } else {
         $(elem).removeClass('invoice_data_hide');
-        $(elem).addClass('btn btn-primary pull-right invoice_data_show');
+        $(elem).addClass('invoice_data_show');
         data_tr.next().remove();
       }
     }

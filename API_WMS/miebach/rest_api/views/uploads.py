@@ -1861,8 +1861,9 @@ def validate_supplier_form(open_sheet, user_id):
     messages_dict = {'phone_number': 'Phone Number', 'days_to_supply': 'Days required to supply',
                      'fulfillment_amt': 'Fulfillment Amount', 'owner_number': 'Owner Number',
                      'spoc_number': 'SPOC Number', 'lead_time': 'Lead Time', 'credit_period': 'Credit Period',
-                     'account_number': 'Account Number', 'po_exp_duration': 'PO Expiry Duration'}
-    number_str_fields = ['pincode', 'phone_number', 'days_to_supply', 'fulfillment_amt', 'po_exp_duration',
+                     'account_number': 'Account Number', 'po_exp_duration': 'PO Expiry Duration',
+                     'pincode': 'PinCode'}
+    number_str_fields = ['phone_number', 'days_to_supply', 'fulfillment_amt', 'po_exp_duration',
                          'owner_number', 'spoc_number', 'lead_time', 'credit_period', 'account_number']
     for row_idx in range(0, open_sheet.nrows):
         for key, value in mapping_dict.iteritems():
@@ -1877,7 +1878,7 @@ def validate_supplier_form(open_sheet, user_id):
                     cell_data = str(int(cell_data))
                 if cell_data:
                     supplier_master = SupplierMaster.objects.filter(id=cell_data)
-                    if supplier_master and not supplier_master[0].user == user_id:
+                    if supplier_master and not str(supplier_master[0].user) == str(user_id):
                         index_status.setdefault(row_idx, set()).add('Supplier ID Already exists')
                 if cell_data and cell_data in supplier_ids:
                     index_status.setdefault(row_idx, set()).add('Duplicate Supplier ID')
@@ -1892,7 +1893,12 @@ def validate_supplier_form(open_sheet, user_id):
             elif key == 'email_id':
                 if cell_data and validate_email(cell_data):
                     index_status.setdefault(row_idx, set()).add('Enter Valid Email address')
-
+            elif key == 'pincode':
+                if cell_data:
+                    try:
+                        cell_data = float(cell_data)
+                    except:
+                        index_status.setdefault(row_idx, set()).add('Invalid %s' % messages_dict[key])
             elif key in number_str_fields:
                 if cell_data:
                     if not isinstance(cell_data, (int, float)):

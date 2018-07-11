@@ -3348,7 +3348,12 @@ def create_central_order(request, user):
 def create_order_from_intermediate_order(request, user):
     order_dict = {}
     message = 'Success'
-    wh_id = request.POST.get('warehouse', '')
+    wh_name = request.POST.get('warehouse', '')
+    wh_usr_obj = User.objects.filter(username=wh_name)
+    if wh_usr_obj:
+        wh_id = wh_usr_obj[0].id
+    else:
+        return HttpResponse('User Missing')
     interm_det_id = request.POST.get('interm_det_id', '')
     status = request.POST.get('status', '')
     if not status:
@@ -6194,7 +6199,7 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
     for dat in all_orders:
         order_id = int(dat.interm_order_id)
         if dat.order_assigned_wh:
-            wh_name = dat.order_assigned_wh.id
+            wh_name = dat.order_assigned_wh.username
         else:
             wh_name = ''
         # creation_date = dat.creation_date
@@ -6221,10 +6226,10 @@ def get_central_order_detail(request):
     interm_obj = IntermediateOrders.objects.filter(id=central_order_id)
     interm_obj = interm_obj[0]
     if interm_obj.order_assigned_wh:
-        wh_name = interm_obj.order_assigned_wh.first_name
+        wh_name = interm_obj.order_assigned_wh.username
     else:
         wh_name = ''
-    warehouses = UserGroups.objects.filter(admin_user_id=interm_obj.user).values_list('user_id', flat=True)
+    warehouses = UserGroups.objects.filter(admin_user_id=interm_obj.user).values_list('user__username', flat=True)
     resp = {'warehouses': list(warehouses), 'interm_order_id': interm_obj.interm_order_id,
             'sku_code': interm_obj.sku.sku_code, 'sku_desc': interm_obj.sku.sku_desc,
             'quantity': int(interm_obj.quantity), 'status': interm_obj.status,

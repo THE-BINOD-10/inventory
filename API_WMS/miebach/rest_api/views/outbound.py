@@ -5565,6 +5565,11 @@ def get_inv_based_payment_data(start_index, stop_index, temp_data, search_term, 
     lis = ['invoice_number', 'order__customer_name', 'order__customer_id']#for filter purpose
     user_filter = {'order__user': user.id, 'order_status_flag': 'customer_invoices'}
     result_values = ['invoice_number', 'order__customer_name', 'order__customer_id']#to make distinct grouping
+    cust_ids = request.POST.get("customer_ids", '')
+    if cust_ids:
+        cust_ids = cust_ids.split(',')
+        cust_ids = [int(id) for id in cust_ids]
+        user_filter['order__customer_id__in'] = cust_ids
     #invoice date= seller order summary creation date
     #invoice_date = get_local_date(user, invoice_date, send_date='true')
     #invoice_date = invoice_date.strftime("%d %b %Y")

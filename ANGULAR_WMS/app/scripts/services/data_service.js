@@ -12,6 +12,10 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
                       style_view: false
                     }
 
+  self.payment_based_invoice = {
+                                  style_view: true
+                                }
+
   /*** Production Data ***/
 
   // Receive Job Order
@@ -30,7 +34,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
                          stock_2d: false,
                          view: 'StockSummary',
                          tb_headers: {'StockSummary': ['WMS Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Available Quantity',
-                                                       'Reserved Quantity', 'Total Quantity', 'Unit of Measurement'],
+                                                       'Reserved Quantity', 'Total Quantity', 'Unit of Measurement', 'Stock Value'],
                                       'StockSummaryAlt':['SKU Class', 'Style Name', 'Brand', 'SKU Category']},
                          size_type: 'DEFAULT'
                        }
@@ -151,7 +155,9 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
     self.styles_data = {};
     self.tot_corporates = [];
     self.shipment_number = '';
+    self.invoice_data = {};
     self.datatable = 'ReturnToVendor';
+    self.seller_types = [];
 
     /** login page maintainance **/
     self.login_data = {

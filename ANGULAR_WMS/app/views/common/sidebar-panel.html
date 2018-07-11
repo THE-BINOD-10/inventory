@@ -182,11 +182,11 @@
             <span>Put away Confirmation</span>
           </a>
         </li>
-        <!-- <li ui-sref-active="active">
+        <li ng-show="show_tab('add_returntovendor')" ui-sref-active="active">
           <a ui-sref="app.inbound.rtv">
             <span>RTV</span>
           </a>
-        </li> -->
+        </li>
         <li ng-show="show_tab('add_orderreturns')" ui-sref-active="active">
           <a ui-sref="app.inbound.SalesReturns">
             <span>Sales Returns</span>
@@ -357,8 +357,14 @@
     </li>
     <!-- /maps -->
 
-    <li ui-sref-active="active" ng-show="show_tab('PAYMENT_LABEL')">
+    <li ui-sref-active="active" ng-show="show_tab('PAYMENT_LABEL') && !show_tab('invoice_based_payment_tracker')">
       <a ui-sref="app.PaymentTracker">
+        <i class="fa fa-paypal"></i>
+        <span>Payments</span>
+      </a>
+    </li>
+    <li ui-sref-active="active" ng-show="show_tab('PAYMENT_LABEL') && show_tab('invoice_based_payment_tracker')">
+      <a ui-sref="app.PaymentTrackerInvBased">
         <i class="fa fa-paypal"></i>
         <span>Payments</span>
       </a>
@@ -497,6 +503,26 @@
         <li ui-sref-active="active">
           <a ui-sref="app.reports.ShipmentReport">
             <span>Shipment</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin'">
+          <a ui-sref="app.reports.DistributorWiseSalesReport">
+            <span>Distributor Wise Sales Report</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin'">
+          <a ui-sref="app.reports.ResellerWiseSalesReport">
+            <span>Reseller Wise Sales Report</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin'">
+          <a ui-sref="app.reports.DistTargetReport">
+            <span>Distributor Targets Report</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin'">
+          <a ui-sref="app.reports.ResellerTargetReport">
+            <span>Reseller Targets Report</span>
           </a>
         </li>
       </ul>

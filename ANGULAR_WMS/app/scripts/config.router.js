@@ -731,15 +731,19 @@ var app = angular.module('urbanApp')
             url: '/Confirmation',
             templateUrl: 'views/inbound/toggle/putaway_confirm.html'
           })
-        /*.state('app.inbound.rtv', {
+        .state('app.inbound.rtv', {
           url: '/rtv',
           // permission: 'add_polocation',
-          templateUrl: 'views/inbound/rtv.html',
+          templateUrl: 'views/inbound/total_rtvs.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load([
                   'scripts/controllers/inbound/rtv.js'
-                ]);
+                ]).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/inbound/created_rtv.js'
+                  ])
+                });
               }]
           },
           data: {
@@ -749,7 +753,7 @@ var app = angular.module('urbanApp')
         .state('app.inbound.rtv.details', {
             url: '/details',
             templateUrl: 'views/inbound/toggle/rtv_details.html'
-          })*/
+          })
         .state('app.inbound.SalesReturns', {
           url: '/SalesReturns',
           permission: 'add_orderreturns',
@@ -1213,6 +1217,8 @@ var app = angular.module('urbanApp')
             title: 'Customize Your Orders',
           }
         })
+
+
         .state('app.outbound.ViewOrders', {
           url: '/ViewOrders',
           permission: 'add_picklist',
@@ -1227,15 +1233,16 @@ var app = angular.module('urbanApp')
                     'scripts/controllers/outbound/view_orders/stock_transfer_orders.js'
                   ])
                 }).then(function () {
-
                 return $ocLazyLoad.load('scripts/controllers/outbound/view_orders/orders.js');
               });
-                    }]
+            }]
           },
           data: {
             title: 'View Orders',
           }
         })
+
+
           .state('app.outbound.ViewOrders.Picklist', {
             url: '/Picklist',
             templateUrl: 'views/outbound/toggle/batch_tg.html'
@@ -1450,16 +1457,21 @@ var app = angular.module('urbanApp')
           url: '/CustomerInvoicesMain',
           templateUrl: 'views/outbound/customer_invoices_main.html',
           resolve: {
-              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+              return $ocLazyLoad.load([
+                       'scripts/controllers/outbound/customer_invoices_main.js'
+                        ]).then( function() {
                   return $ocLazyLoad.load([
-                    'scripts/controllers/outbound/customer_invoices_main.js'
-                  ])   
-              }]   
-          },   
+                    'scripts/controllers/outbound/stock_transfer_invoice.js'
+                  ])
+                })
+            }]
+          },
           data: {
             title: 'Customer Invoices',
           }
         })
+
          .state('app.outbound.CustomerInvoicesMain.InvoiceM', {
             url: '/InvoiceM',
             templateUrl: 'views/outbound/print/customer_inv_main.html'
@@ -1475,6 +1487,10 @@ var app = angular.module('urbanApp')
           .state('app.outbound.CustomerInvoicesMain.InvoiceD', {
             url: '/InvoiceD',
             templateUrl: 'views/outbound/print/d_generate_inv_main.html'
+          })
+		  .state('app.outbound.CustomerInvoicesMain.StockTransferInvoiceGen', {
+            url: '/StockTransferInvoiceGen',
+            templateUrl: 'views/outbound/print/stock_transfer_inv_gen.html'
           })
 
          .state('app.outbound.CustomerInvoices.InvoiceM', {
@@ -1493,6 +1509,7 @@ var app = angular.module('urbanApp')
             url: '/InvoiceD',
             templateUrl: 'views/outbound/print/d_generate_inv.html'
           })
+
       // Upload route
       .state('app.uploads', {
           url: '/uploads',
@@ -1576,7 +1593,30 @@ var app = angular.module('urbanApp')
             title: 'Pending Payment Tracker'
           }
         })
-
+      // Track Orders Invoice Based
+      .state('app.PaymentTrackerInvBased', {
+          url: '/PaymentTrackerInvBased',
+          templateUrl: 'views/payment_tracker/payment_tracker_inv_based.html',
+          authRequired: true,
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/payment_tracker/payment_tracker_inv_based.js'
+                ]).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/payment_tracker/inbound_payment_tracker.js'
+                  ])
+                });
+              }]
+          },
+          data: {
+            title: 'Invoice Amount'
+          }
+        })
+      .state('app.PaymentTrackerInvBased.Inv_Details', {
+            url: '/Inv_Details',
+            templateUrl: 'views/payment_tracker/toggle/inv_details.html',
+          })
       // Orders Sync Issues
       .state('app.OrdersSyncIssues', {
           url: '/OrdersSyncIssues',
@@ -1850,6 +1890,54 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'Shipment Report',
+          }
+        })
+        .state('app.reports.DistributorWiseSalesReport', {
+          url: '/DistributorSalesReport',
+          templateUrl: 'views/reports/dist_sales_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/dist_sales_report.js');
+              }]
+          },
+          data: {
+            title: 'Distributor Wise Sales Report',
+          }
+        })
+        .state('app.reports.ResellerWiseSalesReport', {
+          url: '/ResellerSalesReport',
+          templateUrl: 'views/reports/reseller_sales_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/reseller_sales_report.js');
+              }]
+          },
+          data: {
+            title: 'Reseller Wise Sales Report',
+          }
+        })
+        .state('app.reports.DistTargetReport', {
+          url: '/DistTargetReport',
+          templateUrl: 'views/reports/dist_target_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/dist_target_report.js');
+              }]
+          },
+          data: {
+            title: 'Distributor Targets Report',
+          }
+        })
+        .state('app.reports.ResellerTargetReport', {
+          url: '/ResellerTargetReport',
+          templateUrl: 'views/reports/reseller_target_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/reseller_target_report.js');
+              }]
+          },
+          data: {
+            title: 'Reseller Targets Report',
           }
         })
 

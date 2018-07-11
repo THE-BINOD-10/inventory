@@ -41,7 +41,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
         DTColumnBuilder.newColumn('Zone').withTitle('Zone'),
         DTColumnBuilder.newColumn('Location').withTitle('Location'),
         DTColumnBuilder.newColumn('Quantity').withTitle('Quantity'),
-        DTColumnBuilder.newColumn('Receipt Type').withTitle('Receipt Type')
+        DTColumnBuilder.newColumn('Receipt Type').withTitle('Receipt Type'),
+        DTColumnBuilder.newColumn('Stock Value').withTitle('Stock Value'),
     ];
 
     vm.excel = excel;

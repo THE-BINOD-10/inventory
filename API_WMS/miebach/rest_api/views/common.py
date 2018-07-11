@@ -384,6 +384,10 @@ def get_trial_user_data(request):
 
 
 def get_search_params(request, user=''):
+    """
+    Zone Code is (NORTH, EAST, WEST, SOUTH)
+    Zone Id is Warehouse Zone.
+    """
     search_params = {}
     filter_params = {}
     headers = []
@@ -403,13 +407,16 @@ def get_search_params(request, user=''):
                     'order_id': 'order_id', 'job_code': 'job_code', 'job_order_code': 'job_order_code',
                     'fg_sku_code': 'fg_sku_code',
                     'rm_sku_code': 'rm_sku_code', 'pallet': 'pallet',
-                    'staff_id': 'id', 'ean': 'ean', 'invoice_number': 'invoice_number'}
+                    'staff_id': 'id', 'ean': 'ean', 'invoice_number': 'invoice_number',
+                    'zone_code': 'zone_code', 'dist_code': 'dist_code', 'reseller_code': 'reseller_code',
+                    'supplier_id': 'supplier_id'}
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
                       'search2': 'search_2', 'search3': 'search_3',
                       'search4': 'search_4', 'search5': 'search_5',
                       'search6': 'search_6', 'search7': 'search_7',
-                      'search8': 'search_8', 'search9': 'search_9', 'search10': 'search_10', 'search11': 'search_11'}
+                      'search8': 'search_8', 'search9': 'search_9',
+                      'search10': 'search_10', 'search11': 'search_11'}
     request_data = request.POST
     if not request_data:
         request_data = request.GET
@@ -460,7 +467,9 @@ data_datatable = {  # masters
     'RaiseIO': 'get_intransit_orders', 'PrimarySegregation': 'get_segregation_pos', \
     'ProcessedPOs': 'get_processed_po_data', 'POChallans': 'get_po_challans_data', \
     'SupplierInvoices': 'get_supplier_invoice_data', \
+    'POPaymentTrackerInvBased': 'get_inv_based_po_payment_data', \
     'ReturnToVendor': 'get_po_putaway_data', \
+    'CreatedRTV': 'get_saved_rtvs', \
     # production
     'RaiseJobOrder': 'get_open_jo', 'RawMaterialPicklist': 'get_jo_confirmed', \
     'PickelistGenerated': 'get_generated_jo', 'ReceiveJO': 'get_confirmed_jo', \
@@ -488,6 +497,7 @@ data_datatable = {  # masters
     'ShipmentPickedAlternative': 'get_order_shipment_picked', 'CustomerInvoices': 'get_customer_invoice_data', \
     'ProcessedOrders': 'get_processed_orders_data', 'DeliveryChallans': 'get_delivery_challans_data',
     'CustomerInvoicesTab': 'get_customer_invoice_tab_data', 'SellerOrderView': 'get_seller_order_view', \
+    'StockTransferInvoice' : 'get_stock_transfer_invoice_data', \
     # manage users
     'ManageUsers': 'get_user_results', 'ManageGroups': 'get_user_groups',
     # retail one
@@ -499,6 +509,8 @@ data_datatable = {  # masters
     'EnquiryOrders': 'get_enquiry_orders',
     'ManualEnquiryOrders': 'get_manual_enquiry_orders',
     'Targets': 'get_distributor_targets',
+    #invoice based payment tracker
+    'PaymentTrackerInvBased': 'get_inv_based_payment_data',
 }
 
 
@@ -1979,17 +1991,20 @@ def load_demo_data(request, user=''):
 
     user_profile = UserProfile.objects.get(user_id=user.id)
     delete_user_demo_data(user.id)
-    upload_files_path = OrderedDict((('sku_upload', {'file_name': 'sku_form.xls', 'function_name': 'sku_excel_upload'}),
+    upload_files_path = OrderedDict((('sku_upload', {'file_name': 'sku_form.xls', 'function_name': 'sku_excel_upload',
+                                                     'validate_func_name': 'validate_sku_form'}),
                                      ('location_upload',
                                       {'file_name': 'location_form.xls', 'function_name': 'process_location'}),
                                      ('supplier_upload',
                                       {'file_name': 'supplier_form.xls', 'function_name': 'supplier_excel_upload'}),
                                      ('inventory_upload',
-                                      {'file_name': 'inventory_form.xls', 'function_name': 'inventory_excel_upload'}),
+                                      {'file_name': 'inventory_form.xls', 'function_name': 'inventory_excel_upload',
+                                       'validate_func_name': 'validate_inventory_form'}),
                                      ('order_upload',
                                       {'file_name': 'order_form.xls', 'function_name': 'order_csv_xls_upload'}),
                                      ('purchase_order_upload', {'file_name': 'purchase_order_form.xls',
-                                                                'function_name': 'purchase_order_excel_upload'})
+                                                                'function_name': 'purchase_order_excel_upload',
+                                                                'validate_func_name':'validate_purchase_order'})
 
                                      ))
 
@@ -1997,19 +2012,31 @@ def load_demo_data(request, user=''):
         open_book = open_workbook(os.path.join(settings.BASE_DIR + "/rest_api/demo_data/", value['file_name']))
         open_sheet = open_book.sheet_by_index(0)
         func_params = [request, open_sheet, user]
-        if key == 'inventory_upload':
+        if key in ['purchase_order_upload', 'inventory_upload']:
             reader = open_sheet
             no_of_rows = reader.nrows
             file_type = 'xls'
             no_of_cols = open_sheet.ncols
-            in_status, data_list = validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, open_sheet.name,
-                                                           file_type)
-            inventory_excel_upload(request, user, data_list)
+            func_params = [request, reader, user, no_of_rows, no_of_cols, open_sheet.name,file_type]
+            if key in ['purchase_order_upload']:
+                func_params.append(True)
+            in_status, data_list = eval(value['validate_func_name'])(*func_params)
+            eval(value['function_name'])(request, user, data_list)
             continue
-        elif key in ['order_upload', 'sku_upload']:
+        elif key in ['sku_upload']:
+            reader = open_sheet
+            no_of_rows = reader.nrows
+            file_type = 'xls'
+            no_of_cols = open_sheet.ncols
+            in_status = eval(value['validate_func_name'])(request, reader, user, no_of_rows, no_of_cols, open_sheet,
+                                                           file_type)
+            eval(value['function_name'])(request, reader, user, no_of_rows, no_of_cols, open_sheet,
+                                              file_type='xls')
+            continue
+        elif key in ['order_upload']:
             func_params.append(open_sheet.nrows)
             func_params.append(value['file_name'])
-        elif key in ['supplier_upload', 'purchase_order_upload']:
+        elif key in ['supplier_upload']:
             func_params.append(True)
         eval(value['function_name'])(*func_params)
 
@@ -2291,6 +2318,7 @@ def get_financial_year(date):
 
 def get_challan_number(user, seller_order_summary):
     challan_num = ""
+    challan_number = ""
     chn_date = datetime.datetime.now()
     invoice_no_gen = MiscDetail.objects.filter(user=user.id, misc_type='increment_invoice')
     if invoice_no_gen:
@@ -2316,6 +2344,8 @@ def get_challan_number(user, seller_order_summary):
                                                    creation_date=datetime.datetime.now())
                     order_no = '001'
                     challan_num = int(order_no)
+            elif invoice_no_gen[0].misc_value == 'true' and challan_num:
+                seller_order_summary.update(challan_number=challan_num)
             else:
                 log.info("Challan No not updated for seller_order_summary")
         challan_number = 'CHN/%s/%s' % (chn_date.strftime('%m%y'), challan_num)
@@ -2930,6 +2960,11 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         custom_margin = 0
 
     admin_user = get_priceband_admin_user(user)
+    msp_min_price = msp_max_price = 0
+    if admin_user and from_price and to_price:
+        msp_min_price = from_price
+        msp_max_price = to_price
+        from_price = to_price = ''
     is_margin_percentage = request_data.get('is_margin_percentage', 'false')
     specific_margins = request_data.get('margin_data', [])
     customer_data_id = request_data.get('customer_data_id', '')
@@ -3065,7 +3100,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     sku_master = sku_master.order_by('sequence')
     product_styles = sku_master.values_list('sku_class', flat=True).distinct()
     product_styles = list(OrderedDict.fromkeys(product_styles))
-    if is_file:
+    if is_file or (msp_min_price and msp_max_price):
         start, stop = 0, len(product_styles)
 
     needed_stock_data = {}
@@ -3098,7 +3133,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
                            customer_data_id=customer_data_id, is_file=is_file, prices_dict=prices_dict,
                            price_type=price_type, custom_margin=custom_margin, specific_margins=specific_margins,
                            is_margin_percentage=is_margin_percentage, stock_quantity=quantity,
-                           needed_stock_data=needed_stock_data)
+                           needed_stock_data=needed_stock_data, msp_min_price=msp_min_price, msp_max_price=msp_max_price)
     return data, start, stop
 
 
@@ -3988,7 +4023,7 @@ def get_categories_list(request, user=""):
 
 
 def get_generic_warehouses_list(user):
-   return UserGroups.objects.filter(admin_user=user).values_list('user', flat=True)
+   return UserGroups.objects.filter(admin_user=user).exclude(user__userprofile__warehouse_level=2).values_list('user', flat=True)
 
 @fn_timer
 def get_cal_style_data(style_data, quantity):
@@ -4019,7 +4054,7 @@ def get_cal_style_data(style_data, quantity):
 @fn_timer
 def get_styles_data(user, product_styles, sku_master, start, stop, request, customer_id='', customer_data_id='', is_file='',
                     prices_dict={}, price_type='', custom_margin=0, specific_margins=[], is_margin_percentage=0,
-                    stock_quantity=0, needed_stock_data={}):
+                    stock_quantity=0, needed_stock_data={}, msp_min_price=0, msp_max_price=0):
     data = []
     style_quantities = eval(request.POST.get('required_quantity', '{}'))
     levels_config = get_misc_value('generic_wh_level', user.id)
@@ -4028,7 +4063,6 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
 
     #To fix quantity based filter
     product_styles_filtered = []
-    product_styles_tot_qty_map = {}
     qty_dict_flag = False
     product_styles_tot_qty_map = {}
     if stock_quantity:
@@ -4085,9 +4119,13 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
                     tax_percentage = float(tax['sgst_tax']) + float(tax['igst_tax']) + float(tax['cgst_tax'])
                     sku_styles[0]['tax_percentage'] = '%.1f'%tax_percentage
             if total_quantity >= int(stock_quantity):
-                data.append(sku_styles[0])
-        if not is_file and len(data) >= 20:
-            break
+                if msp_min_price and msp_max_price:
+                    if float(msp_min_price) <= sku_variants[0]['your_price'] <= float(msp_max_price):
+                        data.append(sku_styles[0])
+                else:
+                    data.append(sku_styles[0])
+        # if not is_file and len(data) >= 20:
+        #     break
     return data
 
 
@@ -4251,7 +4289,7 @@ def get_sku_available_dict(user, sku_code='', location='', available=False):
 
 def get_order_detail_objs(order_id, user, search_params={}, all_order_objs=[]):
     search_param = copy.deepcopy(search_params)
-    if not search_param.has_key('user'):
+    if not search_param.has_key('user') and not search_param.has_key('user__in'):
         search_param['user'] = user.id
     if not all_order_objs:
         all_order_objs = OrderDetail.objects.filter(user=user.id)
@@ -4558,6 +4596,7 @@ def get_purchase_order_data(order):
         sgst_tax = 0
         igst_tax = 0
         utgst_tax = 0
+        cess_tax = 0
         tin_number = ''
     elif order.open_po:
         open_data = order.open_po
@@ -4578,6 +4617,7 @@ def get_purchase_order_data(order):
         sgst_tax = open_data.sgst_tax
         igst_tax = open_data.igst_tax
         utgst_tax = open_data.utgst_tax
+        cess_tax = open_data.cess_tax
         tin_number = open_data.supplier.tin_number
         if sku.wms_code == 'TEMP':
             temp_wms = open_data.wms_code
@@ -4598,6 +4638,7 @@ def get_purchase_order_data(order):
         sgst_tax = 0
         igst_tax = 0
         utgst_tax = 0
+        cess_tax = 0
         tin_number = ''
 
     order_data = {'order_quantity': order_quantity, 'price': price, 'mrp': mrp, 'wms_code': sku.wms_code,
@@ -4608,7 +4649,7 @@ def get_purchase_order_data(order):
                   'sku_group': sku.sku_group, 'sku_id': sku.id, 'sku': sku, 'temp_wms': temp_wms,
                   'order_type': order_type,
                   'supplier_code': supplier_code, 'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax,
-                  'utgst_tax': utgst_tax, 'intransit_quantity': intransit_quantity,
+                  'utgst_tax': utgst_tax, 'cess_tax':cess_tax, 'intransit_quantity': intransit_quantity,
                   'tin_number': tin_number, 'shelf_life': sku.shelf_life}
 
     return order_data
@@ -6125,6 +6166,8 @@ def get_user_profile_data(request, user=''):
     data['main_user'] = request.user.is_staff
     data['company_name'] = main_user.company_name
     data['cin_number'] = request.user.userprofile.cin_number
+    data['wh_address'] = main_user.wh_address
+    data['wh_phone_number'] = main_user.wh_phone_number
     return HttpResponse(json.dumps({'msg': 1, 'data': data}))
 
 
@@ -6191,11 +6234,15 @@ def update_profile_data(request, user=''):
     company_name = request.POST.get('company_name', '')
     email = request.POST.get('email', '')
     cin_number = request.POST.get('cin_number', '')
+    wh_address = request.POST.get('wh_address', '')
+    wh_phone_number = request.POST.get('wh_phone_number', '')
     main_user = UserProfile.objects.get(user_id=user.id)
     main_user.address = address
     main_user.gst_number = gst_number
     main_user.company_name = company_name
     main_user.cin_number = cin_number
+    main_user.wh_address = wh_address
+    main_user.wh_phone_number = wh_phone_number
     main_user.save()
     user.email = email
     user.save()
@@ -6996,6 +7043,7 @@ def get_gen_wh_ids(request, user, delivery_date):
     res_lead_time = 0
     if admin:
         gen_whs = list(get_generic_warehouses_list(admin))
+        gen_whs.append(user.id)
         cm_obj = CustomerUserMapping.objects.filter(user=request.user.id)
         if cm_obj:
             cm_id = cm_obj[0].customer
@@ -7019,9 +7067,12 @@ def get_gen_wh_ids(request, user, delivery_date):
     return gen_whs
 
 
-def get_incremental(user, type_name):
+def get_incremental(user, type_name, default_val=''):
     # custom sku counter
-    default = 1001
+    if not default_val:
+        default = 1001
+    else:
+        default = default_val
     data = IncrementalTable.objects.filter(user=user.id, type_name=type_name)
     if data:
         data = data[0]
@@ -7029,7 +7080,7 @@ def get_incremental(user, type_name):
         data.value = data.value + 1
         data.save()
     else:
-        IncrementalTable.objects.create(user_id=user.id, type_name=type_name, value=1001)
+        IncrementalTable.objects.create(user_id=user.id, type_name=type_name, value=default)
         count = default
     return count
 
@@ -7118,3 +7169,24 @@ def update_substitution_data(src_stocks, dest_stocks, src_sku, src_loc, src_qty,
                 'destination_quantity': dest_qty}
     SubstitutionSummary.objects.create(**sub_data)
     log.info("Substitution Done For " + str(json.dumps(sub_data)))
+
+def update_stock_detail(stocks, quantity, user):
+    for stock in stocks:
+        if stock.quantity > quantity:
+            stock.quantity -= quantity
+            seller_stock = stock.sellerstock_set.filter()
+            if seller_stock.exists():
+                change_seller_stock(seller_stock[0].seller_id, stock, user, quantity, 'dec')
+            quantity = 0
+            if stock.quantity < 0:
+                stock.quantity = 0
+            stock.save()
+        elif stock.quantity <= quantity:
+            quantity -= stock.quantity
+            seller_stock = stock.sellerstock_set.filter()
+            if seller_stock.exists():
+                change_seller_stock(seller_stock[0].seller_id, stock, user, stock.quantity, 'dec')
+            stock.quantity = 0
+            stock.save()
+        if quantity == 0:
+            break

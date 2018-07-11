@@ -103,6 +103,8 @@ def get_inventory_excel_upload_headers(user):
     if not userprofile.industry_type == 'FMCG':
         del excel_headers["Batch Number"]
         del excel_headers["MRP"]
+        del excel_headers["Manufactured Date(YYYY-MM-DD)"]
+        del excel_headers["Expiry Date(YYYY-MM-DD)"]
     return excel_headers
 
 
@@ -127,6 +129,14 @@ def get_sku_substitution_excel_headers(user):
         del excel_headers["Source MRP"]
         del excel_headers["Destination Batch Number"]
         del excel_headers["Destination MRP"]
+    return excel_headers
+
+
+def get_purchase_order_excel_headers(user):
+    excel_headers = copy.deepcopy(PURCHASE_ORDER_UPLOAD_MAPPING)
+    userprofile = user.userprofile
+    if not userprofile.user_type == 'marketplace_user':
+        del excel_headers["Seller ID"]
     return excel_headers
 
 
@@ -405,7 +415,7 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
                 order_detail.creation_date = exist_order_ins[0].creation_date
                 order_detail.shipment_date = exist_order_ins[0].shipment_date
                 order_detail.save()
-                if order_data['order_type'] == 'Returnable Order':
+                if order_data.get('order_type', '') == 'Returnable Order':
                     order_obj_list.append(order_obj)
             check_create_seller_order(seller_order_dict, order_detail, user)
             if order_data['sku_id'] not in sku_ids:
@@ -421,7 +431,7 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
             order_obj = order_obj[0]
             order_obj.quantity = order_obj.quantity + order_data['quantity']
             order_obj.save()
-            if order_data['order_type'] == 'Returnable Order':
+            if order_data.get('order_type', '') == 'Returnable Order':
                 order_obj_list.append(order_obj)
             check_create_seller_order(seller_order_dict, order_obj, user)
         elif order_obj and order_create and seller_order_dict.get('seller_id', '') and \
@@ -431,7 +441,7 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
                 order_obj.status = 1
                 update_seller_order(seller_order_dict, order_obj, user)
                 order_obj.save()
-                if order_data['order_type'] == 'Returnable Order':
+                if order_data.get('order_type', '') == 'Returnable Order':
                     order_obj_list.append(order_obj)
         create_order_pos(user, order_obj_list)
         log.info("Order Saving Ended %s" % (datetime.datetime.now()))
@@ -471,12 +481,13 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             cell_data = get_cell_data(row_idx, order_mapping['order_id'], reader, file_type)
             if not cell_data:
                 index_status.setdefault(count, set()).add('Order Id should not be empty')
-            order_type = get_cell_data(row_idx, order_mapping['order_type'], reader, file_type)
-            if cell_data in order_id_order_type.keys():
-                if order_id_order_type[cell_data] != order_type:
-                    index_status.setdefault(count, set()).add('Order Type are different for same orders')
-            else:
-                order_id_order_type[cell_data]=order_type
+            if 'order_type' in order_mapping:
+                order_type = get_cell_data(row_idx, order_mapping['order_type'], reader, file_type)
+                if cell_data in order_id_order_type.keys():
+                    if order_id_order_type[cell_data] != order_type:
+                        index_status.setdefault(count, set()).add('Order Type are different for same orders')
+                else:
+                    order_id_order_type[cell_data]=order_type
         cell_data = get_cell_data(row_idx, order_mapping['sku_code'], reader, file_type)
         title = ''
         if order_mapping.has_key('title'):
@@ -892,9 +903,10 @@ def purchase_order_form(request, user=''):
         response = read_and_send_excel(order_file)
         return response
     wb = Workbook()
-    ws = wb.add_sheet('supplier')
+    ws = wb.add_sheet('Purchase Order')
     header_style = easyxf('font: bold on')
-    for count, header in enumerate(PURCHASE_ORDER_HEADERS):
+    excel_headers = get_purchase_order_excel_headers(user)
+    for count, header in enumerate(excel_headers):
         ws.write(0, count, header, header_style)
 
     return xls_to_response(wb, '%s.purchase_order_form.xls' % str(user.id))
@@ -1584,6 +1596,7 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
     number_fields = ['quantity', 'mrp']
     optional_fields = ['mrp']
     mandatory_fields = ['receipt_date', 'location', 'quantity', 'receipt_type']
+    fields_mapping = {'manufactured_date': 'Manufactured Date', 'expiry_date': 'Expiry Date'}
     location_master = LocationMaster.objects.filter(zone__user=user.id)
     data_list = []
     for row_idx in range(1, no_of_rows):
@@ -1605,6 +1618,18 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
                     data_dict[key] = receipt_date
                 except:
                     index_status.setdefault(row_idx, set()).add('Invalid Receipt Date format')
+            elif key in ['manufactured_date', 'expiry_date']:
+                if cell_data:
+                    try:
+                        if isinstance(cell_data, float):
+                            year, month, day, hour, minute, second = xldate_as_tuple(cell_data, 0)
+                            data_dict[key] = datetime.datetime(year, month, day, hour, minute, second)
+                        elif '-' in cell_data:
+                            data_dict[key] = datetime.datetime.strptime(cell_data, "%Y-%m-%d")
+                        else:
+                            index_status.setdefault(row_idx, set()).add('Invalid %s format' % (fields_mapping[key]))
+                    except:
+                        index_status.setdefault(row_idx, set()).add('Invalid %s format' % (fields_mapping[key]))
             elif key == 'wms_code':
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))
@@ -1642,6 +1667,12 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
                 data_dict[key] = cell_data
             else:
                 data_dict[key] = cell_data
+        if user.userprofile.industry_type == 'FMCG':
+            if not data_dict.get('manufactured_date', ''):
+                data_dict['manufactured_date'] = datetime.datetime.now()
+            if not data_dict.get('expiry_date', ''):
+                sku_master = SKUMaster.objects.get(id=data_dict['sku_id'])
+                data_dict['expiry_date'] = data_dict['manufactured_date'] + datetime.timedelta(sku_master.shelf_life)
         data_list.append(data_dict)
 
     if not index_status:
@@ -1698,6 +1729,12 @@ def inventory_excel_upload(request, user, data_list):
             mrp = inventory_data.get('mrp', 0)
             if 'mrp' in inventory_data.keys():
                 del inventory_data['mrp']
+            mfg_date = inventory_data.get('manufactured_date', '')
+            if 'manufactured_date' in inventory_data.keys():
+                del inventory_data['manufactured_date']
+            exp_date = inventory_data.get('expiry_date', '')
+            if 'expiry_date' in inventory_data.keys():
+                del inventory_data['expiry_date']
 
             stock_query_filter = {'sku_id': inventory_data.get('sku_id', ''),
                                   'location_id': inventory_data.get('location_id', ''),
@@ -1711,7 +1748,7 @@ def inventory_excel_upload(request, user, data_list):
                 pallet_detail.save()
                 stock_query_filter['pallet_detail_id'] = pallet_detail.id
                 inventory_data['pallet_detail_id'] = pallet_detail.id
-            if mrp or batch_no:
+            if mrp or batch_no or mfg_date or exp_date:
                 try:
                     mrp = float(mrp)
                 except:
@@ -1719,6 +1756,10 @@ def inventory_excel_upload(request, user, data_list):
                 if isinstance(batch_no, float):
                     batch_no = str(int(batch_no))
                 batch_dict = {'batch_no': batch_no, 'mrp': mrp, 'creation_date': datetime.datetime.now()}
+                if mfg_date:
+                    batch_dict['manufactured_date'] = mfg_date
+                if exp_date:
+                    batch_dict['expiry_date'] = exp_date
                 batch_obj = BatchDetail(**batch_dict)
                 batch_obj.save()
                 stock_query_filter['batch_detail_id'] = batch_obj.id
@@ -2284,144 +2325,174 @@ def location_upload(request, user=''):
 
 
 @csrf_exempt
-def validate_purchase_order(open_sheet, user):
+def validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname, file_type, demo_data=False):
     index_status = {}
-    for row_idx in range(0, open_sheet.nrows):
-        for col_idx in range(0, len(PURCHASE_ORDER_HEADERS)):
-            cell_data = open_sheet.cell(row_idx, col_idx).value
-            if row_idx == 0:
-                if col_idx == 0 and cell_data != 'PO Reference':
-                    return 'Invalid File'
-                break
-            if col_idx == 2:
+    data_list = []
+    purchase_mapping = get_purchase_order_excel_headers(user)
+    purchase_res = dict(zip(purchase_mapping.values(), purchase_mapping.keys()))
+    excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                                 purchase_mapping)
+    if not set(['po_name', 'po_date', 'po_delivery_date', 'supplier_id', 'wms_code', 'quantity', 'price', 'mrp',
+                'cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax', 'ship_to']).issubset(excel_mapping.keys()):
+        return 'Invalid File', []
+    mapping_fields = {'po_date': 'PO Date', 'po_delivery_date': 'PO Delivery Date', 'mrp': 'MRP',
+                      'cgst_tax': 'CGST Tax', 'sgst_tax': 'SGST Tax', 'igst_tax': 'IGST Tax', 'utgst_tax': 'UTGST Tax',
+                      'cess_tax': 'CESS Tax'}
+    number_fields = ['mrp', 'cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax', 'cess_tax']
+    user_profile = user.userprofile
+    for row_idx in range(1, no_of_rows):
+        data_dict = {}
+        for key, value in excel_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, value, reader, file_type)
+            if key == 'supplier_id':
                 if isinstance(cell_data, (int, float)):
                     cell_data = str(int(cell_data))
+                if demo_data:
+                    cell_data = user_profile.prefix + '_' + cell_data
                 if cell_data:
-                    supplier = SupplierMaster.objects.filter(user=user, id=cell_data.upper())
+                    supplier = SupplierMaster.objects.filter(user=user.id, id=cell_data.upper())
                     if not supplier:
                         index_status.setdefault(row_idx, set()).add("Supplier ID doesn't exist")
+                    else:
+                        data_dict['supplier'] = supplier[0]
                 else:
                     index_status.setdefault(row_idx, set()).add('Missing Supplier ID')
-            elif col_idx == 1:
+            elif key in ['po_date', 'po_delivery_date']:
                 if cell_data:
                     try:
                         if isinstance(cell_data, float):
-                            po_date = xldate_as_tuple(cell_data, 0)
+                            year, month, day, hour, minute, second = xldate_as_tuple(cell_data, 0)
+                            data_dict[key] = datetime.datetime(year, month, day, hour, minute, second)
                         elif '-' in cell_data:
-                            po_date = datetime.datetime.strptime(cell_data, "%m-%d-%Y")
+                            data_dict[key] = datetime.datetime.strptime(cell_data, "%m-%d-%Y")
                         else:
-                            index_status.setdefault(row_idx, set()).add('Check the date format')
+                            index_status.setdefault(row_idx, set()).add('Check the date format for %s' %
+                                                                        mapping_fields[key])
                     except:
-                        index_status.setdefault(row_idx, set()).add('Check the date format')
-            elif col_idx == 3:
+                        index_status.setdefault(row_idx, set()).add('Check the date format for %s' %
+                                                                    mapping_fields[key])
+            elif key == 'wms_code':
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add('Missing WMS Code')
                 else:
                     if isinstance(cell_data, (int, float)):
                         cell_data = str(int(cell_data))
-                    sku_master = SKUMaster.objects.filter(wms_code=cell_data.upper())
+                    sku_master = SKUMaster.objects.filter(wms_code=cell_data.upper(), user=user.id)
                     if not sku_master:
                         index_status.setdefault(row_idx, set()).add("WMS Code doesn't exist")
-            elif col_idx == 4:
+                    else:
+                        data_dict['sku'] = sku_master[0]
+            elif key == 'seller_id':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add('Missing Seller ID')
+                else:
+                    if not isinstance(cell_data, (int, float)):
+                        index_status.setdefault(row_idx, set()).add('Seller ID is Number Field')
+                    else:
+                        cell_data = int(cell_data)
+                        seller_master = SellerMaster.objects.filter(seller_id=cell_data, user=user.id)
+                        if not seller_master:
+                            index_status.setdefault(row_idx, set()).add("Seller doesn't exist")
+                        else:
+                            data_dict['seller'] = seller_master[0]
+            elif key == 'quantity':
                 if cell_data:
                     if not isinstance(cell_data, (int, float)):
                         index_status.setdefault(row_idx, set()).add('Quantity should be integer')
+                    else:
+                        data_dict[key] = float(cell_data)
                 else:
                     index_status.setdefault(row_idx, set()).add('Missing Quantity')
-            elif col_idx == 5:
+            elif key == 'price':
                 if cell_data != '':
                     if not isinstance(cell_data, (int, float)):
-                        index_status.setdefault(row_idx, set()).add('Price should be a number')
-
+                        index_status.setdefault(row_idx, set()).add('Unit Price should be a number')
+                    else:
+                        data_dict[key] = float(cell_data)
+                else:
+                    data_dict[key] = 0
+            elif key in ['po_name', 'ship_to']:
+                if isinstance(cell_data, (int, float)):
+                    cell_data = str(int(cell_data))
+                data_dict[key] = cell_data
+            elif cell_data:
+                if key in number_fields:
+                    try:
+                        cell_data = float(cell_data)
+                        data_dict[key] = cell_data
+                    except:
+                        index_status.setdefault(row_idx, set()).add('%s is Number Field' % mapping_fields[key])
+                else:
+                    data_dict[key] = cell_data
+        data_list.append(data_dict)
     if not index_status:
-        return 'Success'
-    wb = Workbook()
-    ws = wb.add_sheet('Purchase Order')
-    header_style = easyxf('font: bold on')
-    headers = copy.copy(PURCHASE_ORDER_HEADERS)
-    headers.append('Status')
-    for count, header in enumerate(headers):
-        ws.write(0, count, header, header_style)
+        return 'Success', data_list
 
-    for row_idx in range(1, open_sheet.nrows):
-        for col_idx in range(0, len(PURCHASE_ORDER_HEADERS)):
-            ws.write(row_idx, col_idx, open_sheet.cell(row_idx, col_idx).value)
-        else:
-            index_data = index_status.get(row_idx, '')
-            if index_data:
-                index_data = ', '.join(index_data)
-            ws.write(row_idx, col_idx + 1, index_data)
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
 
-    wb.save('%s.purchase_order_form.xls' % user)
-    return '%s.purchase_order_form.xls' % user
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
 
 
-def purchase_order_excel_upload(request, open_sheet, user, demo_data=False):
+def purchase_order_excel_upload(request, user, data_list, demo_data=False):
     order_ids = {}
     data_req = {}
     mail_result_data = ""
-    for row_idx in range(1, open_sheet.nrows):
+    user_profile = user.userprofile
+    creation_date = datetime.datetime.now()
+    for final_dict in data_list:
         order_data = copy.deepcopy(PO_SUGGESTIONS_DATA)
         data = copy.deepcopy(PO_DATA)
-        for col_idx in range(0, len(PURCHASE_ORDER_HEADERS)):
-            cell_data = open_sheet.cell(row_idx, col_idx).value
-            if col_idx == 2:
-                if type(cell_data) == float:
-                    cell_data = int(cell_data)
-                else:
-                    cell_data = cell_data.upper()
-                if demo_data:
-                    user_profile = UserProfile.objects.filter(user_id=user.id)
-                    if user_profile:
-                        cell_data = user_profile[0].prefix + '_' + cell_data
-                supplier = SupplierMaster.objects.filter(user=user.id, id=cell_data)
-                if supplier:
-                    order_data['supplier_id'] = cell_data
-            elif col_idx == 3:
-                if type(cell_data) == float:
-                    cell_data = int(cell_data)
-                else:
-                    cell_data = cell_data.upper()
-                sku_master = SKUMaster.objects.filter(wms_code=cell_data, user=user.id)
-                if sku_master:
-                    order_data['sku_id'] = sku_master[0].id
-            elif col_idx == 4:
-                order_data['order_quantity'] = int(cell_data)
-            elif col_idx == 5:
-                try:
-                    cell_data = float(cell_data)
-                except:
-                    cell_data = 0
-                order_data['price'] = cell_data
-            elif col_idx == 1:
-                if cell_data and '-' in str(cell_data):
-                    order_date = cell_data.split('-')
-                    data['po_date'] = datetime.date(int(order_date[2]), int(order_date[0]), int(order_date[1]))
-                elif isinstance(cell_data, float):
-                    year, month, day, hour, minute, second = xldate_as_tuple(cell_data, 0)
-                    data['po_date'] = datetime.datetime(year, month, day, hour, minute, second)
-            elif col_idx == 0:
-                if type(cell_data) == float:
-                    cell_data = int(cell_data)
-                order_data['po_name'] = str(cell_data)
-            elif col_idx == 6:
-                data['ship_to'] = cell_data
-
-        if (order_data['po_name'], order_data['supplier_id'], data['po_date']) not in order_ids.keys():
+        order_data['supplier_id'] = final_dict['supplier'].id
+        order_data['sku_id'] = final_dict['sku'].id
+        order_data['order_quantity'] = final_dict['quantity']
+        order_data['price'] = final_dict.get('price', 0)
+        order_data['po_name'] = final_dict['po_name']
+        order_data['mrp'] = final_dict.get('mrp', 0)
+        order_data['cgst_tax'] = final_dict.get('cgst_tax', 0)
+        order_data['sgst_tax'] = final_dict.get('sgst_tax', 0)
+        order_data['igst_tax'] = final_dict.get('igst_tax', 0)
+        order_data['utgst_tax'] = final_dict.get('utgst_tax', 0)
+        order_data['cess_tax'] = final_dict.get('cess_tax', 0)
+        order_data['measurement_unit'] = final_dict['sku'].measurement_type
+        order_data['creation_date'] = creation_date
+        if final_dict.get('po_delivery_date', ''):
+            order_data['delivery_date'] = final_dict['po_delivery_date']
+        data['po_date'] = final_dict['po_date']
+        data['ship_to'] = final_dict['ship_to']
+        data['creation_date'] = creation_date
+        seller_id = ''
+        if final_dict.get('seller', ''):
+            seller_id = final_dict['seller'].id
+        group_key = (order_data['po_name'], order_data['supplier_id'], data['po_date'], seller_id)
+        if group_key not in order_ids.keys():
             po_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id).order_by('-order_id')
             if not po_data:
                 po_id = 0
             else:
                 po_id = po_data[0].order_id
-            order_ids[order_data['po_name'], order_data['supplier_id'], data['po_date']] = po_id
+            order_ids[group_key] = po_id
         else:
-            po_id = order_ids[order_data['po_name'], order_data['supplier_id'], data['po_date']]
+            po_id = order_ids[group_key]
         ids_dict = {}
         po_data = []
         total = 0
         order_data['status'] = 0
         data1 = OpenPO(**order_data)
         data1.save()
+        if seller_id:
+            SellerPO.objects.create(seller_id=seller_id, open_po_id=data1.id,
+                                    seller_quantity=order_data['order_quantity'], unit_price=order_data['price'],
+                                    creation_date=creation_date)
         purchase_order = OpenPO.objects.get(id=data1.id, sku__user=user.id)
         sup_id = purchase_order.id
         supplier = purchase_order.supplier_id
@@ -2430,15 +2501,14 @@ def purchase_order_excel_upload(request, open_sheet, user, demo_data=False):
             ids_dict[supplier] = po_id
         data['open_po_id'] = sup_id
         data['order_id'] = ids_dict[supplier]
-        user_profile = UserProfile.objects.filter(user_id=user.id)
         if user_profile:
-            data['prefix'] = user_profile[0].prefix
+            data['prefix'] = user_profile.prefix
         order = PurchaseOrder(**data)
         order.save()
         order.po_date = data['po_date']
         order.save()
         mail_result_data = purchase_order_dict(data1, data_req, purchase_order, user, order)
-    if mail_result_data:
+    if mail_result_data and get_misc_value('raise_po', user.id) == 'true':
         mail_status = purchase_upload_mail(request, mail_result_data, user)
     return 'success'
 
@@ -2521,19 +2591,17 @@ def purchase_upload_mail(request, data_to_send, user):
 @login_required
 @get_admin_user
 def purchase_order_upload(request, user=''):
-    fname = request.FILES['files']
-    if fname.name.split('.')[-1] == 'xls' or fname.name.split('.')[-1] == 'xlsx':
-        try:
-            open_book = open_workbook(filename=None, file_contents=fname.read())
-            open_sheet = open_book.sheet_by_index(0)
-        except:
-            return HttpResponse('Invalid File')
-        status = validate_purchase_order(open_sheet, str(user.id))
-        if status != 'Success':
-            return HttpResponse(status)
-
-        purchase_order_excel_upload(request, open_sheet, user)
-
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+    except:
+        return HttpResponse('Invalid File')
+    status, data_list = validate_purchase_order(request, reader, user, no_of_rows, no_of_cols, fname, file_type)
+    if status != 'Success':
+        return HttpResponse(status)
+    purchase_order_excel_upload(request, user, data_list)
     return HttpResponse('Success')
 
 
@@ -4472,6 +4540,127 @@ def seller_transfer_form(request, user=''):
     return xls_to_response(wb, '%s.seller_transfer_form.xls' % str(user.id))
 
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def targets_form(request, user=''):
+    excel_file = request.GET['download-file']
+    if excel_file:
+        return error_file_download(excel_file)
+    excel_headers = TARGET_MASTER_HEADERS
+    wb, ws = get_work_sheet('Targets', excel_headers)
+    return xls_to_response(wb, '%s.targets_form.xls' % str(user.id))
+
+
+def validate_targets_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type='xls'):
+    index_status = {}
+    TARGET_LEVELS = ['DIST', 'RESELLER', 'CORPORATE']
+    target_file_mapping = copy.deepcopy(TARGET_DEF_EXCEL)
+    if not target_file_mapping:
+        return 'Invalid File'
+    warehouse_qs = UserGroups.objects.filter(admin_user=user.id)
+    warehouse_users = warehouse_qs.values_list('user_id__username', flat=True)
+    wh_userids = warehouse_qs.values_list('user_id', flat=True)
+    reseller_users = CustomerUserMapping.objects.filter(customer__user__in=wh_userids).\
+        values_list('user_id__username', flat=True)
+    for row_idx in range(1, no_of_rows):
+        for key, value in target_file_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, target_file_mapping[key], reader, file_type)
+            if key == 'user_id':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add("User ID Missing")
+                else:
+                    if cell_data not in warehouse_users and cell_data not in reseller_users:
+                        index_status.setdefault(row_idx, set()).add('Invalid User ID')
+            elif key == 'target_level':
+                if cell_data:
+                    if cell_data not in TARGET_LEVELS:
+                        index_status.setdefault(row_idx, set()).add('Invalid Target Level (DIST/RESELLER/CORPORATE)')
+                else:
+                    index_status.setdefault(row_idx, set()).add('Target Level (DIST/RESELLER/CORPORATE) Missing')
+            elif key == 'target_amt':
+                if cell_data:
+                    if not isinstance(cell_data, (int, float)):
+                        index_status.setdefault(row_idx, set()).add('Invalid Target Amount')
+                else:
+                    index_status.setdefault(row_idx, set()).add('Target Amount Missing')
+            elif key == 'target_duration':
+                if cell_data:
+                    if not isinstance(cell_data, (int, float)):
+                        index_status.setdefault(row_idx, set()).add('Invalid Target Duration')
+                else:
+                    index_status.setdefault(row_idx, set()).add('Target Duration Missing')
+            else:
+                index_status.setdefault(row_idx, set()).add('Invalid Field')
+
+    if not index_status:
+        return 'Success'
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def targets_upload(request, user=''):
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+        status = validate_targets_form(request, reader, user, no_of_rows,
+                                                  no_of_cols,fname, file_type=file_type)
+        if status != 'Success':
+            return HttpResponse(status)
+        update_targets_upload(request, reader, no_of_rows, file_type, user)
+        return HttpResponse('Success')
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Targets Upload failed for %s and params are %s and error statement is %s' % (
+                    str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Targets Upload Failed")
+
+
+def update_targets_upload(request, reader, no_of_rows, file_type='xls', user=''):
+    wh_users_map = dict(UserGroups.objects.filter(admin_user=user).values_list('user__username', 'user_id'))
+    reseller_users_map = dict(CustomerUserMapping.objects.filter(customer__user__in=wh_users_map.values()). \
+        values_list('user_id__username', 'user_id'))
+    users_map = wh_users_map.copy()
+    users_map.update(reseller_users_map)
+    target_file_mapping = copy.deepcopy(TARGET_DEF_EXCEL)
+    for row_idx in range(1, no_of_rows):
+        if not target_file_mapping:
+            continue
+        each_row_map = copy.deepcopy(TARGET_DEF_EXCEL)
+        for key, value in target_file_mapping.iteritems():
+            each_row_map[key] = get_cell_data(row_idx, value, reader, file_type)
+        user_id = users_map[each_row_map.pop('user_id')]
+        target_obj = TargetMaster.objects.filter(user_id=user_id)
+        if not target_obj:
+            each_row_map['user_id'] = user_id
+            target_master = TargetMaster(**dict(each_row_map))
+            target_master.save()
+        else:
+            target_obj[0].target_amt = each_row_map['target_amt']
+            target_obj[0].target_level = each_row_map['target_level']
+            target_obj[0].target_duration = each_row_map['target_duration']
+            target_obj[0].save()
+    return 'success'
+
+
 def validate_seller_transfer_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type='xls'):
     log.info("Validate Seller Transfer upload started")
     st_time = datetime.datetime.now()
@@ -4707,7 +4896,7 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
                 reserved_quantity = PicklistLocation.objects.exclude(stock=None).filter(**reserved_dict).\
                                         aggregate(Sum('reserved'))['reserved__sum']
                 if reserved_quantity:
-                    if (stock_count - reserved_quantity) < float(data_dict['quantity']):
+                    if (stock_count - reserved_quantity) < float(data_dict['source_quantity']):
                         index_status.setdefault(row_idx, set()).add('Source Quantity reserved for Picklist')
         data_list.append(data_dict)
 
@@ -4772,6 +4961,6 @@ def sku_substitution_upload(request, user=''):
         update_substitution_data(data_dict['src_stocks'], dest_stocks, data_dict['source_sku_code_obj'],
                                  data_dict['source_location_obj'], data_dict['source_quantity'],
                                  data_dict['dest_sku_code_obj'], data_dict['dest_location_obj'],
-                                 data_dict['dest_quantity'],user, data_dict['seller_master_id'],
+                                 data_dict['dest_quantity'],user, data_dict.get('seller_master_id', ''),
                                  data_dict['source_updated'], mrp_dict)
     return HttpResponse('Success')

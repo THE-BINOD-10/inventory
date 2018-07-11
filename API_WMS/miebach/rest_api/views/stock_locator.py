@@ -21,19 +21,18 @@ log = init_logger('logs/stock_locator.log')
 def get_stock_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     lis = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_brand', 'sku__sku_category', 'total', 'total', 'total',
-           'sku__measurement_type']
+           'sku__measurement_type', 'stock_value']
     lis1 = ['product_code__wms_code', 'product_code__sku_desc', 'product_code__sku_brand', 'product_code__sku_category',
             'total',
-            'total', 'total', 'product_code__measurement_type']
+            'total', 'total', 'product_code__measurement_type', 'stock_value']
     sort_cols = ['WMS Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Quantity', 'Reserved Quantity',
                  'Total Quantity',
-                 'Unit of Measurement']
+                 'Unit of Measurement', 'Stock Value']
     lis2 = ['wms_code', 'sku_desc', 'sku_brand', 'sku_category', 'threshold_quantity', 'threshold_quantity',
-            'threshold_quantity', 'measurement_type']
+            'threshold_quantity', 'measurement_type', 'measurement_type']
     search_params = get_filtered_params(filters, lis)
     search_params1 = get_filtered_params(filters, lis1)
     search_params2 = get_filtered_params(filters, lis2)
-
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -73,11 +72,11 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
         master_data = StockDetail.objects.exclude(receipt_number=0).values_list('sku__wms_code', 'sku__sku_desc',
                                                                                 'sku__sku_category',
                                                                                 'sku__sku_brand'). \
-            distinct().annotate(total=Sum('quantity')).filter(Q(sku__wms_code__icontains=search_term) |
+            distinct().annotate(total=Sum('quantity'), stock_value=Sum(F('quantity') * F('unit_price'))).filter(Q(sku__wms_code__icontains=search_term) |
                                                               Q(sku__sku_desc__icontains=search_term) | Q(
             sku__sku_category__icontains=search_term) |
-                                                              Q(total__icontains=search_term), sku__user=user.id,
-                                                              status=1, **search_params)
+                                                              Q(total__icontains=search_term) | Q(stock_value__icontains=search_term), sku__user=user.id,
+                                                              status=1, **search_params).order_by(order_data)
         wms_codes = map(lambda d: d[0], master_data)
         master_data1 = job_order.exclude(product_code__wms_code__in=wms_codes).filter(
             Q(product_code__wms_code__icontains=search_term) |
@@ -87,20 +86,22 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                                           'product_code__sku_brand').distinct()
         quantity_master_data = master_data.aggregate(Sum('total'))
         master_data = list(chain(master_data, master_data1))
-
-
     else:
         master_data = StockDetail.objects.exclude(receipt_number=0).values_list('sku__wms_code', 'sku__sku_desc',
                                                                                 'sku__sku_category',
                                                                                 'sku__sku_brand').distinct(). \
-            annotate(total=Sum('quantity')).filter(sku__user=user.id, **search_params). \
+            annotate(total=Sum('quantity'), stock_value=Sum(F('quantity') * F('unit_price'))).filter(sku__user=user.id, **search_params). \
             order_by(order_data)
         wms_codes = map(lambda d: d[0], master_data)
         quantity_master_data = master_data.aggregate(Sum('total'))
+        if 'stock_value__icontains' in search_params1.keys():
+            del search_params1['stock_value__icontains']
         master_data1 = job_order.exclude(product_code__wms_code__in=wms_codes).filter(**search_params1).values_list(
             'product_code__wms_code',
             'product_code__sku_desc', 'product_code__sku_category', 'product_code__sku_brand').distinct()
         master_data = list(chain(master_data, master_data1))
+    if 'stock_value__icontains' in search_params1.keys():
+        del search_params1['stock_value__icontains']
     zero_quantity = sku_master.exclude(wms_code__in=wms_codes).filter(user=user.id)
     if search_params2:
         zero_quantity = zero_quantity.filter(**search_params2)
@@ -148,6 +149,7 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     raw_reserved_quantities = map(lambda d: d['rm_reserved'], raw_res_instances)
     # temp_data['totalQuantity'] = sum([data[4] for data in master_data])
     for ind, data in enumerate(master_data[start_index:stop_index]):
+        total_stock_value = 0
         reserved = 0
         # total = data[4] if len(data) > 4 else 0
         total = 0
@@ -161,16 +163,21 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
             reserved += float(reserved_quantities[reserveds.index(data[0])])
         if data[0] in raw_reserveds:
             reserved += float(raw_reserved_quantities[raw_reserveds.index(data[0])])
-
         quantity = total - reserved
         if quantity < 0:
             quantity = 0
+        wms_code_obj = StockDetail.objects.exclude(receipt_number=0).filter(sku__wms_code = data[0], sku__user=user.id)
+        wms_code_obj_unit_price = wms_code_obj.filter(unit_price__gt=0)
+        total_wms_qty_unit_price = sum(wms_code_obj_unit_price.annotate(stock_value=Sum(F('quantity') * F('unit_price'))).values_list('stock_value',flat=True))
+        wms_code_obj_sku_unit_price = wms_code_obj.filter(unit_price=0)
+	total_wms_qty_sku_unit_price = sum(wms_code_obj_sku_unit_price.annotate(stock_value=Sum(F('quantity') * F('sku__cost_price'))).values_list('stock_value',flat=True))
+	total_stock_value = total_wms_qty_unit_price + total_wms_qty_sku_unit_price
         temp_data['aaData'].append(OrderedDict((('WMS Code', data[0]), ('Product Description', data[1]),
                                                 ('SKU Category', data[2]), ('SKU Brand', data[3]),
                                                 ('Available Quantity', quantity),
                                                 ('Reserved Quantity', reserved), ('Total Quantity', total),
-                                                ('Unit of Measurement', sku.measurement_type),
-                                                ('DT_RowId', data[0]))))
+                                                ('Unit of Measurement', sku.measurement_type), ('Stock Value', total_stock_value ),
+                                                ('DT_RowId', data[0]) )))
 
         # sort_col = sort_cols[col_num]
         # if order_term == 'asc':
@@ -686,7 +693,7 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     lis = ['receipt_number', 'receipt_date', 'sku_id__wms_code', 'sku_id__sku_desc', 'location__zone__zone',
            'location__location', 'quantity',
-           'receipt_type', 'pallet_detail__pallet_code']
+           'receipt_type', 'stock_value', 'pallet_detail__pallet_code']
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -695,29 +702,22 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
         search_params['receipt_date__regex'] = search_params['receipt_date__icontains']
         del search_params['receipt_date__icontains']
     search_params['sku_id__in'] = sku_master_ids
-
     if search_term:
-        master_data = StockDetail.objects.exclude(receipt_number=0).filter(Q(receipt_number__icontains=search_term) |
-                                                                           Q(sku__wms_code__icontains=search_term) | Q(
-            quantity__icontains=search_term) |
-                                                                           Q(
-                                                                               location__zone__zone__icontains=search_term) | Q(
-            sku__sku_code__icontains=search_term) |
-                                                                           Q(sku__sku_desc__icontains=search_term) | Q(
-            location__location__icontains=search_term),
-                                                                           sku__user=user.id).filter(
-            **search_params).order_by(order_data)
-
+        master_data = StockDetail.objects.exclude(receipt_number=0).annotate( stock_value=Sum(F('quantity') * F('sku__cost_price')) ).filter(Q(receipt_number__icontains=search_term) | Q(sku__wms_code__icontains=search_term) | Q(quantity__icontains=search_term) | Q(location__zone__zone__icontains=search_term) | Q(sku__sku_code__icontains=search_term) | Q(sku__sku_desc__icontains=search_term) | Q(location__location__icontains=search_term) | Q(stock_value__icontains=search_term),sku__user=user.id).filter(**search_params).order_by(order_data)
     else:
-        master_data = StockDetail.objects.exclude(receipt_number=0).filter(sku__user=user.id, **search_params). \
+        master_data = StockDetail.objects.exclude(receipt_number=0).annotate( stock_value=Sum(F('quantity') * F('sku__cost_price')) ).filter(sku__user=user.id, **search_params). \
             order_by(order_data)
 
     temp_data['recordsTotal'] = len(master_data)
-    temp_data['recordsFiltered'] = len(master_data)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for data in master_data[start_index:stop_index]:
         pallet_switch = get_misc_value('pallet_switch', user.id)
         _date = get_local_date(user, data.receipt_date, True)
         _date = _date.strftime("%d %b, %Y")
+        stock_quantity = get_decimal_limit(user.id, data.quantity)
+        taken_unit_price = data.unit_price
+        if not taken_unit_price:
+            taken_unit_price = data.sku.cost_price
         if pallet_switch == 'true':
             pallet_code = ''
             if data.pallet_detail:
@@ -728,8 +728,10 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
                                                     ('Product Description', data.sku.sku_desc),
                                                     ('Zone', data.location.zone.zone),
                                                     ('Location', data.location.location),
-                                                    ('Quantity', get_decimal_limit(user.id, data.quantity)),
-                                                    ('Pallet Code', pallet_code), ('Receipt Type', data.receipt_type))))
+                                                    ('Quantity', stock_quantity),
+                                                    ('Pallet Code', pallet_code), ('Receipt Type', data.receipt_type),
+                                                    ('Stock Value', taken_unit_price * stock_quantity)
+                                                    )))
         else:
             temp_data['aaData'].append(OrderedDict((('Receipt ID', data.receipt_number), ('DT_RowClass', 'results'),
                                                     ('Receipt Date', _date), ('SKU Code', data.sku.sku_code),
@@ -737,8 +739,10 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
                                                     ('Product Description', data.sku.sku_desc),
                                                     ('Zone', data.location.zone.zone),
                                                     ('Location', data.location.location),
-                                                    ('Quantity', get_decimal_limit(user.id, data.quantity)),
-                                                    ('Receipt Type', data.receipt_type))))
+                                                    ('Quantity', stock_quantity),
+                                                    ('Receipt Type', data.receipt_type),
+                                                    ('Stock Value', taken_unit_price * stock_quantity)
+                                                    )))
 
 
 @csrf_exempt
@@ -1753,7 +1757,7 @@ def get_inventory_modification(start_index, stop_index, temp_data, search_term, 
                                                 ('Reserved Quantity', reserved), ('Total Quantity', total),
                                                 ('Addition', ("<input type='number' class='form-control' name='addition' disabled='true' ng-disabled='showCase.addition_edit' value='0' min='0' ng-model='showCase.add_qty_val_%s' ng-init='showCase.add_qty_val_%s=0' limit-to-max>") % (str(ind), str(ind) )),
                                                 ('Reduction', ("<input class='form-control' type='number' name='reduction' ng-disabled='showCase.reduction_edit' disabled='true' value='0' min='0' max='%s' ng-model='showCase.sub_qty_val_%s' ng-init='showCase.sub_qty_val_%s=0' limit-to-max>" )%(str(int(quantity)), str(ind), str(ind)) ),
-                                                (' ', '<button type="button" name="submit" ng-click="showCase.inv_adj_save_qty('+"'"+str(ind)+"'"+', '+"'"+str(data[0])+"'"+', '+"'"+str(data[5])+"'"+', '+"'"+pallet_code+"'"+', showCase.available_qty_val_'+str(ind)+', '+"'"+str(int(quantity))+"'"+', showCase.add_qty_val_'+str(ind)+', showCase.sub_qty_val_'+str(ind)+')" ng-disabled="showCase.button_edit" disabled class="btn btn-primary ng-click-active" >Save</button>'))))
+                                                (' ', '<button type="button" name="submit" ng-click="showCase.inv_adj_save_qty('+"'"+str(ind)+"'"+', showCase.available_qty_val_'+str(ind)+', '+"'"+str(int(quantity))+"'"+', showCase.add_qty_val_'+str(ind)+', showCase.sub_qty_val_'+str(ind)+')" ng-disabled="showCase.button_edit" disabled class="btn btn-primary ng-click-active" >Save</button>'))))
 
 
 def update_cycle_count_inventory_adjustment(user, sku_id, location_id, old_qty, new_qty, pallet_id):

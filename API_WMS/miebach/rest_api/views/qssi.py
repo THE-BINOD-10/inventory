@@ -26,7 +26,7 @@ def update_linked_consignee_data(order_detail_id, data):
 def integration_get_order(order_id, user, order_status = "NEW"):
     from rest_api.views.integrations import *
     WarehouseId = str(user.username)
-    order_prefix = ''.join(filter(str.isdigit, WarehouseId))
+    order_prefix = str(user.userprofile.order_prefix)
     get_order = get_order(order_id, user)
     if get_order["status"] == "success":
         order = get_order["data"]
@@ -110,7 +110,7 @@ def integration_get_order_status(order_ids, user):
             "OrderIds": []
            }
     for order_id in order_ids:
-        WarehouseId = ''.join(filter(str.isdigit, str(user.username)))
+        WarehouseId = str(user.userprofile.order_prefix)
         temp_order_id = ("%s%s") % (WarehouseId, str(order_id))
         data["OrderIds"].append({"OrderId": temp_order_id})
     return data

@@ -151,6 +151,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
               modalInstance.result.then(function (selectedItem) {
                 var data = selectedItem;
+                vm.reloadData();
               })
             }
           }
@@ -267,19 +268,34 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
   };
 
   vm.process = false;
-  vm.save = function(form) {
-
-    if (vm.permissions.increment_invoice && vm.model_data.sequence_number && form.invoice_number.$invalid) {
+  vm.save = function(form_data) {
+    var updated_inv_data = {};
+    if (vm.permissions.increment_invoice && vm.model_data.sequence_number && form_data.invoice_number.$invalid) {
 
       Service.showNoty("Please Fill Invoice Number");
       return false;
-    } else if (!form.$valid) {
+    } else if (!form_data.$valid) {
 
       Service.showNoty("Please Fill the Mandatory Fields");
       return false;
     }
     vm.process = true;
-    var data = $("form").serializeArray()
+
+    var data = $("form").serializeArray();
+
+    angular.forEach(vm.removed_data, function(sku){
+      data.push({name:'sku_id', value: sku.sku_code});
+      data.push({name:'title', value: sku.title});
+      data.push({name:'id', value: sku.id});
+      data.push({name:'unit_price', value: sku.unit_price});
+      data.push({name:'quantity', value: sku.quantity});
+      data.push({name:'cgst_tax', value: sku.taxes['cgst_tax']});
+      data.push({name:'sgst_tax', value: sku.taxes['sgst_tax']});
+      data.push({name:'igst_tax', value: sku.taxes['igst_tax']});
+      data.push({name:'invoice_amount', value: sku.invoice_amount});
+      data.push({name:'customer_id', value: vm.model_data.customer_id});
+    });
+
     Service.apiCall("update_invoice/", "POST", data).then(function(data) {
 
       if(data.message) {
@@ -342,6 +358,7 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
     return cssClass
   }
 
+  vm.removed_data = [];
   vm.update_data = update_data;
   function update_data(index, data, last) {
     console.log(data);
@@ -354,20 +371,23 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
     var empty_data = {
       'amt':0, 'base_price':"0.00", 'discount':0, 'discount_percentage':0, 'hsn_code':"", 'id':"", 'imeis':[], 'invoice_amount':"",
       'mrp_price':"", 'order_id':"", 'quantity':0, 'shipment_date':"", 'sku_category':"", 'sku_class':"", 'sku_code':"",
-      'sku_size':"", 'tax':"0.00", 'tax_type':"", 'title':"", 'unit_price':"0.00", 'vat':0 }
+      'sku_size':"", 'tax':"0.00", 'tax_type':"", 'title':"", 'unit_price':"0.00", 'vat':0, 'taxes':{'cgst_amt':0, 'cgst_tax':0, 'igst_amt':0, 'igst_tax':0, 'sgst_amt':0, 'sgst_tax':0, 'utgst_amt':0, 'utgst_tax':0}}
+
 
     empty_data["order_id"] = temp["order_id"];
     empty_data["shipment_date"] = temp["shipment_date"];
     empty_data["new_sku"] = true;
-    empty_data["taxes"] = temp["taxes"];
     vm.model_data.data.push(empty_data);
     } else {
 	  var del_sku = vm.model_data.data[index];
-      if(!del_sku.new_sku) {
-	    Service.apiCall("remove_sku/", "POST", del_sku).then(function(data) {
-		  console.log(data);
-	    });
-      }
+      // if(!del_sku.new_sku) {
+  	   //  Service.apiCall("remove_sku/", "POST", del_sku).then(function(data) {
+  		  //   console.log(data);
+  	   //  });
+      // }
+
+      vm.model_data.data[index].quantity = 0;
+      vm.removed_data.push(vm.model_data.data[index]);
 
       vm.model_data.data.splice(index,1);
       vm.cal_total();

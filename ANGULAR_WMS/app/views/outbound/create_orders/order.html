@@ -156,6 +156,15 @@
             </div>
           </div>
         </div>
+
+        <div class="col-md-4 col-sm-4 col-xs-6">
+		<br>
+		  <div class="form-group">
+            <label class="control-label">Scan EAN</label>
+			<textarea class="form-control ng-valid ng-dirty valid scan_ean" rows="1" ng-model="showCase.model_data.scan_ean" type="text" ng-keydown="showCase.scan_ean($event, showCase.model_data.scan_ean)" focus-on="focusSKU" auto-focus="" aria-invalid="false" placeholder="Scan EAN"></textarea>
+          </div>
+		</div>
+
       </div>
       <div class="row" ng-if="showCase.permissions.create_seller_order"><hr></div>
       <div class="row" ng-if="showCase.permissions.create_seller_order">
@@ -252,34 +261,34 @@
                 <input name="serials" type="hidden" value="{{data.serials.join(',')}}">
               </td>
               <td>
-                <input type="text" name="quantity" class="form-control" ng-model="data.quantity" ng-class="service.get_decimal_perm()" ng-change="showCase.change_quantity(data)" ng-readonly="showCase.model_data.blind_order && showCase.permissions.use_imei"> </div>
+                <input type="text" name="quantity" class="form-control" ng-model="data.quantity" ng-class="service.get_decimal_perm()" ng-change="showCase.change_quantity(data)" ng-readonly="showCase.model_data.blind_order && showCase.permissions.use_imei" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Quantity', $index, data)"></div>
               </td>
               <td ng-show="showCase.fields.indexOf('Unit Price') == -1">
-                <input type="text" name="unit_price" class="form-control" ng-model="data.price" ng-change="showCase.change_unit_price(data)" decimal-number>
+                <input type="text" name="unit_price" class="form-control" ng-model="data.price" ng-change="showCase.change_unit_price(data)" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Unit Price', $index, data)">
               </td>
 	      <td ng-show="showCase.fields.indexOf('Amount') == -1">
-	        <input type="text" class="form-control" ng-model="data.invoice_amount"  ng-change="showCase.cal_percentage(data)" name="invoice_amount" decimal-number>
+	        <input type="text" class="form-control" ng-model="data.invoice_amount"  ng-change="showCase.cal_percentage(data)" name="invoice_amount" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Amount', $index, data)" decimal-number>
 	      </td>
               <td ng-show="showCase.fields.indexOf('Discount') == -1">
-                <input type="text" class="form-control" ng-model="data.discount" ng-change="showCase.discountChange(data)" decimal-number>
+                <input type="text" class="form-control" ng-model="data.discount" ng-change="showCase.discountChange(data)" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Discount', $index, data)" decimal-number>
               </td>
               <td ng-show="showCase.fields.indexOf('Discount Percentage') == -1">
-                <input type="text" class="form-control" ng-model="data.discount_percentage" ng-change="showCase.cal_percentage(data, false)" decimal-number>
+                <input type="text" class="form-control" ng-model="data.discount_percentage" ng-change="showCase.cal_percentage(data, false)" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Discount Percentage', $index, data)" decimal-number>
               </td>
               <td ng-show="showCase.fields.indexOf('Tax') == -1 && showCase.model_data.tax_type == 'intra_state'">
-                <input type="text" name="sgst_tax" class="form-control" ng-model="data.sgst_tax" decimal-number ng-change="showCase.cal_percentage(data)" readonly>
+                <input type="text" name="sgst_tax" class="form-control" ng-model="data.sgst_tax" decimal-number ng-change="showCase.cal_percentage(data)" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Tax', $index, data)" readonly>
               </td>
               <td ng-show="showCase.fields.indexOf('Tax') == -1 && showCase.model_data.tax_type == 'intra_state'">
-                <input type="text" name="cgst_tax" class="form-control" ng-model="data.cgst_tax" decimal-number ng-change="showCase.cal_percentage(data)" readonly>
+                <input type="text" name="cgst_tax" class="form-control" ng-model="data.cgst_tax" decimal-number ng-change="showCase.cal_percentage(data)" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Tax', $index, data)" readonly>
               </td>
               <td ng-show="showCase.fields.indexOf('Tax') == -1 && showCase.model_data.tax_type == 'inter_state'">
-                <input type="text" name="igst_tax" class="form-control" ng-model="data.igst_tax" decimal-number ng-change="showCase.cal_percentage(data)" readonly>
+                <input type="text" name="igst_tax" class="form-control" ng-model="data.igst_tax" decimal-number ng-change="showCase.cal_percentage(data)" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Tax', $index, data)" readonly>
               </td>
               <td ng-show="showCase.fields.indexOf('Total Amount') == -1">
-                <input type="text" name="total_amount" class="form-control" ng-model="data.total_amount" ng-change="showCase.cal_total()" decimal-number>
+                <input type="text" name="total_amount" class="form-control" ng-model="data.total_amount" ng-change="showCase.cal_total()" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Total Amount', $index, data)" decimal-number>
               </td>
   	          <td ng-show="showCase.fields.indexOf('Remarks') == -1">
-                <input type="text" name="remarks" class="form-control" ng-model="data.remarks">
+                <input type="text" name="remarks" class="form-control" ng-model="data.remarks" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Remarks', $index, data)">
               </td>
               <td ng-show="showCase.fields.indexOf('Price Ranges') == -1" class="tooltip" style="border:none; font-size: 12px;">
                 <span style="margin-top: 8px"><a href="">Ranges</a></span>

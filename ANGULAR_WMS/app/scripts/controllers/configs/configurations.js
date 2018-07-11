@@ -346,6 +346,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       class_name: "fa fa-server",
       display: true
     },
+    {
      name: "Invoice Based Payment Tracker Enable/Disable",
      model_name: "invoice_based_payment_tracker",
      param_no: 63,

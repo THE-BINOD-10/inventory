@@ -1704,11 +1704,16 @@ class Integrations(models.Model):
 
 class PaymentSummary(models.Model):
     id = BigAutoField(primary_key=True)
+    payment_id = models.CharField(max_length=60, default='')
     order = models.ForeignKey(OrderDetail, blank=True, null=True)
     payment_received = models.FloatField(default=0)
     bank = models.CharField(max_length=64, default='')
     mode_of_pay = models.CharField(max_length=64, default='')
     remarks = models.CharField(max_length=128, default='')
+    entered_amount = models.FloatField(default=0)
+    balance_amount = models.FloatField(default=0)
+    tds_amount = models.FloatField(default=0)
+    payment_date = models.DateField(blank=True, null=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

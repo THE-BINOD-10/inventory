@@ -31,10 +31,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     // vm.datatable = 'ReturnToVendor';
     vm.user_type = Session.user_profile.user_type;
 
-    // vm.filters = {'datatable': 'ReturnToVendor', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': ''
-    //               , 'search5': '', 'search6': '', 'search7': '', 'from_date': vm.date};
     vm.filters = {'datatable': 'ReturnToVendor', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': ''
-                  , 'search5': '', 'search6': '', 'search7': ''};
+                  , 'search5': '', 'search6': '', 'search7': '', 'from_date': vm.date};
     
     vm.dtOptions = DTOptionsBuilder.newOptions()
      .withOption('ajax', {
@@ -134,18 +132,27 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           }
         });
       }
-      vm.empty_filter_fields();
-      vm.date_format_convert(new Date());
     }
 
     vm.empty_filter_fields = function(){
 
-      vm.model_data['sku_code'] = '';
-      vm.model_data['supplier_id'] = '';
-      vm.model_data['from_date'] = vm.date;
-      vm.model_data['to_date'] = '';
-      vm.model_data['open_po'] = '';
-      vm.model_data['invoice_number'] = '';
+      if (Data.rtv_filters) {
+
+        vm.model_data['filters'] = Data.rtv_filters;
+      } else {
+
+        vm.model_data['filters'] = {};
+        vm.model_data.filters['sku_code'] = '';
+        vm.model_data.filters['supplier_id'] = '';
+        vm.model_data.filters['from_date'] = vm.date;
+        vm.model_data.filters['to_date'] = '';
+        vm.model_data.filters['open_po'] = '';
+        vm.model_data.filters['invoice_number'] = '';
+      }
+    }
+
+    vm.saveFilters = function(filters){
+      Data.rtv_filters = filters;
     }
 
     //RTV Pop Data

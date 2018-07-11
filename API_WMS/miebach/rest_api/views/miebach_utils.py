@@ -496,7 +496,7 @@ DIST_SALES_REPORT_DICT = {
         {'label': 'Order No', 'name': 'order_id', 'type': 'input'},
         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
-        {'label': 'Order Status', 'name': 'status', 'type': 'input'},
+        {'label': 'Order Status', 'name': 'order_report_status', 'type': 'select'},
         {'label': 'Product Category', 'name': 'category', 'type': 'input'},
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
     ],
@@ -518,7 +518,7 @@ RESELLER_SALES_REPORT_DICT = {
         {'label': 'Order No', 'name': 'order_id', 'type': 'input'},
         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
-        {'label': 'Order Status', 'name': 'status', 'type': 'input'},
+        {'label': 'Order Status', 'name': 'order_report_status', 'type': 'select'},
         {'label': 'Product Category', 'name': 'category', 'type': 'input'},
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
     ],
@@ -1058,6 +1058,8 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_shipment_report': 'get_shipment_report_data',
                         'get_dist_sales_report': 'get_dist_sales_report_data',
                         'get_reseller_sales_report': 'get_reseller_sales_report_data',
+                        'get_dist_target_report': 'get_dist_target_report_data',
+                        'get_reseller_target_report': 'get_reseller_target_report_data',
                         'sku_wise_goods_receipt' : 'get_sku_wise_po_filter_data'
                         }
 # End of Download Excel Report Mapping
@@ -3477,11 +3479,48 @@ def get_dist_sales_report_data(search_params, user, sub_user):
             search_parameters['id__in'] = order_detail_objs.values_list('id', flat=True)
         else:
             search_parameters['id__in'] = []
+    status_search = search_params.get('order_report_status', "")
 
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
     order_qs = OrderDetail.objects.filter(**search_parameters)
-    model_data = order_qs.values('id', 'order_code', 'user', 'creation_date',
+
+    ##Orders Status Functionality
+    pick_filters = {}
+    for key, value in search_parameters.iteritems():
+        pick_filters['order__%s' % key] = value
+    order_id_status = dict(OrderDetail.objects.select_related('order_id', 'status').filter(**search_parameters). \
+                           only('order_id', 'status').values_list('order_id', 'status').distinct())
+
+    picklist_generated = Picklist.objects.select_related('order').filter(status__icontains='open', picked_quantity=0,
+                                                                         **pick_filters).only(
+        'order__order_id').values_list('order__order_id', flat=True).distinct()
+
+    partially_picked = Picklist.objects.filter(status__icontains='open', picked_quantity__gt=0,
+                                               reserved_quantity__gt=0, **pick_filters).values_list('order__order_id',
+                                                                                                    flat=True).distinct()
+
+    picked_orders = Picklist.objects.filter(status__icontains='picked', picked_quantity__gt=0,
+                                            reserved_quantity=0, **pick_filters).values_list('order__order_id',
+                                                                                             flat=True).distinct()
+    _status = ""
+    if status_search:
+        # ['Open', 'Picklist generated', 'Partial Picklist generated', 'Picked', 'Partially picked']
+        ord_ids = ""
+        if status_search == 'Open':
+            ord_ids = OrderDetail.objects.filter(status=1, **search_parameters). \
+                values_list('order_id', flat=True).distinct()
+        elif status_search == 'Picklist generated':
+            ord_ids = picklist_generated
+        elif status_search == 'Partial Picklist generated':
+            ord_ids = partially_picked
+        elif status_search == 'Picked':
+            ord_ids = picked_orders
+
+        order_qs = order_qs.filter(order_id__in=ord_ids)
+        _status = status_search
+
+    model_data = order_qs.values('id', 'order_code', 'user', 'creation_date', 'order_id',
                                  'original_order_id', 'sku__sku_code', 'sku__sku_category',
                                  'quantity', 'creation_date', 'status', 'unit_price', 'invoice_amount',
                                  'customerordersummary__sgst_tax', 'customerordersummary__igst_tax',
@@ -3498,10 +3537,12 @@ def get_dist_sales_report_data(search_params, user, sub_user):
     if stop_index:
         model_data = model_data[start_index:stop_index]
 
+    status = ""
     for data in model_data:
-        order_id = data['original_order_id']
-        if not order_id:
-            order_id = data['order_code'] + str(data['order_id'])
+        order_id = data['order_id']
+        org_order_id = data['original_order_id']
+        if not org_order_id:
+            org_order_id = data['order_code'] + str(data['order_id'])
         reseller_id = ord_res_map.get(data['id'], '')
         if not reseller_id:
             reseller_id = orderdetail_objs.get(data['id'], '')
@@ -3520,8 +3561,25 @@ def get_dist_sales_report_data(search_params, user, sub_user):
         igst_tax = data['customerordersummary__igst_tax']
         utgst_tax = data['customerordersummary__utgst_tax']
         gst_rate = (cgst_tax + sgst_tax + igst_tax + utgst_tax)
+
+        if not _status:
+            if order_id_status.get(order_id, '') == '1':
+                status = ORDER_SUMMARY_REPORT_STATUS[0]
+            elif order_id in picklist_generated:
+                status = ORDER_SUMMARY_REPORT_STATUS[1]
+            elif order_id in partially_picked:
+                status = ORDER_SUMMARY_REPORT_STATUS[2]
+            elif order_id in picked_orders:
+                status = ORDER_SUMMARY_REPORT_STATUS[3]
+            if order_id_status.get(order_id, '') == '2':
+                status = ORDER_DETAIL_STATES.get(2, '')
+            if order_id_status.get(order_id, '') == '5':
+                status = ORDER_DETAIL_STATES.get(5, '')
+        else:
+            status = _status
+
         ord_dict = OrderedDict((('Zone Code', zone_code), ('Distributor Code', dist_code),
-                                ('Order No', order_id),
+                                ('Order No', org_order_id),
                                 ('Order Date', order_date),
                                 ('Product Category', prod_catg),
                                 ('SKU Code', data['sku__sku_code']),
@@ -3530,7 +3588,7 @@ def get_dist_sales_report_data(search_params, user, sub_user):
                                 ('GST Rate', gst_rate),
                                 ('GST Value', gst_value),
                                 ('Value After Tax', gross_amt),
-                                ('Order Status', data['status']),
+                                ('Order Status', status),
                                 ('Id', data['id']),
                                 ))
         temp_data['aaData'].append(ord_dict)
@@ -3579,17 +3637,57 @@ def get_reseller_sales_report_data(search_params, user, sub_user):
             values_list('id', flat=True)
         search_parameters['customer_id__in'] = res_ids
 
+    status_search = search_params.get('order_report_status', "")
+
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
-    model_data = GenericOrderDetailMapping.objects.filter(**search_parameters). \
-        values('generic_order_id', 'orderdetail__order_id', 'orderdetail__order_code', 'cust_wh_id', 'creation_date',
-               'orderdetail__original_order_id', 'orderdetail__sku__sku_code', 'orderdetail__sku__sku_category',
-               'quantity', 'creation_date', 'orderdetail__status', 'unit_price', 'orderdetail__invoice_amount',
-               'orderdetail__customerordersummary__sgst_tax', 'orderdetail__customerordersummary__igst_tax',
-               'orderdetail__customerordersummary__cgst_tax', 'orderdetail__customerordersummary__utgst_tax',
-               'client_name', 'customer_id'
-               )
+    generic_order_qs = GenericOrderDetailMapping.objects.filter(**search_parameters)
+
+    ##Orders Status Functionality
+    orderdetail_ids = generic_order_qs.values_list('orderdetail_id', flat=True)
+    order_id_status = dict(OrderDetail.objects.select_related('order_id', 'status').filter(id__in=orderdetail_ids). \
+                           only('order_id', 'status').values_list('order_id', 'status').distinct())
+
+    picklist_generated = Picklist.objects.select_related('order').filter(status__icontains='open',
+                                                                         picked_quantity=0,
+                                                                         order__id__in=orderdetail_ids).only(
+        'order__order_id').values_list('order__order_id', flat=True).distinct()
+
+    partially_picked = Picklist.objects.filter(status__icontains='open', picked_quantity__gt=0,
+                                               reserved_quantity__gt=0, order__id__in=orderdetail_ids).values_list(
+        'order__order_id',
+        flat=True).distinct()
+
+    picked_orders = Picklist.objects.filter(status__icontains='picked', picked_quantity__gt=0,
+                                            reserved_quantity=0, order__id__in=orderdetail_ids).\
+        values_list('order__order_id', flat=True).distinct()
+    _status = ""
+    if status_search:
+        # ['Open', 'Picklist generated', 'Partial Picklist generated', 'Picked', 'Partially picked']
+        ord_ids = ""
+        if status_search == 'Open':
+            ord_ids = OrderDetail.objects.filter(status=1, id__in=orderdetail_ids). \
+                values_list('order_id', flat=True).distinct()
+        elif status_search == 'Picklist generated':
+            ord_ids = picklist_generated
+        elif status_search == 'Partial Picklist generated':
+            ord_ids = partially_picked
+        elif status_search == 'Picked':
+            ord_ids = picked_orders
+        generic_order_qs = generic_order_qs.filter(orderdetail__order_id__in=ord_ids)
+        _status = status_search
+
+    model_data = generic_order_qs.values('generic_order_id', 'orderdetail__order_id', 'orderdetail__order_code',
+                                         'cust_wh_id', 'creation_date', 'orderdetail__original_order_id',
+                                         'orderdetail__sku__sku_code', 'orderdetail__sku__sku_category', 'quantity',
+                                         'creation_date', 'orderdetail__status', 'unit_price',
+                                         'orderdetail__invoice_amount', 'orderdetail__customerordersummary__sgst_tax',
+                                         'orderdetail__customerordersummary__igst_tax',
+                                         'orderdetail__customerordersummary__cgst_tax',
+                                         'orderdetail__customerordersummary__utgst_tax',
+                                         'client_name', 'customer_id', 'orderdetail_id'
+                                         )
     if search_params.get('order_term'):
         order_data = lis[search_params['order_index']]
         if search_params['order_term'] == 'desc':
@@ -3603,9 +3701,10 @@ def get_reseller_sales_report_data(search_params, user, sub_user):
         model_data = model_data[start_index:stop_index]
 
     for data in model_data:
-        order_id = data['orderdetail__original_order_id']
-        if not order_id:
-            order_id = data['orderdetail__order_code'] + str(data['orderdetail__order_id'])
+        order_id = data['orderdetail__order_id']
+        org_order_id = data['orderdetail__original_order_id']
+        if not org_order_id:
+            org_order_id = data['orderdetail__order_code'] + str(data['orderdetail__order_id'])
         dist_code = dist_names_map.get(data['cust_wh_id'], '')
         prod_catg = data['orderdetail__sku__sku_category']
         net_amt = round(data['quantity'] * data['unit_price'], 2)
@@ -3620,10 +3719,25 @@ def get_reseller_sales_report_data(search_params, user, sub_user):
         igst_tax = data['orderdetail__customerordersummary__igst_tax']
         utgst_tax = data['orderdetail__customerordersummary__utgst_tax']
         gst_rate = (cgst_tax + sgst_tax + igst_tax + utgst_tax)
+        if not _status:
+            if order_id_status.get(order_id, '') == '1':
+                status = ORDER_SUMMARY_REPORT_STATUS[0]
+            elif order_id in picklist_generated:
+                status = ORDER_SUMMARY_REPORT_STATUS[1]
+            elif order_id in partially_picked:
+                status = ORDER_SUMMARY_REPORT_STATUS[2]
+            elif order_id in picked_orders:
+                status = ORDER_SUMMARY_REPORT_STATUS[3]
+            if order_id_status.get(order_id, '') == '2':
+                status = ORDER_DETAIL_STATES.get(2, '')
+            if order_id_status.get(order_id, '') == '5':
+                status = ORDER_DETAIL_STATES.get(5, '')
+        else:
+            status = _status
         temp_data['aaData'].append(OrderedDict((('Zone Code', zone_code), ('Distributor Code', dist_code),
                                                 ('Reseller Code', reseller_code),
                                                 ('Corporate Name', corp_name),
-                                                ('Order No', order_id), ('Product Category', prod_catg),
+                                                ('Order No', org_order_id), ('Product Category', prod_catg),
                                                 ('Order Date', order_date),
                                                 ('SKU Code', data['orderdetail__sku__sku_code']),
                                                 ('SKU Quantity', data['quantity']),
@@ -3631,7 +3745,7 @@ def get_reseller_sales_report_data(search_params, user, sub_user):
                                                 ('GST Rate', gst_rate),
                                                 ('GST Value', gst_value),
                                                 ('Value After Tax', gross_amt),
-                                                ('Order Status', data['orderdetail__status']),
+                                                ('Order Status', status),
                                                 )))
     return temp_data
 

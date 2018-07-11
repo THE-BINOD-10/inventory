@@ -4896,7 +4896,7 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
                 reserved_quantity = PicklistLocation.objects.exclude(stock=None).filter(**reserved_dict).\
                                         aggregate(Sum('reserved'))['reserved__sum']
                 if reserved_quantity:
-                    if (stock_count - reserved_quantity) < float(data_dict['quantity']):
+                    if (stock_count - reserved_quantity) < float(data_dict['source_quantity']):
                         index_status.setdefault(row_idx, set()).add('Source Quantity reserved for Picklist')
         data_list.append(data_dict)
 
@@ -4961,6 +4961,6 @@ def sku_substitution_upload(request, user=''):
         update_substitution_data(data_dict['src_stocks'], dest_stocks, data_dict['source_sku_code_obj'],
                                  data_dict['source_location_obj'], data_dict['source_quantity'],
                                  data_dict['dest_sku_code_obj'], data_dict['dest_location_obj'],
-                                 data_dict['dest_quantity'],user, data_dict['seller_master_id'],
+                                 data_dict['dest_quantity'],user, data_dict.get('seller_master_id', ''),
                                  data_dict['source_updated'], mrp_dict)
     return HttpResponse('Success')

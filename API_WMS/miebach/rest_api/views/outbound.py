@@ -3608,8 +3608,12 @@ def insert_order_data(request, user=''):
             original_order_id = generic_order['orderdetail__original_order_id']
             order_detail_user = User.objects.get(id=generic_order['orderdetail__user'])
             resp = order_push(original_order_id, order_detail_user, "NEW")
-            log.info('New Order Push Status: %s' %(str(resp)))
-        if user_type == 'customer' and not is_distributor:
+            log.info('New Order Push Status: %s' % (str(resp)))
+            if resp['Status'] == 'Failure':
+                message = resp['Result']['Errors'][0]['ErrorMessage']
+                order_detail = OrderDetail.objects.filter(original_order_id=original_order_id, user=order_detail_user.id)
+                log.info(order_detail.delete())
+        if user_type == 'customer' and not is_distributor and message == "Success":
             # Creating Uploading POs object with file upload pending.
             # upload_po Api is called in front-end if file is present
             upload_po_map = {'uploaded_user_id': request.user.id, 'po_number': corporate_po_number,
@@ -3621,9 +3625,9 @@ def insert_order_data(request, user=''):
                 ord_obj.save()
             else:
                 log.info('Uploaded PO Already Created::%s' %(upload_po_map))
-
-    # Deleting Customer Cart data after successful order creation
-    CustomerCartData.objects.filter(customer_user=request.user.id).delete()
+    if message == "Success":
+        # Deleting Customer Cart data after successful order creation
+        CustomerCartData.objects.filter(customer_user=request.user.id).delete()
 
     return HttpResponse(message)
 

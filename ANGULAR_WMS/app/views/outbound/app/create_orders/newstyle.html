@@ -1,0 +1,136 @@
+<style>
+	.card {
+		transform: translate3d(0px, 0px, 0px);
+    transition-duration: 0.25s;
+    transition-property: transform, opacity, margin-top;
+    transition-timing-function: ease-in-out;
+    background-color: #fff;
+    border-radius: 3px;
+    /*box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);*/
+    box-shadow: none;
+	}
+
+	.card > .item {
+		padding: 10px;
+		border-bottom: 2px solid #f0f0f0;
+	}
+	.sku_name {
+		color: #333;
+    font-size: 16px;
+    font-weight: 400;
+	}
+	.sku_values {
+		color: #333;
+    font-size: 14px;
+    font-weight: bold;
+	}
+	.modify-qty i {
+		display: inline-block;
+	}
+	.modify-qty input {
+		display: inline-block;
+		width: 40px;
+		height: 20px
+	}
+</style>
+
+<div class="clearfix" ng-controller="AppNewStyle as Style" style="background: #f0f0f0;">
+	<!-- Loading -->
+	<div ng-if="Style.place_order_loading" style="position: fixed;z-index: 2001;width: 100%;height: 100%;top: 0px;background: rgba(0, 0, 0, 0.5);padding-top: 125px;">
+    <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;">
+  </div>
+
+  <div class="row style-menu" style="line-height: 40px;">
+  	<div class="col-md-4 col-sm-4 col-xs-8">
+      <div class="menu-left">
+        <span ng-click="$state.go('user.App.Products'); showCase.redirect_from_orders(false, false)"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i>&nbsp; Back</span>
+      </div>
+    </div>
+    <div class="col-md-4 col-sm-4 col-xs-7 hidden-xs" align="center">
+      <img ng-src="{{showCase.api_url}}static/company_logos/{{showCase.client_logo}}" ng-if="showCase.client_logo" style="height: 43px;"/>
+    </div>
+    <div class="col-md-4 col-sm-4 col-xs-4">
+      <a class="fa fa-power-off pull-right fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" ng-click="showCase.logout()"></a>
+    </div>
+  </div>
+
+  <!-- Search box div -->
+  <div class="row search-items pt15 search-box" style="background: #fff">
+    <div class="row">
+      <div class="col-md-1 col-sm-1 col-xs-12"></div>
+      <div ng-class="showCase.search_box_cls">
+        <div class="input-group mb10">
+          <span class="input-group-addon" style="background: #ed1c24;color: white;"><i style="background: #ed1c24;width: 15px;font-size: 15px;" class="fa fa-search"></i></span>
+          <input type="text" class="form-control" placeholder="Search for Products" ng-model="showCase.style" ng-change="showCase.catlog_data.index='';showCase.get_category(true, true);" ng-debounce>
+        </div>
+      </div>
+      <div ng-class="showCase.buttons_cls" ng-style="showCase.margin_style" style="text-align: center;">
+        <div class="hidden-xs" style="left: 25px;"></div>
+        <div class="text-center">
+          <button class="btn btn-icon-icon" style="background: white;float:left;">
+            <i class="fa fa-filter" style="font-size: 15px;border-radius: 18px;color:white" title="Show Filters" ng-click="showCase.showFilters()"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row catalog-div mt5">
+		<div class="col-lg-9 col-md-9 col-sm-12 col-xs-12 mt10">
+			<div class="card">
+				<div class="item" ng-repeat="i in [1,2,3,4,5]">
+					<div class="row">
+						<div class="col-lg-2 col-md-2 col-sm-2 col-xs-4" style="">
+							<img src="https://api.stockone.in/static/images/17/sp5l.JPG" style="width: 120px; height: 95px">
+						</div>
+						<div class="col-lg-10 col-md-10 col-sm-10 col-xs-8">
+							<div class="row mb15">
+								<div class="col-lg-6 col-md-6 col-sm-6 col-xs-6 sku_name">Name of the sku</div>
+								<div class="col-lg-6 col-md-6 col-sm-6 col-xs-6" align="right">
+									<button class="btn btn-sm btn-danger">Add to cart</button>
+								</div>
+							</div>
+							<div class="row">
+								<div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">Price: 
+									<span class="sku_values">$20</span>
+								</div>
+								<div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">Style:
+									<span class="sku_values">DN-400</span>
+								</div>
+								<div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">Stock: 
+									<span class="sku_values">200</span>
+								</div>
+								<div class="col-lg-3 col-md-3 col-sm-3 col-xs-3 modify-qty">
+									<i class="fa fa-minus" align="center"></i>
+                  <input class="form-control ng-pristine ng-valid valid" name="quantity" ng-model="data.quantity" ng-blur="Cart.change_amount(data)" aria-invalid="false">
+                  <i class="fa fa-plus" ng-click="Cart.change_cart_quantity(data, true)"></i>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="row">
+		  	<div class="col-lg-12 col-md-12 col-sm-12 col-xs-12" align="right">
+		  		<ul class="pagination">
+					  <li><a href="#">1</a></li>
+					  <li class="active"><a href="#">2</a></li>
+					  <li><a href="#">3</a></li>
+					  <li><a href="#">4</a></li>
+					  <li><a href="#">5</a></li>
+					</ul>
+		  	</div>
+		  </div>
+		</div>
+		<div class="col-lg-3 col-md-3 visible-md visible-lg mt10">
+			<div class="card" style="padding: 10px">
+				<h5>Price Details</h5>
+				<ul class="list-group">
+				  <li class="list-group-item">Sub Total (15 Qty)<span class="badge">Rs 12.00</span></li>
+				  <li class="list-group-item">Tax Amount <span class="badge">Rs 25.00</span></li> 
+				  <li class="list-group-item">Total Amount <span class="badge">Rs 500.00</span></li> 
+				</ul>
+			</div>
+		</div>
+  </div>
+</div>

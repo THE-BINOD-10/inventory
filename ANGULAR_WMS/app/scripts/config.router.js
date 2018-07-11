@@ -2139,6 +2139,15 @@ var app = angular.module('urbanApp')
               }]
             }
           })
+          .state('user.App.newStyle', {
+            url: '/newStyle',
+            templateUrl: 'views/outbound/app/create_orders/newstyle.html',
+            resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/outbound/app/newstyle.js');
+              }]
+            }
+          })
           .state('user.App.Cart', {
             url: '/Cart',
             templateUrl: 'views/outbound/app/create_orders/order.html',

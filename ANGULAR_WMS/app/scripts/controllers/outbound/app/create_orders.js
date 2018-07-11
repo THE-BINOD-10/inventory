@@ -19,6 +19,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.buttons_width = (Session.roles.permissions.create_order_po)? 4: 6;
   vm.priceband_sync = Session.roles.permissions.priceband_sync;
   vm.disable_brands = Session.roles.permissions.disable_brands_view;
+  vm.disable_categories = Session.roles.permissions.disable_categories_view;
   vm.date = new Date();
   vm.client_logo = Session.parent.logo;
   vm.api_url = Session.host;
@@ -74,7 +75,15 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       $state.go('user.App.Categories');
     }
   }
+
+  vm.disable_categories_view = function(){
+    if(Session.roles.permissions.disable_categories_view){
+      $state.go('user.App.Products');
+    }
+  }
+
   vm.disable_brands_view();
+  vm.disable_categories_view();
 
   vm.goBack = function(){
     if(Session.roles.permissions.disable_brands_view){
@@ -418,16 +427,21 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.pdfDownloading = true;
     vm.catDisplay = true;
     var data = {brand: vm.brand, category: vm.category, is_catalog: true, sale_through: vm.order_type_value};
-    vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
-      if(data.message) {
-        vm.all_cate = data.data.categories;
-        vm.categories_details = data.data.categories_details;
-        vm.old_path = vm.location;
-        vm.location = '/App/Categories';
-        $state.go('user.App.Categories');
-      }
+    if (vm.disable_categories && !vm.disable_brands) {
+      vm.change_category('')
       vm.pdfDownloading = false;
-    });
+    } else {
+      vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
+        if(data.message) {
+          vm.all_cate = data.data.categories;
+          vm.categories_details = data.data.categories_details;
+          vm.old_path = vm.location;
+          vm.location = '/App/Categories';
+          $state.go('user.App.Categories');
+        }
+        vm.pdfDownloading = false;
+      });
+    }
   }
 
   vm.change_category = function(category) {

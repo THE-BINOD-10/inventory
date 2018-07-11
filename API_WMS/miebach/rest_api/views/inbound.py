@@ -960,6 +960,7 @@ def switches(request, user=''):
                        'mode_of_transport': 'mode_of_transport',
                        'show_purchase_history': 'show_purchase_history',
                        'display_sku_cust_mapping': 'display_sku_cust_mapping',
+                       'disable_categories_view': 'disable_categories_view'
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

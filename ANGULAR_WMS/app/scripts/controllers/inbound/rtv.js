@@ -134,7 +134,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     }
 
+    vm.reset_filters = function(){
+
+      vm.model_data['filters'] = {};
+      vm.model_data.filters['from_date'] = vm.date;
+      vm.model_data.filters['datatable'] = 'ReturnToVendor';
+    }
+
     vm.empty_filter_fields = function(){
+
 
       if (Data.rtv_filters) {
 
@@ -148,6 +156,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.model_data.filters['to_date'] = '';
         vm.model_data.filters['open_po'] = '';
         vm.model_data.filters['invoice_number'] = '';
+        vm.model_data.filters['datatable'] = 'ReturnToVendor';
       }
     }
 

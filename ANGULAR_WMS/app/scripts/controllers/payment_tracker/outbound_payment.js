@@ -15,10 +15,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.selected = {};
     vm.checked_items = {};
     vm.title = "Payments";
-    vm.model_data = {'customers': {'customer-1': 'customer-1','customer-2': 'customer-2','customer-3': 'customer-3'}};
+    vm.model_data = {'payment':'', 'balance':'', 'date':'', 'update_tds':'', 'bank_name':'', 'mode_of_pay':'', 'neft_cheque':''};
     vm.bank_names = {'abc': 'abc',
                      'xyz': 'xyz',
                      'pqr': 'pqr'};
+
+    vm.mode_of_pay = ['NEFT', 'CHEQUE'];
 
     $timeout(function () {
         $('.selectpicker').selectpicker();
@@ -34,6 +36,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.dtOptions = DTOptionsBuilder.newOptions()
 
     vm.dtColumns = [
+        DTColumnBuilder.newColumn(null).withTitle('').notSortable()
+                 .withOption('width', '25px').renderWith(function(data, type, full, meta) {
+                   return "<button type='submit' class='btn btn-primary pull-right paid_mode' style='margin: auto;display: block;' ng-click='showCase.calDtRowAmount($event, "+JSON.stringify(full)+"); $event.stopPropagation()'>Mark As Paid</button>";
+                 }),
         DTColumnBuilder.newColumn('invoice_number').withTitle('Invoice Number'),
         DTColumnBuilder.newColumn('customer_name').withTitle('Customer Name'),
         DTColumnBuilder.newColumn('invoice_amount').withTitle('Invoice Amount'),
@@ -45,20 +51,79 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     var row_click_bind = 'td';
 
-    if(vm.g_data.style_view) {
-      var toggle = DTColumnBuilder.newColumn('Update').withTitle('').notSortable()
-
+    
+    /*if(vm.g_data.style_view) {
+      var toggle = DTColumnBuilder.newColumn(null).withTitle('').notSortable()
                  .withOption('width', '25px').renderWith(function(data, type, full, meta) {
                    return "<button type='submit' class='btn btn-primary pull-right invoice_data_show' style='margin: auto;display: block;' ng-click='showCase.addRowData($event, "+JSON.stringify(full)+"); $event.stopPropagation()'>Mark As Paid</button>";
                  })
     }
-
-    vm.dtColumns.push(toggle);
+    vm.dtColumns.push(toggle);*/
+    
     vm.dtInstance = {};
     vm.poDataNotFound = function() {
       // $(elem).removeClass();
       // $(elem).addClass('fa fa-plus-square');
       Service.showNoty('Something went wrong')
+    }
+
+    vm.dt_rows_changed = [];
+    vm.calDtRowAmount = function(event, data){
+      var elem = event.target;
+      if ($(elem).hasClass('paid_mode')) {
+      
+        data.payment_received = Number(vm.model_data.payment);
+        data.payment_receivable = Number(data.payment_receivable) - Number(data.payment_received);
+        data.enter_amount = Number(vm.model_data.payment);
+        data.bank_name = vm.model_data.bank_name;
+        data.balance = Number(data.payment_receivable);
+        data.date = vm.model_data.date;
+        data.mode_of_pay = vm.model_data.mode_of_pay;
+        data.neft_cheque = vm.model_data.neft_cheque;
+        data.update_tds = vm.model_data.update_tds;
+        vm.model_data.balance = Number(data.payment_receivable);
+
+        vm.dt_rows_changed.push(data);
+        // vm.dt_rows_changed[data.invoice_number] = data;
+
+        $(elem).removeClass();
+        $(elem).text('Mark As Unpaid');
+        $(elem).addClass('btn btn-danger pull-right un_paid_mode');      
+      } else {
+
+        for (var i = 0; i < vm.dt_rows_changed.length; i++) {
+          if (data.invoice_number == vm.dt_rows_changed[i]['invoice_number']) {
+
+            data.payment_received = Number(vm.dt_rows_changed[i].payment_received) + Number(vm.model_data.payment);
+            data.payment_receivable = Number(vm.dt_rows_changed[i].payment_receivable) + Number(vm.dt_rows_changed[i].payment_received);
+            vm.model_data.balance = Number(data.payment_receivable);
+            break;
+          }
+        }
+
+        $(elem).removeClass();
+        $(elem).text('Mark As Paid');
+        $(elem).addClass('btn btn-primary pull-right paid_mode');
+      }
+
+      
+    }
+
+    vm.sendChangedData = function(){
+      var elem = {'data': vm.dt_rows_changed};
+      vm.service.apiCall('update_payment_status/', 'POST', elem).then(function(data){
+        if(data.message) {
+          pop_msg(data.data);
+          // if(data.data == "") {
+          //   record.picked_quantity = parseInt(record.picked_quantity) + 1;
+          // } else {
+          //   pop_msg(data.data);
+          //   scan_data.splice(length-1,1);
+          //   record.scan = scan_data.join('\n');
+          //   record.scan = record.scan+"\n";
+          // }
+        }
+      });
     }
 
     vm.addRowData = function(event, data) {
@@ -188,15 +253,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       console.log(form);
     }
 
-    /*vm.reloadData = function () {
+    vm.reloadData = function () {
       $('.custom-table').DataTable().draw();
     };
 
 
     vm.close = function() {
 
-      $state.go("app.outbound.CustomerInvoices")
-    }*/
+      $state.go("app.PaymentTrackerInvBased")
+    }
 }
 
 stockone.directive('dtPoDataOut', function() {

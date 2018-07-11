@@ -13,7 +13,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.apply_filters = colFilters;
     vm.service = Service;
     vm.industry_type = Session.user_profile.industry_type;
-    vm.date = new Date();
+    // vm.date = new Date();
     vm.extra_width = {width:'1100px'};
 
     vm.date_format_convert = function(utc_date){
@@ -22,7 +22,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.date = datearray[1] + '/' + datearray[0] + '/' + datearray[2];
     }
 
-    vm.date_format_convert(vm.date);
+    vm.date_format_convert(new Date());
     vm.selected = {};
     vm.selectAll = false;
     vm.bt_disable = true;
@@ -31,8 +31,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     // vm.datatable = 'ReturnToVendor';
     vm.user_type = Session.user_profile.user_type;
 
+    // vm.filters = {'datatable': 'ReturnToVendor', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': ''
+    //               , 'search5': '', 'search6': '', 'search7': '', 'from_date': vm.date};
     vm.filters = {'datatable': 'ReturnToVendor', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': ''
-                  , 'search5': '', 'search6': '', 'search7': '', 'from_date': vm.date};
+                  , 'search5': '', 'search6': '', 'search7': ''};
     
     vm.dtOptions = DTOptionsBuilder.newOptions()
      .withOption('ajax', {
@@ -90,15 +92,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.service.refresh(vm.dtInstance);
     });
 
-    vm.reset_data = function(data){
-      data.sku_code = '';
-      data.supplier_id = '';
-      data.from_date = '';
-      data.to_date = '';
-      data.open_po = '';
-      data.invoice_number = '';
-    }
-
     vm.reloadData = function () {
       $('.custom-table').DataTable().draw();
     };
@@ -111,6 +104,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.close = close;
     function close() {
       $state.go('app.inbound.rtv');
+      vm.reloadData();
+      vm.empty_filter_fields();
+      vm.date_format_convert(new Date());
     }
 
     vm.create_rtv = function(){
@@ -138,6 +134,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           }
         });
       }
+      vm.empty_filter_fields();
+      vm.date_format_convert(new Date());
+    }
+
+    vm.empty_filter_fields = function(){
+
+      vm.model_data['sku_code'] = '';
+      vm.model_data['supplier_id'] = '';
+      vm.model_data['from_date'] = vm.date;
+      vm.model_data['to_date'] = '';
+      vm.model_data['open_po'] = '';
+      vm.model_data['invoice_number'] = '';
     }
 
     //RTV Pop Data

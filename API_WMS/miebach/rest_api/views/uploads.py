@@ -4825,6 +4825,9 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
                     index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])
             elif key in ['source_location', 'dest_location']:
                 if cell_data:
+                    if isinstance(cell_data, (int, float)):
+                        cell_data = int(cell_data)
+                    cell_data = str(cell_data)
                     location_master = LocationMaster.objects.filter(zone__user=user.id, location=cell_data)
                     if not location_master:
                         index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])

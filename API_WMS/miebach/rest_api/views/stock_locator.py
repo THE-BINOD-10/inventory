@@ -1650,9 +1650,10 @@ def confirm_sku_substitution(request, user=''):
         mrp_dict = {}
         if 'dest_batch_number' in data_dict.keys():
             mrp_dict['batch_no'] = data_dict['dest_batch_number'][ind]
-            mrp_dict['mrp'] = data_dict['dest_mrp'][ind]
             dest_filter['batch_detail__batch_no'] = data_dict['dest_batch_number'][ind]
-            dest_filter['batch_detail__mrp'] = data_dict['dest_mrp'][ind]
+            if data_dict['dest_mrp'][ind]:
+                mrp_dict['mrp'] = data_dict['dest_mrp'][ind]
+                dest_filter['batch_detail__mrp'] = data_dict['dest_mrp'][ind]
         dest_stocks = StockDetail.objects.filter(**dest_filter)
         dest_list.append({'dest_sku': dest_sku[0], 'dest_loc': dest_loc[0], 'dest_qty': dest_qty,
                           'dest_stocks': dest_stocks, 'mrp_dict': mrp_dict})
@@ -2030,5 +2031,5 @@ def get_sku_batches(request, user=''):
         batch_obj = BatchDetail.objects.filter(stockdetail__sku=sku_id).values('batch_no', 'mrp').distinct()
         for batch in batch_obj:
             sku_batches[batch['batch_no']].append(batch['mrp'])
-        sku_batches[batch['batch_no']] = list(set(sku_batches[batch['batch_no']]))
+            sku_batches[batch['batch_no']] = list(set(sku_batches[batch['batch_no']]))
     return HttpResponse(json.dumps({"sku_batches": sku_batches}))

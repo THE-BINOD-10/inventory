@@ -1184,3 +1184,17 @@ def print_rtv_report(request, user=''):
     if report_data:
         html_data = create_reports_table(report_data[0].keys(), report_data)
     return HttpResponse(html_data)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def print_debit_note(request, user=''):
+    from rest_api.views.inbound import get_debit_note_data
+    receipt_type = ''
+    rtv_number = request.GET.get('rtv_number', '')
+    if rtv_number:
+        show_data_invoice = get_debit_note_data(rtv_number, user)
+        return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice': [show_data_invoice]})
+    else:
+        return HttpResponse("No Data")

@@ -1869,8 +1869,6 @@ def inventory_adj_modify_qty(request, user=''):
                 stock_qty_update['sku_id'] = sku_id
             if pallet_id:
                 stock_qty_update['pallet_detail_id'] = pallet_id
-            #stock_qty_update['receipt_date__regex'] = str(data_dict['receipt_date'].replace(tzinfo=None))
-            #stock_qty_update['receipt_type'] = data_dict['receipt_type']
             stock_qty_update['status'] = 1
             stock_qty_update['sku__user'] = user.id
             inventory_update_adj = StockDetail.objects.filter(**stock_qty_update)
@@ -1900,8 +1898,7 @@ def inventory_adj_modify_qty(request, user=''):
                             raw_reserve_qty = raw_reserve[0]
                         total_reserve_qty = reserve_qty + raw_reserve_qty
                         obj_qty = ob.quantity
-                        if obj_qty:
-                            save_reduced_qty = abs(obj_qty - total_reserve_qty)
+                        save_reduced_qty = obj_qty
                         if save_reduced_qty >= sub_qty:
                             diff_qty = int(save_reduced_qty)-int(sub_qty)
                             StockDetail.objects.filter(id=ob.id).update(quantity=diff_qty)

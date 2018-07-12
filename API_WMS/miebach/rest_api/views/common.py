@@ -409,7 +409,7 @@ def get_search_params(request, user=''):
                     'rm_sku_code': 'rm_sku_code', 'pallet': 'pallet',
                     'staff_id': 'id', 'ean': 'ean', 'invoice_number': 'invoice_number',
                     'zone_code': 'zone_code', 'dist_code': 'dist_code', 'reseller_code': 'reseller_code',
-                    'supplier_id': 'supplier_id'}
+                    'supplier_id': 'supplier_id', 'rtv_number': 'rtv_number'}
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
                       'search2': 'search_2', 'search3': 'search_3',
@@ -6159,6 +6159,8 @@ def get_user_profile_data(request, user=''):
     data['cin_number'] = request.user.userprofile.cin_number
     data['wh_address'] = main_user.wh_address
     data['wh_phone_number'] = main_user.wh_phone_number
+    data['pan_number'] = main_user.pan_number
+    data['phone_number'] = main_user.phone_number
     return HttpResponse(json.dumps({'msg': 1, 'data': data}))
 
 
@@ -6225,8 +6227,10 @@ def update_profile_data(request, user=''):
     company_name = request.POST.get('company_name', '')
     email = request.POST.get('email', '')
     cin_number = request.POST.get('cin_number', '')
+    pan_number = request.POST.get('pan_number', '')
     wh_address = request.POST.get('wh_address', '')
     wh_phone_number = request.POST.get('wh_phone_number', '')
+    phone_number = request.POST.get('phone_number', '')
     main_user = UserProfile.objects.get(user_id=user.id)
     main_user.address = address
     main_user.gst_number = gst_number
@@ -6234,6 +6238,8 @@ def update_profile_data(request, user=''):
     main_user.cin_number = cin_number
     main_user.wh_address = wh_address
     main_user.wh_phone_number = wh_phone_number
+    main_user.phone_number = phone_number
+    main_user.pan_number = pan_number
     main_user.save()
     user.email = email
     user.save()

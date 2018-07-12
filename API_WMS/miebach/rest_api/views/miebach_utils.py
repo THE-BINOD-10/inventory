@@ -10,6 +10,8 @@ from miebach_admin.models import *
 from itertools import chain
 from operator import itemgetter
 from django.db.models import Q, F
+from django.db.models.functions import Cast, Concat
+from django.db.models.fields import DateField, CharField
 
 # from inbound import *
 
@@ -558,13 +560,28 @@ RESELLER_TARGET_REPORT = {
     'print_url': 'print_reseller_target_report',
 }
 
+RETURN_TO_VENDOR_REPORT = {
+    'filters': [
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
+        {'label': 'Purchase Order ID', 'name': 'open_po', 'type': 'input'},
+        {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
+        {'label': 'RTV Number', 'name': 'rtv_number', 'type': 'input'}
+    ],
+    'dt_headers': ['RTV Number', 'Supplier ID', 'Supplier Name', 'Order ID', 'Invoice Number', 'Return Date'],
+    'dt_url': 'get_rtv_report', 'excel_name': 'get_rtv_report',
+    'print_url': 'print_rtv_report',
+}
+
 REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report': OPEN_JO_REP_DICT,
                      'sku_wise_po_report': SKU_WISE_PO_DICT,
                      'grn_report': GRN_DICT, 'sku_wise_grn_report' : SKU_WISE_GRN_DICT, 'seller_invoice_details': SELLER_INVOICE_DETAILS_DICT,
                      'rm_picklist_report': RM_PICKLIST_REPORT_DICT, 'stock_ledger_report': STOCK_LEDGER_REPORT_DICT,
                      'shipment_report': SHIPMENT_REPORT_DICT, 'dist_sales_report': DIST_SALES_REPORT_DICT,
                      'reseller_sales_report': RESELLER_SALES_REPORT_DICT, 'dist_target_report': DIST_TARGET_REPORT,
-                     'reseller_target_report': RESELLER_TARGET_REPORT}
+                     'reseller_target_report': RESELLER_TARGET_REPORT,
+                     'rtv_report': RETURN_TO_VENDOR_REPORT}
 
 SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', 'sku-wise', 1, 2, 'sku-wise-report'): (
 ['SKU Code', 'WMS Code', 'Product Description', 'SKU Category', 'Total Quantity'], (
@@ -1058,7 +1075,8 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_shipment_report': 'get_shipment_report_data',
                         'get_dist_sales_report': 'get_dist_sales_report_data',
                         'get_reseller_sales_report': 'get_reseller_sales_report_data',
-                        'sku_wise_goods_receipt' : 'get_sku_wise_po_filter_data'
+                        'sku_wise_goods_receipt' : 'get_sku_wise_po_filter_data',
+                        'get_rtv_report': 'get_rtv_report_data'
                         }
 # End of Download Excel Report Mapping
 
@@ -3323,19 +3341,19 @@ def get_stock_ledger_data(search_params, user, sub_user):
     return temp_data
 
 
-def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
+def get_rtv_report_data(search_params, user, sub_user, serial_view=False):
     from miebach_admin.models import *
     from miebach_admin.views import *
-    from rest_api.views.common import get_sku_master, get_order_detail_objs
+    from rest_api.views.common import get_sku_master, get_po_reference
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     search_parameters = {}
-    lis = ['order_shipment__shipment_number', 'order__original_order_id', 'order__sku__sku_code', 'order__title',
-           'order__customer_name',
-           'order__quantity', 'shipping_quantity', 'order_shipment__truck_number','creation_date', 'id', 'id',
-           'order__customerordersummary__payment_status', 'order_packaging__package_reference']
-    search_parameters['order__user'] = user.id
-    search_parameters['shipping_quantity__gt'] = 0
-    search_parameters['order__sku_id__in'] = sku_master_ids
+    lis = ['rtv_number', 'seller_po_summary__purchase_order__open_po__supplier_id',
+           'seller_po_summary__purchase_order__open_po__supplier__name', 'seller_po_summary__purchase_order__order_id',
+           'seller_po_summary__invoice_number', 'return_date']
+    search_parameters['seller_po_summary__purchase_order__open_po__sku__user'] = user.id
+    search_parameters['quantity__gt'] = 0
+    search_parameters['seller_po_summary__purchase_order__open_po__sku_id__in'] = sku_master_ids
+    search_parameters['status'] = 0
     temp_data = copy.deepcopy(AJAX_DATA)
 
     if 'from_date' in search_params:
@@ -3345,34 +3363,27 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
         search_parameters['creation_date__lt'] = search_params['to_date']
-    if 'sku_code' in search_params:
-        search_parameters['order__sku__sku_code'] = search_params['sku_code']
-    if 'customer_id' in search_params:
-        search_parameters['order__customer_id'] = search_params['customer_id']
-    if 'order_id' in search_params:
-        order_detail = get_order_detail_objs(search_params['order_id'], user, search_params={}, all_order_objs=[])
-        if order_detail:
-            search_parameters['order_id__in'] = order_detail.values_list('id', flat=True)
-        else:
-            search_parameters['order_id__in'] = []
-
+    if 'supplier' in search_params:
+        if search_params['supplier'] and ':' in search_params['supplier']:
+            search_parameters['seller_po_summary__purchase_order__open_po__supplier__id__iexact'] = \
+                                search_params['supplier'].split(':')[0]
+    if 'open_po' in search_params and search_params['open_po']:
+        temp = re.findall('\d+', search_params['open_po'])
+        if temp:
+            search_parameters['seller_po_summary__purchase_order__order_id'] = temp[-1]
+    if 'invoice_number' in search_params:
+        search_parameters['seller_po_summary__invoice_number'] = search_params['invoice_number']
+    if 'rtv_number' in search_params:
+        search_parameters['rtv_number'] = search_params['rtv_number']
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
-    model_data = ShipmentInfo.objects.filter(**search_parameters).\
-                                    values('order_shipment__shipment_number', 'order__order_id', 'id',
-                                           'order__original_order_id', 'order__order_code', 'order__sku__sku_code',
-                                           'order__title', 'order__customer_name', 'order__quantity', 'shipping_quantity',
-                                           'order_shipment__truck_number', 'creation_date',
-                                           'order_shipment__courier_name',
-                                           'order__customerordersummary__payment_status',
-                                           'order_packaging__package_reference')
+    model_data = ReturnToVendor.objects.filter(**search_parameters).\
+                                    values('rtv_number', 'seller_po_summary__purchase_order__open_po__supplier_id',
+           'seller_po_summary__purchase_order__open_po__supplier__name', 'seller_po_summary__purchase_order__order_id',
+           'seller_po_summary__invoice_number').distinct().\
+            annotate(return_date=Cast('creation_date', DateField()))
 
-    ship_search_params  = {}
-    for key, value in search_parameters.iteritems():
-        ship_search_params['shipment__%s' % key] = value
-    ship_status = dict(ShipmentTracking.objects.filter(**ship_search_params).values_list('shipment_id', 'ship_status').\
-                       distinct().order_by('creation_date'))
     if search_params.get('order_term'):
         order_data = lis[search_params['order_index']]
         if search_params['order_term'] == 'desc':
@@ -3386,22 +3397,17 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
         model_data = model_data[start_index:stop_index]
 
     for data in model_data:
-        order_id = data['order__original_order_id']
-        if not order_id:
-            order_id = data['order__order_code'] + str(data['order__order_id'])
-        date = get_local_date(user, data['creation_date']).split(' ')
-        temp_data['aaData'].append(OrderedDict((('Shipment Number', data['order_shipment__shipment_number']),
-                                                ('Order ID', order_id), ('SKU Code', data['order__sku__sku_code']),
-                                                ('Title', data['order__title']),
-                                                ('Customer Name', data['order__customer_name']),
-                                                ('Quantity', data['order__quantity']),
-                                                ('Shipped Quantity', data['shipping_quantity']),
-                                                ('Truck Number', data['order_shipment__truck_number']),
-                                                ('Date', ' '.join(date)),
-                                                ('Shipment Status', ship_status.get(data['id'], '')),
-                                                ('Courier Name', data['order_shipment__courier_name']),
-                                                ('Payment Status', data['order__customerordersummary__payment_status']),
-                                                ('Pack Reference', data['order_packaging__package_reference']))))
+        rtv = ReturnToVendor.objects.filter(seller_po_summary__purchase_order__open_po__sku__user=user.id, status=0,
+                                            rtv_number=data['rtv_number'])
+        order_id = get_po_reference(rtv[0].seller_po_summary.purchase_order)
+        date = get_local_date(user, rtv[0].creation_date)
+        temp_data['aaData'].append(OrderedDict((('RTV Number', data['rtv_number']),
+                                    ('Supplier ID', data['seller_po_summary__purchase_order__open_po__supplier_id']),
+                                    ('Supplier Name', data['seller_po_summary__purchase_order__open_po__supplier__name']),
+                                    ('Order ID', order_id),
+                                    ('Invoice Number', data['seller_po_summary__invoice_number']),
+                                    ('Return Date', date)
+                                )))
     return temp_data
 
 

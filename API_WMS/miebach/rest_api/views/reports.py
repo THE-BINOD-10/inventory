@@ -1160,3 +1160,41 @@ def print_purchase_order_form(request, user=''):
                  'gstin_no': gstin_no}
 
     return render(request, 'templates/toggle/po_template.html', data_dict)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_rtv_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_rtv_report_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def print_rtv_report(request, user=''):
+    html_data = {}
+    search_parameters = {}
+    headers, search_params, filter_params = get_search_params(request)
+    report_data = get_rtv_report_data(search_params, user, request.user)
+    report_data = report_data['aaData']
+    if report_data:
+        html_data = create_reports_table(report_data[0].keys(), report_data)
+    return HttpResponse(html_data)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def print_debit_note(request, user=''):
+    from rest_api.views.inbound import get_debit_note_data
+    receipt_type = ''
+    rtv_number = request.GET.get('rtv_number', '')
+    if rtv_number:
+        show_data_invoice = get_debit_note_data(rtv_number, user)
+        return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice': [show_data_invoice]})
+    else:
+        return HttpResponse("No Data")

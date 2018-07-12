@@ -1935,6 +1935,18 @@ var app = angular.module('urbanApp')
             title: 'Reseller Targets Report',
           }
         })
+        .state('app.reports.RTVReport', {
+          url: '/RTVReport',
+          templateUrl: 'views/reports/rtv_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/rtv_report.js');
+              }]
+          },
+          data: {
+            title: 'RTV Report',
+          }
+        })
 
       // configuration route
       .state('app.configurations', {

@@ -2516,6 +2516,10 @@ def confirm_grn(request, confirm_returns='', user=''):
     seller_name = user.username
     seller_address = user.userprofile.address
     seller_receipt_id = 0
+    if user.username=='milkbasket' and not request.POST.get('invoice_number', ''):
+        return HttpResponse("Invoice Number  is Mandatory")
+    if user.username == 'milkbasket' and not request.POST.get('invoice_date', ''):
+        return HttpResponse("Invoice Date is Mandatory")
     bill_date = datetime.datetime.now().date().strftime('%d-%m-%Y')
     if request.POST.get('invoice_date', ''):
         bill_date = datetime.datetime.strptime(str(request.POST.get('invoice_date', '')), "%m/%d/%Y").strftime('%d-%m-%Y')
@@ -5424,6 +5428,10 @@ def confirm_receive_qc(request, user=''):
     seller_name = user.username
     seller_address = user.userprofile.address
     myDict = dict(request.POST.iterlists())
+    if user.username=='milkbasket' and not request.POST.get('invoice_number', ''):
+        return HttpResponse("Invoice Number  is Mandatory")
+    if user.username == 'milkbasket' and not request.POST.get('invoice_date', ''):
+        return HttpResponse("Invoice Date is Mandatory")
     bill_date = datetime.datetime.now().date().strftime('%d-%m-%Y')
     if request.POST.get('invoice_date', ''):
         bill_date = datetime.datetime.strptime(str(request.POST.get('invoice_date', '')), "%m/%d/%Y").strftime('%d-%m-%Y')

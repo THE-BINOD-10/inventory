@@ -158,6 +158,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
     self.invoice_data = {};
     self.datatable = 'ReturnToVendor';
     self.seller_types = [];
+    self.rtv_filters = {};
 
     /** login page maintainance **/
     self.login_data = {

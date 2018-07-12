@@ -1165,3 +1165,27 @@ def print_purchase_order_form(request, user=''):
                  'gstin_no': gstin_no}
 
     return render(request, 'templates/toggle/po_template.html', data_dict)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_rtv_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_rtv_report_data(search_params, user, request.user)
+
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def print_rtv_report(request, user=''):
+    html_data = {}
+    search_parameters = {}
+    headers, search_params, filter_params = get_search_params(request)
+    report_data = get_rtv_report_data(search_params, user, request.user)
+    report_data = report_data['aaData']
+    if report_data:
+        html_data = create_reports_table(report_data[0].keys(), report_data)
+    return HttpResponse(html_data)

@@ -302,7 +302,7 @@ ORDER_HEADERS = ['Order ID', 'Title', 'SKU Code', 'Quantity', 'Shipment Date(yyy
 
 MARKETPLACE_ORDER_HEADERS = ['SOR ID', 'UOR ID', 'Seller ID', 'Order Status', 'Title', 'SKU Code', 'Quantity',
                              'Shipment Date(yyyy-mm-dd)', 'Channel Name', 'Customer ID', 'Customer Name', 'Email ID',
-                             'Phone Number', 'Shipping Address', 'State', 'City', 'PIN Code',
+                             'Phone Number', 'Shipping Address', 'State', 'City', 'PIN Code', 'MRP',
                              'Invoice Amount(Without Tax and Discount)', 'Total Discount', 'CGST(%)', 'SGST(%)',
                              'IGST(%)']
 
@@ -324,8 +324,8 @@ MARKETPLACE_ORDER_DEF_EXCEL = OrderedDict(
      ('sku_code', 5), ('quantity', 6), ('shipment_date', 7), ('channel_name', 8),
      ('shipment_check', 'true'), ('customer_id', 9),
      ('customer_name', 10), ('email_id', 11), ('telephone', 12), ('address', 13),
-     ('state', 14), ('city', 15), ('pin_code', 16), ('amount', 17),
-     ('amount_discount', 18), ('cgst_tax', 19), ('sgst_tax', 20), ('igst_tax', 21)
+     ('state', 14), ('city', 15), ('pin_code', 16), ('mrp', 17), ('amount', 18),
+     ('amount_discount', 19), ('cgst_tax', 20), ('sgst_tax', 21), ('igst_tax', 22)
      ))
 
 SALES_RETURN_FIELDS = ((('Return Tracking ID', 'return_id'),),)

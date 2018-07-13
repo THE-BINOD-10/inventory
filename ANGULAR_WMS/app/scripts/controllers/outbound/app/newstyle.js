@@ -198,24 +198,35 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
       record.price = price;
     }
     record.invoice_amount = Number(price) * record.quantity;
-    if (record.tax) {
 
-      record.total_amount = ((record.invoice_amount * record.tax) / 100) + record.invoice_amount;
+    if (Number(record.quantity) && record.taxes[0]) {
+      record.tax = Number(record.taxes[0].cgst_tax) + Number(record.taxes[0].sgst_tax) + Number(record.taxes[0].igst_tax);
     } else {
-
-      record.total_amount = record.invoice_amount;
+      record.tax = 0;
     }
+
+    record.total_amount = ((record.invoice_amount * record.tax) / 100) + record.invoice_amount;
   }
 
   vm.add_to_cart = function(sku) {
 
     if(sku.quantity) {
 
-      vm.insert_customer_cart_data([sku]);
+      if (!sku.tax) {
+        sku.tax = 0;
+      }
+      sku['overall_sku_total_quantity'] = sku.physical_stock;
+
+      var temp = {sku_id: sku.wms_code, quantity: Number(sku.quantity), invoice_amount: Number(sku.invoice_amount), price: sku.price, tax: sku.tax, image_url: sku.image_url, level: 0, overall_sku_total_quantity: sku.overall_sku_total_quantity}
+      temp['total_amount'] = ((temp.invoice_amount / 100) * temp.tax) + temp.invoice_amount;
+
+      vm.insert_customer_cart_data([temp]);
     } else {
      
       vm.service.showNoty("Please enter quantity first");
     }
+
+    console.log(sku);
   }
 
   vm.insert_customer_cart_data = function(send){

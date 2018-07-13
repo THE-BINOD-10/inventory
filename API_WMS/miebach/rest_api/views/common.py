@@ -4084,7 +4084,7 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
                 total_quantity += needed_stock_data['stock_objs'].get(prd_sku, 0)
                 total_quantity = total_quantity - float(needed_stock_data['reserved_quantities'].get(prd_sku, 0))
                 total_quantity = total_quantity - float(needed_stock_data['enquiry_res_quantities'].get(prd_sku, 0))
-        if not total_quantity:
+        if total_quantity < 0:
             total_quantity = 0
         if sku_styles:
             sku_variants = list(sku_object.values(*get_values))

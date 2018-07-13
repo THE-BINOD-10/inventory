@@ -5752,6 +5752,9 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
         all_zone_mappings = ZoneMarketplaceMapping.objects.filter(zone__user=user.id, status=1)
         is_marketplace_model = True
 
+    fefo_enabled = False
+    if user.userprofile.industry_type == 'FMCG':
+        fefo_enabled = True
     if switch_vals['fifo_switch'] == 'true':
         order_by = 'receipt_date'
     else:
@@ -5864,7 +5867,13 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
                     stock_zones2 = stock_detail.exclude(location__zone_id__in=all_zone_map_ids).order_by(order_by)
                     stock_zones3 = stock_detail.filter(location__zone_id__in=rem_zone_map_ids).order_by(order_by)
                     stock_detail = stock_zones1.union(stock_zones2, stock_zones3)
-
+            elif fefo_enabled:
+                if 'st_po' not in dir(order):
+                    stock_detail1 = stock_detail.filter(batch_detail__expiry_date__isnull=False).\
+                                                    order_by('batch_detail__expiry_date')
+                    stock_detail2 = stock_detail.exclude(batch_detail__expiry_date__isnull=False).\
+                                                    order_by(order_by)
+                    stock_detail = list(chain(stock_detail1, stock_detail2))
             if seller_order and seller_order.order_status == 'DELIVERY_RESCHEDULED':
                 rto_stocks = stock_detail.filter(location__zone__zone='RTO_ZONE')
                 stock_detail = list(chain(rto_stocks, stock_detail))

@@ -17,6 +17,14 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
   vm.hot_release = '';
   vm.marginData = {margin_type: '', margin: 0, margin_percentage: 0, margin_value: 0, is_margin_percentage: true, sale_through: vm.order_type_value};
 
+  vm.location = $location.$$path;
+
+  if (Session.userName == 'roopal@mieone.com') { // This condition for testing only
+    if (vm.location == '/App/Brands' || vm.location == '/App/Categories' || vm.location == '/App/Products') {
+      $state.go('user.App.newStyle');
+    }
+  }
+
   function change_filter_data() {
     var data = {brand: '', category: '', is_catalog: true, sale_through: vm.order_type_value};
     vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
@@ -200,10 +208,30 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
     }
   }
 
+  vm.add_to_cart = function(sku) {
+
+    if(sku.quantity) {
+      
+      console.log(sku);
+      // var send = [];
+      // angular.forEach(vm.wish_list, function(data, name) {
+      //   if (data['quantity']) {
+
+      //     var temp = {sku_id: data.wms_code, quantity: Number(data.quantity), invoice_amount: data.price * Number(data.quantity), price: data.price, tax: vm.tax, image_url: data.image_url, level: data.level, overall_sku_total_quantity: data.overall_sku_total_quantity}
+      //     temp['total_amount'] = ((temp.invoice_amount / 100) * vm.tax) + temp.invoice_amount;
+      //     send.push(temp);
+      //   }
+      // });
+
+      // vm.insert_customer_cart_data(send);
+    } else {
+     
+      vm.service.showNoty("Please Enter Quantity");
+    }
+  }
+
 
   //##############################Pagenation Start##############################
-
-
   vm.getPagenation = function(){
     vm.pagenation_count = 0;
     vm.pagenation_data = [];

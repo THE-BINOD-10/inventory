@@ -39,14 +39,14 @@
 	ul {list-style: none;padding: 0px;margin: 0px;}
 	ul li {display: block;position: relative;float: left}
 	li ul {display: none;}
-	ul li a {display: block;padding: 10px 30px 10px 30px;text-decoration: none; white-space: nowrap;color: #fff;}
+	ul li span {display: block;padding: 10px 30px 10px 30px;text-decoration: none; white-space: nowrap;color: #616161;cursor: pointer;}
 	/*ul li a:hover {background: #ed1c24;}*/
-	ul li a:hover {background: #ed1c24;color: #fff}
+	ul li span:hover {background: #ed1c24;color: #fff}
 	li:hover ul {display: block; position: absolute;z-index: 1000}
 	li:hover li {float: none;z-index: 1000}
-	li:hover a {background: #ed1c24;z-index: 1}
+	li:hover span {background: #ed1c24;z-index: 1}
 	/*li:hover li a:hover {background: #ed1c24;z-index: 1}*/
-	li:hover li a:hover {background: #ed1c24;z-index: 1;color: #fff}
+	li:hover li span:hover {background: #ed1c24;z-index: 1;color: #fff;cursor: pointer;}
 	#drop-nav li ul li {border-top: 0px;}
 </style>
 
@@ -99,7 +99,7 @@
   	<div class="col-md-10 col-sm-10 col-xs-2">
       <div class="menu-left">
         <ul id="drop-nav">
-			<li ng-repeat="list in Style.main_menus"><a href="#">{{ list }}</a>
+			<li ng-repeat="list in Style.main_menus"><span>{{ list }}</span>
 				<!-- <ul ng-if="Style.sub_menus">
 			      <li ng-repeat="sub_list in Style.sub_menus"><a href="#">{{sub_list}}</a></li>
 			    </ul> -->
@@ -163,7 +163,7 @@
 			<div class="row col-md-12 Style.final_data.amount | number : 2col-sm-12 col-xs-12" ng-if="Style.data_loading" style="background: #000;opacity: 0.3;filter: alpha(opacity=100);">
 	      <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;">
 	    </div>
-			<div class="row">
+			<div class="row" ng-if="!Style.data_loading">
 		  	<div class="col-lg-12 col-md-12 col-sm-12 col-xs-12" align="right">
 
 		  		<ul ng-if="Style.pager.pages.length" class="pagination" style="margin-right: -15px">

@@ -5807,59 +5807,66 @@ def get_order_ids(user, invoice_number):
 def update_payment_status(request, user=''):
     if request.method == "POST":
         data_dict = dict(request.POST.iterlists())
-        import pdb;pdb.set_trace()
         invoice_numbers = []
         order_ids = []
         for key, val in data_dict.iteritems():
             if "[invoice_number]" in key:
-                invoice_numbers.append(request.POST.get(i))
-        for invoice_number in invoice_numbers:
-            order_ids += get_order_ids(user, invoice_number)
-        data_dict['order_id'] = order_ids
+                invoice_numbers.append(request.POST.get(key))
     else:
         data_dict = dict(request.GET.iterlists())
-        invoice_number = request.GET.get('invoice_number', '')
-        if invoice_number:
-            order_ids = get_order_ids(user, invoice_number)
-            data_dict['order_id'] = order_ids
-    payment = float(data_dict['amount'][0])
+        invoice_numbers = [request.GET.get('invoice_number', '')]
     payment_id = get_incremental(user, "payment_summary", 1)
-    for i in range(0, len(data_dict['order_id'])):
-        if not data_dict['amount']:
-            continue
-        order_details = OrderDetail.objects.filter(order_id=data_dict['order_id'][i], user=user.id,
-                                                   payment_received__lt=F('invoice_amount'))
-        entered_amount = float(data_dict.get('entered_amount', {}).get(i, 0))
-        balance_amount = float(data_dict.get('balance_amount', {}).get(i, 0))
-        tds_amount = float(data_dict.get('tds_amount', {}).get(i, 0))
+    for index, invoice_number in enumerate(invoice_numbers):
+        order_ids = get_order_ids(user, invoice_number)
+        data_dict['order_id'] = order_ids
 
-        for order in order_details:
-            if not payment:
-                break
-            if float(order.invoice_amount) > float(order.payment_received):
-                diff = float(order.invoice_amount) - float(order.payment_received)
-                bank = request.GET.get('bank', '')
-                mode_of_pay = request.GET.get('mode_of_payment', '')
-                remarks = request.GET.get('remarks', '')
-                if payment > diff:
-                    order.payment_received = diff
-                    payment -= diff
-                    PaymentSummary.objects.create(order_id=order.id, creation_date=datetime.datetime.now(),\
-                                                  payment_received=diff, bank=bank, mode_of_pay=mode_of_pay,\
-                                                  remarks=remarks, payment_id=payment_id,\
-                                                  entered_amount=entered_amount, balance_amount=balance_amount,\
-                                                  tds_amount=tds_amount, payment_date='')
-                else:
-                    PaymentSummary.objects.create(order_id=order.id, creation_date=datetime.datetime.now(),\
-                                                  payment_received=payment, bank=bank,\
-                                                  mode_of_pay=mode_of_pay, remarks=remarks,\
-                                                  payment_id=payment_id, entered_amount=entered_amount,\
-                                                  balance_amount=balance_amount, tds_amount=tds_amount,\
-                                                  payment_date='')
-                    order.payment_received = float(order.payment_received) + float(payment)
-                    payment = 0
-                order.save()
-    return HttpResponse("Success")
+        if request.method == "POST":
+            payment = float(data_dict.get('data['+str(index)+'][amount]', [0])[0])
+            entered_amount = float(data_dict.get('data['+str(index)+'][enter_amount]', [0])[0])
+            balance_amount = float(data_dict.get('data['+str(index)+'][balance]', [0])[0])
+            tds_amount = float(data_dict.get('data[0][update_tds][0]', [0])[0])
+            bank = data_dict.get('data[0][bank_name]', [''])[0]
+            mode_of_pay = data_dict.get('data[0][mode_of_pay]', [''])[0]
+            remarks = data_dict.get('data[0][neft_cheque]', [''])[0]
+            payment_date = data_dict.get('data[0][date][0]', [None])[0]
+            if payment_date:
+                payment_date = datetime.datetime.strptime(payment_date, "%m/%d/%Y")
+        else:
+            payment = float(data_dict['amount'][0])
+            bank = request.GET.get('bank', '')
+            mode_of_pay = request.GET.get('mode_of_payment', '')
+            remarks = request.GET.get('remarks', '')
+            payment_date = None
+        if not payment:
+            continue
+
+        for i in range(0, len(data_dict['order_id'])):
+            order_details = OrderDetail.objects.filter(order_id=data_dict['order_id'][i], user=user.id,
+                                                       payment_received__lt=F('invoice_amount'))
+            for order in order_details:
+                if not payment:
+                    break
+                if float(order.invoice_amount) > float(order.payment_received):
+                    diff = float(order.invoice_amount) - float(order.payment_received)
+                    if payment > diff:
+                        order.payment_received = diff
+                        payment -= diff
+                        PaymentSummary.objects.create(order_id=order.id, creation_date=datetime.datetime.now(),\
+                                                      payment_received=diff, bank=bank, mode_of_pay=mode_of_pay,\
+                                                      remarks=remarks, payment_id=payment_id,\
+                                                      entered_amount=entered_amount, balance_amount=balance_amount,\
+                                                      tds_amount=tds_amount, payment_date=payment_date)
+                    else:
+                        PaymentSummary.objects.create(order_id=order.id, creation_date=datetime.datetime.now(),\
+                                                      payment_received=payment, bank=bank,\
+                                                      mode_of_pay=mode_of_pay, remarks=remarks,\
+                                                      payment_id=payment_id, entered_amount=entered_amount,\
+                                                      balance_amount=balance_amount, tds_amount=tds_amount,\
+                                                      payment_date=payment_date)
+                        order.payment_received = float(order.payment_received) + float(payment)
+                        payment = 0
+                    order.save()
+    return HttpResponse(json.dumps({'status': True, 'message': 'Payment Successfully Completed !'}))
 
 
 @login_required

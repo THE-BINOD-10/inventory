@@ -39,14 +39,14 @@
 	ul {list-style: none;padding: 0px;margin: 0px;}
 	ul li {display: block;position: relative;float: left}
 	li ul {display: none;}
-	ul li span {display: block;padding: 10px 30px 10px 30px;text-decoration: none; white-space: nowrap;color: #616161;cursor: pointer;}
+	ul li a {display: block;padding: 10px 30px 10px 30px;text-decoration: none; white-space: nowrap;color: #616161;cursor: pointer;}
 	/*ul li a:hover {background: #ed1c24;}*/
-	ul li span:hover {background: #ed1c24;color: #fff}
+	ul li a:hover {background: #ed1c24;color: #fff}
 	li:hover ul {display: block; position: absolute;z-index: 1000}
 	li:hover li {float: none;z-index: 1000}
-	li:hover span {background: #ed1c24;z-index: 1}
+	li:hover a {background: #ed1c24;z-index: 1}
 	/*li:hover li a:hover {background: #ed1c24;z-index: 1}*/
-	li:hover li span:hover {background: #ed1c24;z-index: 1;color: #fff;cursor: pointer;}
+	li:hover li a:hover {background: #ed1c24;z-index: 1;color: #fff;cursor: pointer;}
 	#drop-nav li ul li {border-top: 0px;}
 </style>
 
@@ -99,7 +99,7 @@
   	<div class="col-md-10 col-sm-10 col-xs-2">
       <div class="menu-left">
         <ul id="drop-nav">
-			<li ng-repeat="list in Style.main_menus"><span>{{ list }}</span>
+			<li ng-repeat="list in Style.main_menus"><a>{{ list }}</a>
 				<!-- <ul ng-if="Style.sub_menus">
 			      <li ng-repeat="sub_list in Style.sub_menus"><a href="#">{{sub_list}}</a></li>
 			    </ul> -->

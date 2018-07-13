@@ -206,7 +206,7 @@ def get_supplier_results(start_index, stop_index, temp_data, search_term, order_
         master_data = SupplierMaster.objects.filter(user=user.id, **search_params).order_by(order_data)
 
     temp_data['recordsTotal'] = len(master_data)
-    temp_data['recordsFiltered'] = len(master_data)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
     for data in master_data[start_index: stop_index]:
         uploads_list = []
@@ -3635,3 +3635,109 @@ def update_sku_warehouse_values(request, user=''):
         setattr(data, key, value)
     data.save()
     return HttpResponse('Updated Successfully')
+
+@csrf_exempt
+def get_supplier_master_excel(temp_data, search_term, order_term, col_num, request, user, filters):
+    search_dict = {'active': 1, 'inactive': 0}
+    order_data = SUPPLIER_MASTER_HEADERS.values()[col_num]
+    search_params = get_filtered_params(filters, SUPPLIER_MASTER_HEADERS.values())
+    if 'status__icontains' in search_params.keys():
+        if (str(search_params['status__icontains']).lower() in "active"):
+            search_params["status__icontains"] = 1
+        elif (str(search_params['status__icontains']).lower() in "inactive"):
+            search_params["status__icontains"] = 0
+        else:
+            search_params["status__icontains"] = "none"
+
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if search_term:
+        if search_term.lower() in search_dict:
+            search_terms = search_dict[search_term.lower()]
+            master_data = SupplierMaster.objects.filter(status=search_terms, user=user.id, **search_params).order_by(
+                order_data)
+
+        else:
+            master_data = SupplierMaster.objects.filter(
+                Q(id__icontains=search_term) | Q(name__icontains=search_term) | Q(address__icontains=search_term) | Q(
+                    phone_number__icontains=search_term) | Q(email_id__icontains=search_term), user=user.id,
+                **search_params).order_by(order_data)
+
+    else:
+        master_data = SupplierMaster.objects.filter(user=user.id, **search_params).order_by(order_data)
+
+    temp_data['recordsTotal'] = len(master_data)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    for data in master_data:
+        uploads_list = []
+        uploads_obj = MasterDocs.objects.filter(master_id=data.id, master_type=data.__class__.__name__)\
+                                .values_list('uploaded_file', flat=True)
+        if uploads_obj:
+            uploads_list = [(i, i.split("/")[-1]) for i in uploads_obj]
+        status = 'Inactive'
+        if data.status:
+            status = 'Active'
+
+        login_created = False
+        user_role_mapping = UserRoleMapping.objects.filter(role_id=data.id, role_type='supplier')
+        username = ""
+        if user_role_mapping:
+            login_created = True
+            username = user_role_mapping[0].user.username
+
+        if data.phone_number:
+            data.phone_number = int(float(data.phone_number))
+        temp_data['aaData'].append(OrderedDict((('name', data.name), ('address', data.address),
+                                                ('phone_number', data.phone_number), ('email_id', data.email_id),
+                                                ('cst_number', data.cst_number), ('tin_0number', data.tin_number),
+                                                ('pan_number', data.pan_number), ('city', data.city),
+                                                ('state', data.state), ('days_to_supply', data.days_to_supply),
+                                                ('fulfillment_amt', data.fulfillment_amt),
+                                                ('credibility', data.credibility),
+                                                ('country', data.country), ('pincode', data.pincode),
+                                                ('status', status), ('supplier_type', data.supplier_type),
+                                                ('tax_type', TAX_TYPE_ATTRIBUTES.get(data.tax_type, '')),
+                                                ('po_exp_duration', data.po_exp_duration),
+                                                ('owner_name', data.owner_name), ('owner_number', data.owner_number),
+                                                ('owner_email_id', data.owner_email_id), ('spoc_name', data.spoc_name),
+                                                ('spoc_number', data.spoc_number), ('lead_time', data.lead_time),
+                                                ('spoc_email_id', data.spoc_email_id),
+                                                ('credit_period', data.credit_period),
+                                                ('bank_name', data.bank_name), ('ifsc_code', data.ifsc_code),
+                                                ('branch_name', data.branch_name),
+                                                ('account_number', data.account_number),
+                                                ('account_holder_name', data.account_holder_name))))
+    excel_headers = ''
+    if temp_data['aaData']:
+        excel_headers = temp_data['aaData'][0].keys()
+    excel_name = request.POST.get('datatable', '')
+    if excel_name:
+        file_name = "%s.%s" % (user.id, excel_name.split('=')[-1])
+    file_type = 'xls'
+    path = ('static/excel_files/%s.%s') % (file_name, file_type)
+    if not os.path.exists('static/excel_files/'):
+        os.makedirs('static/excel_files/')
+    path_to_file = '../' + path
+    headers = ['Name', 'Address', 'Phone Number', 'Email ID', 'CST Number', 'TIN Number', 'PAN Number', 
+    'City', 'State', 'Days To Supply', 'Fulfillment Amount', 'Credibility', 'Country', 'Pincode', 
+    'Status', 'Supplier Type', 'Tax Type', 'PO Exp Duration', 'Owner Name', 
+    'Owner Number', 'Owner Email Id', 'Spoc Name', 'Spoc Number', 'Lead Time', 'Spoc Email ID', 'Credit Period',
+    'Bank Name', 'IFSC', 'Branch Name', 'Account Number', 'Account Holder Name']
+    try:
+        wb, ws = get_work_sheet('skus', itemgetter(*excel_headers)(headers))
+    except:
+        wb, ws = get_work_sheet('skus', headers)
+    data_count = 0
+    for data1 in temp_data['aaData']:
+        data_count += 1
+        column_count = 0
+        for key, value in data1.iteritems():
+            if key in excel_headers:
+                try:
+                    ws.write(data_count, column_count, value)
+                    column_count += 1
+                except:
+                    print data_count, column_count, value
+    wb.save(path)
+    return '../' + path

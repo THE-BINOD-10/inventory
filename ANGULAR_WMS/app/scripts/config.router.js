@@ -3,6 +3,7 @@
 var LOGIN_STATE = "user.signin",
     LOGIN_REDIRECT_STATE = "app.dashboard",
     LOGIN_REDIRECT_STATE_CUSTOMER = "user.App.Brands",
+    LOGIN_REDIRECT_STATE_ANT_CUSTOMER = "user.App.newStyle",
     PERMISSION_DENIED = "app.denied";
 
 var app = angular.module('urbanApp')
@@ -11,6 +12,7 @@ var app = angular.module('urbanApp')
       if(Session.user_profile.user_type == "customer") {
         LOGIN_REDIRECT_STATE = LOGIN_REDIRECT_STATE_CUSTOMER;
       }
+
       $rootScope.$state = $state;
       $rootScope.$stateParams = $stateParams;
       $rootScope.$on('$stateChangeSuccess', function () {
@@ -55,9 +57,12 @@ var app = angular.module('urbanApp')
                       $state.go("app.Register");
                       return;
                     } else if((Session.user_profile.user_type == "customer") && (thisNext.name.indexOf("App") == -1)) {
-
-                       $state.go(LOGIN_REDIRECT_STATE_CUSTOMER,  {"location": "replace"})
-                       return;
+                        if (Session.userName == 'roopal@mieone.com') {
+                          $state.go(LOGIN_REDIRECT_STATE_CUSTOMER,  {"location": "replace"})
+                        } else {
+                          $state.go(LOGIN_REDIRECT_STATE_ANT_CUSTOMER,  {"location": "replace"})
+                        }
+                        return;
                     } else if (typeof(next.permission) == "string") {
 
                       var split_variable = '|';

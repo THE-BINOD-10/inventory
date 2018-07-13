@@ -24,6 +24,9 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.client_logo = Session.parent.logo;
   vm.api_url = Session.host;
 
+  vm.main_menus = Session.categories;
+  vm.sub_menus = Session.sub_categories;
+
   $('#delivery_date').datepicker();
 
   $('#delivery_date').on('focus',function(){
@@ -38,6 +41,12 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.margin_types = ['Margin Percentage', 'Margin Value'];
   Data.styles_data = {};
   vm.location = $location.$$path;
+
+  if (Session.userName == 'roopal@mieone.com') { // This condition for testing only
+    if (vm.location == '/App/Brands' || vm.location == '/App/Categories' || vm.location == '/App/Products') {
+      $state.go('user.App.newStyle');
+    }
+  }
 
   var empty_data = {data: [{sku_id: "", quantity: "", invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: ""}], 
                             customer_id: "", payment_received: "", order_taken_by: "", other_charges: [], shipment_time_slot: "", remarks: ""};
@@ -101,6 +110,10 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
         vm.categories = data.data.categories;
         vm.all_cate = data.data.categories;
+        
+        Data.categories = data.data.categories;
+        Data.sub_categories = data.data.sub_categories;
+
         vm.filterData = data.data;
         vm.filterData.brand_size_data = [];
         if(["reseller", "dist_customer"].indexOf(Session.roles.permissions.user_type) == -1) {

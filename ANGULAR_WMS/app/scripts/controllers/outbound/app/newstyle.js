@@ -117,8 +117,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
       if (data.physical_stock) {
 
         data.quantity = Number(data.quantity);
-        vm.add_to_cart(data);
-        vm.quantity_valid(data); // Maximum quantity validation
+        vm.add_to_price_details(data);
       } else {
 
         data.quantity = 0;
@@ -136,7 +135,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
     }
   }
 
-  vm.add_to_cart = function(data){
+  vm.add_to_price_details = function(data){
 
     if (vm.model_data.selected_styles[data.id]) {
 
@@ -211,25 +210,29 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
   vm.add_to_cart = function(sku) {
 
     if(sku.quantity) {
-      
-      console.log(sku);
-      // var send = [];
-      // angular.forEach(vm.wish_list, function(data, name) {
-      //   if (data['quantity']) {
 
-      //     var temp = {sku_id: data.wms_code, quantity: Number(data.quantity), invoice_amount: data.price * Number(data.quantity), price: data.price, tax: vm.tax, image_url: data.image_url, level: data.level, overall_sku_total_quantity: data.overall_sku_total_quantity}
-      //     temp['total_amount'] = ((temp.invoice_amount / 100) * vm.tax) + temp.invoice_amount;
-      //     send.push(temp);
-      //   }
-      // });
-
-      // vm.insert_customer_cart_data(send);
+      vm.insert_customer_cart_data([sku]);
     } else {
      
-      vm.service.showNoty("Please Enter Quantity");
+      vm.service.showNoty("Please enter quantity first");
     }
   }
 
+  vm.insert_customer_cart_data = function(send){
+
+    var send = JSON.stringify(send);
+    // vm.place_order_loading = true;
+    
+    vm.service.apiCall('insert_customer_cart_data/?data='+send).then(function(data){
+
+      if (data.message) {
+
+        vm.service.showNoty("Succesfully Added to Cart");
+      }
+    });
+
+    // vm.place_order_loading = true;
+  };
 
   //##############################Pagenation Start##############################
   vm.getPagenation = function(){

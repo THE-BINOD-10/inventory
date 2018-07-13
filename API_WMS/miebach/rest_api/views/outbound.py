@@ -1037,7 +1037,7 @@ def confirm_no_stock(picklist, request, user, picks_all, picklists_send_mail, me
     return seller_pick_number
 
 
-def validate_location_stock(val, all_locations, all_skus, user):
+def validate_location_stock(val, all_locations, all_skus, user, picklist):
     status = []
     wms_check = all_skus.filter(wms_code=val['wms_code'], user=user.id)
     loc_check = all_locations.filter(location=val['location'], zone__user=user.id)
@@ -1047,6 +1047,8 @@ def validate_location_stock(val, all_locations, all_skus, user):
                       'quantity__gt': 0}
     if 'pallet' in val and val['pallet']:
         pic_check_data['pallet_detail__pallet_code'] = val['pallet']
+    if picklist.stock and picklist.stock.batch_detail_id:
+        pic_check_data['batch_detail_id'] = picklist.stock.batch_detail_id
     pic_check = StockDetail.objects.filter(**pic_check_data)
     if not pic_check:
         status.append("Insufficient Stock in given location")
@@ -1544,7 +1546,8 @@ def picklist_confirmation(request, user=''):
                             return HttpResponse(map_status)
                     status = ''
                     if not val['location'] == 'NO STOCK':
-                        pic_check_data, status = validate_location_stock(val, all_locations, all_skus, user)
+                        pic_check_data, status = validate_location_stock(val, all_locations, all_skus, user,
+                                                                         picklist)
                     if status:
                         continue
                     if not picklist.stock:

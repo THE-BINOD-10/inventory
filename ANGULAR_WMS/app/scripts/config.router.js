@@ -1911,30 +1911,54 @@ var app = angular.module('urbanApp')
             title: 'Reseller Wise Sales Report',
           }
         })
-        .state('app.reports.DistTargetReport', {
-          url: '/DistTargetReport',
-          templateUrl: 'views/reports/dist_target_report.html',
+        .state('app.reports.ZoneTargetSummaryReport', {
+          url: '/ZoneTargetSummaryReport',
+          templateUrl: 'views/reports/zone_target_summary_report.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/reports/dist_target_report.js');
+                return $ocLazyLoad.load('scripts/controllers/reports/zone_target_summary_report.js');
+              }]
+          },
+          data: {
+            title: 'Zone Targets Summary Report',
+          }
+        })
+        .state('app.reports.ZoneTargetDetailedReport', {
+          url: '/ZoneTargetDetailedReport',
+          templateUrl: 'views/reports/zone_target_detailed_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/zone_target_detailed_report.js');
+              }]
+          },
+          data: {
+            title: 'Zone Targets Detailed Report',
+          }
+        })
+        /*.state('app.reports.DistTargetSummaryReport', {
+          url: '/DistTargetReport',
+          templateUrl: 'views/reports/dist_target_summary_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/dist_target_summary_report.js');
               }]
           },
           data: {
             title: 'Distributor Targets Report',
           }
         })
-        .state('app.reports.ResellerTargetReport', {
-          url: '/ResellerTargetReport',
-          templateUrl: 'views/reports/reseller_target_report.html',
+        .state('app.reports.ResellerTargetSummaryReport', {
+          url: '/ResellerTargetSummaryReport',
+          templateUrl: 'views/reports/reseller_target_summary_report.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/reports/reseller_target_report.js');
+                return $ocLazyLoad.load('scripts/controllers/reports/reseller_target_summary_report.js');
               }]
           },
           data: {
-            title: 'Reseller Targets Report',
+            title: 'Reseller Targets Summary Report',
           }
-        })
+        })*/
         .state('app.reports.RTVReport', {
           url: '/RTVReport',
           templateUrl: 'views/reports/rtv_report.html',
@@ -1947,6 +1971,7 @@ var app = angular.module('urbanApp')
             title: 'RTV Report',
           }
         })
+
 
       // configuration route
       .state('app.configurations', {

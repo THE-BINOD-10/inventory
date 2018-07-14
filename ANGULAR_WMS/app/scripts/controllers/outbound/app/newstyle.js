@@ -21,7 +21,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
 
   vm.location = $location.$$path;
 
-  if (Session.userName == 'roopal@mieone.com') { // This condition for testing only
+  if (Session.roles.permissions.is_portal_lite) {
     if (vm.location == '/App/Brands' || vm.location == '/App/Categories' || vm.location == '/App/Products') {
       $state.go('user.App.newStyle');
     }

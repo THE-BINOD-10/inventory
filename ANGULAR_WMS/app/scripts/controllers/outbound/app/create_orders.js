@@ -42,7 +42,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   Data.styles_data = {};
   vm.location = $location.$$path;
 
-  if (Session.userName == 'roopal@mieone.com') { // This condition for testing only
+  if (Session.roles.permissions.is_portal_lite) {
     if (vm.location == '/App/Brands' || vm.location == '/App/Categories' || vm.location == '/App/Products') {
       $state.go('user.App.newStyle');
     }

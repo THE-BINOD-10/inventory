@@ -57,7 +57,9 @@ var app = angular.module('urbanApp')
                       $state.go("app.Register");
                       return;
                     } else if((Session.user_profile.user_type == "customer") && (thisNext.name.indexOf("App") == -1)) {
+
                         if (Session.roles.permissions.is_portal_lite) {
+
                           $state.go(LOGIN_REDIRECT_STATE_CUSTOMER,  {"location": "replace"})
                         } else {
                           $state.go(LOGIN_REDIRECT_STATE_ANT_CUSTOMER,  {"location": "replace"})

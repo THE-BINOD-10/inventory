@@ -442,10 +442,10 @@ h1 small {
 .bg-transparency {
   opacity: 0.7;
   filter: alpha(opacity=50);
-  background: #fff;
+  background: #ffffff;
 }
 .order-list {
-  border: 1px solid #ccc;
+  border: 1px solid #cccccc;
 }
 .order-list .order-item {
   padding: 10px;
@@ -454,23 +454,23 @@ h1 small {
   color: blue;
 }
 .order-list .order-label {
-  color: #999;
+  color: #999999;
 }
 .order-list .order-bold {
   font-size: 20px;
   color: black;
 }
 .order-list .border-grey {
-  border-bottom: 1px solid #ccc;
+  border-bottom: 1px solid #cccccc;
 }
 .detail-list {
-  border: 1px solid #ccc;
+  border: 1px solid #cccccc;
 }
 .detail-list .detail-item {
   padding: 10px;
 }
 .detail-list .border-grey {
-  border-bottom: 1px solid #ccc;
+  border-bottom: 1px solid #cccccc;
 }
 .detail-list .detail-bg-grey {
   background: #f0f0f0;
@@ -736,7 +736,7 @@ select.error {
   top: 8px;
 }
 .layout-sub-header {
-  background: #fff;
+  background: #ffffff;
 }
 .layout-sub-header .filters {
   background: #f0f0f0;

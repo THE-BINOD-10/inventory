@@ -378,6 +378,7 @@ urlpatterns = [
     url(r'^print_dist_target_report/$', print_dist_target_report),
     url(r'^get_rtv_report/$', get_rtv_report),
     url(r'^print_rtv_report/$', print_rtv_report),
+    url(r'^print_debit_note/$', print_debit_note),
 ]
 
 # urlpatterns += patterns('rest_api.views',

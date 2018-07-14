@@ -4084,7 +4084,7 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
                 total_quantity += needed_stock_data['stock_objs'].get(prd_sku, 0)
                 total_quantity = total_quantity - float(needed_stock_data['reserved_quantities'].get(prd_sku, 0))
                 total_quantity = total_quantity - float(needed_stock_data['enquiry_res_quantities'].get(prd_sku, 0))
-        if not total_quantity:
+        if total_quantity < 0:
             total_quantity = 0
         if sku_styles:
             sku_variants = list(sku_object.values(*get_values))
@@ -5752,6 +5752,9 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
         all_zone_mappings = ZoneMarketplaceMapping.objects.filter(zone__user=user.id, status=1)
         is_marketplace_model = True
 
+    fefo_enabled = False
+    if user.userprofile.industry_type == 'FMCG':
+        fefo_enabled = True
     if switch_vals['fifo_switch'] == 'true':
         order_by = 'receipt_date'
     else:
@@ -5864,7 +5867,13 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
                     stock_zones2 = stock_detail.exclude(location__zone_id__in=all_zone_map_ids).order_by(order_by)
                     stock_zones3 = stock_detail.filter(location__zone_id__in=rem_zone_map_ids).order_by(order_by)
                     stock_detail = stock_zones1.union(stock_zones2, stock_zones3)
-
+            elif fefo_enabled:
+                if 'st_po' not in dir(order):
+                    stock_detail1 = stock_detail.filter(batch_detail__expiry_date__isnull=False).\
+                                                    order_by('batch_detail__expiry_date')
+                    stock_detail2 = stock_detail.exclude(batch_detail__expiry_date__isnull=False).\
+                                                    order_by(order_by)
+                    stock_detail = list(chain(stock_detail1, stock_detail2))
             if seller_order and seller_order.order_status == 'DELIVERY_RESCHEDULED':
                 rto_stocks = stock_detail.filter(location__zone__zone='RTO_ZONE')
                 stock_detail = list(chain(rto_stocks, stock_detail))
@@ -6159,6 +6168,8 @@ def get_user_profile_data(request, user=''):
     data['cin_number'] = request.user.userprofile.cin_number
     data['wh_address'] = main_user.wh_address
     data['wh_phone_number'] = main_user.wh_phone_number
+    data['pan_number'] = main_user.pan_number
+    data['phone_number'] = main_user.phone_number
     return HttpResponse(json.dumps({'msg': 1, 'data': data}))
 
 
@@ -6225,8 +6236,10 @@ def update_profile_data(request, user=''):
     company_name = request.POST.get('company_name', '')
     email = request.POST.get('email', '')
     cin_number = request.POST.get('cin_number', '')
+    pan_number = request.POST.get('pan_number', '')
     wh_address = request.POST.get('wh_address', '')
     wh_phone_number = request.POST.get('wh_phone_number', '')
+    phone_number = request.POST.get('phone_number', '')
     main_user = UserProfile.objects.get(user_id=user.id)
     main_user.address = address
     main_user.gst_number = gst_number
@@ -6234,6 +6247,8 @@ def update_profile_data(request, user=''):
     main_user.cin_number = cin_number
     main_user.wh_address = wh_address
     main_user.wh_phone_number = wh_phone_number
+    main_user.phone_number = phone_number
+    main_user.pan_number = pan_number
     main_user.save()
     user.email = email
     user.save()

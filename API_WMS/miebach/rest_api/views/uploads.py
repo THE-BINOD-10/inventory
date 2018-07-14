@@ -531,6 +531,14 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 if not get_cell_data(row_idx, order_mapping['customer_id'], reader, file_type):
                     index_status.setdefault(count, set()).add('Customer ID mandatory for Returnable Order')
 
+        if 'mrp' in order_mapping:
+            cell_data = get_cell_data(row_idx, order_mapping['mrp'], reader, file_type)
+            if cell_data:
+                try:
+                    cell_data = float(cell_data)
+                except:
+                    index_status.setdefault(count, set()).add('MRP should be Number')
+
     if index_status and file_type == 'csv':
         f_name = fname.name.replace(' ', '_')
         file_path = rewrite_csv_file(f_name, index_status, reader)
@@ -650,7 +658,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 if isinstance(pin_code, float) or isinstance(pin_code, int):
                     order_data[key] = int(pin_code)
             elif key == 'mrp':
-                order_summary_dict['mrp'] = get_cell_data(row_idx, value, reader, file_type)
+                order_summary_dict['mrp'] = float(get_cell_data(row_idx, value, reader, file_type))
             elif key == 'customer_id':
                 cell_data = get_cell_data(row_idx, value, reader, file_type)
                 if not cell_data:
@@ -4850,6 +4858,9 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
                     index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])
             elif key in ['source_location', 'dest_location']:
                 if cell_data:
+                    if isinstance(cell_data, (int, float)):
+                        cell_data = int(cell_data)
+                    cell_data = str(cell_data)
                     location_master = LocationMaster.objects.filter(zone__user=user.id, location=cell_data)
                     if not location_master:
                         index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])

@@ -1971,6 +1971,10 @@ var app = angular.module('urbanApp')
             title: 'RTV Report',
           }
         })
+        .state('app.reports.RTVReport.DebitNotePrint', {
+           url: '/DebitNotePrint',
+           templateUrl: 'views/reports/toggles/purchase_order.html',
+        })
 
 
       // configuration route

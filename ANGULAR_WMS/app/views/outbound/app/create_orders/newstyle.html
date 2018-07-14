@@ -54,9 +54,7 @@
 	li:hover li a:hover {background: #ed1c24;z-index: 1;color: #fff;cursor: pointer;}
 	#drop-nav li ul li {border-top: 0px;}
 </style>
-
-<!-- <div class="clearfix" ng-controller="AppNewStyle as Style" style="background: #f0f0f0;"> -->
-	<div class="clearfix" ng-controller="AppNewStyle as Style" style="background: #f0f0f0;">
+<div class="clearfix" ng-controller="AppNewStyle as Style" style="background: #f0f0f0;">
 	<!-- Loading -->
 	<div ng-if="Style.place_order_loading" style="position: fixed;z-index: 2001;width: 100%;height: 100%;top: 0px;background: rgba(0, 0, 0, 0.5);padding-top: 125px;">
     <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;">
@@ -116,7 +114,7 @@
   </div>
 
   <div class="row catalog-div mt5">
-		<div class="col-lg-9 col-md-9 col-sm-12 col-xs-12">
+		<div class="col-lg-8 col-md-8 col-sm-12 col-xs-12">
 
 			<div class="card">
 				
@@ -197,10 +195,47 @@
 		  	</div>
 		  </div>
 		</div>
-		<div class="col-lg-3 col-md-3 visible-md visible-lg mt10">
+		<div class="col-lg-4 col-md-4 visible-md visible-lg mt10">
 			<div class="card" style="padding: 10px">
-				<h5><b>Price Details</b></h5>
-				<div class="list-group">
+				<div class="col-md-12 col-sm-12 col-xs-12">
+          <h5><b>PRICE DETAILS</b></h5><hr>
+        </div>
+        <span ng-if="Style.price_details_flag">Nothing added to your cart...</span>
+				<div class="row" ng-if="!Style.price_details_flag">
+					<div class="col-md-12 col-sm-12 col-xs-12">
+            <div class="row">
+              <div class="col-md-3 col-xs-3 no-padding">
+                <span class="pull-left"><b>SKU Code</b></span>
+              </div>
+              <div class="col-md-4 col-xs-4 no-padding" title="Effective Landing Price">
+                <center><b>Unit Price</b></center>
+              </div>
+              <div class="col-md-2 col-xs-2"><center><b>Quantity</b></center></div>
+              <div class="col-md-3 col-sm-3 no-padding">
+                <span class="pull-right"><b>Amount</b></span>
+              </div>
+            </div>
+          </div>
+				</div>
+				<div class="row" ng-if="!Style.price_details_flag">
+					<div class="col-md-12 col-sm-12 col-xs-12" ng-repeat="data in Style.model_data.selected_styles">
+	          <div class="row" ng-if="data.quantity && data.add_to_cart">
+	            <div class="col-md-3 col-xs-3 no-padding">
+	              <span class="pull-left">{{data.wms_code}}</span>
+	            </div>
+	            <div class="col-md-4 col-xs-4 no-padding">
+	              <center>{{data.price | number : 2}}</center>
+	            </div>
+	            <div class="col-md-2 col-xs-2 no-padding"><center>{{data.quantity}}</center></div>
+	            <div class="col-md-3 col-sm-3 no-padding">
+	              <span class="pull-right"><i class="fa fa-inr" aria-hidden="true"></i> {{data.total_amount | number : 2}}</span>
+	            </div>
+	          </div>
+	          <div ng-if="$last"><hr></div>
+	        </div>
+				</div>
+
+				<div class="list-group mt20" ng-if="!Style.price_details_flag">
 					<div class="list-group-item">
 						Sub Total ({{ Style.final_data.total_quantity }} Qty)<span class="badge">Rs {{ Style.final_data.amount | number : 2 }}</span>
 					</div>
@@ -210,6 +245,9 @@
 					<div class="list-group-item">
 						Total Amount <span class="badge">Rs {{ Style.final_data.total_amount | number : 2 }}</span>
 					</div>
+				</div>
+				<div class="text-center" ng-if="!Style.price_details_flag">
+					<button type="button" id ="approval_for_order" class="btn btn-success" ng-click="Style.update_cartdata_for_approval()">SUBMIT FOR APPROVAL</button>
 				</div>
 			</div>
 		</div>

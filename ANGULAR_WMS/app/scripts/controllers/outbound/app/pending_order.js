@@ -12,6 +12,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.display_sku_cust_mapping = vm.session_roles.permissions.display_sku_cust_mapping;
     vm.user_role = vm.session_roles.user_role;
     vm.model_data = {};
+    vm.date = new Date();
 
     vm.filters = {'datatable': 'OrderApprovals', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':''}
     vm.dtOptions = DTOptionsBuilder.newOptions()

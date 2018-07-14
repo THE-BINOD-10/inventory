@@ -56,6 +56,13 @@
               </div>
             </div>
 
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> Shipment Date: * </label>
+                <input name="shipment_date" ui-jq="datepicker" ng-model="showCase.model_data.shipment_date" class="form-control stk-readonly" type="text" id="shipment_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}" readonly>
+              </div>
+            </div>
+
 		</div>
 		</div>
     	<div class="modal-footer">
@@ -63,6 +70,7 @@
 			<div ng-if="(showCase.model_data.status | lowercase) == 'accept'">
               <h3 ng-if="((showCase.model_data.approving_user_role | lowercase) == 'admin' || (showCase.model_data.approving_user_role | lowercase) == '') && (showCase.model_data.status | lowercase) == 'accept'" style="text-align: center;padding-bottom: 10px;">Order Accepted by {{ showCase.model_data.approving_user_role }}</h3>
 			  <div ng-if = "((showCase.model_data.approving_user_role | lowercase) == 'hod') && ((showCase.model_data.status | lowercase) == 'pending')">
+          <!-- <div ng-if = "((showCase.model_data.approving_user_role | lowercase) == 'hod')> -->
 				<button type="button" class="btn pop pop-red" ng-click="showCase.update_cartdata_for_approval('reject', showCase.model_data.approve_id, showCase.model_data.quantity)" style="float:left;">
                 <span>Reject</span>
                 <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">

@@ -2810,6 +2810,7 @@ def after_admin_approval(request, user):
     price = request.POST.get('price', '')
     tax = request.POST.get('tax', '')
     title = request.POST.get('sku_desc', '')
+    shipment_date = request.POST.get('shipment_date','')
     order_summary = create_orders_data(request, user='')
     order_id = get_order_id(user.id)
 
@@ -2828,13 +2829,13 @@ def after_admin_approval(request, user):
             invoice_amount = amt + ((amt/100) * (ap_status.cgst_tax + ap_status.sgst_tax + ap_status.igst_tax + ap_status.igst_tax))
             detail_check = OrderDetail.objects.filter(order_id= order_id,sku_id= ap_status.sku_id)
             data_dict = {'order_id':order_id, 'customer_id':customer_user_id, 'user':user_id,
-            'title':title, 'quantity':quantity,'invoice_amount':invoice_amount, 'sku_id':ap_status.sku_id,'shipment_date':datetime.datetime.now()}
+            'title':title, 'quantity':quantity,'invoice_amount':invoice_amount, 'sku_id':ap_status.sku_id,'shipment_date':shipment_date}
             if detail_check:
                 detail_check.update(quantity= quantity,invoice_amount= invoice_amount)
             else:
                 order = OrderDetail.objects.create(**data_dict)
                 order.save()
-            CustomerOrderSummary.objects.create(order_id = order.id,cgst_tax = ap_status.cgst_tax, sgst_tax = ap_status.sgst_tax,
+                CustomerOrderSummary.objects.create(order_id = order.id,cgst_tax = ap_status.cgst_tax, sgst_tax = ap_status.sgst_tax,
                 igst_tax = ap_status.igst_tax, utgst_tax = ap_status.utgst_tax, inter_state = ap_status.inter_state)
 
 

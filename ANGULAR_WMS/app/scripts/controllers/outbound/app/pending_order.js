@@ -218,15 +218,57 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     if (vm.display_sku_cust_mapping) {
       send['approval_status'] = approve_status
       send['approving_user_role'] = vm.user_role
-	  send['approve_id'] = approve_id
+	    send['approve_id'] = approve_id
       send['quantity'] = quantity
     }
+
     vm.service.apiCall("update_cartdata_for_approval/", "POST", send).then(function(response){
         if(response.message) {
           if(response.data.message == "success") {
             vm.service.showNoty('Your Order Has Been Sent for Approval', "success", "topRight");
             vm.service.refresh(vm.dtInstance);
           	vm.close_popup();
+          } else {
+            vm.insert_cool = true;
+            vm.data_status = true;
+            vm.service.showNoty(response.data, "danger", "bottomRight");
+          }
+        }
+    });
+  }
+
+  vm.after_admin_approval = function(approve_status, approve_id, quantity) {
+    var send = {}
+    send = $("form").serializeArray()
+
+    /*
+    angular.foreach(send, function(obj) {
+      if (obj['name'] == "serial_no") {
+        obj['name'] = "approve_id"
+      }
+    })
+    */
+    send.push({'name' : 'approval_status', 'value' : approve_status})
+    send.push({'name' : 'approving_user_role', 'value' : vm.user_role})
+    send.push({'name' : 'approve_id', 'value' : approve_id})
+
+
+    vm.service.apiCall("after_admin_approval/", "POST", send).then(function(response){
+        if(response.message) {
+          if(response.data.message == "success") {
+            Data.my_orders = [];
+            swal({
+              title: "Success!",
+              text: "Your Order Has Been Sent for Approval",
+              type: "success",
+              showCancelButton: false,
+              confirmButtonText: "OK",
+              closeOnConfirm: true
+              },
+              function(isConfirm){
+                $state.go("user.App.Brands");
+              }
+            )
           } else {
             vm.insert_cool = true;
             vm.data_status = true;

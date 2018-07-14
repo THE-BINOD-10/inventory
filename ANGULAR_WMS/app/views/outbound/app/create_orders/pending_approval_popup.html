@@ -86,10 +86,17 @@
                 <span>Reject</span>
                 <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
                 </button>
-                <button type="submit" class="btn pop pop-green" ng-click="showCase.update_cartdata_for_approval('accept', showCase.model_data.approve_id, showCase.model_data.quantity)" ng-disabled="process">
+                <button ng-if="(showCase.model_data.approving_user_role | lowercase) == 'hod' && (showCase.user_role | lowercase) == 'hod'" type="submit" class="btn pop pop-green" ng-click="showCase.update_cartdata_for_approval('accept', showCase.model_data.approve_id, showCase.model_data.quantity)" ng-disabled="process">
                 <span>Accept</span>
                 <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
                 </button>
+
+                <button ng-if="(showCase.model_data.approving_user_role | lowercase) == 'hod' && (showCase.user_role | lowercase) == 'admin'" type="submit" class="btn pop pop-green" ng-click="showCase.after_admin_approval('accept', showCase.model_data.approve_id, showCase.model_data.quantity)" ng-disabled="process">
+                <span>Accept</span>
+                <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+                </button>
+
+
 			</div>
 
 			<div ng-if="(showCase.model_data.status | lowercase) == 'pending'">

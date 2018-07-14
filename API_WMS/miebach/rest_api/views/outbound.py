@@ -1018,7 +1018,6 @@ def confirm_no_stock(picklist, request, user, picks_all, picklists_send_mail, me
             # picklists_send_mail = [{'order_id': str(picklist.order.order_id)}, data_count]
     return seller_pick_number
 
-
 def validate_location_stock(val, all_locations, all_skus, user):
     status = []
     wms_check = all_skus.filter(wms_code=val['wms_code'], user=user.id)
@@ -2800,6 +2799,43 @@ def get_order_approval_statuses(start_index, stop_index, temp_data, search_term,
                          ('desc', desc), ('price', price), ('tax', data.tax), ('quantity', data.quantity),
                          ('approve_id', data.approve_id), ('approving_user_role', data.approving_user_role)
                          )))
+@get_admin_user
+def after_admin_approval(request, user):
+    status = update_cartdata_for_approval(request, user= '')
+    approval_status = request.POST.get('approval_status', '')
+    user_id = user.id
+    approve_id = request.POST.get('approve_id', '')
+    sku_code = request.POST.get('sku_code', '')
+    quantity = request.POST.get('quantity', '')
+    price = request.POST.get('price', '')
+    tax = request.POST.get('tax', '')
+    title = request.POST.get('sku_desc', '')
+    order_summary = create_orders_data(request, user='')
+    order_id = get_order_id(user.id)
+
+    approve_status = ApprovingOrders.objects.filter(user_id=user.id, approve_id=approve_id, approval_status='accept',sku__sku_code = sku_code)
+
+    for ap_status in approve_status: 
+        customer_user = CustomerUserMapping.objects.filter(user=ap_status.customer_user_id)
+        customer_user_id = ''
+        if customer_user:
+            customer_user_id = customer_user[0].customer.customer_id
+        if order_summary:
+            if not price:
+                price = 0
+            
+            amt = int(quantity) * int(price)
+            invoice_amount = amt + ((amt/100) * (ap_status.cgst_tax + ap_status.sgst_tax + ap_status.igst_tax + ap_status.igst_tax))
+            detail_check = OrderDetail.objects.filter(order_id= order_id,sku_id= ap_status.sku_id)
+            data_dict = {'order_id':order_id, 'customer_id':customer_user_id, 'user':user_id,
+            'title':title, 'quantity':quantity,'invoice_amount':invoice_amount, 'sku_id':ap_status.sku_id,'shipment_date':datetime.datetime.now()}
+            if detail_check:
+                detail_check.update(quantity= quantity,invoice_amount= invoice_amount)
+            else:
+                order = OrderDetail.objects.create(**data_dict)
+                order.save()
+            CustomerOrderSummary.objects.create(order_id = order.id,cgst_tax = ap_status.cgst_tax, sgst_tax = ap_status.sgst_tax,
+                igst_tax = ap_status.igst_tax, utgst_tax = ap_status.utgst_tax, inter_state = ap_status.inter_state)
 
 
 @get_admin_user

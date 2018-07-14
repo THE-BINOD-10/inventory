@@ -2813,7 +2813,7 @@ def after_admin_approval(request, user):
     shipment_date = request.POST.get('shipment_date','')
     order_summary = create_orders_data(request, user='')
     order_id = get_order_id(user.id)
-
+    shipment_date = datetime.datetime.strptime(shipment_date, "%m/%d/%Y")
     approve_status = ApprovingOrders.objects.filter(user_id=user.id, approve_id=approve_id, approval_status='accept',sku__sku_code = sku_code)
 
     for ap_status in approve_status: 

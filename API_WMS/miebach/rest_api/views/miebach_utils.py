@@ -1397,7 +1397,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'sellable_segregation': 'sellable_segregation', 'display_styles_price': 'display_styles_price',
                         'show_purchase_history': 'show_purchase_history',
                         'display_sku_cust_mapping': 'display_sku_cust_mapping', 'disable_categories_view': 'disable_categories_view',
-                        'portal_lite_user': 'portal_lite_user'
+                        'is_portal_lite': 'is_portal_lite'
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',

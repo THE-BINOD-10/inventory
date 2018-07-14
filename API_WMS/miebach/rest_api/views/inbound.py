@@ -961,7 +961,7 @@ def switches(request, user=''):
                        'show_purchase_history': 'show_purchase_history',
                        'display_sku_cust_mapping': 'display_sku_cust_mapping',
                        'disable_categories_view': 'disable_categories_view',
-                       'portal_lite_user': 'portal_lite_user'
+                       'is_portal_lite': 'is_portal_lite'
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

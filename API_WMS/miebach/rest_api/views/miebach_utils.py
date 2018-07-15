@@ -536,6 +536,8 @@ DIST_TARGET_SUMMARY_REPORT = {
         {'label': 'Distributor Code', 'name': 'dist_code', 'type': 'input'},
         {'label': 'Reseller Code', 'name': 'reseller_code', 'type': 'input'},
         {'label': 'Corporate Name', 'name': 'corporate_name', 'type': 'input'},
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
     ],
     'dt_headers': ['Distributor Code', 'Distributor Target',
                    'YTD Targets', 'YTD Actual Sale', 'Excess / Shortfall %'
@@ -549,6 +551,8 @@ DIST_TARGET_DETAILED_REPORT = {
         {'label': 'Distributor Code', 'name': 'dist_code', 'type': 'input'},
         {'label': 'Reseller Code', 'name': 'reseller_code', 'type': 'input'},
         {'label': 'Corporate Name', 'name': 'corporate_name', 'type': 'input'},
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
     ],
     'dt_headers': ['Distributor Code', 'Distributor Target', 'Reseller Code', 'Reseller Target',
                    'Corporate Name', 'Corporate Target', 'YTD Targets', 'YTD Actual Sale', 'Excess / Shortfall %'
@@ -611,6 +615,8 @@ ZONE_TARGET_DETAILED_REPORT = {
         {'label': 'Distributor Code', 'name': 'dist_code', 'type': 'input'},
         {'label': 'Reseller Code', 'name': 'reseller_code', 'type': 'input'},
         {'label': 'Corporate Name', 'name': 'corporate_name', 'type': 'input'},
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
     ],
     'dt_headers': ['Zone Code', 'Zone Target', 'Distributor Code', 'Distributor Target', 'Reseller Code',
                    'Reseller Target', 'Corporate Name', 'Corporate Target', 'YTD Targets', 'YTD Actual Sale',
@@ -1169,7 +1175,10 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_zone_target_detailed_report': 'get_zone_target_detailed_report_data',
                         'get_dist_target_summary_report': 'get_dist_target_summary_report_data',
                         'get_dist_target_detailed_report': 'get_dist_target_detailed_report_data',
-                        'get_reseller_target_report': 'get_reseller_target_report_data',
+                        'get_reseller_target_summary_report': 'get_reseller_target_summary_report_data',
+                        'get_reseller_target_detailed_report': 'get_reseller_target_detailed_report_data',
+                        'get_corporate_target_report': 'get_corporate_target_report_data',
+                        'get_corporate_reseller_mapping_report': 'get_corporate_reseller_mapping_report',
                         'sku_wise_goods_receipt' : 'get_sku_wise_po_filter_data',
                         'get_rtv_report': 'get_rtv_report_data'
                         }
@@ -3880,6 +3889,17 @@ def get_zone_target_summary_report_data(search_params, user, sub_user):
                                                                                                        'customer_id')
     dist_cust_ids_map = dict(dist_cust_ids_qs)
     dist_customers = dist_cust_ids_map.values()
+    if 'reseller_code' in search_params:
+        res_ids = CustomerMaster.objects.filter(name__contains=search_params['reseller_code']).\
+            values_list('id', flat=True)
+        search_parameters['customer_id__in'] = res_ids
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_parameters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_parameters['creation_date__lt'] = search_params['to_date']
     orderdetail_objs = GenericOrderDetailMapping.objects.filter(customer_id__in=dist_customers)
     orderdetail_ids = list(orderdetail_objs.values_list('orderdetail_id', flat=True))
     for reseller in resellers:
@@ -3954,6 +3974,7 @@ def get_zone_target_detailed_report_data(search_params, user, sub_user):
     from rest_api.views.outbound import get_same_level_warehouses
     from miebach_admin.models import OrderDetail
     search_parameters = {}
+    date_filters = {}
     lis = ['id', 'user']
     distributors = get_same_level_warehouses(2, user)
     zone_code = search_params.get('zone_code', '')
@@ -3972,13 +3993,20 @@ def get_zone_target_detailed_report_data(search_params, user, sub_user):
     for dist, res in dist_resellers_qs:
         res_dist_map[res] = dist
         resellers.append(res)
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_parameters['creation_date__gt'] = search_params['from_date']
+        date_filters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_parameters['creation_date__lt'] = search_params['to_date']
+        date_filters['creation_date__lt'] = search_params['to_date']
     dist_cust_ids_qs = WarehouseCustomerMapping.objects.filter(warehouse__in=distributors).values_list('warehouse_id',
                                                                                                        'customer_id')
     dist_cust_ids_map = dict(dist_cust_ids_qs)
     dist_customers = dist_cust_ids_map.values()
     orderdetail_objs = GenericOrderDetailMapping.objects.filter(customer_id__in=dist_customers)
-    # res_corp_achieved_amt = orderdetail_objs.values_list('customer_id', 'client_name').\
-    #     annotate(net_amt=Sum(F('unit_price') * F('quantity')))
     orderdetail_ids = list(orderdetail_objs.values_list('orderdetail_id', flat=True))
     for reseller in resellers:
         dist = res_dist_map.get(reseller, '')
@@ -4058,15 +4086,17 @@ def get_zone_target_detailed_report_data(search_params, user, sub_user):
             continue
         corp_id = target['corporate_id']
         corp_name = CorporateMaster.objects.get(id=corp_id).name
-        achieved_tgt_obj = GenericOrderDetailMapping.objects.filter(customer_id=res_cm_id, client_name=corp_name)
+        achieved_tgt_obj = GenericOrderDetailMapping.objects.filter(customer_id=res_cm_id,
+                                                                    client_name=corp_name).filter(**date_filters)
         if achieved_tgt_obj:
             achieved_tgt = achieved_tgt_obj.values('customer_id', 'client_name').\
                 annotate(net_amt=Sum(F('unit_price')*F('quantity')))
+            reached_tgt = achieved_tgt[0]["net_amt"]
         else:
-            continue
+            reached_tgt = 0
         corp_target = target['target_amt']
         ytd_target = round((corp_target / 365) * days_passed, 2)
-        ytd_act_sale = round(achieved_tgt[0]["net_amt"], 2)
+        ytd_act_sale = round(reached_tgt, 2)
         exc_short = ((ytd_act_sale - ytd_target) / ytd_target) * 100
         excess_shortfall = round(exc_short, 2)
         ord_dict = OrderedDict((('Zone Code', zone_code),
@@ -4122,6 +4152,13 @@ def get_dist_target_summary_report_data(search_params, user, sub_user):
         for ord_id in res_orders:
             ord_res_map[ord_id] = reseller
         orderdetail_ids.extend(res_orders)
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_parameters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_parameters['creation_date__lt'] = search_params['to_date']
     search_parameters['id__in'] = orderdetail_ids
     search_parameters['quantity__gt'] = 0
     temp_data = copy.deepcopy(AJAX_DATA)
@@ -4151,8 +4188,6 @@ def get_dist_target_summary_report_data(search_params, user, sub_user):
             totals_map[dist_code]["gross_amt"] += gross_amt
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
-    # if stop_index:
-    #     totals_map = totals_map[start_index:stop_index]
     temp_data['recordsTotal'] = len(totals_map)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     todays_date = datetime.datetime.today()
@@ -4179,6 +4214,7 @@ def get_dist_target_detailed_report_data(search_params, user, sub_user):
     from rest_api.views.outbound import get_same_level_warehouses
     from miebach_admin.models import OrderDetail
     search_parameters = {}
+    date_filters = {}
     lis = ['id', 'user']
     distributors = get_same_level_warehouses(2, user)
     zone_code = search_params.get('zone_code', '')
@@ -4191,6 +4227,15 @@ def get_dist_target_detailed_report_data(search_params, user, sub_user):
                                                   user__username__icontains=dist_code).values_list('user_id', flat=True)
     dist_resellers_qs = CustomerMaster.objects.filter(user__in=distributors). \
         values_list('user', 'customerusermapping__customer')
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_parameters['creation_date__gt'] = search_params['from_date']
+        date_filters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_parameters['creation_date__lt'] = search_params['to_date']
+        date_filters['creation_date__lt'] = search_params['to_date']
     resellers = []
     res_dist_map = {}
     ord_res_map = {}
@@ -4280,7 +4325,8 @@ def get_dist_target_detailed_report_data(search_params, user, sub_user):
         corp_name = CorporateMaster.objects.get(id=corp_id).name
         corp_target = target['target_amt']
         ytd_target = round((corp_target / 365) * days_passed, 2)
-        achieved_tgt_obj = GenericOrderDetailMapping.objects.filter(customer_id=res_cm_id, client_name=corp_name)
+        achieved_tgt_obj = GenericOrderDetailMapping.objects.filter(customer_id=res_cm_id,
+                                                                    client_name=corp_name).filter(**date_filters)
         if achieved_tgt_obj:
             achieved_tgt = achieved_tgt_obj.values('customer_id', 'client_name'). \
                 annotate(net_amt=Sum(F('unit_price') * F('quantity')))
@@ -4302,6 +4348,7 @@ def get_dist_target_detailed_report_data(search_params, user, sub_user):
                                 ))
         temp_data['aaData'].append(ord_dict)
     return temp_data
+
 
 def get_reseller_target_summary_report_data(search_params, user, sub_user):
     from rest_api.views.outbound import get_same_level_warehouses
@@ -4481,7 +4528,6 @@ def get_corporate_target_report_data(search_params, user, sub_user):
                                 ))
         temp_data['aaData'].append(ord_dict)
     return temp_data
-
 
 
 def get_corporate_reseller_mapping_report_data(search_params, user, sub_user):

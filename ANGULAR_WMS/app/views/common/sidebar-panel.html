@@ -505,6 +505,11 @@
             <span>Shipment</span>
           </a>
         </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.reports.RTVReport">
+            <span>RTV</span>
+          </a>
+        </li>
         <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin'">
           <a ui-sref="app.reports.DistributorWiseSalesReport">
             <span>Distributor Sales</span>
@@ -523,11 +528,6 @@
         <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin'">
           <a ui-sref="app.reports.ZoneTargetDetailedReport">
             <span>Zone Target Detailed</span>
-          </a>
-        </li>
-        <li ui-sref-active="active">
-          <a ui-sref="app.reports.RTVReport">
-            <span>RTV</span>
           </a>
         </li>
         <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin'">

@@ -1972,7 +1972,7 @@ var app = angular.module('urbanApp')
           }
         })
         .state('app.reports.ResellerTargetDetailedReport', {
-          url: '/ResellerTargetSummaryReport',
+          url: '/ResellerTargetDetailedReport',
           templateUrl: 'views/reports/reseller_target_detailed_report.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -1996,7 +1996,7 @@ var app = angular.module('urbanApp')
           }
         })
         .state('app.reports.CorpResellerMappingReport', {
-          url: '/CorporateTargetReport',
+          url: '/CorporateResellerMappingReport',
           templateUrl: 'views/reports/corp_reseller_mapping_report.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {

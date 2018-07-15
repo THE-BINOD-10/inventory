@@ -1058,7 +1058,7 @@ def get_zone_target_detailed_report(request, user=''):
 def print_zone_target_detailed_report(request, user=''):
     html_data = {}
     headers, search_params, filter_params = get_search_params(request)
-    report_data = get_zone_target_detaield_report_data(search_params, user, request.user)
+    report_data = get_zone_target_detailed_report_data(search_params, user, request.user)
     report_data = report_data['aaData']
     if report_data:
         html_data = create_reports_table(report_data[0].keys(), report_data)

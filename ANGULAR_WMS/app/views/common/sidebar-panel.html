@@ -505,24 +505,59 @@
             <span>Shipment</span>
           </a>
         </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.reports.RTVReport">
+            <span>RTV</span>
+          </a>
+        </li>
         <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin'">
           <a ui-sref="app.reports.DistributorWiseSalesReport">
-            <span>Distributor Wise Sales Report</span>
+            <span>Distributor Sales</span>
           </a>
         </li>
         <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin'">
           <a ui-sref="app.reports.ResellerWiseSalesReport">
-            <span>Reseller Wise Sales Report</span>
+            <span>Reseller Sales</span>
           </a>
         </li>
         <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin'">
-          <a ui-sref="app.reports.DistTargetReport">
-            <span>Distributor Targets Report</span>
+          <a ui-sref="app.reports.ZoneTargetSummaryReport">
+            <span>Zone Target Summary</span>
           </a>
         </li>
         <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin'">
-          <a ui-sref="app.reports.ResellerTargetReport">
-            <span>Reseller Targets Report</span>
+          <a ui-sref="app.reports.ZoneTargetDetailedReport">
+            <span>Zone Target Detailed</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin'">
+          <a ui-sref="app.reports.DistTargetSummaryReport">
+            <span>DBR Target Summary</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin'">
+          <a ui-sref="app.reports.DistTargetDetailedReport">
+            <span>DBR Target Detailed</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin'">
+          <a ui-sref="app.reports.ResellerTargetSummaryReport">
+            <span>Reseller Target Summary</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin'">
+          <a ui-sref="app.reports.ResellerTargetDetailedReport">
+            <span>Reseller Target Detailed</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin'">
+          <a ui-sref="app.reports.CorporateTargetReport">
+            <span>Corporate Target</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin'">
+          <a ui-sref="app.reports.CorpResellerMappingReport">
+            <span>Corporate Reseller Mapping Report</span>
           </a>
         </li>
       </ul>

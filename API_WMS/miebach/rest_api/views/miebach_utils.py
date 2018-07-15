@@ -1178,7 +1178,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_reseller_target_summary_report': 'get_reseller_target_summary_report_data',
                         'get_reseller_target_detailed_report': 'get_reseller_target_detailed_report_data',
                         'get_corporate_target_report': 'get_corporate_target_report_data',
-                        'get_corporate_reseller_mapping_report': 'get_corporate_reseller_mapping_report',
+                        'get_corporate_reseller_mapping_report': 'get_corporate_reseller_mapping_report_data',
                         'sku_wise_goods_receipt' : 'get_sku_wise_po_filter_data',
                         'get_rtv_report': 'get_rtv_report_data'
                         }
@@ -4194,7 +4194,9 @@ def get_dist_target_summary_report_data(search_params, user, sub_user):
     current_year = todays_date.year
     start_date = datetime.datetime.strptime('Apr-1-%s' % current_year, '%b-%d-%Y')
     days_passed = (todays_date - start_date).days
-    for dist_code, target in totals_map.items()[start_index:stop_index]:
+    if stop_index:
+        totals_map = totals_map.items()[start_index:stop_index]
+    for dist_code, target in totals_map:
         dist_tgt = dist_targets[dist_code]
         ytd_target = round((dist_tgt / 365) * days_passed, 2)
         ytd_act_sale = round(target["net_amt"], 2)
@@ -4405,7 +4407,11 @@ def get_reseller_target_summary_report_data(search_params, user, sub_user):
     start_date = datetime.datetime.strptime('Apr-1-%s' % current_year, '%b-%d-%Y')
     days_passed = (todays_date - start_date).days
 
-    for reseller_code, target in reseller_targets.items()[start_index: stop_index]:
+    if stop_index:
+        reseller_targets = reseller_targets.items()[start_index:stop_index]
+    else:
+        reseller_targets = reseller_targets.items()
+    for reseller_code, target in reseller_targets:
         achieved_tgt_map = totals_map.get(reseller_code, '')
         if not achieved_tgt_map:
             achieved_tgt = 0
@@ -4514,7 +4520,11 @@ def get_corporate_target_report_data(search_params, user, sub_user):
     start_date = datetime.datetime.strptime('Apr-1-%s' % current_year, '%b-%d-%Y')
     days_passed = (todays_date - start_date).days
 
-    for corp_id, corp_target in corp_targets.items()[start_index:stop_index]:
+    if stop_index:
+        corp_targets = corp_targets.items()[start_index:stop_index]
+    else:
+        corp_targets = corp_targets.items()
+    for corp_id, corp_target in corp_targets:
         corp_name = CorporateMaster.objects.get(id=corp_id).name
         ytd_target = round((corp_target / 365) * days_passed, 2)
         ytd_act_sale = achieved_tgt_map.get(corp_name, 0)
@@ -4557,7 +4567,9 @@ def get_corporate_reseller_mapping_report_data(search_params, user, sub_user):
     corp_id_names = dict(CorporateMaster.objects.values_list('id', 'name'))
     temp_data['recordsTotal'] = len(res_corp_qs)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
-    for res_id, corp_id in res_corp_qs[start_index:stop_index]:
+    if stop_index:
+        res_corp_qs = res_corp_qs[start_index:stop_index]
+    for res_id, corp_id in res_corp_qs:
         dist_id = res_dist_ids_map[res_id]
         dist_code = names_map[dist_id]
         zone_code = zones_map[dist_id]

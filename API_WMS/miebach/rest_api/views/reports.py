@@ -61,6 +61,11 @@ def get_report_data(request, user=''):
             data_index = data['filters'].index(
                 filter(lambda person: 'order_report_status' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = ORDER_SUMMARY_REPORT_STATUS
+    elif report_name in ('dist_sales_report', 'reseller_sales_report'):
+        if 'order_report_status' in filter_keys:
+            data_index = data['filters'].index(
+                filter(lambda person: 'order_report_status' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = ORDER_SUMMARY_REPORT_STATUS
     return HttpResponse(json.dumps({'data': data}))
 
 
@@ -1019,19 +1024,19 @@ def print_reseller_sales_report(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-def get_dist_target_report(request, user=''):
+def get_zone_target_summary_report(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    temp_data = get_dist_target_report_data(search_params, user, request.user)
+    temp_data = get_zone_target_summary_report_data(search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 
 @csrf_exempt
 @login_required
 @get_admin_user
-def print_dist_target_report(request, user=''):
+def print_zone_target_summary_report(request, user=''):
     html_data = {}
     headers, search_params, filter_params = get_search_params(request)
-    report_data = get_dist_target_report_data(search_params, user, request.user)
+    report_data = get_zone_target_summary_report_data(search_params, user, request.user)
     report_data = report_data['aaData']
     if report_data:
         html_data = create_reports_table(report_data[0].keys(), report_data)
@@ -1041,19 +1046,151 @@ def print_dist_target_report(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-def get_reseller_target_report(request, user=''):
+def get_zone_target_detailed_report(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    temp_data = get_reseller_target_report_data(search_params, user, request.user)
+    temp_data = get_zone_target_detailed_report_data(search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 
 @csrf_exempt
 @login_required
 @get_admin_user
-def print_reseller_target_report(request, user=''):
+def print_zone_target_detailed_report(request, user=''):
     html_data = {}
     headers, search_params, filter_params = get_search_params(request)
-    report_data = get_reseller_target_report_data(search_params, user, request.user)
+    report_data = get_zone_target_detailed_report_data(search_params, user, request.user)
+    report_data = report_data['aaData']
+    if report_data:
+        html_data = create_reports_table(report_data[0].keys(), report_data)
+    return HttpResponse(html_data)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_dist_target_summary_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_dist_target_summary_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def print_dist_target_summary_report(request, user=''):
+    html_data = {}
+    headers, search_params, filter_params = get_search_params(request)
+    report_data = get_dist_target_summary_report_data(search_params, user, request.user)
+    report_data = report_data['aaData']
+    if report_data:
+        html_data = create_reports_table(report_data[0].keys(), report_data)
+    return HttpResponse(html_data)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_dist_target_detailed_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_dist_target_detailed_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def print_dist_target_detailed_report(request, user=''):
+    html_data = {}
+    headers, search_params, filter_params = get_search_params(request)
+    report_data = get_dist_target_detailed_report_data(search_params, user, request.user)
+    report_data = report_data['aaData']
+    if report_data:
+        html_data = create_reports_table(report_data[0].keys(), report_data)
+    return HttpResponse(html_data)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_reseller_target_summary_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_reseller_target_summary_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def print_reseller_target_summary_report(request, user=''):
+    html_data = {}
+    headers, search_params, filter_params = get_search_params(request)
+    report_data = get_reseller_target_summary_report_data(search_params, user, request.user)
+    report_data = report_data['aaData']
+    if report_data:
+        html_data = create_reports_table(report_data[0].keys(), report_data)
+    return HttpResponse(html_data)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_reseller_target_detailed_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_reseller_target_detailed_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def print_reseller_target_detailed_report(request, user=''):
+    html_data = {}
+    headers, search_params, filter_params = get_search_params(request)
+    report_data = get_reseller_target_detailed_report_data(search_params, user, request.user)
+    report_data = report_data['aaData']
+    if report_data:
+        html_data = create_reports_table(report_data[0].keys(), report_data)
+    return HttpResponse(html_data)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_corporate_target_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_corporate_target_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def print_corporate_target_report(request, user=''):
+    html_data = {}
+    headers, search_params, filter_params = get_search_params(request)
+    report_data = get_corporate_target_report_data(search_params, user, request.user)
+    report_data = report_data['aaData']
+    if report_data:
+        html_data = create_reports_table(report_data[0].keys(), report_data)
+    return HttpResponse(html_data)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_corporate_reseller_mapping_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_corporate_reseller_mapping_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def print_corporate_reseller_mapping_report(request, user=''):
+    html_data = {}
+    headers, search_params, filter_params = get_search_params(request)
+    report_data = get_corporate_reseller_mapping_report_data(search_params, user, request.user)
     report_data = report_data['aaData']
     if report_data:
         html_data = create_reports_table(report_data[0].keys(), report_data)

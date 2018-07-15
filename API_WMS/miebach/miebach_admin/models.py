@@ -2741,8 +2741,9 @@ class ReturnToVendor(models.Model):
 
 class TargetMaster(models.Model):
     id = BigAutoField(primary_key=True)
-    user = models.ForeignKey(User, blank=True, null=True)
-    target_level = models.CharField(max_length=64, default='')
+    distributor = models.ForeignKey(User, related_name='distributor', blank=True, null=True)
+    reseller = models.ForeignKey(User, related_name='reseller', blank=True, null=True)
+    corporate_id = models.IntegerField(max_length=10)
     target_amt = models.FloatField(default=0)
     target_duration = models.IntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -2750,3 +2751,4 @@ class TargetMaster(models.Model):
 
     class Meta:
         db_table = 'TARGET_MASTER'
+        unique_together = ('distributor', 'reseller', 'corporate_id')

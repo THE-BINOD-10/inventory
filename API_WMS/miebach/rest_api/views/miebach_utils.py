@@ -4303,8 +4303,6 @@ def get_reseller_target_summary_report_data(search_params, user, sub_user):
     resellers_names_map = dict(resellers_qs.values_list('customer_id', 'user__username'))
     target_qs = TargetMaster.objects.filter(reseller__in=resellers)
     reseller_targets = dict(target_qs.values_list('reseller__username').annotate(Sum('target_amt')))
-    if stop_index:
-        model_data = model_data[start_index:stop_index]
 
     for data in model_data:
         customer_id = data['customer_id']
@@ -4317,7 +4315,7 @@ def get_reseller_target_summary_report_data(search_params, user, sub_user):
             totals_map[reseller_code]["net_amt"] += net_amt
             totals_map[reseller_code]["gross_amt"] += gross_amt
 
-    temp_data['recordsTotal'] = len(totals_map)
+    temp_data['recordsTotal'] = len(reseller_targets)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
     todays_date = datetime.datetime.today()
@@ -4325,14 +4323,18 @@ def get_reseller_target_summary_report_data(search_params, user, sub_user):
     start_date = datetime.datetime.strptime('Apr-1-%s' % current_year, '%b-%d-%Y')
     days_passed = (todays_date - start_date).days
 
-    for reseller_code, target in totals_map.items():
-        res_tgt = reseller_targets[reseller_code]
-        ytd_target = round((res_tgt / 365) * days_passed, 2)
-        ytd_act_sale = round(target["net_amt"], 2)
+    for reseller_code, target in reseller_targets.items()[start_index: stop_index]:
+        achieved_tgt_map = totals_map.get(reseller_code, '')
+        if not achieved_tgt_map:
+            achieved_tgt = 0
+        else:
+            achieved_tgt = achieved_tgt_map["net_amt"]
+        ytd_target = round((target / 365) * days_passed, 2)
+        ytd_act_sale = round(achieved_tgt, 2)
         exc_short = ((ytd_act_sale - ytd_target) / ytd_target) * 100
         excess_shortfall = round(exc_short, 2)
         ord_dict = OrderedDict((('Reseller Code', reseller_code),
-                                ('Reseller Target', res_tgt),
+                                ('Reseller Target', target),
                                 ('YTD Targets', ytd_target),
                                 ('YTD Actual Sale', ytd_act_sale),
                                 ('Excess / Shortfall %', excess_shortfall),

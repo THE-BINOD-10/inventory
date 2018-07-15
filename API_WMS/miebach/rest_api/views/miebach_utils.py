@@ -581,6 +581,15 @@ RESELLER_TARGET_DETAILED_REPORT = {
     'print_url': 'print_reseller_target_detailed_report',
 }
 
+CORPORATE_TARGET_REPORT = {
+'filters': [
+        {'label': 'Corporate Name', 'name': 'corporate_name', 'type': 'input'},
+    ],
+    'dt_headers': ['Corporate Name', 'Corporate Target', 'YTD Targets', 'YTD Actual Sale', 'Excess / Shortfall %'],
+    'dt_url': 'get_corporate_target_report', 'excel_name': 'get_corporate_target_report',
+    'print_url': 'print_corporate_target_report',
+}
+
 RESELLER_TARGET_REPORT = {
 'filters': [
         {'label': 'Zone Code', 'name': 'zone_code', 'type': 'input'},
@@ -649,6 +658,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'rtv_report': RETURN_TO_VENDOR_REPORT,
                      'zone_target_summary_report': ZONE_TARGET_SUMMARY_REPORT,
                      'zone_target_detailed_report': ZONE_TARGET_DETAILED_REPORT,
+                     'corporate_target_report': CORPORATE_TARGET_REPORT,
                      }
 
 SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', 'sku-wise', 1, 2, 'sku-wise-report'): (
@@ -4361,15 +4371,6 @@ def get_reseller_target_detailed_report_data(search_params, user, sub_user):
     search_parameters = {}
     lis = ['id', 'user']
     distributors = get_same_level_warehouses(2, user)
-    zone_code = search_params.get('zone_code', '')
-    if zone_code:
-        distributors = UserProfile.objects.filter(user__in=distributors,
-                                                  zone__icontains=zone_code).values_list('user_id', flat=True)
-    dist_code = search_params.get('dist_code', '')
-    if dist_code:
-        distributors = UserProfile.objects.filter(user__in=distributors,
-                                                  user__username__icontains=dist_code).values_list('user_id', flat=True)
-    search_parameters['cust_wh_id__in'] = distributors
     search_parameters['quantity__gt'] = 0
     temp_data = copy.deepcopy(AJAX_DATA)
     if 'reseller_code' in search_params:
@@ -4421,6 +4422,46 @@ def get_reseller_target_detailed_report_data(search_params, user, sub_user):
         ord_dict = OrderedDict((('Reseller Code', reseller_code),
                                 ('Reseller Target', res_target),
                                 ('Corporate Name', corp_name),
+                                ('Corporate Target', corp_target),
+                                ('YTD Targets', ytd_target),
+                                ('YTD Actual Sale', ytd_act_sale),
+                                ('Excess / Shortfall %', excess_shortfall),
+                                ))
+        temp_data['aaData'].append(ord_dict)
+    return temp_data
+
+
+def get_corporate_target_report_data(search_params, user, sub_user):
+    from rest_api.views.outbound import get_same_level_warehouses
+    search_parameters = {}
+    lis = ['id', 'user']
+    distributors = get_same_level_warehouses(2, user)
+    search_parameters['quantity__gt'] = 0
+    temp_data = copy.deepcopy(AJAX_DATA)
+
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    resellers_qs = CustomerUserMapping.objects.filter(customer__user__in=distributors)
+    resellers = resellers_qs.values_list('user_id', flat=True)
+    target_qs = TargetMaster.objects.filter(reseller__in=resellers)
+    corp_targets = dict(target_qs.values_list('corporate_id').annotate(Sum('target_amt')))
+    achieved_tgt_map = dict(GenericOrderDetailMapping.objects.values_list('client_name').
+                            annotate(net_amt=Sum(F('unit_price') * F('quantity'))))
+    temp_data['recordsTotal'] = len(corp_targets)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    todays_date = datetime.datetime.today()
+    current_year = todays_date.year
+    start_date = datetime.datetime.strptime('Apr-1-%s' % current_year, '%b-%d-%Y')
+    days_passed = (todays_date - start_date).days
+
+    for corp_id, corp_target in corp_targets.items()[start_index:stop_index]:
+        corp_name = CorporateMaster.objects.get(id=corp_id).name
+        ytd_target = round((corp_target / 365) * days_passed, 2)
+        ytd_act_sale = achieved_tgt_map.get(corp_name, 0)
+        exc_short = ((ytd_act_sale - ytd_target) / ytd_target) * 100
+        excess_shortfall = round(exc_short, 2)
+        ord_dict = OrderedDict((('Corporate Name', corp_name),
                                 ('Corporate Target', corp_target),
                                 ('YTD Targets', ytd_target),
                                 ('YTD Actual Sale', ytd_act_sale),

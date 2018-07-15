@@ -380,6 +380,8 @@ urlpatterns = [
     url(r'^print_reseller_target_summary_report/$', print_reseller_target_summary_report),
     url(r'^get_reseller_target_detailed_report/$', get_reseller_target_detailed_report),
     url(r'^print_reseller_target_detailed_report/$', print_reseller_target_detailed_report),
+    url(r'^get_corporate_target_report/$', get_corporate_target_report),
+    url(r'^print_corporate_target_report/$', print_corporate_target_report),
     url(r'^get_rtv_report/$', get_rtv_report),
     url(r'^print_rtv_report/$', print_rtv_report),
     url(r'^print_debit_note/$', print_debit_note),

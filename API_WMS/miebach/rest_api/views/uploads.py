@@ -4568,30 +4568,49 @@ def targets_form(request, user=''):
 
 def validate_targets_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type='xls'):
     index_status = {}
-    TARGET_LEVELS = ['DIST', 'RESELLER', 'CORPORATE']
     target_file_mapping = copy.deepcopy(TARGET_DEF_EXCEL)
     if not target_file_mapping:
         return 'Invalid File'
     warehouse_qs = UserGroups.objects.filter(admin_user=user.id)
-    warehouse_users = warehouse_qs.values_list('user_id__username', flat=True)
+    dist_users = warehouse_qs.filter(user__userprofile__warehouse_level=2).values_list('user_id__username', flat=True)
     wh_userids = warehouse_qs.values_list('user_id', flat=True)
-    reseller_users = CustomerUserMapping.objects.filter(customer__user__in=wh_userids).\
-        values_list('user_id__username', flat=True)
+    reseller_qs = CustomerUserMapping.objects.filter(customer__user__in=wh_userids)
+    reseller_ids_map = dict(reseller_qs.values_list('user_id__username', 'customer__id'))
+    reseller_ids = reseller_ids_map.values()
+    reseller_users = reseller_ids_map.keys()
+    res_corp_qs = CorpResellerMapping.objects.filter(reseller_id__in=reseller_ids).values_list('reseller_id', 'corporate_id')
+    res_corp_map = {}
+    res_corp_names_map = {}
+    for res_id, corp_id in res_corp_qs:
+        res_corp_map.setdefault(res_id, []).append(corp_id)
+    for res_id, corp_ids in res_corp_map.items():
+        corp_names = CorporateMaster.objects.filter(id__in=corp_ids).values_list('name', flat=True)
+        res_corp_names_map.setdefault(res_id, []).extend(corp_names)
+
     for row_idx in range(1, no_of_rows):
         for key, value in target_file_mapping.iteritems():
             cell_data = get_cell_data(row_idx, target_file_mapping[key], reader, file_type)
-            if key == 'user_id':
+            if key == 'distributor_id':
                 if not cell_data:
-                    index_status.setdefault(row_idx, set()).add("User ID Missing")
+                    index_status.setdefault(row_idx, set()).add("Distributor Missing")
                 else:
-                    if cell_data not in warehouse_users and cell_data not in reseller_users:
-                        index_status.setdefault(row_idx, set()).add('Invalid User ID')
-            elif key == 'target_level':
+                    if cell_data not in dist_users:
+                        index_status.setdefault(row_idx, set()).add('Invalid Distributor ID')
+            elif key == 'reseller_id':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add("Reseller ID Missing")
+                else:
+                    if cell_data not in reseller_users:
+                        index_status.setdefault(row_idx, set()).add('Invalid Reseller ID')
+            elif key == 'corporate_name':
+                res_code = get_cell_data(row_idx, target_file_mapping['reseller_id'], reader, file_type)
+                res_id = reseller_ids_map[res_code]
+                mapped_corp_names = res_corp_names_map.get(res_id, [])
                 if cell_data:
-                    if cell_data not in TARGET_LEVELS:
-                        index_status.setdefault(row_idx, set()).add('Invalid Target Level (DIST/RESELLER/CORPORATE)')
+                    if cell_data not in mapped_corp_names:
+                        index_status.setdefault(row_idx, set()).add('Corporate Name not mapped with Reseller')
                 else:
-                    index_status.setdefault(row_idx, set()).add('Target Level (DIST/RESELLER/CORPORATE) Missing')
+                    index_status.setdefault(row_idx, set()).add('Corporate Name Missing')
             elif key == 'target_amt':
                 if cell_data:
                     if not isinstance(cell_data, (int, float)):
@@ -4649,11 +4668,11 @@ def targets_upload(request, user=''):
 
 
 def update_targets_upload(request, reader, no_of_rows, file_type='xls', user=''):
-    wh_users_map = dict(UserGroups.objects.filter(admin_user=user).values_list('user__username', 'user_id'))
-    reseller_users_map = dict(CustomerUserMapping.objects.filter(customer__user__in=wh_users_map.values()). \
+    dist_users_map = dict(UserGroups.objects.filter(admin_user=user, user__userprofile__warehouse_level=2).
+                          values_list('user__username', 'user_id'))
+    reseller_users_map = dict(CustomerUserMapping.objects.filter(customer__user__in=dist_users_map.values()). \
         values_list('user_id__username', 'user_id'))
-    users_map = wh_users_map.copy()
-    users_map.update(reseller_users_map)
+    corp_names_map = dict(CorporateMaster.objects.filter(user=user.id).values_list('name', 'id'))
     target_file_mapping = copy.deepcopy(TARGET_DEF_EXCEL)
     for row_idx in range(1, no_of_rows):
         if not target_file_mapping:
@@ -4661,15 +4680,21 @@ def update_targets_upload(request, reader, no_of_rows, file_type='xls', user='')
         each_row_map = copy.deepcopy(TARGET_DEF_EXCEL)
         for key, value in target_file_mapping.iteritems():
             each_row_map[key] = get_cell_data(row_idx, value, reader, file_type)
-        user_id = users_map[each_row_map.pop('user_id')]
-        target_obj = TargetMaster.objects.filter(user_id=user_id)
+
+        dist_id = dist_users_map.get(each_row_map.pop('distributor_id'), '')
+        res_id = reseller_users_map.get(each_row_map.pop('reseller_id'), '')
+        corp_id = corp_names_map.get(each_row_map.pop('corporate_name'), '')
+        if not dist_id and not res_id and not corp_id:
+            continue
+        target_obj = TargetMaster.objects.filter(distributor_id=dist_id, reseller_id=res_id, corporate_id=corp_id)
         if not target_obj:
-            each_row_map['user_id'] = user_id
+            each_row_map['corporate_id'] = corp_id
+            each_row_map['distributor_id'] = dist_id
+            each_row_map['reseller_id'] = res_id
             target_master = TargetMaster(**dict(each_row_map))
             target_master.save()
         else:
             target_obj[0].target_amt = each_row_map['target_amt']
-            target_obj[0].target_level = each_row_map['target_level']
             target_obj[0].target_duration = each_row_map['target_duration']
             target_obj[0].save()
     return 'success'

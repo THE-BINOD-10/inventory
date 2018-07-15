@@ -569,6 +569,18 @@ RESELLER_TARGET_SUMMARY_REPORT = {
     'print_url': 'print_reseller_target_summary_report',
 }
 
+RESELLER_TARGET_DETAILED_REPORT = {
+'filters': [
+        {'label': 'Reseller Code', 'name': 'reseller_code', 'type': 'input'},
+        {'label': 'Corporate Name', 'name': 'corporate_name', 'type': 'input'},
+    ],
+    'dt_headers': ['Reseller Code', 'Reseller Target', 'Corporate Name', 'Corporate Target', 'YTD Targets',
+                   'YTD Actual Sale', 'Excess / Shortfall %'
+                ],
+    'dt_url': 'get_reseller_target_detailed_report', 'excel_name': 'get_reseller_target_detailed_report',
+    'print_url': 'print_reseller_target_detailed_report',
+}
+
 RESELLER_TARGET_REPORT = {
 'filters': [
         {'label': 'Zone Code', 'name': 'zone_code', 'type': 'input'},
@@ -633,6 +645,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'dist_target_summary_report': DIST_TARGET_SUMMARY_REPORT,
                      'dist_target_detailed_report': DIST_TARGET_DETAILED_REPORT,
                      'reseller_target_summary_report': RESELLER_TARGET_SUMMARY_REPORT,
+                     'reseller_target_detailed_report': RESELLER_TARGET_DETAILED_REPORT,
                      'rtv_report': RETURN_TO_VENDOR_REPORT,
                      'zone_target_summary_report': ZONE_TARGET_SUMMARY_REPORT,
                      'zone_target_detailed_report': ZONE_TARGET_DETAILED_REPORT,
@@ -4341,3 +4354,78 @@ def get_reseller_target_summary_report_data(search_params, user, sub_user):
                                 ))
         temp_data['aaData'].append(ord_dict)
     return temp_data
+
+
+def get_reseller_target_detailed_report_data(search_params, user, sub_user):
+    from rest_api.views.outbound import get_same_level_warehouses
+    search_parameters = {}
+    lis = ['id', 'user']
+    distributors = get_same_level_warehouses(2, user)
+    zone_code = search_params.get('zone_code', '')
+    if zone_code:
+        distributors = UserProfile.objects.filter(user__in=distributors,
+                                                  zone__icontains=zone_code).values_list('user_id', flat=True)
+    dist_code = search_params.get('dist_code', '')
+    if dist_code:
+        distributors = UserProfile.objects.filter(user__in=distributors,
+                                                  user__username__icontains=dist_code).values_list('user_id', flat=True)
+    search_parameters['cust_wh_id__in'] = distributors
+    search_parameters['quantity__gt'] = 0
+    temp_data = copy.deepcopy(AJAX_DATA)
+    if 'reseller_code' in search_params:
+        res_ids = CustomerMaster.objects.filter(name__contains=search_params['reseller_code']). \
+            values_list('id', flat=True)
+        search_parameters['customer_id__in'] = res_ids
+
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    resellers_qs = CustomerUserMapping.objects.filter(customer__user__in=distributors)
+    resellers = resellers_qs.values_list('user_id', flat=True)
+    target_qs = TargetMaster.objects.filter(reseller__in=resellers)
+    res_targets = dict(target_qs.values_list('reseller__username').annotate(Sum('target_amt')))
+    target_vals = target_qs.values('reseller__username', 'corporate_id', 'target_amt', 'reseller_id')
+    temp_data['recordsTotal'] = len(target_vals)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    todays_date = datetime.datetime.today()
+    current_year = todays_date.year
+    start_date = datetime.datetime.strptime('Apr-1-%s' % current_year, '%b-%d-%Y')
+    days_passed = (todays_date - start_date).days
+
+    if stop_index:
+        target_vals = target_vals[start_index:stop_index]
+
+    for target in target_vals:
+        reseller_code = target['reseller__username']
+        reseller_usr_id = target['reseller_id']
+        res_target = res_targets[reseller_code]
+        res_cm_id = CustomerUserMapping.objects.filter(user_id=reseller_usr_id)
+        if res_cm_id:
+            res_cm_id = res_cm_id[0].customer_id
+        else:
+            continue
+        corp_id = target['corporate_id']
+        corp_name = CorporateMaster.objects.get(id=corp_id).name
+        corp_target = target['target_amt']
+        ytd_target = round((corp_target / 365) * days_passed, 2)
+        achieved_tgt_obj = GenericOrderDetailMapping.objects.filter(customer_id=res_cm_id, client_name=corp_name)
+        if achieved_tgt_obj:
+            achieved_tgt = achieved_tgt_obj.values('customer_id', 'client_name'). \
+                annotate(net_amt=Sum(F('unit_price') * F('quantity')))
+            ytd_act_sale = round(achieved_tgt[0]["net_amt"], 2)
+        else:
+            ytd_act_sale = 0
+
+        exc_short = ((ytd_act_sale - ytd_target) / ytd_target) * 100
+        excess_shortfall = round(exc_short, 2)
+        ord_dict = OrderedDict((('Reseller Code', reseller_code),
+                                ('Reseller Target', res_target),
+                                ('Corporate Name', corp_name),
+                                ('Corporate Target', corp_target),
+                                ('YTD Targets', ytd_target),
+                                ('YTD Actual Sale', ytd_act_sale),
+                                ('Excess / Shortfall %', excess_shortfall),
+                                ))
+        temp_data['aaData'].append(ord_dict)
+    return temp_data
+

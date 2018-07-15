@@ -1971,6 +1971,18 @@ var app = angular.module('urbanApp')
             title: 'Reseller Targets Summary Report',
           }
         })
+        .state('app.reports.ResellerTargetDetailedReport', {
+          url: '/ResellerTargetSummaryReport',
+          templateUrl: 'views/reports/reseller_target_detailed_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/reseller_target_detailed_report.js');
+              }]
+          },
+          data: {
+            title: 'Reseller Targets Detailed Report',
+          }
+        })
         .state('app.reports.RTVReport', {
           url: '/RTVReport',
           templateUrl: 'views/reports/rtv_report.html',

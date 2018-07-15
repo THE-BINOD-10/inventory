@@ -1134,6 +1134,28 @@ def print_reseller_target_summary_report(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+def get_reseller_target_detailed_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_reseller_target_detailed_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def print_reseller_target_detailed_report(request, user=''):
+    html_data = {}
+    headers, search_params, filter_params = get_search_params(request)
+    report_data = get_reseller_target_detailed_report_data(search_params, user, request.user)
+    report_data = report_data['aaData']
+    if report_data:
+        html_data = create_reports_table(report_data[0].keys(), report_data)
+    return HttpResponse(html_data)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def get_shipment_report(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     temp_data = get_shipment_report_data(search_params, user, request.user)

@@ -631,6 +631,17 @@ ZONE_TARGET_SUMMARY_REPORT = {
     'print_url': 'print_zone_target_summary_report'
 }
 
+CORPORATE_RESELLSER_MAPPING_REPORT = {
+    'filters': [
+        {'label': 'Zone Code', 'name': 'zone_code', 'type': 'input'},
+        {'label': 'Distributor Code', 'name': 'dist_code', 'type': 'input'},
+        {'label': 'Reseller Code', 'name': 'reseller_code', 'type': 'input'},
+        {'label': 'Corporate Name', 'name': 'corporate_name', 'type': 'input'},
+    ],
+    'dt_headers': ['Zone Code', 'Distributor Code','Reseller Code', 'Corporate Name'],
+    'dt_url': 'get_corporate_reseller_mapping_report', 'excel_name': 'get_corporate_reseller_mapping_report',
+    'print_url': 'print_corporate_reseller_mapping_report'
+}
 RETURN_TO_VENDOR_REPORT = {
     'filters': [
         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
@@ -659,6 +670,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'zone_target_summary_report': ZONE_TARGET_SUMMARY_REPORT,
                      'zone_target_detailed_report': ZONE_TARGET_DETAILED_REPORT,
                      'corporate_target_report': CORPORATE_TARGET_REPORT,
+                     'corporate_reseller_mapping_report': CORPORATE_RESELLSER_MAPPING_REPORT,
                      }
 
 SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', 'sku-wise', 1, 2, 'sku-wise-report'): (
@@ -4470,3 +4482,44 @@ def get_corporate_target_report_data(search_params, user, sub_user):
         temp_data['aaData'].append(ord_dict)
     return temp_data
 
+
+
+def get_corporate_reseller_mapping_report_data(search_params, user, sub_user):
+    from rest_api.views.outbound import get_same_level_warehouses
+    lis = ['id', 'user']
+    distributors = get_same_level_warehouses(2, user)
+    temp_data = copy.deepcopy(AJAX_DATA)
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    zone_code = search_params.get('zone_code', '')
+    if zone_code:
+        distributors = UserProfile.objects.filter(user__in=distributors, zone__icontains=zone_code).\
+            values_list('user_id', flat=True)
+    dist_code = search_params.get('dist_code', '')
+    if dist_code:
+        distributors = UserProfile.objects.filter(user__in=distributors,
+                                                  user__username__icontains=dist_code).values_list('user_id', flat=True)
+    zones_map = dict(UserProfile.objects.filter(user__in=distributors).values_list('user_id', 'zone'))
+    names_map = dict(UserProfile.objects.filter(user__in=distributors).values_list('user_id', 'user__username'))
+    resellers_qs = CustomerUserMapping.objects.filter(customer__user__in=distributors)
+    resellers = resellers_qs.values_list('customer_id', flat=True)
+    res_dist_ids_map = dict(resellers_qs.values_list('customer_id', 'customer__user'))
+    resellers_names_map = dict(resellers_qs.values_list('customer_id', 'user__username'))
+    res_corp_qs = CorpResellerMapping.objects.filter(reseller_id__in=resellers).\
+        exclude(status=0).values_list('reseller_id', 'corporate_id')
+    corp_id_names = dict(CorporateMaster.objects.values_list('id', 'name'))
+    temp_data['recordsTotal'] = len(res_corp_qs)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    for res_id, corp_id in res_corp_qs[start_index:stop_index]:
+        dist_id = res_dist_ids_map[res_id]
+        dist_code = names_map[dist_id]
+        zone_code = zones_map[dist_id]
+        corp_name = corp_id_names.get(corp_id)
+        res_code = resellers_names_map.get(res_id)
+        ord_dict = OrderedDict((('Zone Code', zone_code),
+                                ('Distributor Code', dist_code),
+                                ('Reseller Code', res_code),
+                                ('Corporate Name', corp_name)))
+        temp_data['aaData'].append(ord_dict)
+    return temp_data

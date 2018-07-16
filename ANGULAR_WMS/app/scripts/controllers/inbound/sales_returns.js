@@ -641,12 +641,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.return_process = 'scan_imei';
     }
     
-    vm.return_processes['sku_code'] = 'SKU Code';
-    
     if(vm.awb_ship_type) {
       vm.return_processes['scan_awb'] = 'Scan AWB';
       vm.return_process = 'scan_awb';
     }
+
+    vm.return_processes['sku_code'] = 'SKU Code';
 
     vm.scan_awb_order_no = []
     vm.scan_awb = function(event, field) {

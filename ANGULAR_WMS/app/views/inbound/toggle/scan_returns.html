@@ -45,7 +45,7 @@
               <textarea id="scan_awb" rows="1" class="form-control" ng-model="showCase.model_data.scan_awb_no" ng-keydown="showCase.scan_awb($event, showCase.model_data.scan_awb_no)"></textarea>
              </div>
            </div>
-           <div class="col-md-3 col-sm-3 col-xs-6" ng-if="user.user_profile['user_type'] != 'marketplace_user' && showCase.return_process == 'sku_code'">
+           <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.return_process == 'sku_code'">
              <div class="form-group">
                <label class="control-label"> SKU Code </label>
               <textarea id="return_sku_code" rows="1" class="form-control" ng-model="showCase.model_data.return_sku_code" ng-keydown="showCase.scan_sku($event, showCase.model_data.return_sku_code)"></textarea>
@@ -60,12 +60,11 @@
              </div>
            </div>
 
-           <div class="row">
-            <div class="col-md-3 col-sm-3 col-xs-12" ng-if="showCase.industry_type == 'FMCG' and  showCase.return_process == 'sku_code'">
+            <div class="col-md-3 col-sm-3 col-xs-12" ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'">
               <label class="control-label">MRP</label>
-              <input type="text" ng-model="showCase.mrp" class="form-control pull-right" placeholder="Enter MRP">
+              <input type="text" ng-model="showCase.mrp" class="form-control pull-right decimal" placeholder="Enter MRP">
             </div>
-           </div>
+           
 
            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.permissions.use_imei && showCase.return_process == 'scan_imei'">
              <div class="form-group">

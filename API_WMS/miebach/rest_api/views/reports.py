@@ -1295,7 +1295,7 @@ def print_purchase_order_form(request, user=''):
                  'w_address': get_purchase_company_address(profile),
                  'company_name': company_name, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                  'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title,
-                 'gstin_no': gstin_no}
+                 'gstin_no': gstin_no, 'wh_gstin': profile.gst_number}
 
     return render(request, 'templates/toggle/po_template.html', data_dict)
 

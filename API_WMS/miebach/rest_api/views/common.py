@@ -5753,8 +5753,11 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
         is_marketplace_model = True
 
     fefo_enabled = False
+    add_mrp_filter = False
     if user.userprofile.industry_type == 'FMCG':
         fefo_enabled = True
+        if user.username == 'milkbasket':
+            add_mrp_filter = True
     if switch_vals['fifo_switch'] == 'true':
         order_by = 'receipt_date'
     else:
@@ -5778,7 +5781,11 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
 
         combo_sku_ids = list(sku_combos.filter(parent_sku_id=order.sku_id).values_list('member_sku_id', flat=True))
         combo_sku_ids.append(order.sku_id)
-        sku_id_stocks = sku_stocks.filter(sku_id__in=combo_sku_ids).values('id', 'sku_id').\
+        sku_id_stock_filter = {'sku_id__in': combo_sku_ids}
+        if add_mrp_filter:
+            if 'st_po' not in dir(order) and order.customerordersummary_set.filter().exists():
+                sku_id_stock_filter['batch_detail__mrp'] = order.customerordersummary_set.filter()[0].mrp
+        sku_id_stocks = sku_stocks.filter(**sku_id_stock_filter).values('id', 'sku_id').\
                                     annotate(total=Sum('quantity')).order_by(order_by)
         val_dict = {}
         val_dict['sku_ids'] = map(lambda d: d['sku_id'], sku_id_stocks)

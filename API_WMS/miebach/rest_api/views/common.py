@@ -5682,13 +5682,16 @@ def get_picklist_number(user):
 
 
 @fn_timer
-def get_sku_stock(request, sku, sku_stocks, user, val_dict, sku_id_stocks=''):
+def get_sku_stock(request, sku, sku_stocks, user, val_dict, sku_id_stocks='', add_mrp_filter=False,
+                  needed_mrp_filter=0):
     data_dict = {'sku_id': sku.id, 'quantity__gt': 0}
     fifo_switch = get_misc_value('fifo_switch', user.id)
     if fifo_switch == "true":
         order_by = 'receipt_date'
     else:
         order_by = 'location_id__pick_sequence'
+    if add_mrp_filter and needed_mrp_filter:
+        data_dict['batch_detail__mrp'] = needed_mrp_filter
     stock_detail = sku_stocks.filter(**data_dict).order_by(order_by)
     stock_count = 0
     if sku.id in val_dict['sku_ids']:
@@ -5782,9 +5785,11 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
         combo_sku_ids = list(sku_combos.filter(parent_sku_id=order.sku_id).values_list('member_sku_id', flat=True))
         combo_sku_ids.append(order.sku_id)
         sku_id_stock_filter = {'sku_id__in': combo_sku_ids}
+        needed_mrp_filter = 0
         if add_mrp_filter:
             if 'st_po' not in dir(order) and order.customerordersummary_set.filter().exists():
-                sku_id_stock_filter['batch_detail__mrp'] = order.customerordersummary_set.filter()[0].mrp
+                needed_mrp_filter = order.customerordersummary_set.filter()[0].mrp
+                sku_id_stock_filter['batch_detail__mrp'] = needed_mrp_filter
         sku_id_stocks = sku_stocks.filter(**sku_id_stock_filter).values('id', 'sku_id').\
                                     annotate(total=Sum('quantity')).order_by(order_by)
         val_dict = {}
@@ -5792,7 +5797,7 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
         val_dict['stock_ids'] = map(lambda d: d['id'], sku_id_stocks)
         val_dict['stock_totals'] = map(lambda d: d['total'], sku_id_stocks)
         pc_loc_filter = {'status': 1}
-        if is_seller_order:
+        if is_seller_order or add_mrp_filter:
             pc_loc_filter['stock_id__in'] = val_dict['stock_ids']
         pick_res_locat = PicklistLocation.objects.prefetch_related('picklist', 'stock').filter(**pc_loc_filter). \
             filter(picklist__order__user=user.id).values('stock__sku_id').annotate(total=Sum('reserved'))
@@ -5810,7 +5815,8 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
 
         for member in members:
             stock_detail, stock_quantity, sku_code = get_sku_stock(request, member, sku_stocks, user, val_dict,
-                                                                   sku_id_stocks)
+                                                                   sku_id_stocks, add_mrp_filter=add_mrp_filter,
+                                                                   needed_mrp_filter=needed_mrp_filter)
             if order.sku.relation_type == 'member':
                 parent = sku_combos.filter(member_sku_id=member.id).filter(relation_type='member')
                 stock_detail1, stock_quantity1, sku_code = get_sku_stock(request, parent[0].parent_sku, sku_stocks,

@@ -259,13 +259,30 @@ def results_data(request, user=''):
         if request.POST.get('datatable', '') == 'StockSummarySerials':
             excel_data = get_stock_summary_serials_excel(filter_params, temp_data, headers, user, request)
             return HttpResponse(str(excel_data))
-    temp_data = {"recordsTotal": 0, "recordsFiltered": 0, "draw": 0, "aaData": []}
+    temp_data['draw'] = search_params.get('draw')
     start_index = search_params.get('start')
     stop_index = start_index + search_params.get('length')
-    params = [temp_data, search_params.get('search_term'), search_params.get('order_term'), search_params.get('order_index'), request, user, filter_params]
+    if not stop_index:
+        stop_index = None
+    params = [start_index, stop_index, temp_data, search_params.get('search_term')]
     request_data = request.POST
+    if not request_data:
+        request_data = request.GET
+    if request_data.get('datatable') in data_datatable.keys():
+        fun = data_datatable[request_data.get('datatable')]
+        params.extend([search_params.get('order_term'), search_params.get('order_index'), request, user])
+        if filter_params:
+            params.append(filter_params)
+        if 'special_key' in search_params.keys():
+            params.append(search_params.get('special_key'))
+        eval(fun)(*params)
+    else:
+        temp_data = {"recordsTotal": 0, "recordsFiltered": 0, "draw": 2, "aaData": []}
     if excel == 'true':
+        params = [temp_data, search_params.get('search_term'), search_params.get('order_term'), 
+            search_params.get('order_index'), request, user, filter_params]
         if request.POST.get('datatable', '') == 'SupplierMaster':
+            temp_data = {"recordsTotal": 0, "recordsFiltered": 0, "draw": 2, "aaData": []}
             excel_data = get_supplier_master_excel(*params)
             return HttpResponse(str(excel_data))
         headers = {}
@@ -274,5 +291,4 @@ def results_data(request, user=''):
                 headers[key] = value
         excel_data = print_excel(request, temp_data, headers, excel_name=request_data.get('datatable'))
         return excel_data
-
     return HttpResponse(json.dumps(temp_data), content_type='application/json')

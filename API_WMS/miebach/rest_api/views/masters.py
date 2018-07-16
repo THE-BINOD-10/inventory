@@ -3668,6 +3668,7 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
 
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    temp_data['aaData'] = []
 
     for data in master_data:
         uploads_list = []
@@ -3690,7 +3691,7 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
             data.phone_number = int(float(data.phone_number))
         temp_data['aaData'].append(OrderedDict((('name', data.name), ('address', data.address),
                                                 ('phone_number', data.phone_number), ('email_id', data.email_id),
-                                                ('cst_number', data.cst_number), ('tin_0number', data.tin_number),
+                                                ('cst_number', data.cst_number), ('tin_number', data.tin_number),
                                                 ('pan_number', data.pan_number), ('city', data.city),
                                                 ('state', data.state), ('days_to_supply', data.days_to_supply),
                                                 ('fulfillment_amt', data.fulfillment_amt),

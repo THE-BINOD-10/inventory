@@ -640,9 +640,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.return_processes['scan_imei'] = 'Scan IMEI';
       vm.return_process = 'scan_imei';
     }
-    if(Session.user_profile.user_type != "marketplace_user") {
-      vm.return_processes['sku_code'] = 'SKU Code';
-    }
+    
+    vm.return_processes['sku_code'] = 'SKU Code';
+    
     if(vm.awb_ship_type) {
       vm.return_processes['scan_awb'] = 'Scan AWB';
       vm.return_process = 'scan_awb';

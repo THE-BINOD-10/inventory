@@ -25,6 +25,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
               // }
            })
        .withDataProp('data')
+       .withOption('order', [0, 'desc'])
        .withOption('processing', true)
        .withOption('serverSide', true)
        .withPaginationType('full_numbers')

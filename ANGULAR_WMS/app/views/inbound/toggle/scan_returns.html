@@ -61,7 +61,7 @@
            </div>
 
            <div class="row">
-            <div class="col-md-3 col-sm-3 col-xs-12" ng-if="user.user_profile['user_type'] != 'marketplace_user' && showCase.return_process == 'sku_code'">
+            <div class="col-md-3 col-sm-3 col-xs-12" ng-if="showCase.industry_type == 'FMCG' and  showCase.return_process == 'sku_code'">
               <label class="control-label">MRP</label>
               <input type="text" ng-model="showCase.mrp" class="form-control pull-right" placeholder="Enter MRP">
             </div>
@@ -113,10 +113,10 @@
                  <th> Return Quantity </th>
                  <th> Damaged Quantity </th>
                  <th> Unit Price </th>
-                 <th ng-if="user.user_profile['user_type'] != 'marketplace_user' && showCase.return_process == 'sku_code'"> Marketplace </th>
+                 <th ng-if="showCase.industry_type == 'FMCG'"> Marketplace </th>
                  <th> MRP </th>
-                 <th ng-if="user.user_profile['user_type'] != 'marketplace_user'"> Manufactured Date </th>
-                 <th ng-if="user.user_profile['user_type'] != 'marketplace_user'"> Expiry Date </th>
+                 <th ng-if="showCase.industry_type == 'FMCG'"> Manufactured Date </th>
+                 <th ng-if="showCase.industry_type == 'FMCG'"> Expiry Date </th>
                  <th> Reason </th>
                  <th class="plus" style="width:80px;"></th>
                </tr>
@@ -149,11 +149,11 @@
                    <input type="text" name="marketplace" class="form-control" ng-model="data_split.marketplace">
                  </td>
                  
-                 <td> <input type="text" name="mrp" class="form-control" ng-model="data_split.mrp"> </td>
+                 <td> <input ng-if="user.user_profile['user_type'] != 'marketplace_user' && showCase.industry_type == 'FMCG'" type="text" name="mrp" class="form-control" ng-model="data_split.mrp"> </td>
 
-                 <td><input type="text" name="manufactured_date" class="form-control" ng-if="user.user_profile['user_type'] != 'marketplace_user'" ng-model="data_split.manufactured_date"></td>
+                 <td><input ng-if="user.user_profile['user_type'] != 'marketplace_user' && showCase.industry_type == 'FMCG'" type="text" name="manufactured_date" class="form-control" ng-if="user.user_profile['user_type'] != 'marketplace_user'" ng-model="data_split.manufactured_date"></td>
 
-                 <td><input type="text" name="expiry_date" class="form-control" ng-model="data_split.expiry_date" ng-if="user.user_profile['user_type'] != 'marketplace_user'"></td>
+                 <td><input ng-if="user.user_profile['user_type'] != 'marketplace_user' && showCase.industry_type == 'FMCG'" type="text" name="expiry_date" class="form-control" ng-model="data_split.expiry_date" ng-if="user.user_profile['user_type'] != 'marketplace_user'"></td>
 
                  <td><input type="text" name="reason" class="form-control" ng-model="data_split.reason"></td>
                  <td>

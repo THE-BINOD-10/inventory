@@ -3357,7 +3357,7 @@ def create_order_from_intermediate_order(request, user):
     interm_det_id = request.POST.get('interm_det_id', '')
     shipment_date = request.POST.get('shipment_date', '')
     if shipment_date:
-        shipment_date = datetime.datetime.strptime(shipment_date, "%m-%d-%Y")
+        shipment_date = datetime.datetime.strptime(shipment_date, "%m/%d/%Y")
     status = request.POST.get('status', '')
     if not status:
         return HttpResponse('Status Missing')

@@ -28,7 +28,13 @@ var vm = this;
        .withOption('processing', true)
        .withOption('serverSide', true)
        .withOption('createdRow', function(row, data, dataIndex) {
-            $compile(angular.element(row).contents())($scope);
+            /*if (angular.element(row)[dataIndex].children[6].outerHTML == "<td>1</td>") {
+              angular.element(row)[dataIndex].children[6].outerHTML == "<td>Accepted</td>";
+            } else if (angular.element(row)[dataIndex].children[6].outerHTML == "<td>0</td>") {
+              angular.element(row)[dataIndex].children[6].outerHTML == "<td>Rejected</td>";
+            }*/
+
+          $compile(angular.element(row).contents())($scope);
         })
         .withOption('headerCallback', function(header) {
             if (!vm.headerCompiled) {
@@ -88,6 +94,8 @@ var vm = this;
         });
         return nRow;
     }
+
+    vm.status_dropdown = {0: 'Reject', 1: 'Accept'};
 
     vm.close = close;
     function close() {

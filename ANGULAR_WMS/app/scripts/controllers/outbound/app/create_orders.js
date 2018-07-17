@@ -15,6 +15,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.size_toggle = true;
   vm.brand_size_collect = {};
   vm.user_type = Session.roles.permissions.user_type;
+  vm.central_order_mgmt = Session.roles.permissions.central_order_mgmt;
   vm.buttons_width = (Session.roles.permissions.create_order_po)? 4: 6;
   vm.priceband_sync = Session.roles.permissions.priceband_sync;
   vm.disable_brands = Session.roles.permissions.disable_brands_view;
@@ -99,6 +100,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
           }
           vm.filterData.brand_size_data = ['XS','S','M', 'L', 'XL', '2XL', '3XL', '4XL'];
         }
+        vm.filterData.dimensions = ['Length', 'Breadth', 'Height'];
         vm.filterData.brands.push("All");
         vm.filterData.categories.push("All");
         vm.filterData.colors.push("All");
@@ -277,6 +279,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.scroll_data = false;
     vm.show_no_data = false;
     var size_stock = "";
+    var dimension_data = "";
     var cat_name = vm.category;
     var sub_cat_name = vm.sub_category;
     // vm.required_quantity = {};
@@ -294,10 +297,17 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       size_stock = vm.size_filter_data;
     }
 
+    if($.type(vm.size_filter_data) != "string"){
+      dimension_data = JSON.stringify(vm.dimensions_filter_data);
+    } else {
+      dimension_data = vm.dimensions_filter_data;
+    }
+
     var data = {brand: vm.brand, sub_category: sub_cat_name, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
                 sale_through: vm.order_type_value, size_filter: size_stock, color: vm.color, from_price: vm.fromPrice,
                 to_price: vm.toPrice, quantity: vm.quantity, delivery_date: vm.delivery_date, is_margin_percentage: vm.marginData.is_margin_percentage,
-                margin: vm.marginData.margin, hot_release: vm.hot_release, margin_data: JSON.stringify(Data.marginSKUData.data)};
+                margin: vm.marginData.margin, hot_release: vm.hot_release, margin_data: JSON.stringify(Data.marginSKUData.data),
+                dimensions: dimension_data};
 
     if(status) {
       angular.copy([], vm.catlog_data.data);
@@ -708,6 +718,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     var category= [];
     var sub_category = [];
     var color = [];
+    var dimensions = [];
+
     angular.forEach(vm.filterData.selectedBrands, function(value, key) {
       if (value) {
         brand.push(key);
@@ -758,6 +770,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.sub_category = temp_sub_cat_data.join(","); //category.join(",");
     vm.color = color.join(",");
     vm.size_filter_data = vm.filterData.size_filter
+    vm.dimensions_filter_data = vm.filterData.dimension_filter
     //vm.primary_data = JSON.stringify(temp_primary_data);
     vm.fromPrice = vm.filterData.fromPrice;
     vm.toPrice = vm.filterData.toPrice;
@@ -784,6 +797,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.showFilter = true;
   }
 
+
   vm.checkPrimaryFilter = function(primary_cat) {
 
     if(!vm.filterData.selectedCats[primary_cat]) {
@@ -806,9 +820,14 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
   vm.clearFilterData = function() {
 
-    angular.forEach(vm.filterData.size_filter, function(value, key) {
+      angular.forEach(vm.filterData.size_filter, function(value, key) {
         vm.filterData.size_filter[key] = "";
       })
+
+      angular.forEach(vm.filterData.dimension_filter, function(value, key){
+
+        vm.filterData.dimension_filter[key] = "";
+      });
 
       angular.forEach(vm.filterData.selectedBrands, function(value, key) {
         vm.filterData.selectedBrands[key] = false;
@@ -822,6 +841,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       angular.forEach(vm.filterData.selectedColors, function(value, key) {
         vm.filterData.selectedColors[key] = false;
       });
+
       vm.brand = "";
       vm.category = "";
       vm.color = "";
@@ -829,6 +849,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       vm.filterData.toPrice = "";
       vm.filterData.quantity = "";
       vm.filterData.delivery_date = "";
+      vm.dimensions_filter_data = "";
       vm.filterData.hotRelease = false;
       vm.hot_release = vm.filterData.hotRelease;
       vm.fromPrice = vm.filterData.fromPrice;

@@ -70,7 +70,7 @@ input[type="date"]:valid::before {
           </select>
         </div>
 
-        <div class="col-md-2 col-sm-6 col-xs-6 mt10" ng-if="showCase.user_type=='reseller'">
+        <div class="col-md-2 col-sm-6 col-xs-6 mt10" ng-if="showCase.user_type=='reseller' || Cart.central_order_mgmt">
           <input type="text" class="form-control stk-readonly pull-left" ng-model="Cart.model_data.po_number_header" name="po_number_header" required placeholder="PO Number">
         </div>
 
@@ -81,7 +81,14 @@ input[type="date"]:valid::before {
           </select>
         </div>
 
-        <div class="col-md-2 col-sm-6 col-xs-6" ng-if="showCase.user_type=='reseller'">
+        <div class="col-md-2 col-sm-6 col-xs-6 mt10" ng-if="showCase.user_type=='customer' && Cart.central_order_mgmt">
+          <select ng-model="Cart.model_data.client_name_header" class="form-control" name="client_name">
+            <option value="">Select Project</option>
+            <option ng-repeat="corp in Cart.corporates" value="{{corp}}">{{corp}}</option>
+          </select>
+        </div>
+
+        <div class="col-md-2 col-sm-6 col-xs-6" ng-if="showCase.user_type=='reseller' || Cart.central_order_mgmt">
           <div class="btn btn-primary up-btn mt10" style="position: relative;overflow: hidden;height: 34px;padding: 6px;width: 100%;text-overflow: ellipsis;">{{(Cart.upload_file_name)? Cart.upload_file_name: 'Upload PO';}}
             <input class="btn btn-primary upload-button" value="Upload" type = "file" ng-model="Cart.model_data.uploaded_po" name="file" id="po-upload" file-uploadd>&nbsp;
             <i class="fa fa-cloud-upload fa-1g" aria-hidden="true"></i>

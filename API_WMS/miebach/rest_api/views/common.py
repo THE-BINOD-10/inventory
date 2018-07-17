@@ -6741,6 +6741,21 @@ def update_mail_alerts(request, user=''):
     return HttpResponse("Success")
 
 
+def update_order_batch_details(user, order):
+    picklists = order.picklist_set.filter()
+    batch_data = {}
+    for picklist in picklists:
+        pick_locs = picklist.picklistlocation_set.filter(stock__isnull=False)
+        for pick in pick_locs:
+            if pick.stock.batch_detail:
+                batch_detail = picklist.stock.batch_detail
+                group_key = '%s:%s:%s' % (str(batch_detail.mrp), str(batch_detail.manufactured_date),
+                                          str(batch_detail.expiry_date))
+                batch_data.setdefault(group_key, {'mrp': batch_detail.mrp, 'manufactured_date': '',
+                                    'expiry_date': '', 'quantity': 0})
+                batch_data[group_key]['quantity'] += pick.quantity
+    return batch_data.values()
+
 def allocate_order_returns(user, sku_data, request):
     excl_filter = {}
     data = {}
@@ -6751,6 +6766,8 @@ def allocate_order_returns(user, sku_data, request):
         excl_filter['original_order_id__in'] = request.GET.get('exclude_order_ids', []).split(',')
     if request.GET.get('order_id', ''):
         order_filter['original_order_id'] = request.GET.get('order_id', '')
+    if request.GET.get('mrp', 0):
+        order_filter['customerordersummary__mrp'] = request.GET['mrp']
     if get_permission(user, 'add_shipmentinfo'):
         order_filter['picklist__status'] = 'dispatched'
     else:
@@ -6759,6 +6776,9 @@ def allocate_order_returns(user, sku_data, request):
                                 annotate(ret=Sum(F('orderreturns__quantity')),
                                         dam=Sum(F('orderreturns__damaged_quantity'))).annotate(tot=F('ret')+F('dam')). \
                                 filter(Q(tot__isnull=True) | Q(quantity__gt=F('tot')))
+    import pdb;pdb.set_trace()
+    if user.username == 'milkbasket':
+        orders = orders.order_by('-creation_date')
     if orders:
         order = orders[0]
         if not order.tot:
@@ -6767,6 +6787,8 @@ def allocate_order_returns(user, sku_data, request):
         data = {'status': 'confirmed', 'sku_code': sku_data.sku_code, 'description': sku_data.sku_desc,
                 'order_id': order.original_order_id, 'ship_quantity': ship_quantity, 'unit_price': order.unit_price,
                 'return_quantity': 1}
+        if user.userprofile.industry_type == 'FMCG':
+            data['batch_data'] = update_order_batch_details(user, order)
     return data
 
 

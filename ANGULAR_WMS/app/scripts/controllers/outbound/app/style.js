@@ -9,6 +9,8 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
   var vm = this;
   vm.styleId = "";
   vm.tax_type = Session.roles.tax_type;
+  vm.central_order_mgmt = Session.roles.permissions.central_order_mgmt;
+  vm.user_type = Session.roles.permissions.user_type;
   vm.service = Service;
   if($stateParams.styleId){
     vm.styleId = $stateParams.styleId;

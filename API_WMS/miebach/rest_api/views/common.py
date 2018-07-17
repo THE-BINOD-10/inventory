@@ -4300,6 +4300,34 @@ def get_order_detail_objs(order_id, user, search_params={}, all_order_objs=[]):
     return order_detail_objs
 
 
+def order_cancel_functionality(order_det_ids):
+    ord_det_qs = OrderDetail.objects.filter(id__in=order_det_ids)
+    for order_det in ord_det_qs:
+        if int(order_det.status) == 1:
+            order_det.status = 3
+            order_det.save()
+        else:
+            picklists = Picklist.objects.filter(order_id=order_det.id)
+            for picklist in picklists:
+                if picklist.picked_quantity <= 0:
+                    picklist.delete()
+                elif picklist.stock:
+                    cancel_location = CancelledLocation.objects.filter(picklist_id=picklist.id,
+                                                                       picklist__order__user=user.id)
+                    if not cancel_location:
+                        CancelledLocation.objects.create(picklist_id=picklist.id,
+                                                         quantity=picklist.picked_quantity,
+                                                         location_id=picklist.stock.location_id,
+                                                         creation_date=datetime.datetime.now(), status=1)
+                        picklist.status = 'cancelled'
+                        picklist.save()
+                else:
+                    picklist.status = 'cancelled'
+                    picklist.save()
+            order_det.status = 3
+            order_det.save()
+
+
 @csrf_exempt
 @get_admin_user
 def check_labels(request, user=''):

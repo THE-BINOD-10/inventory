@@ -3355,6 +3355,9 @@ def create_order_from_intermediate_order(request, user):
     else:
         return HttpResponse('User Missing')
     interm_det_id = request.POST.get('interm_det_id', '')
+    shipment_date = request.POST.get('shipment_date', '')
+    if shipment_date:
+        shipment_date = datetime.datetime.strptime(shipment_date, "%m-%d-%Y")
     status = request.POST.get('status', '')
     if not status:
         return HttpResponse('Status Missing')
@@ -3368,7 +3371,15 @@ def create_order_from_intermediate_order(request, user):
         order_dict['sku_id'] = sku_id
         order_dict['title'] = interm_obj.sku.sku_desc
         order_dict['sku_code'] = interm_obj.sku.sku_code
-        order_dict['customer_id'] = interm_obj.customer_user.id
+        customer_user = CustomerUserMapping.objects.filter(user_id=interm_obj.customer_user.id)
+        if customer_user:
+            order_dict['customer_id'] = customer_user[0].customer.customer_id
+            order_dict['customer_name'] = customer_user[0].customer.name
+            order_dict['telephone'] = customer_user[0].customer.phone_number
+            order_dict['email_id'] = customer_user[0].customer.email_id
+            order_dict['address'] = customer_user[0].customer.address
+        else:
+            return HttpResponse('Failed')
         order_dict['quantity'] = interm_obj.quantity
         order_dict['order_code'] = 'MN'
         order_dict['shipment_date'] = interm_obj.shipment_date
@@ -3386,6 +3397,7 @@ def create_order_from_intermediate_order(request, user):
     else:
         interm_obj.status = status
         interm_obj.order_assigned_wh_id = wh_id
+        interm_obj.shipment_date = shipment_date
         interm_obj.save()
     return HttpResponse(message)
 
@@ -6204,15 +6216,15 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
             wh_name = ''
         # creation_date = dat.creation_date
         # creation_date = get_local_date(request.user, creation_date, True).strftime("%d %b, %Y")
-
+        shipment_date = dat.shipment_date.strftime("%m-%d-%Y")
         temp_data['aaData'].append(
             OrderedDict((('Order ID', order_id), ('SKU Code', dat.sku.sku_code), ('SKU Desc', dat.sku.sku_desc),
                          ('Product Quantity', dat.quantity), ('data_id', dat.id),
                          ('Warehouse', wh_name), ('Status', dat.status),
-                         ('id', index), ('DT_RowClass', 'results'), )))
+                         ('id', index), ('DT_RowClass', 'results'), ('Shipment Date', shipment_date), )))
         index += 1
 
-    col_val = ['id', 'SKU Code', 'SKU Desc', 'Product Quantity', 'Status']
+    col_val = ['id', 'SKU Code', 'SKU Desc', 'Product Quantity', 'Status', 'Shipment Date']
 
     temp_data['aaData'] = apply_search_sort(col_val, temp_data['aaData'], order_term, search_term, col_num)
     temp_data['recordsTotal'] = len(temp_data['aaData'])
@@ -6229,11 +6241,12 @@ def get_central_order_detail(request):
         wh_name = interm_obj.order_assigned_wh.username
     else:
         wh_name = ''
+    shipment_date = interm_obj.shipment_date.strftime("%m-%d-%Y")
     warehouses = UserGroups.objects.filter(admin_user_id=interm_obj.user).values_list('user__username', flat=True)
     resp = {'warehouses': list(warehouses), 'interm_order_id': interm_obj.interm_order_id,
             'sku_code': interm_obj.sku.sku_code, 'sku_desc': interm_obj.sku.sku_desc,
             'quantity': int(interm_obj.quantity), 'status': interm_obj.status,
-            'warehouse': wh_name, 'data_id': interm_obj.id}
+            'warehouse': wh_name, 'data_id': interm_obj.id, 'shipment_date': shipment_date}
     return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
 
 
@@ -6824,11 +6837,17 @@ def get_customer_orders(request, user=""):
     if admin_user:
         get_level_based_customer_orders(request, response_data, user)
     else:
+        central_order_mgmt = get_misc_value('central_order_mgmt', user.id)
+        users_list = UserGroups.objects.filter(admin_user=user.id).values_list('user').distinct()
         customer = CustomerUserMapping.objects.filter(user=request.user.id)
 
         if customer:
             customer_id = customer[0].customer.customer_id
-            orders = OrderDetail.objects.filter(customer_id=customer_id, user=user.id).order_by('-creation_date')
+            if central_order_mgmt:
+                orders_dict = {'customer_id': customer_id, 'user__in': users_list}
+            else:
+                orders_dict = {'custmer_id': customer_id, 'user': user.id}
+            orders = OrderDetail.objects.filter(**orders_dict).exclude(status=3).order_by('-creation_date')
             picklist = Picklist.objects.filter(order__customer_id=customer_id, order__user=user.id)
             response_data['data'] = list(orders.values('order_id', 'order_code', 'original_order_id').distinct().
                                          annotate(total_quantity=Sum('quantity'), total_inv_amt=Sum('invoice_amount'),
@@ -7071,7 +7090,19 @@ def get_customer_order_detail(request, user=""):
         response_data_list = get_level_based_customer_order_detail(request, user)
         final_data = response_data_list
     else:
-        order = get_order_detail_objs(order_id, user)
+        central_order_mgmt = get_misc_value('central_order_mgmt', user.id)
+        if central_order_mgmt:
+            customer = CustomerUserMapping.objects.filter(user=request.user.id)
+            if customer:
+                customer_id = customer[0].customer.customer_id
+                users_list = UserGroups.objects.filter(admin_user=user.id).values_list('user').distinct()
+                search_params = {'user__in': users_list, 'customer_id': customer_id}
+                order_id_search = ''.join(re.findall('\d+', order_id))
+                order_code_search = ''.join(re.findall('\D+', order_id))
+                order = OrderDetail.objects.filter(Q(order_id=order_id_search, order_code=order_code_search) |
+                                                   Q(original_order_id=order_id), **search_params)
+        else:
+            order = get_order_detail_objs(order_id, user)
         det_ids = order.values_list('id', flat=True)
         if not order:
             return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
@@ -7146,12 +7177,16 @@ def get_customer_cart_data(request, user=""):
 
     response = {'data': [], 'msg': 0, 'reseller_corporates': []}
     price_band_flag = get_misc_value('priceband_sync', user.id)
+    central_order_mgmt = get_misc_value('central_order_mgmt', user.id)
     reseller_obj = CustomerUserMapping.objects.filter(user=request.user.id)
     if reseller_obj and price_band_flag == 'true':
         reseller_id = reseller_obj[0].customer_id
         res_corps = list(CorpResellerMapping.objects.filter(reseller_id=reseller_id,
                                                    status=1).values_list('corporate_id', flat=True).distinct())
         corp_names = CorporateMaster.objects.filter(id__in=res_corps).values_list('name', flat=True).distinct()
+        response['reseller_corporates'].extend(corp_names)
+    elif reseller_obj and central_order_mgmt == 'true': # ISPRAVA
+        corp_names = CorporateMaster.objects.filter(user=user.id).values_list('name', flat=True).distinct()
         response['reseller_corporates'].extend(corp_names)
 
     cart_data = CustomerCartData.objects.filter(user_id=user.id, customer_user_id=request.user.id)
@@ -9770,32 +9805,21 @@ def order_cancel(request, user=''):
                                                                 po_number=po_number, customer_name=client_name)
                     ord_upload_qs.delete()
                 order_det_ids = gen_qs.values_list('orderdetail_id', flat=True)
-                ord_det_qs = OrderDetail.objects.filter(id__in=order_det_ids)
-                for order_det in ord_det_qs:
-                    if order_det.status == 1:
-                        order_det.status = 3
-                        order_det.save()
-                    else:
-                        picklists = Picklist.objects.filter(order_id=order_det.id)
-                        for picklist in picklists:
-                            if picklist.picked_quantity <= 0:
-                                picklist.delete()
-                            elif picklist.stock:
-                                cancel_location = CancelledLocation.objects.filter(picklist_id=picklist.id,
-                                                                                   picklist__order__user=user.id)
-                                if not cancel_location:
-                                    CancelledLocation.objects.create(picklist_id=picklist.id,
-                                                                     quantity=picklist.picked_quantity,
-                                                                     location_id=picklist.stock.location_id,
-                                                                     creation_date=datetime.datetime.now(), status=1)
-                                    picklist.status = 'cancelled'
-                                    picklist.save()
-                            else:
-                                picklist.status = 'cancelled'
-                                picklist.save()
-                        order_det.status = 3
-                        order_det.save()
+                order_cancel_functionality(order_det_ids)
                 gen_qs.delete()
+        else:
+            central_order_mgmt = get_misc_value('central_order_mgmt', user.id)
+            if central_order_mgmt: # Here user.id is admin id. Bcz all customers are created under admin login only.
+                order_id = request.GET.get('order_id', '')
+                customer_id = customer_obj[0].customer_id
+                whusers = UserGroups.objects.filter(admin_user=user.id).values_list('user').distinct()
+                search_params = {'customer_id': customer_id, 'user__in': whusers}
+                order_id_search = ''.join(re.findall('\d+', order_id))
+                order_code_search = ''.join(re.findall('\D+', order_id))
+                order = OrderDetail.objects.filter(Q(order_id=order_id_search, order_code=order_code_search) |
+                                                   Q(original_order_id=order_id), **search_params).exclude(status=3)
+                order_det_ids = order.values_list('id', flat=True)
+                order_cancel_functionality(order_det_ids)
     except:
         import traceback
         log.debug(traceback.format_exc())

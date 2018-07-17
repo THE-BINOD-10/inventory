@@ -35,6 +35,12 @@
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
+                <label class="control-label"> Shipment Date </label>
+                <input type="text" name="shipment_date" ui-jq="datepicker" class="form-control" ng-model="showCase.model_data.shipment_date" maxlength="256" data-date-today-highlight="true" required>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
                 <label class="control-label"> Status </label>
                 <input type="text" name="status" class="form-control" ng-model="showCase.model_data.status" maxlength="256" required>
               </div>
@@ -53,7 +59,7 @@
         <div class="form-group" style="margin-bottom:0px;">
           <button type="button" class="btn pop pop-normal" ng-click="showCase.close()">Close</button>
           <button type="submit" class="btn pop pop-green"
-                  ng-click="showCase.submit(showCase.model_data.warehouse, showCase.model_data.status, showCase.model_data.data_id)" ng-disabled="process">
+                  ng-click="showCase.submit(showCase.model_data.warehouse, showCase.model_data.status, showCase.model_data.data_id, showCase.model_data.shipment_date)" ng-disabled="process">
             <span>Save</span>
             <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
           </button>

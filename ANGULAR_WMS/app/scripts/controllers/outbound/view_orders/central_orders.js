@@ -44,6 +44,7 @@ var vm = this;
         DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'),
         DTColumnBuilder.newColumn('SKU Desc').withTitle('SKU Desc'),
         DTColumnBuilder.newColumn('Product Quantity').withTitle('Product Quantity'),
+        DTColumnBuilder.newColumn('Shipment Date').withTitle('Shipment Date'),
         DTColumnBuilder.newColumn('Warehouse').withTitle('Warehouse'),
         DTColumnBuilder.newColumn('Status').withTitle('Status')
     ];
@@ -80,6 +81,7 @@ var vm = this;
                   vm.model_data.quantity = resp_data.quantity;
                   vm.model_data.data_id = resp_data.data_id;
                   vm.model_data.warehouse = resp_data.warehouse;
+                  vm.model_data.shipment_date = resp_data.shipment_date;
                   $state.go('app.outbound.ViewOrders.CentralOrderDetails');
                 });
             });
@@ -101,8 +103,8 @@ var vm = this;
     }
 
     vm.submit = submit;
-    function submit(wh, status, data_id){
-        var elem = {'warehouse': wh, 'status': status, 'interm_det_id': data_id};
+    function submit(wh, status, data_id, shipment_date){
+        var elem = {'warehouse': wh, 'status': status, 'interm_det_id': data_id, 'shipment_date': shipment_date};
         vm.service.apiCall('create_order_from_intermediate_order/', 'POST', elem, true).then(function(data){
           if(data.message) {
             if(data.data == 'Success') {

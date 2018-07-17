@@ -140,6 +140,14 @@ def get_purchase_order_excel_headers(user):
     return excel_headers
 
 
+def get_seller_transfer_excel_headers(user):
+    excel_headers = copy.deepcopy(SELLER_TRANSFER_MAPPING)
+    userprofile = user.userprofile
+    if not userprofile.industry_type == 'FMCG':
+        del excel_headers["MRP"]
+    return excel_headers
+
+
 '''def check_and_get_marketplace(reader, file_type, no_of_rows, no_of_cols):
     marketplace = ''
     if get_cell_data(0, 0, reader, file_type) == 'Order No.':
@@ -4549,7 +4557,7 @@ def seller_transfer_form(request, user=''):
     excel_file = request.GET['download-file']
     if excel_file:
         return error_file_download(excel_file)
-    excel_headers = SELLER_TRANSFER_MAPPING
+    excel_headers = get_seller_transfer_excel_headers(user)
     wb, ws = get_work_sheet('Inventory', excel_headers.keys())
     return xls_to_response(wb, '%s.seller_transfer_form.xls' % str(user.id))
 
@@ -4704,15 +4712,17 @@ def validate_seller_transfer_form(request, reader, user, no_of_rows, no_of_cols,
     log.info("Validate Seller Transfer upload started")
     st_time = datetime.datetime.now()
     index_status = {}
+    seller_transfer_mapping = get_seller_transfer_excel_headers(user)
 
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
-                                             SELLER_TRANSFER_MAPPING)
-    if not set(SELLER_TRANSFER_MAPPING.values()).issubset(excel_mapping.keys()):
+                                             seller_transfer_mapping)
+    if not set(['wms_code', 'source_seller', 'source_location', 'dest_seller', 'dest_location',
+                'quantity']).issubset(excel_mapping.keys()):
         return 'Invalid File'
 
     log.info("Validation Started %s" % datetime.datetime.now())
     all_data_list = []
-    exc_reverse = dict(zip(SELLER_TRANSFER_MAPPING.values(), SELLER_TRANSFER_MAPPING.keys()))
+    exc_reverse = dict(zip(seller_transfer_mapping.values(), seller_transfer_mapping.keys()))
     all_skus = SKUMaster.objects.filter(user=user.id)
     all_sellers = SellerMaster.objects.filter(user=user.id)
     all_locations = LocationMaster.objects.filter(zone__user=user.id)
@@ -4747,20 +4757,37 @@ def validate_seller_transfer_form(request, reader, user, no_of_rows, no_of_cols,
                     index_status.setdefault(row_idx, set()).add('Invalid %s' % exc_reverse[key])
                 else:
                     data_dict[key] = location_obj
+            elif key == 'mrp':
+                if cell_data and cell_data != '':
+                    try:
+                        data_dict[key] = float(cell_data)
+                    except:
+                        data_dict[key] = 0
+                        index_status.setdefault(row_idx, set()).add('%s should be number' % exc_reverse[key])
             elif key == 'quantity':
                 try:
                     data_dict[key] = float(cell_data)
                 except:
                     index_status.setdefault(row_idx, set()).add('%s should be number' % exc_reverse[key])
         if not index_status:
-            stocks = StockDetail.objects.filter(sku_id=data_dict['sku_id'],
-                                                sellerstock__seller_id=data_dict['source_seller'],
-                                                location_id=data_dict['source_location'][0].id, quantity__gt=0,
-                                                sellerstock__quantity__gt=0)
+            src_stock_dict = {'sku_id': data_dict['sku_id'], 'sellerstock__seller_id': data_dict['source_seller'],
+                              'location_id': data_dict['source_location'][0].id, 'quantity__gt': 0,
+                              'sellerstock__quantity__gt': 0}
+            if data_dict.get('mrp', 0):
+                src_stock_dict['batch_detail__mrp'] = data_dict['mrp']
+            stock_detail = StockDetail.objects.filter(**src_stock_dict)
+            if user.userprofile.industry_type == 'FMCG':
+                data_dict['dest_stocks'] = StockDetail.objects.none()
+                stock_detail1 = stock_detail.filter(batch_detail__expiry_date__isnull=False). \
+                    order_by('batch_detail__expiry_date')
+                stock_detail2 = stock_detail.exclude(batch_detail__expiry_date__isnull=False)
+                stocks = list(chain(stock_detail1, stock_detail2))
+            else:
+                data_dict['dest_stocks'] = StockDetail.objects.filter(sku_id=data_dict['sku_id'],
+                                                    sellerstock__seller_id=data_dict['dest_seller'],
+                                                    location_id=data_dict['dest_location'][0].id)
+                stocks = stock_detail
             data_dict['src_stocks'] = stocks
-            data_dict['dest_stocks'] = StockDetail.objects.filter(sku_id=data_dict['sku_id'],
-                                                sellerstock__seller_id=data_dict['dest_seller'],
-                                                location_id=data_dict['dest_location'][0].id)
             avail_qty = check_auto_stock_availability(stocks, user)
             if data_dict['quantity'] > avail_qty:
                 index_status.setdefault(row_idx, set()).add('Available quantity is %s' % str(avail_qty))

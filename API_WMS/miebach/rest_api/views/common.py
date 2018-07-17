@@ -1515,9 +1515,24 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
             dict_values['batch_detail_id'] = BatchDetail.objects.create(**mrp_dict).id
         elif batch_obj:
             dict_values['batch_detail'] = batch_obj
-        dest_stocks = StockDetail(**dict_values)
-        dest_stocks.save()
-        change_seller_stock(dest_seller_id, dest_stocks, user, float(quantity), 'create')
+        if batch_obj:
+            batch_stock_filter = {'sku_id': sku_id, 'location_id': dest[0].id, 'batch_detail_id': batch_obj.id}
+            if dest_seller_id:
+                batch_stock_filter['sellerstock__seller_id'] = dest_seller_id
+            dest_stock_objs = StockDetail.objects.filter(**batch_stock_filter)
+            if not dest_stock_objs:
+                dest_stocks = StockDetail(**dict_values)
+                dest_stocks.save()
+                change_seller_stock(dest_seller_id, dest_stocks, user, float(quantity), 'create')
+            else:
+                dest_stocks = dest_stock_objs[0]
+                dest_stocks.quantity = dest_stocks.quantity + float(quantity)
+                dest_stocks.save()
+                change_seller_stock(dest_seller_id, dest_stocks, user, float(quantity), 'inc')
+        else:
+            dest_stocks = StockDetail(**dict_values)
+            dest_stocks.save()
+            change_seller_stock(dest_seller_id, dest_stocks, user, float(quantity), 'create')
     else:
         dest_stocks = dest_stocks[0]
         dest_stocks.quantity += float(quantity)

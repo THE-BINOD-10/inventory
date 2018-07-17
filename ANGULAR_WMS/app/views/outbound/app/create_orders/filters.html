@@ -159,7 +159,8 @@
             <tbody>
               <tr ng-repeat="dimension in showCase.filterData.dimensions">
                 <td>{{dimension}}</td>
-                <td style="text-align:center"><input name="{{dimension}}" class="form-control number" type="text" placeholder="{{dimension}}" ng-model="showCase.filterData.dimension_filter[dimension]"/></td>
+                <td style="text-align:center"><input name="{{'from_'+dimension}}" class="form-control number" type="text" placeholder="From" ng-model="showCase.filterData.dimension_filter['from_'+dimension]"/></td>
+                <td style="text-align:center"><input name="{{'to_'+dimension}}" class="form-control number" type="text" placeholder="To" ng-model="showCase.filterData.dimension_filter['to_'+dimension]"/></td>
               </tr>
             </tbody>
           </table>

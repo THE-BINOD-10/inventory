@@ -35,6 +35,13 @@
                 </div>
               </div>
               <div class="form-group">
+                <label class="col-sm-4 col-xs-4 text-right"><b>Phone Number</b></label>
+                <div class="col-sm-6 col-xs-8">
+                  <input ng-if="showCase.edit_form" type="text" class="form-control" ng-model="showCase.model_data.phone_number">
+                  <span ng-if="!showCase.edit_form">: {{showCase.model_data.phone_number}}</span>
+                </div>
+              </div>
+              <div class="form-group">
                 <label class="col-sm-4 col-xs-4 text-right"><b>Address</b></label>
                 <div class="col-sm-6 col-xs-8">
                   <textarea rows="3" class="form-control" cols="30" name="address" ng-if="showCase.edit_form" ng-model="showCase.model_data.address"></textarea>
@@ -67,6 +74,13 @@
                 <div class="col-sm-6 col-xs-8">
                   <input ng-if="showCase.edit_form" type="text" class="form-control" ng-model="showCase.model_data.cin_number">
                   <span ng-if="!showCase.edit_form">: {{showCase.model_data.cin_number}}</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="col-sm-4 col-xs-4 text-right"><b>PAN Number</b></label>
+                <div class="col-sm-6 col-xs-8">
+                  <input ng-if="showCase.edit_form" type="text" class="form-control" ng-model="showCase.model_data.pan_number">
+                  <span ng-if="!showCase.edit_form">: {{showCase.model_data.pan_number}}</span>
                 </div>
               </div>
               <div class="row">

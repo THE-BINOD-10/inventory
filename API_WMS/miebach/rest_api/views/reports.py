@@ -61,6 +61,11 @@ def get_report_data(request, user=''):
             data_index = data['filters'].index(
                 filter(lambda person: 'order_report_status' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = ORDER_SUMMARY_REPORT_STATUS
+    elif report_name in ('dist_sales_report', 'reseller_sales_report'):
+        if 'order_report_status' in filter_keys:
+            data_index = data['filters'].index(
+                filter(lambda person: 'order_report_status' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = ORDER_SUMMARY_REPORT_STATUS
     return HttpResponse(json.dumps({'data': data}))
 
 
@@ -388,17 +393,18 @@ def get_supplier_details_data(search_params, user, sub_user):
     search_parameters['open_po__sku_id__in'] = sku_master_ids
     supplier_data = {'aaData': []}
     supplier_name = search_params.get('supplier')
-    lis = ['creation_date', 'order_id', 'open_po__supplier__name', 'total_ordered', 'total_received', 'order_id',
+    lis = ['order_id', 'order_id', 'open_po__supplier__name', 'total_ordered', 'total_received', 'order_id',
            'order_id']
     order_val = lis[order_index]
     if order_term == 'desc':
         order_val = '-%s' % lis[order_index]
+
     if supplier_name:
-        suppliers = PurchaseOrder.objects.exclude(status='location-assigned').filter(
+        suppliers = PurchaseOrder.objects.select_related('open_po').exclude(status='location-assigned').filter(
             open_po__supplier__id=supplier_name, received_quantity__lt=F('open_po__order_quantity'),
             open_po__sku__user=user.id, **search_parameters)
     else:
-        suppliers = PurchaseOrder.objects.exclude(status='location-assigned').filter(
+        suppliers = PurchaseOrder.objects.select_related('open_po').exclude(status='location-assigned').filter(
             received_quantity__lt=F('open_po__order_quantity'), open_po__sku__user=user.id, **search_parameters)
     purchase_orders = suppliers.values('order_id').distinct().annotate(total_ordered=Sum('open_po__order_quantity'),
                                                                        total_received=Sum('received_quantity')). \
@@ -409,8 +415,8 @@ def get_supplier_details_data(search_params, user, sub_user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
-    all_amount = [(supplier.open_po.order_quantity * supplier.open_po.price) for supplier in suppliers]
-    total_charge = sum(all_amount)
+    #all_amount = [(supplier.open_po.order_quantity * supplier.open_po.price) for supplier in suppliers]
+    #total_charge = sum(all_amount)
     if stop_index:
         purchase_orders = purchase_orders[start_index:stop_index]
 
@@ -445,7 +451,7 @@ def get_supplier_details_data(search_params, user, sub_user):
                                                     ('Amount', total_amt),
                                                     ('Received Quantity', purchase_order['total_received']),
                                                     ('Status', status), ('order_id', po_obj.order_id))))
-    supplier_data['total_charge'] = total_charge
+    #supplier_data['total_charge'] = total_charge
     return supplier_data
 
 
@@ -1019,19 +1025,19 @@ def print_reseller_sales_report(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-def get_dist_target_report(request, user=''):
+def get_zone_target_summary_report(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    temp_data = get_dist_target_report_data(search_params, user, request.user)
+    temp_data = get_zone_target_summary_report_data(search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 
 @csrf_exempt
 @login_required
 @get_admin_user
-def print_dist_target_report(request, user=''):
+def print_zone_target_summary_report(request, user=''):
     html_data = {}
     headers, search_params, filter_params = get_search_params(request)
-    report_data = get_dist_target_report_data(search_params, user, request.user)
+    report_data = get_zone_target_summary_report_data(search_params, user, request.user)
     report_data = report_data['aaData']
     if report_data:
         html_data = create_reports_table(report_data[0].keys(), report_data)
@@ -1041,19 +1047,151 @@ def print_dist_target_report(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-def get_reseller_target_report(request, user=''):
+def get_zone_target_detailed_report(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
-    temp_data = get_reseller_target_report_data(search_params, user, request.user)
+    temp_data = get_zone_target_detailed_report_data(search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 
 @csrf_exempt
 @login_required
 @get_admin_user
-def print_reseller_target_report(request, user=''):
+def print_zone_target_detailed_report(request, user=''):
     html_data = {}
     headers, search_params, filter_params = get_search_params(request)
-    report_data = get_reseller_target_report_data(search_params, user, request.user)
+    report_data = get_zone_target_detailed_report_data(search_params, user, request.user)
+    report_data = report_data['aaData']
+    if report_data:
+        html_data = create_reports_table(report_data[0].keys(), report_data)
+    return HttpResponse(html_data)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_dist_target_summary_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_dist_target_summary_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def print_dist_target_summary_report(request, user=''):
+    html_data = {}
+    headers, search_params, filter_params = get_search_params(request)
+    report_data = get_dist_target_summary_report_data(search_params, user, request.user)
+    report_data = report_data['aaData']
+    if report_data:
+        html_data = create_reports_table(report_data[0].keys(), report_data)
+    return HttpResponse(html_data)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_dist_target_detailed_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_dist_target_detailed_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def print_dist_target_detailed_report(request, user=''):
+    html_data = {}
+    headers, search_params, filter_params = get_search_params(request)
+    report_data = get_dist_target_detailed_report_data(search_params, user, request.user)
+    report_data = report_data['aaData']
+    if report_data:
+        html_data = create_reports_table(report_data[0].keys(), report_data)
+    return HttpResponse(html_data)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_reseller_target_summary_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_reseller_target_summary_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def print_reseller_target_summary_report(request, user=''):
+    html_data = {}
+    headers, search_params, filter_params = get_search_params(request)
+    report_data = get_reseller_target_summary_report_data(search_params, user, request.user)
+    report_data = report_data['aaData']
+    if report_data:
+        html_data = create_reports_table(report_data[0].keys(), report_data)
+    return HttpResponse(html_data)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_reseller_target_detailed_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_reseller_target_detailed_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def print_reseller_target_detailed_report(request, user=''):
+    html_data = {}
+    headers, search_params, filter_params = get_search_params(request)
+    report_data = get_reseller_target_detailed_report_data(search_params, user, request.user)
+    report_data = report_data['aaData']
+    if report_data:
+        html_data = create_reports_table(report_data[0].keys(), report_data)
+    return HttpResponse(html_data)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_corporate_target_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_corporate_target_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def print_corporate_target_report(request, user=''):
+    html_data = {}
+    headers, search_params, filter_params = get_search_params(request)
+    report_data = get_corporate_target_report_data(search_params, user, request.user)
+    report_data = report_data['aaData']
+    if report_data:
+        html_data = create_reports_table(report_data[0].keys(), report_data)
+    return HttpResponse(html_data)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_corporate_reseller_mapping_report(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_corporate_reseller_mapping_report_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def print_corporate_reseller_mapping_report(request, user=''):
+    html_data = {}
+    headers, search_params, filter_params = get_search_params(request)
+    report_data = get_corporate_reseller_mapping_report_data(search_params, user, request.user)
     report_data = report_data['aaData']
     if report_data:
         html_data = create_reports_table(report_data[0].keys(), report_data)
@@ -1157,7 +1295,7 @@ def print_purchase_order_form(request, user=''):
                  'w_address': get_purchase_company_address(profile),
                  'company_name': company_name, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                  'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title,
-                 'gstin_no': gstin_no}
+                 'gstin_no': gstin_no, 'wh_gstin': profile.gst_number, 'wh_telephone': profile.phone_number}
 
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
@@ -1184,3 +1322,17 @@ def print_rtv_report(request, user=''):
     if report_data:
         html_data = create_reports_table(report_data[0].keys(), report_data)
     return HttpResponse(html_data)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def print_debit_note(request, user=''):
+    from rest_api.views.inbound import get_debit_note_data
+    receipt_type = ''
+    rtv_number = request.GET.get('rtv_number', '')
+    if rtv_number:
+        show_data_invoice = get_debit_note_data(rtv_number, user)
+        return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice': [show_data_invoice]})
+    else:
+        return HttpResponse("No Data")

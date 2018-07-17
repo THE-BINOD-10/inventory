@@ -1650,9 +1650,10 @@ def confirm_sku_substitution(request, user=''):
         mrp_dict = {}
         if 'dest_batch_number' in data_dict.keys():
             mrp_dict['batch_no'] = data_dict['dest_batch_number'][ind]
-            mrp_dict['mrp'] = data_dict['dest_mrp'][ind]
             dest_filter['batch_detail__batch_no'] = data_dict['dest_batch_number'][ind]
-            dest_filter['batch_detail__mrp'] = data_dict['dest_mrp'][ind]
+            if data_dict['dest_mrp'][ind]:
+                mrp_dict['mrp'] = data_dict['dest_mrp'][ind]
+                dest_filter['batch_detail__mrp'] = data_dict['dest_mrp'][ind]
         dest_stocks = StockDetail.objects.filter(**dest_filter)
         dest_list.append({'dest_sku': dest_sku[0], 'dest_loc': dest_loc[0], 'dest_qty': dest_qty,
                           'dest_stocks': dest_stocks, 'mrp_dict': mrp_dict})
@@ -1710,7 +1711,7 @@ def get_inventory_modification(start_index, stop_index, temp_data, search_term, 
         master_data = list(chain(master_data, master_data1))
     else:
         master_data = StockDetail.objects.exclude(receipt_number=0).values_list(*stock_detail_query_list).distinct(). \
-            annotate(total=Sum('quantity')).filter(sku__user=user.id). \
+            annotate(total=Sum('quantity')).filter(sku__user=user.id, status=1). \
             order_by(order_data)
         wms_codes = map(lambda d: d[0], master_data)
         master_data1 = job_order.exclude(product_code__wms_code__in=wms_codes).values_list(
@@ -1845,7 +1846,6 @@ def inventory_adj_modify_qty(request, user=''):
                 pallet_id = pallet_code[0].id
         else:
             pallet_id = 0
-        #For Add Qty and create new stock detail
         if added_qty:
             stock_new_create = {}
             if location_id:
@@ -1862,8 +1862,7 @@ def inventory_adj_modify_qty(request, user=''):
             message="Added Quantity Successfully"
             inventory_create_new = StockDetail.objects.create(**stock_new_create)
             save_sku_stats(user, sku_id, inventory_create_new.id, 'inventory-adjustment', stock_new_create['quantity'])
-        #Modify Available Qty
-	if old_available_qty != available_qty or sub_qty:
+        if old_available_qty != available_qty or sub_qty:
             stock_qty_update = {}
             if location_id:
                 stock_qty_update['location_id'] = location_id
@@ -1871,8 +1870,6 @@ def inventory_adj_modify_qty(request, user=''):
                 stock_qty_update['sku_id'] = sku_id
             if pallet_id:
                 stock_qty_update['pallet_detail_id'] = pallet_id
-            stock_qty_update['receipt_date__regex'] = str(data_dict['receipt_date'].replace(tzinfo=None))
-            stock_qty_update['receipt_type'] = data_dict['receipt_type']
             stock_qty_update['status'] = 1
             stock_qty_update['sku__user'] = user.id
             inventory_update_adj = StockDetail.objects.filter(**stock_qty_update)
@@ -1902,8 +1899,7 @@ def inventory_adj_modify_qty(request, user=''):
                             raw_reserve_qty = raw_reserve[0]
                         total_reserve_qty = reserve_qty + raw_reserve_qty
                         obj_qty = ob.quantity
-                        if obj_qty:
-                            save_reduced_qty = abs(obj_qty - total_reserve_qty)
+                        save_reduced_qty = obj_qty
                         if save_reduced_qty >= sub_qty:
                             diff_qty = int(save_reduced_qty)-int(sub_qty)
                             StockDetail.objects.filter(id=ob.id).update(quantity=diff_qty)
@@ -1923,8 +1919,14 @@ def inventory_adj_modify_qty(request, user=''):
                     reserve_qty = 0
                     raw_reserve_qty = 0
                     save_reduced_qty = 0
-                    reserved_instances = PicklistLocation.objects.filter(status=1, stock__sku__user=user.id, stock=ob).values('stock__sku__wms_code').distinct().annotate(reserved=Sum('reserved'))
-                    raw_res_instances = RMLocation.objects.filter(status=1, stock__sku__user=user.id, stock=ob).values('stock__sku__wms_code').distinct().annotate(rm_reserved=Sum('reserved'))
+                    picklist_location_stock_query_list = ['stock__sku__wms_code', 'stock__location__location']
+                    if pallet_code_enabled=='true':
+                        picklist_location_stock_query_list.append('stock__pallet_detail__pallet_code')
+                    rm_location_query_list = ['material_picklist__jo_material__material_code__wms_code', 'stock__location__location']
+                    if pallet_code_enabled=='true':
+                        rm_location_query_list.append('stock__pallet_detail__pallet_code')
+                    reserved_instances = PicklistLocation.objects.filter(status=1, stock__sku__user=user.id, stock__sku__wms_code = ob.sku.wms_code, stock__location__location = ob.location.location).values(*picklist_location_stock_query_list).distinct().annotate(reserved=Sum('reserved'))
+                    raw_res_instances = RMLocation.objects.filter(status=1, stock__sku__user=user.id, stock__sku__wms_code = ob.sku.wms_code, stock__location__location = ob.location.location).values(*rm_location_query_list).distinct().annotate(rm_reserved=Sum('reserved'))
                     reserve = map(lambda d: d['reserved'], reserved_instances)
                     if reserve:
                         reserve_qty = reserve[0]
@@ -1933,8 +1935,7 @@ def inventory_adj_modify_qty(request, user=''):
                         raw_reserve_qty = raw_reserve[0]
                     total_reserve_qty = reserve_qty + raw_reserve_qty
                     obj_qty = ob.quantity
-                    if obj_qty:
-                        save_reduced_qty = abs(obj_qty - total_reserve_qty)
+                    save_reduced_qty = obj_qty
                     if save_reduced_qty >= sub_qty:
                         diff_qty = int(save_reduced_qty)-int(sub_qty)
                         ob.quantiy = diff_qty
@@ -2030,5 +2031,5 @@ def get_sku_batches(request, user=''):
         batch_obj = BatchDetail.objects.filter(stockdetail__sku=sku_id).values('batch_no', 'mrp').distinct()
         for batch in batch_obj:
             sku_batches[batch['batch_no']].append(batch['mrp'])
-        sku_batches[batch['batch_no']] = list(set(sku_batches[batch['batch_no']]))
+            sku_batches[batch['batch_no']] = list(set(sku_batches[batch['batch_no']]))
     return HttpResponse(json.dumps({"sku_batches": sku_batches}))

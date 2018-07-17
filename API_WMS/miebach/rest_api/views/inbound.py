@@ -2516,6 +2516,10 @@ def confirm_grn(request, confirm_returns='', user=''):
     seller_name = user.username
     seller_address = user.userprofile.address
     seller_receipt_id = 0
+    if user.username=='milkbasket' and not request.POST.get('invoice_number', ''):
+        return HttpResponse("Invoice Number  is Mandatory")
+    if user.username == 'milkbasket' and not request.POST.get('invoice_date', ''):
+        return HttpResponse("Invoice Date is Mandatory")
     bill_date = datetime.datetime.now().date().strftime('%d-%m-%Y')
     if request.POST.get('invoice_date', ''):
         bill_date = datetime.datetime.strptime(str(request.POST.get('invoice_date', '')), "%m/%d/%Y").strftime('%d-%m-%Y')
@@ -4374,7 +4378,7 @@ def confirm_add_po(request, sales_data='', user=''):
                  'company_name': company_name, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                  'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title,
                  'gstin_no': gstin_no, 'industry_type': industry_type, 'expiry_date': expiry_date,
-                 'wh_telephone': wh_telephone}
+                 'wh_telephone': wh_telephone, 'wh_gstin': profile.gst_number}
 
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
@@ -4558,7 +4562,7 @@ def confirm_po1(request, user=''):
                          'total_qty': total_qty, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                          'vendor_telephone': vendor_telephone, 'gstin_no': gstin_no,
                          'w_address': get_purchase_company_address(profile), 'ship_to_address': ship_to_address,
-                         'wh_telephone': wh_telephone}
+                         'wh_telephone': wh_telephone, 'wh_gstin': profile.gst_number}
 
             t = loader.get_template('templates/toggle/po_download.html')
             rendered = t.render(data_dict)
@@ -5421,9 +5425,14 @@ def confirm_receive_qc(request, user=''):
     is_putaway = ''
     purchase_data = ''
     btn_class = ''
+    seller_receipt_id = 0
     seller_name = user.username
     seller_address = user.userprofile.address
     myDict = dict(request.POST.iterlists())
+    if user.username=='milkbasket' and not request.POST.get('invoice_number', ''):
+        return HttpResponse("Invoice Number  is Mandatory")
+    if user.username == 'milkbasket' and not request.POST.get('invoice_date', ''):
+        return HttpResponse("Invoice Date is Mandatory")
     bill_date = datetime.datetime.now().date().strftime('%d-%m-%Y')
     if request.POST.get('invoice_date', ''):
         bill_date = datetime.datetime.strptime(str(request.POST.get('invoice_date', '')), "%m/%d/%Y").strftime('%d-%m-%Y')
@@ -5490,6 +5499,11 @@ def confirm_receive_qc(request, user=''):
                                 'report_name': 'Goods Receipt Note', 'company_name': profile.company_name, 'location': profile.location}'''
             sku_list = putaway_data[putaway_data.keys()[0]]
             sku_slices = generate_grn_pagination(sku_list)
+            if seller_receipt_id:
+                po_number = str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id) \
+                            + '/' + str(seller_receipt_id)
+            else:
+                po_number = str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id)
             report_data_dict = {'data': putaway_data, 'data_dict': data_dict, 'data_slices': sku_slices,
                                 'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty,
                                 'total_price': total_price, 'total_tax': total_tax, 'address': address,
@@ -7099,10 +7113,12 @@ def get_debit_note_data(rtv_number, user):
     total_igst_value = 0
     total_utgst_value = 0
     total_cess_value = 0
-    ware_house = UserProfile.objects.filter(user = user).values('company_name', 'cin_number', 'location', 'city', 'state', 'country', 'phone_number', 'pin_code', 'gst_number')
+    ware_house = UserProfile.objects.filter(user = user).values('company_name', 'cin_number', 'location', 'city',\
+                                                                'state', 'country', 'phone_number', 'pin_code',\
+                                                                'gst_number', 'address', 'pan_number')
     data_dict.setdefault('warehouse_details', [])
     if len(ware_house):
-        data_dict['warehouse_details'].append({'company_name' : ware_house[0]['company_name'], 'cin_number' : ware_house[0]['cin_number'], 'location' : ware_house[0]['location'], 'city' : ware_house[0]['city'], 'state' : ware_house[0]['state'], 'country' : ware_house[0]['country'], 'phone_number' : ware_house[0]['phone_number'], 'pin_code' : ware_house[0]['pin_code'], 'gst_number' : ware_house[0]['gst_number'] })
+        data_dict['warehouse_details'] = ware_house[0]
     for obj in return_to_vendor:
         get_po = obj.seller_po_summary.purchase_order.open_po
         data_dict['supplier_name'] = get_po.supplier.name

@@ -16,6 +16,7 @@
       vm.bt_disable = true;
       vm.service = Service;
       vm.industry_type = Session.user_profile.industry_type;
+      vm.user_type = Session.user_profile.user_type;
       vm.batch_nos = [];
       vm.batches = {};
 

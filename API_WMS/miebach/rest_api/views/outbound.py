@@ -1037,7 +1037,7 @@ def confirm_no_stock(picklist, request, user, picks_all, picklists_send_mail, me
     return seller_pick_number
 
 
-def validate_location_stock(val, all_locations, all_skus, user):
+def validate_location_stock(val, all_locations, all_skus, user, picklist):
     status = []
     wms_check = all_skus.filter(wms_code=val['wms_code'], user=user.id)
     loc_check = all_locations.filter(location=val['location'], zone__user=user.id)
@@ -1047,6 +1047,8 @@ def validate_location_stock(val, all_locations, all_skus, user):
                       'quantity__gt': 0}
     if 'pallet' in val and val['pallet']:
         pic_check_data['pallet_detail__pallet_code'] = val['pallet']
+    if picklist.stock and picklist.stock.batch_detail_id:
+        pic_check_data['batch_detail_id'] = picklist.stock.batch_detail_id
     pic_check = StockDetail.objects.filter(**pic_check_data)
     if not pic_check:
         status.append("Insufficient Stock in given location")
@@ -1544,7 +1546,8 @@ def picklist_confirmation(request, user=''):
                             return HttpResponse(map_status)
                     status = ''
                     if not val['location'] == 'NO STOCK':
-                        pic_check_data, status = validate_location_stock(val, all_locations, all_skus, user)
+                        pic_check_data, status = validate_location_stock(val, all_locations, all_skus, user,
+                                                                         picklist)
                     if status:
                         continue
                     if not picklist.stock:
@@ -3608,8 +3611,12 @@ def insert_order_data(request, user=''):
             original_order_id = generic_order['orderdetail__original_order_id']
             order_detail_user = User.objects.get(id=generic_order['orderdetail__user'])
             resp = order_push(original_order_id, order_detail_user, "NEW")
-            log.info('New Order Push Status: %s' %(str(resp)))
-        if user_type == 'customer' and not is_distributor:
+            log.info('New Order Push Status: %s' % (str(resp)))
+            if resp['Status'] == 'Failure':
+                message = resp['Result']['Errors'][0]['ErrorMessage']
+                order_detail = OrderDetail.objects.filter(original_order_id=original_order_id, user=order_detail_user.id)
+                log.info(order_detail.delete())
+        if user_type == 'customer' and not is_distributor and message == "Success":
             # Creating Uploading POs object with file upload pending.
             # upload_po Api is called in front-end if file is present
             upload_po_map = {'uploaded_user_id': request.user.id, 'po_number': corporate_po_number,
@@ -3621,9 +3628,9 @@ def insert_order_data(request, user=''):
                 ord_obj.save()
             else:
                 log.info('Uploaded PO Already Created::%s' %(upload_po_map))
-
-    # Deleting Customer Cart data after successful order creation
-    CustomerCartData.objects.filter(customer_user=request.user.id).delete()
+    if message == "Success":
+        # Deleting Customer Cart data after successful order creation
+        CustomerCartData.objects.filter(customer_user=request.user.id).delete()
 
     return HttpResponse(message)
 

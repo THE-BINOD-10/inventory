@@ -61,6 +61,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.scan_pop = scan_pop;
     function scan_pop() {
       vm.model_data = {data:[]};
+      vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
+        vm.model_data.seller_types = []
+        if (data.message) {
+          var seller_data = data.data.sellers;
+          angular.forEach(seller_data, function(seller_single){
+              vm.model_data.seller_types.push(seller_single.id + ':' + seller_single.name);
+          });
+        }
+      });
       $state.go('app.inbound.SalesReturns.ScanReturns'); 
     }
 
@@ -145,7 +154,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.scan_sku = function(event, field) {
       if ( event.keyCode == 13 && field) {
         var check_sku_dict = {'sku_code': field, 'allocate_order': vm.allocate_order,
-                           'marketplace': vm.model_data.marketplace, 'mrp': vm.mrp }
+                           'marketplace': vm.model_data.marketplace, 'mrp': vm.model_data.mrp }
         if(vm.excl_order_map[field]) {
           check_sku_dict['exclude_order_ids'] = vm.excl_order_map[field].join(',');
         }
@@ -186,6 +195,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           }
         });
         vm.model_data.return_sku_code = '';
+        vm.model_data.mrp = '';
       }
     }
 

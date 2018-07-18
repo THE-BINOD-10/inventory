@@ -266,7 +266,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               closeOnConfirm: true
               },
               function(isConfirm){
-                $state.go("user.App.Brands");
+                $state.go("user.App.newStyle");
               }
             )
           } else {

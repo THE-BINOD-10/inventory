@@ -3023,7 +3023,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         if price_field == 'price':
             dis_percent = 0
             if customer_master:
-                dis_percent = customer_master.discount_percentage
+                dis_percent = customer_master[0].discount_percentage
             sku_master1 = SKUMaster.objects.exclude(sku_class='').\
                     annotate(n_price=F(price_field)*(1-(Value(dis_percent)/Value(100)))).annotate(
                     new_price=F('n_price') + (F('n_price') / Value(100)) * Value(custom_margin)).\
@@ -3052,7 +3052,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         if price_field == 'price':
             dis_percent = 0
             if customer_master:
-                dis_percent = customer_master.discount_percentage
+                dis_percent = customer_master[0].discount_percentage
             sku_master1 = SKUMaster.objects.exclude(sku_class='').\
                             annotate(n_price=F(price_field)*(1-(Value(dis_percent)/Value(100)))).\
                             annotate(new_price=F('n_price') + Value(custom_margin)).\

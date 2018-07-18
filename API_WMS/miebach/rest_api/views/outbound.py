@@ -3587,6 +3587,8 @@ def insert_order_data(request, user=''):
         str(user.username), str(myDict), str(e)))
 
     message = "Success"
+    success_messages = ["Success", "Order created, Picklist generated Successfully",
+                        "Order Created and Dispatched Successfully"]
     if not admin_user:
         auto_picklist_signal = get_misc_value('auto_generate_picklist', user.id)
         if direct_dispatch == 'true':
@@ -3601,7 +3603,6 @@ def insert_order_data(request, user=''):
             order_objs = order_user_objs.get(user_id, [])
             log.info("Picklist checking for user %s and order id is %s" % (str(user_id), str(order_user_data)))
             if auto_picklist_signal == 'true':
-                log.info("Entered")
                 message = check_stocks(order_user_data, User.objects.get(id=user_id), request, order_objs)
         #qssi push order api call
         generic_orders = GenericOrderDetailMapping.objects.filter(generic_order_id=generic_order_id,
@@ -3612,15 +3613,18 @@ def insert_order_data(request, user=''):
             order_detail_user = User.objects.get(id=generic_order['orderdetail__user'])
             resp = order_push(original_order_id, order_detail_user, "NEW")
             log.info('New Order Push Status: %s' % (str(resp)))
-            if resp.get('Status', '') == 'Failure':
-                message = resp['Result']['Errors'][0]['ErrorMessage']
+            if resp.get('Status', '') == 'Failure' or resp.get('status', '') == 'Internal Server Error':
+                if resp.get('status', '') == 'Internal Server Error':
+                    message = "400 Bad Request"
+                else:
+                    message = resp['Result']['Errors'][0]['ErrorMessage']
                 order_detail = OrderDetail.objects.filter(original_order_id=original_order_id, user=order_detail_user.id)
                 picklist_number = order_detail.values_list('picklist__picklist_number', flat=True)
                 if picklist_number:
                     picklist_number = picklist_number[0]
                 log.info(order_detail.delete())
                 check_picklist_number_created(order_detail_user, picklist_number)
-        if user_type == 'customer' and not is_distributor and message == "Success":
+        if user_type == 'customer' and not is_distributor and message in success_messages:
             # Creating Uploading POs object with file upload pending.
             # upload_po Api is called in front-end if file is present
             upload_po_map = {'uploaded_user_id': request.user.id, 'po_number': corporate_po_number,
@@ -3632,7 +3636,7 @@ def insert_order_data(request, user=''):
                 ord_obj.save()
             else:
                 log.info('Uploaded PO Already Created::%s' %(upload_po_map))
-    if message == "Success":
+    if message in success_messages:
         # Deleting Customer Cart data after successful order creation
         CustomerCartData.objects.filter(customer_user=request.user.id).delete()
 

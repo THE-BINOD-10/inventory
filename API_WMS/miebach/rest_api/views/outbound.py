@@ -3612,7 +3612,7 @@ def insert_order_data(request, user=''):
             order_detail_user = User.objects.get(id=generic_order['orderdetail__user'])
             resp = order_push(original_order_id, order_detail_user, "NEW")
             log.info('New Order Push Status: %s' % (str(resp)))
-            if resp['Status'] == 'Failure':
+            if resp.get('Status', '') == 'Failure':
                 message = resp['Result']['Errors'][0]['ErrorMessage']
                 order_detail = OrderDetail.objects.filter(original_order_id=original_order_id, user=order_detail_user.id)
                 picklist_number = order_detail.values_list('picklist__picklist_number', flat=True)

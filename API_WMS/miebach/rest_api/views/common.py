@@ -6835,8 +6835,11 @@ def allocate_order_returns(user, sku_data, request):
         data = {'status': 'confirmed', 'sku_code': sku_data.sku_code, 'description': sku_data.sku_desc,
                 'order_id': order.original_order_id, 'ship_quantity': ship_quantity, 'unit_price': order.unit_price,
                 'return_quantity': 1}
-        if user.userprofile.industry_type == 'FMCG':
+        user_profile = user.userprofile
+        if user_profile.industry_type == 'FMCG':
             data['batch_data'] = update_order_batch_details(user, order)
+        if user_profile.user_type == 'marketplace_user' and order.sellerorder_set.filter().exists():
+            data['sor_id'] = order.sellerorder_set.filter()[0].sor_id
     return data
 
 
@@ -6860,7 +6863,7 @@ def get_invoice_sequence_obj(user, marketplace):
     invoice_sequence = InvoiceSequence.objects.filter(user=user.id, status=1, marketplace=marketplace)
     if not invoice_sequence:
         invoice_sequence = InvoiceSequence.objects.filter(user=user.id, marketplace='')
-    return  invoice_sequence
+    return invoice_sequence
 
 
 def create_update_batch_data(batch_dict):
@@ -6877,7 +6880,7 @@ def create_update_batch_data(batch_dict):
         number_fields = ['mrp', 'buy_price', 'tax_percent']
         for field in number_fields:
             try:
-                batch_dict[field] = float(batch_dict[field])
+                batch_dict[field] = float(batch_dict.get(field, 0))
             except:
                 batch_dict[field] = 0
         batch_objs = BatchDetail.objects.filter(**batch_dict)

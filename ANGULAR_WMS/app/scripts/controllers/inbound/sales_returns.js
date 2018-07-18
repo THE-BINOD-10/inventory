@@ -154,7 +154,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.scan_sku = function(event, field) {
       if ( event.keyCode == 13 && field) {
         var check_sku_dict = {'sku_code': field, 'allocate_order': vm.allocate_order,
-                           'marketplace': vm.model_data.marketplace, 'mrp': vm.model_data.mrp }
+                           'marketplace': vm.model_data.marketplace, 'mrp': vm.model_data.mrp,
+                           'seller_id': vm.model_data.seller_type}
         if(vm.excl_order_map[field]) {
           check_sku_dict['exclude_order_ids'] = vm.excl_order_map[field].join(',');
         }

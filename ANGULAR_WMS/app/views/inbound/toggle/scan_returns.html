@@ -87,8 +87,8 @@
             <div class="col-md-3 col-sm-3 col-xs-6" ng-if="user.user_profile['user_type'] == 'marketplace_user'">
               <div class="form-group">
                 <label class="control-label"> Seller ID </label>
-                <select class="form-control" name="seller_id" ng-model="showCase.model_data.seller_type" ng-change="showCase.seller_change(showCase.model_data.seller_type)" ng-init="showCase.model_data.seller_type=showCase.model_data.seller_types[0]; showCase.seller_change(showCase.model_data.seller_type)">
-                  <option ng-repeat="type in showCase.model_data.seller_types" ng-selected="showCase.model_data.seller_type==type" value="{{type}}">{{type}}</option>
+                <select class="form-control" name="seller_id" ng-model="showCase.model_data.seller_type" ng-change="showCase.seller_change(showCase.model_data.seller_type)">
+                  <option ng-repeat="type in showCase.model_data.seller_types" ng-selected="showCase.model_data.seller_type==type" ng-if="type != '? undefined:undefined ?'" value="{{type}}">{{type}}</option>
                 </select>
               </div>
             </div>
@@ -156,7 +156,7 @@
                    <input type="text" name="marketplace" class="form-control" ng-model="data_split.marketplace">
                  </td>
                 
-                 <td ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'"> <input type="text" name="mrp" class="form-control" ng-model="data_split.mrp" style="width: 45px"> </td>
+                 <td ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'"> <input type="text" name="mrp" class="form-control decimal" ng-model="data_split.mrp" style="width: 45px"> </td>
                  <td ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'"><input ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'" ui-jq="datepicker" ng-model="data_split.manufactured_date" class="form-control stk-readonly" type="text" id="manufactured_date" readonly name="manufactured_date" required data-date-today-highlight="true" data-date-autoclose="true" placeholder="Manufactured Date" style="width: 90px;"></td>
                  <td ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'"><input ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'" ui-jq="datepicker" ng-model="data_split.expiry_date" class="form-control stk-readonly" type="text" id="expiry_date" readonly name="expiry_date" required data-date-today-highlight="true" data-date-autoclose="true" placeholder="Expiry Date" style="width: 90px;"></td>
 

@@ -2802,6 +2802,7 @@ def get_order_approval_statuses(start_index, stop_index, temp_data, search_term,
 @get_admin_user
 def after_admin_approval(request, user):
     status = update_cartdata_for_approval(request, user= '')
+    message = 'success'
     approval_status = request.POST.get('approval_status', '')
     user_id = user.id
     approve_id = request.POST.get('approve_id', '')
@@ -2838,7 +2839,7 @@ def after_admin_approval(request, user):
                 CustomerOrderSummary.objects.create(order_id = order.id,cgst_tax = ap_status.cgst_tax, sgst_tax = ap_status.sgst_tax,
                 igst_tax = ap_status.igst_tax, utgst_tax = ap_status.utgst_tax, inter_state = ap_status.inter_state)
 
-
+    return HttpResponse(json.dumps({'message': message}))
 @get_admin_user
 def update_orders_for_approval(request, user=''):
     message = 'success'

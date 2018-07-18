@@ -5396,10 +5396,10 @@ def check_create_seller_order(seller_order_dict, order, user, swx_mappings=[], t
         if not sell_order_ins:
             seller_order = SellerOrder(**seller_order_dict)
             seller_order.save()
-            if user.username == 'milkbasket':
-                aspl_seller = SellerMaster.objects.filter(user=user.id, name='ASPL')
-                if aspl_seller:
-                    trans_mapping = create_seller_order_transfer(seller_order, aspl_seller[0].id, trans_mapping)
+            #if user.username == 'milkbasket':
+            #    aspl_seller = SellerMaster.objects.filter(user=user.id, name='ASPL')
+            #    if aspl_seller:
+            #        trans_mapping = create_seller_order_transfer(seller_order, aspl_seller[0].id, trans_mapping)
             for swx_mapping in swx_mappings:
                 try:
                     create_swx_mapping(swx_mapping['swx_id'], seller_order.id, swx_mapping['swx_type'],

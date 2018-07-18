@@ -3615,7 +3615,11 @@ def insert_order_data(request, user=''):
             if resp['Status'] == 'Failure':
                 message = resp['Result']['Errors'][0]['ErrorMessage']
                 order_detail = OrderDetail.objects.filter(original_order_id=original_order_id, user=order_detail_user.id)
+                picklist_number = order_detail.values_list('picklist__picklist_number', flat=True)
+                if picklist_number:
+                    picklist_number = picklist_number[0]
                 log.info(order_detail.delete())
+                check_picklist_number_created(order_detail_user, picklist_number)
         if user_type == 'customer' and not is_distributor and message == "Success":
             # Creating Uploading POs object with file upload pending.
             # upload_po Api is called in front-end if file is present

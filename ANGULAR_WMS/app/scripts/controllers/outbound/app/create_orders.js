@@ -20,6 +20,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.priceband_sync = Session.roles.permissions.priceband_sync;
   vm.disable_brands = Session.roles.permissions.disable_brands_view;
   vm.disable_categories = Session.roles.permissions.disable_categories_view;
+  vm.is_portal_lite = Session.roles.permissions.is_portal_lite;
   vm.date = new Date();
   vm.client_logo = Session.parent.logo;
   vm.api_url = Session.host;

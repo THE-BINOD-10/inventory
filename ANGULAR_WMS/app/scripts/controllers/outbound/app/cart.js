@@ -19,6 +19,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
   vm.default_shipment_addr = true;
   vm.client_logo = Session.parent.logo;
   vm.api_url = Session.host;
+  vm.is_portal_lite = Session.roles.permissions.is_portal_lite;
 
   vm.sel_styles = {};
   vm.get_customer_cart_data = function() {

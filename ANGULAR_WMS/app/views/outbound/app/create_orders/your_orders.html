@@ -1,13 +1,17 @@
 <div class="your_orders" ng-controller="AppMyOrders as orders">
   <div class="row style-menu" style="line-height: 40px;">
     <div class="col-md-4 col-sm-4 col-xs-6">
-      <div class="menu-left" ng-if="orders.disable_brands_view">
+      <div class="menu-left" ng-if="orders.disable_brands_view && !(orders.is_portal_lite)">
         <span ng-click="$state.go('user.App.Categories')"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
         <span ng-click="$state.go('user.App.Categories')" title="Go to Category Page">Back To Categories</span>
       </div>
-      <div class="menu-left" ng-if="!(orders.disable_brands_view)">
+      <div class="menu-left" ng-if="!(orders.disable_brands_view) && !(orders.is_portal_lite)">
         <span  ng-click="$state.go('user.App.Brands')"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
         <span ng-click="$state.go('user.App.Brands')" title="Go to Brand Page">Back To Brands</span>
+      </div>
+      <div class="menu-left" ng-if="(orders.is_portal_lite)">
+        <span  ng-click="$state.go('user.App.newStyle')"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
+        <span ng-click="$state.go('user.App.newStyle')" title="Go to Styles Page">Back To Styles</span>
       </div>
     </div>
     <div class="col-md-4 col-sm-4 hidden-xs" align="center">

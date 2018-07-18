@@ -25,10 +25,16 @@ input[type="date"]:valid::before {
   <div ui-view></div>
 
   <div class="row style-menu" style="line-height: 40px;">
-    <div class="col-md-4 col-sm-6 col-xs-8">
+    <div class="col-md-4 col-sm-6 col-xs-8" ng-if="!showCase.is_portal_lite">
       <div class="menu-left">
         <span ng-click="$state.go('user.App.Products'); showCase.get_category(false)"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
         <span ng-click="$state.go('user.App.Products'); showCase.get_category(false)" title="Go to Brand Page">Continue Shopping</span>
+      </div>
+    </div>
+    <div class="col-md-4 col-sm-6 col-xs-8" ng-if="showCase.is_portal_lite">
+      <div class="menu-left">
+        <span ng-click="$state.go('user.App.newStyle'); showCase.get_category(false)"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
+        <span ng-click="$state.go('user.App.newStyle'); showCase.get_category(false)" title="Go to Brand Page">Continue Shopping</span>
       </div>
     </div>
     <div class="col-md-4 col-sm-4 hidden-xs" align="center">

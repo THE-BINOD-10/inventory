@@ -5905,7 +5905,7 @@ def get_po_segregation_data(request, user=''):
                 if batch_detail.manufactured_date:
                     data_dict['mfg_date'] = batch_detail.manufactured_date.strftime('%m/%d/%Y')
                 data_dict['exp_date'] = ''
-                if batch_detail.manufactured_date:
+                if batch_detail.expiry_date:
                     data_dict['exp_date'] = batch_detail.expiry_date.strftime('%m/%d/%Y')
                 data_dict['tax_percent'] = batch_detail.tax_percent
             orders.append([data_dict])

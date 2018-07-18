@@ -6792,10 +6792,16 @@ def update_order_batch_details(user, order):
         for pick in pick_locs:
             if pick.stock.batch_detail:
                 batch_detail = picklist.stock.batch_detail
+                mfg_date = ''
+                if batch_detail.manufactured_date:
+                    mfg_date = batch_detail.manufactured_date.strftime('%m/%d/%Y')
+                exp_date = ''
+                if batch_detail.expiry_date:
+                    data_dict['exp_date'] = batch_detail.expiry_date.strftime('%m/%d/%Y')
                 group_key = '%s:%s:%s' % (str(batch_detail.mrp), str(batch_detail.manufactured_date),
                                           str(batch_detail.expiry_date))
-                batch_data.setdefault(group_key, {'mrp': batch_detail.mrp, 'manufactured_date': '',
-                                    'expiry_date': '', 'quantity': 0})
+                batch_data.setdefault(group_key, {'mrp': batch_detail.mrp, 'manufactured_date': mfg_date,
+                                    'expiry_date': exp_date, 'quantity': 0})
                 batch_data[group_key]['quantity'] += pick.quantity
     return batch_data.values()
 
@@ -6819,7 +6825,6 @@ def allocate_order_returns(user, sku_data, request):
                                 annotate(ret=Sum(F('orderreturns__quantity')),
                                         dam=Sum(F('orderreturns__damaged_quantity'))).annotate(tot=F('ret')+F('dam')). \
                                 filter(Q(tot__isnull=True) | Q(quantity__gt=F('tot')))
-    import pdb;pdb.set_trace()
     if user.username == 'milkbasket':
         orders = orders.order_by('-creation_date')
     if orders:

@@ -87,7 +87,7 @@
             <div class="col-md-3 col-sm-3 col-xs-6" ng-if="user.user_profile['user_type'] == 'marketplace_user'">
               <div class="form-group">
                 <label class="control-label"> Seller ID </label>
-                <select class="form-control" name="seller_id" ng-model="showCase.model_data.seller_type" ng-change="showCase.seller_change(showCase.model_data.seller_type)">
+                <select class="form-control" ng-model="showCase.model_data.seller_type" ng-change="showCase.seller_change(showCase.model_data.seller_type)">
                   <option ng-repeat="type in showCase.model_data.seller_types" ng-selected="showCase.model_data.seller_type==type" ng-if="type != '? undefined:undefined ?'" value="{{type}}">{{type}}</option>
                 </select>
               </div>

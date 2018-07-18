@@ -202,19 +202,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.add_new_sku = function(new_sku) {
       if (!$.isEmptyObject(new_sku.batch_data)) {
-        if (new_sku.batch_data.length) {
-          angular.forEach(new_sku.batch_data, function(obj) {
-            vm.model_data.data.push({'sku_code': new_sku.sku_code, 'sku_desc': new_sku.description, 'ship_quantity': new_sku.ship_quantity,
+        if (new_sku.batch_data.length) { 
+          vm.model_data.data.push({'sku_code': new_sku.sku_code, 'sku_desc': new_sku.description, 'ship_quantity': new_sku.ship_quantity,
                                    'order_id': new_sku.order_id, 'return_quantity': 1, 'damaged_quantity': 0, 'track_id_enable': false,
-                                   'is_new': true, 'marketplace':vm.model_data.marketplace, 'sor_id': vm.model_data.sor_id,
-                                   'unit_price': new_sku.unit_price, 'old_order_id': new_sku.order_id, 'mrp': obj.mrp, 
-                                   'manufactured_date': obj.manufactured_date, 'expiry_date': obj.expiry_date })
-          })
-        } 
+                                   'is_new': true, 'marketplace':vm.model_data.marketplace, 'sor_id': new_sku.sor_id,
+                                   'unit_price': new_sku.unit_price, 'old_order_id': new_sku.order_id, 'mrp': new_sku.batch_data[0].mrp, 
+                                   'manufactured_date': new_sku.batch_data[0].manufactured_date, 'expiry_date': new_sku.batch_data[0].expiry_date })
+        }
       } else {
         vm.model_data.data.push({'sku_code': new_sku.sku_code, 'sku_desc': new_sku.description, 'ship_quantity': new_sku.ship_quantity,
                                'order_id': new_sku.order_id, 'return_quantity': 1, 'damaged_quantity': 0, 'track_id_enable': false,
-                               'is_new': true, 'marketplace':vm.model_data.marketplace, 'sor_id': vm.model_data.sor_id,
+                               'is_new': true, 'marketplace':vm.model_data.marketplace, 'sor_id': new_sku.sor_id,
                                'unit_price': new_sku.unit_price, 'old_order_id': new_sku.order_id, 'mrp': 0, 
                                'manufactured_date': '', 'expiry_date': '' })
       }

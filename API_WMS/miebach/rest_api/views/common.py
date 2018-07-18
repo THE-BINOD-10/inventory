@@ -2951,6 +2951,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     hot_release = request_data.get('hot_release', '')
     quantity = request_data.get('quantity', 0)
     delivery_date = request_data.get('delivery_date', '')
+    dimensions = request_data.get('dimensions', {})
     customer_master = None
     if not quantity:
         quantity = 0
@@ -3014,6 +3015,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         filter_params['id__in'] = hot_release_data
         filter_params1['id__in'] = hot_release_data
 
+    skumaster_qs = SKUMaster.objects.exclude(sku_class='')
     if admin_user:
         filter_params1['sku__user'] = admin_user.id
     else:
@@ -3023,7 +3025,44 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     if sku_class:
         filter_params['sku_class__icontains'] = sku_class
         filter_params1['sku__sku_class__icontains'] = sku_class
-
+    if dimensions:
+        dimensions = eval(dimensions)
+        if "from_Length" in dimensions:
+            if dimensions["from_Length"]:
+                from_length = int(dimensions["from_Length"])
+                skumaster_qs = skumaster_qs.filter(user=user.id).\
+                    filter(Q(skuattributes__attribute_name='length')&
+                           Q(skuattributes__attribute_value__gte=Value(from_length)))
+        if "to_Length" in dimensions:
+            if dimensions["to_Length"]:
+                to_length = int(dimensions["to_Length"])
+                skumaster_qs = skumaster_qs.filter(user=user.id). \
+                    filter(Q(skuattributes__attribute_name='length') &
+                           Q(skuattributes__attribute_value__lte=Value(to_length)))
+        if "from_Breadth" in dimensions:
+            if dimensions["from_Breadth"]:
+                from_breadth = int(dimensions["from_Breadth"])
+                skumaster_qs = skumaster_qs.filter(user=user.id).\
+                    filter(Q(skuattributes__attribute_name='breadth')&
+                           Q(skuattributes__attribute_value__gte=Value(from_breadth)))
+        if "to_Breadth" in dimensions:
+            if dimensions["to_Breadth"]:
+                to_breadth = int(dimensions["to_Breadth"])
+                skumaster_qs = skumaster_qs.filter(user=user.id). \
+                    filter(Q(skuattributes__attribute_name='breadth') &
+                           Q(skuattributes__attribute_value__lte=Value(to_breadth)))
+        if "from_Height" in dimensions:
+            if dimensions["from_Height"]:
+                from_height = int(dimensions["from_Height"])
+                skumaster_qs = skumaster_qs.filter(user=user.id).\
+                    filter(Q(skuattributes__attribute_name='height')&
+                           Q(skuattributes__attribute_value__gte=Value(from_height)))
+        if "to_Height" in dimensions:
+            if dimensions["to_Height"]:
+                to_height = int(dimensions["to_Height"])
+                skumaster_qs = skumaster_qs.filter(user=user.id). \
+                    filter(Q(skuattributes__attribute_name='height') &
+                           Q(skuattributes__attribute_value__lte=Value(to_height)))
     all_pricing_ids = PriceMaster.objects.filter(sku__user=user.id, price_type=price_type).values_list('sku_id',
                                                                                                        flat=True)
     if is_margin_percentage == 'true':
@@ -3033,7 +3072,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
             dis_percent = 0
             if customer_master:
                 dis_percent = customer_master.discount_percentage
-            sku_master1 = SKUMaster.objects.exclude(sku_class='').\
+            sku_master1 = skumaster_qs.\
                     annotate(n_price=F(price_field)*(1-(Value(dis_percent)/Value(100)))).annotate(
                     new_price=F('n_price') + (F('n_price') / Value(100)) * Value(custom_margin)).\
             filter(**filter_params).exclude(id__in=all_pricing_ids)
@@ -3041,7 +3080,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
             markup = 0
             if customer_master:
                 markup = customer_master[0].markup
-            sku_master1 = SKUMaster.objects.exclude(sku_class='').\
+            sku_master1 = skumaster_qs.\
                 annotate(n_price=F(price_field) * (1+(Value(markup) / Value(100)))).\
                 annotate(new_price=F('n_price') + (F('n_price') / Value(100)) * Value(custom_margin)). \
             filter(**filter_params).exclude(id__in=all_pricing_ids)
@@ -3062,7 +3101,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
             dis_percent = 0
             if customer_master:
                 dis_percent = customer_master.discount_percentage
-            sku_master1 = SKUMaster.objects.exclude(sku_class='').\
+            sku_master1 = skumaster_qs.\
                             annotate(n_price=F(price_field)*(1-(Value(dis_percent)/Value(100)))).\
                             annotate(new_price=F('n_price') + Value(custom_margin)).\
                             filter(**filter_params).exclude(id__in=all_pricing_ids)
@@ -4058,6 +4097,8 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
     data = []
     style_quantities = eval(request.POST.get('required_quantity', '{}'))
     levels_config = get_misc_value('generic_wh_level', user.id)
+    central_order_mgmt = get_misc_value('central_order_mgmt', user.id)
+    sku_spl_attrs = {}
     get_values = ['wms_code', 'sku_desc', 'hsn_code', 'image_url', 'sku_class', 'cost_price', 'price', 'mrp', 'id',
                   'sku_category', 'sku_brand', 'sku_size', 'style_name', 'sale_through', 'product_type']
 
@@ -4084,6 +4125,10 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
         sku_object = sku_master.filter(user=user.id, sku_class=product)
         sku_styles = sku_object.values('image_url', 'sku_class', 'sku_desc', 'sequence', 'id'). \
             order_by('-image_url')
+        if central_order_mgmt:
+            sku_id = sku_object[0].id
+            sku_spl_attrs = dict(SKUAttributes.objects.filter(sku_id=sku_id).
+                                 values_list('attribute_name', 'attribute_value'))
         if qty_dict_flag:
             total_quantity = product_styles_tot_qty_map[product]
         else:
@@ -4104,6 +4149,7 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
                                               levels_config=levels_config, price_type=price_type,
                                               default_margin=custom_margin, specific_margins=specific_margins,
                                               is_margin_percentage=is_margin_percentage, needed_stock_data=needed_stock_data)
+            sku_variants[0].update(sku_spl_attrs)
             sku_styles[0]['variants'] = sku_variants
             sku_styles[0]['style_quantity'] = total_quantity
 

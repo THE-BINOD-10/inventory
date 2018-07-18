@@ -10,7 +10,11 @@ var app = angular.module('urbanApp')
   app.run(['$rootScope', '$state', '$stateParams', 'Auth', 'AUTH_EVENTS', 'Session', '$timeout',
         function ($rootScope, $state, $stateParams, Auth, AUTH_EVENTS, Session, $timeout) {
       if(Session.user_profile.user_type == "customer") {
-        LOGIN_REDIRECT_STATE = LOGIN_REDIRECT_STATE_CUSTOMER;
+        if (Session.roles.permissions.is_portal_lite) {
+          LOGIN_REDIRECT_STATE = LOGIN_REDIRECT_STATE_ANT_CUSTOMER;
+        } else {
+          LOGIN_REDIRECT_STATE = LOGIN_REDIRECT_STATE_CUSTOMER;
+        }
       }
 
       $rootScope.$state = $state;
@@ -60,9 +64,10 @@ var app = angular.module('urbanApp')
 
                         if (Session.roles.permissions.is_portal_lite) {
 
-                          $state.go(LOGIN_REDIRECT_STATE_CUSTOMER,  {"location": "replace"})
-                        } else {
                           $state.go(LOGIN_REDIRECT_STATE_ANT_CUSTOMER,  {"location": "replace"})
+                        } else {
+
+                          $state.go(LOGIN_REDIRECT_STATE_CUSTOMER,  {"location": "replace"})
                         }
                         return;
                     } else if (typeof(next.permission) == "string") {
@@ -2114,9 +2119,9 @@ var app = angular.module('urbanApp')
               url: '/PendingApprovalData',
               templateUrl: 'views/outbound/app/create_orders/pending_approval_popup.html',
               resolve: {
-              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/outbound/app/pending_order.js');
-              }]
+                deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                  return $ocLazyLoad.load('scripts/controllers/outbound/app/pending_order.js');
+                }]
               }
             })
           .state('user.App.Categories', {

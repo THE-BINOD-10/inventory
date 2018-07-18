@@ -59,7 +59,8 @@
             <div class="col-md-4" ng-if="(showCase.user_role | lowercase) == 'admin'">
               <div class="form-group">
                 <label class="control-label"> Shipment Date: * </label>
-                <input name="shipment_date" ui-jq="datepicker" ng-model="showCase.model_data.shipment_date" class="form-control stk-readonly" type="text" id="shipment_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}" readonly>
+                <input name="shipment_date" ui-jq="datepicker" ng-if="!showCase.model_data.shipment_date" ng-model="showCase.model_data.shipment_date" class="form-control stk-readonly" type="text" id="shipment_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}" ng-readonly="showCase.model_data.shipment_date">
+                <input type="text" name="shipment_date" ng-if="showCase.model_data.shipment_date" class="form-control" ng-model="showCase.model_data.shipment_date" ng-readonly="true">
               </div>
             </div>
 

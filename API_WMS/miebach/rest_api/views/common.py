@@ -6797,7 +6797,7 @@ def update_order_batch_details(user, order):
                     mfg_date = batch_detail.manufactured_date.strftime('%m/%d/%Y')
                 exp_date = ''
                 if batch_detail.expiry_date:
-                    data_dict['exp_date'] = batch_detail.expiry_date.strftime('%m/%d/%Y')
+                    exp_date = batch_detail.expiry_date.strftime('%m/%d/%Y')
                 group_key = '%s:%s:%s' % (str(batch_detail.mrp), str(batch_detail.manufactured_date),
                                           str(batch_detail.expiry_date))
                 batch_data.setdefault(group_key, {'mrp': batch_detail.mrp, 'manufactured_date': mfg_date,

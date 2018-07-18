@@ -112,6 +112,8 @@ var vm = this;
 
     vm.submit = submit;
     function submit(wh, status, data_id, shipment_date){
+      if (status) {
+
         var elem = {'warehouse': wh, 'status': status, 'interm_det_id': data_id, 'shipment_date': shipment_date};
         vm.service.apiCall('create_order_from_intermediate_order/', 'POST', elem, true).then(function(data){
           if(data.message) {
@@ -123,5 +125,9 @@ var vm = this;
             }
           }
         });
+      } else {
+
+        Service.showNoty('Please select status');
+      }
     }
 }

@@ -2113,6 +2113,7 @@ class ApprovingOrders(models.Model):
     utgst_tax = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
+    shipment_date = models.DateTimeField(blank=True, null=True)
     
     class Meta:
         db_table = "APPROVING_ORDERS"

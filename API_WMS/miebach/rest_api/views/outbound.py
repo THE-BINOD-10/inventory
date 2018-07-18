@@ -2797,10 +2797,13 @@ def get_order_approval_statuses(start_index, stop_index, temp_data, search_term,
             OrderedDict((('user', data.customer_user.username), ('date', data.creation_date.strftime('%d-%m-%Y')),
                          ('status', data.approval_status), ('image', image), ('sku_code', sku_code),
                          ('desc', desc), ('price', price), ('tax', data.tax), ('quantity', data.quantity),
-                         ('approve_id', data.approve_id), ('approving_user_role', data.approving_user_role)
+                         ('approve_id', data.approve_id), ('approving_user_role', data.approving_user_role),
+                         ('shipment_date', data.shipment_date)
                          )))
 @get_admin_user
-def after_admin_approval(request, user):
+@csrf_exempt
+@login_required
+def after_admin_approval(request, user=''):
     status = update_cartdata_for_approval(request, user= '')
     message = 'success'
     approval_status = request.POST.get('approval_status', '')
@@ -2816,6 +2819,8 @@ def after_admin_approval(request, user):
     order_id = get_order_id(user.id)
     shipment_date = datetime.datetime.strptime(shipment_date, "%m/%d/%Y")
     approve_status = ApprovingOrders.objects.filter(user_id=user.id, approve_id=approve_id, approval_status='accept',sku__sku_code = sku_code)
+    if shipment_date:
+        approve_status.update(shipment_date =shipment_date)
 
     for ap_status in approve_status: 
         customer_user = CustomerUserMapping.objects.filter(user=ap_status.customer_user_id)
@@ -2828,9 +2833,9 @@ def after_admin_approval(request, user):
             
             amt = int(quantity) * int(price)
             invoice_amount = amt + ((amt/100) * (ap_status.cgst_tax + ap_status.sgst_tax + ap_status.igst_tax + ap_status.igst_tax))
-            detail_check = OrderDetail.objects.filter(order_id= order_id,sku_id= ap_status.sku_id)
+            detail_check = OrderDetail.objects.filter(order_id= order_id,sku_id= ap_status.sku_id,user = user.id,order_code = 'MN')
             data_dict = {'order_id':order_id, 'customer_id':customer_user_id, 'user':user_id,
-            'title':title, 'quantity':quantity,'invoice_amount':invoice_amount, 'sku_id':ap_status.sku_id,'shipment_date':shipment_date}
+            'title':title, 'quantity':quantity,'invoice_amount':invoice_amount, 'sku_id':ap_status.sku_id,'shipment_date':shipment_date,'order_code':'MN','original_order_id':'MN'+str(order_id)}
             if detail_check:
                 detail_check.update(quantity= quantity,invoice_amount= invoice_amount)
             else:

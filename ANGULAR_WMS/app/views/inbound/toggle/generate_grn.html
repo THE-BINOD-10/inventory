@@ -28,6 +28,18 @@
               <button ng-if="(!(showCase.print_enable))" type="button" class="btn btn-success pull-right"
                 ng-click="showCase.gen_barcode()">Generate Barcodes</button>
             </div>
+
+			<div class="col-md-offset-1 col-md-3 col-sm-4 col-xs-4">
+			  <p style="float:right">DC Level GRN :
+			  <label class="switch switch-sm square mt5"> 
+				  <input type="checkbox" name="dc_level_grn" ng-model="showCase.model_data.dc_level_grn"
+						 ng-init="showCase.model_data.dc_level_grn=false">
+				  <span style="margin-top: 28%;">
+				<i class="handle"></i>
+				  </span>
+			  </label></p>
+			</div>
+
             <div class="col-sm-12"><hr></div>
           </div>
           <div class="row">
@@ -68,14 +80,32 @@
                   maxlength="4">
               </div>
             </div>
-            <div class="col-md-3 col-sm-3 col-xs-6">
+
+
+            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.model_data.dc_level_grn">
+              <div class="form-group">
+                <label for="dc_number" class="control-label"> DC Number <span ng-if="showCase.user_type=='marketplace_user'">*</span></label>
+                <input class="form-control" ng-model="showCase.model_data.dc_number" type="text" name="dc_number" ng-if="showCase.user_type=='marketplace_user'" required>
+                <input class="form-control" ng-model="showCase.model_data.dc_number" type="text" name="dc_number" ng-if="showCase.user_type!='marketplace_user'">
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.model_data.dc_level_grn">
+              <div class="form-group">
+                <label for="dc_date" class="control-label">DC Date <span ng-if="showCase.user_type=='marketplace_user'">*</span></label>
+                <input name="dc_date" ui-jq="datepicker" ng-model="showCase.model_data.dc_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" ng-if="showCase.user_type=='marketplace_user'" required readonly>
+                <input name="dc_date" ui-jq="datepicker" ng-model="showCase.model_data.dc_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" ng-if="showCase.user_type!='marketplace_user'" readonly>
+              </div>
+            </div>
+
+
+            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.model_data.dc_level_grn==false">
               <div class="form-group">
                 <label for="invoice_number" class="control-label"> Invoice Number <span ng-if="showCase.user_type=='marketplace_user'">*</span></label>
                 <input class="form-control" ng-model="showCase.model_data.invoice_number" type="text" name="invoice_number" ng-if="showCase.user_type=='marketplace_user'" required>
                 <input class="form-control" ng-model="showCase.model_data.invoice_number" type="text" name="invoice_number" ng-if="showCase.user_type!='marketplace_user'">
               </div>
             </div>
-            <div class="col-md-3 col-sm-3 col-xs-6">
+            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.model_data.dc_level_grn==false">
               <div class="form-group">
                 <label for="invoice_date" class="control-label">Invoice Date <span ng-if="showCase.user_type=='marketplace_user'">*</span></label>
                 <input name="invoice_date" ui-jq="datepicker" ng-model="showCase.model_data.invoice_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" ng-if="showCase.user_type=='marketplace_user'" required readonly>

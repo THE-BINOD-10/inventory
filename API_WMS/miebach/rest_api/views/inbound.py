@@ -2240,14 +2240,23 @@ def create_update_primary_segregation(data, quantity, temp_dict, batch_obj=None)
                                                                     creation_date=datetime.datetime.now(),
                                                                     batch_detail_id=batch_obj.id)
 
-def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number='', invoice_date=''):
+def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number='', invoice_date=None,
+                     challan_number='', challan_date=None, dc_level_grn=''):
     if not receipt_id:
         return
     seller_pos = SellerPO.objects.filter(seller__user=user.id, open_po_id=data.open_po_id, status=1)
     seller_received_list = []
     #invoice_number = int(invoice_number)
-    if not invoice_date:
+    if not invoice_date and not dc_level_grn:
         invoice_date = datetime.datetime.now().date()
+    else:
+        invoice_date = None
+    if invoice_number:
+        order_status_flag = 'supplier_invoices'
+    if challan_number:
+        order_status_flag = 'po_challans'
+    if not invoice_number and not challan_number:
+        order_status_flag = 'processed_pos'
     discount_percent = 0
     if 'discount_percentage' in myDict.keys() and myDict['discount_percentage'][i]:
         discount_percent = myDict['discount_percentage'][i]
@@ -2259,6 +2268,9 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
                                                                            purchase_order_id=data.id,
                                                                            creation_date=datetime.datetime.now(),
                                                                            invoice_date=invoice_date,
+                                                                           challan_number=challan_number,
+                                                                           challan_date=challan_date,
+                                                                           order_status_flag=order_status_flag,
                                                                            discount_percent=discount_percent)
         seller_received_list.append(
             {'seller_id': '', 'sku_id': data.open_po.sku_id, 'quantity': value,
@@ -2308,6 +2320,8 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
                                                                                purchase_order_id=data.id,
                                                                                creation_date=datetime.datetime.now(),
                                                                                discount_percent=discount_percent,
+                                                                               challan_number=challan_number,
+                                                                               challan_date=challan_date,
                                                                                invoice_number=invoice_number,
                                                                                invoice_date=invoice_date)
             seller_received_list.append(
@@ -2327,7 +2341,14 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
     expected_date = request.POST.get('expected_date', '')
     remainder_mail = request.POST.get('remainder_mail', '')
     invoice_number = request.POST.get('invoice_number', '')
-    bill_date = datetime.datetime.now().date()
+    dc_level_grn = request.POST.get('dc_level_grn', '')
+    bill_date = None if dc_level_grn=='on' else datetime.datetime.now().date()
+    challan_number = request.POST.get('dc_number', '')
+    challan_date = request.POST.get('dc_date', '')
+    if challan_date:
+        challan_date = datetime.datetime.strptime(challan_date, "%m/%d/%Y").date()
+    else:
+        challan_date = None
     if request.POST.get('invoice_date', ''):
         bill_date = datetime.datetime.strptime(request.POST.get('invoice_date', ''), "%m/%d/%Y").date()
     _expected_date = ''
@@ -2421,7 +2442,9 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
             if not seller_receipt_id:
                 seller_receipt_id = get_seller_receipt_id(data.open_po)
             seller_received_list = update_seller_po(data, value, user, myDict, i, receipt_id=seller_receipt_id,
-                                                    invoice_number=invoice_number, invoice_date=bill_date)
+                                                    invoice_number=invoice_number, invoice_date=bill_date,
+                                                    challan_number=challan_number, challan_date=challan_date,
+                                                    dc_level_grn=dc_level_grn)
         if 'wms_code' in myDict.keys():
             if myDict['wms_code'][i]:
                 sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
@@ -2516,10 +2539,10 @@ def confirm_grn(request, confirm_returns='', user=''):
     seller_name = user.username
     seller_address = user.userprofile.address
     seller_receipt_id = 0
-    if user.username=='milkbasket' and not request.POST.get('invoice_number', ''):
-        return HttpResponse("Invoice Number  is Mandatory")
-    if user.username == 'milkbasket' and not request.POST.get('invoice_date', ''):
-        return HttpResponse("Invoice Date is Mandatory")
+    if user.username=='milkbasket' and (not request.POST.get('invoice_number', '') and not request.POST.get('dc_number', '')):
+        return HttpResponse("Invoice/DC Number  is Mandatory")
+    if user.username == 'milkbasket' and (not request.POST.get('invoice_date', '') and not request.POST.get('dc_date', '')):
+        return HttpResponse("Invoice/DC Date is Mandatory")
     bill_date = datetime.datetime.now().date().strftime('%d-%m-%Y')
     if request.POST.get('invoice_date', ''):
         bill_date = datetime.datetime.strptime(str(request.POST.get('invoice_date', '')), "%m/%d/%Y").strftime('%d-%m-%Y')
@@ -6933,6 +6956,11 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
             'purchase_order__order_id', 'purchase_order_date', 'invoice_number', 'invoice_date', 'total', 'total']
 
     headers1, filters, filter_params1 = get_search_params(request)
+    enable_dc_returns = request.POST.get("enable_dc_returns", "")
+    inv_or_dc_number = 'invoice_number'
+    if enable_dc_returns == 'true':
+        headers1[headers1.index('Invoice Number')]='Challan Number'
+        inv_or_dc_number = 'challan_number'
     if 'from_date' in filters:
         search_params['purchase_order__creation_date__gt'] = filters['from_date']
     if 'to_date' in filters:
@@ -6947,8 +6975,10 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
         temp = re.findall('\d+', filters['open_po'])
         if temp:
             search_params['purchase_order__order_id'] = temp[-1]
-    if 'invoice_number' in filters:
+    if 'invoice_number' in filters and enable_dc_returns != 'true':
         search_params['invoice_number'] = filters['invoice_number']
+    if 'challan_number' in filters and enable_dc_returns == 'true':
+        search_params['challan_number'] = filters['challan_number']
 
     order_data = lis[col_num]
     if order_term == 'desc':
@@ -6967,14 +6997,14 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
         results = SellerPOSummary.objects.exclude(id__in=return_ids).filter(purchase_order__polocation__status=0,
                                             purchase_order__open_po__sku__user=user.id, **search_params).\
             values('purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name',
-                   'purchase_order__order_id', 'invoice_number', 'invoice_date',).distinct().annotate(
+                   'purchase_order__order_id', inv_or_dc_number, 'invoice_date', 'challan_date',).distinct().annotate(
             total=Sum('quantity'), purchase_order_date=Cast('purchase_order__creation_date', DateField())).order_by(order_data)
 
     elif order_term:
         results = SellerPOSummary.objects.exclude(id__in=return_ids).select_related('purchase_order__open_po__supplier', 'purchase_order').\
                                             filter(purchase_order__polocation__status=0, purchase_order__open_po__sku__user=user.id, **search_params).\
             values('purchase_order__open_po__supplier_id', 'purchase_order__open_po__supplier__name',
-                   'purchase_order__order_id', 'invoice_number', 'invoice_date',).distinct().annotate(
+                   'purchase_order__order_id', inv_or_dc_number, 'invoice_date', 'challan_date',).distinct().annotate(
             total=Sum('quantity'), purchase_order_date=Cast('purchase_order__creation_date', DateField())).order_by(order_data)
 
     temp_data['recordsTotal'] = results.count()
@@ -6986,20 +7016,26 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
         seller_summarys = SellerPOSummary.objects.exclude(id__in=return_ids).\
                                             select_related('purchase_order__open_po__sku', 'purchase_order').\
                                                     filter(purchase_order__open_po__sku__user=user.id,
-                                                        purchase_order__order_id=result['purchase_order__order_id'],
-                                                        invoice_number=result['invoice_number'])
+                                                        purchase_order__order_id=result['purchase_order__order_id']).\
+                                                    filter(**{inv_or_dc_number: result[inv_or_dc_number]})
         order_reference = get_po_reference(seller_summarys[0].purchase_order)
         open_po = seller_summarys[0].purchase_order.open_po
-        data_id = '%s:%s' % (result['purchase_order__order_id'], result['invoice_number'])
+        data_id = '%s:%s' % (result['purchase_order__order_id'], result.get('invoice_number', ''))
         checkbox = "<input type='checkbox' name='data_id' value='%s'>" % (data_id)
         po_date = get_local_date(request.user, seller_summarys[0].purchase_order.creation_date,
                                  send_date=True).strftime("%d %b, %Y")
         invoice_number = ''
-        if result['invoice_number']:
-            invoice_number = result['invoice_number']
+        if result.get('invoice_number', ''):
+            invoice_number = result.get('invoice_number', '')
+        challan_number = ''
+        if result.get('challan_number', ''):
+            challan_number = result.get('challan_number', '')
         invoice_date = po_date
         if result['invoice_date']:
             invoice_date = result['invoice_date'].strftime("%d %b, %Y")
+        challan_date = None
+        if result['challan_date']:
+            challan_date = result['challan_date'].strftime("%d %b, %Y")
         total_amt = 0
         tax = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax
         for seller_summary in seller_summarys:
@@ -7017,7 +7053,8 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
                                                 ('Supplier ID', result['purchase_order__open_po__supplier_id']),
                                                 ('Supplier Name', result['purchase_order__open_po__supplier__name']),
                                                 ('PO Number', order_reference), ('PO Date', po_date),
-                                                ('Invoice Number', invoice_number), ('Invoice Date', invoice_date),
+                                                ('Invoice Number', invoice_number), ('Challan Number', challan_number),
+                                                ('Invoice Date', invoice_date), ('Challan Date', challan_date),
                                                 ('Total Quantity', rem_quantity), ('Total Amount', total_amt),
                                                 ('id', count),
                                                 ('DT_RowClass', 'results'))))
@@ -7244,12 +7281,14 @@ def prepare_rtv_json_data(request_data, user):
     return data_list, ''
 
 
-def save_update_rtv(data_list):
+def save_update_rtv(data_list, return_type=''):
     updated_rtvs = []
     for ind, final_dict in enumerate(data_list):
         if final_dict.get('rtv_id', '') and final_dict['rtv_id'] not in updated_rtvs:
             rtv_obj = ReturnToVendor.objects.get(id=final_dict['rtv_id'])
             rtv_obj.location_id = final_dict['location'].id
+            if return_type:
+                rtv_obj.return_type = return_type
             rtv_obj.quantity = final_dict['quantity']
             rtv_obj.save()
             updated_rtvs.append(final_dict['rtv_id'])
@@ -7257,6 +7296,7 @@ def save_update_rtv(data_list):
             rtv_obj = ReturnToVendor.objects.create(seller_po_summary_id=final_dict['summary_id'],
                                                     quantity=final_dict['quantity'], status=1,
                                                     location_id=final_dict['location'].id,
+                                                    return_type=return_type,
                                                     creation_date=datetime.datetime.now())
             data_list[ind]['rtv_id'] = rtv_obj.id
     return data_list
@@ -7265,12 +7305,17 @@ def save_update_rtv(data_list):
 @get_admin_user
 def save_rtv(request, user=''):
     request_data = dict(request.POST.iterlists())
+    enable_dc_returns = request.POST.get('enable_dc_returns', '')
+    if enable_dc_returns == 'true':
+        return_type = 'DC'
+    else:
+        return_type = 'Invoice'
     try:
         data_list, status = prepare_rtv_json_data(request_data, user)
         if status:
             return HttpResponse(status)
         if data_list:
-            data_list = save_update_rtv(data_list)
+            data_list = save_update_rtv(data_list, return_type)
         return HttpResponse("Saved Successfully")
     except Exception as e:
         import traceback
@@ -7285,6 +7330,11 @@ def save_rtv(request, user=''):
 @get_admin_user
 def create_rtv(request, user=''):
     request_data = dict(request.POST.iterlists())
+    enable_dc_returns = request.POST.get('enable_dc_returns', '')
+    if enable_dc_returns == 'true':
+        return_type = 'DC'
+    else:
+        return_type = 'Invoice'
     data_list = []
     try:
         data_list, status = prepare_rtv_json_data(request_data, user)
@@ -7301,6 +7351,7 @@ def create_rtv(request, user=''):
                 #                              quantity=final_dict['quantity'], status=0, creation_date=datetime.datetime.now())
                 rtv_obj = ReturnToVendor.objects.get(id=final_dict['rtv_id'])
                 rtv_obj.rtv_number = rtv_number
+                rtv_obj.return_type = return_type
                 rtv_obj.status=0
                 rtv_obj.save()
             report_data_dict = {}
@@ -7323,8 +7374,16 @@ def get_saved_rtvs(start_index, stop_index, temp_data, search_term, order_term, 
     lis = ['seller_po_summary__purchase_order__open_po__supplier_id',
            'seller_po_summary__purchase_order__open_po__supplier_id',
            'seller_po_summary__purchase_order__open_po__supplier__name',
+           'seller_po_summary__invoice_number', 'seller_po_summary__challan_number',
            'seller_po_summary__purchase_order__order_id', 'purchase_order_date',
-           'seller_po_summary__invoice_number', 'seller_po_summary__invoice_date', 'total', 'total']
+           'seller_po_summary__invoice_date', 'seller_po_summary__challan_date', 'total', 'total']
+    #enable_dc_returns = request.POST.get("enable_dc_returns", "")
+    #if enable_dc_returns:
+        #lis.append('seller_po_summary__challan_number')
+        #dc_or_inv_number = 'seller_po_summary__challan_number'
+    #else:
+        #lis.append('seller_po_summary__invoice_number')
+        #dc_or_inv_number = 'seller_po_summary__invoice_number'
 
     headers1, filters, filter_params1 = get_search_params(request)
     order_data = lis[col_num]
@@ -7335,7 +7394,8 @@ def get_saved_rtvs(start_index, stop_index, temp_data, search_term, order_term, 
         results = ReturnToVendor.objects.values('seller_po_summary__purchase_order__open_po__supplier_id',
                    'seller_po_summary__purchase_order__open_po__supplier__name',
                    'seller_po_summary__purchase_order__order_id',
-                   'seller_po_summary__invoice_number', 'seller_po_summary__invoice_date',).distinct().annotate(
+                   'seller_po_summary__invoice_number', 'seller_po_summary__invoice_date',
+                   'seller_po_summary__challan_number', 'seller_po_summary__challan_date').distinct().annotate(
             total=Sum('quantity'), purchase_order_date=Cast('seller_po_summary__purchase_order__creation_date', DateField())). \
             filter(seller_po_summary__purchase_order__open_po__sku__user=user.id, **search_params).order_by(order_data)
 
@@ -7343,7 +7403,8 @@ def get_saved_rtvs(start_index, stop_index, temp_data, search_term, order_term, 
         results = ReturnToVendor.objects.values('seller_po_summary__purchase_order__open_po__supplier_id',
                    'seller_po_summary__purchase_order__open_po__supplier__name',
                    'seller_po_summary__purchase_order__order_id',
-                   'seller_po_summary__invoice_number', 'seller_po_summary__invoice_date',).distinct().annotate(
+                   'seller_po_summary__invoice_number', 'seller_po_summary__invoice_date',
+                   'seller_po_summary__challan_number', 'seller_po_summary__challan_date').distinct().annotate(
             total=Sum('quantity'), purchase_order_date=Cast('seller_po_summary__purchase_order__creation_date', DateField())). \
             filter(seller_po_summary__purchase_order__open_po__sku__user=user.id, **search_params).order_by(order_data)
 
@@ -7357,20 +7418,27 @@ def get_saved_rtvs(start_index, stop_index, temp_data, search_term, order_term, 
                                                                 'seller_po_summary__purchase_order').\
                                                     filter(seller_po_summary__purchase_order__open_po__sku__user=user.id,
                                                            seller_po_summary__purchase_order__order_id=result['seller_po_summary__purchase_order__order_id'],
-                                                           seller_po_summary__invoice_number=result['seller_po_summary__invoice_number'])
+                                                           seller_po_summary__invoice_number=result['seller_po_summary__invoice_number'],
+                                                           seller_po_summary__challan_number=result['seller_po_summary__challan_number'])
         seller_summary = rtvs[0].seller_po_summary
         order_reference = get_po_reference(seller_summary.purchase_order)
         open_po = seller_summary.purchase_order.open_po
-        data_id = '%s:%s' % (result['seller_po_summary__purchase_order__order_id'], result['seller_po_summary__invoice_number'])
+        data_id = '%s:%s' % (result['seller_po_summary__purchase_order__order_id'], result.get('seller_po_summary__invoice_number', ''))
         checkbox = "<input type='checkbox' name='data_id' value='%s'>" % (data_id)
         po_date = get_local_date(request.user, seller_summary.purchase_order.creation_date,
                                  send_date=True).strftime("%d %b, %Y")
         invoice_number = ''
-        if result['seller_po_summary__invoice_number']:
-            invoice_number = result['seller_po_summary__invoice_number']
+        if result.get('seller_po_summary__invoice_number', ''):
+            invoice_number = result.get('seller_po_summary__invoice_number', '')
+        dc_number = ''
+        if result.get('seller_po_summary__challan_number', ''):
+            dc_number = result.get('seller_po_summary__challan_number', '')
         invoice_date = po_date
         if result['seller_po_summary__invoice_date']:
             invoice_date = result['seller_po_summary__invoice_date'].strftime("%d %b, %Y")
+        challan_date = ''
+        if result['seller_po_summary__challan_date']:
+            challan_date = result['seller_po_summary__challan_date'].strftime("%d %b, %Y")
         total_amt = 0
         tax = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax
         for rtv in rtvs:
@@ -7385,7 +7453,8 @@ def get_saved_rtvs(start_index, stop_index, temp_data, search_term, order_term, 
                                                 ('PO Number', order_reference), ('PO Date', po_date),
                                                 ('Invoice Number', invoice_number), ('Invoice Date', invoice_date),
                                                 ('Total Quantity', rem_quantity), ('Total Amount', total_amt),
-                                                ('id', count),
+                                                ('id', count), ('Challan Number', dc_number),
+                                                ('Challan Date', challan_date),
                                                 ('DT_RowClass', 'results'))))
         count += 1
 

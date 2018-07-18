@@ -71,7 +71,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('PO Number').withTitle('PO Number'),
         DTColumnBuilder.newColumn('PO Date').withTitle('PO Date'),
         DTColumnBuilder.newColumn('Invoice Number').withTitle('Invoice Number'),
+        DTColumnBuilder.newColumn('Challan Number').withTitle('Challan Number'),
         DTColumnBuilder.newColumn('Invoice Date').withTitle('Invoice Date'),
+        DTColumnBuilder.newColumn('Challan Date').withTitle('Challan Date'),
         DTColumnBuilder.newColumn('Total Quantity').withTitle('Total Quantity'),
         DTColumnBuilder.newColumn('Total Amount').withTitle('Total Amount'),
     ];
@@ -266,6 +268,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.conf_disable = true;
       var elem = [];
       elem.push({'name': 'seller_id', 'value': vm.model_data.seller_details.seller_id});
+      elem.push({'name': 'enable_dc_returns', 'value': vm.model_data.filters.enable_dc_returns});
 
       angular.forEach(vm.model_data.data, function(row){
         angular.forEach(row, function(sku){
@@ -307,6 +310,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.conf_disable = true;
       var elem = [];
       elem.push({'name': 'seller_id', 'value': vm.model_data.seller_details.seller_id});
+      elem.push({'name': 'enable_dc_returns', 'value': vm.model_data.filters.enable_dc_returns});
 
       angular.forEach(vm.model_data.data, function(row){
         angular.forEach(row, function(sku){

@@ -257,10 +257,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service.apiCall("after_admin_approval/", "POST", send).then(function(response){
         if(response.message) {
           if(response.data.message == "success") {
-            Data.my_orders = [];
             swal({
               title: "Success!",
-              text: "Your Order Has Been Sent for Approval",
+              text: "Your Order Has Been Placed",
               type: "success",
               showCancelButton: false,
               confirmButtonText: "OK",

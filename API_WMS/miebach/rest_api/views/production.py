@@ -987,6 +987,7 @@ def insert_rwo_po(rw_order, request, user):
                  'location': profile.location, 'w_address': get_purchase_company_address(profile),
                  'company_name': profile.company_name}
 
+    check_purchase_order_created(user, po_id)
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
     if get_misc_value('raise_po', user.id) == 'true':

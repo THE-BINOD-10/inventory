@@ -3091,6 +3091,7 @@ def check_and_raise_po(generic_order_id, cm_id):
                 purchase_data['prefix'] = user_profile[0].prefix
             order = PurchaseOrder(**purchase_data)
             order.save()
+        check_purchase_order_created(mapping.warehouse, po_id)
 
 
 def split_orders(**order_data):
@@ -3875,6 +3876,7 @@ def confirm_stock_transfer(all_data, user, warehouse_name):
             stock_transfer.save()
             open_st.status = 0
             open_st.save()
+        check_purchase_order_created(user, po_id)
     return HttpResponse("Confirmed Successfully")
 
 
@@ -3902,23 +3904,6 @@ def create_stock_transfer(request, user=''):
         all_data = insert_st(all_data, warehouse)
         status = confirm_stock_transfer(all_data, warehouse, user.username)
     return HttpResponse(status)
-
-
-def get_purchase_order_id(user):
-    po_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id).values_list('order_id', flat=True).order_by(
-        "-order_id")
-    st_order = STPurchaseOrder.objects.filter(open_st__sku__user=user.id).values_list('po__order_id',
-                                                                                      flat=True).order_by(
-        "-po__order_id")
-    rw_order = RWPurchase.objects.filter(rwo__vendor__user=user.id).values_list('purchase_order__order_id', flat=True). \
-        order_by("-purchase_order__order_id")
-    order_ids = list(chain(po_data, st_order, rw_order))
-    order_ids = sorted(order_ids, reverse=True)
-    if not order_ids:
-        po_id = 1
-    else:
-        po_id = int(order_ids[0]) + 1
-    return po_id
 
 
 @csrf_exempt

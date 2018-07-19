@@ -1041,11 +1041,7 @@ def confirm_po(request, user=''):
     sku_id = ''
     ean_flag = False
     data = copy.deepcopy(PO_DATA)
-    po_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id).order_by('-order_id')
-    if not po_data:
-        po_id = 0
-    else:
-        po_id = po_data[0].order_id
+    po_id = get_purchase_order_id(user)
     ids_dict = {}
     po_data = []
     total = 0
@@ -1246,6 +1242,7 @@ def confirm_po(request, user=''):
         write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
                            str(order_date).split(' ')[0], ean_flag=ean_flag)
 
+    check_purchase_order_created(user, po_id)
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
 
@@ -3996,6 +3993,7 @@ def confirm_stock_transfer(all_data, user, warehouse_name):
             stock_transfer.save()
             open_st.status = 0
             open_st.save()
+        check_purchase_order_created(user, po_id)
     return HttpResponse("Confirmed Successfully")
 
 
@@ -4208,18 +4206,10 @@ def confirm_add_po(request, sales_data='', user=''):
     data = copy.deepcopy(PO_DATA)
     display_remarks = get_misc_value('display_remarks_mail', user.id)
     if not sales_data:
-        po_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id).order_by("-order_id")
-        if not po_data:
-            po_id = 0
-        else:
-            po_id = po_data[0].order_id
+        po_id = get_purchase_order_id(user)
     else:
         if sales_data['po_order_id'] == '':
-            po_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id).order_by("-order_id")
-            if not po_data:
-                po_id = 0
-            else:
-                po_id = po_data[0].order_id
+            po_id = get_purchase_order_id(user)
         else:
             po_id = int(sales_data['po_order_id'])
             po_order_id = int(sales_data['po_order_id'])
@@ -4372,8 +4362,10 @@ def confirm_add_po(request, sales_data='', user=''):
         setattr(suggestion, 'status', 0)
         suggestion.save()
         if sales_data and not status:
+            check_purchase_order_created(user, po_id)
             return HttpResponse(str(order.id) + ',' + str(order.order_id))
     if status and not suggestion:
+        check_purchase_order_created(user, po_id)
         return HttpResponse(status)
     address = purchase_order.supplier.address
     address = '\n'.join(address.split(','))
@@ -4445,6 +4437,8 @@ def confirm_add_po(request, sales_data='', user=''):
         write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, phone_no, po_data,
                            str(order_date).split(' ')[0], ean_flag=ean_flag)
 
+    check_purchase_order_created(user, po_id)
+
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
 
@@ -4513,11 +4507,7 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
 @get_admin_user
 def confirm_po1(request, user=''):
     data = copy.deepcopy(PO_DATA)
-    po_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id).order_by('-order_id')
-    if not po_data:
-        po_id = 0
-    else:
-        po_id = po_data[0].order_id
+    po_id = get_purchase_order_id(user)
     ids_dict = {}
     po_data = []
     total = 0
@@ -4629,6 +4619,7 @@ def confirm_po1(request, user=''):
                 write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
                                    str(order_date).split(' ')[0], ean_flag=ean_flag)
 
+    check_purchase_order_created(user, po_id)
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
 

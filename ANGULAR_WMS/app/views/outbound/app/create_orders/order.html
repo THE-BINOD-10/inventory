@@ -187,15 +187,16 @@ input[type="date"]:valid::before {
               </h4>
               <p align="left">{{data.sku_desc}}</p>
               <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>Description: {{data.sku_desc}}</b></h4>
-              <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>MRP: {{data.mrp}}</b></h4>
-              <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>
+              <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>Dimensions: {{ data.length }} X {{ data.breadth }} X {{ data.height }}</b></h4>
+              <h4 align="left" ng-if="!(showCase.central_order_mgmt)" style="margin-bottom:0px;font-size: 14px;"><b>MRP: {{data.mrp}}</b></h4>
+              <h4 ng-if="!(showCase.central_order_mgmt)" align="left" style="margin-bottom:0px;font-size: 14px;"><b>
                 <span class="mr20" ng-if="data.sgst_tax">SGST ({{data.sgst_tax}}%): {{(data.invoice_amount / 100 * data.sgst_tax) | number:2}}</span>
                 <span class="mr20" ng-if="data.cgst_tax">CGST ({{data.cgst_tax}}%): {{(data.invoice_amount / 100 * data.cgst_tax) | number:2}}</span>
                 <span class="mr20" ng-if="data.igst_tax">IGST ({{data.igst_tax}}%): {{(data.invoice_amount / 100 * data.igst_tax) | number:2}}</span>
               </b></h4>
-              <h5 align="left" style="margin-bottom:0px;font-size: 16px;"><b>Rs {{data.invoice_amount}}</b></h5>
-              <p align="left" class="text-success" ng-if="data.quantity > 1" style="font-size: 12px;">{{data.quantity}} X Rs.{{data.price}}</p>
-              <div><span ng-click="Cart.remove_item($index)" style="cursor: pointer;" title="Delete Order" class="btn-sm btn-danger "><i class="fa fa-trash-o" aria-hidden="true"></i> Remove</span></div>
+              <h5 ng-if="!(showCase.central_order_mgmt)" align="left" style="margin-bottom:0px;font-size: 16px;"><b>Rs {{data.invoice_amount}}</b></h5>
+              <p ng-if="!(showCase.central_order_mgmt)" align="left" class="text-success" ng-if="data.quantity > 1" style="font-size: 12px;">{{data.quantity}} X Rs.{{data.price}}</p>
+              <div class="mt10"><span ng-click="Cart.remove_item($index)" style="cursor: pointer;" title="Delete Order" class="btn-sm btn-danger "><i class="fa fa-trash-o" aria-hidden="true"></i> Remove</span></div>
               <div class="alert alert-info" ng-if="data.freight_charges" style="margin-top: 11px;margin-bottom: 0px;">
                 <strong>Note:</strong> Freight as applicable will be charged extra.
               </div>

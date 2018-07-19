@@ -3225,12 +3225,12 @@ def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, cus
             order_summary_dict['order_taken_by'] = value
         elif key == 'shipment_time_slot':
             order_summary_dict['shipment_time_slot'] = value
-        elif key == 'discount':
+        elif key in ['discount', 'mrp']:
             try:
                 discount = float(myDict[key][i])
             except:
                 discount = 0
-            order_summary_dict['discount'] = discount
+            order_summary_dict[key] = discount
         elif key == 'warehouse_level':
             order_data[key] = int(myDict[key][i])
         elif key == 'el_price':

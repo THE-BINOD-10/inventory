@@ -161,8 +161,10 @@
                  <td ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'"><input ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'" ui-jq="datepicker" ng-model="data_split.expiry_date" class="form-control stk-readonly" type="text" id="expiry_date" readonly name="expiry_date" required data-date-today-highlight="true" data-date-autoclose="true" placeholder="Expiry Date" style="width: 90px;"></td>
 
                  <td><input type="text" name="reason" class="form-control" ng-model="data_split.reason"></td>
-                 <td>
+                 <td style="padding-right: 0px;padding-left: 10px;padding-top: 15px;">
                    <i class="mr10" ng-click="showCase.update_data($index, data_split, showCase.model_data.data)" ng-class="showCase.service.isLast(false)"></i>
+                 </td>
+                 <td style="padding-left: 10px;padding-right: 10px;padding-top: 15px;">
                    <i ng-hide="showCase.return_process == 'scan_imei' || showCase.allocate_order || showCase.industry_type != 'FMCG'" ng-click="showCase.add_next($index, data_split, showCase.model_data.data)" class="fa fa-plus-square-o"></i>
                  </td>
                </tr>

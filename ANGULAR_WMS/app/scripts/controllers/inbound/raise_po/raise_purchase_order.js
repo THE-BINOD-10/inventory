@@ -8,7 +8,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     var vm = this;
     vm.apply_filters = colFilters;
     vm.service = Service;
-
+    vm.extra_width = { 'width': '1250px' };
     vm.selected = {};
     vm.selectAll = false;
 
@@ -16,7 +16,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     vm.update_part = true;
     vm.permissions = Session.roles.permissions;
     vm.industry_type = Session.user_profile.industry_type;
-    vm.extra_width = { 'width': '1250px' };
     vm.display_purchase_history_table = false;
 
     vm.filters = {'datatable': 'RaisePO', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
@@ -75,6 +74,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       $('td:not(td:first)', nRow).unbind('click');
       $('td:not(td:first)', nRow).bind('click', function() {
         $scope.$apply(function() {
+          vm.extra_width = { 'width': '1250px' };
           vm.supplier_id = aData['Supplier ID'];
           var data = {supplier_id: aData['Supplier ID'], order_type: aData['Order Type']};
           vm.service.apiCall('generated_po_data/', 'GET', data).then(function(data){

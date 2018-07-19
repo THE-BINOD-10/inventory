@@ -6206,6 +6206,7 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
                           filters={}, user_dict={}):
     lis = ['id', 'interm_order_id', 'sku__sku_code', 'sku__sku_desc', 'quantity']
     data_dict = {'user': user.id, 'quantity__gt': 0}
+    status_map = {'1': 'Accept', '0': 'Reject'}
     all_orders = IntermediateOrders.objects.filter(**data_dict)
     index = 0
     for dat in all_orders:
@@ -6216,11 +6217,15 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
             wh_name = ''
         # creation_date = dat.creation_date
         # creation_date = get_local_date(request.user, creation_date, True).strftime("%d %b, %Y")
-        shipment_date = dat.shipment_date.strftime("%m-%d-%Y")
+        shipment_date = dat.shipment_date.strftime("%m/%d/%Y")
+        if dat.status:
+            status = status_map.get(dat.status)
+        else:
+            status = 'Pending'
         temp_data['aaData'].append(
             OrderedDict((('Order ID', order_id), ('SKU Code', dat.sku.sku_code), ('SKU Desc', dat.sku.sku_desc),
                          ('Product Quantity', dat.quantity), ('data_id', dat.id),
-                         ('Warehouse', wh_name), ('Status', dat.status),
+                         ('Warehouse', wh_name), ('Status', status),
                          ('id', index), ('DT_RowClass', 'results'), ('Shipment Date', shipment_date), )))
         index += 1
 
@@ -6241,7 +6246,7 @@ def get_central_order_detail(request):
         wh_name = interm_obj.order_assigned_wh.username
     else:
         wh_name = ''
-    shipment_date = interm_obj.shipment_date.strftime("%m-%d-%Y")
+    shipment_date = interm_obj.shipment_date.strftime("%m/%d/%Y")
     warehouses = UserGroups.objects.filter(admin_user_id=interm_obj.user).values_list('user__username', flat=True)
     resp = {'warehouses': list(warehouses), 'interm_order_id': interm_obj.interm_order_id,
             'sku_code': interm_obj.sku.sku_code, 'sku_desc': interm_obj.sku.sku_desc,

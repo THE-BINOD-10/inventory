@@ -263,7 +263,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     }
 
     vm.seller_change = function(type) {
-
       vm.selected_seller = type;
       vm.default_status = false;
       vm.model_data.data[vm.model_data.data.length - 1].fields.dedicated_seller = vm.selected_seller;

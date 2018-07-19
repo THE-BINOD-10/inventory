@@ -163,7 +163,7 @@
                  <td><input type="text" name="reason" class="form-control" ng-model="data_split.reason"></td>
                  <td>
                    <i class="mr10" ng-click="showCase.update_data($index, data_split, showCase.model_data.data)" ng-class="showCase.service.isLast(false)"></i>
-                   <i ng-hide="showCase.return_process == 'scan_imei' || showCase.allocate_order" ng-click="showCase.add_next($index, data_split, showCase.model_data.data)" class="fa fa-plus-square-o"></i>
+                   <i ng-hide="showCase.return_process == 'scan_imei' || showCase.allocate_order || showCase.industry_type != 'FMCG'" ng-click="showCase.add_next($index, data_split, showCase.model_data.data)" class="fa fa-plus-square-o"></i>
                  </td>
                </tr>
              </tbody>

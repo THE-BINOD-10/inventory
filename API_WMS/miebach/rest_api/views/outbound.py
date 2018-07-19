@@ -9989,14 +9989,20 @@ def print_cartons_data(request, user=''):
         if data[grouping_key]:
             data[grouping_key][4] = int(data[grouping_key][4]) + quantity
         else:
-            data[grouping_key] = [count, pack_reference, sku_code, title, quantity]
+            if not is_excel:
+                data[grouping_key] = [count, pack_reference, sku_code, title, quantity]
+            else:
+                data[grouping_key] = [count, pack_reference, sku_code, title, quantity, shipment_number, shipment_date]
         count+=1
     final_data = {'table_headers': table_headers, 'customer_address': customer_info.get('address', ''),
                   'customer_name': customer_info.get('name', ''), 'name': company_name,
                   'shipment_number': shipment_number, 'company_address': address,
                   'shipment_date': shipment_date, 'company_name': company_name, 'truck_number':truck_number,
                   'courier_name': courier_name, 'data': data.values()}
-    if is_excel:
+    if not is_excel:
+        return render(request, 'templates/toggle/print_cartons_wise_qty.html', final_data)
+    else:
+        table_headers.extend(('Shipment Number', 'Shipment Date'))
         excel_headers = ''
         temp_data = {}
         temp_data['aaData'] = [final_data]
@@ -10020,7 +10026,6 @@ def print_cartons_data(request, user=''):
                     column_count += 1
         wb.save(path)
         return HttpResponse(json.dumps({'path' : path_to_file}))
-    return render(request, 'templates/toggle/print_cartons_wise_qty.html', final_data)
 
 @csrf_exempt
 @login_required

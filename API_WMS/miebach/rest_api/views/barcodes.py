@@ -180,7 +180,7 @@ def get_barcodes(data_dict):
                       showBoundary=data_dict.get('styles').get('showBoundary', 0), \
                       leftPadding=2 * mm, rightPadding=0, topPadding=2 * mm, bottomPadding=0)
 
-            barcode_font_size = data_dict.get('styles', {}).get('barcode_font_size', style.fontSize)
+            barcode_font_size = data_dict.get('styles', {}).get('fontsizes', {}).get('barcode', style.fontSize)
 
             code = code128.Code128(data['Label'], humanReadable=1,
                                    barWidth=data_dict.get('styles', {}).get('BarWidth', 0.7), \

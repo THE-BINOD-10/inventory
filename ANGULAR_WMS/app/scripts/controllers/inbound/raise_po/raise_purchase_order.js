@@ -100,11 +100,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
 
               vm.model_data['supplier_id_name'] = vm.model_data.supplier_id + ":" + vm.model_data.supplier_name;
 
-              if(vm.model_data.receipt_type == 'Hosted Warehouse') {
+              // if(vm.model_data.receipt_type == 'Hosted Warehouse') {
 
                 vm.model_data.seller_type = vm.model_data.data[0].fields.dedicated_seller;
                 vm.dedicated_seller = vm.model_data.data[0].fields.dedicated_seller;
-              }
+              // }
 
               angular.forEach(vm.model_data.data, function(data){
                 if (!data.fields.cess_tax) {

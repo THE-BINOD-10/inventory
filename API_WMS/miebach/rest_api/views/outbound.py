@@ -7528,61 +7528,6 @@ def get_levelbased_invoice_data(start_index, stop_index, temp_data, user, search
     temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
     return temp_data
 
-'''
-@csrf_exempt
-def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    data_dict = {}
-    user_profile = UserProfile.objects.get(user_id=user.id)
-    temp_data['recordsTotal'] = 0
-    temp_data['recordsFiltered'] = temp_data['recordsTotal']
-    stock_transfer_id = ''
-    ordered_quantity = ''
-    #st_orders_id = STOrder.objects.filter(picklist__stock__sku__user = user.id).distinct().values_list('picklist__picklist_number', flat=True)
-    #st_order_ids = STOrder.objects.filter(stock_transfer__st_po__open_st__sku__user = user.id).distinct().values_list('stock_transfer__order_id', flat=True)
-    st_order_ids = STOrder.objects.filter(picklist__stock__sku__user = user.id).distinct().values_list('stock_transfer__order_id', flat=True)
-    #get warehouse list
-    user_list = []
-    admin_user = UserGroups.objects.filter(Q(admin_user__username__iexact=user.username) | Q(user__username__iexact=user.username)).values_list('admin_user_id', flat=True)
-
-    user_groups = UserGroups.objects.filter(admin_user_id__in=admin_user).values('user__username', 'admin_user__username')
-    for users in user_groups:
-        for key, value in users.iteritems():
-            if user.username != value and value not in user_list:
-                user_list.append(value)
-
-    for ord_id in st_order_ids:
-	picked_qty = 0
-	st_obj = StockTransfer.objects.filter(order_id = ord_id, st_po__open_st__warehouse__username__in = user_list).exclude(st_po__open_st__warehouse__username = '')
-	#first_name = st_obj[0].values('st_po__open_st__warehouse__first_name')['st_po__open_st__warehouse__first_name']
-	try:
-	    first_name = st_obj[0].st_po.open_st.warehouse.username
-	except:
-	    first_name = ''
-
-	picklist_obj = Picklist.objects.filter(order__order_id = ord_id)
-	#picked_qty = picklist_obj.aggregate(Sum('picked_quantity'))['picked_quantity__sum']
-	reserved_qty = picklist_obj.aggregate(Sum('reserved_quantity'))['reserved_quantity__sum']
-	total_price = 0
-	picked_quantity = 0
-	total_picked_quantity = 0
-	for get_sku in picklist_obj:
-	    sku_code = get_sku.sku_code
-	    if sku_code:
-		#get_picked_qty = picklist_obj.filter(sku_code = sku_code)
-		#picked_quantity = get_picked_qty[0].picked_quantity
-		unique_sku_obj = st_obj.filter(st_po__open_st__sku__sku_code = sku_code)
-		try:
-		    picked_quantity = unique_sku_obj[0].st_po.open_st.order_quantity
-		    #total_amount = unique_sku_obj[0].st_po.open_st.price * picked_quantity
-		    #total_amount = get_picked_qty[0].order.sku.price * picked_quantity
-		    total_amount = unique_sku_obj[0].st_po.open_st.price * picked_quantity
-		except:
-		    total_amount = 0
-		total_price = total_amount + total_price
-		total_picked_quantity = picked_quantity + total_picked_quantity
-	temp_data['aaData'].append({'Stock Transfer ID' : ord_id, 'Order Quantity' : '', 'Picked Quantity' : total_picked_quantity, 'Total Amount' : total_price, 'Stock Transfer Date&Time' : '', 'Customer Name': first_name})
-'''
-
 @csrf_exempt
 def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     data_dict = {}
@@ -10007,7 +9952,7 @@ def print_cartons_data(request, user=''):
     truck_number = request.POST.get('truck_number', '')
     courier_name = request.POST.get('courier_name', '')
     selected_carton = request.POST.get('sel_carton', '')
-
+    is_excel = request.POST.get('is_excel', '')
     data = OrderedDict()
     count = 1
     customers_obj = OrderDetail.objects.select_related('customer_id', 'customer_name', 'marketplace').\
@@ -10046,15 +9991,36 @@ def print_cartons_data(request, user=''):
         else:
             data[grouping_key] = [count, pack_reference, sku_code, title, quantity]
         count+=1
-
     final_data = {'table_headers': table_headers, 'customer_address': customer_info.get('address', ''),
                   'customer_name': customer_info.get('name', ''), 'name': company_name,
                   'shipment_number': shipment_number, 'company_address': address,
                   'shipment_date': shipment_date, 'company_name': company_name, 'truck_number':truck_number,
                   'courier_name': courier_name, 'data': data.values()}
-
+    if is_excel:
+        excel_headers = ''
+        temp_data = {}
+        temp_data['aaData'] = [final_data]
+        excel_name = 'shipment_carton_excel'
+        if temp_data['aaData']:
+            excel_headers = temp_data['aaData'][0].keys()
+        file_name = "%s.%s" % (user.id, excel_name.split('=')[-1])
+        file_type = 'xls'
+        path = ('static/excel_files/%s.%s') % (file_name, file_type)
+        if not os.path.exists('static/excel_files/'):
+            os.makedirs('static/excel_files/')
+        path_to_file = '../' + path
+        wb, ws = get_work_sheet('skus', table_headers)
+        data_count = 0
+        for data in temp_data['aaData']:
+            data_count += 1
+            column_count = 0
+            for list_obj in data['data']:
+                for value in list_obj:
+                    ws.write(data_count, column_count, value)
+                    column_count += 1
+        wb.save(path)
+        return HttpResponse(json.dumps({'path' : path_to_file}))
     return render(request, 'templates/toggle/print_cartons_wise_qty.html', final_data)
-
 
 @csrf_exempt
 @login_required

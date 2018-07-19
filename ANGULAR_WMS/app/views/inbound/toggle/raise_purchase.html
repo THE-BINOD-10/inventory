@@ -76,7 +76,7 @@
                 <select ng-if="!showCase.update" class="form-control zone" name="seller_id" ng-model="showCase.model_data.seller_type" ng-change="showCase.seller_change(showCase.model_data.seller_type)" ng-init="showCase.model_data.seller_type=showCase.model_data.seller_types[0]; showCase.seller_change(showCase.model_data.seller_type)">
                   <option ng-repeat="type in showCase.model_data.seller_types" ng-selected="showCase.model_data.seller_type==type" value="{{type}}">{{type}}</option>
                 </select>
-                <input type="text" ng-if="showCase.update" ng-model="showCase.model_data.seller_type" name="seller_id" class="form-control">
+                <input type="text" ng-if="showCase.update" ng-model="showCase.model_data.seller_type" name="seller_id" class="form-control" ng-readonly="showCase.update">
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="user.user_profile.user_type == 'marketplace_user'">

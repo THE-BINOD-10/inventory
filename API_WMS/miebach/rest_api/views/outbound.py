@@ -1049,6 +1049,10 @@ def validate_location_stock(val, all_locations, all_skus, user, picklist):
         pic_check_data['pallet_detail__pallet_code'] = val['pallet']
     if picklist.stock and picklist.stock.batch_detail_id:
         pic_check_data['batch_detail_id'] = picklist.stock.batch_detail_id
+    if picklist.sellerorderdetail_set.filter(seller_order__isnull=False).exists():
+        pic_check_data['sellerstock__seller_id'] = picklist.sellerorderdetail_set.\
+                                                    filter(seller_order__isnull=False)[0].seller_order.seller_id
+
     pic_check = StockDetail.objects.filter(**pic_check_data)
     if not pic_check:
         status.append("Insufficient Stock in given location")
@@ -3087,6 +3091,7 @@ def check_and_raise_po(generic_order_id, cm_id):
                 purchase_data['prefix'] = user_profile[0].prefix
             order = PurchaseOrder(**purchase_data)
             order.save()
+        check_purchase_order_created(mapping.warehouse, po_id)
 
 
 def split_orders(**order_data):
@@ -3221,12 +3226,12 @@ def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, cus
             order_summary_dict['order_taken_by'] = value
         elif key == 'shipment_time_slot':
             order_summary_dict['shipment_time_slot'] = value
-        elif key == 'discount':
+        elif key in ['discount', 'mrp']:
             try:
                 discount = float(myDict[key][i])
             except:
                 discount = 0
-            order_summary_dict['discount'] = discount
+            order_summary_dict[key] = discount
         elif key == 'warehouse_level':
             order_data[key] = int(myDict[key][i])
         elif key == 'el_price':
@@ -3871,6 +3876,7 @@ def confirm_stock_transfer(all_data, user, warehouse_name):
             stock_transfer.save()
             open_st.status = 0
             open_st.save()
+        check_purchase_order_created(user, po_id)
     return HttpResponse("Confirmed Successfully")
 
 
@@ -3898,23 +3904,6 @@ def create_stock_transfer(request, user=''):
         all_data = insert_st(all_data, warehouse)
         status = confirm_stock_transfer(all_data, warehouse, user.username)
     return HttpResponse(status)
-
-
-def get_purchase_order_id(user):
-    po_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id).values_list('order_id', flat=True).order_by(
-        "-order_id")
-    st_order = STPurchaseOrder.objects.filter(open_st__sku__user=user.id).values_list('po__order_id',
-                                                                                      flat=True).order_by(
-        "-po__order_id")
-    rw_order = RWPurchase.objects.filter(rwo__vendor__user=user.id).values_list('purchase_order__order_id', flat=True). \
-        order_by("-purchase_order__order_id")
-    order_ids = list(chain(po_data, st_order, rw_order))
-    order_ids = sorted(order_ids, reverse=True)
-    if not order_ids:
-        po_id = 1
-    else:
-        po_id = int(order_ids[0]) + 1
-    return po_id
 
 
 @csrf_exempt

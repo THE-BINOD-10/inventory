@@ -1710,7 +1710,8 @@ MARKETPLACE_SERIAL_EXCEL_MAPPING = OrderedDict((('order_reference', 0), ('market
 SELLER_TRANSFER_MAPPING = OrderedDict((('SKU Code', 'wms_code'), ('Source Seller ID', 'source_seller'),
                                        ('Source Location', 'source_location'),
                                        ('Destination Seller ID', 'dest_seller'),
-                                       ('Destination Location', 'dest_location'), ('Quantity', 'quantity'),
+                                       ('Destination Location', 'dest_location'), ('MRP', 'mrp'),
+                                       ('Quantity', 'quantity'),
                                     ))
 
 PICKLIST_EXCLUDE_ZONES = ['DAMAGED_ZONE', 'QC_ZONE', 'Non Sellable Zone']

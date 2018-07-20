@@ -1320,6 +1320,7 @@ def auto_po(wms_codes, user):
                                                  received_quantity=0, po_date=datetime.datetime.now(),
                                                  prefix=user_profile.prefix,
                                                  creation_date=datetime.datetime.now())
+                    check_purchase_order_created(User.objects.get(id=user), po_order_id)
     else:
         pass
 
@@ -1515,9 +1516,24 @@ def update_stocks_data(stocks, move_quantity, dest_stocks, quantity, user, dest,
             dict_values['batch_detail_id'] = BatchDetail.objects.create(**mrp_dict).id
         elif batch_obj:
             dict_values['batch_detail'] = batch_obj
-        dest_stocks = StockDetail(**dict_values)
-        dest_stocks.save()
-        change_seller_stock(dest_seller_id, dest_stocks, user, float(quantity), 'create')
+        if batch_obj:
+            batch_stock_filter = {'sku_id': sku_id, 'location_id': dest[0].id, 'batch_detail_id': batch_obj.id}
+            if dest_seller_id:
+                batch_stock_filter['sellerstock__seller_id'] = dest_seller_id
+            dest_stock_objs = StockDetail.objects.filter(**batch_stock_filter)
+            if not dest_stock_objs:
+                dest_stocks = StockDetail(**dict_values)
+                dest_stocks.save()
+                change_seller_stock(dest_seller_id, dest_stocks, user, float(quantity), 'create')
+            else:
+                dest_stocks = dest_stock_objs[0]
+                dest_stocks.quantity = dest_stocks.quantity + float(quantity)
+                dest_stocks.save()
+                change_seller_stock(dest_seller_id, dest_stocks, user, float(quantity), 'inc')
+        else:
+            dest_stocks = StockDetail(**dict_values)
+            dest_stocks.save()
+            change_seller_stock(dest_seller_id, dest_stocks, user, float(quantity), 'create')
     else:
         dest_stocks = dest_stocks[0]
         dest_stocks.quantity += float(quantity)
@@ -5381,10 +5397,10 @@ def check_create_seller_order(seller_order_dict, order, user, swx_mappings=[], t
         if not sell_order_ins:
             seller_order = SellerOrder(**seller_order_dict)
             seller_order.save()
-            if user.username == 'milkbasket':
-                aspl_seller = SellerMaster.objects.filter(user=user.id, name='ASPL')
-                if aspl_seller:
-                    trans_mapping = create_seller_order_transfer(seller_order, aspl_seller[0].id, trans_mapping)
+            #if user.username == 'milkbasket':
+            #    aspl_seller = SellerMaster.objects.filter(user=user.id, name='ASPL')
+            #    if aspl_seller:
+            #        trans_mapping = create_seller_order_transfer(seller_order, aspl_seller[0].id, trans_mapping)
             for swx_mapping in swx_mappings:
                 try:
                     create_swx_mapping(swx_mapping['swx_id'], seller_order.id, swx_mapping['swx_type'],
@@ -5453,17 +5469,20 @@ def insert_po_mapping(imei_nos, data, user_id):
 
 def get_purchase_order_id(user):
     '''  Provides New Purchase Order ID '''
-    po_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id).values_list('order_id', flat=True).order_by(
-        "-order_id")
-    st_order = STPurchaseOrder.objects.filter(open_st__sku__user=user.id).values_list('po__order_id',
-                                                                                      flat=True).order_by(
-        "-po__order_id")
-    order_ids = list(chain(po_data, st_order))
-    order_ids = sorted(order_ids, reverse=True)
-    if not order_ids:
-        po_id = 1
-    else:
-        po_id = int(order_ids[0]) + 1
+    # po_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id).values_list('order_id', flat=True).order_by(
+    #     "-order_id")
+    # st_order = STPurchaseOrder.objects.filter(open_st__sku__user=user.id).values_list('po__order_id',
+    #                                                                                   flat=True).order_by(
+    #     "-po__order_id")
+    # order_ids = list(chain(po_data, st_order))
+    # order_ids = sorted(order_ids, reverse=True)
+    # if not order_ids:
+    #     po_id = 1
+    # else:
+    #     po_id = int(order_ids[0]) + 1
+
+    po_id = get_incremental(user, 'po')
+    po_id = po_id - 1
     return po_id
 
 
@@ -6561,6 +6580,7 @@ def create_new_supplier(user, supp_name, supp_email, supp_phone, supp_address, s
 
 def create_order_pos(user, order_objs):
     ''' Creating Sampling PO for orders'''
+    po_id = ''
     try:
         cust_supp_mapping = {}
         user_profile = UserProfile.objects.get(user_id=user.id)
@@ -6614,7 +6634,10 @@ def create_order_pos(user, order_objs):
                                         creation_date=datetime.datetime.now())
         log.info("Sampling PO Creation for the user %s is PO number %s created for Order Id %s " % (user.username,
                                                                 str(po_id), str(order_objs[0].original_order_id)))
+        check_purchase_order_created(user, po_id)
     except Exception as e:
+        if po_id:
+            check_purchase_order_created(user, po_id)
         import traceback
         log.debug(traceback.format_exc())
         log.info('Sampling PO Creation failed for %s and params are %s and error statement is %s' % (
@@ -6769,6 +6792,27 @@ def update_mail_alerts(request, user=''):
     return HttpResponse("Success")
 
 
+def update_order_batch_details(user, order):
+    picklists = order.picklist_set.filter()
+    batch_data = {}
+    for picklist in picklists:
+        pick_locs = picklist.picklistlocation_set.filter(stock__isnull=False)
+        for pick in pick_locs:
+            if pick.stock.batch_detail:
+                batch_detail = picklist.stock.batch_detail
+                mfg_date = ''
+                if batch_detail.manufactured_date:
+                    mfg_date = batch_detail.manufactured_date.strftime('%m/%d/%Y')
+                exp_date = ''
+                if batch_detail.expiry_date:
+                    exp_date = batch_detail.expiry_date.strftime('%m/%d/%Y')
+                group_key = '%s:%s:%s' % (str(batch_detail.mrp), str(batch_detail.manufactured_date),
+                                          str(batch_detail.expiry_date))
+                batch_data.setdefault(group_key, {'mrp': batch_detail.mrp, 'manufactured_date': mfg_date,
+                                    'expiry_date': exp_date, 'quantity': 0})
+                batch_data[group_key]['quantity'] += pick.quantity
+    return batch_data.values()
+
 def allocate_order_returns(user, sku_data, request):
     excl_filter = {}
     data = {}
@@ -6779,6 +6823,8 @@ def allocate_order_returns(user, sku_data, request):
         excl_filter['original_order_id__in'] = request.GET.get('exclude_order_ids', []).split(',')
     if request.GET.get('order_id', ''):
         order_filter['original_order_id'] = request.GET.get('order_id', '')
+    if request.GET.get('mrp', 0):
+        order_filter['customerordersummary__mrp'] = request.GET['mrp']
     if get_permission(user, 'add_shipmentinfo'):
         order_filter['picklist__status'] = 'dispatched'
     else:
@@ -6787,6 +6833,8 @@ def allocate_order_returns(user, sku_data, request):
                                 annotate(ret=Sum(F('orderreturns__quantity')),
                                         dam=Sum(F('orderreturns__damaged_quantity'))).annotate(tot=F('ret')+F('dam')). \
                                 filter(Q(tot__isnull=True) | Q(quantity__gt=F('tot')))
+    if user.username == 'milkbasket':
+        orders = orders.order_by('-creation_date')
     if orders:
         order = orders[0]
         if not order.tot:
@@ -6795,6 +6843,11 @@ def allocate_order_returns(user, sku_data, request):
         data = {'status': 'confirmed', 'sku_code': sku_data.sku_code, 'description': sku_data.sku_desc,
                 'order_id': order.original_order_id, 'ship_quantity': ship_quantity, 'unit_price': order.unit_price,
                 'return_quantity': 1}
+        user_profile = user.userprofile
+        if user_profile.industry_type == 'FMCG':
+            data['batch_data'] = update_order_batch_details(user, order)
+        if user_profile.user_type == 'marketplace_user' and order.sellerorder_set.filter().exists():
+            data['sor_id'] = order.sellerorder_set.filter()[0].sor_id
     return data
 
 
@@ -6818,7 +6871,7 @@ def get_invoice_sequence_obj(user, marketplace):
     invoice_sequence = InvoiceSequence.objects.filter(user=user.id, status=1, marketplace=marketplace)
     if not invoice_sequence:
         invoice_sequence = InvoiceSequence.objects.filter(user=user.id, marketplace='')
-    return  invoice_sequence
+    return invoice_sequence
 
 
 def create_update_batch_data(batch_dict):
@@ -6835,7 +6888,7 @@ def create_update_batch_data(batch_dict):
         number_fields = ['mrp', 'buy_price', 'tax_percent']
         for field in number_fields:
             try:
-                batch_dict[field] = float(batch_dict[field])
+                batch_dict[field] = float(batch_dict.get(field, 0))
             except:
                 batch_dict[field] = 0
         batch_objs = BatchDetail.objects.filter(**batch_dict)
@@ -7104,7 +7157,7 @@ def get_incremental(user, type_name, default_val=''):
     return count
 
 
-def check_and_update_picklist_number(table_value, user, type_name):
+def check_and_update_incremetal_type_val(table_value, user, type_name):
     table_value = int(table_value)
     data = IncrementalTable.objects.filter(user=user.id, type_name=type_name)
     if data and int(data[0].value) == table_value:
@@ -7115,7 +7168,15 @@ def check_picklist_number_created(user, picklist_number):
     pick_check_obj = Picklist.objects.filter(Q(order__user=user.id) | Q(stock__sku__user=user.id),
                                              picklist_number=picklist_number)
     if not pick_check_obj.exists():
-        check_and_update_picklist_number(picklist_number, user, 'picklist')
+        check_and_update_incremetal_type_val(picklist_number, user, 'picklist')
+
+
+def check_purchase_order_created(user, po_id):
+    po_data = PurchaseOrder.objects.filter(Q(open_po__sku__user=user.id) |
+                                           Q(stpurchaseorder__open_st__sku__user=user.id),
+                                           order_id=po_id)
+    if not po_data.exists():
+        check_and_update_incremetal_type_val(po_id, user, 'po')
 
 
 def get_po_challan_number(user, seller_po_summary):

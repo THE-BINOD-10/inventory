@@ -1041,11 +1041,7 @@ def confirm_po(request, user=''):
     sku_id = ''
     ean_flag = False
     data = copy.deepcopy(PO_DATA)
-    po_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id).order_by('-order_id')
-    if not po_data:
-        po_id = 0
-    else:
-        po_id = po_data[0].order_id
+    po_id = get_purchase_order_id(user)
     ids_dict = {}
     po_data = []
     total = 0
@@ -1246,6 +1242,7 @@ def confirm_po(request, user=''):
         write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
                            str(order_date).split(' ')[0], ean_flag=ean_flag)
 
+    check_purchase_order_created(user, po_id)
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
 
@@ -2868,7 +2865,6 @@ def create_return_order(data, user):
         if data.get('marketplace', ''):
             marketplace = data['marketplace']
         sor_id = ''
-
         if data.get('sor_id', ''):
             sor_id = data['sor_id']
 
@@ -2925,7 +2921,23 @@ def create_default_zones(user, zone, location, sequence):
     return [locations]
 
 
-def save_return_locations(order_returns, all_data, damaged_quantity, request, user, is_rto=False):
+def get_return_segregation_locations(order_returns, batch_dict, data):
+    stock_objs = StockDetail.objects.exclude(Q(location__location__in=PICKLIST_EXCLUDE_ZONES) |
+                                             Q(batch_detail__mrp=batch_dict['mrp'])). \
+                                    filter(sku__user=order_returns.sku.user,
+                                            sku__sku_code=order_returns.sku.sku_code, quantity__gt=0)
+    if stock_objs:
+        put_zone = ZoneMaster.objects.filter(zone='Non Sellable Zone', user=order_returns.sku.user)
+        if not put_zone:
+            create_default_zones(user, 'Non Sellable Zone', 'Non-Sellable1', 10001)
+            put_zone = ZoneMaster.objects.filter(zone='Non Sellable Zone', user=order_returns.sku.user)[0]
+        else:
+            put_zone = put_zone[0]
+        data['put_zone'] = put_zone.zone
+    return data
+
+def save_return_locations(order_returns, all_data, damaged_quantity, request, user, is_rto=False,
+                          batch_dict=None):
     order_returns = order_returns[0]
     zone = order_returns.sku.zone
     if zone:
@@ -2942,6 +2954,8 @@ def save_return_locations(order_returns, all_data, damaged_quantity, request, us
                      'pallet_number': '',
                      'wms_code': order_returns.sku.wms_code, 'sku_group': order_returns.sku.sku_group,
                      'sku': order_returns.sku}
+        if batch_dict and not data['put_zone'] == 'DAMAGED_ZONE':
+            data = get_return_segregation_locations(order_returns, batch_dict, data)
         if is_rto and not data['put_zone'] == 'DAMAGED_ZONE':
             locations = LocationMaster.objects.filter(zone__user=user.id, zone__zone='RTO_ZONE')
             if not locations:
@@ -2966,6 +2980,8 @@ def save_return_locations(order_returns, all_data, damaged_quantity, request, us
                 filled_capacity = 0
             filled_capacity = float(total_quantity) + float(filled_capacity)
             remaining_capacity = float(location.max_capacity) - float(filled_capacity)
+            if location.zone.zone in ['DEFAULT', 'DAMAGED_ZONE', 'QC_ZONE', 'Non Sellable Zone']:
+                remaining_capacity = received_quantity
             if remaining_capacity <= 0:
                 continue
             elif remaining_capacity < received_quantity:
@@ -2981,10 +2997,20 @@ def save_return_locations(order_returns, all_data, damaged_quantity, request, us
                                  'quantity': location_quantity, 'status': 1}
                 returns_data = ReturnsLocation(**location_data)
                 returns_data.save()
+                if batch_dict:
+                    batch_dict1 = copy.deepcopy(batch_dict)
+                    batch_dict1['transact_id'] = returns_data.id
+                    batch_dict1['transact_type'] = 'return_loc'
+                    create_update_batch_data(batch_dict1)
             else:
                 return_location = return_location[0]
                 setattr(return_location, 'quantity', float(return_location.quantity) + location_quantity)
                 return_location.save()
+                if batch_dict:
+                    batch_dict1 = copy.deepcopy(batch_dict)
+                    batch_dict1['transact_id'] = return_location.id
+                    batch_dict1['transact_type'] = 'return_loc'
+                    create_update_batch_data(batch_dict1)
             if received_quantity == 0:
                 order_returns.status = 0
                 order_returns.save()
@@ -3029,7 +3055,7 @@ def group_sales_return_data(data_dict, return_process):
                      'scan_awb': '[str(data_dict["order_id"][ind]), str(data_dict["sku_code"][ind])]'}
     grouping_key = grouping_dict[return_process]
     zero_index_list = ['scan_order_id', 'return_process', 'return_type']
-    number_fields = ['return', 'damaged']
+    number_fields = ['return', 'damaged', 'mrp']
 
     for ind in range(0, len(data_dict['sku_code'])):
         temp_key = ':'.join(eval(grouping_key))
@@ -3140,6 +3166,13 @@ def confirm_sales_return(request, user=''):
                 return_type = RETURNS_TYPE_MAPPING.get(return_type.lower(), '')
             if return_type == 'rto':
                 return_loc_params.update({'is_rto': True})
+            if return_dict.get('mrp') or return_dict.get('manufactured_date') or \
+                    return_dict.get('expiry_date', ''):
+                batch_dict = {'mrp': float(return_dict.get('mrp', 0)),
+                              'manufactured_date': return_dict.get('manufactured_date', ''),
+                              'expiry_date': return_dict.get('expiry_date', ''),
+                              'batch_no': ''}
+                return_loc_params['batch_dict'] = batch_dict
             locations_status = save_return_locations(**return_loc_params)
             if not locations_status == 'Success':
                 return HttpResponse(locations_status)
@@ -3961,6 +3994,7 @@ def confirm_stock_transfer(all_data, user, warehouse_name):
             stock_transfer.save()
             open_st.status = 0
             open_st.save()
+        check_purchase_order_created(user, po_id)
     return HttpResponse("Confirmed Successfully")
 
 
@@ -4173,18 +4207,10 @@ def confirm_add_po(request, sales_data='', user=''):
     data = copy.deepcopy(PO_DATA)
     display_remarks = get_misc_value('display_remarks_mail', user.id)
     if not sales_data:
-        po_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id).order_by("-order_id")
-        if not po_data:
-            po_id = 0
-        else:
-            po_id = po_data[0].order_id
+        po_id = get_purchase_order_id(user)
     else:
         if sales_data['po_order_id'] == '':
-            po_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id).order_by("-order_id")
-            if not po_data:
-                po_id = 0
-            else:
-                po_id = po_data[0].order_id
+            po_id = get_purchase_order_id(user)
         else:
             po_id = int(sales_data['po_order_id'])
             po_order_id = int(sales_data['po_order_id'])
@@ -4337,8 +4363,10 @@ def confirm_add_po(request, sales_data='', user=''):
         setattr(suggestion, 'status', 0)
         suggestion.save()
         if sales_data and not status:
+            check_purchase_order_created(user, po_id)
             return HttpResponse(str(order.id) + ',' + str(order.order_id))
     if status and not suggestion:
+        check_purchase_order_created(user, po_id)
         return HttpResponse(status)
     address = purchase_order.supplier.address
     address = '\n'.join(address.split(','))
@@ -4410,6 +4438,8 @@ def confirm_add_po(request, sales_data='', user=''):
         write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, phone_no, po_data,
                            str(order_date).split(' ')[0], ean_flag=ean_flag)
 
+    check_purchase_order_created(user, po_id)
+
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
 
@@ -4478,11 +4508,7 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
 @get_admin_user
 def confirm_po1(request, user=''):
     data = copy.deepcopy(PO_DATA)
-    po_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id).order_by('-order_id')
-    if not po_data:
-        po_id = 0
-    else:
-        po_id = po_data[0].order_id
+    po_id = get_purchase_order_id(user)
     ids_dict = {}
     po_data = []
     total = 0
@@ -4594,6 +4620,7 @@ def confirm_po1(request, user=''):
                 write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
                                    str(order_date).split(' ')[0], ean_flag=ean_flag)
 
+    check_purchase_order_created(user, po_id)
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
 
@@ -4672,9 +4699,9 @@ def save_qc_serials(key, scan_data, user, qc_id=''):
         log.info('Save QC Serial failed for ' + str(scan_data) + ' error statement is ' + str(e))
 
 
-def get_return_seller_id(returns_id, user):
+def get_return_seller_id(returns, user):
     ''' Returns Seller Master ID'''
-    return_imei = ReturnsIMEIMapping.objects.filter(order_return_id=returns_id, order_return__sku__user=user.id)
+    return_imei = ReturnsIMEIMapping.objects.filter(order_return_id=returns.id, order_return__sku__user=user.id)
     seller_id = ''
     if return_imei:
         order_imei = return_imei[0].order_imei
@@ -4683,6 +4710,9 @@ def get_return_seller_id(returns_id, user):
             seller_po = SellerPO.objects.filter(open_po_id=open_po_id, open_po__sku__user=user.id)
             if seller_po:
                 seller_id = seller_po[0].seller_id
+    else:
+        if returns.seller_order:
+            seller_id = returns.seller_order.seller_id
     return seller_id
 
 
@@ -4719,13 +4749,16 @@ def returns_putaway_data(request, user=''):
         if not status:
             sku_id = returns_data.returns.sku_id
             return_wms_codes.append(returns_data.returns.sku.wms_code)
-            seller_id = get_return_seller_id(returns_data.returns.id, user)
+            seller_id = get_return_seller_id(returns_data.returns, user)
             stock_data = StockDetail.objects.filter(location_id=location_id[0].id, receipt_number=receipt_number,
                                                     sku_id=sku_id,
                                                     sku__user=user.id)
+            batch_detail = BatchDetail.objects.filter(transact_type='return_loc', transact_id=returns_data.id)
             if stock_data:
                 stock_data = stock_data[0]
                 setattr(stock_data, 'quantity', float(stock_data.quantity) + quantity)
+                if batch_detail:
+                    stock_data.batch_detail_id = batch_detail[0].id
                 stock_data.save()
                 stock_id = stock_data.id
                 mod_locations.append(stock_data.location.location)
@@ -4734,6 +4767,8 @@ def returns_putaway_data(request, user=''):
                               'receipt_date': datetime.datetime.now(),
                               'sku_id': sku_id, 'quantity': quantity, 'status': 1,
                               'creation_date': datetime.datetime.now(), 'updation_date': datetime.datetime.now()}
+                if batch_detail:
+                    stock_dict['batch_detail_id'] = batch_detail[0].id
                 new_stock = StockDetail(**stock_dict)
                 new_stock.save()
                 stock_id = new_stock.id
@@ -5449,6 +5484,7 @@ def confirm_receive_qc(request, user=''):
     is_putaway = ''
     purchase_data = ''
     btn_class = ''
+    seller_receipt_id = 0
     seller_name = user.username
     seller_address = user.userprofile.address
     myDict = dict(request.POST.iterlists())
@@ -5522,6 +5558,11 @@ def confirm_receive_qc(request, user=''):
                                 'report_name': 'Goods Receipt Note', 'company_name': profile.company_name, 'location': profile.location}'''
             sku_list = putaway_data[putaway_data.keys()[0]]
             sku_slices = generate_grn_pagination(sku_list)
+            if seller_receipt_id:
+                po_number = str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id) \
+                            + '/' + str(seller_receipt_id)
+            else:
+                po_number = str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id)
             report_data_dict = {'data': putaway_data, 'data_dict': data_dict, 'data_slices': sku_slices,
                                 'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty,
                                 'total_price': total_price, 'total_tax': total_tax, 'address': address,
@@ -5923,7 +5964,7 @@ def get_po_segregation_data(request, user=''):
                 if batch_detail.manufactured_date:
                     data_dict['mfg_date'] = batch_detail.manufactured_date.strftime('%m/%d/%Y')
                 data_dict['exp_date'] = ''
-                if batch_detail.manufactured_date:
+                if batch_detail.expiry_date:
                     data_dict['exp_date'] = batch_detail.expiry_date.strftime('%m/%d/%Y')
                 data_dict['tax_percent'] = batch_detail.tax_percent
             orders.append([data_dict])

@@ -97,6 +97,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     vm.change_payment = function(payment){
       vm.model_data.balance = payment;
+
+      if (vm.dt_rows_changed) {
+
+        var total_amt = 0;
+        
+        angular.forEach(vm.dt_rows_changed, function(row){
+
+          row.enter_amount = Number(payment);
+          row.balance = Number(payment) - Number(row.amount);
+          total_amt += Number(row.amount);
+        });
+
+        vm.model_data.balance = Number(payment) - Number(total_amt);
+      }
     }
 
     vm.dt_rows_changed = [];
@@ -109,6 +123,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           if (vm.model_data.balance == 0){
             Service.showNoty('Balance is low');
           } else {
+            if (!vm.model_data.balance) {
+              vm.model_data.balance = Number(vm.model_data.payment);
+            }
             data.amount = Math.min(Number(data.payment_receivable), Number(vm.model_data.balance));
             data.payment_received = Number(data.payment_received) + data.amount;
             data.enter_amount = Number(vm.model_data.payment);
@@ -124,7 +141,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             var mark_paid = JSON.parse(localStorage.getItem("mark_paid"));
             mark_paid[data.invoice_number] = data.amount;
             localStorage.setItem("mark_paid", JSON.stringify(mark_paid));
-            // vm.dt_rows_changed[data.invoice_number] = data;
 
             $(elem).removeClass();
             $(elem).text('Mark As Unpaid');
@@ -137,7 +153,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           for (var i = 0; i < vm.dt_rows_changed.length; i++) {
             if (data.invoice_number == vm.dt_rows_changed[i]['invoice_number']) {
 
-              vm.model_data.balance += vm.dt_rows_changed[i]['amount'];
+              vm.model_data.balance = Number(vm.model_data.balance) + vm.dt_rows_changed[i]['amount'];
               vm.dt_rows_changed.splice(i,1);
               delete mark_paid[data.invoice_number];
               localStorage.setItem("mark_paid", JSON.stringify(mark_paid));

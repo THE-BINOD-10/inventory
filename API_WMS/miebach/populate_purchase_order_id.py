@@ -22,13 +22,17 @@ def update_user_purchase_orders():
         order_ids = list(chain(po_data, st_order))
         order_ids = sorted(order_ids, reverse=True)
         if not order_ids:
-            po_id = 1
+            po_id = 0
         else:
-            po_id = int(order_ids[0]) + 1
+            po_id = int(order_ids[0])
         if po_id:
             inc_check = IncrementalTable.objects.filter(user=user.id, type_name='po')
             if not inc_check:
                 IncrementalTable.objects.create(user_id=user.id, type_name='po', value=po_id,
                                                 creation_date=datetime.datetime.now())
+            else:
+                inc_check = inc_check[0]
+                inc_check.value = po_id
+                inc_check.save()
                 log.info("User %s and Purchase Order id is %s" % (user.username, str(po_id)))
 update_user_purchase_orders()

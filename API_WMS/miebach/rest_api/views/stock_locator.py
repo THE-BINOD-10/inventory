@@ -68,7 +68,6 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     temp_data['totalQuantity'] = 0
     temp_data['totalReservedQuantity'] = 0
     temp_data['totalAvailableQuantity'] = 0
-
     if search_term:
         master_data = StockDetail.objects.exclude(receipt_number=0).values_list('sku__wms_code', 'sku__sku_desc',
                                                                                 'sku__sku_category',
@@ -184,13 +183,6 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                                                 ('Reserved Quantity', reserved), ('Total Quantity', total),
                                                 ('Unit of Measurement', sku.measurement_type), ('Stock Value', total_stock_value ),
                                                 ('DT_RowId', data[0]) )))
-
-        # sort_col = sort_cols[col_num]
-        # if order_term == 'asc':
-        #    temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(sort_col))
-        # else:
-        #    temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(sort_col), reverse=True)
-        # temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
 
 
 @csrf_exempt

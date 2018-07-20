@@ -6217,7 +6217,7 @@ def get_supplier_invoice_data(start_index, stop_index, temp_data, search_term, o
                                  ('Supplier Name', data['purchase_order__open_po__supplier__name']),
                                  ('check_field', 'Supplier Name'),
                                  ('PO Quantity', data['total_ordered']),
-                                 ('Received Quantity', rem_quantity),
+                                 ('Received Quantity', quantity),
                                  ('Order Date', ''),
                                  ('Total Amount', tot_amt), ('id', data.get('id', 0)),
                                  ('Invoice ID', data['invoice_number']),
@@ -6314,7 +6314,7 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
                                  ('Supplier Name', data['purchase_order__open_po__supplier__name']),
                                  ('check_field', 'Supplier Name'),
                                  ('PO Quantity', data['total_ordered']),
-                                 ('Received Quantity', rem_quantity),
+                                 ('Received Quantity', quantity),
                                  ('Order Date', po_date),
                                  ('Total Amount', tot_amt), ('id', data.get('id', 0)),
                                  ('Challan ID', data['challan_number']),
@@ -6491,7 +6491,12 @@ def generate_supplier_invoice(request, user=''):
             #sell_summary_param['purchase_order__order_id'] = req_data.get('purchase_order__order_id', '')
             #sell_summary_param['receipt_number'] = req_data.get('receipt_number', '')
             sell_summary_param['purchase_order__open_po__sku__user'] = user.id
-            sell_summary_param['invoice_number'] = req_data.get('invoice_number', '')
+            inv_no = req_data.get('invoice_number', '')
+            if inv_no:
+                sell_summary_param['invoice_number'] = inv_no
+            else: 
+                sell_summary_param['challan_number'] = req_data.get('challan_id', '')
+            #sell_summary_param['invoice_number'] = req_data.get('invoice_number', '')
             seller_summary = SellerPOSummary.objects.filter(**sell_summary_param)
             if seller_summary:
                 up = user.userprofile
@@ -6527,11 +6532,18 @@ def generate_supplier_invoice(request, user=''):
                 result_data["data"] = []
                 tot_cgst, tot_sgst, tot_igst, tot_utgst, tot_amt, tot_invoice, tot_qty, tot_tax = [0]*8
                 for seller_sum in seller_summary:
+                    rem_quantity = 0
+                    temp_qty = float(seller_sum.quantity)
+                    processed_val = seller_sum.returntovendor_set.filter().aggregate(Sum('quantity'))['quantity__sum']
+                    if processed_val:
+                        temp_qty -= processed_val
+                    rem_quantity += temp_qty
+
                     po = seller_sum.purchase_order
                     open_po = po.open_po
                     sku = open_po.sku
                     unit_price = open_po.price
-                    qty = seller_sum.quantity
+                    qty = rem_quantity
                     cgst_tax = open_po.cgst_tax
                     sgst_tax = open_po.sgst_tax
                     igst_tax = open_po.igst_tax
@@ -7062,7 +7074,8 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
     ret_params = {}
     for key, value in search_params.iteritems():
         ret_params['seller_po_summary__%s' % key] = value
-    return_ids = ReturnToVendor.objects.filter(**ret_params).values_list('seller_po_summary_id').distinct().\
+    return_ids = ReturnToVendor.objects.exclude(seller_po_summary__challan_number='', seller_po_summary__invoice_number='').\
+                                        filter(**ret_params).values_list('seller_po_summary_id').distinct().\
                                         annotate(tot_proc=Sum('quantity'), tot=Sum('seller_po_summary__quantity'),
                                                  tot_count=Count('seller_po_summary__quantity')).\
                                         annotate(final_val=F('tot')/Cast(F('tot_count'), FloatField())).\

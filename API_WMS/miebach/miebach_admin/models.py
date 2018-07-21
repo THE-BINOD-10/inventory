@@ -1821,6 +1821,7 @@ class SellerPOSummary(models.Model):
 
     class Meta:
         db_table = 'SELLER_PO_SUMMARY'
+        index_together = (('receipt_number',), ('purchase_order', 'receipt_number'))
 
     def __unicode__(self):
         return str(self.id)

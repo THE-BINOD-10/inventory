@@ -2246,7 +2246,7 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
     #invoice_number = int(invoice_number)
     if not invoice_date and not dc_level_grn:
         invoice_date = datetime.datetime.now().date()
-    else:
+    elif dc_level_grn:
         invoice_date = None
     if invoice_number:
         order_status_flag = 'supplier_invoices'

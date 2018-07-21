@@ -2246,7 +2246,7 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
     #invoice_number = int(invoice_number)
     if not invoice_date and not dc_level_grn:
         invoice_date = datetime.datetime.now().date()
-    else:
+    elif dc_level_grn:
         invoice_date = None
     if invoice_number:
         order_status_flag = 'supplier_invoices'
@@ -7074,8 +7074,7 @@ def get_po_putaway_data(start_index, stop_index, temp_data, search_term, order_t
     ret_params = {}
     for key, value in search_params.iteritems():
         ret_params['seller_po_summary__%s' % key] = value
-    return_ids = ReturnToVendor.objects.exclude(seller_po_summary__challan_number='', seller_po_summary__invoice_number='').\
-                                        filter(**ret_params).values_list('seller_po_summary_id').distinct().\
+    return_ids = ReturnToVendor.objects.filter(**ret_params).values_list('seller_po_summary_id').distinct().\
                                         annotate(tot_proc=Sum('quantity'), tot=Sum('seller_po_summary__quantity'),
                                                  tot_count=Count('seller_po_summary__quantity')).\
                                         annotate(final_val=F('tot')/Cast(F('tot_count'), FloatField())).\

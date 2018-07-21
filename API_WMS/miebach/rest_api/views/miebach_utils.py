@@ -12,6 +12,7 @@ from operator import itemgetter
 from django.db.models import Q, F
 from django.db.models.functions import Cast, Concat
 from django.db.models.fields import DateField, CharField
+from django.db.models import Value
 
 # from inbound import *
 
@@ -1866,37 +1867,48 @@ def get_location_stock_data(search_params, user, sub_user):
                       'sku_type': 'sku__sku_type__iexact', 'sku_class': 'sku__sku_class__iexact',
                       'zone': 'location__zone__zone__iexact',
                       'location': 'location__location__iexact', 'wms_code': 'sku__wms_code', 'ean': 'sku__ean_number__iexact'}
-
     results_data['draw'] = search_params.get('draw', 1)
     for key, value in search_mapping.iteritems():
         if key in search_params:
             search_parameters[value] = search_params[key]
-
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
-
     stock_detail = []
     search_parameters['quantity__gt'] = 0
     search_parameters['sku__user'] = user.id
     search_parameters['sku_id__in'] = sku_master_ids
+    distinct_list = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_category', 'sku__sku_brand']
     if search_parameters:
         stock_detail = StockDetail.objects.exclude(receipt_number=0).filter(**search_parameters)
         total_quantity = stock_detail.aggregate(Sum('quantity'))['quantity__sum']
-
+    stock_detail = stock_detail.annotate(grouped_val=Concat('sku__sku_code', Value('<<>>'), 'location__location',output_field=CharField()))
     results_data['recordsTotal'] = len(stock_detail)
     results_data['recordsFiltered'] = results_data['recordsTotal']
-
     if stop_index:
         stock_detail = stock_detail[start_index:stop_index]
-
+    picklist_reserved = dict(PicklistLocation.objects.filter(status=1, stock__sku__user=user.id).annotate(grouped_val=Concat('stock__sku__wms_code', Value('<<>>'), 'stock__location__location',output_field=CharField())).values_list('grouped_val').annotate(reserved=Sum('reserved')))
+    raw_reserved = dict(RMLocation.objects.filter(status=1, stock__sku__user=user.id).annotate(grouped_val=Concat('material_picklist__jo_material__material_code__wms_code', Value('<<>>'), 'stock__location__location',output_field=CharField())).values_list('grouped_val').annotate(rm_reserved=Sum('reserved')))
     for data in stock_detail:
+        total_stock_value = 0
+        reserved = 0
+        total = data.quantity
+        concat_wms_code_location = data.sku.wms_code + '<<>>' + data.location.location
+        if concat_wms_code_location in picklist_reserved.keys():
+            reserved += float(picklist_reserved[concat_wms_code_location])
+        if concat_wms_code_location in raw_reserved.keys():
+            reserved += float(raw_reserved[concat_wms_code_location])
+        quantity = total - reserved
+        if quantity < 0:
+            quantity = 0
+        total = reserved + quantity
         ean_num = data.sku.ean_number
         if not ean_num:
             ean_num = ''
         results_data['aaData'].append(OrderedDict((('SKU Code', data.sku.sku_code), ('WMS Code', data.sku.wms_code),
                                                    ('Product Description', data.sku.sku_desc),
                                                    ('Zone', data.location.zone.zone),
-                                                   ('Location', data.location.location), ('Quantity', data.quantity),
+                                                   ('Location', data.location.location), ('Total Quantity', total),
+                                                   ('Available Quantity', quantity), ('Reserved Quantity', reserved),
                                                    ('Receipt Number', data.receipt_number), ('EAN', str(ean_num)),
                                                    ('Receipt Date', str(data.receipt_date).split('+')[0]))))
     return results_data, total_quantity

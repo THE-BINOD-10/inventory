@@ -4723,7 +4723,7 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
         ord_dict = OrderedDict((('Zone Code', zone),
                                 ('Distributor Code', distributor_name),
                                 ('Reseller Code', customer_name),
-                                ('Product Category', sku_code),
+                                ('Product Category', prod_catg),
                                 ('SKU Code', sku_code),
                                 ('Enquiry No', enq_id),
                                 ('Enquiry Aging', days_left),

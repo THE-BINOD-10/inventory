@@ -98,7 +98,6 @@ def print_sku(request, user=''):
 def get_location_filter(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     temp_data, total_quantity = get_location_stock_data(search_params, user, request.user)
-
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 
@@ -393,17 +392,18 @@ def get_supplier_details_data(search_params, user, sub_user):
     search_parameters['open_po__sku_id__in'] = sku_master_ids
     supplier_data = {'aaData': []}
     supplier_name = search_params.get('supplier')
-    lis = ['creation_date', 'order_id', 'open_po__supplier__name', 'total_ordered', 'total_received', 'order_id',
+    lis = ['order_id', 'order_id', 'open_po__supplier__name', 'total_ordered', 'total_received', 'order_id',
            'order_id']
     order_val = lis[order_index]
     if order_term == 'desc':
         order_val = '-%s' % lis[order_index]
+
     if supplier_name:
-        suppliers = PurchaseOrder.objects.exclude(status='location-assigned').filter(
+        suppliers = PurchaseOrder.objects.select_related('open_po').exclude(status='location-assigned').filter(
             open_po__supplier__id=supplier_name, received_quantity__lt=F('open_po__order_quantity'),
             open_po__sku__user=user.id, **search_parameters)
     else:
-        suppliers = PurchaseOrder.objects.exclude(status='location-assigned').filter(
+        suppliers = PurchaseOrder.objects.select_related('open_po').exclude(status='location-assigned').filter(
             received_quantity__lt=F('open_po__order_quantity'), open_po__sku__user=user.id, **search_parameters)
     purchase_orders = suppliers.values('order_id').distinct().annotate(total_ordered=Sum('open_po__order_quantity'),
                                                                        total_received=Sum('received_quantity')). \
@@ -414,8 +414,8 @@ def get_supplier_details_data(search_params, user, sub_user):
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
-    all_amount = [(supplier.open_po.order_quantity * supplier.open_po.price) for supplier in suppliers]
-    total_charge = sum(all_amount)
+    #all_amount = [(supplier.open_po.order_quantity * supplier.open_po.price) for supplier in suppliers]
+    #total_charge = sum(all_amount)
     if stop_index:
         purchase_orders = purchase_orders[start_index:stop_index]
 
@@ -450,7 +450,7 @@ def get_supplier_details_data(search_params, user, sub_user):
                                                     ('Amount', total_amt),
                                                     ('Received Quantity', purchase_order['total_received']),
                                                     ('Status', status), ('order_id', po_obj.order_id))))
-    supplier_data['total_charge'] = total_charge
+    #supplier_data['total_charge'] = total_charge
     return supplier_data
 
 
@@ -1316,7 +1316,7 @@ def print_purchase_order_form(request, user=''):
                  'w_address': get_purchase_company_address(profile),
                  'company_name': company_name, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                  'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title,
-                 'gstin_no': gstin_no}
+                 'gstin_no': gstin_no, 'wh_gstin': profile.gst_number, 'wh_telephone': profile.phone_number}
 
     return render(request, 'templates/toggle/po_template.html', data_dict)
 

@@ -62,14 +62,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
      .withOption('initComplete', function( settings ) {
        vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
      });
-
     vm.dtColumns = [
         DTColumnBuilder.newColumn('Supplier ID').withTitle('Supplier ID'),
         DTColumnBuilder.newColumn('Supplier Name').withTitle('Supplier Name'),
         DTColumnBuilder.newColumn('PO Number').withTitle('PO Number'),
         DTColumnBuilder.newColumn('PO Date').withTitle('PO Date'),
         DTColumnBuilder.newColumn('Invoice Number').withTitle('Invoice Number'),
+        DTColumnBuilder.newColumn('Challan Number').withTitle('Challan Number'),
         DTColumnBuilder.newColumn('Invoice Date').withTitle('Invoice Date'),
+        DTColumnBuilder.newColumn('Challan Date').withTitle('Challan Date'),
         DTColumnBuilder.newColumn('Total Quantity').withTitle('Total Quantity'),
         DTColumnBuilder.newColumn('Total Amount').withTitle('Total Amount'),
     ];
@@ -162,6 +163,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.saveFilters = function(filters){
       Data.rtv_filters = filters;
+      vm.enable_dc_return = filters.enable_dc_returns;
     }
 
     //RTV Pop Data
@@ -273,6 +275,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.conf_disable = true;
       var elem = [];
       elem.push({'name': 'seller_id', 'value': vm.model_data.seller_details.seller_id});
+      elem.push({'name': 'enable_dc_returns', 'value': vm.enable_dc_return});
 
       angular.forEach(vm.model_data.data, function(row){
         angular.forEach(row, function(sku){
@@ -313,6 +316,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.conf_disable = true;
       var elem = [];
       elem.push({'name': 'seller_id', 'value': vm.model_data.seller_details.seller_id});
+      elem.push({'name': 'enable_dc_returns', 'value': vm.enable_dc_return});
 
       angular.forEach(vm.model_data.data, function(row){
         angular.forEach(row, function(sku){

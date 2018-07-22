@@ -3593,7 +3593,7 @@ def insert_order_data(request, user=''):
 
     message = "Success"
     success_messages = ["Success", "Order created, Picklist generated Successfully",
-                        "Order Created and Dispatched Successfully"]
+                        "Order Created and Dispatched Successfully", "Order created Successfully"]
     if not admin_user:
         auto_picklist_signal = get_misc_value('auto_generate_picklist', user.id)
         if direct_dispatch == 'true':

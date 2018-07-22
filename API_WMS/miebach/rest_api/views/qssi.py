@@ -36,6 +36,8 @@ def integration_get_order(order_id, user, order_status = "NEW"):
                      "Status": order_status,
                      "WarehouseId": WarehouseId,
                      "StatusDateTime": order["order_date"],
+                     "ShipByDate": order["shipment_date"],
+                     "Remark": str(order["remarks"]),
                      "Financials":
                         {
                             "PRICE": str(order["total_amount"]),
@@ -86,6 +88,7 @@ def integration_get_order(order_id, user, order_status = "NEW"):
                 update_linked_consignee_data(sku["id"], data)
             sku_data.append({"SKUID": sku["sku_code"],
                              "Quantity": str(sku["quantity"]),
+                             "UnitPrice": str(sku["unit_price"]),
                              "Offer": {}
                            })
         data["OrderLines"] = sku_data

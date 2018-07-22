@@ -659,6 +659,25 @@ CORPORATE_RESELLSER_MAPPING_REPORT = {
     'dt_url': 'get_corporate_reseller_mapping_report', 'excel_name': 'get_corporate_reseller_mapping_report',
     'print_url': 'print_corporate_reseller_mapping_report'
 }
+
+ENQUIRY_STATUS_REPORT = {
+'filters': [
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'Zone Code', 'name': 'zone_code', 'type': 'input'},
+        {'label': 'Distributor Code', 'name': 'dist_code', 'type': 'input'},
+        {'label': 'Reseller Code', 'name': 'reseller_code', 'type': 'input'},
+        {'label': 'Enquiry No', 'name': 'enquiry_number', 'type': 'input'},
+        {'label': 'Aging Period', 'name': 'aging_period', 'type': 'input'},
+        {'label': 'Enquiry Status', 'name': 'enquiry_status', 'type': 'input'},
+    ],
+    'dt_headers': ['Zone Code', 'Distributor Code', 'Reseller Code', 'Product Category', 'SKU Code',
+                   'Enquiry No', 'Enquiry Aging', 'Enquiry Status'
+                ],
+    'dt_url': 'get_enquiry_status_report', 'excel_name': 'get_enquiry_status_report',
+    'print_url': 'print_enquiry_status_report',
+}
+
 RETURN_TO_VENDOR_REPORT = {
     'filters': [
         {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
@@ -688,6 +707,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'zone_target_detailed_report': ZONE_TARGET_DETAILED_REPORT,
                      'corporate_target_report': CORPORATE_TARGET_REPORT,
                      'corporate_reseller_mapping_report': CORPORATE_RESELLSER_MAPPING_REPORT,
+                     'enquiry_status_report': ENQUIRY_STATUS_REPORT,
                      }
 
 SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', 'sku-wise', 1, 2, 'sku-wise-report'): (
@@ -1190,6 +1210,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_reseller_target_detailed_report': 'get_reseller_target_detailed_report_data',
                         'get_corporate_target_report': 'get_corporate_target_report_data',
                         'get_corporate_reseller_mapping_report': 'get_corporate_reseller_mapping_report_data',
+                        'get_enquiry_status_report': 'get_enquiry_status_report_data',
                         'sku_wise_goods_receipt' : 'get_sku_wise_po_filter_data',
                         'get_rtv_report': 'get_rtv_report_data'
                         }
@@ -4650,3 +4671,67 @@ def get_corporate_reseller_mapping_report_data(search_params, user, sub_user):
                                 ('Corporate Name', corp_name)))
         temp_data['aaData'].append(ord_dict)
     return temp_data
+
+
+def get_enquiry_status_report_data(search_params, user, sub_user):
+    from rest_api.views.outbound import get_same_level_warehouses
+    lis = ['id', 'user']
+    distributors = get_same_level_warehouses(2, user)
+    temp_data = copy.deepcopy(AJAX_DATA)
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    zone_code = search_params.get('zone_code', '')
+    if zone_code:
+        distributors = UserProfile.objects.filter(user__in=distributors, zone__icontains=zone_code).\
+            values_list('user_id', flat=True)
+    dist_code = search_params.get('dist_code', '')
+    if dist_code:
+        distributors = UserProfile.objects.filter(user__in=distributors,
+                                                  user__username__icontains=dist_code).values_list('user_id', flat=True)
+    zones_map = dict(UserProfile.objects.filter(user__in=distributors).values_list('user_id', 'zone'))
+    names_map = dict(UserProfile.objects.filter(user__in=distributors).values_list('user_id', 'user__username'))
+    resellers_qs = CustomerUserMapping.objects.filter(customer__user__in=distributors)
+    resellers = resellers_qs.values_list('customer_id', flat=True)
+    res_dist_ids_map = dict(resellers_qs.values_list('customer_id', 'customer__user'))
+    resellers_names_map = dict(resellers_qs.values_list('customer_id', 'user__username'))
+    em_qs = EnquiryMaster.objects.all()
+    corp_id_names = dict(CorporateMaster.objects.values_list('id', 'name'))
+    temp_data['recordsTotal'] = len(em_qs)
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    if stop_index:
+        em_qs = em_qs[start_index:stop_index]
+
+    for em_obj in em_qs:
+        enq_id = int(em_obj.enquiry_id)
+        date = em_obj.creation_date.strftime('%Y-%m-%d')
+        extend_status = em_obj.extend_status
+        if em_obj.extend_date:
+            days_left_obj = em_obj.extend_date - datetime.datetime.today().date()
+            days_left = days_left_obj.days
+        else:
+            days_left = 0
+        cm_obj = CustomerMaster.objects.get(id=em_obj.customer_id)
+        customer_name = cm_obj.name
+        dist_obj = User.objects.get(id=em_obj.user)
+        distributor_name = dist_obj.username
+        zone = dist_obj.userprofile.zone
+        sku_dets = em_obj.enquiredsku_set.values('sku__sku_category', 'sku_code')
+        if sku_dets:
+           sku_dets = sku_dets[0]
+           sku_code = sku_dets['sku_code']
+           prod_catg = sku_dets['sku__sku_category']
+        else:
+           sku_code = ''
+           prod_catg = ''
+        ord_dict = OrderedDict((('Zone Code', zone),
+                                ('Distributor Code', distributor_name),
+                                ('Reseller Code', customer_name),
+                                ('Product Category', sku_code),
+                                ('SKU Code', sku_code),
+                                ('Enquiry No', enq_id),
+                                ('Enquiry Aging', days_left),
+                                ('Enquiry Status', extend_status)))
+        temp_data['aaData'].append(ord_dict)
+    return temp_data
+

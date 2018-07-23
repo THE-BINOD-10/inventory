@@ -1,7 +1,7 @@
 <div id="page-pop" aria-hidden="false" aria-labelledby="myLargeModalLabel" role="dialog" tabindex="-1" id="myModal" class="modal fade in" style="display: block;">
   <form>
   <div class="modal-dialog modal-lgi model-custom modal-size">
-    <div class="modal-content">
+    <div class="modal-content" style="left: -10%;width: 100%;">
       <div ng-include="'views/common/loader.html'"></div>
       <div class="modal-header">
         <button aria-label="Close" data-dismiss="modal" class="close" type="button" ng-click="showCase.close()"><span aria-hidden="true">×</span>
@@ -45,7 +45,7 @@
               <textarea id="scan_awb" rows="1" class="form-control" ng-model="showCase.model_data.scan_awb_no" ng-keydown="showCase.scan_awb($event, showCase.model_data.scan_awb_no)"></textarea>
              </div>
            </div>
-           <div class="col-md-3 col-sm-3 col-xs-6" ng-if="user.user_profile['user_type'] != 'marketplace_user' && showCase.return_process == 'sku_code'">
+           <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.return_process == 'sku_code'">
              <div class="form-group">
                <label class="control-label"> SKU Code </label>
               <textarea id="return_sku_code" rows="1" class="form-control" ng-model="showCase.model_data.return_sku_code" ng-keydown="showCase.scan_sku($event, showCase.model_data.return_sku_code)"></textarea>
@@ -59,6 +59,13 @@
                 </select>
              </div>
            </div>
+
+            <div class="col-md-3 col-sm-3 col-xs-12" ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'">
+              <label class="control-label">MRP</label>
+              <input type="text" ng-model="showCase.model_data.mrp" class="form-control pull-right decimal" placeholder="Enter MRP">
+            </div>
+           
+
            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.permissions.use_imei && showCase.return_process == 'scan_imei'">
              <div class="form-group">
                <label class="control-label"> Scan IMEI Number </label>
@@ -66,15 +73,26 @@
              </div>
            </div>
 
-           <div class="col-md-3 col-sm-3 col-xs-6" ng-if="user.user_profile['user_type'] == 'marketplace_user'">
-             <div class="form-group">
-               <label class="control-label"> Return Type </label>
+
+            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="user.user_profile['user_type'] == 'marketplace_user'">
+              <div class="form-group">
+                <label class="control-label"> Return Type </label>
                 <select class="form-control" name="return_type" ng-model="showCase.model_data.return_type" ng-init="showCase.model_data.return_type = ''">
                   <option ng-selected="showCase.model_data.return_type == ''" value=""> None </option>
                   <option ng-repeat="type in showCase.return_types" ng-selected="showCase.model_data.return_type == type" value="{{type}}">{{ type }}</option>
                 </select>
-             </div>
-           </div>
+              </div>
+            </div>
+
+            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="user.user_profile['user_type'] == 'marketplace_user'">
+              <div class="form-group">
+                <label class="control-label"> Seller ID </label>
+                <select class="form-control" ng-model="showCase.model_data.seller_type" ng-change="showCase.seller_change(showCase.model_data.seller_type)">
+                  <option ng-repeat="type in showCase.model_data.seller_types" ng-selected="showCase.model_data.seller_type==type" ng-if="type != '? undefined:undefined ?'" value="{{type}}">{{type}}</option>
+                </select>
+              </div>
+            </div>
+
          </div>
          <div class="row" ng-if="showCase.imei_data.scanning">
            <div class="col-md-3 col-sm-3 col-xs-12">
@@ -102,7 +120,10 @@
                  <th> Return Quantity </th>
                  <th> Damaged Quantity </th>
                  <th> Unit Price </th>
-                 <th ng-if="user.user_profile['user_type'] != 'marketplace_user' && showCase.return_process == 'sku_code'"> Marketplace </th>
+                 <th ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'" style="width: 10px"> Market place </th>
+                 <th ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'"> MRP </th>
+                 <th ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'" style="width: 10px"> Manufactured Date </th>
+                 <th ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'" style="width: 10px"> Expiry Date </th>
                  <th> Reason </th>
                  <th class="plus" style="width:80px;"></th>
                </tr>
@@ -121,7 +142,7 @@
                  <td><input type="text" name="sku_desc" class="form-control" ng-model="data_split.sku_desc" readonly></td>
                  <td><input type="text" name="shipping" class="form-control" ng-class="service.get_decimal_perm()" ng-model="data_split.ship_quantity" readonly></td>
                  <td><input type="text" name="return" class="form-control" ng-readonly="showCase.return_process == 'scan_imei'" ng-class="service.get_decimal_perm()"  ng-model="data_split.return_quantity" ng-change="showCase.changeReturnQty(data_split.return_quantity, $index, data_split)"></td>
-                 <td><input type="text" name="damaged" class="form-control" ng-readonly="showCase.return_process == 'scan_imei'" ng-class="service.get_decimal_perm()" ng-model="data_split.damaged_quantity" ng-change="showCase.changeDamagedQty(data_split.damaged_quantity, $index, data_split)">
+                 <td><input type="text" name="damaged" class="form-control" ng-readonly="showCase.return_process == 'scan_imei'" ng-class="service.get_decimal_perm()" ng-model="data_split.damaged_quantity" ng-change="showCase.changeDamagedQty(data_split.damaged_quantity, $index, data_split)" style="width: 40px;">
                    <input type="hidden" class="form-control" name="returns_imeis" ng-model="data_split.returns_imeis" value="{{data_split.returns_imeis.join(',')}}">
                    <input type="hidden" class="form-control" value="{{data_split.damaged_imeis.join(',')}}" name="damaged_imeis" ng-model="data_split.damaged_imeis">
                    <input type="hidden" class="form-control" name="damaged_imeis_reason" value="{{data_split.damaged_imeis_reason.join(',')}}">
@@ -130,10 +151,15 @@
                    <input type="hidden" value="{{ data_split.sor_id }}" name="sor_id">
                    <input type="hidden" value="{{ data_split.order_imei_id }}" name="order_imei_id">
                  </td>
-                 <td><input type="text" class="form-control" ng-model="data_split.unit_price" readonly></td>
-                 <td ng-if="user.user_profile['user_type'] != 'marketplace_user' && showCase.return_process == 'sku_code'">
+                 <td><input type="text" class="form-control" ng-model="data_split.unit_price" readonly style="width: 50px;"></td>
+                 <td ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'">
                    <input type="text" name="marketplace" class="form-control" ng-model="data_split.marketplace">
                  </td>
+                
+                 <td ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'"> <input type="text" name="mrp" class="form-control decimal" ng-model="data_split.mrp" style="width: 45px"> </td>
+                 <td ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'"><input ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'" ui-jq="datepicker" ng-model="data_split.manufactured_date" class="form-control stk-readonly" type="text" id="manufactured_date" readonly name="manufactured_date" required data-date-today-highlight="true" data-date-autoclose="true" placeholder="Manufactured Date" style="width: 90px;"></td>
+                 <td ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'"><input ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'" ui-jq="datepicker" ng-model="data_split.expiry_date" class="form-control stk-readonly" type="text" id="expiry_date" readonly name="expiry_date" required data-date-today-highlight="true" data-date-autoclose="true" placeholder="Expiry Date" style="width: 90px;"></td>
+
                  <td><input type="text" name="reason" class="form-control" ng-model="data_split.reason"></td>
                  <td>
                    <i class="mr10" ng-click="showCase.update_data($index, data_split, showCase.model_data.data)" ng-class="showCase.service.isLast(false)"></i>

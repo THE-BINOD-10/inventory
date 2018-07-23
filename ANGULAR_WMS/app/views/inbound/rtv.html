@@ -13,6 +13,16 @@
     <div class="layout-sub-header">
         <form name="form" role="form" class="filters">
           <div class="clearfix">
+	    <div class="row col-md-12">
+              <p style="float:right">Enable DC Returns :
+              <label class="switch switch-sm square mt5">
+                  <input type="checkbox" name="enable_dc_returns" ng-model="showCase.model_data.filters.enable_dc_returns"
+                         ng-init="showCase.model_data.filters.enable_dc_returns=false">
+                  <span style="margin-top: 28%;">
+                <i class="handle"></i>
+                  </span>
+              </label></p>
+	    </div>
             <div class="row col-md-12">
               <div class="col-md-4 col-sm-4 col-xs-6">
                 <div class="form-group">
@@ -44,10 +54,19 @@
                   <input name="open_po" class="form-control" type="text" ng-model="showCase.model_data.filters.open_po">
                 </div>
               </div>
-              <div class="col-md-4 col-sm-4 col-xs-6">
+              <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.model_data.filters.enable_dc_returns==false">
                 <div class="form-group">
                   <label class="control-label">Invoice Number</label>
-                  <input name="invoice_number" class="form-control" type="text" ng-model="showCase.model_data.filters.invoice_number">
+                  <input name="invoice_number" class="form-control" type="text" ng-model="showCase.model_data.filters.invoice_number"
+                         ng-init="showCase.model_data.filters.dc_number=''">
+                  <input name="datatable" class="form-control" ng-init="showCase.model_data.filters.datatable = 'ReturnToVendor'" type="hidden" ng-model="showCase.model_data.filters.datatable" value="ReturnToVendor">
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.model_data.filters.enable_dc_returns">
+                <div class="form-group">
+                  <label class="control-label">DC Number</label>
+                  <input name="dc_number" class="form-control" type="text" ng-model="showCase.model_data.filters.dc_number"
+                         ng-init="showCase.model_data.filters.invoice_number=''">
                   <input name="datatable" class="form-control" ng-init="showCase.model_data.filters.datatable = 'ReturnToVendor'" type="hidden" ng-model="showCase.model_data.filters.datatable" value="ReturnToVendor">
                 </div>
               </div>

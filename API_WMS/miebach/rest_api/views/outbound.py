@@ -1049,6 +1049,10 @@ def validate_location_stock(val, all_locations, all_skus, user, picklist):
         pic_check_data['pallet_detail__pallet_code'] = val['pallet']
     if picklist.stock and picklist.stock.batch_detail_id:
         pic_check_data['batch_detail_id'] = picklist.stock.batch_detail_id
+    if picklist.sellerorderdetail_set.filter(seller_order__isnull=False).exists():
+        pic_check_data['sellerstock__seller_id'] = picklist.sellerorderdetail_set.\
+                                                    filter(seller_order__isnull=False)[0].seller_order.seller_id
+
     pic_check = StockDetail.objects.filter(**pic_check_data)
     if not pic_check:
         status.append("Insufficient Stock in given location")
@@ -3087,6 +3091,7 @@ def check_and_raise_po(generic_order_id, cm_id):
                 purchase_data['prefix'] = user_profile[0].prefix
             order = PurchaseOrder(**purchase_data)
             order.save()
+        check_purchase_order_created(mapping.warehouse, po_id)
 
 
 def split_orders(**order_data):
@@ -3221,12 +3226,12 @@ def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, cus
             order_summary_dict['order_taken_by'] = value
         elif key == 'shipment_time_slot':
             order_summary_dict['shipment_time_slot'] = value
-        elif key == 'discount':
+        elif key in ['discount', 'mrp']:
             try:
                 discount = float(myDict[key][i])
             except:
                 discount = 0
-            order_summary_dict['discount'] = discount
+            order_summary_dict[key] = discount
         elif key == 'warehouse_level':
             order_data[key] = int(myDict[key][i])
         elif key == 'el_price':
@@ -3587,6 +3592,8 @@ def insert_order_data(request, user=''):
         str(user.username), str(myDict), str(e)))
 
     message = "Success"
+    success_messages = ["Success", "Order created, Picklist generated Successfully",
+                        "Order Created and Dispatched Successfully", "Order created Successfully"]
     if not admin_user:
         auto_picklist_signal = get_misc_value('auto_generate_picklist', user.id)
         if direct_dispatch == 'true':
@@ -3601,7 +3608,6 @@ def insert_order_data(request, user=''):
             order_objs = order_user_objs.get(user_id, [])
             log.info("Picklist checking for user %s and order id is %s" % (str(user_id), str(order_user_data)))
             if auto_picklist_signal == 'true':
-                log.info("Entered")
                 message = check_stocks(order_user_data, User.objects.get(id=user_id), request, order_objs)
         #qssi push order api call
         generic_orders = GenericOrderDetailMapping.objects.filter(generic_order_id=generic_order_id,
@@ -3612,11 +3618,18 @@ def insert_order_data(request, user=''):
             order_detail_user = User.objects.get(id=generic_order['orderdetail__user'])
             resp = order_push(original_order_id, order_detail_user, "NEW")
             log.info('New Order Push Status: %s' % (str(resp)))
-            if resp['Status'] == 'Failure':
-                message = resp['Result']['Errors'][0]['ErrorMessage']
+            if resp.get('Status', '') == 'Failure' or resp.get('status', '') == 'Internal Server Error':
+                if resp.get('status', '') == 'Internal Server Error':
+                    message = "400 Bad Request"
+                else:
+                    message = resp['Result']['Errors'][0]['ErrorMessage']
                 order_detail = OrderDetail.objects.filter(original_order_id=original_order_id, user=order_detail_user.id)
+                picklist_number = order_detail.values_list('picklist__picklist_number', flat=True)
+                if picklist_number:
+                    picklist_number = picklist_number[0]
                 log.info(order_detail.delete())
-        if user_type == 'customer' and not is_distributor and message == "Success":
+                check_picklist_number_created(order_detail_user, picklist_number)
+        if user_type == 'customer' and not is_distributor and message in success_messages:
             # Creating Uploading POs object with file upload pending.
             # upload_po Api is called in front-end if file is present
             upload_po_map = {'uploaded_user_id': request.user.id, 'po_number': corporate_po_number,
@@ -3628,7 +3641,7 @@ def insert_order_data(request, user=''):
                 ord_obj.save()
             else:
                 log.info('Uploaded PO Already Created::%s' %(upload_po_map))
-    if message == "Success":
+    if message in success_messages:
         # Deleting Customer Cart data after successful order creation
         CustomerCartData.objects.filter(customer_user=request.user.id).delete()
 
@@ -3871,6 +3884,7 @@ def confirm_stock_transfer(all_data, user, warehouse_name):
             stock_transfer.save()
             open_st.status = 0
             open_st.save()
+        check_purchase_order_created(user, po_id)
     return HttpResponse("Confirmed Successfully")
 
 
@@ -3898,23 +3912,6 @@ def create_stock_transfer(request, user=''):
         all_data = insert_st(all_data, warehouse)
         status = confirm_stock_transfer(all_data, warehouse, user.username)
     return HttpResponse(status)
-
-
-def get_purchase_order_id(user):
-    po_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id).values_list('order_id', flat=True).order_by(
-        "-order_id")
-    st_order = STPurchaseOrder.objects.filter(open_st__sku__user=user.id).values_list('po__order_id',
-                                                                                      flat=True).order_by(
-        "-po__order_id")
-    rw_order = RWPurchase.objects.filter(rwo__vendor__user=user.id).values_list('purchase_order__order_id', flat=True). \
-        order_by("-purchase_order__order_id")
-    order_ids = list(chain(po_data, st_order, rw_order))
-    order_ids = sorted(order_ids, reverse=True)
-    if not order_ids:
-        po_id = 1
-    else:
-        po_id = int(order_ids[0]) + 1
-    return po_id
 
 
 @csrf_exempt

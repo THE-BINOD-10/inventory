@@ -19,7 +19,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.extra_width = {'width': '1100px'};
     console.log(vm.user_type);
 
-	if(vm.user_type !== "marketplace_user") {
+	//if(vm.user_type !== "marketplace_user") {
 
     vm.service.apiCall("supplier_invoice_data/").then(function(data) {
         if(data.message) {
@@ -79,7 +79,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         }
       });
 
-	}//end if market_place_user
+	//}//end if market_place_user
 
   vm.checked_ids = [];
   vm.checkedItem = function(data, index){

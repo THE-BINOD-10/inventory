@@ -2007,6 +2007,19 @@ var app = angular.module('urbanApp')
             title: 'Corporate Reseller Mapping Report',
           }
         })
+        .state('app.reports.EnquiryStatusReport', {
+          url: '/EnquiryStatusReport',
+          templateUrl: 'views/reports/enquiry_status_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/enquiry_status_report.js');
+              }]
+          },
+          data: {
+            title: 'Corporate Reseller Mapping Report',
+          }
+        })
+
         .state('app.reports.RTVReport', {
           url: '/RTVReport',
           templateUrl: 'views/reports/rtv_report.html',

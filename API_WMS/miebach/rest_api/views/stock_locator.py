@@ -20,6 +20,7 @@ log = init_logger('logs/stock_locator.log')
 @csrf_exempt
 def get_stock_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
+    is_excel = request.POST.get('excel', 'false')
     lis = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_brand', 'sku__sku_category', 'total', 'total', 'total',
            'sku__measurement_type', 'stock_value']
     lis1 = ['product_code__wms_code', 'product_code__sku_desc', 'product_code__sku_brand', 'product_code__sku_category',
@@ -53,21 +54,20 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     search_params['sku_id__in'] = sku_master_ids
     search_params1['product_code_id__in'] = sku_master_ids
 
-    reserved_instances = PicklistLocation.objects.filter(status=1, stock__sku__user=user.id).values(
+    picklist_reserved = dict(PicklistLocation.objects.filter(status=1, stock__sku__user=user.id).values_list(
         'stock__sku__wms_code'). \
-        distinct().annotate(reserved=Sum('reserved'))
-    raw_res_instances = RMLocation.objects.filter(status=1, stock__sku__user=user.id). \
-        values('material_picklist__jo_material__material_code__wms_code').distinct(). \
-        annotate(rm_reserved=Sum('reserved'))
+        distinct().annotate(reserved=Sum('reserved')))
+    raw_reserved = dict(RMLocation.objects.filter(status=1, stock__sku__user=user.id). \
+        values_list('material_picklist__jo_material__material_code__wms_code').distinct(). \
+        annotate(rm_reserved=Sum('reserved')))
 
-    reserveds = map(lambda d: d['stock__sku__wms_code'], reserved_instances)
-    reserved_quantities = map(lambda d: d['reserved'], reserved_instances)
-    raw_reserveds = map(lambda d: d['material_picklist__jo_material__material_code__wms_code'], raw_res_instances)
-    raw_reserved_quantities = map(lambda d: d['rm_reserved'], raw_res_instances)
+    #reserveds = map(lambda d: d['stock__sku__wms_code'], reserved_instances)
+    #reserved_quantities = map(lambda d: d['reserved'], reserved_instances)
+    #raw_reserveds = map(lambda d: d['material_picklist__jo_material__material_code__wms_code'], raw_res_instances)
+    #raw_reserved_quantities = map(lambda d: d['rm_reserved'], raw_res_instances)
     temp_data['totalQuantity'] = 0
     temp_data['totalReservedQuantity'] = 0
     temp_data['totalAvailableQuantity'] = 0
-
     if search_term:
         master_data = StockDetail.objects.exclude(receipt_number=0).values_list('sku__wms_code', 'sku__sku_desc',
                                                                                 'sku__sku_category',
@@ -118,37 +118,39 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
         quantity_master_data['total__sum'] = 0
     temp_data['totalQuantity'] = int(quantity_master_data['total__sum'])
 
-    for data in master_data:
-        total_available_quantity = 0
-        total_reserved = 0
-        total = 0
-        diff = 0
+    if not is_excel == 'true':
+        for data in master_data:
+            total_available_quantity = 0
+            total_reserved = 0
+            total = 0
+            diff = 0
 
-        if data[0] in reserveds:
-            total_reserved = float(reserved_quantities[reserveds.index(data[0])])
-            temp_data['totalReservedQuantity'] += total_reserved
-        if data[0] in raw_reserveds:
-            total_reserved = float(raw_reserved_quantities[raw_reserveds.index(data[0])])
-            temp_data['totalReservedQuantity'] += total_reserved
-        if len(data) >= 5:
-            if data[4] != None:
-                if len(data) > 4:
-                    total = data[4]
-            diff = total - total_reserved
-        if not diff < 0:
-            total_available_quantity = diff
-        temp_data['totalAvailableQuantity'] += total_available_quantity
+            if data[0] in picklist_reserved.keys():
+                total_reserved = float(picklist_reserved[data[0]])
+                temp_data['totalReservedQuantity'] += total_reserved
+            if data[0] in raw_reserved.keys():
+                total_reserved = float(raw_reserved[data[0]])
+                temp_data['totalReservedQuantity'] += total_reserved
+            if len(data) >= 5:
+                if data[4] != None:
+                    if len(data) > 4:
+                        total = data[4]
+                diff = total - total_reserved
+            if not diff < 0:
+                total_available_quantity = diff
+            temp_data['totalAvailableQuantity'] += total_available_quantity
 
     temp_data['totalReservedQuantity'] = int(temp_data['totalReservedQuantity'])
 
     temp_data['totalAvailableQuantity'] = int(temp_data['totalAvailableQuantity'])
 
-    reserveds = map(lambda d: d['stock__sku__wms_code'], reserved_instances)
-    reserved_quantities = map(lambda d: d['reserved'], reserved_instances)
-    raw_reserveds = map(lambda d: d['material_picklist__jo_material__material_code__wms_code'], raw_res_instances)
-    raw_reserved_quantities = map(lambda d: d['rm_reserved'], raw_res_instances)
+    #reserveds = map(lambda d: d['stock__sku__wms_code'], reserved_instances)
+    #reserved_quantities = map(lambda d: d['reserved'], reserved_instances)
+    #raw_reserveds = map(lambda d: d['material_picklist__jo_material__material_code__wms_code'], raw_res_instances)
+    #raw_reserved_quantities = map(lambda d: d['rm_reserved'], raw_res_instances)
     # temp_data['totalQuantity'] = sum([data[4] for data in master_data])
     for ind, data in enumerate(master_data[start_index:stop_index]):
+        print ind
         total_stock_value = 0
         reserved = 0
         # total = data[4] if len(data) > 4 else 0
@@ -159,32 +161,28 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                     total = data[4]
 
         sku = sku_master.get(wms_code=data[0], user=user.id)
-        if data[0] in reserveds:
-            reserved += float(reserved_quantities[reserveds.index(data[0])])
-        if data[0] in raw_reserveds:
-            reserved += float(raw_reserved_quantities[raw_reserveds.index(data[0])])
+        if data[0] in picklist_reserved.keys():
+            reserved += float(picklist_reserved[data[0]])
+        if data[0] in raw_reserved.keys():
+            reserved += float(raw_reserved[data[0]])
         quantity = total - reserved
         if quantity < 0:
             quantity = 0
-        wms_code_obj = StockDetail.objects.exclude(receipt_number=0).filter(sku__wms_code = data[0], sku__user=user.id)
-        wms_code_obj_unit_price = wms_code_obj.filter(unit_price__gt=0)
-        total_wms_qty_unit_price = sum(wms_code_obj_unit_price.annotate(stock_value=Sum(F('quantity') * F('unit_price'))).values_list('stock_value',flat=True))
-        wms_code_obj_sku_unit_price = wms_code_obj.filter(unit_price=0)
-	total_wms_qty_sku_unit_price = sum(wms_code_obj_sku_unit_price.annotate(stock_value=Sum(F('quantity') * F('sku__cost_price'))).values_list('stock_value',flat=True))
-	total_stock_value = total_wms_qty_unit_price + total_wms_qty_sku_unit_price
+
+        total_stock_value = 0
+        if quantity:
+            wms_code_obj = StockDetail.objects.exclude(receipt_number=0).filter(sku__wms_code = data[0], sku__user=user.id)
+            wms_code_obj_unit_price = wms_code_obj.filter(unit_price__gt=0).only('quantity', 'unit_price')
+            total_wms_qty_unit_price = sum(wms_code_obj_unit_price.annotate(stock_value=Sum(F('quantity') * F('unit_price'))).values_list('stock_value',flat=True))
+            wms_code_obj_sku_unit_price = wms_code_obj.filter(unit_price=0).only('quantity', 'sku__cost_price')
+            total_wms_qty_sku_unit_price = sum(wms_code_obj_sku_unit_price.annotate(stock_value=Sum(F('quantity') * F('sku__cost_price'))).values_list('stock_value',flat=True))
+            total_stock_value = total_wms_qty_unit_price + total_wms_qty_sku_unit_price
         temp_data['aaData'].append(OrderedDict((('WMS Code', data[0]), ('Product Description', data[1]),
                                                 ('SKU Category', data[2]), ('SKU Brand', data[3]),
                                                 ('Available Quantity', quantity),
                                                 ('Reserved Quantity', reserved), ('Total Quantity', total),
                                                 ('Unit of Measurement', sku.measurement_type), ('Stock Value', total_stock_value ),
                                                 ('DT_RowId', data[0]) )))
-
-        # sort_col = sort_cols[col_num]
-        # if order_term == 'asc':
-        #    temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(sort_col))
-        # else:
-        #    temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(sort_col), reverse=True)
-        # temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
 
 
 @csrf_exempt
@@ -703,15 +701,24 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
         del search_params['receipt_date__icontains']
     search_params['sku_id__in'] = sku_master_ids
     if search_term:
-        master_data = StockDetail.objects.exclude(receipt_number=0).annotate( stock_value=Sum(F('quantity') * F('sku__cost_price')) ).filter(Q(receipt_number__icontains=search_term) | Q(sku__wms_code__icontains=search_term) | Q(quantity__icontains=search_term) | Q(location__zone__zone__icontains=search_term) | Q(sku__sku_code__icontains=search_term) | Q(sku__sku_desc__icontains=search_term) | Q(location__location__icontains=search_term) | Q(stock_value__icontains=search_term),sku__user=user.id).filter(**search_params).order_by(order_data)
+        master_data = StockDetail.objects.filter(quantity__gt=0).exclude(receipt_number=0).select_related('sku', 'location',
+                                                'location__zone', 'pallet_detail').\
+            annotate(stock_value=Sum(F('quantity') * F('sku__cost_price')) ).\
+            filter(Q(receipt_number__icontains=search_term) | Q(sku__wms_code__icontains=search_term) |
+                   Q(quantity__icontains=search_term) | Q(location__zone__zone__icontains=search_term) |
+                   Q(sku__sku_code__icontains=search_term) | Q(sku__sku_desc__icontains=search_term) |
+                   Q(location__location__icontains=search_term) | Q(stock_value__icontains=search_term),
+                   sku__user=user.id).filter(**search_params).order_by(order_data)
     else:
-        master_data = StockDetail.objects.exclude(receipt_number=0).annotate( stock_value=Sum(F('quantity') * F('sku__cost_price')) ).filter(sku__user=user.id, **search_params). \
-            order_by(order_data)
+        master_data = StockDetail.objects.filter(quantity__gt=0).exclude(receipt_number=0).select_related('sku', 'location',
+                                                'location__zone', 'pallet_detail').\
+                            annotate( stock_value=Sum(F('quantity') * F('sku__cost_price')) ).\
+                            filter(sku__user=user.id, **search_params).order_by(order_data)
 
-    temp_data['recordsTotal'] = len(master_data)
+    temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    pallet_switch = get_misc_value('pallet_switch', user.id)
     for data in master_data[start_index:stop_index]:
-        pallet_switch = get_misc_value('pallet_switch', user.id)
         _date = get_local_date(user, data.receipt_date, True)
         _date = _date.strftime("%d %b, %Y")
         stock_quantity = get_decimal_limit(user.id, data.quantity)

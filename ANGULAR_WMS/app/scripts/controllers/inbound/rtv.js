@@ -52,7 +52,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           datearray[1] = '0'+datearray[1];
         }
 
-        if (datearray[0] < 10 && datearray[1].length == 1) {
+        if (datearray[0] < 10 && datearray[0].length == 1) {
           datearray[0] = '0'+datearray[0];
         }
 

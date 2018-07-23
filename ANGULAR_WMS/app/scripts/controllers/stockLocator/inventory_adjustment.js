@@ -173,16 +173,30 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     })
   }
 
-      vm.get_sku_batches = function(sku_code){
-        if(sku_code && vm.industry_type==="FMCG"){
-          vm.service.apiCall('get_sku_batches/?sku_code='+sku_code).then(function(data){
-            if(data.message) {
-              vm.batches = data.data.sku_batches;
-              vm.batch_nos = Object.keys(vm.batches);
-            }
-          });
+  vm.getReasons = function(key){
+
+    if (key) {
+      var send = {'key': 'sales_return_reasons'};
+      vm.service.apiCall('inventory_adj_reasons/', 'POST', send).then(function(resp) {
+        
+        if (resp.message) {
+
+          vm.reasons = resp.data.data.reasons;
         }
-	  }
+      });
+    }
+  }
+
+  vm.get_sku_batches = function(sku_code){
+    if(sku_code && vm.industry_type==="FMCG"){
+      vm.service.apiCall('get_sku_batches/?sku_code='+sku_code).then(function(data){
+        if(data.message) {
+          vm.batches = data.data.sku_batches;
+          vm.batch_nos = Object.keys(vm.batches);
+        }
+      });
+    }
+  }
 
   }
 

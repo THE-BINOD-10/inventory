@@ -11,7 +11,23 @@
             <h4 class="modal-title" id="myLargeModalLabel">Add Inventory Adjustment</h4>
           </div>           
            <div class="modal-body">
-           <div class="row">
+
+            <div class="row"">
+              <div class="col-md-11 col-sm-11 col-xs-10">
+                <p align="right">Inventory Shinkage</p>
+              </div>
+              <div class="col-md-1 col-sm-1 col-xs-2">
+                <label class="switch switch-sm square">
+                  <div>
+                    <input type="checkbox" ng-model="showCase.model_data.inv_shinkage" ng-change="showCase.getReasons(showCase.model_data.inv_shinkage)">
+                    <span>
+                      <i class="handle"></i>
+                    </span>
+                  </div>
+                </label>
+              </div>
+            </div>
+           <div class="row mt15">
              <div class="col-md-4 col-sm-4 col-xs-6">
                <div class="form-group">
                  <label cla4ss= control-label"> WMS Code * </label>
@@ -52,7 +68,11 @@
               <div class="col-md-4 col-sm-4 col-xs-6">
                 <div class="form-group">
                   <label class="control-label"> Reason </label>
-                  <input type="text" name="reason" class="form-control" ng-model="showCase.model_data.reason" value="">
+                  <input type="text" ng-if="!(showCase.model_data.inv_shinkage)" name="reason" class="form-control" ng-model="showCase.model_data.reason" value="">
+                  <select class="form-control" ng-if="showCase.model_data.inv_shinkage" name="reason" ng-model="showCase.model_data.reason">
+                    <option value="">Select Reason </option>
+                    <option ng-repeat="reason in showCase.reasons" value="{{reason}}">{{reason}}</option>
+                  </select>
                 </div>
               </div>
               <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.pallet_switch">

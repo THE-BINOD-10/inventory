@@ -1959,6 +1959,15 @@ def inventory_adj_modify_qty(request, user=''):
                         break
     return HttpResponse(json.dumps({'status': True, 'message':message}))
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def inventory_adj_reasons(request, user=''):
+    reasons = ''
+    reasons = get_misc_value(request.POST['key'],user.id)
+
+    return HttpResponse(json.dumps({"data": {'reasons': reasons.split(',')}}))
+
 
 def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                              filters):

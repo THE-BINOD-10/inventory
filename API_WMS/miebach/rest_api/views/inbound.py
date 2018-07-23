@@ -972,7 +972,9 @@ def switches(request, user=''):
                        'auto_raise_stock_transfer': 'auto_raise_stock_transfer',
                        'inbound_supplier_invoice': 'inbound_supplier_invoice',
                        'invoice_based_payment_tracker': 'invoice_based_payment_tracker',
-                       'customer_dc': 'customer_dc', 'auto_expire_enq_limit': 'auto_expire_enq_limit',
+                       'customer_dc': 'customer_dc', 
+                       'auto_expire_enq_limit': 'auto_expire_enq_limit',
+                       'sales_return_reasons': 'sales_return_reasons',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

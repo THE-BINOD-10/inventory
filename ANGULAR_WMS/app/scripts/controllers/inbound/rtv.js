@@ -46,7 +46,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var date = utc_date.toLocaleDateString();
       var datearray = date.split("/");
 
-      if (os_type == 'Linux') {
+      if (os_type == 'Windows') {
 
         if (datearray[1] < 10 && datearray[1].length == 1) {
           datearray[1] = '0'+datearray[1];

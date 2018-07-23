@@ -237,6 +237,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     vm.base();
 
     vm.add = function () {
+      vm.extra_width = { 'width': '1250px' };
       vm.model_data.seller_types = [];
       vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
         if (data.message) {

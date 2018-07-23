@@ -3887,7 +3887,6 @@ def confirm_stock_transfer(all_data, user, warehouse_name):
         check_purchase_order_created(user, po_id)
     return HttpResponse("Confirmed Successfully")
 
-
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -3906,11 +3905,20 @@ def create_stock_transfer(request, user=''):
         all_data[cond].append(
             [data_dict['wms_code'][i], data_dict['order_quantity'][i], data_dict['price'][i], data_id])
     warehouse = User.objects.get(username=warehouse_name)
-
     status = validate_st(all_data, warehouse)
-    if not status:
-        all_data = insert_st(all_data, warehouse)
-        status = confirm_stock_transfer(all_data, warehouse, user.username)
+    html_data = '<p>HTML Data</p>';
+    f_name = ''
+    supplier_email = ''
+    phone_no = ''
+    po_data = ''
+    order_date = ''
+    ean_flag=False
+    internal=False
+    report_type='Purchase Order'
+    rendered_html_data = render_html_data(request, user)
+    stock_transfer_mail_pdf(f_name, rendered_html_data)
+    #all_data = insert_st(all_data, warehouse)
+    #status = confirm_stock_transfer(all_data, warehouse, user.username)
     return HttpResponse(status)
 
 
@@ -10121,3 +10129,144 @@ def create_orders_check_ean(request, user=''):
         sku_code = sku_obj[0].sku_code
     return HttpResponse(json.dumps({ 'sku' : sku_code }))
 
+
+def stock_transfer_mail_pdf(f_name, html_data):
+    receivers = []
+    attachments = create_mail_attachments(f_name, html_data)
+    #internal_mail = MiscDetail.objects.filter(user=request.user.id, misc_type='Internal Emails')
+    #misc_internal_mail = MiscDetail.objects.filter(user=request.user.id, misc_type='internal_mail', misc_value='true')
+    #if misc_internal_mail and internal_mail:
+    #    internal_mail = internal_mail[0].misc_value.split(",")
+    #    receivers.extend(internal_mail)
+    #if supplier_email:
+    #    receivers.append(supplier_email)
+    receivers.append('aravind@mieone.com')
+    #username = user.username
+    #if username == 'shotang':
+    #    username = 'SHProc'
+    #company_name = username
+    #if not user.username == 'shotang':
+        #cmp_name = UserProfile.objects.get(user_id=user.id).company_name
+        #if cmp_name:
+            #company_name = cmp_name
+
+    # Email Subject based on report type name
+    '''
+    email_body = 'Please find the %s with PO Reference: <b>%s</b> in the attachment' % (report_type, f_name)
+    email_subject = '%s %s' % (company_name, report_type)
+    if report_type == 'Job Order':
+        email_body = 'Please find the %s with Job Code: <b>%s</b> in the attachment' % (report_type, f_name)
+        email_subject = '%s %s with Job Code %s' % (company_name, report_type, f_name)
+    #if supplier_email or internal or internal_mail:
+    '''
+    email_subject = 'Email Me'
+    email_body = 'Email Body'
+    send_mail_attachment(receivers, email_subject, email_body, files=attachments)
+    #if phone_no:
+    #    if report_type == 'Purchase Order':
+    #        po_message(po_data, phone_no, username, f_name, order_date, ean_flag)
+    #    elif report_type == 'Goods Receipt Note':
+    #        grn_message(po_data, phone_no, username, f_name, order_date)
+    #    elif report_type == 'Job Order':
+    #        jo_message(po_data, phone_no, company_name, f_name, order_date)
+
+def create_mail_attachments(f_name, html_data):
+    from random import randint
+    attachments = []
+    if not isinstance(html_data, list):
+        html_data = [html_data]
+    for data in html_data:
+        temp_name = f_name + str(randint(100, 9999))
+        file_name = '%s.html' % temp_name
+        pdf_file = '%s.pdf' % temp_name
+        path = 'static/temp_files/'
+        folder_check(path)
+        file = open(path + file_name, "w+b")
+        file.write(data)
+        file.close()
+        os.system(
+            "./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (path + file_name, path + pdf_file))
+        attachments.append({'path': path + pdf_file, 'name': pdf_file})
+    return attachments
+
+def render_html_data(request, user):
+    user_profile = UserProfile.objects.filter(user = user).values('phone_number', 'company_name', 'location',
+        'city', 'state', 'country', 'pin_code', 'address', 'wh_address', 'wh_phone_number', 'gst_number')
+    data_dict = {
+        'current_company_name' : user_profile[0]['company_name'], 'current_w_address' : user_profile[0]['wh_address'],
+        'stock_transfer_id' : stock_transfer_id, 'current_wh_gstin' : user_profile[0]['gst_number'],
+        'current_wh_ship_to_address' : user_profile[0].address, 
+    }
+    table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price',
+    'Amount', 'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)']
+
+    
+    po_id = 1
+    total_qty = 0
+    total = 0
+    if not po_id:
+        return HttpResponse("Purchase Order Id is missing")
+    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user=user.id, order_id=po_id)
+    ean_flag = list(purchase_orders.exclude(open_po__sku__ean_number=0))
+    display_remarks = get_misc_value('display_remarks_mail', user.id)
+    po_data = []
+    for order in purchase_orders:
+        open_po = order.open_po
+        total_qty += open_po.order_quantity
+        amount = open_po.order_quantity * open_po.price
+        tax = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax
+        total += amount + ((amount / 100) * float(tax))
+        po_temp_data = [open_po.sku.sku_code, open_po.supplier_code, open_po.sku.sku_desc, open_po.order_quantity,
+                        open_po.measurement_unit, open_po.price, amount,
+                        open_po.sgst_tax, open_po.cgst_tax, open_po.igst_tax, open_po.utgst_tax]
+        if ean_flag:
+            po_temp_data.insert(1, open_po.sku.ean_number)
+        if display_remarks == 'true':
+            po_temp_data.append(open_po.remarks)
+        po_data.append(po_temp_data)
+    order = purchase_orders[0]
+    open_po = order.open_po
+    address = open_po.supplier.address
+    address = '\n'.join(address.split(','))
+    vendor_name = ''
+    vendor_address = ''
+    vendor_telephone = ''
+    if open_po.order_type == 'VR':
+        vendor_address = open_po.vendor.address
+        vendor_address = '\n'.join(vendor_address.split(','))
+        vendor_name = open_po.vendor.name
+        vendor_telephone = open_po.vendor.phone_number
+    telephone = open_po.supplier.phone_number
+    name = open_po.supplier.name
+    order_id = order.order_id
+    gstin_no = open_po.supplier.tin_number
+    order_date = get_local_date(request.user, order.creation_date)
+    po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
+    table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price',
+                     'Amount',
+                     'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)']
+    if ean_flag:
+        table_headers.insert(1, 'EAN Number')
+    if display_remarks == 'true':
+        table_headers.append('Remarks')
+    profile = user.userprofile
+    company_name = profile.company_name
+    title = 'Purchase Order'
+    receipt_type = request.GET.get('receipt_type', '')
+    # if receipt_type == 'Hosted Warehouse':
+    #if request.POST.get('seller_id', ''):
+    #    title = 'Stock Transfer Note'
+    #if request.POST.get('seller_id', '') and 'shproc' in str(request.POST.get('seller_id').split(":")[1]).lower():
+    #    company_name = 'SHPROC Procurement Pvt. Ltd.'
+    #    title = 'Purchase Order'
+    t = loader.get_template('templates/toggle/stock_transfer_mail.html')
+    data_dict = t.render({'table_headers': table_headers, 'data': po_data, 'address': address, 
+                 'order_id': order_id, 'telephone': str(telephone),
+                 'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference,
+                 'user_name': request.user.username,
+                 'total_qty': total_qty, 'company_name': company_name, 'location': profile.location,
+                 'w_address': get_purchase_company_address(profile),
+                 'company_name': company_name, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
+                 'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title,
+                 'gstin_no': gstin_no, 'wh_gstin': profile.gst_number, 'wh_telephone': profile.phone_number})
+    return data_dict

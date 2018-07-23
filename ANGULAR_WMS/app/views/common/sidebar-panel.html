@@ -560,6 +560,11 @@
             <span>Corporate Reseller Mapping Report</span>
           </a>
         </li>
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin'">
+          <a ui-sref="app.reports.EnquiryStatusReport">
+            <span>Enquiry Status Report</span>
+          </a>
+        </li>
       </ul>
     </li>
     <!-- /extras -->

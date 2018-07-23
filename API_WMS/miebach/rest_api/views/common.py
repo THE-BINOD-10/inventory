@@ -1320,6 +1320,7 @@ def auto_po(wms_codes, user):
                                                  received_quantity=0, po_date=datetime.datetime.now(),
                                                  prefix=user_profile.prefix,
                                                  creation_date=datetime.datetime.now())
+                    check_purchase_order_created(User.objects.get(id=user), po_order_id)
     else:
         pass
 
@@ -3038,7 +3039,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         if price_field == 'price':
             dis_percent = 0
             if customer_master:
-                dis_percent = customer_master.discount_percentage
+                dis_percent = customer_master[0].discount_percentage
             sku_master1 = SKUMaster.objects.exclude(sku_class='').\
                     annotate(n_price=F(price_field)*(1-(Value(dis_percent)/Value(100)))).annotate(
                     new_price=F('n_price') + (F('n_price') / Value(100)) * Value(custom_margin)).\
@@ -3067,7 +3068,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         if price_field == 'price':
             dis_percent = 0
             if customer_master:
-                dis_percent = customer_master.discount_percentage
+                dis_percent = customer_master[0].discount_percentage
             sku_master1 = SKUMaster.objects.exclude(sku_class='').\
                             annotate(n_price=F(price_field)*(1-(Value(dis_percent)/Value(100)))).\
                             annotate(new_price=F('n_price') + Value(custom_margin)).\
@@ -5468,17 +5469,20 @@ def insert_po_mapping(imei_nos, data, user_id):
 
 def get_purchase_order_id(user):
     '''  Provides New Purchase Order ID '''
-    po_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id).values_list('order_id', flat=True).order_by(
-        "-order_id")
-    st_order = STPurchaseOrder.objects.filter(open_st__sku__user=user.id).values_list('po__order_id',
-                                                                                      flat=True).order_by(
-        "-po__order_id")
-    order_ids = list(chain(po_data, st_order))
-    order_ids = sorted(order_ids, reverse=True)
-    if not order_ids:
-        po_id = 1
-    else:
-        po_id = int(order_ids[0]) + 1
+    # po_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id).values_list('order_id', flat=True).order_by(
+    #     "-order_id")
+    # st_order = STPurchaseOrder.objects.filter(open_st__sku__user=user.id).values_list('po__order_id',
+    #                                                                                   flat=True).order_by(
+    #     "-po__order_id")
+    # order_ids = list(chain(po_data, st_order))
+    # order_ids = sorted(order_ids, reverse=True)
+    # if not order_ids:
+    #     po_id = 1
+    # else:
+    #     po_id = int(order_ids[0]) + 1
+
+    po_id = get_incremental(user, 'po')
+    po_id = po_id - 1
     return po_id
 
 
@@ -6576,6 +6580,7 @@ def create_new_supplier(user, supp_name, supp_email, supp_phone, supp_address, s
 
 def create_order_pos(user, order_objs):
     ''' Creating Sampling PO for orders'''
+    po_id = ''
     try:
         cust_supp_mapping = {}
         user_profile = UserProfile.objects.get(user_id=user.id)
@@ -6629,7 +6634,10 @@ def create_order_pos(user, order_objs):
                                         creation_date=datetime.datetime.now())
         log.info("Sampling PO Creation for the user %s is PO number %s created for Order Id %s " % (user.username,
                                                                 str(po_id), str(order_objs[0].original_order_id)))
+        check_purchase_order_created(user, po_id)
     except Exception as e:
+        if po_id:
+            check_purchase_order_created(user, po_id)
         import traceback
         log.debug(traceback.format_exc())
         log.info('Sampling PO Creation failed for %s and params are %s and error statement is %s' % (
@@ -7149,7 +7157,7 @@ def get_incremental(user, type_name, default_val=''):
     return count
 
 
-def check_and_update_picklist_number(table_value, user, type_name):
+def check_and_update_incremetal_type_val(table_value, user, type_name):
     table_value = int(table_value)
     data = IncrementalTable.objects.filter(user=user.id, type_name=type_name)
     if data and int(data[0].value) == table_value:
@@ -7160,7 +7168,15 @@ def check_picklist_number_created(user, picklist_number):
     pick_check_obj = Picklist.objects.filter(Q(order__user=user.id) | Q(stock__sku__user=user.id),
                                              picklist_number=picklist_number)
     if not pick_check_obj.exists():
-        check_and_update_picklist_number(picklist_number, user, 'picklist')
+        check_and_update_incremetal_type_val(picklist_number, user, 'picklist')
+
+
+def check_purchase_order_created(user, po_id):
+    po_data = PurchaseOrder.objects.filter(Q(open_po__sku__user=user.id) |
+                                           Q(stpurchaseorder__open_st__sku__user=user.id),
+                                           order_id=po_id)
+    if not po_data.exists():
+        check_and_update_incremetal_type_val(po_id, user, 'po')
 
 
 def get_po_challan_number(user, seller_po_summary):

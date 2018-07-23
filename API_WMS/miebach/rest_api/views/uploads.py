@@ -2497,11 +2497,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
             seller_id = final_dict['seller'].id
         group_key = (order_data['po_name'], order_data['supplier_id'], data['po_date'], seller_id)
         if group_key not in order_ids.keys():
-            po_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id).order_by('-order_id')
-            if not po_data:
-                po_id = 0
-            else:
-                po_id = po_data[0].order_id
+            po_id = get_purchase_order_id(user)
             order_ids[group_key] = po_id
         else:
             po_id = order_ids[group_key]
@@ -2532,6 +2528,9 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         mail_result_data = purchase_order_dict(data1, data_req, purchase_order, user, order)
     if mail_result_data and get_misc_value('raise_po', user.id) == 'true':
         mail_status = purchase_upload_mail(request, mail_result_data, user)
+    for key, value in order_ids.iteritems():
+        if value:
+            check_purchase_order_created(user, value)
     return 'success'
 
 
@@ -4328,6 +4327,9 @@ def create_po_serial_mapping(final_data_dict, user):
         save_sku_stats(user, stock_dict.sku_id, purchase_order.id, 'po', quantity)
         mod_locations.append(location_master.location)
 
+    for key, value in order_id_dict.iteritems():
+        if value:
+            check_purchase_order_created(user, value)
     if mod_locations:
         update_filled_capacity(mod_locations, user.id)
 

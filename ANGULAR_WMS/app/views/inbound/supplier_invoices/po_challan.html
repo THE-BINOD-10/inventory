@@ -10,7 +10,7 @@
         <button type="button" ng-if="showCase.user_type != 'distributor'"
                 class="btn btn-primary pull-right" ng-disabled="showCase.bt_disable"
                 ng-click="showCase.move_to('cancel_poc')">Cancel POC</button>
-        <button type="button" ng-if="showCase.user_type != 'distributor'"
+        <button type="button" ng-if="showCase.user_type != 'distributor' && showCase.industry_type != 'FMCG'"
                 class="btn btn-primary pull-right mr20" ng-disabled="showCase.bt_disable"
                 ng-click="showCase.edit_poc()">Edit POC</button>
         <button type="button" ng-if="showCase.user_type != 'distributor'"

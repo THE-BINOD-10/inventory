@@ -6837,12 +6837,18 @@ def allocate_order_returns(user, sku_data, request):
         orders = orders.order_by('-creation_date')
     if orders:
         order = orders[0]
+        cust_order_obj_dict ={}
+        cust_order_obj = order.customerordersummary_set.filter().values('cgst_tax', 'sgst_tax',
+                                                                    'igst_tax', 'utgst_tax')
         if not order.tot:
             order.tot = 0
+        if cust_order_obj:
+            cust_order_obj_dict = cust_order_obj[0]
         ship_quantity = order.quantity - order.tot
         data = {'status': 'confirmed', 'sku_code': sku_data.sku_code, 'description': sku_data.sku_desc,
                 'order_id': order.original_order_id, 'ship_quantity': ship_quantity, 'unit_price': order.unit_price,
-                'return_quantity': 1}
+                'return_quantity': 1,'cgst':cust_order_obj_dict.get('cgst_tax',''),
+                'sgst':cust_order_obj_dict.get('sgst_tax',''),'igst':cust_order_obj_dict.get('igst_tax','')}
         user_profile = user.userprofile
         if user_profile.industry_type == 'FMCG':
             data['batch_data'] = update_order_batch_details(user, order)

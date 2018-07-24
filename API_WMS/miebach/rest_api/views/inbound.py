@@ -2813,7 +2813,8 @@ def check_sku(request, user=''):
             data = allocate_order_returns(user, sku_data, request)
         if not data:
             data = {"status": 'confirmed', 'sku_code': sku_data.sku_code, 'description': sku_data.sku_desc,
-                    'order_id': '', 'ship_quantity': '', 'unit_price': '', 'return_quantity': 1}
+                    'order_id': '', 'ship_quantity': '', 'unit_price': '', 'return_quantity': 1,'cgst':'',
+                    'sgst':'', 'igst':''}
         return HttpResponse(json.dumps(data))
 
     """

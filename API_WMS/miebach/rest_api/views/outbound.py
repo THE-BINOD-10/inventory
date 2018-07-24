@@ -3918,7 +3918,7 @@ def create_stock_transfer(request, user=''):
     all_data = insert_st(all_data, warehouse)
     status = confirm_stock_transfer(all_data, warehouse, user.username)
     rendered_html_data = render_st_html_data(request, user, warehouse, all_data)
-    stock_transfer_mail_pdf(f_name, rendered_html_data)
+    stock_transfer_mail_pdf(request, f_name, rendered_html_data, warehouse)
     return HttpResponse(status)
 
 
@@ -10130,45 +10130,24 @@ def create_orders_check_ean(request, user=''):
     return HttpResponse(json.dumps({ 'sku' : sku_code }))
 
 
-def stock_transfer_mail_pdf(f_name, html_data):
+def stock_transfer_mail_pdf(request, f_name, html_data, warehouse):
     receivers = []
     attachments = create_mail_attachments(f_name, html_data)
-    #internal_mail = MiscDetail.objects.filter(user=request.user.id, misc_type='Internal Emails')
-    #misc_internal_mail = MiscDetail.objects.filter(user=request.user.id, misc_type='internal_mail', misc_value='true')
-    #if misc_internal_mail and internal_mail:
-    #    internal_mail = internal_mail[0].misc_value.split(",")
-    #    receivers.extend(internal_mail)
-    #if supplier_email:
-    #    receivers.append(supplier_email)
-    receivers.append('aravind@mieone.com')
-    #username = user.username
-    #if username == 'shotang':
-    #    username = 'SHProc'
-    #company_name = username
-    #if not user.username == 'shotang':
-        #cmp_name = UserProfile.objects.get(user_id=user.id).company_name
-        #if cmp_name:
-            #company_name = cmp_name
-
-    # Email Subject based on report type name
-    '''
-    email_body = 'Please find the %s with PO Reference: <b>%s</b> in the attachment' % (report_type, f_name)
-    email_subject = '%s %s' % (company_name, report_type)
-    if report_type == 'Job Order':
-        email_body = 'Please find the %s with Job Code: <b>%s</b> in the attachment' % (report_type, f_name)
-        email_subject = '%s %s with Job Code %s' % (company_name, report_type, f_name)
-    #if supplier_email or internal or internal_mail:
-    '''
-    email_subject = 'Email Me'
-    email_body = 'Email Body'
+    company_name = warehouse.first_name
+    internal_mail = MiscDetail.objects.filter(user=request.user.id, misc_type='Internal Emails')
+    misc_internal_mail = MiscDetail.objects.filter(user=request.user.id, misc_type='internal_mail', misc_value='true')
+    if misc_internal_mail and internal_mail:
+        internal_mail = internal_mail[0].misc_value.split(",")
+        receivers.extend(internal_mail)
+    misc_stock_transfer_type = MiscDetail.objects.filter(user=request.user.id, misc_type='stock_transfer_note', misc_value='true')
+    if misc_stock_transfer_type:
+        destination_warehouse = User.objects.filter(username=warehouse.username)
+        if destination_warehouse:
+            destination_wh_email = destination_warehouse[0].email
+            receivers.append(destination_wh_email)
+    email_body = 'Please find the Stock Transfer Order: <b>%s</b> in the attachment' % (f_name)
+    email_subject = '%s %s' % (company_name, 'Stock Transfer Note')
     send_mail_attachment(receivers, email_subject, email_body, files=attachments)
-    #if phone_no:
-    #    if report_type == 'Purchase Order':
-    #        po_message(po_data, phone_no, username, f_name, order_date, ean_flag)
-    #    elif report_type == 'Goods Receipt Note':
-    #        grn_message(po_data, phone_no, username, f_name, order_date)
-    #    elif report_type == 'Job Order':
-    #        jo_message(po_data, phone_no, company_name, f_name, order_date)
 
 def create_mail_attachments(f_name, html_data):
     from random import randint
@@ -10198,17 +10177,19 @@ def render_st_html_data(request, user, warehouse, all_data):
     po_skus_dict = OrderedDict()
     total_order_qty = 0
     total_amount = 0
+    stock_transfer_id = 0
     for key, value in all_data.iteritems():
         for obj in value:
-            stock_transfer_id = all_data['demo'][0][3]
-            stock_transfer_obj = OpenST.objects.filter(id=stock_transfer_id)
-            po_skus_dict['sku'] = stock_transfer_obj[0].sku
-            po_skus_dict['sku_desc'] = stock_transfer_obj[0].sku.sku_desc
-            po_skus_dict['order_qty'] = stock_transfer_obj[0].order_quantity
-            po_skus_dict['measurement_type'] = stock_transfer_obj[0].sku.measurement_type
-            po_skus_dict['price'] = stock_transfer_obj[0].price
-            po_skus_dict['amount'] = stock_transfer_obj[0].price * stock_transfer_obj[0].order_quantity
-            po_skus_dict['status'] = stock_transfer_obj[0].status
+            po_skus_dict = {}
+            st_id = obj[3]
+            stock_transfer_obj = OpenST.objects.get(id=st_id)
+            po_skus_dict['sku'] = stock_transfer_obj.sku
+            po_skus_dict['sku_desc'] = stock_transfer_obj.sku.sku_desc
+            po_skus_dict['order_qty'] = int(stock_transfer_obj.order_quantity)
+            po_skus_dict['measurement_type'] = stock_transfer_obj.sku.measurement_type
+            po_skus_dict['price'] = float(stock_transfer_obj.price)
+            po_skus_dict['amount'] = stock_transfer_obj.price * stock_transfer_obj.order_quantity
+            po_skus_dict['status'] = stock_transfer_obj.status
             po_skus_dict['cgst'] = 0
             po_skus_dict['igst'] = 0
             po_skus_dict['utgst'] = 0
@@ -10216,9 +10197,12 @@ def render_st_html_data(request, user, warehouse, all_data):
             po_skus_list.append(po_skus_dict)
             total_order_qty += po_skus_dict['order_qty']
             total_amount += po_skus_dict['price'] * po_skus_dict['order_qty']
-            stock_transfer_date = stock_transfer_obj[0].creation_date
+            stock_transfer_date = stock_transfer_obj.creation_date
     table_headers = ['WMS Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price',
     'Amount', 'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)']
+    stock_transfer_id_obj = StockTransfer.objects.filter(st_po__open_st = st_id)
+    if stock_transfer_id_obj:
+        stock_transfer_id = stock_transfer_id_obj[0].order_id
     data_dict = {
         'current_company_name' : user_profile[0]['company_name'], 'current_wh_address' : user_profile[0]['address'],
         'stock_transfer_id' : stock_transfer_id, 'stock_transfer_date' : stock_transfer_date,

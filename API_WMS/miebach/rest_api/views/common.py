@@ -976,7 +976,6 @@ def enable_mail_reports(request, user=''):
             data_enabled.append(MAIL_REPORTS_DATA[d])
 
     data_disabled = set(MAIL_REPORTS_DATA.values()) - set(data_enabled)
-
     for d in data_disabled:
         misc_detail = MiscDetail.objects.filter(user=user.id, misc_type=d)
         if misc_detail:

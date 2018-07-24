@@ -536,7 +536,7 @@ def validate_jo(all_data, user, jo_reference, vendor_id=''):
             continue
 
         key_id = check_and_return_mapping_id(key, "", _user, False)
-        product_sku = SKUMaster.objects.filter(id=key_id, sku_type__in=['FG', 'RM', 'CS'], user=user)
+        product_sku = SKUMaster.objects.filter(id=key_id, user=user)
         if not product_sku:
             if not sku_status:
                 sku_status = "Invalid SKU Code " + key
@@ -551,7 +551,7 @@ def validate_jo(all_data, user, jo_reference, vendor_id=''):
         for val in value:
             for data in val.values():
                 _id = check_and_return_mapping_id(data[0], "", _user, False)
-                material_sku = SKUMaster.objects.filter(id=_id, sku_type__in=['RM', 'CS'], user=user)
+                material_sku = SKUMaster.objects.filter(id=_id, user=user)
                 if not material_sku:
                     if not sku_status:
                         sku_status = "Invalid SKU Code " + data[0]

@@ -16,10 +16,51 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     // vm.date = new Date();
     vm.extra_width = {width:'1100px'};
 
+    function getOS() {
+      var userAgent = window.navigator.userAgent,
+          platform = window.navigator.platform,
+          macosPlatforms = ['Macintosh', 'MacIntel', 'MacPPC', 'Mac68K'],
+          windowsPlatforms = ['Win32', 'Win64', 'Windows', 'WinCE'],
+          iosPlatforms = ['iPhone', 'iPad', 'iPod'],
+          os = null;
+
+      if (macosPlatforms.indexOf(platform) !== -1) {
+        os = 'Mac OS';
+      } else if (iosPlatforms.indexOf(platform) !== -1) {
+        os = 'iOS';
+      } else if (windowsPlatforms.indexOf(platform) !== -1) {
+        os = 'Windows';
+      } else if (/Android/.test(userAgent)) {
+        os = 'Android';
+      } else if (!os && /Linux/.test(platform)) {
+        os = 'Linux';
+      }
+
+      return os;
+    }
+
     vm.date_format_convert = function(utc_date){
+
+      var os_type = getOS();
+
       var date = utc_date.toLocaleDateString();
       var datearray = date.split("/");
-      vm.date = datearray[1] + '/' + datearray[0] + '/' + datearray[2];
+
+      if (os_type == 'Windows') {
+
+        if (datearray[1] < 10 && datearray[1].length == 1) {
+          datearray[1] = '0'+datearray[1];
+        }
+
+        if (datearray[0] < 10 && datearray[0].length == 1) {
+          datearray[0] = '0'+datearray[0];
+        }
+
+        vm.date = datearray[0] + '/' + datearray[1] + '/' + datearray[2];
+      } else {
+        
+        vm.date = datearray[1] + '/' + datearray[0] + '/' + datearray[2];
+      }
     }
 
     vm.date_format_convert(new Date());

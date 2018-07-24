@@ -7039,7 +7039,7 @@ def get_customer_cart_data(request, user=""):
         cm_obj = CustomerMaster.objects.get(id=cust_user_obj[0].customer_id)
         is_distributor = cm_obj.is_distributor
         for record in cart_data:
-            del_date = 0
+            del_days = 0
             if is_distributor:
                 dist_mapping = WarehouseCustomerMapping.objects.get(customer_id=cm_obj.id, status=1)
                 dist_wh_id = dist_mapping.warehouse.id
@@ -7060,7 +7060,7 @@ def get_customer_cart_data(request, user=""):
             is_sellingprice = False
             if price_field == 'price':
                 is_sellingprice = True
-            json_record['price'], json_record['mrp']  = get_customer_based_price(cm_obj, json_record[price_field], json_record['mrp'],
+            json_record['price'], json_record['mrp'] = get_customer_based_price(cm_obj, json_record[price_field], json_record['mrp'],
                                                             is_sellingprice)
             if not tax_type and product_type:
                 json_record['tax'] = 0
@@ -7082,6 +7082,8 @@ def get_customer_cart_data(request, user=""):
                 else:
                     whs = [record.user.id]
                 tot_avail_stock = 0
+                cart_qty = json_record['quantity']
+                wh_level_stock_map = {}
                 for wh in whs:
                     sku_id = get_syncedusers_mapped_sku(wh=wh, sku_id=record.sku.id)
                     stock_obj = StockDetail.objects.filter(sku=sku_id, quantity__gt=0).values(
@@ -7102,6 +7104,10 @@ def get_customer_cart_data(request, user=""):
                     if not enq_qty:
                         enq_qty = 0
                     avail_stock = stock_qty - reserved_qty - enq_qty
+                    if wh not in wh_level_stock_map:
+                        wh_level_stock_map[wh] = avail_stock
+                    else:
+                        wh_level_stock_map[wh] += avail_stock
                     tot_avail_stock = tot_avail_stock + avail_stock
                 json_record['avail_stock'] = tot_avail_stock
                 # level = json_record['warehouse_level']
@@ -7112,16 +7118,32 @@ def get_customer_cart_data(request, user=""):
                         dist_mapping = WarehouseCustomerMapping.objects.filter(customer_id=cm_obj, status=1)
                         dist_userid = dist_mapping[0].warehouse_id
                         lead_times = get_leadtimes(dist_userid, record.warehouse_level)
-                        del_date = min(lead_times.keys())
+                        leadtime_qty = 0
+                        for lead_time, whs in lead_times.items():
+                            for wh in whs:
+                                if wh in wh_level_stock_map:
+                                    leadtime_qty += wh_level_stock_map[wh]
+                            if cart_qty <= leadtime_qty:
+                                del_days = lead_time
+                                break
+                        else:
+                            del_days = lead_time
                         json_record['default_shipment_address'] = cm_obj.address
                 else:
                     price_type = update_level_price_type(cm_obj, record.warehouse_level, price_type)
                     if record.warehouse_level:
                         lead_times = get_leadtimes(user.id, record.warehouse_level)
-                        reseller_leadtimes = map(lambda x: x + dist_reseller_leadtime, lead_times)
-                        del_date = reseller_leadtimes[0]
+                        # reseller_leadtimes = map(lambda x: x + dist_reseller_leadtime, lead_times)
+                        leadtime_qty = 0
+                        for lead_time, whs in lead_times.items():
+                            for wh in whs:
+                                if wh in wh_level_stock_map:
+                                    leadtime_qty += wh_level_stock_map[wh]
+                            if cart_qty <= leadtime_qty:
+                                del_days = lead_time + dist_reseller_leadtime
+                                break
                     else:
-                        del_date = dist_reseller_leadtime
+                        del_days = dist_reseller_leadtime
                     res_address = cm_obj.address
                     dist_cm_obj = WarehouseCustomerMapping.objects.get(warehouse_id=cm_obj.user).customer
                     dist_address = dist_cm_obj.address
@@ -7151,7 +7173,7 @@ def get_customer_cart_data(request, user=""):
                                           json_record['invoice_amount']
             # if del_date:
             date = datetime.datetime.now()
-            date += datetime.timedelta(days=del_date)
+            date += datetime.timedelta(days=del_days)
             del_date = date.strftime("%d/%m/%Y")
             json_record['del_date'] = del_date
 

@@ -239,19 +239,42 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
-      vm.service.apiCall('confirm_sales_return/', 'POST', elem, true).then(function(data){
-        if(data.message) {
+      vm.service.apiCall('confirm_sales_return/', 'POST', elem, true).then(function(data, status, headers, config){
+
+        vm.title = 'SCAN RETURNED ORDERS PRINT';
+
+        if(typeof(data.data) == "string" && data.data.search("print-invoice") != -1) {
+
+        var html = $(data.data);
+        vm.print_page = $(html).clone();
+
+          $state.go('app.inbound.SalesReturns.ScanReturnsPrint');
+          $timeout(function () {
+            $(".modal-body:visible").html(data.data);
+          }, 3000);
+        }
+
+        /*if(data.message) {
           pop_msg(data.data);
           vm.confirm_disable = true;
           if(data.data == 'Updated Successfully') {
-            Service.showNoty(data.data);
-            vm.reloadData();
-            vm.close();
-            vm.orders_data = {};
+
+            // Service.showNoty(data.data);
+            // vm.reloadData();
+            // vm.close();
+            // vm.orders_data = {};
           }
-        }
+        }*/
       });
     }
+
+    vm.print = print;
+    vm.print = function() {
+      console.log(vm.print_page);
+      vm.service.print_data(vm.print_page, "SCAN RETURNED ORDERS PRINT");
+    }
+
+    vm.print_page = "";
 
     vm.barcode = function() {
 

@@ -1522,9 +1522,17 @@ def insert_inventory_adjust(request, user=''):
     pallet_code = request.GET.get('pallet', '')
     batch_no = request.GET.get('batch_no', '')
     mrp = request.GET.get('mrp', '')
+    seller_id = request.GET.get('seller_id', '')
     reduce_stock = request.GET.get('inv_shrinkage', 'false')
+    seller_master_id = ''
+    if seller_id:
+        seller_master = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
+        if not seller_master:
+            return HttpResponse("Invalid Seller ID")
+        seller_master_id = seller_master[0].id
     if reduce_stock == 'true':
-        status = reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet_code, batch_no, mrp)
+        status = reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet_code, batch_no, mrp,
+                                       seller_master_id=seller_master_id)
     else:
         status = adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet_code, batch_no, mrp)
     update_filled_capacity([loc], user.id)

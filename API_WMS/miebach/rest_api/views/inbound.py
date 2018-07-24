@@ -1522,7 +1522,11 @@ def insert_inventory_adjust(request, user=''):
     pallet_code = request.GET.get('pallet', '')
     batch_no = request.GET.get('batch_no', '')
     mrp = request.GET.get('mrp', '')
-    status = adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet_code, batch_no, mrp)
+    reduce_stock = request.GET.get('inv_shrinkage', 'false')
+    if reduce_stock == 'true':
+        status = reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet_code, batch_no, mrp)
+    else:
+        status = adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet_code, batch_no, mrp)
     update_filled_capacity([loc], user.id)
     check_and_update_stock([wmscode], user)
 

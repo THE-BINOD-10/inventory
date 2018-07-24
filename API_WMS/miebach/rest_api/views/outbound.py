@@ -3907,10 +3907,11 @@ def create_stock_transfer(request, user=''):
     warehouse = User.objects.get(username=warehouse_name)
     f_name = 'stock_transfer_' + warehouse_name + '_'
     status = validate_st(all_data, warehouse)
-    all_data = insert_st(all_data, warehouse)
-    status = confirm_stock_transfer(all_data, warehouse, user.username)
-    rendered_html_data = render_st_html_data(request, user, warehouse, all_data)
-    stock_transfer_mail_pdf(request, f_name, rendered_html_data, warehouse)
+    if not status:
+        all_data = insert_st(all_data, warehouse)
+        status = confirm_stock_transfer(all_data, warehouse, user.username)
+        rendered_html_data = render_st_html_data(request, user, warehouse, all_data)
+        stock_transfer_mail_pdf(request, f_name, rendered_html_data, warehouse)
     return HttpResponse(status)
 
 

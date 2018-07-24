@@ -3641,9 +3641,9 @@ def insert_order_data(request, user=''):
                 ord_obj.save()
             else:
                 log.info('Uploaded PO Already Created::%s' %(upload_po_map))
-    if message in success_messages:
-        # Deleting Customer Cart data after successful order creation
-        CustomerCartData.objects.filter(customer_user=request.user.id).delete()
+    # if message in success_messages:
+    # Deleting Customer Cart data after successful order creation
+    CustomerCartData.objects.filter(customer_user=request.user.id).delete()
 
     return HttpResponse(message)
 

@@ -701,15 +701,24 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
         del search_params['receipt_date__icontains']
     search_params['sku_id__in'] = sku_master_ids
     if search_term:
-        master_data = StockDetail.objects.exclude(receipt_number=0).annotate( stock_value=Sum(F('quantity') * F('sku__cost_price')) ).filter(Q(receipt_number__icontains=search_term) | Q(sku__wms_code__icontains=search_term) | Q(quantity__icontains=search_term) | Q(location__zone__zone__icontains=search_term) | Q(sku__sku_code__icontains=search_term) | Q(sku__sku_desc__icontains=search_term) | Q(location__location__icontains=search_term) | Q(stock_value__icontains=search_term),sku__user=user.id).filter(**search_params).order_by(order_data)
+        master_data = StockDetail.objects.filter(quantity__gt=0).exclude(receipt_number=0).select_related('sku', 'location',
+                                                'location__zone', 'pallet_detail').\
+            annotate(stock_value=Sum(F('quantity') * F('sku__cost_price')) ).\
+            filter(Q(receipt_number__icontains=search_term) | Q(sku__wms_code__icontains=search_term) |
+                   Q(quantity__icontains=search_term) | Q(location__zone__zone__icontains=search_term) |
+                   Q(sku__sku_code__icontains=search_term) | Q(sku__sku_desc__icontains=search_term) |
+                   Q(location__location__icontains=search_term) | Q(stock_value__icontains=search_term),
+                   sku__user=user.id).filter(**search_params).order_by(order_data)
     else:
-        master_data = StockDetail.objects.exclude(receipt_number=0).annotate( stock_value=Sum(F('quantity') * F('sku__cost_price')) ).filter(sku__user=user.id, **search_params). \
-            order_by(order_data)
+        master_data = StockDetail.objects.filter(quantity__gt=0).exclude(receipt_number=0).select_related('sku', 'location',
+                                                'location__zone', 'pallet_detail').\
+                            annotate( stock_value=Sum(F('quantity') * F('sku__cost_price')) ).\
+                            filter(sku__user=user.id, **search_params).order_by(order_data)
 
-    temp_data['recordsTotal'] = len(master_data)
+    temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    pallet_switch = get_misc_value('pallet_switch', user.id)
     for data in master_data[start_index:stop_index]:
-        pallet_switch = get_misc_value('pallet_switch', user.id)
         _date = get_local_date(user, data.receipt_date, True)
         _date = _date.strftime("%d %b, %Y")
         stock_quantity = get_decimal_limit(user.id, data.quantity)

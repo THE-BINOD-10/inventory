@@ -86,6 +86,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
               var empty_data = {"supplier_id":vm.supplier_id,
                       "po_name": "",
                       "ship_to": data.data.ship_to,
+                      "terms_condition": data.data.terms_condition,
                       "receipt_type": data.data.receipt_type,
                       "seller_types": [],
                       "total_price": 0,
@@ -193,6 +194,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
                       "tax": "",
                       "sub_total": "",
                       "supplier_sku_prices": "",
+                      "terms_condition": "",
                       "data": [
                         {'fields':{"supplier_Code":"", "ean_number":"", "order_quantity":"", 'price':0, "measurement_unit":"", 
                                    "dedicated_seller": "", "row_price": 0, 'sku': {"price":"", 'wms_code': ""},
@@ -237,6 +239,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     vm.base();
 
     vm.add = function () {
+      vm.extra_width = { 'width': '1250px' };
       vm.model_data.seller_types = [];
       vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
         if (data.message) {
@@ -274,10 +277,16 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     vm.update_data = function (index, flag=true) {
       if (index == vm.model_data.data.length-1) {
         if (vm.model_data.data[index]["fields"]["sku"]["wms_code"] && vm.model_data.data[index]["fields"]["order_quantity"]) {
-          vm.model_data.data.push({"fields": {"wms_code":"", "ean_number": "", "supplier_code":"", "order_quantity":"", "price":0,
-                                   "measurement_unit": "", "dedicated_seller": vm.model_data.seller_type, "order_quantity": "","row_price": 0,
-                                   "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "cess_tax": "", "utgst_tax": "", "tax": "", "is_new":true
-                                   }});
+          
+          $scope.$apply(function() {
+
+            vm.model_data.data.push({"fields": {"wms_code":"", "ean_number": "", "supplier_code":"", "order_quantity":"", "price":0,
+                                     "measurement_unit": "", "dedicated_seller": vm.model_data.seller_type, "order_quantity": "","row_price": 0,
+                                     "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "cess_tax": "", "utgst_tax": "", "tax": "", "is_new":true
+                                     }});
+
+          });
+          // console.log(vm.model_data.data);
         }
       } else {
         if (flag) {

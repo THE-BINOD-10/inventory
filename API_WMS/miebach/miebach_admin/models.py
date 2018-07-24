@@ -375,6 +375,7 @@ class OpenPO(models.Model):
     ship_to = models.CharField(max_length=128, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
+    terms = models.TextField(default='', max_length=256)
 
     class Meta:
         db_table = 'OPEN_PO'
@@ -1336,6 +1337,7 @@ class CustomerOrderSummary(models.Model):
     client_name = models.CharField(max_length=64, default='')
     mode_of_transport = models.CharField(max_length=24, default='')
     payment_status = models.CharField(max_length=64, default='')
+    courier_name = models.CharField(max_length=64, default='')
 
     class Meta:
         db_table = 'CUSTOMER_ORDER_SUMMARY'
@@ -1821,6 +1823,7 @@ class SellerPOSummary(models.Model):
 
     class Meta:
         db_table = 'SELLER_PO_SUMMARY'
+        index_together = (('receipt_number',), ('purchase_order', 'receipt_number'))
 
     def __unicode__(self):
         return str(self.id)

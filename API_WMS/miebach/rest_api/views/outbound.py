@@ -3905,16 +3905,8 @@ def create_stock_transfer(request, user=''):
         all_data[cond].append(
             [data_dict['wms_code'][i], data_dict['order_quantity'][i], data_dict['price'][i], data_id])
     warehouse = User.objects.get(username=warehouse_name)
+    f_name = 'stock_transfer_' + warehouse_name + '_' 
     status = validate_st(all_data, warehouse)
-    html_data = '<p>HTML Data</p>';
-    f_name = ''
-    supplier_email = ''
-    phone_no = ''
-    po_data = ''
-    order_date = ''
-    ean_flag=False
-    internal=False
-    report_type='Purchase Order'
     all_data = insert_st(all_data, warehouse)
     status = confirm_stock_transfer(all_data, warehouse, user.username)
     rendered_html_data = render_st_html_data(request, user, warehouse, all_data)
@@ -10145,9 +10137,10 @@ def stock_transfer_mail_pdf(request, f_name, html_data, warehouse):
         if destination_warehouse:
             destination_wh_email = destination_warehouse[0].email
             receivers.append(destination_wh_email)
-    email_body = 'Please find the Stock Transfer Order: <b>%s</b> in the attachment' % (f_name)
+    email_body = 'Please find the Stock Transfer Order in the attachment'
     email_subject = '%s %s' % (company_name, 'Stock Transfer Note')
-    send_mail_attachment(receivers, email_subject, email_body, files=attachments)
+    if len(receivers):
+        send_mail_attachment(receivers, email_subject, email_body, files=attachments)
 
 def create_mail_attachments(f_name, html_data):
     from random import randint

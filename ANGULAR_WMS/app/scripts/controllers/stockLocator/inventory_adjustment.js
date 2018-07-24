@@ -12,6 +12,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.bt_disable = true;
     vm.permissions = Session.roles.permissions;
     vm.pallet_switch = (vm.permissions.pallet_switch == true) ? true: false;
+    vm.user_type = Session.user_profile.user_type;
     vm.industry_type = Session.user_profile.industry_type;
     vm.batch_nos = [];
     vm.batches = {};

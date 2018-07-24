@@ -11,6 +11,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.selectAll = false;
     vm.bt_disable = true;
 
+    /*vm.g_data = {};
+    angular.copy(Data.other_view, vm.g_data);
+
+    if(Session.user_profile.user_type != "marketplace_user") {
+
+      vm.g_data.views.pop(1);
+    } else if(Session.user_profile.user_type == "marketplace_user") {
+
+      vm.g_data.views = ["CustomerOrderView", "SellerOrderView"];
+      if (vm.g_data.views.indexOf(vm.g_data.view) == -1) {
+
+        vm.g_data.view = "SellerOrderView";
+      }
+    }*/
+
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -39,7 +54,45 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
        .withPaginationType('full_numbers')
        .withOption('rowCallback', rowCallback);
 
-    vm.dtColumns = [
+    vm.changeDtFields = function(flag){
+
+      if (flag) {
+
+        vm.dtColumns = [
+            DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
+                .renderWith(function(data, type, full, meta) {
+                    if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
+                      vm.selected = {};
+                    }
+                    vm.selected[meta.row] = vm.selectAll;
+                    return vm.service.frontHtml + meta.row + vm.service.endHtml;
+                }).notSortable(),
+            DTColumnBuilder.newColumn('Warehouse Name').withTitle('Warehouse Name'),
+            DTColumnBuilder.newColumn('Stock Transfer ID').withTitle('Stock Transfer ID'),
+            DTColumnBuilder.newColumn('Creation Date').withTitle('Creation Date'),
+        ];
+      } else {
+
+        vm.dtColumns = [
+            DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
+                .renderWith(function(data, type, full, meta) {
+                    if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
+                      vm.selected = {};
+                    }
+                    vm.selected[meta.row] = vm.selectAll;
+                    return vm.service.frontHtml + meta.row + vm.service.endHtml;
+                }).notSortable(),
+            DTColumnBuilder.newColumn('Warehouse Name').withTitle('Warehouse Name'),
+            DTColumnBuilder.newColumn('Stock Transfer ID').withTitle('Stock Transfer ID'),
+            DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'),
+            DTColumnBuilder.newColumn('Quantity').withTitle('Quantity')
+        ];
+      }
+    }
+
+    vm.changeDtFields(false);    
+
+    /*vm.dtColumns = [
         DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
             .renderWith(function(data, type, full, meta) {
                 if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
@@ -52,7 +105,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         DTColumnBuilder.newColumn('Stock Transfer ID').withTitle('Stock Transfer ID'),
         DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'),
         DTColumnBuilder.newColumn('Quantity').withTitle('Quantity')
-    ];
+    ];*/
 
     vm.dtInstance = {};
     vm.reloadData = reloadData;
@@ -68,7 +121,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       colFilters.download_excel()
     }
 
-    function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
+    /*function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
         $('td', nRow).unbind('click');
         $('td', nRow).bind('click', function() {
             $scope.$apply(function() {
@@ -76,11 +129,129 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             });
         });
         return nRow;
-    } 
+    }*/ 
+
+    function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
+
+    vm.ord_status = '';
+
+    $('td:not(td:first)', nRow).unbind('click');
+    $('td:not(td:first)', nRow).bind('click', function() {
+      // if ((vm.g_data.view == 'CustomerOrderView') || (vm.g_data.view == 'OrderView') || (vm.g_data.view == 'SellerOrderView')) {
+
+        $scope.$apply(function() {
+
+        console.log(aData);
+          $state.go('app.outbound.ViewOrders.StockTransferAltView');
+
+         //vm.market_place = aData['Market Place'];
+          var data = {};
+          var url = "get_view_order_details/";
+          if ((vm.g_data.view == 'CustomerOrderView') || (vm.g_data.view == 'OrderView')) {
+            data = {id: $(aData[""]).attr('name'),order_id: aData["Order ID"]}
+          } else if (vm.g_data.view == 'SellerOrderView') {
+            data = {id: $(aData[""]).attr('name'), sor_id: aData['SOR ID'], uor_id: aData['UOR ID']}
+            url = "get_seller_order_details/"
+          }
+          vm.service.apiCall(url, "GET", data).then(function(data){
+
+            var all_order_details = data.data.data_dict[0].ord_data;
+            vm.ord_status = data.data.data_dict[0].status;
+            vm.invoice_type = data.data.data_dict[0].invoice_type;
+            vm.display_status_none = (vm.ord_status=="")?true:false;
+
+            vm.model_data = {}
+            var empty_data = {data: []}
+            angular.copy(empty_data, vm.model_data);
+
+            if (vm.g_data.view == 'CustomerOrderView'){
+              vm.input_status = false;
+            } else {
+              vm.input_status = true;
+            }
+
+            if(vm.g_data.view == 'SellerOrderView') {
+              vm.model_data["sor_id"] = aData['SOR ID'];
+            }
+            vm.order_input_status = false;
+
+            vm.model_data["central_remarks"]= data.data.data_dict[0].central_remarks;
+            vm.model_data["all_status"] = data.data.data_dict[0].all_status;
+            vm.model_data["seller_data"] = data.data.data_dict[0].seller_details;
+            vm.model_data["tax_type"] = data.data.data_dict[0].tax_type;
+            vm.model_data["invoice_types"] = data.data.data_dict[0].invoice_types;
+            if (data.data.data_dict[0].ord_data[0].payment_status) {
+              vm.model_data["payment_status"] = data.data.data_dict[0].ord_data[0].payment_status;
+            }
+            var index = 0;
+            angular.forEach(all_order_details, function(value, key){
+
+            vm.customer_id = value.cust_id;
+            vm.customer_name = value.cust_name;
+            vm.phone = value.phone;
+            vm.email = value.email;
+            vm.address = value.address;
+            vm.city = value.city;
+            vm.state = value.state;
+            vm.order_id_code = value.order_id_code;
+            vm.pin = value.pin;
+            vm.product_title = value.product_title;
+            vm.quantity = value.quantity;
+            vm.shipment_date = value.shipment_date;
+            vm.remarks = value.remarks;
+            vm.cust_data = value.cus_data;
+            vm.item_code = value.item_code;
+            vm.order_id = value.order_id;
+            vm.market_place = value.market_place;
+            vm.unit_price = value.unit_price;
+            vm.sgst = value.sgst_tax;
+            vm.cgst = value.cgst_tax;
+            vm.igst = value.igst_tax;
+            vm.taxes = value.taxes;
+            vm.order_charges = value.order_charges;
+            vm.client_name = value.client_name;
+            if (!vm.client_name) {
+              vm.show_client_details = false;
+            }
+            // if (value.discount_percentage <= 99.99) {
+              vm.discount_per = value.discount_percentage;
+            // }
+
+            var image_url = value.image_url;
+            vm.img_url = vm.service.check_image_url(image_url);
+            /*var custom_data = value.customization_data;
+            vm.market_place = value.market_place;
+            if (custom_data.length === 0){
+
+              vm.customization_data = '';
+            }
+            else {
+
+              var img_url = custom_data[0][3];
+              vm.img_url = vm.service.check_image_url(img_url)
+            }*/
+
+              var record = vm.model_data.data.push({item_code: vm.item_code, product_title: vm.product_title, quantity: vm.quantity,
+              image_url: vm.img_url, remarks: vm.remarks, unit_price: vm.unit_price, taxes: vm.taxes,
+              discount_per: vm.discount_per, sgst:vm.sgst, cgst:vm.cgst, igst:vm.igst, default_status: true, sku_status: value.sku_status})
+              var record = vm.model_data.data[index]
+              vm.changeInvoiceAmt(record);
+              index++;
+          });
+        });
+       })
+     // }
+     })
+   }
 
     vm.close = close;
     function close() {
       $state.go('app.outbound.ViewOrders');
+    }
+
+    vm.back_button = function() {
+      vm.reloadData();
+      $state.go('app.outbound.ViewOrders')
     }
 
     vm.model_data = {};

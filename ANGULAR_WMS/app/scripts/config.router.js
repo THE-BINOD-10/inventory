@@ -1254,6 +1254,10 @@ var app = angular.module('urbanApp')
             url: '/OrderDetails',
             templateUrl: 'views/outbound/toggle/view_order_details.html'
           })
+          .state('app.outbound.ViewOrders.StockTransferAltView', {
+            url: '/StockTransferAltView',
+            templateUrl: 'views/outbound/toggle/alt_view_order_details.html'
+          })
           .state('app.outbound.ViewOrders.CustomOrderDetails', {
             url: '/CustomOrderDetails',
             templateUrl: 'views/outbound/toggle/custom_order_detail.html'

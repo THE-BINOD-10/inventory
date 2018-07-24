@@ -101,6 +101,31 @@
       </tab>-->
       <tab heading="Stock Transfer Order" ng-if="show_tab('multi_warehouse') || show_tab('add_stocktransfer')">
         <div class="panel" ng-controller="StockTransferOrders as showCase">
+
+          <div class="layout-sub-header">
+            <form name="form" role="form" class="filters">
+              <div class="clearfix">
+
+                <div class="row"">
+                  <div class="col-md-11 col-sm-11 col-xs-10">
+                    <p align="right">Alternative View</p>
+                  </div>
+                  <div class="col-md-1 col-sm-1 col-xs-2">
+                    <label class="switch switch-sm square">
+                      <div>
+                        <input type="checkbox" ng-model="showCase.alt_view" ng-change="showCase.changeDtFields(showCase.alt_view)">
+                        <span>
+                          <i class="handle"></i>
+                        </span>
+                        <input type="hidden" name="alt_view" class="form-control" ng-model="showCase.alt_view" value="{{showCase.alt_view}}">
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+
           <div class="panel-header">
             <!--<button type="button" class="btn btn-success pull-right" style="margin-left:10px;" ng-click="showCase.add_stock_transfer()">Create Stock Transfer</button>-->
             <button type="button" class="btn btn-primary pull-right" ng-click="showCase.excel()">Download Excel</button>

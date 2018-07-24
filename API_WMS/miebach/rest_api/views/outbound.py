@@ -705,7 +705,6 @@ def get_picklist_data(data_id, user_id):
     stock_skus = map(lambda d: d['sku__wms_code'], stocks)
     reserved_skus = map(lambda d: d['stock__sku__wms_code'], reserved_instances)
     data = []
-    import pdb;pdb.set_trace()
     if not picklist_orders:
         return data, sku_total_quantities, courier_name
     order_status = ''

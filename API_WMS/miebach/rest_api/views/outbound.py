@@ -3905,7 +3905,7 @@ def create_stock_transfer(request, user=''):
         all_data[cond].append(
             [data_dict['wms_code'][i], data_dict['order_quantity'][i], data_dict['price'][i], data_id])
     warehouse = User.objects.get(username=warehouse_name)
-    f_name = 'stock_transfer_' + warehouse_name + '_' 
+    f_name = 'stock_transfer_' + warehouse_name + '_'
     status = validate_st(all_data, warehouse)
     all_data = insert_st(all_data, warehouse)
     status = confirm_stock_transfer(all_data, warehouse, user.username)

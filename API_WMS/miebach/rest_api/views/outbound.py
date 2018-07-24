@@ -3915,10 +3915,10 @@ def create_stock_transfer(request, user=''):
     ean_flag=False
     internal=False
     report_type='Purchase Order'
-    rendered_html_data = render_html_data(request, user)
+    all_data = insert_st(all_data, warehouse)
+    status = confirm_stock_transfer(all_data, warehouse, user.username)
+    rendered_html_data = render_st_html_data(request, user, warehouse, all_data)
     stock_transfer_mail_pdf(f_name, rendered_html_data)
-    #all_data = insert_st(all_data, warehouse)
-    #status = confirm_stock_transfer(all_data, warehouse, user.username)
     return HttpResponse(status)
 
 
@@ -10189,84 +10189,49 @@ def create_mail_attachments(f_name, html_data):
         attachments.append({'path': path + pdf_file, 'name': pdf_file})
     return attachments
 
-def render_html_data(request, user):
+def render_st_html_data(request, user, warehouse, all_data):
     user_profile = UserProfile.objects.filter(user = user).values('phone_number', 'company_name', 'location',
         'city', 'state', 'country', 'pin_code', 'address', 'wh_address', 'wh_phone_number', 'gst_number')
-    data_dict = {
-        'current_company_name' : user_profile[0]['company_name'], 'current_w_address' : user_profile[0]['wh_address'],
-        'stock_transfer_id' : stock_transfer_id, 'current_wh_gstin' : user_profile[0]['gst_number'],
-        'current_wh_ship_to_address' : user_profile[0].address, 
-    }
-    table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price',
+    destination_user_profile = UserProfile.objects.filter(user = warehouse).values('phone_number', 
+        'company_name', 'location', 'city', 'state', 'country', 'pin_code', 'address', 'wh_address', 'wh_phone_number', 'gst_number')
+    po_skus_list = []
+    po_skus_dict = OrderedDict()
+    total_order_qty = 0
+    total_amount = 0
+    for key, value in all_data.iteritems():
+        for obj in value:
+            stock_transfer_id = all_data['demo'][0][3]
+            stock_transfer_obj = OpenST.objects.filter(id=stock_transfer_id)
+            po_skus_dict['sku'] = stock_transfer_obj[0].sku
+            po_skus_dict['sku_desc'] = stock_transfer_obj[0].sku.sku_desc
+            po_skus_dict['order_qty'] = stock_transfer_obj[0].order_quantity
+            po_skus_dict['measurement_type'] = stock_transfer_obj[0].sku.measurement_type
+            po_skus_dict['price'] = stock_transfer_obj[0].price
+            po_skus_dict['amount'] = stock_transfer_obj[0].price * stock_transfer_obj[0].order_quantity
+            po_skus_dict['status'] = stock_transfer_obj[0].status
+            po_skus_dict['cgst'] = 0
+            po_skus_dict['igst'] = 0
+            po_skus_dict['utgst'] = 0
+            po_skus_dict['sgst'] = 0
+            po_skus_list.append(po_skus_dict)
+            total_order_qty += po_skus_dict['order_qty']
+            total_amount += po_skus_dict['price'] * po_skus_dict['order_qty']
+            stock_transfer_date = stock_transfer_obj[0].creation_date
+    table_headers = ['WMS Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price',
     'Amount', 'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)']
-
-    
-    po_id = 1
-    total_qty = 0
-    total = 0
-    if not po_id:
-        return HttpResponse("Purchase Order Id is missing")
-    purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user=user.id, order_id=po_id)
-    ean_flag = list(purchase_orders.exclude(open_po__sku__ean_number=0))
-    display_remarks = get_misc_value('display_remarks_mail', user.id)
-    po_data = []
-    for order in purchase_orders:
-        open_po = order.open_po
-        total_qty += open_po.order_quantity
-        amount = open_po.order_quantity * open_po.price
-        tax = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax
-        total += amount + ((amount / 100) * float(tax))
-        po_temp_data = [open_po.sku.sku_code, open_po.supplier_code, open_po.sku.sku_desc, open_po.order_quantity,
-                        open_po.measurement_unit, open_po.price, amount,
-                        open_po.sgst_tax, open_po.cgst_tax, open_po.igst_tax, open_po.utgst_tax]
-        if ean_flag:
-            po_temp_data.insert(1, open_po.sku.ean_number)
-        if display_remarks == 'true':
-            po_temp_data.append(open_po.remarks)
-        po_data.append(po_temp_data)
-    order = purchase_orders[0]
-    open_po = order.open_po
-    address = open_po.supplier.address
-    address = '\n'.join(address.split(','))
-    vendor_name = ''
-    vendor_address = ''
-    vendor_telephone = ''
-    if open_po.order_type == 'VR':
-        vendor_address = open_po.vendor.address
-        vendor_address = '\n'.join(vendor_address.split(','))
-        vendor_name = open_po.vendor.name
-        vendor_telephone = open_po.vendor.phone_number
-    telephone = open_po.supplier.phone_number
-    name = open_po.supplier.name
-    order_id = order.order_id
-    gstin_no = open_po.supplier.tin_number
-    order_date = get_local_date(request.user, order.creation_date)
-    po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
-    table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price',
-                     'Amount',
-                     'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)']
-    if ean_flag:
-        table_headers.insert(1, 'EAN Number')
-    if display_remarks == 'true':
-        table_headers.append('Remarks')
-    profile = user.userprofile
-    company_name = profile.company_name
-    title = 'Purchase Order'
-    receipt_type = request.GET.get('receipt_type', '')
-    # if receipt_type == 'Hosted Warehouse':
-    #if request.POST.get('seller_id', ''):
-    #    title = 'Stock Transfer Note'
-    #if request.POST.get('seller_id', '') and 'shproc' in str(request.POST.get('seller_id').split(":")[1]).lower():
-    #    company_name = 'SHPROC Procurement Pvt. Ltd.'
-    #    title = 'Purchase Order'
+    data_dict = {
+        'current_company_name' : user_profile[0]['company_name'], 'current_wh_address' : user_profile[0]['address'],
+        'stock_transfer_id' : stock_transfer_id, 'stock_transfer_date' : stock_transfer_date,
+        'current_wh_gstin' : user_profile[0]['gst_number'],
+        'current_wh_ship_to_address' : user_profile[0]['address'], 'current_telephone' : user_profile[0]['phone_number'],
+        'destination_company_name' : warehouse.username,
+        'destination_wh_address' : destination_user_profile[0]['address'],
+        'destination_gst_number' : destination_user_profile[0]['gst_number'],
+        'destination_telephone' : destination_user_profile[0]['phone_number'],
+        'current_pan_number' : '', 'destination_pan_number' : '',
+        'total_order_qty' : total_order_qty, 'total_amount' : total_amount, 'st_transfer_data' : po_skus_list,
+        'table_headers' : table_headers
+    }
     t = loader.get_template('templates/toggle/stock_transfer_mail.html')
-    data_dict = t.render({'table_headers': table_headers, 'data': po_data, 'address': address, 
-                 'order_id': order_id, 'telephone': str(telephone),
-                 'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference,
-                 'user_name': request.user.username,
-                 'total_qty': total_qty, 'company_name': company_name, 'location': profile.location,
-                 'w_address': get_purchase_company_address(profile),
-                 'company_name': company_name, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
-                 'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title,
-                 'gstin_no': gstin_no, 'wh_gstin': profile.gst_number, 'wh_telephone': profile.phone_number})
-    return data_dict
+    html_data = t.render(data_dict)
+    return html_data

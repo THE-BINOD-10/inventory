@@ -2131,10 +2131,11 @@ def search_wms_codes(request, user=''):
     count = 0
     if data:
         for wms in data:
-            if not sku_type in ['FG', 'RM', 'CS']:
-                wms_codes.append(str(wms.wms_code))
-            elif wms.sku_type in ['FG', 'RM', 'CS']:
-                wms_codes.append(str(wms.wms_code))
+            wms_codes.append(str(wms.wms_code))
+            #if not sku_type in ['FG', 'RM', 'CS']:
+            #    wms_codes.append(str(wms.wms_code))
+            #elif wms.sku_type in ['FG', 'RM', 'CS']:
+            #    wms_codes.append(str(wms.wms_code))
             if len(wms_codes) >= 10:
                 break
     if len(wms_codes) <= 10:

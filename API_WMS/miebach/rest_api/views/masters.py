@@ -1601,9 +1601,9 @@ def validate_bom_data(all_data, product_sku, user):
     p_sku = SKUMaster.objects.filter(sku_code=product_sku, user=user)
     if not p_sku:
         status = "Invalid Product SKU Code %s" % product_sku
-    else:
-        if p_sku[0].sku_type not in ('FG', 'RM', 'CS'):
-            status = 'Invalid Product SKU Code %s' % product_sku
+    #else:
+    #    if p_sku[0].sku_type not in ('FG', 'RM', 'CS'):
+    #        status = 'Invalid Product SKU Code %s' % product_sku
 
     for key, value in all_data.iteritems():
         if product_sku == key:
@@ -1615,12 +1615,12 @@ def validate_bom_data(all_data, product_sku, user):
                     m_status = "Invalid Material SKU Code %s" % key
                 else:
                     m_status += ', %s' % key
-            else:
-                if m_sku[0].sku_type != 'RM':
-                    if not m_status:
-                        m_status = 'Invalid Material SKU Code %s' % key
-                    else:
-                        m_status += ', %s' % key
+            #else:
+            #    if m_sku[0].sku_type != 'RM':
+            #        if not m_status:
+            #            m_status = 'Invalid Material SKU Code %s' % key
+            #        else:
+            #            m_status += ', %s' % key
 
             if not val[0]:
                 if not q_status:

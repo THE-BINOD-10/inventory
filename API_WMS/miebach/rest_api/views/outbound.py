@@ -10121,3 +10121,31 @@ def create_orders_check_ean(request, user=''):
         sku_code = sku_obj[0].sku_code
     return HttpResponse(json.dumps({ 'sku' : sku_code }))
 
+
+@csrf_exempt
+def get_stock_transfer_order_level_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
+    lis = ['order_id', 'st_po__open_st__warehouse__username', 'order_id', 'date_only']
+    stock_transfer_objs = StockTransfer.objects.filter(sku__user=user.id, status=1).\
+                                            values('st_po__open_st__warehouse__username', 'order_id').\
+                                            distinct().annotate(tsum=Sum('quantity'),
+                                            date_only=Cast('creation_date', DateField()))
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if search_term:
+        master_data = stock_transfer_objs.filter(Q(st_po__open_st__warehouse__username__icontains=search_term) |
+                                                   Q(tsum__icontains=search_term) | Q(order_id__icontains=search_term) |
+                                                   Q(creation_date__regex=search_term)).order_by(order_data)
+    else:
+        master_data = stock_transfer_objs.order_by(order_data)
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    count = 0
+    for data in master_data[start_index:stop_index]:
+        checkbox = '<input type="checkbox" name="order_id" value="%s">' % data['order_id']
+        temp_data['aaData'].append({'': checkbox, 'Warehouse Name': data['st_po__open_st__warehouse__username'],
+                                    'Stock Transfer ID': data['order_id'],
+                                    'Quantity': data['tsum'], 'Creation Date': data['date_only'].strftime("%d %b, %Y"),
+                                    'DT_RowClass': 'results',
+                                    'DT_RowAttr': {'id': data['order_id']}, 'id': count})
+        count = count + 1

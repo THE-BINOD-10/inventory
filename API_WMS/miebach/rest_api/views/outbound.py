@@ -3572,8 +3572,8 @@ def insert_order_data(request, user=''):
                                                   creation_date=datetime.datetime.now())
         other_charge_amounts = construct_other_charge_amounts_map(created_order_id, myDict,
                                                                     datetime.datetime.now(), other_charge_amounts, user)
-        if generic_order_id:
-            check_and_raise_po(generic_order_id, cm_id)
+        # if generic_order_id:
+        #     check_and_raise_po(generic_order_id, cm_id)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -3610,6 +3610,7 @@ def insert_order_data(request, user=''):
             if auto_picklist_signal == 'true':
                 message = check_stocks(order_user_data, User.objects.get(id=user_id), request, order_objs)
         #qssi push order api call
+        is_emiza_order_failed = False
         generic_orders = GenericOrderDetailMapping.objects.filter(generic_order_id=generic_order_id,
                                                                    customer_id=cm_id).\
                                         values('orderdetail__original_order_id', 'orderdetail__user').distinct()
@@ -3619,6 +3620,7 @@ def insert_order_data(request, user=''):
             resp = order_push(original_order_id, order_detail_user, "NEW")
             log.info('New Order Push Status: %s' % (str(resp)))
             if resp.get('Status', '') == 'Failure' or resp.get('status', '') == 'Internal Server Error':
+                is_emiza_order_failed = True
                 if resp.get('status', '') == 'Internal Server Error':
                     message = "400 Bad Request"
                 else:
@@ -3629,6 +3631,9 @@ def insert_order_data(request, user=''):
                     picklist_number = picklist_number[0]
                 log.info(order_detail.delete())
                 check_picklist_number_created(order_detail_user, picklist_number)
+
+        if generic_order_id and not is_emiza_order_failed:
+            check_and_raise_po(generic_order_id, cm_id)
         if user_type == 'customer' and not is_distributor and message in success_messages:
             # Creating Uploading POs object with file upload pending.
             # upload_po Api is called in front-end if file is present

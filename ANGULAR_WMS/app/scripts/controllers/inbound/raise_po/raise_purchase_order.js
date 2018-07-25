@@ -276,7 +276,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
 
     vm.update_data = function (index, flag=true, plus=false) {
       if (index == vm.model_data.data.length-1) {
-        if (vm.model_data.data[index]["fields"]["sku"]["wms_code"] && vm.model_data.data[index]["fields"]["order_quantity"]) {
+        if (vm.model_data.data[index]["fields"]["sku"] && (vm.model_data.data[index]["fields"]["sku"]["wms_code"] && vm.model_data.data[index]["fields"]["order_quantity"])) {
           
           if (plus) {
 
@@ -296,6 +296,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
 
             });
           }
+        } else {
+
+          Service.showNoty('SKU Code and Quantity are required fields. Please fill these first');
         }
       } else {
         if (flag) {

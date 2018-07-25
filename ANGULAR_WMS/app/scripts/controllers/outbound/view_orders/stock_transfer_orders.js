@@ -26,7 +26,54 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       }
     }*/
 
-   
+    function getOS() {
+      var userAgent = window.navigator.userAgent,
+          platform = window.navigator.platform,
+          macosPlatforms = ['Macintosh', 'MacIntel', 'MacPPC', 'Mac68K'],
+          windowsPlatforms = ['Win32', 'Win64', 'Windows', 'WinCE'],
+          iosPlatforms = ['iPhone', 'iPad', 'iPod'],
+          os = null;
+
+      if (macosPlatforms.indexOf(platform) !== -1) {
+        os = 'Mac OS';
+      } else if (iosPlatforms.indexOf(platform) !== -1) {
+        os = 'iOS';
+      } else if (windowsPlatforms.indexOf(platform) !== -1) {
+        os = 'Windows';
+      } else if (/Android/.test(userAgent)) {
+        os = 'Android';
+      } else if (!os && /Linux/.test(platform)) {
+        os = 'Linux';
+      }
+
+      return os;
+    }
+
+    vm.date_format_convert = function(utc_date){
+
+      var os_type = getOS();
+
+      var date = utc_date.toLocaleDateString();
+      var datearray = date.split("/");
+
+      if (os_type == 'Windows') {
+
+        if (datearray[1] < 10 && datearray[1].length == 1) {
+          datearray[1] = '0'+datearray[1];
+        }
+
+        if (datearray[0] < 10 && datearray[0].length == 1) {
+          datearray[0] = '0'+datearray[0];
+        }
+
+        vm.date = datearray[0] + '/' + datearray[1] + '/' + datearray[2];
+      } else {
+        
+        vm.date = datearray[1] + '/' + datearray[0] + '/' + datearray[2];
+      }
+    }
+
+    vm.date_format_convert(new Date());
 
     vm.changeDtFields = function(flag){
 
@@ -101,7 +148,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             }
         })
        .withPaginationType('full_numbers')
-       .withOption('rowCallback', rowCallback);
+       // .withOption('rowCallback', rowCallback);
 
         vm.dtColumns = [
             DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
@@ -122,23 +169,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     vm.changeDtFields(false);    
 
-    /*vm.dtColumns = [
-        DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
-            .renderWith(function(data, type, full, meta) {
-                if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
-                  vm.selected = {};
-                }
-                vm.selected[meta.row] = vm.selectAll;
-                return vm.service.frontHtml + meta.row + vm.service.endHtml;
-            }).notSortable(),
-        DTColumnBuilder.newColumn('Warehouse Name').withTitle('Warehouse Name'),
-        DTColumnBuilder.newColumn('Stock Transfer ID').withTitle('Stock Transfer ID'),
-        DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'),
-        DTColumnBuilder.newColumn('Quantity').withTitle('Quantity')
-    ];*/
-
     vm.dtInstance = {};
     vm.reloadData = reloadData;
+
+    vm.checkDateValidation = function(){
+
+      var from_date = new Date(vm.model_data.filters.from_date);
+      var to_date = new Date(vm.model_data.filters.to_date);
+      if (from_date > to_date) {
+
+        colFilters.showNoty('Pease select proper date combination');
+        vm.model_data.filters.to_date = '';
+      }
+    }
 
     function reloadData () {
         vm.dtInstance.reloadData();
@@ -150,16 +193,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       angular.copy(vm.dtInstance.DataTable.context[0].ajax.data, colFilters.search);
       colFilters.download_excel()
     }
-
-    /*function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-        $('td', nRow).unbind('click');
-        $('td', nRow).bind('click', function() {
-            $scope.$apply(function() {
-                console.log(aData);
-            });
-        });
-        return nRow;
-    }*/ 
 
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
 
@@ -177,12 +210,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
          //vm.market_place = aData['Market Place'];
           var data = {};
           var url = "get_view_order_details/";
-          if ((vm.g_data.view == 'CustomerOrderView') || (vm.g_data.view == 'OrderView')) {
+          /*if ((vm.g_data.view == 'CustomerOrderView') || (vm.g_data.view == 'OrderView')) {
             data = {id: $(aData[""]).attr('name'),order_id: aData["Order ID"]}
           } else if (vm.g_data.view == 'SellerOrderView') {
             data = {id: $(aData[""]).attr('name'), sor_id: aData['SOR ID'], uor_id: aData['UOR ID']}
             url = "get_seller_order_details/"
-          }
+          }*/
           vm.service.apiCall(url, "GET", data).then(function(data){
 
             var all_order_details = data.data.data_dict[0].ord_data;
@@ -194,7 +227,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             var empty_data = {data: []}
             angular.copy(empty_data, vm.model_data);
 
-            if (vm.g_data.view == 'CustomerOrderView'){
+            /*if (vm.g_data.view == 'CustomerOrderView'){
               vm.input_status = false;
             } else {
               vm.input_status = true;
@@ -202,7 +235,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
             if(vm.g_data.view == 'SellerOrderView') {
               vm.model_data["sor_id"] = aData['SOR ID'];
-            }
+            }*/
             vm.order_input_status = false;
 
             vm.model_data["central_remarks"]= data.data.data_dict[0].central_remarks;
@@ -242,7 +275,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             vm.client_name = value.client_name;
             if (!vm.client_name) {
               vm.show_client_details = false;
-            }
+            } 
             // if (value.discount_percentage <= 99.99) {
               vm.discount_per = value.discount_percentage;
             // }
@@ -273,6 +306,66 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
      // }
      })
    }
+
+    vm.send_order_data = function(form) {
+      var elem = angular.element($('form'));
+      elem = elem[0];
+      elem = $(elem).serializeArray();
+      if (elem[0].value == '? string: ?'){
+          elem[0].value = '';
+      }
+      elem.push({name: 'order_id', value: vm.order_id}, {name: 'customer_id', value: vm.customer_id}, 
+                {name: 'customer_name', value: vm.customer_name},
+                {name: 'phone', value: vm.phone}, {name: 'email', value: vm.email}, {name: 'address', value: vm.address},
+                {name: 'shipment_date', value: vm.shipment_date}, {name: 'market_place', value: vm.market_place})
+      vm.service.apiCall('update_order_data/', 'POST', elem).then(function(data){
+
+          vm.reloadData();
+          colFilters.showNoty('Saved sucessfully');
+      })
+    }
+
+    vm.delete_order_data = function(ord_id) {
+
+      var delete_data = {};
+      delete_data['order_id'] = ord_id;
+      delete_data['order_id_code'] = vm.order_id_code;
+
+      vm.service.apiCall('order_delete/', 'GET', delete_data).then(function(data){
+          if (data.message) {
+            colFilters.showNoty(data.data);
+            vm.reloadData();
+            $state.go('app.outbound.ViewOrders');
+          }
+          })
+    }
+
+   vm.update_order_details = update_order_details;
+    function update_order_details(index, data, last) {
+      vm.default_status = false;
+      if (last) {
+        if (!vm.model_data.data) {
+          vm.model_data['data'] = [];
+        }
+        vm.model_data.data.push({item_code:'', product_title:'', quantity:0, unit_price:0, invoice_amount:0, new_product:true, default_status: false, sku_status: 1});
+      } else {
+        var data_to_delete = {};
+        data_to_delete['order_id'] = vm.order_id;
+        data_to_delete['item_code'] = data.item_code;
+        data_to_delete['order_id_code'] = vm.order_id_code;
+
+        if (data.new_product) {
+          vm.model_data.data.splice(index,1);
+        } else {
+          vm.service.apiCall('delete_order_data/', 'GET', data_to_delete).then(function(data){
+
+            if (data.message){
+              vm.model_data.data.splice(index,1);
+            }
+          });
+        }
+      }
+    }
 
     vm.close = close;
     function close() {

@@ -18,16 +18,8 @@
   <hr>
   <div class="container-fluid">
     <div class="row">
-      <h5><b>CUSTOMER DETAILS</b></h5>
+      <h5><b>DESTINATION WAREHOUS DETAILS</b></h5>
       <div class="col-md-5">
-        <div class="row">
-          <div class="col-xs-3">
-            <b>ID:</b>
-          </div>
-          <div class="col-xs-9">
-            <p>{{showCase.customer_id}}</p>
-          </div>
-        </div>
         <div class="row">
           <div class="col-xs-3">
             <b>NAME:</b>
@@ -36,28 +28,20 @@
             <p>{{showCase.customer_name}}</p>
           </div>
         </div>
-        <!--<div class="row">
-          <div class="col-xs-2">
-            <b>PHONE:</b>
+        <div class="row">
+          <div class="col-xs-3">
+            <b>CITY:</b>
           </div>
-          <div class="col-xs-6">
-            <p>{{showCase.phone}}</p>
+          <div class="col-xs-9">
+            <p>{{showCase.city}}</p>
           </div>
         </div>
         <div class="row">
-          <div class="col-xs-2">
-            <b>EMAIL:</b>
-          </div>
-          <div class="col-xs-6">
-            <p>{{showCase.email}}</p>
-          </div>
-        </div>-->
-        <div class="row">
           <div class="col-xs-3">
-            <b>MARKETPLACE:</b>
+            <b>PIN:</b>
           </div>
           <div class="col-xs-9">
-            <p>{{showCase.market_place}}</p>
+            <p>{{showCase.pin}}</p>
           </div>
         </div>
 
@@ -73,76 +57,15 @@
         </div>
         <div class="row">
           <div class="col-xs-3">
-            <b>CITY:</b>
-          </div>
-          <div class="col-xs-9">
-            <p>{{showCase.city}}</p>
-          </div>
-        </div>
-        <div class="row">
-          <div class="col-xs-3">
             <b>STATE:</b>
           </div>
           <div class="col-xs-9">
             <p>{{showCase.state}}</p>
           </div>
         </div>
-        <div class="row">
-          <div class="col-xs-3">
-            <b>PIN:</b>
-          </div>
-          <div class="col-xs-9">
-            <p>{{showCase.pin}}</p>
-          </div>
-        </div>
       </div>
     </div>
     <div class="row" ng-if="showCase.model_data.seller_data.seller_id"><hr></div>
-    <div class="row" ng-if="showCase.model_data.seller_data.seller_id">
-      <h5><b>SELLER DETAILS</b></h5>
-      <div class="col-md-5">
-        <div class="row">
-          <div class="col-xs-2">
-            <b>ID:</b>
-          </div>
-          <div class="col-xs-6">
-            <p>{{showCase.model_data.seller_data.seller_id}}</p>
-          </div>
-        </div>
-        <div class="row">
-          <div class="col-xs-2">
-            <b>NAME:</b>
-          </div>
-          <div class="col-xs-6">
-            <p>{{showCase.model_data.seller_data.name}}</p>
-          </div>
-        </div>
-        <div class="row">
-          <div class="col-xs-2">
-            <b>PHONE:</b>
-          </div>
-          <div class="col-xs-6">
-            <p>{{showCase.model_data.seller_data.phone_number}}</p>
-          </div>
-        </div>
-        <div class="row">
-          <div class="col-xs-2">
-            <b>EMAIL:</b>
-          </div>
-          <div class="col-xs-6">
-            <p>{{showCase.model_data.seller_data.email_id}}</p>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-5">
-        <div class="col-xs-2">
-          <b>ADDRESS:</b>
-        </div>
-        <div class="col-xs-6">
-          <p>{{showCase.model_data.seller_data.address}}</p>
-        </div>
-      </div>
-    </div>
     <div class="row"><hr></div>
     <div class="row">
       <div class="col-md-12" style="padding-left: 0px;">
@@ -151,65 +74,40 @@
     </div>
     <div class="row">
       <div class="col-md-4 col-sm-6 col-xs-12">
-        <b>EXPECTED DELIVERY DATE:</b>
+        <b>CREATION DATE:</b>
         <P><span style="color: rgb(0, 86, 255);">{{showCase.shipment_date}}</span></P>
       </div>
-      <div class="col-md-4 col-sm-6 col-xs-12">
-        <div class="form-group">
-          <b>PAYMENT STATUS:</b>
-          <select class="form-control" name="payment_status" ng-if="showCase.g_data.view == 'CustomerOrderView'" ng-model="showCase.model_data.payment_status">
-            <option value="">Select Payment Status</option>
-            <option ng-repeat="type in showCase.payment_status" ng-selected="showCase.model_data.payment_status==type" value="{{type}}">{{type}}</option>
-          </select>
-          <input type="text" ng-if="showCase.g_data.view != 'CustomerOrderView'" class="form-control" name="payment_status" ng-model= "showCase.model_data.payment_status" value="{{showCase.model_data.payment_status}}" readonly>
+    </div>
+
+    <div class="row mt15">
+      <form name="form" role="form" class="filters">
+        <div class="clearfix">
+          <div class="row col-md-12">
+            
+            <div class="col-md-4 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"><b>From Date *</b></label>
+                <input name="from_date" ui-jq="datepicker" ng-init="showCase.model_data.filters.from_date = showCase.date" ng-model="showCase.model_data.filters.from_date" class="form-control stk-readonly" type="text" id="from_date" data-date-today-highlight="true" data-date-autoclose="true" required>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"><b>To Date</b></label>
+                <input name="to_date" ui-jq="datepicker" ng-model="showCase.model_data.filters.to_date" class="form-control stk-readonly" type="text" id="to_date" ng-change="showCase.checkDateValidation()" data-date-today-highlight="true" data-date-autoclose="true">
+                <input name="datatable" class="form-control" ng-init="showCase.model_data.filters.datatable = 'AltStockTransferOrders'" type="hidden" ng-model="showCase.model_data.filters.datatable" value="AltStockTransferOrders">
+              </div>
+            </div>
+          </div>
+          <div class="col-md-12 text-center">
+            <div class="filter-controls">
+              <button type="button" class="btn btn-default" id="add-shippment-btn" style="margin-right: 10px" ng-click="showCase.model_data.filters.to_date='';showCase.model_data.filters.from_date = showCase.date"> Reset </button>
+              <button type="button" class="btn btn-success" id="add-shippment-btn" data-toggle="modal" data-target="#myModal" ng-click="showCase.saveFilters(showCase.model_data.filters);showCase.service.generate_report(showCase.dtInstance, showCase.model_data.filters)" ng-disabled="!showCase.model_data.filters.from_date"> Search </button>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-    <div class="row">
-      <!-- <div class="col-md-4 col-sm-6 col-xs-12">
-          <b>EXPECTED DELIVERY DATE:</b>
-          <span style="color: rgb(0, 86, 255);">{{showCase.shipment_date}}</span></br>
-      </div> -->
-
-      <div class="col-md-4 col-sm-6 col-xs-12">
-          <b>STATUS:</b>
-          <select ng-if="!showCase.input_status" class="form-control pull-right" name="status_type"
-                  ng-model="showCase.ord_status" ng-readonly="showCase.input_status">
-            <option ng-selected="showCase.ord_status == ''" ng-if="showCase.display_status_none"></option>
-            <option ng-repeat="type in showCase.model_data.all_status" ng-selected="showCase.ord_status == type">{{type}}</option>
-          </select>
-          <input ng-if="showCase.input_status" type="text" class="form-control" name="remarks" ng-model="showCase.ord_status" ng-readonly="showCase.input_status">
-      </div>
-      <div class="col-md-4 col-sm-6 col-xs-12">
-          <b>INVOICE TYPE:</b>
-          <select ng-if="!showCase.input_status" class="form-control pull-right" name="invoice_type"
-                  ng-model="showCase.invoice_type" ng-readonly="showCase.input_status">
-            <option ng-selected="showCase.invoice_type == ''" ng-if="showCase.display_status_none">None </option>
-            <option ng-repeat="type in showCase.model_data.invoice_types" ng-selected="showCase.invoice_type == type">{{type}}</option>
-          </select>
-          <input ng-if="showCase.input_status" type="text" class="form-control" name="invoice_type" ng-model="showCase.invoice_type" ng-readonly="showCase.input_status">
-      </div>
-      <div class="col-md-4 col-sm-6 col-xs-12">
-        <b>REMARKS:</b>
-        <input type="text" class="form-control" name="central_remarks" ng-model= "showCase.model_data.central_remarks" ng-readonly="showCase.input_status">
-      </div>
-    </div>
-    <div class="row"><hr></div>
-
-	<div class="row" ng-if="showCase.show_client_details">
-		<div class="col-md-12" style="padding-left: 0px;">
-    		<h5><b>CLIENT DETAILS</b></h5>
-		</div>
-		<div class="col-md-12 col-sm-12 col-xs-12">
-			<div class="col-md-2 col-sm-2 col-xs-2" style="text-align: right;margin-top: 8px;">
-        		<b>CLIENT NAME:</b>
-			</div>
-			<div class="col-md-3 col-sm-3 col-xs-3">
-    			<input type="text" class="form-control" name="client_name" ng-model= "showCase.client_name" ng-readonly="showCase.input_status">
-			</div>
-    	</div>
-	</div>
-
+      </form>
+  </div>
+  <div class="row"><hr></div>
     <div class="row" ng-if="showCase.show_client_details"><hr></div>
     <div class="row over-x form-group">
       <table class="table mw75">
@@ -219,13 +117,7 @@
             <th>PRODUCT TITLE </th>
             <th>QUANTITY</th>
             <th>UNIT PRICE</th>
-            <th>DISCOUNT(%)</th>
-            <th ng-if="showCase.model_data.tax_type == 'intra_state'">SGST(%)</th>
-            <th ng-if="showCase.model_data.tax_type == 'intra_state'">CGST(%)</th>
-            <th ng-if="showCase.model_data.tax_type == 'inter_state'">IGST(%)</th>
             <th>INVOICE AMT (&#8377;)</th>
-            <th>REMARKS</th>
-            <!--<th>STATUS</th>-->
             <th ng-if="!showCase.input_status" class="plus"></th>
           </tr>
         </thead>
@@ -236,7 +128,7 @@
 	          typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')"
 	          typeahead-loading="loadingLocations" class="form-control" name="item_code" ng-model="data.item_code" 
 	          typeahead-on-select="showCase.get_sku_data(data, $item)" ng-readonly="data.default_status">
-              <img ng-src="{{data.image_url}}" style="padding-top: 10px;width: 120px;"></img>
+              <!-- <img ng-src="{{data.image_url}}" style="padding-top: 10px;width: 120px;"></img> -->
 	        </td>
             <td>
               <input type="text" class="form-control" name="product_title" ng-model="data.product_title" ng-readonly="data.default_status">
@@ -248,32 +140,9 @@
               <input type="text" class="form-control" name="unit_price" ng-model="data.unit_price" ng-change="showCase.changeInvoiceAmt(data, true)" ng-class="service.get_decimal_perm()" ng-readonly="showCase.input_status">
             </td>
             <td>
-              <input type="text" class="form-control" ng-model="data.discount_per" ng-change="showCase.changeInvoiceAmt(data)" ng-readonly="showCase.input_status" discount-number="99.99">
-              <input type="hidden" class="form-control" ng-class="service.get_decimal_perm()" name="discount" value="{{data.discount}}">
-            </td>
-            <td ng-show="showCase.model_data.tax_type == 'intra_state'">
-              <input type="text" class="form-control" ng-class="service.get_decimal_perm()" name="sgst" ng-model="data.sgst" ng-change="showCase.changeInvoiceAmt(data)" readonly>
-            </td>
-            <td ng-show="showCase.model_data.tax_type == 'intra_state'">
-              <input type="text" class="form-control" ng-class="service.get_decimal_perm()" name="cgst" ng-model="data.cgst" ng-change="showCase.changeInvoiceAmt(data)" readonly>
-            </td>
-            <td ng-show="showCase.model_data.tax_type == 'inter_state'">
-              <input type="text" class="form-control" ng-class="service.get_decimal_perm()" name="igst" ng-model="data.igst" ng-change="showCase.changeInvoiceAmt(data)" readonly>
-            </td>
-            <td>
               <input type="text" class="form-control" ng-model="data.invoice_amount" disabled="disabled">
               <input type="hidden" class="form-control" name="invoice_amount" value="{{data.quantity * data.unit_price}}">
             </td>
-            <td>
-              <input type="text" class="form-control" name="remarks" ng-model="data.remarks" ng-readonly="showCase.input_status">
-            </td>
-	        <!--<td>
-	          <select ng-if="!showCase.input_status" class="form-control pull-right" name="status_type"
-	          ng-model="showCase.selected_status" ng-readonly="showCase.input_status">
-	            <option ng-repeat="type in showCase.status_type" ng-selected="type == showCase.selected_status">{{type}}</option>
-	          </select>
-	          <input ng-if="showCase.input_status" type="text" class="form-control" name="remarks" ng-model="data.order_status" ng-readonly="showCase.input_status">
-	        </td>-->
 	        <td ng-if="!showCase.input_status"><i style="font-size: 20px;padding-top: 7px;cursor: pointer;margin-left: -15px;"
 	        ng-click="showCase.update_order_details($index, data, false)" class="fa fa-minus-square-o"></i></td>
           </tr>
@@ -326,24 +195,6 @@
     <div class="row">
       <div class="col-md-9">
       </div>
-      <!--<div class="col-md-3">
-        <div class="row">
-          <div class="col-xs-5">
-            Total Units:
-          </div>
-          <div class="col-xs-7">
-            {{showCase.quantity}}
-          </div>
-        </div>
-        <div class="row">
-          <div class="col-xs-5">
-            Total AMT:
-          </div>
-          <div class="col-xs-7">
-            &#8377;{{showCase.invoice_amount}}
-          </div>
-        </div>
-      </div>-->
     </div>
     <div class="row" style="padding-bottom:2%;">
       <div class="col-md-6">

@@ -207,14 +207,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                                    'order_id': new_sku.order_id, 'return_quantity': 1, 'damaged_quantity': 0, 'track_id_enable': false,
                                    'is_new': true, 'marketplace':vm.model_data.marketplace, 'sor_id': new_sku.sor_id,
                                    'unit_price': new_sku.unit_price, 'old_order_id': new_sku.order_id, 'mrp': new_sku.batch_data[0].mrp, 
-                                   'manufactured_date': new_sku.batch_data[0].manufactured_date, 'expiry_date': new_sku.batch_data[0].expiry_date })
+                                   'manufactured_date': new_sku.batch_data[0].manufactured_date, 'expiry_date': new_sku.batch_data[0].expiry_date,'sgst': new_sku.sgst,'cgst': new_sku.cgst,'igst': new_sku.igst })
         }
       } else {
         vm.model_data.data.push({'sku_code': new_sku.sku_code, 'sku_desc': new_sku.description, 'ship_quantity': new_sku.ship_quantity,
                                'order_id': new_sku.order_id, 'return_quantity': 1, 'damaged_quantity': 0, 'track_id_enable': false,
                                'is_new': true, 'marketplace':vm.model_data.marketplace, 'sor_id': new_sku.sor_id,
                                'unit_price': new_sku.unit_price, 'old_order_id': new_sku.order_id, 'mrp': 0, 
-                               'manufactured_date': '', 'expiry_date': '' })
+                               'manufactured_date': '', 'expiry_date': '','sgst': new_sku.sgst,'cgst': new_sku.cgst,'igst': new_sku.igst })
       }
       if(new_sku.order_id){
         var name = new_sku.order_id+"<<>>"+new_sku.sku_code;

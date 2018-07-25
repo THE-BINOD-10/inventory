@@ -240,20 +240,28 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       elem = elem[0];
       elem = $(elem).serializeArray();
       vm.service.apiCall('confirm_sales_return/', 'POST', elem, true).then(function(data, status, headers, config){
+        if(typeof(data.data) == "string" && data.data == 'Updated Successfully') { 
+          pop_msg(data.data);
+          vm.confirm_disable = true;
+            Service.showNoty(data.data);
+            vm.reloadData();
+            vm.close();
+            vm.orders_data = {};
+        } else {
+          vm.title = 'SCAN RETURNED ORDERS PRINT';
 
-        vm.title = 'SCAN RETURNED ORDERS PRINT';
+          if(typeof(data.data) == "string" && data.data.search("print-invoice") != -1) {
 
-        if(typeof(data.data) == "string" && data.data.search("print-invoice") != -1) {
+          var html = $(data.data);
+          vm.print_page = $(html).clone();
 
-        var html = $(data.data);
-        vm.print_page = $(html).clone();
-
-          $state.go('app.inbound.SalesReturns.ScanReturnsPrint');
-          $timeout(function () {
-            $(".modal-body:visible").html(data.data);
-          }, 3000);
+            $state.go('app.inbound.SalesReturns.ScanReturnsPrint');
+            $timeout(function () {
+              $(".modal-body:visible").html(data.data);
+            }, 3000);
+          }
+          
         }
-
         /*if(data.message) {
           pop_msg(data.data);
           vm.confirm_disable = true;

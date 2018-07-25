@@ -3152,7 +3152,8 @@ def confirm_sales_return(request, user=''):
             order_returns = OrderReturns.objects.filter(id=return_dict['id'], status=1)
             if not order_returns:
                 continue
-            created_return_id = order_returns[0].return_id
+            if order_returns[0].order:
+                created_return_id = order_returns[0].return_id
             if return_dict.get('reason', ''):
                 update_return_reasons(order_returns[0], return_dict['reason'])
             if data_dict.get('returns_imeis', ''):
@@ -7663,9 +7664,8 @@ def get_sales_return_print_json(return_id, user):
     for obj in sales_returns:
         if not obj.order:
             continue
-        data_dict['order_id'] = obj.order_id
+        data_dict['order_id'] = obj.order.original_order_id
         data_dict['return_id'] = obj.return_id
-        data_dict['sales_return_date'] = obj.creation_date
         customer_master = CustomerMaster.objects.filter(user=user.id, customer_id=obj.order.customer_id)
         if customer_master:
             customer_master = customer_master[0]

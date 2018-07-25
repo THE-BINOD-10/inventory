@@ -1983,8 +1983,21 @@ def jo_putaway_data(request, user=''):
     for i in range(len(data_dict['id'])):
         cond = (data_dict['id'][i])
         all_data.setdefault(cond, [])
-        all_data[cond].append(
-            [data_dict['location'][i], data_dict['putaway_quantity'][i], data_dict['pallet_number'][i]])
+        cond_list = [data_dict['location'][i], data_dict['putaway_quantity'][i], data_dict['pallet_number'][i]]
+        batch_no, mrp, mfg_date, exp_date = '','','',''
+        if 'batch_no' in data_dict:
+            batch_no = data_dict['batch_no'][i]
+        if 'mrp' in data_dict:
+            mrp = data_dict['mrp'][i]
+        if 'mfg_date' in data_dict:
+            mfg_date = data_dict['mfg_date'][i]
+        if 'exp_date' in data_dict:
+            exp_date = data_dict['exp_date'][i]
+        cond_list.append(batch_no)
+        cond_list.append(mrp)
+        cond_list.append(mfg_date)
+        cond_list.append(exp_date)
+        all_data[cond].append(cond_list)
 
     status = validate_locations(all_data, user.id)
     if status:
@@ -1999,6 +2012,14 @@ def jo_putaway_data(request, user=''):
             filter_params = {'location_id': location.id, 'receipt_number': data.job_order.job_code,
                              'sku_id': data.job_order.product_code_id, 'sku__user': user.id,
                              'receipt_type': 'job order'}
+            create_batch_rec = False
+            if val[3] or val[4] or val[5] or val[6]:
+                create_batch_param = {'batch_no':val[3], 'mrp':val[4], 'manufactured_date':val[5],
+                                        'expiry_date':val[6],'transact_id':data.job_order.id, 
+                                        'transact_type':'jo'}
+                create_batch_rec = create_update_batch_data(create_batch_param)
+                if create_batch_rec:
+                    filter_params['batch_detail_id'] = create_batch_rec.id
             stock_data = StockDetail.objects.filter(**filter_params)
             pallet_mapping = PalletMapping.objects.filter(po_location_id=data.id, status=1)
             if pallet_mapping:
@@ -2027,6 +2048,8 @@ def jo_putaway_data(request, user=''):
                                'sku_id': data.job_order.product_code_id,
                                'quantity': val[1], 'status': 1, 'creation_date': datetime.datetime.now(),
                                'updation_date': datetime.datetime.now(), 'receipt_type': 'job order'}
+                if create_batch_rec:
+                    record_data['batch_detail_id'] = create_batch_rec.id
                 if pallet_mapping:
                     record_data['pallet_detail_id'] = pallet_mapping[0].pallet_detail.id
                     pallet_mapping[0].status = 0

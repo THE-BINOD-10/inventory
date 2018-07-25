@@ -3929,8 +3929,8 @@ def create_stock_transfer(request, user=''):
     if not status:
         all_data = insert_st(all_data, warehouse)
         status = confirm_stock_transfer(all_data, warehouse, user.username)
-        rendered_html_data = render_st_html_data(request, user, warehouse, all_data)
-        stock_transfer_mail_pdf(request, f_name, rendered_html_data, warehouse)
+        #rendered_html_data = render_st_html_data(request, user, warehouse, all_data)
+        #stock_transfer_mail_pdf(request, f_name, rendered_html_data, warehouse)
     return HttpResponse(status)
 
 
@@ -10142,7 +10142,7 @@ def create_orders_check_ean(request, user=''):
         sku_code = sku_obj[0].sku_code
     return HttpResponse(json.dumps({ 'sku' : sku_code }))
 
-
+"""
 def stock_transfer_mail_pdf(request, f_name, html_data, warehouse):
     receivers = []
     attachments = create_mail_attachments(f_name, html_data)
@@ -10162,7 +10162,7 @@ def stock_transfer_mail_pdf(request, f_name, html_data, warehouse):
     email_subject = '%s %s' % (company_name, 'Stock Transfer Note')
     if len(receivers):
         send_mail_attachment(receivers, email_subject, email_body, files=attachments)
-
+"""
 def create_mail_attachments(f_name, html_data):
     from random import randint
     attachments = []
@@ -10182,6 +10182,7 @@ def create_mail_attachments(f_name, html_data):
         attachments.append({'path': path + pdf_file, 'name': pdf_file})
     return attachments
 
+"""
 def render_st_html_data(request, user, warehouse, all_data):
     user_profile = UserProfile.objects.filter(user = user).values('phone_number', 'company_name', 'location',
         'city', 'state', 'country', 'pin_code', 'address', 'wh_address', 'wh_phone_number', 'gst_number')
@@ -10197,20 +10198,13 @@ def render_st_html_data(request, user, warehouse, all_data):
             po_skus_dict = {}
             st_id = obj[3]
             stock_transfer_obj = OpenST.objects.get(id=st_id)
-            po_skus_dict['sku'] = stock_transfer_obj.sku
-            po_skus_dict['sku_desc'] = stock_transfer_obj.sku.sku_desc
-            po_skus_dict['order_qty'] = int(stock_transfer_obj.order_quantity)
-            po_skus_dict['measurement_type'] = stock_transfer_obj.sku.measurement_type
-            po_skus_dict['price'] = float(stock_transfer_obj.price)
-            po_skus_dict['amount'] = stock_transfer_obj.price * stock_transfer_obj.order_quantity
-            po_skus_dict['status'] = stock_transfer_obj.status
-            po_skus_dict['cgst'] = 0
-            po_skus_dict['igst'] = 0
-            po_skus_dict['utgst'] = 0
-            po_skus_dict['sgst'] = 0
-            po_skus_list.append(po_skus_dict)
-            total_order_qty += po_skus_dict['order_qty']
-            total_amount += po_skus_dict['price'] * po_skus_dict['order_qty']
+            po_skus_list.append( OrderedDict( ( ('sku', stock_transfer_obj.sku), 
+                ('sku_desc', stock_transfer_obj.sku.sku_desc), ( 'order_qty', int(stock_transfer_obj.order_quantity)), 
+                ('measurement_type', stock_transfer_obj.sku.measurement_type), ('price', float(stock_transfer_obj.price)),
+                ('amount', stock_transfer_obj.price * stock_transfer_obj.order_quantity), ('sgst', 0), ('cgst', 0), 
+                ('igst', 0), ('utgst', 0) )) )
+            total_order_qty += int(stock_transfer_obj.order_quantity)
+            total_amount += float(stock_transfer_obj.price) * int(stock_transfer_obj.order_quantity)
             stock_transfer_date = stock_transfer_obj.creation_date
     table_headers = ['WMS Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price',
     'Amount', 'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)']
@@ -10233,3 +10227,4 @@ def render_st_html_data(request, user, warehouse, all_data):
     t = loader.get_template('templates/toggle/stock_transfer_mail.html')
     html_data = t.render(data_dict)
     return html_data
+"""

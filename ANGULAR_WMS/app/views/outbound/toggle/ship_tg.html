@@ -1,4 +1,4 @@
-<div id="page-pop" style="display: block; z-index:1100" class="modal fade process-toggle in" id="location-toggle" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false">
+<div id="page-pop" style="display: block; z-index:1050" class="modal fade process-toggle in" id="location-toggle" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false">
   <form name="form" role="form" id="add-customer">
     <div class="modal-dialog modal-lg">
       <!-- Modal content-->
@@ -134,8 +134,8 @@
             </table>
           </div>
           <div class="row">
-            <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12 col-md-offset-3 col-lg-offset-3">
-              <div class="col-md-8">
+            <div class="col-lg-10 col-md-10 col-sm-10 col-xs-10 col-md-offset-2 col-lg-offset-2">
+              <div class="col-md-5">
                 <div class="form-group">
                 <!-- <label class="control-label">Selected Cartons</label> -->
                   <select name="sel_carton" ng-model="showCase.sel_carton" class="form-control mt25" ng-change="showCase.get_carton_info(showCase.sel_carton)">
@@ -144,9 +144,11 @@
                   </select>
                 </div>
               </div>
-              
-              <div class="col-md-4">
+              <div class="col-md-3">
                 <button type="button" class="btn btn-success mt25" style="width: 100%" ng-click="showCase.print_pdf(form)">Print</button>
+              </div>
+              <div class="col-md-3">
+                <button type="button" class="btn btn-success mt25" style="width: 100%" ng-click="showCase.print_pdf(form, 'true')">Excel</button>
               </div>
             </div>
           </div>

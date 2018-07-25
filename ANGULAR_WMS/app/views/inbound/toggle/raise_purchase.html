@@ -176,7 +176,7 @@
                       <input type="hidden" id="skuIndex" name="sku_index" class="form-control" value="{{$index}}">
                     </td>
 
-                    <td><i ng-click="showCase.update_data($index)" ng-class="showCase.service.isLast($last)"></i></td>
+                    <td><i ng-click="showCase.update_data($index, true, true)" ng-class="showCase.service.isLast($last)"></i></td>
                   </tr>
                 </tbody>
               </table>

@@ -3929,8 +3929,8 @@ def create_stock_transfer(request, user=''):
     if not status:
         all_data = insert_st(all_data, warehouse)
         status = confirm_stock_transfer(all_data, warehouse, user.username)
-        rendered_html_data = render_st_html_data(request, user, warehouse, all_data)
-        stock_transfer_mail_pdf(request, f_name, rendered_html_data, warehouse)
+        #rendered_html_data = render_st_html_data(request, user, warehouse, all_data)
+        #stock_transfer_mail_pdf(request, f_name, rendered_html_data, warehouse)
     return HttpResponse(status)
 
 
@@ -7571,61 +7571,6 @@ def get_levelbased_invoice_data(start_index, stop_index, temp_data, user, search
     temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
     return temp_data
 
-'''
-@csrf_exempt
-def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    data_dict = {}
-    user_profile = UserProfile.objects.get(user_id=user.id)
-    temp_data['recordsTotal'] = 0
-    temp_data['recordsFiltered'] = temp_data['recordsTotal']
-    stock_transfer_id = ''
-    ordered_quantity = ''
-    #st_orders_id = STOrder.objects.filter(picklist__stock__sku__user = user.id).distinct().values_list('picklist__picklist_number', flat=True)
-    #st_order_ids = STOrder.objects.filter(stock_transfer__st_po__open_st__sku__user = user.id).distinct().values_list('stock_transfer__order_id', flat=True)
-    st_order_ids = STOrder.objects.filter(picklist__stock__sku__user = user.id).distinct().values_list('stock_transfer__order_id', flat=True)
-    #get warehouse list
-    user_list = []
-    admin_user = UserGroups.objects.filter(Q(admin_user__username__iexact=user.username) | Q(user__username__iexact=user.username)).values_list('admin_user_id', flat=True)
-
-    user_groups = UserGroups.objects.filter(admin_user_id__in=admin_user).values('user__username', 'admin_user__username')
-    for users in user_groups:
-        for key, value in users.iteritems():
-            if user.username != value and value not in user_list:
-                user_list.append(value)
-
-    for ord_id in st_order_ids:
-	picked_qty = 0
-	st_obj = StockTransfer.objects.filter(order_id = ord_id, st_po__open_st__warehouse__username__in = user_list).exclude(st_po__open_st__warehouse__username = '')
-	#first_name = st_obj[0].values('st_po__open_st__warehouse__first_name')['st_po__open_st__warehouse__first_name']
-	try:
-	    first_name = st_obj[0].st_po.open_st.warehouse.username
-	except:
-	    first_name = ''
-
-	picklist_obj = Picklist.objects.filter(order__order_id = ord_id)
-	#picked_qty = picklist_obj.aggregate(Sum('picked_quantity'))['picked_quantity__sum']
-	reserved_qty = picklist_obj.aggregate(Sum('reserved_quantity'))['reserved_quantity__sum']
-	total_price = 0
-	picked_quantity = 0
-	total_picked_quantity = 0
-	for get_sku in picklist_obj:
-	    sku_code = get_sku.sku_code
-	    if sku_code:
-		#get_picked_qty = picklist_obj.filter(sku_code = sku_code)
-		#picked_quantity = get_picked_qty[0].picked_quantity
-		unique_sku_obj = st_obj.filter(st_po__open_st__sku__sku_code = sku_code)
-		try:
-		    picked_quantity = unique_sku_obj[0].st_po.open_st.order_quantity
-		    #total_amount = unique_sku_obj[0].st_po.open_st.price * picked_quantity
-		    #total_amount = get_picked_qty[0].order.sku.price * picked_quantity
-		    total_amount = unique_sku_obj[0].st_po.open_st.price * picked_quantity
-		except:
-		    total_amount = 0
-		total_price = total_amount + total_price
-		total_picked_quantity = picked_quantity + total_picked_quantity
-	temp_data['aaData'].append({'Stock Transfer ID' : ord_id, 'Order Quantity' : '', 'Picked Quantity' : total_picked_quantity, 'Total Amount' : total_price, 'Stock Transfer Date&Time' : '', 'Customer Name': first_name})
-'''
-
 @csrf_exempt
 def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     data_dict = {}
@@ -10050,7 +9995,7 @@ def print_cartons_data(request, user=''):
     truck_number = request.POST.get('truck_number', '')
     courier_name = request.POST.get('courier_name', '')
     selected_carton = request.POST.get('sel_carton', '')
-
+    is_excel = request.POST.get('is_excel', '')
     data = OrderedDict()
     count = 1
     customers_obj = OrderDetail.objects.select_related('customer_id', 'customer_name', 'marketplace').\
@@ -10087,17 +10032,43 @@ def print_cartons_data(request, user=''):
         if data[grouping_key]:
             data[grouping_key][4] = int(data[grouping_key][4]) + quantity
         else:
-            data[grouping_key] = [count, pack_reference, sku_code, title, quantity]
+            if not is_excel:
+                data[grouping_key] = [count, pack_reference, sku_code, title, quantity]
+            else:
+                data[grouping_key] = [count, pack_reference, sku_code, title, quantity, shipment_number, shipment_date]
         count+=1
-
     final_data = {'table_headers': table_headers, 'customer_address': customer_info.get('address', ''),
                   'customer_name': customer_info.get('name', ''), 'name': company_name,
                   'shipment_number': shipment_number, 'company_address': address,
                   'shipment_date': shipment_date, 'company_name': company_name, 'truck_number':truck_number,
                   'courier_name': courier_name, 'data': data.values()}
-
-    return render(request, 'templates/toggle/print_cartons_wise_qty.html', final_data)
-
+    if not is_excel:
+        return render(request, 'templates/toggle/print_cartons_wise_qty.html', final_data)
+    else:
+        table_headers.extend(('Shipment Number', 'Shipment Date'))
+        excel_headers = ''
+        temp_data = {}
+        temp_data['aaData'] = [final_data]
+        excel_name = 'shipment_carton_excel'
+        if temp_data['aaData']:
+            excel_headers = temp_data['aaData'][0].keys()
+        file_name = "%s.%s" % (user.id, excel_name.split('=')[-1])
+        file_type = 'xls'
+        path = ('static/excel_files/%s.%s') % (file_name, file_type)
+        if not os.path.exists('static/excel_files/'):
+            os.makedirs('static/excel_files/')
+        path_to_file = '../' + path
+        wb, ws = get_work_sheet('skus', table_headers)
+        data_count = 0
+        for data in temp_data['aaData']:
+            data_count += 1
+            column_count = 0
+            for list_obj in data['data']:
+                for value in list_obj:
+                    ws.write(data_count, column_count, value)
+                    column_count += 1
+        wb.save(path)
+        return HttpResponse(json.dumps({'path' : path_to_file}))
 
 @csrf_exempt
 @login_required
@@ -10171,7 +10142,7 @@ def create_orders_check_ean(request, user=''):
         sku_code = sku_obj[0].sku_code
     return HttpResponse(json.dumps({ 'sku' : sku_code }))
 
-
+"""
 def stock_transfer_mail_pdf(request, f_name, html_data, warehouse):
     receivers = []
     attachments = create_mail_attachments(f_name, html_data)
@@ -10191,7 +10162,7 @@ def stock_transfer_mail_pdf(request, f_name, html_data, warehouse):
     email_subject = '%s %s' % (company_name, 'Stock Transfer Note')
     if len(receivers):
         send_mail_attachment(receivers, email_subject, email_body, files=attachments)
-
+"""
 def create_mail_attachments(f_name, html_data):
     from random import randint
     attachments = []
@@ -10211,6 +10182,7 @@ def create_mail_attachments(f_name, html_data):
         attachments.append({'path': path + pdf_file, 'name': pdf_file})
     return attachments
 
+"""
 def render_st_html_data(request, user, warehouse, all_data):
     user_profile = UserProfile.objects.filter(user = user).values('phone_number', 'company_name', 'location',
         'city', 'state', 'country', 'pin_code', 'address', 'wh_address', 'wh_phone_number', 'gst_number')
@@ -10226,20 +10198,13 @@ def render_st_html_data(request, user, warehouse, all_data):
             po_skus_dict = {}
             st_id = obj[3]
             stock_transfer_obj = OpenST.objects.get(id=st_id)
-            po_skus_dict['sku'] = stock_transfer_obj.sku
-            po_skus_dict['sku_desc'] = stock_transfer_obj.sku.sku_desc
-            po_skus_dict['order_qty'] = int(stock_transfer_obj.order_quantity)
-            po_skus_dict['measurement_type'] = stock_transfer_obj.sku.measurement_type
-            po_skus_dict['price'] = float(stock_transfer_obj.price)
-            po_skus_dict['amount'] = stock_transfer_obj.price * stock_transfer_obj.order_quantity
-            po_skus_dict['status'] = stock_transfer_obj.status
-            po_skus_dict['cgst'] = 0
-            po_skus_dict['igst'] = 0
-            po_skus_dict['utgst'] = 0
-            po_skus_dict['sgst'] = 0
-            po_skus_list.append(po_skus_dict)
-            total_order_qty += po_skus_dict['order_qty']
-            total_amount += po_skus_dict['price'] * po_skus_dict['order_qty']
+            po_skus_list.append( OrderedDict( ( ('sku', stock_transfer_obj.sku), 
+                ('sku_desc', stock_transfer_obj.sku.sku_desc), ( 'order_qty', int(stock_transfer_obj.order_quantity)), 
+                ('measurement_type', stock_transfer_obj.sku.measurement_type), ('price', float(stock_transfer_obj.price)),
+                ('amount', stock_transfer_obj.price * stock_transfer_obj.order_quantity), ('sgst', 0), ('cgst', 0), 
+                ('igst', 0), ('utgst', 0) )) )
+            total_order_qty += int(stock_transfer_obj.order_quantity)
+            total_amount += float(stock_transfer_obj.price) * int(stock_transfer_obj.order_quantity)
             stock_transfer_date = stock_transfer_obj.creation_date
     table_headers = ['WMS Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price',
     'Amount', 'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)']
@@ -10262,3 +10227,4 @@ def render_st_html_data(request, user, warehouse, all_data):
     t = loader.get_template('templates/toggle/stock_transfer_mail.html')
     html_data = t.render(data_dict)
     return html_data
+"""

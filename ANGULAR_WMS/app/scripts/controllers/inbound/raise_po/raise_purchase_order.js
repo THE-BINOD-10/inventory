@@ -274,19 +274,31 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       vm.populate_last_transaction('');
     }
 
-    vm.update_data = function (index, flag=true) {
+    vm.update_data = function (index, flag=true, plus=false) {
       if (index == vm.model_data.data.length-1) {
-        if (vm.model_data.data[index]["fields"]["sku"]["wms_code"] && vm.model_data.data[index]["fields"]["order_quantity"]) {
+        if (vm.model_data.data[index]["fields"]["sku"] && (vm.model_data.data[index]["fields"]["sku"]["wms_code"] && vm.model_data.data[index]["fields"]["order_quantity"])) {
           
-          $scope.$apply(function() {
+          if (plus) {
 
             vm.model_data.data.push({"fields": {"wms_code":"", "ean_number": "", "supplier_code":"", "order_quantity":"", "price":0,
                                      "measurement_unit": "", "dedicated_seller": vm.model_data.seller_type, "order_quantity": "","row_price": 0,
                                      "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "cess_tax": "", "utgst_tax": "", "tax": "", "is_new":true
                                      }});
 
-          });
-          // console.log(vm.model_data.data);
+          } else {
+
+            $scope.$apply(function() {
+
+              vm.model_data.data.push({"fields": {"wms_code":"", "ean_number": "", "supplier_code":"", "order_quantity":"", "price":0,
+                                       "measurement_unit": "", "dedicated_seller": vm.model_data.seller_type, "order_quantity": "","row_price": 0,
+                                       "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "cess_tax": "", "utgst_tax": "", "tax": "", "is_new":true
+                                       }});
+
+            });
+          }
+        } else {
+
+          Service.showNoty('SKU Code and Quantity are required fields. Please fill these first');
         }
       } else {
         if (flag) {

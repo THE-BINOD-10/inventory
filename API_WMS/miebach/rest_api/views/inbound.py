@@ -7663,6 +7663,9 @@ def get_sales_return_print_json(return_id, user):
     for obj in sales_returns:
         if not obj.order:
             continue
+        data_dict['order_id'] = obj.order_id
+        data_dict['return_id'] = obj.return_id
+        data_dict['sales_return_date'] = obj.creation_date
         customer_master = CustomerMaster.objects.filter(user=user.id, customer_id=obj.order.customer_id)
         if customer_master:
             customer_master = customer_master[0]

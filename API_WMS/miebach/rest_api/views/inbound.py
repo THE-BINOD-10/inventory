@@ -4040,7 +4040,6 @@ def confirm_st(request, user=''):
         status = confirm_stock_transfer(all_data, user, warehouse_name)
         warehouse = User.objects.get(username=warehouse_name)
         f_name = 'stock_transfer_' + warehouse_name + '_'
-        import pdb;pdb.set_trace()
         rendered_html_data = render_st_html_data(request, user, warehouse, all_data)
         stock_transfer_mail_pdf(request, f_name, rendered_html_data, warehouse)
     return HttpResponse(status)

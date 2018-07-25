@@ -1911,9 +1911,19 @@ def get_location_stock_data(search_params, user, sub_user):
     search_parameters['sku__user'] = user.id
     search_parameters['sku_id__in'] = sku_master_ids
     distinct_list = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_category', 'sku__sku_brand']
+
+    lis = ['receipt_number', 'receipt_date', 'location__zone__zone', 'location__location', 'sku__ean_number', 'sku__wms_code', 
+     'sku__wms_code', 'sku__sku_desc', 'quantity', 'quantity', 'quantity']
+    order_term = search_params.get('order_term', 0)
+    col_num = search_params.get('order_index', 0)
+    order_data = lis[col_num]
     if search_parameters:
         stock_detail = StockDetail.objects.exclude(receipt_number=0).filter(**search_parameters)
         total_quantity = stock_detail.aggregate(Sum('quantity'))['quantity__sum']
+    if order_term:
+        if order_term == 'desc':
+            order_data = '-%s' % order_data
+        stock_detail = stock_detail.order_by(order_data)
     stock_detail = stock_detail.annotate(grouped_val=Concat('sku__sku_code', Value('<<>>'), 'location__location',output_field=CharField()))
     results_data['recordsTotal'] = len(stock_detail)
     results_data['recordsFiltered'] = results_data['recordsTotal']

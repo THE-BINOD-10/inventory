@@ -10177,20 +10177,13 @@ def render_st_html_data(request, user, warehouse, all_data):
             po_skus_dict = {}
             st_id = obj[3]
             stock_transfer_obj = OpenST.objects.get(id=st_id)
-            po_skus_dict['sku'] = stock_transfer_obj.sku
-            po_skus_dict['sku_desc'] = stock_transfer_obj.sku.sku_desc
-            po_skus_dict['order_qty'] = int(stock_transfer_obj.order_quantity)
-            po_skus_dict['measurement_type'] = stock_transfer_obj.sku.measurement_type
-            po_skus_dict['price'] = float(stock_transfer_obj.price)
-            po_skus_dict['amount'] = stock_transfer_obj.price * stock_transfer_obj.order_quantity
-            po_skus_dict['status'] = stock_transfer_obj.status
-            po_skus_dict['cgst'] = 0
-            po_skus_dict['igst'] = 0
-            po_skus_dict['utgst'] = 0
-            po_skus_dict['sgst'] = 0
-            po_skus_list.append(po_skus_dict)
-            total_order_qty += po_skus_dict['order_qty']
-            total_amount += po_skus_dict['price'] * po_skus_dict['order_qty']
+            po_skus_list.append( OrderedDict( ( ('sku', stock_transfer_obj.sku), 
+                ('sku_desc', stock_transfer_obj.sku.sku_desc), ( 'order_qty', int(stock_transfer_obj.order_quantity)), 
+                ('measurement_type', stock_transfer_obj.sku.measurement_type), ('price', float(stock_transfer_obj.price)),
+                ('amount', stock_transfer_obj.price * stock_transfer_obj.order_quantity), ('sgst', 0), ('cgst', 0), 
+                ('igst', 0), ('utgst', 0) )) )
+            total_order_qty += int(stock_transfer_obj.order_quantity)
+            total_amount += float(stock_transfer_obj.price) * int(stock_transfer_obj.order_quantity)
             stock_transfer_date = stock_transfer_obj.creation_date
     table_headers = ['WMS Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price',
     'Amount', 'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)']

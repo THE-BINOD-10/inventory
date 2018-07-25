@@ -193,6 +193,12 @@
         <b>REMARKS:</b>
         <input type="text" class="form-control" name="central_remarks" ng-model= "showCase.model_data.central_remarks" ng-readonly="showCase.input_status">
       </div>
+
+	  <div class="col-md-4 col-sm-6 col-xs-12" ng-if="showCase.g_data.view == 'CustomerOrderView'">
+        <b>COURIER NAME:</b>
+        <input type="text" class="form-control" name="courier_name" ng-model= "showCase.courier_name">
+      </div>
+
     </div>
     <div class="row"><hr></div>
 

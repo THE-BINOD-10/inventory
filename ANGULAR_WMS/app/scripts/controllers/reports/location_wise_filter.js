@@ -25,8 +25,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
        .withPaginationType('full_numbers');
 
     vm.dtColumns = [
-        DTColumnBuilder.newColumn('Receipt Number').withTitle('Receipt Number'),
-        DTColumnBuilder.newColumn('Receipt Date').withTitle('Receipt Date'),
+        DTColumnBuilder.newColumn('Receipt Number').withTitle('Receipt Number').notVisible(),
+        DTColumnBuilder.newColumn('Receipt Date').withTitle('Receipt Date').notVisible(),
         DTColumnBuilder.newColumn('Zone').withTitle('Zone'),
         DTColumnBuilder.newColumn('Location').withTitle('Location'),
         DTColumnBuilder.newColumn('EAN').withTitle('EAN'),

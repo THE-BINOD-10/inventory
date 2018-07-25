@@ -130,18 +130,18 @@
         </div>
         <div class="col-md-4 col-sm-4 col-xs-6">
           <div class="form-group">
-            <label class="control-label">Address</label>
-            <textarea rows="4" class="form-control" cols="27" name="address" ng-model="showCase.model_data.address" readonly></textarea>
+            <label class="control-label">Courier Name</label>
+            <input type="text" name="courier_name" ng-model="showCase.model_data.courier_name" class="form-control">
           </div>
         </div>
         <div class="col-md-4 col-sm-4 col-xs-6">
           <div class="form-group">
-            <label class="control-label">Ship To Address</label>
-            <textarea rows="4" class="form-control" cols="27" name="ship_to" ng-model="showCase.model_data.ship_to"></textarea>
+            <label class="control-label">Scan EAN</label>
+            <textarea class="form-control ng-valid ng-model-dirty valid scan_ean" rows="1" ng-model="showCase.model_data.scan_ean" type="text" ng-keydown="showCase.scan_ean($event, showCase.model_data.scan_ean)" focus-on="focusSKU" auto-focus="" aria-invalid="false" placeholder="Scan EAN"></textarea>
           </div>
         </div>
-        <div class="col-md-4 col-sm-4 col-xs-6">
-          <div class="row">
+        <div class="col-md-4 col-sm-4 col-xs-6 mb20">
+          <div class="row mb30">
             <div class="col-md-7">
               <span class="pull-left" align="right">AUTO&nbsp;SHIPMENT</span>
                 <label class="switch switch-sm square pull-right ml10 mr20">
@@ -158,13 +158,17 @@
         </div>
 
         <div class="col-md-4 col-sm-4 col-xs-6">
-		<br>
-		  <div class="form-group">
-            <label class="control-label">Scan EAN</label>
-			<textarea class="form-control ng-valid ng-dirty valid scan_ean" rows="1" ng-model="showCase.model_data.scan_ean" type="text" ng-keydown="showCase.scan_ean($event, showCase.model_data.scan_ean)" focus-on="focusSKU" auto-focus="" aria-invalid="false" placeholder="Scan EAN"></textarea>
+          <div class="form-group">
+            <label class="control-label">Address</label>
+            <textarea rows="4" class="form-control" cols="27" name="address" ng-model="showCase.model_data.address" readonly></textarea>
           </div>
-		</div>
-
+        </div>
+        <div class="col-md-4 col-sm-4 col-xs-6">
+          <div class="form-group">
+            <label class="control-label">Ship To Address</label>
+            <textarea rows="4" class="form-control" cols="27" name="ship_to" ng-model="showCase.model_data.ship_to"></textarea>
+          </div>
+        </div>
       </div>
       <div class="row" ng-if="showCase.permissions.create_seller_order"><hr></div>
       <div class="row" ng-if="showCase.permissions.create_seller_order">

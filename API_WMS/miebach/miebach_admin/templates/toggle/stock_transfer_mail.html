@@ -1,0 +1,152 @@
+{% load tag_extras %}
+
+<div>
+  <style>
+    {% include 'toggle/page1.css' %}
+  </style>
+  <div class="print-invoice2 mb20">
+    <div class="invoice-body">
+      <table class="table table-bordered m0">
+        <tbody>
+          <tr>
+            <td colspan="2">
+              <h3 class="m0" align="center"><b>Stock Transfer Note</b></h3>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="2">
+              <h3 class="m0" align="center"><b>{{ current_company_name }}</b></h3>
+              <p class="m0" align="center">{{ current_wh_address|linebreaks }}</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="width: 50%">
+              <div class="row m0" style="overflow: hidden;">
+                <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
+                  <div class="col-md-12 p0">
+                    <span><b>Stock Transfer ID :</b>{{ stock_transfer_id }}</span><br>
+                    <span><b>GSTIN :</b>{{ current_wh_gstin }}</span><br>
+                    <span><b>Pan No. :</b>{{ current_pan_number }}</span><br>
+                    <span><b>Date:</b>{{ stock_transfer_date }}</span><br>
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td style="width: 50%">
+                <div class="row m0" style="overflow: hidden;">
+                <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
+                  <div class="col-md-12 p0">
+                    <span></span><br>
+                    <span></span><br>
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="width: 50%">
+			        <div class="row m0" style="overflow: hidden;">
+                <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
+                  <div class="col-md-12 p0">
+                    <h4>Bill To:</h4>
+                    <span><b>Name :</b></span>{{ current_company_name }}<br>
+                    <span><b>Address :</b></span>{{ current_wh_address|linebreaks }}<br>
+                    <span><b>Telephone :</b></span>{{ current_telephone }}<br>
+                    <span><b>GSTIN No :</b>{{ current_gst_number }}</span><br>
+                  </div>
+                </div>
+              </div>
+			      </td>
+			      <td style="width: 50%">
+              <div class="row m0" style="overflow: hidden;">
+                <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
+                  <div class="col-md-12 p0">
+                    <h4>Ship To:</h4>
+                    <span><b>Name :</b></span>{{ destination_company_name }}<br>
+                    <span><b>Address :</b></span>{{ destination_wh_address|linebreaks }}<br>
+                    <span><b>Telephone :</b></span>{{ destination_telephone }}<br>
+                    <span><b>GSTIN No :</b></span>{{ destination_gst_number }}<br>
+                  </div>
+                </div>
+              </div>
+            </td>
+		      </tr>
+        </tbody>
+      </table>
+      <table class="table table-bordered bl br cal-table m0" style="width: 100%">
+		<thead>
+		<tr align="center">
+      {% for table_header in table_headers %}
+        <th style="padding:2.5px;" rowspan="2"><center>{{ table_header }}</center></th>
+      {% endfor %}
+		</tr>
+		</thead>
+        <tbody>
+          {% for dat in st_transfer_data %}
+          <tr class="fs14">
+            {% for key, value in dat.items %}
+                {% if key == "sku" %}
+                <td style="text-align: center;">
+                  {{ value }}
+                </td>
+                {% elif key == "sku_desc" %}
+                <td style="text-align: center;">
+                  {{ value }}
+                </td>
+                {% elif key == "order_qty" %}
+                <td style="text-align: center;">
+                  {{ value }}
+                </td>
+                {% elif key == "measurement_type" %}
+                <td style="text-align: center;">
+                  {{ value }}
+                </td>
+                {% elif key == "price" %}
+                <td style="text-align: center;">
+                  {{ value }}
+                </td>
+                {% elif key == "amount" %}
+                <td style="text-align: center;">
+                  {{ value }}
+                </td>
+                {% elif key == "sgst" %}
+                <td style="text-align: center;">
+                  {{ value }}
+                </td>
+                {% elif key == "cgst" %}
+                <td style="text-align: center;">
+                  {{ value }}
+                </td>
+                {% elif key == "igst" %}
+                <td style="text-align: center;">
+                  {{ value }}
+                </td>
+                {% elif key == "utgst" %}
+                <td style="text-align: center;">
+                  {{ value }}
+                </td>
+                {% endif %}
+            {% endfor %}
+            </tr>
+      			{% if forloop.last %}
+              <tr class="fs14 rm-border">
+                <td class="fs14" colspan="5">
+                  <div class="row m0">
+                    <div class="col-xs-12 text-left">
+                      <span>Total Order Quantity :</span> {{ total_order_qty }}<br>
+                      <span>Total Amount :</span> {{ total_amount }} <br>
+                    </div>
+                  </div>
+                </td>
+      					<td class="fs14 text-center" colspan="15">
+                  <h5 class="m0">For {{ current_company_name }}</h5></br></br>
+                  <h5 class="m0">Authorised Signatory</h5>
+                </td>
+      			  </tr>
+      			{% endif %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

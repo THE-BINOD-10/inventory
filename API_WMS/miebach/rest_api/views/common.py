@@ -409,7 +409,8 @@ def get_search_params(request, user=''):
                     'rm_sku_code': 'rm_sku_code', 'pallet': 'pallet',
                     'staff_id': 'id', 'ean': 'ean', 'invoice_number': 'invoice_number', 'dc_number': 'challan_number',
                     'zone_code': 'zone_code', 'dist_code': 'dist_code', 'reseller_code': 'reseller_code',
-                    'supplier_id': 'supplier_id', 'rtv_number': 'rtv_number', 'corporate_name': 'corporate_name'}
+                    'supplier_id': 'supplier_id', 'rtv_number': 'rtv_number', 'corporate_name': 'corporate_name',
+                    'enquiry_number': 'enquiry_number', 'enquiry_status': 'enquiry_status'}
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
                       'search2': 'search_2', 'search3': 'search_3',
@@ -976,7 +977,6 @@ def enable_mail_reports(request, user=''):
             data_enabled.append(MAIL_REPORTS_DATA[d])
 
     data_disabled = set(MAIL_REPORTS_DATA.values()) - set(data_enabled)
-
     for d in data_disabled:
         misc_detail = MiscDetail.objects.filter(user=user.id, misc_type=d)
         if misc_detail:
@@ -6441,9 +6441,10 @@ def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_obj
                                       corporate_po_number, client_name, order_unit_price, el_price, del_date)
 
 
-def create_ordersummary_data(order_summary_dict, order_detail, ship_to):
+def create_ordersummary_data(order_summary_dict, order_detail, ship_to, courier_name=''):
     order_summary_dict['order_id'] = order_detail.id
     order_summary_dict['consignee'] = ship_to
+    order_summary_dict['courier_name'] = courier_name
     order_summary = CustomerOrderSummary(**order_summary_dict)
     order_summary.save()
 

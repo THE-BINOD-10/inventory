@@ -61,11 +61,15 @@ def get_report_data(request, user=''):
             data_index = data['filters'].index(
                 filter(lambda person: 'order_report_status' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = ORDER_SUMMARY_REPORT_STATUS
-    elif report_name in ('dist_sales_report', 'reseller_sales_report'):
+    elif report_name in ('dist_sales_report', 'reseller_sales_report', 'enquiry_status_report'):
         if 'order_report_status' in filter_keys:
             data_index = data['filters'].index(
                 filter(lambda person: 'order_report_status' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = ORDER_SUMMARY_REPORT_STATUS
+        if 'enquiry_status' in filter_keys:
+            data_index = data['filters'].index(
+                filter(lambda person: 'enquiry_status' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = ENQUIRY_REPORT_STATUS
     return HttpResponse(json.dumps({'data': data}))
 
 

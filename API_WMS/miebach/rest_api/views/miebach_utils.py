@@ -671,6 +671,7 @@ ENQUIRY_STATUS_REPORT = {
         {'label': 'Reseller Code', 'name': 'reseller_code', 'type': 'input'},
         {'label': 'Enquiry No', 'name': 'enquiry_number', 'type': 'input'},
         {'label': 'Aging Period', 'name': 'aging_period', 'type': 'input'},
+        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
         {'label': 'Enquiry Status', 'name': 'enquiry_status', 'type': 'select'},
     ],
     'dt_headers': ['Zone Code', 'Distributor Code', 'Reseller Code', 'Product Category', 'SKU Code',
@@ -4746,6 +4747,8 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
         search_parameters['enquiry__extend_status__icontains'] = search_params['enquiry_status']
     if 'enquiry_number' in search_params:
         search_parameters['enquiry__enquiry_id__contains'] = search_params['enquiry_number']
+    if 'sku_code' in search_params:
+        search_parameters['sku__sku_code'] = search_params['sku_code']
 
     resellers_qs = CustomerUserMapping.objects.filter(customer__user__in=distributors)
     resellers_names_map = dict(resellers_qs.values_list('customer_id', 'user__username'))

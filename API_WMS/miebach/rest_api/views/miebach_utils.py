@@ -1911,8 +1911,8 @@ def get_location_stock_data(search_params, user, sub_user):
     search_parameters['sku__user'] = user.id
     search_parameters['sku_id__in'] = sku_master_ids
     distinct_list = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_category', 'sku__sku_brand']
-    lis = ['receipt_number', 'receipt_date', 'location__zone__zone', 'location__location', 'sku__ean_number', 'sku__wms_code', 
-    'sku__wms_code', 'sku__sku_desc', 'quantity', 'quantity', 'quantity']
+    lis = ['location__zone__zone', 'location__location', 'sku__ean_number', 'sku__wms_code', 'sku__sku_desc',
+           'tsum', 'tsum', 'tsum']
     order_term = search_params.get('order_term', 0)
     col_num = search_params.get('order_index', 0)
     order_data = lis[col_num]
@@ -1922,39 +1922,50 @@ def get_location_stock_data(search_params, user, sub_user):
         stock_detail = StockDetail.objects.exclude(receipt_number=0).filter(**search_parameters)
         total_quantity = stock_detail.aggregate(Sum('quantity'))['quantity__sum']
     if order_term:
-        if order_term == 'desc':
-            order_data = '-%s' % order_data
         stock_detail = stock_detail.order_by(order_data)
-    stock_detail = stock_detail.annotate(grouped_val=Concat('sku__sku_code', Value('<<>>'), 'location__location',output_field=CharField()))
+    #stock_detail = stock_detail.annotate(grouped_val=Concat('sku__sku_code', Value('<<>>'),
+    #                                                        'location__location',output_field=CharField()))
+    stock_detail = OrderedDict(stock_detail.annotate(grouped_val=Concat('sku__sku_code', Value('<<>>'),
+                                                                 'location__location',output_field=CharField())).\
+                                    values_list('grouped_val').distinct().annotate(tsum=Sum('quantity')))
     results_data['recordsTotal'] = len(stock_detail)
     results_data['recordsFiltered'] = results_data['recordsTotal']
+    stock_detail_keys = stock_detail.keys()
     if stop_index:
-        stock_detail = stock_detail[start_index:stop_index]
-    picklist_reserved = dict(PicklistLocation.objects.filter(status=1, stock__sku__user=user.id).annotate(grouped_val=Concat('stock__sku__wms_code', Value('<<>>'), 'stock__location__location',output_field=CharField())).values_list('grouped_val').annotate(reserved=Sum('reserved')))
-    raw_reserved = dict(RMLocation.objects.filter(status=1, stock__sku__user=user.id).annotate(grouped_val=Concat('material_picklist__jo_material__material_code__wms_code', Value('<<>>'), 'stock__location__location',output_field=CharField())).values_list('grouped_val').annotate(rm_reserved=Sum('reserved')))
-    for data in stock_detail:
+        stock_detail_keys = stock_detail_keys[start_index:stop_index]
+    picklist_reserved = dict(PicklistLocation.objects.filter(status=1, stock__sku__user=user.id).\
+                             annotate(grouped_val=Concat('stock__sku__wms_code', Value('<<>>'),
+                                                         'stock__location__location',output_field=CharField())).\
+                             values_list('grouped_val').distinct().annotate(reserved=Sum('reserved')))
+    raw_reserved = dict(RMLocation.objects.filter(status=1, stock__sku__user=user.id).\
+                        annotate(grouped_val=Concat('material_picklist__jo_material__material_code__wms_code',
+                                                    Value('<<>>'), 'stock__location__location',
+                                                    output_field=CharField())).values_list('grouped_val').distinct().\
+                        annotate(rm_reserved=Sum('reserved')))
+    for stock_detail_key in stock_detail_keys:
         total_stock_value = 0
         reserved = 0
-        total = data.quantity
-        concat_wms_code_location = data.sku.wms_code + '<<>>' + data.location.location
-        if concat_wms_code_location in picklist_reserved.keys():
-            reserved += float(picklist_reserved[concat_wms_code_location])
-        if concat_wms_code_location in raw_reserved.keys():
-            reserved += float(raw_reserved[concat_wms_code_location])
+        total = stock_detail[stock_detail_key]
+        sku_code, location = stock_detail_key.split('<<>>')
+        sku_master = SKUMaster.objects.get(sku_code=sku_code, user=user.id)
+        location_master = LocationMaster.objects.get(location=location, zone__user=user.id)
+        if key in picklist_reserved.keys():
+            reserved += float(picklist_reserved[key])
+        if key in raw_reserved.keys():
+            reserved += float(raw_reserved[key])
         quantity = total - reserved
         if quantity < 0:
             quantity = 0
         total = reserved + quantity
-        ean_num = data.sku.ean_number
+        ean_num = sku_master.ean_number
         if not ean_num:
             ean_num = ''
-        results_data['aaData'].append(OrderedDict((('SKU Code', data.sku.sku_code), ('WMS Code', data.sku.wms_code),
-                                                   ('Product Description', data.sku.sku_desc),
-                                                   ('Zone', data.location.zone.zone),
-                                                   ('Location', data.location.location), ('Total Quantity', total),
+        results_data['aaData'].append(OrderedDict((('SKU Code', sku_master.sku_code), ('WMS Code', sku_master.wms_code),
+                                                   ('Product Description', sku_master.sku_desc),
+                                                   ('Zone', location_master.zone.zone),
+                                                   ('Location', location_master.location), ('Total Quantity', total),
                                                    ('Available Quantity', quantity), ('Reserved Quantity', reserved),
-                                                   ('Receipt Number', data.receipt_number), ('EAN', str(ean_num)),
-                                                   ('Receipt Date', str(data.receipt_date).split('+')[0]))))
+                                                   ('EAN', str(ean_num)))))
     return results_data, total_quantity
 
 

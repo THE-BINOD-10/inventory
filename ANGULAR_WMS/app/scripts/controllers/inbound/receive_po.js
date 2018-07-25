@@ -171,7 +171,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         return nRow;
     }
 
-    $(document).on('keydown', 'input.detectTab', function(e) { 
+    $(document).on('keydown', 'input.detectReceiveTab', function(e) { 
       var keyCode = e.keyCode || e.which; 
 
       if (keyCode == 9) { 
@@ -278,7 +278,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                                   "buy_price": "", "cess_percent": "", "tax_percent": "", "total_amt": "",
                                   "discount_percentage": 0,
                                   "sku_details": [{"fields": {"load_unit_handle": ""}}]}]);
-      });
+        });
         //vm.new_sku = true
       }
     }

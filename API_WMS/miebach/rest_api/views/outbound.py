@@ -3929,8 +3929,8 @@ def create_stock_transfer(request, user=''):
     if not status:
         all_data = insert_st(all_data, warehouse)
         status = confirm_stock_transfer(all_data, warehouse, user.username)
-        rendered_html_data = render_st_html_data(request, user, warehouse, all_data)
-        stock_transfer_mail_pdf(request, f_name, rendered_html_data, warehouse)
+        #rendered_html_data = render_st_html_data(request, user, warehouse, all_data)
+        #stock_transfer_mail_pdf(request, f_name, rendered_html_data, warehouse)
     return HttpResponse(status)
 
 
@@ -10142,7 +10142,7 @@ def create_orders_check_ean(request, user=''):
         sku_code = sku_obj[0].sku_code
     return HttpResponse(json.dumps({ 'sku' : sku_code }))
 
-
+"""
 def stock_transfer_mail_pdf(request, f_name, html_data, warehouse):
     receivers = []
     attachments = create_mail_attachments(f_name, html_data)
@@ -10162,7 +10162,7 @@ def stock_transfer_mail_pdf(request, f_name, html_data, warehouse):
     email_subject = '%s %s' % (company_name, 'Stock Transfer Note')
     if len(receivers):
         send_mail_attachment(receivers, email_subject, email_body, files=attachments)
-
+"""
 def create_mail_attachments(f_name, html_data):
     from random import randint
     attachments = []
@@ -10182,6 +10182,7 @@ def create_mail_attachments(f_name, html_data):
         attachments.append({'path': path + pdf_file, 'name': pdf_file})
     return attachments
 
+"""
 def render_st_html_data(request, user, warehouse, all_data):
     user_profile = UserProfile.objects.filter(user = user).values('phone_number', 'company_name', 'location',
         'city', 'state', 'country', 'pin_code', 'address', 'wh_address', 'wh_phone_number', 'gst_number')
@@ -10226,3 +10227,4 @@ def render_st_html_data(request, user, warehouse, all_data):
     t = loader.get_template('templates/toggle/stock_transfer_mail.html')
     html_data = t.render(data_dict)
     return html_data
+"""

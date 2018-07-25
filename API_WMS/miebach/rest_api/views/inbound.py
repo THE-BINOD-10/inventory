@@ -4588,7 +4588,7 @@ def confirm_po1(request, user=''):
             if wh_address:
                 ship_to_address = wh_address
             else:
-                ship_to_address = purchase_order[0].ship_to
+                ship_to_address = purchase_orders[0].ship_to
             ship_to_address = '\n'.join(ship_to_address.split(','))
             wh_telephone = user.userprofile.wh_phone_number
             telephone = purchase_orders[0].supplier.phone_number

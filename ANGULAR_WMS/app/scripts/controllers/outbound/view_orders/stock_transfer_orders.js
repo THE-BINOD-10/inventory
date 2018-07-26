@@ -11,21 +11,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.selectAll = false;
     vm.bt_disable = true;
 
-    /*vm.g_data = {};
-    angular.copy(Data.other_view, vm.g_data);
-
-    if(Session.user_profile.user_type != "marketplace_user") {
-
-      vm.g_data.views.pop(1);
-    } else if(Session.user_profile.user_type == "marketplace_user") {
-
-      vm.g_data.views = ["CustomerOrderView", "SellerOrderView"];
-      if (vm.g_data.views.indexOf(vm.g_data.view) == -1) {
-
-        vm.g_data.view = "SellerOrderView";
-      }
-    }*/
-
     function getOS() {
       var userAgent = window.navigator.userAgent,
           platform = window.navigator.platform,
@@ -148,7 +133,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             }
         })
        .withPaginationType('full_numbers')
-       // .withOption('rowCallback', rowCallback);
 
         vm.dtColumns = [
             DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
@@ -194,116 +178,52 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       colFilters.download_excel()
     }
 
+    vm.filtersData = function(){
+
+      if (!vm.model_data.filters) {
+
+        vm.model_data['filters'] = {};
+      }
+
+      vm.model_data.filters['order_id'] = vm.order_id;
+      vm.model_data.filters['from_date'] = vm.date;
+      vm.model_data.filters['to_date'] = '';
+    }
+
+    vm.get_order_data = function(params){
+
+      var url = "get_stock_transfer_order_details/";
+
+      vm.service.apiCall(url, "GET", params).then(function(data){
+
+        vm.items_dict = data.data.data_dict;
+        vm.order_id = data.data.data_dict[0].order_id;
+        vm.customer_name = data.data.wh_details.name;
+        vm.address = data.data.wh_details.address;
+        vm.city = data.data.wh_details.city;
+        vm.state = data.data.wh_details.state;
+        vm.creation_date = data.data.wh_details.pin;
+        vm.pin = data.data.wh_details.pincode;
+
+        vm.filtersData();
+      });
+    }
+
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
 
     vm.ord_status = '';
 
     $('td:not(td:first)', nRow).unbind('click');
     $('td:not(td:first)', nRow).bind('click', function() {
-      // if ((vm.g_data.view == 'CustomerOrderView') || (vm.g_data.view == 'OrderView') || (vm.g_data.view == 'SellerOrderView')) {
 
         $scope.$apply(function() {
-
-        console.log(aData);
+          
+          var data = {order_id: aData['Stock Transfer ID']};
           $state.go('app.outbound.ViewOrders.StockTransferAltView');
 
-         //vm.market_place = aData['Market Place'];
-          var data = {order_id: aData['Stock Transfer ID']};
-          var url = "get_stock_transfer_order_details/";
-          /*if ((vm.g_data.view == 'CustomerOrderView') || (vm.g_data.view == 'OrderView')) {
-            data = {id: $(aData[""]).attr('name'),order_id: aData["Order ID"]}
-          } else if (vm.g_data.view == 'SellerOrderView') {
-            data = {id: $(aData[""]).attr('name'), sor_id: aData['SOR ID'], uor_id: aData['UOR ID']}
-            url = "get_seller_order_details/"
-          }*/
-          vm.service.apiCall(url, "GET", data).then(function(data){
+          vm.get_order_data(data);
 
-            var all_order_details = data.data.data_dict[0].ord_data;
-            vm.ord_status = data.data.data_dict[0].status;
-            vm.invoice_type = data.data.data_dict[0].invoice_type;
-            vm.display_status_none = (vm.ord_status=="")?true:false;
-
-            vm.model_data = {}
-            var empty_data = {data: []}
-            angular.copy(empty_data, vm.model_data);
-
-            /*if (vm.g_data.view == 'CustomerOrderView'){
-              vm.input_status = false;
-            } else {
-              vm.input_status = true;
-            }
-
-            if(vm.g_data.view == 'SellerOrderView') {
-              vm.model_data["sor_id"] = aData['SOR ID'];
-            }*/
-            vm.order_input_status = false;
-
-            vm.model_data["central_remarks"]= data.data.data_dict[0].central_remarks;
-            vm.model_data["all_status"] = data.data.data_dict[0].all_status;
-            vm.model_data["seller_data"] = data.data.data_dict[0].seller_details;
-            vm.model_data["tax_type"] = data.data.data_dict[0].tax_type;
-            vm.model_data["invoice_types"] = data.data.data_dict[0].invoice_types;
-            if (data.data.data_dict[0].ord_data[0].payment_status) {
-              vm.model_data["payment_status"] = data.data.data_dict[0].ord_data[0].payment_status;
-            }
-            var index = 0;
-            angular.forEach(all_order_details, function(value, key){
-
-            vm.customer_id = value.cust_id;
-            vm.customer_name = value.cust_name;
-            vm.phone = value.phone;
-            vm.email = value.email;
-            vm.address = value.address;
-            vm.city = value.city;
-            vm.state = value.state;
-            vm.order_id_code = value.order_id_code;
-            vm.pin = value.pin;
-            vm.product_title = value.product_title;
-            vm.quantity = value.quantity;
-            vm.shipment_date = value.shipment_date;
-            vm.remarks = value.remarks;
-            vm.cust_data = value.cus_data;
-            vm.item_code = value.item_code;
-            vm.order_id = value.order_id;
-            vm.market_place = value.market_place;
-            vm.unit_price = value.unit_price;
-            vm.sgst = value.sgst_tax;
-            vm.cgst = value.cgst_tax;
-            vm.igst = value.igst_tax;
-            vm.taxes = value.taxes;
-            vm.order_charges = value.order_charges;
-            vm.client_name = value.client_name;
-            if (!vm.client_name) {
-              vm.show_client_details = false;
-            } 
-            // if (value.discount_percentage <= 99.99) {
-              vm.discount_per = value.discount_percentage;
-            // }
-
-            var image_url = value.image_url;
-            vm.img_url = vm.service.check_image_url(image_url);
-            /*var custom_data = value.customization_data;
-            vm.market_place = value.market_place;
-            if (custom_data.length === 0){
-
-              vm.customization_data = '';
-            }
-            else {
-
-              var img_url = custom_data[0][3];
-              vm.img_url = vm.service.check_image_url(img_url)
-            }*/
-
-              var record = vm.model_data.data.push({item_code: vm.item_code, product_title: vm.product_title, quantity: vm.quantity,
-              image_url: vm.img_url, remarks: vm.remarks, unit_price: vm.unit_price, taxes: vm.taxes,
-              discount_per: vm.discount_per, sgst:vm.sgst, cgst:vm.cgst, igst:vm.igst, default_status: true, sku_status: value.sku_status})
-              var record = vm.model_data.data[index]
-              vm.changeInvoiceAmt(record);
-              index++;
-          });
-        });
        })
-     // }
      })
    }
 
@@ -314,10 +234,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       if (elem[0].value == '? string: ?'){
           elem[0].value = '';
       }
-      elem.push({name: 'order_id', value: vm.order_id}, {name: 'customer_id', value: vm.customer_id}, 
-                {name: 'customer_name', value: vm.customer_name},
-                {name: 'phone', value: vm.phone}, {name: 'email', value: vm.email}, {name: 'address', value: vm.address},
-                {name: 'shipment_date', value: vm.shipment_date}, {name: 'market_place', value: vm.market_place})
+      elem.push({name: 'order_id', value: vm.order_id}, /*{name: 'customer_id', value: vm.customer_id},*/ 
+                {name: 'customer_name', value: vm.customer_name}, {name: 'city', value: vm.city},
+                {name: 'address', value: vm.address}, {name: 'state', value: vm.state}, {name: 'pincode', value: vm.pin},
+                {name: 'creation_date', value: vm.creation_date})
       vm.service.apiCall('update_order_data/', 'POST', elem).then(function(data){
 
           vm.reloadData();

@@ -4767,3 +4767,83 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
         temp_data['aaData'].append(ord_dict)
     return temp_data
 
+def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
+    from miebach_admin.models import *
+    from miebach_admin.views import *
+    from rest_api.views.common import get_sku_master, get_order_detail_objs
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    search_parameters = {}
+    lis = ['order_shipment__shipment_number', 'order__original_order_id', 'order__sku__sku_code', 'order__title',
+           'order__customer_name',
+           'order__quantity', 'shipping_quantity', 'order_shipment__truck_number','creation_date', 'id', 'id',
+           'order__customerordersummary__payment_status', 'order_packaging__package_reference']
+    search_parameters['order__user'] = user.id
+    search_parameters['shipping_quantity__gt'] = 0
+    search_parameters['order__sku_id__in'] = sku_master_ids
+    temp_data = copy.deepcopy(AJAX_DATA)
+
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_parameters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'sku_code' in search_params:
+        search_parameters['order__sku__sku_code'] = search_params['sku_code']
+    if 'customer_id' in search_params:
+        search_parameters['order__customer_id'] = search_params['customer_id']
+    if 'order_id' in search_params:
+        order_detail = get_order_detail_objs(search_params['order_id'], user, search_params={}, all_order_objs=[])
+        if order_detail:
+            search_parameters['order_id__in'] = order_detail.values_list('id', flat=True)
+        else:
+            search_parameters['order_id__in'] = []
+
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    model_data = ShipmentInfo.objects.filter(**search_parameters).\
+                                    values('order_shipment__shipment_number', 'order__order_id', 'id',
+                                           'order__original_order_id', 'order__order_code', 'order__sku__sku_code',
+                                           'order__title', 'order__customer_name', 'order__quantity', 'shipping_quantity',
+                                           'order_shipment__truck_number', 'creation_date',
+                                           'order_shipment__courier_name',
+                                           'order__customerordersummary__payment_status',
+                                           'order_packaging__package_reference')
+
+    ship_search_params  = {}
+    for key, value in search_parameters.iteritems():
+        ship_search_params['shipment__%s' % key] = value
+    ship_status = dict(ShipmentTracking.objects.filter(**ship_search_params).values_list('shipment_id', 'ship_status').\
+                       distinct().order_by('creation_date'))
+    if search_params.get('order_term'):
+        order_data = lis[search_params['order_index']]
+        if search_params['order_term'] == 'desc':
+            order_data = "-%s" % order_data
+        model_data = model_data.order_by(order_data)
+
+    temp_data['recordsTotal'] = model_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    if stop_index:
+        model_data = model_data[start_index:stop_index]
+
+    for data in model_data:
+        order_id = data['order__original_order_id']
+        if not order_id:
+            order_id = data['order__order_code'] + str(data['order__order_id'])
+        date = get_local_date(user, data['creation_date']).split(' ')
+        temp_data['aaData'].append(OrderedDict((('Shipment Number', data['order_shipment__shipment_number']),
+                                                ('Order ID', order_id), ('SKU Code', data['order__sku__sku_code']),
+                                                ('Title', data['order__title']),
+                                                ('Customer Name', data['order__customer_name']),
+                                                ('Quantity', data['order__quantity']),
+                                                ('Shipped Quantity', data['shipping_quantity']),
+                                                ('Truck Number', data['order_shipment__truck_number']),
+                                                ('Date', ' '.join(date)),
+                                                ('Shipment Status', ship_status.get(data['id'], '')),
+                                                ('Courier Name', data['order_shipment__courier_name']),
+                                                ('Payment Status', data['order__customerordersummary__payment_status']),
+                                                ('Pack Reference', data['order_packaging__package_reference']))))
+    return temp_data

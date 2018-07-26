@@ -347,7 +347,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         if (!vm.model_data.data) {
           vm.model_data['data'] = [];
         }
-        vm.model_data.data.push({item_code:'', product_title:'', quantity:0, unit_price:0, invoice_amount:0, new_product:true, default_status: false, sku_status: 1});
+        vm.model_data.data.push({item_code:'', product_title:'', quantity:0, unit_price:0, invoice_amount:0, 
+        opening_stock: '', received: '', total_stock: '', consumed: '', closing: '', new_product:true, 
+        default_status: false, sku_status: 1});
       } else {
         var data_to_delete = {};
         data_to_delete['order_id'] = vm.order_id;

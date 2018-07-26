@@ -37,11 +37,11 @@
           </div>
         </div>
         <div class="row">
-          <div class="col-xs-3">
-            <b>PIN:</b>
+          <div class="col-xs-5">
+            <b>CREATION DATE:</b>
           </div>
-          <div class="col-xs-9">
-            <p>{{showCase.pin}}</p>
+          <div class="col-xs-7">
+            <p>{{showCase.shipment_date}}</p>
           </div>
         </div>
 
@@ -63,22 +63,18 @@
             <p>{{showCase.state}}</p>
           </div>
         </div>
+        <div class="row">
+          <div class="col-xs-3">
+            <b>PIN:</b>
+          </div>
+          <div class="col-xs-9">
+            <p>{{showCase.pin}}</p>
+          </div>
+        </div>
       </div>
     </div>
     <div class="row" ng-if="showCase.model_data.seller_data.seller_id"><hr></div>
     <div class="row"><hr></div>
-    <div class="row">
-      <div class="col-md-12" style="padding-left: 0px;">
-        <h5><b>ORDER DETAILS</b></h5>
-      </div>
-    </div>
-    <div class="row">
-      <div class="col-md-4 col-sm-6 col-xs-12">
-        <b>CREATION DATE:</b>
-        <P><span style="color: rgb(0, 86, 255);">{{showCase.shipment_date}}</span></P>
-      </div>
-    </div>
-
     <div class="row mt15">
       <form name="form" role="form" class="filters">
         <div class="clearfix">
@@ -114,7 +110,12 @@
         <thead>
           <tr>
             <th>ITEM CODE</th>
-            <th>PRODUCT TITLE </th>
+            <th>PRODUCT TITLE</th>
+            <th>OPENING STOCK</th>
+            <th>RECEIVED</th>
+            <th>TOTAL STOCK</th>
+            <th>CONSUMED</th>
+            <th>CLOSING</th>
             <th>QUANTITY</th>
             <th>UNIT PRICE</th>
             <th>INVOICE AMT (&#8377;)</th>
@@ -132,6 +133,21 @@
 	        </td>
             <td>
               <input type="text" class="form-control" name="product_title" ng-model="data.product_title" ng-readonly="data.default_status">
+            </td>
+            <td>
+              <input type="text" class="form-control" name="opening_stock" ng-model="data.opening_stock" ng-readonly="data.default_status">
+            </td>
+            <td>
+              <input type="text" class="form-control" name="received" ng-model="data.received" ng-readonly="data.default_status">
+            </td>
+            <td>
+              <input type="text" class="form-control" name="total_stock" ng-model="data.total_stock" ng-readonly="data.default_status">
+            </td>
+            <td>
+              <input type="text" class="form-control" name="consumed" ng-model="data.consumed" ng-readonly="data.default_status">
+            </td>
+            <td>
+              <input type="text" class="form-control" name="closing" ng-model="data.closing" ng-readonly="data.default_status">
             </td>
             <td>
               <input type="text" class="form-control" name="quantity" ng-model="data.quantity" ng-change="showCase.changeInvoiceAmt(data)" ng-readonly="showCase.input_status">

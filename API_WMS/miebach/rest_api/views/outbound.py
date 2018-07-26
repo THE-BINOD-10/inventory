@@ -10162,6 +10162,7 @@ def get_stock_transfer_order_details(request, user=''):
     order_date = ''
     order_details = StockTransfer.objects.filter(sku__user=user.id, status=1, order_id=order_id)
     for one_order in order_details:
+        opening_stock, received, total_stock, consumed, closing_stock = 0, 0, 0, 0, 0
         order_id = one_order.order_id
         sku = one_order.sku
         unit_price = one_order.invoice_amount/one_order.quantity
@@ -10169,7 +10170,8 @@ def get_stock_transfer_order_details(request, user=''):
             {'product_title': sku.sku_desc, 'quantity': one_order.quantity,
              'invoice_amount': one_order.invoice_amount, 'item_code': sku.sku_code,
              'order_id': order_id,
-             'unit_price': unit_price})
+             'unit_price': unit_price, 'opening_stock': opening_stock, 'received': received,
+             'total_stock': total_stock, 'consumed': consumed, 'closing_stock': closing_stock})
     if order_details:
         warehouse = order_details[0].st_po.open_st.warehouse
         order_date = get_local_date(user, order_details[0].creation_date)

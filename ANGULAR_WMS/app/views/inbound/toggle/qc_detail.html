@@ -23,48 +23,64 @@
                     <label>SKU Code
                       <label> </label>
                     </label>
+                    <b class="pull-right">:</b>
                   </div>
-                  <div class="col-md-6 col-sm-6 col-xs-8"> <b>: {{showCase.model_data1.sku_data['SKU Code']}}</b> </div>
+                  <div class="col-md-6 col-sm-6 col-xs-8"> <b> {{showCase.model_data1.sku_data['SKU Code']}}</b> </div>
                 </div>
                 <div class="row">
                   <div class="col-md-6 col-sm-6 col-xs-4">
                     <label>Product Description
                       <label> </label>
                     </label>
+                    <b class="pull-right">:</b>
                   </div>
-                  <div class="col-md-6 col-sm-6 col-xs-8"> <b>: {{showCase.model_data1.sku_data['Product Description']}}</b> </div>
+                  <div class="col-md-6 col-sm-6 col-xs-8"> <b> {{showCase.model_data1.sku_data['Product Description']}}</b> </div>
                 </div>
                 <div class="row">
                   <div class="col-md-6 col-sm-6 col-xs-4">
                     <label>SKU Brand
                       <label> </label>
                     </label>
+                    <b class="pull-right">:</b>
                   </div>
-                  <div class="col-md-6 col-sm-6 col-xs-8"> <b>: {{showCase.model_data1.sku_data['SKU Brand']}}</b> </div>
+                  <div class="col-md-6 col-sm-6 col-xs-8"> <b> {{showCase.model_data1.sku_data['SKU Brand']}}</b> </div>
                 </div>
                 <div class="row">
                   <div class="col-md-6 col-sm-6 col-xs-4">
                     <label>SKU Category
                       <label> </label>
                     </label>
+                    <b class="pull-right">:</b>
                   </div>
-                  <div class="col-md-6 col-sm-6 col-xs-4"> <b>: {{showCase.model_data1.sku_data['SKU Category']}}</b> </div>
+                  <div class="col-md-6 col-sm-6 col-xs-4"> <b> {{showCase.model_data1.sku_data['SKU Category']}}</b> </div>
                 </div>
                 <div class="row">
                   <div class="col-md-6 col-sm-6 col-xs-4">
                     <label>SKU Class
                       <label> </label>
                     </label>
+                    <b class="pull-right">:</b>
                   </div>
-                  <div class="col-md-6 col-sm-6 col-xs-8"> <b>: {{showCase.model_data1.sku_data['SKU Class']}}</b> </div>
+                  <div class="col-md-6 col-sm-6 col-xs-8"> <b> {{showCase.model_data1.sku_data['SKU Class']}}</b> </div>
                 </div>
                 <div class="row">
                   <div class="col-md-6 col-sm-6 col-xs-4">
                     <label>Color
                       <label> </label>
                     </label>
+                    <b class="pull-right">:</b>
                   </div>
-                  <div class="col-md-6 col-sm-6 col-xs-8"> <b>: {{showCase.model_data1.sku_data['Color']}}</b> </div>
+                  <div class="col-md-6 col-sm-6 col-xs-8"> <b> {{showCase.model_data1.sku_data['Color']}}</b> </div>
+                </div>
+                <div class="row">
+                  <div class="col-md-6 col-sm-6 col-xs-4">
+                    <label>Scan WMS Code
+                      <label> </label>
+                    </label>
+                    <b class="pull-right">:</b>
+                  </div>
+                  <div class="col-md-6 col-sm-6 col-xs-8">
+                    <input type="text" id="scan_qc" class="form-control" ng-model="showCase.scan" ng-keydown="showCase.scan_sku($event,showCase.scan)" ng-disabled="showCase.confirm_btn"> </div>
                 </div>
               </div>
             </div>

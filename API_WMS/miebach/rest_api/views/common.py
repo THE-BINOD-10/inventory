@@ -2529,7 +2529,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             gen_ord_customer_id = order_data[0].genericorderdetailmapping_set.values_list('customer_id', flat=True)
             if gen_ord_customer_id and user.userprofile.warehouse_type == 'DIST':
                 customer_details = list(CustomerMaster.objects.filter(id=gen_ord_customer_id[0]).
-                                        values('customer_id', 'name', 'email_id', 'tin_number', 'address',
+                                        values('id', 'customer_id', 'name', 'email_id', 'tin_number', 'address',
                                                'credit_period', 'phone_number'))
             else:
                 customer_details = list(CustomerMaster.objects.filter(user=user.id, customer_id=dat.customer_id).

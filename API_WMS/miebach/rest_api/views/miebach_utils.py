@@ -936,7 +936,7 @@ MAIL_REPORTS = {'sku_list': ['SKU List'], 'location_wise_stock': ['Location Wise
 
 MAIL_REPORTS_DATA = OrderedDict((('Raise PO', 'raise_po'), ('Receive PO', 'receive_po'), ('Orders', 'order'),
                                  ('Dispatch', 'dispatch'), ('Internal Mail', 'internal_mail'),
-                                 ('Raise JO', 'raise_jo')
+                                 ('Raise JO', 'raise_jo'), ('Block Stock', 'enquiry'),
                                  ))
 
 # Configurations
@@ -1582,7 +1582,7 @@ WH_CUSTOMER_INVOICE_HEADERS_TAB = ['Customer Name', 'Order Quantity', 'Picked Qu
 STOCK_TRANSFER_INVOICE_HEADERS = ['Stock Transfer ID', 'Warehouse Name', 'Picked Quantity', 'Stock Transfer Date&Time', 'Total Amount']
 
 DIST_CUSTOMER_INVOICE_HEADERS = ['Gen Order Id', 'Order Ids', 'Customer Name', 'Order Quantity', 'Picked Quantity',
-                                 'Order Date&Time', 'Total Amount']
+                                 'Order Date&Time']
 
 # End of Customer Invoices page headers based on user type
 

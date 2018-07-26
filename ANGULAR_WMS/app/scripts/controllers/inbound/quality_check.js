@@ -119,10 +119,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                pop_msg(data.data);
             } else {
 
-              // vm.scan_flag = true;
               for(var i=0;vm.model_data.data.length; i++) {
                 if(vm.model_data.data[i].wms_code == field) {
 
+                  // vm.model_data.data[i].acc_qty = false;
                   vm.current_index = i;
                   var temp = Number(vm.model_data.data[i].accepted_quantity) + 1;
                   if (Number(vm.model_data.data[i].accepted_quantity) < Number(vm.model_data.data[i].quantity)) {
@@ -130,9 +130,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     vm.model_data.data[i].accepted_quantity = Number(vm.model_data.data[i].accepted_quantity) + 1;
                   }
 
+                  // if (Number(vm.model_data.data[i].quantity) == Number(vm.model_data.data[i].accepted_quantity)) {
+
+                  //   vm.model_data.data[i].acc_qty = true;
+                  // }
+
                   if (temp > Number(vm.model_data.data[i].accepted_quantity)) {
 
-                    // vm.scan_flag = false;
+                    // vm.model_data.data[i].acc_qty = true;
                     vm.service.showNoty("You don't have quantity in "+vm.model_data.data[i].wms_code+" SKU");
                   }
 

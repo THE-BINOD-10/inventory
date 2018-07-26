@@ -674,7 +674,7 @@ ENQUIRY_STATUS_REPORT = {
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
         {'label': 'Enquiry Status', 'name': 'enquiry_status', 'type': 'select'},
     ],
-    'dt_headers': ['Zone Code', 'Distributor Code', 'Reseller Code', 'Product Category', 'SKU Code',
+    'dt_headers': ['Zone Code', 'Distributor Code', 'Reseller Code', 'Product Category', 'SKU Code', 'SKU Quantity',
                    'Enquiry No', 'Enquiry Aging', 'Enquiry Status'
                 ],
     'dt_url': 'get_enquiry_status_report', 'excel_name': 'get_enquiry_status_report',
@@ -4773,12 +4773,14 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
         distributor_name = dist_obj.username
         zone = dist_obj.userprofile.zone
         sku_code = en_obj.sku.sku_code
+        quantity = en_obj.quantity
         prod_catg = en_obj.sku.sku_category
         ord_dict = OrderedDict((('Zone Code', zone),
                                 ('Distributor Code', distributor_name),
                                 ('Reseller Code', customer_name),
                                 ('Product Category', prod_catg),
                                 ('SKU Code', sku_code),
+                                ('SKU Quantity', quantity),
                                 ('Enquiry No', enq_id),
                                 ('Enquiry Aging', days_left),
                                 ('Enquiry Status', extend_status)))

@@ -10149,3 +10149,36 @@ def get_stock_transfer_order_level_data(start_index, stop_index, temp_data, sear
                                     'DT_RowClass': 'results',
                                     'DT_RowAttr': {'id': data['order_id']}, 'id': count})
         count = count + 1
+
+
+@csrf_exempt
+@get_admin_user
+def get_stock_transfer_order_details(request, user=''):
+    """ Get Stock Transfer Order Details"""
+
+    order_id = request.GET.get('order_id', '')
+    order_details_data = []
+    wh_details = {}
+    order_date = ''
+    order_details = StockTransfer.objects.filter(sku__user=user.id, status=1, order_id=order_id)
+    for one_order in order_details:
+        order_id = one_order.order_id
+        sku = one_order.sku
+        unit_price = one_order.invoice_amount/one_order.quantity
+        order_details_data.append(
+            {'product_title': sku.sku_desc, 'quantity': one_order.quantity,
+             'invoice_amount': one_order.invoice_amount, 'item_code': sku.sku_code,
+             'order_id': order_id,
+             'unit_price': unit_price})
+    if order_details:
+        warehouse = order_details[0].st_po.open_st.warehouse
+        order_date = get_local_date(user, order_details[0].creation_date)
+        pincode = ''
+        if warehouse.userprofile.pin_code:
+            pincode = warehouse.userprofile.pin_code
+        wh_details = {'name': warehouse.username, 'city': warehouse.userprofile.city,
+                      'pincode': pincode, 'address': warehouse.userprofile.address,
+                      'state': warehouse.userprofile.state}
+
+    return HttpResponse(json.dumps({'data_dict': order_details_data, 'wh_details': wh_details,
+                                    'order_date': order_date}))

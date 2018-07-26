@@ -208,8 +208,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           $state.go('app.outbound.ViewOrders.StockTransferAltView');
 
          //vm.market_place = aData['Market Place'];
-          var data = {};
-          var url = "get_view_order_details/";
+          var data = {order_id: aData['Stock Transfer ID']};
+          var url = "get_stock_transfer_order_details/";
           /*if ((vm.g_data.view == 'CustomerOrderView') || (vm.g_data.view == 'OrderView')) {
             data = {id: $(aData[""]).attr('name'),order_id: aData["Order ID"]}
           } else if (vm.g_data.view == 'SellerOrderView') {
@@ -562,14 +562,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
   /* raise po */
   vm.backorder_po = function() {
-	var data = [];
-	data.push({name: 'table_name', value: 'stock_transfer_order'})
+  var data = [];
+  data.push({name: 'table_name', value: 'stock_transfer_order'})
     for(var key in vm.selected) {
         if(vm.selected[key]) {
           var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]._aData
           data.push({name: 'stock_transfer_id', value: temp['Stock Transfer ID'] })
-		  data.push({name: 'sku_code', value: temp['SKU Code'] })
-		  data.push({name: 'id', value: temp['DT_RowAttr']['id'] })
+      data.push({name: 'sku_code', value: temp['SKU Code'] })
+      data.push({name: 'id', value: temp['DT_RowAttr']['id'] })
         }
     }
     var send_data  = {data: data}
@@ -598,7 +598,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
   }
 
   vm.raise_jo = function() {
-	var data = [];
+  var data = [];
     data.push({name: 'table_name', value: 'stock_transfer_order'})
     for(var key in vm.selected) {
         if(vm.selected[key]) {

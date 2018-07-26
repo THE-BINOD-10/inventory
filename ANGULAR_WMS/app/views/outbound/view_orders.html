@@ -16,17 +16,17 @@
                 <button type="button" class="btn btn-primary pull-right" style="width: 100%" ng-click="showCase.excel()">Download Excel</button>
               </div>
 
-			  <div class="col-md-5 col-sm-4 col-xs-6 mb10" style="">
-				<div class="col-md-8 col-sm-8 col-xs-12" style="padding-top: 7px;text-align: right;">
-				  <strong class="ml20">Display Customer address in Picklist</strong>
-				</div>
-				<div class="col-md-2 col-sm-3 col-xs-4">
-			      <label class="switch switch-sm square mt5">
-					<div><input type="checkbox" ng-model="showCase.picklist_display_address" ng-change="showCase.address_change(showCase.picklist_display_address)" class="ng-valid ng-dirty"><span><i class="handle"></i></span>
+        <div class="col-md-5 col-sm-4 col-xs-6 mb10" style="">
+        <div class="col-md-8 col-sm-8 col-xs-12" style="padding-top: 7px;text-align: right;">
+          <strong class="ml20">Display Customer address in Picklist</strong>
+        </div>
+        <div class="col-md-2 col-sm-3 col-xs-4">
+            <label class="switch switch-sm square mt5">
+          <div><input type="checkbox" ng-model="showCase.picklist_display_address" ng-change="showCase.address_change(showCase.picklist_display_address)" class="ng-valid ng-dirty"><span><i class="handle"></i></span>
                     </div>
                   </label>
-				</div>
-			  </div>
+        </div>
+        </div>
 
               <div class="col-md-2 col-sm-4 col-xs-6 mb10 pull-right" ng-if="user.roles.permissions['show_pull_now']">
                 <button type="button" class="btn btn btn-warning" style="width: 100%" ng-click="showCase.service.pull_order_now()">Pull Now</button>
@@ -131,18 +131,18 @@
             <button type="button" class="btn btn-primary pull-right" ng-click="showCase.excel()">Download Excel</button>
           </div>
           <div class="panel-body">
-            <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="custom-table table table-condensed datatable sku-table no_click_tb"></table>
+            <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="custom-table table table-condensed datatable sku-table"></table>
             <div ui-view></div>
           </div>
           <div class="panel-footer">
 
 
-			<div class="col-md-2 col-sm-4 col-xs-6 mb10">
-				<button type="submit" class="btn btn-primary" style="width: 100%" ng-click="showCase.backorder_po()" ng-disabled="showCase.bt_disable" ng-hide="showCase.permissions.user_type == 'warehouse' || showCase.permissions.user_type == 'distributor'">Raise PO</button>
-			</div>
-			<div class="col-md-2 col-sm-4 col-xs-6 mb10">
+      <div class="col-md-2 col-sm-4 col-xs-6 mb10">
+        <button type="submit" class="btn btn-primary" style="width: 100%" ng-click="showCase.backorder_po()" ng-disabled="showCase.bt_disable" ng-hide="showCase.permissions.user_type == 'warehouse' || showCase.permissions.user_type == 'distributor'">Raise PO</button>
+      </div>
+      <div class="col-md-2 col-sm-4 col-xs-6 mb10">
               <button type="submit" class="btn btn-primary" style="width: 100%" ng-click="showCase.raise_jo()" ng-disabled="showCase.bt_disable" ng-hide="showCase.permissions.user_type == 'warehouse' || showCase.permissions.user_type == 'distributor'">Raise JO</button>
-			</div>
+      </div>
 
 
             <button type="submit" class="btn btn-primary pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.generate_picklist()">Generate Picklist</button>

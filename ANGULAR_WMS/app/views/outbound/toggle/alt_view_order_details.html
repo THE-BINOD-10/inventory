@@ -6,10 +6,10 @@
         <h4>
           <span class="go-back" ng-click="showCase.back_button()">
           <i class="fa fa-arrow-left fa-1x" aria-hidden="true"></i>
-	      View Orders</span>
+        View Orders</span>
           <span> / </span>
           <span>Order Details</span>
-	      <span><b>&nbsp;#{{showCase.order_id}}</b></span>
+        <span><b>&nbsp;#{{showCase.order_id}}</b></span>
           <span class="pull-right" ng-if="showCase.model_data.sor_id">SOR ID: {{showCase.model_data.sor_id}}</span>
         </h4>
       </div>
@@ -125,12 +125,12 @@
         <tbody>
           <tr ng-repeat="data in showCase.model_data.data" ng-if="data.sku_status">
             <td>
-	          <input type="text" autocomplete="off" placeholder="Search WMS Code" 
-	          typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')"
-	          typeahead-loading="loadingLocations" class="form-control" name="item_code" ng-model="data.item_code" 
-	          typeahead-on-select="showCase.get_sku_data(data, $item)" ng-readonly="data.default_status">
+            <input type="text" autocomplete="off" placeholder="Search WMS Code" 
+            typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')"
+            typeahead-loading="loadingLocations" class="form-control" name="item_code" ng-model="data.item_code" 
+            typeahead-on-select="showCase.get_sku_data(data, $item)" ng-readonly="data.default_status">
               <!-- <img ng-src="{{data.image_url}}" style="padding-top: 10px;width: 120px;"></img> -->
-	        </td>
+          </td>
             <td>
               <input type="text" class="form-control" name="product_title" ng-model="data.product_title" ng-readonly="data.default_status">
             </td>
@@ -159,8 +159,8 @@
               <input type="text" class="form-control" ng-model="data.invoice_amount" disabled="disabled">
               <input type="hidden" class="form-control" name="invoice_amount" value="{{data.quantity * data.unit_price}}">
             </td>
-	        <td ng-if="!showCase.input_status"><i style="font-size: 20px;padding-top: 7px;cursor: pointer;margin-left: -15px;"
-	        ng-click="showCase.update_order_details($index, data, false)" class="fa fa-minus-square-o"></i></td>
+          <td ng-if="!showCase.input_status"><i style="font-size: 20px;padding-top: 7px;cursor: pointer;margin-left: -15px;"
+          ng-click="showCase.update_order_details($index, data, false)" class="fa fa-minus-square-o"></i></td>
           </tr>
         </tbody>
       </table>

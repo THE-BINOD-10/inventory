@@ -6471,6 +6471,8 @@ def move_to_invoice(request, user=''):
     seller_summary = SellerPOSummary.objects.none()
     req_data = request.GET.get('data', '')
     invoice_number = request.GET.get('inv_number', '')
+    invoice_date = request.GET.get('inv_date', '')
+    invoice_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y") if invoice_date else None
     if req_data:
         req_data = eval(req_data)
         req_data = [req_data] if isinstance(req_data,dict) else req_data
@@ -6494,6 +6496,7 @@ def move_to_invoice(request, user=''):
             sel_obj.order_status_flag = status_flag
             if invoice_number:
                 sel_obj.invoice_number = invoice_number
+                sel_obj.invoice_date = invoice_date
             sel_obj.save()
         return HttpResponse(json.dumps({'message': 'success'}))
     except Exception as e:
@@ -6544,7 +6547,7 @@ def generate_supplier_invoice(request, user=''):
                 result_data = {"company_details": company_details,
                                "supplier_details": supplier_details,
                                "challan_no": seller_summary[0].challan_number,
-                               "inv_date": seller_summary[0].invoice_date.strftime("%m/%d/%Y") if seller_summary[0].invoice_date else '',
+                               "inv_date": seller_summary[0].invoice_date.strftime("%d %b %Y") if seller_summary[0].invoice_date else '',
                                "invoice_header": "Tax Invoice",
                                 "invoice_no": seller_summary[0].invoice_number,
                                 "order_date": order_date,

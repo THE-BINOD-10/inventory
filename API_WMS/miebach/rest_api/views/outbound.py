@@ -6163,7 +6163,7 @@ def order_category_generate_picklist(request, user=''):
     if switch_vals['fifo_switch'] == 'true':
         stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by(
             'receipt_date')
-        data_dict['location__zone__zone__in'] = ['TEMP_ZONE', 'DEFAULT']
+        #data_dict['location__zone__zone__in'] = ['TEMP_ZONE', 'DEFAULT']
         stock_detail2 = sku_stocks.filter(quantity__gt=0).order_by('receipt_date')
     else:
         stock_detail1 = sku_stocks.filter(location_id__pick_sequence__gt=0).filter(quantity__gt=0).order_by(

@@ -78,6 +78,9 @@
   overflow: hidden;
   height: 40px;
 }
+.print-sales-return-invoice {
+  height: 600px;
+}
 .no-margin {
   margin: 0px !important;
 }

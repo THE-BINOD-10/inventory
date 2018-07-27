@@ -4303,7 +4303,9 @@ def get_dist_target_summary_report_data(search_params, user, sub_user):
     if stop_index:
         totals_map = totals_map.items()[start_index:stop_index]
     for dist_code, target in totals_map:
-        dist_tgt = dist_targets[dist_code]
+        dist_tgt = dist_targets.get(dist_code, '')
+        if not dist_tgt:
+            dist_tgt = 0
         ytd_target = round((dist_tgt / 365) * days_passed, 2)
         ytd_act_sale = round(target["net_amt"], 2)
         exc_short = ((ytd_act_sale - ytd_target) / ytd_target) * 100

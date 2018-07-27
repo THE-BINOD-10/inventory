@@ -101,7 +101,7 @@
                         <input name="id" value="{{showCase.model_data.po_reference}}" type="hidden"> {{showCase.model_data.po_reference}} </td>
                       <td>{{showCase.model_data.data[showCase.current_index].quantity}}</td>
                       <td>
-                        <input name="accepted_quantity" ng-model="showCase.model_data.data[showCase.current_index].accepted_quantity" type="text" ng-readonly="showCase.permissions.use_imei || showCase.model_data.data[showCase.current_index].acc_qty" ng-change="showCase.checkQty(data)" ng-class="service.get_decimal_perm()" class="form-control"> </td>
+                        <input name="accepted_quantity" ng-model="showCase.model_data.data[showCase.current_index].accepted_quantity" type="text" ng-readonly="showCase.permissions.use_imei || showCase.model_data.data[showCase.current_index].acc_qty" ng-change="showCase.checkQty(showCase.model_data.data[showCase.current_index])" ng-class="service.get_decimal_perm()" class="form-control"> </td>
                       <td>
                         <input name="rejected_quantity" ng-model="showCase.model_data.data[showCase.current_index].rejected_quantity" type="text" ng-readonly="showCase.permissions.use_imei" ng-class="service.get_decimal_perm()" class="form-control">
                       </td>

@@ -3130,7 +3130,7 @@ def confirm_sales_return(request, user=''):
     return_type = request.POST.get('return_type', '')
     return_process = request.POST.get('return_process')
     mp_return_data = {}
-    created_return_id = ''
+    created_return_ids = []
     log.info('Request params for Confirm Sales Return for ' + user.username + ' is ' + str(request.POST.dict()))
     try:
         # Group the Input Data Based on the Group Type
@@ -3153,7 +3153,7 @@ def confirm_sales_return(request, user=''):
             if not order_returns:
                 continue
             if order_returns[0].order:
-                created_return_id = order_returns[0].return_id
+                created_return_ids.append(order_returns[0].return_id)
             if return_dict.get('reason', ''):
                 update_return_reasons(order_returns[0], return_dict['reason'])
             if data_dict.get('returns_imeis', ''):
@@ -3202,11 +3202,15 @@ def confirm_sales_return(request, user=''):
         log.info('Confirm Sales return for ' + str(user.username) + ' is failed for ' + str(
             request.POST.dict()) + ' error statement is ' + str(e))
 
-    #created_return_id = 'MN4350'
-    if created_return_id:
-        return_json = get_sales_return_print_json(created_return_id, user)
+    created_return_ids = list(set(created_return_ids))
+    if created_return_ids:
+        return_sales_print = []
+        for created_return_id in created_return_ids:
+            return_json = get_sales_return_print_json(created_return_id, user)
+            return_sales_print.append(return_json)
+
         return render(request, 'templates/toggle/sales_return_print.html',
-         {'show_data_invoice': [return_json]})
+            {'show_data_invoice': return_sales_print})
     return HttpResponse('Updated Successfully')
 
 

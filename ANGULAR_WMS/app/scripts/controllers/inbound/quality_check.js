@@ -120,7 +120,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             } else {
 
               for(var i=0;vm.model_data.data.length; i++) {
-                if(vm.model_data.data[i].wms_code == field) {
+                if(vm.model_data.data[i].wms_code == data.data.sku_data['SKU Code']) {
 
                   // vm.model_data.data[i].acc_qty = false;
                   vm.current_index = i;

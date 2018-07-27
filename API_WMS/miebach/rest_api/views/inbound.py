@@ -3678,8 +3678,17 @@ def check_wms_qc(request, user=''):
         if value and '_' in value:
             value = value.split('_')[-1]
             order_id = value
+        ean_number = ''
+        try:
+            ean_number = int(key)
+        except:
+            pass
         if not is_receive_po:
-            filter_params = {'purchase_order__open_po__sku__wms_code': key, 'po_location__status': 2,
+            sku_query_dict = {'purchase_order__open_po__sku__wms_code': key}
+            if ean_number:
+                sku_query_dict['purchase_order__open_po__sku__ean_number'] = ean_number
+            sku_query = get_dictionary_query(sku_query_dict)
+            filter_params = {'po_location__status': 2,
                              'po_location__location__zone__user': user.id, 'status': 'qc_pending'}
             if order_id:
                 filter_params['purchase_order__order_id'] = value
@@ -3690,6 +3699,10 @@ def check_wms_qc(request, user=''):
                              'quantity': 'data.po_location.quantity', 'accepted_quantity': 'data.accepted_quantity',
                              'rejected_quantity': 'data.rejected_quantity'}
         else:
+            sku_query_dict = {'open_po__sku__wms_code': key}
+            if ean_number:
+                sku_query_dict['open_po__sku__ean_number'] = ean_number
+            sku_query = get_dictionary_query(sku_query_dict)
             filter_params = {'open_po__sku__wms_code': key, 'open_po__sku__user': user.id,
                              'open_po__order_quantity__gt': F('received_quantity')}
             if order_id:
@@ -3709,7 +3722,7 @@ def check_wms_qc(request, user=''):
             del filter_params['open_po__sku__wms_code']
             filter_params['id__in'] = st_purchase
 
-        model_data = model_name.objects.filter(**filter_params)
+        model_data = model_name.objects.filter(sku_query, **filter_params)
         if not model_data:
             return HttpResponse("WMS Code not found")
         for data in model_data:

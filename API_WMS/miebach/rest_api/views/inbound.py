@@ -2209,11 +2209,11 @@ def create_bayarea_stock(sku_code, zone, quantity, user):
         update_filled_capacity(list(set(mod_location)), user_id)
 
 
-def get_seller_receipt_id(open_po):
+def get_seller_receipt_id(purchase_order):
     receipt_number = 1
-    summary = SellerPOSummary.objects.filter(purchase_order__open_po=open_po.id).order_by('-creation_date')
-    # summary = SellerPOSummary.objects.filter(seller_po__open_po_id=open_po.id,
-    #                                          seller_po__seller__user=open_po.sku.user).order_by('-creation_date')
+    summary = SellerPOSummary.objects.filter(purchase_order__open_po__sku__user=purchase_order.open_po.sku.user,
+                                             purchase_order__order_id = purchase_order.order_id).\
+                                        order_by('-creation_date')
     if summary:
         receipt_number = int(summary[0].receipt_number) + 1
     return receipt_number
@@ -2447,7 +2447,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
         seller_received_list = []
         if data.open_po:
             if not seller_receipt_id:
-                seller_receipt_id = get_seller_receipt_id(data.open_po)
+                seller_receipt_id = get_seller_receipt_id(data)
             seller_received_list = update_seller_po(data, value, user, myDict, i, receipt_id=seller_receipt_id,
                                                     invoice_number=invoice_number, invoice_date=bill_date,
                                                     challan_number=challan_number, challan_date=challan_date,

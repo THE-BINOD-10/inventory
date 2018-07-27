@@ -38,6 +38,7 @@ from django.db.models.fields import DateField, CharField
 import re
 import subprocess
 import importlib
+from generate_reports import *
 
 from django.template import loader, Context
 from barcodes import *
@@ -1111,12 +1112,14 @@ def get_internal_mails(request, user=""):
 
 @get_admin_user
 def send_mail_reports(request, user=''):
+    from generate_reports import *
+    mail_report_obj = MailReports()
     email = request.GET.get('mails', '')
     if email:
         add_misc_email(user, email)
     misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='email')
     if misc_detail and misc_detail[0].misc_value:
-        MailReports().send_reports_mail(user, mail_now=True)
+        mail_report_obj.send_reports_mail(user, mail_now=True)
         return HttpResponse('Success')
     return HttpResponse('Email ids not found')
 

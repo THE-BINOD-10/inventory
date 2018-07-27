@@ -7,6 +7,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     var vm = this;
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
+    vm.industry_type = Session.user_profile.industry_type;
+    vm.user_type=Session.user_profile.user_type;
     vm.special_key = {status: 'picked', market_place: ""}
     vm.tb_data = {};
     vm.dtOptions = DTOptionsBuilder.newOptions()

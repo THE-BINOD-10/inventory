@@ -726,6 +726,8 @@ def get_picklist_data(data_id, user_id):
             original_order_id = ''
             order_id = ''
             order_code = ''
+            mrp = ''
+            batch_no = ''
             if order.stock:
                 stock_id = pick_stocks.get(id=order.stock_id)
             if order.order:
@@ -787,6 +789,8 @@ def get_picklist_data(data_id, user_id):
                 wms_code = stock_id.sku.wms_code
                 load_unit_handle = stock_id.sku.load_unit_handle
                 category = stock_id.sku.sku_category
+                mrp = stock_id.batch_detail.mrp
+                batch_no = stock_id.batch_detail.batch_no
 
             match_condition = (location, pallet_detail, wms_code, sku_code, title)
             if match_condition not in batch_data:
@@ -816,7 +820,7 @@ def get_picklist_data(data_id, user_id):
                                                'marketplace': marketplace,
                                                'order_no': order_id, 'remarks': remarks,
                                                'load_unit_handle': load_unit_handle, 'category': category,
-                                               'original_order_id': original_order_id}
+                                               'original_order_id': original_order_id, 'mrp':mrp, 'batchno':batch_no}
             else:
                 batch_data[match_condition]['reserved_quantity'] += order.reserved_quantity
                 batch_data[match_condition]['picked_quantity'] += order.reserved_quantity
@@ -846,6 +850,8 @@ def get_picklist_data(data_id, user_id):
             original_order_id = ''
             order_code = ''
             order_id = ''
+            mrp = ''
+            batch_no = ''
             if order.order:
                 wms_code = order.order.sku.wms_code
                 if order.order_type == 'combo' and order.sku_code:
@@ -902,7 +908,8 @@ def get_picklist_data(data_id, user_id):
                 location = stock_id.location.location
                 image = stock_id.sku.image_url
                 wms_code = stock_id.sku.wms_code
-
+                mrp = stock_id.batch_detail.mrp
+                batch_no = stock_id.batch_detail.batch_no
             stock_left = get_sku_location_stock(wms_code, location, user_id, stock_skus, reserved_skus, stocks,
                                                 reserved_instances)
             last_picked_locs = ''
@@ -923,7 +930,7 @@ def get_picklist_data(data_id, user_id):
                  'title': title, 'stock_left': stock_left, 'last_picked_locs': last_picked_locs,
                  'customer_name': customer_name, 'marketplace': marketplace, 'remarks': remarks,
                  'load_unit_handle': load_unit_handle, 'category': category, 'customer_address': customer_address,
-                 'original_order_id': original_order_id})
+                 'original_order_id': original_order_id, 'mrp':mrp, 'batchno':batch_no})
 
             if wms_code in sku_total_quantities.keys():
                 sku_total_quantities[wms_code] += float(order.reserved_quantity)
@@ -944,6 +951,8 @@ def get_picklist_data(data_id, user_id):
             order_id = ''
             order_code = ''
             original_order_id = ''
+            mrp = ''
+            batch_no = ''
             if order.stock_id:
                 stock_id = pick_stocks.get(id=order.stock_id)
 
@@ -963,6 +972,9 @@ def get_picklist_data(data_id, user_id):
                 image = stock_id.sku.image_url
                 load_unit_handle = stock_id.sku.load_unit_handle
                 category = stock_id.sku.sku_category
+                mrp = stock_id.batch_detail.mrp
+                batch_no = stock_id.batch_detail.batch_no
+
             customer_name = ''
             if order.order:
                 customer_name = order.order.customer_name
@@ -996,7 +1008,8 @@ def get_picklist_data(data_id, user_id):
                  'title': order.order.title, 'stock_left': stock_left, 'last_picked_locs': last_picked_locs,
                  'customer_name': customer_name, 'remarks': remarks, 'load_unit_handle': load_unit_handle,
                  'category': category,
-                 'marketplace': marketplace, 'original_order_id' : original_order_id})
+                 'marketplace': marketplace, 'original_order_id' : original_order_id, 
+                 'mrp':mrp, 'batchno':batch_no})
 
             if wms_code in sku_total_quantities.keys():
                 sku_total_quantities[wms_code] += float(order.reserved_quantity)

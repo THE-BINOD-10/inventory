@@ -30,6 +30,7 @@ class MailReports:
         self.report_file_names = []
 
     def send_reports_mail(self, user, mail_now=False):
+        from rest_api.views.common import folder_check, get_work_sheet, write_excel
         report_frequency = MiscDetail.objects.filter(misc_type__contains='report_frequency', user=user.id)
         if not report_frequency and not mail_now:
             return
@@ -57,9 +58,6 @@ class MailReports:
             report_name = data_dict[report_data]
             report = reports_list[report_name]
 
-            wb = xlwt.Workbook()
-            ws = wb.add_sheet(report_name)
-
             report_data = report({}, user, user)
             if isinstance(report_data, tuple):
                 report_data = report_data[0]
@@ -67,26 +65,42 @@ class MailReports:
             if not report_data:
                 continue
 
+            file_type = 'xls'
             headers = report_data[0].keys()
-            for index, header in enumerate(headers):
-                ws.write(0, index, header)
+            file_name = "%s.%s" % (user.id, report_name.replace(' ', '_'))
+            wb, ws = get_work_sheet(file_name, headers)
+            folder_path = 'static/excel_files/'
+            folder_check(folder_path)
+            if len(report_data) > 65535:
+                file_type = 'csv'
+                wb = open(folder_path + file_name + '.' + file_type, 'w')
+                ws = ''
+                for head in headers:
+                    ws = ws + str(head).replace(',', '  ') + ','
+                ws = ws[:-1] + '\n'
+                wb.write(ws)
+                ws = ''
+            path = folder_path + file_name + '.' + file_type
 
             counter = 1
             for data in report_data:
                 index = 0
                 for value in data.values():
-                    ws.write(counter, index, value)
+                    ws = write_excel(ws, counter, index, value, file_type)
                     index += 1
 
                 counter += 1
+                if file_type == 'csv':
+                    ws = ws[:-1] + '\n'
+                    wb.write(ws)
+                    ws = ''
 
-            report_file = '%s.%s.xls' % (user.id, report_name.replace(' ', '_'))
-            self.report_file_names.append(report_file)
-
-            wb.save(report_file)
-
+            if file_type == 'xls':
+                wb.save(path)
+            else:
+                wb.close()
+            self.report_file_names.append({'name': file_name + '.' + file_type, 'path': path})
         if enabled_reports:
-
             send_to = []
             mailing_list = MiscDetail.objects.filter(misc_type='email', user=user.id)
             if mailing_list and mailing_list[0].misc_value:

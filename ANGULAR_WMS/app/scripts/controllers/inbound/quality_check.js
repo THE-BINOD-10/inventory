@@ -57,11 +57,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                       vm.extra_width = {};
                     }
                     angular.copy(data.data, vm.model_data);
+                    vm.model_data.updated_skus = {};
                     angular.forEach(vm.model_data.data ,function(record){
 
                       record["accept_imei"] = [];
                       record["reject_imei"] = [];
-                    })
+
+                      if (vm.model_data.updated_skus[record.wms_code]) {
+
+                        vm.model_data.updated_skus[record.wms_code].quantity = Number(vm.model_data.updated_skus[record.wms_code].quantity) + Number(record.quantity)
+                      } else {
+
+                        vm.model_data.updated_skus[record.wms_code] = record;
+                      }
+                    });
                     if(vm.permissions.use_imei) {
                       fb.push_po(vm.model_data);
                     }
@@ -118,9 +127,29 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             if ('WMS Code not found'==data.data) {
                pop_msg(data.data);
             } else {
+
               for(var i=0;vm.model_data.data.length; i++) {
-                if(vm.model_data.data[i].wms_code == field) {
+                if(vm.model_data.data[i].wms_code == data.data.sku_data['SKU Code']) {
+
+                  vm.model_data.data[i].acc_qty = false;
                   vm.current_index = i;
+                  var temp = Number(vm.model_data.data[i].accepted_quantity) + 1;
+                  if (Number(vm.model_data.data[i].accepted_quantity) < Number(vm.model_data.data[i].quantity)) {
+
+                    vm.model_data.data[i].accepted_quantity = Number(vm.model_data.data[i].accepted_quantity) + 1;
+                  }
+
+                  if (Number(vm.model_data.data[i].quantity) == Number(vm.model_data.data[i].accepted_quantity)) {
+
+                    vm.model_data.data[i].acc_qty = true;
+                  }
+
+                  if (temp > Number(vm.model_data.data[i].accepted_quantity)) {
+
+                    vm.model_data.data[i].acc_qty = true;
+                    vm.service.showNoty("You don't have quantity in "+vm.model_data.data[i].wms_code+" SKU");
+                  }
+
                   break;
                 }
               }
@@ -130,6 +159,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           }
         });
         vm.scan = '';
+      }
+    }
+
+    vm.checkQty = function(sku){
+
+      if (Number(sku.accepted_quantity) > Number(sku.quantity)) {
+
+        sku.accepted_quantity = sku.quantity;
+        vm.service.showNoty("You will enter only <b>"+sku.quantity+"</b> quantity");
       }
     }
 

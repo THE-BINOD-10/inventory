@@ -2568,8 +2568,13 @@ def purchase_upload_mail(request, data_to_send, user):
         order_date = get_local_date(request.user, value[0]['purchase_order'].creation_date)
         address = '\n'.join(supplier.address.split(','))
         vendor_name = ''
-        vendor_address = ''
+        vendor_address, ship_to_address = '', ''
         vendor_telephone = ''
+        if value[0]['purchase_order'].ship_to:
+            ship_to_address = value[0]['purchase_order'].ship_to
+        else:
+            ship_to_address = user.userprofile.address
+        ship_to_address = '\n'.join(ship_to_address.split(','))
 
         if value[0]['purch'].order_type == 'VR':
             vendor_address = value[0]['purch'].vendor.address
@@ -2602,7 +2607,7 @@ def purchase_upload_mail(request, data_to_send, user):
                            'company_name': profile.company_name, 'location': profile.location,
                            'w_address': get_purchase_company_address(profile), 'vendor_name': vendor_name,
                            'vendor_address': vendor_address, 'vendor_telephone': vendor_telephone,
-                           'customization': customization}
+                           'customization': customization, 'ship_to_address': ship_to_address}
         rendered = t.render(data_dictionary)
         write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
                            str(order_date).split(' ')[0])

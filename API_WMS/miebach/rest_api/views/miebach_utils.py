@@ -1953,10 +1953,10 @@ def get_location_stock_data(search_params, user, sub_user):
         sku_code, location = stock_detail_key.split('<<>>')
         sku_master = SKUMaster.objects.get(sku_code=sku_code, user=user.id)
         location_master = LocationMaster.objects.get(location=location, zone__user=user.id)
-        if key in picklist_reserved.keys():
-            reserved += float(picklist_reserved[key])
-        if key in raw_reserved.keys():
-            reserved += float(raw_reserved[key])
+        if stock_detail_key in picklist_reserved.keys():
+            reserved += float(picklist_reserved[stock_detail_key])
+        if stock_detail_key in raw_reserved.keys():
+            reserved += float(raw_reserved[stock_detail_key])
         quantity = total - reserved
         if quantity < 0:
             quantity = 0

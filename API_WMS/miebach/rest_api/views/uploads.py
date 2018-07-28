@@ -4776,7 +4776,7 @@ def validate_seller_transfer_form(request, reader, user, no_of_rows, no_of_cols,
                     data_dict[key] = float(cell_data)
                 except:
                     index_status.setdefault(row_idx, set()).add('%s should be number' % exc_reverse[key])
-        if not index_status:
+        if row_idx not in index_status.keys():
             src_stock_dict = {'sku_id': data_dict['sku_id'], 'sellerstock__seller_id': data_dict['source_seller'],
                               'location_id': data_dict['source_location'][0].id, 'quantity__gt': 0,
                               'sellerstock__quantity__gt': 0}
@@ -4810,6 +4810,7 @@ def validate_seller_transfer_form(request, reader, user, no_of_rows, no_of_cols,
 def update_seller_transer_upload(user, data_list):
     trans_mapping = {}
     stock_transfer_objs = []
+    grouping_data = []
     for data_dict in data_list:
         update_stocks_data(data_dict['src_stocks'], data_dict['quantity'], data_dict.get('dest_stocks', ''),
                            data_dict['quantity'], user, data_dict['dest_location'], data_dict['sku_id'],
@@ -4823,11 +4824,19 @@ def update_seller_transer_upload(user, data_list):
             trans_mapping[group_key] = seller_transfer.id
         seller_st_dict = {'seller_transfer_id': trans_mapping[group_key], 'sku_id': data_dict['sku_id'],
                           'source_location_id': data_dict['source_location'][0].id,
-                          'dest_location_id': data_dict['dest_location'][0].id, 'quantity': data_dict['quantity'],
-                          'creation_date': datetime.datetime.now()}
-        seller_st_obj = SellerStockTransfer(**seller_st_dict)
-        stock_transfer_objs.append(seller_st_obj)
-    SellerStockTransfer.objects.bulk_create(stock_transfer_objs)
+                          'dest_location_id': data_dict['dest_location'][0].id }
+        exist_obj = SellerStockTransfer.objects.filter(**seller_st_dict)
+        if not exist_obj:
+            seller_st_dict['creation_date'] = datetime.datetime.now()
+            seller_st_dict['quantity'] = data_dict['quantity']
+            seller_st_obj = SellerStockTransfer(**seller_st_dict)
+            seller_st_obj.save()
+        else:
+            exist_seller_obj = exist_obj[0]
+            exist_seller_obj.quantity = exist_seller_obj.quantity + data_dict['quantity']
+            exist_seller_obj.save()
+        #stock_transfer_objs.append(seller_st_obj)
+    #SellerStockTransfer.objects.bulk_create(stock_transfer_objs)
 
 
 @csrf_exempt

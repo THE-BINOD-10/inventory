@@ -975,7 +975,9 @@ def switches(request, user=''):
                        'auto_raise_stock_transfer': 'auto_raise_stock_transfer',
                        'inbound_supplier_invoice': 'inbound_supplier_invoice',
                        'invoice_based_payment_tracker': 'invoice_based_payment_tracker',
-                       'customer_dc': 'customer_dc', 'auto_expire_enq_limit': 'auto_expire_enq_limit',
+                       'customer_dc': 'customer_dc', 
+                       'auto_expire_enq_limit': 'auto_expire_enq_limit',
+                       'sales_return_reasons': 'sales_return_reasons',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -1529,7 +1531,20 @@ def insert_inventory_adjust(request, user=''):
     pallet_code = request.GET.get('pallet', '')
     batch_no = request.GET.get('batch_no', '')
     mrp = request.GET.get('mrp', '')
-    status = adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet_code, batch_no, mrp)
+    seller_id = request.GET.get('seller_id', '')
+    reduce_stock = request.GET.get('inv_shrinkage', 'false')
+    seller_master_id = ''
+    if seller_id:
+        seller_master = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
+        if not seller_master:
+            return HttpResponse("Invalid Seller ID")
+        seller_master_id = seller_master[0].id
+    if reduce_stock == 'true':
+        status = reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet_code, batch_no, mrp,
+                                       seller_master_id=seller_master_id)
+    else:
+        status = adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet_code, batch_no, mrp,
+                                       seller_master_id=seller_master_id)
     update_filled_capacity([loc], user.id)
     check_and_update_stock([wmscode], user)
 

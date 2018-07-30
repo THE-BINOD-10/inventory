@@ -12,6 +12,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.bt_disable = true;
     vm.permissions = Session.roles.permissions;
     vm.pallet_switch = (vm.permissions.pallet_switch == true) ? true: false;
+    vm.user_type = Session.user_profile.user_type;
     vm.industry_type = Session.user_profile.industry_type;
     vm.batch_nos = [];
     vm.batches = {};
@@ -173,16 +174,30 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     })
   }
 
-      vm.get_sku_batches = function(sku_code){
-        if(sku_code && vm.industry_type==="FMCG"){
-          vm.service.apiCall('get_sku_batches/?sku_code='+sku_code).then(function(data){
-            if(data.message) {
-              vm.batches = data.data.sku_batches;
-              vm.batch_nos = Object.keys(vm.batches);
-            }
-          });
+  vm.getReasons = function(key){
+
+    if (key) {
+      var send = {'key': 'sales_return_reasons'};
+      vm.service.apiCall('inventory_adj_reasons/', 'POST', send).then(function(resp) {
+        
+        if (resp.message) {
+
+          vm.reasons = resp.data.data.reasons;
         }
-	  }
+      });
+    }
+  }
+
+  vm.get_sku_batches = function(sku_code){
+    if(sku_code && vm.industry_type==="FMCG"){
+      vm.service.apiCall('get_sku_batches/?sku_code='+sku_code).then(function(data){
+        if(data.message) {
+          vm.batches = data.data.sku_batches;
+          vm.batch_nos = Object.keys(vm.batches);
+        }
+      });
+    }
+  }
 
   }
 

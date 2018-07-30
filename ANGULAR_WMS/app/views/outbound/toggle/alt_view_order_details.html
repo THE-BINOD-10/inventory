@@ -150,7 +150,7 @@
               <input type="text" class="form-control" name="closing" ng-model="data.closing_stock" ng-readonly="data.default_status">
             </td>
             <td>
-              <input type="text" class="form-control" name="quantity" ng-model="data.quantity" ng-change="showCase.changeInvoiceAmt(data)">
+              <input type="text" class="form-control" name="quantity" ng-class="service.get_decimal_perm()" ng-model="data.quantity" ng-change="showCase.changeInvoiceAmt(data)">
             </td>
             <td>
               <input type="text" class="form-control" name="unit_price" ng-model="data.unit_price" ng-change="showCase.changeInvoiceAmt(data, true)" ng-class="service.get_decimal_perm()" ng-readonly="data.default_status">
@@ -168,6 +168,21 @@
       <!-- <center ng-if="!showCase.input_status">
         <button type="button" class="btn btn-default" style="margin-top:10px" ng-click="showCase.update_order_details(0, {}, true)">Add New WMS Code</button>
       </center> -->
+    </div>
+    <div class="row">
+      <div class="col-md-9">
+      </div>
+    </div>
+    <div class="row" style="padding-bottom:2%;">
+      <div class="text-center">
+        <input type="hidden" class="form-control" name="tax_type" value="{{showCase.model_data.tax_type}}" disabled>
+        <button type="button" class="btn btn-primary" ng-if="!showCase.input_status" style="margin: auto;display: block;" 
+        ng-click="showCase.send_order_data(form)">Update </button>
+      </div>
+      <!-- <div class="col-md-6">
+        <button type="button" class="btn btn-danger" ng-if="!showCase.input_status" style="margin: auto;display: block;"
+        ng-click="showCase.delete_order_data(showCase.order_id)">Delete Order </button>
+      </div> -->
     </div>
   </div>
 </div>

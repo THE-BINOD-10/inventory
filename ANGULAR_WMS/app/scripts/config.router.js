@@ -2020,7 +2020,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Corporate Reseller Mapping Report',
+            title: 'Enquiry Status Report',
           }
         })
 

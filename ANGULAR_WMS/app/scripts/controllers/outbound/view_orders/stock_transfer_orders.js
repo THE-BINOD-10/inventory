@@ -190,7 +190,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         vm.model_data.filters['from_date'] = vm.date;
       }
       vm.model_data.filters['order_id'] = vm.order_id;
-      vm.model_data.filters['to_date'] = '';
+      // vm.model_data.filters['to_date'] = '';
     }
 
     vm.get_order_data = function(params){
@@ -276,16 +276,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           vm.model_data['data'] = [];
         }
 
-        // $scope.$apply(function() {
-
-          vm.model_data.data.push({item_code:'', product_title:'', quantity:0, unit_price:0, invoice_amount:0, 
-            opening_stock: '', order_id: vm.order_id, received: '', total_stock: '', consumed: '', closing: '', new_product:true, 
-            default_status: false, sku_status: 1});
-
-          vm.items_dict.push({item_code:'', product_title:'', quantity:0, unit_price:0, invoice_amount:0, 
-            opening_stock: '', order_id: vm.order_id, received: '', total_stock: '', consumed: '', closing: '', new_product:true, 
-            default_status: false, sku_status: 1});
-        // });
+        vm.model_data.data.push({item_code:'', product_title:'', quantity:0, unit_price:0, invoice_amount:0, 
+          opening_stock: '', order_id: vm.order_id, received: '', total_stock: '', consumed: '', closing: '', new_product:true, 
+          default_status: false, sku_status: 1});
       } else {
         var data_to_delete = {};
         data_to_delete['order_id'] = vm.order_id;
@@ -303,6 +296,44 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           });
         }
       }
+    }
+
+    vm.changeInvoiceAmt = function(data, flag){
+
+      if (!data.discount_per) {
+
+        data['discount_per'] = 0;
+      }
+
+      var total = (data.quantity * data.unit_price);
+      var discount_amt = (total*data.discount_per)/100;
+      var invoice_amount_dis = Number(total - discount_amt);
+      
+      /*if (flag) { // Used to execute taxes for unitprice change only 
+        if (data.taxes.length) {
+          for (var i = 0; i < data.taxes.length; i++) {
+
+            if (data.unit_price >= data.taxes[i].min_amt && data.unit_price <= data.taxes[i].max_amt) {
+              data.igst = data.taxes[i].igst_tax;
+              data.cgst = data.taxes[i].cgst_tax;
+              data.sgst = data.taxes[i].sgst_tax;
+              break;
+            }
+          }
+        } else {
+          data.igst = 0;
+          data.cgst = 0;
+          data.sgst = 0;
+        }
+      }*/
+      // Taxes initial declaration for tempararly
+      data.igst = 0;
+      data.cgst = 0;
+      data.sgst = 0;
+      var tax = Number(data.sgst)+Number(data.cgst)+Number(data.igst);
+
+      data.discount = discount_amt;
+      data.invoice_amount = (invoice_amount_dis + (invoice_amount_dis*tax)/100);
     }
 
     vm.close = close;

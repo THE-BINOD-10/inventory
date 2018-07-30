@@ -789,8 +789,9 @@ def get_picklist_data(data_id, user_id):
                 wms_code = stock_id.sku.wms_code
                 load_unit_handle = stock_id.sku.load_unit_handle
                 category = stock_id.sku.sku_category
-                mrp = stock_id.batch_detail.mrp
-                batch_no = stock_id.batch_detail.batch_no
+                if stock_id.batch_detail:
+                    mrp = stock_id.batch_detail.mrp
+                    batch_no = stock_id.batch_detail.batch_no
 
             match_condition = (location, pallet_detail, wms_code, sku_code, title)
             if match_condition not in batch_data:
@@ -908,8 +909,9 @@ def get_picklist_data(data_id, user_id):
                 location = stock_id.location.location
                 image = stock_id.sku.image_url
                 wms_code = stock_id.sku.wms_code
-                mrp = stock_id.batch_detail.mrp
-                batch_no = stock_id.batch_detail.batch_no
+                if stock_id.batch_detail:
+                    mrp = stock_id.batch_detail.mrp
+                    batch_no = stock_id.batch_detail.batch_no
             stock_left = get_sku_location_stock(wms_code, location, user_id, stock_skus, reserved_skus, stocks,
                                                 reserved_instances)
             last_picked_locs = ''
@@ -972,8 +974,9 @@ def get_picklist_data(data_id, user_id):
                 image = stock_id.sku.image_url
                 load_unit_handle = stock_id.sku.load_unit_handle
                 category = stock_id.sku.sku_category
-                mrp = stock_id.batch_detail.mrp
-                batch_no = stock_id.batch_detail.batch_no
+                if stock_id.batch_detail:
+                    mrp = stock_id.batch_detail.mrp
+                    batch_no = stock_id.batch_detail.batch_no
 
             customer_name = ''
             if order.order:

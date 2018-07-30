@@ -173,9 +173,15 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
   $(document).on('keydown', 'input.detectTab', function(e) { 
     var keyCode = e.keyCode || e.which; 
 
-    if (keyCode == 9) { 
+    var tds_count = (this.closest('#tab_count').childElementCount-1);
+    var cur_td_index = this.parentElement.nextElementSibling.cellIndex;
+
+
+    if ((keyCode == 9) && (tds_count === cur_td_index)) { 
       e.preventDefault(); 
       vm.update_data(Number(this.parentNode.children[1].value), false);
+    } else {
+      vm.service.showNoty("Try again");
     }
   });
 

@@ -10052,6 +10052,7 @@ def print_cartons_data(request, user=''):
     customers_obj = OrderDetail.objects.select_related('customer_id', 'customer_name', 'marketplace').\
                                 filter(id__in=request_dict['id']).only('customer_id', 'customer_name', 'marketplace').\
                                 values('customer_id', 'customer_name', 'marketplace', 'address').distinct()
+
     customer_info = {}
     if customers_obj.count() > 1:
         customer_info = {'name': customers_obj[0]['marketplace']}
@@ -10068,11 +10069,11 @@ def print_cartons_data(request, user=''):
         sku_code = request_dict['sku_code'][ind]
         title = ''
         order_obj = OrderDetail.objects.select_related('sku__sku_code', 'title').\
-                                            filter(id=request_dict['id'][ind]).only('sku__sku_code', 'title').\
-                                            values('sku__sku_code', 'title')
+                        filter(id=request_dict['id'][ind]).only('sku__sku_code', 'title', 'sku__sku_desc').\
+                        values('sku__sku_code', 'title', 'sku__sku_desc')
         if order_obj:
             sku_code = order_obj[0]['sku__sku_code']
-            title = order_obj[0]['title']
+            title = order_obj[0]['sku__sku_desc']
         quantity = request_dict['shipping_quantity'][ind]
         try:
             quantity = int(quantity)
@@ -10164,7 +10165,7 @@ def print_cartons_data_view(request, user=''):
             shipment_date = get_local_date(user, orders.order_shipment.creation_date, True).strftime("%d %b, %Y")
         if not courier_name:
             courier_name = orders.order_shipment.courier_name
-        title = orders.order.title
+        title = orders.order.sku.sku_desc
         quantity = int(orders.shipping_quantity)
         grouping_key = '%s:%s' % (str(pack_reference), str(sku_code))
         data.setdefault(grouping_key, [])

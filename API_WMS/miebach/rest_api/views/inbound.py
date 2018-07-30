@@ -6531,7 +6531,9 @@ def generate_supplier_invoice(request, user=''):
                 inv_no = req_data.get('invoice_number', '')
                 if inv_no:
                     sell_summary_param['invoice_number'] = inv_no
-                else: 
+                else:
+                    sell_summary_param['purchase_order__order_id'] = req_data.get('purchase_order__order_id', '')
+                    sell_summary_param['receipt_number'] = req_data.get('receipt_number', '') 
                     sell_summary_param['challan_number'] = req_data.get('challan_id', '')
                 #sell_summary_param['invoice_number'] = req_data.get('invoice_number', '')
                 seller_summary = SellerPOSummary.objects.filter(**sell_summary_param)

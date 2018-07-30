@@ -173,10 +173,11 @@
                     </td>
                     <td ng-if="user.user_profile.user_type == 'marketplace_user'" id="tabChangeParent" ng-init="product.fields.dedicated_seller = showCase.model_data.seller_type">
                       <input type="text" ng-model="product.fields.dedicated_seller" id="tabChange" name="dedicated_seller" class="form-control detectTab" ng-readonly="showCase.update && !product.fields.is_new">
-                      <input type="text" id="skuIndex" name="sku_index" class="form-control" value="{{$index}}">
                     </td>
 
-                    <td><i ng-click="showCase.update_data($index, true, true)" ng-class="showCase.service.isLast($last)"></i></td>
+                    <td>
+                      <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{$index}}">
+                      <i ng-click="showCase.update_data($index, true, true)" ng-class="showCase.service.isLast($last)"></i></td>
                   </tr>
                 </tbody>
               </table>

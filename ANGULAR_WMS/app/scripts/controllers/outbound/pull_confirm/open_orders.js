@@ -8,6 +8,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     vm.picklist_order = {};
     vm.permissions = Session.roles.permissions;
+    vm.industry_type = Session.user_profile.industry_type;
+    vm.user_type=Session.user_profile.user_type;
     vm.show_client_details = vm.permissions.create_order_po;
     vm.service = Service;
     vm.merge_invoice = false;

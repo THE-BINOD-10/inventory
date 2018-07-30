@@ -1196,10 +1196,10 @@ def confirm_po(request, user=''):
     address = purchase_order.supplier.address
     address = '\n'.join(address.split(','))
     wh_address = user.userprofile.wh_address
-    if wh_address:
-        ship_to_address = wh_address
-    else:
+    if purchase_order.ship_to:
         ship_to_address = purchase_order.ship_to
+    else:
+        ship_to_address = wh_address
     ship_to_address = '\n'.join(ship_to_address.split(','))
     wh_telephone = user.userprofile.wh_phone_number
     telephone = purchase_order.supplier.phone_number
@@ -2209,11 +2209,11 @@ def create_bayarea_stock(sku_code, zone, quantity, user):
         update_filled_capacity(list(set(mod_location)), user_id)
 
 
-def get_seller_receipt_id(open_po):
+def get_seller_receipt_id(purchase_order):
     receipt_number = 1
-    summary = SellerPOSummary.objects.filter(purchase_order__open_po=open_po.id).order_by('-creation_date')
-    # summary = SellerPOSummary.objects.filter(seller_po__open_po_id=open_po.id,
-    #                                          seller_po__seller__user=open_po.sku.user).order_by('-creation_date')
+    summary = SellerPOSummary.objects.filter(purchase_order__open_po__sku__user=purchase_order.open_po.sku.user,
+                                             purchase_order__order_id = purchase_order.order_id).\
+                                        order_by('-creation_date')
     if summary:
         receipt_number = int(summary[0].receipt_number) + 1
     return receipt_number
@@ -2447,7 +2447,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
         seller_received_list = []
         if data.open_po:
             if not seller_receipt_id:
-                seller_receipt_id = get_seller_receipt_id(data.open_po)
+                seller_receipt_id = get_seller_receipt_id(data)
             seller_received_list = update_seller_po(data, value, user, myDict, i, receipt_id=seller_receipt_id,
                                                     invoice_number=invoice_number, invoice_date=bill_date,
                                                     challan_number=challan_number, challan_date=challan_date,
@@ -3130,7 +3130,7 @@ def confirm_sales_return(request, user=''):
     return_type = request.POST.get('return_type', '')
     return_process = request.POST.get('return_process')
     mp_return_data = {}
-    created_return_id = ''
+    created_return_ids = []
     log.info('Request params for Confirm Sales Return for ' + user.username + ' is ' + str(request.POST.dict()))
     try:
         # Group the Input Data Based on the Group Type
@@ -3153,7 +3153,7 @@ def confirm_sales_return(request, user=''):
             if not order_returns:
                 continue
             if order_returns[0].order:
-                created_return_id = order_returns[0].return_id
+                created_return_ids.append(order_returns[0].return_id)
             if return_dict.get('reason', ''):
                 update_return_reasons(order_returns[0], return_dict['reason'])
             if data_dict.get('returns_imeis', ''):
@@ -3202,11 +3202,15 @@ def confirm_sales_return(request, user=''):
         log.info('Confirm Sales return for ' + str(user.username) + ' is failed for ' + str(
             request.POST.dict()) + ' error statement is ' + str(e))
 
-    #created_return_id = 'MN4350'
-    if created_return_id:
-        return_json = get_sales_return_print_json(created_return_id, user)
+    created_return_ids = list(set(created_return_ids))
+    if created_return_ids:
+        return_sales_print = []
+        for created_return_id in created_return_ids:
+            return_json = get_sales_return_print_json(created_return_id, user)
+            return_sales_print.append(return_json)
+
         return render(request, 'templates/toggle/sales_return_print.html',
-         {'show_data_invoice': [return_json]})
+            {'show_data_invoice': return_sales_print})
     return HttpResponse('Updated Successfully')
 
 
@@ -3674,8 +3678,17 @@ def check_wms_qc(request, user=''):
         if value and '_' in value:
             value = value.split('_')[-1]
             order_id = value
+        ean_number = ''
+        try:
+            ean_number = int(key)
+        except:
+            pass
         if not is_receive_po:
-            filter_params = {'purchase_order__open_po__sku__wms_code': key, 'po_location__status': 2,
+            sku_query_dict = {'purchase_order__open_po__sku__wms_code': key}
+            if ean_number:
+                sku_query_dict['purchase_order__open_po__sku__ean_number'] = ean_number
+            sku_query = get_dictionary_query(sku_query_dict)
+            filter_params = {'po_location__status': 2,
                              'po_location__location__zone__user': user.id, 'status': 'qc_pending'}
             if order_id:
                 filter_params['purchase_order__order_id'] = value
@@ -3686,6 +3699,10 @@ def check_wms_qc(request, user=''):
                              'quantity': 'data.po_location.quantity', 'accepted_quantity': 'data.accepted_quantity',
                              'rejected_quantity': 'data.rejected_quantity'}
         else:
+            sku_query_dict = {'open_po__sku__wms_code': key}
+            if ean_number:
+                sku_query_dict['open_po__sku__ean_number'] = ean_number
+            sku_query = get_dictionary_query(sku_query_dict)
             filter_params = {'open_po__sku__wms_code': key, 'open_po__sku__user': user.id,
                              'open_po__order_quantity__gt': F('received_quantity')}
             if order_id:
@@ -3705,7 +3722,7 @@ def check_wms_qc(request, user=''):
             del filter_params['open_po__sku__wms_code']
             filter_params['id__in'] = st_purchase
 
-        model_data = model_name.objects.filter(**filter_params)
+        model_data = model_name.objects.filter(sku_query, **filter_params)
         if not model_data:
             return HttpResponse("WMS Code not found")
         for data in model_data:
@@ -4397,10 +4414,10 @@ def confirm_add_po(request, sales_data='', user=''):
     address = purchase_order.supplier.address
     address = '\n'.join(address.split(','))
     wh_address = user.userprofile.wh_address
-    if wh_address:
-        ship_to_address = wh_address
-    else:
+    if purchase_order.ship_to:
         ship_to_address = purchase_order.ship_to
+    else:
+        ship_to_address = wh_address
     wh_telephone = user.userprofile.wh_phone_number
     ship_to_address = '\n'.join(ship_to_address.split(','))
     vendor_name = ''
@@ -4599,10 +4616,10 @@ def confirm_po1(request, user=''):
             address = purchase_orders[0].supplier.address
             address = '\n'.join(address.split(','))
             wh_address = user.userprofile.wh_address
-            if wh_address:
-                ship_to_address = wh_address
-            else:
+            if purchase_orders[0].ship_to:
                 ship_to_address = purchase_orders[0].ship_to
+            else:
+                ship_to_address = wh_address
             ship_to_address = '\n'.join(ship_to_address.split(','))
             wh_telephone = user.userprofile.wh_phone_number
             telephone = purchase_orders[0].supplier.phone_number

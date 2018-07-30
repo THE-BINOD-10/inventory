@@ -173,13 +173,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     }
 
     vm.sendChangedData = function(){
-      var elem = {'data': vm.dt_rows_changed};
-      vm.service.apiCall('update_payment_status/', 'POST', elem).then(function(data){
-        if(data.message) {
-          vm.service.showNoty(data.data.message);
-          $state.go($state.current, {}, {reload: true});
-        }
-      });
+
+      if (!vm.model_data.balance) {
+
+        var elem = {'data': vm.dt_rows_changed};
+        vm.service.apiCall('update_payment_status/', 'POST', elem).then(function(data){
+          if(data.message) {
+            vm.service.showNoty(data.data.message);
+            $state.go($state.current, {}, {reload: true});
+          }
+        });
+      } else {
+
+        vm.service.showNoty('Balance should be "Zero"'); 
+      }
     }
 
     vm.addRowData = function(event, data) {

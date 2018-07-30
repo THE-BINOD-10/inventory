@@ -671,9 +671,10 @@ ENQUIRY_STATUS_REPORT = {
         {'label': 'Reseller Code', 'name': 'reseller_code', 'type': 'input'},
         {'label': 'Enquiry No', 'name': 'enquiry_number', 'type': 'input'},
         {'label': 'Aging Period', 'name': 'aging_period', 'type': 'input'},
+        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
         {'label': 'Enquiry Status', 'name': 'enquiry_status', 'type': 'select'},
     ],
-    'dt_headers': ['Zone Code', 'Distributor Code', 'Reseller Code', 'Product Category', 'SKU Code',
+    'dt_headers': ['Zone Code', 'Distributor Code', 'Reseller Code', 'Product Category', 'SKU Code', 'SKU Quantity',
                    'Enquiry No', 'Enquiry Aging', 'Enquiry Status'
                 ],
     'dt_url': 'get_enquiry_status_report', 'excel_name': 'get_enquiry_status_report',
@@ -936,6 +937,7 @@ MAIL_REPORTS = {'sku_list': ['SKU List'], 'location_wise_stock': ['Location Wise
 MAIL_REPORTS_DATA = OrderedDict((('Raise PO', 'raise_po'), ('Receive PO', 'receive_po'), ('Orders', 'order'),
                                  ('Dispatch', 'dispatch'), ('Internal Mail', 'internal_mail'),
                                  ('Raise JO', 'raise_jo'), ('Stock Transfer Note', 'stock_transfer_note'),
+                                 ('Block Stock', 'enquiry'),
                                  ))
 
 # Configurations
@@ -1581,7 +1583,7 @@ WH_CUSTOMER_INVOICE_HEADERS_TAB = ['Customer Name', 'Order Quantity', 'Picked Qu
 STOCK_TRANSFER_INVOICE_HEADERS = ['Stock Transfer ID', 'Warehouse Name', 'Picked Quantity', 'Stock Transfer Date&Time', 'Total Amount']
 
 DIST_CUSTOMER_INVOICE_HEADERS = ['Gen Order Id', 'Order Ids', 'Customer Name', 'Order Quantity', 'Picked Quantity',
-                                 'Order Date&Time', 'Total Amount']
+                                 'Order Date&Time']
 
 # End of Customer Invoices page headers based on user type
 
@@ -3636,7 +3638,10 @@ def get_dist_sales_report_data(search_params, user, sub_user):
     from miebach_admin.models import OrderDetail
     search_parameters = {}
     lis = ['id', 'user', 'original_order_id', 'creation_date', 'sku__sku_category', 'sku__sku_code', 'quantity', 'status']
-    distributors = get_same_level_warehouses(2, user)
+    if user.userprofile.warehouse_type != 'DIST':
+        distributors = get_same_level_warehouses(2, user)
+    else:
+        distributors = [user.id]
     zone_code = search_params.get('zone_code', '')
     if zone_code:
         distributors = UserProfile.objects.filter(user__in=distributors,
@@ -3819,7 +3824,11 @@ def get_reseller_sales_report_data(search_params, user, sub_user):
     from rest_api.views.outbound import get_same_level_warehouses
     search_parameters = {}
     lis = ['id', 'user', 'original_order_id', 'creation_date', 'sku_category', 'sku__sku_code', 'quantity', 'status']
-    distributors = get_same_level_warehouses(2, user)
+    # distributors = get_same_level_warehouses(2, user)
+    if user.userprofile.warehouse_type != 'DIST':
+        distributors = get_same_level_warehouses(2, user)
+    else:
+        distributors = [user.id]
     zone_code = search_params.get('zone_code', '')
     if zone_code:
         distributors = UserProfile.objects.filter(user__in=distributors,
@@ -3856,6 +3865,8 @@ def get_reseller_sales_report_data(search_params, user, sub_user):
         res_ids = CustomerMaster.objects.filter(name__contains=search_params['reseller_code']).\
             values_list('id', flat=True)
         search_parameters['customer_id__in'] = res_ids
+    if 'corporate_name' in search_params:
+        search_parameters['client_name__icontains'] = search_params['corporate_name']
 
     status_search = search_params.get('order_report_status', "")
 
@@ -4228,7 +4239,11 @@ def get_dist_target_summary_report_data(search_params, user, sub_user):
     from miebach_admin.models import OrderDetail
     search_parameters = {}
     lis = ['id', 'user']
-    distributors = get_same_level_warehouses(2, user)
+    # distributors = get_same_level_warehouses(2, user)
+    if user.userprofile.warehouse_type != 'DIST':
+        distributors = get_same_level_warehouses(2, user)
+    else:
+        distributors = [user.id]
     zone_code = search_params.get('zone_code', '')
     if zone_code:
         distributors = UserProfile.objects.filter(user__in=distributors, zone=zone_code).values_list('user_id',
@@ -4267,6 +4282,10 @@ def get_dist_target_summary_report_data(search_params, user, sub_user):
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
         search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'corporate_name' in search_params:
+        corp_filtered_order_objs = GenericOrderDetailMapping.objects.\
+            filter(client_name__icontains=search_params['corporate_name'], orderdetail_id__in=orderdetail_ids)
+        orderdetail_ids = list(corp_filtered_order_objs.values_list('orderdetail_id', flat=True))
     search_parameters['id__in'] = orderdetail_ids
     search_parameters['quantity__gt'] = 0
     temp_data = copy.deepcopy(AJAX_DATA)
@@ -4305,7 +4324,9 @@ def get_dist_target_summary_report_data(search_params, user, sub_user):
     if stop_index:
         totals_map = totals_map.items()[start_index:stop_index]
     for dist_code, target in totals_map:
-        dist_tgt = dist_targets[dist_code]
+        dist_tgt = dist_targets.get(dist_code, '')
+        if not dist_tgt:
+            dist_tgt = 0
         ytd_target = round((dist_tgt / 365) * days_passed, 2)
         ytd_act_sale = round(target["net_amt"], 2)
         exc_short = ((ytd_act_sale - ytd_target) / ytd_target) * 100
@@ -4326,7 +4347,11 @@ def get_dist_target_detailed_report_data(search_params, user, sub_user):
     search_parameters = {}
     date_filters = {}
     lis = ['id', 'user']
-    distributors = get_same_level_warehouses(2, user)
+    # distributors = get_same_level_warehouses(2, user)
+    if user.userprofile.warehouse_type != 'DIST':
+        distributors = get_same_level_warehouses(2, user)
+    else:
+        distributors = [user.id]
     zone_code = search_params.get('zone_code', '')
     if zone_code:
         distributors = UserProfile.objects.filter(user__in=distributors, zone=zone_code).values_list('user_id',
@@ -4464,7 +4489,11 @@ def get_reseller_target_summary_report_data(search_params, user, sub_user):
     from rest_api.views.outbound import get_same_level_warehouses
     search_parameters = {}
     lis = ['id', 'user']
-    distributors = get_same_level_warehouses(2, user)
+    # distributors = get_same_level_warehouses(2, user)
+    if user.userprofile.warehouse_type != 'DIST':
+        distributors = get_same_level_warehouses(2, user)
+    else:
+        distributors = [user.id]
     zone_code = search_params.get('zone_code', '')
     if zone_code:
         distributors = UserProfile.objects.filter(user__in=distributors,
@@ -4543,7 +4572,11 @@ def get_reseller_target_detailed_report_data(search_params, user, sub_user):
     from rest_api.views.outbound import get_same_level_warehouses
     search_parameters = {}
     lis = ['id', 'user']
-    distributors = get_same_level_warehouses(2, user)
+    # distributors = get_same_level_warehouses(2, user)
+    if user.userprofile.warehouse_type != 'DIST':
+        distributors = get_same_level_warehouses(2, user)
+    else:
+        distributors = [user.id]
     search_parameters['quantity__gt'] = 0
     temp_data = copy.deepcopy(AJAX_DATA)
     if 'reseller_code' in search_params:
@@ -4608,7 +4641,11 @@ def get_corporate_target_report_data(search_params, user, sub_user):
     from rest_api.views.outbound import get_same_level_warehouses
     search_parameters = {}
     lis = ['id', 'user']
-    distributors = get_same_level_warehouses(2, user)
+    # distributors = get_same_level_warehouses(2, user)
+    if user.userprofile.warehouse_type != 'DIST':
+        distributors = get_same_level_warehouses(2, user)
+    else:
+        distributors = [user.id]
     search_parameters['quantity__gt'] = 0
     temp_data = copy.deepcopy(AJAX_DATA)
 
@@ -4651,7 +4688,11 @@ def get_corporate_target_report_data(search_params, user, sub_user):
 def get_corporate_reseller_mapping_report_data(search_params, user, sub_user):
     from rest_api.views.outbound import get_same_level_warehouses
     lis = ['id', 'user']
-    distributors = get_same_level_warehouses(2, user)
+    # distributors = get_same_level_warehouses(2, user)
+    if user.userprofile.warehouse_type != 'DIST':
+        distributors = get_same_level_warehouses(2, user)
+    else:
+        distributors = [user.id]
     temp_data = copy.deepcopy(AJAX_DATA)
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
@@ -4694,7 +4735,11 @@ def get_corporate_reseller_mapping_report_data(search_params, user, sub_user):
 def get_enquiry_status_report_data(search_params, user, sub_user):
     from rest_api.views.outbound import get_same_level_warehouses
     lis = ['id', 'user']
-    distributors = get_same_level_warehouses(2, user)
+    # distributors = get_same_level_warehouses(2, user)
+    if user.userprofile.warehouse_type != 'DIST':
+        distributors = get_same_level_warehouses(2, user)
+    else:
+        distributors = [user.id]
     temp_data = copy.deepcopy(AJAX_DATA)
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
@@ -4725,6 +4770,8 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
         search_parameters['enquiry__extend_status__icontains'] = search_params['enquiry_status']
     if 'enquiry_number' in search_params:
         search_parameters['enquiry__enquiry_id__contains'] = search_params['enquiry_number']
+    if 'sku_code' in search_params:
+        search_parameters['sku__sku_code'] = search_params['sku_code']
 
     resellers_qs = CustomerUserMapping.objects.filter(customer__user__in=distributors)
     resellers_names_map = dict(resellers_qs.values_list('customer_id', 'user__username'))
@@ -4749,12 +4796,14 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
         distributor_name = dist_obj.username
         zone = dist_obj.userprofile.zone
         sku_code = en_obj.sku.sku_code
+        quantity = en_obj.quantity
         prod_catg = en_obj.sku.sku_category
         ord_dict = OrderedDict((('Zone Code', zone),
                                 ('Distributor Code', distributor_name),
                                 ('Reseller Code', customer_name),
                                 ('Product Category', prod_catg),
                                 ('SKU Code', sku_code),
+                                ('SKU Quantity', quantity),
                                 ('Enquiry No', enq_id),
                                 ('Enquiry Aging', days_left),
                                 ('Enquiry Status', extend_status)))

@@ -3317,12 +3317,19 @@ def construct_other_charge_amounts_map(created_order_id, myDict, creation_date, 
     return other_charge_amounts
 
 
-def send_mail_ordered_report(order_detail, telephone, items, other_charge_amounts, order_data, user):
+def send_mail_ordered_report(order_detail, telephone, items, other_charge_amounts, order_data, user, gen_order_id=None):
     misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='order', misc_value='true')
-    if misc_detail and order_detail:
+    order_id = None
+    if gen_order_id:
+        order_id = gen_order_id
+    elif order_detail:
+        order_id = order_detail.order_id
+    else:
+        log.info("Order ID Not Found")
+    if misc_detail:
         company_name = UserProfile.objects.filter(user=user.id)[0].company_name
         headers = ['Product Details', 'Ordered Quantity', 'Total']
-        data_dict = {'customer_name': order_data['customer_name'], 'order_id': order_detail.order_id,
+        data_dict = {'customer_name': order_data['customer_name'], 'order_id': order_id,
                      'address': order_data['address'], 'phone_number': order_data['telephone'], 'items': items,
                      'headers': headers, 'company_name': company_name, 'user': user, 'client_name': order_data.get('client_name', '')}
 
@@ -3331,12 +3338,34 @@ def send_mail_ordered_report(order_detail, telephone, items, other_charge_amount
 
         email = order_data['email_id']
         if email:
-            send_mail([email], 'Order Confirmation: %s' % order_detail.order_id, rendered)
+            send_mail([email], 'Order Confirmation: %s' % order_id, rendered)
         if not telephone:
             telephone = order_data.get('telephone', "")
         if telephone:
-            order_creation_message(items, telephone, str(order_detail.order_id),
+            order_creation_message(items, telephone, str(order_id),
                                    other_charges=other_charge_amounts)
+
+
+def send_mail_enquiry_order_report(items, enquiry_id, user, customer_details):
+    misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='enquiry', misc_value='true')
+    email = customer_details['email_id']
+    receivers = [email]
+    internal_mail = MiscDetail.objects.filter(user=user.id, misc_type='Internal Emails')
+    misc_internal_mail = MiscDetail.objects.filter(user=user.id, misc_type='internal_mail', misc_value='true')
+    if misc_internal_mail and internal_mail:
+        internal_mail = internal_mail[0].misc_value.split(",")
+        receivers.extend(internal_mail)
+    if misc_detail:
+        company_name = UserProfile.objects.filter(user=user.id)[0].company_name
+        headers = ['Product Details', 'Ordered Quantity', 'Total']
+        data_dict = {'customer_name': customer_details['customer_name'], 'enquiry_id': enquiry_id,
+                     'items': items, 'headers': headers, 'company_name': company_name, 'user': user}
+
+        t = loader.get_template('templates/enq_order_confirmation.html')
+        rendered = t.render(data_dict)
+
+        if receivers:
+            send_mail(receivers, 'Order Confirmation: %s' % enquiry_id, rendered)
 
 
 def fetch_order_ids(stock_wh_map, user_order_ids_map):
@@ -3421,6 +3450,7 @@ def insert_order_data(request, user=''):
     cm_id = 0
     generic_order_id = 0
     admin_user = get_priceband_admin_user(user)
+    order_detail = None
     if admin_user:
         # get_order_customer_details
         user_order_ids_map = {}
@@ -3521,8 +3551,7 @@ def insert_order_data(request, user=''):
                                              sku_total_qty_map, order_user_sku, order_user_objs, address_selected)
                     else:
                         created_skus.append(order_data['sku_id'])
-                        items.append(
-                            [sku_master['sku_desc'], order_data['quantity'], order_data.get('invoice_amount', 0)])
+                    items.append([sku_master['sku_desc'], order_data['quantity'], order_data.get('invoice_amount', 0)])
 
             else:
                 if not order_id:
@@ -3607,8 +3636,8 @@ def insert_order_data(request, user=''):
                                                   creation_date=datetime.datetime.now())
         other_charge_amounts = construct_other_charge_amounts_map(created_order_id, myDict,
                                                                     datetime.datetime.now(), other_charge_amounts, user)
-        if generic_order_id:
-            check_and_raise_po(generic_order_id, cm_id)
+        # if generic_order_id:
+        #     check_and_raise_po(generic_order_id, cm_id)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -3617,9 +3646,10 @@ def insert_order_data(request, user=''):
         return HttpResponse("Order Creation Failed")
 
     try:
-        if not admin_user:
-            order_data['client_name'] = sample_client_name
-            send_mail_ordered_report(order_detail, telephone, items, other_charge_amounts, order_data, user)
+        # if not admin_user:
+        order_data['client_name'] = sample_client_name
+        send_mail_ordered_report(order_detail, telephone, items, other_charge_amounts,
+                                 order_data, user, generic_order_id)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -3645,6 +3675,7 @@ def insert_order_data(request, user=''):
             if auto_picklist_signal == 'true':
                 message = check_stocks(order_user_data, User.objects.get(id=user_id), request, order_objs)
         #qssi push order api call
+        is_emiza_order_failed = False
         generic_orders = GenericOrderDetailMapping.objects.filter(generic_order_id=generic_order_id,
                                                                    customer_id=cm_id).\
                                         values('orderdetail__original_order_id', 'orderdetail__user').distinct()
@@ -3654,6 +3685,7 @@ def insert_order_data(request, user=''):
             resp = order_push(original_order_id, order_detail_user, "NEW")
             log.info('New Order Push Status: %s' % (str(resp)))
             if resp.get('Status', '') == 'Failure' or resp.get('status', '') == 'Internal Server Error':
+                is_emiza_order_failed = True
                 if resp.get('status', '') == 'Internal Server Error':
                     message = "400 Bad Request"
                 else:
@@ -3664,6 +3696,9 @@ def insert_order_data(request, user=''):
                     picklist_number = picklist_number[0]
                 log.info(order_detail.delete())
                 check_picklist_number_created(order_detail_user, picklist_number)
+
+        if generic_order_id and not is_emiza_order_failed:
+            check_and_raise_po(generic_order_id, cm_id)
         if user_type == 'customer' and not is_distributor and message in success_messages:
             # Creating Uploading POs object with file upload pending.
             # upload_po Api is called in front-end if file is present
@@ -9307,6 +9342,7 @@ def insert_enquiry_data(request, user=''):
     cart_items = CustomerCartData.objects.filter(customer_user_id=customer_id)
     if not cart_items:
         return HttpResponse('No Data in Cart')
+    items = []
     try:
         customer_details = {}
         customer_details = get_order_customer_details(customer_details, request)
@@ -9339,11 +9375,13 @@ def insert_enquiry_data(request, user=''):
                 enq_sku_obj.levelbase_price = cart_item.levelbase_price
                 enq_sku_obj.warehouse_level = cart_item.warehouse_level
                 enq_sku_obj.save()
+                items.append([cart_item.sku.style_name, qty, tot_amt])
     except:
         import traceback
         log.debug(traceback.format_exc())
         message = 'Failed'
     else:
+        send_mail_enquiry_order_report(items, enquiry_id, user, customer_details)
         CustomerCartData.objects.filter(customer_user=request.user.id).delete()
     return HttpResponse(message)
 

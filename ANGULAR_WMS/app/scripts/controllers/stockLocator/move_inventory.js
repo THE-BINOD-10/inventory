@@ -16,6 +16,7 @@
       vm.bt_disable = true;
       vm.service = Service;
       vm.industry_type = Session.user_profile.industry_type;
+      vm.user_type = Session.user_profile.user_type;
       vm.batch_nos = [];
       vm.batches = {};
 
@@ -257,7 +258,8 @@
       }
 
       //margin value
-    vm.marginData = {margin_type: '', margin: 0, margin_percentage: 0, margin_value: 0, is_margin_percentage: true, industry_type: vm.industry_type};
+    vm.marginData = {margin_type: '', margin: 0, margin_percentage: 0, margin_value: 0, is_margin_percentage: true,
+                     industry_type: vm.industry_type, user_type: vm.user_type};
     vm.add_sku_substitute = function() {
 
       var mod_data = vm.marginData;
@@ -294,6 +296,7 @@
     $ctrl.service = Service;
     $ctrl.model_data = {};
     $ctrl.industry_type = items.industry_type;
+    $ctrl.user_type = items.user_type;
     $ctrl.model_data.src_available_quantity = 0;
     $ctrl.data_available = true;
     $ctrl.success_resp = false;

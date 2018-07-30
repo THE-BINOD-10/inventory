@@ -418,6 +418,7 @@ class OpenPO(models.Model):
     ship_to = models.CharField(max_length=128, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
+    terms = models.TextField(default='', max_length=256)
 
     class Meta:
         db_table = 'OPEN_PO'
@@ -862,8 +863,9 @@ class UserProfile(models.Model):
     cin_number = models.CharField(max_length=64, default='')
     customer_logo = models.ImageField(upload_to='static/images/customer_logos/', default='')
     bank_details = models.TextField(default='')
-    industry_type = models.CharField(max_length=32, default='')
+    industry_type = models.CharField(max_length=32, default='', blank=True)
     order_prefix = models.CharField(max_length=32, default='', null=True, blank=True)
+    pan_number = models.CharField(max_length=64, default='', blank=True)
 
     class Meta:
         db_table = 'USER_PROFILE'
@@ -1378,6 +1380,7 @@ class CustomerOrderSummary(models.Model):
     client_name = models.CharField(max_length=64, default='')
     mode_of_transport = models.CharField(max_length=24, default='')
     payment_status = models.CharField(max_length=64, default='')
+    courier_name = models.CharField(max_length=64, default='')
 
     class Meta:
         db_table = 'CUSTOMER_ORDER_SUMMARY'
@@ -1863,6 +1866,7 @@ class SellerPOSummary(models.Model):
 
     class Meta:
         db_table = 'SELLER_PO_SUMMARY'
+        index_together = (('receipt_number',), ('purchase_order', 'receipt_number'))
 
     def __unicode__(self):
         return str(self.id)
@@ -2774,6 +2778,7 @@ class ReturnToVendor(models.Model):
     location = models.ForeignKey(LocationMaster, blank=True, null=True)
     quantity = models.FloatField(default=0)
     status = models.IntegerField(default=1)
+    return_type = models.CharField(max_length=32, default='Invoice')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -2783,8 +2788,9 @@ class ReturnToVendor(models.Model):
 
 class TargetMaster(models.Model):
     id = BigAutoField(primary_key=True)
-    user = models.ForeignKey(User, blank=True, null=True)
-    target_level = models.CharField(max_length=64, default='')
+    distributor = models.ForeignKey(User, related_name='distributor', blank=True, null=True)
+    reseller = models.ForeignKey(User, related_name='reseller', blank=True, null=True)
+    corporate_id = models.IntegerField(max_length=10)
     target_amt = models.FloatField(default=0)
     target_duration = models.IntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -2792,3 +2798,4 @@ class TargetMaster(models.Model):
 
     class Meta:
         db_table = 'TARGET_MASTER'
+        unique_together = ('distributor', 'reseller', 'corporate_id')

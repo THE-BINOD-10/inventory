@@ -140,6 +140,14 @@ def get_purchase_order_excel_headers(user):
     return excel_headers
 
 
+def get_seller_transfer_excel_headers(user):
+    excel_headers = copy.deepcopy(SELLER_TRANSFER_MAPPING)
+    userprofile = user.userprofile
+    if not userprofile.industry_type == 'FMCG':
+        del excel_headers["MRP"]
+    return excel_headers
+
+
 '''def check_and_get_marketplace(reader, file_type, no_of_rows, no_of_cols):
     marketplace = ''
     if get_cell_data(0, 0, reader, file_type) == 'Order No.':
@@ -531,6 +539,14 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 if not get_cell_data(row_idx, order_mapping['customer_id'], reader, file_type):
                     index_status.setdefault(count, set()).add('Customer ID mandatory for Returnable Order')
 
+        if 'mrp' in order_mapping:
+            cell_data = get_cell_data(row_idx, order_mapping['mrp'], reader, file_type)
+            if cell_data:
+                try:
+                    cell_data = float(cell_data)
+                except:
+                    index_status.setdefault(count, set()).add('MRP should be Number')
+
     if index_status and file_type == 'csv':
         f_name = fname.name.replace(' ', '_')
         file_path = rewrite_csv_file(f_name, index_status, reader)
@@ -650,7 +666,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 if isinstance(pin_code, float) or isinstance(pin_code, int):
                     order_data[key] = int(pin_code)
             elif key == 'mrp':
-                order_summary_dict['mrp'] = get_cell_data(row_idx, value, reader, file_type)
+                order_summary_dict['mrp'] = float(get_cell_data(row_idx, value, reader, file_type))
             elif key == 'customer_id':
                 cell_data = get_cell_data(row_idx, value, reader, file_type)
                 if not cell_data:
@@ -1861,8 +1877,9 @@ def validate_supplier_form(open_sheet, user_id):
     messages_dict = {'phone_number': 'Phone Number', 'days_to_supply': 'Days required to supply',
                      'fulfillment_amt': 'Fulfillment Amount', 'owner_number': 'Owner Number',
                      'spoc_number': 'SPOC Number', 'lead_time': 'Lead Time', 'credit_period': 'Credit Period',
-                     'account_number': 'Account Number', 'po_exp_duration': 'PO Expiry Duration'}
-    number_str_fields = ['pincode', 'phone_number', 'days_to_supply', 'fulfillment_amt', 'po_exp_duration',
+                     'account_number': 'Account Number', 'po_exp_duration': 'PO Expiry Duration',
+                     'pincode': 'PinCode'}
+    number_str_fields = ['phone_number', 'days_to_supply', 'fulfillment_amt', 'po_exp_duration',
                          'owner_number', 'spoc_number', 'lead_time', 'credit_period', 'account_number']
     for row_idx in range(0, open_sheet.nrows):
         for key, value in mapping_dict.iteritems():
@@ -1877,7 +1894,7 @@ def validate_supplier_form(open_sheet, user_id):
                     cell_data = str(int(cell_data))
                 if cell_data:
                     supplier_master = SupplierMaster.objects.filter(id=cell_data)
-                    if supplier_master and not supplier_master[0].user == user_id:
+                    if supplier_master and not str(supplier_master[0].user) == str(user_id):
                         index_status.setdefault(row_idx, set()).add('Supplier ID Already exists')
                 if cell_data and cell_data in supplier_ids:
                     index_status.setdefault(row_idx, set()).add('Duplicate Supplier ID')
@@ -1892,7 +1909,12 @@ def validate_supplier_form(open_sheet, user_id):
             elif key == 'email_id':
                 if cell_data and validate_email(cell_data):
                     index_status.setdefault(row_idx, set()).add('Enter Valid Email address')
-
+            elif key == 'pincode':
+                if cell_data:
+                    try:
+                        cell_data = float(cell_data)
+                    except:
+                        index_status.setdefault(row_idx, set()).add('Invalid %s' % messages_dict[key])
             elif key in number_str_fields:
                 if cell_data:
                     if not isinstance(cell_data, (int, float)):
@@ -2475,11 +2497,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
             seller_id = final_dict['seller'].id
         group_key = (order_data['po_name'], order_data['supplier_id'], data['po_date'], seller_id)
         if group_key not in order_ids.keys():
-            po_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id).order_by('-order_id')
-            if not po_data:
-                po_id = 0
-            else:
-                po_id = po_data[0].order_id
+            po_id = get_purchase_order_id(user)
             order_ids[group_key] = po_id
         else:
             po_id = order_ids[group_key]
@@ -2510,6 +2528,9 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         mail_result_data = purchase_order_dict(data1, data_req, purchase_order, user, order)
     if mail_result_data and get_misc_value('raise_po', user.id) == 'true':
         mail_status = purchase_upload_mail(request, mail_result_data, user)
+    for key, value in order_ids.iteritems():
+        if value:
+            check_purchase_order_created(user, value)
     return 'success'
 
 
@@ -2547,8 +2568,13 @@ def purchase_upload_mail(request, data_to_send, user):
         order_date = get_local_date(request.user, value[0]['purchase_order'].creation_date)
         address = '\n'.join(supplier.address.split(','))
         vendor_name = ''
-        vendor_address = ''
+        vendor_address, ship_to_address = '', ''
         vendor_telephone = ''
+        if value[0]['purchase_order'].ship_to:
+            ship_to_address = value[0]['purchase_order'].ship_to
+        else:
+            ship_to_address = user.userprofile.address
+        ship_to_address = '\n'.join(ship_to_address.split(','))
 
         if value[0]['purch'].order_type == 'VR':
             vendor_address = value[0]['purch'].vendor.address
@@ -2581,7 +2607,7 @@ def purchase_upload_mail(request, data_to_send, user):
                            'company_name': profile.company_name, 'location': profile.location,
                            'w_address': get_purchase_company_address(profile), 'vendor_name': vendor_name,
                            'vendor_address': vendor_address, 'vendor_telephone': vendor_telephone,
-                           'customization': customization}
+                           'customization': customization, 'ship_to_address': ship_to_address}
         rendered = t.render(data_dictionary)
         write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
                            str(order_date).split(' ')[0])
@@ -4306,6 +4332,9 @@ def create_po_serial_mapping(final_data_dict, user):
         save_sku_stats(user, stock_dict.sku_id, purchase_order.id, 'po', quantity)
         mod_locations.append(location_master.location)
 
+    for key, value in order_id_dict.iteritems():
+        if value:
+            check_purchase_order_created(user, value)
     if mod_locations:
         update_filled_capacity(mod_locations, user.id)
 
@@ -4535,7 +4564,7 @@ def seller_transfer_form(request, user=''):
     excel_file = request.GET['download-file']
     if excel_file:
         return error_file_download(excel_file)
-    excel_headers = SELLER_TRANSFER_MAPPING
+    excel_headers = get_seller_transfer_excel_headers(user)
     wb, ws = get_work_sheet('Inventory', excel_headers.keys())
     return xls_to_response(wb, '%s.seller_transfer_form.xls' % str(user.id))
 
@@ -4554,30 +4583,49 @@ def targets_form(request, user=''):
 
 def validate_targets_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type='xls'):
     index_status = {}
-    TARGET_LEVELS = ['DIST', 'RESELLER', 'CORPORATE']
     target_file_mapping = copy.deepcopy(TARGET_DEF_EXCEL)
     if not target_file_mapping:
         return 'Invalid File'
     warehouse_qs = UserGroups.objects.filter(admin_user=user.id)
-    warehouse_users = warehouse_qs.values_list('user_id__username', flat=True)
+    dist_users = warehouse_qs.filter(user__userprofile__warehouse_level=2).values_list('user_id__username', flat=True)
     wh_userids = warehouse_qs.values_list('user_id', flat=True)
-    reseller_users = CustomerUserMapping.objects.filter(customer__user__in=wh_userids).\
-        values_list('user_id__username', flat=True)
+    reseller_qs = CustomerUserMapping.objects.filter(customer__user__in=wh_userids)
+    reseller_ids_map = dict(reseller_qs.values_list('user_id__username', 'customer__id'))
+    reseller_ids = reseller_ids_map.values()
+    reseller_users = reseller_ids_map.keys()
+    res_corp_qs = CorpResellerMapping.objects.filter(reseller_id__in=reseller_ids).values_list('reseller_id', 'corporate_id')
+    res_corp_map = {}
+    res_corp_names_map = {}
+    for res_id, corp_id in res_corp_qs:
+        res_corp_map.setdefault(res_id, []).append(corp_id)
+    for res_id, corp_ids in res_corp_map.items():
+        corp_names = CorporateMaster.objects.filter(id__in=corp_ids).values_list('name', flat=True)
+        res_corp_names_map.setdefault(res_id, []).extend(corp_names)
+
     for row_idx in range(1, no_of_rows):
         for key, value in target_file_mapping.iteritems():
             cell_data = get_cell_data(row_idx, target_file_mapping[key], reader, file_type)
-            if key == 'user_id':
+            if key == 'distributor_id':
                 if not cell_data:
-                    index_status.setdefault(row_idx, set()).add("User ID Missing")
+                    index_status.setdefault(row_idx, set()).add("Distributor Missing")
                 else:
-                    if cell_data not in warehouse_users and cell_data not in reseller_users:
-                        index_status.setdefault(row_idx, set()).add('Invalid User ID')
-            elif key == 'target_level':
+                    if cell_data not in dist_users:
+                        index_status.setdefault(row_idx, set()).add('Invalid Distributor ID')
+            elif key == 'reseller_id':
+                if not cell_data:
+                    index_status.setdefault(row_idx, set()).add("Reseller ID Missing")
+                else:
+                    if cell_data not in reseller_users:
+                        index_status.setdefault(row_idx, set()).add('Invalid Reseller ID')
+            elif key == 'corporate_name':
+                res_code = get_cell_data(row_idx, target_file_mapping['reseller_id'], reader, file_type)
+                res_id = reseller_ids_map[res_code]
+                mapped_corp_names = res_corp_names_map.get(res_id, [])
                 if cell_data:
-                    if cell_data not in TARGET_LEVELS:
-                        index_status.setdefault(row_idx, set()).add('Invalid Target Level (DIST/RESELLER/CORPORATE)')
+                    if cell_data not in mapped_corp_names:
+                        index_status.setdefault(row_idx, set()).add('Corporate Name not mapped with Reseller')
                 else:
-                    index_status.setdefault(row_idx, set()).add('Target Level (DIST/RESELLER/CORPORATE) Missing')
+                    index_status.setdefault(row_idx, set()).add('Corporate Name Missing')
             elif key == 'target_amt':
                 if cell_data:
                     if not isinstance(cell_data, (int, float)):
@@ -4635,11 +4683,11 @@ def targets_upload(request, user=''):
 
 
 def update_targets_upload(request, reader, no_of_rows, file_type='xls', user=''):
-    wh_users_map = dict(UserGroups.objects.filter(admin_user=user).values_list('user__username', 'user_id'))
-    reseller_users_map = dict(CustomerUserMapping.objects.filter(customer__user__in=wh_users_map.values()). \
+    dist_users_map = dict(UserGroups.objects.filter(admin_user=user, user__userprofile__warehouse_level=2).
+                          values_list('user__username', 'user_id'))
+    reseller_users_map = dict(CustomerUserMapping.objects.filter(customer__user__in=dist_users_map.values()). \
         values_list('user_id__username', 'user_id'))
-    users_map = wh_users_map.copy()
-    users_map.update(reseller_users_map)
+    corp_names_map = dict(CorporateMaster.objects.filter(user=user.id).values_list('name', 'id'))
     target_file_mapping = copy.deepcopy(TARGET_DEF_EXCEL)
     for row_idx in range(1, no_of_rows):
         if not target_file_mapping:
@@ -4647,15 +4695,21 @@ def update_targets_upload(request, reader, no_of_rows, file_type='xls', user='')
         each_row_map = copy.deepcopy(TARGET_DEF_EXCEL)
         for key, value in target_file_mapping.iteritems():
             each_row_map[key] = get_cell_data(row_idx, value, reader, file_type)
-        user_id = users_map[each_row_map.pop('user_id')]
-        target_obj = TargetMaster.objects.filter(user_id=user_id)
+
+        dist_id = dist_users_map.get(each_row_map.pop('distributor_id'), '')
+        res_id = reseller_users_map.get(each_row_map.pop('reseller_id'), '')
+        corp_id = corp_names_map.get(each_row_map.pop('corporate_name'), '')
+        if not dist_id and not res_id and not corp_id:
+            continue
+        target_obj = TargetMaster.objects.filter(distributor_id=dist_id, reseller_id=res_id, corporate_id=corp_id)
         if not target_obj:
-            each_row_map['user_id'] = user_id
+            each_row_map['corporate_id'] = corp_id
+            each_row_map['distributor_id'] = dist_id
+            each_row_map['reseller_id'] = res_id
             target_master = TargetMaster(**dict(each_row_map))
             target_master.save()
         else:
             target_obj[0].target_amt = each_row_map['target_amt']
-            target_obj[0].target_level = each_row_map['target_level']
             target_obj[0].target_duration = each_row_map['target_duration']
             target_obj[0].save()
     return 'success'
@@ -4665,15 +4719,17 @@ def validate_seller_transfer_form(request, reader, user, no_of_rows, no_of_cols,
     log.info("Validate Seller Transfer upload started")
     st_time = datetime.datetime.now()
     index_status = {}
+    seller_transfer_mapping = get_seller_transfer_excel_headers(user)
 
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
-                                             SELLER_TRANSFER_MAPPING)
-    if not set(SELLER_TRANSFER_MAPPING.values()).issubset(excel_mapping.keys()):
+                                             seller_transfer_mapping)
+    if not set(['wms_code', 'source_seller', 'source_location', 'dest_seller', 'dest_location',
+                'quantity']).issubset(excel_mapping.keys()):
         return 'Invalid File'
 
     log.info("Validation Started %s" % datetime.datetime.now())
     all_data_list = []
-    exc_reverse = dict(zip(SELLER_TRANSFER_MAPPING.values(), SELLER_TRANSFER_MAPPING.keys()))
+    exc_reverse = dict(zip(seller_transfer_mapping.values(), seller_transfer_mapping.keys()))
     all_skus = SKUMaster.objects.filter(user=user.id)
     all_sellers = SellerMaster.objects.filter(user=user.id)
     all_locations = LocationMaster.objects.filter(zone__user=user.id)
@@ -4708,20 +4764,37 @@ def validate_seller_transfer_form(request, reader, user, no_of_rows, no_of_cols,
                     index_status.setdefault(row_idx, set()).add('Invalid %s' % exc_reverse[key])
                 else:
                     data_dict[key] = location_obj
+            elif key == 'mrp':
+                if cell_data and cell_data != '':
+                    try:
+                        data_dict[key] = float(cell_data)
+                    except:
+                        data_dict[key] = 0
+                        index_status.setdefault(row_idx, set()).add('%s should be number' % exc_reverse[key])
             elif key == 'quantity':
                 try:
                     data_dict[key] = float(cell_data)
                 except:
                     index_status.setdefault(row_idx, set()).add('%s should be number' % exc_reverse[key])
-        if not index_status:
-            stocks = StockDetail.objects.filter(sku_id=data_dict['sku_id'],
-                                                sellerstock__seller_id=data_dict['source_seller'],
-                                                location_id=data_dict['source_location'][0].id, quantity__gt=0,
-                                                sellerstock__quantity__gt=0)
+        if row_idx not in index_status.keys():
+            src_stock_dict = {'sku_id': data_dict['sku_id'], 'sellerstock__seller_id': data_dict['source_seller'],
+                              'location_id': data_dict['source_location'][0].id, 'quantity__gt': 0,
+                              'sellerstock__quantity__gt': 0}
+            if data_dict.get('mrp', 0):
+                src_stock_dict['batch_detail__mrp'] = data_dict['mrp']
+            stock_detail = StockDetail.objects.filter(**src_stock_dict)
+            if user.userprofile.industry_type == 'FMCG':
+                data_dict['dest_stocks'] = StockDetail.objects.none()
+                stock_detail1 = stock_detail.filter(batch_detail__expiry_date__isnull=False). \
+                    order_by('batch_detail__expiry_date')
+                stock_detail2 = stock_detail.exclude(batch_detail__expiry_date__isnull=False)
+                stocks = list(chain(stock_detail1, stock_detail2))
+            else:
+                data_dict['dest_stocks'] = StockDetail.objects.filter(sku_id=data_dict['sku_id'],
+                                                    sellerstock__seller_id=data_dict['dest_seller'],
+                                                    location_id=data_dict['dest_location'][0].id)
+                stocks = stock_detail
             data_dict['src_stocks'] = stocks
-            data_dict['dest_stocks'] = StockDetail.objects.filter(sku_id=data_dict['sku_id'],
-                                                sellerstock__seller_id=data_dict['dest_seller'],
-                                                location_id=data_dict['dest_location'][0].id)
             avail_qty = check_auto_stock_availability(stocks, user)
             if data_dict['quantity'] > avail_qty:
                 index_status.setdefault(row_idx, set()).add('Available quantity is %s' % str(avail_qty))
@@ -4737,6 +4810,7 @@ def validate_seller_transfer_form(request, reader, user, no_of_rows, no_of_cols,
 def update_seller_transer_upload(user, data_list):
     trans_mapping = {}
     stock_transfer_objs = []
+    grouping_data = []
     for data_dict in data_list:
         update_stocks_data(data_dict['src_stocks'], data_dict['quantity'], data_dict.get('dest_stocks', ''),
                            data_dict['quantity'], user, data_dict['dest_location'], data_dict['sku_id'],
@@ -4750,11 +4824,19 @@ def update_seller_transer_upload(user, data_list):
             trans_mapping[group_key] = seller_transfer.id
         seller_st_dict = {'seller_transfer_id': trans_mapping[group_key], 'sku_id': data_dict['sku_id'],
                           'source_location_id': data_dict['source_location'][0].id,
-                          'dest_location_id': data_dict['dest_location'][0].id, 'quantity': data_dict['quantity'],
-                          'creation_date': datetime.datetime.now()}
-        seller_st_obj = SellerStockTransfer(**seller_st_dict)
-        stock_transfer_objs.append(seller_st_obj)
-    SellerStockTransfer.objects.bulk_create(stock_transfer_objs)
+                          'dest_location_id': data_dict['dest_location'][0].id }
+        exist_obj = SellerStockTransfer.objects.filter(**seller_st_dict)
+        if not exist_obj:
+            seller_st_dict['creation_date'] = datetime.datetime.now()
+            seller_st_dict['quantity'] = data_dict['quantity']
+            seller_st_obj = SellerStockTransfer(**seller_st_dict)
+            seller_st_obj.save()
+        else:
+            exist_seller_obj = exist_obj[0]
+            exist_seller_obj.quantity = exist_seller_obj.quantity + data_dict['quantity']
+            exist_seller_obj.save()
+        #stock_transfer_objs.append(seller_st_obj)
+    #SellerStockTransfer.objects.bulk_create(stock_transfer_objs)
 
 
 @csrf_exempt
@@ -4819,6 +4901,9 @@ def validate_sku_substitution_form(request, reader, user, no_of_rows, no_of_cols
                     index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])
             elif key in ['source_location', 'dest_location']:
                 if cell_data:
+                    if isinstance(cell_data, (int, float)):
+                        cell_data = int(cell_data)
+                    cell_data = str(cell_data)
                     location_master = LocationMaster.objects.filter(zone__user=user.id, location=cell_data)
                     if not location_master:
                         index_status.setdefault(row_idx, set()).add('Invalid %s' % inv_res[key])

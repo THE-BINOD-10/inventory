@@ -3,15 +3,16 @@
 <div>
   <style>
     {% include 'toggle/page1.css' %}
+    /*{% include 'toggle/bootstrap.min.css' %}*/
   </style>
   <div class="print-invoice2 mb20">
     <div class="invoice-body">
 	{% if "EAN Number" in table_headers %}
-      <table class="table table-bordered m0" style="width:1041px!important">
+      <table class="table table-bordered m0" style="width:1052px !important">
 	{% else %}
-	  <table class="table table-bordered m0" style="width:960px!important">
+	  <table class="table table-bordered m0" style="width:976px !important">
 	{% endif %}
-        <tbody>
+        <tbody style="width: 100%">
           <tr>
             <td colspan="2">
               <h3 class="m0" align="center"><b>Purchase Order</b></h3>
@@ -30,7 +31,7 @@
                   <div class="col-md-12 p0">
                 <span><b>Order ID :</b>{{ order_id }}</span><br>
                     <span><b>PO Reference :</b>{{ po_reference }}</span><br>
-                    <span><b>GSTIN :</b>{{ gstin_number }}</span><br>
+                    <span><b>GSTIN :</b>{{ wh_gstin }}</span><br>
                     <span><b>Pan No. :</b></span><br>
                     <span><b>Date:</b>{{ order_date }}</span><br>
                   </div>
@@ -57,7 +58,7 @@
                     <span><b>Name :</b></span>{{ name }}<br>
                     <span><b>Address :</b></span>{{ address|linebreaks }}<br>
                     <!--<span><b>Telephone :</b></span>{{ telephone }}<br>-->
-                    <span><b>GSTIN No :</b></span><br>
+                    <span><b>GSTIN No :</b>{{ gstin_no }}</span><br>
                   </div>
                 </div>
               </div>
@@ -70,7 +71,7 @@
                     <span><b>Name :</b></span>{{ company_name }}<br>
                     <span><b>Address :</b></span>{{ ship_to_address|linebreaks }}<br>
                     <span><b>Telephone :</b></span>{{ wh_telephone }}<br>
-                    <span><b>GSTIN No :</b></span>{{ gstin_number }}<br>
+                    <span><b>GSTIN No :</b></span>{{ wh_gstin }}<br>
                   </div>
                 </div>
               </div>
@@ -78,18 +79,23 @@
 		  </tr>
         </tbody>
       </table>
-      <table class="table table-bordered bl br cal-table m0" style="width:960px!important">
-		<thead>
-		<tr align="center">
-            {% for table_header in table_headers %}
-			    <th style="padding:2.5px;" rowspan="2"><center>{{ table_header }}</center></th>
-            {% endfor %}
-            {% if customization %}
-			    <th style="padding:2.5px;" rowspan="2"><center><th>Customization</th></center></th>
-            {% endif %}
-		</tr>
+      <!-- <table class="table table-bordered bl br cal-table m0" style="width:960px!important"> -->
+    {% if "EAN Number" in table_headers %}
+      <table class="table table-bordered m0" style="width:1051px !important">
+    {% else %}
+      <table class="table table-bordered m0" style="width:976px !important">
+    {% endif %}
+		<thead style="width: 100%">
+  		<tr align="center">
+              {% for table_header in table_headers %}
+  			    <th style="padding:2.5px;" rowspan="2"><center>{{ table_header }}</center></th>
+              {% endfor %}
+              {% if customization %}
+  			    <th style="padding:2.5px;" rowspan="2"><center><th>Customization</th></center></th>
+              {% endif %}
+  		</tr>
 		</thead>
-        <tbody>
+        <tbody style="width: 100%">
           {% for dat in data %}
             <tr class="fs14">
               {% for d in dat %}
@@ -106,7 +112,7 @@
             </tr>
 			{% if forloop.last %}
 				<tr class="fs14 rm-border">
-					<td class="fs14" colspan="5">
+					<td class="fs14" colspan="6">
 				  		<div class="row m0">
 							<div class="col-xs-12 text-left">
 					  			<span>Total Order Quantity :</span> {{ total_qty }}<br>
@@ -114,7 +120,7 @@
 							</div>
 				  		</div>
 					</td>
-					<td class="fs14 text-center" colspan="15">
+					<td class="fs14 text-center" colspan="7">
 				  		<h5 class="m0">For {{ company_name }}</h5></br></br>
 				  		<h5 class="m0">Authorised Signatory</h5>
 					</td>

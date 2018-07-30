@@ -1485,6 +1485,7 @@ def get_order(orig_order_id, user):
             total_mrp += tot + tot * (order_summary.cgst_tax + order_summary.sgst_tax)/100
         order = order_detail[0]
         order_date = order.creation_date.strftime("%Y-%m-%d %H:%M:%S")#get_local_date(user, order.creation_date)
+        shipment_date = order.shipment_date.strftime("%d-%b-%Y")
         if order.customer_id:
             gen_obj = GenericOrderDetailMapping.objects.filter(orderdetail_id=order.id)
             if gen_obj:
@@ -1517,7 +1518,9 @@ def get_order(orig_order_id, user):
                        'total_mrp': total_mrp,
                        'total_gst': total_gst,
                        'customer_data': customer_data,
-                       'sku_data': sku_data},
+                       'sku_data': sku_data,
+                       'remarks': order.remarks,
+                       'shipment_date': shipment_date},
                 'status': 'success'}
     else:
         return {'data':{}, 'status': 'failure'}

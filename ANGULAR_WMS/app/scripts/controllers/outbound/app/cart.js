@@ -224,12 +224,12 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
               } else {
                 vm.insert_cool = true;
                 vm.data_status = true;
-                vm.service.showNoty(data.data, "danger", "bottomRight");
+                vm.service.showNoty(data.data);
               }
             } else {
               vm.insert_cool = true;
               vm.data_status = true;
-              vm.service.showNoty(data.data, "danger", "bottomRight");
+              vm.service.showNoty(data.data);
             }
 
             vm.place_order_loading = false;

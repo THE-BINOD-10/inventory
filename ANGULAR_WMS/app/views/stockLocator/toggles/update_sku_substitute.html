@@ -21,12 +21,12 @@
 
     <div class="modal-body lebel-error-hide" id="modal-body">
       <div class="row">
-        <div class="col-md-4 col-sm-4 col-xs-6" style="margin: 10px">
+        <div class="col-md-4 col-sm-4 col-xs-6" style="margin: 10px" ng-if="$ctrl.user_type == 'marketplace_user'">
             <label class="control-label">Sellar ID</label>
             <input type="text" autocomplete="off" name="seller_id" class="form-control" placeholder="Search Seller ID/Name/Number" typeahead="address.seller_id+' : '+address.name+' : '+address.phone_number for address in $ctrl.service.getSearchValues($viewValue, 'search_seller_data?')" typeahead-loading="loadingLocations" ng-model="$ctrl.model_data.seller_id" typeahead-on-select="$ctrl.model_data.seller_id=$item.seller_id" required>
         </div>
       </div>
-      <hr>
+      <hr ng-if="$ctrl.user_type == 'marketplace_user'">
       <div class="row" style="margin-top:10px">
         <div class="col-md-4 col-sm-12 col-xs-12">
             <div class="col-md-6 col-sm-5 col-xs-12">
@@ -34,7 +34,7 @@
                 <input type="text" autocomplete="off" name="src_sku_code" class="form-control" placeholder="Search SKU Code &sol; Desc" typeahead="address.wms_code+' : '+address.sku_desc for address in $ctrl.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" typeahead-on-select="$ctrl.model_data.src_sku_code = $item.wms_code; $ctrl.check_sku_code($item, $ctrl.model_data.src_location, 'src_sku')" ng-model="$ctrl.model_data.src_sku_code"  ng-blur="$ctrl.empty_sku(); $ctrl.get_sku_batches($ctrl.model_data.src_sku_code)">
             </div>
 
-            <div class="col-md-6 col-sm-5 col-xs-12" ng-if="$ctrl.industry_type == 'FMCG'" style="margin-top: 10px">
+            <div class="col-md-6 col-sm-5 col-xs-12" ng-if="$ctrl.industry_type == 'FMCG'">
                 <label class="control-label"> Batch Number</label>
                 <select class="form-control" name="src_batch_number" ng-model="$ctrl.model_data.batch_number">
                   <option value="">Select Batch Number</option>

@@ -771,6 +771,10 @@ var app = angular.module('urbanApp')
             url: '/ScanReturns',
             templateUrl: 'views/inbound/toggle/scan_returns.html'
           })
+          .state('app.inbound.SalesReturns.ScanReturnsPrint', {
+            url: '/ScanReturnsPrint',
+            templateUrl: 'views/inbound/toggle/scan_return_print.html'
+          })
           .state('app.inbound.SalesReturns.barcode', {
             url: '/Barcode',
             templateUrl: 'views/masters/toggles/barcode.html'
@@ -1916,8 +1920,32 @@ var app = angular.module('urbanApp')
             title: 'Reseller Wise Sales Report',
           }
         })
-        .state('app.reports.DistTargetReport', {
-          url: '/DistTargetReport',
+        .state('app.reports.ZoneTargetSummaryReport', {
+          url: '/ZoneTargetSummaryReport',
+          templateUrl: 'views/reports/zone_target_summary_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/zone_target_summary_report.js');
+              }]
+          },
+          data: {
+            title: 'Zone Targets Summary Report',
+          }
+        })
+        .state('app.reports.ZoneTargetDetailedReport', {
+          url: '/ZoneTargetDetailedReport',
+          templateUrl: 'views/reports/zone_target_detailed_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/zone_target_detailed_report.js');
+              }]
+          },
+          data: {
+            title: 'Zone Targets Detailed Report',
+          }
+        })
+        .state('app.reports.DistTargetSummaryReport', {
+          url: '/DistTargetSummaryReport',
           templateUrl: 'views/reports/dist_target_report.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -1925,11 +1953,23 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Distributor Targets Report',
+            title: 'Distributor Targets Summary Report',
           }
         })
-        .state('app.reports.ResellerTargetReport', {
-          url: '/ResellerTargetReport',
+        .state('app.reports.DistTargetDetailedReport', {
+          url: '/DistTargetDetailedReport',
+          templateUrl: 'views/reports/dist_target_detailed_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/dist_target_detailed_report.js');
+              }]
+          },
+          data: {
+            title: 'Distributor Targets Detailed Report',
+          }
+        })
+        .state('app.reports.ResellerTargetSummaryReport', {
+          url: '/ResellerTargetSummaryReport',
           templateUrl: 'views/reports/reseller_target_report.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
@@ -1937,9 +1977,75 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Reseller Targets Report',
+            title: 'Reseller Targets Summary Report',
           }
         })
+        .state('app.reports.ResellerTargetDetailedReport', {
+          url: '/ResellerTargetDetailedReport',
+          templateUrl: 'views/reports/reseller_target_detailed_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/reseller_target_detailed_report.js');
+              }]
+          },
+          data: {
+            title: 'Reseller Targets Detailed Report',
+          }
+        })
+        .state('app.reports.CorporateTargetReport', {
+          url: '/CorporateTargetReport',
+          templateUrl: 'views/reports/corp_target_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/corp_target_report.js');
+              }]
+          },
+          data: {
+            title: 'Corporate Targets Report',
+          }
+        })
+        .state('app.reports.CorpResellerMappingReport', {
+          url: '/CorporateResellerMappingReport',
+          templateUrl: 'views/reports/corp_reseller_mapping_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/corp_reseller_mapping_report.js');
+              }]
+          },
+          data: {
+            title: 'Corporate Reseller Mapping Report',
+          }
+        })
+        .state('app.reports.EnquiryStatusReport', {
+          url: '/EnquiryStatusReport',
+          templateUrl: 'views/reports/enquiry_status_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/enquiry_status_report.js');
+              }]
+          },
+          data: {
+            title: 'Enquiry Status Report',
+          }
+        })
+
+        .state('app.reports.RTVReport', {
+          url: '/RTVReport',
+          templateUrl: 'views/reports/rtv_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/rtv_report.js');
+              }]
+          },
+          data: {
+            title: 'RTV Report',
+          }
+        })
+        .state('app.reports.RTVReport.DebitNotePrint', {
+           url: '/DebitNotePrint',
+           templateUrl: 'views/reports/toggles/purchase_order.html',
+        })
+
 
       // configuration route
       .state('app.configurations', {

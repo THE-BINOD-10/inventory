@@ -279,7 +279,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         // $scope.$apply(function() {
 
           vm.model_data.data.push({item_code:'', product_title:'', quantity:0, unit_price:0, invoice_amount:0, 
-            opening_stock: '', received: '', total_stock: '', consumed: '', closing: '', new_product:true, 
+            opening_stock: '', order_id: vm.order_id, received: '', total_stock: '', consumed: '', closing: '', new_product:true, 
+            default_status: false, sku_status: 1});
+
+          vm.items_dict.push({item_code:'', product_title:'', quantity:0, unit_price:0, invoice_amount:0, 
+            opening_stock: '', order_id: vm.order_id, received: '', total_stock: '', consumed: '', closing: '', new_product:true, 
             default_status: false, sku_status: 1});
         // });
       } else {

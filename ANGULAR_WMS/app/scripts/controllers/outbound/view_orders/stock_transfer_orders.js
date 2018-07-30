@@ -205,7 +205,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         vm.address = data.data.wh_details.address;
         vm.city = data.data.wh_details.city;
         vm.state = data.data.wh_details.state;
-        vm.creation_date = data.data.wh_details.pin;
+        vm.creation_date = data.data.order_date;
         vm.pin = data.data.wh_details.pincode;
 
         angular.forEach(vm.items_dict, function(item){
@@ -236,19 +236,23 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
    }
 
     vm.send_order_data = function(form) {
-      var elem = angular.element($('form'));
-      elem = elem[0];
-      elem = $(elem).serializeArray();
-      if (elem[0].value == '? string: ?'){
-          elem[0].value = '';
-      }
+      // var elem = angular.element($('item_form'));
+      // elem = elem[0];
+      // elem = $(elem).serializeArray();
+      var elem = [];
       elem.push({name: 'order_id', value: vm.order_id}, /*{name: 'customer_id', value: vm.customer_id},*/ 
                 {name: 'customer_name', value: vm.customer_name}, {name: 'city', value: vm.city},
                 {name: 'address', value: vm.address}, {name: 'state', value: vm.state}, {name: 'pincode', value: vm.pin},
-                {name: 'creation_date', value: vm.creation_date})
-      vm.service.apiCall('update_order_data/', 'POST', elem).then(function(data){
+                {name: 'creation_date', value: vm.creation_date}, {name: 'closing_stock', value: vm.items_dict[0].closing_stock},
+                {name: 'consumed', value: vm.items_dict[0].consumed}, {name: 'invoice_amount', value: vm.items_dict[0].invoice_amount},
+                {name: 'item_code', value: vm.items_dict[0].item_code}, {name: 'opening_stock', value: vm.items_dict[0].opening_stock},
+                {name: 'product_title', value: vm.items_dict[0].product_title}, {name: 'quantity', value: vm.items_dict[0].quantity}, 
+                {name: 'received', value: vm.items_dict[0].received}, {name: 'total_stock', value: vm.items_dict[0].total_stock}, 
+                {name: 'unit_price', value: vm.items_dict[0].unit_price});
+      vm.service.apiCall('update_stock_transfer_data/', 'POST', elem).then(function(data){
 
-          vm.reloadData();
+          // vm.reloadData();
+          vm.back_button();
           colFilters.showNoty('Saved sucessfully');
       })
     }

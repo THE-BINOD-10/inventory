@@ -10126,14 +10126,15 @@ def create_orders_check_ean(request, user=''):
 def get_stock_transfer_order_level_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
     lis = ['order_id', 'st_po__open_st__warehouse__username', 'order_id', 'date_only']
     stock_transfer_objs = StockTransfer.objects.filter(sku__user=user.id, status=1).\
-                                            values('st_po__open_st__warehouse__username', 'order_id').\
+                                            values('st_po__open_st__sku__user', 'order_id').\
                                             distinct().annotate(tsum=Sum('quantity'),
                                             date_only=Cast('creation_date', DateField()))
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
     if search_term:
-        master_data = stock_transfer_objs.filter(Q(st_po__open_st__warehouse__username__icontains=search_term) |
+        user_ids = User.objects.filter(username__icontains=search_term).values_list('id', flat=True)
+        master_data = stock_transfer_objs.filter(Q(st_po__open_st__sku__user__in=user_ids) |
                                                    Q(tsum__icontains=search_term) | Q(order_id__icontains=search_term) |
                                                    Q(creation_date__regex=search_term)).order_by(order_data)
     else:
@@ -10141,9 +10142,11 @@ def get_stock_transfer_order_level_data(start_index, stop_index, temp_data, sear
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     count = 0
+
     for data in master_data[start_index:stop_index]:
         checkbox = '<input type="checkbox" name="order_id" value="%s">' % data['order_id']
-        temp_data['aaData'].append({'': checkbox, 'Warehouse Name': data['st_po__open_st__warehouse__username'],
+        warehouse = User.objects.get(id=data['st_po__open_st__sku__user'])
+        temp_data['aaData'].append({'': checkbox, 'Warehouse Name': warehouse.username,
                                     'Stock Transfer ID': data['order_id'],
                                     'Quantity': data['tsum'], 'Creation Date': data['date_only'].strftime("%d %b, %Y"),
                                     'DT_RowClass': 'results',
@@ -10157,12 +10160,40 @@ def get_stock_transfer_order_details(request, user=''):
     """ Get Stock Transfer Order Details"""
 
     order_id = request.GET.get('order_id', '')
+    from_date = request.GET.get('from_date', '')
+    to_date = request.GET.get('to_date', '')
+    search_params = {'quantity__gt': 0}
+    stock_params = {}
+    if from_date:
+        from_date = from_date.split('/')
+        search_params['creation_date__gte'] = datetime.date(int(from_date[2]), int(from_date[0]),
+                                                                       int(from_date[1]))
+        stock_params['creation_date__gte'] = search_params['creation_date__gte']
+    if to_date:
+        to_date = datetime.datetime.combine(to_date + datetime.timedelta(1),
+                                                             datetime.time())
+        search_params['creation_date__lt'] = to_date
+        stock_params['creation_date__lt'] = to_date
     order_details_data = []
     wh_details = {}
     order_date = ''
     order_details = StockTransfer.objects.filter(sku__user=user.id, status=1, order_id=order_id)
     for one_order in order_details:
-        opening_stock, received, total_stock, consumed, closing_stock = 0, 0, 0, 0, 0
+        opening_stock, closing_stock = 0, 0
+        sku_stats = {}
+        warehouse = User.objects.get(id=one_order.st_po.open_st.sku.user)
+        if from_date or to_date:
+            stock_stats = StockStats.objects.filter(sku__sku_code=one_order.sku.sku_code, sku__user=warehouse.id,
+                                                    **stock_params).order_by('creation_date')
+            if stock_stats.exists():
+                opening_stock = stock_stats[0].opening_stock
+                closing_stock = stock_stats.order_by('-creation_date')[0].closing_stock
+            sku_stats = dict(SKUDetailStats.objects.filter(sku__sku_code=one_order.sku.sku_code,
+                                                            sku__user=warehouse.id, **search_params).\
+                             values_list('transact_type').distinct().annotate(tsum=Sum('quantity')))
+        received = sku_stats.get('PO', 0)
+        consumed = sku_stats.get('picklist', 0)
+        total_stock = opening_stock + received
         order_id = one_order.order_id
         sku = one_order.sku
         unit_price = one_order.invoice_amount/one_order.quantity

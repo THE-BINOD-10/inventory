@@ -290,6 +290,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             var all_order_details = data.data.data_dict[0].ord_data;
             vm.ord_status = data.data.data_dict[0].status;
             vm.invoice_type = data.data.data_dict[0].invoice_type;
+            vm.courier_name = data.data.data_dict[0].courier_name;
             vm.display_status_none = (vm.ord_status=="")?true:false;
 
             vm.model_data = {}
@@ -362,7 +363,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 	            var img_url = custom_data[0][3];
 	            vm.img_url = vm.service.check_image_url(img_url)
 	          }*/
-
+              
               var record = vm.model_data.data.push({item_code: vm.item_code, product_title: vm.product_title, quantity: vm.quantity,
               image_url: vm.img_url, remarks: vm.remarks, unit_price: vm.unit_price, taxes: vm.taxes,
               discount_per: vm.discount_per, sgst:vm.sgst, cgst:vm.cgst, igst:vm.igst, default_status: true, sku_status: value.sku_status})

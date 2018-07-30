@@ -185,8 +185,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         vm.model_data['filters'] = {};
       }
 
+      if (!(vm.model_data.filters['from_date'])) {
+
+        vm.model_data.filters['from_date'] = vm.date;
+      }
       vm.model_data.filters['order_id'] = vm.order_id;
-      vm.model_data.filters['from_date'] = vm.date;
       vm.model_data.filters['to_date'] = '';
     }
 
@@ -204,6 +207,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         vm.state = data.data.wh_details.state;
         vm.creation_date = data.data.wh_details.pin;
         vm.pin = data.data.wh_details.pincode;
+
+        angular.forEach(vm.items_dict, function(item){
+
+          item['default_status'] = true;
+        });
 
         vm.filtersData();
       });
@@ -267,9 +275,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         if (!vm.model_data.data) {
           vm.model_data['data'] = [];
         }
-        vm.model_data.data.push({item_code:'', product_title:'', quantity:0, unit_price:0, invoice_amount:0, 
-        opening_stock: '', received: '', total_stock: '', consumed: '', closing: '', new_product:true, 
-        default_status: false, sku_status: 1});
+
+        $scope.$apply(function() {
+
+          vm.model_data.data.push({item_code:'', product_title:'', quantity:0, unit_price:0, invoice_amount:0, 
+            opening_stock: '', received: '', total_stock: '', consumed: '', closing: '', new_product:true, 
+            default_status: false, sku_status: 1});
+        });
       } else {
         var data_to_delete = {};
         data_to_delete['order_id'] = vm.order_id;

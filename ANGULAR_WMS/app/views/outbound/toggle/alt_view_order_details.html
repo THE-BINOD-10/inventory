@@ -150,10 +150,10 @@
               <input type="text" class="form-control" name="closing" ng-model="data.closing" ng-readonly="data.default_status">
             </td>
             <td>
-              <input type="text" class="form-control" name="quantity" ng-model="data.quantity" ng-change="showCase.changeInvoiceAmt(data)" ng-readonly="showCase.input_status">
+              <input type="text" class="form-control" name="quantity" ng-model="data.quantity" ng-change="showCase.changeInvoiceAmt(data)" ng-readonly="data.default_status">
             </td>
             <td>
-              <input type="text" class="form-control" name="unit_price" ng-model="data.unit_price" ng-change="showCase.changeInvoiceAmt(data, true)" ng-class="service.get_decimal_perm()" ng-readonly="showCase.input_status">
+              <input type="text" class="form-control" name="unit_price" ng-model="data.unit_price" ng-change="showCase.changeInvoiceAmt(data, true)" ng-class="service.get_decimal_perm()" ng-readonly="data.default_status">
             </td>
             <td>
               <input type="text" class="form-control" ng-model="data.invoice_amount" disabled="disabled">

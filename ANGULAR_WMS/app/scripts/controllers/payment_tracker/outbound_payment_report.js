@@ -87,6 +87,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
        .withDataProp('data')
        .withOption('order', [sort_no, 'desc'])
        .withOption('processing', true)
+       .withOption('bFilter', false)
        .withOption('serverSide', true)
        .withOption('createdRow', function(row, data, dataIndex) {
             $compile(angular.element(row).contents())($scope);

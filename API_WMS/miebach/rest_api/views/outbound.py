@@ -5828,7 +5828,7 @@ def update_payment_status(request, user=''):
             bank = data_dict.get('data[0][bank_name]', [''])[0]
             mode_of_pay = data_dict.get('data[0][mode_of_pay]', [''])[0]
             remarks = data_dict.get('data[0][neft_cheque]', [''])[0]
-            payment_date = data_dict.get('data[0][date][0]', [None])[0]
+            payment_date = data_dict.get('data[0][date]', [None])[0]
             if payment_date:
                 payment_date = datetime.datetime.strptime(payment_date, "%m/%d/%Y")
         else:
@@ -5933,7 +5933,7 @@ def get_outbound_payment_report(start_index, stop_index, temp_data, search_term,
 
         data_dict = OrderedDict((('payment_id', data['payment_id']),
                                 ('payment_date', payment_date),
-                                ('invoice_number', data['order__customer_name']),
+                                ('invoice_number', data['order__sellerordersummary__invoice_number']),
                                 ('mode_of_pay', data['mode_of_pay']),
                                 ('remarks', data['remarks']),
                                 ('customer_name', data['order__customer_name']),

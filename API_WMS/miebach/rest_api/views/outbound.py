@@ -452,6 +452,7 @@ def get_picklist_locations(data_dict, user):
     back_order = get_misc_value('back_order', user.id)
     fifo_switch = get_misc_value('fifo_switch', user.id)
 
+    data_dict = {}
     if fifo_switch == 'true':
         stock_detail1 = StockDetail.objects.exclude(**exclude_dict).filter(location_id__pick_sequence__gt=0,
                                                                            **data_dict). \
@@ -512,7 +513,7 @@ def generate_picklist(request, user=''):
     if switch_vals['fifo_switch'] == 'true':
         stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by(
             'receipt_date')
-        data_dict['location__zone__zone__in'] = ['TEMP_ZONE', 'DEFAULT']
+        #data_dict['location__zone__zone__in'] = ['TEMP_ZONE', 'DEFAULT']
         stock_detail2 = sku_stocks.filter(quantity__gt=0).order_by('receipt_date')
     else:
         stock_detail1 = sku_stocks.filter(location_id__pick_sequence__gt=0).filter(quantity__gt=0).order_by(
@@ -617,7 +618,7 @@ def batch_generate_picklist(request, user=''):
         if switch_vals['fifo_switch'] == 'true':
             stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by(
                 'receipt_date')
-            data_dict['location__zone__zone__in'] = ['TEMP_ZONE', 'DEFAULT']
+            #data_dict['location__zone__zone__in'] = ['TEMP_ZONE', 'DEFAULT']
             stock_detail2 = sku_stocks.filter(quantity__gt=0).order_by('receipt_date')
         else:
             stock_detail1 = sku_stocks.filter(location_id__pick_sequence__gt=0).filter(quantity__gt=0).order_by(
@@ -789,8 +790,9 @@ def get_picklist_data(data_id, user_id):
                 wms_code = stock_id.sku.wms_code
                 load_unit_handle = stock_id.sku.load_unit_handle
                 category = stock_id.sku.sku_category
-                mrp = stock_id.batch_detail.mrp
-                batch_no = stock_id.batch_detail.batch_no
+                if stock_id.batch_detail:
+                    mrp = stock_id.batch_detail.mrp
+                    batch_no = stock_id.batch_detail.batch_no
 
             match_condition = (location, pallet_detail, wms_code, sku_code, title)
             if match_condition not in batch_data:
@@ -908,8 +910,9 @@ def get_picklist_data(data_id, user_id):
                 location = stock_id.location.location
                 image = stock_id.sku.image_url
                 wms_code = stock_id.sku.wms_code
-                mrp = stock_id.batch_detail.mrp
-                batch_no = stock_id.batch_detail.batch_no
+                if stock_id.batch_detail:
+                    mrp = stock_id.batch_detail.mrp
+                    batch_no = stock_id.batch_detail.batch_no
             stock_left = get_sku_location_stock(wms_code, location, user_id, stock_skus, reserved_skus, stocks,
                                                 reserved_instances)
             last_picked_locs = ''
@@ -972,8 +975,9 @@ def get_picklist_data(data_id, user_id):
                 image = stock_id.sku.image_url
                 load_unit_handle = stock_id.sku.load_unit_handle
                 category = stock_id.sku.sku_category
-                mrp = stock_id.batch_detail.mrp
-                batch_no = stock_id.batch_detail.batch_no
+                if stock_id.batch_detail:
+                    mrp = stock_id.batch_detail.mrp
+                    batch_no = stock_id.batch_detail.batch_no
 
             customer_name = ''
             if order.order:
@@ -2891,7 +2895,7 @@ def st_generate_picklist(request, user=''):
     if switch_vals['fifo_switch'] == 'true':
         stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by(
             'receipt_date')
-        data_dict['location__zone__zone__in'] = ['TEMP_ZONE', 'DEFAULT']
+        #data_dict['location__zone__zone__in'] = ['TEMP_ZONE', 'DEFAULT']
         stock_detail2 = sku_stocks.filter(quantity__gt=0).order_by('receipt_date')
     else:
         stock_detail1 = sku_stocks.filter(location_id__pick_sequence__gt=0).filter(quantity__gt=0).order_by(
@@ -3782,7 +3786,7 @@ def check_stocks(order_sku, user, request, order_objs):
     if switch_vals['fifo_switch'] == 'true':
         stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by(
             'receipt_date')
-        data_dict['location__zone__zone__in'] = ['TEMP_ZONE', 'DEFAULT']
+        #data_dict['location__zone__zone__in'] = ['TEMP_ZONE', 'DEFAULT']
         stock_detail2 = sku_stocks.filter(quantity__gt=0).order_by('receipt_date')
     else:
         stock_detail1 = sku_stocks.filter(location_id__pick_sequence__gt=0).filter(quantity__gt=0).order_by(
@@ -8863,7 +8867,7 @@ def seller_generate_picklist(request, user=''):
         if switch_vals['fifo_switch'] == 'true':
             stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by(
                 'receipt_date')
-            data_dict['location__zone__zone__in'] = ['TEMP_ZONE', 'DEFAULT']
+            #data_dict['location__zone__zone__in'] = ['TEMP_ZONE', 'DEFAULT']
             stock_detail2 = sku_stocks.filter(quantity__gt=0).order_by('receipt_date')
         else:
             stock_detail1 = sku_stocks.filter(location_id__pick_sequence__gt=0).filter(quantity__gt=0).order_by(

@@ -1,5 +1,4 @@
 <div id="popup" class="page-layout">
-  <form id="order-create" name="form" role="form" ui-jq="validate" ui-options="validationOpt" novalidate="novalidate" class="container-fluid">
   <div class="row">
     <div class="container-fluid">
       <div class="left">
@@ -83,14 +82,14 @@
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label"><b>From Date *</b></label>
-                <input name="from_date" ui-jq="datepicker" ng-init="showCase.model_data.filters.from_date = showCase.date" ng-model="showCase.model_data.filters.from_date" class="form-control stk-readonly" type="text" id="from_date" data-date-today-highlight="true" data-date-autoclose="true" required>
+                <input name="from_date" ui-jq="datepicker" ng-init="showCase.model_data.filters.from_date = showCase.date" ng-model="showCase.model_data.filters.from_date" class="form-control stk-readonly" type="text" id="from_date" data-date-today-highlight="true" data-date-autoclose="true" value="{{showCase.model_data.filters.from_date}}" required>
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label"><b>To Date</b></label>
-                <input name="to_date" ui-jq="datepicker" ng-model="showCase.model_data.filters.to_date" class="form-control stk-readonly" type="text" id="to_date" ng-change="showCase.checkDateValidation()" data-date-today-highlight="true" data-date-autoclose="true">
-                <input name="order_id" class="form-control" type="hidden" ng-model="showCase.model_data.filters.order_id">
+                <input name="to_date" ui-jq="datepicker" ng-model="showCase.model_data.filters.to_date" class="form-control stk-readonly" type="text" id="to_date" value="{{showCase.model_data.filters.to_date}}" ng-change="showCase.checkDateValidation()" data-date-today-highlight="true" data-date-autoclose="true">
+                <input name="order_id" class="form-control" type="hidden" ng-model="showCase.model_data.filters.order_id" value="{{showCase.model_data.filters.order_id}}">
               </div>
             </div>
           </div>
@@ -114,6 +113,7 @@
             <th>OPENING STOCK</th>
             <th>RECEIVED</th>
             <th>TOTAL STOCK</th>
+            <th>EDJUSTED</th>
             <th>CONSUMED</th>
             <th>CLOSING</th>
             <th>QUANTITY</th>
@@ -142,6 +142,9 @@
             </td>
             <td>
               <input type="text" class="form-control" name="total_stock" ng-model="data.total_stock" ng-readonly="data.default_status">
+            </td>
+            <td>
+              <input type="text" class="form-control" name="edjusted" ng-model="data.edjusted" ng-readonly="data.default_status">
             </td>
             <td>
               <input type="text" class="form-control" name="consumed" ng-model="data.consumed" ng-readonly="data.default_status">
@@ -186,5 +189,4 @@
     </div>
   </div>
 </div>
-</form>
 </div>

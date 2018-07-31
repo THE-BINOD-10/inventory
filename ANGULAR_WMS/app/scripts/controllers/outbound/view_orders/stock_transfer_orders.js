@@ -248,7 +248,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                 {name: 'item_code', value: vm.items_dict[0].item_code}, {name: 'opening_stock', value: vm.items_dict[0].opening_stock},
                 {name: 'product_title', value: vm.items_dict[0].product_title}, {name: 'quantity', value: vm.items_dict[0].quantity}, 
                 {name: 'received', value: vm.items_dict[0].received}, {name: 'total_stock', value: vm.items_dict[0].total_stock}, 
-                {name: 'unit_price', value: vm.items_dict[0].unit_price});
+                {name: 'unit_price', value: vm.items_dict[0].unit_price}, {name: 'edjusted', value: vm.items_dict[0].edjusted});
       vm.service.apiCall('update_stock_transfer_data/', 'POST', elem).then(function(data){
 
           // vm.reloadData();
@@ -281,7 +281,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         }
 
         vm.model_data.data.push({item_code:'', product_title:'', quantity:0, unit_price:0, invoice_amount:0, 
-          opening_stock: '', order_id: vm.order_id, received: '', total_stock: '', consumed: '', closing: '', new_product:true, 
+          opening_stock: '', order_id: vm.order_id, received: '', total_stock: '', edjusted: '', consumed: '', closing: '', new_product:true, 
           default_status: false, sku_status: 1});
       } else {
         var data_to_delete = {};

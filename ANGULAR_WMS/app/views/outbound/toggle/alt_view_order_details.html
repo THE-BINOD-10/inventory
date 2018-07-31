@@ -113,6 +113,7 @@
             <th>OPENING STOCK</th>
             <th>RECEIVED</th>
             <th>TOTAL STOCK</th>
+            <th>EDJUSTED</th>
             <th>CONSUMED</th>
             <th>CLOSING</th>
             <th>QUANTITY</th>
@@ -141,6 +142,9 @@
             </td>
             <td>
               <input type="text" class="form-control" name="total_stock" ng-model="data.total_stock" ng-readonly="data.default_status">
+            </td>
+            <td>
+              <input type="text" class="form-control" name="edjusted" ng-model="data.edjusted" ng-readonly="data.default_status">
             </td>
             <td>
               <input type="text" class="form-control" name="consumed" ng-model="data.consumed" ng-readonly="data.default_status">

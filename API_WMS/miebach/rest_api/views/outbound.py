@@ -10166,12 +10166,12 @@ def get_stock_transfer_order_details(request, user=''):
     stock_params = {}
     if from_date:
         from_date = from_date.split('/')
-        search_params['creation_date__gte'] = datetime.date(int(from_date[2]), int(from_date[0]),
-                                                                       int(from_date[1]))
+        search_params['creation_date__gte'] = datetime.date(int(from_date[2]), int(from_date[0]), int(from_date[1]))
         stock_params['creation_date__gte'] = search_params['creation_date__gte']
     if to_date:
-        to_date = datetime.datetime.combine(to_date + datetime.timedelta(1),
-                                                             datetime.time())
+        to_date = to_date.split('/')
+        to_date = datetime.date(int(to_date[2]), int(to_date[0]), int(to_date[1]))
+        to_date = datetime.datetime.combine(to_date + datetime.timedelta(1), datetime.time())
         search_params['creation_date__lt'] = to_date
         stock_params['creation_date__lt'] = to_date
     order_details_data = []
@@ -10179,20 +10179,41 @@ def get_stock_transfer_order_details(request, user=''):
     order_date = ''
     order_details = StockTransfer.objects.filter(sku__user=user.id, status=1, order_id=order_id)
     for one_order in order_details:
-        opening_stock, closing_stock = 0, 0
-        sku_stats = {}
+        received, consumed, adjusted, opening_stock, closing_stock = 0, 0, 0, 0, 0
+        #sku_stats = {}
         warehouse = User.objects.get(id=one_order.st_po.open_st.sku.user)
         if from_date or to_date:
             stock_stats = StockStats.objects.filter(sku__sku_code=one_order.sku.sku_code, sku__user=warehouse.id,
-                                                    **stock_params).order_by('creation_date')
+                                                    **stock_params)
             if stock_stats.exists():
-                opening_stock = stock_stats[0].opening_stock
-                closing_stock = stock_stats.order_by('-creation_date')[0].closing_stock
-            sku_stats = dict(SKUDetailStats.objects.filter(sku__sku_code=one_order.sku.sku_code,
-                                                            sku__user=warehouse.id, **search_params).\
-                             values_list('transact_type').distinct().annotate(tsum=Sum('quantity')))
-        received = sku_stats.get('PO', 0)
-        consumed = sku_stats.get('picklist', 0)
+                opening_stock = stock_stats.first().opening_stock
+                closing_stock = stock_stats.last().closing_stock
+            #sku_stats = dict(SKUDetailStats.objects.filter(sku__sku_code=one_order.sku.sku_code,
+            #                                                sku__user=warehouse.id, **search_params).\
+            #                 values_list('transact_type').distinct().annotate(tsum=Sum('quantity')))
+            stock_stat_vals = stock_stats.aggregate(received=Sum('receipt_qty'), produced=Sum('produced_qty'),
+                                                    returned=Sum('return_qty'), uploaded=Sum('uploaded_qty'),
+                                                    dispatched=Sum('dispatch_qty'), consumed=Sum('consumed_qty'),
+                                                    adjusted=Sum('adjustment_qty'))
+            if not stock_stat_vals['received']:
+                stock_stat_vals['received'] = 0
+            if not stock_stat_vals['produced']:
+                stock_stat_vals['produced'] = 0
+            if not stock_stat_vals['returned']:
+                stock_stat_vals['returned'] = 0
+            if not stock_stat_vals['dispatched']:
+                stock_stat_vals['dispatched'] = 0
+            if not stock_stat_vals['consumed']:
+                stock_stat_vals['consumed'] = 0
+            if not stock_stat_vals['adjusted']:
+                stock_stat_vals['adjusted'] = 0
+            received = stock_stat_vals['received'] + stock_stat_vals['produced'] + stock_stat_vals['returned']
+            consumed = stock_stat_vals['dispatched'] + stock_stat_vals['consumed']
+            adjusted = stock_stat_vals['adjusted']
+        #received = sku_stats.get('PO', 0) + sku_stats.get('return', 0) + sku_stats.get('inventory-upload', 0) + \
+        #           sku_stats.get('jo', 0)
+        #consumed = sku_stats.get('picklist', 0) + sku_stats.get('rm_picklist', 0)
+        #adjustment = sku_stats.get('inventory-adjustment', 0)
         total_stock = opening_stock + received
         order_id = one_order.order_id
         sku = one_order.sku
@@ -10202,7 +10223,8 @@ def get_stock_transfer_order_details(request, user=''):
              'invoice_amount': one_order.invoice_amount, 'item_code': sku.sku_code,
              'order_id': order_id,
              'unit_price': unit_price, 'opening_stock': opening_stock, 'received': received,
-             'total_stock': total_stock, 'consumed': consumed, 'closing_stock': closing_stock})
+             'total_stock': total_stock, 'consumed': consumed, 'closing_stock': closing_stock,
+             'adjusted': adjusted})
     if order_details:
         warehouse = order_details[0].st_po.open_st.warehouse
         order_date = get_local_date(user, order_details[0].creation_date)

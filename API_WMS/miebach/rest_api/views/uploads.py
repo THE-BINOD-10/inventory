@@ -2497,11 +2497,7 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
             seller_id = final_dict['seller'].id
         group_key = (order_data['po_name'], order_data['supplier_id'], data['po_date'], seller_id)
         if group_key not in order_ids.keys():
-            po_data = PurchaseOrder.objects.filter(open_po__sku__user=user.id).order_by('-order_id')
-            if not po_data:
-                po_id = 0
-            else:
-                po_id = po_data[0].order_id
+            po_id = get_purchase_order_id(user)
             order_ids[group_key] = po_id
         else:
             po_id = order_ids[group_key]
@@ -2532,6 +2528,9 @@ def purchase_order_excel_upload(request, user, data_list, demo_data=False):
         mail_result_data = purchase_order_dict(data1, data_req, purchase_order, user, order)
     if mail_result_data and get_misc_value('raise_po', user.id) == 'true':
         mail_status = purchase_upload_mail(request, mail_result_data, user)
+    for key, value in order_ids.iteritems():
+        if value:
+            check_purchase_order_created(user, value)
     return 'success'
 
 
@@ -2569,8 +2568,13 @@ def purchase_upload_mail(request, data_to_send, user):
         order_date = get_local_date(request.user, value[0]['purchase_order'].creation_date)
         address = '\n'.join(supplier.address.split(','))
         vendor_name = ''
-        vendor_address = ''
+        vendor_address, ship_to_address = '', ''
         vendor_telephone = ''
+        if value[0]['purchase_order'].ship_to:
+            ship_to_address = value[0]['purchase_order'].ship_to
+        else:
+            ship_to_address = user.userprofile.address
+        ship_to_address = '\n'.join(ship_to_address.split(','))
 
         if value[0]['purch'].order_type == 'VR':
             vendor_address = value[0]['purch'].vendor.address
@@ -2603,7 +2607,7 @@ def purchase_upload_mail(request, data_to_send, user):
                            'company_name': profile.company_name, 'location': profile.location,
                            'w_address': get_purchase_company_address(profile), 'vendor_name': vendor_name,
                            'vendor_address': vendor_address, 'vendor_telephone': vendor_telephone,
-                           'customization': customization}
+                           'customization': customization, 'ship_to_address': ship_to_address}
         rendered = t.render(data_dictionary)
         write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
                            str(order_date).split(' ')[0])
@@ -4328,6 +4332,9 @@ def create_po_serial_mapping(final_data_dict, user):
         save_sku_stats(user, stock_dict.sku_id, purchase_order.id, 'po', quantity)
         mod_locations.append(location_master.location)
 
+    for key, value in order_id_dict.iteritems():
+        if value:
+            check_purchase_order_created(user, value)
     if mod_locations:
         update_filled_capacity(mod_locations, user.id)
 
@@ -4769,7 +4776,7 @@ def validate_seller_transfer_form(request, reader, user, no_of_rows, no_of_cols,
                     data_dict[key] = float(cell_data)
                 except:
                     index_status.setdefault(row_idx, set()).add('%s should be number' % exc_reverse[key])
-        if not index_status:
+        if row_idx not in index_status.keys():
             src_stock_dict = {'sku_id': data_dict['sku_id'], 'sellerstock__seller_id': data_dict['source_seller'],
                               'location_id': data_dict['source_location'][0].id, 'quantity__gt': 0,
                               'sellerstock__quantity__gt': 0}
@@ -4803,6 +4810,7 @@ def validate_seller_transfer_form(request, reader, user, no_of_rows, no_of_cols,
 def update_seller_transer_upload(user, data_list):
     trans_mapping = {}
     stock_transfer_objs = []
+    grouping_data = []
     for data_dict in data_list:
         update_stocks_data(data_dict['src_stocks'], data_dict['quantity'], data_dict.get('dest_stocks', ''),
                            data_dict['quantity'], user, data_dict['dest_location'], data_dict['sku_id'],
@@ -4816,11 +4824,19 @@ def update_seller_transer_upload(user, data_list):
             trans_mapping[group_key] = seller_transfer.id
         seller_st_dict = {'seller_transfer_id': trans_mapping[group_key], 'sku_id': data_dict['sku_id'],
                           'source_location_id': data_dict['source_location'][0].id,
-                          'dest_location_id': data_dict['dest_location'][0].id, 'quantity': data_dict['quantity'],
-                          'creation_date': datetime.datetime.now()}
-        seller_st_obj = SellerStockTransfer(**seller_st_dict)
-        stock_transfer_objs.append(seller_st_obj)
-    SellerStockTransfer.objects.bulk_create(stock_transfer_objs)
+                          'dest_location_id': data_dict['dest_location'][0].id }
+        exist_obj = SellerStockTransfer.objects.filter(**seller_st_dict)
+        if not exist_obj:
+            seller_st_dict['creation_date'] = datetime.datetime.now()
+            seller_st_dict['quantity'] = data_dict['quantity']
+            seller_st_obj = SellerStockTransfer(**seller_st_dict)
+            seller_st_obj.save()
+        else:
+            exist_seller_obj = exist_obj[0]
+            exist_seller_obj.quantity = exist_seller_obj.quantity + data_dict['quantity']
+            exist_seller_obj.save()
+        #stock_transfer_objs.append(seller_st_obj)
+    #SellerStockTransfer.objects.bulk_create(stock_transfer_objs)
 
 
 @csrf_exempt

@@ -503,6 +503,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       $(".extra_view_order_status").importTags(vm.model_data.extra_view_order_status);
       $(".invoice_types").importTags(vm.model_data.invoice_types);
       $(".mode_of_transport").importTags(vm.model_data.mode_of_transport||'');
+      $(".sales_return_reasons").importTags(vm.model_data.sales_return_reasons||'');
       if (vm.model_data.invoice_titles) {
         $(".titles").importTags(vm.model_data.invoice_titles);
       }
@@ -581,6 +582,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
   vm.update_mode_of_transport = function() {
     var data = $(".mode_of_transport").val();
     vm.service.apiCall("switches?mode_of_transport="+data).then(function(data){
+      if(data.message) {
+        msg = data.data;
+        $scope.showNoty();
+        Auth.status();
+      }
+    });
+  }
+
+  vm.update_sales_return_reasons = function() {
+    var data = $(".sales_return_reasons").val();
+    vm.service.apiCall("switches?sales_return_reasons="+data).then(function(data){
       if(data.message) {
         msg = data.data;
         $scope.showNoty();

@@ -375,9 +375,11 @@ class OpenPO(models.Model):
     ship_to = models.CharField(max_length=128, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
+    terms = models.TextField(default='', max_length=256)
 
     class Meta:
         db_table = 'OPEN_PO'
+        index_together = (('sku', 'supplier'), ('sku', ), ('vendor', 'sku', 'supplier'), ('sku', 'order_quantity', 'price'))
 
     def __unicode__(self):
         return str(str(self.sku) + " : " + str(self.supplier))
@@ -404,6 +406,7 @@ class PurchaseOrder(models.Model):
 
     class Meta:
         db_table = 'PURCHASE_ORDER'
+        index_together = (('order_id', 'open_po'), ('order_id', 'open_po', 'received_quantity'))
 
     def __unicode__(self):
         return str(self.id)
@@ -442,6 +445,7 @@ class POLocation(models.Model):
 
     class Meta:
         db_table = 'PO_LOCATION'
+        index_together = (('purchase_order', 'location'), ('purchase_order', 'location', 'quantity', 'status'))
 
 
 class PalletDetail(models.Model):
@@ -455,6 +459,7 @@ class PalletDetail(models.Model):
 
     class Meta:
         db_table = 'PALLET_DETAIL'
+        index_together = (('user', 'pallet_code'), ('user', 'pallet_code', 'quantity'))
 
 
 class PalletMapping(models.Model):
@@ -467,6 +472,7 @@ class PalletMapping(models.Model):
 
     class Meta:
         db_table = 'PALLET_MAPPING'
+        index_together = ('pallet_detail', 'po_location')
 
 
 class BatchDetail(models.Model):
@@ -484,7 +490,8 @@ class BatchDetail(models.Model):
 
     class Meta:
         db_table = 'BATCH_DETAIL'
-
+        index_together = (('transact_id', 'transact_type'), ('batch_no', 'buy_price', 'mrp', 'manufactured_date', 'expiry_date', 'tax_percent'),
+                            ('batch_no', 'mrp'))
 
 class StockDetail(models.Model):
     id = BigAutoField(primary_key=True)
@@ -1336,6 +1343,7 @@ class CustomerOrderSummary(models.Model):
     client_name = models.CharField(max_length=64, default='')
     mode_of_transport = models.CharField(max_length=24, default='')
     payment_status = models.CharField(max_length=64, default='')
+    courier_name = models.CharField(max_length=64, default='')
 
     class Meta:
         db_table = 'CUSTOMER_ORDER_SUMMARY'
@@ -1821,6 +1829,7 @@ class SellerPOSummary(models.Model):
 
     class Meta:
         db_table = 'SELLER_PO_SUMMARY'
+        index_together = (('receipt_number',), ('purchase_order', 'receipt_number'))
 
     def __unicode__(self):
         return str(self.id)
@@ -2732,6 +2741,7 @@ class ReturnToVendor(models.Model):
     location = models.ForeignKey(LocationMaster, blank=True, null=True)
     quantity = models.FloatField(default=0)
     status = models.IntegerField(default=1)
+    return_type = models.CharField(max_length=32, default='Invoice')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

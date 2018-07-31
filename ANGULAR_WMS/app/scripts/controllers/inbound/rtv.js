@@ -16,10 +16,51 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     // vm.date = new Date();
     vm.extra_width = {width:'1100px'};
 
+    function getOS() {
+      var userAgent = window.navigator.userAgent,
+          platform = window.navigator.platform,
+          macosPlatforms = ['Macintosh', 'MacIntel', 'MacPPC', 'Mac68K'],
+          windowsPlatforms = ['Win32', 'Win64', 'Windows', 'WinCE'],
+          iosPlatforms = ['iPhone', 'iPad', 'iPod'],
+          os = null;
+
+      if (macosPlatforms.indexOf(platform) !== -1) {
+        os = 'Mac OS';
+      } else if (iosPlatforms.indexOf(platform) !== -1) {
+        os = 'iOS';
+      } else if (windowsPlatforms.indexOf(platform) !== -1) {
+        os = 'Windows';
+      } else if (/Android/.test(userAgent)) {
+        os = 'Android';
+      } else if (!os && /Linux/.test(platform)) {
+        os = 'Linux';
+      }
+
+      return os;
+    }
+
     vm.date_format_convert = function(utc_date){
+
+      var os_type = getOS();
+
       var date = utc_date.toLocaleDateString();
       var datearray = date.split("/");
-      vm.date = datearray[1] + '/' + datearray[0] + '/' + datearray[2];
+
+      if (os_type == 'Windows') {
+
+        if (datearray[1] < 10 && datearray[1].length == 1) {
+          datearray[1] = '0'+datearray[1];
+        }
+
+        if (datearray[0] < 10 && datearray[0].length == 1) {
+          datearray[0] = '0'+datearray[0];
+        }
+
+        vm.date = datearray[0] + '/' + datearray[1] + '/' + datearray[2];
+      } else {
+        
+        vm.date = datearray[1] + '/' + datearray[0] + '/' + datearray[2];
+      }
     }
 
     vm.date_format_convert(new Date());
@@ -62,14 +103,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
      .withOption('initComplete', function( settings ) {
        vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
      });
-
     vm.dtColumns = [
         DTColumnBuilder.newColumn('Supplier ID').withTitle('Supplier ID'),
         DTColumnBuilder.newColumn('Supplier Name').withTitle('Supplier Name'),
         DTColumnBuilder.newColumn('PO Number').withTitle('PO Number'),
         DTColumnBuilder.newColumn('PO Date').withTitle('PO Date'),
         DTColumnBuilder.newColumn('Invoice Number').withTitle('Invoice Number'),
+        DTColumnBuilder.newColumn('Challan Number').withTitle('Challan Number'),
         DTColumnBuilder.newColumn('Invoice Date').withTitle('Invoice Date'),
+        DTColumnBuilder.newColumn('Challan Date').withTitle('Challan Date'),
         DTColumnBuilder.newColumn('Total Quantity').withTitle('Total Quantity'),
         DTColumnBuilder.newColumn('Total Amount').withTitle('Total Amount'),
     ];
@@ -162,6 +204,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.saveFilters = function(filters){
       Data.rtv_filters = filters;
+      vm.enable_dc_return = filters.enable_dc_returns;
     }
 
     //RTV Pop Data
@@ -273,6 +316,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.conf_disable = true;
       var elem = [];
       elem.push({'name': 'seller_id', 'value': vm.model_data.seller_details.seller_id});
+      elem.push({'name': 'enable_dc_returns', 'value': vm.enable_dc_return});
 
       angular.forEach(vm.model_data.data, function(row){
         angular.forEach(row, function(sku){
@@ -313,6 +357,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.conf_disable = true;
       var elem = [];
       elem.push({'name': 'seller_id', 'value': vm.model_data.seller_details.seller_id});
+      elem.push({'name': 'enable_dc_returns', 'value': vm.enable_dc_return});
 
       angular.forEach(vm.model_data.data, function(row){
         angular.forEach(row, function(sku){

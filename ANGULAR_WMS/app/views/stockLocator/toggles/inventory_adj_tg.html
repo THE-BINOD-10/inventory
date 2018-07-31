@@ -11,7 +11,32 @@
             <h4 class="modal-title" id="myLargeModalLabel">Add Inventory Adjustment</h4>
           </div>           
            <div class="modal-body">
-           <div class="row">
+
+            <div class="row"">
+              <div class="col-md-11 col-sm-11 col-xs-10">
+                <p align="right">Inventory Shrinkage</p>
+              </div>
+              <div class="col-md-1 col-sm-1 col-xs-2">
+                <label class="switch switch-sm square">
+                  <div>
+                    <input type="checkbox" ng-model="showCase.model_data.inv_shrinkage" ng-change="showCase.getReasons(showCase.model_data.inv_shrinkage)">
+                    <span>
+                      <i class="handle"></i>
+                    </span>
+                    <input type="hidden" name="inv_shrinkage" class="form-control" ng-model="showCase.model_data.inv_shrinkage" value="{{showCase.model_data.inv_shrinkage}}">
+                  </div>
+                </label>
+              </div>
+            </div>
+           <div class="row mt15">
+
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.user_type == 'marketplace_user'">
+              <div class="form-group">
+                <label class="control-label">Seller ID *</label>
+                <input type="text" autocomplete="off" name="seller_id" class="form-control" placeholder="Search Seller ID/Name/Number" typeahead="address.seller_id+' : '+address.name+' : '+address.phone_number for address in showCase.service.getSearchValues($viewValue, 'search_seller_data?')" typeahead-loading="loadingLocations" ng-model="showCase.model_data.seller_id" typeahead-on-select="showCase.model_data.seller_id=$item.seller_id" required>
+              </div>
+            </div>
+
              <div class="col-md-4 col-sm-4 col-xs-6">
                <div class="form-group">
                  <label cla4ss= control-label"> WMS Code * </label>
@@ -52,7 +77,11 @@
               <div class="col-md-4 col-sm-4 col-xs-6">
                 <div class="form-group">
                   <label class="control-label"> Reason </label>
-                  <input type="text" name="reason" class="form-control" ng-model="showCase.model_data.reason" value="">
+                  <input type="text" ng-if="!(showCase.model_data.inv_shrinkage)" name="reason" class="form-control" ng-model="showCase.model_data.reason" value="">
+                  <select class="form-control" ng-if="showCase.model_data.inv_shrinkage" name="reason" ng-model="showCase.model_data.reason">
+                    <option value="">Select Reason </option>
+                    <option ng-repeat="reason in showCase.reasons" value="{{reason}}">{{reason}}</option>
+                  </select>
                 </div>
               </div>
               <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.pallet_switch">

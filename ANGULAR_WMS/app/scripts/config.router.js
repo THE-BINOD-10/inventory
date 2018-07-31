@@ -771,6 +771,10 @@ var app = angular.module('urbanApp')
             url: '/ScanReturns',
             templateUrl: 'views/inbound/toggle/scan_returns.html'
           })
+          .state('app.inbound.SalesReturns.ScanReturnsPrint', {
+            url: '/ScanReturnsPrint',
+            templateUrl: 'views/inbound/toggle/scan_return_print.html'
+          })
           .state('app.inbound.SalesReturns.barcode', {
             url: '/Barcode',
             templateUrl: 'views/masters/toggles/barcode.html'
@@ -2007,6 +2011,19 @@ var app = angular.module('urbanApp')
             title: 'Corporate Reseller Mapping Report',
           }
         })
+        .state('app.reports.EnquiryStatusReport', {
+          url: '/EnquiryStatusReport',
+          templateUrl: 'views/reports/enquiry_status_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/enquiry_status_report.js');
+              }]
+          },
+          data: {
+            title: 'Enquiry Status Report',
+          }
+        })
+
         .state('app.reports.RTVReport', {
           url: '/RTVReport',
           templateUrl: 'views/reports/rtv_report.html',

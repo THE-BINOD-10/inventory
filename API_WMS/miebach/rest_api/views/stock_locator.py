@@ -68,7 +68,6 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     temp_data['totalQuantity'] = 0
     temp_data['totalReservedQuantity'] = 0
     temp_data['totalAvailableQuantity'] = 0
-
     if search_term:
         master_data = StockDetail.objects.exclude(receipt_number=0).values_list('sku__wms_code', 'sku__sku_desc',
                                                                                 'sku__sku_category',
@@ -151,7 +150,6 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     #raw_reserved_quantities = map(lambda d: d['rm_reserved'], raw_res_instances)
     # temp_data['totalQuantity'] = sum([data[4] for data in master_data])
     for ind, data in enumerate(master_data[start_index:stop_index]):
-        print ind
         total_stock_value = 0
         reserved = 0
         # total = data[4] if len(data) > 4 else 0
@@ -184,13 +182,6 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
                                                 ('Reserved Quantity', reserved), ('Total Quantity', total),
                                                 ('Unit of Measurement', sku.measurement_type), ('Stock Value', total_stock_value ),
                                                 ('DT_RowId', data[0]) )))
-
-        # sort_col = sort_cols[col_num]
-        # if order_term == 'asc':
-        #    temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(sort_col))
-        # else:
-        #    temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(sort_col), reverse=True)
-        # temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
 
 
 @csrf_exempt
@@ -709,15 +700,24 @@ def get_stock_detail_results(start_index, stop_index, temp_data, search_term, or
         del search_params['receipt_date__icontains']
     search_params['sku_id__in'] = sku_master_ids
     if search_term:
-        master_data = StockDetail.objects.exclude(receipt_number=0).annotate( stock_value=Sum(F('quantity') * F('sku__cost_price')) ).filter(Q(receipt_number__icontains=search_term) | Q(sku__wms_code__icontains=search_term) | Q(quantity__icontains=search_term) | Q(location__zone__zone__icontains=search_term) | Q(sku__sku_code__icontains=search_term) | Q(sku__sku_desc__icontains=search_term) | Q(location__location__icontains=search_term) | Q(stock_value__icontains=search_term),sku__user=user.id).filter(**search_params).order_by(order_data)
+        master_data = StockDetail.objects.filter(quantity__gt=0).exclude(receipt_number=0).select_related('sku', 'location',
+                                                'location__zone', 'pallet_detail').\
+            annotate(stock_value=Sum(F('quantity') * F('sku__cost_price')) ).\
+            filter(Q(receipt_number__icontains=search_term) | Q(sku__wms_code__icontains=search_term) |
+                   Q(quantity__icontains=search_term) | Q(location__zone__zone__icontains=search_term) |
+                   Q(sku__sku_code__icontains=search_term) | Q(sku__sku_desc__icontains=search_term) |
+                   Q(location__location__icontains=search_term) | Q(stock_value__icontains=search_term),
+                   sku__user=user.id).filter(**search_params).order_by(order_data)
     else:
-        master_data = StockDetail.objects.exclude(receipt_number=0).annotate( stock_value=Sum(F('quantity') * F('sku__cost_price')) ).filter(sku__user=user.id, **search_params). \
-            order_by(order_data)
+        master_data = StockDetail.objects.filter(quantity__gt=0).exclude(receipt_number=0).select_related('sku', 'location',
+                                                'location__zone', 'pallet_detail').\
+                            annotate( stock_value=Sum(F('quantity') * F('sku__cost_price')) ).\
+                            filter(sku__user=user.id, **search_params).order_by(order_data)
 
-    temp_data['recordsTotal'] = len(master_data)
+    temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    pallet_switch = get_misc_value('pallet_switch', user.id)
     for data in master_data[start_index:stop_index]:
-        pallet_switch = get_misc_value('pallet_switch', user.id)
         _date = get_local_date(user, data.receipt_date, True)
         _date = _date.strftime("%d %b, %Y")
         stock_quantity = get_decimal_limit(user.id, data.quantity)
@@ -1958,6 +1958,15 @@ def inventory_adj_modify_qty(request, user=''):
                     if not sub_qty:
                         break
     return HttpResponse(json.dumps({'status': True, 'message':message}))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def inventory_adj_reasons(request, user=''):
+    reasons = ''
+    reasons = get_misc_value(request.POST['key'],user.id)
+
+    return HttpResponse(json.dumps({"data": {'reasons': reasons.split(',')}}))
 
 
 def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,

@@ -6231,9 +6231,9 @@ def get_supplier_invoice_data(start_index, stop_index, temp_data, search_term, o
         seller_summary_obj = SellerPOSummary.objects.exclude(id__in=return_ids).filter(**user_filter)\
                                             .filter(invoice_number=data['invoice_number'],\
                                              purchase_order__open_po__supplier__name=data['purchase_order__open_po__supplier__name'])
-        tot_amt = 0
+        tot_amt, rem_quantity = 0, 0
         for seller_sum in seller_summary_obj:
-            rem_quantity = 0
+            #rem_quantity = 0
             price = seller_sum.purchase_order.open_po.price
             temp_qty = float(seller_sum.quantity)
             processed_val = seller_sum.returntovendor_set.filter().aggregate(Sum('quantity'))['quantity__sum']
@@ -6479,6 +6479,8 @@ def move_to_invoice(request, user=''):
     seller_summary = SellerPOSummary.objects.none()
     req_data = request.GET.get('data', '')
     invoice_number = request.GET.get('inv_number', '')
+    invoice_date = request.GET.get('inv_date', '')
+    invoice_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y") if invoice_date else None
     if req_data:
         req_data = eval(req_data)
         req_data = [req_data] if isinstance(req_data,dict) else req_data
@@ -6502,6 +6504,7 @@ def move_to_invoice(request, user=''):
             sel_obj.order_status_flag = status_flag
             if invoice_number:
                 sel_obj.invoice_number = invoice_number
+                sel_obj.invoice_date = invoice_date
             sel_obj.save()
         return HttpResponse(json.dumps({'message': 'success'}))
     except Exception as e:
@@ -6523,108 +6526,116 @@ def generate_supplier_invoice(request, user=''):
         true, false = ["true", "false"]
         req_data = request.GET.get('data', '')
         if req_data:
-            req_data = eval(req_data)
-            #sell_summary_param['purchase_order__order_id'] = req_data.get('purchase_order__order_id', '')
-            #sell_summary_param['receipt_number'] = req_data.get('receipt_number', '')
-            sell_summary_param['purchase_order__open_po__sku__user'] = user.id
-            inv_no = req_data.get('invoice_number', '')
-            if inv_no:
-                sell_summary_param['invoice_number'] = inv_no
-            else: 
-                sell_summary_param['challan_number'] = req_data.get('challan_id', '')
-            #sell_summary_param['invoice_number'] = req_data.get('invoice_number', '')
-            seller_summary = SellerPOSummary.objects.filter(**sell_summary_param)
-            if seller_summary:
-                up = user.userprofile
-                supplier = seller_summary[0].purchase_order.open_po.supplier
-                order_date = get_local_date(user, seller_summary[0].purchase_order.creation_date, send_date=True)\
-                             .date().strftime("%d %b %Y")
-                company_details = {"name": up.company_name,
-                                   "address": up.address,
-                                   "phone_number": up.phone_number,
-                                   "email": user.email
-                                  }
-                supplier_details = {"address": supplier.address,
-                                    "id": supplier.id,
-                                    "name": supplier.name,
-                                    "phone_number": supplier.phone_number,
-                                    "tin_number": supplier.tin_number}
-                result_data = {"company_details": company_details,
-                               "supplier_details": supplier_details,
-                               "challan_no": seller_summary[0].challan_number,
-                               "inv_date": seller_summary[0].invoice_date.strftime("%m/%d/%Y") if seller_summary[0].invoice_date else '',
-                               "invoice_header": "Tax Invoice",
-                                "invoice_no": seller_summary[0].invoice_number,
-                                "order_date": order_date,
-                                "order_id": seller_summary[0].purchase_order.order_id,
-                                "receipt_number": seller_summary[0].receipt_number,
-                                "price_in_words": "",
-                                "total_tax_words": ''
+            request_data = eval(req_data)
+            request_data = (request_data,) if isinstance(request_data,dict) else request_data
+            result_data["data"] = []
+            result_data["total_amt"], result_data["total_invoice_amount"], result_data["rounded_invoice_amount"],\
+            result_data["total_quantity"], result_data["total_tax"] = [0]*5
+            tot_cgst, tot_sgst, tot_igst, tot_utgst = [0]*4
+            for req_data in request_data:
+                #sell_summary_param['purchase_order__order_id'] = req_data.get('purchase_order__order_id', '')
+                #sell_summary_param['receipt_number'] = req_data.get('receipt_number', '')
+                sell_summary_param['purchase_order__open_po__sku__user'] = user.id
+                inv_no = req_data.get('invoice_number', '')
+                if inv_no:
+                    sell_summary_param['invoice_number'] = inv_no
+                else:
+                    sell_summary_param['purchase_order__order_id'] = req_data.get('purchase_order__order_id', '')
+                    sell_summary_param['receipt_number'] = req_data.get('receipt_number', '') 
+                    sell_summary_param['challan_number'] = req_data.get('challan_id', '')
+                #sell_summary_param['invoice_number'] = req_data.get('invoice_number', '')
+                seller_summary = SellerPOSummary.objects.filter(**sell_summary_param)
+                if seller_summary:
+                    up = user.userprofile
+                    supplier = seller_summary[0].purchase_order.open_po.supplier
+                    order_date = get_local_date(user, seller_summary[0].purchase_order.creation_date, send_date=True)\
+                                 .date().strftime("%d %b %Y")
+                    company_details = {"name": up.company_name,
+                                       "address": up.address,
+                                       "phone_number": up.phone_number,
+                                       "email": user.email
+                                      }
+                    supplier_details = {"address": supplier.address,
+                                        "id": supplier.id,
+                                        "name": supplier.name,
+                                        "phone_number": supplier.phone_number,
+                                        "tin_number": supplier.tin_number}
+                    result_data.update({"company_details": company_details,
+                                   "supplier_details": supplier_details,
+                                   "challan_no": seller_summary[0].challan_number,
+                                   "inv_date": seller_summary[0].invoice_date.strftime("%d %b %Y") if seller_summary[0].invoice_date else '',
+                                   "invoice_header": "Tax Invoice",
+                                   "invoice_no": seller_summary[0].invoice_number,
+                                   "order_date": order_date,
+                                   "order_id": seller_summary[0].purchase_order.order_id,
+                                   "receipt_number": seller_summary[0].receipt_number,
+                                   "price_in_words": "",
+                                   "total_tax_words": ''
 
-                               }
+                                  })
 
-                result_data["challan_date"] = seller_summary[0].challan_date
-                result_data["challan_date"] = result_data["challan_date"].strftime("%m/%d/%Y") if result_data["challan_date"] else ''
-                result_data["data"] = []
-                tot_cgst, tot_sgst, tot_igst, tot_utgst, tot_amt, tot_invoice, tot_qty, tot_tax = [0]*8
-                for seller_sum in seller_summary:
-                    rem_quantity = 0
-                    temp_qty = float(seller_sum.quantity)
-                    processed_val = seller_sum.returntovendor_set.filter().aggregate(Sum('quantity'))['quantity__sum']
-                    if processed_val:
-                        temp_qty -= processed_val
-                    rem_quantity += temp_qty
+                    result_data["challan_date"] = seller_summary[0].challan_date
+                    result_data["challan_date"] = result_data["challan_date"].strftime("%m/%d/%Y") if result_data["challan_date"] else ''
+                    #result_data["data"] = []
+                    tot_amt, tot_invoice, tot_qty, tot_tax = [0]*4
+                    for seller_sum in seller_summary:
+                        rem_quantity = 0
+                        temp_qty = float(seller_sum.quantity)
+                        processed_val = seller_sum.returntovendor_set.filter().aggregate(Sum('quantity'))['quantity__sum']
+                        if processed_val:
+                            temp_qty -= processed_val
+                        rem_quantity += temp_qty
 
-                    po = seller_sum.purchase_order
-                    open_po = po.open_po
-                    sku = open_po.sku
-                    unit_price = open_po.price
-                    qty = rem_quantity
-                    cgst_tax = open_po.cgst_tax
-                    sgst_tax = open_po.sgst_tax
-                    igst_tax = open_po.igst_tax
-                    utgst_tax = open_po.utgst_tax
-                    cgst_amt = float((unit_price * qty * cgst_tax) / 100)
-                    sgst_amt = float((unit_price * qty * sgst_tax) / 100)
-                    igst_amt = float((unit_price * qty * igst_tax) / 100)
-                    utgst_amt = float((unit_price * qty * utgst_tax) / 100)
-                    tot_cgst += cgst_amt
-                    tot_sgst += sgst_tax
-                    tot_igst += igst_tax
-                    tot_utgst += utgst_tax
-                    amt = unit_price * qty
-                    invoice_amt = amt + cgst_amt + sgst_amt + igst_amt + utgst_amt
-                    tot_tax += (cgst_amt + sgst_amt + igst_amt + utgst_amt)
-                    tot_qty += qty
-                    tot_amt += amt
-                    tot_invoice += invoice_amt
-                    taxes = {"cgst_tax": cgst_tax, "sgst_tax": sgst_tax,
-                             "igst_tax": igst_tax, "utgst_tax": utgst_tax,
-                             "cgst_amt": cgst_amt, "sgst_amt": sgst_amt,
-                             "igst_amt": igst_amt, "utgst_amt": utgst_amt}
-                    sku_data = {"id": sku.id,
-                                "seller_summary_id": seller_sum.id,
-                                "open_po_id": open_po.id,
-                                "sku_code": sku.wms_code,
-                                "title": sku.sku_desc,
-                                "unit_price": unit_price,
-                                "tax_type": open_po.tax_type,
-                                "invoice_amount": invoice_amt,
-                                "hsn_code": '',
-                                "amt": amt,
-                                "quantity": qty,
-                                "shipment_date": '',
-                                "taxes": taxes
-                                }
-                    result_data["data"].append(sku_data)
-                    result_data["sequence_number"] = sku.sequence
-                result_data["total_amt"] = tot_amt
-                result_data["total_invoice_amount"] = tot_invoice
-                result_data["rounded_invoice_amount"] = round(tot_invoice)
-                result_data["total_quantity"] = tot_qty
-                result_data["total_tax"] = tot_tax
-                result_data["total_taxes"] = {"cgst_amt": tot_cgst, "igst_amt": tot_igst,
-                                              "sgst_amt": tot_sgst, "utgst_amt": tot_utgst}
+                        po = seller_sum.purchase_order
+                        open_po = po.open_po
+                        sku = open_po.sku
+                        unit_price = open_po.price
+                        qty = rem_quantity
+                        cgst_tax = open_po.cgst_tax
+                        sgst_tax = open_po.sgst_tax
+                        igst_tax = open_po.igst_tax
+                        utgst_tax = open_po.utgst_tax
+                        cgst_amt = float((unit_price * qty * cgst_tax) / 100)
+                        sgst_amt = float((unit_price * qty * sgst_tax) / 100)
+                        igst_amt = float((unit_price * qty * igst_tax) / 100)
+                        utgst_amt = float((unit_price * qty * utgst_tax) / 100)
+                        tot_cgst += cgst_amt
+                        tot_sgst += sgst_tax
+                        tot_igst += igst_tax
+                        tot_utgst += utgst_tax
+                        amt = unit_price * qty
+                        invoice_amt = amt + cgst_amt + sgst_amt + igst_amt + utgst_amt
+                        tot_tax += (cgst_amt + sgst_amt + igst_amt + utgst_amt)
+                        tot_qty += qty
+                        tot_amt += amt
+                        tot_invoice += invoice_amt
+                        taxes = {"cgst_tax": cgst_tax, "sgst_tax": sgst_tax,
+                                 "igst_tax": igst_tax, "utgst_tax": utgst_tax,
+                                 "cgst_amt": cgst_amt, "sgst_amt": sgst_amt,
+                                 "igst_amt": igst_amt, "utgst_amt": utgst_amt}
+                        sku_data = {"id": sku.id,
+                                    "seller_summary_id": seller_sum.id,
+                                    "open_po_id": open_po.id,
+                                    "sku_code": sku.wms_code,
+                                    "title": sku.sku_desc,
+                                    "unit_price": unit_price,
+                                    "tax_type": open_po.tax_type,
+                                    "invoice_amount": invoice_amt,
+                                    "hsn_code": '',
+                                    "amt": amt,
+                                    "quantity": qty,
+                                    "shipment_date": '',
+                                    "taxes": taxes
+                                    }
+                        result_data["data"].append(sku_data)
+                        result_data["sequence_number"] = sku.sequence
+                    result_data["total_amt"] += tot_amt
+                    result_data["total_invoice_amount"] += tot_invoice
+                    result_data["rounded_invoice_amount"] += round(tot_invoice)
+                    result_data["total_quantity"] += tot_qty
+                    result_data["total_tax"] += tot_tax
+                    result_data["total_taxes"] = {"cgst_amt": tot_cgst, "igst_amt": tot_igst,
+                                                  "sgst_amt": tot_sgst, "utgst_amt": tot_utgst}
 
 
     except Exception as e:

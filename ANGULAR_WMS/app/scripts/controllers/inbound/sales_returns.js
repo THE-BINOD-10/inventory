@@ -7,6 +7,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     var vm = this;
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
+    vm.industry_type = Session.user_profile.industry_type;
     vm.awb_ship_type = (vm.permissions.create_shipment_type == true) ? true: false;
 
     vm.dtOptions = DTOptionsBuilder.newOptions()
@@ -60,6 +61,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.scan_pop = scan_pop;
     function scan_pop() {
       vm.model_data = {data:[]};
+      vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
+        vm.model_data.seller_types = []
+        if (data.message) {
+          var seller_data = data.data.sellers;
+          angular.forEach(seller_data, function(seller_single){
+              vm.model_data.seller_types.push(seller_single.id + ':' + seller_single.name);
+          });
+        }
+      });
       $state.go('app.inbound.SalesReturns.ScanReturns'); 
     }
 
@@ -144,7 +154,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.scan_sku = function(event, field) {
       if ( event.keyCode == 13 && field) {
         var check_sku_dict = {'sku_code': field, 'allocate_order': vm.allocate_order,
-                           'marketplace': vm.model_data.marketplace}
+                           'marketplace': vm.model_data.marketplace, 'mrp': vm.model_data.mrp,
+                           'seller_id': vm.model_data.seller_type}
         if(vm.excl_order_map[field]) {
           check_sku_dict['exclude_order_ids'] = vm.excl_order_map[field].join(',');
         }
@@ -185,14 +196,26 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           }
         });
         vm.model_data.return_sku_code = '';
+        vm.model_data.mrp = '';
       }
     }
 
     vm.add_new_sku = function(new_sku) {
-      vm.model_data.data.push({'sku_code': new_sku.sku_code, 'sku_desc': new_sku.description, 'ship_quantity': new_sku.ship_quantity,
+      if (!$.isEmptyObject(new_sku.batch_data)) {
+        if (new_sku.batch_data.length) { 
+          vm.model_data.data.push({'sku_code': new_sku.sku_code, 'sku_desc': new_sku.description, 'ship_quantity': new_sku.ship_quantity,
+                                   'order_id': new_sku.order_id, 'return_quantity': 1, 'damaged_quantity': 0, 'track_id_enable': false,
+                                   'is_new': true, 'marketplace':vm.model_data.marketplace, 'sor_id': new_sku.sor_id,
+                                   'unit_price': new_sku.unit_price, 'old_order_id': new_sku.order_id, 'mrp': new_sku.batch_data[0].mrp, 
+                                   'manufactured_date': new_sku.batch_data[0].manufactured_date, 'expiry_date': new_sku.batch_data[0].expiry_date,'sgst': new_sku.sgst,'cgst': new_sku.cgst,'igst': new_sku.igst })
+        }
+      } else {
+        vm.model_data.data.push({'sku_code': new_sku.sku_code, 'sku_desc': new_sku.description, 'ship_quantity': new_sku.ship_quantity,
                                'order_id': new_sku.order_id, 'return_quantity': 1, 'damaged_quantity': 0, 'track_id_enable': false,
-                               'is_new': true, 'marketplace':vm.model_data.marketplace, 'sor_id': vm.model_data.sor_id,
-                               'unit_price': new_sku.unit_price, 'old_order_id': new_sku.order_id})
+                               'is_new': true, 'marketplace':vm.model_data.marketplace, 'sor_id': new_sku.sor_id,
+                               'unit_price': new_sku.unit_price, 'old_order_id': new_sku.order_id, 'mrp': 0, 
+                               'manufactured_date': '', 'expiry_date': '','sgst': new_sku.sgst,'cgst': new_sku.cgst,'igst': new_sku.igst })
+      }
       if(new_sku.order_id){
         var name = new_sku.order_id+"<<>>"+new_sku.sku_code;
         vm.orders_data[name] = {};
@@ -216,19 +239,50 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
-      vm.service.apiCall('confirm_sales_return/', 'POST', elem, true).then(function(data){
-        if(data.message) {
+      vm.service.apiCall('confirm_sales_return/', 'POST', elem, true).then(function(data, status, headers, config){
+        if(typeof(data.data) == "string" && data.data == 'Updated Successfully') { 
           pop_msg(data.data);
           vm.confirm_disable = true;
-          if(data.data == 'Updated Successfully') {
             Service.showNoty(data.data);
             vm.reloadData();
             vm.close();
             vm.orders_data = {};
+        } else {
+          vm.title = 'SCAN RETURNED ORDERS PRINT';
+
+          if(typeof(data.data) == "string" && data.data.search("print-invoice") != -1) {
+
+          var html = $(data.data);
+          vm.print_page = $(html).clone();
+
+            $state.go('app.inbound.SalesReturns.ScanReturnsPrint');
+            $timeout(function () {
+              $(".modal-body:visible").html(data.data);
+            }, 3000);
           }
+          
         }
+        /*if(data.message) {
+          pop_msg(data.data);
+          vm.confirm_disable = true;
+          if(data.data == 'Updated Successfully') {
+
+            // Service.showNoty(data.data);
+            // vm.reloadData();
+            // vm.close();
+            // vm.orders_data = {};
+          }
+        }*/
       });
     }
+
+    vm.print = print;
+    vm.print = function() {
+      console.log(vm.print_page);
+      vm.service.print_data(vm.print_page, "SCAN RETURNED ORDERS PRINT");
+    }
+
+    vm.print_page = "";
 
     vm.barcode = function() {
 
@@ -639,13 +693,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.return_processes['scan_imei'] = 'Scan IMEI';
       vm.return_process = 'scan_imei';
     }
-    if(Session.user_profile.user_type != "marketplace_user") {
-      vm.return_processes['sku_code'] = 'SKU Code';
-    }
+    
     if(vm.awb_ship_type) {
       vm.return_processes['scan_awb'] = 'Scan AWB';
       vm.return_process = 'scan_awb';
     }
+
+    vm.return_processes['sku_code'] = 'SKU Code';
 
     vm.scan_awb_order_no = []
     vm.scan_awb = function(event, field) {

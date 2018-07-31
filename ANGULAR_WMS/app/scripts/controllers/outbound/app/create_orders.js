@@ -128,7 +128,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         'FE600':'FE600.jpg',
         'MARSH':'MARSH.jpg',
         'CORP ATTIRE': 'CORP ATTIRE.jpg',
-        '6 Degree (220 GSM)': 'six-degrees-220.jpg'
+        '6 Degree (220 GSM)': 'six-degrees-220.jpg',
+        'Swiss Miss':'SWISS-MISS.JPG',
         }
 
         vm.brands_logos = {'6 Degree': 'six-degrees-1.png', 'AWG (All Weather Gear)': 'awg-1.png', 'BIO WASH': 'bio-wash-1.png',
@@ -1133,7 +1134,14 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
                            'SUNGLASS-LADIES WAYFARER': 'SUNGLASS-LADIES WAYFARER.jpg',
                            'SUNGLASS-WAYFARER': 'SUNGLASS-WAYFARER.jpg',
                            'TRAVEL GEAR-WAISTBAGS': 'TG-WAISTBAGS.jpg',
-                           'TRAVEL GEAR-DUFFEL BAGS': 'TG-DUFFELBAGS.jpg',
+                           'TRAVEL GEAR-DUFFLE BAGS': 'TG-DUFFELBAGS.jpg',
+
+                           // Swiss Miss
+                           'ELECTRONICS-HEADPHONES': 'ELECTRONICS-HEADPHONES.jpg',
+                           'ELECTRONICS-LAMPS': 'ELECTRONICS-LAMPS.jpg',
+                           'TRAVEL GEAR-LADIES HANDBAGS': 'TG-LADIES HANDBAGS.jpg',
+                           'TRAVEL GEAR-PU BAGS': 'TG-PU BAGS.jpg',
+                           'TRAVEL GEAR-LADIES BACKPACKS':'TG-LADIES BACKPACKS.jpg',
 
                            //SAILESH
                            'FULL SLEEVE SHIRT': 'FULL SLEEVE SHIRT.png',

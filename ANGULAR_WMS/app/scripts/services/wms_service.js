@@ -8,6 +8,9 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
 
     var vm = this;
     vm.colFilters = colFilters
+    vm.searched_wms_code = "";
+    vm.searched_sup_code = '';
+    vm.is_came_from_raise_po = false;
 
     DTDefaultOptions.setLanguage({
     // ...
@@ -95,7 +98,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       }
     }
 
-    vm.units = ["KGS", "UNITS", "METERS", "INCHES", "CMS", "REAMS", "GRAMS", "GROSS"];
+    vm.units = ["KGS", "UNITS", "METERS", "INCHES", "CMS", "REAMS", "GRAMS", "GROSS", "ML"];
 
     vm.get_report_data = function(name){
       var send = {};
@@ -158,7 +161,12 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
         }
       }
 
-      send.dtColumns = vm.build_colums(data.dt_headers);
+      if(data.dt_unsort) {
+        send.dtColumns = vm.build_colums(data.dt_headers, data.dt_unsort);
+      }
+      else {
+        send.dtColumns = vm.build_colums(data.dt_headers);
+      }
 
       if(data["row_call"]) {
 

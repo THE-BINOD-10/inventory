@@ -536,7 +536,7 @@ def validate_jo(all_data, user, jo_reference, vendor_id=''):
             continue
 
         key_id = check_and_return_mapping_id(key, "", _user, False)
-        product_sku = SKUMaster.objects.filter(id=key_id, sku_type__in=['FG', 'RM', 'CS'], user=user)
+        product_sku = SKUMaster.objects.filter(id=key_id, user=user)
         if not product_sku:
             if not sku_status:
                 sku_status = "Invalid SKU Code " + key
@@ -551,7 +551,7 @@ def validate_jo(all_data, user, jo_reference, vendor_id=''):
         for val in value:
             for data in val.values():
                 _id = check_and_return_mapping_id(data[0], "", _user, False)
-                material_sku = SKUMaster.objects.filter(id=_id, sku_type__in=['RM', 'CS'], user=user)
+                material_sku = SKUMaster.objects.filter(id=_id, user=user)
                 if not material_sku:
                     if not sku_status:
                         sku_status = "Invalid SKU Code " + data[0]
@@ -987,6 +987,7 @@ def insert_rwo_po(rw_order, request, user):
                  'location': profile.location, 'w_address': get_purchase_company_address(profile),
                  'company_name': profile.company_name}
 
+    check_purchase_order_created(user, po_id)
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
     if get_misc_value('raise_po', user.id) == 'true':
@@ -2551,6 +2552,7 @@ def get_grn_json_data(order, user, request):
 @login_required
 @get_admin_user
 def confirm_back_order(request, user=''):
+    from outbound import get_view_order_details
     all_data = {}
     status = ''
     total = 0
@@ -2558,6 +2560,7 @@ def confirm_back_order(request, user=''):
     customization = ''
     data_dict = dict(request.POST.iterlists())
     for i in range(len(data_dict['wms_code'])):
+        rendered1 = ''
         if not (data_dict['quantity'][i] and data_dict['supplier_id'][i]):
             continue
         cond = (data_dict['supplier_id'][i])
@@ -2565,6 +2568,34 @@ def confirm_back_order(request, user=''):
         order_id = ''
         if 'order_id' in request.POST.keys() and data_dict['order_id'][i]:
             order_id = data_dict['order_id'][i]
+            custom_order_id = order_id
+            order_detail_obj = OrderDetail.objects.filter(id=custom_order_id)
+            if order_detail_obj:
+                orig_order_id = order_detail_obj[0].original_order_id
+                from django.http import QueryDict
+                qdict = QueryDict('', mutable=True)
+                qdict.update({"order_id": orig_order_id, 'id': custom_order_id})
+                request.GET = qdict
+                view_order_details = get_view_order_details(request)
+                view_order_details = view_order_details.content
+                true, false = True, False
+                view_order_details = eval(view_order_details)
+                temp_data = {}
+                all_order_details = view_order_details['data_dict'][0]['ord_data'][0]
+                for key, value in all_order_details.iteritems():
+                    if key == "cust_id":
+                        temp_data["customer_id"] = value
+                    elif key in ["sgst_tax", "cgst_tax", "igst_tax"]:
+                        temp_data[key.split("_")[0]] = value
+                    elif key == "discount_percentage":
+                        temp_data["discount_per"] = value
+                    elif key == "sku_extra_data":
+                        temp_data["customData"] = value
+                    else:
+                        temp_data[key] = value
+                temp_data['image_url'] = request.META['HTTP_ORIGIN'] + '/images/fabricColors/' + temp_data['customData']['colorDataDict'][temp_data['customData']['bodyColor']]
+                t = loader.get_template('templates/customOrderDetailsTwo.html')
+                rendered1 = t.render(temp_data)
         job_order_id = ''
         if 'job_order_id' in request.POST.keys() and data_dict['job_order_id'][i]:
             job_order_id = data_dict['job_order_id'][i]
@@ -2670,6 +2701,7 @@ def confirm_back_order(request, user=''):
         t = loader.get_template('templates/toggle/po_download.html')
         rendered = t.render(data_dictionary)
         if get_misc_value('raise_po', user.id) == 'true':
+            rendered = [rendered, rendered1] if rendered1 else rendered
             write_and_mail_pdf(data_dictionary['po_reference'], rendered, request, user,
                                data_dictionary['supplier_email'], data_dictionary['telephone'], data_dictionary['data'],
                                str(data_dictionary['order_date']).split(' ')[0])

@@ -1,6 +1,6 @@
 'use strict';
 
-function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $window, $timeout, Data, SweetAlert) {
+function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, $state, $window, $timeout, Data, SweetAlert) {
 
   $scope.msg = "start";
   var vm = this;
@@ -1398,8 +1398,82 @@ function CreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $
       }
     }
   }
-}
 
+  vm.scan_ean = function(event, field) {
+    if (event.keyCode == 13 && field.length > 0) {
+      console.log(field);
+	  vm.scan_ean_disable = true;
+	  vm.service.apiCall('create_orders_check_ean/', 'GET', {'ean': field}).then(function(data) {
+		$('.scan_ean').trigger('focus').val('');
+        if(data.message) {
+		  if(data.data.sku) {
+		  vm.get_customer_sku_prices(data.data.sku).then(function(resp) {
+		  if(resp.length > 0) {
+			resp = resp[0]
+			var foundItem = $filter('filter')(vm.model_data.data, {'sku_id':resp.wms_code}, true)[0];
+			if (foundItem) {
+				var index = vm.model_data.data.indexOf(foundItem);
+				var exist_qty = vm.model_data.data[index]['quantity']
+				vm.model_data.data[index]['quantity'] = 1 + parseInt(exist_qty)
+                vm.change_quantity(vm.model_data.data[index])
+			} else {
+                if (vm.model_data.data.length) {
+                    if (vm.model_data.data[0]['sku_id'] == '') {
+                        vm.model_data.data = []
+                    }
+                }
+                vm.model_data.data.push({ 'capacity': 0, 'description':resp.sku_desc, 'discount': 0, 'discount_percentage':'', 'invoice_amount': resp.price, 'location':'', 'price': resp.price, 'priceRanges':[], 'quantity': 1, 'serial':'', 'serials':[], 'sku_id': resp.wms_code, 'tax': 0, 'taxes':[], 'total_amount': resp.price, 'unit_price': resp.price })
+                vm.change_quantity(vm.model_data.data[0])
+			}
+		  }
+		  })
+		  } else {
+		    Service.showNoty("SKU Not Found");
+            return false;
+		  }
+        }
+	  })
+	}
+  }
+
+  vm.assign_tab_event = '';
+  var array_list = ['SKU Code', 'Description']
+  if (vm.model_data.blind_order) {
+	array_list = array_list.push('Location')
+  }
+  if (vm.model_data.blind_order && vm.permissions.use_imei) {
+	array_list = array_list.push('Serial Scan')
+  }
+  var a = ['Quantity', 'Unit Price', 'Amount', 'Discount', 'Discount Percentage']
+  array_list = array_list.concat(a)
+  if(vm.fields.indexOf('Tax') == -1 && vm.model_data.tax_type == 'intra_state') {
+	var b = ['SGST(%)', 'CGST(%)']
+	array_list = array_list.concat(b)
+  }
+  if(vm.fields.indexOf('Tax') == -1 && vm.model_data.tax_type == 'inter_state') {
+    array_list = array_list.push('IGST(%)')
+  }
+  var c = ['Total Amount', 'Remarks']
+  array_list = array_list.concat(c)
+
+  angular.forEach(vm.fields, function(obj) {
+    var index = array_list.indexOf(obj);
+    if (index > -1) {
+      array_list.splice(index, 1);
+    }
+  })
+
+  if (array_list) {
+	vm.assign_tab_event = array_list.reverse()[0]
+  }
+
+  vm.tab_event_check = function($event, assign_tab_event, current_value, index, data) {
+	if (($event.keyCode == 13 || $event.keyCode == 9) && assign_tab_event == current_value) {
+		update_data(index, data, true);
+    }
+  }
+
+}
 angular
   .module('urbanApp')
-  .controller('CreateOrders', ['$scope', '$http', '$q', 'Session', 'colFilters', 'Service', '$state', '$window', '$timeout', 'Data', 'SweetAlert', CreateOrders]);
+  .controller('CreateOrders', ['$scope', '$filter','$http', '$q', 'Session', 'colFilters', 'Service', '$state', '$window', '$timeout', 'Data', 'SweetAlert', CreateOrders]);

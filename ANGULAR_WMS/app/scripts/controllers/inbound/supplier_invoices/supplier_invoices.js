@@ -10,6 +10,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
     vm.user_type = Session.roles.permissions.user_type;
+    vm.industry_type = Session.user_profile.industry_type;
 
     vm.selected = {};
     vm.checked_items = {};
@@ -98,7 +99,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
             if (click_type == 'cancel_inv') {
               var send_data = JSON.stringify({
-                grn_no: grn_no, 
+                grn_no: grn_no,
+                invoice_number: temp['Invoice ID'],
                 seller_summary_name: supplier_name, 
                 seller_summary_id: temp['id'], 
                 purchase_order__order_id: temp['purchase_order__order_id'],
@@ -107,7 +109,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               });
             } else {
               var send_data = JSON.stringify({
-                grn_no: grn_no, 
+                grn_no: grn_no,
+                invoice_number: temp['Invoice ID'],
                 seller_summary_name: supplier_name, 
                 seller_summary_id: temp['id'], 
                 purchase_order__order_id: temp['purchase_order__order_id'],
@@ -126,7 +129,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
         var send = data.join(",");
         send = {data: send}
-        var url = 'move_to_inv';
+        var url = 'move_to_invoice';
         vm.bt_disable = true;
         vm.service.apiCall(url, "GET", send).then(function(data){
           if(data.message) {
@@ -172,9 +175,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             }
             if(click_type == 'edit'){
               send_data = JSON.stringify({
-                grn_no: grn_no, 
-                seller_summary_name: temp['Supplier Name'], 
-                seller_summary_id: temp['id'], 
+                grn_no: grn_no,
+                invoice_number: temp['Invoice ID'],
+                seller_summary_name: temp['Supplier Name'],
+                seller_summary_id: temp['id'],
                 purchase_order__order_id: temp['purchase_order__order_id'],
                 receipt_number: temp['receipt_number'],
                 data: 'true',
@@ -184,7 +188,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               });
             } else {
               send_data = JSON.stringify({
-                grn_no: grn_no, 
+                grn_no: grn_no,
+                invoice_number: temp['Invoice ID'],
                 seller_summary_name: temp['Supplier Name'], 
                 seller_summary_id: temp['id'], 
                 purchase_order__order_id: temp['purchase_order__order_id'],
@@ -327,6 +332,10 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
       'order_id': form_data.order_id.$modelValue,
       'supplier_id': form_data.supplier_id.$modelValue,
     };
+
+    angular.forEach(vm.removed_data, function(data){
+      vm.model_data.data.push(data);
+    });
     update_edit_invoice_data.data = JSON.stringify(vm.model_data.data);
     update_edit_invoice_data.order_charges = JSON.stringify(vm.model_data.order_charges);
 
@@ -385,6 +394,7 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
     return cssClass
   }
 
+  vm.removed_data = [];
   vm.update_data = update_data;
   function update_data(index, data, last) {
     
@@ -406,12 +416,14 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
     vm.model_data.data.push(empty_data);
     } else {
     var del_sku = vm.model_data.data[index];
-      if(!del_sku.new_sku) {
-      Service.apiCall("remove_sku/", "POST", del_sku).then(function(data) {
-      console.log(data);
-      });
-      }
+      // if(!del_sku.new_sku) {
+      //   Service.apiCall("remove_sku/", "POST", del_sku).then(function(data) {
+      //     console.log(data);
+      //   });
+      // }
 
+      vm.model_data.data[index].quantity = 0;
+      vm.removed_data.push(vm.model_data.data[index]);
       vm.model_data.data.splice(index,1);
       vm.cal_total();
     }

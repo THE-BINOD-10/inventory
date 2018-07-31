@@ -1,107 +1,134 @@
+      {% load tag_extras %}
 
-{% load tag_extras %}
-
-<style>
-  {% include 'toggle/bootstrap.min.css' %}
-  {% include 'toggle/page.css' %}
-</style>
-
-<form id="toggle-po">
-  <table style="font-size:12px;width:480px">
-    <tbody>
-      <tr>
-        <td rowspan="3" style="text-align:left;width:380px;"><h4>Purchase Order</h4></td>
-        {% if company_name %}
-        <td style="text-align:center;">{{company_name }}</td>
-        {% endif %}
-      </tr>
-      {% if address %}
-      <tr>
-        <td style="text-align:center;width:480px;">{{ w_address|linebreaks }}</td>
-      </tr>
-      {% endif %}
-    </tbody>
-  </table>
-  <br/>
-  <div class="form-group clearfix" style="outline: 1px solid #656565;padding: 33px">
-    <div>
-      <div style="float:left;padding-bottom:20px;">
-        {% if not vendor_name %}
-          <p style="font-weight: bold;">To: </p>
-        {% else %}
-          <p style="font-weight: bold;">Shipped From: </p>
-        {% endif %}
-          <p>{{ name }}</p>
-          {{ address|linebreaks }}
-          <p><b>Telephone:</b> {{ telephone }}</p>
-          {% if gstin_no %}
-          <p><b>GSTIN No:</b> {{ gstin_no }}</p>
-          {% endif %}
-          {% if vendor_name %}
-            <p style="font-weight: bold;">Shipped To: </p>
-            <p>{{ vendor_name }}</p>
-            {{ vendor_address|linebreaks }}
-            <p><b>Telephone:</b> {{ vendor_telephone }}</p>
-          {% endif %}
-          {% if gstin_number %}
-          <p><b>GSTIN No:</b> {{gstin_number}}</p>
-          {% endif %}
-      </div>
-      <div style="float:right">
-        <p><b>Order ID:</b> {{ order_id }}</p>
-        <p><b>PO Reference:</b> {{ po_reference }}</p>
-        <p><b>Date:</b> {{ order_date }}</p>
-      </div>
-    </div>
-    <div style="clear:both;">
-      <table class="table borderless" style="font-size: 12px !important;">
-        <thead>
+<div>
+  <style>
+    {% include 'toggle/page1.css' %}
+    /*{% include 'toggle/bootstrap.min.css' %}*/
+  </style>
+  <div class="print-invoice2 mb20">
+    <div class="invoice-body">
+	{% if "EAN Number" in table_headers %}
+      <table class="table table-bordered m0" style="width:1052px !important">
+	{% else %}
+	  <table class="table table-bordered m0" style="width:976px !important">
+	{% endif %}
+        <tbody style="width: 100%">
           <tr>
-            {% for table_header in table_headers %}
-              <th>{{ table_header }}</th>
-            {% endfor %}
-            {% if customization %}
-              <th>Customization</th>
-            {% endif %}
+            <td colspan="2">
+              <h3 class="m0" align="center"><b>Purchase Order</b></h3>
+            </td>
           </tr>
-        </thead>
-        <tbody>
-          {% for dat in data %}
           <tr>
-            {% for d in dat %}
-              {% if d|get_variable_type == 'list' %}
-                <td style="text-align: center;">
-                {% for extra in d %}
-                  {{ extra.attribute_name}}: {{ extra.attribute_value}}
-                {% endfor %}
-                </td>
-              {% else %}
-              <td style="text-align: center;">{{ d }}</td>
+            <td colspan="2">
+              <h3 class="m0" align="center"><b>{{ company_name }}</b></h3>
+              <p class="m0" align="center">{{ w_address|linebreaks }}</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="width: 50%">
+              <div class="row m0" style="overflow: hidden;">
+                <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
+                  <div class="col-md-12 p0">
+                <span><b>Order ID :</b>{{ order_id }}</span><br>
+                    <span><b>PO Reference :</b>{{ po_reference }}</span><br>
+                    <span><b>GSTIN :</b>{{ wh_gstin }}</span><br>
+                    <span><b>Pan No. :</b></span><br>
+                    <span><b>Date:</b>{{ order_date }}</span><br>
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td style="width: 50%">
+                <div class="row m0" style="overflow: hidden;">
+                <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
+                  <div class="col-md-12 p0">
+                    <span></span><br>
+                    <span></span><br>
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="width: 50%">
+			  <div class="row m0" style="overflow: hidden;">
+                <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
+                  <div class="col-md-12 p0">
+                    <h4>Bill To:</h4>
+                    <span><b>Name :</b></span>{{ name }}<br>
+                    <span><b>Address :</b></span>{{ address|linebreaks }}<br>
+                    <!--<span><b>Telephone :</b></span>{{ telephone }}<br>-->
+                    <span><b>GSTIN No :</b>{{ gstin_no }}</span><br>
+                  </div>
+                </div>
+              </div>
+			</td>
+			<td style="width: 50%">
+              <div class="row m0" style="overflow: hidden;">
+                <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
+                  <div class="col-md-12 p0">
+                    <h4>Ship To:</h4>
+                    <span><b>Name :</b></span>{{ company_name }}<br>
+                    <span><b>Address :</b></span>{{ ship_to_address|linebreaks }}<br>
+                    <span><b>Telephone :</b></span>{{ wh_telephone }}<br>
+                    <span><b>GSTIN No :</b></span>{{ wh_gstin }}<br>
+                  </div>
+                </div>
+              </div>
+            </td>
+		  </tr>
+        </tbody>
+      </table>
+      <!-- <table class="table table-bordered bl br cal-table m0" style="width:960px!important"> -->
+    {% if "EAN Number" in table_headers %}
+      <table class="table table-bordered m0" style="width:1051px !important">
+    {% else %}
+      <table class="table table-bordered m0" style="width:976px !important">
+    {% endif %}
+		<thead style="width: 100%">
+  		<tr align="center">
+              {% for table_header in table_headers %}
+  			    <th style="padding:2.5px;" rowspan="2"><center>{{ table_header }}</center></th>
+              {% endfor %}
+              {% if customization %}
+  			    <th style="padding:2.5px;" rowspan="2"><center><th>Customization</th></center></th>
               {% endif %}
-            {% endfor %}
-          </tr>
+  		</tr>
+		</thead>
+        <tbody style="width: 100%">
+          {% for dat in data %}
+            <tr class="fs14">
+              {% for d in dat %}
+                {% if d|get_variable_type == 'list' %}
+                  <td style="text-align: center;">
+                  {% for extra in d %}
+                    {{ extra.attribute_name}}: {{ extra.attribute_value}}
+                  {% endfor %}
+                  </td>
+                {% else %}
+                  <td style="text-align: center;">{{ d }}</td>
+                {% endif %}
+              {% endfor %}
+            </tr>
+			{% if forloop.last %}
+				<tr class="fs14 rm-border">
+					<td class="fs14" colspan="6">
+				  		<div class="row m0">
+							<div class="col-xs-12 text-left">
+					  			<span>Total Order Quantity :</span> {{ total_qty }}<br>
+					  			<span>Total Amount :</span> {{ total }} <br>
+							</div>
+				  		</div>
+					</td>
+					<td class="fs14 text-center" colspan="7">
+				  		<h5 class="m0">For {{ company_name }}</h5></br></br>
+				  		<h5 class="m0">Authorised Signatory</h5>
+					</td>
+			  	</tr>
+			{% endif %}
           {% endfor %}
         </tbody>
       </table>
-    <table class='table borderless'>
-      <tbody>
-        <tr>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td>Total Order Quantity</td>
-          <td>{{ total_qty }}</td>
-          <td> Total Amount</td>
-          <td>{{ total }}</td>
-        </tr>
-      </tbody>
-    </table>
+    </div>
   </div>
-</form>
+</div>

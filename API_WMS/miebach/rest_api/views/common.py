@@ -503,6 +503,7 @@ data_datatable = {  # masters
     'Targets': 'get_distributor_targets',
     #invoice based payment tracker
     'PaymentTrackerInvBased': 'get_inv_based_payment_data',
+    'OutboundPaymentReport': 'get_outbound_payment_report',
 }
 
 

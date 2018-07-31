@@ -200,6 +200,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       vm.service.apiCall(url, "GET", params).then(function(data){
 
         vm.items_dict = data.data.data_dict;
+
+        vm.items_dict.push({"adjusted":0,"order_id":1003,"item_code":"MK1001","closing_stock":0,"received":0,"total_stock":0,"unit_price":100,"opening_stock":0,"invoice_amount":1000,"product_title":"Pavechas Printed Daily Wear Polyester, Silk Sari","consumed":0,"quantity":10});
+
         vm.order_id = data.data.data_dict[0].order_id;
         vm.customer_name = data.data.wh_details.name;
         vm.address = data.data.wh_details.address;
@@ -240,20 +243,28 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       // elem = elem[0];
       // elem = $(elem).serializeArray();
       var elem = [];
+
       elem.push({name: 'order_id', value: vm.order_id}, /*{name: 'customer_id', value: vm.customer_id},*/ 
                 {name: 'customer_name', value: vm.customer_name}, {name: 'city', value: vm.city},
                 {name: 'address', value: vm.address}, {name: 'state', value: vm.state}, {name: 'pincode', value: vm.pin},
-                {name: 'creation_date', value: vm.creation_date}, {name: 'closing_stock', value: vm.items_dict[0].closing_stock},
-                {name: 'consumed', value: vm.items_dict[0].consumed}, {name: 'invoice_amount', value: vm.items_dict[0].invoice_amount},
-                {name: 'item_code', value: vm.items_dict[0].item_code}, {name: 'opening_stock', value: vm.items_dict[0].opening_stock},
-                {name: 'product_title', value: vm.items_dict[0].product_title}, {name: 'quantity', value: vm.items_dict[0].quantity}, 
-                {name: 'received', value: vm.items_dict[0].received}, {name: 'total_stock', value: vm.items_dict[0].total_stock}, 
-                {name: 'unit_price', value: vm.items_dict[0].unit_price}, {name: 'edjusted', value: vm.items_dict[0].edjusted});
-      vm.service.apiCall('update_stock_transfer_data/', 'POST', elem).then(function(data){
+                {name: 'creation_date', value: vm.creation_date});
+      
+      angular.forEach(vm.items_dict, function(item){
 
-          // vm.reloadData();
+        elem.push({name: 'closing_stock', value: item.closing_stock},
+                {name: 'consumed', value: item.consumed}, {name: 'invoice_amount', value: item.invoice_amount},
+                {name: 'item_code', value: item.item_code}, {name: 'opening_stock', value: item.opening_stock},
+                {name: 'product_title', value: item.product_title}, {name: 'quantity', value: item.quantity}, 
+                {name: 'received', value: item.received}, {name: 'total_stock', value: item.total_stock}, 
+                {name: 'unit_price', value: item.unit_price}, {name: 'edjusted', value: item.edjusted});
+      });
+
+      vm.service.apiCall('update_stock_transfer_data/', 'POST', elem).then(function(data){
+        if (data.message) {
+
           vm.back_button();
           colFilters.showNoty('Saved sucessfully');
+        }
       })
     }
 
@@ -364,9 +375,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         console.log(vm.generate_data);
         var data = {};
         for(var i=0;i<vm.generate_data.length;i++) {
-          data[vm.generate_data[i]['Stock Transfer ID']+":"+vm.generate_data[i]['SKU Code']]= vm.generate_data[i].DT_RowAttr.id;
+          // data[vm.generate_data[i]['Stock Transfer ID']+":"+vm.generate_data[i]['SKU Code']]= vm.generate_data[i].DT_RowAttr.id;
+          data[vm.generate_data[i]['Stock Transfer ID']] = vm.generate_data[i].DT_RowAttr.id;
         }
-        vm.service.apiCall('st_generate_picklist/', 'POST', data, true).then(function(data){
+        // vm.service.apiCall('st_generate_picklist/', 'POST', data, true).then(function(data){
+        vm.service.apiCall('stock_transfer_generate_picklist/', 'POST', data, true).then(function(data){
           if(data.message) {
             angular.copy(data.data, vm.model_data);
             for(var i=0; i<vm.model_data.data.length; i++){

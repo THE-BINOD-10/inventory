@@ -4,7 +4,7 @@
 
 	  	<div class="layout-sub-header">
 	  		<div class="row mt15">
-		      <form name="form" role="form" class="filters">
+		      <form name="form" role="form" class="filters ml15 mr15">
 		        <div class="clearfix">
 		          <div class="row col-md-12">
 		            
@@ -23,13 +23,13 @@
 		            <div class="col-md-4 col-sm-4 col-xs-6">
 		              <div class="form-group">
 		                <label class="control-label"><b>Customer</b></label>
-		                <input name="customer" ui-jq="datepicker" ng-model="showCase.model_data.filters.customer" class="form-control stk-readonly" type="text" id="customer" value="{{showCase.model_data.filters.customer}}" ng-change="showCase.checkDateValidation()" data-date-today-highlight="true" data-date-autoclose="true">
+		                <input type="text" name="customer" class="form-control" ng-model="showCase.model_data.filters.customer">
 		              </div>
 		            </div>
 		            <div class="col-md-4 col-sm-4 col-xs-6">
 		              <div class="form-group">
 		                <label class="control-label"><b>Invoice Number</b></label>
-		                <input name="invoice_number" ui-jq="datepicker" ng-model="showCase.model_data.filters.invoice_number" class="form-control stk-readonly" type="text" id="invoice_number" value="{{showCase.model_data.filters.invoice_number}}" ng-change="showCase.checkDateValidation()" data-date-today-highlight="true" data-date-autoclose="true">
+		                <input type="text" name="invoice_number" class="form-control" ng-model="showCase.model_data.filters.invoice_number" ng-class="service.get_decimal_perm()">
 		              </div>
 		            </div>
 		          </div>

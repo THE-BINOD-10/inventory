@@ -73,7 +73,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     var sort_no = (vm.g_data.style_view)? 1: 0;
     vm.filters = {'datatable': 'OutboundPaymentReport', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 
-    				'search4': '', 'search5': '', 'search6': '', 'search7': '', 'search8': ''};
+    				'search4': '', 'search5': '', 'search6': '', 'search7': ''/*, 'search8': ''*/};
 
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -111,7 +111,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('customer_name').withTitle('Customer Name'),
         DTColumnBuilder.newColumn('invoice_amount').withTitle('Invoice Amount'),
         DTColumnBuilder.newColumn('payment_received').withTitle('Payment Received'),
-        DTColumnBuilder.newColumn('invoice_data').withTitle('Invoice Date'),
+        // DTColumnBuilder.newColumn('invoice_date').withTitle('Invoice Date'),
         DTColumnBuilder.newColumn('mode_of_payment').withTitle('Mode Of Payment'),
         DTColumnBuilder.newColumn('remarks').withTitle('Remarks'),
     ];

@@ -478,79 +478,54 @@ def get_order_data(start_index, stop_index, temp_data, search_term, order_term, 
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     supplier_data = {}
     lis = ['PO Number', 'Order Date', 'Supplier ID', 'Supplier Name', 'Order Type']
+    po_lis = ['order_id', 'order_id', 'open_po__supplier_id', 'open_po__supplier__name', 'order_id']
+    st_lis = ['order_id', 'order_id', 'stpurchaseorder__open_st__warehouse_id',
+              'stpurchaseorder__open_st__warehouse__username', 'order_id']
+    rw_lis = ['order_id', 'order_id', 'rwpurchase__rwo__vendor_id', 'rwpurchase__rwo__vendor__name', 'order_id']
+    po_col = po_lis[col_num]
+    st_col = st_lis[col_num]
+    rw_col = rw_lis[col_num]
+    if order_term == 'desc':
+        po_col = '-%s' % po_col
+        st_col = '-%s' % st_col
+        rw_col = '-%s' % rw_col
+    purchase_order_objs = PurchaseOrder.objects.filter(Q(open_po__sku__user=user.id, open_po__sku_id__in=sku_master_ids) |
+                                               Q(stpurchaseorder__open_st__sku__user=user.id,
+                                                 stpurchaseorder__open_st__sku_id__in=sku_master_ids) |
+                                               Q(rwpurchase__rwo__job_order__product_code_id__in=sku_master_ids,
+                                                 rwpurchase__rwo__vendor__user=user.id), polocation__status=1,
+                                                       polocation__quantity__gt=0).\
+            exclude(status__in=['', 'confirmed-putaway', 'stock-transfer'])
     if search_term:
-        results = PurchaseOrder.objects.filter(open_po__sku_id__in=sku_master_ids).filter(
-            Q(open_po__supplier__name__icontains=search_term) |
+        results = purchase_order_objs.filter(Q(open_po__supplier__name__icontains=search_term) |
             Q(open_po__supplier__id__icontains=search_term) | Q(order_id__icontains=search_term) |
-            Q(creation_date__regex=search_term), open_po__sku__user=user.id).exclude(status__in=['',
-                                                                                                 'confirmed-putaway']).values_list(
-            'order_id', flat=True).distinct()
-        stock_results = STPurchaseOrder.objects.filter(open_st__sku_id__in=sku_master_ids).exclude(
-            po__status__in=['', 'confirmed-putaway',
-                            'stock-transfer']).filter(Q(open_st__warehouse__id__icontains=search_term) |
-                                                      Q(open_st__warehouse__username__icontains=search_term) |
-                                                      Q(po__order_id__icontains=search_term) | Q(
-            po__creation_date__regex=search_term),
-                                                      open_st__sku__user=user.id). \
-            values_list('po__order_id', flat=True).distinct()
-        rw_results = RWPurchase.objects.filter(rwo__job_order__product_code_id__in=sku_master_ids).exclude(
-            purchase_order__status__in=['',
-                                        'confirmed-putaway', 'stock-transfer']).filter(
-            Q(rwo__vendor__id__icontains=search_term) |
-            Q(rwo__vendor__name__icontains=search_term) |
-            Q(purchase_order__order_id__icontains=search_term) |
-            Q(purchase_order__creation_date__regex=search_term),
-            rwo__vendor__user=user.id). \
-            values_list('purchase_order__order_id', flat=True).distinct()
-        results = list(chain(results, stock_results, rw_results))
-    elif order_term:
-        results = PurchaseOrder.objects.filter(open_po__sku__user=user.id, open_po__sku_id__in=sku_master_ids).exclude(
-            status__in=['',
-                        'confirmed-putaway']).values_list('order_id', flat=True).distinct()
-        stock_results = STPurchaseOrder.objects.exclude(po__status__in=['', 'confirmed-putaway', 'stock-transfer']). \
-            filter(open_st__sku__user=user.id, open_st__sku_id__in=sku_master_ids). \
-            values_list('po__order_id', flat=True).distinct()
-        rw_results = RWPurchase.objects.filter(rwo__job_order__product_code_id__in=sku_master_ids).exclude(
-            purchase_order__status__in=['',
-                                        'confirmed-putaway', 'stock-transfer']). \
-            filter(rwo__vendor__user=user.id).values_list('purchase_order__order_id', flat=True)
-        results = list(chain(results, stock_results, rw_results))
+            Q(creation_date__regex=search_term) | Q(stpurchaseorder__open_st__warehouse__id__icontains=search_term) |
+            Q(stpurchaseorder__open_st__warehouse__username__icontains=search_term) |
+            Q(rwpurchase__rwo__vendor__id__icontains=search_term) |
+            Q(rwpurchase__rwo__vendor__name__icontains=search_term)).values(
+            'order_id').distinct().order_by(po_col, st_col, rw_col)
     else:
-        results = PurchaseOrder.objects.filter(open_po__sku__user=user.id, open_po__sku_id__in=sku_master_ids).exclude(
-            status__in=['',
-                        'confirmed-putaway']).values('order_id').distinct()
-    data = []
-    temp = []
-    for result in results:
-        suppliers = PurchaseOrder.objects.filter(order_id=result, open_po__sku__user=user.id,
-                                                 open_po__sku_id__in=sku_master_ids). \
-            exclude(status__in=['', 'confirmed-putaway'])
-        if not suppliers:
-            st_order_ids = STPurchaseOrder.objects.filter(po__order_id=result, open_st__sku__user=user.id,
-                                                          open_st__sku_id__in=sku_master_ids).values_list('po_id',
-                                                                                                          flat=True)
-            suppliers = PurchaseOrder.objects.filter(id__in=st_order_ids)
-        if not suppliers:
-            rw_ids = RWPurchase.objects.filter(purchase_order__order_id=result, rwo__vendor__user=user.id,
-                                               rwo__job_order__product_code_id__in=sku_master_ids).values_list(
-                'purchase_order_id', flat=True)
-            suppliers = PurchaseOrder.objects.filter(id__in=rw_ids)
-        for supplier in suppliers:
-            po_loc = POLocation.objects.filter(purchase_order_id=supplier.id, status=1, location__zone__user=user.id,
-                                               quantity__gt=0)
-            if po_loc and result not in temp:
-                temp.append(result)
-                data.append(supplier)
+        results = purchase_order_objs.values('order_id').\
+            distinct().order_by(po_col, st_col, rw_col)
 
-    temp_data['recordsTotal'] = len(data)
-    temp_data['recordsFiltered'] = len(data)
-    for supplier in data:
+    temp_data['recordsTotal'] = results.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    if lis[col_num] == 'Order Type':
+        custom_sort = True
+    else:
+        custom_sort = False
+        results = results[start_index:stop_index]
+    for result in results:
+        purchase_orders = purchase_order_objs.filter(order_id=result['order_id'])
+        supplier = purchase_orders[0]
         order_data = get_purchase_order_data(supplier)
         order_type = 'Purchase Order'
-        if RWPurchase.objects.filter(purchase_order_id=supplier.id):
-            order_type = 'Returnable Work Order'
-        elif STPurchaseOrder.objects.filter(po_id=supplier.id):
-            order_type = 'Stock Transfer'
+
+        if not supplier.open_po:
+            if supplier.rwpurchase_set.filter():
+                order_type = 'Returnable Work Order'
+            elif supplier.stpurchaseorder_set.filter():
+                order_type = 'Stock Transfer'
         po_reference = '%s%s_%s' % (
         supplier.prefix, str(supplier.creation_date).split(' ')[0].replace('-', ''), supplier.order_id)
         temp_data['aaData'].append({'DT_RowId': supplier.order_id, 'Supplier ID': order_data['supplier_id'],
@@ -560,12 +535,13 @@ def get_order_data(start_index, stop_index, temp_data, search_term, order_term, 
                                     'DT_RowClass': 'results', 'PO Number': po_reference,
                                     'DT_RowAttr': {'data-id': supplier.order_id}})
 
-    order_data = lis[col_num]
-    if order_term == 'asc':
-        temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(order_data))
-    else:
-        temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(order_data), reverse=True)
-    temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
+    if custom_sort:
+        order_data = lis[col_num]
+        if order_term == 'asc':
+            temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(order_data))
+        else:
+            temp_data['aaData'] = sorted(temp_data['aaData'], key=itemgetter(order_data), reverse=True)
+        temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
 
 
 @csrf_exempt

@@ -378,7 +378,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
         var url = 'st_generate_picklist';
         if (vm.alt_view) {
-          url = 'stock_transfer_generate_picklist';
+          url = 'stock_transfer_generate_picklist/';
         }
 
         vm.service.apiCall(url, 'POST', data, true).then(function(data){

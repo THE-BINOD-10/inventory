@@ -10237,3 +10237,77 @@ def get_stock_transfer_order_details(request, user=''):
 
     return HttpResponse(json.dumps({'data_dict': order_details_data, 'wh_details': wh_details,
                                     'order_date': order_date}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_stock_transfer_data(request, user=""):
+    """ This code will update data if stock transfer order is updated """
+    st_time = datetime.datetime.now()
+    log.info("updation of order process started")
+    myDict = dict(request.POST.iterlists())
+    log.info('Stock Transfer Order update request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    try:
+        order_id = myDict['order_id'][0]
+        for i in range(0, len(myDict['item_code'])):
+            sku_code = myDict['item_code'][i]
+            stock_transfer_obj = StockTransfer.objects.filter(sku__user=user.id, status=1, order_id=order_id,
+                                         sku__sku_code=sku_code)
+            if stock_transfer_obj:
+                stock_transfer_obj = stock_transfer_obj[0]
+                stock_transfer_obj.quantity = myDict['quantity'][i]
+                stock_transfer_obj.save()
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Update Order failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.GET.dict()), str(e)))
+        return HttpResponse("Update Order Failed")
+    return HttpResponse("Success")
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def stock_transfer_generate_picklist(request, user=''):
+    out_of_stock = []
+    picklist_number = get_picklist_number(user)
+
+    sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
+    sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
+        location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
+
+    switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
+                   'fifo_switch': get_misc_value('fifo_switch', user.id),
+                   'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
+    if switch_vals['fifo_switch'] == 'true':
+        stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by(
+            'receipt_date')
+        stock_detail2 = sku_stocks.filter(quantity__gt=0).order_by('receipt_date')
+    else:
+        stock_detail1 = sku_stocks.filter(location_id__pick_sequence__gt=0).filter(quantity__gt=0).order_by(
+            'location_id__pick_sequence')
+        stock_detail2 = sku_stocks.filter(location_id__pick_sequence=0).filter(quantity__gt=0).order_by('receipt_date')
+    sku_stocks = stock_detail1 | stock_detail2
+    for key, value in request.POST.iteritems():
+        orders_data = StockTransfer.objects.filter(order_id=value, status=1, sku__user=user.id)
+        stock_status, picklist_number = picklist_generation(orders_data, request, picklist_number, user, sku_combos,
+                                                            sku_stocks, switch_vals)
+
+        if stock_status:
+            out_of_stock = out_of_stock + stock_status
+
+    if out_of_stock:
+        stock_status = 'Insufficient Stock for SKU Codes ' + ', '.join(list(set(out_of_stock)))
+    else:
+        stock_status = ''
+
+    check_picklist_number_created(user, picklist_number + 1)
+    order_status = ''
+    data, sku_total_quantities = get_picklist_data(picklist_number + 1, user.id)
+    if data:
+        order_status = data[0]['status']
+
+    return HttpResponse(json.dumps({'data': data, 'picklist_id': picklist_number + 1, 'stock_status': stock_status,
+                                    'order_status': order_status}))

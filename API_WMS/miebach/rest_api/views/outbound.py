@@ -5874,12 +5874,27 @@ def get_outbound_payment_report(start_index, stop_index, temp_data, search_term,
 
     ''' Outbound Payment Report datatable code '''
 
+    from_date = request.POST.get('from_date', '')
+    to_date = request.POST.get('to_date', '')
+    customer_name = request.POST.get('customer', '')
+    inv_no = request.POST.get('invoice_number', '')
     user_profile = UserProfile.objects.get(user_id=user.id)
     admin_user = get_priceband_admin_user(user)
     lis = ['payment_id', 'payment_date', 'order__sellerordersummary__invoice_number', 'order__customer_name']#for filter purpose
     user_filter = {'order__user': user.id}
     result_values = ['payment_id', 'payment_date', 'order__sellerordersummary__invoice_number',
                      'mode_of_pay', 'remarks', 'order__customer_name', 'order__customer_id']#to make distinct grouping
+    #filter
+    if from_date:
+        from_date = datetime.datetime.strptime(from_date, '%m/%d/%Y')
+        user_filter['payment_date__gte'] = from_date
+    if to_date:
+        to_date = datetime.datetime.strptime(to_date, '%m/%d/%Y')
+        user_filter['payment_date__lte'] = to_date
+    if customer_name:
+        user_filter['order__customer_name'] = customer_name
+    if inv_no:
+        user_filter['order__sellerordersummary__invoice_number'] = inv_no
     cust_ids = request.POST.get("customer_ids", '')
     if cust_ids:
         cust_ids = cust_ids.split(',')

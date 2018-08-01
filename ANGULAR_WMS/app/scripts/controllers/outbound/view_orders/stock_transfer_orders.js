@@ -200,9 +200,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       vm.service.apiCall(url, "GET", params).then(function(data){
 
         vm.items_dict = data.data.data_dict;
-
-        vm.items_dict.push({"adjusted":0,"order_id":1003,"item_code":"MK1001","closing_stock":0,"received":0,"total_stock":0,"unit_price":100,"opening_stock":0,"invoice_amount":1000,"product_title":"Pavechas Printed Daily Wear Polyester, Silk Sari","consumed":0,"quantity":10});
-
         vm.order_id = data.data.data_dict[0].order_id;
         vm.customer_name = data.data.wh_details.name;
         vm.address = data.data.wh_details.address;
@@ -378,7 +375,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           // data[vm.generate_data[i]['Stock Transfer ID']+":"+vm.generate_data[i]['SKU Code']]= vm.generate_data[i].DT_RowAttr.id;
           data[vm.generate_data[i]['Stock Transfer ID']] = vm.generate_data[i].DT_RowAttr.id;
         }
-        
+
         var url = 'st_generate_picklist';
         if (vm.alt_view) {
           url = 'stock_transfer_generate_picklist';

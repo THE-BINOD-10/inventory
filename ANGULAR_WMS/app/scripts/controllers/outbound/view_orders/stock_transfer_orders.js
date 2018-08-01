@@ -378,10 +378,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           // data[vm.generate_data[i]['Stock Transfer ID']+":"+vm.generate_data[i]['SKU Code']]= vm.generate_data[i].DT_RowAttr.id;
           data[vm.generate_data[i]['Stock Transfer ID']] = vm.generate_data[i].DT_RowAttr.id;
         }
-        var url = 'st_generate_picklist';
         
+        var url = 'st_generate_picklist';
         if (vm.alt_view) {
-          var url = 'stock_transfer_generate_picklist';
+          url = 'stock_transfer_generate_picklist';
         }
 
         vm.service.apiCall(url, 'POST', data, true).then(function(data){

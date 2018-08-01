@@ -30,13 +30,24 @@
 		              <div class="form-group">
 		                <label class="control-label">Invoice Number</label>
 		                <input type="text" name="invoice_number" class="form-control" ng-model="showCase.model_data.filters.invoice_number" ng-class="service.get_decimal_perm()">
+
+		                <!-- Datatable name and search fields passing start -->
 		                <input name="datatable" class="form-control" ng-init="showCase.model_data.filters.datatable = 'OutboundPaymentReport'" type="hidden" ng-model="showCase.model_data.filters.datatable" value="OutboundPaymentReport">
+		                <input type="hidden" name="search0" class="form-control" ng-init="showCase.model_data.filters.search0=''" ng-model="showCase.model_data.filters.search0">
+		                <input type="hidden" name="search1" class="form-control" ng-init="showCase.model_data.filters.search1=''" ng-model="showCase.model_data.filters.search1">
+		                <input type="hidden" name="search2" class="form-control" ng-init="showCase.model_data.filters.search2=''" ng-model="showCase.model_data.filters.search2">
+		                <input type="hidden" name="search3" class="form-control" ng-init="showCase.model_data.filters.search3=''" ng-model="showCase.model_data.filters.search3">
+		                <input type="hidden" name="search4" class="form-control" ng-init="showCase.model_data.filters.search4=''" ng-model="showCase.model_data.filters.search4">
+		                <input type="hidden" name="search5" class="form-control" ng-init="showCase.model_data.filters.search5=''" ng-model="showCase.model_data.filters.search5">
+		                <input type="hidden" name="search6" class="form-control" ng-init="showCase.model_data.filters.search6=''" ng-model="showCase.model_data.filters.search6">
+		                <input type="hidden" name="search7" class="form-control" ng-init="showCase.model_data.filters.search7=''" ng-model="showCase.model_data.filters.search7">
+		                <!-- Datatable name and search fields passing end -->
 		              </div>
 		            </div>
 		          </div>
 		          <div class="col-md-12 text-center">
 		            <div class="filter-controls">
-		              <button type="button" class="btn btn-default" id="add-shippment-btn" style="margin-right: 10px" ng-click="showCase.resetFilters(showCase.model_data.filterss)"> Reset </button>
+		              <button type="button" class="btn btn-default" id="add-shippment-btn" style="margin-right: 10px" ng-click="showCase.resetFilters(showCase.model_data.filters)"> Reset </button>
 		              <button type="button" class="btn btn-success" id="add-shippment-btn" data-toggle="modal" data-target="#myModal" ng-click="showCase.service.generate_report(showCase.dtInstance, showCase.model_data.filters)" ng-disabled="!showCase.model_data.filters.from_date"> Search </button>
 		            </div>
 		          </div>

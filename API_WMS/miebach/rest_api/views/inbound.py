@@ -954,12 +954,12 @@ def switches(request, user=''):
                        'customer_dc': 'customer_dc', 
                        'auto_expire_enq_limit': 'auto_expire_enq_limit',
                        'sales_return_reasons': 'sales_return_reasons',
+                       'enable_damaged_stock' : 'enable_damaged_stock',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
             toggle_field = toggle_data.get(key, '')
             selection = value
-
         user_id = user.id
         if toggle_field == 'invoice_prefix':
             user_profile = UserProfile.objects.filter(user_id=user_id)

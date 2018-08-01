@@ -856,8 +856,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             Service.showNoty(data.data);
         }
     });
-    vm.picklist_display_address = switch_value
+    vm.picklist_display_address = switch_value;
     Session.roles.permissions['picklist_display_address'] = switch_value;
+  }
+
+  vm.change_enable_damaged_stock = function(switch_value) {
+    vm.service.apiCall("switches/?enable_damaged_stock="+String(switch_value)).then(function(data) {
+      if(data.message) {
+        Service.showNoty(data.data);
+      }
+    });
+    vm.enable_damaged_stock = switch_value;
+    Session.roles.permissions['enable_damaged_stock'] = switch_value;
   }
 
   vm.add_order = function() {

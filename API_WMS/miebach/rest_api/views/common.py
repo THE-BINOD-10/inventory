@@ -1664,6 +1664,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
             return 'Invalid Location'
     if quantity == '':
         return 'Quantity should not be empty'
+    quantity = float(quantity)
     stock_dict = {'sku_id': sku_id, 'location_id': location[0].id,
                   'sku__user': user.id}
     if pallet:
@@ -1684,7 +1685,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
 
     total_stock_quantity = 0
     if quantity:
-        quantity = float(quantity)
+        #quantity = float(quantity)
         stocks = StockDetail.objects.filter(**stock_dict)
         total_stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
         if not total_stock_quantity:
@@ -1734,6 +1735,8 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
         adj_quantity = all_stocks.aggregate(Sum('quantity'))['quantity__sum']
         if not adj_quantity:
             adj_quantity = 0
+        else:
+            adj_quantity = -adj_quantity
         all_stocks.update(quantity=0)
         location[0].filled_capacity = 0
         location[0].save()

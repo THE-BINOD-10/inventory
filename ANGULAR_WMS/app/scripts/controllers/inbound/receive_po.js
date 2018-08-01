@@ -929,20 +929,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.barcode_title = 'Barcode Generation';
       vm.model_data['barcodes'] = [];
 
-      angular.forEach(vm.model_data.data, function(barcode_data){
-        var quant = barcode_data[0].po_quantity;
-        var sku_det = barcode_data[0].wms_code;
-        /*var list_of_sku = barcode_data[0].serial_number.split(',');
-        angular.forEach(list_of_sku, function(serial) {
-          console.log(vm.sku_det);
-          var serial_number = vm.sku_det+'/00'+serial;
-          vm.model_data['barcodes'].push({'sku_code': serial_number, 'quantity': 1})
-        })*/
-       vm.model_data['barcodes'].push({'sku_code': sku_det, 'quantity': quant})
-
-      })
-
-      vm.model_data['format_types'] = [];
+	  vm.model_data['format_types'] = [];
       var key_obj = {};//{'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details', 'Bulk Barcode': 'Details'};
       vm.service.apiCall('get_format_types/').then(function(data){
         $.each(data['data']['data'], function(ke, val){
@@ -950,7 +937,22 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           });
           key_obj = data['data']['data'];
       });
-
+	  var elem = angular.element($('form'));
+      elem = elem[0];
+      elem = $(elem).serializeArray();
+      var list = [];
+      var dict = {};
+      $.each(elem, function(num, key){ 
+      	if(!dict.hasOwnProperty(key['name'])){
+        	dict[key['name']] = key['value'];
+      	}else{
+        	list.push(dict);
+         	dict = {}
+            dict[key['name']] = key['value'];
+      	}
+      });
+	  list.push(dict);
+	  vm.model_data['barcodes'] = list;
       vm.model_data.have_data = true;
       //$state.go('app.inbound.RevceivePo.barcode');
       var modalInstance = $modal.open({

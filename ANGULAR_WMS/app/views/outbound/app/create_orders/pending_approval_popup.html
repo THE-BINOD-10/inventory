@@ -132,12 +132,12 @@
             <div ng-if="(showCase.model_data.status | lowercase) == 'reject'" style="text-align: center;padding-bottom: 10px;">
                 <h3>Order Rejected by {{ showCase.model_data.approving_user_role }}</h3>
             </div>
-            <div ng-if="((showCase.model_data.approving_user_role | lowercase) != 'hod' || (showCase.model_data.approving_user_role | lowercase) != 'admin') && (showCase.model_data.status | lowercase) == 'pending'">
+            <!-- <div ng-if="((showCase.model_data.approving_user_role | lowercase) != 'hod' || (showCase.model_data.approving_user_role | lowercase) != 'admin') && (showCase.model_data.status | lowercase) == 'pending'">
               <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process">
                 <span>Save</span>
                   <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process"></span>
               </button>
-            </div>
+            </div> -->
           </div>
         </div>
     </div>

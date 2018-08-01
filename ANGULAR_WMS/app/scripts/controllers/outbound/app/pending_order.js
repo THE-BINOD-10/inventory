@@ -7,12 +7,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     var vm = this;
     vm.apply_filters = colFilters;
     vm.service = Service;
-	vm.session_roles = Session.roles;
+	  vm.session_roles = Session.roles;
     vm.priceband_sync = vm.session_roles.permissions.priceband_sync;
     vm.display_sku_cust_mapping = vm.session_roles.permissions.display_sku_cust_mapping;
     vm.user_role = vm.session_roles.user_role;
     vm.model_data = {};
+    vm.is_portal_lite = Session.roles.permissions.is_portal_lite;
     vm.date = new Date();
+
+    /*if (Session.roles.permissions.is_portal_lite) {
+      if (vm.location != '/App/PendingOrder') {
+        
+        $state.go('user.App.PendingOrder');
+      }
+    }*/
 
     vm.filters = {'datatable': 'OrderApprovals', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':''}
     vm.dtOptions = DTOptionsBuilder.newOptions()

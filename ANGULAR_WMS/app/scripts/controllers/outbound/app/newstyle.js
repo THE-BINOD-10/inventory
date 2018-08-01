@@ -379,9 +379,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
               showCancelButton: false,
               confirmButtonText: "OK",
               closeOnConfirm: true
-              // },
-              // function(isConfirm){
-              //   $state.go("user.App.Brands");
+              },
+              function(isConfirm){
+                // $state.go("user.App.newStyle");
+                // $state.reload();
+                vm.resetOrderDetails();
               }
             )
           } else {
@@ -390,6 +392,20 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
             vm.service.showNoty(response.data, "danger", "bottomRight");
           }
         }
+    });
+  }
+
+  vm.resetOrderDetails = function(){
+
+    angular.forEach(vm.filteredStyles, function(sku){
+
+      sku.quantity = '';
+    });
+
+    $scope.$apply(function() {
+      vm.model_data.selected_styles = {};
+      vm.final_data = {total_quantity: 0, amount: 0, tax_amount: 0, total_amount: 0};
+      vm.price_details_flag = true;
     });
   }
 

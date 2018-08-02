@@ -505,8 +505,13 @@ def generate_picklist(request, user=''):
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
                    'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
-    sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-        location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
+    
+    enable_damaged_stock = get_misc_value('enable_damaged_stock', user.id)
+    if enable_damaged_stock:
+        sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0, location__zone__zone__in=['DAMAGED_ZONE'])
+    else:
+        sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
+
     #all_orders = OrderDetail.objects.prefetch_related('sku').filter(**order_filter)
     all_seller_orders = SellerOrder.objects.prefetch_related('order__sku').filter(**seller_order_filter)
 
@@ -699,7 +704,14 @@ def get_picklist_data(data_id, user_id):
     sku_total_quantities = {}
     picklist_orders = Picklist.objects.filter(Q(order__sku__user=user_id) | Q(stock__sku__user=user_id),
                                               picklist_number=data_id)
-    pick_stocks = StockDetail.objects.filter(sku__user=user_id)
+
+
+    enable_damaged_stock = get_misc_value('enable_damaged_stock', user_id)
+    if enable_damaged_stock:
+        pick_stocks = StockDetail.objects.filter(sku__user=user_id, location__zone__zone__in=['DAMAGED_ZONE'])
+    else:
+        pick_stocks = StockDetail.objects.filter(sku__user=user_id)
+    
     stocks = pick_stocks.filter(quantity__gt=0).values('sku__wms_code', 'location__location').distinct().annotate(
         quantity=Sum('quantity'))
     reserved_instances = PicklistLocation.objects.filter(status=1, picklist__order__user=user_id).values(
@@ -6211,8 +6223,14 @@ def order_category_generate_picklist(request, user=''):
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
                    'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
-    sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
+
+    enable_damaged_stock = get_misc_value('enable_damaged_stock', user.id)
+    if enable_damaged_stock:
+        sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0, location__zone__zone__in=['DAMAGED_ZONE'])
+    else:
+        sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
         location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
+
     all_orders = OrderDetail.objects.prefetch_related('sku').filter(**order_filter)
     all_seller_orders = SellerOrder.objects.prefetch_related('order__sku').filter(**seller_order_filter)
     if switch_vals['fifo_switch'] == 'true':

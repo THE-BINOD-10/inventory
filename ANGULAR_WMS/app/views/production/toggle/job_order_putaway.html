@@ -38,6 +38,11 @@
                  <th ng-if="showCase.permissions.pallet_switch"> Pallet Code </th>
                  <th> Original Quantity </th>
                  <th> Putaway Quantity </th>
+		 <th ng-if="showCase.industry_type=='FMCG'"> Batch No </th>
+		<!-- <th> Buy price </th>-->
+		 <th ng-if="showCase.industry_type=='FMCG'"> MRP </th>
+		 <th ng-if="showCase.industry_type=='FMCG'"> Mfg.Date </th>
+		 <th ng-if="showCase.industry_type=='FMCG'"> Exp.Date </th>
                  <th class="detail"></th>
                  <th class="plus"></th>
                </tr>
@@ -51,7 +56,12 @@
                   <td ng-if="showCase.permissions.pallet_switch"><input ng-if="data.load_unit_handle == 'pallet'" type="text" name="pallet_code" class="form-control" ng-model="data.pallet_code" disabled></td>
                   <td><input type="text" name="original_quantity" class="form-control" ng-model="data.product_quantity" ng-disabled="showCase.update"></td>
                   <td><input type="text" name="putaway_quantity" class="form-control" ng-model="record.putaway_quantity" ng-change="showCase.cal_quantity(record, data)" ng-class="service.get_decimal_perm()"></td>
-                  <td ng-include="'views/production/toggle/common/custom_sku_details.html'">
+		  <td ng-if="showCase.industry_type=='FMCG'"><input type="text" name="batch_no" class="form-control" ng-mode="data.batch_no"></td>
+		 <!-- <td><input type="text" ng-model="data.buy_price" size="22" name="buy_price" class="form-control" ng-class="service.get_decimal_perm()" ng-class="service.get_decimal_perm()"></td>-->
+		  <td ng-if="showCase.industry_type=='FMCG'"><input type="text" size="22" name="mrp" class="form-control" ng-class="service.get_decimal_perm()"></td>
+		  <td ng-if="showCase.industry_type=='FMCG'"><input name="mfg_date" ui-jq="datepicker" size="33" title="{{ data.mfg_date }}" ng-change="getExpiryDate(innerIndex, outerIndex)" class="form-control stk-readonly mfgDate" type="text" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}"></td>
+                   <td ng-if="showCase.industry_type=='FMCG'"><input name="exp_date" ui-jq="datepicker" size="33"  title="{{ data.exp_date }}" class="form-control stk-readonly expiryDatePicker" type="text" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}" ng-change="showCase.check_exp_date(data.exp_date, showCase.self_life_ratio, innerIndex, outerIndex)"></td>
+		  <td ng-include="'views/production/toggle/common/custom_sku_details.html'">
                   </td>
                   <td class=""><i ng-click="showCase.update_data($index, data, $last)" ng-class="showCase.isLast($last)"></i></td>
                 </tr>

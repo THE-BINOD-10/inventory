@@ -409,9 +409,10 @@ def get_search_params(request, user=''):
                     'fg_sku_code': 'fg_sku_code',
                     'rm_sku_code': 'rm_sku_code', 'pallet': 'pallet',
                     'staff_id': 'id', 'ean': 'ean', 'invoice_number': 'invoice_number', 'dc_number': 'challan_number',
-                    'zone_code': 'zone_code', 'dist_code': 'dist_code', 'reseller_code': 'reseller_code',
+                    'zone_code': 'zone_code', 'distributor_code': 'distributor_code', 'reseller_code': 'reseller_code',
                     'supplier_id': 'supplier_id', 'rtv_number': 'rtv_number', 'corporate_name': 'corporate_name',
-                    'enquiry_number': 'enquiry_number', 'enquiry_status': 'enquiry_status'}
+                    'enquiry_number': 'enquiry_number', 'enquiry_status': 'enquiry_status',
+                    'aging_period': 'aging_period'}
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
                       'search2': 'search_2', 'search3': 'search_3',
@@ -2165,6 +2166,67 @@ def search_wms_codes(request, user=''):
     # wms_codes = list(set(wms_codes))
 
     return HttpResponse(json.dumps(wms_codes))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def search_corporate_names(request, user=''):
+    data_id = request.GET.get('q', '')
+    data_exact = CorporateMaster.objects.filter(Q(name__iexact=data_id), user=user.id).order_by('name')
+    exact_ids = list(data_exact.values_list('id', flat=True))
+    data = CorporateMaster.objects.exclude(id__in=exact_ids).filter(Q(name__icontains=data_id),
+                                                                    user=user.id).order_by('name')
+    data = list(chain(data_exact, data))
+    corporate_names = []
+    if data:
+        for corporate in data:
+            corporate_names.append(str(corporate.name))
+            if len(corporate_names) >= 10:
+                break
+    return HttpResponse(json.dumps(corporate_names))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def search_reseller_names(request, user=''):
+    from rest_api.views.outbound import get_same_level_warehouses
+    data_id = request.GET.get('q', '')
+    distributors = get_same_level_warehouses(2, user)
+    data_exact = CustomerMaster.objects.filter(Q(name__iexact=data_id), user__in=distributors).order_by('name')
+    exact_ids = list(data_exact.values_list('id', flat=True))
+    data = CustomerMaster.objects.exclude(id__in=exact_ids).filter(Q(name__icontains=data_id),
+                                                                    user__in=distributors).order_by('name')
+    data = list(chain(data_exact, data))
+    reseller_names = []
+    if data:
+        for reseller in data:
+            reseller_names.append(str(reseller.name))
+            if len(reseller_names) >= 10:
+                break
+    return HttpResponse(json.dumps(reseller_names))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def search_distributor_codes(request, user=''):
+    from rest_api.views.outbound import get_same_level_warehouses
+    data_id = request.GET.get('q', '')
+    distributors = get_same_level_warehouses(2, user)
+    data_exact = UserProfile.objects.filter(user__in=distributors).filter(Q(user__first_name__iexact=data_id))
+    exact_ids = list(data_exact.values_list('id', flat=True))
+    data = UserProfile.objects.exclude(id__in=exact_ids).filter(user__in=distributors).\
+        filter(Q(user__first_name__icontains=data_id)).order_by('user__first_name')
+    data = list(chain(data_exact, data))
+    distributor_codes = []
+    if data:
+        for distributor in data:
+            distributor_codes.append(str(distributor.user.first_name))
+            if len(distributor_codes) >= 10:
+                break
+    return HttpResponse(json.dumps(distributor_codes))
 
 
 def get_order_id(user_id, is_pos=False):

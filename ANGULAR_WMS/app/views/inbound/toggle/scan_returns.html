@@ -166,9 +166,11 @@
                  <td><input type="text" class="form-control" ng-model="data_split.cgst" readonly style="width: 50px;"></td>
                  <td><input type="text" class="form-control" ng-model="data_split.igst" readonly style="width: 50px;"></td>
                  <td><input type="text" name="reason" class="form-control" ng-model="data_split.reason"></td>
-                 <td>
+                 <td style="padding-right: 0px;padding-left: 10px;padding-top: 15px;">
                    <i class="mr10" ng-click="showCase.update_data($index, data_split, showCase.model_data.data)" ng-class="showCase.service.isLast(false)"></i>
-                   <i ng-hide="showCase.return_process == 'scan_imei' || showCase.allocate_order" ng-click="showCase.add_next($index, data_split, showCase.model_data.data)" class="fa fa-plus-square-o"></i>
+                 </td>
+                 <td style="padding-left: 10px;padding-right: 10px;padding-top: 15px;">
+                   <i ng-hide="showCase.return_process == 'scan_imei' || showCase.allocate_order || showCase.industry_type != 'FMCG'" ng-click="showCase.add_next($index, data_split, showCase.model_data.data)" class="fa fa-plus-square-o"></i>
                  </td>
                </tr>
              </tbody>

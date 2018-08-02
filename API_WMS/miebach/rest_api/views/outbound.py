@@ -5904,18 +5904,32 @@ def get_outbound_payment_report(start_index, stop_index, temp_data, search_term,
     #invoice_date = get_local_date(user, invoice_date, send_date='true')
     #invoice_date = invoice_date.strftime("%d %b %Y")
 
-    competed_payment_ids = PaymentSummary.objects.filter(**user_filter)\
+    """competed_payment_ids = PaymentSummary.objects.filter(**user_filter)\
                             .exclude(Q(order__sellerordersummary__invoice_number='') | Q(payment_id=''))\
                             .values('order__sellerordersummary__invoice_number', 'order__customer_id',\
                              'payment_received', 'order__invoice_amount').distinct()\
                             .annotate(tot_payment_received = Sum('payment_received'),\
                              tot_invoice_amount = Sum('order__invoice_amount'))\
                             .filter(tot_payment_received=F('tot_invoice_amount'))\
-                            .values_list('id', flat=True)
+                            .values_list('id', flat=True)"""
+    all_invoice_numbers = SellerOrderSummary.objects.filter(order__user=user.id)\
+                            .exclude(Q(order__paymentsummary__payment_id='') | Q(invoice_number=''))\
+                            .values('invoice_number', 'order__customer_id').distinct()\
+                            .annotate(tot_inv_amt=Sum('order__invoice_amount'))\
+                            .values_list('order__customer_id', 'invoice_number', 'tot_inv_amt')
+    all_received_amounts = PaymentSummary.objects.filter(**user_filter)\
+                            .exclude(Q(order__sellerordersummary__invoice_number='') | Q(payment_id=''))\
+                            .filter(order__user=user.id).values('order__sellerordersummary__invoice_number', 'order__customer_id').distinct()\
+                            .annotate(tot_rcvd_amt=Sum('payment_received'))\
+                            .values_list('order__customer_id', 'order__sellerordersummary__invoice_number', 'tot_rcvd_amt')
+    competed_inv_nos = []
+    for item in all_received_amounts:
+        if item in all_invoice_numbers:
+            competed_inv_nos.append(item[1])
     if search_term:
         search_term = search_term.replace('(', '\(').replace(')', '\)')
         search_query = build_search_term_query(lis, search_term)
-        master_data = PaymentSummary.objects.filter(id__in=competed_payment_ids)\
+        master_data = PaymentSummary.objects.filter(order__sellerordersummary__invoice_number__in=competed_inv_nos)\
                         .filter(search_query, **user_filter)\
                         .values(*result_values).distinct()\
                         .annotate(tot_payment_received = Sum('payment_received'), tot_invoice_amount = Sum('order__invoice_amount'))
@@ -5925,13 +5939,13 @@ def get_outbound_payment_report(start_index, stop_index, temp_data, search_term,
             order_by = '%s' % lis[col_num]
         else:
             order_by = '-%s' % lis[col_num]
-        master_data = PaymentSummary.objects.filter(id__in=competed_payment_ids)\
+        master_data = PaymentSummary.objects.filter(order__sellerordersummary__invoice_number__in=competed_inv_nos)\
                         .filter(**user_filter)\
                         .values(*result_values).distinct()\
                         .annotate(tot_payment_received = Sum('payment_received'), tot_invoice_amount = Sum('order__invoice_amount'))\
                         .order_by('-%s' % lis[col_num])
     else:
-        master_data = PaymentSummary.objects.filter(id__in=competed_payment_ids)\
+        master_data = PaymentSummary.objects.filter(order__sellerordersummary__invoice_number__in=competed_inv_nos)\
                             .filter(**user_filter)\
                             .values(*result_values).distinct()\
                             .annotate(tot_payment_received = Sum('payment_received'), tot_invoice_amount = Sum('order__invoice_amount'))

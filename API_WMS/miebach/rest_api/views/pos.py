@@ -17,7 +17,7 @@ from django.views.decorators.csrf import csrf_exempt
 from miebach_admin.custom_decorators import login_required, get_admin_user
 from common import *
 from miebach_utils import *
-from outbound import send_mail_ordered_report, check_and_send_mail
+from outbound import send_mail_ordered_report, check_and_send_mail, create_intransit_order, delete_intransit_orders, check_req_min_order_val
 from send_message import send_sms
 
 # Create your views here.
@@ -226,6 +226,7 @@ def get_stock_count(request, order, stock, stock_diff, user, order_quantity):
 def picklist_creation(request, stock_detail, stock_quantity, order_detail, \
                       picklist_number, stock_diff, item, user, invoice_number,\
                       picks_all=[], picklists_send_mail={}):
+    auto_skus = []
     # seller_order_summary object creation
     seller_order_summary = SellerOrderSummary.objects.create(pick_number=1, \
                                                              seller_order=None, \
@@ -267,6 +268,7 @@ def picklist_creation(request, stock_detail, stock_quantity, order_detail, \
     for stock in stock_detail:
         stock_count, stock_diff = get_stock_count(request, order_detail, stock, \
                                                   stock_diff, user, order_detail.quantity)
+        auto_skus.append(order_detail.sku.wms_code)
         if not stock_count:
             continue
         stock.quantity = float(stock.quantity) - stock_count
@@ -299,6 +301,20 @@ def picklist_creation(request, stock_detail, stock_quantity, order_detail, \
 
         if not stock_diff:
             break
+    #auto po
+    if auto_skus:
+        auto_skus = list(set(auto_skus))
+    price_band_flag = get_misc_value('priceband_sync', user.id)
+    if price_band_flag == 'true':
+        reaches_order_val, sku_qty_map = check_req_min_order_val(user, auto_skus)
+        if reaches_order_val:
+            auto_po(auto_skus, user.id)
+            delete_intransit_orders(auto_skus, user)  # deleting intransit order after creating actual order
+        else:
+            create_intransit_order(auto_skus, user, sku_qty_map)
+    else:
+        auto_po(auto_skus, user.id)
+
     if order_detail.order_code == "PRE%s" %(request.user.id):
         return picks_all, picklists_send_mail
     return "Success"

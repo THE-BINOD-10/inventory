@@ -278,13 +278,17 @@ def results_data(request, user=''):
         eval(fun)(*params)
     else:
         temp_data = {"recordsTotal": 0, "recordsFiltered": 0, "draw": 2, "aaData": []}
-
     if excel == 'true':
+        params = [temp_data, search_params.get('search_term'), search_params.get('order_term'), 
+            search_params.get('order_index'), request, user, filter_params]
+        if request.POST.get('datatable', '') == 'SupplierMaster':
+            temp_data = {"recordsTotal": 0, "recordsFiltered": 0, "draw": 2, "aaData": []}
+            excel_data = get_supplier_master_excel(*params)
+            return HttpResponse(str(excel_data))
         headers = {}
         for key, value in request_data.iteritems():
             if not ('search' in key or key in ['datatable', 'excel']):
                 headers[key] = value
         excel_data = print_excel(request, temp_data, headers, excel_name=request_data.get('datatable'))
         return excel_data
-
     return HttpResponse(json.dumps(temp_data), content_type='application/json')

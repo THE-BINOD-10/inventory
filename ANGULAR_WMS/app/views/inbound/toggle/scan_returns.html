@@ -122,8 +122,11 @@
                  <th> Unit Price </th>
                  <th ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'" style="width: 10px"> Market place </th>
                  <th ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'"> MRP </th>
-                 <th ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'" style="width: 10px"> Manufactured Date </th>
-                 <th ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'" style="width: 10px"> Expiry Date </th>
+                 <th ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'" style="width: 10px"> Mfg.Date </th>
+                 <th ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'" style="width: 10px"> Exp.Date </th>
+                 <th>SGST</th>
+                 <th>CGST</th>
+                 <th>IGST</th>
                  <th> Reason </th>
                  <th class="plus" style="width:80px;"></th>
                </tr>
@@ -159,7 +162,9 @@
                  <td ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'"> <input type="text" name="mrp" class="form-control decimal" ng-model="data_split.mrp" style="width: 45px"> </td>
                  <td ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'"><input ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'" ui-jq="datepicker" ng-model="data_split.manufactured_date" class="form-control stk-readonly" type="text" id="manufactured_date" readonly name="manufactured_date" required data-date-today-highlight="true" data-date-autoclose="true" placeholder="Manufactured Date" style="width: 90px;"></td>
                  <td ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'"><input ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'" ui-jq="datepicker" ng-model="data_split.expiry_date" class="form-control stk-readonly" type="text" id="expiry_date" readonly name="expiry_date" required data-date-today-highlight="true" data-date-autoclose="true" placeholder="Expiry Date" style="width: 90px;"></td>
-
+                 <td><input type="text" class="form-control" ng-model="data_split.sgst" readonly style="width: 50px;"></td>
+                 <td><input type="text" class="form-control" ng-model="data_split.cgst" readonly style="width: 50px;"></td>
+                 <td><input type="text" class="form-control" ng-model="data_split.igst" readonly style="width: 50px;"></td>
                  <td><input type="text" name="reason" class="form-control" ng-model="data_split.reason"></td>
                  <td>
                    <i class="mr10" ng-click="showCase.update_data($index, data_split, showCase.model_data.data)" ng-class="showCase.service.isLast(false)"></i>

@@ -110,6 +110,8 @@ ORDER_DATA = {'order_id': '', 'sku_id': '', 'title': '',
 
 ORDER_SUMMARY_REPORT_STATUS = ['Open', 'Picklist generated', 'Partial Picklist generated', 'Picked', 'Partially picked']
 
+ENQUIRY_REPORT_STATUS = ['pending', 'approval', 'rejected']
+
 RETURN_DATA = {'order_id': '', 'return_id': '', 'return_date': '', 'quantity': '', 'status': 1, 'return_type': '',
                'damaged_quantity': 0}
 
@@ -669,9 +671,10 @@ ENQUIRY_STATUS_REPORT = {
         {'label': 'Reseller Code', 'name': 'reseller_code', 'type': 'input'},
         {'label': 'Enquiry No', 'name': 'enquiry_number', 'type': 'input'},
         {'label': 'Aging Period', 'name': 'aging_period', 'type': 'input'},
-        {'label': 'Enquiry Status', 'name': 'enquiry_status', 'type': 'input'},
+        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+        {'label': 'Enquiry Status', 'name': 'enquiry_status', 'type': 'select'},
     ],
-    'dt_headers': ['Zone Code', 'Distributor Code', 'Reseller Code', 'Product Category', 'SKU Code',
+    'dt_headers': ['Zone Code', 'Distributor Code', 'Reseller Code', 'Product Category', 'SKU Code', 'SKU Quantity',
                    'Enquiry No', 'Enquiry Aging', 'Enquiry Status'
                 ],
     'dt_url': 'get_enquiry_status_report', 'excel_name': 'get_enquiry_status_report',
@@ -933,7 +936,8 @@ MAIL_REPORTS = {'sku_list': ['SKU List'], 'location_wise_stock': ['Location Wise
 
 MAIL_REPORTS_DATA = OrderedDict((('Raise PO', 'raise_po'), ('Receive PO', 'receive_po'), ('Orders', 'order'),
                                  ('Dispatch', 'dispatch'), ('Internal Mail', 'internal_mail'),
-                                 ('Raise JO', 'raise_jo')
+                                 ('Raise JO', 'raise_jo'), ('Stock Transfer Note', 'stock_transfer_note'),
+                                 ('Block Stock', 'enquiry'),
                                  ))
 
 # Configurations
@@ -1579,7 +1583,7 @@ WH_CUSTOMER_INVOICE_HEADERS_TAB = ['Customer Name', 'Order Quantity', 'Picked Qu
 STOCK_TRANSFER_INVOICE_HEADERS = ['Stock Transfer ID', 'Warehouse Name', 'Picked Quantity', 'Stock Transfer Date&Time', 'Total Amount']
 
 DIST_CUSTOMER_INVOICE_HEADERS = ['Gen Order Id', 'Order Ids', 'Customer Name', 'Order Quantity', 'Picked Quantity',
-                                 'Order Date&Time', 'Total Amount']
+                                 'Order Date&Time']
 
 # End of Customer Invoices page headers based on user type
 
@@ -1721,6 +1725,7 @@ CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
                      'mode_of_transport': 'mode_of_transport',
                      'shelf_life_ratio': 'shelf_life_ratio',
                      'auto_expire_enq_limit': 'auto_expire_enq_limit',
+                     'sales_return_reasons': 'sales_return_reasons',
                      }
 
 CONFIG_DEF_DICT = {'receive_options': dict(RECEIVE_OPTIONS),
@@ -1909,39 +1914,61 @@ def get_location_stock_data(search_params, user, sub_user):
     search_parameters['sku__user'] = user.id
     search_parameters['sku_id__in'] = sku_master_ids
     distinct_list = ['sku__wms_code', 'sku__sku_desc', 'sku__sku_category', 'sku__sku_brand']
+    lis = ['location__zone__zone', 'location__location', 'sku__ean_number', 'sku__wms_code', 'sku__sku_desc',
+           'tsum', 'tsum', 'tsum']
+    order_term = search_params.get('order_term', 0)
+    col_num = search_params.get('order_index', 0)
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
     if search_parameters:
         stock_detail = StockDetail.objects.exclude(receipt_number=0).filter(**search_parameters)
         total_quantity = stock_detail.aggregate(Sum('quantity'))['quantity__sum']
-    stock_detail = stock_detail.annotate(grouped_val=Concat('sku__sku_code', Value('<<>>'), 'location__location',output_field=CharField()))
+    if order_term:
+        stock_detail = stock_detail.order_by(order_data)
+    #stock_detail = stock_detail.annotate(grouped_val=Concat('sku__sku_code', Value('<<>>'),
+    #                                                        'location__location',output_field=CharField()))
+    stock_detail = OrderedDict(stock_detail.annotate(grouped_val=Concat('sku__sku_code', Value('<<>>'),
+                                                                 'location__location',output_field=CharField())).\
+                                    values_list('grouped_val').distinct().annotate(tsum=Sum('quantity')))
     results_data['recordsTotal'] = len(stock_detail)
     results_data['recordsFiltered'] = results_data['recordsTotal']
+    stock_detail_keys = stock_detail.keys()
     if stop_index:
-        stock_detail = stock_detail[start_index:stop_index]
-    picklist_reserved = dict(PicklistLocation.objects.filter(status=1, stock__sku__user=user.id).annotate(grouped_val=Concat('stock__sku__wms_code', Value('<<>>'), 'stock__location__location',output_field=CharField())).values_list('grouped_val').annotate(reserved=Sum('reserved')))
-    raw_reserved = dict(RMLocation.objects.filter(status=1, stock__sku__user=user.id).annotate(grouped_val=Concat('material_picklist__jo_material__material_code__wms_code', Value('<<>>'), 'stock__location__location',output_field=CharField())).values_list('grouped_val').annotate(rm_reserved=Sum('reserved')))
-    for data in stock_detail:
+        stock_detail_keys = stock_detail_keys[start_index:stop_index]
+    picklist_reserved = dict(PicklistLocation.objects.filter(status=1, stock__sku__user=user.id).\
+                             annotate(grouped_val=Concat('stock__sku__wms_code', Value('<<>>'),
+                                                         'stock__location__location',output_field=CharField())).\
+                             values_list('grouped_val').distinct().annotate(reserved=Sum('reserved')))
+    raw_reserved = dict(RMLocation.objects.filter(status=1, stock__sku__user=user.id).\
+                        annotate(grouped_val=Concat('material_picklist__jo_material__material_code__wms_code',
+                                                    Value('<<>>'), 'stock__location__location',
+                                                    output_field=CharField())).values_list('grouped_val').distinct().\
+                        annotate(rm_reserved=Sum('reserved')))
+    for stock_detail_key in stock_detail_keys:
         total_stock_value = 0
         reserved = 0
-        total = data.quantity
-        concat_wms_code_location = data.sku.wms_code + '<<>>' + data.location.location
-        if concat_wms_code_location in picklist_reserved.keys():
-            reserved += float(picklist_reserved[concat_wms_code_location])
-        if concat_wms_code_location in raw_reserved.keys():
-            reserved += float(raw_reserved[concat_wms_code_location])
+        total = stock_detail[stock_detail_key]
+        sku_code, location = stock_detail_key.split('<<>>')
+        sku_master = SKUMaster.objects.get(sku_code=sku_code, user=user.id)
+        location_master = LocationMaster.objects.get(location=location, zone__user=user.id)
+        if stock_detail_key in picklist_reserved.keys():
+            reserved += float(picklist_reserved[stock_detail_key])
+        if stock_detail_key in raw_reserved.keys():
+            reserved += float(raw_reserved[stock_detail_key])
         quantity = total - reserved
         if quantity < 0:
             quantity = 0
         total = reserved + quantity
-        ean_num = data.sku.ean_number
+        ean_num = sku_master.ean_number
         if not ean_num:
             ean_num = ''
-        results_data['aaData'].append(OrderedDict((('SKU Code', data.sku.sku_code), ('WMS Code', data.sku.wms_code),
-                                                   ('Product Description', data.sku.sku_desc),
-                                                   ('Zone', data.location.zone.zone),
-                                                   ('Location', data.location.location), ('Total Quantity', total),
+        results_data['aaData'].append(OrderedDict((('SKU Code', sku_master.sku_code), ('WMS Code', sku_master.wms_code),
+                                                   ('Product Description', sku_master.sku_desc),
+                                                   ('Zone', location_master.zone.zone),
+                                                   ('Location', location_master.location), ('Total Quantity', total),
                                                    ('Available Quantity', quantity), ('Reserved Quantity', reserved),
-                                                   ('Receipt Number', data.receipt_number), ('EAN', str(ean_num)),
-                                                   ('Receipt Date', str(data.receipt_date).split('+')[0]))))
+                                                   ('EAN', str(ean_num)))))
     return results_data, total_quantity
 
 
@@ -2877,8 +2904,7 @@ def get_order_summary_data(search_params, user, sub_user):
         search_parameters['state'] = search_params['state']
     if 'order_id' in search_params:
         order_detail = get_order_detail_objs(search_params['order_id'], user, search_params={}, all_order_objs=[])
-        if order_detail:
-            search_parameters['id__in'] = order_detail.values_list('id', flat=True)
+        search_parameters['id__in'] = order_detail.values_list('id', flat=True)
 
     status_search = search_params.get('order_report_status', "")
 
@@ -2894,24 +2920,24 @@ def get_order_summary_data(search_params, user, sub_user):
     for key, value in search_parameters.iteritems():
         pick_filters['order__%s' % key] = value
     order_id_status = dict(OrderDetail.objects.select_related('order_id', 'status').filter(**search_parameters).\
-                                        only('order_id', 'status').values_list('order_id', 'status').distinct())
+                                        only('id', 'status').values_list('id', 'status').distinct())
 
     picklist_generated = Picklist.objects.select_related('order').filter(status__icontains='open',picked_quantity=0,
-                                                 **pick_filters).only('order__order_id').values_list('order__order_id', flat=True).distinct()
+                                                 **pick_filters).only('order_id').values_list('order_id', flat=True).distinct()
 
     partially_picked = Picklist.objects.filter(status__icontains='open', picked_quantity__gt=0,
-                                               reserved_quantity__gt=0, **pick_filters).values_list('order__order_id',
+                                               reserved_quantity__gt=0, **pick_filters).values_list('order_id',
                                                                                     flat=True).distinct()
 
     picked_orders = Picklist.objects.filter(status__icontains='picked', picked_quantity__gt=0,
-                                            reserved_quantity=0, **pick_filters).values_list('order__order_id', flat=True).distinct()
+                                            reserved_quantity=0, **pick_filters).values_list('order_id', flat=True).distinct()
 
     #order_ids = OrderDetail.objects.filter(status=1, user=user.id).values_list('order_id', flat=True).distinct()
     pos_order_ids = OrderDetail.objects.filter(Q(order_code__icontains="PRE")|
-                    Q(order_code__icontains="DC"), status=1, **search_parameters).values_list('order_id', flat=True).distinct()
+                    Q(order_code__icontains="DC"), status=1, **search_parameters).values_list('id', flat=True).distinct()
     partial_generated = Picklist.objects.filter(**pick_filters)\
-                                .exclude(order__order_id__in=pos_order_ids).values_list(\
-                                'order__order_id', flat=True).distinct()
+                                .exclude(order_id__in=pos_order_ids).values_list(\
+                                'order_id', flat=True).distinct()
     #dispatched = OrderDetail.objects.filter(status=2, **search_parameters).values_list('order_id', flat=True).distinct()
     #reschedule_cancelled = OrderDetail.objects.filter(status=5, **search_parameters).values_list('order_id',
     #                                                                                     flat=True).distinct()
@@ -2922,7 +2948,7 @@ def get_order_summary_data(search_params, user, sub_user):
         ord_ids = ""
         if status_search == 'Open':
             ord_ids = OrderDetail.objects.filter(status=1, **search_parameters).\
-                                            values_list('order_id', flat=True).distinct()
+                                            values_list('id', flat=True).distinct()
         elif status_search == 'Picklist generated':
             ord_ids = picklist_generated
         elif status_search == 'Partial Picklist generated':
@@ -2932,7 +2958,7 @@ def get_order_summary_data(search_params, user, sub_user):
         elif status_search == 'Partially picked':
             ord_ids = partial_generated
 
-        orders = orders.filter(order_id__in=ord_ids)
+        orders = orders.filter(id__in=ord_ids)
         _status = status_search
 
     if search_params.get('order_term'):
@@ -2968,7 +2994,6 @@ def get_order_summary_data(search_params, user, sub_user):
         for i in tmp:
             extra_fields.append(str(i))
     for data in orders.iterator():
-        print count
         count = count + 1
         is_gst_invoice = False
         invoice_date = get_local_date(user, data.creation_date, send_date='true')
@@ -2981,19 +3006,19 @@ def get_order_summary_data(search_params, user, sub_user):
 
         # ['Open', 'Picklist generated', 'Partial Picklist generated', 'Picked', 'Partially picked']
         if not _status:
-            if order_id_status.get(data.order_id, '') == '1':
+            if order_id_status.get(data.id, '') == '1':
                 status = ORDER_SUMMARY_REPORT_STATUS[0]
-            elif data.order_id in picklist_generated:
+            elif data.id in picklist_generated:
                 status = ORDER_SUMMARY_REPORT_STATUS[1]
-            elif data.order_id in partially_picked:
+            elif data.id in partially_picked:
                 status = ORDER_SUMMARY_REPORT_STATUS[2]
-            elif data.order_id in picked_orders:
+            elif data.id in picked_orders:
                 status = ORDER_SUMMARY_REPORT_STATUS[3]
-            elif data.order_id in partial_generated:
+            elif data.id in partial_generated:
                 status = ORDER_SUMMARY_REPORT_STATUS[4]
-            if order_id_status.get(data.order_id, '') == '2':
+            if order_id_status.get(data.id, '') == '2':
                 status = ORDER_DETAIL_STATES.get(2, '')
-            if order_id_status.get(data.order_id, '') == '5':
+            if order_id_status.get(data.id, '') == '5':
                 status = ORDER_DETAIL_STATES.get(5, '')
         else:
             status = _status
@@ -3614,7 +3639,10 @@ def get_dist_sales_report_data(search_params, user, sub_user):
     from miebach_admin.models import OrderDetail
     search_parameters = {}
     lis = ['id', 'user', 'original_order_id', 'creation_date', 'sku__sku_category', 'sku__sku_code', 'quantity', 'status']
-    distributors = get_same_level_warehouses(2, user)
+    if user.userprofile.warehouse_type != 'DIST':
+        distributors = get_same_level_warehouses(2, user)
+    else:
+        distributors = [user.id]
     zone_code = search_params.get('zone_code', '')
     if zone_code:
         distributors = UserProfile.objects.filter(user__in=distributors,
@@ -3797,7 +3825,11 @@ def get_reseller_sales_report_data(search_params, user, sub_user):
     from rest_api.views.outbound import get_same_level_warehouses
     search_parameters = {}
     lis = ['id', 'user', 'original_order_id', 'creation_date', 'sku_category', 'sku__sku_code', 'quantity', 'status']
-    distributors = get_same_level_warehouses(2, user)
+    # distributors = get_same_level_warehouses(2, user)
+    if user.userprofile.warehouse_type != 'DIST':
+        distributors = get_same_level_warehouses(2, user)
+    else:
+        distributors = [user.id]
     zone_code = search_params.get('zone_code', '')
     if zone_code:
         distributors = UserProfile.objects.filter(user__in=distributors,
@@ -3834,6 +3866,8 @@ def get_reseller_sales_report_data(search_params, user, sub_user):
         res_ids = CustomerMaster.objects.filter(name__contains=search_params['reseller_code']).\
             values_list('id', flat=True)
         search_parameters['customer_id__in'] = res_ids
+    if 'corporate_name' in search_params:
+        search_parameters['client_name__icontains'] = search_params['corporate_name']
 
     status_search = search_params.get('order_report_status', "")
 
@@ -4206,7 +4240,11 @@ def get_dist_target_summary_report_data(search_params, user, sub_user):
     from miebach_admin.models import OrderDetail
     search_parameters = {}
     lis = ['id', 'user']
-    distributors = get_same_level_warehouses(2, user)
+    # distributors = get_same_level_warehouses(2, user)
+    if user.userprofile.warehouse_type != 'DIST':
+        distributors = get_same_level_warehouses(2, user)
+    else:
+        distributors = [user.id]
     zone_code = search_params.get('zone_code', '')
     if zone_code:
         distributors = UserProfile.objects.filter(user__in=distributors, zone=zone_code).values_list('user_id',
@@ -4245,6 +4283,10 @@ def get_dist_target_summary_report_data(search_params, user, sub_user):
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
         search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'corporate_name' in search_params:
+        corp_filtered_order_objs = GenericOrderDetailMapping.objects.\
+            filter(client_name__icontains=search_params['corporate_name'], orderdetail_id__in=orderdetail_ids)
+        orderdetail_ids = list(corp_filtered_order_objs.values_list('orderdetail_id', flat=True))
     search_parameters['id__in'] = orderdetail_ids
     search_parameters['quantity__gt'] = 0
     temp_data = copy.deepcopy(AJAX_DATA)
@@ -4283,7 +4325,9 @@ def get_dist_target_summary_report_data(search_params, user, sub_user):
     if stop_index:
         totals_map = totals_map.items()[start_index:stop_index]
     for dist_code, target in totals_map:
-        dist_tgt = dist_targets[dist_code]
+        dist_tgt = dist_targets.get(dist_code, '')
+        if not dist_tgt:
+            dist_tgt = 0
         ytd_target = round((dist_tgt / 365) * days_passed, 2)
         ytd_act_sale = round(target["net_amt"], 2)
         exc_short = ((ytd_act_sale - ytd_target) / ytd_target) * 100
@@ -4304,7 +4348,11 @@ def get_dist_target_detailed_report_data(search_params, user, sub_user):
     search_parameters = {}
     date_filters = {}
     lis = ['id', 'user']
-    distributors = get_same_level_warehouses(2, user)
+    # distributors = get_same_level_warehouses(2, user)
+    if user.userprofile.warehouse_type != 'DIST':
+        distributors = get_same_level_warehouses(2, user)
+    else:
+        distributors = [user.id]
     zone_code = search_params.get('zone_code', '')
     if zone_code:
         distributors = UserProfile.objects.filter(user__in=distributors, zone=zone_code).values_list('user_id',
@@ -4442,7 +4490,11 @@ def get_reseller_target_summary_report_data(search_params, user, sub_user):
     from rest_api.views.outbound import get_same_level_warehouses
     search_parameters = {}
     lis = ['id', 'user']
-    distributors = get_same_level_warehouses(2, user)
+    # distributors = get_same_level_warehouses(2, user)
+    if user.userprofile.warehouse_type != 'DIST':
+        distributors = get_same_level_warehouses(2, user)
+    else:
+        distributors = [user.id]
     zone_code = search_params.get('zone_code', '')
     if zone_code:
         distributors = UserProfile.objects.filter(user__in=distributors,
@@ -4455,7 +4507,7 @@ def get_reseller_target_summary_report_data(search_params, user, sub_user):
     search_parameters['quantity__gt'] = 0
     temp_data = copy.deepcopy(AJAX_DATA)
     if 'reseller_code' in search_params:
-        res_ids = CustomerMaster.objects.filter(name__contains=search_params['reseller_code']). \
+        res_ids = CustomerMaster.objects.filter(name__icontains=search_params['reseller_code']). \
             values_list('id', flat=True)
         search_parameters['customer_id__in'] = res_ids
 
@@ -4521,11 +4573,15 @@ def get_reseller_target_detailed_report_data(search_params, user, sub_user):
     from rest_api.views.outbound import get_same_level_warehouses
     search_parameters = {}
     lis = ['id', 'user']
-    distributors = get_same_level_warehouses(2, user)
+    # distributors = get_same_level_warehouses(2, user)
+    if user.userprofile.warehouse_type != 'DIST':
+        distributors = get_same_level_warehouses(2, user)
+    else:
+        distributors = [user.id]
     search_parameters['quantity__gt'] = 0
     temp_data = copy.deepcopy(AJAX_DATA)
     if 'reseller_code' in search_params:
-        res_ids = CustomerMaster.objects.filter(name__contains=search_params['reseller_code']). \
+        res_ids = CustomerMaster.objects.filter(name__icontains=search_params['reseller_code']). \
             values_list('id', flat=True)
         search_parameters['customer_id__in'] = res_ids
 
@@ -4586,7 +4642,11 @@ def get_corporate_target_report_data(search_params, user, sub_user):
     from rest_api.views.outbound import get_same_level_warehouses
     search_parameters = {}
     lis = ['id', 'user']
-    distributors = get_same_level_warehouses(2, user)
+    # distributors = get_same_level_warehouses(2, user)
+    if user.userprofile.warehouse_type != 'DIST':
+        distributors = get_same_level_warehouses(2, user)
+    else:
+        distributors = [user.id]
     search_parameters['quantity__gt'] = 0
     temp_data = copy.deepcopy(AJAX_DATA)
 
@@ -4629,7 +4689,11 @@ def get_corporate_target_report_data(search_params, user, sub_user):
 def get_corporate_reseller_mapping_report_data(search_params, user, sub_user):
     from rest_api.views.outbound import get_same_level_warehouses
     lis = ['id', 'user']
-    distributors = get_same_level_warehouses(2, user)
+    # distributors = get_same_level_warehouses(2, user)
+    if user.userprofile.warehouse_type != 'DIST':
+        distributors = get_same_level_warehouses(2, user)
+    else:
+        distributors = [user.id]
     temp_data = copy.deepcopy(AJAX_DATA)
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
@@ -4672,11 +4736,16 @@ def get_corporate_reseller_mapping_report_data(search_params, user, sub_user):
 def get_enquiry_status_report_data(search_params, user, sub_user):
     from rest_api.views.outbound import get_same_level_warehouses
     lis = ['id', 'user']
-    distributors = get_same_level_warehouses(2, user)
+    # distributors = get_same_level_warehouses(2, user)
+    if user.userprofile.warehouse_type != 'DIST':
+        distributors = get_same_level_warehouses(2, user)
+    else:
+        distributors = [user.id]
     temp_data = copy.deepcopy(AJAX_DATA)
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
 
+    search_parameters = {}
     zone_code = search_params.get('zone_code', '')
     if zone_code:
         distributors = UserProfile.objects.filter(user__in=distributors, zone__icontains=zone_code).\
@@ -4685,49 +4754,140 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
     if dist_code:
         distributors = UserProfile.objects.filter(user__in=distributors,
                                                   user__username__icontains=dist_code).values_list('user_id', flat=True)
-    zones_map = dict(UserProfile.objects.filter(user__in=distributors).values_list('user_id', 'zone'))
-    names_map = dict(UserProfile.objects.filter(user__in=distributors).values_list('user_id', 'user__username'))
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_parameters['enquiry__creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_parameters['enquiry__creation_date__lt'] = search_params['to_date']
+
+    search_parameters['enquiry__user__in'] = distributors
+    if 'reseller_code' in search_params:
+        res_ids = CustomerMaster.objects.filter(name__icontains=search_params['reseller_code']). \
+            values_list('id', flat=True)
+        search_parameters['enquiry__customer_id__in'] = res_ids
+    if 'enquiry_status' in search_params:
+        search_parameters['enquiry__extend_status__icontains'] = search_params['enquiry_status']
+    if 'enquiry_number' in search_params:
+        search_parameters['enquiry__enquiry_id__contains'] = search_params['enquiry_number']
+    if 'sku_code' in search_params:
+        search_parameters['sku__sku_code'] = search_params['sku_code']
+
     resellers_qs = CustomerUserMapping.objects.filter(customer__user__in=distributors)
-    resellers = resellers_qs.values_list('customer_id', flat=True)
-    res_dist_ids_map = dict(resellers_qs.values_list('customer_id', 'customer__user'))
     resellers_names_map = dict(resellers_qs.values_list('customer_id', 'user__username'))
-    em_qs = EnquiryMaster.objects.all()
-    corp_id_names = dict(CorporateMaster.objects.values_list('id', 'name'))
-    temp_data['recordsTotal'] = len(em_qs)
+
+    enquired_sku_qs = EnquiredSku.objects.filter(**search_parameters)
+    temp_data['recordsTotal'] = enquired_sku_qs.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     if stop_index:
-        em_qs = em_qs[start_index:stop_index]
+        enquired_sku_qs = enquired_sku_qs[start_index:stop_index]
 
-    for em_obj in em_qs:
+    for en_obj in enquired_sku_qs:
+        em_obj = en_obj.enquiry
         enq_id = int(em_obj.enquiry_id)
-        date = em_obj.creation_date.strftime('%Y-%m-%d')
         extend_status = em_obj.extend_status
         if em_obj.extend_date:
             days_left_obj = em_obj.extend_date - datetime.datetime.today().date()
             days_left = days_left_obj.days
         else:
             days_left = 0
-        cm_obj = CustomerMaster.objects.get(id=em_obj.customer_id)
-        customer_name = cm_obj.name
+        customer_name = resellers_names_map.get(em_obj.customer_id, '')
         dist_obj = User.objects.get(id=em_obj.user)
         distributor_name = dist_obj.username
         zone = dist_obj.userprofile.zone
-        sku_dets = em_obj.enquiredsku_set.values('sku__sku_category', 'sku_code')
-        if sku_dets:
-           sku_dets = sku_dets[0]
-           sku_code = sku_dets['sku_code']
-           prod_catg = sku_dets['sku__sku_category']
-        else:
-           sku_code = ''
-           prod_catg = ''
+        sku_code = en_obj.sku.sku_code
+        quantity = en_obj.quantity
+        prod_catg = en_obj.sku.sku_category
         ord_dict = OrderedDict((('Zone Code', zone),
                                 ('Distributor Code', distributor_name),
                                 ('Reseller Code', customer_name),
                                 ('Product Category', prod_catg),
                                 ('SKU Code', sku_code),
+                                ('SKU Quantity', quantity),
                                 ('Enquiry No', enq_id),
                                 ('Enquiry Aging', days_left),
                                 ('Enquiry Status', extend_status)))
         temp_data['aaData'].append(ord_dict)
     return temp_data
 
+def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
+    from miebach_admin.models import *
+    from miebach_admin.views import *
+    from rest_api.views.common import get_sku_master, get_order_detail_objs
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    search_parameters = {}
+    lis = ['order_shipment__shipment_number', 'order__original_order_id', 'order__sku__sku_code', 'order__title',
+           'order__customer_name',
+           'order__quantity', 'shipping_quantity', 'order_shipment__truck_number','creation_date', 'id', 'id',
+           'order__customerordersummary__payment_status', 'order_packaging__package_reference']
+    search_parameters['order__user'] = user.id
+    search_parameters['shipping_quantity__gt'] = 0
+    search_parameters['order__sku_id__in'] = sku_master_ids
+    temp_data = copy.deepcopy(AJAX_DATA)
+
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_parameters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
+                                                             datetime.time())
+        search_parameters['creation_date__lt'] = search_params['to_date']
+    if 'sku_code' in search_params:
+        search_parameters['order__sku__sku_code'] = search_params['sku_code']
+    if 'customer_id' in search_params:
+        search_parameters['order__customer_id'] = search_params['customer_id']
+    if 'order_id' in search_params:
+        order_detail = get_order_detail_objs(search_params['order_id'], user, search_params={}, all_order_objs=[])
+        if order_detail:
+            search_parameters['order_id__in'] = order_detail.values_list('id', flat=True)
+        else:
+            search_parameters['order_id__in'] = []
+
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+
+    model_data = ShipmentInfo.objects.filter(**search_parameters).\
+                                    values('order_shipment__shipment_number', 'order__order_id', 'id',
+                                           'order__original_order_id', 'order__order_code', 'order__sku__sku_code',
+                                           'order__title', 'order__customer_name', 'order__quantity', 'shipping_quantity',
+                                           'order_shipment__truck_number', 'creation_date',
+                                           'order_shipment__courier_name',
+                                           'order__customerordersummary__payment_status',
+                                           'order_packaging__package_reference')
+
+    ship_search_params  = {}
+    for key, value in search_parameters.iteritems():
+        ship_search_params['shipment__%s' % key] = value
+    ship_status = dict(ShipmentTracking.objects.filter(**ship_search_params).values_list('shipment_id', 'ship_status').\
+                       distinct().order_by('creation_date'))
+    if search_params.get('order_term'):
+        order_data = lis[search_params['order_index']]
+        if search_params['order_term'] == 'desc':
+            order_data = "-%s" % order_data
+        model_data = model_data.order_by(order_data)
+
+    temp_data['recordsTotal'] = model_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    if stop_index:
+        model_data = model_data[start_index:stop_index]
+
+    for data in model_data:
+        order_id = data['order__original_order_id']
+        if not order_id:
+            order_id = data['order__order_code'] + str(data['order__order_id'])
+        date = get_local_date(user, data['creation_date']).split(' ')
+        temp_data['aaData'].append(OrderedDict((('Shipment Number', data['order_shipment__shipment_number']),
+                                                ('Order ID', order_id), ('SKU Code', data['order__sku__sku_code']),
+                                                ('Title', data['order__title']),
+                                                ('Customer Name', data['order__customer_name']),
+                                                ('Quantity', data['order__quantity']),
+                                                ('Shipped Quantity', data['shipping_quantity']),
+                                                ('Truck Number', data['order_shipment__truck_number']),
+                                                ('Date', ' '.join(date)),
+                                                ('Shipment Status', ship_status.get(data['id'], '')),
+                                                ('Courier Name', data['order_shipment__courier_name']),
+                                                ('Payment Status', data['order__customerordersummary__payment_status']),
+                                                ('Pack Reference', data['order_packaging__package_reference']))))
+    return temp_data

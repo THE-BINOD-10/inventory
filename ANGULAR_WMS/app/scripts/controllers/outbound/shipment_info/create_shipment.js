@@ -569,42 +569,39 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
     }
 
     vm.cartonPrintData = {};
-    vm.print_pdf = function(form){
+    vm.print_pdf = function(form, excel=false) {
       if (vm.model_data.sel_cartons) {
         var sel_cartons_len = Object.keys(vm.model_data.sel_cartons);
         var sel_cartons = JSON.stringify(vm.model_data.sel_cartons);
-        
         var total_items = 0;
         angular.forEach(vm.model_data.sel_cartons, function(row){ 
           total_items += row; 
         });
-
         var elem = angular.element($('#add-customer'));
         elem = elem[0];
         elem = $(elem).serializeArray();
         elem.push({'name':'sel_cartons', 'value':sel_cartons});
         elem.push({'name':'total_cartons', 'value':sel_cartons_len.length});
         elem.push({'name':'total_items', 'value':total_items});
+        if (excel) {
+          elem.push({'name':'is_excel', 'value': true});
+        }
         vm.service.apiCall("print_cartons_data/", "POST", elem).then(function(data) {
           if(data.message) {
-
-            if(data.data.search("<div") != -1) {
-
-              vm.service.print_data(data.data, 'Packaging Slip');
-
+            if (excel) {
+              $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
+              window.location = Session.host+data.data.path;
             } else {
-              vm.service.pop_msg(data.data);
+              if(data.data.search("<div") != -1) {
+                vm.service.print_data(data.data, 'Packaging Slip');
+              } else {
+                vm.service.pop_msg(data.data);
+              }
             }
           }
-
         });
       } else {
         vm.service.showNoty("No cartons codes are entered");
       }
     }
-
-    // vm.get_carton_info = function(carton){
-    //   alert(carton);
-    // }
-
   }

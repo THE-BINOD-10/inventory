@@ -771,6 +771,10 @@ var app = angular.module('urbanApp')
             url: '/ScanReturns',
             templateUrl: 'views/inbound/toggle/scan_returns.html'
           })
+          .state('app.inbound.SalesReturns.ScanReturnsPrint', {
+            url: '/ScanReturnsPrint',
+            templateUrl: 'views/inbound/toggle/scan_return_print.html'
+          })
           .state('app.inbound.SalesReturns.barcode', {
             url: '/Barcode',
             templateUrl: 'views/masters/toggles/barcode.html'
@@ -2020,7 +2024,7 @@ var app = angular.module('urbanApp')
               }]
           },
           data: {
-            title: 'Corporate Reseller Mapping Report',
+            title: 'Enquiry Status Report',
           }
         })
 

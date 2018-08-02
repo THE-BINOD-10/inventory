@@ -2629,7 +2629,10 @@ def check_imei(request, user=''):
 
 @get_admin_user
 def print_picklist_excel(request, user=''):
-    headers = copy.deepcopy(PICKLIST_EXCEL)
+    if user.userprofile.industry_type == 'FMCG':
+        headers = copy.deepcopy(PICKLIST_EXCEL_FMCG)
+    else:
+        headers = copy.deepcopy(PICKLIST_EXCEL)
     data_id = request.GET['data_id']
     display_order_id = request.GET.get('display_order_id', 'false')
     if display_order_id == 'false':
@@ -2710,7 +2713,12 @@ def print_picklist(request, user=''):
     show_picklist_display_address = get_misc_value('picklist_display_address', user.id)
     if show_picklist_display_address == "false":
         customer_address = ''
-    headers = copy.deepcopy(PRINT_OUTBOUND_PICKLIST_HEADERS)
+    fmcg_industry_type = False
+    if user.userprofile.industry_type == 'FMCG':
+        headers = copy.deepcopy(PRINT_OUTBOUND_PICKLIST_HEADERS_FMCG)
+        fmcg_industry_type = True
+    else:
+        headers = copy.deepcopy(PRINT_OUTBOUND_PICKLIST_HEADERS)
     if display_order_id == 'true':
         if len(original_order_data):
             order_ids = ','.join(original_order_data)
@@ -2720,7 +2728,7 @@ def print_picklist(request, user=''):
     return render(request, 'templates/toggle/print_picklist.html',
                   {'data': data, 'all_data': all_data, 'headers': headers,
                    'picklist_id': data_id, 'total_quantity': total,
-                   'total_price': total_price, 'picklist_id': data_id,
+                   'total_price': total_price, 'picklist_id': data_id,'fmcg_industry_type':fmcg_industry_type,
                    'customer_name': customer_name, 'customer_address': customer_address, 'order_ids': order_ids,
                    'marketplace': marketplace, 'date_data': date_data, 'remarks': remarks_data, 'user': user, 'display_order_id': display_order_id, 'courier_name': courier_name })
 

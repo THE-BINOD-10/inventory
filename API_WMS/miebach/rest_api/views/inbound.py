@@ -749,6 +749,7 @@ def generated_po_data(request, user=''):
 def validate_wms(request, user=''):
     myDict = dict(request.POST.iterlists())
     wms_list = ''
+    tax_list = []
     receipt_type = request.POST.get('receipt_type', '')
     supplier_master = SupplierMaster.objects.filter(id=myDict['supplier_id'][0], user=user.id)
     if not supplier_master and not receipt_type == 'Hosted Warehouse':
@@ -770,10 +771,28 @@ def validate_wms(request, user=''):
                 wms_list = 'Invalid WMS Codes are ' + myDict['wms_code'][i].upper()
             else:
                 wms_list += ',' + myDict['wms_code'][i].upper()
+        if 'cgst_tax' in myDict.keys():
+            try:
+                cgst_tax = float(myDict['cgst_tax'][i])
+            except:
+                cgst_tax = 0
+            try:
+                igst_tax = float(myDict['igst_tax'][i])
+            except:
+                igst_tax = 0
+            if cgst_tax and igst_tax:
+                tax_list.append(myDict['wms_code'][i])
 
-    if not wms_list:
-        wms_list = 'success'
-    return HttpResponse(wms_list)
+    message = 'success'
+    if wms_list:
+        message = wms_list
+    if tax_list:
+        tax_list = 'Multiple Taxes mentioned for SKU Code %s' % (', '.join(tax_list))
+        if message == 'success':
+            message = tax_list
+        else:
+            message = '%s and %s' % (message, tax_list)
+    return HttpResponse(message)
 
 
 @csrf_exempt

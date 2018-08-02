@@ -4733,6 +4733,7 @@ def validate_seller_transfer_form(request, reader, user, no_of_rows, no_of_cols,
     all_skus = SKUMaster.objects.filter(user=user.id)
     all_sellers = SellerMaster.objects.filter(user=user.id)
     all_locations = LocationMaster.objects.filter(zone__user=user.id)
+
     for row_idx in range(1, no_of_rows):
         data_dict = {}
         for key, val in excel_mapping.iteritems():
@@ -4783,11 +4784,14 @@ def validate_seller_transfer_form(request, reader, user, no_of_rows, no_of_cols,
             if data_dict.get('mrp', 0):
                 src_stock_dict['batch_detail__mrp'] = data_dict['mrp']
             stock_detail = StockDetail.objects.filter(**src_stock_dict)
+            stock_ids = []
             if user.userprofile.industry_type == 'FMCG':
                 data_dict['dest_stocks'] = StockDetail.objects.none()
                 stock_detail1 = stock_detail.filter(batch_detail__expiry_date__isnull=False). \
                     order_by('batch_detail__expiry_date')
+                stock_ids = list(stock_detail1.values_list('id', flat=True))
                 stock_detail2 = stock_detail.exclude(batch_detail__expiry_date__isnull=False)
+                stock_ids = stock_ids + list(stock_detail2.values_list('id', flat=True))
                 stocks = list(chain(stock_detail1, stock_detail2))
             else:
                 data_dict['dest_stocks'] = StockDetail.objects.filter(sku_id=data_dict['sku_id'],
@@ -4795,7 +4799,11 @@ def validate_seller_transfer_form(request, reader, user, no_of_rows, no_of_cols,
                                                     location_id=data_dict['dest_location'][0].id)
                 stocks = stock_detail
             data_dict['src_stocks'] = stocks
-            avail_qty = check_auto_stock_availability(stocks, user)
+            if stocks:
+                avail_qty = check_stock_available_quantity(stocks, user, stock_ids=stock_ids)
+            else:
+                avail_qty = 0
+            #avail_qty = check_auto_stock_availability(stocks, user)
             if data_dict['quantity'] > avail_qty:
                 index_status.setdefault(row_idx, set()).add('Available quantity is %s' % str(avail_qty))
         all_data_list.append(data_dict)

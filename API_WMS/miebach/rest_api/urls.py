@@ -120,6 +120,9 @@ urlpatterns = [
     url(r'^search_supplier/$', search_supplier),
     url(r'^search_vendor/$', search_vendor),
     url(r'^search_wms_codes/$', search_wms_codes),
+    url(r'^search_corporate_names/$', search_corporate_names),
+    url(r'^search_reseller_names/$', search_reseller_names),
+    url(r'^search_distributor_codes/$', search_distributor_codes),
     url(r'^get_supplier_data/$', get_supplier_data),
     url(r'^update_putaway/$', update_putaway),
     url(r'^close_po/$', close_po),
@@ -311,6 +314,9 @@ urlpatterns = [
     url(r'^move_to_inv/$', move_to_inv),
     url(r'^update_dc/$', update_dc),
     url(r'^remove_sku/$', remove_sku),
+    url(r'^get_stock_transfer_order_details/$', get_stock_transfer_order_details),
+    url(r'^update_stock_transfer_data/$', update_stock_transfer_data),
+    url(r'^stock_transfer_generate_picklist/$', stock_transfer_generate_picklist),
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),

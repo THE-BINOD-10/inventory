@@ -592,6 +592,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
 	        vm.populate_last_transaction('')
         }, 2000 );
       }
+
       product.fields.sku.wms_code = item.wms_code;
       product.fields.measurement_unit = item.measurement_unit;
       product.fields.description = item.sku_desc;
@@ -605,6 +606,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       product.fields.cess_tax = "";
       product.fields.utgst_tax = "";
       product.fields.tax = "";
+      product.taxes = [];
       vm.getTotals();
 
       if(vm.model_data.receipt_type == 'Hosted Warehouse') {

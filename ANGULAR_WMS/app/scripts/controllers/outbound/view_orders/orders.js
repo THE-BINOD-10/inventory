@@ -18,6 +18,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.scroll_data = true;
     vm.special_key = {market_places: "", customer_id: ""}
     vm.picklist_display_address = vm.permissions.picklist_display_address;
+    vm.enable_damaged_stock = vm.permissions.enable_damaged_stock;
     vm.payment_status = ['To Pay', 'VPP', 'Paid'];
 
     vm.update_order_details = update_order_details;

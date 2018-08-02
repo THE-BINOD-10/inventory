@@ -2486,7 +2486,7 @@ class SKUDetailStats(models.Model):
 
     class Meta:
         db_table = 'SKU_DETAIL_STATS'
-
+        index_together = (('sku', 'transact_type'), ('sku', 'transact_type', 'transact_id'))
 
 class StockStats(models.Model):
     id = BigAutoField(primary_key=True)
@@ -2505,6 +2505,7 @@ class StockStats(models.Model):
 
     class Meta:
         db_table = 'STOCK_STATS'
+        index_together = (('sku',))
 
 
 class IntransitOrders(models.Model):

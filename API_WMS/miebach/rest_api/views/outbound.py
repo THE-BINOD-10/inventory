@@ -9008,7 +9008,7 @@ def update_exist_picklists(picklist_no, request, user, sku_code='', location='',
         if enable_damaged_stock:
             stock_objs = StockDetail.objects.prefetch_related('sku', 'location').filter(location__zone__zone__in=['DAMAGED_ZONE']).filter(**stock_params).order_by('location__pick_sequence')
         else:
-            stock_objs = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
+            stock_objs = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(**stock_params).order_by('location__pick_sequence')
 
         picklist_data['stock_id'] = 0
         stock_quan = 0

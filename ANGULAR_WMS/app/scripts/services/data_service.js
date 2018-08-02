@@ -39,14 +39,24 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
                          size_type: 'DEFAULT'
                        }
   //WareHouse stock
-  self.stock_view = {
 
+  self.stock_view = {
                       views: ['Available', 'Available+Intransit', 'Total'],
                       view: 'Available',
                       levels: [1,2],
                       level: 1
                     }
 
+  self.warehouse_alternative_stock_view = {
+                        views: ['Available', 'Reserved', 'Total'],
+                        view: 'Available',
+                        levels: [1,2],
+                        level: 1
+                      }
+
+  self.warehouse_toggle_value = false;
+
+  self.warehouse_view = self.stock_view;
 
   /*** Outbound **/
 

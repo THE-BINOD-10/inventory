@@ -1265,25 +1265,45 @@ def warehouse_headers(request, user=''):
     admin_user_id = ''
     admin_user_name = ''
     level = request.GET.get('level', '')
+    alternative_view = request.GET.get('alternative_view', '')
     price_band_flag = get_misc_value('priceband_sync', user.id)
     if price_band_flag == 'true':
         user = get_admin(user)
-    warehouses = UserGroups.objects.filter(admin_user_id=user.id).values_list('user_id', flat=True)
-    if level:
-        warehouses = UserProfile.objects.filter(user__in=warehouses,warehouse_level=int(level)).values_list('user_id',flat=True)
-    ware_list = list(User.objects.filter(id__in=warehouses).values_list('username', flat=True))
     header = ["SKU Code", "SKU Brand", "SKU Description", "SKU Category"]
-    user_groups = UserGroups.objects.filter(Q(admin_user_id=user.id) | Q(user_id=user.id))
-    if user_groups:
-        admin_user_id = user_groups[0].admin_user_id
-        admin_user_name = user_groups[0].admin_user.username
+    if alternative_view:
+        warehouses = UserGroups.objects.filter(admin_user_id=user.id).values_list('user_id', flat=True)
+        if level:
+            warehouses = UserProfile.objects.filter(user__in=warehouses,warehouse_level=int(level)).values_list('user_id',flat=True)
+        ware_list = list(User.objects.filter(id__in=warehouses).values_list('username', flat=True))
+        
+        user_groups = UserGroups.objects.filter(Q(admin_user_id=user.id) | Q(user_id=user.id))
+        if user_groups:
+            admin_user_id = user_groups[0].admin_user_id
+            admin_user_name = user_groups[0].admin_user.username
+        else:
+            admin_user_id = user.id
+            admin_user_name = user.username
+        if level:
+            headers = header + ware_list
+        else:
+            headers = header + [admin_user_name] + ware_list
     else:
-        admin_user_id = user.id
-        admin_user_name = user.username
-    if level:
-        headers = header + ware_list  #user_groups
-    else:
-        headers = header + [admin_user_name] + ware_list
+        warehouses = UserGroups.objects.filter(admin_user_id=user.id).values_list('user_id', flat=True)
+        if level:
+            warehouses = UserProfile.objects.filter(user__in=warehouses,warehouse_level=int(level)).values_list('user_id',flat=True)
+        ware_list = list(User.objects.filter(id__in=warehouses).values_list('username', flat=True))
+        
+        user_groups = UserGroups.objects.filter(Q(admin_user_id=user.id) | Q(user_id=user.id))
+        if user_groups:
+            admin_user_id = user_groups[0].admin_user_id
+            admin_user_name = user_groups[0].admin_user.username
+        else:
+            admin_user_id = user.id
+            admin_user_name = user.username
+        if level:
+            headers = header + ware_list
+        else:
+            headers = header + [admin_user_name] + ware_list
 
     return HttpResponse(json.dumps(headers))
 

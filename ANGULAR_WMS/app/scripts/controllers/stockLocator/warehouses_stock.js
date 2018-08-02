@@ -13,13 +13,14 @@ angular.module('urbanApp', ['datatables'])
     vm.go_data = ['Available', 'Avail + Intra', 'A + IT + R'];
     vm.view = '';
 
-    vm.g_data = Data.stock_view;
+    vm.g_data = Data.warehouse_view;
+    vm.g_data.alternate_view = Data.warehouse_toggle_value;
 
     vm.layout_loading = true;
     if(!Session.roles.permissions.add_networkmaster && !Session.roles.permissions.priceband_sync) {
       vm.g_data.level = "";
     }
-    vm.service.apiCall('warehouse_headers/?level='+vm.g_data.level, 'GET').then(function(data){
+    vm.service.apiCall('warehouse_headers/?level='+vm.g_data.level+'&alternate_view='+Data.warehouse_toggle_value, 'GET').then(function(data){
 
       vm.filters = {'datatable': vm.g_data.view, 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
 
@@ -76,6 +77,12 @@ angular.module('urbanApp', ['datatables'])
       vm.change_datatable = function() {
         Data.stock_view.view =  vm.g_data.view;
         Data.stock_view.level = vm.g_data.level;
+        $state.go($state.current, {}, {reload: true});
+      }
+
+      vm.alternate_view = function() {
+        Data.warehouse_toggle_value = vm.g_data.alternate_view;
+        Data.warehouse_view = (vm.g_data.alternate_view) ? Data.warehouse_alternative_stock_view : Data.stock_view;
         $state.go($state.current, {}, {reload: true});
       }
 

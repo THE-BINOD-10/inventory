@@ -173,9 +173,14 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
   $(document).on('keydown', 'input.detectTab', function(e) { 
     var keyCode = e.keyCode || e.which; 
 
-    if (keyCode == 9) { 
-      e.preventDefault(); 
-      vm.update_data(Number(this.parentNode.children[1].value), false);
+    var fields_count = (this.closest('#tab_count').childElementCount-1);
+    var cur_td_index = (this.parentElement.nextElementSibling.cellIndex);
+    var sku_index = (this.parentNode.nextElementSibling.children[0].value);
+
+
+    if ((keyCode == 9) && (fields_count === cur_td_index)) {
+      e.preventDefault();
+      vm.update_data(Number(sku_index), false);
     }
   });
 

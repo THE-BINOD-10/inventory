@@ -48,7 +48,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   'notification_receivers':JSON.stringify(vm.selectedTypes.notification_receivers), 
                   'remarks':vm.model_data.remarks};
 
-      vm.service.apiCall('message_notification/', 'POST', send).then(function(data){
+      vm.service.apiCall('push_message_notification/', 'POST', send).then(function(data){
 
         if(data.message) {
           vm.service.pop_msg(data.data);

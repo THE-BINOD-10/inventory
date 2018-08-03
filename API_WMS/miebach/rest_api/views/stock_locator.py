@@ -1267,9 +1267,7 @@ def warehouse_headers(request, user=''):
     alternative_view = request.GET.get('alternate_view', 'false')
     price_band_flag = get_misc_value('priceband_sync', user.id)
     size_name = request.POST.get("size_name", 'Default')
-
     size_list, user_list = [], []
-
     if price_band_flag == 'true':
         user = get_admin(user)
     header = ["SKU Code", "SKU Brand", "SKU Description", "SKU Category"]
@@ -1285,6 +1283,7 @@ def warehouse_headers(request, user=''):
             sizes = default_size
         size_list = list(size_names)
         #each_sizes for each names
+        string = 'Sales - '
         size_for_each_names = sizes
         '''
         warehouses = UserGroups.objects.filter(admin_user_id=user.id).values_list('user_id', flat=True)
@@ -1304,7 +1303,9 @@ def warehouse_headers(request, user=''):
         else:
             headers = header + [admin_user_name] + ware_list
         '''
-        headers = header
+        normal_size_list = sizes + ['Total']
+        sales_prefix_size_for_each_names = [string + x for x in sizes] + ['Sales - Total']
+        headers = header + normal_size_list + sales_prefix_size_for_each_names
         user_list = []
         admin_user = UserGroups.objects.filter(Q(admin_user__username__iexact=user.username) | Q(user__username__iexact=user.username)). \
             values_list('admin_user_id', flat=True)
@@ -1319,7 +1320,6 @@ def warehouse_headers(request, user=''):
         if level:
             warehouses = UserProfile.objects.filter(user__in=warehouses,warehouse_level=int(level)).values_list('user_id',flat=True)
         ware_list = list(User.objects.filter(id__in=warehouses).values_list('username', flat=True))
-        
         user_groups = UserGroups.objects.filter(Q(admin_user_id=user.id) | Q(user_id=user.id))
         if user_groups:
             admin_user_id = user_groups[0].admin_user_id

@@ -27,6 +27,7 @@ angular.module('urbanApp', ['datatables'])
       vm.size_types = data.data.size_types;
       vm.warehouse_names = data.data.warehouse_names;
 
+
       vm.filters = {'datatable': vm.g_data.view, 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
 
       vm.excel = excel;
@@ -72,6 +73,9 @@ angular.module('urbanApp', ['datatables'])
       vm.dtColumns = vm.service.build_colums(columns);
 
       vm.dtInstance = {};
+      if (Data.warehouse_toggle_value) {
+        vm.dtInstance.DataTable.context[0].ajax.data = {'from_date': vm.from_date, 'to_date': vm.to_date}
+      }
       vm.data_display = true;
 
       function reloadData () {
@@ -113,5 +117,13 @@ angular.module('urbanApp', ['datatables'])
         vm.service.refresh(vm.dtInstance);
       });
 
+      vm.date_format_convert = function(utc_date) {
+          var date = utc_date.toLocaleDateString();
+          var datearray = date.split("/");
+          return datearray[1] + '/' + datearray[0] + '/' + datearray[2];
+      }
+      var abc = new Date()
+      vm.from_date = vm.date_format_convert(new Date(abc.setDate(abc.getDate()-30)));
+      vm.to_date = vm.date_format_convert(new Date());
     })
 }

@@ -729,6 +729,7 @@ def get_picklist_data(data_id, user_id):
             order_code = ''
             mrp = ''
             batch_no = ''
+            courier_name = ''
             if order.stock:
                 stock_id = pick_stocks.get(id=order.stock_id)
             if order.order:
@@ -762,12 +763,8 @@ def get_picklist_data(data_id, user_id):
                     load_unit_handle = st_order[0].stock_transfer.sku.load_unit_handle
                     category = st_order[0].stock_transfer.sku.sku_category
                     st_order_picklist = st_order[0].picklist
+
                 marketplace = ""
-                courier_name =""
-                for order in st_order_picklist:
-                    customer_order_summary = order.order.customerordersummary_set.filter()
-                    if customer_order_summary:
-                        courier_name = customer_order_summary[0].courier_name
             pallet_code = ''
             pallet_detail = ''
             if stock_id and stock_id.pallet_detail:
@@ -10390,7 +10387,7 @@ def stock_transfer_generate_picklist(request, user=''):
 
     check_picklist_number_created(user, picklist_number + 1)
     order_status = ''
-    data, sku_total_quantities = get_picklist_data(picklist_number + 1, user.id)
+    data, sku_total_quantities, courier_name = get_picklist_data(picklist_number + 1, user.id)
     if data:
         order_status = data[0]['status']
 

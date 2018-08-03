@@ -11,7 +11,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.btn_desabled = false;
 
   vm.model_data.notification_types = ['Mail', 'SMS'];
-  vm.model_data.notification_receivers = ['Destributors', 'Resellers'];
+  vm.model_data.notification_receivers = ['Distributors', 'Resellers'];
 
   vm.selectedTypes = {'mail_notifications':{}, 'notification_receivers':{}};
   vm.checkedItems = function(type, mail_notification=false){
@@ -45,9 +45,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.btn_desabled = true;
 
       var send = {'notification_types':JSON.stringify(vm.selectedTypes.mail_notifications),
-                  'notification_receivers':JSON.stringify(vm.selectedTypes.notification_receivers)};
+                  'notification_receivers':JSON.stringify(vm.selectedTypes.notification_receivers), 
+                  'remarks':vm.model_data.remarks};
 
-      vm.service.apiCall('notification_master_info/', 'POST', send).then(function(data){
+      vm.service.apiCall('message_notification/', 'POST', send).then(function(data){
 
         if(data.message) {
           vm.service.pop_msg(data.data);

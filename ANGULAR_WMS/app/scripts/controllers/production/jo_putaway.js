@@ -8,6 +8,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service = Service;
     vm.g_data = Data.order_putaway;
     vm.permissions = Session.roles.permissions;
+    vm.industry_type = Session.user_profile.industry_type;	
     vm.table_data = (vm.g_data.sku_view)?'PutawayConfirmationSKU':'PutawayConfirmation' ;
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {

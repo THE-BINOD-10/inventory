@@ -777,6 +777,10 @@ PICKLIST_HEADER = ('ORDER ID', 'WMS Code', 'Title', 'Zone', 'Location', 'Reserve
 PRINT_OUTBOUND_PICKLIST_HEADERS = (
 'WMS Code', 'Title', 'Category', 'Zone', 'Location', 'Reserved Quantity', 'Picked Quantity')
 
+PRINT_OUTBOUND_PICKLIST_HEADERS_FMCG = (
+'WMS Code', 'Title', 'Category', 'Zone', 'Location', 'Batch No', 'MRP','Reserved Quantity', 'Picked Quantity')
+
+
 PRINT_PICKLIST_HEADERS = (
 'WMS Code', 'Title', 'Zone', 'Location', 'Reserved Quantity', 'Picked Quantity', 'Units Of Measurement')
 
@@ -973,6 +977,13 @@ ADD_WAREHOUSE_DICT = {'user_id': '', 'city': '', 'is_active': 1, 'country': '', 
 PICKLIST_EXCEL = OrderedDict((
                               ('Order ID', 'original_order_id'), ('WMS Code', 'wms_code'), ('Title', 'title'), ('Category', 'category'),
                               ('Zone', 'zone'), ('Location', 'location'), ('Reserved Quantity', 'reserved_quantity'),
+                              ('Stock Left', 'stock_left'),('Last Picked Location', 'last_picked_locs')
+                            ))
+
+PICKLIST_EXCEL_FMCG = OrderedDict((
+                              ('Order ID', 'original_order_id'), ('WMS Code', 'wms_code'), ('Title', 'title'), ('Category', 'category'),
+                              ('Zone', 'zone'), ('Location', 'location'), ('Batch No', 'batchno'), ('MRP', 'mrp'), 
+                              ('Reserved Quantity', 'reserved_quantity'),
                               ('Stock Left', 'stock_left'),('Last Picked Location', 'last_picked_locs')
                             ))
 
@@ -1730,6 +1741,7 @@ CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
                      'mode_of_transport': 'mode_of_transport',
                      'shelf_life_ratio': 'shelf_life_ratio',
                      'auto_expire_enq_limit': 'auto_expire_enq_limit',
+                     'sales_return_reasons': 'sales_return_reasons',
                      }
 
 CONFIG_DEF_DICT = {'receive_options': dict(RECEIVE_OPTIONS),
@@ -2406,6 +2418,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                 temp_tax_percent = temp_tax_percent / 2
                 data['purchase_order__open_po__cgst_tax'] = truncate_float(temp_tax_percent, 1)
                 data['purchase_order__open_po__sgst_tax'] = truncate_float(temp_tax_percent, 1)
+                data['purchase_order__open_po__igst_tax'] = 0
             else:
                 data['purchase_order__open_po__igst_tax'] = temp_tax_percent
                 data['purchase_order__open_po__cgst_tax'] = 0

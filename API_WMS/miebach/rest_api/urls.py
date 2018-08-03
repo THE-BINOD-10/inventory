@@ -222,6 +222,7 @@ urlpatterns = [
     url(r'^confirm_sku_substitution/$', confirm_sku_substitution),
     url(r'^confirm_move_location_inventory/$', confirm_move_location_inventory),
     url(r'^get_sku_batches/$', get_sku_batches),
+    url(r'^inventory_adj_reasons/$', inventory_adj_reasons),
 
     # OutBound
     url(r'^batch_generate_picklist/$', batch_generate_picklist),
@@ -313,6 +314,9 @@ urlpatterns = [
     url(r'^move_to_inv/$', move_to_inv),
     url(r'^update_dc/$', update_dc),
     url(r'^remove_sku/$', remove_sku),
+    url(r'^get_stock_transfer_order_details/$', get_stock_transfer_order_details),
+    url(r'^update_stock_transfer_data/$', update_stock_transfer_data),
+    url(r'^stock_transfer_generate_picklist/$', stock_transfer_generate_picklist),
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),

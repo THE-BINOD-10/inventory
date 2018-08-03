@@ -137,11 +137,11 @@
                    <input type="text" name="invoice_number" class="form-control" ng-model="data_split.invoice_number" readonly>
                  </td>
    	             <td>
-                   <input type="text" name="order_id" class="form-control" ng-model="data_split.order_id"
+                   <input type="text" name="order_id" class="form-control oi" ng-model="data_split.order_id"
                           ng-readonly="showCase.return_process != 'sku_code' || data_split.order_id =='' || !showCase.allocate_order"
-                          ng-blur="showCase.changeOrderId(data_split.return_quantity, $index, data_split)" style="width: 85px;">
+                          ng-blur="showCase.changeOrderId(data_split.return_quantity, $index, data_split)">
                  </td>
-                 <td><input type="text" name="sku_code" class="form-control" ng-model="data_split.sku_code" style="width: 55px;" readonly></td>
+                 <td><input type="text" name="sku_code" class="form-control sk" ng-model="data_split.sku_code" readonly></td>
                  <td><input type="text" name="sku_desc" class="form-control" ng-model="data_split.sku_desc" readonly></td>
                  <td><input type="text" name="shipping" class="form-control" ng-class="service.get_decimal_perm()" ng-model="data_split.ship_quantity" readonly></td>
                  <td><input type="text" name="return" class="form-control" ng-readonly="showCase.return_process == 'scan_imei'" ng-class="service.get_decimal_perm()"  ng-model="data_split.return_quantity" ng-change="showCase.changeReturnQty(data_split.return_quantity, $index, data_split)"></td>
@@ -166,11 +166,9 @@
                  <td><input type="text" class="form-control" ng-model="data_split.cgst" readonly style="width: 50px;"></td>
                  <td><input type="text" class="form-control" ng-model="data_split.igst" readonly style="width: 50px;"></td>
                  <td><input type="text" name="reason" class="form-control" ng-model="data_split.reason"></td>
-                 <td style="padding-right: 0px;padding-left: 10px;padding-top: 15px;">
+                 <td>
                    <i class="mr10" ng-click="showCase.update_data($index, data_split, showCase.model_data.data)" ng-class="showCase.service.isLast(false)"></i>
-                 </td>
-                 <td style="padding-left: 10px;padding-right: 10px;padding-top: 15px;">
-                   <i ng-hide="showCase.return_process == 'scan_imei' || showCase.allocate_order || showCase.industry_type != 'FMCG'" ng-click="showCase.add_next($index, data_split, showCase.model_data.data)" class="fa fa-plus-square-o"></i>
+                   <i ng-hide="showCase.return_process == 'scan_imei' || showCase.allocate_order" ng-click="showCase.add_next($index, data_split, showCase.model_data.data)" class="fa fa-plus-square-o"></i>
                  </td>
                </tr>
              </tbody>

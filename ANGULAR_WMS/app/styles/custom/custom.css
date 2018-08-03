@@ -133,6 +133,18 @@ h1 small {
   text-align: center;
   position: relative;
 }
+.item-display .pick_item {
+  position: absolute;
+  width: 25px;
+  right: 15px;
+  margin-top: 4px;
+  border: none;
+}
+.item-display .pick_item input {
+  width: 25px;
+  height: 25px;
+  cursor: pointer;
+}
 .class-item {
   overflow: hidden;
   padding: 0px;
@@ -329,6 +341,13 @@ h1 small {
     opacity: 1;
   }
 }
+.detail-list .panel-group {
+  margin-bottom: 10px;
+}
+.select2-container {
+  border: none !important;
+  padding: 0px !important;
+}
 .kk-timeline .round {
   width: 25px;
   height: 25px;
@@ -423,10 +442,10 @@ h1 small {
 .bg-transparency {
   opacity: 0.7;
   filter: alpha(opacity=50);
-  background: #fff;
+  background: #ffffff;
 }
 .order-list {
-  border: 1px solid #ccc;
+  border: 1px solid #cccccc;
 }
 .order-list .order-item {
   padding: 10px;
@@ -435,23 +454,23 @@ h1 small {
   color: blue;
 }
 .order-list .order-label {
-  color: #999;
+  color: #999999;
 }
 .order-list .order-bold {
   font-size: 20px;
   color: black;
 }
 .order-list .border-grey {
-  border-bottom: 1px solid #ccc;
+  border-bottom: 1px solid #cccccc;
 }
 .detail-list {
-  border: 1px solid #ccc;
+  border: 1px solid #cccccc;
 }
 .detail-list .detail-item {
   padding: 10px;
 }
 .detail-list .border-grey {
-  border-bottom: 1px solid #ccc;
+  border-bottom: 1px solid #cccccc;
 }
 .detail-list .detail-bg-grey {
   background: #f0f0f0;
@@ -519,6 +538,21 @@ body {
 }
 .swal2-container {
   z-index: 2021;
+}
+.filter_date input[type="date"]::before {
+  color: #999999;
+  content: attr(placeholder);
+}
+.filter_date input[type="date"] {
+  color: #ffffff;
+}
+.filter_date input[type="date"]:focus,
+.filter_date input[type="date"]:valid {
+  color: #666666;
+}
+.filter_date input[type="date"]:focus::before,
+.filter_date input[type="date"]:valid::before {
+  content: "" !important;
 }
 .field {
   margin-bottom: 10px;
@@ -702,7 +736,7 @@ select.error {
   top: 8px;
 }
 .layout-sub-header {
-  background: #fff;
+  background: #ffffff;
 }
 .layout-sub-header .filters {
   background: #f0f0f0;
@@ -717,7 +751,7 @@ select.error {
   width: 170px;
 }
 .sidebar-panel > nav .open > ul.sub-menu {
-  max-height: 800px;
+  max-height: 1500px;
 }
 .reports .dataTables_filter {
   display: none;
@@ -1295,6 +1329,9 @@ rm-blur:active {
 .mw95 {
   min-width: 950px;
 }
+.mw100 {
+  min-width: 1000px;
+}
 .over-x {
   overflow-x: auto;
 }
@@ -1512,4 +1549,10 @@ pre {
 }
 .z-2021 {
   z-index: 2021 !important;
+}
+.oi{
+  width: 85px;
+}
+.sk{
+  width: 55px;
 }

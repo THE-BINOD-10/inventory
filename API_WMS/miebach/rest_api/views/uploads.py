@@ -148,6 +148,17 @@ def get_seller_transfer_excel_headers(user):
     return excel_headers
 
 
+def get_inventory_adjustment_excel_upload_headers(user):
+    excel_headers = copy.deepcopy(ADJUST_INVENTORY_EXCEL_MAPPING)
+    userprofile = user.userprofile
+    if not userprofile.user_type == 'marketplace_user':
+        del excel_headers["Seller ID"]
+    if not userprofile.industry_type == 'FMCG':
+        del excel_headers["Batch Number"]
+        del excel_headers["MRP"]
+    return excel_headers
+
+
 '''def check_and_get_marketplace(reader, file_type, no_of_rows, no_of_cols):
     marketplace = ''
     if get_cell_data(0, 0, reader, file_type) == 'Order No.':
@@ -988,7 +999,8 @@ def inventory_adjust_form(request, user=''):
     inventory_file = request.GET['download-inventory-adjust-file']
     if inventory_file:
         return error_file_download(inventory_file)
-    wb, ws = get_work_sheet('INVENTORY_ADJUST', ADJUST_INVENTORY_EXCEL_HEADERS)
+    excel_headers = get_inventory_adjustment_excel_upload_headers(user)
+    wb, ws = get_work_sheet('INVENTORY_ADJUST', excel_headers)
     return xls_to_response(wb, '%s.inventory_adjustment_form.xls' % str(user.id))
 
 
@@ -3081,84 +3093,130 @@ def combo_sku_upload(request, user=''):
 
 
 @csrf_exempt
-def validate_inventory_adjust_form(open_sheet, user):
-    mapping_dict = {}
+def validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols, fname, file_type):
     index_status = {}
-    location = {}
-    for row_idx in range(0, open_sheet.nrows):
-        for col_idx in range(0, len(ADJUST_INVENTORY_EXCEL_HEADERS)):
-            cell_data = open_sheet.cell(row_idx, col_idx).value
-            if row_idx == 0:
-                if col_idx == 0 and cell_data != 'WMS Code':
-                    return 'Invalid File'
-                break
-            if col_idx == 0:
+    data_list = []
+    inv_mapping = get_inventory_adjustment_excel_upload_headers(user)
+    excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
+                                                 inv_mapping)
+    if not set(['wms_code', 'location', 'quantity', 'reason']).issubset(excel_mapping.keys()):
+        return 'Invalid File'
+    for row_idx in range(1, no_of_rows):
+        data_dict = {}
+        for key, value in excel_mapping.iteritems():
+            cell_data = get_cell_data(row_idx, value, reader, file_type)
+            if key == 'wms_code':
                 if isinstance(cell_data, (int, float)):
                     cell_data = int(cell_data)
                 cell_data = str(xcode(cell_data))
-                sku_master = SKUMaster.objects.filter(wms_code=cell_data, user=user)
+                sku_master = SKUMaster.objects.filter(wms_code=cell_data, user=user.id)
                 if not sku_master:
                     index_status.setdefault(row_idx, set()).add('Invalid WMS Code')
-            elif col_idx == 1:
+                else:
+                    data_dict['sku_master'] = sku_master[0]
+            elif key == 'location':
                 if cell_data:
-                    location_master = LocationMaster.objects.filter(zone__user=user, location=cell_data)
+                    location_master = LocationMaster.objects.filter(zone__user=user.id, location=cell_data)
                     if not location_master:
                         index_status.setdefault(row_idx, set()).add('Invalid Location')
+                    else:
+                        data_dict['location_master'] = location_master[0]
                 else:
                     index_status.setdefault(row_idx, set()).add('Location should not be empty')
-            elif col_idx == 2:
-                if cell_data and (not isinstance(cell_data, (int, float)) or int(cell_data) < 0):
+            elif key == 'seller_id':
+                if cell_data and isinstance(cell_data, (int, float)):
+                    seller_master = SellerMaster.objects.filter(user=user.id, seller_id=cell_data)
+                    if not seller_master:
+                        index_status.setdefault(row_idx, set()).add('Seller Not Found')
+                    else:
+                        data_dict['seller_master'] = seller_master[0]
+                else:
+                    index_status.setdefault(row_idx, set()).add('Invalid Seller')
+            elif key == 'quantity':
+                try:
+                    data_dict['quantity'] = float(cell_data)
+                    if data_dict['quantity'] < 0:
+                        index_status.setdefault(row_idx, set()).add('Invalid Quantity')
+                except:
                     index_status.setdefault(row_idx, set()).add('Invalid Quantity')
-                    # if cell_data == '':
-                    #    index_status.setdefault(row_idx, set()).add('Quantity should not be empty')
+            elif key == 'mrp':
+                if cell_data:
+                    try:
+                        data_dict['mrp'] = float(cell_data)
+                        if data_dict['mrp'] < 0:
+                            index_status.setdefault(row_idx, set()).add('Invalid MRP')
+                    except:
+                        index_status.setdefault(row_idx, set()).add('Invalid MRP')
+            else:
+                if isinstance(cell_data, (int, float)):
+                    cell_data = int(cell_data)
+                data_dict[key] = cell_data
+        data_list.append(data_dict)
 
     if not index_status:
-        return 'Success'
-    f_name = '%s.inventory_adjust_form.xls' % user
-    write_error_file(f_name, index_status, open_sheet, ADJUST_INVENTORY_EXCEL_HEADERS, 'Inventory Adjustment')
-    return f_name
+        return 'Success', data_list
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
+
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name, data_list
+
+
+    # if not index_status:
+    #     return 'Success'
+    # f_name = '%s.inventory_adjust_form.xls' % user
+    # write_error_file(f_name, index_status, open_sheet, ADJUST_INVENTORY_EXCEL_HEADERS, 'Inventory Adjustment')
+    # return f_name
 
 
 @csrf_exempt
 @login_required
 @get_admin_user
 def inventory_adjust_upload(request, user=''):
-    fname = request.FILES['files']
     try:
-        open_book = open_workbook(filename=None, file_contents=fname.read())
-        open_sheet = open_book.sheet_by_index(0)
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
     except:
         return HttpResponse('Invalid File')
 
-    status = validate_inventory_adjust_form(open_sheet, str(user.id))
+    status, data_list = validate_inventory_adjust_form(request, reader, user, no_of_rows, no_of_cols, fname,
+                                                       file_type)
+
     if status != 'Success':
         return HttpResponse(status)
     sku_codes = []
-    len1 = len(ADJUST_INVENTORY_EXCEL_HEADERS)
     cycle_count = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
     if not cycle_count:
         cycle_id = 1
     else:
         cycle_id = cycle_count[0].cycle + 1
 
-    for row_idx in range(1, open_sheet.nrows):
+    for final_dict in data_list:
         # location_data = ''
-        for col_idx in range(len1):
-            cell_data = open_sheet.cell(row_idx, col_idx).value
-            if col_idx == 0 and cell_data:
-                if isinstance(cell_data, (int, float)):
-                    cell_data = int(cell_data)
-                cell_data = str(xcode(cell_data))
-                wms_code = cell_data
-                if wms_code not in sku_codes:
-                    sku_codes.append(wms_code)
-            elif col_idx == 1:
-                loc = cell_data
-            elif col_idx == 2:
-                quantity = int(cell_data)
-            elif col_idx == 3:
-                reason = cell_data
-        adjust_location_stock(cycle_id, wms_code, loc, quantity, reason, user)
+        wms_code = final_dict['sku_master'].wms_code
+        loc = final_dict['location_master'].location
+        quantity = final_dict['quantity']
+        reason = final_dict['reason']
+        seller_master_id, batch_no, mrp = '', '', 0
+        if final_dict.get('seller_master', ''):
+            seller_master_id = final_dict['seller_master'].id
+        if final_dict.get('batch_no', ''):
+            batch_no = final_dict['batch_no']
+        if final_dict.get('mrp', 0):
+            mrp = final_dict['mrp']
+        adjust_location_stock(cycle_id, wms_code, loc, quantity, reason, user, batch_no=batch_no, mrp=mrp,
+                              seller_master_id=seller_master_id)
     check_and_update_stock(sku_codes, user)
     return HttpResponse('Success')
 

@@ -31,7 +31,12 @@ NOW = datetime.datetime.now()
 
 SKU_GROUP_FIELDS = {'group': '', 'user': ''}
 
-ADJUST_INVENTORY_EXCEL_HEADERS = ['WMS Code', 'Location', 'Physical Quantity', 'Reason']
+#ADJUST_INVENTORY_EXCEL_HEADERS = ['WMS Code', 'Location', 'Physical Quantity', 'Reason']
+
+ADJUST_INVENTORY_EXCEL_MAPPING = OrderedDict((('Seller ID', 'seller_id'), ('WMS Code', 'wms_code'),
+                                            ('Location', 'location'),
+                                            ('Physical Quantity', 'quantity'), ('Batch Number', 'batch_no'),
+                                            ('MRP', 'mrp'), ('Reason', 'reason')))
 
 SUB_CATEGORIES = {'round_neck': 'ROUND NECK', 'v_neck': 'V NECK', 'polo': 'POLO', 'chinese_collar': 'CHINESE COLLAR', 'henley': 'HENLEY', 'bags': 'BAGS',
                   'hoodie': 'HOODIE', 'jackets': 'JACKETS'}

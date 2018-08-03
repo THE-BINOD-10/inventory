@@ -1727,6 +1727,8 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
             if mrp:
                 batch_dict['mrp'] = mrp
                 del stock_dict["batch_detail__mrp"]
+            if 'sellerstock__seller_id' in stock_dict.keys():
+                del stock_dict['sellerstock__seller_id']
             if batch_dict.keys():
                 batch_obj = BatchDetail.objects.create(**batch_dict)
                 stock_dict["batch_detail_id"] = batch_obj.id

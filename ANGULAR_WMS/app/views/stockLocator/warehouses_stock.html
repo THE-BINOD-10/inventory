@@ -47,7 +47,17 @@
             <label style="padding: 5px;" class="control-label pull-right"><b> Alternative View: </b></label>
           </div>
 
-          <div class="col-md-3 col-sm-3 col-xs-3">
+          <div class="col-md-3 col-sm-3 col-xs-3" ng-if="showCase.alternate_view_value">
+            <div class="form-group">
+              <label class="control-label"> Select View *</label>
+              <select class="form-control pull-right" ng-model="showCase.g_data.view">
+                <option ng-repeat="view in showCase.g_data.views" value="{{view}}" ng-selected="view == showCase.g_data.view"> {{view}}</option>
+              </select>
+            </div>
+          </div>
+
+
+          <div class="col-md-3 col-sm-3 col-xs-3" ng-if="!showCase.alternate_view_value">
             <div class="form-group">
               <label class="control-label"> Select View *</label>
               <select class="form-control pull-right" ng-model="showCase.g_data.view" ng-change="showCase.change_datatable()">
@@ -59,7 +69,7 @@
           <div class="col-md-3 col-sm-3 col-xs-3" ng-if="showCase.alternate_view_value">
             <div class="form-group">
               <label class="control-label"> Warehouse Name *</label>
-              <select class="form-control" name="warehouse_name" required>
+              <select class="form-control" name="warehouse_name" ng-model="showCase.warehouse_value" required>
                 <option ng-repeat="option in showCase.warehouse_names" value="{{option}}">{{option}}</option>
               </select>
             </div>
@@ -68,7 +78,7 @@
           <div class="col-md-3 col-sm-3 col-xs-3" ng-if="showCase.alternate_view_value">
             <div class="form-group">
               <label class="control-label"> Size Types *</label>
-              <select class="form-control" name="size_types" required>
+              <select class="form-control" name="size_types" required ng-model="showCase.size_type_value">
                 <option ng-repeat="option in showCase.size_types" value="{{option}}">{{option}}</option>
               </select>
             </div>

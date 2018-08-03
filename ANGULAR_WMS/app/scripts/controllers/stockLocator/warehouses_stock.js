@@ -19,6 +19,16 @@ angular.module('urbanApp', ['datatables'])
     vm.size_types = [];
     vm.warehouse_names = [];
 
+    //From and To Date
+    var abc = new Date()
+    vm.date_format_convert = function(utc_date) {
+          var date = utc_date.toLocaleDateString();
+          var datearray = date.split("/");
+          return datearray[1] + '/' + datearray[0] + '/' + datearray[2];
+    }
+    vm.from_date = vm.date_format_convert(new Date(abc.setDate(abc.getDate()-30)));
+    vm.to_date = vm.date_format_convert(new Date());
+
     vm.layout_loading = true;
     if(!Session.roles.permissions.add_networkmaster && !Session.roles.permissions.priceband_sync) {
       vm.g_data.level = "";
@@ -73,9 +83,6 @@ angular.module('urbanApp', ['datatables'])
       vm.dtColumns = vm.service.build_colums(columns);
 
       vm.dtInstance = {};
-      if (Data.warehouse_toggle_value) {
-        vm.dtInstance.DataTable.context[0].ajax.data = {'from_date': vm.from_date, 'to_date': vm.to_date}
-      }
       vm.data_display = true;
 
       function reloadData () {
@@ -117,13 +124,11 @@ angular.module('urbanApp', ['datatables'])
         vm.service.refresh(vm.dtInstance);
       });
 
-      vm.date_format_convert = function(utc_date) {
-          var date = utc_date.toLocaleDateString();
-          var datearray = date.split("/");
-          return datearray[1] + '/' + datearray[0] + '/' + datearray[2];
+      vm.generate_warehouse_stock = function() {
+        if (Data.warehouse_toggle_value) {
+          vm.dtInstance.DataTable.context[0].ajax.data = {'from_date': vm.from_date, 'to_date': vm.to_date, 'view': vm.g_data.view, 'alternate_view': vm.alternate_view_value, 'warehouse_value' : vm.warehouse_value, 'size_type_value' : vm.size_type_value }
+          vm.service.refresh(vm.dtInstance);
+        }
       }
-      var abc = new Date()
-      vm.from_date = vm.date_format_convert(new Date(abc.setDate(abc.getDate()-30)));
-      vm.to_date = vm.date_format_convert(new Date());
-    })
+  })
 }

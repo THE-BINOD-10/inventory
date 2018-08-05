@@ -1,3 +1,9 @@
+<style>
+  .bg_hover:hover{
+    background: #eee;
+    border: 1px solid #e4e4e4;
+  }
+</style>
 <div ng-controller="NotificationMasterCtrl as showCase">
   <div class="page-layout reports">
     <div class='layout-header'>
@@ -28,21 +34,23 @@
             <div class="row col-md-12 ml15"><hr class="ml15"></div>
 
             <div class="row col-md-12">
-              <div class="col-md-6">
-                <h5><b>Notification Types</b></h5>
-                <div class="col-md-4 col-sm-4 col-xs-6" ng-repeat="type in showCase.model_data.notification_types">
-                  <div class="form-group">
-                    <label class="control-label">{{type}}</label>
-                    <input class="data-select" type="checkbox" checklist-model="showCase.model_data.notification_types" checklist-value="type" ng-click="showCase.checkedItems(type, true)">
+              <div class="m15">
+                <div class="col-md-6 bg_hover">
+                  <h5><b>Notification Types</b></h5>
+                  <div class="col-md-4 col-sm-4 col-xs-6" ng-repeat="type in showCase.model_data.notification_types">
+                    <div class="form-group">
+                      <label class="control-label">{{type}}</label>
+                      <input class="data-select" type="checkbox" checklist-model="showCase.model_data.notification_types" checklist-value="type" ng-click="showCase.checkedItems(type, true)">
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div class="col-md-6">
-                <h5><b>Notification Receivers</b></h5>
-                <div class="col-md-4 col-sm-4 col-xs-6" ng-repeat="receiver in showCase.model_data.notification_receivers">
-                  <div class="form-group">
-                    <label class="control-label">{{receiver}}</label>
-                    <input class="data-select" type="checkbox" checklist-model="showCase.model_data.notification_receivers" checklist-value="receiver" ng-click="showCase.checkedItems(receiver)">
+                <div class="col-md-6 bg_hover">
+                  <h5><b>Notification Receivers</b></h5>
+                  <div class="col-md-4 col-sm-4 col-xs-6" ng-repeat="receiver in showCase.model_data.notification_receivers">
+                    <div class="form-group">
+                      <label class="control-label">{{receiver}}</label>
+                      <input class="data-select" type="checkbox" checklist-model="showCase.model_data.notification_receivers" checklist-value="receiver" ng-click="showCase.checkedItems(receiver)">
+                    </div>
                   </div>
                 </div>
               </div>

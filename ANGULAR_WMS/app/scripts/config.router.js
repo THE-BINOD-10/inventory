@@ -578,7 +578,19 @@ var app = angular.module('urbanApp')
              url: '/Staff',
              templateUrl: 'views/masters/toggles/staff_update.html'
            })
-
+        .state('app.masters.NotificationMaster', {
+          url: '/NotificationMaster',
+          // permission: 'add_staffmaster',
+          templateUrl: 'views/masters/NotificationMaster.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/masters/NotificationMaster.js');
+                    }]
+          },
+          data: {
+            title: 'Notification Master',
+          }
+        })
       // Inbound routes
       .state('app.inbound', {
           template: '<div ui-view></div>',

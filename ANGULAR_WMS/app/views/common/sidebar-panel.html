@@ -146,6 +146,11 @@
             <span>Staff Master</span>
           </a>
         </li>
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin'">
+          <a ui-sref="app.masters.NotificationMaster">
+            <span>Notification Master</span>
+          </a>
+        </li>
       </ul>
     </li>
     <!-- /Masters -->

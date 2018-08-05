@@ -379,6 +379,7 @@ class OpenPO(models.Model):
 
     class Meta:
         db_table = 'OPEN_PO'
+        index_together = (('sku', 'supplier'), ('sku', ), ('vendor', 'sku', 'supplier'), ('sku', 'order_quantity', 'price'))
 
     def __unicode__(self):
         return str(str(self.sku) + " : " + str(self.supplier))
@@ -405,6 +406,7 @@ class PurchaseOrder(models.Model):
 
     class Meta:
         db_table = 'PURCHASE_ORDER'
+        index_together = (('order_id', 'open_po'), ('order_id', 'open_po', 'received_quantity'))
 
     def __unicode__(self):
         return str(self.id)
@@ -443,6 +445,7 @@ class POLocation(models.Model):
 
     class Meta:
         db_table = 'PO_LOCATION'
+        index_together = (('purchase_order', 'location'), ('purchase_order', 'location', 'quantity', 'status'))
 
 
 class PalletDetail(models.Model):
@@ -456,6 +459,7 @@ class PalletDetail(models.Model):
 
     class Meta:
         db_table = 'PALLET_DETAIL'
+        index_together = (('user', 'pallet_code'), ('user', 'pallet_code', 'quantity'))
 
 
 class PalletMapping(models.Model):
@@ -468,6 +472,7 @@ class PalletMapping(models.Model):
 
     class Meta:
         db_table = 'PALLET_MAPPING'
+        index_together = ('pallet_detail', 'po_location')
 
 
 class BatchDetail(models.Model):
@@ -485,7 +490,8 @@ class BatchDetail(models.Model):
 
     class Meta:
         db_table = 'BATCH_DETAIL'
-
+        index_together = (('transact_id', 'transact_type'), ('batch_no', 'buy_price', 'mrp', 'manufactured_date', 'expiry_date', 'tax_percent'),
+                            ('batch_no', 'mrp'))
 
 class StockDetail(models.Model):
     id = BigAutoField(primary_key=True)
@@ -2480,7 +2486,7 @@ class SKUDetailStats(models.Model):
 
     class Meta:
         db_table = 'SKU_DETAIL_STATS'
-
+        index_together = (('sku', 'transact_type'), ('sku', 'transact_type', 'transact_id'))
 
 class StockStats(models.Model):
     id = BigAutoField(primary_key=True)
@@ -2499,6 +2505,7 @@ class StockStats(models.Model):
 
     class Meta:
         db_table = 'STOCK_STATS'
+        index_together = (('sku',))
 
 
 class IntransitOrders(models.Model):

@@ -74,9 +74,8 @@ class Command(BaseCommand):
                 dispatched = market_data.get(sku['sku_id'], 0)
                 produced_quantity = jo_putaway_objs.get(sku['sku_id'], 0)
                 consumed = rm_picklist_objs.get(sku['sku_id'], 0)
-                openinig_stock = (stock_quantity - putaway_quantity - uploaded_quantity - \
-                                    return_quantity - produced_quantity) + (dispatched + consumed + adjusted)
-
+                openinig_stock = stock_quantity - (putaway_quantity + uploaded_quantity + return_quantity +\
+                                                   produced_quantity) + (dispatched + consumed) - adjusted
                 stock_stat = StockStats.objects.filter(sku_id=sku['sku_id'], creation_date__startswith=today)
                 data_dict = {'opening_stock': openinig_stock, 'receipt_qty': putaway_quantity,
                              'uploaded_qty': uploaded_quantity, 'produced_qty': produced_quantity,

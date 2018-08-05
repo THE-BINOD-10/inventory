@@ -3742,3 +3742,46 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
                     print data_count, column_count, value
     wb.save(path)
     return '../' + path
+
+
+@csrf_exempt
+@get_admin_user
+def push_message_notification(request, user=''):
+    from rest_api.views.outbound import get_same_level_warehouses
+    from mail_server import send_mail
+    from send_message import send_sms
+    true = 'true'
+    false = 'false'
+    message = request.POST.get('remarks', '')
+    msg_types = request.POST.get('notification_types', '')
+    msg_receivers = request.POST.get('notification_receivers', '')
+    if not msg_types and not msg_receivers:
+        return HttpResponse('Either Msg Type or Receivers missing')
+    msg_types = eval(msg_types)
+    mail_enabled = msg_types.get('Mail', '')
+    sms_enabled = msg_types.get('SMS', '')
+    msg_receivers = eval(msg_receivers)
+    send_to_dists = msg_receivers.get('Distributors', '')
+    send_to_resellers = msg_receivers.get('Resellers', '')
+    subject = 'Custom Notification from Swiss Military'
+    if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
+        dists_emails = []
+        resellers_emails = []
+        dists_phnums = []
+        res_phnums = []
+        distributors = get_same_level_warehouses(2, user)
+        if send_to_dists:
+            dist_qs = WarehouseCustomerMapping.objects.filter(warehouse__in=distributors)
+            dists_emails = list(dist_qs.values_list('customer__email_id', flat=True))
+            dists_phnums = list(dist_qs.values_list('customer__phone_number', flat=True))
+        if send_to_resellers:
+            resellers_qs = CustomerUserMapping.objects.filter(customer__user__in=distributors)
+            resellers_emails = list(resellers_qs.values_list('customer__email_id', flat=True))
+            res_phnums = list(resellers_qs.values_list('customer__phone_number', flat=True))
+        receivers_emails = dists_emails + resellers_emails
+        receivers_phnums = dists_phnums + res_phnums
+        if mail_enabled:
+            send_mail(receivers_emails, subject, message)
+        if sms_enabled:
+            send_sms(receivers_phnums, message)
+    return HttpResponse('Message sent Successfully')

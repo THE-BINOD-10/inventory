@@ -150,7 +150,6 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     #raw_reserved_quantities = map(lambda d: d['rm_reserved'], raw_res_instances)
     # temp_data['totalQuantity'] = sum([data[4] for data in master_data])
     for ind, data in enumerate(master_data[start_index:stop_index]):
-        print ind
         total_stock_value = 0
         reserved = 0
         # total = data[4] if len(data) > 4 else 0
@@ -1959,6 +1958,15 @@ def inventory_adj_modify_qty(request, user=''):
                     if not sub_qty:
                         break
     return HttpResponse(json.dumps({'status': True, 'message':message}))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def inventory_adj_reasons(request, user=''):
+    reasons = ''
+    reasons = get_misc_value(request.POST['key'],user.id)
+
+    return HttpResponse(json.dumps({"data": {'reasons': reasons.split(',')}}))
 
 
 def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,

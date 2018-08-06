@@ -103,6 +103,7 @@ urlpatterns = [
     url(r'^get_corporates/$', get_corporates),
     url(r'^corporate_mapping_data/$', corporate_mapping_data),
     url(r'^search_corporate_data/$', search_corporate_data),
+    url(r'^push_message_notification/$', push_message_notification),
 
     # Inbound
     url(r'^generated_po_data/$', generated_po_data),

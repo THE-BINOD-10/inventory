@@ -24,13 +24,13 @@
         </form>
     </div>
 
-    <div class="row" ng-if="showCase.reports">
+    <div class="row" ng-if="showCase.service.totals_tb_data">
       <div class = "col-md-12">
-        <div class="col-md-2" ng-repeat="field in [1, 2, 3, 4, 5]">
+        <div class="col-md-2" ng-repeat="(key,value) in showCase.service.totals_tb_data">
           <div class="widget bg-white" style="margin-bottom: 0;text-align: center;">
             <div class="overflow-hidden">
-            <span class="widget-subtitle">TOTAL AVAILABLE QUANTITY: </span>
-            <span class="widget-title bold">15</span>
+            <span class="widget-subtitle">{{key}}: </span>
+            <span class="widget-title bold">{{value}}</span>
             </div>
           </div>
         </div>

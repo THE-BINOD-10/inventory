@@ -3780,6 +3780,7 @@ def get_dist_sales_report_data(search_params, user, sub_user):
         model_data = model_data[start_index:stop_index]
 
     status = ""
+    totals_map = {}
     for data in model_data:
         order_id = data['order_id']
         org_order_id = data['original_order_id']
@@ -3819,6 +3820,19 @@ def get_dist_sales_report_data(search_params, user, sub_user):
                 status = ORDER_DETAIL_STATES.get(5, '')
         else:
             status = _status
+        if 'Value Before Tax' not in totals_map:
+            totals_map['Value Before Tax'] = net_amt
+        else:
+            totals_map['Value Before Tax'] += net_amt
+        if 'Value After Tax' not in totals_map:
+            totals_map['Value After Tax'] = gross_amt
+        else:
+            totals_map['Value After Tax'] += gross_amt
+        if 'GST Value' not in totals_map:
+            totals_map['GST Value'] = round(gst_value, 2)
+        else:
+            totals_map['GST Value'] += round(gst_value, 2)
+
 
         ord_dict = OrderedDict((('Zone Code', zone_code), ('Distributor Code', dist_code),
                                 ('Order No', org_order_id),
@@ -3834,6 +3848,7 @@ def get_dist_sales_report_data(search_params, user, sub_user):
                                 ('Order Status', status),
                                 ('Id', data['id']),
                                 ))
+        temp_data['totals'] = totals_map
         temp_data['aaData'].append(ord_dict)
     return temp_data
 
@@ -3955,6 +3970,7 @@ def get_reseller_sales_report_data(search_params, user, sub_user):
     if stop_index:
         model_data = model_data[start_index:stop_index]
 
+    totals_map = {}
     for data in model_data:
         order_id = data['orderdetail__order_id']
         org_order_id = data['orderdetail__original_order_id']
@@ -3989,6 +4005,18 @@ def get_reseller_sales_report_data(search_params, user, sub_user):
                 status = ORDER_DETAIL_STATES.get(5, '')
         else:
             status = _status
+        if 'Value Before Tax' not in totals_map:
+            totals_map['Value Before Tax'] = net_amt
+        else:
+            totals_map['Value Before Tax'] += net_amt
+        if 'Value After Tax' not in totals_map:
+            totals_map['Value After Tax'] = gross_amt
+        else:
+            totals_map['Value After Tax'] += gross_amt
+        if 'GST Value' not in totals_map:
+            totals_map['GST Value'] = round(gst_value, 2)
+        else:
+            totals_map['GST Value'] += round(gst_value, 2)
         temp_data['aaData'].append(OrderedDict((('Zone Code', zone_code), ('Distributor Code', dist_code),
                                                 ('Reseller Code', reseller_code),
                                                 ('Corporate Name', corp_name),
@@ -4003,6 +4031,7 @@ def get_reseller_sales_report_data(search_params, user, sub_user):
                                                 ('Value After Tax', gross_amt),
                                                 ('Order Status', status),
                                                 )))
+    temp_data['totals'] = totals_map
     return temp_data
 
 
@@ -4098,11 +4127,24 @@ def get_zone_target_summary_report_data(search_params, user, sub_user):
     current_year = todays_date.year
     start_date = datetime.datetime.strptime('Apr-1-%s' % current_year, '%b-%d-%Y')
     days_passed = (todays_date - start_date).days
+    totals_map = {}
     for zone_code, target in zone_targets.items():
         ytd_target = round((target/365) * days_passed, 2)
         ytd_act_sale = round(achieved_map[zone_code]["net_amt"], 2)
         exc_short = ((ytd_act_sale - ytd_target)/ytd_target) * 100
         excess_shortfall = round(exc_short, 2)
+        if 'Zone Target' not in totals_map:
+            totals_map['Zone Target'] = target
+        else:
+            totals_map['Zone Target'] += target
+        if 'YTD Targets' not in totals_map:
+            totals_map['YTD Targets'] = ytd_target
+        else:
+            totals_map['YTD Targets'] += ytd_target
+        if 'YTD Actual Sale' not in totals_map:
+            totals_map['YTD Actual Sale'] = round(ytd_act_sale, 2)
+        else:
+            totals_map['YTD Actual Sale'] += round(ytd_act_sale, 2)
         ord_dict = OrderedDict((('Zone Code', zone_code),
                                 ('Zone Target', target),
                                 ('YTD Targets', ytd_target),
@@ -4110,6 +4152,7 @@ def get_zone_target_summary_report_data(search_params, user, sub_user):
                                 ('Excess / Shortfall %', excess_shortfall),
                                 ))
         temp_data['aaData'].append(ord_dict)
+    temp_data['totals'] = totals_map
     return temp_data
 
 
@@ -4195,6 +4238,7 @@ def get_zone_target_detailed_report_data(search_params, user, sub_user):
     if stop_index:
         target_vals = target_vals[start_index:stop_index]
 
+    totals_map = {}
     for target in target_vals:
         zone_code = target['distributor__userprofile__zone']
         zone_target = zone_targets[zone_code]
@@ -4225,6 +4269,30 @@ def get_zone_target_detailed_report_data(search_params, user, sub_user):
         ytd_act_sale = round(reached_tgt, 2)
         exc_short = ((ytd_act_sale - ytd_target) / ytd_target) * 100
         excess_shortfall = round(exc_short, 2)
+        if 'Zone Target' not in totals_map:
+            totals_map['Zone Target'] = zone_target
+        else:
+            totals_map['Zone Target'] += zone_target
+        if 'Distributor Target' not in totals_map:
+            totals_map['Distributor Target'] = dist_target
+        else:
+            totals_map['Distributor Target'] += dist_target
+        if 'Reseller Target' not in totals_map:
+            totals_map['Reseller Target'] = res_target
+        else:
+            totals_map['Reseller Target'] += res_target
+        if 'Corporate Target' not in totals_map:
+            totals_map['Corporate Target'] = corp_target
+        else:
+            totals_map['Corporate Target'] += corp_target
+        if 'YTD Targets' not in totals_map:
+            totals_map['YTD Targets'] = ytd_target
+        else:
+            totals_map['YTD Targets'] += ytd_target
+        if 'YTD Actual Sale' not in totals_map:
+            totals_map['YTD Actual Sale'] = round(ytd_act_sale, 2)
+        else:
+            totals_map['YTD Actual Sale'] += round(ytd_act_sale, 2)
         ord_dict = OrderedDict((('Zone Code', zone_code),
                                 ('Zone Target', zone_target),
                                 ('Distributor Code', dist_name),
@@ -4238,6 +4306,7 @@ def get_zone_target_detailed_report_data(search_params, user, sub_user):
                                 ('Excess / Shortfall %', excess_shortfall),
                                 ))
         temp_data['aaData'].append(ord_dict)
+    temp_data['totals'] = totals_map
     return temp_data
 
 
@@ -4331,6 +4400,7 @@ def get_dist_target_summary_report_data(search_params, user, sub_user):
     days_passed = (todays_date - start_date).days
     if stop_index:
         totals_map = totals_map.items()[start_index:stop_index]
+    totals_map = {}
     for dist_code, target in totals_map:
         dist_tgt = dist_targets.get(dist_code, '')
         if not dist_tgt:
@@ -4342,6 +4412,18 @@ def get_dist_target_summary_report_data(search_params, user, sub_user):
         else:
             exc_short = 0
         excess_shortfall = round(exc_short, 2)
+        if 'Distributor Target' not in totals_map:
+            totals_map['Distributor Target'] = dist_tgt
+        else:
+            totals_map['Distributor Target'] += dist_tgt
+        if 'YTD Targets' not in totals_map:
+            totals_map['YTD Targets'] = ytd_target
+        else:
+            totals_map['YTD Targets'] += ytd_target
+        if 'YTD Actual Sale' not in totals_map:
+            totals_map['YTD Actual Sale'] = round(ytd_act_sale, 2)
+        else:
+            totals_map['YTD Actual Sale'] += round(ytd_act_sale, 2)
         ord_dict = OrderedDict((('Distributor Code', dist_code),
                                 ('Distributor Target', dist_tgt),
                                 ('YTD Targets', ytd_target),
@@ -4349,6 +4431,7 @@ def get_dist_target_summary_report_data(search_params, user, sub_user):
                                 ('Excess / Shortfall %', excess_shortfall),
                                 ))
         temp_data['aaData'].append(ord_dict)
+    temp_data['totals'] = totals_map
     return temp_data
 
 
@@ -4465,6 +4548,7 @@ def get_dist_target_detailed_report_data(search_params, user, sub_user):
     if stop_index:
         target_vals = target_vals[start_index:stop_index]
 
+    totals_map = {}
     for target in target_vals:
         dist_code = target['distributor__username']
         dist_target = dist_targets[dist_code]
@@ -4493,6 +4577,26 @@ def get_dist_target_detailed_report_data(search_params, user, sub_user):
 
         exc_short = ((ytd_act_sale - ytd_target) / ytd_target) * 100
         excess_shortfall = round(exc_short, 2)
+        if 'Distributor Target' not in totals_map:
+            totals_map['Distributor Target'] = dist_target
+        else:
+            totals_map['Distributor Target'] += dist_target
+        if 'Reseller Target' not in totals_map:
+            totals_map['Reseller Target'] = res_target
+        else:
+            totals_map['Reseller Target'] += res_target
+        if 'Corporate Target' not in totals_map:
+            totals_map['Corporate Target'] = corp_target
+        else:
+            totals_map['Corporate Target'] += corp_target
+        if 'YTD Targets' not in totals_map:
+            totals_map['YTD Targets'] = ytd_target
+        else:
+            totals_map['YTD Targets'] += ytd_target
+        if 'YTD Actual Sale' not in totals_map:
+            totals_map['YTD Actual Sale'] = round(ytd_act_sale, 2)
+        else:
+            totals_map['YTD Actual Sale'] += round(ytd_act_sale, 2)
         ord_dict = OrderedDict((('Distributor Code', dist_name),
                                 ('Distributor Target', dist_target),
                                 ('Reseller Code', reseller_name),
@@ -4504,6 +4608,7 @@ def get_dist_target_detailed_report_data(search_params, user, sub_user):
                                 ('Excess / Shortfall %', excess_shortfall),
                                 ))
         temp_data['aaData'].append(ord_dict)
+    temp_data['totals'] = totals_map
     return temp_data
 
 
@@ -4575,6 +4680,7 @@ def get_reseller_target_summary_report_data(search_params, user, sub_user):
         reseller_targets = reseller_targets.items()[start_index:stop_index]
     else:
         reseller_targets = reseller_targets.items()
+    totals_map = {}
     for reseller_code, target in reseller_targets:
         achieved_tgt_map = totals_map.get(reseller_code, '')
         if not achieved_tgt_map:
@@ -4589,6 +4695,18 @@ def get_reseller_target_summary_report_data(search_params, user, sub_user):
         if not reseller_name:
             log.info('Reseller Name %s not present in %s' %(reseller_name, resellers_names))
             continue
+        if 'Reseller Target' not in totals_map:
+            totals_map['Reseller Target'] = target
+        else:
+            totals_map['Reseller Target'] += target
+        if 'YTD Targets' not in totals_map:
+            totals_map['YTD Targets'] = ytd_target
+        else:
+            totals_map['YTD Targets'] += ytd_target
+        if 'YTD Actual Sale' not in totals_map:
+            totals_map['YTD Actual Sale'] = round(ytd_act_sale, 2)
+        else:
+            totals_map['YTD Actual Sale'] += round(ytd_act_sale, 2)
         ord_dict = OrderedDict((('Reseller Code', reseller_name),
                                 ('Reseller Target', target),
                                 ('YTD Targets', ytd_target),
@@ -4596,6 +4714,7 @@ def get_reseller_target_summary_report_data(search_params, user, sub_user):
                                 ('Excess / Shortfall %', excess_shortfall),
                                 ))
         temp_data['aaData'].append(ord_dict)
+    temp_data['totals'] = totals_map
     return temp_data
 
 
@@ -4638,6 +4757,7 @@ def get_reseller_target_detailed_report_data(search_params, user, sub_user):
     if stop_index:
         target_vals = target_vals[start_index:stop_index]
 
+    totals_map = {}
     for target in target_vals:
         reseller_code = target['reseller__username']
         reseller_usr_id = target['reseller_id']
@@ -4665,6 +4785,22 @@ def get_reseller_target_detailed_report_data(search_params, user, sub_user):
         if not reseller_name:
             log.info('Reseller Name %s not present in %s' % (reseller_name, resellers_names))
             continue
+        if 'Reseller Target' not in totals_map:
+            totals_map['Reseller Target'] = res_target
+        else:
+            totals_map['Reseller Target'] += res_target
+        if 'Corporate Target' not in totals_map:
+            totals_map['Corporate Target'] = corp_target
+        else:
+            totals_map['Corporate Target'] += corp_target
+        if 'YTD Targets' not in totals_map:
+            totals_map['YTD Targets'] = ytd_target
+        else:
+            totals_map['YTD Targets'] += ytd_target
+        if 'YTD Actual Sale' not in totals_map:
+            totals_map['YTD Actual Sale'] = round(ytd_act_sale, 2)
+        else:
+            totals_map['YTD Actual Sale'] += round(ytd_act_sale, 2)
         ord_dict = OrderedDict((('Reseller Code', reseller_name),
                                 ('Reseller Target', res_target),
                                 ('Corporate Name', corp_name),
@@ -4674,6 +4810,7 @@ def get_reseller_target_detailed_report_data(search_params, user, sub_user):
                                 ('Excess / Shortfall %', excess_shortfall),
                                 ))
         temp_data['aaData'].append(ord_dict)
+    temp_data['totals'] = totals_map
     return temp_data
 
 
@@ -4713,12 +4850,25 @@ def get_corporate_target_report_data(search_params, user, sub_user):
         corp_targets = corp_targets.items()[start_index:stop_index]
     else:
         corp_targets = corp_targets.items()
+    totals_map = {}
     for corp_id, corp_target in corp_targets:
         corp_name = CorporateMaster.objects.get(id=corp_id).name
         ytd_target = round((corp_target / 365) * days_passed, 2)
         ytd_act_sale = achieved_tgt_map.get(corp_name, 0)
         exc_short = ((ytd_act_sale - ytd_target) / ytd_target) * 100
         excess_shortfall = round(exc_short, 2)
+        if 'Corporate Target' not in totals_map:
+            totals_map['Corporate Target'] = corp_target
+        else:
+            totals_map['Corporate Target'] += corp_target
+        if 'YTD Targets' not in totals_map:
+            totals_map['YTD Targets'] = ytd_target
+        else:
+            totals_map['YTD Targets'] += ytd_target
+        if 'YTD Actual Sale' not in totals_map:
+            totals_map['YTD Actual Sale'] = round(ytd_act_sale, 2)
+        else:
+            totals_map['YTD Actual Sale'] += round(ytd_act_sale, 2)
         ord_dict = OrderedDict((('Corporate Name', corp_name),
                                 ('Corporate Target', corp_target),
                                 ('YTD Targets', ytd_target),
@@ -4726,6 +4876,7 @@ def get_corporate_target_report_data(search_params, user, sub_user):
                                 ('Excess / Shortfall %', excess_shortfall),
                                 ))
         temp_data['aaData'].append(ord_dict)
+    temp_data['totals'] = totals_map
     return temp_data
 
 

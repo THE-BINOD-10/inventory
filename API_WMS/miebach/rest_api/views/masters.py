@@ -2598,7 +2598,26 @@ def update_size(request, user=''):
 def generate_barcodes(request, user=''):
     myDict = dict(request.POST.iterlists())
     pdf_format = myDict['pdf_format'][0]
-    barcodes_list = generate_barcode_dict(pdf_format, myDict, user)
+    myDict.pop('pdf_format')
+    if myDict.has_key('order_id'):
+        myDict.pop('order_id')
+
+    others = {}
+    data_dict = [dict(l) for l in zip(*[[(i,k) for k in j] for i,j in myDict.items()])]
+    if myDict.has_key('Label'):
+        barcodes_list = generate_barcode_dict(pdf_format, data_dict, user)
+        return HttpResponse(json.dumps(barcodes_list))
+
+    tmp = []
+    for d in data_dict:
+        if d.has_key('quantity') and int(d['quantity']) > 1:
+            for i in range(int(d['quantity'])-1):
+                d['quantity'] = 1
+                tmp.append(d) 
+    if tmp:
+        data_dict.extend(tmp)
+    barcodes_list = generate_barcode_dict(pdf_format, data_dict, user)
+
     return HttpResponse(json.dumps(barcodes_list))
 
 

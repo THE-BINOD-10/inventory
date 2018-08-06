@@ -2039,12 +2039,17 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
 @get_admin_user
 def get_sku_batches(request, user=''):
     sku_batches = defaultdict(list)
+    sku_batch_details = {}
     sku_code = request.GET.get('sku_code')
     sku_id = SKUMaster.objects.filter(user=user.id, sku_code=sku_code).only('id')
     if sku_id:
         sku_id = sku_id[0].id
-        batch_obj = BatchDetail.objects.filter(stockdetail__sku=sku_id).values('batch_no', 'mrp').distinct()
+        batch_obj = BatchDetail.objects.filter(stockdetail__sku=sku_id).values('batch_no', 'mrp', 'buy_price', 'manufactured_date', 'expiry_date', 'tax_percent', 'transact_type', 'transact_id').distinct()
         for batch in batch_obj:
             sku_batches[batch['batch_no']].append(batch['mrp'])
             sku_batches[batch['batch_no']] = list(set(sku_batches[batch['batch_no']]))
-    return HttpResponse(json.dumps({"sku_batches": sku_batches}))
+            batch['manufactured_date'] = str(batch['manufactured_date'])
+            batch['expiry_date'] = str(batch['expiry_date'])
+            sku_batch_details.setdefault("%s_%s" % (batch['batch_no'], str(int(batch['mrp']))), []).append(batch)
+
+    return HttpResponse(json.dumps({"sku_batches": sku_batches, "sku_batch_details": sku_batch_details}))

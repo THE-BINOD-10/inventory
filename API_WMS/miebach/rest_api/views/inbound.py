@@ -2560,6 +2560,8 @@ def confirm_grn(request, confirm_returns='', user=''):
         return HttpResponse("Invoice/DC Number  is Mandatory")
     if user.username == 'milkbasket' and (not request.POST.get('invoice_date', '') and not request.POST.get('dc_date', '')):
         return HttpResponse("Invoice/DC Date is Mandatory")
+    challan_date = request.POST.get('dc_date', '')
+    challan_date = datetime.datetime.strptime(challan_date, "%m/%d/%Y").date() if challan_date else ''
     bill_date = datetime.datetime.now().date().strftime('%d-%m-%Y')
     if request.POST.get('invoice_date', ''):
         bill_date = datetime.datetime.strptime(str(request.POST.get('invoice_date', '')), "%m/%d/%Y").strftime('%d-%m-%Y')
@@ -2621,12 +2623,18 @@ def confirm_grn(request, confirm_returns='', user=''):
                             + '/' + str(seller_receipt_id)
             else:
                 po_number = str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id)
+            dc_level_grn = request.POST.get('dc_level_grn', '')
+            if dc_level_grn == 'on':
+                bill_no = request.POST.get('dc_number', '')
+                bill_date = challan_date.strftime('%d-%m-%Y') if challan_date else ''
+            else:
+                bill_no = request.POST.get('invoice_number', '')
             report_data_dict = {'data': putaway_data, 'data_dict': data_dict, 'data_slices': sku_slices,
                                 'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty,
                                 'total_price': total_price, 'total_tax': total_tax,
                                 'address': address,
                                 'company_name': profile.company_name, 'company_address': profile.address,
-                                'po_number': po_number, 'bill_no': request.POST.get('invoice_number', ''),
+                                'po_number': po_number, 'bill_no': bill_no,
                                 'order_date': order_date, 'order_id': order_id,
                                 'btn_class': btn_class, 'bill_date': bill_date }
             misc_detail = get_misc_value('receive_po', user.id)
@@ -5616,11 +5624,17 @@ def confirm_receive_qc(request, user=''):
                             + '/' + str(seller_receipt_id)
             else:
                 po_number = str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id)
+            dc_level_grn = request.POST.get('dc_level_grn', '')
+            if dc_level_grn == 'on':
+                bill_no = request.POST.get('dc_number', '')
+                bill_date = challan_date
+            else:
+                bill_no = request.POST.get('invoice_number', '')
             report_data_dict = {'data': putaway_data, 'data_dict': data_dict, 'data_slices': sku_slices,
                                 'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty,
                                 'total_price': total_price, 'total_tax': total_tax, 'address': address,
                                 'seller_name': seller_name, 'company_name': profile.company_name,
-                                'company_address': profile.address, 'bill_no': request.POST.get('invoice_number', ''),
+                                'company_address': profile.address, 'bill_no': bill_no,
                                 'po_number': str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(
                                     data.order_id),
                                 'order_date': order_date, 'order_id': order_id,

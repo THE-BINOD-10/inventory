@@ -138,8 +138,10 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
               },
               complete: function(jqXHR, textStatus) {
                 vm.totals_tb_data = {};
-                vm.tb_data = JSON.parse(jqXHR.responseText);
-                vm.totals_tb_data = vm.tb_data.totals;
+                $rootScope.$apply(function(){
+                  vm.tb_data = JSON.parse(jqXHR.responseText);
+                  vm.totals_tb_data = vm.tb_data.totals;
+                })
               }
            })
        .withDataProp('data')

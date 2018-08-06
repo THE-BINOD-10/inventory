@@ -175,11 +175,13 @@ def print_receipt_summary(request, user=''):
 @login_required
 @get_admin_user
 def get_dispatch_filter(request, user=''):
-    serial_view = False
-    if request.GET.get('datatable', '') == 'serialView':
+    serial_view, customer_view = False, False
+    if request.GET.get('datatable', '') == 'customerView':
+        customer_view = True
+    elif request.GET.get('datatable', '') == 'serialView':
         serial_view = True
     headers, search_params, filter_params = get_search_params(request)
-    temp_data = get_dispatch_data(search_params, user, request.user, serial_view=serial_view)
+    temp_data = get_dispatch_data(search_params, user, request.user, serial_view=serial_view, customer_view=customer_view)
 
     return HttpResponse(json.dumps(temp_data, cls=DjangoJSONEncoder), content_type='application/json')
 

@@ -677,7 +677,10 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 if isinstance(pin_code, float) or isinstance(pin_code, int):
                     order_data[key] = int(pin_code)
             elif key == 'mrp':
-                order_summary_dict['mrp'] = float(get_cell_data(row_idx, value, reader, file_type))
+                try:
+                    order_summary_dict['mrp'] = float(get_cell_data(row_idx, value, reader, file_type))
+                except:
+                    order_summary_dict['mrp'] = 0
             elif key == 'customer_id':
                 cell_data = get_cell_data(row_idx, value, reader, file_type)
                 if not cell_data:

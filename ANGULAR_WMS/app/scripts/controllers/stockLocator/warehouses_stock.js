@@ -37,8 +37,10 @@ angular.module('urbanApp', ['datatables'])
       vm.size_types = data.data.size_types;
       vm.warehouse_names = data.data.warehouse_names;
 
+      vm.warehouse_value = vm.warehouse_names[0]
+      vm.size_type_value = vm.size_types[0]
 
-      vm.filters = {'datatable': vm.g_data.view, 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
+      vm.filters = {'datatable': vm.g_data.view, 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'from_date' : vm.from_date, 'to_date' : vm.to_date, 'size_type_value' : vm.size_type_value, 'warehouse_name' : vm.warehouse_value}
 
       vm.excel = excel;
       function excel() {
@@ -126,7 +128,7 @@ angular.module('urbanApp', ['datatables'])
 
       vm.generate_warehouse_stock = function() {
         if (Data.warehouse_toggle_value) {
-          vm.dtInstance.DataTable.context[0].ajax.data = {'from_date': vm.from_date, 'to_date': vm.to_date, 'view': vm.g_data.view, 'alternate_view': vm.alternate_view_value, 'warehouse_value' : vm.warehouse_value, 'size_type_value' : vm.size_type_value }
+          vm.dtInstance.DataTable.context[0].ajax.data = {'from_date': vm.from_date, 'to_date': vm.to_date, 'view': vm.g_data.view, 'alternate_view': vm.alternate_view_value, 'warehouse_name' : vm.warehouse_value, 'size_type_value' : vm.size_type_value }
           vm.service.refresh(vm.dtInstance);
         }
       }

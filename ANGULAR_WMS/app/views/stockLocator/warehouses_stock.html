@@ -115,6 +115,10 @@
               </div>
             </div>
 
+            <div class="col-md-12 col-sm-12 col-xs-12">
+              <button type="button" class="btn btn-success" id="warehouse_stock_alternate_view" data-toggle="modal" data-target="#myModal" ng-click="showCase.generate_warehouse_stock()"> Generate
+              </button>
+            </div>
 
             <div class="col-md-2 col-sm-3 col-xs-6 mb10 pull-right" style="height: 34px;padding-left: 0px;" ng-if="permissions.add_networkmaster || permissions.priceband_sync">
               <select class="form-control pull-right" ng-model="showCase.g_data.level" ng-change="showCase.change_datatable()">

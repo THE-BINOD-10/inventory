@@ -12,6 +12,7 @@ angular.module('urbanApp', ['datatables'])
     vm.data_display = false;
     vm.go_data = ['Available', 'Avail + Intra', 'A + IT + R'];
     vm.view = '';
+    vm.permissions = Session.roles.permissions;
 
     vm.g_data = Data.warehouse_view;
     vm.alternate_view_value = Data.warehouse_toggle_value;

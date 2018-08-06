@@ -129,8 +129,15 @@ angular.module('urbanApp', ['datatables'])
 
       vm.generate_warehouse_stock = function() {
         if (Data.warehouse_toggle_value) {
-          vm.dtInstance.DataTable.context[0].ajax.data = {'from_date': vm.from_date, 'to_date': vm.to_date, 'view': vm.g_data.view, 'alternate_view': vm.alternate_view_value, 'warehouse_name' : vm.warehouse_value, 'size_type_value' : vm.size_type_value }
-          vm.service.refresh(vm.dtInstance);
+
+          vm.service.apiCall('warehouse_headers/?level='+vm.g_data.level+'&alternate_view='+Data.warehouse_toggle_value, 'GET').then(function(data){
+            var columns = data.data.table_headers;
+            vm.dtColumns = vm.service.build_colums(columns);
+            vm.dtInstance.DataTable.context[0].ajax.data = {'from_date': vm.from_date, 'to_date': vm.to_date, 'view': vm.g_data.view, 'alternate_view': vm.alternate_view_value, 'warehouse_name' : vm.warehouse_value, 'size_type_value' : vm.size_type_value }
+            vm.service.refresh(vm.dtInstance);
+          })
+
+
         }
       }
   })

@@ -3908,10 +3908,12 @@ def save_st(request, user=''):
         data_id = ''
         if data_dict['id'][i]:
             data_id = data_dict['id'][i]
+        if not data_dict['order_quantity'][i]:
+            data_dict['order_quantity'][i] = 0
         cond = (warehouse_name)
         all_data.setdefault(cond, [])
-        all_data[cond].append([data_dict['wms_code'][i], data_dict['order_quantity'][i], data_dict['price'][i],
-                               data_id])
+        all_data[cond].append([data_dict['wms_code'][i], data_dict['order_quantity'][i], 
+            data_dict['price'][i], data_id])
     status = validate_st(all_data, user)
     if not status:
         all_data = insert_st(all_data, user)
@@ -4057,6 +4059,8 @@ def confirm_st(request, user=''):
         data_id = ''
         if data_dict['id'][i]:
             data_id = data_dict['id'][i]
+        if not data_dict['order_quantity'][i]:
+            data_dict['order_quantity'][i] = 0
         cond = (warehouse_name)
         all_data.setdefault(cond, [])
         all_data[cond].append(

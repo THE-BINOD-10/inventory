@@ -4514,7 +4514,7 @@ def generate_barcode_dict(pdf_format, myDicts, user):
     barcode_mapping_dict = {'Size': 'sku_size', 'Brand': 'sku_brand', 'SKUDes': 'sku_desc',
                             'UOM': 'measurement_type', 'Style': 'style_name', 'Color': 'color',
                             'DesignNo': 'sku_class', 'MRP': 'mrp',
-                            'SKUDes/Prod': 'sku_desc'}
+                            'SKUDes/Prod': 'sku_desc', 'Price': 'price'}
     user_prf = UserProfile.objects.filter(user_id=user.id)[0]
     barcode_opt = get_misc_value('barcode_generate_opt', user.id)
     attribute_names = get_user_attributes(user, 'sku').values_list('attribute_name', flat=True)

@@ -14,7 +14,6 @@ function Barcodes($scope, $http, $state, $timeout, Session, colFilters, Service,
         console.log(data['data']['data']);
     });
   });
-
   vm.getPoData = function(data){
 
     var send = {picklist_number: data.id}
@@ -29,17 +28,11 @@ function Barcodes($scope, $http, $state, $timeout, Session, colFilters, Service,
     });
   }
 
-  vm.barcode_title = 'Barcode Generation';
+  //vm.barcode_title = 'Barcode Generation';
 
   if (items.have_data) {
-
     angular.copy(items, vm.model_data)
   } else {
-    vm.model_data['format_types'] = ['format1', 'format2', 'format3', 'format4']
-
-    var key_obj = {'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details', 'format4': 'Details'}
-
-    vm.model_data['barcodes'] = [{'sku_code':'', 'quantity':''}];
     vm.getPoData(items);
   }
 

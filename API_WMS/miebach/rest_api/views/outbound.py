@@ -5461,6 +5461,7 @@ def get_view_order_details(request, user=''):
         sgst_tax = 0
         cgst_tax = 0
         igst_tax = 0
+        cess_tax = 0
         payment_status = ''
         discount_percentage = 0
         if customer_order:
@@ -5468,6 +5469,7 @@ def get_view_order_details(request, user=''):
             sgst_tax = customer_order[0].sgst_tax
             cgst_tax = customer_order[0].cgst_tax
             igst_tax = customer_order[0].igst_tax
+            cess_tax = customer_order[0].cess_tax
             discount_percentage = 0
             payment_status = customer_order[0].payment_status
             if (quantity * unit_price):
@@ -5495,6 +5497,7 @@ def get_view_order_details(request, user=''):
              'print_vendor': vend_dict['printing_vendor'],
              'embroidery_vendor': vend_dict['embroidery_vendor'], 'production_unit': vend_dict['production_unit'],
              'sku_extra_data': sku_extra_data, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax, 'igst_tax': igst_tax,
+             'cess_tax': cess_tax,
              'unit_price': unit_price, 'discount_percentage': discount_percentage, 'taxes': taxes_data,
              'order_charges': order_charges,
              'sku_status': one_order.status, 'client_name':client_name, 'payment_status':payment_status})
@@ -5931,8 +5934,9 @@ def get_order_category_view_data(start_index, stop_index, temp_data, search_term
                                                                          'sku__sku_category',
                                                                          'order_code', 'original_order_id').distinct(). \
             annotate(total=Sum('quantity')).filter(Q(customer_name__icontains=search_term) |
-                                                   Q(order_id__icontains=search_term) | Q(
-            sku__sku_category__icontains=search_term),
+                                                   Q(order_id__icontains=search_term) |
+                                                   Q(sku__sku_category__icontains=search_term)|
+                                                   Q(original_order_id__icontains=search_term),
                                                    **search_params).exclude(order_code="CO").order_by(order_data)
     else:
         mapping_results = OrderDetail.objects.filter(**data_dict).exclude(order_code="CO").values('customer_name',
@@ -6040,8 +6044,9 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
         mapping_results = all_orders.values('customer_name', 'order_id', 'order_code', 'original_order_id',
                                             'marketplace'). \
             distinct().annotate(total=Sum('quantity')).filter(Q(customer_name__icontains=search_term) |
-                                                              Q(order_id__icontains=search_term) | Q(
-            sku__sku_category__icontains=search_term),
+                                                              Q(order_id__icontains=search_term) |
+                                                              Q(sku__sku_category__icontains=search_term) |
+                                                              Q(original_order_id__icontains=search_term),
                                                               **search_params).order_by(order_data)
     else:
         mapping_results = all_orders.values('customer_name', 'order_id', 'order_code', 'original_order_id',

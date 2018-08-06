@@ -409,9 +409,10 @@ def get_search_params(request, user=''):
                     'fg_sku_code': 'fg_sku_code',
                     'rm_sku_code': 'rm_sku_code', 'pallet': 'pallet',
                     'staff_id': 'id', 'ean': 'ean', 'invoice_number': 'invoice_number', 'dc_number': 'challan_number',
-                    'zone_code': 'zone_code', 'dist_code': 'dist_code', 'reseller_code': 'reseller_code',
+                    'zone_code': 'zone_code', 'distributor_code': 'distributor_code', 'reseller_code': 'reseller_code',
                     'supplier_id': 'supplier_id', 'rtv_number': 'rtv_number', 'corporate_name': 'corporate_name',
-                    'enquiry_number': 'enquiry_number', 'enquiry_status': 'enquiry_status'}
+                    'enquiry_number': 'enquiry_number', 'enquiry_status': 'enquiry_status',
+                    'aging_period': 'aging_period'}
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
                       'search2': 'search_2', 'search3': 'search_3',
@@ -499,7 +500,8 @@ data_datatable = {  # masters
     'ShipmentPickedAlternative': 'get_order_shipment_picked', 'CustomerInvoices': 'get_customer_invoice_data', \
     'ProcessedOrders': 'get_processed_orders_data', 'DeliveryChallans': 'get_delivery_challans_data',
     'CustomerInvoicesTab': 'get_customer_invoice_tab_data', 'SellerOrderView': 'get_seller_order_view', \
-    'StockTransferInvoice' : 'get_stock_transfer_invoice_data', \
+    'StockTransferInvoice' : 'get_stock_transfer_invoice_data',
+    'AltStockTransferOrders': 'get_stock_transfer_order_level_data',\
     # manage users
     'ManageUsers': 'get_user_results', 'ManageGroups': 'get_user_groups',
     # retail one
@@ -1667,6 +1669,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
             return 'Invalid Location'
     if quantity == '':
         return 'Quantity should not be empty'
+    quantity = float(quantity)
     stock_dict = {'sku_id': sku_id, 'location_id': location[0].id,
                   'sku__user': user.id}
     if pallet:
@@ -1689,7 +1692,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
 
     total_stock_quantity = 0
     if quantity:
-        quantity = float(quantity)
+        #quantity = float(quantity)
         stocks = StockDetail.objects.filter(**stock_dict)
         total_stock_quantity = stocks.aggregate(Sum('quantity'))['quantity__sum']
         if not total_stock_quantity:
@@ -1724,6 +1727,8 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
             if mrp:
                 batch_dict['mrp'] = mrp
                 del stock_dict["batch_detail__mrp"]
+            if 'sellerstock__seller_id' in stock_dict.keys():
+                del stock_dict['sellerstock__seller_id']
             if batch_dict.keys():
                 batch_obj = BatchDetail.objects.create(**batch_dict)
                 stock_dict["batch_detail_id"] = batch_obj.id
@@ -1744,6 +1749,8 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
         adj_quantity = all_stocks.aggregate(Sum('quantity'))['quantity__sum']
         if not adj_quantity:
             adj_quantity = 0
+        else:
+            adj_quantity = -adj_quantity
         all_stocks.update(quantity=0)
         location[0].filled_capacity = 0
         location[0].save()
@@ -2161,6 +2168,67 @@ def search_wms_codes(request, user=''):
     # wms_codes = list(set(wms_codes))
 
     return HttpResponse(json.dumps(wms_codes))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def search_corporate_names(request, user=''):
+    data_id = request.GET.get('q', '')
+    data_exact = CorporateMaster.objects.filter(Q(name__iexact=data_id), user=user.id).order_by('name')
+    exact_ids = list(data_exact.values_list('id', flat=True))
+    data = CorporateMaster.objects.exclude(id__in=exact_ids).filter(Q(name__icontains=data_id),
+                                                                    user=user.id).order_by('name')
+    data = list(chain(data_exact, data))
+    corporate_names = []
+    if data:
+        for corporate in data:
+            corporate_names.append(str(corporate.name))
+            if len(corporate_names) >= 10:
+                break
+    return HttpResponse(json.dumps(corporate_names))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def search_reseller_names(request, user=''):
+    from rest_api.views.outbound import get_same_level_warehouses
+    data_id = request.GET.get('q', '')
+    distributors = get_same_level_warehouses(2, user)
+    data_exact = CustomerMaster.objects.filter(Q(name__iexact=data_id), user__in=distributors).order_by('name')
+    exact_ids = list(data_exact.values_list('id', flat=True))
+    data = CustomerMaster.objects.exclude(id__in=exact_ids).filter(Q(name__icontains=data_id),
+                                                                    user__in=distributors).order_by('name')
+    data = list(chain(data_exact, data))
+    reseller_names = []
+    if data:
+        for reseller in data:
+            reseller_names.append(str(reseller.name))
+            if len(reseller_names) >= 10:
+                break
+    return HttpResponse(json.dumps(reseller_names))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def search_distributor_codes(request, user=''):
+    from rest_api.views.outbound import get_same_level_warehouses
+    data_id = request.GET.get('q', '')
+    distributors = get_same_level_warehouses(2, user)
+    data_exact = UserProfile.objects.filter(user__in=distributors).filter(Q(user__first_name__iexact=data_id))
+    exact_ids = list(data_exact.values_list('id', flat=True))
+    data = UserProfile.objects.exclude(id__in=exact_ids).filter(user__in=distributors).\
+        filter(Q(user__first_name__icontains=data_id)).order_by('user__first_name')
+    data = list(chain(data_exact, data))
+    distributor_codes = []
+    if data:
+        for distributor in data:
+            distributor_codes.append(str(distributor.user.first_name))
+            if len(distributor_codes) >= 10:
+                break
+    return HttpResponse(json.dumps(distributor_codes))
 
 
 def get_order_id(user_id, is_pos=False):
@@ -7421,3 +7489,26 @@ def reduce_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
     save_sku_stats(user, sku_id, dat.id, 'inventory-adjustment', quantity)
 
     return 'Added Successfully'
+
+
+def check_stock_available_quantity(stocks, user, stock_ids=None):
+    stock_detail = stocks
+    if stock_ids:
+        stock_detail = StockDetail.objects.filter(id__in=stock_ids)
+    else:
+        stock_ids = list(stock_detail.values_list('id', flat=True))
+    stock_qty = stock_detail.aggregate(Sum('quantity'))['quantity__sum']
+    if not stock_qty:
+        return 0
+    res_qty = PicklistLocation.objects.filter(stock_id__in=stock_ids, status=1, picklist__order__user=user.id).\
+        aggregate(Sum('reserved'))['reserved__sum']
+    raw_reserved = RMLocation.objects.filter(status=1, material_picklist__jo_material__material_code__user=user.id,
+                                             stock_id__in=stock_ids).aggregate(Sum('reserved'))['reserved__sum']
+    if not res_qty:
+        res_qty = 0
+    if raw_reserved:
+        res_qty = float(res_qty) + float(raw_reserved)
+    stock_qty = stock_qty - res_qty
+    if stock_qty < 0:
+        stock_qty = 0
+    return stock_qty

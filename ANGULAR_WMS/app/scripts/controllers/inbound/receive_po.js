@@ -171,14 +171,42 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         return nRow;
     }
 
-    $(document).on('keydown', 'input.detectReceiveTab', function(e) { 
+    $(document).on('keydown', 'input.detectTab', function(e) { 
+      var keyCode = e.keyCode || e.which; 
+
+      var fields_count = 0;
+      
+      if (vm.permissions.pallet_switch || vm.industry_type=='FMCG') {
+        fields_count = (this.closest('#tab_count').childElementCount-2);
+      } else {
+        fields_count = (this.closest('#tab_count').childElementCount-1);
+      }
+      
+      var cur_td_index = (this.parentElement.nextElementSibling.cellIndex);
+
+      if (this.closest('#tab_count').cells[0].children[1].tagName == 'UL') {
+
+        var sku_index = (this.closest('#tab_count').cells[0].children[2].value);
+      } else {
+
+        var sku_index = (this.closest('#tab_count').cells[0].children[1].value);
+      }
+
+
+      if ((keyCode == 9) && (fields_count === cur_td_index)) {
+        e.preventDefault();
+        vm.add_wms_code(Number(sku_index), false);
+      }
+    });
+
+    /*$(document).on('keydown', 'input.detectReceiveTab', function(e) { 
       var keyCode = e.keyCode || e.which; 
 
       if (keyCode == 9) { 
         e.preventDefault();
         vm.add_wms_code(Number(this.parentNode.children[1].value), false);
       }
-    });
+    });*/
 
     $scope.getExpiryDate = function(index, parent_index){
         var mfg_date = new Date(vm.model_data.data[parent_index][index].mfg_date);

@@ -1981,6 +1981,8 @@ class SellerOrderSummary(models.Model):
 
     class Meta:
         db_table = 'SELLER_ORDER_SUMMARY'
+        index_together = (('pick_number', 'seller_order'), ('pick_number', 'order'), ('pick_number', 'seller_order', 'picklist'),
+                            ('pick_number', 'order', 'picklist'), ('order', 'order_status_flag'), ('seller_order', 'order_status_flag'))
 
     def __unicode__(self):
         return str(self.id)

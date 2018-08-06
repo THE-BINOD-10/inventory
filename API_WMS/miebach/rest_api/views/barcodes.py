@@ -116,8 +116,8 @@ def get_paragraph(data={}, fields=[], styles={}, style_obj={}):
                     nw_phs.append(get_tag(str(i[1]), bold_fields, styles) % (str(i[1]), v))
                     is_specific_font = str(i[1]) if str(i[1]) in fontsizes else False
                 else:
-                    nw_phs.append(get_tag(str(i), bold_fields, styles) % (str(i), v))
-                    is_specific_font = str(i[1]) if str(i[1]) in fontsizes else False
+                    nw_phs.append(get_tag(str(i), bold_fields, styles) % (str(i), data.get(i)))
+                    is_specific_font = str(i) if str(i) in fontsizes else False
             phrase = "&nbsp;&nbsp;&nbsp;&nbsp;".join(nw_phs)
 
         elif isinstance(field, tuple):

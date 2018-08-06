@@ -44,10 +44,13 @@
 
             <div class="col-md-6 col-sm-5 col-xs-12" ng-if="$ctrl.industry_type == 'FMCG'" style="margin-top: 10px">
                 <label class="control-label"> MRP</label>
-                <select class="form-control" name="src_mrp" ng-model="$ctrl.model_data.mrp" ng-readonly="$ctrl.batches['$ctrl.model_data.batch_number']">
+                <select class="form-control" name="src_mrp" ng-model="$ctrl.model_data.mrp" ng-readonly="$ctrl.batches['$ctrl.model_data.batch_number']" ng-change="$ctrl.update_exp_dates($ctrl.batches, $ctrl.model_data.mrp, $ctrl.model_data.batch_number)">
                   <option value="">Select MRP</option>
                   <option ng-repeat="mrp in $ctrl.batches[$ctrl.model_data.batch_number]" value="{{mrp}}">{{mrp}}</option>
                 </select>
+                <input type="hidden" name="mfg_date" value="{{$ctrl.model_data.mfg_date}}" >
+                <input type="hidden" name="exp_date" value="{{$ctrl.model_data.exp_date}}" >
+                <input type="hidden" name="exp_date" value="{{$ctrl.model_data.tax_percent}}" >
             </div>
 
             <div class="col-md-6 col-sm-5 col-xs-12" style="margin-top: 10px">
@@ -82,32 +85,32 @@
         </div>
 
         <div class="col-md-7 col-sm-10 col-xs-12" style="float: right;" ng-repeat="data in $ctrl.model_data.dest_info">
-            <div class="col-md-2 col-sm-2 col-xs-12" style="margin-top: 10px">
+            <div class="col-md-{{$ctrl.cols}} col-sm-{{$ctrl.cols}} col-xs-12" style="margin-top: 10px">
                 <label class="control-label">Dest SKU Code</label>
                 <input type="text" autocomplete="off" name="dest_sku_code" class="form-control" placeholder="Search SKU Code  &sol; Desc" typeahead="address.wms_code+' : '+address.sku_desc for address in $ctrl.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" typeahead-on-select="data.dest_sku_code=$item.wms_code" ng-model="data.dest_sku_code" ng-disabled="$ctrl.model_data.src_quantity == 0">
             </div>
 
-            <div class="col-md-2 col-sm-2 col-xs-12" style="margin-top: 10px">
+            <div class="col-md-{{$ctrl.cols}} col-sm-{{$ctrl.cols}} col-xs-12" style="margin-top: 10px" ng-if="$ctrl.industry_type == 'FMCG'">
                 <label class="control-label"> Batch Number</label>
                 <input type="text" name="dest_batch_number" class="form-control" ng-model="data.batch_number" ng-disabled="!$ctrl.model_data.src_sku_code" ng-debounce>
             </div>
 
-            <div class="col-md-2 col-sm-2 col-xs-12" style="margin-top: 10px">
+            <div class="col-md-{{$ctrl.cols}} col-sm-{{$ctrl.cols}} col-xs-12" style="margin-top: 10px" ng-if="$ctrl.industry_type == 'FMCG'">
                 <label class="control-label"> MRP</label>
                 <input type="text" name="dest_mrp" class="form-control" ng-model="data.mrp" ng-disabled="!$ctrl.model_data.src_sku_code" ng-debounce>
             </div>
 
-            <div class="col-md-2 col-sm-2 col-xs-12" style="margin-top: 10px">
+            <div class="col-md-{{$ctrl.cols}} col-sm-{{$ctrl.cols}} col-xs-12" style="margin-top: 10px">
                 <label class="control-label">Dest Location</label>
                 <input type="text" name="dest_location" class="form-control" ng-model="data.dest_location" ng-disabled="$ctrl.model_data.src_quantity == 0">
             </div>
 
-            <div class="col-md-2 col-sm-2 col-xs-12" style="margin-top: 10px">
+            <div class="col-md-{{$ctrl.cols}} col-sm-{{$ctrl.cols}} col-xs-12" style="margin-top: 10px">
                 <label class="control-label">Quantity</label>
                 <input type="text" name="dest_quantity" class="form-control" decimal-number ng-model="data.dest_quantity" ng-disabled="$ctrl.model_data.src_quantity == 0">
             </div>
 
-            <div class="col-md-2 col-sm-2 col-xs-12" style="margin-top: 10px">
+            <div class="col-md-{{$ctrl.cols}} col-sm-{{$ctrl.cols}} col-xs-12" style="margin-top: 10px">
                 <i style="font-size: 20px;cursor: pointer;margin-top: 33px;" ng-click="$ctrl.update_dest_info($index, data, $last)" ng-class="$ctrl.isLast($last)"></i>
             </div>
         </div>
@@ -122,6 +125,7 @@
 
     <div class="modal-footer">
       <button type="button" class="btn pop pop-normal" ng-click="$ctrl.close()">Close</button>
+      <button class="btn pop pop-green" value="Print Barcodes" type="button" ng-disabled="showCase.bt_disable" ng-click="$ctrl.print_barcodes(form)">Print Barcodes</button>
       <button type="button" class="btn pop pop-green" ng-click="$ctrl.submit(myForm)" ng-disabled="myForm.$invalid; $ctrl.disabled_button">Save
         <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="$ctrl.success_resp"></span>
       </button>

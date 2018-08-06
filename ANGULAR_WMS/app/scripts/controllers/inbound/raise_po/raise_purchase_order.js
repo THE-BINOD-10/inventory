@@ -173,9 +173,14 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
   $(document).on('keydown', 'input.detectTab', function(e) { 
     var keyCode = e.keyCode || e.which; 
 
-    if (keyCode == 9) { 
-      e.preventDefault(); 
-      vm.update_data(Number(this.parentNode.children[1].value), false);
+    var fields_count = (this.closest('#tab_count').childElementCount-1);
+    var cur_td_index = (this.parentElement.nextElementSibling.cellIndex);
+    var sku_index = (this.parentNode.nextElementSibling.children[0].value);
+
+
+    if ((keyCode == 9) && (fields_count === cur_td_index)) {
+      e.preventDefault();
+      vm.update_data(Number(sku_index), false);
     }
   });
 
@@ -266,7 +271,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     }
 
     vm.seller_change = function(type) {
-
       vm.selected_seller = type;
       vm.default_status = false;
       vm.model_data.data[vm.model_data.data.length - 1].fields.dedicated_seller = vm.selected_seller;
@@ -592,6 +596,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
 	        vm.populate_last_transaction('')
         }, 2000 );
       }
+
       product.fields.sku.wms_code = item.wms_code;
       product.fields.measurement_unit = item.measurement_unit;
       product.fields.description = item.sku_desc;
@@ -605,6 +610,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       product.fields.cess_tax = "";
       product.fields.utgst_tax = "";
       product.fields.tax = "";
+      product.taxes = [];
       vm.getTotals();
 
       if(vm.model_data.receipt_type == 'Hosted Warehouse') {

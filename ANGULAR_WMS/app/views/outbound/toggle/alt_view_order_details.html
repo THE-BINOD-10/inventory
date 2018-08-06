@@ -82,13 +82,13 @@
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label"><b>From Date *</b></label>
-                <input name="from_date" ui-jq="datepicker" ng-init="showCase.model_data.filters.from_date = showCase.date" ng-model="showCase.model_data.filters.from_date" class="form-control stk-readonly" type="text" id="from_date" data-date-today-highlight="true" data-date-autoclose="true" value="{{showCase.model_data.filters.from_date}}" required>
+                <input name="from_date" ui-jq="datepicker" autocomplete="off" ng-init="showCase.model_data.filters.from_date = showCase.date" ng-model="showCase.model_data.filters.from_date" class="form-control stk-readonly" type="text" id="from_date" data-date-today-highlight="true" data-date-autoclose="true" value="{{showCase.model_data.filters.from_date}}" required>
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label"><b>To Date</b></label>
-                <input name="to_date" ui-jq="datepicker" ng-model="showCase.model_data.filters.to_date" class="form-control stk-readonly" type="text" id="to_date" value="{{showCase.model_data.filters.to_date}}" ng-change="showCase.checkDateValidation()" data-date-today-highlight="true" data-date-autoclose="true">
+                <input name="to_date" ui-jq="datepicker" autocomplete="off" ng-model="showCase.model_data.filters.to_date" class="form-control stk-readonly" type="text" id="to_date" value="{{showCase.model_data.filters.to_date}}" ng-change="showCase.checkDateValidation()" data-date-today-highlight="true" data-date-autoclose="true">
                 <input name="order_id" class="form-control" type="hidden" ng-model="showCase.model_data.filters.order_id" value="{{showCase.model_data.filters.order_id}}">
               </div>
             </div>

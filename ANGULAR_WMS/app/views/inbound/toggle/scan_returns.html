@@ -1,14 +1,14 @@
-<div id="page-pop" aria-hidden="false" aria-labelledby="myLargeModalLabel" role="dialog" tabindex="-1" id="myModal" class="modal fade in ma_h">
+<div id="page-pop" aria-hidden="false" aria-labelledby="myLargeModalLabel" role="dialog" tabindex="-1" id="myModal" class="modal fade in main_header">
   <form>
   <div class="modal-dialog modal-lgi model-custom modal-size">
-    <div class="modal-content mo_h">
+    <div class="modal-content model_head">
       <div ng-include="'views/common/loader.html'"></div>
       <div class="modal-header">
         <button aria-label="Close" data-dismiss="modal" class="close" type="button" ng-click="showCase.close()"><span aria-hidden="true">×</span>
         </button>
         <h4 id="myLargeModalLabel" class="modal-title">Scan Returned Orders</h4>
       </div>
-      <div class="modal-body mi_h">
+      <div class="modal-body model_body">
         <div class="row" ng-if="showCase.return_process == 'sku_code'">
           <div class="col-md-11 col-sm-11 col-xs-10">
             <p align="right">Auto Allocate to Sale Order</p>
@@ -108,7 +108,7 @@
            </div>
          </div>
        <div class="row">
-         <div class="col-md-12 in_h">
+         <div class="col-md-12 in_header">
            <table class="table mw60">
              <thead>
                <tr>
@@ -137,11 +137,11 @@
                    <input type="text" name="invoice_number" class="form-control" ng-model="data_split.invoice_number" readonly>
                  </td>
    	             <td>
-                   <input type="text" name="order_id" class="form-control oi_field" ng-model="data_split.order_id"
+                   <input type="text" name="order_id" class="form-control order_field" ng-model="data_split.order_id"
                           ng-readonly="showCase.return_process != 'sku_code' || data_split.order_id =='' || !showCase.allocate_order"
                           ng-blur="showCase.changeOrderId(data_split.return_quantity, $index, data_split)">
                  </td>
-                 <td><input type="text" name="sku_code" class="form-control sk_field" ng-model="data_split.sku_code" readonly></td>
+                 <td><input type="text" name="sku_code" class="form-control sku_field" ng-model="data_split.sku_code" readonly></td>
                  <td><input type="text" name="sku_desc" class="form-control" ng-model="data_split.sku_desc" readonly></td>
                  <td><input type="text" name="shipping" class="form-control" ng-class="service.get_decimal_perm()" ng-model="data_split.ship_quantity" readonly></td>
                  <td><input type="text" name="return" class="form-control" ng-readonly="showCase.return_process == 'scan_imei'" ng-class="service.get_decimal_perm()"  ng-model="data_split.return_quantity" ng-change="showCase.changeReturnQty(data_split.return_quantity, $index, data_split)"></td>

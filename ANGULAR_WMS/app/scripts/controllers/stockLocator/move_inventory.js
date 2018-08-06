@@ -305,6 +305,10 @@
     $ctrl.model_data.dest_info = [{dest_sku_code:'', dest_quantity:'', dest_location:'', batch_number:'', mrp:''}];
     $ctrl.batch_nos = [];
     $ctrl.batches = {};
+    $ctrl.cols = 2;
+    if (!$ctrl.industry_type) {
+      $ctrl.cols = 3;
+    }
 
     $ctrl.isLast = isLast;
     function isLast(check) {

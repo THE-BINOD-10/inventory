@@ -698,6 +698,13 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                     cell_data = 0
                 order_summary_dict[key] = cell_data
                 order_data['invoice_amount'] += (float(order_amount) / 100) * float(cell_data)
+            elif key == 'cess_tax':
+                cell_data = get_cell_data(row_idx, value, reader, file_type)
+                try:
+                    cell_data = float(cell_data)
+                except:
+                    cell_data = 0
+                order_summary_dict[key] = cell_data
             elif key == 'amount_discount':
                 cell_data = get_cell_data(row_idx, value, reader, file_type)
                 if not cell_data:

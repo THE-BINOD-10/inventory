@@ -13,7 +13,22 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
   vm.place_order_loading = false;
   vm.order_type_value = "offline";
   vm.show_no_data = false;
-  // vm.buttons_width = (Session.roles.permissions.create_order_po)? 4: 6;
+  vm.display_styles_price = Session.roles.permissions.display_styles_price;
+  // vm.display_styles_price = true;
+
+  if (vm.display_styles_price) {
+    vm.sku_list_stock = '2';
+    vm.add_to_cart = '3';
+
+    vm.p_d_sku_code = '2';
+    vm.p_d_delete = '1';
+  } else {
+    vm.sku_list_stock = '4';
+    vm.add_to_cart = '4';
+
+    vm.p_d_sku_code = '4';
+    vm.p_d_delete = '4';
+  }
 
   vm.brand, vm.sub_category, vm.category, vm.style, vm.color, vm.fromPrice, vm.toPrice, vm.quantity, vm.delivery_date, 
   vm.hot_release = '';
@@ -170,56 +185,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
     return canceller.promise;
   }
 
-  vm.get_customer_cart_data = function() {
-    
-    // vm.place_order_loading = true; 
-    vm.service.apiCall("get_customer_cart_data/").then(function(data){
-
-      if(data.message) {
-
-        // angular.copy(data.data.data,vm.model_data.data);
-
-        // angular.forEach(data.data.data, function(sku){
-
-        //   vm.model_data.selected_styles[sku.id] = sku;
-        // });
-
-        vm.model_data.invoice_type = data.data.invoice_types[0]
-        if(data.data.data.length > 0) {
-          angular.forEach(data.data.data, function(sku){
-
-            sku['org_price'] = sku.price;
-            sku.quantity = Number(sku.quantity);
-            sku.invoice_amount = Number(sku.price) * sku.quantity;
-            sku.total_amount = ((sku.invoice_amount*sku.tax) / 100) + sku.invoice_amount;
-
-            vm.model_data.selected_styles[sku.sku_pk] = sku;
-            // vm.quantity_valid(sku);
-          });
-          // vm.corporates = data.data.reseller_corporates;
-          // var unique_skus = {};
-
-          // angular.forEach(vm.model_data.data, function(sku){
-
-          //   if(!unique_skus[sku.sku_id]) {
-
-          //     vm.update_sku_levels(vm.model_data.data, sku);
-          //     unique_skus[sku.sku_id] = true;
-          //   }
-          // });
-
-          // vm.data_status = true;
-          // vm.change_remarks();
-          vm.cal_total();
-        }
-        // vm.place_order_loading = false;
-      }
-      // vm.place_order_loading = false;
-    })
-  }
-
-  vm.get_customer_cart_data();
-
   vm.change_cart_quantity = function(data, stat) {
 
     if (stat) {
@@ -297,6 +262,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
     }
   }
 
+  vm.count = 0;
   vm.add_to_price_details = function(data){
 
     if (vm.model_data.selected_styles[data.id]) {
@@ -304,9 +270,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
       // vm.priceRangesCheck(data, data.quantity);
       vm.cal_customer_cart_data(data);
     } else {
-
       vm.priceRangesCheck(data, data.quantity);
       vm.model_data.selected_styles[data.id] = data;
+      // if (!vm.model_data.selected_styles[data.id].$$hashKey) {
+      //   vm.model_data.selected_styles[data.id] = vm.count + 1;
+      // }
       vm.cal_customer_cart_data(data);
     }
   }
@@ -360,7 +328,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
     }
     record.invoice_amount = Number(price) * record.quantity;
 
-    if (Number(record.quantity) && record.taxes[0]) {
+    // if (Number(record.quantity) && record.taxes[0]) {
+    if (Number(record.quantity) && record.taxes) {
       record.tax = Number(record.taxes[0].cgst_tax) + Number(record.taxes[0].sgst_tax) + Number(record.taxes[0].igst_tax);
     } else {
       record.tax = 0;
@@ -451,9 +420,46 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
     });
   }
 
+  vm.get_customer_cart_data = function() {
+
+    vm.service.apiCall("get_customer_cart_data/").then(function(data){
+
+      if(data.message) {
+
+          // angular.copy(data.data.data,vm.model_data.data);
+
+          if(data.data.data.length > 0) {
+            angular.forEach(data.data.data, function(sku){
+
+              sku['org_price'] = sku.price;
+              sku.quantity = Number(sku.quantity);
+              sku.invoice_amount = Number(sku.price) * sku.quantity;
+              sku.total_amount = ((sku.invoice_amount*sku.tax) / 100) + sku.invoice_amount;
+              sku.wms_code = sku.sku_id;
+              sku.tax_amount = (sku.invoice_amount / 100) * sku.tax;
+              sku.id = sku.sku_pk;
+              sku.physical_stock = sku.avail_stock;
+              // vm.model_data.selected_styles[sku.id] = sku;
+              vm.add_to_price_details(sku);
+              // vm.quantity_valid(sku);
+            });
+
+            if (vm.filteredStyles && (Object.keys(vm.model_data.selected_styles).length)) {
+
+              vm.update_sku_levels();
+              vm.price_details_flag = false;
+            }
+
+            vm.cal_total();
+            console.log(vm.model_data.selected_styles);
+          }
+      }
+    });
+  }
+
   vm.update_sku_levels = function(){
 
-    angular.forEach(vm.filteredStyles, function(sku){
+    angular.forEach(vm.pagenation_data, function(sku){
 
       if (vm.model_data.selected_styles[sku.id]) {
 
@@ -541,7 +547,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
 
         // get current page of items
         vm.filteredStyles = vm.pagenation_data.slice(vm.pager.startIndex, vm.pager.endIndex + 1);
-    }  
+    }
+
+    vm.get_customer_cart_data();
 
   }
   

@@ -167,7 +167,7 @@
 				
 								<div class="row">
 								
-									<div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">Price: 
+									<div class="col-lg-3 col-md-3 col-sm-3 col-xs-3" ng-show="Style.display_styles_price">Price: 
 										<span class="sku_values">{{ style.price }}</span>
 									</div>
 								
@@ -175,11 +175,11 @@
 										<span class="sku_values">{{ style.style_name }}</span>
 									</div>
 								
-									<div class="col-lg-2 col-md-2 col-sm-2 col-xs-2 text-right">Stock: 
+									<div class="col-lg-{{Style.sku_list_stock}} col-md-{{Style.sku_list_stock}} col-sm-{{Style.sku_list_stock}} col-xs-{{Style.sku_list_stock}} text-right">Stock: 
 										<span class="sku_values">{{ style.physical_stock }}</span>
 									</div>
 								
-									<div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
+									<div class="col-lg-{{Style.add_to_cart}} col-md-{{Style.add_to_cart}} col-sm-{{Style.add_to_cart}} col-xs-{{Style.add_to_cart}}">
 										<button class="btn btn-sm btn-danger pull-right" ng-click="Style.add_to_cart(style)">Add to cart</button>
 									</div>
 								</div>
@@ -229,36 +229,36 @@
 				<div class="row" ng-if="!Style.price_details_flag">
 					<div class="col-md-12 col-sm-12 col-xs-12">
             <div class="row">
-              <div class="col-md-2 col-xs-2 no-padding">
+              <div class="col-md-{{Style.p_d_sku_code}} col-xs-{{Style.p_d_sku_code}} no-padding">
                 <span class="pull-left"><b>SKU Code</b></span>
               </div>
-              <div class="col-md-2 col-xs-2" title="Effective Landing Price">
+              <div class="col-md-2 col-xs-2" title="Effective Landing Price" ng-show="Style.display_styles_price">
                 <center><b>Unit Price</b></center>
               </div>
-              <div class="col-md-2 col-xs-2"><center><b>Quantity</b></center></div>
-              <div class="col-md-2 col-xs-2"><center><b>Tax Amount</b></center></div>
-              <div class="col-md-3 col-sm-3 no-padding">
+              <div class="col-md-{{Style.p_d_sku_code}} col-xs-{{Style.p_d_sku_code}}"><center><b>Quantity</b></center></div>
+              <div class="col-md-2 col-xs-2" ng-show="Style.display_styles_price"><center><b>Tax Amount</b></center></div>
+              <div class="col-md-3 col-sm-3 no-padding" ng-show="Style.display_styles_price">
                 <span class="pull-right"><b>Total Amount</b></span>
               </div>
-              <div class="col-md-1 col-xs-1"></div>
+              <div class="col-md-{{Style.p_d_delete}} col-xs-{{Style.p_d_delete}}"></div>
             </div>
           </div>
 				</div>
 				<div class="row" ng-if="!Style.price_details_flag">
 					<div class="col-md-12 col-sm-12 col-xs-12" ng-repeat="data in Style.model_data.selected_styles">
 	          <div class="row row_hover" ng-if="data.quantity && data.add_to_cart">
-	            <div class="col-md-2 col-xs-2">
+	            <div class="col-md-{{Style.p_d_sku_code}} col-xs-{{Style.p_d_sku_code}}">
 	              <span class="pull-left">{{data.wms_code}}</span>
 	            </div>
-	            <div class="col-md-2 col-xs-2 no-padding">
+	            <div class="col-md-2 col-xs-2 no-padding" ng-show="Style.display_styles_price">
 	              <center>{{data.price | number : 2}}</center>
 	            </div>
-	            <div class="col-md-2 col-xs-2 no-padding"><center>{{data.quantity}}</center></div>
-	            <div class="col-md-2 col-xs-2 no-padding"><center>{{data.tax_amount | number:2}}</center></div>
-	            <div class="col-md-3 col-sm-3 no-padding">
+	            <div class="col-md-{{Style.p_d_sku_code}} col-xs-{{Style.p_d_sku_code}} no-padding"><center>{{data.quantity}}</center></div>
+	            <div class="col-md-2 col-xs-2 no-padding" ng-show="Style.display_styles_price"><center>{{data.tax_amount | number:2}}</center></div>
+	            <div class="col-md-3 col-sm-3 no-padding" ng-show="Style.display_styles_price">
 	              <span class="pull-right"><i class="fa fa-inr" aria-hidden="true"></i> {{data.total_amount | number : 2}}</span>
 	            </div>
-	            <div class="col-md-1 col-xs-1"><a ng-click="Style.remove_item(data.id)" title="Cancel '{{data.wms_code}}'"><i class="fa fa-trash text-danger del_icon"></i></a></div>
+	            <div class="col-md-{{Style.p_d_delete}} col-xs-{{Style.p_d_delete}}"><a class="pull-right" ng-click="Style.remove_item(data.id)" title="Cancel '{{data.wms_code}}'"><i class="fa fa-trash text-danger del_icon"></i></a></div>
 	          </div>
 	          <div ng-if="$last"><hr></div>
 	        </div>

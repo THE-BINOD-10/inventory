@@ -7,7 +7,8 @@ angular.module('urbanApp')
   .controller('AppNewStyle',['$scope', '$http', '$q', 'Session', 'colFilters', 'Service', '$state', '$window', '$timeout', 'Auth', '$stateParams', '$modal', 'Data', '$rootScope', '$location', 'PagerService', ServerSideProcessingCtrl]);
 
 function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Service, $state, $window, $timeout, Auth, $stateParams, $modal, Data, $rootScope, $location, PagerService) {
-	
+
+  $scope.msg = "start";
   var vm = this;
   vm.service = Service;
   vm.place_order_loading = false;
@@ -15,6 +16,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
   vm.show_no_data = false;
   vm.display_styles_price = Session.roles.permissions.display_styles_price;
   // vm.display_styles_price = true;
+  vm.model_data = {'selected_styles':{},'cart_data':[], 'data':[]};
 
   if (vm.display_styles_price) {
     vm.sku_list_stock = '2';
@@ -84,42 +86,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
     }
 
     getingData(data);
-    /*vm.getingData(data).then(function(data) {
-    if(data == 'done') {
-        var data = {data: vm.gotData};
-    //vm.service.apiCall("get_sku_catalogs/", "GET", data).then(function(data) {
-
-    //  if(data.message) {
-
-        if(status) {
-
-          vm.catlog_data.index = "";
-          angular.copy([], vm.catlog_data.data);
-        }
-        vm.catlog_data.index = data.data.next_index;
-        
-        angular.forEach(data.data.data, function(item){
-          vm.required_quantity[item.variants[0].style_name] = vm.quantity;
-          vm.catlog_data.data.push(item);
-        });
-
-        if(!Data.marginSKUData.category){
-          Data.marginSKUData['category'] = {};
-        }
-        // vm.margin_add_to_categoris(data.data.data, Data.marginSKUData.category[vm.category]);
-      //}
-      vm.scroll_data = true;
-      vm.add_scroll();
-      vm.loading = false;
-      if($.isEmptyObject(data.data.data)){
-          vm.show_no_data = true;
-      }
-
-      if( (data.data.data).length == 0 && vm.catlog_data.index ) {
-        vm.scroll_data = false;
-      }
-    }
-    });*/
   }
 
   function change_filter_data() {
@@ -191,15 +157,15 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
       
       if (data.quantity) {
         
-        if (data.physical_stock) {
+        // if (data.physical_stock) {
 
           data.quantity = Number(data.quantity) + 1;
           vm.update_customer_cart_data(data);
-        } else {
+        // } else {
 
-          data.quantity = 0;
-          Service.showNoty("Stock is not available of this sku");
-        }
+        //   data.quantity = 0;
+        //   Service.showNoty("Stock is not available of this sku");
+        // }
       } else {
 
         data['quantity'] = 1;
@@ -227,8 +193,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
     });
   }
 
-  vm.model_data = {'selected_styles':{}};
-
   vm.change_amount = function(data) {
 
     if (data.quantity == 0 || data.quantity == '' || !data.quantity) {
@@ -241,15 +205,15 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
       }
     } else {
 
-      if (data.physical_stock) {
+      // if (data.physical_stock) {
 
         data.quantity = Number(data.quantity);
         vm.add_to_price_details(data);
-      } else {
+      // } else {
 
-        data.quantity = 0;
-        Service.showNoty("Stock is not available of this sku");
-      }
+      //   data.quantity = 0;
+      //   Service.showNoty("Stock is not available of this sku");
+      // }
     }
   }
 
@@ -262,7 +226,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
     }
   }
 
-  vm.count = 0;
   vm.add_to_price_details = function(data){
 
     if (vm.model_data.selected_styles[data.id]) {
@@ -270,11 +233,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
       // vm.priceRangesCheck(data, data.quantity);
       vm.cal_customer_cart_data(data);
     } else {
+
       vm.priceRangesCheck(data, data.quantity);
       vm.model_data.selected_styles[data.id] = data;
-      // if (!vm.model_data.selected_styles[data.id].$$hashKey) {
-      //   vm.model_data.selected_styles[data.id] = vm.count + 1;
-      // }
+
       vm.cal_customer_cart_data(data);
     }
   }
@@ -285,17 +247,38 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
 
   vm.cal_total = function() { // Last function
 
-    angular.copy(empty_final_data, vm.final_data);
-    angular.forEach(vm.model_data.selected_styles, function(record){
+      angular.copy(empty_final_data, vm.final_data);
+      angular.forEach(vm.model_data.selected_styles, function(record){
 
-      vm.priceRangesCheck(record, record.quantity);
+        vm.priceRangesCheck(record, record.quantity);
 
-      vm.final_data.total_amount += Number(record.total_amount);
-      vm.final_data.total_quantity += Number(record.quantity);
-      vm.final_data.amount += Number(record.invoice_amount);
-    })
-    vm.final_data.tax_amount = vm.final_data.total_amount - vm.final_data.amount;
+        vm.final_data.total_amount += Number(record.total_amount);
+        vm.final_data.total_quantity += Number(record.quantity);
+        vm.final_data.amount += Number(record.invoice_amount);
+
+        if(vm.pushCartData(record)){
+          vm.model_data.cart_data[vm.pushedIndex] = record;
+        } else{
+          vm.model_data.cart_data.push(record);
+        }
+      })
+      vm.final_data.tax_amount = vm.final_data.total_amount - vm.final_data.amount;
+      $scope.$apply(function(){
+        console.log(vm.model_data.cart_data);
+      });
   };
+
+  vm.pushCartData = function(sku){
+    var flag = false;
+    for (var i = 0; i < vm.model_data.cart_data.length; i++) {
+      
+      if (vm.model_data.cart_data[i].id == sku.id) {
+        flag = true;
+        vm.pushedIndex = i;
+      }
+    }
+    return flag;
+  }
 
   vm.priceRangesCheck = function(record, quantity){
 
@@ -329,7 +312,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
     record.invoice_amount = Number(price) * record.quantity;
 
     // if (Number(record.quantity) && record.taxes[0]) {
-    if (Number(record.quantity) && record.taxes) {
+    if (Number(record.quantity) && record.taxes && record.taxes.length) {
       record.tax = Number(record.taxes[0].cgst_tax) + Number(record.taxes[0].sgst_tax) + Number(record.taxes[0].igst_tax);
     } else {
       record.tax = 0;
@@ -355,9 +338,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
       if (!sku.tax) {
         sku.tax = 0;
       }
-      sku['overall_sku_total_quantity'] = sku.physical_stock;
+      // sku['overall_sku_total_quantity'] = sku.physical_stock;
 
       sku['sku_id'] = sku.wms_code;
+      sku.invoice_amount = Number(sku.price) * sku.quantity;
       var temp = {sku_id: sku.sku_id, quantity: Number(sku.quantity), invoice_amount: Number(sku.invoice_amount), price: sku.price, tax: sku.tax, image_url: sku.image_url, level: 0, overall_sku_total_quantity: sku.overall_sku_total_quantity}
       temp['total_amount'] = ((temp.invoice_amount / 100) * temp.tax) + temp.invoice_amount;
 
@@ -371,8 +355,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
      
       vm.service.showNoty("Please enter quantity first");
     }
-
-    console.log(sku);
   }
 
   vm.insert_customer_cart_data = function(send){
@@ -421,13 +403,17 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
   }
 
   vm.get_customer_cart_data = function() {
-
+    
+    // vm.place_order_loading = true;
     vm.service.apiCall("get_customer_cart_data/").then(function(data){
 
       if(data.message) {
+        // $scope.$apply(function() {
 
           // angular.copy(data.data.data,vm.model_data.data);
 
+          // vm.model_data.invoice_type = data.data.invoice_types[0];
+          vm.model_data.selected_styles = {};
           if(data.data.data.length > 0) {
             angular.forEach(data.data.data, function(sku){
 
@@ -438,10 +424,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
               sku.wms_code = sku.sku_id;
               sku.tax_amount = (sku.invoice_amount / 100) * sku.tax;
               sku.id = sku.sku_pk;
-              sku.physical_stock = sku.avail_stock;
+              // sku.physical_stock = sku.available_stock;
+
               // vm.model_data.selected_styles[sku.id] = sku;
+              // vm.change_amount(sku);
               vm.add_to_price_details(sku);
-              // vm.quantity_valid(sku);
             });
 
             if (vm.filteredStyles && (Object.keys(vm.model_data.selected_styles).length)) {
@@ -451,19 +438,25 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
             }
 
             vm.cal_total();
-            console.log(vm.model_data.selected_styles);
+            // console.log(vm.model_data.selected_styles);
           }
+          // vm.place_order_loading = false;
+        // });
       }
+      // vm.place_order_loading = false;
     });
   }
 
   vm.update_sku_levels = function(){
 
-    angular.forEach(vm.pagenation_data, function(sku){
+    // angular.forEach(vm.filteredStyles, function(sku){
+      angular.forEach(vm.pagenation_data, function(sku){
 
       if (vm.model_data.selected_styles[sku.id]) {
 
         sku.quantity = vm.model_data.selected_styles[sku.id].quantity;
+        // vm.model_data.selected_styles[sku.id]['$$hashKey'] = sku['$$hashKey'];
+        vm.model_data.selected_styles[sku.id] = sku;
       } else {
 
         sku.quantity = '';

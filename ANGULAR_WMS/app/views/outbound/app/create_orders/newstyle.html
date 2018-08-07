@@ -167,7 +167,7 @@
 				
 								<div class="row">
 								
-									<div class="col-lg-3 col-md-3 col-sm-3 col-xs-3" ng-show="Style.display_styles_price">Price: 
+									<div class="col-lg-3 col-md-3 col-sm-3 col-xs-3" ng-if="Style.display_styles_price">Price: 
 										<span class="sku_values">{{ style.price }}</span>
 									</div>
 								
@@ -232,12 +232,12 @@
               <div class="col-md-{{Style.p_d_sku_code}} col-xs-{{Style.p_d_sku_code}} no-padding">
                 <span class="pull-left"><b>SKU Code</b></span>
               </div>
-              <div class="col-md-2 col-xs-2" title="Effective Landing Price" ng-show="Style.display_styles_price">
+              <div class="col-md-2 col-xs-2" title="Effective Landing Price" ng-if="Style.display_styles_price">
                 <center><b>Unit Price</b></center>
               </div>
               <div class="col-md-{{Style.p_d_sku_code}} col-xs-{{Style.p_d_sku_code}}"><center><b>Quantity</b></center></div>
-              <div class="col-md-2 col-xs-2" ng-show="Style.display_styles_price"><center><b>Tax Amount</b></center></div>
-              <div class="col-md-3 col-sm-3 no-padding" ng-show="Style.display_styles_price">
+              <div class="col-md-2 col-xs-2" ng-if="Style.display_styles_price"><center><b>Tax Amount</b></center></div>
+              <div class="col-md-3 col-sm-3 no-padding" ng-if="Style.display_styles_price">
                 <span class="pull-right"><b>Total Amount</b></span>
               </div>
               <div class="col-md-{{Style.p_d_delete}} col-xs-{{Style.p_d_delete}}"></div>
@@ -245,26 +245,26 @@
           </div>
 				</div>
 				<div class="row" ng-if="!Style.price_details_flag">
-					<div class="col-md-12 col-sm-12 col-xs-12" ng-repeat="data in Style.model_data.selected_styles">
+					<div class="col-md-12 col-sm-12 col-xs-12" ng-repeat="data in Style.model_data.cart_data">
 	          <div class="row row_hover" ng-if="data.quantity && data.add_to_cart">
 	            <div class="col-md-{{Style.p_d_sku_code}} col-xs-{{Style.p_d_sku_code}}">
 	              <span class="pull-left">{{data.wms_code}}</span>
 	            </div>
-	            <div class="col-md-2 col-xs-2 no-padding" ng-show="Style.display_styles_price">
+	            <div class="col-md-2 col-xs-2 no-padding" ng-if="Style.display_styles_price">
 	              <center>{{data.price | number : 2}}</center>
 	            </div>
 	            <div class="col-md-{{Style.p_d_sku_code}} col-xs-{{Style.p_d_sku_code}} no-padding"><center>{{data.quantity}}</center></div>
-	            <div class="col-md-2 col-xs-2 no-padding" ng-show="Style.display_styles_price"><center>{{data.tax_amount | number:2}}</center></div>
-	            <div class="col-md-3 col-sm-3 no-padding" ng-show="Style.display_styles_price">
+	            <div class="col-md-2 col-xs-2 no-padding" ng-if="Style.display_styles_price"><center>{{data.tax_amount | number:2}}</center></div>
+	            <div class="col-md-3 col-sm-3 no-padding" ng-if="Style.display_styles_price">
 	              <span class="pull-right"><i class="fa fa-inr" aria-hidden="true"></i> {{data.total_amount | number : 2}}</span>
 	            </div>
-	            <div class="col-md-{{Style.p_d_delete}} col-xs-{{Style.p_d_delete}}"><a class="pull-right" ng-click="Style.remove_item(data.id)" title="Cancel '{{data.wms_code}}'"><i class="fa fa-trash text-danger del_icon"></i></a></div>
+	            <div class="col-md-{{Style.p_d_delete}} col-xs-{{Style.p_d_delete}}"><a class="pull-right" ng-click="Style.remove_item(data.sku_id)" title="Cancel '{{data.wms_code}}'"><i class="fa fa-trash text-danger del_icon"></i></a></div>
 	          </div>
 	          <div ng-if="$last"><hr></div>
 	        </div>
 				</div>
 
-				<div class="list-group mt20" ng-if="!Style.price_details_flag">
+				<div class="list-group mt20" ng-if="!Style.price_details_flag && Style.display_styles_price">
 					<div class="list-group-item">
 						Sub Total ({{ Style.final_data.total_quantity }} Qty)<span class="badge">Rs {{ Style.final_data.amount | number : 2 }}</span>
 					</div>

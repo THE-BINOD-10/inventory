@@ -1265,15 +1265,30 @@ def warehouse_headers(request, user=''):
     size_list = []
     level = request.GET.get('level', '')
     alternative_view = request.GET.get('alternate_view', 'false')
+    warehouse_name = request.GET.get('warehouse_name', '')
     price_band_flag = get_misc_value('priceband_sync', user.id)
     size_name = request.POST.get("size_name", 'Default')
     size_list, user_list = [], []
+    default_size = ['S', 'M', 'L', 'XL', 'XXL']
+    user_id = user.id
     if price_band_flag == 'true':
         user = get_admin(user)
     header = ["SKU Code", "SKU Brand", "SKU Description", "SKU Category"]
     if alternative_view == 'true':
         header = ["SKU Class", "Style Name", "Brand", "SKU Category"]
-        size_master_objs = SizeMaster.objects.filter(user=user.id)
+        if not warehouse_name:
+            user_list = []
+            admin_user = UserGroups.objects.filter(Q(admin_user__username__iexact=user.username) | Q(user__username__iexact=user.username)). \
+                values_list('admin_user_id', flat=True)
+            user_groups = UserGroups.objects.filter(admin_user_id__in=admin_user).values('user__username',
+                'admin_user__username')
+            for users in user_groups:
+                for key, value in users.iteritems():
+                    if user.username != value and value not in user_list:
+                        user_list.append(value)
+            warehouse_name = user_list[0]
+        user_id = User.objects.get(username = warehouse_name).id
+        size_master_objs = SizeMaster.objects.filter(user=user_id)
         #size names
         size_names = size_master_objs.values_list('size_name', flat=True)
         all_sizes = size_master_objs.filter(size_name=size_name)
@@ -1282,10 +1297,13 @@ def warehouse_headers(request, user=''):
             sizes = all_sizes[0].size_value.split("<<>>")
         else:
             sizes = default_size
+        if not len(size_names):
+            size_names = ['Default']
         size_list = list(size_names)
         #each_sizes for each names
         string = 'Sales - '
         size_for_each_names = sizes
+
         '''
         warehouses = UserGroups.objects.filter(admin_user_id=user.id).values_list('user_id', flat=True)
         if level:
@@ -1307,33 +1325,24 @@ def warehouse_headers(request, user=''):
         normal_size_list = sizes + ['Total']
         sales_prefix_size_for_each_names = [string + x for x in sizes] + ['Sales - Total']
         headers = header + normal_size_list + sales_prefix_size_for_each_names
-        user_list = []
-        admin_user = UserGroups.objects.filter(Q(admin_user__username__iexact=user.username) | Q(user__username__iexact=user.username)). \
-            values_list('admin_user_id', flat=True)
-        user_groups = UserGroups.objects.filter(admin_user_id__in=admin_user).values('user__username',
-            'admin_user__username')
-        for users in user_groups:
-            for key, value in users.iteritems():
-                if user.username != value and value not in user_list:
-                    user_list.append(value)
+        
     else:
-        warehouses = UserGroups.objects.filter(admin_user_id=user.id).values_list('user_id', flat=True)
+        warehouses = UserGroups.objects.filter(admin_user_id=user_id).values_list('user_id', flat=True)
         if level:
             warehouses = UserProfile.objects.filter(user__in=warehouses,warehouse_level=int(level)).values_list('user_id',flat=True)
         ware_list = list(User.objects.filter(id__in=warehouses).values_list('username', flat=True))
-        user_groups = UserGroups.objects.filter(Q(admin_user_id=user.id) | Q(user_id=user.id))
+        user_groups = UserGroups.objects.filter(Q(admin_user_id=user_id) | Q(user_id=user_id))
         if user_groups:
             admin_user_id = user_groups[0].admin_user_id
             admin_user_name = user_groups[0].admin_user.username
         else:
-            admin_user_id = user.id
+            admin_user_id = user_id
             admin_user_name = user.username
         if level:
             headers = header + ware_list
         else:
             headers = header + [admin_user_name] + ware_list
     return HttpResponse(json.dumps({'table_headers': headers, 'size_types': size_list, 'warehouse_names': user_list }))
-
 
 @csrf_exempt
 def get_seller_stock_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,

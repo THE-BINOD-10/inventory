@@ -2075,31 +2075,43 @@ def get_receipt_filter_data(search_params, user, sub_user):
     return temp_data
 
 
-def get_dispatch_data(search_params, user, sub_user, serial_view=False):
+def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer_view=False):
     from miebach_admin.models import *
     from miebach_admin.views import *
     from rest_api.views.common import get_sku_master, get_order_detail_objs
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     search_parameters = {}
-    if serial_view:
-        lis = ['order__order_id', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__customer_name',
-               'po_imei__imei_number',
-               'updation_date', 'updation_date']
-        model_obj = OrderIMEIMapping
-        param_keys = {'wms_code': 'order__sku__wms_code', 'sku_code': 'order__sku__sku_code'}
-        search_parameters['status'] = 1
-        search_parameters['order__user'] = user.id
-        search_parameters['order__sku_id__in'] = sku_master_ids
-    else:
-        lis = ['order__order_id', 'order__sku__wms_code', 'order__sku__sku_desc', 'stock__location__location',
-               'picked_quantity', 'picked_quantity', 'updation_date', 'updation_date']
+    if customer_view:
+        lis = ['order__customer_id', 'order__customer_name', 'order__sku__wms_code', 'order__sku__sku_desc']
         model_obj = Picklist
         param_keys = {'wms_code': 'stock__sku__wms_code', 'sku_code': 'stock__sku__sku_code'}
-        search_parameters['status__in'] = ['open', 'batch_open', 'picked', 'batch_picked', 'dispatched']
-        search_parameters['picked_quantity__gt'] = 0
-        search_parameters['stock__gt'] = 0
-        search_parameters['order__user'] = user.id
-        search_parameters['stock__sku_id__in'] = sku_master_ids
+        search_parameters.update({'status__in': ['open', 'batch_open', 'picked', 'batch_picked', 'dispatched'],
+                                  'picked_quantity__gt': 0,
+                                  'stock__gt': 0,
+                                  'order__user': user.id,
+                                  'stock__sku_id__in': sku_master_ids
+                                })
+        
+    else:
+        if serial_view:
+            lis = ['order__order_id', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__customer_name',
+                   'po_imei__imei_number',
+                   'updation_date', 'updation_date']
+            model_obj = OrderIMEIMapping
+            param_keys = {'wms_code': 'order__sku__wms_code', 'sku_code': 'order__sku__sku_code'}
+            search_parameters['status'] = 1
+            search_parameters['order__user'] = user.id
+            search_parameters['order__sku_id__in'] = sku_master_ids
+        else:
+            lis = ['order__order_id', 'order__sku__wms_code', 'order__sku__sku_desc', 'stock__location__location',
+                   'picked_quantity', 'picked_quantity', 'updation_date', 'updation_date']
+            model_obj = Picklist
+            param_keys = {'wms_code': 'stock__sku__wms_code', 'sku_code': 'stock__sku__sku_code'}
+            search_parameters['status__in'] = ['open', 'batch_open', 'picked', 'batch_picked', 'dispatched']
+            search_parameters['picked_quantity__gt'] = 0
+            search_parameters['stock__gt'] = 0
+            search_parameters['order__user'] = user.id
+            search_parameters['stock__sku_id__in'] = sku_master_ids
 
     temp_data = copy.deepcopy(AJAX_DATA)
 
@@ -2134,6 +2146,11 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False):
     stop_index = start_index + search_params.get('length', 0)
 
     model_data = model_obj.objects.filter(**search_parameters)
+    if customer_view:
+        model_data = model_data.values(*lis).distinct()\
+                               .annotate(qty=Sum('order__quantity'), tot_count=Count('order__quantity'))\
+                               .annotate(tot_qty=F('qty')/Cast(F('tot_count'), FloatField()))\
+                               .annotate(loc_qty=Sum('picklistlocation__quantity'), res_qty=Sum('picklistlocation__reserved'))
     if search_params.get('order_term'):
         order_data = lis[search_params['order_index']]
         if search_params['order_term'] == 'desc':
@@ -2147,38 +2164,47 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False):
         model_data = model_data[start_index:stop_index]
 
     for data in model_data:
-        if not serial_view:
-            pick_locs = data.picklistlocation_set.exclude(reserved=0, quantity=0)
-            for pick_loc in pick_locs:
-                picked_quantity = float(pick_loc.quantity) - float(pick_loc.reserved)
-                date = get_local_date(user, data.updation_date).split(' ')
+        if customer_view:
+            temp_data['aaData'].append(OrderedDict((('Customer ID', data['order__customer_name']),
+                                                    ('Customer Name', data['order__customer_id']),
+                                                    ('WMS Code', data['order__sku__wms_code']),
+                                                    ('Description', data['order__sku__sku_desc']),
+                                                    ('Quantity', data['tot_qty']),
+                                                    ('Picked Quantity', data['tot_qty'] - data['res_qty'])
+                                                  )))
+        else:
+            if not serial_view:
+                pick_locs = data.picklistlocation_set.exclude(reserved=0, quantity=0)
+                for pick_loc in pick_locs:
+                    picked_quantity = float(pick_loc.quantity) - float(pick_loc.reserved)
+                    date = get_local_date(user, data.updation_date).split(' ')
+                    order_id = data.order.original_order_id
+                    if not order_id:
+                        order_id = str(data.order.order_code) + str(data.order.order_id)
+
+                    temp_data['aaData'].append(OrderedDict((('Order ID', order_id), ('WMS Code', data.stock.sku.wms_code),
+                                                            ('Description', data.stock.sku.sku_desc),
+                                                            ('Location', pick_loc.stock.location.location),
+                                                            ('Quantity', data.order.quantity),
+                                                            ('Picked Quantity', picked_quantity),
+                                                            ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])))))
+            else:
                 order_id = data.order.original_order_id
                 if not order_id:
                     order_id = str(data.order.order_code) + str(data.order.order_id)
 
-                temp_data['aaData'].append(OrderedDict((('Order ID', order_id), ('WMS Code', data.stock.sku.wms_code),
-                                                        ('Description', data.stock.sku.sku_desc),
-                                                        ('Location', pick_loc.stock.location.location),
-                                                        ('Quantity', data.order.quantity),
-                                                        ('Picked Quantity', picked_quantity),
+                # Overriding Order Id with Order Reference
+                if data.order_reference:
+                    order_id = data.order_reference
+                serial_number = ''
+                if data.po_imei:
+                    serial_number = data.po_imei.imei_number
+                date = get_local_date(user, data.updation_date).split(' ')
+                temp_data['aaData'].append(OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.wms_code),
+                                                        ('Description', data.order.sku.sku_desc),
+                                                        ('Customer Name', data.order.customer_name),
+                                                        ('Serial Number', serial_number),
                                                         ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])))))
-        else:
-            order_id = data.order.original_order_id
-            if not order_id:
-                order_id = str(data.order.order_code) + str(data.order.order_id)
-
-            # Overriding Order Id with Order Reference
-            if data.order_reference:
-                order_id = data.order_reference
-            serial_number = ''
-            if data.po_imei:
-                serial_number = data.po_imei.imei_number
-            date = get_local_date(user, data.updation_date).split(' ')
-            temp_data['aaData'].append(OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.wms_code),
-                                                    ('Description', data.order.sku.sku_desc),
-                                                    ('Customer Name', data.order.customer_name),
-                                                    ('Serial Number', serial_number),
-                                                    ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])))))
 
     return temp_data
 

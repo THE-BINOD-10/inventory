@@ -2435,18 +2435,18 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                     + float(data['purchase_order__open_po__cess_tax'])
         aft_unit_price = float(price) + (float(price / 100) * tot_tax)
         post_amount = aft_unit_price * float(data['total_received'])
-        seller_po_unit_price = data['seller_po__unit_price']
-        if not data['seller_po__unit_price']:
-            seller_po_unit_price = 0
-        margin_price = seller_po_unit_price - aft_unit_price
-        margin_price = float(abs(margin_price))
-        if margin_price < 0:
-            margin_price = 0
-        margin_price = "%.2f" % (margin_price * float(data['total_received']))
-        final_price = data['seller_po__unit_price']
-        if not final_price:
-            final_price = aft_unit_price
+        #seller_po_unit_price = data['seller_po__unit_price']
+        #if not data['seller_po__unit_price']:
+        #    seller_po_unit_price = 0
+        margin_price = 0
+        # margin_price = seller_po_unit_price - aft_unit_price
+        # margin_price = float(abs(margin_price))
+        # if margin_price < 0:
+        #     margin_price = 0
+        # margin_price = "%.2f" % (margin_price * float(data['total_received']))
+        final_price = aft_unit_price
         invoice_total_amount = float(final_price) * float(data['total_received'])
+        #invoice_total_amount = truncate_float(invoice_total_amount, 2)
         hsn_code = ''
         if data['purchase_order__open_po__sku__hsn_code']:
             hsn_code = str(data['purchase_order__open_po__sku__hsn_code'])

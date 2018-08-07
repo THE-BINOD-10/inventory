@@ -40,7 +40,17 @@
 		/*opacity: 0.3;
 		filter: alpha(opacity=100);*/
 	}
-	
+	.del_icon{
+		font-size: 16px;
+	}
+	.row_hover{
+		padding: 5px 0;
+	}
+	.row_hover:hover{
+		background: #F0F0F0;
+		padding: 5px 0;
+	}
+
 	ul {list-style: none;padding: 0px;margin: 0px;}
 	ul li {display: block;position: relative;float: left}
 	li ul {display: none;}
@@ -144,9 +154,14 @@
 							<div class="col-lg-10 col-md-10 col-sm-10 col-xs-8">
 				
 								<div class="row mb15">
-									<div class="col-lg-6 col-md-6 col-sm-6 col-xs-6 sku_name"><strong>{{ style.wms_code }}</strong>, &nbsp;&nbsp;<span>{{style.sku_desc}}&nbsp;&nbsp;</span><span ng-if="style.sku_size">({{ style.sku_size }})</span></div>
-									<div class="col-lg-6 col-md-6 col-sm-6 col-xs-6" align="right">
-										<button class="btn btn-sm btn-danger" ng-click="Style.add_to_cart(style)">Add to cart</button>
+									<div class="col-lg-7 col-md-7 col-sm-7 col-xs-7 sku_name"><strong>{{ style.wms_code }}</strong>, &nbsp;&nbsp;<span>{{style.sku_desc}}&nbsp;&nbsp;</span><span ng-if="style.sku_size">({{ style.sku_size }})</span></div>
+									<div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"></div>
+									<div class="col-lg-2 col-md-2 col-sm-2 col-xs-2 modify-qty">
+										<div class="pull-right">
+											<i class="fa fa-minus" align="center" ng-click="Style.change_cart_quantity(style, false)"></i>
+	                    <input class="form-control ng-pristine ng-valid valid" autocomplete="off" name="quantity" ng-model="style.quantity" ng-blur="Style.change_amount(style)" aria-invalid="false">
+	                    <i class="fa fa-plus" ng-click="Style.change_cart_quantity(style, true)"></i>
+										</div>
 									</div>
 								</div>
 				
@@ -164,12 +179,8 @@
 										<span class="sku_values">{{ style.physical_stock }}</span>
 									</div>
 								
-									<div class="col-lg-3 col-md-3 col-sm-3 col-xs-3 modify-qty">
-										<div class="pull-right">
-											<i class="fa fa-minus" align="center" ng-click="Style.change_cart_quantity(style, false)"></i>
-	                    <input class="form-control ng-pristine ng-valid valid" name="quantity" ng-model="style.quantity" ng-blur="Style.change_amount(style)" aria-invalid="false">
-	                    <i class="fa fa-plus" ng-click="Style.change_cart_quantity(style, true)"></i>
-										</div>
+									<div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
+										<button class="btn btn-sm btn-danger pull-right" ng-click="Style.add_to_cart(style)">Add to cart</button>
 									</div>
 								</div>
 							</div>
@@ -218,32 +229,36 @@
 				<div class="row" ng-if="!Style.price_details_flag">
 					<div class="col-md-12 col-sm-12 col-xs-12">
             <div class="row">
-              <div class="col-md-3 col-xs-3 no-padding">
+              <div class="col-md-2 col-xs-2 no-padding">
                 <span class="pull-left"><b>SKU Code</b></span>
               </div>
-              <div class="col-md-4 col-xs-4 no-padding" title="Effective Landing Price">
+              <div class="col-md-2 col-xs-2" title="Effective Landing Price">
                 <center><b>Unit Price</b></center>
               </div>
               <div class="col-md-2 col-xs-2"><center><b>Quantity</b></center></div>
+              <div class="col-md-2 col-xs-2"><center><b>Tax Amount</b></center></div>
               <div class="col-md-3 col-sm-3 no-padding">
-                <span class="pull-right"><b>Amount</b></span>
+                <span class="pull-right"><b>Total Amount</b></span>
               </div>
+              <div class="col-md-1 col-xs-1"></div>
             </div>
           </div>
 				</div>
 				<div class="row" ng-if="!Style.price_details_flag">
 					<div class="col-md-12 col-sm-12 col-xs-12" ng-repeat="data in Style.model_data.selected_styles">
-	          <div class="row" ng-if="data.quantity && data.add_to_cart">
-	            <div class="col-md-3 col-xs-3 no-padding">
+	          <div class="row row_hover" ng-if="data.quantity && data.add_to_cart">
+	            <div class="col-md-2 col-xs-2">
 	              <span class="pull-left">{{data.wms_code}}</span>
 	            </div>
-	            <div class="col-md-4 col-xs-4 no-padding">
+	            <div class="col-md-2 col-xs-2 no-padding">
 	              <center>{{data.price | number : 2}}</center>
 	            </div>
 	            <div class="col-md-2 col-xs-2 no-padding"><center>{{data.quantity}}</center></div>
+	            <div class="col-md-2 col-xs-2 no-padding"><center>{{data.tax_amount | number:2}}</center></div>
 	            <div class="col-md-3 col-sm-3 no-padding">
 	              <span class="pull-right"><i class="fa fa-inr" aria-hidden="true"></i> {{data.total_amount | number : 2}}</span>
 	            </div>
+	            <div class="col-md-1 col-xs-1"><a ng-click="Style.remove_item(data.id)" title="Cancel '{{data.wms_code}}'"><i class="fa fa-trash text-danger del_icon"></i></a></div>
 	          </div>
 	          <div ng-if="$last"><hr></div>
 	        </div>

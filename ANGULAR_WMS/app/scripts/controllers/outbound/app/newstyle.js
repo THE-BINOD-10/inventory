@@ -170,6 +170,56 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
     return canceller.promise;
   }
 
+  vm.get_customer_cart_data = function() {
+    
+    // vm.place_order_loading = true; 
+    vm.service.apiCall("get_customer_cart_data/").then(function(data){
+
+      if(data.message) {
+
+        // angular.copy(data.data.data,vm.model_data.data);
+
+        // angular.forEach(data.data.data, function(sku){
+
+        //   vm.model_data.selected_styles[sku.id] = sku;
+        // });
+
+        vm.model_data.invoice_type = data.data.invoice_types[0]
+        if(data.data.data.length > 0) {
+          angular.forEach(data.data.data, function(sku){
+
+            sku['org_price'] = sku.price;
+            sku.quantity = Number(sku.quantity);
+            sku.invoice_amount = Number(sku.price) * sku.quantity;
+            sku.total_amount = ((sku.invoice_amount*sku.tax) / 100) + sku.invoice_amount;
+
+            vm.model_data.selected_styles[sku.sku_pk] = sku;
+            // vm.quantity_valid(sku);
+          });
+          // vm.corporates = data.data.reseller_corporates;
+          // var unique_skus = {};
+
+          // angular.forEach(vm.model_data.data, function(sku){
+
+          //   if(!unique_skus[sku.sku_id]) {
+
+          //     vm.update_sku_levels(vm.model_data.data, sku);
+          //     unique_skus[sku.sku_id] = true;
+          //   }
+          // });
+
+          // vm.data_status = true;
+          // vm.change_remarks();
+          vm.cal_total();
+        }
+        // vm.place_order_loading = false;
+      }
+      // vm.place_order_loading = false;
+    })
+  }
+
+  vm.get_customer_cart_data();
+
   vm.change_cart_quantity = function(data, stat) {
 
     if (stat) {
@@ -219,6 +269,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
     if (data.quantity == 0 || data.quantity == '' || !data.quantity) {
 
       Service.showNoty("You should select minimum one item");
+      if (vm.model_data.selected_styles[data.id]) {
+
+        data.quantity = 1;
+        vm.cal_total();
+      }
     } else {
 
       if (data.physical_stock) {
@@ -310,7 +365,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
     } else {
       record.tax = 0;
     }
-
+    record.tax_amount = (record.invoice_amount / 100) * record.tax;
     record.total_amount = ((record.invoice_amount * record.tax) / 100) + record.invoice_amount;
   }
 
@@ -324,7 +379,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
         vm.model_data.selected_styles[sku.id]['add_to_cart'] = true;
       }
 
-      vm.price_details_flag = false;
+      if (Object.keys(vm.model_data.selected_styles).length) {
+        vm.price_details_flag = false;
+      }
+
       if (!sku.tax) {
         sku.tax = 0;
       }
@@ -356,8 +414,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
     vm.service.apiCall('insert_customer_cart_data/?data='+send).then(function(data){
 
       if (data.message) {
-
-
 
         vm.service.showNoty("Succesfully Added to Cart");
       }
@@ -393,6 +449,46 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
           }
         }
     });
+  }
+
+  vm.update_sku_levels = function(){
+
+    angular.forEach(vm.filteredStyles, function(sku){
+
+      if (vm.model_data.selected_styles[sku.id]) {
+
+        sku.quantity = vm.model_data.selected_styles[sku.id].quantity;
+      } else {
+
+        sku.quantity = '';
+      }
+    });
+  }
+
+  vm.remove_item = function(id) {
+
+    var deleted_sku_id = vm.model_data.selected_styles[id].sku_id;
+    vm.delete_customer_cart_data(vm.model_data.selected_styles[id]); 
+    delete vm.model_data.selected_styles[id];
+
+    if (!(Object.keys(vm.model_data.selected_styles).length)) {
+
+      vm.price_details_flag = true;
+    }
+
+    if (vm.filteredStyles) {
+
+      vm.update_sku_levels();
+    }
+
+    vm.cal_total();
+  }
+
+  vm.delete_customer_cart_data = function(data) {
+
+    var send = {};
+    send[data.sku_id] = 0;
+    vm.service.apiCall("delete_customer_cart_data", "GET", send);
   }
 
   vm.resetOrderDetails = function(){

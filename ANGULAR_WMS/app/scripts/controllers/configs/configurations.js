@@ -302,7 +302,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       display: true
     },
     {
-      name: "Display Price in Styles page",
+      name: "Display Price in Customer Portal",
       model_name: "display_styles_price",
       param_no: 56,
       class_name: "fa fa-rupee",

@@ -19,6 +19,7 @@ angular.module('urbanApp', ['datatables'])
 
     vm.size_types = [];
     vm.warehouse_names = [];
+    vm.warehouse_value = ''
 
     //From and To Date
     var abc = new Date()
@@ -34,7 +35,7 @@ angular.module('urbanApp', ['datatables'])
     if(!Session.roles.permissions.add_networkmaster && !Session.roles.permissions.priceband_sync) {
       vm.g_data.level = "";
     }
-    vm.service.apiCall('warehouse_headers/?level='+vm.g_data.level+'&alternate_view='+Data.warehouse_toggle_value, 'GET').then(function(data){
+    vm.service.apiCall('warehouse_headers/?level='+vm.g_data.level+'&alternate_view='+Data.warehouse_toggle_value+'&warehouse_name='+vm.warehouse_value, 'GET').then(function(data){
       vm.size_types = data.data.size_types;
       vm.warehouse_names = data.data.warehouse_names;
 
@@ -135,11 +136,21 @@ angular.module('urbanApp', ['datatables'])
 
       vm.generate_warehouse_stock = function() {
         if (Data.warehouse_toggle_value) {
-          vm.service.apiCall('warehouse_headers/?level='+vm.g_data.level+'&alternate_view='+Data.warehouse_toggle_value, 'GET').then(function(data){
+          vm.service.apiCall('warehouse_headers/?level='+vm.g_data.level+'&alternate_view='+Data.warehouse_toggle_value+'&warehouse_name='+vm.warehouse_value, 'GET').then(function(data){
             var columns = data.data.table_headers;
             vm.dtColumns = vm.service.build_colums(columns);
             vm.dtInstance.DataTable.context[0].ajax.data = {'from_date': vm.from_date, 'to_date': vm.to_date, 'view_type': vm.g_data.view, 'alternate_view': vm.alternate_view_value, 'warehouse_name' : vm.warehouse_value, 'size_type_value' : vm.size_type_value, 'datatable' : 'WarehouseStockAlternative' }
             vm.service.refresh(vm.dtInstance);
+          })
+        }
+      }
+
+      vm.get_sizetypes_for_warehouses = function() {
+        if (Data.warehouse_toggle_value) {
+          vm.service.apiCall('warehouse_headers/?level='+vm.g_data.level+'&alternate_view='+Data.warehouse_toggle_value+'&warehouse_name='+vm.warehouse_value, 'GET').then(function(data) {
+            var columns = data.data.table_headers;
+            vm.size_types = data.data.size_types;
+            vm.size_type_value = vm.size_types[0];
           })
         }
       }

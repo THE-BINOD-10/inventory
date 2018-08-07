@@ -2793,12 +2793,13 @@ def get_order_approval_statuses(start_index, stop_index, temp_data, search_term,
         sku_code = data.sku.sku_code
         desc = data.sku.sku_desc
         price = data.unit_price
+        shipment_date = data.shipment_date.strftime('%d-%m-%Y') if data.shipment_date else ''
         temp_data['aaData'].append(
             OrderedDict((('user', data.customer_user.username), ('date', data.creation_date.strftime('%d-%m-%Y')),
                          ('status', data.approval_status), ('image', image), ('sku_code', sku_code),
                          ('desc', desc), ('price', price), ('tax', data.tax), ('quantity', data.quantity),
                          ('approve_id', data.approve_id), ('approving_user_role', data.approving_user_role),
-                         ('shipment_date',data.shipment_date)
+                         ('shipment_date',shipment_date)
                          )))
 @get_admin_user
 @csrf_exempt

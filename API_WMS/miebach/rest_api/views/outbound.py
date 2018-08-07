@@ -6868,6 +6868,7 @@ def get_customer_cart_data(request, user=""):
             json_record['mrp'] = sku_obj[0].mrp
             json_record['cost_price'] = sku_obj[0].cost_price
             json_record['sku_style'] = sku_obj[0].sku_class
+            json_record['sku_pk'] = sku_obj[0].id
             product_type = sku_obj[0].product_type
             price_field = get_price_field(user)
             is_sellingprice = False

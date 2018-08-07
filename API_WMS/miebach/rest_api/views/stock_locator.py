@@ -1272,6 +1272,7 @@ def warehouse_headers(request, user=''):
         user = get_admin(user)
     header = ["SKU Code", "SKU Brand", "SKU Description", "SKU Category"]
     if alternative_view == 'true':
+        header = ["SKU Class", "Style Name", "Brand", "SKU Category"]
         size_master_objs = SizeMaster.objects.filter(user=user.id)
         #size names
         size_names = size_master_objs.values_list('size_name', flat=True)
@@ -2099,3 +2100,107 @@ def get_sku_batches(request, user=''):
             sku_batch_details.setdefault("%s_%s" % (batch['batch_no'], str(int(batch['mrp']))), []).append(batch)
 
     return HttpResponse(json.dumps({"sku_batches": sku_batches, "sku_batch_details": sku_batch_details}))
+
+
+@csrf_exempt
+def get_alternative_warehouse_stock(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
+                                    filters={}, user_dict={}):
+    """ This function delivers the alternate view of warehouse stock page """
+    log.info(" ------------warehouse stock alternate view started ------------------")
+    size_type_value = request.POST.get('size_type_value', '')
+    warehouse_name = request.POST.get('warehouse_name', '')
+    from_date = request.POST.get('from_date', '')
+    to_date = request.POST.get('to_date', '')
+    is_excel = request.POST.get('excel', 'false')
+    st_time = datetime.datetime.now()
+    size_filter_params = {'user': user.id}
+    if not is_excel == 'true':
+        size_filter_params['size_name'] = size_type_value
+    size_master_objs = SizeMaster.objects.filter(**size_filter_params)
+
+    size_names = size_master_objs.values_list('size_name', flat=True)
+    lis = ['sku_class', 'style_name', 'sku_brand', 'sku_category']
+    all_dat = ['SKU Class', 'Style Name', 'Brand', 'SKU Category']
+    search_params = get_filtered_params(filters, lis)
+    sizes = []
+    if size_master_objs:
+        sizes = size_master_objs[0].size_value.split("<<>>")
+    all_dat.extend(sizes)
+    sort_col = all_dat[col_num]
+    log.info(sort_col)
+    log.info(sizes)
+    try:
+        sku_master_objs = SKUMaster.objects.filter(user=user.id, sku_size__in=sizes, **search_params). \
+                                            values('sku_class', 'style_name', 'sku_brand',
+                                            'sku_category').distinct()
+        if search_term:
+            sku_classes = sku_master_objs.filter(Q(sku_class__icontains=search_term) |
+                                                 Q(style_name__icontains=search_term) |
+                                                 Q(sku_brand__icontains=search_term) |
+                                                 Q(sku_category__icontains=search_term))
+
+        else:
+            sku_classes = sku_master_objs
+        sku_class_list = sku_classes.values_list('sku_class', flat=True)
+        stock_detail_vals = dict(StockDetail.objects.exclude(receipt_number=0).\
+                                                filter(sku__user=user.id, sku__sku_size__in=sizes,
+                                                        sku__sku_class__in=sku_class_list,
+                                                       quantity__gt=0).\
+                                                annotate(sku_class_size=Concat('sku__sku_class', Value('<<>>'),
+                                                        'sku__sku_size', output_field=CharField())).\
+                                                values_list('sku_class_size').distinct().\
+                                                annotate(total_sum=Sum('quantity')))
+        order_detail_objs = OrderDetail.objects.filter(user=user.id, quantity__gt=0).\
+                                 exclude(status__in=[3,5])
+        order_detail_vals = dict(order_detail_objs.filter(sku__sku_size__in=sizes,
+                                                        sku__sku_class__in=sku_class_list).\
+                                                annotate(sku_class_size=Concat('sku__sku_class', Value('<<>>'),
+                                                        'sku__sku_size', output_field=CharField())).\
+                                                values_list('sku_class_size').distinct().\
+                                                annotate(total_sum=Sum('quantity')))
+        temp_data['recordsTotal'] = sku_classes.count()
+        temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+        all_data = []
+        for sku_class in sku_classes:
+            size_dict = {}
+            sales_dict = {}
+            total = 0
+            sale_total = 0
+            for size in sizes:
+                group_key = sku_class['sku_class'] + '<<>>' + size
+                quant = stock_detail_vals.get(group_key, 0)
+                total += quant
+                size_dict.update({size: quant})
+                order_qty = order_detail_vals.get(group_key, 0)
+                sales_dict.update({'%s - %s' % ('Sales', size): order_qty})
+                sale_total += order_qty
+
+            data = OrderedDict((('SKU Class', sku_class['sku_class']), ('Style Name', sku_class['style_name']),
+                                ('SKU Category', sku_class['sku_category']), ('Brand', sku_class['sku_brand']),
+                                ('Total', total)))
+
+            data.update(size_dict)
+            data.update(sales_dict)
+            data.update({'Sales - Total': sale_total})
+            all_data.append(data)
+
+        if order_term == 'asc':
+            data_list = sorted(all_data, key=itemgetter(sort_col))
+        else:
+            data_list = sorted(all_data, key=itemgetter(sort_col), reverse=True)
+
+        data_list = data_list[start_index: stop_index]
+
+        log.info(data_list)
+        temp_data['aaData'].extend(data_list)
+
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info(e)
+
+    end_time = datetime.datetime.now()
+    duration = end_time - st_time
+    log.info("total time -- %s" % (duration))
+    log.info("process completed")

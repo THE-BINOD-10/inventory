@@ -3956,13 +3956,13 @@ def validate_st(all_data, user):
                     other_status = "Quantity missing for " + val[0]
                 else:
                     other_status += ', ' + val[0]
-            try:
-                price = float(val[2])
-            except:
-                if not price_status:
-                    price_status = "Price missing for " + val[0]
-                else:
-                    price_status += ', ' + val[0]
+            # try:
+            #     price = float(val[2])
+            # except:
+            #     if not price_status:
+            #         price_status = "Price missing for " + val[0]
+            #     else:
+            #         price_status += ', ' + val[0]
             warehouse = User.objects.get(username=key)
             code = val[0]
             sku_code = SKUMaster.objects.filter(wms_code__iexact=val[0], user=warehouse.id)
@@ -3974,8 +3974,8 @@ def validate_st(all_data, user):
 
     if other_status:
         sku_status += ", " + other_status
-    if price_status:
-        sku_status += ", " + price_status
+    # if price_status:
+    #     sku_status += ", " + price_status
     if wh_status:
         sku_status += ", " + wh_status
 
@@ -3997,7 +3997,10 @@ def insert_st(all_data, user):
             stock_dict['warehouse_id'] = User.objects.get(username__iexact=key).id
             stock_dict['sku_id'] = SKUMaster.objects.get(wms_code=val[0], user=user.id).id
             stock_dict['order_quantity'] = float(val[1])
-            stock_dict['price'] = float(val[2])
+            if val[2]:
+                stock_dict['price'] = float(val[2])
+            else:
+                stock_dict['price'] = 0
             stock_transfer = OpenST(**stock_dict)
             stock_transfer.save()
             all_data[key][all_data[key].index(val)][3] = stock_transfer.id

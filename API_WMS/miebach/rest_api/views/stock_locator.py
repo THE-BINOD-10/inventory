@@ -2109,11 +2109,13 @@ def get_alternative_warehouse_stock(start_index, stop_index, temp_data, search_t
     log.info(" ------------warehouse stock alternate view started ------------------")
     size_type_value = request.POST.get('size_type_value', '')
     warehouse_name = request.POST.get('warehouse_name', '')
+    view_type = request.POST.get('view_type', '')
     from_date = request.POST.get('from_date', '')
     to_date = request.POST.get('to_date', '')
     is_excel = request.POST.get('excel', 'false')
     st_time = datetime.datetime.now()
-    size_filter_params = {'user': user.id}
+    warehouse = User.objects.get(username=warehouse_name)
+    size_filter_params = {'user': warehouse.id}
     if not is_excel == 'true':
         size_filter_params['size_name'] = size_type_value
     size_master_objs = SizeMaster.objects.filter(**size_filter_params)
@@ -2130,7 +2132,7 @@ def get_alternative_warehouse_stock(start_index, stop_index, temp_data, search_t
     log.info(sort_col)
     log.info(sizes)
     try:
-        sku_master_objs = SKUMaster.objects.filter(user=user.id, sku_size__in=sizes, **search_params). \
+        sku_master_objs = SKUMaster.objects.filter(user=warehouse.id, sku_size__in=sizes, **search_params). \
                                             values('sku_class', 'style_name', 'sku_brand',
                                             'sku_category').distinct()
         if search_term:
@@ -2142,15 +2144,34 @@ def get_alternative_warehouse_stock(start_index, stop_index, temp_data, search_t
         else:
             sku_classes = sku_master_objs
         sku_class_list = sku_classes.values_list('sku_class', flat=True)
-        stock_detail_vals = dict(StockDetail.objects.exclude(receipt_number=0).\
-                                                filter(sku__user=user.id, sku__sku_size__in=sizes,
+        stock_detail_vals = {}
+        pick_reserved_vals = {}
+        raw_reserved_vals = {}
+        if view_type in ['Available', 'Total']:
+            stock_detail_vals = dict(StockDetail.objects.exclude(receipt_number=0).\
+                                                filter(sku__user=warehouse.id, sku__sku_size__in=sizes,
                                                         sku__sku_class__in=sku_class_list,
                                                        quantity__gt=0).\
                                                 annotate(sku_class_size=Concat('sku__sku_class', Value('<<>>'),
                                                         'sku__sku_size', output_field=CharField())).\
                                                 values_list('sku_class_size').distinct().\
                                                 annotate(total_sum=Sum('quantity')))
-        order_detail_objs = OrderDetail.objects.filter(user=user.id, quantity__gt=0).\
+        if view_type in ['Reserved', 'Available']:
+            pick_reserved_vals = dict(PicklistLocation.objects.filter(status=1, stock__sku__user=warehouse.id,
+                                                                      stock__sku__sku_size__in=sizes,
+                                                                      stock__sku__sku_class__in=sku_class_list). \
+                                      annotate(sku_class_size=Concat('stock__sku__sku_class', Value('<<>>'),
+                                                                'stock__sku__sku_size', output_field=CharField())). \
+                                      values_list('sku_class_size').distinct().\
+                                      annotate(reserved=Sum('reserved')))
+            raw_reserved_vals = dict(RMLocation.objects.filter(status=1, stock__sku__user=warehouse.id,
+                                                               stock__sku__sku_size__in=sizes,
+                                                               stock__sku__sku_class__in=sku_class_list). \
+                                     annotate(sku_class_size=Concat('stock__sku__sku_class', Value('<<>>'),
+                                                                    'stock__sku__sku_size', output_field=CharField())).\
+                                     values_list('sku_class_size').distinct(). \
+                                     annotate(reserved=Sum('reserved')))
+        order_detail_objs = OrderDetail.objects.filter(user=warehouse.id, quantity__gt=0).\
                                  exclude(status__in=[3,5])
         order_detail_vals = dict(order_detail_objs.filter(sku__sku_size__in=sizes,
                                                         sku__sku_class__in=sku_class_list).\
@@ -2169,7 +2190,15 @@ def get_alternative_warehouse_stock(start_index, stop_index, temp_data, search_t
             sale_total = 0
             for size in sizes:
                 group_key = sku_class['sku_class'] + '<<>>' + size
+                reserved = pick_reserved_vals.get(group_key, 0)
+                reserved += raw_reserved_vals.get(group_key, 0)
                 quant = stock_detail_vals.get(group_key, 0)
+                if view_type == 'Available':
+                    quant = quant - reserved
+                    if quant < 0:
+                        quant = 0
+                elif view_type == 'Reserved':
+                    quant = reserved
                 total += quant
                 size_dict.update({size: quant})
                 order_qty = order_detail_vals.get(group_key, 0)

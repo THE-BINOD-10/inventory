@@ -2181,7 +2181,6 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                     order_id = data.order.original_order_id
                     if not order_id:
                         order_id = str(data.order.order_code) + str(data.order.order_id)
-
                     temp_data['aaData'].append(OrderedDict((('Order ID', order_id), ('WMS Code', data.stock.sku.wms_code),
                                                             ('Description', data.stock.sku.sku_desc),
                                                             ('Location', pick_loc.stock.location.location),
@@ -2205,7 +2204,6 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                         ('Customer Name', data.order.customer_name),
                                                         ('Serial Number', serial_number),
                                                         ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])))))
-
     return temp_data
 
 

@@ -865,6 +865,9 @@ def excel_reports(request, user=''):
     params = [search_params, user, request.user]
     if 'datatable=serialView' in form_data:
         params.append(True)
+    if 'datatable=customerView' in form_data:
+        params.append(False)
+        params.append(True)
     report_data = func_name(*params)
     if isinstance(report_data, tuple):
         report_data = report_data[0]
@@ -872,6 +875,9 @@ def excel_reports(request, user=''):
             report_data['aaData']) > 0:
         headers = report_data['aaData'][0].keys()
         file_type = 'csv'
+    if temp[1] in ['dispatch_summary'] and len(report_data['aaData']) > 0:
+        headers = report_data['aaData'][0].keys()
+        file_type = 'xls'
     excel_data = print_excel(request, report_data, headers, excel_name, file_type=file_type)
     return excel_data
 

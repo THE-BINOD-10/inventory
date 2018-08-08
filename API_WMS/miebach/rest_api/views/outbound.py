@@ -2818,7 +2818,7 @@ def after_admin_approval(request, user=''):
     shipment_date = request.POST.get('shipment_date','')
     order_summary = create_orders_data(request, user='')
     order_id = get_order_id(user.id)
-    shipment_date = datetime.datetime.strptime(shipment_date, "%m/%d/%Y")
+    shipment_date = datetime.datetime.strptime(shipment_date, "%m/%d/%Y") if shipment_date else ''
     approve_status = ApprovingOrders.objects.filter(user_id=user.id, approve_id=approve_id, approval_status='accept',sku__sku_code = sku_code)
     if shipment_date:
         approve_status.update(shipment_date =shipment_date)
@@ -6869,6 +6869,7 @@ def get_customer_cart_data(request, user=""):
             json_record['cost_price'] = sku_obj[0].cost_price
             json_record['sku_style'] = sku_obj[0].sku_class
             json_record['sku_pk'] = sku_obj[0].id
+            json_record['add_to_cart'] = 'true'
             product_type = sku_obj[0].product_type
             price_field = get_price_field(user)
             is_sellingprice = False

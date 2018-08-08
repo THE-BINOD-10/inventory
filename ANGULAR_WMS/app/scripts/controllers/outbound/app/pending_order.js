@@ -47,18 +47,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 			//DTColumnBuilder.newColumn('remarks').withTitle('Remarks').notVisible(),
 			DTColumnBuilder.newColumn('status').withTitle('Status').renderWith(function(data, type, full, meta) {
               var status_name = '';
-				console.log(vm.user_role);
-                if (data == 'accept' && full.approving_user_role == 'hod') {
+		console.log(vm.user_role);
+		if(full.approve_id == '10010'){
+		debugger;}
+                if (data == 'accept' && full.approving_user_role.toLowerCase() == 'hod') {
                     status_name = "Pending - To be approved by ADMIN";
-					if (vm.user_role == 'user') {
+		    if (vm.user_role.toLowerCase() == 'user') {
                       vm.show_quantity = true;
-                    } else if (vm.user_role == 'hod') {
+                    } else if (vm.user_role.toLowerCase() == 'hod') {
                       vm.show_quantity = true;
-                    } else if (vm.user_role == 'admin') {
+                    } else if (vm.user_role.toLowerCase() == 'admin') {
                       vm.show_quantity = false;
                     }
                 } else if (data == 'accept' && full.approving_user_role == 'admin') {
-                    status_name = "Accepted by Admin";
+                    status_name = "Accepted by ADMIN";
                     vm.show_quantity = true;
                 } else if (data == 'pending' && full.approving_user_role == 'hod') {
                     status_name = "Pending - To be approved by "+ full.approving_user_role.toUpperCase();

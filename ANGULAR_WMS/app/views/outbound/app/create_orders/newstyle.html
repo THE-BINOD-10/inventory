@@ -181,7 +181,7 @@
 									</div>
 								
 									<div class="col-lg-{{Style.add_to_cart}} col-md-{{Style.add_to_cart}} col-sm-{{Style.add_to_cart}} col-xs-{{Style.add_to_cart}}">
-										<button class="btn btn-sm btn-danger pull-right" ng-disabled="style.add_to_cart" ng-click="Style.add_to_cart(style)">Add to cart</button>
+										<button class="btn btn-sm btn-danger pull-right" ng-click="Style.add_to_cart(style)">Add to cart</button>
 									</div>
 								</div>
 							</div>
@@ -246,7 +246,7 @@
           </div>
 				</div>
 				<div class="row" ng-if="!Style.price_details_flag">
-					<div class="col-md-12 col-sm-12 col-xs-12" ng-repeat="data in Style.model_data.cart_data">
+					<div class="col-md-12 col-sm-12 col-xs-12" ng-repeat="data in Style.model_data.selected_styles">
 	          <div class="row row_hover" ng-if="data.quantity && data.add_to_cart">
 	            <div class="col-md-{{Style.p_d_sku_code}} col-xs-{{Style.p_d_sku_code}}">
 	              <span class="pull-left">{{data.wms_code}}</span>

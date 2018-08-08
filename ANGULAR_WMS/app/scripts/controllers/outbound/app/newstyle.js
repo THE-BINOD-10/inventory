@@ -16,7 +16,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
   vm.show_no_data = false;
   vm.display_styles_price = Session.roles.permissions.display_styles_price;
   // vm.display_styles_price = true;
-  vm.model_data = {'selected_styles':{},'cart_data':[], 'data':[]};
+  vm.model_data = {'selected_styles':{}};
 
   if (vm.display_styles_price) {
     vm.sku_list_stock = '2';
@@ -173,7 +173,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
 
   vm.change_cart_quantity = function(data, stat) {
 
-    vm.exe_cart_data = false;
+    if (!vm.model_data.selected_styles[data.id]) {
+      data.add_to_cart = false;
+    }
+
     if (stat) {
       
       if (data.quantity) {
@@ -216,7 +219,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
 
   vm.change_amount = function(data) {
 
-    vm.exe_cart_data = false;
+    if (!vm.model_data.selected_styles[data.id]) {
+      data.add_to_cart = false;
+    }
+
     if (data.quantity == 0 || data.quantity == '' || !data.quantity) {
 
       Service.showNoty("You should select minimum one item");
@@ -277,30 +283,26 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
         vm.final_data.total_quantity += Number(record.quantity);
         vm.final_data.amount += Number(record.invoice_amount);
 
-        if(vm.exe_cart_data) {
-          record['add_to_cart'] = true;
-        }
-
-        if(vm.pushCartData(record)){
-          vm.model_data.cart_data[vm.pushedIndex] = record;
-        } else{
-          vm.model_data.cart_data.push(record);
-        }
+        // if(vm.pushCartData(record)){
+        //   vm.model_data.cart_data[vm.pushedIndex] = record;
+        // } else{
+        //   vm.model_data.cart_data.push(record);
+        // }
       })
       vm.final_data.tax_amount = vm.final_data.total_amount - vm.final_data.amount;
   };
 
-  vm.pushCartData = function(sku){
-    var flag = false;
-    for (var i = 0; i < vm.model_data.cart_data.length; i++) {
+  // vm.pushCartData = function(sku){
+  //   var flag = false;
+  //   for (var i = 0; i < vm.model_data.cart_data.length; i++) {
       
-      if (vm.model_data.cart_data[i].id == sku.id) {
-        flag = true;
-        vm.pushedIndex = i;
-      }
-    }
-    return flag;
-  }
+  //     if (vm.model_data.cart_data[i].id == sku.id) {
+  //       flag = true;
+  //       vm.pushedIndex = i;
+  //     }
+  //   }
+  //   return flag;
+  // }
 
   vm.priceRangesCheck = function(record, quantity){
 
@@ -348,11 +350,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
 
     if(sku.quantity) {
 
-      if (vm.model_data.selected_styles[sku.id]) {
-
-        vm.model_data.selected_styles[sku.id]['add_to_cart'] = true;
-      }
-
       if (Object.keys(vm.model_data.selected_styles).length) {
         vm.price_details_flag = false;
       }
@@ -366,7 +363,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
       var temp = {sku_id: sku.sku_id, quantity: Number(sku.quantity), invoice_amount: Number(sku.invoice_amount), price: sku.price, tax: sku.tax, image_url: sku.image_url, level: 0, overall_sku_total_quantity: sku.overall_sku_total_quantity}
       temp['total_amount'] = ((temp.invoice_amount / 100) * temp.tax) + temp.invoice_amount;
 
-      vm.insert_customer_cart_data([temp]);
+      vm.insert_customer_cart_data([temp], sku);
+
+      if (vm.model_data.selected_styles[sku.id]) {
+
+        vm.model_data.selected_styles[sku.id]['add_to_cart'] = true;
+      }
     } else {
 
       if (vm.model_data.selected_styles[sku.id]) {
@@ -378,20 +380,19 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
     }
   }
 
-  vm.insert_customer_cart_data = function(send){
+  vm.insert_customer_cart_data = function(send, sku){
 
     var send = JSON.stringify(send);
-    // vm.place_order_loading = true;
-    
-    vm.service.apiCall('insert_customer_cart_data/?data='+send).then(function(data){
+    if (!(sku.add_to_cart)) {
 
-      if (data.message) {
+      vm.service.apiCall('insert_customer_cart_data/?data='+send).then(function(data){
 
-        vm.service.showNoty("Succesfully Added to Cart");
-      }
-    });
+        if (data.message) {
 
-    // vm.place_order_loading = true;
+          vm.service.showNoty("Succesfully Added to Cart");
+        }
+      });
+    }
   };
 
   vm.update_cartdata_for_approval = function() {
@@ -423,7 +424,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
     });
   }
 
-  vm.exe_cart_data = false;
+  // vm.exe_cart_data = false;
 
   vm.get_customer_cart_data = function() {
 
@@ -442,7 +443,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
               sku.wms_code = sku.sku_id;
               sku.tax_amount = (sku.invoice_amount / 100) * sku.tax;
               sku.id = sku.sku_pk;
-              vm.exe_cart_data = true;
+              // vm.exe_cart_data = true;
               vm.add_to_price_details(sku);
             });
 
@@ -467,7 +468,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
       if (vm.model_data.selected_styles[sku.id]) {
 
         sku.quantity = vm.model_data.selected_styles[sku.id].quantity;
-        vm.model_data.selected_styles[sku.id] = sku;
+
+        if (vm.model_data.selected_styles[sku.id].add_to_cart) {
+          sku.add_to_cart = vm.model_data.selected_styles[sku.id].add_to_cart;
+        }
+        // vm.model_data.selected_styles[sku.id] = sku;
       } else {
 
         sku.quantity = '';
@@ -480,9 +485,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
     // var deleted_sku_id = vm.model_data.selected_styles[data.id].sku_id;
     vm.delete_customer_cart_data(vm.model_data.selected_styles[data.id]);
     delete vm.model_data.selected_styles[data.id];
-    vm.model_data.cart_data.splice(index,1);
-    // if (!(Object.keys(vm.model_data.selected_styles).length)) {
-    if (!vm.model_data.cart_data.length) {
+    // vm.model_data.cart_data.splice(index,1);
+    if (!(Object.keys(vm.model_data.selected_styles).length)) {
+    // if (!vm.model_data.cart_data.length) {
 
       vm.price_details_flag = true;
     }

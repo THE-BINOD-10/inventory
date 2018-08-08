@@ -125,12 +125,13 @@
   	<div class="col-md-10 col-sm-10 col-xs-2">
       <div class="menu-left">
         <ul id="drop-nav">
-			<li ng-repeat="list in Style.main_menus"><a ng-click="Style.get_styles(list)">{{ list }}</a>
-				<!-- <ul ng-if="Style.sub_menus">
-			      <li ng-repeat="sub_list in Style.sub_menus"><a href="#">{{sub_list}}</a></li>
-			    </ul> -->
-		  	</li>
-		</ul>
+					<li><a ng-click="Style.get_styles('')">All</a></li>
+					<li ng-repeat="list in Style.main_menus"><a ng-click="Style.get_styles(list)">{{ list }}</a>
+						<!-- <ul ng-if="Style.sub_menus">
+					      <li ng-repeat="sub_list in Style.sub_menus"><a href="#">{{sub_list}}</a></li>
+					    </ul> -->
+				  	</li>
+				</ul>
       </div>
     </div>
   </div>
@@ -220,12 +221,15 @@
 		  	</div>
 		  </div>
 		</div>
-		<div class="col-lg-4 col-md-4 visible-md visible-lg mt10">
+		<div class="col-lg-4 col-md-4 visible-md visible-lg">
 			<div class="card" style="padding: 10px">
 				<div class="col-md-12 col-sm-12 col-xs-12">
           <h5><b>PRICE DETAILS</b></h5><hr>
         </div>
-        <span ng-if="Style.price_details_flag">Nothing added to your cart...</span>
+        <div class="row col-md-12 col-sm-12 col-xs-12 opacity" ng-if="Style.cart_data_loading">
+		      <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 160px;">
+		    </div>
+        <span ng-if="Style.price_details_flag && !(Style.cart_data_loading)">Nothing added to your cart...</span>
 				<div class="row" ng-if="!Style.price_details_flag">
 					<div class="col-md-12 col-sm-12 col-xs-12">
             <div class="row">
@@ -245,7 +249,7 @@
           </div>
 				</div>
 				<div class="row" ng-if="!Style.price_details_flag">
-					<div class="col-md-12 col-sm-12 col-xs-12" ng-repeat="data in Style.model_data.cart_data">
+					<div class="col-md-12 col-sm-12 col-xs-12" ng-repeat="data in Style.model_data.selected_styles">
 	          <div class="row row_hover" ng-if="data.quantity && data.add_to_cart">
 	            <div class="col-md-{{Style.p_d_sku_code}} col-xs-{{Style.p_d_sku_code}}">
 	              <span class="pull-left">{{data.wms_code}}</span>

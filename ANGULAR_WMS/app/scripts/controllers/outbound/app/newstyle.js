@@ -173,6 +173,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
 
   vm.change_cart_quantity = function(data, stat) {
 
+    vm.exe_cart_data = false;
     if (stat) {
       
       if (data.quantity) {
@@ -215,6 +216,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
 
   vm.change_amount = function(data) {
 
+    vm.exe_cart_data = false;
     if (data.quantity == 0 || data.quantity == '' || !data.quantity) {
 
       Service.showNoty("You should select minimum one item");
@@ -240,7 +242,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
   vm.cal_customer_cart_data = function(data){
 
     if (vm.model_data.selected_styles[data.id]) {
-
       vm.model_data.selected_styles[data.id].quantity = data.quantity;
       vm.cal_total();
     }
@@ -275,7 +276,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
         vm.final_data.total_amount += Number(record.total_amount);
         vm.final_data.total_quantity += Number(record.quantity);
         vm.final_data.amount += Number(record.invoice_amount);
-        record.add_to_cart = true;
+
+        if(vm.exe_cart_data) {
+          record['add_to_cart'] = true;
+        }
+
         if(vm.pushCartData(record)){
           vm.model_data.cart_data[vm.pushedIndex] = record;
         } else{
@@ -355,7 +360,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
       if (!sku.tax) {
         sku.tax = 0;
       }
-      // sku['overall_sku_total_quantity'] = sku.physical_stock;
 
       sku['sku_id'] = sku.wms_code;
       sku.invoice_amount = Number(sku.price) * sku.quantity;
@@ -419,6 +423,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
     });
   }
 
+  vm.exe_cart_data = false;
+
   vm.get_customer_cart_data = function() {
     
     // vm.place_order_loading = true;
@@ -445,6 +451,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
 
               // vm.model_data.selected_styles[sku.id] = sku;
               // vm.change_amount(sku);
+              vm.exe_cart_data = true;
               vm.add_to_price_details(sku);
             });
 
@@ -454,7 +461,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
               vm.price_details_flag = false;
             }
 
-            vm.cal_total();
+            // vm.cal_total();
             // console.log(vm.model_data.selected_styles);
           }
           // vm.place_order_loading = false;
@@ -466,13 +473,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
 
   vm.update_sku_levels = function(){
 
-    // angular.forEach(vm.filteredStyles, function(sku){
-      angular.forEach(vm.pagenation_data, function(sku){
+    angular.forEach(vm.pagenation_data, function(sku){
 
       if (vm.model_data.selected_styles[sku.id]) {
 
         sku.quantity = vm.model_data.selected_styles[sku.id].quantity;
-        // vm.model_data.selected_styles[sku.id]['$$hashKey'] = sku['$$hashKey'];
         vm.model_data.selected_styles[sku.id] = sku;
       } else {
 
@@ -481,13 +486,14 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
     });
   }
 
-  vm.remove_item = function(id) {
+  vm.remove_item = function(data, index) {
 
-    var deleted_sku_id = vm.model_data.selected_styles[id].sku_id;
-    vm.delete_customer_cart_data(vm.model_data.selected_styles[id]); 
-    delete vm.model_data.selected_styles[id];
-
-    if (!(Object.keys(vm.model_data.selected_styles).length)) {
+    // var deleted_sku_id = vm.model_data.selected_styles[data.id].sku_id;
+    vm.delete_customer_cart_data(vm.model_data.selected_styles[data.id]);
+    delete vm.model_data.selected_styles[data.id];
+    vm.model_data.cart_data.splice(index,1);
+    // if (!(Object.keys(vm.model_data.selected_styles).length)) {
+    if (!vm.model_data.cart_data.length) {
 
       vm.price_details_flag = true;
     }
@@ -503,7 +509,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
   vm.delete_customer_cart_data = function(data) {
 
     var send = {};
-    send[data.sku_id] = 0;
+    send[data.wms_code] = 0;
     vm.service.apiCall("delete_customer_cart_data", "GET", send);
   }
 

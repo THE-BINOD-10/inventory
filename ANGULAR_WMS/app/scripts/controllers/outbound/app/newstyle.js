@@ -32,6 +32,26 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
     vm.p_d_delete = '4';
   }
 
+
+  $rootScope.countWatchers = function () {
+      var q = [$rootScope], watchers = 0, scope;
+      while (q.length > 0) {
+          scope = q.pop();
+          if (scope.$$watchers) {
+              watchers += scope.$$watchers.length;
+          }
+          if (scope.$$childHead) {
+              q.push(scope.$$childHead);
+          }
+          if (scope.$$nextSibling) {
+              q.push(scope.$$nextSibling);
+          }
+      }
+      console.log('watchers print');
+      window.console.log(watchers);
+  };
+
+
   vm.brand, vm.sub_category, vm.category, vm.style, vm.color, vm.fromPrice, vm.toPrice, vm.quantity, vm.delivery_date, 
   vm.hot_release = '';
   vm.marginData = {margin_type: '', margin: 0, margin_percentage: 0, margin_value: 0, is_margin_percentage: true, sale_through: vm.order_type_value};
@@ -255,7 +275,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
         vm.final_data.total_amount += Number(record.total_amount);
         vm.final_data.total_quantity += Number(record.quantity);
         vm.final_data.amount += Number(record.invoice_amount);
-
+        record.add_to_cart = true;
         if(vm.pushCartData(record)){
           vm.model_data.cart_data[vm.pushedIndex] = record;
         } else{
@@ -263,9 +283,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
         }
       })
       vm.final_data.tax_amount = vm.final_data.total_amount - vm.final_data.amount;
-      $scope.$apply(function(){
-        console.log(vm.model_data.cart_data);
-      });
   };
 
   vm.pushCartData = function(sku){

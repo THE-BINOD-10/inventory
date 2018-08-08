@@ -4379,7 +4379,7 @@ def order_cancel_functionality(order_det_ids):
                     picklist.delete()
                 elif picklist.stock:
                     cancel_location = CancelledLocation.objects.filter(picklist_id=picklist.id,
-                                                                       picklist__order__user=user.id)
+                                                                       picklist__order_id=order_det.id)
                     if not cancel_location:
                         CancelledLocation.objects.create(picklist_id=picklist.id,
                                                          quantity=picklist.picked_quantity,

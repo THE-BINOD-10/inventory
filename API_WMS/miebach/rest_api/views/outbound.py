@@ -3443,7 +3443,7 @@ def create_order_from_intermediate_order(request, user):
                 interm_obj.order.shipment_date = shipment_date
             interm_obj.save()
 
-            return HttpResponse('Order Already Created')
+            return HttpResponse('Success, Order Already Created')
         order_dict['user'] = wh_id
         sku_id = get_syncedusers_mapped_sku(wh=wh_id, sku_id=interm_obj.sku.id)
         order_dict['sku_id'] = sku_id

@@ -2260,7 +2260,7 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
                      challan_number='', challan_date=None, dc_level_grn=''):
     if not receipt_id:
         return
-    seller_pos = SellerPO.objects.filter(seller__user=user.id, open_po_id=data.open_po_id, status=1)
+    seller_pos = SellerPO.objects.filter(seller__user=user.id, open_po_id=data.open_po_id)
     seller_received_list = []
     #invoice_number = int(invoice_number)
     if not invoice_date and not dc_level_grn:

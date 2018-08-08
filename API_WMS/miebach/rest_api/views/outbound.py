@@ -2849,6 +2849,7 @@ def after_admin_approval(request, user=''):
 @get_admin_user
 def update_orders_for_approval(request, user=''):
     message = 'success'
+    items, mail_ids = [], []
     cart_data = CustomerCartData.objects.filter(user_id=user.id, customer_user_id=request.user.id)
     if cart_data:
         try:
@@ -2866,9 +2867,22 @@ def update_orders_for_approval(request, user=''):
                                       }
                 if not ap_orders:
                     ApprovingOrders.objects.create(**approve_orders_map)
+                inv_amt = (cart_item.levelbase_price * cart_item.quantity) + cart_item.tax
+                items.append([cart_item.sku.sku_desc, cart_item.quantity, inv_amt])
         except:
             log.info('Update Orders Approval Failed')
         else:
+            #mail to HOD and Admin
+            mail_ids = CustomerMaster.objects.filter(user=user.id, role__in=['Admin', 'HOD'])\
+                                             .values_list('email_id', flat=True)
+            headers = ['Product Details', 'Ordered Quantity', 'Total']
+            data_dict = {'customer_name': request.user.username, 'items': items,
+                         'headers': headers}
+            t = loader.get_template('templates/customer_portal/order_for_approval.html')
+            rendered = t.render(data_dict)
+            if mail_ids:
+                send_mail(mail_ids, 'Order Approval Request, Customer: %s' % request.user.username, rendered)
+
             cart_data.delete()
     else:
         message = 'failure'
@@ -6982,6 +6996,7 @@ def insert_customer_cart_data(request, user=""):
     """ insert customer cart data """
 
     response = {'data': [], 'msg': 0}
+    items = []
     cart_data = request.GET.get('data', '')
 
     if cart_data:
@@ -7000,6 +7015,7 @@ def insert_customer_cart_data(request, user=""):
                 cart = cart[0]
                 cart.quantity = cart.quantity + record['quantity']
                 cart.save()
+
         response['data'] = "Inserted Successfully"
 
     return HttpResponse(json.dumps(response, cls=DjangoJSONEncoder))

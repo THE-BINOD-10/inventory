@@ -2117,7 +2117,7 @@ class ApprovingOrders(models.Model):
     
     class Meta:
         db_table = "APPROVING_ORDERS"
-        unique_together = ('user', 'customer_user', 'approve_id', 'approval_status', 'approving_user_role')
+        unique_together = ('user', 'customer_user', 'approve_id', 'approval_status', 'approving_user_role', 'sku')
 
     def json(self):
         invoice_amount = self.quantity * self.sku.price

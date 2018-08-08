@@ -113,6 +113,10 @@ $(document).ready(function(){
         <td>{{ record.category }}</td>
         <td>{{ record.zone }}</td>
         <td>{{ record.location }}</td>
+        {% if fmcg_industry_type %}
+          <td>{{ record.batchno }}</td>
+          <td>{{ record.mrp }}</td>
+        {% endif %}
         <td>{{ record.reserved_quantity }}</td>
         <td></td>
       </tr>

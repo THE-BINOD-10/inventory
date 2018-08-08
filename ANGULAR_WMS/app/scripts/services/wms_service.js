@@ -11,6 +11,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
     vm.searched_wms_code = "";
     vm.searched_sup_code = '';
     vm.is_came_from_raise_po = false;
+    vm.totals_tb_data = {};
 
     DTDefaultOptions.setLanguage({
     // ...
@@ -134,6 +135,13 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
               data: send.empty_data,
               xhrFields: {
                 withCredentials: true
+              },
+              complete: function(jqXHR, textStatus) {
+                vm.totals_tb_data = {};
+                $rootScope.$apply(function(){
+                  vm.tb_data = JSON.parse(jqXHR.responseText);
+                  vm.totals_tb_data = vm.tb_data.totals;
+                })
               }
            })
        .withDataProp('data')

@@ -150,7 +150,6 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
     #raw_reserved_quantities = map(lambda d: d['rm_reserved'], raw_res_instances)
     # temp_data['totalQuantity'] = sum([data[4] for data in master_data])
     for ind, data in enumerate(master_data[start_index:stop_index]):
-        print ind
         total_stock_value = 0
         reserved = 0
         # total = data[4] if len(data) > 4 else 0
@@ -1958,6 +1957,15 @@ def inventory_adj_modify_qty(request, user=''):
                         break
     return HttpResponse(json.dumps({'status': True, 'message':message}))
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def inventory_adj_reasons(request, user=''):
+    reasons = ''
+    reasons = get_misc_value(request.POST['key'],user.id)
+
+    return HttpResponse(json.dumps({"data": {'reasons': reasons.split(',')}}))
+
 
 def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                              filters):
@@ -1974,30 +1982,35 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
         del search_params['receipt_date__icontains']
     search_params['sku_id__in'] = sku_master_ids
 
+    stock_detail_objs = StockDetail.objects.select_related('sku', 'location', 'location__zone', 'pallet_detail',
+                                                           'batch_detail').prefetch_related('sku', 'location',
+                                                                                            'location__zone').\
+                                            exclude(receipt_number=0).filter(sku__user=user.id, quantity__gt=0,
+                                                                             **search_params)
     if search_term:
-        master_data = StockDetail.objects.exclude(receipt_number=0).filter(Q(receipt_number__icontains=search_term) |
-                                                                           Q(sku__wms_code__icontains=search_term) | Q(
-            quantity__icontains=search_term) |
-                                                                           Q(
-                                                                               location__zone__zone__icontains=search_term) | Q(
-            sku__sku_code__icontains=search_term) |
-                                                                           Q(sku__sku_desc__icontains=search_term) | Q(
-            location__location__icontains=search_term),
-                                                                           sku__user=user.id).filter(
-            **search_params).order_by(order_data)
+        master_data = stock_detail_objs.filter(Q(receipt_number__icontains=search_term) |
+                                                Q(sku__wms_code__icontains=search_term) |
+                                               Q(quantity__icontains=search_term) |
+                                                Q(location__zone__zone__icontains=search_term) |
+                                               Q(sku__sku_code__icontains=search_term) |
+                                               Q(sku__sku_desc__icontains=search_term) |
+                                               Q(location__location__icontains=search_term)).order_by(order_data)
 
     else:
-        master_data = StockDetail.objects.exclude(receipt_number=0).filter(sku__user=user.id, **search_params). \
-            order_by(order_data)
+        master_data = stock_detail_objs.order_by(order_data)
 
-    temp_data['recordsTotal'] = len(master_data)
-    temp_data['recordsFiltered'] = len(master_data)
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    counter = 1
+    pallet_switch = get_misc_value('pallet_switch', user.id)
     for data in master_data[start_index:stop_index]:
-        pallet_switch = get_misc_value('pallet_switch', user.id)
         _date = get_local_date(user, data.receipt_date, True)
         _date = _date.strftime("%d %b, %Y")
-        batch_no = data.batch_detail.batch_no if data.batch_detail else ''
-        mrp = data.batch_detail.mrp if data.batch_detail else ''
+        batch_no = ''
+        mrp = 0
+        if data.batch_detail:
+            batch_no = data.batch_detail.batch_no
+            mrp = data.batch_detail.mrp
         if pallet_switch == 'true':
             pallet_code = ''
             if data.pallet_detail:
@@ -2029,12 +2042,17 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
 @get_admin_user
 def get_sku_batches(request, user=''):
     sku_batches = defaultdict(list)
+    sku_batch_details = {}
     sku_code = request.GET.get('sku_code')
     sku_id = SKUMaster.objects.filter(user=user.id, sku_code=sku_code).only('id')
     if sku_id:
         sku_id = sku_id[0].id
-        batch_obj = BatchDetail.objects.filter(stockdetail__sku=sku_id).values('batch_no', 'mrp').distinct()
+        batch_obj = BatchDetail.objects.filter(stockdetail__sku=sku_id).values('batch_no', 'mrp', 'buy_price', 'manufactured_date', 'expiry_date', 'tax_percent', 'transact_type', 'transact_id').distinct()
         for batch in batch_obj:
             sku_batches[batch['batch_no']].append(batch['mrp'])
             sku_batches[batch['batch_no']] = list(set(sku_batches[batch['batch_no']]))
-    return HttpResponse(json.dumps({"sku_batches": sku_batches}))
+            batch['manufactured_date'] = str(batch['manufactured_date'])
+            batch['expiry_date'] = str(batch['expiry_date'])
+            sku_batch_details.setdefault("%s_%s" % (batch['batch_no'], str(int(batch['mrp']))), []).append(batch)
+
+    return HttpResponse(json.dumps({"sku_batches": sku_batches, "sku_batch_details": sku_batch_details}))

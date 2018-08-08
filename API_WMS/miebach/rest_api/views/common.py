@@ -1754,7 +1754,9 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
         all_stocks.update(quantity=0)
         location[0].filled_capacity = 0
         location[0].save()
-
+        if seller_master_id:
+            SellerStock.objects.filter(seller_id=seller_master_id,
+                                       stock_id__in=list(all_stocks.values_list('id', flat=True))).update(quantity=0)
     data_dict = copy.deepcopy(CYCLE_COUNT_FIELDS)
     data_dict['cycle'] = cycle_id
     data_dict['sku_id'] = sku_id

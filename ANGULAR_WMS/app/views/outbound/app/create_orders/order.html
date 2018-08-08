@@ -151,6 +151,11 @@ input[type="date"]:valid::before {
             <input name="corporate_po_number" class="form-control" type="hidden" value="{{Cart.model_data.po_number_header}}">
           </div>
         </div>
+        <div class="col-md-4" ng-if="showCase.user_type=='customer' && Cart.central_order_mgmt">
+          <div class="form-group">
+            <input name="client_name" class="form-control" type="hidden" value="{{Cart.model_data.client_name_header}}">
+          </div>
+        </div>
       </div>
     </div>
     <div class="form-group clearfix app_body" style="padding: 0px 10px;padding-top: 10px; margin-bottom: 40px;">
@@ -337,7 +342,7 @@ input[type="date"]:valid::before {
         <button type="button" class="btn btn-white btn-lg col-xs-{{ showCase.buttons_width}} cart_button" ng-click="$state.go('user.App.Products')" ng-show="permissions.user_type != 'reseller'">CONTINUE</button>
         <button type="button" id ="place_sample" class="btn btn-warning btn-lg col-xs-{{ showCase.buttons_width}}" ng-click="Cart.insert_order_data({'is_sample': true})" ng-show="permissions.create_order_po">PLACE SAMPLE</button>
         <button type="button" id ="place_central_order" class="btn btn-warning btn-lg col-xs-{{ showCase.buttons_width}}" ng-click="Cart.insert_order_data({'is_central_order': true})" ng-show="permissions.central_order_mgmt">PLACE CENTRAL ORDER</button>
-        <button type="button" id ="place_order" class="btn btn-success btn-lg col-xs-{{ showCase.buttons_width}}" ng-click="Cart.insert_order_data()" ng-show="permissions.central_order_mgmt == false">PLACE ORDER</button>
+        <button type="button" id ="place_order" class="btn btn-success btn-lg col-xs-{{ showCase.buttons_width}}" ng-click="Cart.insert_order_data()" ng-show="!permissions.central_order_mgmt">PLACE ORDER</button>
             <!--<button type="button" class="btn btn-warning btn-lg col-xs-12 hide" ng-if="Cart.model_data.data.length == 0" ng-click="Cart.catlog=false;Cart.details=true;Cart.detailed_list=false;Cart.orderspage=false">SHOP NOW</button>-->
 <!--          </div>-->
         <!--</div>-->

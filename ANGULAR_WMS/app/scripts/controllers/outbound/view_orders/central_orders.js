@@ -51,6 +51,7 @@ var vm = this;
         DTColumnBuilder.newColumn('SKU Desc').withTitle('SKU Desc'),
         DTColumnBuilder.newColumn('Product Quantity').withTitle('Product Quantity'),
         DTColumnBuilder.newColumn('Shipment Date').withTitle('Shipment Date'),
+        DTColumnBuilder.newColumn('Project Name').withTitle('Project Name'),
         DTColumnBuilder.newColumn('Warehouse').withTitle('Warehouse'),
         DTColumnBuilder.newColumn('Status').withTitle('Status')
     ];
@@ -91,6 +92,7 @@ var vm = this;
                   vm.model_data.data_id = resp_data.data_id;
                   vm.model_data.warehouse = resp_data.warehouse;
                   vm.model_data.shipment_date = resp_data.shipment_date;
+                  vm.model_data.project_name = resp_data.project_name;
                   $state.go('app.outbound.ViewOrders.CentralOrderDetails');
                 });
             });

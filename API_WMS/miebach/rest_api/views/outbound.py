@@ -3397,6 +3397,7 @@ def create_central_order(request, user):
     ship_date = request.POST.get('shipment_date', '')
     if not ship_date:
         return HttpResponse('Failed')
+    project_name = request.POST.get('client_name', '') #Corporates In SM is used as Projects for ISPRAVA
     ship_date = ship_date.split('/')
     shipment_date = datetime.date(int(ship_date[2]), int(ship_date[0]), int(ship_date[1]))
     cart_items = CustomerCartData.objects.filter(customer_user_id=customer_id)
@@ -3404,7 +3405,8 @@ def create_central_order(request, user):
         return HttpResponse('No Data in Cart')
     try:
         interm_order_map = {'user_id': user.id, 'interm_order_id': interm_order_id, 
-                            'customer_user_id': customer_id, 'shipment_date': shipment_date}
+                            'customer_user_id': customer_id, 'shipment_date': shipment_date,
+                            'project_name': project_name}
         for cart_item in cart_items:
             interm_order_map['quantity'] = cart_item.quantity
             interm_order_map['unit_price'] = cart_item.levelbase_price
@@ -6323,7 +6325,8 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
             OrderedDict((('Order ID', order_id), ('SKU Code', dat.sku.sku_code), ('SKU Desc', dat.sku.sku_desc),
                          ('Product Quantity', dat.quantity), ('data_id', dat.id),
                          ('Warehouse', wh_name), ('Status', status),
-                         ('id', index), ('DT_RowClass', 'results'), ('Shipment Date', shipment_date), )))
+                         ('id', index), ('DT_RowClass', 'results'), ('Shipment Date', shipment_date),
+                         ('Project Name', dat.project_name))))
         index += 1
 
     col_val = ['id', 'SKU Code', 'SKU Desc', 'Product Quantity', 'Status', 'Shipment Date']
@@ -6385,7 +6388,7 @@ def get_central_order_detail(request):
             'quantity': int(interm_obj.quantity), 'status': interm_obj.status,
             'warehouse': wh_name, 'data_id': interm_obj.id, 'shipment_date': shipment_date,
             'wh_level_stock_map': wh_level_stock_map, 'already_assigned': already_assigned,
-            'already_picked': already_picked}
+            'already_picked': already_picked, 'project_name': interm_obj.project_name}
     return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
 
 

@@ -35,6 +35,12 @@
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
+                <label class="control-label"> Project Name </label>
+                <input type="text" name="project_name" class="form-control" ng-model="showCase.model_data.project_name" maxlength="256" disabled>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
                 <label class="control-label"> Shipment Date </label>
                 <input ng-if="!showCase.model_data.already_picked" type="text" name="shipment_date" ui-jq="datepicker" class="form-control" ng-model="showCase.model_data.shipment_date" maxlength="256" data-date-today-highlight="true" required>
                 <input ng-if="showCase.model_data.already_picked" type="text" name="shipment_date" class="form-control" ng-model="showCase.model_data.shipment_date" maxlength="256" disabled>

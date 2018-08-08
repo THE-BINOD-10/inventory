@@ -48,8 +48,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 			DTColumnBuilder.newColumn('status').withTitle('Status').renderWith(function(data, type, full, meta) {
               var status_name = '';
 		console.log(vm.user_role);
-		if(full.approve_id == '10010'){
-		debugger;}
                 if (data == 'accept' && full.approving_user_role.toLowerCase() == 'hod') {
                     status_name = "Pending - To be approved by ADMIN";
 		    if (vm.user_role.toLowerCase() == 'user') {

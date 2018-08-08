@@ -15,7 +15,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
   vm.order_type_value = "offline";
   vm.show_no_data = false;
   vm.display_styles_price = Session.roles.permissions.display_styles_price;
-  vm.display_styles_price = true;
   vm.model_data = {'selected_styles':{}};
 
   if (vm.display_styles_price) {

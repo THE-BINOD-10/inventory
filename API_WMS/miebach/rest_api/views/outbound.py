@@ -2889,20 +2889,20 @@ def after_admin_approval(request, user=''):
     normal_user_mail_id = customer.values_list('email_id', flat=True)
     hod_mail_id = CustomerMaster.objects.filter(user=user.id, role='HOD')\
                                          .values_list('email_id', flat=True)
-   hod_headers = ['Product Details', 'Ordered Quantity', 'Total']
-   user_headres = ['Product Details', 'Ordered Quantity']
-   hod_data_dict = {'customer_name': customer_name, 'items': admin_items,
+    hod_headers = ['Product Details', 'Ordered Quantity', 'Total']
+    user_headres = ['Product Details', 'Ordered Quantity']
+    hod_data_dict = {'customer_name': customer_name, 'items': admin_items,
                     'headers': headers, 'role': 'Admin', 'status': approval_status}
-   user_data_dict = {'customer_name': customer_name, 'items': items,
+    user_data_dict = {'customer_name': customer_name, 'items': items,
                 'headers': headers, 'role': 'Normal Customer', 'status': approval_status}
-   t_admin = loader.get_template('templates/customer_portal/order_approved_hod.html')
-   rendered_admin = t_admin.render(hod_data_dict)
-   t_user = loader.get_template('templates/customer_portal/order_approved.html')
-   rendered_user = t_user.render(user_data_dict)
-   if hod_mail_id and approval_status == 'accept':
-       send_mail(hod_mail_id, 'Order Approved by Admin for Customer: %s' % customer_name, rendered_admin)
-   if normal_user_mail_id:
-       send_mail(normal_user_mail_id, 'Your Order status got changed', rendered_user)
+    t_admin = loader.get_template('templates/customer_portal/order_approved_hod.html')
+    rendered_admin = t_admin.render(hod_data_dict)
+    t_user = loader.get_template('templates/customer_portal/order_approved.html')
+    rendered_user = t_user.render(user_data_dict)
+    if hod_mail_id and approval_status == 'accept':
+        send_mail(hod_mail_id, 'Order Approved by Admin for Customer: %s' % customer_name, rendered_admin)
+    if normal_user_mail_id:
+        send_mail(normal_user_mail_id, 'Your Order status got changed', rendered_user)
 
 
 

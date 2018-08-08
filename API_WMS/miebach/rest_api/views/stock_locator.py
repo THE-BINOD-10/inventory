@@ -432,7 +432,6 @@ def get_quantity_data(user_groups, sku_codes_list):
                 available = 'No SKU'
                 reserved = 0
                 ret_list.append({'available': available, 'name': ware, 'transit': 0, 'reserved': reserved, 'user': user,
-                                 'name': ware,
                                  'sku_code': single_sku})
                 continue
             trans_quantity = 0
@@ -443,8 +442,7 @@ def get_quantity_data(user_groups, sku_codes_list):
             raw_reserved = raw_reserved_dict.get(single_sku, 0)
             available = quantity - pic_reserved
             ret_list.append({'available': available, 'name': ware, 'transit': trans_quantity, 'reserved': pic_reserved,
-                             'user': user,
-                             'name': ware, 'sku_code': single_sku})
+                             'user': user, 'sku_code': single_sku})
     return ret_list
 
 

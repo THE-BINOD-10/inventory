@@ -185,9 +185,9 @@ input[type="date"]:valid::before {
                   <span ng-if="data.del_date">(Sch.date: {{data.del_date}})</span>
                 </span>
               </h4>
-              <p align="left">{{data.sku_desc}}</p>
               <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>Description: {{data.sku_desc}}</b></h4>
               <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>Dimensions: {{ data.length }} X {{ data.breadth }} X {{ data.height }}</b></h4>
+              <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>Colour: {{data.colour}}</b></h4>
               <h4 align="left" ng-if="!(showCase.central_order_mgmt)" style="margin-bottom:0px;font-size: 14px;"><b>MRP: {{data.mrp}}</b></h4>
               <h4 ng-if="!(showCase.central_order_mgmt)" align="left" style="margin-bottom:0px;font-size: 14px;"><b>
                 <span class="mr20" ng-if="data.sgst_tax">SGST ({{data.sgst_tax}}%): {{(data.invoice_amount / 100 * data.sgst_tax) | number:2}}</span>
@@ -266,7 +266,7 @@ input[type="date"]:valid::before {
             </div>
           </div>
 
-          <div class="style col-md-12 col-sm-12 col-xs-12 cart-item" ng-if="Cart.final_data.total_quantity && Cart.model_data.data.length > 0">
+          <div class="style col-md-12 col-sm-12 col-xs-12 cart-item" ng-if="Cart.final_data.total_quantity && Cart.model_data.data.length > 0 && !(showCase.central_order_mgmt)">
             <div class="col-md-12 col-sm-12 col-xs-12">
               <h5><b>PRICE DETAILS</b></h5><hr>
             </div>

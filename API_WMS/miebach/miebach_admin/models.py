@@ -316,6 +316,7 @@ class IntermediateOrders(models.Model):
     customer_user = models.ForeignKey(User, related_name='customer', blank=True, null=True)
     order_assigned_wh = models.ForeignKey(User, related_name='warehouse', blank=True, null=True)
     interm_order_id = models.DecimalField(max_digits=50, decimal_places=0)
+    order = models.ForeignKey(OrderDetail, blank=True, null=True)
     sku = models.ForeignKey(SKUMaster)
     quantity = models.FloatField(default=1)
     unit_price = models.FloatField(default=0)

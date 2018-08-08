@@ -3435,6 +3435,15 @@ def create_order_from_intermediate_order(request, user):
         return HttpResponse('Failed')
     try:
         interm_obj = interm_qs[0]
+        if interm_obj.order_id or interm_obj.order_assigned_wh:
+            if status:
+                interm_obj.status = status
+            if shipment_date and status:
+                interm_obj.shipment_date = shipment_date
+                interm_obj.order.shipment_date = shipment_date
+            interm_obj.save()
+
+            return HttpResponse('Order Already Created')
         order_dict['user'] = wh_id
         sku_id = get_syncedusers_mapped_sku(wh=wh_id, sku_id=interm_obj.sku.id)
         order_dict['sku_id'] = sku_id
@@ -3456,6 +3465,8 @@ def create_order_from_intermediate_order(request, user):
         order_dict['status'] = 1
         ord_obj = OrderDetail(**order_dict)
         ord_obj.save()
+        interm_obj.order_id = ord_obj.id
+        interm_obj.save()
         cust_ord_dict = {'order_id': ord_obj.id, 'sgst_tax': interm_obj.sgst_tax, 'cgst_tax': interm_obj.cgst_tax,
                          'igst_tax': interm_obj.igst_tax}
         CustomerOrderSummary.objects.create(**cust_ord_dict)
@@ -6289,8 +6300,6 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
             wh_name = dat.order_assigned_wh.username
         else:
             wh_name = ''
-        # creation_date = dat.creation_date
-        # creation_date = get_local_date(request.user, creation_date, True).strftime("%d %b, %Y")
         shipment_date = dat.shipment_date.strftime("%m/%d/%Y")
         if dat.status:
             status = status_map.get(dat.status)
@@ -6316,16 +6325,44 @@ def get_central_order_detail(request):
     central_order_id = request.GET.get('central_order_id', '')
     interm_obj = IntermediateOrders.objects.filter(id=central_order_id)
     interm_obj = interm_obj[0]
+    order_id = interm_obj.order_id
+    already_assigned = False
     if interm_obj.order_assigned_wh:
         wh_name = interm_obj.order_assigned_wh.username
     else:
         wh_name = ''
+    if order_id or wh_name:
+        already_assigned = True
     shipment_date = interm_obj.shipment_date.strftime("%m/%d/%Y")
-    warehouses = UserGroups.objects.filter(admin_user_id=interm_obj.user).values_list('user__username', flat=True)
-    resp = {'warehouses': list(warehouses), 'interm_order_id': interm_obj.interm_order_id,
+    warehouses = UserGroups.objects.filter(admin_user_id=interm_obj.user)
+    warehouse_names = warehouses.values_list('user__username', flat=True)
+    wh_level_stock_map = {}
+    for wh in warehouses:
+        stock_obj = StockDetail.objects.filter(sku__sku_code=interm_obj.sku.sku_code, sku__user=wh.user.id,
+                                               quantity__gt=0).values('sku_id').distinct().annotate(
+            in_stock=Sum('quantity'))
+        if stock_obj:
+            stock_qty = stock_obj[0]['in_stock']
+        else:
+            stock_qty = 0
+        reserved_obj = PicklistLocation.objects.filter(stock__sku__sku_code=interm_obj.sku.sku_code,
+                                                       stock__sku__user=wh.user.id, status=1).values(
+            'stock__sku_id').distinct().annotate(in_reserved=Sum('reserved'))
+        if reserved_obj:
+            reserved_qty = reserved_obj[0]['in_reserved']
+        else:
+            reserved_qty = 0
+        avail_stock = stock_qty - reserved_qty
+        wh_uname = wh.user.username
+        if wh_uname not in wh_level_stock_map:
+            wh_level_stock_map[wh_uname] = avail_stock
+        else:
+            wh_level_stock_map[wh_uname] += avail_stock
+    resp = {'warehouses': list(warehouse_names), 'interm_order_id': interm_obj.interm_order_id,
             'sku_code': interm_obj.sku.sku_code, 'sku_desc': interm_obj.sku.sku_desc,
             'quantity': int(interm_obj.quantity), 'status': interm_obj.status,
-            'warehouse': wh_name, 'data_id': interm_obj.id, 'shipment_date': shipment_date}
+            'warehouse': wh_name, 'data_id': interm_obj.id, 'shipment_date': shipment_date,
+            'wh_level_stock_map': wh_level_stock_map, 'already_assigned': already_assigned}
     return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
 
 
@@ -7303,6 +7340,8 @@ def get_customer_cart_data(request, user=""):
             json_record['mrp'] = sku_obj[0].mrp
             json_record['cost_price'] = sku_obj[0].cost_price
             json_record['sku_style'] = sku_obj[0].sku_class
+            json_record['sku_desc'] = sku_obj[0].sku_desc
+            json_record['colour'] = sku_obj[0].color
             product_type = sku_obj[0].product_type
             price_field = get_price_field(user)
             is_sellingprice = False

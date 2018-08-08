@@ -50,9 +50,10 @@
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Warehouses </label>
-                <select class="form-control" name="warehouse" ng-model="showCase.model_data.warehouse"
-                        ng-init="showCase.model_data.warehouse" ng-options="wh_id for wh_id in showCase.model_data.warehouses"
+                <select ng-if="!showCase.model_data.already_assigned" class="form-control" name="warehouse" ng-model="showCase.model_data.warehouse"
+                        ng-options="wh_id as wh_id + '(' + wh_stock + ')' for (wh_id, wh_stock) in showCase.model_data.wh_level_stock_map"
                         ng-selected="type == showCase.model_data.warehouse"></select>
+                <p ng-if="showCase.model_data.already_assigned">{{showCase.model_data.warehouse}}</p>
               </div>
             </div>
         </div>

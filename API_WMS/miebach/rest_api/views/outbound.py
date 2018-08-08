@@ -6345,8 +6345,16 @@ def get_central_order_detail(request):
         wh_name = interm_obj.order_assigned_wh.username
     else:
         wh_name = ''
+    picked_qty = 0
+    already_picked = False
     if order_id or wh_name:
         already_assigned = True
+        picked_qs = Picklist.objects.filter(order_id=order_id)
+        if picked_qs:
+            picked_qty = picked_qs[0].picked_quantity
+            if picked_qty:
+                already_picked = True
+
     shipment_date = interm_obj.shipment_date.strftime("%m/%d/%Y")
     warehouses = UserGroups.objects.filter(admin_user_id=interm_obj.user)
     warehouse_names = warehouses.values_list('user__username', flat=True)
@@ -6376,7 +6384,8 @@ def get_central_order_detail(request):
             'sku_code': interm_obj.sku.sku_code, 'sku_desc': interm_obj.sku.sku_desc,
             'quantity': int(interm_obj.quantity), 'status': interm_obj.status,
             'warehouse': wh_name, 'data_id': interm_obj.id, 'shipment_date': shipment_date,
-            'wh_level_stock_map': wh_level_stock_map, 'already_assigned': already_assigned}
+            'wh_level_stock_map': wh_level_stock_map, 'already_assigned': already_assigned,
+            'already_picked': already_picked}
     return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
 
 

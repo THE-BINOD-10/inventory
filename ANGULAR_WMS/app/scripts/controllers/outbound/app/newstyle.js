@@ -426,16 +426,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
   vm.exe_cart_data = false;
 
   vm.get_customer_cart_data = function() {
-    
-    // vm.place_order_loading = true;
+
     vm.service.apiCall("get_customer_cart_data/").then(function(data){
 
       if(data.message) {
-        // $scope.$apply(function() {
 
-          // angular.copy(data.data.data,vm.model_data.data);
-
-          // vm.model_data.invoice_type = data.data.invoice_types[0];
           vm.model_data.selected_styles = {};
           if(data.data.data.length > 0) {
             angular.forEach(data.data.data, function(sku){
@@ -447,10 +442,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
               sku.wms_code = sku.sku_id;
               sku.tax_amount = (sku.invoice_amount / 100) * sku.tax;
               sku.id = sku.sku_pk;
-              // sku.physical_stock = sku.available_stock;
-
-              // vm.model_data.selected_styles[sku.id] = sku;
-              // vm.change_amount(sku);
               vm.exe_cart_data = true;
               vm.add_to_price_details(sku);
             });
@@ -464,10 +455,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
             // vm.cal_total();
             // console.log(vm.model_data.selected_styles);
           }
-          // vm.place_order_loading = false;
-        // });
+
       }
-      // vm.place_order_loading = false;
     });
   }
 

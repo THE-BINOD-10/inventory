@@ -125,12 +125,13 @@
   	<div class="col-md-10 col-sm-10 col-xs-2">
       <div class="menu-left">
         <ul id="drop-nav">
-			<li ng-repeat="list in Style.main_menus"><a ng-click="Style.get_styles(list)">{{ list }}</a>
-				<!-- <ul ng-if="Style.sub_menus">
-			      <li ng-repeat="sub_list in Style.sub_menus"><a href="#">{{sub_list}}</a></li>
-			    </ul> -->
-		  	</li>
-		</ul>
+					<li><a ng-click="Style.get_styles('')">All</a></li>
+					<li ng-repeat="list in Style.main_menus"><a ng-click="Style.get_styles(list)">{{ list }}</a>
+						<!-- <ul ng-if="Style.sub_menus">
+					      <li ng-repeat="sub_list in Style.sub_menus"><a href="#">{{sub_list}}</a></li>
+					    </ul> -->
+				  	</li>
+				</ul>
       </div>
     </div>
   </div>
@@ -180,7 +181,7 @@
 									</div>
 								
 									<div class="col-lg-{{Style.add_to_cart}} col-md-{{Style.add_to_cart}} col-sm-{{Style.add_to_cart}} col-xs-{{Style.add_to_cart}}">
-										<button class="btn btn-sm btn-danger pull-right" ng-click="Style.add_to_cart(style)">Add to cart</button>
+										<button class="btn btn-sm btn-danger pull-right" ng-disabled="style.add_to_cart" ng-click="Style.add_to_cart(style)">Add to cart</button>
 									</div>
 								</div>
 							</div>

@@ -2091,7 +2091,6 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                   'order__user': user.id,
                                   'stock__sku_id__in': sku_master_ids
                                 })
-        
     else:
         if serial_view:
             lis = ['order__order_id', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__customer_name',

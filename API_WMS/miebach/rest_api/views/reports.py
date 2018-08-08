@@ -308,14 +308,14 @@ def print_daily_production_report(request, user=''):
 @get_admin_user
 def print_dispatch_summary(request, user=''):
     search_parameters = {}
-
     serial_view = False
     if request.GET.get('datatable', '') == 'serialView':
         serial_view = True
+    if request.GET.get('datatable', '') == 'customerView':
+        customer_view = True
     headers, search_params, filter_params = get_search_params(request)
-    report_data = get_dispatch_data(search_params, user, request.user, serial_view=serial_view)
+    report_data = get_dispatch_data(search_params, user, request.user, serial_view=serial_view, customer_view=customer_view)
     report_data = report_data['aaData']
-
     if report_data:
         html_data = create_reports_table(report_data[0].keys(), report_data)
     return HttpResponse(html_data)
@@ -877,7 +877,6 @@ def excel_reports(request, user=''):
         file_type = 'csv'
     if temp[1] in ['dispatch_summary'] and len(report_data['aaData']) > 0:
         headers = report_data['aaData'][0].keys()
-        file_type = 'xls'
     excel_data = print_excel(request, report_data, headers, excel_name, file_type=file_type)
     return excel_data
 

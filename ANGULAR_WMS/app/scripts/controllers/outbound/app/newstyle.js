@@ -15,7 +15,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
   vm.order_type_value = "offline";
   vm.show_no_data = false;
   vm.display_styles_price = Session.roles.permissions.display_styles_price;
-  // vm.display_styles_price = true;
+  vm.display_styles_price = true;
   vm.model_data = {'selected_styles':{}};
 
   if (vm.display_styles_price) {
@@ -31,7 +31,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
     vm.p_d_sku_code = '4';
     vm.p_d_delete = '4';
   }
-
 
   $rootScope.countWatchers = function () {
       var q = [$rootScope], watchers = 0, scope;
@@ -50,7 +49,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
       console.log('watchers print');
       window.console.log(watchers);
   };
-
 
   vm.brand, vm.sub_category, vm.category, vm.style, vm.color, vm.fromPrice, vm.toPrice, vm.quantity, vm.delivery_date, 
   vm.hot_release = '';
@@ -140,6 +138,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
 
   vm.gotData = {};
   // vm.data_loading = true;
+  vm.cart_data_loading = true;
   function getingData(data) {
 
     vm.catDisplay = false;
@@ -257,13 +256,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
 
     if (vm.model_data.selected_styles[data.id]) {
 
-      // vm.priceRangesCheck(data, data.quantity);
       vm.cal_customer_cart_data(data);
     } else {
 
       vm.priceRangesCheck(data, data.quantity);
       vm.model_data.selected_styles[data.id] = data;
-
       vm.cal_customer_cart_data(data);
     }
   }
@@ -335,7 +332,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
     }
     record.invoice_amount = Number(price) * record.quantity;
 
-    // if (Number(record.quantity) && record.taxes[0]) {
     if (Number(record.quantity) && record.taxes && record.taxes.length) {
       record.tax = Number(record.taxes[0].cgst_tax) + Number(record.taxes[0].sgst_tax) + Number(record.taxes[0].igst_tax);
     } else {
@@ -392,6 +388,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
           vm.service.showNoty("Succesfully Added to Cart");
         }
       });
+    } else {
+
+      vm.service.showNoty("Updated Your Cart Succesfully");
     }
   };
 
@@ -410,8 +409,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
               closeOnConfirm: true
               },
               function(isConfirm){
-                // $state.go("user.App.newStyle");
-                // $state.reload();
                 vm.resetOrderDetails();
               }
             )
@@ -424,39 +421,34 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
     });
   }
 
-  // vm.exe_cart_data = false;
-
   vm.get_customer_cart_data = function() {
 
     vm.service.apiCall("get_customer_cart_data/").then(function(data){
 
       if(data.message) {
 
-          vm.model_data.selected_styles = {};
-          if(data.data.data.length > 0) {
-            angular.forEach(data.data.data, function(sku){
+        vm.cart_data_loading = false;
+        vm.model_data.selected_styles = {};
+        if(data.data.data.length > 0) {
+        
+          angular.forEach(data.data.data, function(sku){
 
-              sku['org_price'] = sku.price;
-              sku.quantity = Number(sku.quantity);
-              sku.invoice_amount = Number(sku.price) * sku.quantity;
-              sku.total_amount = ((sku.invoice_amount*sku.tax) / 100) + sku.invoice_amount;
-              sku.wms_code = sku.sku_id;
-              sku.tax_amount = (sku.invoice_amount / 100) * sku.tax;
-              sku.id = sku.sku_pk;
-              // vm.exe_cart_data = true;
-              vm.add_to_price_details(sku);
-            });
+            sku['org_price'] = sku.price;
+            sku.quantity = Number(sku.quantity);
+            sku.invoice_amount = Number(sku.price) * sku.quantity;
+            sku.total_amount = ((sku.invoice_amount*sku.tax) / 100) + sku.invoice_amount;
+            sku.wms_code = sku.sku_id;
+            sku.tax_amount = (sku.invoice_amount / 100) * sku.tax;
+            sku.id = sku.sku_pk;
+            vm.add_to_price_details(sku);
+          });
 
-            if (vm.filteredStyles && (Object.keys(vm.model_data.selected_styles).length)) {
+          if (vm.filteredStyles && (Object.keys(vm.model_data.selected_styles).length)) {
 
-              vm.update_sku_levels();
-              vm.price_details_flag = false;
-            }
-
-            // vm.cal_total();
-            // console.log(vm.model_data.selected_styles);
+            vm.update_sku_levels();
+            vm.price_details_flag = false;
           }
-
+        }
       }
     });
   }

@@ -221,12 +221,15 @@
 		  	</div>
 		  </div>
 		</div>
-		<div class="col-lg-4 col-md-4 visible-md visible-lg mt10">
+		<div class="col-lg-4 col-md-4 visible-md visible-lg">
 			<div class="card" style="padding: 10px">
 				<div class="col-md-12 col-sm-12 col-xs-12">
           <h5><b>PRICE DETAILS</b></h5><hr>
         </div>
-        <span ng-if="Style.price_details_flag">Nothing added to your cart...</span>
+        <div class="row col-md-12 col-sm-12 col-xs-12 opacity" ng-if="Style.cart_data_loading">
+		      <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 160px;">
+		    </div>
+        <span ng-if="Style.price_details_flag && !(Style.cart_data_loading)">Nothing added to your cart...</span>
 				<div class="row" ng-if="!Style.price_details_flag">
 					<div class="col-md-12 col-sm-12 col-xs-12">
             <div class="row">

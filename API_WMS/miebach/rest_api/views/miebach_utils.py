@@ -2082,7 +2082,7 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     search_parameters = {}
     if customer_view:
-        lis = ['order__customer_id', 'order__customer_name', 'order__sku__wms_code', 'order__sku__sku_desc']
+        lis = ['order__customer_id', 'order__customer_name', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__quantity', 'picked_quantity']
         model_obj = Picklist
         param_keys = {'wms_code': 'stock__sku__wms_code', 'sku_code': 'stock__sku__sku_code'}
         search_parameters.update({'status__in': ['open', 'batch_open', 'picked', 'batch_picked', 'dispatched'],
@@ -2165,8 +2165,8 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
 
     for data in model_data:
         if customer_view:
-            temp_data['aaData'].append(OrderedDict((('Customer ID', data['order__customer_name']),
-                                                    ('Customer Name', data['order__customer_id']),
+            temp_data['aaData'].append(OrderedDict((('Customer ID', data['order__customer_id']),
+                                                    ('Customer Name', data['order__customer_name']),
                                                     ('WMS Code', data['order__sku__wms_code']),
                                                     ('Description', data['order__sku__sku_desc']),
                                                     ('Quantity', data['tot_qty']),

@@ -280,7 +280,8 @@
 					</div>
 				</div>
 				<div class="text-center" ng-if="!Style.price_details_flag">
-					<button type="button" id ="approval_for_order" class="btn btn-success" ng-click="Style.update_cartdata_for_approval()">SUBMIT FOR APPROVAL</button>
+					<button type="button" id ="approval_for_order" class="btn btn-success" ng-click="Style.update_cartdata_for_approval();Style.approval_reload = true;" ng-disabled="Style.approval_reload">
+						<span>SUBMIT FOR APPROVAL</span><span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right" ng-if="Style.approval_reload"></button>
 				</div>
 			</div>
 		</div>

@@ -31,24 +31,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
     vm.p_d_delete = '4';
   }
 
-  $rootScope.countWatchers = function () {
-      var q = [$rootScope], watchers = 0, scope;
-      while (q.length > 0) {
-          scope = q.pop();
-          if (scope.$$watchers) {
-              watchers += scope.$$watchers.length;
-          }
-          if (scope.$$childHead) {
-              q.push(scope.$$childHead);
-          }
-          if (scope.$$nextSibling) {
-              q.push(scope.$$nextSibling);
-          }
-      }
-      console.log('watchers print');
-      window.console.log(watchers);
-  };
-
   vm.brand, vm.sub_category, vm.category, vm.style, vm.color, vm.fromPrice, vm.toPrice, vm.quantity, vm.delivery_date, 
   vm.hot_release = '';
   vm.marginData = {margin_type: '', margin: 0, margin_percentage: 0, margin_value: 0, is_margin_percentage: true, sale_through: vm.order_type_value};
@@ -178,16 +160,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
     if (stat) {
       
       if (data.quantity) {
-        
-        // if (data.physical_stock) {
 
-          data.quantity = Number(data.quantity) + 1;
-          vm.update_customer_cart_data(data);
-        // } else {
-
-        //   data.quantity = 0;
-        //   Service.showNoty("Stock is not available of this sku");
-        // }
+        data.quantity = Number(data.quantity) + 1;
+        vm.update_customer_cart_data(data);
       } else {
 
         data['quantity'] = 1;
@@ -231,15 +206,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
       }
     } else {
 
-      // if (data.physical_stock) {
-
-        data.quantity = Number(data.quantity);
-        vm.add_to_price_details(data);
-      // } else {
-
-      //   data.quantity = 0;
-      //   Service.showNoty("Stock is not available of this sku");
-      // }
+      data.quantity = Number(data.quantity);
+      vm.add_to_price_details(data);
     }
   }
 
@@ -270,35 +238,20 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
 
   vm.cal_total = function() { // Last function
 
-      angular.copy(empty_final_data, vm.final_data);
-      angular.forEach(vm.model_data.selected_styles, function(record){
+    angular.copy(empty_final_data, vm.final_data);
+    angular.forEach(vm.model_data.selected_styles, function(record){
+
+      if (record.add_to_cart) {
 
         vm.priceRangesCheck(record, record.quantity);
 
         vm.final_data.total_amount += Number(record.total_amount);
         vm.final_data.total_quantity += Number(record.quantity);
         vm.final_data.amount += Number(record.invoice_amount);
-
-        // if(vm.pushCartData(record)){
-        //   vm.model_data.cart_data[vm.pushedIndex] = record;
-        // } else{
-        //   vm.model_data.cart_data.push(record);
-        // }
-      })
-      vm.final_data.tax_amount = vm.final_data.total_amount - vm.final_data.amount;
+      }
+    })
+    vm.final_data.tax_amount = vm.final_data.total_amount - vm.final_data.amount;
   };
-
-  // vm.pushCartData = function(sku){
-  //   var flag = false;
-  //   for (var i = 0; i < vm.model_data.cart_data.length; i++) {
-      
-  //     if (vm.model_data.cart_data[i].id == sku.id) {
-  //       flag = true;
-  //       vm.pushedIndex = i;
-  //     }
-  //   }
-  //   return flag;
-  // }
 
   vm.priceRangesCheck = function(record, quantity){
 
@@ -385,6 +338,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
         if (data.message) {
 
           vm.service.showNoty("Succesfully Added to Cart");
+          vm.cal_total();
         }
       });
     } else {
@@ -393,11 +347,16 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
     }
   };
 
+  vm.approval_reload = false;
+
   vm.update_cartdata_for_approval = function() {
     var send = {}
     vm.service.apiCall("update_orders_for_approval/", "POST", send).then(function(response){
+
         if(response.message) {
+
           if(response.data.message == "success") {
+
             Data.my_orders = [];
             swal({
               title: "Success!",
@@ -409,6 +368,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
               },
               function(isConfirm){
                 vm.resetOrderDetails();
+                vm.approval_reload = false;
               }
             )
           } else {
@@ -461,9 +421,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
         sku.quantity = vm.model_data.selected_styles[sku.id].quantity;
 
         if (vm.model_data.selected_styles[sku.id].add_to_cart) {
+
           sku.add_to_cart = vm.model_data.selected_styles[sku.id].add_to_cart;
         }
-        // vm.model_data.selected_styles[sku.id] = sku;
       } else {
 
         sku.quantity = '';
@@ -473,12 +433,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, Session, colFilters, Servic
 
   vm.remove_item = function(data, index) {
 
-    // var deleted_sku_id = vm.model_data.selected_styles[data.id].sku_id;
     vm.delete_customer_cart_data(vm.model_data.selected_styles[data.id]);
     delete vm.model_data.selected_styles[data.id];
-    // vm.model_data.cart_data.splice(index,1);
     if (!(Object.keys(vm.model_data.selected_styles).length)) {
-    // if (!vm.model_data.cart_data.length) {
 
       vm.price_details_flag = true;
     }

@@ -3213,6 +3213,9 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
                                                                              total_received=Sum('received_quantity')).\
                                             annotate(tot_rem=F('total_order')-F('total_received')).\
                                             values_list('open_po__sku__sku_code', 'tot_rem'))
+    needed_stock_data['asn_quantities'] = dict(
+        ASNStockDetail.objects.filter(sku__user__in=gen_whs, quantity__gt=0, sku__sku_code__in=needed_skus).only(
+            'sku__sku_code', 'quantity').values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
 
     data = get_styles_data(user, product_styles, sku_master, start, stop, request, customer_id=customer_id,
                            customer_data_id=customer_data_id, is_file=is_file, prices_dict=prices_dict,
@@ -4156,6 +4159,7 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
             prd_sku_codes = sku_master.filter(sku_class=product).only('sku_code').values_list('sku_code', flat=True)
             for prd_sku in prd_sku_codes:
                 total_quantity += needed_stock_data['stock_objs'].get(prd_sku, 0)
+                total_quantity += needed_stock_data['asn_quantities'].get(prd_sku, 0)
                 total_quantity = total_quantity - float(needed_stock_data['reserved_quantities'].get(prd_sku, 0))
                 total_quantity = total_quantity - float(needed_stock_data['enquiry_res_quantities'].get(prd_sku, 0))
             if total_quantity >= int(stock_quantity):
@@ -4176,6 +4180,7 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
             prd_sku_codes = sku_master.filter(sku_class=product).only('sku_code').values_list('sku_code', flat=True)
             for prd_sku in prd_sku_codes:
                 total_quantity += needed_stock_data['stock_objs'].get(prd_sku, 0)
+                total_quantity += needed_stock_data['asn_quantities'].get(prd_sku, 0)
                 total_quantity = total_quantity - float(needed_stock_data['reserved_quantities'].get(prd_sku, 0))
                 total_quantity = total_quantity - float(needed_stock_data['enquiry_res_quantities'].get(prd_sku, 0))
         if total_quantity < 0:
@@ -7015,10 +7020,9 @@ def get_style_variants(sku_master, user, customer_id='', total_quantity=0, custo
                        is_margin_percentage=0, default_margin=0, price_type='', is_style_detail='',
                        needed_stock_data=None):
     stocks = needed_stock_data['stock_objs']
-
     purchase_orders = needed_stock_data['purchase_orders']
-
     reserved_quantities = needed_stock_data['reserved_quantities']
+    asn_quantities = needed_stock_data['asn_quantities']
 
     tax_master = TaxMaster.objects.filter(user_id=user.id)
     rev_inter_states = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
@@ -7036,11 +7040,13 @@ def get_style_variants(sku_master, user, customer_id='', total_quantity=0, custo
         if intransit_quantity < 0:
             intransit_quantity = 0
         res_value = reserved_quantities.get(sku['wms_code'], 0)
-        stock_quantity = stock_quantity - res_value
+        asn_stock = asn_quantities.get(sku['wms_code'], 0)
+        stock_quantity = stock_quantity - res_value + asn_stock
         total_quantity = total_quantity + stock_quantity
         sku_master[ind]['physical_stock'] = stock_quantity
         sku_master[ind]['intransit_quantity'] = intransit_quantity
         sku_master[ind]['style_quantity'] = total_quantity
+        sku_master[ind]['asn_quantity'] = asn_stock
         sku_master[ind]['taxes'] = []
         customer_data = []
         sku_master[ind]['your_price'] = prices_dict.get(sku_master[ind]['id'], 0)

@@ -517,6 +517,18 @@ class StockDetail(models.Model):
         return str(self.sku) + " : " + str(self.location)
 
 
+class ASNStockDetail(models.Model):
+    id = BigAutoField(primary_key=True)
+    asn_po_num = models.CharField(max_length=32, default='')
+    sku = models.ForeignKey(SKUMaster)
+    quantity = models.IntegerField(default=0)
+    arriving_date = models.DateField(blank=True, null=True)
+
+    class Meta:
+        db_table = 'ASN_STOCK_DETAIL'
+        unique_together = ('asn_po_num', 'sku')
+
+
 class Picklist(models.Model):
     id = BigAutoField(primary_key=True)
     order = models.ForeignKey(OrderDetail, blank=True, null=True)

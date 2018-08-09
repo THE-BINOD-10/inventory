@@ -4342,12 +4342,14 @@ def get_levels(request, user=''):
     for wh_level in wh_levels:
         levels.append({'warehouse_level': wh_level,
                        'level_name': get_level_name_with_level(user, wh_level, users_list=users_list)})
-    # levels.append({'warehouse_level': 3, 'level_name': 'L3-IntransitStock'})
+    levels.append({'warehouse_level': 3, 'level_name': 'L3-IntransitStock'})
     return HttpResponse(json.dumps(levels))
 
 
 def get_leadtimes(user='', level=0):
     central_admin = get_admin(user)
+    # if level == 3:  # Warehouse's (SM Warehouse = Level-1) ASN Stock will be shown in Level-3.
+    #     level = 1
     same_level_users = get_same_level_warehouses(level, central_admin)
     lead_times = NetworkMaster.objects.filter(dest_location_code=user,
                                               source_location_code_id__in=same_level_users). \
@@ -4439,6 +4441,18 @@ def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_
     job_order_rec_qty = dict(JobOrder.objects.filter(product_code__user__in=stock_display_warehouse,
                                                      product_code__sku_class=sku_master[0]['sku_class']).values_list(
         'product_code__wms_code').distinct().annotate(Sum('received_quantity')))
+    today_filter = datetime.datetime.today()
+    threeday_filter = today_filter + datetime.timedelta(days=3)
+    thirtyday_filter = today_filter + datetime.timedelta(days=30)
+    hundred_day_filter = today_filter + datetime.timedelta(days=100)
+    sku_filter = [sku_master[0]['sku_class']]
+    asn_sku_filter_qs = ASNStockDetail.objects.filter(quantity__gt=0, sku__sku_class__in=sku_filter)
+    asn_3days_stock = dict(asn_sku_filter_qs.exclude(arriving_date__lte=today_filter).filter(
+        arriving_date__lte=threeday_filter).values_list('sku__sku_code').annotate(Sum('quantity')))
+    asn_30days_stock = dict(asn_sku_filter_qs.exclude(arriving_date__lte=threeday_filter).filter(
+        arriving_date__lte=thirtyday_filter).values_list('sku__sku_code').annotate(Sum('quantity')))
+    asn_100days_stock = dict(asn_sku_filter_qs.exclude(arriving_date__lte=thirtyday_filter).filter(
+        arriving_date__lte=hundred_day_filter).values_list('sku__sku_code').annotate(Sum('quantity')))
 
     day_1_total = 0
     day_3_total = 0
@@ -4464,7 +4478,11 @@ def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_
         if user.id in stock_display_warehouse:
             all_quantity -= item['physical_stock']
         item['all_quantity'] = all_quantity
-        if lead_times:
+        if level == 3:
+            item[3] = asn_3days_stock.get(item["wms_code"], 0)
+            item[30] = asn_30days_stock.get(item["wms_code"], 0)
+            item[100] = asn_100days_stock.get(item["wms_code"], 0)
+        if lead_times and level != 3:
             for lead_time, wh_code in lead_times.items():
                 output = get_stock_qty_leadtime(item, wh_code)
                 if dist_reseller_leadtime and level:
@@ -4604,10 +4622,15 @@ def get_sku_variants(request, user=''):
                 dist_mapping = WarehouseCustomerMapping.objects.filter(customer_id=cm_id, status=1)
                 dist_userid = dist_mapping[0].warehouse_id
                 lead_times = get_leadtimes(dist_userid, level)
+                if level == 3:
+                    lead_times = OrderedDict(((3, None), (30, None), (100, None)))
         else:
             if level:
-                lead_times = get_leadtimes(user.id, level)
-                reseller_leadtimes = map(lambda x: x + dist_reseller_leadtime, lead_times)
+                if level == 3:
+                    reseller_leadtimes = {3: None, 30: None, 100: None}
+                else:
+                    lead_times = get_leadtimes(user.id, level)
+                    reseller_leadtimes = map(lambda x: x + dist_reseller_leadtime, lead_times)
             else:
                 lead_times = {dist_reseller_leadtime: user.id}
                 reseller_leadtimes = [dist_reseller_leadtime]
@@ -4636,24 +4659,28 @@ def get_sku_variants(request, user=''):
                                                                              total_received=Sum('received_quantity')).\
                                             annotate(tot_rem=F('total_order')-F('total_received')).\
                                             values_list('open_po__sku__sku_code', 'tot_rem'))
+    needed_stock_data['asn_quantities'] = dict(
+        ASNStockDetail.objects.filter(quantity__gt=0, sku__sku_code__in=needed_skus).only(
+            'sku__sku_code', 'quantity').values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
     sku_master = get_style_variants(sku_master, user, customer_id=customer_id, customer_data_id=customer_data_id,
                                     levels_config=levels_config, dist_wh_id=dist_userid, level=level,
                                     is_style_detail=is_style_detail, needed_stock_data=needed_stock_data
                                     )
     if get_priceband_admin_user(user):
-        wh_admin = get_priceband_admin_user(user)
-        integration_obj = Integrations.objects.filter(user = user.id)
+        # wh_admin = get_priceband_admin_user(user)
+        integration_obj = Integrations.objects.filter(user=user.id)
         if integration_obj:
             company_name = integration_obj[0].name
-            integration_users = Integrations.objects.filter(name = company_name).values_list('user', flat=True)
+            integration_users = Integrations.objects.filter(name=company_name).values_list('user', flat=True)
             for user_id in integration_users:
-                user = User.objects.get(id = user_id)
+                user = User.objects.get(id=user_id)
                 #if qssi, update inventory first
                 if company_name == "qssi":
                     sku_ids = [item['wms_code'] for item in sku_master]
                     suffix_tu_skus = map(lambda x: x+'-TU', sku_ids)
                     all_skus = sku_ids + suffix_tu_skus
                     api_resp = get_inventory(all_skus, user)
+                    # api_resp = {}
                     if api_resp.get("Status", "").lower() == "success":
                         for warehouse in api_resp["Warehouses"]:
                             location_master = LocationMaster.objects.filter(zone__zone="DEFAULT", zone__user=user.id)
@@ -4662,19 +4689,30 @@ def get_sku_variants(request, user=''):
                             location_id = location_master[0].id
                             if warehouse["WarehouseId"] == user.username:
                                 stock_dict = {}
+                                asn_stock_map = {}
                                 for item in warehouse["Result"]["InventoryStatus"]:
                                     sku_id = item["SKUId"]
+                                    actual_sku_id = sku_id
                                     if sku_id[-3:]=="-TU":
                                         sku_id = sku_id[:-3]
                                         if sku_id in stock_dict:
                                             stock_dict[sku_id] += int(item['Inventory'])
                                         else:
                                             stock_dict[sku_id] = int(item['Inventory'])
+                                        expected_items = item['Expected']
+                                        if isinstance(expected_items, list) and expected_items:
+                                            asn_stock_map.setdefault(sku_id, []).extend(expected_items)
                                     else:
                                         if sku_id in stock_dict:
                                             stock_dict[sku_id] += int(item['FG'])
                                         else:
                                             stock_dict[sku_id] = int(item['FG'])
+                                    wait_on_qc = [v for d in item['OnHoldDetails'] for k, v in d.items()
+                                                  if k == 'WAITONQC']
+                                    if wait_on_qc:
+                                        if int(wait_on_qc[0]):
+                                            log.info("Wait ON QC Value %s for SKU %s" % (actual_sku_id, wait_on_qc))
+                                        stock_dict[sku_id] += int(wait_on_qc[0])
 
                                 for sku_id, inventory in stock_dict.iteritems():
                                     sku = SKUMaster.objects.filter(user = user_id, sku_code = sku_id)
@@ -4694,6 +4732,24 @@ def get_sku_variants(request, user=''):
                                             StockDetail.objects.create(**new_stock_dict)
                                             log.info("New stock created for user %s for sku %s" %
                                                      (user.username, str(sku.sku_code)))
+                                for sku_id, asn_inv in asn_stock_map.iteritems():
+                                    sku = SKUMaster.objects.filter(user = user_id, sku_code = sku_id)
+                                    for asn_stock in asn_inv:
+                                        po = asn_stock['PO']
+                                        arriving_date = datetime.datetime.strptime(asn_stock['By'], '%d-%b-%Y')
+                                        quantity = asn_stock['Qty']
+                                        asn_stock_detail = ASNStockDetail.objects.filter(sku_id=sku[0].id, asn_po_num=po)
+                                        if asn_stock_detail:
+                                            asn_stock_detail = asn_stock_detail[0]
+                                            asn_stock_detail.quantity = quantity
+                                            asn_stock_detail.arriving_date = arriving_date
+                                            asn_stock_detail.save()
+                                        else:
+                                            ASNStockDetail.objects.create(asn_po_num=po, sku_id=sku[0].id,
+                                                                          quantity=quantity,
+                                                                          arriving_date=arriving_date)
+                                            log.info('New ASN Stock Created for User %s and SKU %s' %
+                                                (user.username, str(sku[0].sku_code)))
     sku_master, total_qty = all_whstock_quant(sku_master, user, level, lead_times, dist_reseller_leadtime)
     _data = {'data': sku_master, 'gen_wh_level_status': levels_config, 'total_qty': total_qty, }
     if level == 2:

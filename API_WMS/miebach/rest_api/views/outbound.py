@@ -6348,7 +6348,6 @@ def get_central_order_detail(request):
         wh_name = interm_obj.order_assigned_wh.username
     else:
         wh_name = ''
-    picked_qty = 0
     already_picked = False
     if order_id or wh_name:
         already_assigned = True
@@ -6993,10 +6992,12 @@ def get_customer_orders(request, user=""):
             customer_id = customer[0].customer.customer_id
             if central_order_mgmt:
                 orders_dict = {'customer_id': customer_id, 'user__in': users_list}
+                pick_dict = {'order__customer_id': customer_id, 'order__user__in': users_list}
             else:
                 orders_dict = {'custmer_id': customer_id, 'user': user.id}
+                pick_dict = {'order__customer_id': customer_id, 'order__user': user.id}
             orders = OrderDetail.objects.filter(**orders_dict).exclude(status=3).order_by('-creation_date')
-            picklist = Picklist.objects.filter(order__customer_id=customer_id, order__user=user.id)
+            picklist = Picklist.objects.filter(**pick_dict)
             response_data['data'] = list(orders.values('order_id', 'order_code', 'original_order_id').distinct().
                                          annotate(total_quantity=Sum('quantity'), total_inv_amt=Sum('invoice_amount'),
                                                   date_only=Cast('creation_date', DateField())).order_by('-date_only'))

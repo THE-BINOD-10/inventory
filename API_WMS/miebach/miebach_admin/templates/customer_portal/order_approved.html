@@ -2,7 +2,7 @@
 Dear {{ customer_name }},<br>
 
 <p>
-{{approving_user_role}} have {% if status=='accept' %} accepted your order and will process in shortly.{% else %} rejected {% endif %} your order. For your reference, here are the details of your order:
+{{approving_user_role}} have {% ifequal status 'accept' %} accepted your order and will process in shortly.{% else %} rejected {% endifequal %} your order. For your reference, here are the details of your order:
 </p>
 
 <p>Item(s) details:</p>

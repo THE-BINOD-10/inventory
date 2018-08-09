@@ -2750,7 +2750,7 @@ def get_customer_data(request, user=''):
 @get_admin_user
 def update_cartdata_for_approval(request, user=''):
     message = 'success'
-    admin_items, items = []
+    admin_items, items = [], []
     approval_status = request.POST.get('approval_status', '')
     approving_user_role = request.POST.get('approving_user_role', '')
     approve_id = request.POST.get('approve_id', '')
@@ -2767,7 +2767,7 @@ def update_cartdata_for_approval(request, user=''):
             admin_items.append([data.sku.sku_desc, data.quantity, inv_amt])
             items.append([data.sku.sku_desc, data.quantity])
         customer = CustomerUserMapping.objects.get(user_id=approve_data[0].customer_user.id)
-        customer = CustomerMaster.objects.filter(id=customer_id)
+        customer = CustomerMaster.objects.filter(id=customer.customer_id)
         customer_id = customer[0].customer_id
         customer_name = customer[0].name
         normal_user_mail_id = customer.values_list('email_id', flat=True)
@@ -2776,10 +2776,10 @@ def update_cartdata_for_approval(request, user=''):
                                               .values_list('email_id', flat=True)
         admin_headers = ['Product Details', 'Ordered Quantity', 'Total']
         user_headres = ['Product Details', 'Ordered Quantity']
-        admin_data_dict = {'customer_name': customer_name, 'items': admin_items,
-                           'headers': headers, 'role': role, 'status': approval_status}
-        data_dict = {'customer_name': customer_name, 'items': items,
-                     'headers': headers, 'role': 'Normal Customer', 'status': approval_status}
+        admin_data_dict = {'customer_name': customer_name, 'items': admin_items, 'approving_user_role': approving_user_role,
+                           'headers': admin_headers, 'role': role, 'status': approval_status}
+        data_dict = {'customer_name': customer_name, 'items': items, 'approving_user_role': approving_user_role,
+                     'headers': user_headres, 'role': 'Normal Customer', 'status': approval_status}
         if approval_status == 'accept':
             t_admin = loader.get_template('templates/customer_portal/order_for_approval.html')
         else:
@@ -2791,7 +2791,7 @@ def update_cartdata_for_approval(request, user=''):
             if approval_status == 'accept':
                 send_mail(admin_mail_id, 'Order Approval Request, Customer: %s' % customer_name, rendered_admin)
             else:
-                send_mail(admin_mail_id, 'Order Rejected by Admin', rendered_admin) 
+                send_mail(admin_mail_id, 'Order Rejected by %s' % approving_user_role, rendered_admin) 
         if normal_user_mail_id:
             send_mail(normal_user_mail_id, 'Your Order status got changed', rendered_user)
 
@@ -2851,10 +2851,12 @@ def after_admin_approval(request, user=''):
     price = request.POST.get('price', '')
     tax = request.POST.get('tax', '')
     title = request.POST.get('sku_desc', '')
-    shipment_date = request.POST.get('shipment_date','')
+    shipment_date = request.POST.get('shipment_date',None)
     order_summary = create_orders_data(request, user='')
     order_id = get_order_id(user.id)
-    shipment_date = datetime.datetime.strptime(shipment_date, "%m/%d/%Y") if shipment_date else ''
+    if shipment_date:
+        shipment_date = datetime.datetime.strptime(shipment_date, "%m/%d/%Y")
+        shipment_date = datetime.datetime.combine(shipment_date, datetime.datetime.min.time())
     approve_status = ApprovingOrders.objects.filter(user_id=user.id, approve_id=approve_id, approval_status='accept',sku__sku_code = sku_code)
     if shipment_date:
         approve_status.update(shipment_date =shipment_date)
@@ -2891,10 +2893,10 @@ def after_admin_approval(request, user=''):
                                          .values_list('email_id', flat=True)
     hod_headers = ['Product Details', 'Ordered Quantity', 'Total']
     user_headres = ['Product Details', 'Ordered Quantity']
-    hod_data_dict = {'customer_name': customer_name, 'items': admin_items,
-                    'headers': headers, 'role': 'Admin', 'status': approval_status}
+    hod_data_dict = {'customer_name': customer_name, 'items': admin_items, 'approving_user_role': 'Admin',
+                    'headers': hod_headers, 'role': 'HOD', 'status': approval_status}
     user_data_dict = {'customer_name': customer_name, 'items': items,
-                'headers': headers, 'role': 'Normal Customer', 'status': approval_status}
+                'headers': user_headres, 'role': 'Normal Customer', 'status': approval_status}
     t_admin = loader.get_template('templates/customer_portal/order_approved_hod.html')
     rendered_admin = t_admin.render(hod_data_dict)
     t_user = loader.get_template('templates/customer_portal/order_approved.html')
@@ -2910,7 +2912,7 @@ def after_admin_approval(request, user=''):
 @get_admin_user
 def update_orders_for_approval(request, user=''):
     message = 'success'
-    items, mail_ids = [], []
+    items, user_items = [], []
     cart_data = CustomerCartData.objects.filter(user_id=user.id, customer_user_id=request.user.id)
     if cart_data:
         try:
@@ -2930,19 +2932,29 @@ def update_orders_for_approval(request, user=''):
                     ApprovingOrders.objects.create(**approve_orders_map)
                 inv_amt = (cart_item.levelbase_price * cart_item.quantity) + cart_item.tax
                 items.append([cart_item.sku.sku_desc, cart_item.quantity, inv_amt])
+                user_items.append([cart_item.sku.sku_desc, cart_item.quantity])
         except:
             log.info('Update Orders Approval Failed')
         else:
             #mail to Admin and normal user
             mail_ids = CustomerMaster.objects.filter(user=user.id, role='Admin')\
                                              .values_list('email_id', flat=True)
+            customer_id = CustomerUserMapping.objects.get(user_id=request.user.id).customer_id
+            user_mail_id = CustomerMaster.objects.filter(id=customer_id).values_list('email_id', flat=True)
             headers = ['Product Details', 'Ordered Quantity', 'Total']
+            user_headers = ['Product Details', 'Ordered Quantity']
             data_dict = {'customer_name': request.user.username, 'items': items,
-                         'headers': headers, 'role': ''}
+                         'headers': headers, 'role': 'HOD'}
+            user_data_dict = {'customer_name': request.user.username, 'items': user_items,
+                              'headers': user_headers, 'role': 'Normal User'}
             t = loader.get_template('templates/customer_portal/order_for_approval.html')
             rendered = t.render(data_dict)
+            t_user = loader.get_template('templates/customer_portal/order_placed.html')
+            rendered_user = t_user.render(user_data_dict)
             if mail_ids:
                 send_mail(mail_ids, 'Order Approval Request, Customer: %s' % request.user.username, rendered)
+            if user_mail_id:
+                send_mail(user_mail_id, 'Order Placed Successfully', rendered_user)
 
             cart_data.delete()
     else:

@@ -1,8 +1,8 @@
 <html><head></head><body style="font-family:arial; font-size:100%;">
-Dear {{role}},<br>
+Dear {{ customer_name }},<br>
 
 <p>
-{{approving_user_role}} have {% ifequal status 'accept' %} approved {% else %} rejected {% endifequal %} the order for {{customer_name}}.For your reference, here are the details of order:
+You have placed an order and will process in shortly. For your reference, here are the details of your order:
 </p>
 
 <p>Item(s) details:</p>
@@ -27,4 +27,5 @@ Dear {{role}},<br>
 
 <br>
 Thanks
+<br><br>
 </body></html>

@@ -628,10 +628,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   });
                 }
 
-
-
                 if (vm.sku_list_1.indexOf(vm.field) == -1){
-                  Service.showNoty(field+" Does Not Exist");
+                  if (vm.industry_type == "FMCG" && vm.user_type == "marketplace_user") {
+                    vm.addNewScannedSku(event, field);
+                  } else {
+                    Service.showNoty(field+" Does Not Exist");
+                  }
                 }
               } else {
                 vm.sku_list_1 = [];
@@ -651,7 +653,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   });
                 }
                 if (vm.sku_list_1.indexOf(vm.field) == -1){
-                  Service.showNoty(field+" Does Not Exist");
+                  if (vm.industry_type == "FMCG" && vm.user_type == "marketplace_user") {
+                    vm.addNewScannedSku(event, field);
+                  } else {
+                    Service.showNoty(field+" Does Not Exist");
+                  }
                 }
               }
             } else {
@@ -661,6 +667,51 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           });
         }
       }
+    }
+
+    vm.addNewScannedSku = function(event, field){
+
+      swal2({
+          title: "Scanned SKU Does Not Exist",
+          // text: "Do you want to map with existing SKU'S",
+          // input: 'text',
+          html: "<div id='swal2-content' class='swal2-content' style='display: block;'>Do you want to map with existing SKU'S</div>"+
+                "<input name='text' id='scanned_sku' class='swal2-input' style='margin-bottom:0px' value='"+field+"'>",
+          confirmButtonColor: '#2ecc71',
+          // cancelButtonColor: '#d33',
+          confirmButtonText: 'Map SKU',
+          cancelButtonText: 'Cancel',
+          showLoaderOnConfirm: true,
+          inputOptions: 'Testing',
+          inputPlaceholder: 'Scan SKU',
+          confirmButtonClass: 'btn btn-success',
+          cancelButtonClass: 'btn btn-default',
+          showCancelButton: true,
+          preConfirm: function (text) {
+            return new Promise(function (resolve, reject) {
+              var elem = {'new_scanned_sku': $('#scanned_sku').val()};
+              vm.service.apiCall('check_sku/', 'GET', elem, true).then(function(data){
+                if(data.message) {
+                  if(data.data == 'Success') {
+
+                    vm.scan_sku(event, field);
+                  } else {
+
+                    Service.showNoty(data.data)
+                  }
+                }
+              });
+            })
+          },
+          allowOutsideClick: false,
+          // buttonsStyling: false
+      }).then(function (text) {
+          swal2({
+            type: 'success',
+            title: 'Your Scanned SKU Mapped Now!',
+            // html: 'Submitted text is: ' + text
+          })
+      });
     }
 
     FUN.scan_sku = vm.scan_sku;

@@ -94,10 +94,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             $scope.$apply(function() {
                 console.log(vm.model_data)
                 angular.copy(aData, vm.model_data);
-                vm.update = true;
-                vm.title = "Modify Order Approvals";
 
-				if (vm.model_data.status == 'accept' && vm.model_data.approving_user_role == 'hod') {
+				        if (vm.model_data.status == 'accept' && vm.model_data.approving_user_role == 'hod') {
                     if (vm.user_role == 'user') {
                       vm.show_quantity = true;  
                     } else if (vm.user_role == 'hod') {
@@ -121,7 +119,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     vm.show_quantity = true;
                 }
 
-                $state.go('user.App.PendingOrder.PendingApprovalData');
+                vm.service.apiCall("order_approvals_sku_details/", "GET", vm.model_data).then(function(data) {
+                  if(data.message) {
+                    if (data.data.status) {
+                      angular.copy(data.data.data, vm.model_data);
+                      vm.update = true;
+                      vm.title = "Modify Order Approvals";
+                      $state.go('user.App.PendingOrder.PendingApprovalData');
+                    }
+                  }
+                });
             });
         });
     }

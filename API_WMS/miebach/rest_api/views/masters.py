@@ -689,6 +689,14 @@ def get_sku_data(request, user=''):
     sku_data['size_type'] = ''
     sku_data['mix_sku'] = data.mix_sku
     sku_data['ean_number'] = data.ean_number
+    ean_numbers = list(data.eannumbers_set.values_list('ean_number', flat=True))
+    if sku_data['ean_number']:
+        ean_numbers.append(sku_data['ean_number'])
+    if ean_numbers:
+        ean_numbers = ','.join(map(str, ean_numbers))
+    else:
+        ean_numbers = ''
+    sku_data['ean_numbers'] = ean_numbers
     sku_data['color'] = data.color
     sku_data['load_unit_handle'] = load_unit_dict.get(data.load_unit_handle, 'unit')
     sku_data['hsn_code'] = data.hsn_code
@@ -891,6 +899,7 @@ def update_sku(request, user=''):
         if not wms or not description:
             return HttpResponse('Missing Required Fields')
         data = get_or_none(SKUMaster, {'wms_code': wms, 'user': user.id})
+        ean_numbers = request.POST['ean_numbers'].split(',')
         image_file = request.FILES.get('files-0', '')
         if image_file:
             save_image_file(image_file, data, user)
@@ -923,6 +932,14 @@ def update_sku(request, user=''):
                     ean_status = check_ean_number(data.sku_code, value, user)
                     if ean_status:
                         return HttpResponse(ean_status)
+            elif key == 'ean_numbers':
+                if ean_numbers:
+                    for ean_number in ean_numbers:
+                        ean_dict = {'ean_number': ean_number, 'sku_id': data.id}
+                        ean_obj = EANNumbers.objects.filter(ean_number=ean_number)
+                        if not ean_obj:
+                            EANNumbers.objects.create(**ean_dict)
+
             elif key == 'load_unit_handle':
                 value = load_unit_dict.get(value.lower(), 'unit')
             elif key == 'size_type':

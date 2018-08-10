@@ -125,6 +125,18 @@ class SKUMaster(models.Model):
                 'qc_check': self.qc_check, 'status': self.status, 'relation_type': self.relation_type}
 
 
+class EANNumbers(models.Model):
+    id = BigAutoField(primary_key=True)
+    ean_number = models.DecimalField(max_digits=20, decimal_places=0, db_index=True, default=0)
+    sku = models.ForeignKey(SKUMaster)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'EAN_NUMBERS'
+        unique_together = ('ean_number', 'sku')
+
+
 class SKUJson(models.Model):
     id = BigAutoField(primary_key=True)
     sku = models.ForeignKey(SKUMaster)

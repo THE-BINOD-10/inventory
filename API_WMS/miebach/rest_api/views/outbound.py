@@ -1069,6 +1069,7 @@ def confirm_no_stock(picklist, request, user, picks_all, picklists_send_mail, me
 
 def validate_location_stock(val, all_locations, all_skus, user, picklist):
     status = []
+    error_string = ''
     wms_check = all_skus.filter(wms_code=val['wms_code'], user=user.id)
     loc_check = all_locations.filter(location=val['location'], zone__user=user.id)
     if not loc_check:
@@ -6498,13 +6499,15 @@ def picklist_delete(request, user=""):
                     if is_picked:
                         return HttpResponse("Partial Picked Picklist not allowed to cancel")
                 else:
-                    remaining_qty = picklist_objs.filter(order_id=order).aggregate(Sum('reserved_quantity'))
+                    remaining_qty = picklist_objs.filter(order_id=order).\
+                        aggregate(Sum('reserved_quantity'))['reserved_quantity__sum']
 
-                order.status, order.quantity = 1, remaining_qty['reserved_quantity__sum']
-                order.save()
-                seller_orders = SellerOrder.objects.filter(order__user=user.id, order_id=order.id)
-                if seller_orders:
-                    seller_orders.update(status=1)
+                if remaining_qty and remaining_qty > 0:
+                    order.status, order.quantity = 1, remaining_qty
+                    order.save()
+                    seller_orders = SellerOrder.objects.filter(order__user=user.id, order_id=order.id)
+                    if seller_orders:
+                        seller_orders.update(status=1)
             OrderLabels.objects.filter(order_id__in=order_ids, picklist__picklist_number=picklist_id).update(
                 picklist=None)
             picked_objs = picklist_objs.filter(picked_quantity__gt=0)

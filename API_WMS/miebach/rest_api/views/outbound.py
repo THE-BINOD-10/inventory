@@ -2803,7 +2803,9 @@ def update_cartdata_for_approval(request, user=''):
 
 def get_order_approval_statuses(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                                 filters):
-    lis = ['id', 'customer_user__username', 'approval_status', 'creation_date']
+    lis = ['approve_id', 'customer_user__username', 'approval_status', 'creation_date_only']
+    result_values = ['customer_user__username', 'approval_status',
+                     'approving_user_role', 'approve_id']
     cust_obj = CustomerUserMapping.objects.filter(user_id=request.user.id)
     if cust_obj:
         customer_role = cust_obj[0].customer.role
@@ -2818,13 +2820,27 @@ def get_order_approval_statuses(start_index, stop_index, temp_data, search_term,
     if order_term == 'desc':
         order_data = '-%s' % order_data
     if search_term:
-        cart_data = ApprovingOrders.objects.filter(**user_filters).filter(**search_params).order_by(order_data)
+        cart_data = ApprovingOrders.objects.filter(**user_filters).filter(**search_params)\
+                                   .values(*result_values).distinct()\
+                                   .annotate(creation_date_only=Cast('creation_date', DateField()))\
+                                   .order_by(order_data)
     else:
-        cart_data = ApprovingOrders.objects.filter(**user_filters).order_by(order_data)
-    temp_data['recordsTotal'] = len(cart_data)
-    temp_data['recordsFiltered'] = len(cart_data)
+        cart_data = ApprovingOrders.objects.filter(**user_filters)\
+                                   .values(*result_values).distinct()\
+                                   .annotate(creation_date_only=Cast('creation_date', DateField()))\
+                                   .order_by(order_data)
+    temp_data['recordsTotal'] = cart_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for data in cart_data[start_index: stop_index]:
-        image = data.sku.image_url
+        #shipment_date = data['shipment_date'].strftime('%d-%m-%Y') if data['shipment_date'] else ''
+        temp_data['aaData'].append(
+            OrderedDict((('user', data['customer_user__username']),
+                         ('date', data['creation_date_only'].strftime('%d-%m-%Y')),
+                         ('status', data['approval_status']),
+                         ('approve_id', data['approve_id']),
+                         ('approving_user_role', data['approving_user_role']),
+                       )))
+        """image = data.sku.image_url
         sku_code = data.sku.sku_code
         desc = data.sku.sku_desc
         price = data.unit_price
@@ -2835,7 +2851,27 @@ def get_order_approval_statuses(start_index, stop_index, temp_data, search_term,
                          ('desc', desc), ('price', price), ('tax', data.tax), ('quantity', data.quantity),
                          ('approve_id', data.approve_id), ('approving_user_role', data.approving_user_role),
                          ('shipment_date',shipment_date)
-                         )))
+                         )))"""
+
+@get_admin_user
+@login_required
+def order_approval_sku_details(request, user=''):
+    approve_id = request.GET.get('approve_id', '')
+    sku_details_list = []
+    result_data = ['sku__sku_code', 'sku__sku_desc', 'sku__image_url',
+                   'tax', 'quantity', 'unit_price', 'approval_status',
+                   'shipment_date', 'approve_id']
+    approving_orders = ApprovingOrders.objects.filter(approve_id=approve_id)\
+                                      .values(*result_data)
+    for item in approving_orders:
+        sku_details = {'sku_code': item['sku__sku_code'],
+                       'sku_desc': item['sku__sku_desc'],
+                       'price': item['unit_price'],
+                       'tax': item['tax'],
+                       'image': item['sku__image_url']}
+        sku_details_list.append(sku_details)
+    return HttpResponse(json.dumps({'status': 'success', 'data': sku_details_list}))
+
 @get_admin_user
 @csrf_exempt
 @login_required

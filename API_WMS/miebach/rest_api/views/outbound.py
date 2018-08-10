@@ -7364,6 +7364,11 @@ def get_customer_cart_data(request, user=""):
                 dist_reseller_leadtime = cm_obj.lead_time
             json_record = record.json()
             sku_obj = SKUMaster.objects.filter(user=user.id, sku_code=json_record['sku_id'])
+            if central_order_mgmt:
+                sku_id = sku_obj[0].id
+                sku_spl_attrs = dict(SKUAttributes.objects.filter(sku_id=sku_id).
+                                     values_list('attribute_name', 'attribute_value'))
+                json_record.update(sku_spl_attrs)
             json_record['mrp'] = sku_obj[0].mrp
             json_record['cost_price'] = sku_obj[0].cost_price
             json_record['sku_style'] = sku_obj[0].sku_class

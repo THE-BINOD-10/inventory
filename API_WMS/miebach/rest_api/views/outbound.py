@@ -10440,6 +10440,19 @@ def create_mail_attachments(f_name, html_data):
         attachments.append({'path': path + pdf_file, 'name': pdf_file})
     return attachments
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_create_order_mapping_values(request, user=''):
+    wms_code = request.GET['wms_code']
+    sku_supplier = {}
+    data = {}
+    if wms_code:
+        sku_code_obj = SKUMaster.objects.filter(wms_code=wms_code, user=user.id)
+        if sku_code_obj:
+            sku_supplier = list(sku_code_obj.values('wms_code', 'price'))
+    return HttpResponse(json.dumps(sku_supplier), content_type='application/json')
+
 """
 def render_st_html_data(request, user, warehouse, all_data):
     user_profile = UserProfile.objects.filter(user = user).values('phone_number', 'company_name', 'location',

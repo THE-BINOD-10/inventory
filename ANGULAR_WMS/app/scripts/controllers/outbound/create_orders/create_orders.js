@@ -97,7 +97,6 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
   }
 
   vm.bt_disable = false;
-  /*
   vm.insert_order_data = function(form) {
     if (form.$valid && vm.model_data.shipment_date && vm.model_data.shipment_time_slot) {
       if(vm.model_data.blind_order) {
@@ -130,8 +129,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
       colFilters.showNoty("Fill Required Fields");
     }
   }
-  */
-
+  
   vm.catlog = false;
   vm.categories = [];
   vm.category = "";
@@ -1502,12 +1500,13 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
       return false;
     } else {
       var customer_id = vm.model_data.customer_id;
-      $http.get(Session.url+'get_mapping_values/?wms_code='+product.sku_id+'&supplier_id='+customer_id, {withCredentials : true}).success(function(data, status, headers, config) {
+      $http.get(Session.url+'get_create_order_mapping_values/?wms_code='+product.sku_id, {withCredentials : true}).success(function(data, status, headers, config) {
         if(Object.keys(data).length){
-          product.fields.price = data.price;
+          //product.fields.price = data.price;
           //product.fields.supplier_code = data.supplier_code;
-          product.fields.sku.wms_code = data.sku;
+          //product.fields.sku.wms_code = data.sku;
           //product.fields.ean_number = data.ean_number;
+          vm.model_data.data[index].sku_id = product.sku_id;
         } else {
           Service.searched_cust_id = customer_id;
           Service.searched_wms_code = product.sku_id;

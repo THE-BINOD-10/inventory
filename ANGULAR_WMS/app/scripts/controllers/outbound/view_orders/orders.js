@@ -870,6 +870,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     $state.go("app.outbound.ViewOrders.CreateOrder");
   }
 
+  //Desc, unit price
+
   vm.insert_order_data = function(data) {
     if (data.$valid) {
       vm.bt_disable = true;

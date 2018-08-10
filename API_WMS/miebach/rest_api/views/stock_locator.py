@@ -2137,24 +2137,34 @@ def get_alternative_warehouse_stock(start_index, stop_index, temp_data, search_t
         sizes = size_master_objs[0].size_value.split("<<>>")
     lis = ['sku_class', 'style_name', 'sku_brand', 'sku_category']
     all_dat = ['SKU Class', 'Style Name', 'Brand', 'SKU Category']
-    search_params = get_filtered_params(filters, lis)
+    keys_mapping =dict(zip(all_dat, lis))
+    search_params = get_filtered_params(filters, all_dat)
     all_dat.extend(sizes)
+    all_dat.extend(['Total'])
+    for size_obj_name in sizes:
+        all_dat.extend(['%s - %s' % ('Sales', size_obj_name)])
+    all_dat.extend(['Sales - Total'])
     sort_col = all_dat[col_num]
-    log.info(sort_col)
-    log.info(sizes)
+    order_data = 'sku_class'
+    if sort_col in keys_mapping.keys():
+        order_data = lis[col_num]
+        sort_col = ''
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
     try:
-        sku_master_objs = SKUMaster.objects.filter(user=warehouse.id, sku_size__in=sizes, **search_params). \
+        sku_master_objs = SKUMaster.objects.exclude(sku_class='').filter(user=warehouse.id,
+                                                            sku_size__in=sizes, **search_params). \
                                             values('sku_class', 'style_name', 'sku_brand',
                                             'sku_category').distinct()
         if search_term:
             sku_classes = sku_master_objs.filter(Q(sku_class__icontains=search_term) |
                                                  Q(style_name__icontains=search_term) |
                                                  Q(sku_brand__icontains=search_term) |
-                                                 Q(sku_category__icontains=search_term))
+                                                 Q(sku_category__icontains=search_term)).order_by(order_data)
 
         else:
-            sku_classes = sku_master_objs
-        sku_class_list = sku_classes.values_list('sku_class', flat=True)
+            sku_classes = sku_master_objs.order_by(order_data)
+        sku_class_list = sku_classes.values_list('sku_class', flat=True).distinct()
         stock_detail_vals = {}
         pick_reserved_vals = {}
         raw_reserved_vals = {}
@@ -2182,7 +2192,18 @@ def get_alternative_warehouse_stock(start_index, stop_index, temp_data, search_t
                                                                     'stock__sku__sku_size', output_field=CharField())).\
                                      values_list('sku_class_size').distinct(). \
                                      annotate(reserved=Sum('reserved')))
-        order_detail_objs = OrderDetail.objects.filter(user=warehouse.id, quantity__gt=0).\
+        order_filter_params = {'user': warehouse.id, 'quantity__gt': 0}
+        if from_date:
+            from_date = from_date.split('/')
+            order_filter_params['creation_date__gt'] = datetime.date(int(from_date[2]), int(from_date[0]),
+                                                                           int(from_date[1]))
+        if to_date:
+            to_date = to_date.split('/')
+            to_date = datetime.date(int(to_date[2]), int(to_date[0]), int(to_date[1]))
+            order_filter_params['creation_date__lt'] = datetime.datetime.combine(to_date + datetime.timedelta(1),
+                                                                 datetime.time())
+
+        order_detail_objs = OrderDetail.objects.filter(**order_filter_params).\
                                  exclude(status__in=[3,5])
         order_detail_vals = dict(order_detail_objs.filter(sku__sku_size__in=sizes,
                                                         sku__sku_class__in=sku_class_list).\
@@ -2190,11 +2211,18 @@ def get_alternative_warehouse_stock(start_index, stop_index, temp_data, search_t
                                                         'sku__sku_size', output_field=CharField())).\
                                                 values_list('sku_class_size').distinct().\
                                                 annotate(total_sum=Sum('quantity')))
-        temp_data['recordsTotal'] = sku_classes.count()
+        temp_data['recordsTotal'] = sku_class_list.count()
         temp_data['recordsFiltered'] = temp_data['recordsTotal']
 
         all_data = []
+        looped_sku_class = []
+        if not sort_col:
+            sku_classes = sku_classes[start_index:stop_index]
         for sku_class in sku_classes:
+            if sku_class['sku_class'] not in looped_sku_class:
+                looped_sku_class.append(sku_class['sku_class'])
+            else:
+                continue
             size_dict = {}
             sales_dict = {}
             total = 0
@@ -2225,12 +2253,14 @@ def get_alternative_warehouse_stock(start_index, stop_index, temp_data, search_t
             data.update({'Sales - Total': sale_total})
             all_data.append(data)
 
-        if order_term == 'asc':
-            data_list = sorted(all_data, key=itemgetter(sort_col))
+        if sort_col:
+            if order_term == 'asc':
+                data_list = sorted(all_data, key=itemgetter(sort_col))
+            else:
+                data_list = sorted(all_data, key=itemgetter(sort_col), reverse=True)
+            data_list = data_list[start_index: stop_index]
         else:
-            data_list = sorted(all_data, key=itemgetter(sort_col), reverse=True)
-
-        data_list = data_list[start_index: stop_index]
+            data_list = all_data
 
         log.info(data_list)
         temp_data['aaData'].extend(data_list)

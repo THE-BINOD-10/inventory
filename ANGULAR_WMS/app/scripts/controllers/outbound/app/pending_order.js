@@ -119,7 +119,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     vm.show_quantity = true;
                 }
 
-                vm.service.apiCall("order_approvals_sku_details/", "GET", vm.model_data).then(function(data) {
+                vm.service.apiCall("order_approval_sku_details/", "GET", vm.model_data).then(function(data) {
                   if(data.message) {
                     if (data.data.status) {
                       angular.copy(data.data.data, vm.model_data);

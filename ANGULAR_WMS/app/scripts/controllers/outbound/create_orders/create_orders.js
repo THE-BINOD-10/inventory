@@ -97,6 +97,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
   }
 
   vm.bt_disable = false;
+  /*
   vm.insert_order_data = function(form) {
     if (form.$valid && vm.model_data.shipment_date && vm.model_data.shipment_time_slot) {
       if(vm.model_data.blind_order) {
@@ -129,6 +130,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
       colFilters.showNoty("Fill Required Fields");
     }
   }
+  */
 
   vm.catlog = false;
   vm.categories = [];
@@ -350,6 +352,27 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     //  }
     //})
   }
+
+  vm.assign_sku_id_from_sku_master = function() {
+    //vm.title = "Raise PO";
+    //vm.vendor_produce = false;
+    //vm.confirm_print = false;
+    //vm.update = false;
+    //vm.print_enable = false;
+    //vm.vendor_receipt = false;
+    //angular.copy(empty_data, vm.model_data);
+    //vm.model_data.seller_types = Data.seller_types;
+    if (vm.service.is_came_from_create_order) {
+      vm.model_data.customer_id = vm.service.searched_cust_id;
+      //vm.model_data.data[0].fields.sku.wms_code = vm.service.searched_wms_code;
+      vm.model_data.data[0].sku_id = vm.service.searched_wms_code;
+      Service.is_came_from_create_order = false;
+      vm.service.searched_cust_id = '';
+      vm.service.searched_wms_code = '';
+    }
+  }
+
+  vm.assign_sku_id_from_sku_master();
 
   vm.change_template_values = function(){
     angular.forEach(vm.template_types, function(data) {
@@ -1471,6 +1494,27 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
 	if (($event.keyCode == 13 || $event.keyCode == 9) && assign_tab_event == current_value) {
 		update_data(index, data, true);
     }
+  }
+
+  vm.key_event = function(product, item) {
+     if (typeof(vm.model_data.customer_id) == "undefined" || vm.model_data.customer_id.length == 0){
+       return false;
+     } else {
+       var customer_id = vm.model_data.customer_id;
+       $http.get(Session.url+'get_mapping_values/?wms_code='+product.sku_id+'&supplier_id='+customer_id, {withCredentials : true}).success(function(data, status, headers, config) {
+         if(Object.keys(data).length){
+           product.fields.price = data.price;
+           //product.fields.supplier_code = data.supplier_code;
+           product.fields.sku.wms_code = data.sku;
+           //product.fields.ean_number = data.ean_number;
+         } else {
+           Service.searched_cust_id = customer_id;
+           Service.searched_wms_code = product.sku_id;
+           Service.is_came_from_create_order = true;
+           $state.go('app.masters.SKUMaster');
+         }
+       });
+     }
   }
 
 }

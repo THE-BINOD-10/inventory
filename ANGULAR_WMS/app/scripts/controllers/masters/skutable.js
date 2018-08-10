@@ -231,14 +231,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     vm.close = function() {
-
+      var model_data = vm.model_data;
       angular.copy(empty_data, vm.model_data);
       vm.service.searched_wms_code = "";
       vm.service.searched_sup_code = '';
       if (vm.service.is_came_from_raise_po) {
-        vm.service.searched_wms_code = vm.model_data.sku_data.sku_code;
+        vm.service.searched_wms_code = model_data.sku_data.sku_code;
         $state.go('app.inbound.RaisePo.PurchaseOrder');
-      }else{
+      }
+      else if (vm.service.is_came_from_create_order) {
+        vm.service.searched_wms_code = model_data.sku_data.sku_code;
+        $state.go('app.outbound.CreateOrders');
+      } else {
         $state.go('app.masters.SKUMaster');
       }
     }
@@ -306,6 +310,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 if (vm.service.is_came_from_raise_po && response.indexOf("Added") > -1) {
                   vm.service.searched_wms_code = vm.model_data.sku_data.sku_code;
                   $state.go('app.inbound.RaisePo.PurchaseOrder');
+                } else if (vm.service.is_came_from_create_order && response.indexOf("Added") > -1) {
+                  vm.service.searched_wms_code = vm.model_data.sku_data.sku_code;
+                  $state.go('app.outbound.CreateOrders');
                 } else {
                   vm.service.refresh(vm.dtInstance);
                   vm.close();

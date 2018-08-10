@@ -2822,7 +2822,8 @@ def check_sku(request, user=''):
     sku_id = check_and_return_mapping_id(sku_code, '', user, check)
     if not sku_id:
         try:
-            sku_id = SKUMaster.objects.filter(ean_number=sku_code, user=user.id)
+            sku_id = SKUMaster.objects.filter(Q(ean_number=sku_code) | Q(eannumbers__ean_number=sku_code),
+                                              user=user.id)
         except:
             sku_id = ''
     if sku_id:

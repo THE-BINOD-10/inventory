@@ -1267,7 +1267,7 @@ def warehouse_headers(request, user=''):
     alternative_view = request.GET.get('alternate_view', 'false')
     warehouse_name = request.GET.get('warehouse_name', '')
     price_band_flag = get_misc_value('priceband_sync', user.id)
-    size_name = request.POST.get("size_name", 'Default')
+    size_name = request.POST.get("size_name", '')
     size_list, user_list = [], []
     default_size = ['S', 'M', 'L', 'XL', 'XXL']
     user_id = user.id
@@ -1291,7 +1291,9 @@ def warehouse_headers(request, user=''):
         size_master_objs = SizeMaster.objects.filter(user=user_id)
         #size names
         size_names = size_master_objs.values_list('size_name', flat=True)
-        all_sizes = size_master_objs.filter(size_name=size_name)
+        all_sizes = size_master_objs
+        if size_name:
+            all_sizes = size_master_objs.filter(size_name=size_name)
         sizes = []
         if all_sizes:
             sizes = all_sizes[0].size_value.split("<<>>")
@@ -2128,14 +2130,14 @@ def get_alternative_warehouse_stock(start_index, stop_index, temp_data, search_t
     if not is_excel == 'true':
         size_filter_params['size_name'] = size_type_value
     size_master_objs = SizeMaster.objects.filter(**size_filter_params)
-
-    size_names = size_master_objs.values_list('size_name', flat=True)
+    sizes = ['S', 'M', 'L', 'XL', 'XXL']
+    size_names = ['Default']
+    if size_master_objs.exists():
+        size_names = size_master_objs.values_list('size_name', flat=True)
+        sizes = size_master_objs[0].size_value.split("<<>>")
     lis = ['sku_class', 'style_name', 'sku_brand', 'sku_category']
     all_dat = ['SKU Class', 'Style Name', 'Brand', 'SKU Category']
     search_params = get_filtered_params(filters, lis)
-    sizes = []
-    if size_master_objs:
-        sizes = size_master_objs[0].size_value.split("<<>>")
     all_dat.extend(sizes)
     sort_col = all_dat[col_num]
     log.info(sort_col)

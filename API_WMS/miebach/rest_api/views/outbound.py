@@ -2854,11 +2854,23 @@ def get_order_approval_statuses(start_index, stop_index, temp_data, search_term,
                          )))"""
 
 @get_admin_user
-@csrf_exempt
 @login_required
-def order_approvals_sku_details(request, user=''):
-
-    import pdb;pdb.set_trace()
+def order_approval_sku_details(request, user=''):
+    approve_id = request.GET.get('approve_id', '')
+    sku_details_list = []
+    result_data = ['sku__sku_code', 'sku__sku_desc', 'sku__image_url',
+                   'tax', 'quantity', 'unit_price', 'approval_status',
+                   'shipment_date', 'approve_id']
+    approving_orders = ApprovingOrders.objects.filter(approve_id=approve_id)\
+                                      .values(*result_data)
+    for item in approving_orders:
+        sku_details = {'sku_code': item['sku__sku_code'],
+                       'sku_desc': item['sku__sku_desc'],
+                       'price': item['unit_price'],
+                       'tax': item['tax'],
+                       'image': item['sku__image_url']}
+        sku_details_list.append(sku_details)
+    return HttpResponse(json.dumps({'status': 'success', 'data': sku_details_list}))
 
 @get_admin_user
 @csrf_exempt

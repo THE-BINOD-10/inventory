@@ -11,7 +11,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.permissions = Session.roles.permissions;
     vm.user_profile = Session.user_profile;
 
-    vm.filters = {'datatable': 'SKUMaster', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':'', 'search6': ''}
+    vm.filters = {'datatable': 'SKUMaster', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':'', 'search6': '', 'search6': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url:  Session.url+'results_data/',
@@ -42,6 +42,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                         full.image_url = vm.service.check_image_url(full.image_url);
                         return '<img style="width: 35px;height: 40px;display: inline-block;margin-right: 10px;" src='+full.image_url+'>'+'<p style=";display: inline-block;">'+ full['WMS SKU Code'] +'</p>';
                         }),
+        DTColumnBuilder.newColumn('EAN Number').withTitle('EAN Number'),
         DTColumnBuilder.newColumn('Product Description').withTitle('Product Description'),
         DTColumnBuilder.newColumn('SKU Type').withTitle('SKU Type'),
         DTColumnBuilder.newColumn('SKU Category').withTitle('SKU Category'),

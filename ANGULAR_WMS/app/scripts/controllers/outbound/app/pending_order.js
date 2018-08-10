@@ -127,6 +127,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                       vm.title = "Modify Order Approvals";
                       $state.go('user.App.PendingOrder.PendingApprovalData');
                     }
+                  } else {
+                    vm.model_data.data = [vm.model_data];
+                    var test = {approve_id:"10006",approving_user_role:"hod",date:"10-08-2018",desc:"t-shrts",image:"",
+                    price:152,quantity:3,shipment_date:"",sku_code:"003",status:"pending",tax:5,user:"saipavan"};
+
+                    vm.model_data.data.push(test);
+                    $state.go('user.App.PendingOrder.PendingApprovalData');
                   }
                 });
             });

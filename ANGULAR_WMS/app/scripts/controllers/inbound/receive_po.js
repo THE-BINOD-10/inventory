@@ -411,10 +411,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if (form.$valid) {
 
         var abs_inv_value = vm.absOfInvValueTotal(vm.model_data.invoice_value, vm.skus_total_amount);
-        if (vm.permissions.receive_po_invoice_check && (abs_inv_value == 2 || abs_inv_value == 3)){
+        if (vm.permissions.receive_po_invoice_check && abs_inv_value <= 3){
 
           vm.save_sku();
-        } else if (vm.permissions.receive_po_invoice_check && (abs_inv_value > 3 || abs_inv_value < 2)) {
+        } else if (vm.permissions.receive_po_invoice_check && abs_inv_value <= 3) {
 
           colFilters.showNoty("Your entered invoice value and total value does not match");
         } else {
@@ -475,10 +475,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
         var abs_inv_value = vm.absOfInvValueTotal(vm.model_data.invoice_value, vm.skus_total_amount);
 
-        if (vm.permissions.receive_po_invoice_check && (abs_inv_value == 2 || abs_inv_value == 3)){
+        if (vm.permissions.receive_po_invoice_check && abs_inv_value <= 3){
 
           vm.confirm_grn_api();
-        } else if (vm.permissions.receive_po_invoice_check && (abs_inv_value > 3 || abs_inv_value < 2)) {
+        } else if (vm.permissions.receive_po_invoice_check && abs_inv_value <= 3) {
 
           colFilters.showNoty("Your entered invoice value and total value does not match");
         }

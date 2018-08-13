@@ -137,6 +137,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 vm.service.apiCall('get_supplier_data/', 'GET', {supplier_id: aData['DT_RowId']}).then(function(data){
                   if(data.message) {
                     vm.serial_numbers = [];
+                    vm.skus_total_amount = 0;
                     angular.copy(data.data, vm.model_data);
                     vm.title = "Generate GRN";
                     if (vm.industry_type == 'FMCG') {
@@ -408,34 +409,58 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.submit = submit;
     function submit(form) {
       if (form.$valid) {
-        var data = [];
 
-        for(var i=0; i<vm.model_data.data.length; i++)  {
-          angular.forEach(vm.model_data.data[i], function(sku){
-            if(!sku.is_new) {
-              data.push({name: sku.order_id, value: sku.value});
-            }
-          });
+        var abs_inv_value = vm.absOfInvValueTotal(vm.model_data.invoice_value, vm.skus_total_amount);
+        if (vm.permissions.receive_po_invoice_check && (abs_inv_value == 2 || abs_inv_value == 3)){
+
+          vm.save_sku();
+        } else if (vm.permissions.receive_po_invoice_check && (abs_inv_value > 3 || abs_inv_value < 2)) {
+
+          colFilters.showNoty("Your entered invoice value and total value does not match");
+        } else {
+
+          vm.save_sku();
         }
-        data.push({name: 'remarks', value: vm.model_data.remarks});
-        data.push({name: 'expected_date', value: vm.model_data.expected_date});
-        data.push({name: 'remainder_mail', value: vm.model_data.remainder_mail});
-        data.push({name: 'invoice_number', value: vm.model_data.invoice_number});
-        data.push({name: 'invoice_date', value: vm.model_data.invoice_date});
-        vm.service.apiCall('update_putaway/', 'GET', data, true).then(function(data){
-          if(data.message) {
-            if(data.data == 'Updated Successfully') {
-              vm.close();
-              vm.service.refresh(vm.dtInstance);
-            } else {
-              pop_msg(data.data);
-            }
-          }
-        });
       } else {
         colFilters.showNoty("Fill Required Fields");
       }
     }
+
+    vm.save_sku = function(){
+
+      var data = [];
+
+      for(var i=0; i<vm.model_data.data.length; i++)  {
+        angular.forEach(vm.model_data.data[i], function(sku){
+          if(!sku.is_new) {
+            data.push({name: sku.order_id, value: sku.value});
+          }
+        });
+      }
+
+      data.push({name: 'remarks', value: vm.model_data.remarks});
+      data.push({name: 'expected_date', value: vm.model_data.expected_date});
+      data.push({name: 'remainder_mail', value: vm.model_data.remainder_mail});
+      data.push({name: 'invoice_number', value: vm.model_data.invoice_number});
+      data.push({name: 'invoice_date', value: vm.model_data.invoice_date});
+      vm.service.apiCall('update_putaway/', 'GET', data, true).then(function(data){
+        if(data.message) {
+          if(data.data == 'Updated Successfully') {
+            vm.close();
+            vm.service.refresh(vm.dtInstance);
+          } else {
+            pop_msg(data.data);
+          }
+        }
+      });
+    }
+
+    vm.absOfInvValueTotal = function(inv_value, total_value){
+
+      return Math.abs(inv_value - total_value);
+    }
+
+    // vm.skus_total_amount 
 
     vm.html = "";
     vm.confirm_grn = function(form) {
@@ -446,44 +471,66 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       // data.push({name: 'exp_date', value: form.exp_date.$viewValue});
       // data.push({name: 'po_unit', value: form.po_unit.$viewValue});
       // data.push({name: 'tax_per', value: form.tax_per.$viewValue});
-    if(check_receive()){
-      var that = vm;
-      var elem = angular.element($('form'));
-      elem = elem[0];
+      if (vm.permissions.receive_po_invoice_check && vm.model_data.invoice_value){
 
-      var buy_price = parseInt($(elem).find('input[name="buy_price"]').val());
-      var mrp = parseInt($(elem).find('input[name="mrp"]').val());
+        var abs_inv_value = vm.absOfInvValueTotal(vm.model_data.invoice_value, vm.skus_total_amount);
 
-      if(buy_price > mrp) {
-        pop_msg("Buy Price should be less than or equal to MRP");
-        return false;
-      }
-      elem = $(elem).serializeArray();
-      var url = "confirm_grn/"
-      if(vm.po_qc) {
-        url = "confirm_receive_qc/"
-      }
-      vm.service.apiCall(url, 'POST', elem, true).then(function(data){
-        if(data.message) {
-          if(data.data.search("<div") != -1) {
-            vm.extra_width = {}
-            vm.html = $(data.data);
-            vm.extra_width = {}
-            //var html = $(vm.html).closest("form").clone();
-            //angular.element(".modal-body").html($(html).find(".modal-body"));
-            angular.element(".modal-body").html($(data.data));
-            vm.print_enable = true;
-            vm.service.refresh(vm.dtInstance);
-            if(vm.permissions.use_imei) {
-              fb.generate = true;
-              fb.remove_po(fb.poData["id"]);
-            }
-          } else {
-            pop_msg(data.data)
-          }
+        if (vm.permissions.receive_po_invoice_check && (abs_inv_value == 2 || abs_inv_value == 3)){
+
+          vm.confirm_grn_api();
+        } else if (vm.permissions.receive_po_invoice_check && (abs_inv_value > 3 || abs_inv_value < 2)) {
+
+          colFilters.showNoty("Your entered invoice value and total value does not match");
         }
-      });
-     }
+      } else if (vm.permissions.receive_po_invoice_check && !(vm.model_data.invoice_value)){
+
+        colFilters.showNoty("Please Fill The Invoice Value Field");
+      } else {
+
+        vm.confirm_grn_api();
+      }
+    }
+
+    vm.confirm_grn_api = function(){
+
+      if(check_receive()){
+        var that = vm;
+        var elem = angular.element($('form'));
+        elem = elem[0];
+
+        var buy_price = parseInt($(elem).find('input[name="buy_price"]').val());
+        var mrp = parseInt($(elem).find('input[name="mrp"]').val());
+
+        if(buy_price > mrp) {
+          pop_msg("Buy Price should be less than or equal to MRP");
+          return false;
+        }
+        elem = $(elem).serializeArray();
+        var url = "confirm_grn/"
+        if(vm.po_qc) {
+          url = "confirm_receive_qc/"
+        }
+        vm.service.apiCall(url, 'POST', elem, true).then(function(data){
+          if(data.message) {
+            if(data.data.search("<div") != -1) {
+              vm.extra_width = {}
+              vm.html = $(data.data);
+              vm.extra_width = {}
+              //var html = $(vm.html).closest("form").clone();
+              //angular.element(".modal-body").html($(html).find(".modal-body"));
+              angular.element(".modal-body").html($(data.data));
+              vm.print_enable = true;
+              vm.service.refresh(vm.dtInstance);
+              if(vm.permissions.use_imei) {
+                fb.generate = true;
+                fb.remove_po(fb.poData["id"]);
+              }
+            } else {
+              pop_msg(data.data)
+            }
+          }
+        });
+      }
     }
 
     function check_receive() {
@@ -1782,6 +1829,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     });
   }
 
+  vm.skus_total_amount = 0;
   vm.calc_total_amt = function(event, data, index, parent_index) {
       var sku_row_data = {};
       angular.copy(data.data[parent_index][index], sku_row_data);
@@ -1816,7 +1864,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             }
         }
       }
-
+      vm.skus_total_amount = totals;
       $('.totals').text('Totals: ' + totals);
     }
 }

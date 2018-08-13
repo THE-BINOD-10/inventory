@@ -866,11 +866,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
   }
 
   vm.add_order = function() {
-
     $state.go("app.outbound.ViewOrders.CreateOrder");
   }
-
-  //Desc, unit price
 
   vm.insert_order_data = function(data) {
     if (data.$valid) {

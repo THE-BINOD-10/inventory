@@ -336,24 +336,8 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
   }
 
  vm.base = function() {
-
     vm.title = "Create Custom SKU";
-    //vm.update = false;
-    //angular.copy(empty_data, vm.model_data);
-    //vm.service.apiCall('get_sku_field_names/','GET',{'field_type':'create_orders'}).then(function(data){
-
-    //  if(data.message) {
-	//vm.template_types = data.data.template_types;
-        //vm.template_types = data.data.template_types;
-        //vm.model_data.template_type = vm.template_types[0].field_name;
-        //vm.template_values = vm.template_types[0].field_data;
-    //    vm.model_data.template_type = vm.template_types[0].field_value;
-    //    vm.pop_data.sizes_list = data.data.sizes_list;
-    //  }
-    //})
   }
-
-
 
   vm.change_template_values = function(){
     angular.forEach(vm.template_types, function(data) {

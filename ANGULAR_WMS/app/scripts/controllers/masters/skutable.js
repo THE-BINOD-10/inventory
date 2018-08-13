@@ -238,7 +238,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.service.searched_wms_code = vm.model_data.sku_data.sku_code;
         $state.go('app.inbound.RaisePo.PurchaseOrder');
       } else if (vm.service.is_came_from_create_order) {
-        //vm.service.searched_wms_code = model_data.sku_data.sku_code;
         $state.go('app.outbound.CreateOrders');
       } else {
         $state.go('app.masters.SKUMaster');

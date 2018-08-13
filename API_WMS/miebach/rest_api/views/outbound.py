@@ -2868,6 +2868,7 @@ def order_approval_sku_details(request, user=''):
                        'sku_desc': item['sku__sku_desc'],
                        'price': item['unit_price'],
                        'tax': item['tax'],
+                       'quantity': item['quantity'],
                        'image': item['sku__image_url']}
         sku_details_list.append(sku_details)
     return HttpResponse(json.dumps({'status': 'success', 'data': sku_details_list}))

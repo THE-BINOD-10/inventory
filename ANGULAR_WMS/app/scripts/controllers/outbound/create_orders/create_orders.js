@@ -97,36 +97,38 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
   }
 
   vm.bt_disable = false;
-  vm.insert_order_data = function(form) {
-    if (form.$valid && vm.model_data.shipment_date && vm.model_data.shipment_time_slot) {
-      if(vm.model_data.blind_order) {
-      for(var i = 0; i < vm.model_data.data.length; i++) {
+  vm.insert_order_data = function(event, form) {
+    if (event.keyCode != 13) {
+      if (form.$valid && vm.model_data.shipment_date && vm.model_data.shipment_time_slot) {
+        if(vm.model_data.blind_order) {
+          for(var i = 0; i < vm.model_data.data.length; i++) {
 
-        if (vm.model_data.data[i].sku_id && (!vm.model_data.data[i].location)) {
+            if (vm.model_data.data[i].sku_id && (!vm.model_data.data[i].location)) {
 
-          colFilters.showNoty("Please locations");
-          return false;
-          break;
-        }
-      }
-      }
-      vm.bt_disable = true;
-      var elem = angular.element($('form'));
-      elem = elem[0];
-      elem = $(elem).serializeArray();
-      vm.service.apiCall('insert_order_data/', 'POST', elem).then(function(data){
-        if(data.message) {
-          if(data.data.indexOf("Success") != -1) {
-            angular.copy(empty_data, vm.model_data);
-            vm.final_data = {total_quantity:0,total_amount:0};
-            vm.from_custom_order = false;
+              colFilters.showNoty("Please locations");
+              return false;
+              break;
+            }
           }
-          colFilters.showNoty(data.data);
         }
-        vm.bt_disable = false;
-      })
-    } else {
-      colFilters.showNoty("Fill Required Fields");
+        vm.bt_disable = true;
+        var elem = angular.element($('form'));
+        elem = elem[0];
+        elem = $(elem).serializeArray();
+        vm.service.apiCall('insert_order_data/', 'POST', elem).then(function(data){
+          if(data.message) {
+            if(data.data.indexOf("Success") != -1) {
+              angular.copy(empty_data, vm.model_data);
+              vm.final_data = {total_quantity:0,total_amount:0};
+              vm.from_custom_order = false;
+            }
+            colFilters.showNoty(data.data);
+          }
+          vm.bt_disable = false;
+        })
+      } else {
+        colFilters.showNoty("Fill Required Fields");
+      }
     }
   }
   
@@ -1495,27 +1497,25 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     }
   }
 
-  vm.key_event = function(product, item, index) {
-    if (typeof(vm.model_data.customer_id) == "undefined" || vm.model_data.customer_id.length == 0){
-      return false;
-    } else {
-      var customer_id = vm.model_data.customer_id;
-      $http.get(Session.url+'get_create_order_mapping_values/?wms_code='+product.sku_id, {withCredentials : true}).success(function(data, status, headers, config) {
-        if(Object.keys(data).length){
-          //product.fields.price = data.price;
-          //product.fields.supplier_code = data.supplier_code;
-          //product.fields.sku.wms_code = data.sku;
-          //product.fields.ean_number = data.ean_number;
-          vm.model_data.data[index].sku_id = product.sku_id;
-        } else {
-          Service.searched_cust_id = customer_id;
-          Service.searched_wms_code = product.sku_id;
-          Service.is_came_from_create_order = true;
-          Service.create_order_data = vm.model_data.data;
-          Service.sku_id_index = index;
-          $state.go('app.masters.SKUMaster');
-        }
-      });
+  vm.key_event = function($event, product, item, index) {
+    if ($event.keyCode == 13) {
+      if (typeof(vm.model_data.customer_id) == "undefined" || vm.model_data.customer_id.length == 0){
+        return false;
+      } else {
+        var customer_id = vm.model_data.customer_id;
+        $http.get(Session.url+'get_create_order_mapping_values/?wms_code='+product.sku_id, {withCredentials : true}).success(function(data, status, headers, config) {
+          if(Object.keys(data).length){
+            vm.model_data.data[index].sku_id = product.sku_id;
+          } else {
+            Service.searched_cust_id = customer_id;
+            Service.searched_wms_code = product.sku_id;
+            Service.is_came_from_create_order = true;
+            Service.create_order_data = vm.model_data.data;
+            Service.sku_id_index = index;
+            $state.go('app.masters.SKUMaster');
+          }
+        });
+      }
     }
   }
 

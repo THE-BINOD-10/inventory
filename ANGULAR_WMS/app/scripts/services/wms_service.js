@@ -486,6 +486,30 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       });
     };
 
+    vm.showNotyNotHide = function (msg,type,$layout) {
+      if (!type) {
+        type = 'success';
+      }
+      if (!msg) {
+        msg = 'Success';
+      }
+      if (!$layout) {
+        $layout = 'topRight';
+      }
+      noty({
+        theme: 'urban-noty',
+        text: msg,
+        type: type,
+        layout: $layout,
+        closeWith: ['button', 'click'],
+        animation: {
+          open: 'in',
+          close: 'out',
+          easing: 'swing'
+        },
+      });
+    };
+
     /* State Refresh */
     vm.state_refresh = function() {
       $state.go($state.current, {}, {reload: true});
@@ -1451,3 +1475,6 @@ app.directive('discountNumber', function () {
       }
     });
   }])
+
+  
+

@@ -14,7 +14,7 @@
             <div class="col-md-8">
               <select class="form-control" name="invoice_type" ng-model="showCase.model_data.invoice_type">
                 <option value="" style="display:None;"></option>
-                <option ng-repeat="inv_type in showCase.create_order_data.invoice_types" ng-selected="$first" value="{{inv_type}}">{{inv_type}}</option>
+                <option ng-repeat="inv_type in showCase.create_order_data.invoice_types" ng-selected="showCase.model_data.invoice_type == inv_type" value="{{inv_type}}">{{inv_type}}</option>
               </select>
             </div>
           </div>

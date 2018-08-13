@@ -457,10 +457,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.absOfInvValueTotal = function(inv_value, total_value){
 
-      // if (vm.permissions.receive_po_invoice_check) {
-      //   vm.receive_po_invoice_check = true;
-        return Math.abs(inv_value - total_value);
-      // }
+      return Math.abs(inv_value - total_value);
     }
 
     // vm.skus_total_amount 

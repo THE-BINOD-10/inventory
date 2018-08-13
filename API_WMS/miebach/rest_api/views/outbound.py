@@ -2868,6 +2868,7 @@ def order_approval_sku_details(request, user=''):
                        'sku_desc': item['sku__sku_desc'],
                        'price': item['unit_price'],
                        'tax': item['tax'],
+                       'quantity': item['quantity'],
                        'image': item['sku__image_url']}
         sku_details_list.append(sku_details)
     return HttpResponse(json.dumps({'status': 'success', 'data': sku_details_list}))
@@ -2882,22 +2883,24 @@ def after_admin_approval(request, user=''):
     approval_status = request.POST.get('approval_status', '')
     user_id = user.id
     approve_id = request.POST.get('approve_id', '')
-    sku_code = request.POST.get('sku_code', '')
-    quantity = request.POST.get('quantity', '')
-    price = request.POST.get('price', '')
-    tax = request.POST.get('tax', '')
-    title = request.POST.get('sku_desc', '')
+    #sku_code = request.POST.get('sku_code', '')
+    #quantity = request.POST.get('quantity', '')
+    #price = request.POST.get('price', '')
+    #tax = request.POST.get('tax', '')
+    #title = request.POST.get('sku_desc', '')
     shipment_date = request.POST.get('shipment_date',None)
     order_summary = create_orders_data(request, user='')
     order_id = get_order_id(user.id)
     if shipment_date:
         shipment_date = datetime.datetime.strptime(shipment_date, "%m/%d/%Y")
         shipment_date = datetime.datetime.combine(shipment_date, datetime.datetime.min.time())
-    approve_status = ApprovingOrders.objects.filter(user_id=user.id, approve_id=approve_id, approval_status='accept',sku__sku_code = sku_code)
+    approve_status = ApprovingOrders.objects.filter(user_id=user.id, approve_id=approve_id, approval_status='accept')
     if shipment_date:
         approve_status.update(shipment_date =shipment_date)
 
-    for ap_status in approve_status: 
+    for ap_status in approve_status:
+        price = ap_status.unit_price
+        quantity = ap_status.quantity
         customer_user = CustomerUserMapping.objects.filter(user=ap_status.customer_user_id)
         customer_user_id = ''
         if customer_user:
@@ -2905,14 +2908,13 @@ def after_admin_approval(request, user=''):
         if order_summary:
             if not price:
                 price = 0
-            
             amt = int(quantity) * int(price)
             invoice_amount = amt + ((amt/100) * (ap_status.cgst_tax + ap_status.sgst_tax + ap_status.igst_tax + ap_status.igst_tax))
             admin_items.append([ap_status.sku.sku_desc, quantity, invoice_amount])
             items.append([ap_status.sku.sku_desc, quantity])
             detail_check = OrderDetail.objects.filter(order_id= order_id,sku_id= ap_status.sku_id,user = user.id,order_code = 'MN')
             data_dict = {'order_id':order_id, 'customer_id':customer_user_id, 'user':user_id,
-            'title':title, 'quantity':quantity,'invoice_amount':invoice_amount, 'sku_id':ap_status.sku_id,'shipment_date':shipment_date,'order_code':'MN','original_order_id':'MN'+str(order_id)}
+            'title':ap_status.sku.sku_desc, 'quantity':quantity,'invoice_amount':invoice_amount, 'sku_id':ap_status.sku_id,'shipment_date':shipment_date,'order_code':'MN','original_order_id':'MN'+str(order_id)}
             if detail_check:
                 detail_check.update(quantity= quantity,invoice_amount= invoice_amount)
             else:

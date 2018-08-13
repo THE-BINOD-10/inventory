@@ -2602,6 +2602,8 @@ def generate_barcodes(request, user=''):
     if myDict.has_key('order_id'):
         myDict.pop('order_id')
 
+    if myDict.has_key('format'):
+        myDict.pop('format')
     others = {}
     data_dict = [dict(l) for l in zip(*[[(i,k) for k in j] for i,j in myDict.items()])]
     if myDict.has_key('Label'):

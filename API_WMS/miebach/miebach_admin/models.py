@@ -828,7 +828,7 @@ class UserProfile(models.Model):
     bank_details = models.TextField(default='')
     industry_type = models.CharField(max_length=32, default='', blank=True)
     order_prefix = models.CharField(max_length=32, default='', null=True, blank=True)
-    #pan_number = models.CharField(max_length=64, default='', blank=True)
+    pan_number = models.CharField(max_length=64, default='', blank=True)
 
     class Meta:
         db_table = 'USER_PROFILE'

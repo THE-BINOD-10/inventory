@@ -973,6 +973,7 @@ def switches(request, user=''):
                        'customer_dc': 'customer_dc', 
                        'auto_expire_enq_limit': 'auto_expire_enq_limit',
                        'sales_return_reasons': 'sales_return_reasons',
+                       'receive_po_invoice_check': 'receive_po_invoice_check',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

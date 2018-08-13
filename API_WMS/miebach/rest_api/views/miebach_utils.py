@@ -1738,7 +1738,8 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'sellable_segregation': 'sellable_segregation', 'display_styles_price': 'display_styles_price',
                         'show_purchase_history':'show_purchase_history', 'auto_raise_stock_transfer': 'auto_raise_stock_transfer',
                         'invoice_based_payment_tracker': 'invoice_based_payment_tracker',
-                        'inbound_supplier_invoice': 'inbound_supplier_invoice', 'customer_dc': 'customer_dc'
+                        'inbound_supplier_invoice': 'inbound_supplier_invoice', 'customer_dc': 'customer_dc',
+                        'receive_po_invoice_check': 'receive_po_invoice_check'
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
@@ -4087,6 +4088,11 @@ def get_zone_target_summary_report_data(search_params, user, sub_user):
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
         search_parameters['creation_date__lt'] = search_params['to_date']
+    days_range = 0
+    if search_params.get('from_date', '') and search_params.get('to_date', ''):
+        from_date = search_params['from_date']
+        to_date = search_params['to_date']
+        days_range = (to_date - from_date).days
     orderdetail_objs = GenericOrderDetailMapping.objects.filter(customer_id__in=dist_customers)
     orderdetail_ids = list(orderdetail_objs.values_list('orderdetail_id', flat=True))
     for reseller in resellers:
@@ -4145,7 +4151,11 @@ def get_zone_target_summary_report_data(search_params, user, sub_user):
     totals_map = {}
     for zone_code, target in zone_targets.items():
         ytd_target = round((target/365) * days_passed, 2)
-        ytd_act_sale = round(achieved_map[zone_code]["net_amt"], 2)
+        zone_net_amt = achieved_map.get(zone_code, '')
+        if zone_net_amt:
+            ytd_act_sale = round(zone_net_amt["net_amt"], 2)
+        else:
+            ytd_act_sale = 0
         exc_short = ((ytd_act_sale - ytd_target)/ytd_target) * 100
         excess_shortfall = round(exc_short, 2)
         if 'Zone Target' not in totals_map:
@@ -4160,6 +4170,8 @@ def get_zone_target_summary_report_data(search_params, user, sub_user):
             totals_map['YTD Actual Sale'] = round(ytd_act_sale, 2)
         else:
             totals_map['YTD Actual Sale'] += round(ytd_act_sale, 2)
+        if days_range:
+            target = round(target/365 * days_range, 2)
         ord_dict = OrderedDict((('Zone Code', zone_code),
                                 ('Zone Target', target),
                                 ('YTD Targets', ytd_target),
@@ -4204,6 +4216,11 @@ def get_zone_target_detailed_report_data(search_params, user, sub_user):
                                                              datetime.time())
         search_parameters['creation_date__lt'] = search_params['to_date']
         date_filters['creation_date__lt'] = search_params['to_date']
+    days_range = 0
+    if search_params.get('from_date', '') and search_params.get('to_date', ''):
+        from_date = search_params['from_date']
+        to_date = search_params['to_date']
+        days_range = (to_date - from_date).days
     # if 'reseller_code' in search_params:
     #     res_ids = CustomerMaster.objects.filter(name__contains=search_params['reseller_code']).\
     #         values_list('id', flat=True)
@@ -4253,6 +4270,9 @@ def get_zone_target_detailed_report_data(search_params, user, sub_user):
     days_passed = (todays_date - start_date).days
 
     totals_map = {}
+    all_zones = set()
+    all_dists = set()
+    all_resellers = set()
     for target in target_vals:
         zone_code = target['distributor__userprofile__zone']
         zone_target = zone_targets[zone_code]
@@ -4286,15 +4306,18 @@ def get_zone_target_detailed_report_data(search_params, user, sub_user):
         if 'Zone Target' not in totals_map:
             totals_map['Zone Target'] = zone_target
         else:
-            totals_map['Zone Target'] += zone_target
+            if zone_code not in all_zones:
+                totals_map['Zone Target'] += zone_target
         if 'Distributor Target' not in totals_map:
             totals_map['Distributor Target'] = dist_target
         else:
-            totals_map['Distributor Target'] += dist_target
+            if dist_code not in all_dists:
+                totals_map['Distributor Target'] += dist_target
         if 'Reseller Target' not in totals_map:
             totals_map['Reseller Target'] = res_target
         else:
-            totals_map['Reseller Target'] += res_target
+            if reseller_code not in all_resellers:
+                totals_map['Reseller Target'] += res_target
         if 'Corporate Target' not in totals_map:
             totals_map['Corporate Target'] = corp_target
         else:
@@ -4307,6 +4330,14 @@ def get_zone_target_detailed_report_data(search_params, user, sub_user):
             totals_map['YTD Actual Sale'] = round(ytd_act_sale, 2)
         else:
             totals_map['YTD Actual Sale'] += round(ytd_act_sale, 2)
+        all_zones.add(zone_code)
+        all_dists.add(dist_code)
+        all_resellers.add(reseller_code)
+        if days_range:
+            zone_target = round(zone_target/365 * days_range, 2)
+            dist_target = round(dist_target/365 * days_range, 2)
+            res_target = round(res_target/365 * days_range, 2)
+            corp_target = round(corp_target/365 * days_range, 2)
         ord_dict = OrderedDict((('Zone Code', zone_code),
                                 ('Zone Target', zone_target),
                                 ('Distributor Code', dist_name),
@@ -4376,6 +4407,11 @@ def get_dist_target_summary_report_data(search_params, user, sub_user):
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
         search_parameters['creation_date__lt'] = search_params['to_date']
+    days_range = 0
+    if search_params.get('from_date', '') and search_params.get('to_date', ''):
+        from_date = search_params['from_date']
+        to_date = search_params['to_date']
+        days_range = (to_date - from_date).days
     if 'corporate_name' in search_params:
         corp_filtered_order_objs = GenericOrderDetailMapping.objects.\
             filter(client_name__icontains=search_params['corporate_name'], orderdetail_id__in=orderdetail_ids)
@@ -4440,6 +4476,8 @@ def get_dist_target_summary_report_data(search_params, user, sub_user):
             totals_map['YTD Actual Sale'] = round(ytd_act_sale, 2)
         else:
             totals_map['YTD Actual Sale'] += round(ytd_act_sale, 2)
+        if days_range:
+            dist_tgt = round(dist_tgt/365 * days_range, 2)
         ord_dict = OrderedDict((('Distributor Code', dist_code),
                                 ('Distributor Target', dist_tgt),
                                 ('YTD Targets', ytd_target),
@@ -4484,6 +4522,11 @@ def get_dist_target_detailed_report_data(search_params, user, sub_user):
                                                              datetime.time())
         search_parameters['creation_date__lt'] = search_params['to_date']
         date_filters['creation_date__lt'] = search_params['to_date']
+    days_range = 0
+    if search_params.get('from_date', '') and search_params.get('to_date', ''):
+        from_date = search_params['from_date']
+        to_date = search_params['to_date']
+        days_range = (to_date - from_date).days
     resellers = []
     res_dist_map = {}
     ord_res_map = {}
@@ -4566,6 +4609,8 @@ def get_dist_target_detailed_report_data(search_params, user, sub_user):
     days_passed = (todays_date - start_date).days
 
     totals_map = {}
+    all_dists = set()
+    all_resellers = set()
     for target in target_vals:
         dist_code = target['distributor__username']
         dist_target = dist_targets[dist_code]
@@ -4597,11 +4642,13 @@ def get_dist_target_detailed_report_data(search_params, user, sub_user):
         if 'Distributor Target' not in totals_map:
             totals_map['Distributor Target'] = dist_target
         else:
-            totals_map['Distributor Target'] += dist_target
+            if dist_code not in all_dists:
+                totals_map['Distributor Target'] += dist_target
         if 'Reseller Target' not in totals_map:
             totals_map['Reseller Target'] = res_target
         else:
-            totals_map['Reseller Target'] += res_target
+            if reseller_code not in all_resellers:
+                totals_map['Reseller Target'] += res_target
         if 'Corporate Target' not in totals_map:
             totals_map['Corporate Target'] = corp_target
         else:
@@ -4614,6 +4661,12 @@ def get_dist_target_detailed_report_data(search_params, user, sub_user):
             totals_map['YTD Actual Sale'] = round(ytd_act_sale, 2)
         else:
             totals_map['YTD Actual Sale'] += round(ytd_act_sale, 2)
+        all_dists.add(dist_code)
+        all_resellers.add(reseller_code)
+        if days_range:
+            dist_target = round(dist_target/365 * days_range, 2)
+            res_target = round(res_target/365 * days_range, 2)
+            corp_target = round(corp_target/365 * days_range, 2)
         ord_dict = OrderedDict((('Distributor Code', dist_name),
                                 ('Distributor Target', dist_target),
                                 ('Reseller Code', reseller_name),
@@ -4777,6 +4830,7 @@ def get_reseller_target_detailed_report_data(search_params, user, sub_user):
 
 
     totals_map = {}
+    all_resellers = set()
     for target in target_vals:
         reseller_code = target['reseller__username']
         reseller_usr_id = target['reseller_id']
@@ -4807,7 +4861,8 @@ def get_reseller_target_detailed_report_data(search_params, user, sub_user):
         if 'Reseller Target' not in totals_map:
             totals_map['Reseller Target'] = res_target
         else:
-            totals_map['Reseller Target'] += res_target
+            if reseller_code not in all_resellers:
+                totals_map['Reseller Target'] += res_target
         if 'Corporate Target' not in totals_map:
             totals_map['Corporate Target'] = corp_target
         else:
@@ -4820,6 +4875,8 @@ def get_reseller_target_detailed_report_data(search_params, user, sub_user):
             totals_map['YTD Actual Sale'] = round(ytd_act_sale, 2)
         else:
             totals_map['YTD Actual Sale'] += round(ytd_act_sale, 2)
+        all_resellers.add(reseller_code)
+
         ord_dict = OrderedDict((('Reseller Code', reseller_name),
                                 ('Reseller Target', res_target),
                                 ('Corporate Name', corp_name),

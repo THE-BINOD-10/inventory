@@ -245,13 +245,31 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       send['quantity'] = quantity
     }
 
+    if (vm.user_role == "admin" && vm.model_data.shipment_date) {
+
+      vm.update_cart_data(send);
+    } else if (vm.user_role == "admin" && !(vm.model_data.shipment_date)) {
+
+      vm.service.showNoty('Please fill required fields');
+    } else {
+
+      vm.update_cart_data(send);
+    }
+  }
+
+  vm.update_cart_data = function(send){
+
     vm.service.apiCall("update_cartdata_for_approval/", "POST", send).then(function(response){
+
         if(response.message) {
+
           if(response.data.message == "success") {
+
             vm.service.showNoty('Your Order Has Been Sent for Approval', "success", "topRight");
             vm.service.refresh(vm.dtInstance);
-          	vm.close_popup();
+            vm.close_popup();
           } else {
+
             vm.insert_cool = true;
             vm.data_status = true;
             vm.service.showNoty(response.data, "danger", "bottomRight");

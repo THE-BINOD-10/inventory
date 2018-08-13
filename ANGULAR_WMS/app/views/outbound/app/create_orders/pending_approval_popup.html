@@ -13,6 +13,12 @@
                 <input type="text" name="serial_no" class="form-control numvalid" ng-model="showCase.model_data.approve_id" ng-readonly="true">
               </div>
 	  		   </div>
+           <div ng-if="(showCase.user_role | lowercase) == 'admin'" class="col-md-4 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Shipment Date: * </label>
+                <input name="shipment_date" ui-jq="datepicker" ng-model="showCase.model_data.shipment_date" class="form-control stk-readonly" type="text" id="shipment_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}" ng-required="(showCase.user_role | lowercase) != 'admin'">
+              </div>
+            </div>
         </div>
         <!-- <div class="row"><hr></div> -->
         <div class="row" ng-repeat="sku in showCase.model_data.data">
@@ -64,13 +70,13 @@
                       <input type="text" name="tax" class="form-control numvalid" ng-model="sku.tax" ng-readonly="true">
                     </div>
                   </td>
-                  <td ng-if="(showCase.user_role | lowercase) == 'admin'">
+                  <!-- <td ng-if="(showCase.user_role | lowercase) == 'admin'">
                     <div class="form-group">
                       <label class="control-label"> Shipment Date: * </label>
                       <input name="shipment_date" ui-jq="datepicker" ng-if="!sku.shipment_date" ng-model="sku.shipment_date" class="form-control stk-readonly" type="text" id="shipment_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}" ng-readonly="sku.shipment_date">
                       <input type="text" name="shipment_date" ng-if="sku.shipment_date" class="form-control" ng-model="sku.shipment_date" ng-readonly="true">
                     </div>
-                  </td>
+                  </td> -->
                 </tr>
               </tbody>
             </table>

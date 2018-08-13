@@ -414,7 +414,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         if (vm.permissions.receive_po_invoice_check && abs_inv_value <= 3){
 
           vm.save_sku();
-        } else if (vm.permissions.receive_po_invoice_check && abs_inv_value <= 3) {
+        } else if (vm.permissions.receive_po_invoice_check && abs_inv_value >= 3) {
 
           colFilters.showNoty("Your entered invoice value and total value does not match");
         } else {
@@ -478,7 +478,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         if (vm.permissions.receive_po_invoice_check && abs_inv_value <= 3){
 
           vm.confirm_grn_api();
-        } else if (vm.permissions.receive_po_invoice_check && abs_inv_value <= 3) {
+        } else if (vm.permissions.receive_po_invoice_check && abs_inv_value >= 3) {
 
           colFilters.showNoty("Your entered invoice value and total value does not match");
         }

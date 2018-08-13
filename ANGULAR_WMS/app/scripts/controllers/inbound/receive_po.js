@@ -137,6 +137,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 vm.service.apiCall('get_supplier_data/', 'GET', {supplier_id: aData['DT_RowId']}).then(function(data){
                   if(data.message) {
                     vm.serial_numbers = [];
+                    vm.skus_total_amount = 0;
                     angular.copy(data.data, vm.model_data);
                     vm.title = "Generate GRN";
                     if (vm.industry_type == 'FMCG') {
@@ -408,34 +409,50 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.submit = submit;
     function submit(form) {
       if (form.$valid) {
-        var data = [];
+        
+        var abs_inv_value = vm.absOfInvValueTotal(vm.model_data.invoice_value, vm.skus_total_amount);
+        if (abs_inv_value == 2 || abs_inv_value == 3){
 
-        for(var i=0; i<vm.model_data.data.length; i++)  {
-          angular.forEach(vm.model_data.data[i], function(sku){
-            if(!sku.is_new) {
-              data.push({name: sku.order_id, value: sku.value});
+          var data = [];
+
+          for(var i=0; i<vm.model_data.data.length; i++)  {
+            angular.forEach(vm.model_data.data[i], function(sku){
+              if(!sku.is_new) {
+                data.push({name: sku.order_id, value: sku.value});
+              }
+            });
+          }
+
+          data.push({name: 'remarks', value: vm.model_data.remarks});
+          data.push({name: 'expected_date', value: vm.model_data.expected_date});
+          data.push({name: 'remainder_mail', value: vm.model_data.remainder_mail});
+          data.push({name: 'invoice_number', value: vm.model_data.invoice_number});
+          data.push({name: 'invoice_date', value: vm.model_data.invoice_date});
+          vm.service.apiCall('update_putaway/', 'GET', data, true).then(function(data){
+            if(data.message) {
+              if(data.data == 'Updated Successfully') {
+                vm.close();
+                vm.service.refresh(vm.dtInstance);
+              } else {
+                pop_msg(data.data);
+              }
             }
           });
+        } else {
+
+          colFilters.showNoty("Your entered invoice value and total value does not match");
         }
-        data.push({name: 'remarks', value: vm.model_data.remarks});
-        data.push({name: 'expected_date', value: vm.model_data.expected_date});
-        data.push({name: 'remainder_mail', value: vm.model_data.remainder_mail});
-        data.push({name: 'invoice_number', value: vm.model_data.invoice_number});
-        data.push({name: 'invoice_date', value: vm.model_data.invoice_date});
-        vm.service.apiCall('update_putaway/', 'GET', data, true).then(function(data){
-          if(data.message) {
-            if(data.data == 'Updated Successfully') {
-              vm.close();
-              vm.service.refresh(vm.dtInstance);
-            } else {
-              pop_msg(data.data);
-            }
-          }
-        });
       } else {
         colFilters.showNoty("Fill Required Fields");
       }
     }
+
+    vm.absOfInvValueTotal = function(inv_value, total_value){
+
+      return Math.abs(inv_value - total_value);
+    }
+
+    // vm.skus_total_amount 
 
     vm.html = "";
     vm.confirm_grn = function(form) {
@@ -1782,6 +1799,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     });
   }
 
+  vm.skus_total_amount = 0;
   vm.calc_total_amt = function(event, data, index, parent_index) {
       var sku_row_data = {};
       angular.copy(data.data[parent_index][index], sku_row_data);
@@ -1816,7 +1834,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             }
         }
       }
-
+      vm.skus_total_amount = totals;
       $('.totals').text('Totals: ' + totals);
     }
 }

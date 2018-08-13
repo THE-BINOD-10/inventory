@@ -816,10 +816,11 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
   vm.create_order_data = {}
   vm.get_create_order_data = function(){
     vm.service.apiCall("create_orders_data/").then(function(data){
-
       if(data.message) {
         vm.create_order_data = data.data;
-        vm.model_data.tax_type = '';
+        if(!Service.create_order_data.tax_type) {
+          vm.model_data.tax_type = '';
+        }
         vm.change_tax_type();
       }
     })

@@ -324,17 +324,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.service.raise_po_data.data[vm.service.sku_id_index].fields.dedicated_seller = ''
                   $state.go('app.inbound.RaisePo.PurchaseOrder');
                 } else if (vm.service.is_came_from_create_order && response.indexOf("Added") > -1) {
-                  vm.service.create_order_data[vm.service.sku_id_index].sku_id = vm.model_data.sku_data.sku_code;
-                  vm.service.create_order_data[vm.service.sku_id_index].description = vm.model_data.sku_data.sku_desc;
-                  vm.service.create_order_data[vm.service.sku_id_index].price = vm.model_data.sku_data.price;
-                  vm.service.create_order_data[vm.service.sku_id_index].capacity = ''
-                  vm.service.create_order_data[vm.service.sku_id_index].quantity = ''
-                  vm.service.create_order_data[vm.service.sku_id_index].mrp = ''
-                  vm.service.create_order_data[vm.service.sku_id_index].invoice_amount = ''
-                  vm.service.create_order_data[vm.service.sku_id_index].discount = ''
-                  vm.service.create_order_data[vm.service.sku_id_index].discount_percentage = ''
-                  vm.service.create_order_data[vm.service.sku_id_index].total_amount = ''
-                  vm.service.create_order_data[vm.service.sku_id_index].remarks = ''
+                  vm.service.create_order_data.data[vm.service.sku_id_index].sku_id = vm.model_data.sku_data.sku_code;
+                  vm.service.create_order_data.data[vm.service.sku_id_index].description = vm.model_data.sku_data.sku_desc;
+                  vm.service.create_order_data.data[vm.service.sku_id_index].price = vm.model_data.sku_data.price;
+                  vm.service.create_order_data.data[vm.service.sku_id_index].capacity = ''
+                  vm.service.create_order_data.data[vm.service.sku_id_index].quantity = ''
+                  vm.service.create_order_data.data[vm.service.sku_id_index].mrp = ''
+                  vm.service.create_order_data.data[vm.service.sku_id_index].invoice_amount = ''
+                  vm.service.create_order_data.data[vm.service.sku_id_index].discount = ''
+                  vm.service.create_order_data.data[vm.service.sku_id_index].discount_percentage = ''
+                  vm.service.create_order_data.data[vm.service.sku_id_index].total_amount = ''
+                  vm.service.create_order_data.data[vm.service.sku_id_index].remarks = ''
                   vm.service.searched_wms_code = vm.model_data.sku_data.sku_code;
                   $state.go('app.outbound.CreateOrders');
                 } else {

@@ -88,7 +88,7 @@
         <div class="col-md-4 col-sm-4 col-xs-6">
           <div class="form-group">
             <label class="control-label">Shipment Time Slot *</label>
-            <select ng-model="showCase.model_data.shipment_time_slot" ng-init = "showCase.model_data.shipment_time_slot = ''" class="form-control" name="shipment_time_slot">
+            <select ng-model="showCase.model_data.shipment_time_slot" class="form-control" name="shipment_time_slot">
               <option value="" ng-selected="showCase.model_data.shipment_time_slot == ''"></option>
               <option value="9:00 AM - 12:00 PM" ng-selected="showCase.model_data.shipment_time_slot == '9:00 AM - 12:00 PM'">9:00 AM - 12:00 PM</option>
               <option value="12:00 PM - 3:00 PM" ng-selected="showCase.model_data.shipment_time_slot == '12:00 PM - 3:00 PM'">12:00 PM - 3:00 PM</option>
@@ -115,7 +115,7 @@
             <label class="control-label">Mode of Transport</label>
             <select class="form-control" name="mode_of_transport" ng-model="showCase.model_data.mode_of_transport">
               <option value="">-- Select --</option>
-              <option ng-repeat="transport in showCase.create_order_data.mode_of_transport" value="{{transport}}">{{transport}}</option>
+              <option ng-repeat="transport in showCase.create_order_data.mode_of_transport" value="{{transport}}" ng-selected="showCase.model_data.mode_of_transport == transport">{{transport}}</option>
             </select>
           </div>
         </div>
@@ -124,7 +124,7 @@
             <label class="control-label">Payment Status</label>
             <select class="form-control" name="payment_status" ng-model="showCase.model_data.payment_status">
               <option value="">Select Payment Status</option>
-              <option ng-repeat="type in showCase.payment_status" value="{{type}}">{{type}}</option>
+              <option ng-repeat="type in showCase.payment_status" value="{{type}}" ng-selected="type == showCase.model_data.payment_status">{{type}}</option>
             </select>
           </div>
         </div>
@@ -364,7 +364,7 @@
       <div class="row mb10">
         <hr>
 	<div class="col-md-6 col-sm-6 col-xs-6">
-          <button class="btn btn-primary pull-right" style="margin: auto;display: block;" ng-disabled="showCase.bt_disable" ng-click="showCase.insert_order_data($event, form)">Create Order </button>
+          <button type="button" class="btn btn-primary pull-right" style="margin: auto;display: block;" ng-disabled="showCase.bt_disable" ng-click="showCase.insert_order_data($event, form)">Create Order </button>
 	</div>
         <div class="col-md-6 col-sm-6 col-xs-6">
 	  <button type="button" class="btn btn-primary pull-left" style="margin: auto;display: block;" ng-if="showCase.custom_order" ng-click="showCase.show()">Create Custom SKU</button>

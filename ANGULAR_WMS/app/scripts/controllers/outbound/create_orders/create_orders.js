@@ -353,27 +353,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     //})
   }
 
-  vm.assign_sku_id_from_sku_master = function() {
-    //vm.title = "Raise PO";
-    //vm.vendor_produce = false;
-    //vm.confirm_print = false;
-    //vm.update = false;
-    //vm.print_enable = false;
-    //vm.vendor_receipt = false;
-    //angular.copy(empty_data, vm.model_data);
-    //vm.model_data.seller_types = Data.seller_types;
-    if (vm.service.is_came_from_create_order) {
-      vm.model_data.customer_id = vm.service.searched_cust_id;
-      //vm.model_data.data[0].fields.sku.wms_code = vm.service.searched_wms_code;
-      //vm.model_data.data[0].sku_id = vm.service.searched_wms_code;
-      Service.is_came_from_create_order = false;
-      vm.model_data.data = Service.create_order_data;
-      vm.service.searched_cust_id = '';
-      vm.service.searched_wms_code = '';
-    }
-  }
 
-  vm.assign_sku_id_from_sku_master();
 
   vm.change_template_values = function(){
     angular.forEach(vm.template_types, function(data) {
@@ -1463,10 +1443,10 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
   vm.assign_tab_event = '';
   var array_list = ['SKU Code', 'Description']
   if (vm.model_data.blind_order) {
-	array_list = array_list.push('Location')
+	  array_list.push('Location')
   }
   if (vm.model_data.blind_order && vm.permissions.use_imei) {
-	array_list = array_list.push('Serial Scan')
+	  array_list.push('Serial Scan')
   }
   var a = ['Quantity', 'Unit Price', 'Amount', 'Discount', 'Discount Percentage']
   array_list = array_list.concat(a)
@@ -1475,7 +1455,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
 	array_list = array_list.concat(b)
   }
   if(vm.fields.indexOf('Tax') == -1 && vm.model_data.tax_type == 'inter_state') {
-    array_list = array_list.push('IGST(%)')
+    array_list.push('IGST(%)')
   }
   var c = ['Total Amount', 'Remarks']
   array_list = array_list.concat(c)
@@ -1510,8 +1490,10 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
             Service.searched_cust_id = customer_id;
             Service.searched_wms_code = product.sku_id;
             Service.is_came_from_create_order = true;
-            Service.create_order_data = vm.model_data.data;
+            Service.create_order_data = vm.model_data;
             Service.sku_id_index = index;
+            Service.create_order_auto_shipment = vm.auto_shipment;
+            Service.create_order_custom_order = vm.custom_order;
             $state.go('app.masters.SKUMaster');
           }
         });
@@ -1519,6 +1501,18 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     }
   }
 
+  vm.assign_sku_id_from_sku_master = function() {
+    if (vm.service.is_came_from_create_order) {
+      vm.model_data.customer_id = vm.service.searched_cust_id;
+      Service.is_came_from_create_order = false;
+      vm.model_data = Service.create_order_data;
+      vm.auto_shipment = Service.create_order_auto_shipment;
+      vm.custom_order = Service.create_order_custom_order;
+      vm.service.searched_cust_id = '';
+      vm.service.searched_wms_code = '';
+    }
+  }
+  vm.assign_sku_id_from_sku_master();
 }
 angular
   .module('urbanApp')

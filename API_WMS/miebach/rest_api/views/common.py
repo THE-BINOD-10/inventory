@@ -1754,7 +1754,9 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
         all_stocks.update(quantity=0)
         location[0].filled_capacity = 0
         location[0].save()
-
+        if seller_master_id:
+            SellerStock.objects.filter(seller_id=seller_master_id,
+                                       stock_id__in=list(all_stocks.values_list('id', flat=True))).update(quantity=0)
     data_dict = copy.deepcopy(CYCLE_COUNT_FIELDS)
     data_dict['cycle'] = cycle_id
     data_dict['sku_id'] = sku_id
@@ -5931,8 +5933,21 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
             picklist_data['order_type'] = 'combo'
             members = []
             combo_data = sku_combos.filter(parent_sku_id=order.sku.id)
+            if not seller_order:
+                order_check_quantity = float(order.quantity)
+            else:
+                order_check_quantity = float(seller_order.quantity)
             for combo in combo_data:
                 members.append(combo.member_sku)
+                stock_detail, stock_quantity, sku_code = get_sku_stock(request, combo.member_sku, sku_stocks, user,
+                                                                       val_dict,
+                                                                       sku_id_stocks, add_mrp_filter=add_mrp_filter,
+                                                                       needed_mrp_filter=needed_mrp_filter)
+                if stock_quantity < float(order_check_quantity):
+                    if not no_stock_switch:
+                        stock_status.append(str(combo.member_sku.sku_code))
+                        members = []
+                        continue
 
         for member in members:
             stock_detail, stock_quantity, sku_code = get_sku_stock(request, member, sku_stocks, user, val_dict,

@@ -5947,7 +5947,7 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
                     if not no_stock_switch:
                         stock_status.append(str(combo.member_sku.sku_code))
                         members = []
-                        continue
+                        break
 
         for member in members:
             stock_detail, stock_quantity, sku_code = get_sku_stock(request, member, sku_stocks, user, val_dict,

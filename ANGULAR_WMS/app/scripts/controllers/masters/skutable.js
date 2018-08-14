@@ -327,7 +327,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.service.create_order_data.data[vm.service.sku_id_index].description = vm.model_data.sku_data.sku_desc;
                   vm.service.create_order_data.data[vm.service.sku_id_index].price = vm.model_data.sku_data.price;
                   vm.service.create_order_data.data[vm.service.sku_id_index].capacity = ''
-                  vm.service.create_order_data.data[vm.service.sku_id_index].quantity = ''
+                  vm.service.create_order_data.data[vm.service.sku_id_index].quantity = 1
                   vm.service.create_order_data.data[vm.service.sku_id_index].mrp = ''
                   vm.service.create_order_data.data[vm.service.sku_id_index].invoice_amount = ''
                   vm.service.create_order_data.data[vm.service.sku_id_index].discount = ''

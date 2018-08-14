@@ -83,6 +83,33 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     }
   }
 
+  /*Rating module start*/
+  vm.marginData = {margin_type: ''};
+  function customerRating() {
+ 
+    var mod_data = vm.marginData;
+    var modalInstance = $modal.open({
+      // templateUrl: 'views/outbound/app/create_orders/add_margin.html',
+      templateUrl: 'views/outbound/app/create_orders/rating_toggle/customer_rating.html',
+      controller: 'customerRatingCtrl',
+      controllerAs: '$ctrl',
+      size: 'md',
+      backdrop: 'static',
+      keyboard: false,
+      resolve: {
+        items: function () {
+          return mod_data;
+        }
+      }
+    });
+
+    modalInstance.result.then(function (selectedItem) {
+      console.log(selectedItem);
+    })
+  }
+  customerRating();
+  /*Rating module end*/
+
   function change_filter_data() {
     var data = {brand: vm.brand, category: vm.category, is_catalog: true, sale_through: vm.order_type_value};
     vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
@@ -1572,5 +1599,70 @@ angular.module('urbanApp').controller('changePWDCtrl', function ($modalInstance,
   };
 });
 
+angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInstance, $modal, items, Service, Session) {
+  var vm = this;
+  vm.user_type = Session.roles.permissions.user_type;
+  vm.model_data = items;
+  vm.service = Service;
 
+  vm.selStars = 0; // initial stars count
+  vm.maxStars = 5;
+
+  vm.getStarArray = function() {
+    var result = [];
+    for (var i = 1; i <= vm.maxStars; i++)
+      result.push(i);
+    return result;
+  };
+
+  vm.getClass = function(value) {
+    return 'glyphicon glyphicon-star' + (vm.selStars >= value ? '' : '-empty');
+  };
+
+  vm.setClass = function(sender, value) {
+    vm.selStars = value;
+    sender.currentTarget.setAttribute('class', vm.getClass(value));
+  };
+  
+  // vm.check_validation = function(){
+  //   if (vm.confirm_pwd) {
+  //     if (vm.new_pwd !== vm.confirm_pwd) {
+  //       vm.service.showNoty("New password does not match with confirm password plase check it once");
+  //     }
+  //   }
+  // }
+
+  // vm.ok = function (form) {
+
+  //   if(form.$invalid) {
+  //     return false;
+  //   }
+  //   if (vm.new_pwd !== vm.confirm_pwd) {
+  //     return false;
+  //   }
+  //   if (vm.exe_pwd == vm.new_pwd && vm.new_pwd == vm.confirm_pwd) {
+  //     vm.service.showNoty('Sorry, Your old password and new password is same. Please try again.');
+  //     return false;
+  //   }
+
+  //   var data = {old_password: vm.exe_pwd,  new_password: vm.new_pwd,  retype_password: vm.confirm_pwd}
+  //   Service.apiCall("change_user_password/", "POST", data).then(function(response) {
+  //     if (response.message) {
+  //       if(response.data.msg) {
+  //         vm.service.showNoty(response.data.data);
+
+  //         $modalInstance.close(response.data.msg);
+  //       } else {
+  //         vm.service.showNoty(response.data.data);
+  //       }
+  //     } else {
+  //       vm.service.showNoty('Something went wrong');
+  //     }
+  //   });
+  // };
+
+  // vm.cancel = function () {
+  //   $modalInstance.dismiss('cancel');
+  // };
+});
 })();

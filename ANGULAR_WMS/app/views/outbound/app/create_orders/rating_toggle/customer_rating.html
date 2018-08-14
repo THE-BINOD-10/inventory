@@ -1,0 +1,26 @@
+<style type="text/css">
+  .glyphicon {
+    color: gold;
+    cursor: pointer;
+    font-size: 1.25em;
+  }
+</style>
+
+<form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
+<div class="modal-header">
+  <h4 class="modal-title" id="modal-title">CHANGE PASSWORD</h4>
+</div>
+<div class="modal-body" id="modal-body">
+  <div class="row">
+    <div class="col-md-2 col-sm-12 col-xs-12"></div>
+
+    <div ng-repeat="n in $ctrl.getStarArray()" ng-class="$ctrl.getClass(n)" ng-click="$ctrl.setClass($event,n)"></div>
+    <p>You have chosen {{$ctrl.selStars}} stars</p>
+
+  </div>
+</div>
+<div class="modal-footer">
+  <button class="btn btn-warning" type="button" ng-click="$ctrl.cancel()">Close</button>
+  <button class="btn btn-primary" type="submit" ng-click="$ctrl.ok(form)">Change Password</button>
+</div>
+</form>

@@ -54,7 +54,7 @@
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label">Update TDS </label>
-                  <input type="text" name="update_tds" class="form-control" ng-model="showCase.model_data.update_tds" ng-class="service.get_decimal_perm()">
+                  <input type="text" name="update_tds" class="form-control" ng-model="showCase.model_data.update_tds" ng-class="service.get_decimal_perm()" ng-change="showCase.tdsValidation(showCase.model_data.update_tds, showCase.model_data.balance)" ng-readonly="!showCase.model_data.balance && !showCase.model_data.update_tds">
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6">

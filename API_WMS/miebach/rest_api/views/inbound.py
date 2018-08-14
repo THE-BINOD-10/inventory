@@ -7369,7 +7369,10 @@ def get_debit_note_data(rtv_number, user):
                                             data_dict_item['igst_value'] + data_dict_item['sgst_value'] + data_dict_item['utgst_value'] + \
                                             data_dict_item['cess_value']
         data_dict['rtv_creation_date'] = get_local_date(user, obj.creation_date)
-        data_dict['date_of_issue_of_original_invoice'] = get_local_date(user, obj.seller_po_summary.creation_date)
+        data_dict['grn_date'] = get_local_date(user, obj.seller_po_summary.creation_date)
+        data_dict['date_of_issue_of_original_invoice'] = ''
+        if obj.seller_po_summary.invoice_date:
+            data_dict['date_of_issue_of_original_invoice'] = obj.seller_po_summary.invoice_date.strftime("%d %b, %Y")
         total_with_gsts = total_with_gsts + data_dict_item['total_with_gsts']
         total_qty = total_qty + data_dict_item['order_qty']
         total_invoice_value = total_invoice_value + data_dict_item['total_with_gsts']

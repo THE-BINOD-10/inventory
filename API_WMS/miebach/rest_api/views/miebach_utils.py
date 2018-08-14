@@ -2701,7 +2701,15 @@ def get_daily_production_data(search_params, user, sub_user):
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
-    all_data = OrderedDict()
+    #all_data = OrderedDict()
+    sort_keys = OrderedDict((('Date', 'creation_date'), ('Job Order', 'job_code'),('JO Creation Date', 'creation_date'),
+                            ('SKU Class', 'product_code__sku_class'), ('SKU Code', 'product_code__sku_code'),
+                            ('Brand', 'product_code__sku_brand'), ('SKU Category', 'product_code__sku_category'),
+                            ('Total JO Quantity', 'product_quantity'),
+                            ('Reduced Quantity', 'quantity'),
+                            ('Stage', 'processed_stage')))
+    order_term = search_params.get('order_term', '')
+    order_index = search_params.get('order_index', '')
     cmp_data = ('sku_code', 'sku_brand', 'sku_class', 'sku_category')
     job_filter = {}
     for data in cmp_data:
@@ -2729,52 +2737,71 @@ def get_daily_production_data(search_params, user, sub_user):
     if 'to_date' in search_params:
         status_filter['creation_date__lte'] = datetime.datetime.combine(
             search_params['to_date'] + datetime.timedelta(1), datetime.time())
-    status_summary = StatusTrackingSummary.objects.filter(**status_filter)
-
-    job_order_ids = job_orders.values_list('job_code', flat=True).distinct()
-
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
+    status_tracking_objs = StatusTrackingSummary.objects.filter(**status_filter)
+    col_sorted = False
+    if sort_keys.keys()[order_index] in ['Date', 'Reduced Quantity', 'Stage']:
+        order_data = sort_keys.values()[order_index]
+        if order_term == 'desc':
+            order_data = '-%s' % order_data
+        status_tracking_objs = status_tracking_objs.order_by(order_data)
+    status_summary = status_tracking_objs.annotate(grouping_val=Concat('status_tracking__status_id',
+                                                                             Value('<<>>'), 'processed_stage',
+                                                                             output_field=CharField())).\
+                                                values('grouping_val').distinct().\
+                                                    annotate(tsum=Sum('processed_quantity'))
 
-    for summary in status_summary:
+    temp_data['recordsTotal'] = status_summary.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    if sort_keys.keys()[order_index] in ['Date', 'Reduced Quantity', 'Stage']:
+        col_sorted = True
+        status_summary = status_summary[start_index:stop_index]
+    data = []
+    for summary_dict in status_summary:
+        temp_val = summary_dict['grouping_val'].split('<<>>')
+        summary = StatusTrackingSummary.objects.filter(status_tracking__status_id=temp_val[0],
+                                                       processed_stage=temp_val[1])[0]
         job_order = job_orders.get(id=summary.status_tracking.status_id)
         summary_date = get_local_date(user, summary.creation_date).split(' ')
         summary_date = ' '.join(summary_date[0:3])
         jo_creation_date = get_local_date(user, job_order.creation_date).split(' ')
         jo_creation_date = ' '.join(jo_creation_date[0:3])
-        cond = (summary_date, job_order.job_code, jo_creation_date, job_order.product_code.sku_class,
-                job_order.product_code.sku_code,
-                job_order.product_code.sku_brand, job_order.product_code.sku_category, job_order.product_quantity,
-                summary.processed_stage)
-        all_data.setdefault(cond, 0)
-        all_data[cond] += float(summary.processed_quantity)
+        # cond = (summary_date, job_order.job_code, jo_creation_date, job_order.product_code.sku_class,
+        #         job_order.product_code.sku_code,
+        #         job_order.product_code.sku_brand, job_order.product_code.sku_category, job_order.product_quantity,
+        #         summary.processed_stage)
+        data.append(OrderedDict((('Date', summary_date), ('Job Order', job_order.job_code),
+                                               ('JO Creation Date', jo_creation_date),
+                                               ('SKU Class', job_order.product_code.sku_class),
+                                               ('SKU Code', job_order.product_code.sku_code),
+                                               ('Brand', job_order.product_code.sku_brand),
+                                               ('SKU Category', job_order.product_code.sku_category),
+                                               ('Total JO Quantity', job_order.product_quantity),
+                                               ('Reduced Quantity', summary_dict['tsum']),
+                                               ('Stage', summary.processed_stage)
+                         )))
+        #all_data[cond]['Reduced Quantity'] += float(summary.processed_quantity)
         # job_code = filter(lambda job_code_ids: job_code_ids['id'] == summary.status_tracking.status_id, job_code_ids)
 
-    data = []
-    temp_data['recordsTotal'] = len(all_data.keys())
-    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    #data = all_data.values()
+    # for key in all_data_keys:
+    #     data.append(
+    #         OrderedDict((('Date', key[0]), ('Job Order', key[1]), ('JO Creation Date', key[2]), ('SKU Class', key[3]),
+    #                      ('SKU Code', key[4]), ('Brand', key[5]), ('SKU Category', key[6]),
+    #                      ('Total JO Quantity', key[7]),
+    #                      ('Reduced Quantity', all_data[key]), ('Stage', key[8])
+    #                      )))
 
-    order_term = search_params.get('order_term', '')
-    order_index = search_params.get('order_index', '')
-
-    all_data_keys = all_data.keys()
-    for key in all_data_keys:
-        data.append(
-            OrderedDict((('Date', key[0]), ('Job Order', key[1]), ('JO Creation Date', key[2]), ('SKU Class', key[3]),
-                         ('SKU Code', key[4]), ('Brand', key[5]), ('SKU Category', key[6]),
-                         ('Total JO Quantity', key[7]),
-                         ('Reduced Quantity', all_data[key]), ('Stage', key[8])
-                         )))
-
-    if data:
+    if data and not col_sorted:
         if order_term == 'asc' and order_index:
             data = sorted(data, key=itemgetter(data[0].keys()[order_index]))
         elif order_index or (order_index == 0 and order_term == 'desc'):
             data = sorted(data, key=itemgetter(data[0].keys()[order_index]), reverse=True)
 
     temp_data['aaData'] = data
-    if stop_index:
-        temp_data['aaData'] = data[start_index:stop_index]
+    # if stop_index:
+    #     temp_data['aaData'] = data[start_index:stop_index]
 
     return temp_data
 

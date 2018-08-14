@@ -1008,6 +1008,8 @@ class JOMaterial(models.Model):
 
     class Meta:
         db_table = 'JO_MATERIAL'
+        index_together = (('job_order', 'material_code'), ('job_order', 'material_code', 'status'),
+                            ('job_order', 'material_code', 'status', 'material_quantity'))
 
 
 class MaterialPicklist(models.Model):
@@ -1020,6 +1022,7 @@ class MaterialPicklist(models.Model):
 
     class Meta:
         db_table = 'MATERIAL_PICKLIST'
+        index_together = (('jo_material', 'status'), ('jo_material', 'status', 'reserved_quantity'))
 
 
 class RMLocation(models.Model):
@@ -1034,6 +1037,7 @@ class RMLocation(models.Model):
 
     class Meta:
         db_table = 'RM_LOCATION'
+        index_together = (('material_picklist', 'stock'), ('material_picklist', 'stock', 'status'), ('material_picklist', 'stock', 'status', 'reserved'))
 
 
 class SKURelation(models.Model):
@@ -1064,6 +1068,7 @@ class StatusTracking(models.Model):
 
     class Meta:
         db_table = 'STATUS_TRACKING'
+        index_together = (('status_id', 'status_type'),('status_type', 'status_value', 'quantity'), ('status_id', 'status_type', 'status_value'))
 
 
 class StatusTrackingSummary(models.Model):
@@ -1076,6 +1081,7 @@ class StatusTrackingSummary(models.Model):
 
     class Meta:
         db_table = 'STATUS_TRACKING_SUMMARY'
+        index_together = (('status_tracking', 'processed_stage'), ('status_tracking', 'processed_stage', 'processed_quantity'))
 
 
 class BOMMaster(models.Model):

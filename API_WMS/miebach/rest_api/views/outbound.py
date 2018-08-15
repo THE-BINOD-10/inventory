@@ -3995,6 +3995,36 @@ def create_stock_transfer(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+def stock_transfer_delete(request, user=""):
+    """ This code will delete the stock tranfer and po selected"""
+
+    st_time = datetime.datetime.now()
+    log.info('Request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    log.info("deletion of stock transfer order process started")
+    transfer_order_id = request.GET.get("order_id", "")
+
+    try:
+        stock_transfer = StockTransfer.objects.filter(sku__user=user.id, status=1, order_id=transfer_order_id)
+        st_po = stock_transfer[0].st_po
+        po = st_po.po
+        open_st = st_po.open_st
+        open_st.delete()
+        po.delete()
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info(e)
+
+    end_time = datetime.datetime.now()
+    duration = end_time - st_time
+    log.info("process completed")
+    log.info("total time -- %s" % (duration))
+    return HttpResponse("Order is deleted")
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def get_marketplaces_list(request, user=''):
     status_type = request.GET.get('status', '')
     marketplace = get_marketplace_names(user, status_type)

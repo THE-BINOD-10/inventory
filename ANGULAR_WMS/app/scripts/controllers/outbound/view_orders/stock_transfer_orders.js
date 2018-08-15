@@ -271,7 +271,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       delete_data['order_id'] = ord_id;
       // delete_data['order_id_code'] = vm.order_id_code;
 
-      vm.service.apiCall('close_receive_po/', 'GET', delete_data).then(function(data){
+      vm.service.apiCall('stock_transfer_delete/', 'GET', delete_data).then(function(data){
 
           if (data.message) {
 

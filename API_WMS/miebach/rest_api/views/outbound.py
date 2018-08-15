@@ -5883,7 +5883,8 @@ def get_outbound_payment_report(start_index, stop_index, temp_data, search_term,
     lis = ['payment_id', 'payment_date', 'order__sellerordersummary__invoice_number', 'order__customer_name']#for filter purpose
     user_filter = {'order__user': user.id}
     result_values = ['payment_id', 'payment_date', 'order__sellerordersummary__invoice_number',
-                     'mode_of_pay', 'remarks', 'order__customer_name', 'order__customer_id']#to make distinct grouping
+                     'mode_of_pay', 'remarks', 'order__customer_name', 'order__customer_id',
+                     'order__invoice_amount', 'payment_received']#to make distinct grouping
     #filter
     if from_date:
         from_date = datetime.datetime.strptime(from_date, '%m/%d/%Y')
@@ -5924,7 +5925,7 @@ def get_outbound_payment_report(start_index, stop_index, temp_data, search_term,
                             .values_list('order__customer_id', 'order__sellerordersummary__invoice_number', 'tot_rcvd_amt')
     competed_inv_nos = []
     for item in all_received_amounts:
-        if item in all_invoice_numbers:
+        #if item in all_invoice_numbers:
             competed_inv_nos.append(item[1])
     if search_term:
         search_term = search_term.replace('(', '\(').replace(')', '\)')

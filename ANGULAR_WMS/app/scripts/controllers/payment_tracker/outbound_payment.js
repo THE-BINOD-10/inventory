@@ -191,7 +191,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
       if (!vm.model_data.balance) {
 
+        angular.forEach(vm.dt_rows_changed, function(row){
+
+          row.bank_name = vm.model_data.bank_name;
+          row.date = vm.model_data.date;
+          row.mode_of_pay = vm.model_data.mode_of_pay;
+          row.neft_cheque = vm.model_data.neft_cheque;
+          row.update_tds = vm.model_data.update_tds;
+          row.neft_cheque = vm.model_data.neft_cheque;  
+        });
+
         var elem = {'data': vm.dt_rows_changed};
+
         vm.service.apiCall('update_payment_status/', 'POST', elem).then(function(data){
           if(data.message) {
             vm.service.showNoty(data.data.message);

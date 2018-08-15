@@ -96,6 +96,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     }
 
     vm.change_payment = function(payment){
+      
       vm.model_data.balance = payment;
 
       if (vm.dt_rows_changed) {
@@ -111,8 +112,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
         vm.model_data.balance = Number(payment) - Number(total_amt);
       }
+
+      vm.bkp_balance = vm.model_data.balance;
     }
 
+    vm.bkp_tds = 0;
     vm.dt_rows_changed = [];
     vm.calDtRowAmount = function(event, data){
 
@@ -137,6 +141,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             data.update_tds = vm.model_data.update_tds;
             vm.model_data.balance = data.balance;
 
+            vm.bkp_balance = vm.model_data.balance;
+            if (vm.model_data.update_tds) {
+
+              vm.bkp_tds = vm.model_data.update_tds;
+            }
+
             vm.dt_rows_changed.push(data);
             var mark_paid = JSON.parse(localStorage.getItem("mark_paid"));
             mark_paid[data.invoice_number] = data.amount;
@@ -154,6 +164,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             if (data.invoice_number == vm.dt_rows_changed[i]['invoice_number']) {
 
               vm.model_data.balance = Number(vm.model_data.balance) + vm.dt_rows_changed[i]['amount'];
+              vm.bkp_balance = vm.model_data.balance;
+              if (vm.model_data.update_tds) {
+
+                vm.bkp_tds = vm.model_data.update_tds;
+              }
               vm.dt_rows_changed.splice(i,1);
               delete mark_paid[data.invoice_number];
               localStorage.setItem("mark_paid", JSON.stringify(mark_paid));
@@ -302,7 +317,26 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       }
     }
 
+    vm.tdsValidation = function(tds_value, balance){
 
+      if (vm.bkp_tds) {
+
+        vm.model_data.balance = vm.model_data.balance + (vm.bkp_tds - tds_value);
+        vm.bkp_tds = tds_value;
+        vm.bkp_balance = vm.model_data.balance;
+      } else {
+
+        if (tds_value > vm.bkp_balance) {
+
+          vm.service.showNoty('You can reduce only '+vm.bkp_balance+' rupees');
+          vm.model_data.update_tds = vm.bkp_balance;
+          vm.model_data.balance = 0;
+        } else {
+
+          vm.model_data.balance = (vm.bkp_balance - tds_value);
+        }
+      }
+    }
 
     vm.check_selected = function(opt, name) {
       if(!vm.model_data[name]) {

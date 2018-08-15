@@ -1604,8 +1604,13 @@ angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInst
   vm.user_type = Session.roles.permissions.user_type;
   vm.model_data = items;
   vm.service = Service;
+  vm.sel_rate = 'Very Good';
+  vm.rate_cls = 'alert-info';
+  vm.rate_query = "What you didn't like!";
+  vm.reasons = [{'reason':'Reason-1','selected':true},{'reason':'Reason-2','selected':false},{'reason':'Reason-3','selected':false},
+                {'reason':'Reason-4','selected':false},{'reason':'Reason-5','selected':false},{'reason':'Reason-6','selected':false}];
 
-  vm.selStars = 0; // initial stars count
+  vm.selStars = 4; // initial stars count
   vm.maxStars = 5;
 
   vm.getStarArray = function() {
@@ -1620,9 +1625,48 @@ angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInst
   };
 
   vm.setClass = function(sender, value) {
+
     vm.selStars = value;
     sender.currentTarget.setAttribute('class', vm.getClass(value));
+    vm.rate_query = "What you didn't like!";
+
+    if (value == 1) {
+
+      vm.sel_rate = 'Poor';
+      vm.rate_cls = 'alert-danger';
+    } else if (value == 2) {
+
+      vm.sel_rate = 'Average';
+      vm.rate_cls = 'alert-danger';
+    } else if (value == 3) {
+
+      vm.sel_rate = 'Good';
+      vm.rate_cls = 'alert-warning';
+    } else if (value == 4) {
+
+      vm.sel_rate = 'Very Good';
+      vm.rate_cls = 'alert-info';
+    } else if (value == 5) {
+
+      vm.sel_rate = 'Excellent';
+      vm.rate_cls = 'alert-success';
+      vm.rate_query = "What you like!";
+    }
   };
+  
+  vm.sel_reason = {'background-color':'#563d7c','color':'#fff'};
+
+  vm.resReason = function(data){
+
+    angular.forEach(vm.reasons, function(row){
+
+      if (row.reason == data.reason) {
+        row.selected = true;
+      } else {
+        row.selected = false;
+      }
+    });
+  }
   
   // vm.check_validation = function(){
   //   if (vm.confirm_pwd) {
@@ -1661,8 +1705,8 @@ angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInst
   //   });
   // };
 
-  // vm.cancel = function () {
-  //   $modalInstance.dismiss('cancel');
-  // };
+  vm.cancel = function () {
+    $modalInstance.dismiss('cancel');
+  };
 });
 })();

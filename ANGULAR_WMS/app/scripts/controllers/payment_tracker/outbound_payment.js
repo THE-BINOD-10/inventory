@@ -97,7 +97,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
     vm.change_payment = function(payment){
       
-      vm.model_data.balance = payment;
+      if (vm.model_data.update_tds) {
+
+        vm.model_data.balance = payment - vm.model_data.update_tds;
+      } else {
+
+        vm.model_data.balance = payment;
+      }
 
       if (vm.dt_rows_changed) {
 

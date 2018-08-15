@@ -1607,7 +1607,7 @@ angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInst
   vm.sel_rate = 'Very Good';
   vm.rate_cls = 'alert-info';
   vm.rate_query = "What you didn't like!";
-  vm.reasons = [{'reason':'Reason-1','selected':true},{'reason':'Reason-2','selected':false},{'reason':'Reason-3','selected':false},
+  vm.reasons = [{'reason':'Reason-1','selected':false},{'reason':'Reason-2','selected':false},{'reason':'Reason-3','selected':false},
                 {'reason':'Reason-4','selected':false},{'reason':'Reason-5','selected':false},{'reason':'Reason-6','selected':false}];
 
   vm.selStars = 4; // initial stars count

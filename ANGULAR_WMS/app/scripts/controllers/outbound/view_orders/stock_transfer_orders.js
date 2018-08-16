@@ -269,15 +269,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
       var delete_data = {};
       delete_data['order_id'] = ord_id;
-      delete_data['order_id_code'] = vm.order_id_code;
+      // delete_data['order_id_code'] = vm.order_id_code;
 
-      vm.service.apiCall('order_delete/', 'GET', delete_data).then(function(data){
+      vm.service.apiCall('stock_transfer_delete/', 'GET', delete_data).then(function(data){
+
           if (data.message) {
+
             colFilters.showNoty(data.data);
             vm.reloadData();
             $state.go('app.outbound.ViewOrders');
           }
-          })
+      })
     }
 
    vm.update_order_details = update_order_details;

@@ -44,7 +44,7 @@
 
     <div ng-repeat="n in $ctrl.getStarArray()" ng-class="$ctrl.getClass(n)" ng-click="$ctrl.setClass($event,n)"></div>
     <hr>
-    <div ng-if="!$ctrl.selStars" style="font-size:15px;font-weight:600">Please provide both(order and product) related ratings</div>
+    <div ng-if="!$ctrl.selStars" style="font-size:15px;font-weight:600">Please, Provide both(order and product) related ratings</div>
     <div ng-if="$ctrl.selStars" style="font-size:15px;font-weight:600">{{$ctrl.rate_query}}</div>
   </div>
   <div class="row mt15 text-center" ng-if="$ctrl.selStars">

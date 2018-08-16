@@ -159,6 +159,8 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     count = 0
 
+    #import pdb;pdb.set_trace()
+
     order_summary_objs = CustomerOrderSummary.objects.filter(order__user=user.id).values('order__order_id', \
                                                                                          'shipment_time_slot', 'status',
                                                                                          'order_taken_by').distinct()
@@ -505,13 +507,11 @@ def generate_picklist(request, user=''):
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
                    'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
-    
     enable_damaged_stock = get_misc_value('enable_damaged_stock', user.id)
-    if enable_damaged_stock:
+    if enable_damaged_stock == 'true':
         sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0, location__zone__zone__in=['DAMAGED_ZONE'])
     else:
         sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
-
     #all_orders = OrderDetail.objects.prefetch_related('sku').filter(**order_filter)
     all_seller_orders = SellerOrder.objects.prefetch_related('order__sku').filter(**seller_order_filter)
 
@@ -616,7 +616,7 @@ def batch_generate_picklist(request, user=''):
         picklist_number = get_picklist_number(user)
         sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
         enable_damaged_stock = get_misc_value('enable_damaged_stock', user.id)
-        if enable_damaged_stock:
+        if enable_damaged_stock  == 'true':
             sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(
             location__zone__zone__in=['DAMAGED_ZONE']).filter(sku__user=user.id, quantity__gt=0)
         else:
@@ -707,7 +707,7 @@ def get_picklist_data(data_id, user_id):
 
 
     enable_damaged_stock = get_misc_value('enable_damaged_stock', user_id)
-    if enable_damaged_stock:
+    if enable_damaged_stock  == 'true':
         pick_stocks = StockDetail.objects.filter(sku__user=user_id, location__zone__zone__in=['DAMAGED_ZONE'])
     else:
         pick_stocks = StockDetail.objects.filter(sku__user=user_id)
@@ -6225,7 +6225,7 @@ def order_category_generate_picklist(request, user=''):
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
 
     enable_damaged_stock = get_misc_value('enable_damaged_stock', user.id)
-    if enable_damaged_stock:
+    if enable_damaged_stock  == 'true':
         sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0, location__zone__zone__in=['DAMAGED_ZONE'])
     else:
         sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
@@ -9005,7 +9005,7 @@ def update_exist_picklists(picklist_no, request, user, sku_code='', location='',
             stock_params['location__location'] = location
 
         enable_damaged_stock = get_misc_value('enable_damaged_stock', user.id)
-        if enable_damaged_stock:
+        if enable_damaged_stock  == 'true':
             stock_objs = StockDetail.objects.prefetch_related('sku', 'location').filter(location__zone__zone__in=['DAMAGED_ZONE']).filter(**stock_params).order_by('location__pick_sequence')
         else:
             stock_objs = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(**stock_params).order_by('location__pick_sequence')

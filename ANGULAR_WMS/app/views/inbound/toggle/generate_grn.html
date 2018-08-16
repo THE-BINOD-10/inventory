@@ -213,7 +213,19 @@
               <button type="button" class="btn btn-default" style="margin-top:10px" ng-click="showCase.add_wms_code()">Add New WMS Code</button>
             </center>
           </div>
-          <div class="row" style="float: right;margin-right:50px"><h4 class='totals'>Total: 0</h4></div>
+          <div class="row">
+            <div class="col-md-4">
+              <div class="form-group pull-left">
+                <label for="remarks" class="control-label"> Round Off </label>
+                <input type="checkbox" class="data-select" ng-change="showCase.round_off_effects(showCase.round_off)" ng-model="showCase.round_off" name="round_off">
+              </div>
+            </div>
+            <div class="col-md-4"></div>
+            <div class="col-md-4">
+              <h4 class='totals {{showCase.pull_cls}}' ng-style="showCase.margin_cls">Total: 0</h4>
+              <input type="text" ng-if="showCase.round_off" ng-model="showCase.model_data.round_off_total" title="{{ showCase.model_data.round_off_total }}" name="round_off_total" ng-class="service.get_decimal_perm()" class="form-control pull-right" style="width:50%;margin-right:40px" value="{{showCase.model_data.round_off_total}}">
+            </div>
+          </div>
           <div class="row insert-status"><h4 align="center">{{showCase.message}}</h4></div>
       </div>
       <!-- body end-->

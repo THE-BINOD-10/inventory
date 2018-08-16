@@ -78,6 +78,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                         load_unit_handle: "0",
                         hot_release: 0,
                         image_url:"images/wms/dflt.jpg",
+                        measurement_type: '',
                       },
                       "zones":[],
                       "groups":[],
@@ -110,6 +111,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.market_data = [];
     vm.files = [];
     vm.mix_sku_list = {"No Mix": "no_mix", "Mix Within Group": "mix_group"};
+    vm.sku_measurement_types = vm.service.units;
 
     if (Service.searched_wms_code != '') {
       vm.model_data.sku_data.sku_code = Service.searched_wms_code;
@@ -188,6 +190,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   var index = vm.model_data.zones.indexOf(vm.model_data.sku_data.zone);
                   vm.model_data.sku_data.zone = vm.model_data.zones[index];
                   vm.model_data.attributes = data.attributes;
+                  vm.model_data.measurement_type = data.sku_data.measurement_type;
 
                   angular.forEach(vm.model_data.attributes, function(attr_dat){
                     if(data.sku_attributes[attr_dat.attribute_name])
@@ -216,7 +219,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.change_size_type(vm.model_data.sku_data.size_type);
                   if(vm.model_data.sku_data.ean_number == "0") {
 
-                    vm.model_data.sku_data.ean_number = "";
+                      vm.model_data.sku_data.ean_number = "";
                   }
                   if (vm.model_data.sku_data.ean_numbers) {
                      $(".").importTags(vm.model_data.sku_data.ean_numbers);

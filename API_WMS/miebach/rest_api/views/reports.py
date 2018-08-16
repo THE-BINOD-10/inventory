@@ -175,11 +175,13 @@ def print_receipt_summary(request, user=''):
 @login_required
 @get_admin_user
 def get_dispatch_filter(request, user=''):
-    serial_view = False
-    if request.GET.get('datatable', '') == 'serialView':
+    serial_view, customer_view = False, False
+    if request.GET.get('datatable', '') == 'customerView':
+        customer_view = True
+    elif request.GET.get('datatable', '') == 'serialView':
         serial_view = True
     headers, search_params, filter_params = get_search_params(request)
-    temp_data = get_dispatch_data(search_params, user, request.user, serial_view=serial_view)
+    temp_data = get_dispatch_data(search_params, user, request.user, serial_view=serial_view, customer_view=customer_view)
 
     return HttpResponse(json.dumps(temp_data, cls=DjangoJSONEncoder), content_type='application/json')
 
@@ -306,14 +308,14 @@ def print_daily_production_report(request, user=''):
 @get_admin_user
 def print_dispatch_summary(request, user=''):
     search_parameters = {}
-
     serial_view = False
     if request.GET.get('datatable', '') == 'serialView':
         serial_view = True
+    if request.GET.get('datatable', '') == 'customerView':
+        customer_view = True
     headers, search_params, filter_params = get_search_params(request)
-    report_data = get_dispatch_data(search_params, user, request.user, serial_view=serial_view)
+    report_data = get_dispatch_data(search_params, user, request.user, serial_view=serial_view, customer_view=customer_view)
     report_data = report_data['aaData']
-
     if report_data:
         html_data = create_reports_table(report_data[0].keys(), report_data)
     return HttpResponse(html_data)
@@ -900,6 +902,9 @@ def excel_reports(request, user=''):
     params = [search_params, user, request.user]
     if 'datatable=serialView' in form_data:
         params.append(True)
+    if 'datatable=customerView' in form_data:
+        params.append(False)
+        params.append(True)
     report_data = func_name(*params)
     if isinstance(report_data, tuple):
         report_data = report_data[0]
@@ -907,6 +912,8 @@ def excel_reports(request, user=''):
             report_data['aaData']) > 0:
         headers = report_data['aaData'][0].keys()
         file_type = 'csv'
+    if temp[1] in ['dispatch_summary'] and len(report_data['aaData']) > 0:
+        headers = report_data['aaData'][0].keys()
     excel_data = print_excel(request, report_data, headers, excel_name, file_type=file_type)
     return excel_data
 

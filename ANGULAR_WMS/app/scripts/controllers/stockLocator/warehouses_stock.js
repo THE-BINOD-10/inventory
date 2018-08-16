@@ -12,12 +12,14 @@ angular.module('urbanApp', ['datatables'])
     vm.data_display = false;
     vm.go_data = ['Available', 'Avail + Intra', 'A + IT + R'];
     vm.view = '';
+    vm.permissions = Session.roles.permissions;
 
     vm.g_data = Data.warehouse_view;
     vm.alternate_view_value = Data.warehouse_toggle_value;
 
     vm.size_types = [];
     vm.warehouse_names = [];
+    vm.warehouse_value = ''
 
     //From and To Date
     var abc = new Date()
@@ -33,14 +35,12 @@ angular.module('urbanApp', ['datatables'])
     if(!Session.roles.permissions.add_networkmaster && !Session.roles.permissions.priceband_sync) {
       vm.g_data.level = "";
     }
-    vm.service.apiCall('warehouse_headers/?level='+vm.g_data.level+'&alternate_view='+Data.warehouse_toggle_value, 'GET').then(function(data){
+    vm.service.apiCall('warehouse_headers/?level='+vm.g_data.level+'&alternate_view='+Data.warehouse_toggle_value+'&warehouse_name='+vm.warehouse_value+'&size_type_value='+vm.size_type_value, 'GET').then(function(data){
       vm.size_types = data.data.size_types;
       vm.warehouse_names = data.data.warehouse_names;
 
       vm.warehouse_value = vm.warehouse_names[0]
       vm.size_type_value = vm.size_types[0]
-
-      vm.filters = {'datatable': vm.g_data.view, 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'from_date' : vm.from_date, 'to_date' : vm.to_date, 'size_type_value' : vm.size_type_value, 'warehouse_name' : vm.warehouse_value}
 
       vm.excel = excel;
       function excel() {
@@ -48,6 +48,14 @@ angular.module('urbanApp', ['datatables'])
         angular.copy(vm.dtInstance.DataTable.context[0].ajax.data, colFilters.search);
         colFilters.download_excel()
       }
+
+      if (Data.warehouse_toggle_value) {
+          vm.filters = {'datatable': 'WarehouseStockAlternative', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 
+        'from_date' : vm.from_date, 'to_date' : vm.to_date, 'size_type_value' : vm.size_type_value, 'warehouse_name' : vm.warehouse_value, 'view_type' : vm.g_data.view }
+        } else {
+          vm.filters = {'datatable': vm.g_data.view, 'search0':'', 'search1':'', 'search2': '', 'search3': '', 
+        'from_date' : vm.from_date, 'to_date' : vm.to_date, 'size_type_value' : vm.size_type_value, 'warehouse_name' : vm.warehouse_value}
+        }
 
       vm.dtOptions = DTOptionsBuilder.newOptions()
         .withOption('ajax', {
@@ -76,16 +84,54 @@ angular.module('urbanApp', ['datatables'])
             }
         })
         .withPaginationType('full_numbers')
-        .withOption('initComplete', function( settings ) {
-          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
-          vm.layout_loading = false;
-        });
-
       var columns = data.data.table_headers;
       vm.dtColumns = vm.service.build_colums(columns);
-
-      vm.dtInstance = {};
       vm.data_display = true;
+      vm.dtInstance = {};
+
+      vm.build_datatable = function (data, flag) {
+        if (Data.warehouse_toggle_value) {
+          vm.filters = {'datatable': 'WarehouseStockAlternative', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 
+        'from_date' : vm.from_date, 'to_date' : vm.to_date, 'size_type_value' : vm.size_type_value, 'warehouse_name' : vm.warehouse_value, 'view_type' : vm.g_data.view }
+        } else {
+          vm.filters = {'datatable': vm.g_data.view, 'search0':'', 'search1':'', 'search2': '', 'search3': '', 
+        'from_date' : vm.from_date, 'to_date' : vm.to_date, 'size_type_value' : vm.size_type_value, 'warehouse_name' : vm.warehouse_value}
+        }
+        var columns = data.data.table_headers;
+        if (flag) {
+          vm.dtInstance.DataTable.context[0].ajax.data = {'from_date': vm.from_date, 'to_date': vm.to_date, 'view_type': vm.g_data.view, 'alternate_view': vm.alternate_view_value, 'warehouse_name' : vm.warehouse_value, 'size_type_value' : vm.size_type_value, 'datatable' : 'WarehouseStockAlternative' }
+        }
+
+        vm.dtOptions = DTOptionsBuilder.newOptions()
+        .withOption('ajax', {
+              url: Session.url+'results_data/',
+              type: 'POST',
+              data: vm.filters,
+              xhrFields: {
+                withCredentials: true
+              },
+              complete: function(jqXHR, textStatus) {
+                          $scope.$apply(function(){
+                            angular.copy(JSON.parse(jqXHR.responseText), vm.tb_data)
+                          })
+                        }
+           })
+        .withDataProp('data')
+        .withOption('processing', true)
+        .withOption('serverSide', true)
+        .withOption('createdRow', function(row, data, dataIndex) {
+             $compile(angular.element(row).contents())($scope);
+         })
+        .withOption('headerCallback', function(header) {
+            if (!vm.headerCompiled) {
+                vm.headerCompiled = true;
+                $compile(angular.element(header).contents())($scope);
+            }
+        })
+        .withPaginationType('full_numbers')
+        vm.dtColumns = vm.service.build_colums(columns);
+      }
+      vm.build_datatable(data, false);
 
       function reloadData () {
         vm.bt_disable = true;
@@ -128,16 +174,22 @@ angular.module('urbanApp', ['datatables'])
 
       vm.generate_warehouse_stock = function() {
         if (Data.warehouse_toggle_value) {
-
-          vm.service.apiCall('warehouse_headers/?level='+vm.g_data.level+'&alternate_view='+Data.warehouse_toggle_value, 'GET').then(function(data){
-            var columns = data.data.table_headers;
-            vm.dtColumns = vm.service.build_colums(columns);
-            vm.dtInstance.DataTable.context[0].ajax.data = {'from_date': vm.from_date, 'to_date': vm.to_date, 'view': vm.g_data.view, 'alternate_view': vm.alternate_view_value, 'warehouse_name' : vm.warehouse_value, 'size_type_value' : vm.size_type_value }
-            vm.service.refresh(vm.dtInstance);
+          vm.service.apiCall('warehouse_headers/?level='+vm.g_data.level+'&alternate_view='+Data.warehouse_toggle_value+'&warehouse_name='+vm.warehouse_value+'&size_type_value='+vm.size_type_value, 'GET').then(function(data){
+            vm.dtInstance.DataTable.context[0].ajax.data = {'from_date': vm.from_date, 'to_date': vm.to_date, 'view_type': vm.g_data.view, 'alternate_view': vm.alternate_view_value, 'warehouse_name' : vm.warehouse_value, 'size_type_value' : vm.size_type_value, 'datatable' : 'WarehouseStockAlternative' }
+            vm.build_datatable(data, true);
           })
-
-
         }
       }
+
+      vm.get_sizetypes_for_warehouses = function() {
+        if (Data.warehouse_toggle_value) {
+          vm.service.apiCall('warehouse_headers/?level='+vm.g_data.level+'&alternate_view='+Data.warehouse_toggle_value+'&warehouse_name='+vm.warehouse_value+'&size_type_value='+vm.size_type_value, 'GET').then(function(data) {
+            //var columns = data.data.table_headers;
+            vm.size_types = data.data.size_types;
+            vm.size_type_value = vm.size_types[0];
+          })
+        }
+      }
+
   })
 }

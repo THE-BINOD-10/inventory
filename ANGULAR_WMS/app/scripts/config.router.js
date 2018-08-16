@@ -578,7 +578,19 @@ var app = angular.module('urbanApp')
              url: '/Staff',
              templateUrl: 'views/masters/toggles/staff_update.html'
            })
-
+        .state('app.masters.NotificationMaster', {
+          url: '/NotificationMaster',
+          // permission: 'add_staffmaster',
+          templateUrl: 'views/masters/NotificationMaster.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/masters/NotificationMaster.js');
+                    }]
+          },
+          data: {
+            title: 'Notification Master',
+          }
+        })
       // Inbound routes
       .state('app.inbound', {
           template: '<div ui-view></div>',
@@ -1257,6 +1269,10 @@ var app = angular.module('urbanApp')
           .state('app.outbound.ViewOrders.OrderDetails', {
             url: '/OrderDetails',
             templateUrl: 'views/outbound/toggle/view_order_details.html'
+          })
+          .state('app.outbound.ViewOrders.StockTransferAltView', {
+            url: '/StockTransferAltView',
+            templateUrl: 'views/outbound/toggle/alt_view_order_details.html'
           })
           .state('app.outbound.ViewOrders.CustomOrderDetails', {
             url: '/CustomOrderDetails',

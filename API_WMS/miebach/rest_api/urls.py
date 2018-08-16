@@ -103,6 +103,7 @@ urlpatterns = [
     url(r'^get_corporates/$', get_corporates),
     url(r'^corporate_mapping_data/$', corporate_mapping_data),
     url(r'^search_corporate_data/$', search_corporate_data),
+    url(r'^push_message_notification/$', push_message_notification),
 
     # Inbound
     url(r'^generated_po_data/$', generated_po_data),
@@ -120,6 +121,9 @@ urlpatterns = [
     url(r'^search_supplier/$', search_supplier),
     url(r'^search_vendor/$', search_vendor),
     url(r'^search_wms_codes/$', search_wms_codes),
+    url(r'^search_corporate_names/$', search_corporate_names),
+    url(r'^search_reseller_names/$', search_reseller_names),
+    url(r'^search_distributor_codes/$', search_distributor_codes),
     url(r'^get_supplier_data/$', get_supplier_data),
     url(r'^update_putaway/$', update_putaway),
     url(r'^close_po/$', close_po),
@@ -238,6 +242,7 @@ urlpatterns = [
     url('^insert_order_data/$', insert_order_data),
     url('^get_warehouses_list/$', get_warehouses_list),
     url('^create_stock_transfer/$', create_stock_transfer),
+    url('^stock_transfer_delete/$', stock_transfer_delete),
     url('^get_marketplaces_list/$', get_marketplaces_list),
     url('^generate_po_data/$', generate_po_data),
     url('^generate_jo_data/$', generate_jo_data),
@@ -311,6 +316,10 @@ urlpatterns = [
     url(r'^move_to_inv/$', move_to_inv),
     url(r'^update_dc/$', update_dc),
     url(r'^remove_sku/$', remove_sku),
+    url(r'^get_stock_transfer_order_details/$', get_stock_transfer_order_details),
+    url(r'^update_stock_transfer_data/$', update_stock_transfer_data),
+    url(r'^stock_transfer_generate_picklist/$', stock_transfer_generate_picklist),
+    url(r'^get_create_order_mapping_values/$', get_create_order_mapping_values),
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),

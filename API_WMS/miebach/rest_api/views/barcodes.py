@@ -1,13 +1,22 @@
 from __future__ import division
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import inch, mm, cm
-from reportlab.platypus import Paragraph, Frame, PageTemplate, BaseDocTemplate, PageBreak, Spacer
+from reportlab.platypus import Paragraph, Frame, PageTemplate, BaseDocTemplate, PageBreak, Spacer, Flowable
 from reportlab.graphics.barcode import code128
+from reportlab.graphics.barcode import eanbc, qr, usps
 from reportlab.lib.pagesizes import *
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.graphics.shapes import Drawing
+from reportlab.graphics import renderPDF
 from django.conf import settings
+from reportlab.pdfgen import canvas
 import copy
+import barcode as pybar
+from barcode import generate
+
+
+
 
 pdfmetrics.registerFont(TTFont('Arial', '%s/static/fonts/arial.ttf' % (settings.BASE_DIR)))
 pdfmetrics.registerFont(TTFont('Arial-Bold', '%s/static/fonts/ARIALBD.TTF' % (settings.BASE_DIR), subfontIndex=1))
@@ -50,7 +59,31 @@ data_dict = [{'customer': 'Adom',
 		},
                 ]
 '''
+class BarCode(Flowable):
+    def __init__(self, value="1234567890", ratio=0.5, bar_width=0.7, bar_height=3, bli=20, bti=25, _type='bar_ean'):
+        # init and store rendering value
+        Flowable.__init__(self)
+        self.value = value
+	self.bar_width = bar_width
+        self.ratio = ratio
+	self.bar_height = bar_height
+	self.bar_left_indent = bli
+	self.bar_top_indent = -(bti)
+        self.type = _type
 
+    def wrap(self, availWidth, availHeight):
+        # Make the barcode fill the width while maintaining the ratio
+	height = min(self.height, availHeight)
+        return (availWidth, height)
+    def draw(self):
+        # Flowable canvas
+        if self.type == 'bar_ean':
+            bar_code = eanbc.Ean13BarcodeWidget(value=self.value, barWidth=self.bar_width, barHeight=self.bar_height, humanReadable=1)
+        else:
+            bar_code = qr.QrCodeWidget(str(self.value))
+        d = Drawing(float(self.width), float(self.height))
+        d.add(bar_code)
+        renderPDF.draw(d, self.canv, self.bar_left_indent, self.bar_top_indent)
 
 def get_customer_styles(data_dict):
     '''Creating style object for paragraph'''
@@ -77,20 +110,35 @@ def get_tag(field, bold_fields, styles):
     is_it_only_for_value = styles.get('is_it_only_for_value', False)
     is_it_only_for_label = styles.get('is_it_only_for_label', False)
     bold_tag = "%s: %s"
+    sub_str = " :"
+    if styles.get('mid_alignment', False):
+        gap = max(styles['max_lenght_field'][1] - len(field), 0)*1.6599
+        sub_str = "<p>&nbsp;<p>"*int(gap+gap/3.5)+": "
+        bold_tag = "%s" + sub_str + "%s"
+
     if field in bold_fields:
-        bold_tag = "<b>%s</b>: <b>%s</b>"
+        bold_tag = "<b>%s</b>" + sub_str + "<b>%s</b>"
         if is_it_only_for_value:
-            bold_tag = "%s: <b>%s</b>"
+            bold_tag = "%s" + sub_str + "<b>%s</b>"
         if is_it_only_for_label:
-            bold_tag = "<b>%s</b>: %s"
+            bold_tag = "<b>%s</b>"+ sub_str +"%s"
         if is_it_only_for_value & is_it_only_for_label:
-            bold_tag = "<b>%s</b>: <b>%s</b>"
+            bold_tag = "<b>%s</b>" + sub_str + "<b>%s</b>"
     return bold_tag
 
 def get_paragraph(data={}, fields=[], styles={}, style_obj={}):
     phrases = []
     bold_fields =  [i.strip() for i in styles.get('bold', '').split(',')] if styles.has_key('bold') else []
     fontsizes = [i[0].strip() for i in styles.get('fontsizes', {}).items()]
+    header_max_length =  styles.get('header_max_length', 10)
+    max_len, max_field = 0, ''
+    for f in fields:
+        if len(f) > header_max_length: continue
+        if max_len < len(f):
+            max_len, max_field = len(f), f
+
+    styles.update({'max_lenght_field': (max_field, max_len)})
+
     for field in fields:
         if 'SKUPrintQty' in field:
             val = 1
@@ -116,8 +164,8 @@ def get_paragraph(data={}, fields=[], styles={}, style_obj={}):
                     nw_phs.append(get_tag(str(i[1]), bold_fields, styles) % (str(i[1]), v))
                     is_specific_font = str(i[1]) if str(i[1]) in fontsizes else False
                 else:
-                    nw_phs.append(get_tag(str(i), bold_fields, styles) % (str(i), v))
-                    is_specific_font = str(i[1]) if str(i[1]) in fontsizes else False
+                    nw_phs.append(get_tag(str(i), bold_fields, styles) % (str(i), data.get(i)))
+                    is_specific_font = str(i) if str(i) in fontsizes else False
             phrase = "&nbsp;&nbsp;&nbsp;&nbsp;".join(nw_phs)
 
         elif isinstance(field, tuple):
@@ -152,7 +200,6 @@ def get_barcodes(data_dict):
     paper = data_dict.get('styles').get('paper', '')
     vertical = data_dict.get('styles').get('vertical', 0)
     rotation = 90 if vertical else 0
-
     if paper:
         pagesize = eval(paper) if isinstance(paper, str) else paper
     elif vertical == 1:
@@ -166,7 +213,6 @@ def get_barcodes(data_dict):
     story, page_frames, frames, pages = [], [], [], []
     width, height, row_items, column_items = 0, 2, 1, 1
     prev_width, prev_height = data_dict.get('styles').get('MarginTop', 0), data_dict.get('styles').get('MarginLeft', 0)
-
     for data in data_dict.get('info', []):
         '''Iterating On all SKU objects'''
 
@@ -186,13 +232,20 @@ def get_barcodes(data_dict):
                                    barWidth=data_dict.get('styles', {}).get('BarWidth', 0.7), \
                                    barHeight=data_dict.get('styles', {}).get('BarHeight', 25), \
                                    fontSize=barcode_font_size, lquiet=0)
-
-            lquiet = data['width'] - code.width
-            code.lquiet = lquiet / 2 if lquiet > 0 else 0
-            code.lquiet += f.leftPadding
+            bar_type = data_dict.get('styles', {}).get('bar_type', 'bar')
+            if bar_type == 'bar':
+                lquiet = data['width'] - code.width
+                code.lquiet = lquiet / 2 if lquiet > 0 else 0
+                code.lquiet += f.leftPadding
+	    else:
+		code = BarCode(value="%s" % str(data['Label']), ratio=0, bar_width=data_dict.get('styles', {}).get('BarWidth', 0.7),\
+				bar_height=data_dict.get('styles', {}).get('BarHeight', 25), bli=data_dict.get('styles', {}).get('BarLeftIndent', 20),\
+	        			bti=data_dict.get('styles', {}).get('BarTopIndent', 25), _type=bar_type)
 
             story.append(code)
-            story.append(Spacer(2 * mm, 2 * mm))
+
+
+	    story.extend([Spacer(2 * mm, 2 * mm) for i in range(data_dict.get('styles', {}).get('SpacesAfterBarCode', 2))])
 
             paras = [i for i in get_paragraph(data, data_dict.get('show_fields', []), data_dict.get('styles', {}), style)]
             story.extend(paras)

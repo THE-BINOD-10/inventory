@@ -1008,6 +1008,8 @@ class JOMaterial(models.Model):
 
     class Meta:
         db_table = 'JO_MATERIAL'
+        index_together = (('job_order', 'material_code'), ('job_order', 'material_code', 'status'),
+                            ('job_order', 'material_code', 'status', 'material_quantity'))
 
 
 class MaterialPicklist(models.Model):
@@ -1020,6 +1022,7 @@ class MaterialPicklist(models.Model):
 
     class Meta:
         db_table = 'MATERIAL_PICKLIST'
+        index_together = (('jo_material', 'status'), ('jo_material', 'status', 'reserved_quantity'))
 
 
 class RMLocation(models.Model):
@@ -1034,6 +1037,7 @@ class RMLocation(models.Model):
 
     class Meta:
         db_table = 'RM_LOCATION'
+        index_together = (('material_picklist', 'stock'), ('material_picklist', 'stock', 'status'), ('material_picklist', 'stock', 'status', 'reserved'))
 
 
 class SKURelation(models.Model):
@@ -1064,6 +1068,7 @@ class StatusTracking(models.Model):
 
     class Meta:
         db_table = 'STATUS_TRACKING'
+        index_together = (('status_id', 'status_type'),('status_type', 'status_value', 'quantity'), ('status_id', 'status_type', 'status_value'))
 
 
 class StatusTrackingSummary(models.Model):
@@ -1076,6 +1081,7 @@ class StatusTrackingSummary(models.Model):
 
     class Meta:
         db_table = 'STATUS_TRACKING_SUMMARY'
+        index_together = (('status_tracking', 'processed_stage'), ('status_tracking', 'processed_stage', 'processed_quantity'))
 
 
 class BOMMaster(models.Model):
@@ -1339,6 +1345,7 @@ class CustomerOrderSummary(models.Model):
     sgst_tax = models.FloatField(default=0)
     igst_tax = models.FloatField(default=0)
     utgst_tax = models.FloatField(default=0)
+    cess_tax = models.FloatField(default=0)
     invoice_type = models.CharField(max_length=64, default='Tax Invoice')
     client_name = models.CharField(max_length=64, default='')
     mode_of_transport = models.CharField(max_length=24, default='')
@@ -1980,6 +1987,8 @@ class SellerOrderSummary(models.Model):
 
     class Meta:
         db_table = 'SELLER_ORDER_SUMMARY'
+        index_together = (('pick_number', 'seller_order'), ('pick_number', 'order'), ('pick_number', 'seller_order', 'picklist'),
+                            ('pick_number', 'order', 'picklist'), ('order', 'order_status_flag'), ('seller_order', 'order_status_flag'))
 
     def __unicode__(self):
         return str(self.id)
@@ -2486,7 +2495,7 @@ class SKUDetailStats(models.Model):
 
     class Meta:
         db_table = 'SKU_DETAIL_STATS'
-
+        index_together = (('sku', 'transact_type'), ('sku', 'transact_type', 'transact_id'))
 
 class StockStats(models.Model):
     id = BigAutoField(primary_key=True)
@@ -2505,6 +2514,7 @@ class StockStats(models.Model):
 
     class Meta:
         db_table = 'STOCK_STATS'
+        index_together = (('sku',))
 
 
 class IntransitOrders(models.Model):

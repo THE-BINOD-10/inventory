@@ -231,14 +231,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     vm.close = function() {
-
       angular.copy(empty_data, vm.model_data);
       vm.service.searched_wms_code = "";
       vm.service.searched_sup_code = '';
       if (vm.service.is_came_from_raise_po) {
         vm.service.searched_wms_code = vm.model_data.sku_data.sku_code;
         $state.go('app.inbound.RaisePo.PurchaseOrder');
-      }else{
+      } else if (vm.service.is_came_from_create_order) {
+        $state.go('app.outbound.CreateOrders');
+      } else {
         $state.go('app.masters.SKUMaster');
       }
     }
@@ -305,7 +306,36 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               if(response.indexOf("Added") > -1 || response.indexOf("Updated") > -1) {
                 if (vm.service.is_came_from_raise_po && response.indexOf("Added") > -1) {
                   vm.service.searched_wms_code = vm.model_data.sku_data.sku_code;
+                  vm.service.raise_po_data.data[vm.service.sku_id_index].fields.sku.wms_code = vm.model_data.sku_data.sku_code;
+                  vm.service.raise_po_data.data[vm.service.sku_id_index].fields.description = vm.model_data.sku_data.sku_desc;
+                  vm.service.raise_po_data.data[vm.service.sku_id_index].fields.sku.price = vm.model_data.sku_data.price;
+                  vm.service.raise_po_data.data[vm.service.sku_id_index].fields.supplier_code = ''
+                  vm.service.raise_po_data.data[vm.service.sku_id_index].fields.order_quantity = 1
+                  vm.service.raise_po_data.data[vm.service.sku_id_index].fields.measurement_unit = ''
+                  vm.service.raise_po_data.data[vm.service.sku_id_index].fields.mrp = ''
+                  vm.service.raise_po_data.data[vm.service.sku_id_index].fields.price = vm.model_data.sku_data.price;
+                  vm.service.raise_po_data.data[vm.service.sku_id_index].fields.sgst_tax = ''
+                  vm.service.raise_po_data.data[vm.service.sku_id_index].fields.cgst_tax = ''
+                  vm.service.raise_po_data.data[vm.service.sku_id_index].fields.igst_tax = ''
+                  vm.service.raise_po_data.data[vm.service.sku_id_index].fields.utgst_tax = ''
+                  vm.service.raise_po_data.data[vm.service.sku_id_index].fields.cess_tax = ''
+                  vm.service.raise_po_data.data[vm.service.sku_id_index].fields.remarks = ''
+                  vm.service.raise_po_data.data[vm.service.sku_id_index].fields.dedicated_seller = ''
                   $state.go('app.inbound.RaisePo.PurchaseOrder');
+                } else if (vm.service.is_came_from_create_order && response.indexOf("Added") > -1) {
+                  vm.service.create_order_data.data[vm.service.sku_id_index].sku_id = vm.model_data.sku_data.sku_code;
+                  vm.service.create_order_data.data[vm.service.sku_id_index].description = vm.model_data.sku_data.sku_desc;
+                  vm.service.create_order_data.data[vm.service.sku_id_index].price = vm.model_data.sku_data.price;
+                  vm.service.create_order_data.data[vm.service.sku_id_index].capacity = ''
+                  vm.service.create_order_data.data[vm.service.sku_id_index].quantity = 1
+                  vm.service.create_order_data.data[vm.service.sku_id_index].mrp = ''
+                  vm.service.create_order_data.data[vm.service.sku_id_index].invoice_amount = ''
+                  vm.service.create_order_data.data[vm.service.sku_id_index].discount = ''
+                  vm.service.create_order_data.data[vm.service.sku_id_index].discount_percentage = ''
+                  vm.service.create_order_data.data[vm.service.sku_id_index].total_amount = ''
+                  vm.service.create_order_data.data[vm.service.sku_id_index].remarks = ''
+                  vm.service.searched_wms_code = vm.model_data.sku_data.sku_code;
+                  $state.go('app.outbound.CreateOrders');
                 } else {
                   vm.service.refresh(vm.dtInstance);
                   vm.close();

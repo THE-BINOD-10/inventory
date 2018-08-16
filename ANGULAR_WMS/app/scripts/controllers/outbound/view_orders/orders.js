@@ -18,7 +18,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.scroll_data = true;
     vm.special_key = {market_places: "", customer_id: ""}
     vm.picklist_display_address = vm.permissions.picklist_display_address;
-    vm.enable_damaged_stock = vm.permissions.enable_damaged_stock;
+    //vm.enable_damaged_stock = vm.permissions.enable_damaged_stock;
     vm.payment_status = ['To Pay', 'VPP', 'Paid'];
 
     vm.update_order_details = update_order_details;
@@ -464,6 +464,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           }
         }
         data['filters'] = vm.dtInstance.DataTable.context[0].ajax.data['special_key'];
+        data['enable_damaged_stock'] = vm.enable_damaged_stock;
 
         var mod_data = {data: data};
         mod_data['url'] = vm.g_data.generate_picklist_urls[vm.g_data.view];
@@ -586,6 +587,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           data[$(vm.generate_data[i][""]).attr("name")]= vm.generate_data[i]['SKU Code'];
         }
         data["ship_reference"] = vm.ship_reference;
+        data["enable_damaged_stock"] = vm.enable_damaged_stock;
         vm.service.apiCall('generate_picklist/', 'POST', data).then(function(data){
           if(data.message) {
             angular.copy(data.data, vm.model_data);
@@ -861,7 +863,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     Session.roles.permissions['picklist_display_address'] = switch_value;
   }
 
-  vm.change_enable_damaged_stock = function(switch_value) {
+  /*vm.change_enable_damaged_stock = function(switch_value) {
     vm.service.apiCall("switches/?enable_damaged_stock="+String(switch_value)).then(function(data) {
       if(data.message) {
         Service.showNoty(data.data);
@@ -869,7 +871,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     });
     vm.enable_damaged_stock = switch_value;
     Session.roles.permissions['enable_damaged_stock'] = switch_value;
-  }
+  }*/
 
   vm.add_order = function() {
 

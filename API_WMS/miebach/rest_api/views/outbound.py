@@ -158,13 +158,9 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     count = 0
-
-    #import pdb;pdb.set_trace()
-
     order_summary_objs = CustomerOrderSummary.objects.filter(order__user=user.id).values('order__order_id', \
                                                                                          'shipment_time_slot', 'status',
                                                                                          'order_taken_by').distinct()
-
     all_seller_orders = SellerOrder.objects.filter(order__user=user.id, status=0)
     for data in master_data:
         sku_code = data.sku.sku_code
@@ -487,6 +483,7 @@ def get_picklist_locations(data_dict, user):
 def generate_picklist(request, user=''):
     remarks = request.POST['ship_reference']
     filters = request.POST.get('filters', '')
+    enable_damaged_stock = request.POST.get('enable_damaged_stock', 'false')
     order_filter = {'status': 1, 'user': user.id, 'quantity__gt': 0}
     seller_order_filter = {'order__status': 1, 'order__user': user.id, 'order__quantity__gt': 0}
     if filters:
@@ -507,14 +504,15 @@ def generate_picklist(request, user=''):
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
                    'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
-    enable_damaged_stock = get_misc_value('enable_damaged_stock', user.id)
+    
+    #enable_damaged_stock = get_misc_value('enable_damaged_stock', user.id)
     if enable_damaged_stock == 'true':
         sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0, location__zone__zone__in=['DAMAGED_ZONE'])
     else:
         sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
     #all_orders = OrderDetail.objects.prefetch_related('sku').filter(**order_filter)
+    #sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
     all_seller_orders = SellerOrder.objects.prefetch_related('order__sku').filter(**seller_order_filter)
-
     if switch_vals['fifo_switch'] == 'true':
         stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by(
             'receipt_date')
@@ -528,7 +526,7 @@ def generate_picklist(request, user=''):
     log.info("Generate Picklist params " + str(request.POST.dict()))
     seller_stocks = SellerStock.objects.filter(seller__user=user.id).values('stock_id', 'seller_id')
     for key, value in request.POST.iteritems():
-        if key in ('sortingTable_length', 'fifo-switch', 'ship_reference', 'remarks', 'filters'):
+        if key in ('sortingTable_length', 'fifo-switch', 'ship_reference', 'remarks', 'filters', 'enable_damaged_stock'):
             continue
 
         order_data = OrderDetail.objects.get(id=key, user=user.id)
@@ -591,6 +589,7 @@ def generate_picklist(request, user=''):
 def batch_generate_picklist(request, user=''):
     remarks = request.POST.get('ship_reference', '')
     filters = request.POST.get('filters', '')
+    enable_damaged_stock = request.POST.get('enable_damaged_stock', 'false')
     order_filter = {'status': 1, 'user': user.id, 'quantity__gt': 0}
     if filters:
         filters = eval(filters)
@@ -615,13 +614,14 @@ def batch_generate_picklist(request, user=''):
                        'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
         picklist_number = get_picklist_number(user)
         sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
-        enable_damaged_stock = get_misc_value('enable_damaged_stock', user.id)
+        #enable_damaged_stock = get_misc_value('enable_damaged_stock', user.id)
         if enable_damaged_stock  == 'true':
             sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(
             location__zone__zone__in=['DAMAGED_ZONE']).filter(sku__user=user.id, quantity__gt=0)
         else:
             sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
             location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
+        #sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
         all_orders = OrderDetail.objects.prefetch_related('sku').filter(**order_filter)
         if switch_vals['fifo_switch'] == 'true':
             stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by(
@@ -636,7 +636,7 @@ def batch_generate_picklist(request, user=''):
         sku_stocks = stock_detail1 | stock_detail2
 
         for key, value in request.POST.iteritems():
-            if key in PICKLIST_SKIP_LIST or key in ['filters']:
+            if key in PICKLIST_SKIP_LIST or key in ['filters', 'enable_damaged_stock']:
                 continue
 
             key = key.split('<>')
@@ -704,14 +704,7 @@ def get_picklist_data(data_id, user_id):
     sku_total_quantities = {}
     picklist_orders = Picklist.objects.filter(Q(order__sku__user=user_id) | Q(stock__sku__user=user_id),
                                               picklist_number=data_id)
-
-
-    enable_damaged_stock = get_misc_value('enable_damaged_stock', user_id)
-    if enable_damaged_stock  == 'true':
-        pick_stocks = StockDetail.objects.filter(sku__user=user_id, location__zone__zone__in=['DAMAGED_ZONE'])
-    else:
-        pick_stocks = StockDetail.objects.filter(sku__user=user_id)
-    
+    pick_stocks = StockDetail.objects.filter(sku__user=user_id)
     stocks = pick_stocks.filter(quantity__gt=0).values('sku__wms_code', 'location__location').distinct().annotate(
         quantity=Sum('quantity'))
     reserved_instances = PicklistLocation.objects.filter(status=1, picklist__order__user=user_id).values(
@@ -1434,13 +1427,13 @@ def get_seller_pick_id(picklist, user):
     return pick_number
 
 
-def update_no_stock_to_location(request, user, picklist, val, picks_all, picklist_batch):
+def update_no_stock_to_location(request, user, picklist, val, picks_all, picklist_batch, enable_damaged_stock):
     new_update_ids = []
     for picklist in picklist_batch:
         if not picklist.stock:
             pc_upd_ids = update_exist_picklists(picklist.picklist_number, request, user, sku_code=val['wms_code'],
                                                 location=val['location'], \
-                                                picklist_obj=picklist)
+                                                picklist_obj=picklist, enable_damaged_stock=enable_damaged_stock)
             new_update_ids = list(chain(new_update_ids, pc_upd_ids))
     if new_update_ids:
         picklist_batch = picks_all.filter(id__in=new_update_ids)
@@ -1532,6 +1525,7 @@ def picklist_confirmation(request, user=''):
         error_string = ''
         picklist_number = request.POST['picklist_number']
         single_order = request.POST.get('single_order', '')
+        enable_damaged_stock = request.POST.get('enable_damaged_stock', 'false')
         user_profile = UserProfile.objects.get(user_id=user.id)
 
         all_picklists = Picklist.objects.filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id),
@@ -1584,7 +1578,7 @@ def picklist_confirmation(request, user=''):
                     picklist_batch = list(set([picklist]))
                 if not val['location'] == 'NO STOCK':
                     picklist_batch = update_no_stock_to_location(request, user, picklist, val, picks_all,
-                                                                 picklist_batch)
+                                                                 picklist_batch, enable_damaged_stock)
                 for picklist in picklist_batch:
                     if count == 0:
                         continue
@@ -6203,6 +6197,7 @@ def get_custom_order_data(start_index, stop_index, temp_data, search_term, order
 @get_admin_user
 def order_category_generate_picklist(request, user=''):
     filters = request.POST.get('filters', '')
+    enable_damaged_stock = request.POST.get('enable_damaged_stock', 'false')
     order_filter = OrderedDict((('status', 1), ('user', user.id), ('quantity__gt', 0)))
     seller_order_filter = {'order__status': 1, 'order__user': user.id, 'order__quantity__gt': 0}
     if filters:
@@ -6223,14 +6218,13 @@ def order_category_generate_picklist(request, user=''):
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
                    'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
-
-    enable_damaged_stock = get_misc_value('enable_damaged_stock', user.id)
+    #enable_damaged_stock = get_misc_value('enable_damaged_stock', user.id)
     if enable_damaged_stock  == 'true':
         sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0, location__zone__zone__in=['DAMAGED_ZONE'])
     else:
         sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
         location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
-
+    #sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
     all_orders = OrderDetail.objects.prefetch_related('sku').filter(**order_filter)
     all_seller_orders = SellerOrder.objects.prefetch_related('order__sku').filter(**seller_order_filter)
     if switch_vals['fifo_switch'] == 'true':
@@ -6243,12 +6237,10 @@ def order_category_generate_picklist(request, user=''):
             'location_id__pick_sequence')
         stock_detail2 = sku_stocks.filter(location_id__pick_sequence=0).filter(quantity__gt=0).order_by('receipt_date')
     all_sku_stocks = stock_detail1 | stock_detail2
-
     seller_stocks = SellerStock.objects.filter(seller__user=user.id).values('stock_id', 'seller_id')
     for key, value in request.POST.iteritems():
-        if key in PICKLIST_SKIP_LIST or key in ['filters']:
+        if key in PICKLIST_SKIP_LIST or key in ['filters', 'enable_damaged_stock']:
             continue
-
         order_filter = {'quantity__gt': 0}
         if '<>' in key:
             key = key.split('<>')
@@ -6260,7 +6252,6 @@ def order_category_generate_picklist(request, user=''):
         order_id = ''.join(re.findall('\d+', order_id))
         order_filter['order_id'] = order_id
         order_filter['order_code'] = order_code
-
         order_detail = all_orders.filter(**order_filter).order_by('shipment_date')
         seller_orders = all_seller_orders.filter(order_id__in=order_detail.values_list('id', flat=True), status=1). \
             order_by('order__shipment_date')
@@ -6291,13 +6282,11 @@ def order_category_generate_picklist(request, user=''):
             log.debug(traceback.format_exc())
             log.info('Generate Picklist order view failed for %s and params are %s and error statement is %s' % (
             str(user.username), str(request.POST.dict()), str(e)))
-
     if out_of_stock:
         stock_status = 'Insufficient Stock for SKU Codes ' + ', '.join(list(set(out_of_stock)))
     else:
         stock_status = ''
     order_status = ''
-
     check_picklist_number_created(user, picklist_number + 1)
     data, sku_total_quantities, courier_name = get_picklist_data(picklist_number + 1, user.id)
     if data:
@@ -6307,7 +6296,6 @@ def order_category_generate_picklist(request, user=''):
             order_count_len = len(filter(lambda x: len(str(x)) > 0, order_count))
             if order_count_len == 1:
                 single_order = str(order_count[0])
-
     return HttpResponse(json.dumps({'data': data, 'picklist_id': picklist_number + 1, 'stock_status': stock_status,
                                     'order_status': order_status, 'user': request.user.id,
                                     'sku_total_quantities': sku_total_quantities}))
@@ -8978,7 +8966,7 @@ def seller_generate_picklist(request, user=''):
                                     'sku_total_quantities': sku_total_quantities}))
 
 
-def update_exist_picklists(picklist_no, request, user, sku_code='', location='', picklist_obj=None):
+def update_exist_picklists(picklist_no, request, user, sku_code='', location='', picklist_obj=None, enable_damaged_stock='false'):
     
     filter_param = {'reserved_quantity__gt': 0, 'picklist_number': picklist_no}
     if picklist_obj:
@@ -9003,13 +8991,13 @@ def update_exist_picklists(picklist_no, request, user, sku_code='', location='',
         stock_params = {'sku__user': user.id, 'quantity__gt': 0, 'sku__sku_code': _sku_code}
         if location:
             stock_params['location__location'] = location
-
-        enable_damaged_stock = get_misc_value('enable_damaged_stock', user.id)
+        
+        #enable_damaged_stock = get_misc_value('enable_damaged_stock', user.id)
         if enable_damaged_stock  == 'true':
             stock_objs = StockDetail.objects.prefetch_related('sku', 'location').filter(location__zone__zone__in=['DAMAGED_ZONE']).filter(**stock_params).order_by('location__pick_sequence')
         else:
             stock_objs = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(**stock_params).order_by('location__pick_sequence')
-
+        #stock_objs = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(**stock_params).order_by('location__pick_sequence')
         picklist_data['stock_id'] = 0
         stock_quan = 0
         if item.stock_id:
@@ -9058,10 +9046,10 @@ def update_exist_picklists(picklist_no, request, user, sku_code='', location='',
 @get_admin_user
 def update_picklist_loc(request, user=""):
     picklist_no = request.GET.get('picklist_id', "")
+    enable_damaged_stock = request.GET.get('enable_damaged_stock', 'false')
     if not picklist_no:
         return HttpResponse('PICKLIST ID missing')
-
-    update_exist_picklists(picklist_no, request, user)
+    update_exist_picklists(picklist_no, request, user, sku_code='', location='', picklist_obj=None, enable_damaged_stock=enable_damaged_stock)
     return HttpResponse('Success')
 
 

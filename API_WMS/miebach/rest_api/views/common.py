@@ -488,7 +488,7 @@ data_datatable = {  # masters
     'ConfirmCycleCount': 'get_cycle_confirmed', 'VendorStockTable': 'get_vendor_stock', \
     'Available': 'get_available_stock', 'Available+Intransit': 'get_availintra_stock', 'Total': 'get_avinre_stock', \
     'StockSummaryAlt': 'get_stock_summary_size', 'SellerStockTable': 'get_seller_stock_data', \
-    'BatchLevelStock': 'get_batch_level_stock',
+    'BatchLevelStock': 'get_batch_level_stock', 'WarehouseStockAlternative': 'get_alternative_warehouse_stock',
     # outbound
     'SKUView': 'get_batch_data', 'OrderView': 'get_order_results', 'OpenOrders': 'open_orders', \
     'PickedOrders': 'open_orders', 'BatchPicked': 'open_orders', \
@@ -1754,7 +1754,9 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
         all_stocks.update(quantity=0)
         location[0].filled_capacity = 0
         location[0].save()
-
+        if seller_master_id:
+            SellerStock.objects.filter(seller_id=seller_master_id,
+                                       stock_id__in=list(all_stocks.values_list('id', flat=True))).update(quantity=0)
     data_dict = copy.deepcopy(CYCLE_COUNT_FIELDS)
     data_dict['cycle'] = cycle_id
     data_dict['sku_id'] = sku_id
@@ -4529,8 +4531,100 @@ def generate_barcode_dict(pdf_format, myDicts, user):
             mapping_fields = eval(barcode_formats[0].mapping_fields)
     if isinstance(myDicts, dict):
         myDicts = [myDicts]
-
     for myDict in myDicts:
+        if isinstance(myDict['wms_code'], list):
+            for ind in range(0, len(myDict['wms_code'])):
+                sku = myDict['wms_code'][ind]
+                quant = myDict['quantity'][ind]
+                label = ''
+                if myDict.has_key('label'):
+                    label = myDict['label'][ind]
+                single = {}
+                if sku and quant:
+                    if sku.isdigit():
+                        sku_data = SKUMaster.objects.filter(Q(ean_number=sku) | Q(wms_code=sku), user=user.id)
+                    else:
+                        sku_data = SKUMaster.objects.filter(sku_code=sku, user=user.id)
+                    if not sku_data:
+                        continue
+                    sku_data = sku_data[0]
+                    single.update()
+                    single['SKUCode'] = sku if sku else label
+                    single['Label'] = label if label else sku
+
+                    if barcode_opt == 'sku_ean' and sku_data.ean_number:
+                        single['Label'] = str(sku_data.ean_number)
+                    single['SKUPrintQty'] = quant
+                    for show_keys1 in show_fields:
+                        show_keys2 = [show_keys1]
+                        if isinstance(show_keys1, list):
+                            show_keys2 = copy.deepcopy(show_keys1)
+                        for show_key in show_keys2:
+                            show_key = show_key.split('/')[0]
+                            if show_key in barcode_mapping_dict.keys():
+                                single[show_key] = str(getattr(sku_data, barcode_mapping_dict[show_key]))
+                                if barcode_mapping_dict[show_key] == 'sku_desc':
+                                    single[show_key] = sku_data.sku_desc[0:24].replace("'", '') + '...'
+                            elif show_key in mapping_fields.keys():
+                                single[show_key] = str(getattr(sku_data, mapping_fields[show_key]))
+                                if mapping_fields[show_key] == 'sku_desc':
+                                    single[show_key] = sku_data.sku_desc[0:24].replace("'", '') + '...'
+                            else:
+                                attr_obj = sku_data.skuattributes_set.filter(attribute_name=show_key)
+                                if attr_obj.exists():
+                                    single[show_key] = attr_obj[0].attribute_value
+                single['Company'] = user_prf.company_name.replace("'", '')
+                present = get_local_date(user, datetime.datetime.now(), send_date=True).strftime("%b %Y")
+                single["Packed on"] = str(present).replace("'", '')
+                single['Marketed By'] = user_prf.company_name.replace("'", '')
+                single['MFD'] = str(present).replace("'", '')
+                phone_number = user_prf.phone_number
+                if not phone_number:
+                    phone_number = ''
+                single['Contact No'] = phone_number
+                single['Email'] = user.email
+                order_label = OrderLabels.objects.filter(label=single['Label'], order__user=user.id)
+
+                if order_label:
+                    order_label = order_label[0]
+                    single["Vendor SKU"] = order_label.vendor_sku
+                    single["SKUCode"] = order_label.item_sku
+                    single['MRP'] = order_label.mrp
+                    single['Phone'] = user_prf.phone_number
+                    single['Email'] = user.email
+                    single["PO No"] = order_label.order.original_order_id
+                    single['Color'] = order_label.color.replace("'", '')
+                    single['Size'] = str(order_label.size).replace("'", '')
+                    single['Customer Name'] = order_label.order.customer_name
+                    single['Customer Address'] = order_label.order.address
+                    single['Customer Telephone'] = order_label.order.telephone
+                    single['Customer Email'] = order_label.order.email_id
+                    if not single["PO No"]:
+                        single["PO No"] = str(order_label[0].order.order_code) + str(order_label[0].order.order_id)
+                c_id = ''
+                if single.has_key('Customer Id') and single.get('Customer Id', ''):
+                    c_id = single.get('Customer Id')
+                if single.has_key('customer_id') and single.get('customer_id', ''):
+                    c_id = single.get('customer_id')
+                if c_id:
+                    c_details = CustomerMaster.objects.filter(customer_id=c_id, user=user.id)
+                    single['Customer Name'] = c_details[0].name if c_details else ''
+                    single['Customer Address'] = c_details[0].address if c_details else ''
+                    single['Customer Telephone'] = c_details[0].phone_number if c_details else ''
+                    single['Customer Email'] = c_details[0].email_id if c_details else ''
+
+                address = user_prf.address
+                if BARCODE_ADDRESS_DICT.get(user.username, ''):
+                    address = BARCODE_ADDRESS_DICT.get(user.username)
+                single['Manufactured By'] = address.replace("'", '')
+                if "bulk" in pdf_format.lower():
+                    single['Qty'] = single['SKUPrintQty']
+                    single['SKUPrintQty'] = "1"
+
+                barcodes_list.append(single)
+
+
+        else:
         #for ind in range(0, len(myDict['wms_code'])):
             sku = myDict['wms_code']
             quant = myDict['quantity']
@@ -5931,8 +6025,21 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
             picklist_data['order_type'] = 'combo'
             members = []
             combo_data = sku_combos.filter(parent_sku_id=order.sku.id)
+            if not seller_order:
+                order_check_quantity = float(order.quantity)
+            else:
+                order_check_quantity = float(seller_order.quantity)
             for combo in combo_data:
                 members.append(combo.member_sku)
+                stock_detail, stock_quantity, sku_code = get_sku_stock(request, combo.member_sku, sku_stocks, user,
+                                                                       val_dict,
+                                                                       sku_id_stocks, add_mrp_filter=add_mrp_filter,
+                                                                       needed_mrp_filter=needed_mrp_filter)
+                if stock_quantity < float(order_check_quantity):
+                    if not no_stock_switch:
+                        stock_status.append(str(combo.member_sku.sku_code))
+                        members = []
+                        break
 
         for member in members:
             stock_detail, stock_quantity, sku_code = get_sku_stock(request, member, sku_stocks, user, val_dict,

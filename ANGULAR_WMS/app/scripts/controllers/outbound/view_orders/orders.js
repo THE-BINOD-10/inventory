@@ -866,7 +866,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
   }
 
   vm.add_order = function() {
-
     $state.go("app.outbound.ViewOrders.CreateOrder");
   }
 

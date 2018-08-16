@@ -973,6 +973,7 @@ def switches(request, user=''):
                        'customer_dc': 'customer_dc', 
                        'auto_expire_enq_limit': 'auto_expire_enq_limit',
                        'sales_return_reasons': 'sales_return_reasons',
+                       'receive_po_invoice_check': 'receive_po_invoice_check',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -2260,7 +2261,7 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
                      challan_number='', challan_date=None, dc_level_grn=''):
     if not receipt_id:
         return
-    seller_pos = SellerPO.objects.filter(seller__user=user.id, open_po_id=data.open_po_id, status=1)
+    seller_pos = SellerPO.objects.filter(seller__user=user.id, open_po_id=data.open_po_id)
     seller_received_list = []
     #invoice_number = int(invoice_number)
     if not invoice_date and not dc_level_grn:
@@ -3916,10 +3917,12 @@ def save_st(request, user=''):
         data_id = ''
         if data_dict['id'][i]:
             data_id = data_dict['id'][i]
+        if not data_dict['price'][i]:
+            data_dict['price'][i] = 0
         cond = (warehouse_name)
         all_data.setdefault(cond, [])
-        all_data[cond].append([data_dict['wms_code'][i], data_dict['order_quantity'][i], data_dict['price'][i],
-                               data_id])
+        all_data[cond].append([data_dict['wms_code'][i], data_dict['order_quantity'][i], 
+            data_dict['price'][i], data_id])
     status = validate_st(all_data, user)
     if not status:
         all_data = insert_st(all_data, user)
@@ -3962,13 +3965,13 @@ def validate_st(all_data, user):
                     other_status = "Quantity missing for " + val[0]
                 else:
                     other_status += ', ' + val[0]
-            try:
-                price = float(val[2])
-            except:
-                if not price_status:
-                    price_status = "Price missing for " + val[0]
-                else:
-                    price_status += ', ' + val[0]
+            # try:
+            #     price = float(val[2])
+            # except:
+            #     if not price_status:
+            #         price_status = "Price missing for " + val[0]
+            #     else:
+            #         price_status += ', ' + val[0]
             warehouse = User.objects.get(username=key)
             code = val[0]
             sku_code = SKUMaster.objects.filter(wms_code__iexact=val[0], user=warehouse.id)
@@ -3980,8 +3983,8 @@ def validate_st(all_data, user):
 
     if other_status:
         sku_status += ", " + other_status
-    if price_status:
-        sku_status += ", " + price_status
+    # if price_status:
+    #     sku_status += ", " + price_status
     if wh_status:
         sku_status += ", " + wh_status
 
@@ -4003,7 +4006,10 @@ def insert_st(all_data, user):
             stock_dict['warehouse_id'] = User.objects.get(username__iexact=key).id
             stock_dict['sku_id'] = SKUMaster.objects.get(wms_code=val[0], user=user.id).id
             stock_dict['order_quantity'] = float(val[1])
-            stock_dict['price'] = float(val[2])
+            if val[2]:
+                stock_dict['price'] = float(val[2])
+            else:
+                stock_dict['price'] = 0
             stock_transfer = OpenST(**stock_dict)
             stock_transfer.save()
             all_data[key][all_data[key].index(val)][3] = stock_transfer.id
@@ -4065,6 +4071,8 @@ def confirm_st(request, user=''):
         data_id = ''
         if data_dict['id'][i]:
             data_id = data_dict['id'][i]
+        if not data_dict['price'][i]:
+            data_dict['price'][i] = 0
         cond = (warehouse_name)
         all_data.setdefault(cond, [])
         all_data[cond].append(
@@ -7368,7 +7376,10 @@ def get_debit_note_data(rtv_number, user):
                                             data_dict_item['igst_value'] + data_dict_item['sgst_value'] + data_dict_item['utgst_value'] + \
                                             data_dict_item['cess_value']
         data_dict['rtv_creation_date'] = get_local_date(user, obj.creation_date)
-        data_dict['date_of_issue_of_original_invoice'] = get_local_date(user, obj.seller_po_summary.creation_date)
+        data_dict['grn_date'] = get_local_date(user, obj.seller_po_summary.creation_date)
+        data_dict['date_of_issue_of_original_invoice'] = ''
+        if obj.seller_po_summary.invoice_date:
+            data_dict['date_of_issue_of_original_invoice'] = obj.seller_po_summary.invoice_date.strftime("%d %b, %Y")
         total_with_gsts = total_with_gsts + data_dict_item['total_with_gsts']
         total_qty = total_qty + data_dict_item['order_qty']
         total_invoice_value = total_invoice_value + data_dict_item['total_with_gsts']

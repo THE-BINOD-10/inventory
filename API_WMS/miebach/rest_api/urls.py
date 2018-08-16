@@ -242,6 +242,7 @@ urlpatterns = [
     url('^insert_order_data/$', insert_order_data),
     url('^get_warehouses_list/$', get_warehouses_list),
     url('^create_stock_transfer/$', create_stock_transfer),
+    url('^stock_transfer_delete/$', stock_transfer_delete),
     url('^get_marketplaces_list/$', get_marketplaces_list),
     url('^generate_po_data/$', generate_po_data),
     url('^generate_jo_data/$', generate_jo_data),
@@ -318,6 +319,7 @@ urlpatterns = [
     url(r'^get_stock_transfer_order_details/$', get_stock_transfer_order_details),
     url(r'^update_stock_transfer_data/$', update_stock_transfer_data),
     url(r'^stock_transfer_generate_picklist/$', stock_transfer_generate_picklist),
+    url(r'^get_create_order_mapping_values/$', get_create_order_mapping_values),
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),

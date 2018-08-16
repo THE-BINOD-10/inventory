@@ -67,12 +67,7 @@
                 <textarea class="form-control" rows="1" ng-model="showCase.model_data.scan_sku" type="text" name="scan_sku" ng-keydown="showCase.scan_sku($event, showCase.model_data.scan_sku)" focus-on="focusSKU" auto-focus ng-readonly="showCase.scan_sku_disable"></textarea>
               </div>
             </div>
-            <div class="col-md-3 col-sm-6 col-xs-6">
-              <div class="form-group">
-                <label for="remarks" class="control-label"> Remarks </label>
-                <textarea class="form-control" rows="2" ng-model="showCase.model_data.remarks" type="text" name="remarks" focus-on="focusSKU"></textarea>
-              </div>
-            </div>
+
             <div class="col-md-3 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label for="remainder_mail" class="control-label"> Remainder Mail Duration </label>
@@ -110,6 +105,18 @@
                 <label for="invoice_date" class="control-label">Invoice Date <span ng-if="showCase.user_type=='marketplace_user'">*</span></label>
                 <input name="invoice_date" ui-jq="datepicker" ng-model="showCase.model_data.invoice_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" ng-if="showCase.user_type=='marketplace_user'" required readonly>
                 <input name="invoice_date" ui-jq="datepicker" ng-model="showCase.model_data.invoice_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" ng-if="showCase.user_type!='marketplace_user'" readonly>
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.permissions.receive_po_invoice_check">
+              <div class="form-group">
+                <label for="invoice_number" class="control-label"> Invoice Value *</label>
+                <input class="form-control" ng-model="showCase.model_data.invoice_value" type="text" ng-class="service.get_decimal_perm()" name="invoice_value" required>
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label for="remarks" class="control-label"> Remarks </label>
+                <textarea class="form-control" rows="2" ng-model="showCase.model_data.remarks" type="text" name="remarks" focus-on="focusSKU"></textarea>
               </div>
             </div>
           </div>

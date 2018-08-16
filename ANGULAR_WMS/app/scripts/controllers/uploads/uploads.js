@@ -312,7 +312,7 @@ function uploads($scope, Session, $http, $rootScope, Service) {
       if ((data == "Success") || (data.search("Invalid") > -1) || (data.search("not") > -1) || (data.search("Fail") > -1)) {
         var type = "";
         type = (data == "Success")? "": "error";
-        vm.service.showNoty(data, type);
+        vm.service.showNotyNotHide(data, type);
         $scope.disable = false;
         $(".preloader").removeClass("ng-show").addClass("ng-hide");
         $scope.files = [];
@@ -322,7 +322,7 @@ function uploads($scope, Session, $http, $rootScope, Service) {
       }
     })
     .error(function(){
-      vm.service.showNoty("Upload Fail");
+      vm.service.showNotyNotHide("Upload Fail");
       $("input").val('');
       $scope.disable = false;
     });
@@ -334,7 +334,7 @@ function uploads($scope, Session, $http, $rootScope, Service) {
 
       $scope.uploads[parseInt(index)].download = "Download Error Form";
       $scope.uploads[parseInt(index)].value = msg;
-      vm.service.showNoty("Please Download The Error Form");
+      vm.service.showNotyNotHide("Please Download The Error Form");
     } else {
     vm.service.showNoty(msg);
     }

@@ -17,7 +17,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.user_type = Session.user_profile.user_type;
     vm.supplier_id = '';
     vm.order_id = 0;
-    vm.round_off = false;
     // vm.industry_type = 'FMCG';
 
     //default values
@@ -1862,18 +1861,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         var rows = data.data[index];
         for (var d in rows) {
             if(!isNaN(rows[d]['total_amt'])) {
-              rows[d]['total_amt'] = parseFloat(rows[d]['total_amt']).toFixed(2);
-                totals += Number(rows[d]['total_amt']);
+                totals += rows[d]['total_amt'];
             }
         }
       }
       vm.skus_total_amount = totals;
       $('.totals').text('Totals: ' + totals);
-
-      if (totals) {
-
-        vm.model_data.round_off_total = Number(totals) + 1;
-      }
+      vm.model_data.round_off_total = Math.round(totals * 100) / 100;
     }
 
     vm.pull_cls = "pull-right";

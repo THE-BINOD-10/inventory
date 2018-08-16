@@ -222,8 +222,16 @@
             </div>
             <div class="col-md-4"></div>
             <div class="col-md-4">
-              <h4 class='totals {{showCase.pull_cls}}' ng-style="showCase.margin_cls">Total: 0</h4>
-              <input type="text" ng-if="showCase.round_off" ng-model="showCase.model_data.round_off_total" title="{{ showCase.model_data.round_off_total }}" name="round_off_total" ng-class="service.get_decimal_perm()" class="form-control pull-right" style="width:50%;margin-right:40px" value="{{showCase.model_data.round_off_total}}">
+              <div class="col-md-5" ng-if="!showCase.round_off"></div>
+              <div class="col-md-7">
+                <h4 class='totals {{showCase.pull_cls}}' ng-style="showCase.margin_cls">Total: 0</h4>
+              </div>
+              <div class="col-md-5" ng-if="showCase.round_off">
+                <div class="form-group">
+                  <label for="remarks" class="control-label"> Round Off Total</label>
+                  <input type="text" ng-model="showCase.model_data.round_off_total" title="{{ showCase.model_data.round_off_total }}" name="round_off_total" ng-class="service.get_decimal_perm()" class="form-control pull-right" value="{{showCase.model_data.round_off_total}}">
+                </div>
+              </div>
             </div>
           </div>
           <div class="row insert-status"><h4 align="center">{{showCase.message}}</h4></div>

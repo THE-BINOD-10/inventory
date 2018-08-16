@@ -2083,11 +2083,11 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     search_parameters = {}
     if customer_view:
-        lis = ['order__customer_id', 'order__customer_name', 'order__sku__wms_code', 'order__sku__sku_desc', 'order__quantity', 'picked_quantity']
+        lis = ['order__customer_id', 'order__customer_name', 'order__sku__wms_code', 'order__sku__sku_desc']#'order__quantity', 'picked_quantity']
         model_obj = Picklist
         param_keys = {'wms_code': 'stock__sku__wms_code', 'sku_code': 'stock__sku__sku_code'}
         search_parameters.update({'status__in': ['open', 'batch_open', 'picked', 'batch_picked', 'dispatched'],
-                                  'picked_quantity__gt': 0,
+                                  #'picked_quantity__gt': 0,
                                   'stock__gt': 0,
                                   'order__user': user.id,
                                   'stock__sku_id__in': sku_master_ids
@@ -2169,8 +2169,8 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                     ('Customer Name', data['order__customer_name']),
                                                     ('WMS Code', data['order__sku__wms_code']),
                                                     ('Description', data['order__sku__sku_desc']),
-                                                    ('Quantity', data['tot_qty']),
-                                                    ('Picked Quantity', data['tot_qty'] - data['res_qty'])
+                                                    ('Quantity', data['qty']),
+                                                    ('Picked Quantity', data['qty'] - data['res_qty'])
                                                   )))
         else:
             if not serial_view:

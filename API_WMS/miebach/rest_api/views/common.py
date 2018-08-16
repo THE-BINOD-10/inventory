@@ -3213,10 +3213,21 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
                                                                              total_received=Sum('received_quantity')).\
                                             annotate(tot_rem=F('total_order')-F('total_received')).\
                                             values_list('open_po__sku__sku_code', 'tot_rem'))
-    needed_stock_data['asn_quantities'] = dict(
-        ASNStockDetail.objects.filter(sku__user__in=gen_whs, quantity__gt=0, sku__sku_code__in=needed_skus).only(
-            'sku__sku_code', 'quantity').values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
 
+    today_filter = datetime.datetime.today()
+    hundred_day_filter = today_filter + datetime.timedelta(days=100)
+    ints_filters = {'quantity__gt': 0, 'sku__sku_code__in': needed_skus, 'sku__user__in': gen_whs}
+    asn_qs = ASNStockDetail.objects.filter(**ints_filters)
+    intr_obj_100days_qs = asn_qs.exclude(arriving_date__lte=today_filter).filter(arriving_date__lte=hundred_day_filter)
+    intr_obj_100days_ids = intr_obj_100days_qs.values_list('id', flat=True)
+    asn_res_100days_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
+    asn_res_100days_qty = dict(asn_res_100days_qs.values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
+
+    needed_stock_data['asn_quantities'] = dict(
+        intr_obj_100days_qs.values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
+    for k, v in needed_stock_data['asn_quantities'].items():
+        if k in asn_res_100days_qty:
+            needed_stock_data['asn_quantities'][k] = needed_stock_data['asn_quantities'][k] - asn_res_100days_qty[k]
     data = get_styles_data(user, product_styles, sku_master, start, stop, request, customer_id=customer_id,
                            customer_data_id=customer_data_id, is_file=is_file, prices_dict=prices_dict,
                            price_type=price_type, custom_margin=custom_margin, specific_margins=specific_margins,

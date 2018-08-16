@@ -3138,6 +3138,73 @@ def check_and_raise_po(generic_order_id, cm_id):
         check_purchase_order_created(mapping.warehouse, po_id)
 
 
+def fetch_asn_stock(dist_user_id, sku_code, req_stock):
+    segregate_stock_wh_map = OrderedDict()
+    today_filter = datetime.datetime.today()
+    threeday_filter = today_filter + datetime.timedelta(days=3)
+    thirtyday_filter = today_filter + datetime.timedelta(days=30)
+    hundred_day_filter = today_filter + datetime.timedelta(days=100)
+    source_whs = list(NetworkMaster.objects.filter(dest_location_code_id=dist_user_id).filter(
+        source_location_code__userprofile__warehouse_level=1).values_list('source_location_code_id',
+                                                                          flat=True).order_by('lead_time',
+                                                                                              'priority'))
+    ints_filters = {'quantity__gt': 0, 'sku__sku_code': sku_code, 'sku__user__in': source_whs}
+    asn_qs = ASNStockDetail.objects.filter(**ints_filters)
+    intr_obj_3days_qs = asn_qs.exclude(arriving_date__lte=today_filter).filter(arriving_date__lte=threeday_filter)
+    intr_obj_3days_ids = intr_obj_3days_qs.values_list('id', flat=True)
+    asn_res_3days_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_3days_ids)
+    asn_res_3days_qty = asn_res_3days_qs.values_list('asnstock__sku__user').annotate(in_res=Sum('reserved_qty'))
+
+    intr_obj_30days_qs = asn_qs.exclude(arriving_date__lte=threeday_filter).filter(arriving_date__lte=thirtyday_filter)
+    intr_obj_30days_ids = intr_obj_30days_qs.values_list('id', flat=True)
+    asn_res_30days_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_30days_ids)
+    asn_res_30days_qty = asn_res_30days_qs.values_list('asnstock__sku__user').annotate(in_res=Sum('reserved_qty'))
+
+    intr_obj_100days_qs = asn_qs.exclude(arriving_date__lte=thirtyday_filter).filter(arriving_date__lte=hundred_day_filter)
+    intr_obj_100days_ids = intr_obj_100days_qs.values_list('id', flat=True)
+    asn_res_100days_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
+    asn_res_100days_qty = asn_res_100days_qs.values_list('asnstock__sku__user').annotate(in_res=Sum('reserved_qty'))
+
+    intr_3d_st = dict(intr_obj_3days_qs.values_list('sku__user').distinct().annotate(in_asn=Sum('quantity')))
+    for k, v in intr_3d_st.items():
+        if k in asn_res_3days_qty:
+            intr_3d_st[k] = intr_3d_st[k] - asn_res_3days_qty[k]
+
+    intr_30d_st = dict(intr_obj_30days_qs.values_list('sku__user').distinct().annotate(in_asn=Sum('quantity')))
+    for k, v in intr_30d_st.items():
+        if k in asn_res_30days_qty:
+            intr_30d_st[k] = intr_30d_st[k] - asn_res_30days_qty[k]
+
+    intr_100d_st = dict(intr_obj_100days_qs.values_list('sku__user').distinct().annotate(in_asn=Sum('quantity')))
+    for k, v in intr_100d_st.items():
+        if k in asn_res_100days_qty:
+            intr_100d_st[k] = intr_100d_st[k] - asn_res_100days_qty[k]
+
+    segregate_stock_wh_map.setdefault(3, {}).update(intr_3d_st)
+    segregate_stock_wh_map.setdefault(30, {}).update(intr_30d_st)
+    segregate_stock_wh_map.setdefault(100, {}).update(intr_100d_st)
+    stock_wh_map = OrderedDict()
+    for lt in [3, 30, 100]:
+        stock_wh_map[lt] = OrderedDict()
+    for lt, st_wh_map in segregate_stock_wh_map.items():
+        break_flag = False
+        for source_wh, avail_stock in st_wh_map.items():
+            req_qty = req_stock - avail_stock
+            if req_qty < avail_stock and req_qty < 0:
+                stock_wh_map[lt][source_wh] = avail_stock - abs(req_qty)
+                break_flag = True
+                break
+            if req_qty >= 0:
+                stock_wh_map[lt][source_wh] = avail_stock
+            else:
+                break_flag = True
+                break
+            req_stock = req_qty
+        if break_flag:
+            break
+    return stock_wh_map
+
+
 def split_orders(**order_data):
     stock_wh_map = {}
     warehouse_level = order_data['warehouse_level']
@@ -3155,52 +3222,46 @@ def split_orders(**order_data):
     sku_id = order_data['sku_id']
 
     sku_code = SKUMaster.objects.get(id=sku_id).sku_code
+    if warehouse_level == 3:
+        stock_wh_map = fetch_asn_stock(dist_user_id, sku_code, req_stock)
+    else:
+        source_whs = list(NetworkMaster.objects.filter(dest_location_code_id=dist_user_id).filter(
+            source_location_code__userprofile__warehouse_level=warehouse_level).values_list(
+            'source_location_code_id', flat=True).order_by('lead_time', 'priority'))
+        pick_filter_map = {'picklist__order__user__in': source_whs, 'picklist__order__sku__wms_code': sku_code}
+        res_qtys = dict(PicklistLocation.objects.prefetch_related('picklist', 'stock').filter(status=1).filter(
+            **pick_filter_map).values_list('stock__sku__user').annotate(total=Sum('reserved')))
+        blocked_qtys = dict(EnquiredSku.objects.filter(sku__user__in=source_whs, sku_code=sku_code).filter(
+            ~Q(enquiry__extend_status='rejected')).values_list('sku__user', 'quantity'))
+        if warehouse_level == 0 and user_id not in source_whs:  # Resellers wont have NETWORK MASTER
+            source_whs.insert(0, user_id)
 
-    source_whs = list(NetworkMaster.objects.filter(dest_location_code_id=dist_user_id).filter(
-        source_location_code__userprofile__warehouse_level=warehouse_level).values_list(
-        'source_location_code_id', flat=True).order_by('lead_time', 'priority'))
-    pick_filter_map = {'picklist__order__user__in': source_whs, 'picklist__order__sku__wms_code': sku_code}
-    res_qtys = dict(PicklistLocation.objects.prefetch_related('picklist', 'stock').filter(status=1).filter(
-        **pick_filter_map).values_list('stock__sku__user').annotate(total=Sum('reserved')))
-    blocked_qtys = dict(EnquiredSku.objects.filter(sku__user__in=source_whs, sku_code=sku_code).filter(
-        ~Q(enquiry__extend_status='rejected')).values_list('sku__user', 'quantity'))
-    # source_whs = list(NetworkMaster.objects.filter(dest_location_code_id=dist_user_id).values_list(
-    #     'source_location_code_id', flat=True).order_by('lead_time', 'priority'))
-    # if user_id in source_whs and source_whs.index(user_id) != 0:
-    #     source_whs.remove(user_id)
-    #     source_whs.insert(0, user_id)
-    # elif user_id not in source_whs:
-    #     log.info("No Mapping Between WH and DIST in Network Master:: %s, %s" % (user_id, source_whs))
-    #     source_whs.insert(0, user_id)
-    if warehouse_level == 0 and user_id not in source_whs:  # Resellers wont have NETWORK MASTER
-        source_whs.insert(0, user_id)
+        stk_dtl_obj = dict(StockDetail.objects.filter(
+            sku__user__in=source_whs, sku__wms_code=sku_code, quantity__gt=0).values_list(
+            'sku__user').distinct().annotate(in_stock=Sum('quantity')))
 
-    stk_dtl_obj = dict(StockDetail.objects.filter(
-        sku__user__in=source_whs, sku__wms_code=sku_code, quantity__gt=0).values_list(
-        'sku__user').distinct().annotate(in_stock=Sum('quantity')))
-
-    log.info("Stock Avail, Reserved and Blocked(Enquiry) for SKU Code (%s)::%s:%s:%s" %
-             (sku_code, repr(stk_dtl_obj), repr(res_qtys), repr(blocked_qtys)))
-    for source_wh in source_whs:
-        avail_stock = stk_dtl_obj.get(source_wh, 0)
-        res_stock = res_qtys.get(source_wh, 0)
-        blocked_stock = blocked_qtys.get(source_wh, 0)
-        if not res_stock:
-            res_stock = 0
-        if not blocked_stock:
-            blocked_stock = 0
-        avail_stock = avail_stock - res_stock - blocked_stock
-        if avail_stock <= 0:
-            continue
-        req_qty = req_stock - avail_stock
-        if req_qty < avail_stock and req_qty < 0:
-            stock_wh_map[source_wh] = avail_stock - abs(req_qty)
-            break
-        if req_qty >= 0:
-            stock_wh_map[source_wh] = avail_stock
-        else:
-            break
-        req_stock = req_qty
+        log.info("Stock Avail, Reserved and Blocked(Enquiry) for SKU Code (%s)::%s:%s:%s" %
+                 (sku_code, repr(stk_dtl_obj), repr(res_qtys), repr(blocked_qtys)))
+        for source_wh in source_whs:
+            avail_stock = stk_dtl_obj.get(source_wh, 0)
+            res_stock = res_qtys.get(source_wh, 0)
+            blocked_stock = blocked_qtys.get(source_wh, 0)
+            if not res_stock:
+                res_stock = 0
+            if not blocked_stock:
+                blocked_stock = 0
+            avail_stock = avail_stock - res_stock - blocked_stock
+            if avail_stock <= 0:
+                continue
+            req_qty = req_stock - avail_stock
+            if req_qty < avail_stock and req_qty < 0:
+                stock_wh_map[source_wh] = avail_stock - abs(req_qty)
+                break
+            if req_qty >= 0:
+                stock_wh_map[source_wh] = avail_stock
+            else:
+                break
+            req_stock = req_qty
     log.info("Stock assigning Map for SKU Code (%s):: %s" % (sku_code, repr(stock_wh_map)))
     return stock_wh_map
 
@@ -3393,6 +3454,37 @@ def sku_level_total_qtys(myDict, sku_total_qty_map):
             sku_total_qty_map[sku_id] = int(quantity)
 
 
+def block_asn_stock(sku_id, qty, lead_time, ord_det_id):
+    todays_date = datetime.datetime.today().date()
+    lt_date = todays_date + datetime.timedelta(days=lead_time)
+    asn_qs = ASNStockDetail.objects.filter(sku_id=sku_id, arriving_date__gte= todays_date,
+                                           arriving_date__lte=lt_date).order_by('arriving_date')
+    for asn_obj in asn_qs:
+        asn_res_map = {'asnstock_id': asn_obj.id, 'orderdetail_id': ord_det_id}
+        if not asn_obj.asnreservedetail_set.values():
+            # Create ASN Reserve Detail Object
+            if qty <= asn_obj.quantity:
+                asn_res_map['reserved_qty'] = qty
+                ASNReserveDetail.objects.create(**asn_res_map)
+                break
+            else:
+                qty = qty - asn_obj.quantity
+                asn_res_map['reserved_qty'] = asn_obj.quantity
+                ASNReserveDetail.objects.create(**asn_res_map)
+        else:
+            res_stock_obj = asn_obj.asnreservedetail_set.values('asnstock').annotate(in_res=Sum('reserved_qty'))
+            res_stock = res_stock_obj[0]['in_res']
+            avail_stock = asn_obj.quantity - res_stock
+            if qty <= avail_stock:
+                asn_res_map['reserved_qty'] = qty
+                ASNReserveDetail.objects.create(**asn_res_map)
+                break
+            else:
+                qty = qty - avail_stock
+                asn_res_map['reserved_qty'] = avail_stock
+                ASNReserveDetail.objects.create(**asn_res_map)
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -3505,7 +3597,11 @@ def insert_order_data(request, user=''):
                 else:
                     order_data['warehouse_level'] = 0
                 stock_wh_map = split_orders(**order_data)
-                fetch_order_ids(stock_wh_map, user_order_ids_map)
+                if order_data['warehouse_level'] == 3:
+                    for lt, st_wh_map in stock_wh_map.items():
+                        fetch_order_ids(st_wh_map, user_order_ids_map)
+                else:
+                    fetch_order_ids(stock_wh_map, user_order_ids_map)
                 if not is_distributor and user_order_ids_map.has_key(user.id) and stock_wh_map.has_key(user.id):
                     order_data['order_id'] = user_order_ids_map[user.id]
                     order_data['user'] = user.id
@@ -3540,27 +3636,59 @@ def insert_order_data(request, user=''):
                                                           order_data['quantity'], corporate_po_number, client_name,
                                                           order_data['unit_price'], el_price, del_date)
                         create_ordersummary_data(order_summary_dict, order_obj, ship_to, courier_name)
-                for usr, qty in stock_wh_map.iteritems():
-                    order_data['order_id'] = user_order_ids_map[usr]
-                    order_data['user'] = usr
-                    if qty <= 0:
-                        continue
-                    order_data['quantity'] = qty
-                    creation_date = datetime.datetime.now()
-                    order_data['creation_date'] = creation_date
-                    mapped_sku_id = get_syncedusers_mapped_sku(usr, order_data['sku_id'])
-                    #if not order_data.get('original_order_id', ''):
-                    order_data['original_order_id'] = str(order_data['order_code']) + str(order_data['order_id'])
-                    order_obj = OrderDetail.objects.filter(order_id=order_data['order_id'], user=usr,
-                                                           sku_id=mapped_sku_id, order_code=order_data['order_code'])
-                    if not order_obj:
-                        order_data['sku_id'] = mapped_sku_id
-                        create_generic_order(order_data, cm_id, user.id, generic_order_id, order_objs, is_distributor,
-                                             order_summary_dict, ship_to, corporate_po_number, client_name, admin_user,
-                                             sku_total_qty_map, order_user_sku, order_user_objs, address_selected)
-                    else:
-                        created_skus.append(order_data['sku_id'])
-                    items.append([sku_master['sku_desc'], order_data['quantity'], order_data.get('invoice_amount', 0)])
+                if order_data['warehouse_level'] == 3:
+                    order_data['warehouse_level'] = 1
+                    for lt, st_wh_map in stock_wh_map.iteritems():
+                        for usr, qty in st_wh_map.iteritems():
+                            order_data['order_id'] = user_order_ids_map[usr]
+                            order_data['user'] = usr
+                            if qty <= 0:
+                                continue
+                            order_data['quantity'] = qty
+                            creation_date = datetime.datetime.now()
+                            order_data['creation_date'] = creation_date
+                            mapped_sku_id = get_syncedusers_mapped_sku(usr, order_data['sku_id'])
+                            ord_code = str(order_data['order_code'])
+                            ord_id = str(order_data['order_id'])
+                            order_data['original_order_id'] = ord_code + ord_id
+                            order_obj = OrderDetail.objects.filter(order_id=order_data['order_id'], user=usr,
+                                                                   sku_id=mapped_sku_id,
+                                                                   order_code=order_data['order_code'])
+                            if not order_obj:
+                                order_data['sku_id'] = mapped_sku_id
+                                create_generic_order(order_data, cm_id, user.id, generic_order_id, order_objs,
+                                                     is_distributor, order_summary_dict, ship_to, corporate_po_number,
+                                                     client_name, admin_user, sku_total_qty_map, order_user_sku,
+                                                     order_user_objs, address_selected)
+                                ord_det_id = order_summary_dict['order_id']
+                                block_asn_stock(mapped_sku_id, qty, lt, ord_det_id)
+                            else:
+                                created_skus.append(order_data['sku_id'])
+                            items.append(
+                                [sku_master['sku_desc'], order_data['quantity'], order_data.get('invoice_amount', 0)])
+                else:
+                    for usr, qty in stock_wh_map.iteritems():
+                        order_data['order_id'] = user_order_ids_map[usr]
+                        order_data['user'] = usr
+                        if qty <= 0:
+                            continue
+                        order_data['quantity'] = qty
+                        creation_date = datetime.datetime.now()
+                        order_data['creation_date'] = creation_date
+                        mapped_sku_id = get_syncedusers_mapped_sku(usr, order_data['sku_id'])
+                        ord_code = str(order_data['order_code'])
+                        ord_id = str(order_data['order_id'])
+                        order_data['original_order_id'] = ord_code + ord_id
+                        order_obj = OrderDetail.objects.filter(order_id=order_data['order_id'], user=usr,
+                                                               sku_id=mapped_sku_id, order_code=order_data['order_code'])
+                        if not order_obj:
+                            order_data['sku_id'] = mapped_sku_id
+                            create_generic_order(order_data, cm_id, user.id, generic_order_id, order_objs, is_distributor,
+                                                 order_summary_dict, ship_to, corporate_po_number, client_name, admin_user,
+                                                 sku_total_qty_map, order_user_sku, order_user_objs, address_selected)
+                        else:
+                            created_skus.append(order_data['sku_id'])
+                        items.append([sku_master['sku_desc'], order_data['quantity'], order_data.get('invoice_amount', 0)])
 
             else:
                 if not order_id:
@@ -3830,7 +3958,12 @@ def check_stocks(order_sku, user, request, order_objs):
                 return "Order created Successfully"
 
     picklist_number = get_picklist_number(user)
+    todays_date = datetime.datetime.today().date()
     for order_obj in order_objs:
+        is_asn_order = ASNReserveDetail.objects.filter(orderdetail=order_obj.id,
+                                                       asnstock__arriving_date__gte=todays_date)
+        if is_asn_order: # We cant create Picklist for ASN Order as stock is not yet dispatched.
+            continue
         picklist_generation([order_obj], request, picklist_number, user, sku_combos, sku_stocks, switch_vals, status='open',
                             remarks='Auto-generated Picklist')
     check_picklist_number_created(user, picklist_number + 1)
@@ -4494,8 +4627,6 @@ def get_levels(request, user=''):
 
 def get_leadtimes(user='', level=0):
     central_admin = get_admin(user)
-    # if level == 3:  # Warehouse's (SM Warehouse = Level-1) ASN Stock will be shown in Level-3.
-    #     level = 1
     same_level_users = get_same_level_warehouses(level, central_admin)
     lead_times = NetworkMaster.objects.filter(dest_location_code=user,
                                               source_location_code_id__in=same_level_users). \
@@ -4507,6 +4638,8 @@ def get_leadtimes(user='', level=0):
 
 
 def get_same_level_warehouses(level, central_admin):
+    if level == 3:
+        level = 1
     users_list = UserGroups.objects.filter(admin_user=central_admin.id).values_list('user').distinct()
     warehouses = UserProfile.objects.filter(user_id__in=users_list, warehouse_level=level).values_list('user_id',
                                                                                                        flat=True)
@@ -4592,13 +4725,36 @@ def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_
     thirtyday_filter = today_filter + datetime.timedelta(days=30)
     hundred_day_filter = today_filter + datetime.timedelta(days=100)
     sku_filter = [sku_master[0]['sku_class']]
-    asn_sku_filter_qs = ASNStockDetail.objects.filter(quantity__gt=0, sku__sku_class__in=sku_filter)
-    asn_3days_stock = dict(asn_sku_filter_qs.exclude(arriving_date__lte=today_filter).filter(
-        arriving_date__lte=threeday_filter).values_list('sku__sku_code').annotate(Sum('quantity')))
-    asn_30days_stock = dict(asn_sku_filter_qs.exclude(arriving_date__lte=threeday_filter).filter(
-        arriving_date__lte=thirtyday_filter).values_list('sku__sku_code').annotate(Sum('quantity')))
-    asn_100days_stock = dict(asn_sku_filter_qs.exclude(arriving_date__lte=thirtyday_filter).filter(
-        arriving_date__lte=hundred_day_filter).values_list('sku__sku_code').annotate(Sum('quantity')))
+
+    asn_filters = {'quantity__gt': 0, 'sku__sku_class__in': sku_filter, 'sku__user__in': stock_display_warehouse}
+    asn_qs = ASNStockDetail.objects.filter(**asn_filters)
+    asn_3_qs = asn_qs.exclude(arriving_date__lte=today_filter).filter(arriving_date__lte=threeday_filter)
+    asn_3_ids = asn_3_qs.values_list('id', flat=True)
+    asn_res_3days_qs = ASNReserveDetail.objects.filter(asnstock__in=asn_3_ids)
+    asn_res_3days_qty = dict(asn_res_3days_qs.values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
+    intr_3d_st = dict(asn_3_qs.values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
+    for k, v in intr_3d_st.items():
+        if k in asn_res_3days_qty:
+            intr_3d_st[k] = intr_3d_st[k] - asn_res_3days_qty[k]
+
+    asn_30_qs = asn_qs.exclude(arriving_date__lte=threeday_filter).filter(arriving_date__lte=thirtyday_filter)
+    asn_30_ids = asn_30_qs.values_list('id', flat=True)
+    asn_res_30days_qs = ASNReserveDetail.objects.filter(asnstock__in=asn_30_ids)
+    asn_res_30days_qty = dict(asn_res_30days_qs.values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
+    intr_30d_st = dict(asn_30_qs.values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
+    for k, v in intr_30d_st.items():
+        if k in asn_res_30days_qty:
+            intr_30d_st[k] = intr_30d_st[k] - asn_res_30days_qty[k]
+
+    asn_100_qs = asn_qs.exclude(arriving_date__lte=thirtyday_filter).filter(arriving_date__lte=hundred_day_filter)
+    asn_100_ids = asn_100_qs.values_list('id', flat=True)
+    asn_res_100days_qs = ASNReserveDetail.objects.filter(asnstock__in=asn_100_ids)
+    asn_res_100days_qty = dict(asn_res_100days_qs.values_list('asnstock__sku__sku_code').annotate(
+        in_res=Sum('reserved_qty')))
+    intr_100d_st = dict(asn_100_qs.values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
+    for k, v in intr_100d_st.items():
+        if k in asn_res_100days_qty:
+            intr_100d_st[k] = intr_100d_st[k] - asn_res_100days_qty[k]
 
     day_1_total = 0
     day_3_total = 0
@@ -4625,9 +4781,9 @@ def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_
             all_quantity -= item['physical_stock']
         item['all_quantity'] = all_quantity
         if level == 3:
-            item[3] = asn_3days_stock.get(item["wms_code"], 0)
-            item[30] = asn_30days_stock.get(item["wms_code"], 0)
-            item[100] = asn_100days_stock.get(item["wms_code"], 0)
+            item[3] = intr_3d_st.get(item["wms_code"], 0)
+            item[30] = intr_30d_st.get(item["wms_code"], 0)
+            item[100] = intr_100d_st.get(item["wms_code"], 0)
         if lead_times and level != 3:
             for lead_time, wh_code in lead_times.items():
                 output = get_stock_qty_leadtime(item, wh_code)
@@ -4773,7 +4929,7 @@ def get_sku_variants(request, user=''):
         else:
             if level:
                 if level == 3:
-                    reseller_leadtimes = {3: None, 30: None, 100: None}
+                    reseller_leadtimes = [3, 30, 100]
                 else:
                     lead_times = get_leadtimes(user.id, level)
                     reseller_leadtimes = map(lambda x: x + dist_reseller_leadtime, lead_times)
@@ -4805,9 +4961,25 @@ def get_sku_variants(request, user=''):
                                                                              total_received=Sum('received_quantity')).\
                                             annotate(tot_rem=F('total_order')-F('total_received')).\
                                             values_list('open_po__sku__sku_code', 'tot_rem'))
+    # needed_stock_data['asn_quantities'] = dict(
+    #     ASNStockDetail.objects.filter(quantity__gt=0, sku__sku_code__in=needed_skus).only(
+    #         'sku__sku_code', 'quantity').values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
+
+    today_filter = datetime.datetime.today()
+    hundred_day_filter = today_filter + datetime.timedelta(days=100)
+    ints_filters = {'quantity__gt': 0, 'sku__sku_code__in': needed_skus, 'sku__user__in': gen_whs}
+    asn_qs = ASNStockDetail.objects.filter(**ints_filters)
+    intr_obj_100days_qs = asn_qs.exclude(arriving_date__lte=today_filter).filter(arriving_date__lte=hundred_day_filter)
+    intr_obj_100days_ids = intr_obj_100days_qs.values_list('id', flat=True)
+    asn_res_100days_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
+    asn_res_100days_qty = dict(asn_res_100days_qs.values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
+
     needed_stock_data['asn_quantities'] = dict(
-        ASNStockDetail.objects.filter(quantity__gt=0, sku__sku_code__in=needed_skus).only(
-            'sku__sku_code', 'quantity').values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
+        intr_obj_100days_qs.values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
+    for k, v in needed_stock_data['asn_quantities'].items():
+        if k in asn_res_100days_qty:
+            needed_stock_data['asn_quantities'][k] = needed_stock_data['asn_quantities'][k] - asn_res_100days_qty[k]
+
     sku_master = get_style_variants(sku_master, user, customer_id=customer_id, customer_data_id=customer_data_id,
                                     levels_config=levels_config, dist_wh_id=dist_userid, level=level,
                                     is_style_detail=is_style_detail, needed_stock_data=needed_stock_data
@@ -7175,6 +7347,7 @@ def get_customer_cart_data(request, user=""):
 
         cm_obj = CustomerMaster.objects.get(id=cust_user_obj[0].customer_id)
         is_distributor = cm_obj.is_distributor
+        todays_date = datetime.datetime.today().date()
         for record in cart_data:
             del_days = 0
             if is_distributor:
@@ -7223,24 +7396,35 @@ def get_customer_cart_data(request, user=""):
                 wh_level_stock_map = {}
                 for wh in whs:
                     sku_id = get_syncedusers_mapped_sku(wh=wh, sku_id=record.sku.id)
-                    stock_obj = StockDetail.objects.filter(sku=sku_id, quantity__gt=0).values(
-                        'sku_id').distinct().annotate(in_stock=Sum('quantity'))
-                    if stock_obj:
-                        stock_qty = stock_obj[0]['in_stock']
+                    if record.warehouse_level == 3:
+                        intransit_obj = ASNStockDetail.objects.filter(quantity__gt=0, arriving_date__gte=todays_date,
+                                                                      sku=sku_id).only('sku__sku_code',
+                                                                                       'quantity').values(
+                            'sku__sku_code').distinct().annotate(in_asn=Sum('quantity'))
+                        if intransit_obj:
+                            avail_stock = intransit_obj[0]['in_asn']
+                        else:
+                            avail_stock = 0
                     else:
-                        stock_qty = 0
-                    reserved_obj = PicklistLocation.objects.filter(stock__sku=sku_id, status=1).values(
-                        'stock__sku_id').distinct().annotate(in_reserved=Sum('reserved'))
-                    if reserved_obj:
-                        reserved_qty = reserved_obj[0]['in_reserved']
-                    else:
-                        reserved_qty = 0
-                    enq_qty = EnquiredSku.objects.filter(sku__user=wh, sku_code=record.sku.sku_code).filter(
-                        ~Q(enquiry__extend_status='rejected')).values_list('sku_code').aggregate(Sum('quantity'))[
-                        'quantity__sum']
-                    if not enq_qty:
-                        enq_qty = 0
-                    avail_stock = stock_qty - reserved_qty - enq_qty
+
+                        stock_obj = StockDetail.objects.filter(sku=sku_id, quantity__gt=0).values(
+                            'sku_id').distinct().annotate(in_stock=Sum('quantity'))
+                        if stock_obj:
+                            stock_qty = stock_obj[0]['in_stock']
+                        else:
+                            stock_qty = 0
+                        reserved_obj = PicklistLocation.objects.filter(stock__sku=sku_id, status=1).values(
+                            'stock__sku_id').distinct().annotate(in_reserved=Sum('reserved'))
+                        if reserved_obj:
+                            reserved_qty = reserved_obj[0]['in_reserved']
+                        else:
+                            reserved_qty = 0
+                        enq_qty = EnquiredSku.objects.filter(sku__user=wh, sku_code=record.sku.sku_code).filter(
+                            ~Q(enquiry__extend_status='rejected')).values_list('sku_code').aggregate(Sum('quantity'))[
+                            'quantity__sum']
+                        if not enq_qty:
+                            enq_qty = 0
+                        avail_stock = stock_qty - reserved_qty - enq_qty
                     if wh not in wh_level_stock_map:
                         wh_level_stock_map[wh] = avail_stock
                     else:

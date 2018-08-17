@@ -3995,6 +3995,36 @@ def create_stock_transfer(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+def stock_transfer_delete(request, user=""):
+    """ This code will delete the stock tranfer and po selected"""
+
+    st_time = datetime.datetime.now()
+    log.info('Request params for ' + user.username + ' is ' + str(request.POST.dict()))
+    log.info("deletion of stock transfer order process started")
+    transfer_order_id = request.GET.get("order_id", "")
+
+    try:
+        stock_transfer = StockTransfer.objects.filter(sku__user=user.id, status=1, order_id=transfer_order_id)
+        st_po = stock_transfer[0].st_po
+        po = st_po.po
+        open_st = st_po.open_st
+        open_st.delete()
+        po.delete()
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info(e)
+
+    end_time = datetime.datetime.now()
+    duration = end_time - st_time
+    log.info("process completed")
+    log.info("total time -- %s" % (duration))
+    return HttpResponse("Order is deleted")
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def get_marketplaces_list(request, user=''):
     status_type = request.GET.get('status', '')
     marketplace = get_marketplace_names(user, status_type)
@@ -6486,18 +6516,21 @@ def picklist_delete(request, user=""):
     key = request.GET.get("key", "")
     picklist_objs = Picklist.objects.filter(picklist_number=picklist_id, status__in=["open", "batch_open"],
                                             order_id__user=user.id)
-    order_ids = picklist_objs.values_list('order_id', flat=True)
+    order_ids = list(picklist_objs.values_list('order_id', flat=True))
     order_objs = OrderDetail.objects.filter(id__in=order_ids, user=user.id)
     log.info('Cancel Picklist request params for ' + user.username + ' is ' + str(request.GET.dict()))
     cancelled_orders_dict = {}
     try:
         if key == "process":
+            status_message = 'Picklist is saved for later use'
             for order in order_objs:
                 if picklist_objs.filter(order_type='combo', order_id=order.id):
                     is_picked = picklist_objs.filter(picked_quantity__gt=0, order_id=order.id)
                     remaining_qty = order.quantity
                     if is_picked:
-                        return HttpResponse("Partial Picked Picklist not allowed to cancel")
+                        status_message = 'Partial Picked Picklist not allowed to cancel'
+                        order_ids.remove(order.id)
+                        continue
                 else:
                     remaining_qty = picklist_objs.filter(order_id=order).\
                         aggregate(Sum('reserved_quantity'))['reserved_quantity__sum']
@@ -6508,40 +6541,45 @@ def picklist_delete(request, user=""):
                     seller_orders = SellerOrder.objects.filter(order__user=user.id, order_id=order.id)
                     if seller_orders:
                         seller_orders.update(status=1)
-            OrderLabels.objects.filter(order_id__in=order_ids, picklist__picklist_number=picklist_id).update(
-                picklist=None)
-            picked_objs = picklist_objs.filter(picked_quantity__gt=0)
-            not_picked_objs = picklist_objs.filter(picked_quantity=0)
-            if not_picked_objs.exists():
-                not_picked_objs.delete()
-            if picked_objs.exists():
-                pick_obj_status = picked_objs[0].status
-                if 'batch' in pick_obj_status:
-                    pick_obj_status = 'batch_picked'
-                else:
-                    pick_obj_status = 'picked'
-                picklist_locations = PicklistLocation.objects.filter(picklist_id__in=picked_objs.\
-                                                                     values_list('id', flat=True))
-                for pick_location in picklist_locations:
-                    pick_location.quantity = float(pick_location.quantity) - float(pick_location.reserved)
-                    pick_location.reserved = 0
-                    pick_location.status = 0
-                    pick_location.save()
-                picked_objs.update(reserved_quantity=0, status=pick_obj_status)
-            check_picklist_number_created(user, picklist_id)
-            end_time = datetime.datetime.now()
-            duration = end_time - st_time
-            log.info("process completed")
-            log.info("total time -- %s" % (duration))
-            return HttpResponse("Picklist is saved for later use")
+            if order_ids:
+                OrderLabels.objects.filter(order_id__in=order_ids, picklist__picklist_number=picklist_id).update(
+                    picklist=None)
+                picked_objs = picklist_objs.filter(picked_quantity__gt=0)
+                not_picked_objs = picklist_objs.filter(picked_quantity=0)
+                if not_picked_objs.exists():
+                    not_picked_objs.delete()
+                if picked_objs.exists():
+                    pick_obj_status = picked_objs[0].status
+                    if 'batch' in pick_obj_status:
+                        pick_obj_status = 'batch_picked'
+                    else:
+                        pick_obj_status = 'picked'
+                    picklist_locations = PicklistLocation.objects.filter(picklist_id__in=picked_objs.\
+                                                                         values_list('id', flat=True))
+                    for pick_location in picklist_locations:
+                        pick_location.quantity = float(pick_location.quantity) - float(pick_location.reserved)
+                        pick_location.reserved = 0
+                        pick_location.status = 0
+                        pick_location.save()
+                    picked_objs.update(reserved_quantity=0, status=pick_obj_status)
+                check_picklist_number_created(user, picklist_id)
+                end_time = datetime.datetime.now()
+                duration = end_time - st_time
+                log.info("process completed")
+                log.info("total time -- %s" % (duration))
+            return HttpResponse(status_message)
 
         elif key == "delete":
+            status_message = 'Picklist is deleted'
             for order in order_objs:
                 if picklist_objs.filter(order_type='combo', order_id=order.id):
                     is_picked = picklist_objs.filter(picked_quantity__gt=0, order_id=order.id)
                     remaining_qty = order.quantity
                     if is_picked:
-                        return HttpResponse("Partial Picked Picklist not allowed to cancel")
+                        status_message = 'Partial Picked Picklist not allowed to cancel'
+                        continue
+                    else:
+                        order.delete()
                 else:
                     all_seller_orders = SellerOrder.objects.filter(order__user=user.id,
                                                                    order_id__in=order_objs.values_list('id', flat=True))
@@ -6606,7 +6644,7 @@ def picklist_delete(request, user=""):
             log.info("total time -- %s" % (duration))
             if cancelled_orders_dict:
                 check_and_update_order_status_data(cancelled_orders_dict, user, status='CANCELLED')
-            return HttpResponse("Picklist is deleted")
+            return HttpResponse(status_message)
 
         else:
             log.info("Invalid key")
@@ -10442,6 +10480,28 @@ def create_mail_attachments(f_name, html_data):
             "./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (path + file_name, path + pdf_file))
         attachments.append({'path': path + pdf_file, 'name': pdf_file})
     return attachments
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_create_order_mapping_values(request, user=''):
+    wms_code = request.GET['wms_code']
+    sku_supplier = {}
+    data = {}
+    if wms_code:
+        sku_code_obj = SKUMaster.objects.filter(wms_code=wms_code, user=user.id)
+        if sku_code_obj:
+            sku_supplier = list(sku_code_obj.values('wms_code', 'price'))
+    return HttpResponse(json.dumps(sku_supplier), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def invoice_mark_delivered(request, user=''):
+    selected_order_ids = request.POST.getlist('selected_ids', [])
+
+
+    return True
 
 """
 def render_st_html_data(request, user, warehouse, all_data):

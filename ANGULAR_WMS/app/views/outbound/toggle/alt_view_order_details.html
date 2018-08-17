@@ -177,15 +177,15 @@
       </div>
     </div>
     <div class="row" style="padding-bottom:2%;">
-      <div class="text-center">
+      <div class="col-md-6 text-center">
         <input type="hidden" class="form-control" name="tax_type" value="{{showCase.model_data.tax_type}}" disabled>
         <button type="button" class="btn btn-primary" ng-if="!showCase.input_status" style="margin: auto;display: block;" 
         ng-click="showCase.send_order_data(form)">Update </button>
       </div>
-      <!-- <div class="col-md-6">
+      <div class="col-md-6">
         <button type="button" class="btn btn-danger" ng-if="!showCase.input_status" style="margin: auto;display: block;"
         ng-click="showCase.delete_order_data(showCase.order_id)">Delete Order </button>
-      </div> -->
+      </div>
     </div>
   </div>
 </div>

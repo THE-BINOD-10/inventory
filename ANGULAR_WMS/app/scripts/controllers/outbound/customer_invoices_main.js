@@ -354,6 +354,34 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       }
     }
 
+    vm.mark_delivered = function() {
+      var data = {};
+      data['delivered_flag'] = true;
+      var selected_ids = [];
+      angular.forEach(vm.selected, function(value, key) {
+        if (value) {
+          var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]['_aData'];
+          selected_ids.push(temp['id']);
+        }
+      })
+      data['selected_ids'] = selected_ids;
+      //var ids = data.join(",");
+      //var send = {seller_summary_id: ids, data: true};
+      Service.apiCall("invoice_mark_delivered/", "POST", data).then(function(data) {
+        if(data.message) {
+          if(data.data.msg == 'success') {
+            Service.showNoty("Updated Successfully");
+            $modalInstance.close("saved");
+          } else {
+            Service.showNoty(data.data.msg);
+          }
+        } else {
+          Service.showNoty("Update fail");
+        }
+        //vm.process = false;
+      })
+    }
+
     vm.inv_height = 1358; //total invoice height
     vm.inv_details = 292; //invoice details height
     vm.inv_footer = 95;   //invoice footer height

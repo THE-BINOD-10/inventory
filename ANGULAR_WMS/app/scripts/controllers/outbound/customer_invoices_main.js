@@ -357,28 +357,22 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.mark_delivered = function() {
       var data = {};
       data['delivered_flag'] = true;
-      var selected_ids = [];
+      var selected_invoice = [];
       angular.forEach(vm.selected, function(value, key) {
         if (value) {
           var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]['_aData'];
-          selected_ids.push(temp['id']);
+          selected_invoice.push({ 'invoice_number':temp['Invoice Number'], 'order_id':temp['Order ID'], 
+            'invoice_id':temp['Invoice ID'], 'id':temp['id'], 'order_qty':temp['Order Quantity'],
+            'picked_qty':temp['Picked Quantity'] })
         }
       })
-      data['selected_ids'] = selected_ids;
-      //var ids = data.join(",");
-      //var send = {seller_summary_id: ids, data: true};
-      Service.apiCall("invoice_mark_delivered/", "POST", data).then(function(data) {
-        if(data.message) {
-          if(data.data.msg == 'success') {
-            Service.showNoty("Updated Successfully");
-            $modalInstance.close("saved");
-          } else {
-            Service.showNoty(data.data.msg);
-          }
+      data['selected_invoice'] = JSON.stringify(selected_invoice);
+      Service.apiCall("invoice_mark_delivered/", "POST", data).then(function(resp_data) {
+        if(resp_data.data.status) {
+          Service.showNoty(resp_data.data.message, 'success', 'topRight');
         } else {
-          Service.showNoty("Update fail");
+          Service.showNoty(resp_data.data.message, 'error', 'topRight');
         }
-        //vm.process = false;
       })
     }
 

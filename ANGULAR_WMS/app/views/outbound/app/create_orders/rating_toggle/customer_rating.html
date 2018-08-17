@@ -1,0 +1,59 @@
+<style type="text/css">
+  .glyphicon {
+    color: gold;
+    cursor: pointer;
+    font-size: 2em;
+  }
+  .btn {
+    padding-right: 15px;
+    padding-left: 15px;
+  }
+  .btn-outline {
+    color: #563d7c;
+    background-color: transparent;
+    border-color: #563d7c;
+    min-width: 100%;
+  }
+  .btn-outline:hover {
+    color: #fff;
+    background-color: #563d7c;
+  }
+  .btn-selected {
+    color: #fff;
+    background-color: #563d7c;
+    border-color: #563d7c;
+    min-width: 100%;
+  }
+  .btn-selected:hover {
+    color: #fff;
+  }
+  .transition {
+    transition: all 500ms linear
+  }
+</style>
+
+<form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
+<div class="modal-header">
+  <h4 class="modal-title" id="modal-title">{{$ctrl.title}}</h4>
+</div>
+<div class="modal-body" id="modal-body">
+  <div class="row text-center">
+
+    <div class="alert alert-info mb10 transition" ng-if="!$ctrl.selStars"><b>Give Your Valuable Rating Of {{$ctrl.rate_type}}</b>&nbsp;&nbsp;<i style="font-size: 22px" class="fa fa-hand-o-down"></i></div>
+    <div class="alert {{$ctrl.rate_cls}} mb10 transition" ng-if="$ctrl.selStars"><b>{{$ctrl.sel_rate}}</b></div>
+
+    <div ng-repeat="n in $ctrl.getStarArray()" ng-class="$ctrl.getClass(n)" ng-click="$ctrl.setClass($event,n)"></div>
+    <hr>
+    <div ng-if="!$ctrl.selStars" style="font-size:15px;font-weight:600">Please, Provide both(order and product) related ratings</div>
+    <div ng-if="$ctrl.selStars" style="font-size:15px;font-weight:600">{{$ctrl.rate_query}}</div>
+  </div>
+  <div class="row mt15 text-center" ng-if="$ctrl.selStars">
+    <div class="col-md-4 mt5 mb5" ng-repeat="data in $ctrl.reasons" ng-click="$ctrl.resReason(data)">
+      <span ng-if="!data.selected" class="btn btn-outline">{{data.reason}}</span>
+      <span ng-if="data.selected" class="btn btn-selected">{{data.reason}}</span></div>
+  </div>
+</div>
+<div class="modal-footer">
+  <button class="btn btn-primary" type="submit" ng-click="$ctrl.submit()">Submit</button>
+</div>
+</form>

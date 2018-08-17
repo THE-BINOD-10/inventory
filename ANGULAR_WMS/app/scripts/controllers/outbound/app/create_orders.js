@@ -83,6 +83,33 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     }
   }
 
+  /*Rating module start*/
+  vm.marginData = {margin_type: ''};
+  function customerRating() {
+ 
+    var mod_data = vm.marginData;
+    var modalInstance = $modal.open({
+      // templateUrl: 'views/outbound/app/create_orders/add_margin.html',
+      templateUrl: 'views/outbound/app/create_orders/rating_toggle/customer_rating.html',
+      controller: 'customerRatingCtrl',
+      controllerAs: '$ctrl',
+      size: 'md',
+      backdrop: 'static',
+      keyboard: false,
+      resolve: {
+        items: function () {
+          return mod_data;
+        }
+      }
+    });
+
+    modalInstance.result.then(function (selectedItem) {
+      console.log(selectedItem);
+    })
+  }
+  customerRating();
+  /*Rating module end*/
+
   function change_filter_data() {
     var data = {brand: vm.brand, category: vm.category, is_catalog: true, sale_through: vm.order_type_value};
     vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
@@ -1572,5 +1599,141 @@ angular.module('urbanApp').controller('changePWDCtrl', function ($modalInstance,
   };
 });
 
+angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInstance, $modal, items, Service, Session) {
+  var vm = this;
+  vm.user_type = Session.roles.permissions.user_type;
+  vm.model_data = items;
+  vm.service = Service;
+  vm.title = 'Rate Your Order';
+  vm.rate_type = 'Order';
+  vm.sel_reasons = {order_rate:'', order_reason:'', product_rate:'', product_reason:''};
+  vm.rate_query = "What you didn't like!";
 
+  vm.resetValues = function(){
+
+    vm.reasons = [{'reason':'Reason-1','selected':false},{'reason':'Reason-2','selected':false},{'reason':'Reason-3','selected':false},
+                  {'reason':'Reason-4','selected':false},{'reason':'Reason-5','selected':false},{'reason':'Reason-6','selected':false}];
+    
+    vm.selStars = 0; // initial stars count
+    vm.maxStars = 5;
+
+    vm.sel_rate = '';
+    vm.rate_cls = '';
+  }
+
+  vm.resetValues();
+
+  vm.getStarArray = function() {
+    var result = [];
+    for (var i = 1; i <= vm.maxStars; i++)
+      result.push(i);
+    return result;
+  };
+
+  vm.getClass = function(value) {
+    return 'glyphicon glyphicon-star' + (vm.selStars >= value ? '' : '-empty');
+  };
+
+  vm.addCls = function(value){
+
+    if (value == 1) {
+
+      vm.sel_rate = 'Poor';
+      vm.rate_cls = 'alert-danger';
+    } else if (value == 2) {
+
+      vm.sel_rate = 'Average';
+      vm.rate_cls = 'alert-danger';
+    } else if (value == 3) {
+
+      vm.sel_rate = 'Good';
+      vm.rate_cls = 'alert-warning';
+    } else if (value == 4) {
+
+      vm.sel_rate = 'Very Good';
+      vm.rate_cls = 'alert-info';
+    } else if (value == 5) {
+
+      vm.sel_rate = 'Excellent';
+      vm.rate_cls = 'alert-success';
+      vm.rate_query = "What you like!";
+    }
+  }
+
+  vm.selRate = function(){
+
+    if (vm.title == 'Rate Your Order') {
+
+      vm.sel_reasons.order_rate = vm.selStars;
+    } else if (vm.title == 'Rate Your Product') {
+
+      vm.sel_reasons.product_rate = vm.selStars;
+    }
+  }
+
+  vm.setClass = function(sender, value) {
+
+    vm.selStars = value;
+    sender.currentTarget.setAttribute('class', vm.getClass(value));
+    vm.rate_query = "What you didn't like!";
+
+    vm.addCls(value);
+
+    vm.selRate();
+  };
+  
+  vm.sel_reason = {'background-color':'#563d7c','color':'#fff'};
+
+  vm.resReason = function(data){
+
+    angular.forEach(vm.reasons, function(row){
+
+      if (row.reason == data.reason) {
+        
+        row.selected = true;
+        
+        if (vm.title == 'Rate Your Order') {
+
+          vm.sel_reasons.order_reason = data.reason;
+        } else if (vm.title == 'Rate Your Product') {
+
+          vm.sel_reasons.product_reason = data.reason;
+        }
+      } else {
+
+        row.selected = false;
+      }
+    });
+  }
+
+  vm.submit = function () {
+
+    if((!vm.sel_reasons.order_reason && vm.title == 'Rate Your Order') || 
+       (!vm.sel_reasons.product_reason && vm.title == 'Rate Your Product')) {
+
+      vm.service.showNoty('Sorry, Please give your proper reason');
+    } else if (vm.sel_reasons.order_reason && !vm.sel_reasons.product_reason) {
+
+      vm.resetValues();
+      vm.title = 'Rate Your Product';
+      vm.rate_type = 'Product';
+    } else if (vm.sel_reasons.order_reason && vm.sel_reasons.product_reason && vm.selStars) {
+
+      Service.apiCall("customer_ratings/", "POST", vm.sel_reasons).then(function(response) {
+        if (response.message) {
+
+          vm.service.showNoty(response.data.data);
+          vm.cancel();
+        } else {
+
+          vm.service.showNoty('Something went wrong');
+        }
+      });
+    }
+  };
+
+  vm.cancel = function () {
+    $modalInstance.dismiss('cancel');
+  };
+});
 })();

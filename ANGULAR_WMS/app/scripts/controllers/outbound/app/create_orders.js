@@ -85,12 +85,13 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   }
 
   /*Rating module start*/
-  vm.modelData = {'profile_name': vm.profile_name, 'data':vm.rating_data};
+  vm.test = [{wms_code: '101', sku_desc: 'Description-1'}, {wms_code: '102', sku_desc: 'Description-2'}, 
+             {wms_code: '103', sku_desc: 'Description-3'}, {wms_code: '104', sku_desc: 'Description-4'}];
+  vm.modelData = {'profile_name': vm.profile_name, 'ordered_skus':vm.test};
   function customerRating() {
  
     var mod_data = vm.modelData;
     var modalInstance = $modal.open({
-      // templateUrl: 'views/outbound/app/create_orders/add_margin.html',
       templateUrl: 'views/outbound/app/create_orders/rating_toggle/customer_rating.html',
       controller: 'customerRatingCtrl',
       controllerAs: '$ctrl',
@@ -1617,45 +1618,28 @@ angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInst
 
   vm.resetValues = function(){
 
-    vm.reasons = {order_reasons: {1: [{'reason':'O_Reason-1-of-1','selected':false},{'reason':'O_Reason-1-of-2','selected':false},
-                                      {'reason':'O_Reason-1-of-3','selected':false},{'reason':'O_Reason-1-of-4','selected':false},
-                                      {'reason':'O_Reason-1-of-5','selected':false},{'reason':'O_Reason-1-of-6','selected':false}],
-                                  2: [{'reason':'O_Reason-2-of-1','selected':false},{'reason':'O_Reason-2-of-2','selected':false},
-                                      {'reason':'O_Reason-2-of-3','selected':false},{'reason':'O_Reason-2-of-4','selected':false},
-                                      {'reason':'O_Reason-2-of-5','selected':false},{'reason':'O_Reason-2-of-6','selected':false}],
-                                  3: [{'reason':'O_Reason-3-of-1','selected':false},{'reason':'O_Reason-3-of-2','selected':false},
-                                      {'reason':'O_Reason-3-of-3','selected':false},{'reason':'O_Reason-3-of-4','selected':false},
-                                      {'reason':'O_Reason-3-of-5','selected':false},{'reason':'O_Reason-3-of-6','selected':false}],
-                                  4: [{'reason':'O_Reason-4-of-1','selected':false},{'reason':'O_Reason-4-of-2','selected':false},
-                                      {'reason':'O_Reason-4-of-3','selected':false},{'reason':'O_Reason-4-of-4','selected':false},
-                                      {'reason':'O_Reason-4-of-5','selected':false},{'reason':'O_Reason-4-of-6','selected':false}],
-                                  5: [{'reason':'O_Reason-5-of-1','selected':false},{'reason':'O_Reason-5-of-2','selected':false},
-                                      {'reason':'O_Reason-5-of-3','selected':false},{'reason':'O_Reason-5-of-4','selected':false},
-                                      {'reason':'O_Reason-5-of-5','selected':false},{'reason':'O_Reason-5-of-6','selected':false}]},
-                  product_reasons: {1: [{'reason':'P_Reason-1-of-1','selected':false},{'reason':'P_Reason-1-of-2','selected':false},
-                                        {'reason':'P_Reason-1-of-3','selected':false},{'reason':'P_Reason-1-of-4','selected':false},
-                                        {'reason':'P_Reason-1-of-5','selected':false},{'reason':'P_Reason-1-of-6','selected':false}],
-                                    2: [{'reason':'P_Reason-2-of-1','selected':false},{'reason':'P_Reason-2-of-2','selected':false},
-                                        {'reason':'P_Reason-2-of-3','selected':false},{'reason':'P_Reason-2-of-4','selected':false},
-                                        {'reason':'P_Reason-2-of-5','selected':false},{'reason':'P_Reason-2-of-6','selected':false}],
-                                    3: [{'reason':'P_Reason-3-of-1','selected':false},{'reason':'P_Reason-3-of-2','selected':false},
-                                        {'reason':'P_Reason-3-of-3','selected':false},{'reason':'P_Reason-3-of-4','selected':false},
-                                        {'reason':'P_Reason-3-of-5','selected':false},{'reason':'P_Reason-3-of-6','selected':false}],
-                                    4: [{'reason':'P_Reason-4-of-1','selected':false},{'reason':'P_Reason-4-of-2','selected':false},
-                                        {'reason':'P_Reason-4-of-3','selected':false},{'reason':'P_Reason-4-of-4','selected':false},
-                                        {'reason':'P_Reason-4-of-5','selected':false},{'reason':'P_Reason-4-of-6','selected':false}],
-                                    5: [{'reason':'P_Reason-5-of-1','selected':false},{'reason':'P_Reason-5-of-2','selected':false},
-                                        {'reason':'P_Reason-5-of-3','selected':false},{'reason':'P_Reason-5-of-4','selected':false},
-                                        {'reason':'P_Reason-5-of-5','selected':false},{'reason':'P_Reason-5-of-6','selected':false}]}};
-
-    // vm.reasons = [{'reason':'Reason-1','selected':false},{'reason':'Reason-2','selected':false},{'reason':'Reason-3','selected':false},
-    //               {'reason':'Reason-4','selected':false},{'reason':'Reason-5','selected':false},{'reason':'Reason-6','selected':false}];
+    vm.reasons = {
+      order_reasons: {
+        1: ['O_Reason-1-of-1', 'O_Reason-1-of-2', 'O_Reason-1-of-3', 'O_Reason-1-of-4', 'O_Reason-1-of-5', 'O_Reason-1-of-6'],
+        2: ['O_Reason-2-of-1', 'O_Reason-2-of-2', 'O_Reason-2-of-3', 'O_Reason-2-of-4', 'O_Reason-2-of-5', 'O_Reason-2-of-6'],
+        3: ['O_Reason-3-of-1', 'O_Reason-3-of-2', 'O_Reason-3-of-3', 'O_Reason-3-of-4', 'O_Reason-3-of-5', 'O_Reason-3-of-6'],
+        4: ['O_Reason-4-of-1', 'O_Reason-4-of-2', 'O_Reason-4-of-3', 'O_Reason-4-of-4', 'O_Reason-4-of-5', 'O_Reason-4-of-6'],
+        5: ['O_Reason-5-of-1', 'O_Reason-5-of-2', 'O_Reason-5-of-3', 'O_Reason-5-of-4', 'O_Reason-5-of-5', 'O_Reason-5-of-6']
+      },
+      product_reasons: {
+        1: ['P_Reason-1-of-1', 'P_Reason-1-of-2', 'P_Reason-1-of-3', 'P_Reason-1-of-4', 'P_Reason-1-of-5', 'P_Reason-1-of-6'],
+        2: ['P_Reason-2-of-1', 'P_Reason-2-of-2', 'P_Reason-2-of-3', 'P_Reason-2-of-4', 'P_Reason-2-of-5', 'P_Reason-2-of-6'],
+        3: ['P_Reason-3-of-1', 'P_Reason-3-of-2', 'P_Reason-3-of-3', 'P_Reason-3-of-4', 'P_Reason-3-of-5', 'P_Reason-3-of-6'],
+        4: ['P_Reason-4-of-1', 'P_Reason-4-of-2', 'P_Reason-4-of-3', 'P_Reason-4-of-4', 'P_Reason-4-of-5', 'P_Reason-4-of-6'],
+        5: ['P_Reason-5-of-1', 'P_Reason-5-of-2', 'P_Reason-5-of-3', 'P_Reason-5-of-4', 'P_Reason-5-of-5', 'P_Reason-5-of-6']
+      }
+    };
     
     vm.selStars = 0; // initial stars count
-    vm.maxStars = 5;
-
+    vm.maxStars = 5; // total stars
     vm.sel_rate = '';
     vm.rate_cls = '';
+    vm.selected_reason = '';
   }
 
   vm.resetValues();
@@ -1718,26 +1702,30 @@ angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInst
     vm.selRate();
   };
 
-  vm.sel_reason = {'background-color':'#563d7c','color':'#fff'};
+  vm.setStyle = function(reason){
 
-  vm.resReason = function(data){
+    if(vm.selected_reason == reason) {
+
+      return 'btn-selected';
+    } else {
+
+      return 'btn-outline';
+    }
+  }
+
+  vm.resReason = function(reason){
 
     angular.forEach(vm.reasons[vm.reason_type][vm.selStars], function(row){
 
-      if (row.reason == data.reason) {
-        
-        row.selected = true;
+      if (row == reason) {
         
         if (vm.title == 'Rate Your Order') {
 
-          vm.sel_reasons.order_reason = data.reason;
+          vm.sel_reasons.order_reason = reason;
         } else if (vm.title == 'Rate Your Product') {
 
-          vm.sel_reasons.product_reason = data.reason;
+          vm.sel_reasons.product_reason = reason;
         }
-      } else {
-
-        row.selected = false;
       }
     });
   }
@@ -1766,7 +1754,7 @@ angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInst
           vm.cancel();
         } else {
 
-          vm.service.showNoty('Something went wrong');
+          vm.service.showNoty('Something went wrong. Please try again');
         }
       });
     }

@@ -30,15 +30,22 @@
   .transition {
     transition: all 500ms linear
   }
+  p {
+    line-height: 0.9;
+  }
 </style>
 
 <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
 <div class="modal-header">
-  <h4 class="modal-title" id="modal-title">{{$ctrl.title}}</h4>
+  <h4 class="modal-title pull-right" id="modal-title">{{$ctrl.title}}</h4>
+  <h4 class="modal-title" id="modal-title">Hi {{$ctrl.model_data.profile_name}},</h4>
 </div>
 <div class="modal-body" id="modal-body">
+  <div class="row">
+    <div class="text-center mb10" ng-if="!$ctrl.selStars && !$ctrl.sel_reasons.order_rate">Thanks for using Stockone Application to order. Your order details are...!</div>
+    <p><strong>Order Id:</strong> 123456</p><p><strong>Order Date:</strong> 15/08/2018</p>
+  </div>
   <div class="row text-center">
-
     <div class="alert alert-info mb10 transition" ng-if="!$ctrl.selStars"><b>Give Your Valuable Rating Of {{$ctrl.rate_type}}</b>&nbsp;&nbsp;<i style="font-size: 22px" class="fa fa-hand-o-down"></i></div>
     <div class="alert {{$ctrl.rate_cls}} mb10 transition" ng-if="$ctrl.selStars"><b>{{$ctrl.sel_rate}}</b></div>
 
@@ -48,7 +55,7 @@
     <div ng-if="$ctrl.selStars" style="font-size:15px;font-weight:600">{{$ctrl.rate_query}}</div>
   </div>
   <div class="row mt15 text-center" ng-if="$ctrl.selStars">
-    <div class="col-md-4 mt5 mb5" ng-repeat="data in $ctrl.reasons" ng-click="$ctrl.resReason(data)">
+    <div class="col-md-4 mt5 mb5" ng-repeat="data in $ctrl.reasons[$ctrl.reason_type][$ctrl.selStars]" ng-click="$ctrl.resReason(data)">
       <span ng-if="!data.selected" class="btn btn-outline">{{data.reason}}</span>
       <span ng-if="data.selected" class="btn btn-selected">{{data.reason}}</span></div>
   </div>

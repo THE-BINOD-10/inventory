@@ -200,12 +200,10 @@ def get_stock_summary_size(start_index, stop_index, temp_data, search_term, orde
     search_params = get_filtered_params(filters, lis)
     all_sizes = size_master_objs.filter(size_name=size_name)
     sizes = []
-
     if all_sizes:
         sizes = all_sizes[0].size_value.split("<<>>")
     else:
         sizes = default_size
-
     all_dat.extend(sizes)
     sort_col = all_dat[col_num]
     log.info(sort_col)
@@ -1264,29 +1262,86 @@ def get_vendor_stock(start_index, stop_index, temp_data, search_term, order_term
 def warehouse_headers(request, user=''):
     admin_user_id = ''
     admin_user_name = ''
+    size_list = []
     level = request.GET.get('level', '')
+    alternative_view = request.GET.get('alternate_view', 'false')
+    warehouse_name = request.GET.get('warehouse_name', '')
     price_band_flag = get_misc_value('priceband_sync', user.id)
+    size_name = request.GET.get("size_type_value", '')
+    size_list, user_list = [], []
+    default_size = ['S', 'M', 'L', 'XL', 'XXL']
+    user_id = user.id
     if price_band_flag == 'true':
         user = get_admin(user)
-    warehouses = UserGroups.objects.filter(admin_user_id=user.id).values_list('user_id', flat=True)
-    if level:
-        warehouses = UserProfile.objects.filter(user__in=warehouses,warehouse_level=int(level)).values_list('user_id',flat=True)
-    ware_list = list(User.objects.filter(id__in=warehouses).values_list('username', flat=True))
     header = ["SKU Code", "SKU Brand", "SKU Description", "SKU Category"]
-    user_groups = UserGroups.objects.filter(Q(admin_user_id=user.id) | Q(user_id=user.id))
-    if user_groups:
-        admin_user_id = user_groups[0].admin_user_id
-        admin_user_name = user_groups[0].admin_user.username
+    if alternative_view == 'true':
+        header = ["SKU Class", "Style Name", "Brand", "SKU Category"]
+        if not warehouse_name:
+            user_list = []
+            admin_user = UserGroups.objects.filter(Q(admin_user__username__iexact=user.username) | Q(user__username__iexact=user.username)). \
+                values_list('admin_user_id', flat=True)
+            user_groups = UserGroups.objects.filter(admin_user_id__in=admin_user).values('user__username',
+                'admin_user__username')
+            for users in user_groups:
+                for key, value in users.iteritems():
+                    if user.username != value and value not in user_list:
+                        user_list.append(value)
+            warehouse_name = user_list[0]
+        user_id = User.objects.get(username = warehouse_name).id
+        size_master_objs = SizeMaster.objects.filter(user=user_id)
+        size_names = size_master_objs.values_list('size_name', flat=True)
+        all_sizes = size_master_objs
+        if size_name:
+            all_sizes = size_master_objs.filter(size_name=size_name)
+        sizes = []
+        if all_sizes:
+            sizes = all_sizes[0].size_value.split("<<>>")
+        else:
+            sizes = default_size
+        if not len(size_names):
+            size_names = ['Default']
+        size_list = list(size_names)
+        #each_sizes for each names
+        string = 'Sales - '
+        size_for_each_names = sizes
+        '''
+        warehouses = UserGroups.objects.filter(admin_user_id=user.id).values_list('user_id', flat=True)
+        if level:
+            warehouses = UserProfile.objects.filter(user__in=warehouses,warehouse_level=int(level)).values_list('user_id',flat=True)
+        ware_list = list(User.objects.filter(id__in=warehouses).values_list('username', flat=True))
+        
+        user_groups = UserGroups.objects.filter(Q(admin_user_id=user.id) | Q(user_id=user.id))
+        if user_groups:
+            admin_user_id = user_groups[0].admin_user_id
+            admin_user_name = user_groups[0].admin_user.username
+        else:
+            admin_user_id = user.id
+            admin_user_name = user.username
+        if level:
+            headers = header + ware_list
+        else:
+            headers = header + [admin_user_name] + ware_list
+        '''
+        normal_size_list = sizes + ['Total']
+        sales_prefix_size_for_each_names = [string + x for x in sizes] + ['Sales - Total']
+        headers = header + normal_size_list + sales_prefix_size_for_each_names
     else:
-        admin_user_id = user.id
-        admin_user_name = user.username
-    if level:
-        headers = header + ware_list  #user_groups
-    else:
-        headers = header + [admin_user_name] + ware_list
-
-    return HttpResponse(json.dumps(headers))
-
+        warehouses = UserGroups.objects.filter(admin_user_id=user_id).values_list('user_id', flat=True)
+        if level:
+            warehouses = UserProfile.objects.filter(user__in=warehouses,warehouse_level=int(level)).values_list('user_id',flat=True)
+        ware_list = list(User.objects.filter(id__in=warehouses).values_list('username', flat=True))
+        user_groups = UserGroups.objects.filter(Q(admin_user_id=user_id) | Q(user_id=user_id))
+        if user_groups:
+            admin_user_id = user_groups[0].admin_user_id
+            admin_user_name = user_groups[0].admin_user.username
+        else:
+            admin_user_id = user_id
+            admin_user_name = user.username
+        if level:
+            headers = header + ware_list
+        else:
+            headers = header + [admin_user_name] + ware_list
+    return HttpResponse(json.dumps({'table_headers': headers, 'size_types': size_list, 'warehouse_names': user_list }))
 
 @csrf_exempt
 def get_seller_stock_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
@@ -1984,30 +2039,35 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
         del search_params['receipt_date__icontains']
     search_params['sku_id__in'] = sku_master_ids
 
+    stock_detail_objs = StockDetail.objects.select_related('sku', 'location', 'location__zone', 'pallet_detail',
+                                                           'batch_detail').prefetch_related('sku', 'location',
+                                                                                            'location__zone').\
+                                            exclude(receipt_number=0).filter(sku__user=user.id, quantity__gt=0,
+                                                                             **search_params)
     if search_term:
-        master_data = StockDetail.objects.exclude(receipt_number=0).filter(Q(receipt_number__icontains=search_term) |
-                                                                           Q(sku__wms_code__icontains=search_term) | Q(
-            quantity__icontains=search_term) |
-                                                                           Q(
-                                                                               location__zone__zone__icontains=search_term) | Q(
-            sku__sku_code__icontains=search_term) |
-                                                                           Q(sku__sku_desc__icontains=search_term) | Q(
-            location__location__icontains=search_term),
-                                                                           sku__user=user.id).filter(
-            **search_params).order_by(order_data)
+        master_data = stock_detail_objs.filter(Q(receipt_number__icontains=search_term) |
+                                                Q(sku__wms_code__icontains=search_term) |
+                                               Q(quantity__icontains=search_term) |
+                                                Q(location__zone__zone__icontains=search_term) |
+                                               Q(sku__sku_code__icontains=search_term) |
+                                               Q(sku__sku_desc__icontains=search_term) |
+                                               Q(location__location__icontains=search_term)).order_by(order_data)
 
     else:
-        master_data = StockDetail.objects.exclude(receipt_number=0).filter(sku__user=user.id, **search_params). \
-            order_by(order_data)
+        master_data = stock_detail_objs.order_by(order_data)
 
-    temp_data['recordsTotal'] = len(master_data)
-    temp_data['recordsFiltered'] = len(master_data)
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    counter = 1
+    pallet_switch = get_misc_value('pallet_switch', user.id)
     for data in master_data[start_index:stop_index]:
-        pallet_switch = get_misc_value('pallet_switch', user.id)
         _date = get_local_date(user, data.receipt_date, True)
         _date = _date.strftime("%d %b, %Y")
-        batch_no = data.batch_detail.batch_no if data.batch_detail else ''
-        mrp = data.batch_detail.mrp if data.batch_detail else ''
+        batch_no = ''
+        mrp = 0
+        if data.batch_detail:
+            batch_no = data.batch_detail.batch_no
+            mrp = data.batch_detail.mrp
         if pallet_switch == 'true':
             pallet_code = ''
             if data.pallet_detail:
@@ -2039,12 +2099,180 @@ def get_batch_level_stock(start_index, stop_index, temp_data, search_term, order
 @get_admin_user
 def get_sku_batches(request, user=''):
     sku_batches = defaultdict(list)
+    sku_batch_details = {}
     sku_code = request.GET.get('sku_code')
     sku_id = SKUMaster.objects.filter(user=user.id, sku_code=sku_code).only('id')
     if sku_id:
         sku_id = sku_id[0].id
-        batch_obj = BatchDetail.objects.filter(stockdetail__sku=sku_id).values('batch_no', 'mrp').distinct()
+        batch_obj = BatchDetail.objects.filter(stockdetail__sku=sku_id).values('batch_no', 'mrp', 'buy_price', 'manufactured_date', 'expiry_date', 'tax_percent', 'transact_type', 'transact_id').distinct()
         for batch in batch_obj:
             sku_batches[batch['batch_no']].append(batch['mrp'])
             sku_batches[batch['batch_no']] = list(set(sku_batches[batch['batch_no']]))
-    return HttpResponse(json.dumps({"sku_batches": sku_batches}))
+            batch['manufactured_date'] = str(batch['manufactured_date'])
+            batch['expiry_date'] = str(batch['expiry_date'])
+            sku_batch_details.setdefault("%s_%s" % (batch['batch_no'], str(int(batch['mrp']))), []).append(batch)
+
+    return HttpResponse(json.dumps({"sku_batches": sku_batches, "sku_batch_details": sku_batch_details}))
+
+
+@csrf_exempt
+def get_alternative_warehouse_stock(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
+                                    filters={}, user_dict={}):
+    """ This function delivers the alternate view of warehouse stock page """
+    log.info(" ------------warehouse stock alternate view started ------------------")
+    size_type_value = request.POST.get('size_type_value', '')
+    warehouse_name = request.POST.get('warehouse_name', '')
+    view_type = request.POST.get('view_type', '')
+    from_date = request.POST.get('from_date', '')
+    to_date = request.POST.get('to_date', '')
+    is_excel = request.POST.get('excel', 'false')
+    st_time = datetime.datetime.now()
+    warehouse = User.objects.get(username=warehouse_name)
+    size_filter_params = {'user': warehouse.id}
+    if not is_excel == 'true':
+        size_filter_params['size_name'] = size_type_value
+    size_master_objs = SizeMaster.objects.filter(**size_filter_params)
+    sizes = ['S', 'M', 'L', 'XL', 'XXL']
+    size_names = ['Default']
+    if size_master_objs.exists():
+        size_names = size_master_objs.values_list('size_name', flat=True)
+        sizes = size_master_objs[0].size_value.split("<<>>")
+    lis = ['sku_class', 'style_name', 'sku_brand', 'sku_category']
+    all_dat = ['SKU Class', 'Style Name', 'Brand', 'SKU Category']
+    keys_mapping =dict(zip(all_dat, lis))
+    search_params = get_filtered_params(filters, all_dat)
+    all_dat.extend(sizes)
+    all_dat.extend(['Total'])
+    for size_obj_name in sizes:
+        all_dat.extend(['%s - %s' % ('Sales', size_obj_name)])
+    all_dat.extend(['Sales - Total'])
+    sort_col = all_dat[col_num]
+    order_data = 'sku_class'
+    if sort_col in keys_mapping.keys():
+        order_data = lis[col_num]
+        sort_col = ''
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    try:
+        sku_master_objs = SKUMaster.objects.exclude(sku_class='').filter(user=warehouse.id,
+                                                            sku_size__in=sizes, **search_params). \
+                                            values('sku_class', 'style_name', 'sku_brand',
+                                            'sku_category').distinct()
+        if search_term:
+            sku_classes = sku_master_objs.filter(Q(sku_class__icontains=search_term) |
+                                                 Q(style_name__icontains=search_term) |
+                                                 Q(sku_brand__icontains=search_term) |
+                                                 Q(sku_category__icontains=search_term)).order_by(order_data)
+
+        else:
+            sku_classes = sku_master_objs.order_by(order_data)
+        sku_class_list = sku_classes.values_list('sku_class', flat=True).distinct()
+        stock_detail_vals = {}
+        pick_reserved_vals = {}
+        raw_reserved_vals = {}
+        if view_type in ['Available', 'Total']:
+            stock_detail_vals = dict(StockDetail.objects.exclude(receipt_number=0).\
+                                                filter(sku__user=warehouse.id, sku__sku_size__in=sizes,
+                                                        sku__sku_class__in=sku_class_list,
+                                                       quantity__gt=0).\
+                                                annotate(sku_class_size=Concat('sku__sku_class', Value('<<>>'),
+                                                        'sku__sku_size', output_field=CharField())).\
+                                                values_list('sku_class_size').distinct().\
+                                                annotate(total_sum=Sum('quantity')))
+        if view_type in ['Reserved', 'Available']:
+            pick_reserved_vals = dict(PicklistLocation.objects.filter(status=1, stock__sku__user=warehouse.id,
+                                                                      stock__sku__sku_size__in=sizes,
+                                                                      stock__sku__sku_class__in=sku_class_list). \
+                                      annotate(sku_class_size=Concat('stock__sku__sku_class', Value('<<>>'),
+                                                                'stock__sku__sku_size', output_field=CharField())). \
+                                      values_list('sku_class_size').distinct().\
+                                      annotate(reserved=Sum('reserved')))
+            raw_reserved_vals = dict(RMLocation.objects.filter(status=1, stock__sku__user=warehouse.id,
+                                                               stock__sku__sku_size__in=sizes,
+                                                               stock__sku__sku_class__in=sku_class_list). \
+                                     annotate(sku_class_size=Concat('stock__sku__sku_class', Value('<<>>'),
+                                                                    'stock__sku__sku_size', output_field=CharField())).\
+                                     values_list('sku_class_size').distinct(). \
+                                     annotate(reserved=Sum('reserved')))
+        order_filter_params = {'user': warehouse.id, 'quantity__gt': 0}
+        if from_date:
+            from_date = from_date.split('/')
+            order_filter_params['creation_date__gt'] = datetime.date(int(from_date[2]), int(from_date[0]),
+                                                                           int(from_date[1]))
+        if to_date:
+            to_date = to_date.split('/')
+            to_date = datetime.date(int(to_date[2]), int(to_date[0]), int(to_date[1]))
+            order_filter_params['creation_date__lt'] = datetime.datetime.combine(to_date + datetime.timedelta(1),
+                                                                 datetime.time())
+
+        order_detail_objs = OrderDetail.objects.filter(**order_filter_params).\
+                                 exclude(status__in=[3,5])
+        order_detail_vals = dict(order_detail_objs.filter(sku__sku_size__in=sizes,
+                                                        sku__sku_class__in=sku_class_list).\
+                                                annotate(sku_class_size=Concat('sku__sku_class', Value('<<>>'),
+                                                        'sku__sku_size', output_field=CharField())).\
+                                                values_list('sku_class_size').distinct().\
+                                                annotate(total_sum=Sum('quantity')))
+        temp_data['recordsTotal'] = sku_class_list.count()
+        temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+        all_data = []
+        looped_sku_class = []
+        if not sort_col:
+            sku_classes = sku_classes[start_index:stop_index]
+        for sku_class in sku_classes:
+            if sku_class['sku_class'] not in looped_sku_class:
+                looped_sku_class.append(sku_class['sku_class'])
+            else:
+                continue
+            size_dict = {}
+            sales_dict = {}
+            total = 0
+            sale_total = 0
+            for size in sizes:
+                group_key = sku_class['sku_class'] + '<<>>' + size
+                reserved = pick_reserved_vals.get(group_key, 0)
+                reserved += raw_reserved_vals.get(group_key, 0)
+                quant = stock_detail_vals.get(group_key, 0)
+                if view_type == 'Available':
+                    quant = quant - reserved
+                    if quant < 0:
+                        quant = 0
+                elif view_type == 'Reserved':
+                    quant = reserved
+                total += quant
+                size_dict.update({size: quant})
+                order_qty = order_detail_vals.get(group_key, 0)
+                sales_dict.update({'%s - %s' % ('Sales', size): order_qty})
+                sale_total += order_qty
+
+            data = OrderedDict((('SKU Class', sku_class['sku_class']), ('Style Name', sku_class['style_name']),
+                                ('SKU Category', sku_class['sku_category']), ('Brand', sku_class['sku_brand']),
+                                ('Total', total)))
+
+            data.update(size_dict)
+            data.update(sales_dict)
+            data.update({'Sales - Total': sale_total})
+            all_data.append(data)
+
+        if sort_col:
+            if order_term == 'asc':
+                data_list = sorted(all_data, key=itemgetter(sort_col))
+            else:
+                data_list = sorted(all_data, key=itemgetter(sort_col), reverse=True)
+            data_list = data_list[start_index: stop_index]
+        else:
+            data_list = all_data
+
+        log.info(data_list)
+        temp_data['aaData'].extend(data_list)
+
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info(e)
+
+    end_time = datetime.datetime.now()
+    duration = end_time - st_time
+    log.info("total time -- %s" % (duration))
+    log.info("process completed")

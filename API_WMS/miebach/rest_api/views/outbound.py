@@ -7720,6 +7720,7 @@ def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, o
     ''' Customer Invoice datatable code '''
 
     user_profile = UserProfile.objects.get(user_id=user.id)
+
     admin_user = get_priceband_admin_user(user)
     if admin_user and user_profile.warehouse_type == 'DIST':
         temp_data = get_levelbased_invoice_data(start_index, stop_index, temp_data, user, search_term)
@@ -10498,10 +10499,26 @@ def get_create_order_mapping_values(request, user=''):
 @login_required
 @get_admin_user
 def invoice_mark_delivered(request, user=''):
-    selected_order_ids = request.POST.getlist('selected_ids', [])
-
-
-    return True
+    order_id = request.POST.getlist('selected_invoice', [])
+    selected_order_invoice = eval(request.POST.get('selected_invoice', '{}'))
+    for obj in selected_order_invoice:
+        picked_qty = obj['picked_qty']
+        order_qty = obj['order_qty']
+        invoice_id = obj['invoice_id']
+        if order_qty != picked_qty:
+            return HttpResponse(json.dumps({'status':False, 'message':'Partial Picked Qty Not Allowed'}), content_type='application/json')
+        sell_ids = {}
+        sor_id = obj['order_id']
+        ids = obj['id']
+        invoice_no = obj['invoice_number']
+        sell_ids['order__user'] = user.id
+        sell_ids['order__original_order_id'] = sor_id
+        sell_ids['invoice_number'] = invoice_id
+        sell_ids['quantity'] = order_qty
+        seller = SellerOrderSummary.objects.filter(**sell_ids)
+        if len(seller):
+            seller.update(delivered_flag=1)
+    return HttpResponse(json.dumps({'status':True, 'message':'Marked as Delivered Successfully'}), content_type='application/json')
 
 """
 def render_st_html_data(request, user, warehouse, all_data):

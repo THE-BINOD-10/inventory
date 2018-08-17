@@ -974,6 +974,7 @@ def switches(request, user=''):
                        'auto_expire_enq_limit': 'auto_expire_enq_limit',
                        'sales_return_reasons': 'sales_return_reasons',
                        'receive_po_invoice_check': 'receive_po_invoice_check',
+                       'mark_as_delivered': 'mark_as_delivered',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

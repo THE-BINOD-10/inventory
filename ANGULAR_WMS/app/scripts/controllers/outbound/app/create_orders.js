@@ -1747,6 +1747,16 @@ angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInst
       var send = vm.sel_reasons;
       send['order_id'] = '1234';
       send['order_date'] = '15/08/2018';
+
+      var elem = angular.element($('form'));
+      elem = elem[0];
+      elem = $(elem).serializeArray();
+
+      angular.forEach(elem, function(row){
+
+        send[row.name] = row.value;
+      });
+
       Service.apiCall("customer_ratings/", "POST", send).then(function(response) {
         if (response.message) {
 

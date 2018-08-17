@@ -21,6 +21,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.date = new Date();
   vm.client_logo = Session.parent.logo;
   vm.api_url = Session.host;
+  vm.profile_name = Session.user_profile.first_name;
 
   $('#delivery_date').datepicker();
 
@@ -84,10 +85,10 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   }
 
   /*Rating module start*/
-  vm.marginData = {margin_type: ''};
+  vm.modelData = {'profile_name': vm.profile_name, 'data':vm.rating_data};
   function customerRating() {
  
-    var mod_data = vm.marginData;
+    var mod_data = vm.modelData;
     var modalInstance = $modal.open({
       // templateUrl: 'views/outbound/app/create_orders/add_margin.html',
       templateUrl: 'views/outbound/app/create_orders/rating_toggle/customer_rating.html',
@@ -107,7 +108,11 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       console.log(selectedItem);
     })
   }
-  customerRating();
+
+  if (true) {
+
+    customerRating();
+  }
   /*Rating module end*/
 
   function change_filter_data() {
@@ -1608,11 +1613,43 @@ angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInst
   vm.rate_type = 'Order';
   vm.sel_reasons = {order_rate:'', order_reason:'', product_rate:'', product_reason:''};
   vm.rate_query = "What you didn't like!";
+  vm.reason_type = 'order_reasons';
 
   vm.resetValues = function(){
 
-    vm.reasons = [{'reason':'Reason-1','selected':false},{'reason':'Reason-2','selected':false},{'reason':'Reason-3','selected':false},
-                  {'reason':'Reason-4','selected':false},{'reason':'Reason-5','selected':false},{'reason':'Reason-6','selected':false}];
+    vm.reasons = {order_reasons: {1: [{'reason':'O_Reason-1-of-1','selected':false},{'reason':'O_Reason-1-of-2','selected':false},
+                                      {'reason':'O_Reason-1-of-3','selected':false},{'reason':'O_Reason-1-of-4','selected':false},
+                                      {'reason':'O_Reason-1-of-5','selected':false},{'reason':'O_Reason-1-of-6','selected':false}],
+                                  2: [{'reason':'O_Reason-2-of-1','selected':false},{'reason':'O_Reason-2-of-2','selected':false},
+                                      {'reason':'O_Reason-2-of-3','selected':false},{'reason':'O_Reason-2-of-4','selected':false},
+                                      {'reason':'O_Reason-2-of-5','selected':false},{'reason':'O_Reason-2-of-6','selected':false}],
+                                  3: [{'reason':'O_Reason-3-of-1','selected':false},{'reason':'O_Reason-3-of-2','selected':false},
+                                      {'reason':'O_Reason-3-of-3','selected':false},{'reason':'O_Reason-3-of-4','selected':false},
+                                      {'reason':'O_Reason-3-of-5','selected':false},{'reason':'O_Reason-3-of-6','selected':false}],
+                                  4: [{'reason':'O_Reason-4-of-1','selected':false},{'reason':'O_Reason-4-of-2','selected':false},
+                                      {'reason':'O_Reason-4-of-3','selected':false},{'reason':'O_Reason-4-of-4','selected':false},
+                                      {'reason':'O_Reason-4-of-5','selected':false},{'reason':'O_Reason-4-of-6','selected':false}],
+                                  5: [{'reason':'O_Reason-5-of-1','selected':false},{'reason':'O_Reason-5-of-2','selected':false},
+                                      {'reason':'O_Reason-5-of-3','selected':false},{'reason':'O_Reason-5-of-4','selected':false},
+                                      {'reason':'O_Reason-5-of-5','selected':false},{'reason':'O_Reason-5-of-6','selected':false}]},
+                  product_reasons: {1: [{'reason':'P_Reason-1-of-1','selected':false},{'reason':'P_Reason-1-of-2','selected':false},
+                                        {'reason':'P_Reason-1-of-3','selected':false},{'reason':'P_Reason-1-of-4','selected':false},
+                                        {'reason':'P_Reason-1-of-5','selected':false},{'reason':'P_Reason-1-of-6','selected':false}],
+                                    2: [{'reason':'P_Reason-2-of-1','selected':false},{'reason':'P_Reason-2-of-2','selected':false},
+                                        {'reason':'P_Reason-2-of-3','selected':false},{'reason':'P_Reason-2-of-4','selected':false},
+                                        {'reason':'P_Reason-2-of-5','selected':false},{'reason':'P_Reason-2-of-6','selected':false}],
+                                    3: [{'reason':'P_Reason-3-of-1','selected':false},{'reason':'P_Reason-3-of-2','selected':false},
+                                        {'reason':'P_Reason-3-of-3','selected':false},{'reason':'P_Reason-3-of-4','selected':false},
+                                        {'reason':'P_Reason-3-of-5','selected':false},{'reason':'P_Reason-3-of-6','selected':false}],
+                                    4: [{'reason':'P_Reason-4-of-1','selected':false},{'reason':'P_Reason-4-of-2','selected':false},
+                                        {'reason':'P_Reason-4-of-3','selected':false},{'reason':'P_Reason-4-of-4','selected':false},
+                                        {'reason':'P_Reason-4-of-5','selected':false},{'reason':'P_Reason-4-of-6','selected':false}],
+                                    5: [{'reason':'P_Reason-5-of-1','selected':false},{'reason':'P_Reason-5-of-2','selected':false},
+                                        {'reason':'P_Reason-5-of-3','selected':false},{'reason':'P_Reason-5-of-4','selected':false},
+                                        {'reason':'P_Reason-5-of-5','selected':false},{'reason':'P_Reason-5-of-6','selected':false}]}};
+
+    // vm.reasons = [{'reason':'Reason-1','selected':false},{'reason':'Reason-2','selected':false},{'reason':'Reason-3','selected':false},
+    //               {'reason':'Reason-4','selected':false},{'reason':'Reason-5','selected':false},{'reason':'Reason-6','selected':false}];
     
     vm.selStars = 0; // initial stars count
     vm.maxStars = 5;
@@ -1678,15 +1715,14 @@ angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInst
     vm.rate_query = "What you didn't like!";
 
     vm.addCls(value);
-
     vm.selRate();
   };
-  
+
   vm.sel_reason = {'background-color':'#563d7c','color':'#fff'};
 
   vm.resReason = function(data){
 
-    angular.forEach(vm.reasons, function(row){
+    angular.forEach(vm.reasons[vm.reason_type][vm.selStars], function(row){
 
       if (row.reason == data.reason) {
         
@@ -1711,15 +1747,19 @@ angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInst
     if((!vm.sel_reasons.order_reason && vm.title == 'Rate Your Order') || 
        (!vm.sel_reasons.product_reason && vm.title == 'Rate Your Product')) {
 
-      vm.service.showNoty('Sorry, Please give your proper reason');
+      vm.service.showNoty('Sorry, Please give your rating and proper reason');
     } else if (vm.sel_reasons.order_reason && !vm.sel_reasons.product_reason) {
 
       vm.resetValues();
       vm.title = 'Rate Your Product';
       vm.rate_type = 'Product';
+      vm.reason_type = 'product_reasons';
     } else if (vm.sel_reasons.order_reason && vm.sel_reasons.product_reason && vm.selStars) {
 
-      Service.apiCall("customer_ratings/", "POST", vm.sel_reasons).then(function(response) {
+      var send = vm.sel_reasons;
+      send['order_id'] = '1234';
+      send['order_date'] = '15/08/2018';
+      Service.apiCall("customer_ratings/", "POST", send).then(function(response) {
         if (response.message) {
 
           vm.service.showNoty(response.data.data);

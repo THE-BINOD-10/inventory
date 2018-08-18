@@ -6282,6 +6282,35 @@ def get_ratings_data(start_index, stop_index, temp_data, search_term, order_term
 @csrf_exempt
 @login_required
 @get_admin_user
+def get_ratings_details(request, user=''):
+    result_data, order_date = [], ''
+    order_id = request.POST.get('order_id', '')
+    order_filter = {'user': user.id, 'original_order_id': order_id}
+    rating_master = RatingsMaster.objects.filter(**order_filter)
+    order_detail = OrderDetail.objects.filter(**order_filter)
+    if order_detail:
+        order_detail = order_detail[0]
+        order_date = get_local_date(user, order_detail.creation_date, True).strftime("%d/%m/%Y")
+
+    if rating_master:
+        rating_id = rating_master[0].id
+        master_data = RatingSKUMapping.objects.filter(rating_id=rating_id)\
+                                      .values('sku__sku_code', 'sku__sku_desc', 'remarks')
+        for data in master_data:
+            result_data.append({
+                                'wms_code': data['sku__sku_code'],
+                                'sku_desc': data['sku__sku_desc'],
+                                'remarks': data['remarks']
+                              })
+    return HttpResponse(json.dumps({'sku_data': result_data,
+                                    'order_id': order_id,
+                                    'order_date': order_date
+                                   }))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def order_category_generate_picklist(request, user=''):
     filters = request.POST.get('filters', '')
     order_filter = OrderedDict((('status', 1), ('user', user.id), ('quantity__gt', 0)))

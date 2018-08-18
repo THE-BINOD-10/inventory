@@ -321,6 +321,7 @@ urlpatterns = [
     url(r'^stock_transfer_generate_picklist/$', stock_transfer_generate_picklist),
     url(r'^invoice_mark_delivered/$', invoice_mark_delivered),
     url(r'^get_create_order_mapping_values/$', get_create_order_mapping_values),
+    url(r'^get_ratings_details/$', get_ratings_details),
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),

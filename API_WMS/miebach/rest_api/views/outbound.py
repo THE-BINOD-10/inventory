@@ -10689,7 +10689,9 @@ def save_cutomer_ratings(request, user=''):
     rating_obj = RatingsMaster.objects.create(user=user, original_order_id=original_order_id, rating_product=product_rate, rating_order=order_rate, reason_product=product_reason, reason_order=order_reason)
     if rating_obj:
         for obj in items:
-            RatingSKUMapping.objects.create(rating=rating_obj, sku__sku_code=obj.sku_code, remarks=obj.remarks)
+            sku_obj = SKUMaster.objects.filter(sku_code = obj['sku_code'], user = user.id)
+            if sku_obj:
+                RatingSKUMapping.objects.create(rating=rating_obj, sku_id=sku_obj[0].id, remarks=obj['remarks'])
     return HttpResponse(json.dumps({'status':True, 'data':data_dict}), content_type='application/json')
 
 

@@ -10611,7 +10611,7 @@ def invoice_mark_delivered(request, user=''):
         seller = SellerOrderSummary.objects.filter(**sell_ids)
         if len(seller):
             if seller.aggregate(Sum('quantity'))['quantity__sum'] == picked_qty:
-                if seller.delivered_flag == 2:
+                if seller.filter(delivered_flag=2):
                     order_id_already_marked_delivered.append(sor_id)
                 else:
                     seller.update(delivered_flag=1)
@@ -10669,23 +10669,27 @@ def get_ratings_data_popup(request, user=''):
         return HttpResponse(json.dumps({'status':True, 'data' : data_dict}), content_type='application/json')
     else:
         return HttpResponse(json.dumps({'status':True, 'data' : {}}), content_type='application/json')
-        
+
 @csrf_exempt
 @login_required
 @get_admin_user
 def save_cutomer_ratings(request, user=''):
     #request_data = request.POST
+    warehouse_user = user.id
     order_rate = request.POST.get('order_rate', '')
     product_rate = request.POST.get('product_rate', '')
     order_reason = request.POST.get('order_reason', '')
     product_reason = request.POST.get('product_reason', '')
-    order_ratings_data = request.POST.get('order_details', '')
-    import pdb;pdb.set_trace()
+    order_ratings_data = eval(request.POST.get('order_details', '{}'))
     customer_name = request.user.get_full_name()
-    seller = SellerOrderSummary.objects.filter(order__user=user.id, order__customer_name=customer_name, order__original_order_id=original_order_id, delivered_flag=1).update(delivered_flag=2)
-    rating_obj = RatingsMaster.objects.create(user=user.id, original_order_id=original_order_id, rating_product=product_rate, rating_order=order_rate, reason_product=product_reason, reason_order=order_reason)
-    for obj in items:
-        RatingSKUMapping.objects.create(rating=rating_obj, sku__sku_code=obj.sku_code, remarks=obj.remarks)
+    original_order_id = order_ratings_data['order_id']
+    items = order_ratings_data['items']
+    import pdb;pdb.set_trace()
+    seller = SellerOrderSummary.objects.filter(order__user=warehouse_user, order__customer_name=customer_name, order__original_order_id=original_order_id, delivered_flag=1).update(delivered_flag=2)
+    rating_obj = RatingsMaster.objects.create(user=user, original_order_id=original_order_id, rating_product=product_rate, rating_order=order_rate, reason_product=product_reason, reason_order=order_reason)
+    if rating_obj:
+        for obj in items:
+            RatingSKUMapping.objects.create(rating=rating_obj, sku__sku_code=obj.sku_code, remarks=obj.remarks)
     return HttpResponse(json.dumps({'status':True, 'data':data_dict}), content_type='application/json')
 
 

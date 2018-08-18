@@ -6230,8 +6230,9 @@ def get_ratings_data(start_index, stop_index, temp_data, search_term, order_term
 
     user_profile = UserProfile.objects.get(user_id=user.id)
     admin_user = get_priceband_admin_user(user)
-    lis = ['rating__original_order_id', '', '', 'rating__rating_order',\
-           'rating__reason_product', 'rating__rating_order', 'rating__reason_order']#for filter purpose
+    lis = ['rating__original_order_id', 'rating__original_order_id', 'rating__original_order_id',\
+           'rating__rating_order', 'rating__reason_product', 'rating__rating_order',\
+           'rating__reason_order']#for filter purpose
     user_filter = {'rating__user': user.id}
     result_values = ['rating__original_order_id', 'rating__rating_product',\
                      'rating__reason_product', 'rating__rating_order',\
@@ -6302,10 +6303,11 @@ def get_ratings_details(request, user=''):
                                 'sku_desc': data['sku__sku_desc'],
                                 'remarks': data['remarks']
                               })
-    return HttpResponse(json.dumps({'sku_data': result_data,
-                                    'order_id': order_id,
-                                    'order_date': order_date
-                                   }))
+        result_dict = {'sku_data': result_data,
+                       'order_id': order_id,
+                       'order_date': order_date
+                      }
+    return HttpResponse(json.dumps({'data': result_dict}))
 
 
 @csrf_exempt

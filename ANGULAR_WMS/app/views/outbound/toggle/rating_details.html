@@ -9,8 +9,8 @@
       <div class="modal-body">
         <div class="row">
           <div class="col-md-4">
-            <div>Order Id: 123456</div>
-            <div>Order Date: 15/08/18</div>
+            <div>Order Id: {{showCase.model_data.order_id}}</div>
+            <div>Order Date: {{showCase.model_data.order_date}}</div>
           </div>
         </div>
         <hr>
@@ -22,20 +22,10 @@
               <th>Remarks</th>
             </thead>
             <tbody>
-              <tr>
-                <td>101</td>
-                <td>Testing</td>
-                <td>Sample remarks</td>
-              </tr>
-              <tr>
-                <td>101</td>
-                <td>Testing</td>
-                <td>Sample remarks</td>
-              </tr>
-              <tr>
-                <td>101</td>
-                <td>Testing</td>
-                <td>Sample remarks</td>
+              <tr ng-repeat="order in showCase.model_data.sku_data">
+                <td>{{order.wms_code}}</td>
+                <td>{{order.sku_desc}}</td>
+                <td>{{order.remarks}}</td>
               </tr>
             </tbody>
           </table>

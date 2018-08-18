@@ -56,7 +56,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           if(data.message) {
 
             vm.title = 'Rating Details';
-            vm.model_data.data = data.data.data;
+            vm.model_data = data.data.data;
             $state.go('app.outbound.Ratings.Details');
           }
         });

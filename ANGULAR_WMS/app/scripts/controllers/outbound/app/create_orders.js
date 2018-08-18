@@ -1731,39 +1731,30 @@ angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInst
   }
 
   vm.submit = function () {
-
     if((!vm.sel_reasons.order_reason && vm.title == 'Rate Your Order') || 
        (!vm.sel_reasons.product_reason && vm.title == 'Rate Your Product')) {
-
       vm.service.showNoty('Sorry, Please give your rating and proper reason');
     } else if (vm.sel_reasons.order_reason && !vm.sel_reasons.product_reason) {
-
       vm.resetValues();
       vm.title = 'Rate Your Product';
       vm.rate_type = 'Product';
       vm.reason_type = 'product_reasons';
     } else if (vm.sel_reasons.order_reason && vm.sel_reasons.product_reason && vm.selStars) {
-
       var send = vm.sel_reasons;
-      send['order_id'] = '1234';
-      send['order_date'] = '15/08/2018';
-
+      //send['order_id'] = '1234';
+      //send['order_date'] = '15/08/2018';
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
-
       angular.forEach(elem, function(row){
-
         send[row.name] = row.value;
       });
-
-      Service.apiCall("customer_ratings/", "POST", send).then(function(response) {
+      send['order_details'] = vm.model_data.order_ratings;
+      Service.apiCall("save_cutomer_ratings/", "POST", send).then(function(response) {
         if (response.message) {
-
           vm.service.showNoty(response.data.data);
           vm.cancel();
         } else {
-
           vm.service.showNoty('Something went wrong. Please try again');
         }
       });
@@ -1774,7 +1765,7 @@ angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInst
     //user, ratings_enabled?,
     var formData = {}  
     $.ajax({
-      url: Session.url+'get_ratings_data/',
+      url: Session.url+'get_ratings_data_popup/',
       data: formData,
       method: 'POST',
       processData : false,

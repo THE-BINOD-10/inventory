@@ -322,7 +322,8 @@ urlpatterns = [
     url(r'^invoice_mark_delivered/$', invoice_mark_delivered),
     url(r'^get_create_order_mapping_values/$', get_create_order_mapping_values),
     url(r'^get_ratings_details/$', get_ratings_details),
-    url(r'^get_ratings_data/$', get_ratings_data),
+    url(r'^get_ratings_data_popup/$', get_ratings_data_popup),
+    url(r'^save_cutomer_ratings/$', save_cutomer_ratings),
 
 
     # Uploaded POs [SWISS MILITARY]

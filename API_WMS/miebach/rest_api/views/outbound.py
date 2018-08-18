@@ -10588,6 +10588,7 @@ def invoice_mark_delivered(request, user=''):
     order_id = request.POST.getlist('selected_invoice', [])
     selected_order_invoice = eval(request.POST.get('selected_invoice', '{}'))
     failed_order_id = []
+    order_id_already_marked_delivered = []
     for obj in selected_order_invoice:
         picked_qty = obj['picked_qty']
         order_qty = obj['order_qty']
@@ -10604,15 +10605,19 @@ def invoice_mark_delivered(request, user=''):
         sell_ids['order__original_order_id'] = sor_id
         if invoice_id:
             sell_ids['invoice_number'] = invoice_id
+        sell_ids['delivered_flag'] = 0
         #sell_ids['quantity'] = order_qty
         #import pdb;pdb.set_trace()
         seller = SellerOrderSummary.objects.filter(**sell_ids)
         if len(seller):
             if seller.aggregate(Sum('quantity'))['quantity__sum'] == picked_qty:
-                seller.update(delivered_flag=1)
+                if seller.delivered_flag == 2:
+                    order_id_already_marked_delivered.append(sor_id)
+                else:
+                    seller.update(delivered_flag=1)
             else:
                 failed_order_id.append(sor_id)
-            return HttpResponse(json.dumps({'status':True, 'message':'Marked as Delivered Successfully'}), content_type='application/json')
+            return HttpResponse(json.dumps({'status':True, 'message':'Marked as Delivered Successfully', 'already_marked_delivered' : order_id_already_marked_delivered}), content_type='application/json')
         else:
             failed_order_id.append(sor_id)
             continue
@@ -10623,12 +10628,12 @@ def invoice_mark_delivered(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-def get_ratings_data(request, user=''):
+def get_ratings_data_popup(request, user=''):
     request_data = request.POST
     customer_name = request.user.get_full_name()
-    #import pdb;pdb.set_trace()
     customer_id = request.user.id
     username = request.user.username
+    original_order_id = ''
     #seller = SellerOrderSummary.objects.filter(order__user=user.id, order__customer_id = customer_id, order__customer_name = customer_name, delivered_flag=1).order_by('-updation_date').first()
     seller_obj = SellerOrderSummary.objects.filter(order__user=user.id, order__customer_name = customer_name, delivered_flag=1).order_by('-updation_date').first()
     if seller_obj:
@@ -10637,31 +10642,65 @@ def get_ratings_data(request, user=''):
             order_id = str(seller_obj.order.order_id)
             order_code = str(seller_obj.order.order_code)
             original_order_id = order_id + order_code
-    seller = SellerOrderSummary.objects.filter(order__user=user.id, order__customer_name = customer_name, order__original_order_id = original_order_id, delivered_flag=1).order_by('-updation_date')
-    data_dict = {}
-    for obj in seller:
-        data_dict['order_id'] = original_order_id
-        creation_date = obj.creation_date
-        updation_date = obj.updation_date
-        data_dict['order_creation_date'] = str(creation_date)
-        data_dict['order_updation_date'] = str(updation_date)
-        #seller_order.seller.order.sku
-        #quantity = obj.quantity   
-        #customer_name = obj.order.customer_name
-        #original_order_id = obj.order.original_order_id        
-        #if not original_order_id:
-            #order_id = str(obj.order.order_id)
-            #order_code = str(obj.order.order_code)
-            #original_order_id = order_id + order_code
-        sku_code = obj.order.sku.sku_code
-        sku_desc = obj.order.sku.sku_desc
-        data_dict.setdefault('items', [])
-        sku_dict = {}
-        sku_dict['sku_code'] = obj.order.sku.sku_code
-        sku_dict['sku_desc'] = obj.order.sku.sku_desc
-        sku_dict['remarks'] = ''
-        data_dict['items'].append(sku_dict)
-    return HttpResponse(json.dumps({'status':True, 'data' : data_dict}), content_type='application/json')
+        seller = SellerOrderSummary.objects.filter(order__user=user.id, order__customer_name = customer_name, order__original_order_id = original_order_id, delivered_flag=1).order_by('-updation_date')
+        data_dict = {}
+        for obj in seller:
+            data_dict['order_id'] = original_order_id
+            creation_date = obj.creation_date
+            updation_date = obj.updation_date
+            data_dict['order_creation_date'] = str(creation_date)
+            data_dict['order_updation_date'] = str(updation_date)
+            #seller_order.seller.order.sku
+            #quantity = obj.quantity   
+            #customer_name = obj.order.customer_name
+            #original_order_id = obj.order.original_order_id        
+            #if not original_order_id:
+                #order_id = str(obj.order.order_id)
+                #order_code = str(obj.order.order_code)
+                #original_order_id = order_id + order_code
+            sku_code = obj.order.sku.sku_code
+            sku_desc = obj.order.sku.sku_desc
+            data_dict.setdefault('items', [])
+            sku_dict = {}
+            sku_dict['sku_code'] = obj.order.sku.sku_code
+            sku_dict['sku_desc'] = obj.order.sku.sku_desc
+            sku_dict['remarks'] = ''
+            data_dict['items'].append(sku_dict)
+        return HttpResponse(json.dumps({'status':True, 'data' : data_dict}), content_type='application/json')
+    else:
+        return HttpResponse(json.dumps({'status':True, 'data' : {}}), content_type='application/json')
+        
+@csrf_exempt
+@login_required
+@get_admin_user
+def save_cutomer_ratings(request, user=''):
+    #request_data = request.POST
+    order_rate = request.POST.get('order_rate', '')
+    product_rate = request.POST.get('product_rate', '')
+    order_reason = request.POST.get('order_reason', '')
+    product_reason = request.POST.get('product_reason', '')
+    order_ratings_data = request.POST.get('order_details', '')
+    import pdb;pdb.set_trace()
+    customer_name = request.user.get_full_name()
+    seller = SellerOrderSummary.objects.filter(order__user=user.id, order__customer_name=customer_name, order__original_order_id=original_order_id, delivered_flag=1).update(delivered_flag=2)
+    rating_obj = RatingsMaster.objects.create(user=user.id, original_order_id=original_order_id, rating_product=product_rate, rating_order=order_rate, reason_product=product_reason, reason_order=order_reason)
+    for obj in items:
+        RatingSKUMapping.objects.create(rating=rating_obj, sku__sku_code=obj.sku_code, remarks=obj.remarks)
+    return HttpResponse(json.dumps({'status':True, 'data':data_dict}), content_type='application/json')
+
+
+    """
+    seller_obj = SellerOrderSummary.objects.filter(order__user=user.id, order__customer_name = customer_name, delivered_flag=1).order_by('-updation_date').first()
+    if seller_obj:
+        original_order_id = seller_obj.order.original_order_id
+        if not original_order_id:
+            order_id = str(seller_obj.order.order_id)
+            order_code = str(seller_obj.order.order_code)
+            original_order_id = order_id + order_code
+    """
+
+
+
     
 
 """

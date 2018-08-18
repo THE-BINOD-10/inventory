@@ -47,7 +47,8 @@
   
   <div class="row">
     <div class="text-center mb10" ng-if="!$ctrl.selStars && !$ctrl.sel_reasons.order_rate">Thanks for using Stockone Application to order. Your order details are...!</div>
-    <p><strong>Order Id:</strong> 123456</p><p><strong>Order Date:</strong> 15/08/2018</p>
+    <p><strong>Order Id:</strong>{{ $ctrl.model_data.order_ratings.order_id }}</p>
+    <p><strong>Order Date:</strong>{{ $ctrl.model_data.order_ratings.order_creation_date }}</p>
   </div>
 
   <div class="row text-center">
@@ -73,11 +74,13 @@
       <div class="col-md-5 text-center"><strong>SKU Description</strong></div>
       <div class="col-md-5 text-center"><strong>Remarks</strong></div>
     </div>
-    <div class="row" ng-repeat="sku in $ctrl.model_data.ordered_skus">
+    <div class="row" ng-repeat="sku in $ctrl.model_data.order_ratings.items">
       <hr>
-      <div class="col-md-2">{{sku.wms_code}}</div>
-      <div class="col-md-5">{{sku.sku_desc}}</div>
-      <div class="col-md-5"><textarea rows="1" name="{{sku.wms_code}}" placeholder="{{sku.wms_code}} Product Remarks" class="form-control"></textarea></div>
+      <div class="col-md-2" ng-model="sku.sku_code">{{sku.sku_code}}</div>
+      <div class="col-md-5" ng-model="sku.sku_desc">{{sku.sku_desc}}</div>
+      <div class="col-md-5">
+        <textarea rows="1" name="{{sku.sku_code}}" placeholder="{{sku.sku_code}} Product Remarks" class="form-control" ng-model="sku.remarks"></textarea>
+      </div>
     </div>
   </div>
 </div>

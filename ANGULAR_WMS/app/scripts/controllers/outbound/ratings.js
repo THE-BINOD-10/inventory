@@ -50,11 +50,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     $('td', nRow).unbind('click');
     $('td', nRow).bind('click', function() {
       $scope.$apply(function() {
-
         vm.service.apiCall('get_ratings_details/', 'POST', aData).then(function(data){
-
           if(data.message) {
-
             vm.title = 'Rating Details';
             vm.model_data = data.data.data;
             $state.go('app.outbound.Ratings.Details');
@@ -67,7 +64,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.model_data = {};
 
   vm.close = function() {
-
     $state.go('app.outbound.Ratings');
   }
 }

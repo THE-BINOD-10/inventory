@@ -10587,24 +10587,82 @@ def get_create_order_mapping_values(request, user=''):
 def invoice_mark_delivered(request, user=''):
     order_id = request.POST.getlist('selected_invoice', [])
     selected_order_invoice = eval(request.POST.get('selected_invoice', '{}'))
+    failed_order_id = []
     for obj in selected_order_invoice:
         picked_qty = obj['picked_qty']
         order_qty = obj['order_qty']
         invoice_id = obj['invoice_id']
         if order_qty != picked_qty:
-            return HttpResponse(json.dumps({'status':False, 'message':'Partial Picked Qty Not Allowed'}), content_type='application/json')
+            failed_order_id.append(sor_id)
+            continue
+            #return HttpResponse(json.dumps({'status':False, 'message':'Partial Picked Qty Not Allowed'}), content_type='application/json')
         sell_ids = {}
         sor_id = obj['order_id']
         ids = obj['id']
         invoice_no = obj['invoice_number']
         sell_ids['order__user'] = user.id
         sell_ids['order__original_order_id'] = sor_id
-        sell_ids['invoice_number'] = invoice_id
-        sell_ids['quantity'] = order_qty
+        if invoice_id:
+            sell_ids['invoice_number'] = invoice_id
+        #sell_ids['quantity'] = order_qty
+        #import pdb;pdb.set_trace()
         seller = SellerOrderSummary.objects.filter(**sell_ids)
         if len(seller):
-            seller.update(delivered_flag=1)
-    return HttpResponse(json.dumps({'status':True, 'message':'Marked as Delivered Successfully'}), content_type='application/json')
+            if seller.aggregate(Sum('quantity'))['quantity__sum'] == picked_qty:
+                seller.update(delivered_flag=1)
+            else:
+                failed_order_id.append(sor_id)
+            return HttpResponse(json.dumps({'status':True, 'message':'Marked as Delivered Successfully'}), content_type='application/json')
+        else:
+            failed_order_id.append(sor_id)
+            continue
+    if len(failed_order_id):
+        failed_order_ids = ', '.join(failed_order_id)
+        return HttpResponse(json.dumps({'status':False, 'message':'Failed for '+failed_order_ids}), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_ratings_data(request, user=''):
+    request_data = request.POST
+    customer_name = request.user.get_full_name()
+    #import pdb;pdb.set_trace()
+    customer_id = request.user.id
+    username = request.user.username
+    #seller = SellerOrderSummary.objects.filter(order__user=user.id, order__customer_id = customer_id, order__customer_name = customer_name, delivered_flag=1).order_by('-updation_date').first()
+    seller_obj = SellerOrderSummary.objects.filter(order__user=user.id, order__customer_name = customer_name, delivered_flag=1).order_by('-updation_date').first()
+    if seller_obj:
+        original_order_id = seller_obj.order.original_order_id
+        if not original_order_id:
+            order_id = str(seller_obj.order.order_id)
+            order_code = str(seller_obj.order.order_code)
+            original_order_id = order_id + order_code
+    seller = SellerOrderSummary.objects.filter(order__user=user.id, order__customer_name = customer_name, order__original_order_id = original_order_id, delivered_flag=1).order_by('-updation_date')
+    data_dict = {}
+    for obj in seller:
+        data_dict['order_id'] = original_order_id
+        creation_date = obj.creation_date
+        updation_date = obj.updation_date
+        data_dict['order_creation_date'] = str(creation_date)
+        data_dict['order_updation_date'] = str(updation_date)
+        #seller_order.seller.order.sku
+        #quantity = obj.quantity   
+        #customer_name = obj.order.customer_name
+        #original_order_id = obj.order.original_order_id        
+        #if not original_order_id:
+            #order_id = str(obj.order.order_id)
+            #order_code = str(obj.order.order_code)
+            #original_order_id = order_id + order_code
+        sku_code = obj.order.sku.sku_code
+        sku_desc = obj.order.sku.sku_desc
+        data_dict.setdefault('items', [])
+        sku_dict = {}
+        sku_dict['sku_code'] = obj.order.sku.sku_code
+        sku_dict['sku_desc'] = obj.order.sku.sku_desc
+        sku_dict['remarks'] = ''
+        data_dict['items'].append(sku_dict)
+    return HttpResponse(json.dumps({'status':True, 'data' : data_dict}), content_type='application/json')
+    
 
 """
 def render_st_html_data(request, user, warehouse, all_data):
@@ -10652,3 +10710,4 @@ def render_st_html_data(request, user, warehouse, all_data):
     html_data = t.render(data_dict)
     return html_data
 """
+

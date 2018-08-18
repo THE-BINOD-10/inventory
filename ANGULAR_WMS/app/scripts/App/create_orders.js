@@ -974,6 +974,40 @@ vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'aw
        $state.go("user.sagarfab");
      })
    }
+
+  vm.display_ratings = function() {
+    //user, ratings_enabled?,
+    var formData = {}  
+    $.ajax({
+      url: Session.url+'get_ratings_data/',
+      data: formData,
+      method: 'POST',
+      processData : false,
+      contentType : false,
+      xhrFields: {
+          withCredentials: true
+      },
+      'success': function(response) {
+        console.log(response)
+        var response = JSON.parse(response);
+        if(response.message == "") {
+          console.log(response.message);
+          /*
+          colFilters.showNoty("Custom SKU Created And Also Added In Order");
+          vm.add_to_order(response.data, vm.pop_data);
+          vm.attributes = [];
+          vm.image = "";
+          vm.model_data.template_value = "";
+          vm.model_data.template_type = "";
+          vm.close();
+          */
+        } else {
+          vm.service.pop_msg(response.message);
+        }
+      }
+    })
+  }
+  vm.display_ratings()
 }
 
 angular

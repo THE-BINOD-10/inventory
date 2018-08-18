@@ -1770,6 +1770,42 @@ angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInst
     }
   };
 
+  vm.display_ratings = function() {
+    //user, ratings_enabled?,
+    var formData = {}  
+    $.ajax({
+      url: Session.url+'get_ratings_data/',
+      data: formData,
+      method: 'POST',
+      processData : false,
+      contentType : false,
+      xhrFields: {
+          withCredentials: true
+      },
+      'success': function(response) {
+        if(response.status) {
+          vm.model_data.order_ratings = response.data;
+          /*
+          vm.order_id = vm.model_data.order_ratings.order_id;
+          vm.order_creation_date = vm.model_data.order_ratings.order_creation_date;
+          vm.items = vm.model_data.order_ratings.items;
+          
+          colFilters.showNoty("Custom SKU Created And Also Added In Order");
+          vm.add_to_order(response.data, vm.pop_data);
+          vm.attributes = [];
+          vm.image = "";
+          vm.model_data.template_value = "";
+          vm.model_data.template_type = "";
+          vm.close();
+          */
+        } else {
+          vm.service.pop_msg(response.data.message);
+        }
+      }
+    })
+  }
+  vm.display_ratings()
+
   vm.cancel = function () {
     $modalInstance.dismiss('cancel');
   };

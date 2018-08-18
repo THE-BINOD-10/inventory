@@ -6224,6 +6224,61 @@ def get_custom_order_data(start_index, stop_index, temp_data, search_term, order
     temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
 
 
+def get_ratings_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
+                         filters):
+    ''' Order Rating datatable code '''
+
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    admin_user = get_priceband_admin_user(user)
+    lis = ['rating__original_order_id', '', '', 'rating__rating_order',\
+           'rating__reason_product', 'rating__rating_order', 'rating__reason_order']#for filter purpose
+    user_filter = {'rating__user': user.id}
+    result_values = ['rating__original_order_id', 'rating__rating_product',\
+                     'rating__reason_product', 'rating__rating_order',\
+                     'rating__reason_order']#to make distinct grouping
+
+    if search_term:
+        search_term = search_term.replace('(', '\(').replace(')', '\)')
+        search_query = build_search_term_query(lis, search_term)
+        master_data = RatingSKUMapping.objects.filter(search_query, **user_filter)\
+                                              .values(*result_values).distinct()
+
+    elif order_term:
+        if order_term == 'asc' and (col_num or col_num == 0):
+            order_by = '%s' % lis[col_num]
+        else:
+            order_by = '-%s' % lis[col_num]
+        master_data = RatingSKUMapping.objects.filter(**user_filter)\
+                                      .values(*result_values).distinct()\
+                                      .order_by('-%s' % lis[col_num])
+    else:
+        master_data = RatingSKUMapping.objects.filter(**user_filter)\
+                                      .values(*result_values).distinct()
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    for data in master_data[start_index:stop_index]:
+        customer_name, tot_inv_amt = '', 0
+        original_order_id = data['rating__original_order_id']
+        order_filter = {'original_order_id': original_order_id,
+                        'user': user.id}
+        order_detail = OrderDetail.objects.filter(**order_filter)\
+                                  .values('customer_name', 'original_order_id')\
+                                  .distinct().annotate(tot_inv_amt=Sum('invoice_amount'))
+        if order_detail:
+            customer_name = order_detail[0]['customer_name']
+            tot_inv_amt = order_detail[0]['tot_inv_amt']
+        data_dict = OrderedDict((('order_id', original_order_id),
+                                ('customer_name', customer_name),
+                                ('invoice_value', "%.2f" % tot_inv_amt),
+                                ('rating_order', data['rating__rating_order']),
+                                ('reason_order', data['rating__reason_order']),
+                                ('rating_product', data['rating__rating_product']),
+                                ('reason_product', data['rating__reason_product']),
+                               ))
+        temp_data['aaData'].append(data_dict)
+
+
 @csrf_exempt
 @login_required
 @get_admin_user

@@ -30,13 +30,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
      });
 
   vm.dtColumns = [
-      DTColumnBuilder.newColumn('Order Id').withTitle('Order Id'),
-      DTColumnBuilder.newColumn('Customer Name').withTitle('Customer Name'),
-      DTColumnBuilder.newColumn('Invoice Value').withTitle('Invoice Value'),
-      DTColumnBuilder.newColumn('Rating For Order Experience').withTitle('Rating For Order Experience'),
-      DTColumnBuilder.newColumn('Reason For Order Experience').withTitle('Reason For Order Experience'),
-      DTColumnBuilder.newColumn('Rating For Product').withTitle('Rating For Product'),
-      DTColumnBuilder.newColumn('Reason For Product').withTitle('Reason For Order Experience'),
+      DTColumnBuilder.newColumn('order_id').withTitle('Order Id'),
+      DTColumnBuilder.newColumn('customer_name').withTitle('Customer Name'),
+      DTColumnBuilder.newColumn('invoice_value').withTitle('Invoice Value'),
+      DTColumnBuilder.newColumn('rating_order').withTitle('Rating For Order Experience'),
+      DTColumnBuilder.newColumn('reason_order').withTitle('Reason For Order Experience'),
+      DTColumnBuilder.newColumn('rating_product').withTitle('Rating For Product'),
+      DTColumnBuilder.newColumn('reason_product').withTitle('Reason For Product'),
   ];
 
   vm.dtInstance = {};

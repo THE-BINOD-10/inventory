@@ -85,9 +85,6 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   }
 
   /*Rating module start*/
-  vm.test = [{wms_code: '101', sku_desc: 'Description-1'}, {wms_code: '102', sku_desc: 'Description-2'}, 
-             {wms_code: '103', sku_desc: 'Description-3'}, {wms_code: '104', sku_desc: 'Description-4'}];
-  vm.modelData = {'profile_name': vm.profile_name, 'ordered_skus':vm.test};
   function customerRating() {
  
     var mod_data = vm.modelData;
@@ -110,10 +107,28 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     })
   }
 
-  if (true) {
+  vm.display_ratings = function() {
 
-    customerRating();
+    var formData = {}  
+    
+    Service.apiCall("get_ratings_data_popup/", "POST", formData).then(function(response) {
+
+      if (response.message) {
+
+        vm.order_ratings = response.data.data;
+        if (!$.isEmptyObject(vm.order_ratings)) {
+
+          vm.modelData = {'profile_name': vm.profile_name, 'order_ratings': vm.order_ratings};
+          customerRating();
+        }
+      } else {
+
+        vm.service.pop_msg(response.data.message);
+      }
+    });
   }
+
+  vm.display_ratings();
   /*Rating module end*/
 
   function change_filter_data() {
@@ -1615,6 +1630,7 @@ angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInst
   vm.sel_reasons = {order_rate:'', order_reason:'', product_rate:'', product_reason:''};
   vm.rate_query = "What you didn't like!";
   vm.reason_type = 'order_reasons';
+  vm.btn_text = 'Next';
 
   vm.resetValues = function(){
 
@@ -1733,16 +1749,18 @@ angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInst
   vm.submit = function () {
     if((!vm.sel_reasons.order_reason && vm.title == 'Rate Your Order') || 
        (!vm.sel_reasons.product_reason && vm.title == 'Rate Your Product')) {
+
       vm.service.showNoty('Sorry, Please give your rating and proper reason');
     } else if (vm.sel_reasons.order_reason && !vm.sel_reasons.product_reason) {
+
       vm.resetValues();
       vm.title = 'Rate Your Product';
+      vm.btn_text = 'Submit';
       vm.rate_type = 'Product';
       vm.reason_type = 'product_reasons';
     } else if (vm.sel_reasons.order_reason && vm.sel_reasons.product_reason && vm.selStars) {
+
       var send = vm.sel_reasons;
-      //send['order_id'] = '1234';
-      //send['order_date'] = '15/08/2018';
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
@@ -1751,51 +1769,19 @@ angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInst
       });
       send['order_details'] = JSON.stringify(vm.model_data.order_ratings);
       Service.apiCall("save_cutomer_ratings/", "POST", send).then(function(response) {
+
         if (response.message) {
+
           vm.service.showNoty(response.data.data);
           vm.cancel();
         } else {
+
           vm.service.showNoty('Something went wrong. Please try again');
+          vm.cancel();
         }
       });
     }
   };
-
-  vm.display_ratings = function() {
-    //user, ratings_enabled?,
-    var formData = {}  
-    $.ajax({
-      url: Session.url+'get_ratings_data_popup/',
-      data: formData,
-      method: 'POST',
-      processData : false,
-      contentType : false,
-      xhrFields: {
-          withCredentials: true
-      },
-      'success': function(response) {
-        if(response.status) {
-          vm.model_data.order_ratings = response.data;
-          /*
-          vm.order_id = vm.model_data.order_ratings.order_id;
-          vm.order_creation_date = vm.model_data.order_ratings.order_creation_date;
-          vm.items = vm.model_data.order_ratings.items;
-          
-          colFilters.showNoty("Custom SKU Created And Also Added In Order");
-          vm.add_to_order(response.data, vm.pop_data);
-          vm.attributes = [];
-          vm.image = "";
-          vm.model_data.template_value = "";
-          vm.model_data.template_type = "";
-          vm.close();
-          */
-        } else {
-          vm.service.pop_msg(response.data.message);
-        }
-      }
-    })
-  }
-  vm.display_ratings()
 
   vm.cancel = function () {
     $modalInstance.dismiss('cancel');

@@ -283,21 +283,56 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
     if (Session.roles.permissions.user_type != 'customer') {
 
       if (Session.roles.permissions.user_type == 'reseller' && vm.selLevel  != 0) {
-    
-        if ((vm.levels_data[0].data[index].overall_sku_total_quantity != 0 && !vm.levels_data[0].data[index].quantity) ||
-          vm.levels_data[0].data[index].overall_sku_total_quantity > Number(vm.levels_data[0].data[index].quantity)) {
-          var available_qty = 0;
-          if (vm.levels_data[0].data[index].quantity) {
-            available_qty = Number(vm.levels_data[0].data[index].overall_sku_total_quantity) - 
+
+        if (vm.selLevel >= 1 && vm.selLevel != 3) {
+        // if (vm.selLevel == 1 && vm.selLevel != 2) {
+
+          if ((vm.levels_data[0].data[index].overall_sku_total_quantity != 0 && !vm.levels_data[0].data[index].quantity) ||
+            vm.levels_data[0].data[index].overall_sku_total_quantity > Number(vm.levels_data[0].data[index].quantity)) {
+
+            var available_qty = 0;
+            if (vm.levels_data[0].data[index].quantity) {
+
+              available_qty = Number(vm.levels_data[0].data[index].overall_sku_total_quantity) - 
               Number(vm.levels_data[0].data[index].quantity);
-          } else {
-            available_qty = Number(vm.levels_data[0].data[index].overall_sku_total_quantity);
+            } else {
+
+              available_qty = Number(vm.levels_data[0].data[index].overall_sku_total_quantity);
+            }
+            vm.service.showNoty("The <b>"+vm.levels_data[0].data[index].wms_code+"</b> SKU having <b>"+available_qty+"</b> quantity in <b>Level-0</b>. Please consider it.", "success", "topRight");
+            var level = Number(row.level);
+            vm.levels_data[level].data[index].quantity = 0;
+            vm.selLevel  = level;
+            return false;
           }
-          vm.service.showNoty("The <b>"+vm.levels_data[0].data[index].wms_code+"</b> SKU having <b>"+available_qty+"</b> quantity in <b>Level-0</b>. Please consider it.", "success", "topRight");
-          var level = Number(row.level);
-          vm.levels_data[level].data[index].quantity = 0;
-          vm.selLevel  = level;
-          return false;
+        } else if (vm.selLevel == 3) {
+
+            var level_0_1_ovr_sku_tot_qty = 0;
+            var level_0_1_qty = 0;
+            var level_0_1_available_qty = 0;
+
+            angular.forEach(vm.levels_data, function(sku){
+
+              if (sku.data[index].level == 0 || sku.data[index].level == 1) {
+
+                if (!sku.data[index].quantity) {
+
+                  sku.data[index]['quantity'] = 0;
+                }
+                level_0_1_ovr_sku_tot_qty += Number(sku.data[index].overall_sku_total_quantity);
+                level_0_1_available_qty += Number(sku.data[index].overall_sku_total_quantity) - Number(sku.data[index].quantity);
+                level_0_1_qty += Number(sku.data[index].quantity);
+              }
+            });
+
+            if ((level_0_1_ovr_sku_tot_qty != 0 && !level_0_1_qty) || level_0_1_available_qty > level_0_1_qty) {
+
+              vm.service.showNoty("The <b>"+vm.levels_data[0].data[index].wms_code+"</b> SKU having <b>"+level_0_1_available_qty+"</b> quantity in <b>Level-0 or Level-1</b>. Please consider it.", "success", "topRight");
+              var level = Number(row.level);
+              vm.levels_data[level].data[index].quantity = 0;
+              vm.selLevel  = level;
+              return false;
+            }
         }
       }
       vm.check_quantity(row);
@@ -306,6 +341,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
     }
     vm.update_levels(index);
   }
+
 
 
   vm.priceRangesCheck = function(record, quantity){

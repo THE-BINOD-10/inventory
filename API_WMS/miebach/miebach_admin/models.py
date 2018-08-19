@@ -517,6 +517,33 @@ class StockDetail(models.Model):
         return str(self.sku) + " : " + str(self.location)
 
 
+class ASNStockDetail(models.Model):
+    id = BigAutoField(primary_key=True)
+    asn_po_num = models.CharField(max_length=32, default='')
+    sku = models.ForeignKey(SKUMaster)
+    quantity = models.IntegerField(default=0)
+    arriving_date = models.DateField(blank=True, null=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ASN_STOCK_DETAIL'
+        unique_together = ('asn_po_num', 'sku')
+
+
+class ASNReserveDetail(models.Model):
+    id = BigAutoField(primary_key=True)
+    asnstock = models.ForeignKey(ASNStockDetail, blank=True, null=True)
+    orderdetail = models.ForeignKey(OrderDetail, blank=True, null=True)
+    reserved_qty = models.IntegerField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'ASN_RESERVE_DETAIL'
+        unique_together = ('asnstock', 'orderdetail')
+
+
 class Picklist(models.Model):
     id = BigAutoField(primary_key=True)
     order = models.ForeignKey(OrderDetail, blank=True, null=True)

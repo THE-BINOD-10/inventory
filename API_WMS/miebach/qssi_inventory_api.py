@@ -27,6 +27,7 @@ def update_inventory(company_name):
                         continue
                     location_id = location_master[0].id
                     stock_dict = {}
+                    asn_stock_map = {}
                     for item in warehouse["Result"]["InventoryStatus"]:
                         sku_id = item["SKUId"]
                         actual_sku_id = sku_id
@@ -36,6 +37,9 @@ def update_inventory(company_name):
                                 stock_dict[sku_id] += int(item['Inventory'])
                             else:
                                 stock_dict[sku_id] = int(item['Inventory'])
+                            expected_items = item['Expected']
+                            if isinstance(expected_items, list) and expected_items:
+                                asn_stock_map.setdefault(sku_id, []).extend(expected_items)
                         else:
                             if sku_id in stock_dict:
                                 stock_dict[sku_id] += int(item['FG'])
@@ -67,6 +71,29 @@ def update_inventory(company_name):
                                 StockDetail.objects.create(**new_stock_dict)
                                 log.info("New stock created for user %s for sku %s" %
                                          (user.username, str(sku.sku_code)))
+                    for sku_id, asn_inv in asn_stock_map.iteritems():
+                        sku = SKUMaster.objects.filter(user=user_id, sku_code=sku_id)
+                        if sku:
+                            sku = sku[0]
+                            for asn_stock in asn_inv:
+                                po = asn_stock['PO']
+                                expected_time = asn_stock['By']
+                                if expected_time == 'Unknown':
+                                    continue
+                                arriving_date = datetime.datetime.strptime(asn_stock['By'], '%d-%b-%Y')
+                                quantity = asn_stock['Qty']
+                                asn_stock_detail = ASNStockDetail.objects.filter(sku_id=sku.id, asn_po_num=po)
+                                if asn_stock_detail:
+                                    asn_stock_detail = asn_stock_detail[0]
+                                    asn_stock_detail.quantity = quantity
+                                    asn_stock_detail.arriving_date = arriving_date
+                                    asn_stock_detail.save()
+                                else:
+                                    ASNStockDetail.objects.create(asn_po_num=po, sku_id=sku.id,
+                                                                  quantity=quantity,
+                                                                  arriving_date=arriving_date)
+                                    log.info('New ASN Stock Created for User %s and SKU %s' %
+                                             (user.username, str(sku.sku_code)))
     print "Inventory Updated"
     return "Success"
 

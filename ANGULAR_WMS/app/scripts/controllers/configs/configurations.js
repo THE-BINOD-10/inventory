@@ -24,6 +24,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'disable_brands_view': false, 'sellable_segregation': false, 'display_styles_price': false,
                     'invoice_based_payment_tracker': false, 'receive_po_invoice_check': false,
                     'auto_raise_stock_transfer': false, 'inbound_supplier_invoice': false, 'customer_dc': false,
+                    'mark_as_delivered': false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -41,7 +42,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      52: 'calculate_customer_price', 53: 'shipment_sku_scan', 54: 'disable_brands_view',
                      55: 'sellable_segregation', 56: 'display_styles_price', 57: 'show_purchase_history',
                      58: 'shelf_life_ratio', 59: 'auto_raise_stock_transfer', 60: 'inbound_supplier_invoice',
-                     61: 'customer_dc', 62: 'auto_expire_enq_limit', 63: 'invoice_based_payment_tracker', 64: 'receive_po_invoice_check'}
+                     61: 'customer_dc', 62: 'auto_expire_enq_limit', 63: 'invoice_based_payment_tracker', 64: 'receive_po_invoice_check',
+                     65: 'mark_as_delivered'}
 
   vm.check_box_data = [
     {
@@ -349,6 +351,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
      name: "Check Invoice Value In Receive PO",
      model_name: "receive_po_invoice_check",
      param_no: 64,
+     class_name: "fa fa-server",
+     display: true
+    },
+    {
+     name: "Enable Ratings",
+     model_name: "mark_as_delivered",
+     param_no: 65,
      class_name: "fa fa-server",
      display: true
     }

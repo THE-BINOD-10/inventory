@@ -2009,6 +2009,7 @@ class SellerOrderSummary(models.Model):
     invoice_number = models.CharField(max_length=64, default='')
     challan_number = models.CharField(max_length=64, default='')
     order_status_flag = models.CharField(max_length=64, default='processed_orders')
+    delivered_flag = models.IntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -2799,3 +2800,32 @@ class TargetMaster(models.Model):
     class Meta:
         db_table = 'TARGET_MASTER'
         unique_together = ('distributor', 'reseller', 'corporate_id')
+
+
+class RatingsMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    original_order_id = models.CharField(max_length=128, default='', blank=True, null=True)
+    rating_product = models.IntegerField(max_length=10)
+    rating_order = models.IntegerField(max_length=10)
+    reason_product = models.CharField(max_length=32, default='')
+    reason_order = models.CharField(max_length=32, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'RATINGS_MASTER'
+        unique_together = ('user', 'original_order_id')
+
+
+class RatingSKUMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    rating = models.ForeignKey(RatingsMaster, blank=True, null=True)
+    sku = models.ForeignKey(SKUMaster)
+    remarks = models.CharField(max_length=128, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'RATINGS_SKU_MAPPING'
+        unique_together = ('rating', 'sku')

@@ -527,6 +527,7 @@ class Picklist(models.Model):
     picked_quantity = models.FloatField(default=0)
     remarks = models.CharField(max_length=100)
     order_type = models.CharField(max_length=100, default='')
+    damage_suggested = models.IntegerField(default=0)
     status = models.CharField(max_length=32)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -1344,6 +1345,7 @@ class CustomerOrderSummary(models.Model):
     mode_of_transport = models.CharField(max_length=24, default='')
     payment_status = models.CharField(max_length=64, default='')
     courier_name = models.CharField(max_length=64, default='')
+    cess_tax = models.FloatField(default=0)
 
     class Meta:
         db_table = 'CUSTOMER_ORDER_SUMMARY'

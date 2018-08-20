@@ -598,5 +598,5 @@ urlpatterns += [
     url(r'^GetPurchaseReturns/', tally_api.get_purchase_returns),
 
     #WEB PUSH Notifications
-    url(r'^webpush/', include('webpush.urls')),
+    #url(r'^webpush/', include('webpush.urls')),
 ]

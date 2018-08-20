@@ -139,9 +139,52 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       $state.go('user.App.Brands');
     }
   }
-  
-  /*Rating module end*/
 
+  /*Rating module start*/
+  function customerRating() {
+ 
+    var mod_data = vm.modelData;
+    var modalInstance = $modal.open({
+      templateUrl: 'views/outbound/app/create_orders/rating_toggle/customer_rating.html',
+      controller: 'customerRatingCtrl',
+      controllerAs: '$ctrl',
+      size: 'md',
+      backdrop: 'static',
+      keyboard: false,
+      resolve: {
+        items: function () {
+          return mod_data;
+        }
+      }
+    });
+
+    modalInstance.result.then(function (selectedItem) {
+      console.log(selectedItem);
+    })
+  }
+
+  vm.display_ratings = function() {
+
+    var formData = {}  
+    
+    Service.apiCall("get_ratings_data_popup/", "POST", formData).then(function(response) {
+
+      if (response.message) {
+
+        vm.order_ratings = response.data.data;
+        if (!$.isEmptyObject(vm.order_ratings)) {
+
+          vm.modelData = {'profile_name': vm.profile_name, 'order_ratings': vm.order_ratings};
+          customerRating();
+        }
+      } else {
+
+        vm.service.pop_msg(response.data.message);
+      }
+    });
+  }
+  vm.display_ratings();
+  /*Rating module end*/
   function change_filter_data() {
     var data = {brand: vm.brand, category: vm.category, is_catalog: true, sale_through: vm.order_type_value};
     vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
@@ -1642,6 +1685,7 @@ angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInst
   vm.sel_reasons = {order_rate:'', order_reason:'', product_rate:'', product_reason:''};
   vm.rate_query = "What you didn't like!";
   vm.reason_type = 'order_reasons';
+  vm.btn_text = 'Next';
 
   vm.resetValues = function(){
 
@@ -1760,13 +1804,17 @@ angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInst
   vm.submit = function () {
     if((!vm.sel_reasons.order_reason && vm.title == 'Rate Your Order') || 
        (!vm.sel_reasons.product_reason && vm.title == 'Rate Your Product')) {
+
       vm.service.showNoty('Sorry, Please give your rating and proper reason');
     } else if (vm.sel_reasons.order_reason && !vm.sel_reasons.product_reason) {
+
       vm.resetValues();
       vm.title = 'Rate Your Product';
+      vm.btn_text = 'Submit';
       vm.rate_type = 'Product';
       vm.reason_type = 'product_reasons';
     } else if (vm.sel_reasons.order_reason && vm.sel_reasons.product_reason && vm.selStars) {
+
       var send = vm.sel_reasons;
       var elem = angular.element($('form'));
       elem = elem[0];

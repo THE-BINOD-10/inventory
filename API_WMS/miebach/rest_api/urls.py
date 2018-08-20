@@ -319,7 +319,12 @@ urlpatterns = [
     url(r'^get_stock_transfer_order_details/$', get_stock_transfer_order_details),
     url(r'^update_stock_transfer_data/$', update_stock_transfer_data),
     url(r'^stock_transfer_generate_picklist/$', stock_transfer_generate_picklist),
+    url(r'^invoice_mark_delivered/$', invoice_mark_delivered),
     url(r'^get_create_order_mapping_values/$', get_create_order_mapping_values),
+    url(r'^get_ratings_details/$', get_ratings_details),
+    url(r'^get_ratings_data_popup/$', get_ratings_data_popup),
+    url(r'^save_cutomer_ratings/$', save_cutomer_ratings),
+
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),
@@ -590,5 +595,8 @@ urlpatterns += [
     url(r'^GetSalesInvoices/', tally_api.get_sales_invoices),
     url(r'^GetSalesReturns/', tally_api.get_sales_returns),
     url(r'^GetPurchaseInvoices/', tally_api.get_purchase_invoice),
-    url(r'^GetPurchaseReturns/', tally_api.get_purchase_returns)
+    url(r'^GetPurchaseReturns/', tally_api.get_purchase_returns),
+
+    #WEB PUSH Notifications
+    url(r'^webpush/', include('webpush.urls')),
 ]

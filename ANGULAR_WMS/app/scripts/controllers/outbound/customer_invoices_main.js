@@ -354,6 +354,28 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       }
     }
 
+    vm.mark_delivered = function() {
+      var data = {};
+      data['delivered_flag'] = true;
+      var selected_invoice = [];
+      angular.forEach(vm.selected, function(value, key) {
+        if (value) {
+          var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]['_aData'];
+          selected_invoice.push({ 'invoice_number':temp['Invoice Number'], 'order_id':temp['Order ID'], 
+            'invoice_id':temp['Invoice ID'], 'id':temp['id'], 'order_qty':temp['Order Quantity'],
+            'picked_qty':temp['Picked Quantity'] })
+        }
+      })
+      data['selected_invoice'] = JSON.stringify(selected_invoice);
+      Service.apiCall("invoice_mark_delivered/", "POST", data).then(function(resp_data) {
+        if(resp_data.data.status) {
+          Service.showNoty(resp_data.data.message, 'success', 'topRight');
+        } else {
+          Service.showNoty(resp_data.data.message, 'error', 'topRight');
+        }
+      })
+    }
+
     vm.inv_height = 1358; //total invoice height
     vm.inv_details = 292; //invoice details height
     vm.inv_footer = 95;   //invoice footer height

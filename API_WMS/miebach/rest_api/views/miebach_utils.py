@@ -1739,7 +1739,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'show_purchase_history':'show_purchase_history', 'auto_raise_stock_transfer': 'auto_raise_stock_transfer',
                         'invoice_based_payment_tracker': 'invoice_based_payment_tracker',
                         'inbound_supplier_invoice': 'inbound_supplier_invoice', 'customer_dc': 'customer_dc',
-                        'receive_po_invoice_check': 'receive_po_invoice_check'
+                        'receive_po_invoice_check': 'receive_po_invoice_check', 'mark_as_delivered': 'mark_as_delivered',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
@@ -4472,7 +4472,7 @@ def get_dist_target_summary_report_data(search_params, user, sub_user):
     names_map = dict(UserProfile.objects.filter(user__in=distributors).
                      values_list('user_id', Concat('user__username', Value(' - '), 'user__first_name')))
     target_qs = TargetMaster.objects.filter(distributor__in=distributors)
-    dist_targets = dict(target_qs.values_list('distributor__username').annotate(Sum('target_amt')))
+    dist_targets = dict(target_qs.values_list(Concat('distributor__username', Value(' - '), 'distributor__first_name')).annotate(Sum('target_amt')))
     order_qs = OrderDetail.objects.filter(**search_parameters)
     model_data = order_qs.values('id', 'user', 'quantity', 'unit_price', 'invoice_amount')
     tgt_totals_map = {}

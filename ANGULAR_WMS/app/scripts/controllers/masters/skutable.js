@@ -113,7 +113,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.files = [];
     vm.mix_sku_list = {"No Mix": "no_mix", "Mix Within Group": "mix_group"};
     vm.sku_measurement_types = vm.service.units;
-
     if (Service.searched_wms_code != '') {
       vm.model_data.sku_data.sku_code = Service.searched_wms_code;
     };
@@ -255,7 +254,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.market_send = {market_sku_type:[],marketplace_code:[],description:[],market_id:[]}
   vm.update_sku = update_sku;
   function update_sku() {
-
     var data = {
              "image": vm.files
            }
@@ -273,10 +271,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           elem[i].value = (elem[i].value == "?") ? "": vm.qc_data[parseInt(elem[i].value)];
         } else if(elem[i].name == "sku_type") {
           elem[i].value = (elem[i].value == "?") ? "": vm.sku_types[parseInt(elem[i].value)];
+        } else if(elem[i].name == "measurement_type") {
+          elem[i].value = (elem[i].value.indexOf("? ") != -1) ? "": elem[i].value;
         }
       }
     }
-
     var formData = new FormData()
     var files = $("#update_sku").find('[name="files"]')[0].files;
     $.each(files, function(i, file) {

@@ -2,6 +2,7 @@ activate_this = 'setup/MIEBACH/bin/activate_this.py'
 execfile(activate_this, dict(__file__ = activate_this))
 import os
 import sys
+from math import floor
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "miebach.settings")
 import django
@@ -85,7 +86,7 @@ def update_inventory(company_name):
                                 asn_stock_detail = ASNStockDetail.objects.filter(sku_id=sku.id, asn_po_num=po)
                                 if asn_stock_detail:
                                     asn_stock_detail = asn_stock_detail[0]
-                                    asn_stock_detail.quantity = quantity
+                                    asn_stock_detail.quantity = int(floor(quantity*90/100))
                                     asn_stock_detail.arriving_date = arriving_date
                                     asn_stock_detail.save()
                                 else:

@@ -7621,7 +7621,22 @@ def get_customer_cart_data(request, user=""):
             json_record['invoice_amount'] = json_record['quantity'] * json_record['price']
             json_record['total_amount'] = ((json_record['invoice_amount'] * json_record['tax']) / 100) + \
                                           json_record['invoice_amount']
-            # if del_date:
+            total_qty = 0
+            break_flag = False
+            if record.warehouse_level == 3:
+                stock_wh_map = fetch_asn_stock(record.sku.user, record.sku.sku_code, cart_qty)
+                for lt, wh_map in stock_wh_map.items():
+                    for wh, avail_qty in wh_map.items():
+                        total_qty = total_qty + avail_qty
+                        if cart_qty <= total_qty:
+                            del_days = lt
+                            break_flag = True
+                            break
+                    if break_flag:
+                        break
+                else:
+                    del_days = lt
+
             date = datetime.datetime.now()
             date += datetime.timedelta(days=del_days)
             del_date = date.strftime("%d/%m/%Y")

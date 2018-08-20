@@ -2,11 +2,12 @@
 
 'use strict';
 
-function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $window, $timeout, Auth, $modal, $rootScope, Data, $location) {
+function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $window, $timeout, Auth, $modal, $rootScope, Data, $location, customerRatingCtrl) {
 
   $scope.msg = "start";
   var vm = this;
 
+  vm.model_data = {};
   vm.brand_size_data = [];//To get Sizes for some brands
   vm.size_filter = {};//Size Filter Search
   vm.show_no_data = false;//Show No Data
@@ -22,6 +23,61 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.client_logo = Session.parent.logo;
   vm.api_url = Session.host;
   vm.profile_name = Session.user_profile.first_name;
+  vm.mark_as_delivered = Session.roles.permissions.mark_as_delivered;
+
+  vm.test = [{wms_code: '101', sku_desc: 'Description-1'}, {wms_code: '102', sku_desc: 'Description-2'}, 
+             {wms_code: '103', sku_desc: 'Description-3'}, {wms_code: '104', sku_desc: 'Description-4'}];
+  vm.modelData = {'profile_name': vm.profile_name, 'ordered_skus':vm.test};
+  $rootScope.customerRating = function (data_ratings) {
+    vm.modelData.order_ratings = data_ratings
+    var mod_data = vm.modelData;
+    var modalInstance = $modal.open({
+      templateUrl: 'views/outbound/app/create_orders/rating_toggle/customer_rating.html',
+      controller: 'customerRatingCtrl',
+      controllerAs: '$ctrl',
+      size: 'md',
+      backdrop: 'static',
+      keyboard: false,
+      resolve: {
+        items: function () {
+          return mod_data;
+        }
+      }
+    });
+
+    modalInstance.result.then(function (selectedItem) {
+      console.log(selectedItem);
+    })
+  }
+  
+  
+  vm.display_ratings = function() {
+    var formData = {}  
+    $.ajax({
+      url: Session.url+'get_ratings_data_popup/',
+      data: formData,
+      method: 'POST',
+      processData : false,
+      contentType : false,
+      xhrFields: {
+          withCredentials: true
+      },
+      'success': function(response) {
+        if(response.status) {
+          vm.model_data.order_ratings = response.data;
+          if (!$.isEmptyObject(response.data)) {
+            $rootScope.customerRating(response.data);
+          }
+        } else {
+          vm.service.pop_msg(response.data.message);
+        }
+      }
+    })
+  }
+
+  if (vm.mark_as_delivered) {
+    vm.display_ratings()
+  }
 
   $('#delivery_date').datepicker();
 
@@ -32,7 +88,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.order_type_value = "offline";
   vm.service = Service;
   vm.company_name = Session.user_profile.company_name;
-  vm.model_data = {};
+  
   vm.required_quantity = {};
   vm.margin_types = ['Margin Percentage', 'Margin Value'];
   Data.styles_data = {};
@@ -83,37 +139,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       $state.go('user.App.Brands');
     }
   }
-
-  /*Rating module start*/
-  vm.test = [{wms_code: '101', sku_desc: 'Description-1'}, {wms_code: '102', sku_desc: 'Description-2'}, 
-             {wms_code: '103', sku_desc: 'Description-3'}, {wms_code: '104', sku_desc: 'Description-4'}];
-  vm.modelData = {'profile_name': vm.profile_name, 'ordered_skus':vm.test};
-  function customerRating() {
- 
-    var mod_data = vm.modelData;
-    var modalInstance = $modal.open({
-      templateUrl: 'views/outbound/app/create_orders/rating_toggle/customer_rating.html',
-      controller: 'customerRatingCtrl',
-      controllerAs: '$ctrl',
-      size: 'md',
-      backdrop: 'static',
-      keyboard: false,
-      resolve: {
-        items: function () {
-          return mod_data;
-        }
-      }
-    });
-
-    modalInstance.result.then(function (selectedItem) {
-      console.log(selectedItem);
-    })
-  }
-
-  if (true) {
-
-    customerRating();
-  }
+  
   /*Rating module end*/
 
   function change_filter_data() {
@@ -1605,9 +1631,10 @@ angular.module('urbanApp').controller('changePWDCtrl', function ($modalInstance,
   };
 });
 
-angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInstance, $modal, items, Service, Session) {
+angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInstance, $modal, $scope, $rootScope, items, Service, Session) {
   var vm = this;
   vm.user_type = Session.roles.permissions.user_type;
+  vm.mark_as_delivered = Session.roles.permissions.mark_as_delivered;
   vm.model_data = items;
   vm.service = Service;
   vm.title = 'Rate Your Order';
@@ -1741,8 +1768,6 @@ angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInst
       vm.reason_type = 'product_reasons';
     } else if (vm.sel_reasons.order_reason && vm.sel_reasons.product_reason && vm.selStars) {
       var send = vm.sel_reasons;
-      //send['order_id'] = '1234';
-      //send['order_date'] = '15/08/2018';
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
@@ -1752,50 +1777,14 @@ angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInst
       send['order_details'] = JSON.stringify(vm.model_data.order_ratings);
       Service.apiCall("save_cutomer_ratings/", "POST", send).then(function(response) {
         if (response.message) {
-          vm.service.showNoty(response.data.data);
+          vm.service.showNoty('Rating Submitted Successfully');
           vm.cancel();
         } else {
-          vm.service.showNoty('Something went wrong. Please try again');
+          vm.service.showNoty('Something went wrong. Please try again', 'danger');
         }
       });
     }
   };
-
-  vm.display_ratings = function() {
-    //user, ratings_enabled?,
-    var formData = {}  
-    $.ajax({
-      url: Session.url+'get_ratings_data_popup/',
-      data: formData,
-      method: 'POST',
-      processData : false,
-      contentType : false,
-      xhrFields: {
-          withCredentials: true
-      },
-      'success': function(response) {
-        if(response.status) {
-          vm.model_data.order_ratings = response.data;
-          /*
-          vm.order_id = vm.model_data.order_ratings.order_id;
-          vm.order_creation_date = vm.model_data.order_ratings.order_creation_date;
-          vm.items = vm.model_data.order_ratings.items;
-          
-          colFilters.showNoty("Custom SKU Created And Also Added In Order");
-          vm.add_to_order(response.data, vm.pop_data);
-          vm.attributes = [];
-          vm.image = "";
-          vm.model_data.template_value = "";
-          vm.model_data.template_type = "";
-          vm.close();
-          */
-        } else {
-          vm.service.pop_msg(response.data.message);
-        }
-      }
-    })
-  }
-  vm.display_ratings()
 
   vm.cancel = function () {
     $modalInstance.dismiss('cancel');

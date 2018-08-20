@@ -355,7 +355,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
      display: true
     },
     {
-     name: "Mark As Delivered",
+     name: "Enable Ratings",
      model_name: "mark_as_delivered",
      param_no: 65,
      class_name: "fa fa-server",

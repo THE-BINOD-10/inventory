@@ -10593,12 +10593,12 @@ def invoice_mark_delivered(request, user=''):
         picked_qty = obj['picked_qty']
         order_qty = obj['order_qty']
         invoice_id = obj['invoice_id']
+        sor_id = obj['order_id']
         if order_qty != picked_qty:
             failed_order_id.append(sor_id)
             continue
             #return HttpResponse(json.dumps({'status':False, 'message':'Partial Picked Qty Not Allowed'}), content_type='application/json')
         sell_ids = {}
-        sor_id = obj['order_id']
         ids = obj['id']
         invoice_no = obj['invoice_number']
         sell_ids['order__user'] = user.id
@@ -10607,7 +10607,6 @@ def invoice_mark_delivered(request, user=''):
             sell_ids['invoice_number'] = invoice_id
         sell_ids['delivered_flag'] = 0
         #sell_ids['quantity'] = order_qty
-        #import pdb;pdb.set_trace()
         seller = SellerOrderSummary.objects.filter(**sell_ids)
         if len(seller):
             if seller.aggregate(Sum('quantity'))['quantity__sum'] == picked_qty:
@@ -10623,7 +10622,7 @@ def invoice_mark_delivered(request, user=''):
             continue
     if len(failed_order_id):
         failed_order_ids = ', '.join(failed_order_id)
-        return HttpResponse(json.dumps({'status':False, 'message':'Failed for '+failed_order_ids}), content_type='application/json')
+        return HttpResponse(json.dumps({'status':False, 'message':'Failed for '+failed_order_ids + ', Other Orders Successfully Marked as Delivered'}), content_type='application/json')
 
 @csrf_exempt
 @login_required
@@ -10674,7 +10673,6 @@ def get_ratings_data_popup(request, user=''):
 @login_required
 @get_admin_user
 def save_cutomer_ratings(request, user=''):
-    #request_data = request.POST
     warehouse_user = user.id
     order_rate = request.POST.get('order_rate', '')
     product_rate = request.POST.get('product_rate', '')
@@ -10684,7 +10682,6 @@ def save_cutomer_ratings(request, user=''):
     customer_name = request.user.get_full_name()
     original_order_id = order_ratings_data['order_id']
     items = order_ratings_data['items']
-    import pdb;pdb.set_trace()
     seller = SellerOrderSummary.objects.filter(order__user=warehouse_user, order__customer_name=customer_name, order__original_order_id=original_order_id, delivered_flag=1).update(delivered_flag=2)
     rating_obj = RatingsMaster.objects.create(user=user, original_order_id=original_order_id, rating_product=product_rate, rating_order=order_rate, reason_product=product_reason, reason_order=order_reason)
     if rating_obj:
@@ -10693,21 +10690,6 @@ def save_cutomer_ratings(request, user=''):
             if sku_obj:
                 RatingSKUMapping.objects.create(rating=rating_obj, sku_id=sku_obj[0].id, remarks=obj['remarks'])
     return HttpResponse(json.dumps({'status':True, 'data':data_dict}), content_type='application/json')
-
-
-    """
-    seller_obj = SellerOrderSummary.objects.filter(order__user=user.id, order__customer_name = customer_name, delivered_flag=1).order_by('-updation_date').first()
-    if seller_obj:
-        original_order_id = seller_obj.order.original_order_id
-        if not original_order_id:
-            order_id = str(seller_obj.order.order_id)
-            order_code = str(seller_obj.order.order_code)
-            original_order_id = order_id + order_code
-    """
-
-
-
-    
 
 """
 def render_st_html_data(request, user, warehouse, all_data):
@@ -10755,4 +10737,3 @@ def render_st_html_data(request, user, warehouse, all_data):
     html_data = t.render(data_dict)
     return html_data
 """
-

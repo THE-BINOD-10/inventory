@@ -1490,6 +1490,59 @@ def delete_intransit_orders(auto_skus, user):
             intr_order.save()
 
 
+def validate_picklist_combos(data, all_picklists, picks_all):
+    combo_status = []
+    combo_orders_dict = OrderedDict()
+    final_data_list = []
+    for key, value in data.iteritems():
+        if key in ('name', 'number', 'order', 'sku', 'invoice'):
+            continue
+        picklist_batch = ''
+        picklist_order_id = value[0]['order_id']
+        if picklist_order_id:
+            picklist = all_picklists.get(order__order_id=picklist_order_id,
+                                         order__sku__sku_code=value[0]['wms_code'])
+        elif not key:
+            scan_wms_codes = map(lambda d: d['wms_code'], value)
+            picklist_batch = picks_all.filter(
+                Q(stock__sku__wms_code__in=scan_wms_codes) | Q(order__sku__wms_code=scan_wms_codes),
+                reserved_quantity__gt=0, status__icontains='open')
+
+        else:
+            picklist = picks_all.get(id=key)
+        count = 0
+        if not picklist_batch:
+            picklist_batch = get_picklist_batch(picklist, value, all_picklists)
+        for i in range(0, len(value)):
+            if value[i]['picked_quantity']:
+                count += float(value[i]['picked_quantity'])
+
+        final_data_list.append({'picklist': picklist, 'picklist_batch': picklist_batch,
+                                'count': count, 'picklist_order_id': picklist_order_id,
+                                'value': value, 'key': key})
+        for val in value:
+            if not val['picked_quantity']:
+                continue
+            else:
+                count = float(val['picked_quantity'])
+            if picklist_order_id:
+                picklist_batch = list(set([picklist]))
+            for picklist in picklist_batch:
+                grouping_key = '%s:%s' % (str(picklist.order.original_order_id),
+                                          str(picklist.order.sku.sku_code))
+                if picklist.stock:
+                    sku_code = picklist.stock.sku.sku_code
+                else:
+                    sku_code = picklist.sku_code
+                combo_orders_dict.setdefault(grouping_key, {})
+                combo_orders_dict[grouping_key].setdefault(sku_code, 0)
+                combo_orders_dict[grouping_key][sku_code] += count
+    for key, value in combo_orders_dict.iteritems():
+        if len(set(value.values())) > 1:
+            combo_status.append(value.keys())
+    return combo_status, final_data_list
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -1534,29 +1587,40 @@ def picklist_confirmation(request, user=''):
         all_pick_locations = PicklistLocation.objects.filter(picklist__picklist_number=picklist_number, status=1,
                                                              picklist_id__in=all_pick_ids)
 
-        for key, value in data.iteritems():
-            if key in ('name', 'number', 'order', 'sku', 'invoice'):
-                continue
-            picklist_batch = ''
-            picklist_order_id = value[0]['order_id']
-            if picklist_order_id:
-                picklist = all_picklists.get(order__order_id=picklist_order_id,
-                                             order__sku__sku_code=value[0]['wms_code'])
-            elif not key:
-                scan_wms_codes = map(lambda d: d['wms_code'], value)
-                picklist_batch = picks_all.filter(
-                    Q(stock__sku__wms_code__in=scan_wms_codes) | Q(order__sku__wms_code=scan_wms_codes),
-                    reserved_quantity__gt=0, status__icontains='open')
-
-            else:
-                picklist = picks_all.get(id=key)
-            count = 0
-            if not picklist_batch:
-                picklist_batch = get_picklist_batch(picklist, value, all_picklists)
-            for i in range(0, len(value)):
-                if value[i]['picked_quantity']:
-                    count += float(value[i]['picked_quantity'])
-
+        # validate combo picklists
+        combo_status, final_data_list = validate_picklist_combos(data, all_picklists, picks_all)
+        if combo_status:
+            return HttpResponse(json.dumps({'message': 'Combo Quantities are not matching',
+                                            'sku_codes': combo_status, 'status': 0}))
+        # for key, value in data.iteritems():
+        #     if key in ('name', 'number', 'order', 'sku', 'invoice'):
+        #         continue
+        #     picklist_batch = ''
+        #     picklist_order_id = value[0]['order_id']
+        #     if picklist_order_id:
+        #         picklist = all_picklists.get(order__order_id=picklist_order_id,
+        #                                      order__sku__sku_code=value[0]['wms_code'])
+        #     elif not key:
+        #         scan_wms_codes = map(lambda d: d['wms_code'], value)
+        #         picklist_batch = picks_all.filter(
+        #             Q(stock__sku__wms_code__in=scan_wms_codes) | Q(order__sku__wms_code=scan_wms_codes),
+        #             reserved_quantity__gt=0, status__icontains='open')
+        #
+        #     else:
+        #         picklist = picks_all.get(id=key)
+        #     count = 0
+        #     if not picklist_batch:
+        #         picklist_batch = get_picklist_batch(picklist, value, all_picklists)
+        #     for i in range(0, len(value)):
+        #         if value[i]['picked_quantity']:
+        #             count += float(value[i]['picked_quantity'])
+        for picklist_dict in final_data_list:
+            picklist = picklist_dict['picklist']
+            picklist_batch = picklist_dict['picklist_batch']
+            count = picklist_dict['count']
+            picklist_order_id = picklist_dict['picklist_order_id']
+            value = picklist_dict['value']
+            key = picklist_dict['key']
             for val in value:
                 if not val['picked_quantity']:
                     continue
@@ -1578,7 +1642,9 @@ def picklist_confirmation(request, user=''):
                         if map_status == 'true':
                             val['wms_code'] = val['wmscode']
                         elif map_status == 'Invalid WMS Code':
-                            return HttpResponse(map_status)
+                            return HttpResponse(json.dumps({'message': map_status,
+                                                            'sku_codes': [], 'status': 0}))
+                            # return HttpResponse(map_status)
                     status = ''
                     if not val['location'] == 'NO STOCK':
                         pic_check_data, status = validate_location_stock(val, all_locations, all_skus, user,
@@ -1749,14 +1815,18 @@ def picklist_confirmation(request, user=''):
                 user_profile = UserProfile.objects.get(user_id=user.id)
                 if not invoice_data['detailed_invoice'] and invoice_data['is_gst_invoice']:
                     invoice_data = build_invoice(invoice_data, user, False)
-                    return HttpResponse(invoice_data)
-                return HttpResponse(json.dumps({'data': invoice_data, 'status': 'invoice'}))
+                    return HttpResponse(json.dumps({'data': invoice_data, 'message': '',
+                                                    'sku_codes': [], 'status': 1}))
+                    # return HttpResponse(invoice_data)
+                return HttpResponse(json.dumps({'data': invoice_data, 'message': '', 'status': 'invoice'}))
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info('Picklist Confirmation failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(data), str(e)))
-        return HttpResponse('Picklist Confirmation Failed')
+        return HttpResponse(json.dumps({'message': 'Picklist Confirmation Failed',
+                                        'sku_codes': [], 'status': 0}))
+        # return HttpResponse('Picklist Confirmation Failed')
 
     end_time = datetime.datetime.now()
     duration = end_time - st_time
@@ -6516,7 +6586,7 @@ def picklist_delete(request, user=""):
     key = request.GET.get("key", "")
     picklist_objs = Picklist.objects.filter(picklist_number=picklist_id, status__in=["open", "batch_open"],
                                             order_id__user=user.id)
-    order_ids = list(picklist_objs.values_list('order_id', flat=True))
+    order_ids = list(picklist_objs.values_list('order_id', flat=True).distinct())
     order_objs = OrderDetail.objects.filter(id__in=order_ids, user=user.id)
     log.info('Cancel Picklist request params for ' + user.username + ' is ' + str(request.GET.dict()))
     cancelled_orders_dict = {}
@@ -6524,13 +6594,17 @@ def picklist_delete(request, user=""):
         if key == "process":
             status_message = 'Picklist is saved for later use'
             for order in order_objs:
-                if picklist_objs.filter(order_type='combo', order_id=order.id):
-                    is_picked = picklist_objs.filter(picked_quantity__gt=0, order_id=order.id)
+                combo_picklists = picklist_objs.filter(order_type='combo', order_id=order.id)
+                if combo_picklists:
+                    is_picked = combo_picklists.filter(picked_quantity__gt=0, order_id=order.id)
                     remaining_qty = order.quantity
                     if is_picked:
-                        status_message = 'Partial Picked Picklist not allowed to cancel'
-                        order_ids.remove(order.id)
-                        continue
+                        #status_message = 'Partial Picked Picklist not allowed to cancel'
+                        #cancel_combo_partial_orders(combo_picklists, order, user)
+                        remaining_qty = combo_picklists.filter(picked_quantity__gt=0).\
+                                                    aggregate(Min('reserved_quantity'))['reserved_quantity__min']
+                        #order_ids.remove(order.id)
+                        #continue
                 else:
                     remaining_qty = picklist_objs.filter(order_id=order).\
                         aggregate(Sum('reserved_quantity'))['reserved_quantity__sum']

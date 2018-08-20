@@ -7527,3 +7527,61 @@ def check_stock_available_quantity(stocks, user, stock_ids=None):
     if stock_qty < 0:
         stock_qty = 0
     return stock_qty
+
+
+# def cancel_combo_partial_orders(combo_picklists, order, user):
+#     min_order_qty = combo_picklists.filter(picked_quantity__gt=0).\
+#                             aggregate(Min('reserved_quantity'))['reserved_quantity__min']
+#     temp_picklist_number = combo_picklists[0].picklist_number
+#     if min_order_qty:
+#         for combo in combo_picklists:
+#             if float(combo.reserved_quantity) == float(min_order_qty) and (not combo.picked_quantity > 0):
+#                 combo.delete()
+#                 continue
+#             combo.reserved_quantity = combo.reserved_quantity - min_order_qty
+#             if combo.reserved_quantity <= 0:
+#                 pick_status = 'picked'
+#                 if 'batch' in combo.status:
+#                     pick_status = 'batch_picked'
+#                 combo.status = pick_status
+#             picklist_locations = PicklistLocation.objects.filter(picklist_id=combo.id)
+#             for pick_location in picklist_locations:
+#                 pick_location.quantity = float(pick_location.quantity) - float(min_order_qty)
+#                 pick_location.reserved = float(pick_location.reserved) - float(min_order_qty)
+#                 #pick_location.reserved = 0
+#                 if pick_location.reserved <= 0:
+#                     pick_location.status = 0
+#                 pick_location.save()
+#             combo.save()
+#         order.quantity = min_order_qty
+#         order.status = 1
+#         order.save()
+#         seller_orders = SellerOrder.objects.filter(order__user=user.id, order_id=order.id)
+#         if seller_orders:
+#             seller_orders.update(status=1)
+#     check_picklist_number_created(user, temp_picklist_number)
+
+
+# def create_combo_seperate_orders(combo_picklists):
+#     for combo in combo_picklists:
+#         if combo.stock:
+#             sku_code = combo.sku.sku_code
+#         else:
+#             sku_code = combo.sku_code
+#         sku_master = SKUMaster.objects.get(user=combo.order.user, sku_code=sku_code)
+#         order_detail_obj = OrderDetail.objects.filter(user=combo.order.user,
+#                                                   original_order_id=combo.order.original_order_id,
+#                                                   sku__sku_code=sku_code, order_id=combo.order.order_id,
+#                                                       order_code=combo.order.order_code)
+#         if order_detail_obj:
+#             order_detail = order_detail_obj[0]
+#             unit_invoice = float(order_detail.invoice_amount)/float(order_detail.quantity)
+#             order_detail.quantity = order_detail.quantity + combo.reserved_quantity
+#             order_detail.invoice_amount = order_detail.invoice_amount + (combo.reserved_quantity*unit_invoice)
+#             order_detail.status = 1
+#             order_detail.save()
+#         else:
+#             OrderDetail.objects.create(user=combo.order.user,
+#                                        original_order_id=combo.order.original_order_id,
+#                                        sku_id=sku_master.id, title=combo.order.title,
+#                                        quantity=combo.reserved_quantity, invoice_amount=0)

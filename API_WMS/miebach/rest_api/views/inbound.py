@@ -1670,7 +1670,7 @@ def update_putaway(request, user=''):
             expected_date = expected_date.split('/')
             expected_date = datetime.date(int(expected_date[2]), int(expected_date[0]), int(expected_date[1]))
         for key, value in request.GET.iteritems():
-            if key in ['remarks', 'expected_date', 'remainder_mail']:
+            if key in ['remarks', 'expected_date', 'remainder_mail', 'invoice_date', 'round_off_total', 'invoice_number']:
                 continue
             po = PurchaseOrder.objects.get(id=key)
             total_count = float(value)

@@ -1763,12 +1763,25 @@ angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInst
     }
   }
 
+  vm.clearCheckedValues = function(){
+
+    if (vm.title == 'Rate Your Order') {
+
+      vm.sel_reasons.order_reason = '';
+    } else if (vm.title == 'Rate Your Product') {
+
+      vm.sel_reasons.product_reason = '';
+    }
+    vm.selected_reason = '';
+  }
+
   vm.setClass = function(sender, value) {
 
     vm.selStars = value;
     sender.currentTarget.setAttribute('class', vm.getClass(value));
     vm.rate_query = "What you didn't like!";
 
+    vm.clearCheckedValues();
     vm.addCls(value);
     vm.selRate();
   };

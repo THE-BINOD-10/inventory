@@ -188,6 +188,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   var index = vm.model_data.zones.indexOf(vm.model_data.sku_data.zone);
                   vm.model_data.sku_data.zone = vm.model_data.zones[index];
                   vm.model_data.attributes = data.attributes;
+                  // vm.model_data.sku_data.ean_numbers = 'test-1,test-2,test-3';
 
                   angular.forEach(vm.model_data.attributes, function(attr_dat){
                     if(data.sku_attributes[attr_dat.attribute_name])
@@ -218,9 +219,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
                     vm.model_data.sku_data.ean_number = "";
                   }
-                  if (vm.model_data.sku_data.ean_numbers) {
-                     $(".").importTags(vm.model_data.sku_data.ean_numbers);
-                  }
+                  // if (vm.model_data.sku_data.ean_numbers) {
+                  //    $(".").importTags(vm.model_data.sku_data.ean_numbers);
+                  // }
+                  $(".sales_return_reasons").importTags(vm.model_data.sales_return_reasons||'');
                   $state.go('app.masters.SKUMaster.update');
                  }
                 });
@@ -257,6 +259,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     var elem = angular.element($('form'));
     elem = elem[0];
     elem = $(elem).serializeArray();
+    elem.push({name:'ean_numbers', value:$('.ean_numbers').val()});
     for (var i=0;i<elem.length;i++) {
       //if(elem[i].name == "market_sku_type") {
       //  elem[i].value = vm.model_data.market_list[parseInt(elem[i].value)];

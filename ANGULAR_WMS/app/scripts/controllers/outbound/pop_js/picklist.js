@@ -616,10 +616,8 @@ function pull_confirmation() {
   */
 
   vm.update_picklist = function(pick_id) {
-
     vm.service.apiCall('update_picklist_loc/','GET',{picklist_id: pick_id}, true).then(function(data){
       if (data.message) {
-
         vm.service.apiCall('view_picklist/', 'GET' , {data_id: pick_id}, true).then(function(data){
                 if(data.message) {
                   angular.copy(data.data, vm.model_data);

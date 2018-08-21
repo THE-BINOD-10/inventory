@@ -6322,7 +6322,7 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
     admin_user = get_priceband_admin_user(user)
     #lis = ['purchase_order__id', 'purchase_order__id', 'purchase_order__open_po__supplier__name',
            #'purchase_order__open_po__order_quantity', 'quantity', 'date_only', 'id', 'challan_number']
-    lis = ['challan_number', 'challan_number', 'challan_number', 'challan_number',
+    lis = ['challan_number', 'challan_number', 'purchase_order__open_po__supplier__name', 'challan_number',
            'challan_number', 'challan_number', 'challan_number', 'challan_number']
     user_filter = {'purchase_order__open_po__sku__user': user.id, 'order_status_flag': 'po_challans'}
     result_values = ['challan_number', 'receipt_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name']
@@ -6341,8 +6341,8 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
                                 values_list('seller_po_summary_id', flat=True)
 
     if search_term:
+        lis1 = copy.deepcopy(lis)
         if 'date_only' in lis:
-            lis1 = copy.deepcopy(lis)
             lis1 = map(lambda x: x if x not in ['date_only'] else field_mapping['date_only'], lis1)
 
         search_term = search_term.replace('(', '\(').replace(')', '\)')

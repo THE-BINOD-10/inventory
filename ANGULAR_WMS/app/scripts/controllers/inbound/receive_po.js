@@ -133,6 +133,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         $(row_click_bind, nRow).bind('click', function() {
             $scope.$apply(function() {
               // vm.supplier_id = aData['DT_RowId'];
+              vm.round_off = false;
                 vm.supplier_id = aData['Supplier ID/Name'].split('/')[0];
                 vm.service.apiCall('get_supplier_data/', 'GET', {supplier_id: aData['DT_RowId']}).then(function(data){
                   if(data.message) {

@@ -2562,6 +2562,11 @@ def confirm_grn(request, confirm_returns='', user=''):
         return HttpResponse("Invoice/DC Number  is Mandatory")
     if user.username == 'milkbasket' and (not request.POST.get('invoice_date', '') and not request.POST.get('dc_date', '')):
         return HttpResponse("Invoice/DC Date is Mandatory")
+    invoice_num = request.POST.get('invoice_number', '')
+    if invoice_num:
+        inv_status = po_invoice_number_check(user, invoice_num)
+        if inv_status:
+            return HttpResponse(inv_status)
     challan_date = request.POST.get('dc_date', '')
     challan_date = datetime.datetime.strptime(challan_date, "%m/%d/%Y").date() if challan_date else ''
     bill_date = datetime.datetime.now().date().strftime('%d-%m-%Y')
@@ -5565,6 +5570,11 @@ def confirm_receive_qc(request, user=''):
     bill_date = datetime.datetime.now().date().strftime('%d-%m-%Y')
     if request.POST.get('invoice_date', ''):
         bill_date = datetime.datetime.strptime(str(request.POST.get('invoice_date', '')), "%m/%d/%Y").strftime('%d-%m-%Y')
+    invoice_num = request.POST.get('invoice_number', '')
+    if invoice_num:
+        inv_status = po_invoice_number_check(user, invoice_num)
+        if inv_status:
+            return HttpResponse(inv_status)
     log.info('Request params for ' + user.username + ' is ' + str(myDict))
     try:
         for ind in range(0, len(myDict['id'])):
@@ -6312,7 +6322,7 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
     admin_user = get_priceband_admin_user(user)
     #lis = ['purchase_order__id', 'purchase_order__id', 'purchase_order__open_po__supplier__name',
            #'purchase_order__open_po__order_quantity', 'quantity', 'date_only', 'id', 'challan_number']
-    lis = ['challan_number', 'challan_number', 'challan_number', 'challan_number',
+    lis = ['challan_number', 'challan_number', 'purchase_order__open_po__supplier__name', 'challan_number',
            'challan_number', 'challan_number', 'challan_number', 'challan_number']
     user_filter = {'purchase_order__open_po__sku__user': user.id, 'order_status_flag': 'po_challans'}
     result_values = ['challan_number', 'receipt_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name']
@@ -6331,8 +6341,8 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
                                 values_list('seller_po_summary_id', flat=True)
 
     if search_term:
+        lis1 = copy.deepcopy(lis)
         if 'date_only' in lis:
-            lis1 = copy.deepcopy(lis)
             lis1 = map(lambda x: x if x not in ['date_only'] else field_mapping['date_only'], lis1)
 
         search_term = search_term.replace('(', '\(').replace(')', '\)')
@@ -6521,6 +6531,10 @@ def move_to_invoice(request, user=''):
     seller_summary = SellerPOSummary.objects.none()
     req_data = request.GET.get('data', '')
     invoice_number = request.GET.get('inv_number', '')
+    if invoice_number:
+        inv_status = po_invoice_number_check(user, invoice_number)
+        if inv_status:
+            return HttpResponse(json.dumps({'message': inv_status}))
     invoice_date = request.GET.get('inv_date', '')
     invoice_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y") if invoice_date else None
     if req_data:

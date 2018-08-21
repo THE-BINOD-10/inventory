@@ -247,9 +247,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       vm.service.showNoty("Please enter invoice number and invoice date");
     } else{
       vm.move_to_api("move_to_invoice/", vm.move_to_inv_data);
-      vm.invoice_number = '';
-      vm.invoice_date = '';
-      vm.close();
     }
   }
 
@@ -260,8 +257,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.bt_disable = true;
     vm.service.apiCall(url, "GET", send).then(function(data){
       if(data.message) {
-        console.log(data.message);
-        vm.reloadData();
+        console.log(data.data.message);
+        if(data.data.message == 'success'){
+          vm.invoice_number = '';
+          vm.invoice_date = '';
+          vm.close();
+          vm.reloadData();
+        }
+        else {
+          vm.service.showNoty(data.data.message);
+        }
       } else {
         vm.service.showNoty("Something went wrong while moving to po challan !!!");
       }

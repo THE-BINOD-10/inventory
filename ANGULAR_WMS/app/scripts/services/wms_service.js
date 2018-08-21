@@ -227,6 +227,12 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       return Number(a)*Number(b);
     }
 
+    $("body").on("keypress",".notallowspace",function (e) {
+        if (e.which === 32) {
+          return false;
+        }
+    });
+
     $("body").on("keypress",".number",function (e) {
     if (e.which != 8 && e.which != 0 && (e.which < 48 || e.which > 57)) {
        return false;

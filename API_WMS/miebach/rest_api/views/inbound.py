@@ -7861,3 +7861,26 @@ def get_sales_return_print_json(return_id, user):
     data_dict['total_invoice_value'] = total_invoice_value
     data_dict['return_id'] = return_id
     return data_dict
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def map_ean_sku_code(request, user=''):
+    sku_code = request.GET.get('map_sku_code')
+    ean_number = request.GET.get('ean_number')
+    try:
+        ean_number = int(ean_number)
+    except:
+        return HttpResponse(json.dumps({'message': 'EAN Number should be Number', 'status': 0}))
+    sku_master = SKUMaster.objects.filter(user=user.id, sku_code=sku_code)
+    if not sku_master.exists():
+        return HttpResponse(json.dumps({'message': 'Invalid SKU Code', 'status': 0}))
+    ean_number_obj = EANNumbers.objects.filter(sku__user=user.id, ean_number=ean_number)
+    sku_master_ean = SKUMaster.objects.filter(ean_number=ean_number, user=user.id)
+    if not (ean_number_obj or sku_master_ean):
+        EANNumbers.objects.create(sku_id=sku_master[0].id, ean_number=ean_number,
+                                  creation_date=datetime.datetime.now())
+    else:
+        return HttpResponse(json.dumps({'message': 'EAN Number already mapped', 'status': 0}))
+    return HttpResponse(json.dumps({'message': 'Success', 'status': 1}))

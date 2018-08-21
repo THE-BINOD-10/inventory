@@ -899,7 +899,8 @@ def update_sku(request, user=''):
         if not wms or not description:
             return HttpResponse('Missing Required Fields')
         data = get_or_none(SKUMaster, {'wms_code': wms, 'user': user.id})
-        ean_numbers = request.POST['ean_numbers'].split(',')
+
+        ean_numbers = request.POST.get('ean_numbers', '').split(',')
         image_file = request.FILES.get('files-0', '')
         if image_file:
             save_image_file(image_file, data, user)

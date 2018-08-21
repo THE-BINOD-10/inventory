@@ -7636,3 +7636,12 @@ def check_stock_available_quantity(stocks, user, stock_ids=None):
     if stock_qty < 0:
         stock_qty = 0
     return stock_qty
+
+
+def po_invoice_number_check(user, invoice_num):
+    status = ''
+    exist_inv_obj = SellerPOSummary.objects.filter(purchase_order__open_po__sku__user=user.id,
+                                                   invoice_number=invoice_num)
+    if exist_inv_obj.exists():
+        status = 'Invoice Number already Mapped to %s' % get_po_reference(exist_inv_obj[0].purchase_order)
+    return status

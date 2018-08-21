@@ -2562,6 +2562,11 @@ def confirm_grn(request, confirm_returns='', user=''):
         return HttpResponse("Invoice/DC Number  is Mandatory")
     if user.username == 'milkbasket' and (not request.POST.get('invoice_date', '') and not request.POST.get('dc_date', '')):
         return HttpResponse("Invoice/DC Date is Mandatory")
+    invoice_num = request.POST.get('invoice_number', '')
+    if invoice_num:
+        inv_status = po_invoice_number_check(user, invoice_num)
+        if inv_status:
+            return HttpResponse(inv_status)
     challan_date = request.POST.get('dc_date', '')
     challan_date = datetime.datetime.strptime(challan_date, "%m/%d/%Y").date() if challan_date else ''
     bill_date = datetime.datetime.now().date().strftime('%d-%m-%Y')
@@ -5565,6 +5570,11 @@ def confirm_receive_qc(request, user=''):
     bill_date = datetime.datetime.now().date().strftime('%d-%m-%Y')
     if request.POST.get('invoice_date', ''):
         bill_date = datetime.datetime.strptime(str(request.POST.get('invoice_date', '')), "%m/%d/%Y").strftime('%d-%m-%Y')
+    invoice_num = request.POST.get('invoice_number', '')
+    if invoice_num:
+        inv_status = po_invoice_number_check(user, invoice_num)
+        if inv_status:
+            return HttpResponse(inv_status)
     log.info('Request params for ' + user.username + ' is ' + str(myDict))
     try:
         for ind in range(0, len(myDict['id'])):
@@ -6521,6 +6531,10 @@ def move_to_invoice(request, user=''):
     seller_summary = SellerPOSummary.objects.none()
     req_data = request.GET.get('data', '')
     invoice_number = request.GET.get('inv_number', '')
+    if invoice_number:
+        inv_status = po_invoice_number_check(user, invoice_number)
+        if inv_status:
+            return HttpResponse(json.dumps({'message': inv_status}))
     invoice_date = request.GET.get('inv_date', '')
     invoice_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y") if invoice_date else None
     if req_data:

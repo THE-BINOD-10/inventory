@@ -4,7 +4,8 @@
       <div class="panel">
         <div ng-if="showCase.display" ng-include="'views/common/no-onclick-table.html'"></div>
         <div class="panel-footer">
-          <button type="button" ng-if="showCase.user_type != 'distributor'" class="btn btn-primary pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.generate_invoice('generate')" ng-disabled="showCase.bt_disable">Generate voice</button>
+          <button type="button" class="btn btn-primary" ng-if="showCase.permissions.mark_as_delivered" ng-disabled="showCase.bt_disable" ng-click="showCase.mark_delivered()" ng-disabled="showCase.bt_disable">Mark Delivered</button>
+          <button type="button" ng-if="showCase.user_type != 'distributor'" class="btn btn-primary pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.generate_invoice('generate')" ng-disabled="showCase.bt_disable">Generate Invoice</button>
           <button type="button" ng-if="showCase.user_type != 'distributor'" class="btn btn-warning pull-right mr20" ng-click="showCase.generate_invoice('edit')" ng-disabled="showCase.bt_disable">Edit Invoice</button>
           <button type="button" ng-if="showCase.user_type != 'distributor'" class="btn btn-info pull-right mr20" ng-disabled="showCase.bt_disable" ng-click="showCase.generate_invoice('generate', true)" ng-disabled="showCase.bt_disable">Delivery Challan</button>
         </div>

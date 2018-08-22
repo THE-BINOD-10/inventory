@@ -61,7 +61,9 @@ def get_report_data(request, user=''):
             data_index = data['filters'].index(
                 filter(lambda person: 'order_report_status' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = ORDER_SUMMARY_REPORT_STATUS
-    elif report_name in ('dist_sales_report', 'reseller_sales_report', 'enquiry_status_report'):
+    elif report_name in ('dist_sales_report', 'reseller_sales_report', 'enquiry_status_report',
+                         'zone_target_summary_report', 'zone_target_detailed_report',
+                         'corporate_reseller_mapping_report', ''):
         if 'order_report_status' in filter_keys:
             data_index = data['filters'].index(
                 filter(lambda person: 'order_report_status' in person['name'], data['filters'])[0])
@@ -70,6 +72,14 @@ def get_report_data(request, user=''):
             data_index = data['filters'].index(
                 filter(lambda person: 'enquiry_status' in person['name'], data['filters'])[0])
             data['filters'][data_index]['values'] = ENQUIRY_REPORT_STATUS
+        if 'zone_code' in filter_keys:
+            data_index = data['filters'].index(
+                filter(lambda person: 'zone_code' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = ZONE_CODES
+        if 'sku_category' in filter_keys:
+            data_index = data['filters'].index(filter(lambda person: 'category' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = list(sku_master.exclude(sku_category='').filter(**filter_params)
+                                                         .values_list('sku_category', flat=True).distinct())
     return HttpResponse(json.dumps({'data': data}))
 
 
@@ -165,11 +175,13 @@ def print_receipt_summary(request, user=''):
 @login_required
 @get_admin_user
 def get_dispatch_filter(request, user=''):
-    serial_view = False
-    if request.GET.get('datatable', '') == 'serialView':
+    serial_view, customer_view = False, False
+    if request.GET.get('datatable', '') == 'customerView':
+        customer_view = True
+    elif request.GET.get('datatable', '') == 'serialView':
         serial_view = True
     headers, search_params, filter_params = get_search_params(request)
-    temp_data = get_dispatch_data(search_params, user, request.user, serial_view=serial_view)
+    temp_data = get_dispatch_data(search_params, user, request.user, serial_view=serial_view, customer_view=customer_view)
 
     return HttpResponse(json.dumps(temp_data, cls=DjangoJSONEncoder), content_type='application/json')
 
@@ -296,14 +308,14 @@ def print_daily_production_report(request, user=''):
 @get_admin_user
 def print_dispatch_summary(request, user=''):
     search_parameters = {}
-
     serial_view = False
     if request.GET.get('datatable', '') == 'serialView':
         serial_view = True
+    if request.GET.get('datatable', '') == 'customerView':
+        customer_view = True
     headers, search_params, filter_params = get_search_params(request)
-    report_data = get_dispatch_data(search_params, user, request.user, serial_view=serial_view)
+    report_data = get_dispatch_data(search_params, user, request.user, serial_view=serial_view, customer_view=customer_view)
     report_data = report_data['aaData']
-
     if report_data:
         html_data = create_reports_table(report_data[0].keys(), report_data)
     return HttpResponse(html_data)
@@ -721,22 +733,59 @@ def print_po_reports(request, user=''):
             bill_date = data.updation_date
             if receipt_no:
                 seller_summary_objs = data.sellerposummary_set.filter(receipt_number=receipt_no)
-                seller_summary_obj = seller_summary_objs[0]
-                quantity = seller_summary_objs.aggregate(Sum('quantity'))['quantity__sum']
-                bill_no = seller_summary_obj.invoice_number if seller_summary_obj.invoice_number else ''
-                bill_date = seller_summary_obj.invoice_date if seller_summary_obj.invoice_date else data.updation_date
-            open_data = data.open_po
-            amount = float(quantity) * float(data.open_po.price)
-            gst_tax = open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax
-            if gst_tax:
-                amount += (amount / 100) * gst_tax
-            po_data[headers].append((open_data.sku.wms_code, open_data.order_quantity, quantity,
-                            open_data.measurement_unit,
-                            open_data.price, open_data.cgst_tax, open_data.sgst_tax, open_data.igst_tax,
-                            open_data.utgst_tax, amount, open_data.sku.sku_desc))
-            total += amount
-            total_qty += quantity
-            total_tax += (open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax)
+                open_data = data.open_po
+                grouped_data = OrderedDict()
+                for seller_summary_obj in seller_summary_objs:
+                    quantity = seller_summary_obj.quantity
+                    bill_no = seller_summary_obj.invoice_number if seller_summary_obj.invoice_number else ''
+                    bill_date = seller_summary_obj.invoice_date if seller_summary_obj.invoice_date else data.updation_date
+                    price = open_data.price
+                    cgst_tax = open_data.cgst_tax
+                    sgst_tax = open_data.sgst_tax
+                    igst_tax = open_data.igst_tax
+                    utgst_tax = open_data.utgst_tax
+                    cess_tax = open_data.cess_tax
+                    gst_tax = cgst_tax + sgst_tax + igst_tax + utgst_tax + cess_tax
+                    if seller_summary_obj.batch_detail:
+                        price = seller_summary_obj.batch_detail.buy_price
+                        temp_tax_percent = seller_summary_obj.batch_detail.tax_percent
+                        if seller_summary_obj.purchase_order.open_po.supplier.tax_type == 'intra_state':
+                            temp_tax_percent = temp_tax_percent / 2
+                            cgst_tax = truncate_float(temp_tax_percent, 1)
+                            sgst_tax = truncate_float(temp_tax_percent, 1)
+                            igst_tax = 0
+                        else:
+                            igst_tax = temp_tax_percent
+                            cgst_tax = 0
+                            sgst_tax = 0
+                        gst_tax = cgst_tax + sgst_tax + igst_tax + utgst_tax + cess_tax
+                    grouping_key = '%s:%s' % (str(open_data.sku.sku_code), str(price))
+                    amount = float(quantity) * float(price)
+                    if gst_tax:
+                        amount += (amount / 100) * gst_tax
+                    grouped_data.setdefault(grouping_key, [open_data.sku.wms_code, open_data.order_quantity, 0,
+                                             open_data.measurement_unit,
+                                             price, cgst_tax, sgst_tax, igst_tax, utgst_tax,
+                                             0, open_data.sku.sku_desc])
+                    grouped_data[grouping_key][2] += quantity
+                    grouped_data[grouping_key][9] += amount
+                    total += amount
+                    total_qty += quantity
+                    total_tax += gst_tax
+                po_data[headers] = list(chain(po_data[headers], grouped_data.values()))
+            else:
+                open_data = data.open_po
+                amount = float(quantity) * float(data.open_po.price)
+                gst_tax = open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax
+                if gst_tax:
+                    amount += (amount / 100) * gst_tax
+                po_data[headers].append((open_data.sku.wms_code, open_data.order_quantity, quantity,
+                                open_data.measurement_unit,
+                                open_data.price, open_data.cgst_tax, open_data.sgst_tax, open_data.igst_tax,
+                                open_data.utgst_tax, amount, open_data.sku.sku_desc))
+                total += amount
+                total_qty += quantity
+                total_tax += (open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax)
         else:
             bill_date = data.invoice_date if data.invoice_date else data.creation_date
             bill_no = data.invoice_number if data.invoice_number else ''
@@ -792,7 +841,7 @@ def print_po_reports(request, user=''):
                    'total_price': total, 'data_dict': data_dict, 'bill_no': bill_no,
                    'po_number': po_reference, 'company_address': w_address, 'company_name': user_profile.company_name,
                    'display': 'display-none', 'receipt_type': receipt_type, 'title': title,
-                   'total_received_qty': total_qty, 'bill_date': bill_date})
+                   'total_received_qty': total_qty, 'bill_date': bill_date, 'total_tax': total_tax})
 
 
 @csrf_exempt
@@ -853,6 +902,9 @@ def excel_reports(request, user=''):
     params = [search_params, user, request.user]
     if 'datatable=serialView' in form_data:
         params.append(True)
+    if 'datatable=customerView' in form_data:
+        params.append(False)
+        params.append(True)
     report_data = func_name(*params)
     if isinstance(report_data, tuple):
         report_data = report_data[0]
@@ -860,6 +912,8 @@ def excel_reports(request, user=''):
             report_data['aaData']) > 0:
         headers = report_data['aaData'][0].keys()
         file_type = 'csv'
+    if temp[1] in ['dispatch_summary'] and len(report_data['aaData']) > 0:
+        headers = report_data['aaData'][0].keys()
     excel_data = print_excel(request, report_data, headers, excel_name, file_type=file_type)
     return excel_data
 

@@ -117,23 +117,45 @@
       </tab>-->
       <tab heading="Stock Transfer Order" ng-if="show_tab('multi_warehouse') || show_tab('add_stocktransfer')">
         <div class="panel" ng-controller="StockTransferOrders as showCase">
+            <!-- <form name="form" role="form" class="filters"> -->
+              <div class="clearfix">
+
+                <div class="row">
+                  <div class="col-md-11 col-sm-11 col-xs-10">
+                    <p align="right"><b>Alternative View</b></p>
+                  </div>
+                  <div class="col-md-1 col-sm-1 col-xs-2">
+                    <label class="switch switch-sm square">
+                      <div>
+                        <input type="checkbox" ng-model="showCase.alt_view" ng-change="showCase.changeDtFields(showCase.alt_view)">
+                        <span>
+                          <i class="handle"></i>
+                        </span>
+                        <input type="hidden" name="alt_view" class="form-control" ng-model="showCase.alt_view" value="{{showCase.alt_view}}">
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            <!-- </form> -->
+
           <div class="panel-header">
             <!--<button type="button" class="btn btn-success pull-right" style="margin-left:10px;" ng-click="showCase.add_stock_transfer()">Create Stock Transfer</button>-->
             <button type="button" class="btn btn-primary pull-right" ng-click="showCase.excel()">Download Excel</button>
           </div>
           <div class="panel-body">
-            <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="custom-table table table-condensed datatable sku-table no_click_tb"></table>
+            <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="custom-table table table-condensed datatable sku-table"></table>
             <div ui-view></div>
           </div>
           <div class="panel-footer">
 
 
-			<div class="col-md-2 col-sm-4 col-xs-6 mb10">
-				<button type="submit" class="btn btn-primary" style="width: 100%" ng-click="showCase.backorder_po()" ng-disabled="showCase.bt_disable" ng-hide="showCase.permissions.user_type == 'warehouse' || showCase.permissions.user_type == 'distributor'">Raise PO</button>
-			</div>
-			<div class="col-md-2 col-sm-4 col-xs-6 mb10">
+      <div class="col-md-2 col-sm-4 col-xs-6 mb10">
+        <button type="submit" class="btn btn-primary" style="width: 100%" ng-click="showCase.backorder_po()" ng-disabled="showCase.bt_disable" ng-hide="showCase.permissions.user_type == 'warehouse' || showCase.permissions.user_type == 'distributor'">Raise PO</button>
+      </div>
+      <div class="col-md-2 col-sm-4 col-xs-6 mb10">
               <button type="submit" class="btn btn-primary" style="width: 100%" ng-click="showCase.raise_jo()" ng-disabled="showCase.bt_disable" ng-hide="showCase.permissions.user_type == 'warehouse' || showCase.permissions.user_type == 'distributor'">Raise JO</button>
-			</div>
+      </div>
 
 
             <button type="submit" class="btn btn-primary pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.generate_picklist()">Generate Picklist</button>

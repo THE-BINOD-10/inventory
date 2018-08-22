@@ -749,6 +749,7 @@ def generated_po_data(request, user=''):
 def validate_wms(request, user=''):
     myDict = dict(request.POST.iterlists())
     wms_list = ''
+    tax_list = []
     receipt_type = request.POST.get('receipt_type', '')
     supplier_master = SupplierMaster.objects.filter(id=myDict['supplier_id'][0], user=user.id)
     if not supplier_master and not receipt_type == 'Hosted Warehouse':
@@ -770,10 +771,28 @@ def validate_wms(request, user=''):
                 wms_list = 'Invalid WMS Codes are ' + myDict['wms_code'][i].upper()
             else:
                 wms_list += ',' + myDict['wms_code'][i].upper()
+        if 'cgst_tax' in myDict.keys():
+            try:
+                cgst_tax = float(myDict['cgst_tax'][i])
+            except:
+                cgst_tax = 0
+            try:
+                igst_tax = float(myDict['igst_tax'][i])
+            except:
+                igst_tax = 0
+            if cgst_tax and igst_tax:
+                tax_list.append(myDict['wms_code'][i])
 
-    if not wms_list:
-        wms_list = 'success'
-    return HttpResponse(wms_list)
+    message = 'success'
+    if wms_list:
+        message = wms_list
+    if tax_list:
+        tax_list = 'Multiple Taxes mentioned for SKU Code %s' % (', '.join(tax_list))
+        if message == 'success':
+            message = tax_list
+        else:
+            message = '%s and %s' % (message, tax_list)
+    return HttpResponse(message)
 
 
 @csrf_exempt
@@ -954,6 +973,8 @@ def switches(request, user=''):
                        'customer_dc': 'customer_dc', 
                        'auto_expire_enq_limit': 'auto_expire_enq_limit',
                        'sales_return_reasons': 'sales_return_reasons',
+                       'receive_po_invoice_check': 'receive_po_invoice_check',
+                       'mark_as_delivered': 'mark_as_delivered',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -2240,7 +2261,7 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
                      challan_number='', challan_date=None, dc_level_grn=''):
     if not receipt_id:
         return
-    seller_pos = SellerPO.objects.filter(seller__user=user.id, open_po_id=data.open_po_id, status=1)
+    seller_pos = SellerPO.objects.filter(seller__user=user.id, open_po_id=data.open_po_id)
     seller_received_list = []
     #invoice_number = int(invoice_number)
     if not invoice_date and not dc_level_grn:
@@ -2540,6 +2561,13 @@ def confirm_grn(request, confirm_returns='', user=''):
         return HttpResponse("Invoice/DC Number  is Mandatory")
     if user.username == 'milkbasket' and (not request.POST.get('invoice_date', '') and not request.POST.get('dc_date', '')):
         return HttpResponse("Invoice/DC Date is Mandatory")
+    invoice_num = request.POST.get('invoice_number', '')
+    if invoice_num:
+        inv_status = po_invoice_number_check(user, invoice_num)
+        if inv_status:
+            return HttpResponse(inv_status)
+    challan_date = request.POST.get('dc_date', '')
+    challan_date = datetime.datetime.strptime(challan_date, "%m/%d/%Y").date() if challan_date else ''
     bill_date = datetime.datetime.now().date().strftime('%d-%m-%Y')
     if request.POST.get('invoice_date', ''):
         bill_date = datetime.datetime.strptime(str(request.POST.get('invoice_date', '')), "%m/%d/%Y").strftime('%d-%m-%Y')
@@ -2601,12 +2629,18 @@ def confirm_grn(request, confirm_returns='', user=''):
                             + '/' + str(seller_receipt_id)
             else:
                 po_number = str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id)
+            dc_level_grn = request.POST.get('dc_level_grn', '')
+            if dc_level_grn == 'on':
+                bill_no = request.POST.get('dc_number', '')
+                bill_date = challan_date.strftime('%d-%m-%Y') if challan_date else ''
+            else:
+                bill_no = request.POST.get('invoice_number', '')
             report_data_dict = {'data': putaway_data, 'data_dict': data_dict, 'data_slices': sku_slices,
                                 'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty,
                                 'total_price': total_price, 'total_tax': total_tax,
                                 'address': address,
                                 'company_name': profile.company_name, 'company_address': profile.address,
-                                'po_number': po_number, 'bill_no': request.POST.get('invoice_number', ''),
+                                'po_number': po_number, 'bill_no': bill_no,
                                 'order_date': order_date, 'order_id': order_id,
                                 'btn_class': btn_class, 'bill_date': bill_date }
             misc_detail = get_misc_value('receive_po', user.id)
@@ -3888,10 +3922,12 @@ def save_st(request, user=''):
         data_id = ''
         if data_dict['id'][i]:
             data_id = data_dict['id'][i]
+        if not data_dict['price'][i]:
+            data_dict['price'][i] = 0
         cond = (warehouse_name)
         all_data.setdefault(cond, [])
-        all_data[cond].append([data_dict['wms_code'][i], data_dict['order_quantity'][i], data_dict['price'][i],
-                               data_id])
+        all_data[cond].append([data_dict['wms_code'][i], data_dict['order_quantity'][i], 
+            data_dict['price'][i], data_id])
     status = validate_st(all_data, user)
     if not status:
         all_data = insert_st(all_data, user)
@@ -3934,13 +3970,13 @@ def validate_st(all_data, user):
                     other_status = "Quantity missing for " + val[0]
                 else:
                     other_status += ', ' + val[0]
-            try:
-                price = float(val[2])
-            except:
-                if not price_status:
-                    price_status = "Price missing for " + val[0]
-                else:
-                    price_status += ', ' + val[0]
+            # try:
+            #     price = float(val[2])
+            # except:
+            #     if not price_status:
+            #         price_status = "Price missing for " + val[0]
+            #     else:
+            #         price_status += ', ' + val[0]
             warehouse = User.objects.get(username=key)
             code = val[0]
             sku_code = SKUMaster.objects.filter(wms_code__iexact=val[0], user=warehouse.id)
@@ -3952,8 +3988,8 @@ def validate_st(all_data, user):
 
     if other_status:
         sku_status += ", " + other_status
-    if price_status:
-        sku_status += ", " + price_status
+    # if price_status:
+    #     sku_status += ", " + price_status
     if wh_status:
         sku_status += ", " + wh_status
 
@@ -3975,7 +4011,10 @@ def insert_st(all_data, user):
             stock_dict['warehouse_id'] = User.objects.get(username__iexact=key).id
             stock_dict['sku_id'] = SKUMaster.objects.get(wms_code=val[0], user=user.id).id
             stock_dict['order_quantity'] = float(val[1])
-            stock_dict['price'] = float(val[2])
+            if val[2]:
+                stock_dict['price'] = float(val[2])
+            else:
+                stock_dict['price'] = 0
             stock_transfer = OpenST(**stock_dict)
             stock_transfer.save()
             all_data[key][all_data[key].index(val)][3] = stock_transfer.id
@@ -4037,6 +4076,8 @@ def confirm_st(request, user=''):
         data_id = ''
         if data_dict['id'][i]:
             data_id = data_dict['id'][i]
+        if not data_dict['price'][i]:
+            data_dict['price'][i] = 0
         cond = (warehouse_name)
         all_data.setdefault(cond, [])
         all_data[cond].append(
@@ -5528,6 +5569,11 @@ def confirm_receive_qc(request, user=''):
     bill_date = datetime.datetime.now().date().strftime('%d-%m-%Y')
     if request.POST.get('invoice_date', ''):
         bill_date = datetime.datetime.strptime(str(request.POST.get('invoice_date', '')), "%m/%d/%Y").strftime('%d-%m-%Y')
+    invoice_num = request.POST.get('invoice_number', '')
+    if invoice_num:
+        inv_status = po_invoice_number_check(user, invoice_num)
+        if inv_status:
+            return HttpResponse(inv_status)
     log.info('Request params for ' + user.username + ' is ' + str(myDict))
     try:
         for ind in range(0, len(myDict['id'])):
@@ -5596,11 +5642,17 @@ def confirm_receive_qc(request, user=''):
                             + '/' + str(seller_receipt_id)
             else:
                 po_number = str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id)
+            dc_level_grn = request.POST.get('dc_level_grn', '')
+            if dc_level_grn == 'on':
+                bill_no = request.POST.get('dc_number', '')
+                bill_date = challan_date
+            else:
+                bill_no = request.POST.get('invoice_number', '')
             report_data_dict = {'data': putaway_data, 'data_dict': data_dict, 'data_slices': sku_slices,
                                 'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty,
                                 'total_price': total_price, 'total_tax': total_tax, 'address': address,
                                 'seller_name': seller_name, 'company_name': profile.company_name,
-                                'company_address': profile.address, 'bill_no': request.POST.get('invoice_number', ''),
+                                'company_address': profile.address, 'bill_no': bill_no,
                                 'po_number': str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(
                                     data.order_id),
                                 'order_date': order_date, 'order_id': order_id,
@@ -6269,7 +6321,7 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
     admin_user = get_priceband_admin_user(user)
     #lis = ['purchase_order__id', 'purchase_order__id', 'purchase_order__open_po__supplier__name',
            #'purchase_order__open_po__order_quantity', 'quantity', 'date_only', 'id', 'challan_number']
-    lis = ['challan_number', 'challan_number', 'challan_number', 'challan_number',
+    lis = ['challan_number', 'challan_number', 'purchase_order__open_po__supplier__name', 'challan_number',
            'challan_number', 'challan_number', 'challan_number', 'challan_number']
     user_filter = {'purchase_order__open_po__sku__user': user.id, 'order_status_flag': 'po_challans'}
     result_values = ['challan_number', 'receipt_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name']
@@ -6288,8 +6340,8 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
                                 values_list('seller_po_summary_id', flat=True)
 
     if search_term:
+        lis1 = copy.deepcopy(lis)
         if 'date_only' in lis:
-            lis1 = copy.deepcopy(lis)
             lis1 = map(lambda x: x if x not in ['date_only'] else field_mapping['date_only'], lis1)
 
         search_term = search_term.replace('(', '\(').replace(')', '\)')
@@ -6478,6 +6530,10 @@ def move_to_invoice(request, user=''):
     seller_summary = SellerPOSummary.objects.none()
     req_data = request.GET.get('data', '')
     invoice_number = request.GET.get('inv_number', '')
+    if invoice_number:
+        inv_status = po_invoice_number_check(user, invoice_number)
+        if inv_status:
+            return HttpResponse(json.dumps({'message': inv_status}))
     invoice_date = request.GET.get('inv_date', '')
     invoice_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y") if invoice_date else None
     if req_data:
@@ -7334,7 +7390,10 @@ def get_debit_note_data(rtv_number, user):
                                             data_dict_item['igst_value'] + data_dict_item['sgst_value'] + data_dict_item['utgst_value'] + \
                                             data_dict_item['cess_value']
         data_dict['rtv_creation_date'] = get_local_date(user, obj.creation_date)
-        data_dict['date_of_issue_of_original_invoice'] = get_local_date(user, obj.seller_po_summary.creation_date)
+        data_dict['grn_date'] = get_local_date(user, obj.seller_po_summary.creation_date)
+        data_dict['date_of_issue_of_original_invoice'] = ''
+        if obj.seller_po_summary.invoice_date:
+            data_dict['date_of_issue_of_original_invoice'] = obj.seller_po_summary.invoice_date.strftime("%d %b, %Y")
         total_with_gsts = total_with_gsts + data_dict_item['total_with_gsts']
         total_qty = total_qty + data_dict_item['order_qty']
         total_invoice_value = total_invoice_value + data_dict_item['total_with_gsts']

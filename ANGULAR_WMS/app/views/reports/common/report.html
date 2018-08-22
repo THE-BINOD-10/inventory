@@ -23,6 +23,20 @@
           </div>
         </form>
     </div>
+
+    <div class="row" ng-if="showCase.service.totals_tb_data">
+      <div class = "col-md-12">
+        <div class="col-md-2" ng-repeat="(key,value) in showCase.service.totals_tb_data">
+          <div class="widget bg-white" style="margin-bottom: 0;text-align: center;">
+            <div class="overflow-hidden">
+            <span class="widget-subtitle">{{key}}: </span>
+            <span class="widget-title bold">{{value}}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="layout-body">
 	  <div class="col-md-12 col-sm-12 col-xs-12">
       <div class="panel" ng-if="showCase.datatable">

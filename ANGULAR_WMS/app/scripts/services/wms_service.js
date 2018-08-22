@@ -11,6 +11,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
     vm.searched_wms_code = "";
     vm.searched_sup_code = '';
     vm.is_came_from_raise_po = false;
+    vm.totals_tb_data = {};
 
     DTDefaultOptions.setLanguage({
     // ...
@@ -134,6 +135,13 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
               data: send.empty_data,
               xhrFields: {
                 withCredentials: true
+              },
+              complete: function(jqXHR, textStatus) {
+                vm.totals_tb_data = {};
+                $rootScope.$apply(function(){
+                  vm.tb_data = JSON.parse(jqXHR.responseText);
+                  vm.totals_tb_data = vm.tb_data.totals;
+                })
               }
            })
        .withDataProp('data')
@@ -218,6 +226,12 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
 
       return Number(a)*Number(b);
     }
+
+    $("body").on("keypress",".notallowspace",function (e) {
+        if (e.which === 32) {
+          return false;
+        }
+    });
 
     $("body").on("keypress",".number",function (e) {
     if (e.which != 8 && e.which != 0 && (e.which < 48 || e.which > 57)) {
@@ -468,6 +482,30 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
         text: msg,
         type: type,
         timeout: 3000,
+        layout: $layout,
+        closeWith: ['button', 'click'],
+        animation: {
+          open: 'in',
+          close: 'out',
+          easing: 'swing'
+        },
+      });
+    };
+
+    vm.showNotyNotHide = function (msg,type,$layout) {
+      if (!type) {
+        type = 'success';
+      }
+      if (!msg) {
+        msg = 'Success';
+      }
+      if (!$layout) {
+        $layout = 'topRight';
+      }
+      noty({
+        theme: 'urban-noty',
+        text: msg,
+        type: type,
         layout: $layout,
         closeWith: ['button', 'click'],
         animation: {
@@ -1443,3 +1481,6 @@ app.directive('discountNumber', function () {
       }
     });
   }])
+
+  
+

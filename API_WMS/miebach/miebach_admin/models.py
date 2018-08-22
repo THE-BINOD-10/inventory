@@ -517,6 +517,33 @@ class StockDetail(models.Model):
         return str(self.sku) + " : " + str(self.location)
 
 
+class ASNStockDetail(models.Model):
+    id = BigAutoField(primary_key=True)
+    asn_po_num = models.CharField(max_length=32, default='')
+    sku = models.ForeignKey(SKUMaster)
+    quantity = models.IntegerField(default=0)
+    arriving_date = models.DateField(blank=True, null=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ASN_STOCK_DETAIL'
+        unique_together = ('asn_po_num', 'sku')
+
+
+class ASNReserveDetail(models.Model):
+    id = BigAutoField(primary_key=True)
+    asnstock = models.ForeignKey(ASNStockDetail, blank=True, null=True)
+    orderdetail = models.ForeignKey(OrderDetail, blank=True, null=True)
+    reserved_qty = models.IntegerField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'ASN_RESERVE_DETAIL'
+        unique_together = ('asnstock', 'orderdetail')
+
+
 class Picklist(models.Model):
     id = BigAutoField(primary_key=True)
     order = models.ForeignKey(OrderDetail, blank=True, null=True)
@@ -1009,6 +1036,8 @@ class JOMaterial(models.Model):
 
     class Meta:
         db_table = 'JO_MATERIAL'
+        index_together = (('job_order', 'material_code'), ('job_order', 'material_code', 'status'),
+                            ('job_order', 'material_code', 'status', 'material_quantity'))
 
 
 class MaterialPicklist(models.Model):
@@ -1021,6 +1050,7 @@ class MaterialPicklist(models.Model):
 
     class Meta:
         db_table = 'MATERIAL_PICKLIST'
+        index_together = (('jo_material', 'status'), ('jo_material', 'status', 'reserved_quantity'))
 
 
 class RMLocation(models.Model):
@@ -1035,6 +1065,7 @@ class RMLocation(models.Model):
 
     class Meta:
         db_table = 'RM_LOCATION'
+        index_together = (('material_picklist', 'stock'), ('material_picklist', 'stock', 'status'), ('material_picklist', 'stock', 'status', 'reserved'))
 
 
 class SKURelation(models.Model):
@@ -1065,6 +1096,7 @@ class StatusTracking(models.Model):
 
     class Meta:
         db_table = 'STATUS_TRACKING'
+        index_together = (('status_id', 'status_type'),('status_type', 'status_value', 'quantity'), ('status_id', 'status_type', 'status_value'))
 
 
 class StatusTrackingSummary(models.Model):
@@ -1077,6 +1109,7 @@ class StatusTrackingSummary(models.Model):
 
     class Meta:
         db_table = 'STATUS_TRACKING_SUMMARY'
+        index_together = (('status_tracking', 'processed_stage'), ('status_tracking', 'processed_stage', 'processed_quantity'))
 
 
 class BOMMaster(models.Model):
@@ -1978,11 +2011,14 @@ class SellerOrderSummary(models.Model):
     invoice_number = models.CharField(max_length=64, default='')
     challan_number = models.CharField(max_length=64, default='')
     order_status_flag = models.CharField(max_length=64, default='processed_orders')
+    delivered_flag = models.IntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'SELLER_ORDER_SUMMARY'
+        index_together = (('pick_number', 'seller_order'), ('pick_number', 'order'), ('pick_number', 'seller_order', 'picklist'),
+                            ('pick_number', 'order', 'picklist'), ('order', 'order_status_flag'), ('seller_order', 'order_status_flag'))
 
     def __unicode__(self):
         return str(self.id)
@@ -2489,7 +2525,7 @@ class SKUDetailStats(models.Model):
 
     class Meta:
         db_table = 'SKU_DETAIL_STATS'
-
+        index_together = (('sku', 'transact_type'), ('sku', 'transact_type', 'transact_id'))
 
 class StockStats(models.Model):
     id = BigAutoField(primary_key=True)
@@ -2508,6 +2544,7 @@ class StockStats(models.Model):
 
     class Meta:
         db_table = 'STOCK_STATS'
+        index_together = (('sku',))
 
 
 class IntransitOrders(models.Model):
@@ -2765,3 +2802,32 @@ class TargetMaster(models.Model):
     class Meta:
         db_table = 'TARGET_MASTER'
         unique_together = ('distributor', 'reseller', 'corporate_id')
+
+
+class RatingsMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    original_order_id = models.CharField(max_length=128, default='', blank=True, null=True)
+    rating_product = models.IntegerField(max_length=10)
+    rating_order = models.IntegerField(max_length=10)
+    reason_product = models.CharField(max_length=32, default='')
+    reason_order = models.CharField(max_length=32, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'RATINGS_MASTER'
+        unique_together = ('user', 'original_order_id')
+
+
+class RatingSKUMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    rating = models.ForeignKey(RatingsMaster, blank=True, null=True)
+    sku = models.ForeignKey(SKUMaster)
+    remarks = models.CharField(max_length=128, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'RATINGS_SKU_MAPPING'
+        unique_together = ('rating', 'sku')

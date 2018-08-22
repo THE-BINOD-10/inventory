@@ -1234,6 +1234,8 @@ def confirm_po(request, user=''):
         table_headers.insert(1, 'EAN Number')
     if display_remarks == 'true':
         table_headers.append('Remarks')
+    _total = round(total)
+    total_amt_in_words = number_in_words(_total)
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
                  'telephone': str(telephone),
                  'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference,
@@ -1241,13 +1243,14 @@ def confirm_po(request, user=''):
                  'location': profile.location, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                  'vendor_telephone': vendor_telephone, 'total_qty': total_qty, 'receipt_type': receipt_type,
                  'title': title, 'ship_to_address': ship_to_address,
-                 'gstin_no': gstin_no, 'w_address': get_purchase_company_address(profile), 'wh_telephone': wh_telephone, 'terms_condition' : terms_condition}
+                 'gstin_no': gstin_no, 'w_address': get_purchase_company_address(profile), 
+                 'wh_telephone': wh_telephone, 'terms_condition' : terms_condition, 
+                 'total_amt_in_words' : total_amt_in_words}
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
     if get_misc_value('raise_po', user.id) == 'true':
         write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
                            str(order_date).split(' ')[0], ean_flag=ean_flag)
-
     check_purchase_order_created(user, po_id)
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
@@ -4274,7 +4277,6 @@ def confirm_add_po(request, sales_data='', user=''):
     status = ''
     suggestion = ''
     terms_condition = request.POST.get('terms_condition', '')
-
     if not request.POST:
         return HttpResponse('Updated Successfully')
     sku_id = ''
@@ -4495,10 +4497,12 @@ def confirm_add_po(request, sales_data='', user=''):
     if request.POST.get('seller_id', '') and 'shproc' in str(request.POST.get('seller_id').split(":")[1]).lower():
         company_name = 'SHPROC Procurement Pvt. Ltd.'
         title = 'Purchase Order'
+    _total_amt = round(total)
+    total_amt_in_words = number_in_words(_total_amt)
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
                  'telephone': str(telephone), 'ship_to_address': ship_to_address,
                  'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference,
-                 'user_name': request.user.username,
+                 'user_name': request.user.username, 'total_amt_in_words': total_amt_in_words,
                  'total_qty': total_qty, 'company_name': company_name, 'location': profile.location,
                  'w_address': get_purchase_company_address(profile),
                  'company_name': company_name, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
@@ -4506,7 +4510,6 @@ def confirm_add_po(request, sales_data='', user=''):
                  'gstin_no': gstin_no, 'industry_type': industry_type, 'expiry_date': expiry_date,
                  'wh_telephone': wh_telephone, 'wh_gstin': profile.gst_number,
                  'terms_condition': terms_condition}
-
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
     if get_misc_value('raise_po', user.id) == 'true':

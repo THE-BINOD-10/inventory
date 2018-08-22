@@ -2,11 +2,12 @@
 
 'use strict';
 
-function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $window, $timeout, Auth, $modal, $rootScope, Data, $location) {
+function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state, $window, $timeout, Auth, $modal, $rootScope, Data, $location, customerRatingCtrl) {
 
   $scope.msg = "start";
   var vm = this;
 
+  vm.model_data = {};
   vm.brand_size_data = [];//To get Sizes for some brands
   vm.size_filter = {};//Size Filter Search
   vm.show_no_data = false;//Show No Data
@@ -22,6 +23,62 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.date = new Date();
   vm.client_logo = Session.parent.logo;
   vm.api_url = Session.host;
+  vm.profile_name = Session.user_profile.first_name;
+  vm.mark_as_delivered = Session.roles.permissions.mark_as_delivered;
+
+  vm.test = [{wms_code: '101', sku_desc: 'Description-1'}, {wms_code: '102', sku_desc: 'Description-2'}, 
+             {wms_code: '103', sku_desc: 'Description-3'}, {wms_code: '104', sku_desc: 'Description-4'}];
+  vm.modelData = {'profile_name': vm.profile_name, 'ordered_skus':vm.test};
+  $rootScope.customerRating = function (data_ratings) {
+    vm.modelData.order_ratings = data_ratings
+    var mod_data = vm.modelData;
+    var modalInstance = $modal.open({
+      templateUrl: 'views/outbound/app/create_orders/rating_toggle/customer_rating.html',
+      controller: 'customerRatingCtrl',
+      controllerAs: '$ctrl',
+      size: 'md',
+      backdrop: 'static',
+      keyboard: false,
+      resolve: {
+        items: function () {
+          return mod_data;
+        }
+      }
+    });
+
+    modalInstance.result.then(function (selectedItem) {
+      console.log(selectedItem);
+    })
+  }
+  
+  
+  vm.display_ratings = function() {
+    var formData = {}  
+    $.ajax({
+      url: Session.url+'get_ratings_data_popup/',
+      data: formData,
+      method: 'POST',
+      processData : false,
+      contentType : false,
+      xhrFields: {
+          withCredentials: true
+      },
+      'success': function(response) {
+        if(response.status) {
+          vm.model_data.order_ratings = response.data;
+          if (!$.isEmptyObject(response.data)) {
+            $rootScope.customerRating(response.data);
+          }
+        } else {
+          vm.service.pop_msg(response.data.message);
+        }
+      }
+    })
+  }
+
+  if (vm.mark_as_delivered) {
+    vm.display_ratings()
+  }
 
   $('#delivery_date').datepicker();
 
@@ -32,7 +89,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.order_type_value = "offline";
   vm.service = Service;
   vm.company_name = Session.user_profile.company_name;
-  vm.model_data = {};
+  
   vm.required_quantity = {};
   vm.margin_types = ['Margin Percentage', 'Margin Value'];
   Data.styles_data = {};
@@ -84,6 +141,51 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     }
   }
 
+  /*Rating module start*/
+  function customerRating() {
+ 
+    var mod_data = vm.modelData;
+    var modalInstance = $modal.open({
+      templateUrl: 'views/outbound/app/create_orders/rating_toggle/customer_rating.html',
+      controller: 'customerRatingCtrl',
+      controllerAs: '$ctrl',
+      size: 'md',
+      backdrop: 'static',
+      keyboard: false,
+      resolve: {
+        items: function () {
+          return mod_data;
+        }
+      }
+    });
+
+    modalInstance.result.then(function (selectedItem) {
+      console.log(selectedItem);
+    })
+  }
+
+  vm.display_ratings = function() {
+
+    var formData = {}  
+    
+    Service.apiCall("get_ratings_data_popup/", "POST", formData).then(function(response) {
+
+      if (response.message) {
+
+        vm.order_ratings = response.data.data;
+        if (!$.isEmptyObject(vm.order_ratings)) {
+
+          vm.modelData = {'profile_name': vm.profile_name, 'order_ratings': vm.order_ratings};
+          customerRating();
+        }
+      } else {
+
+        vm.service.pop_msg(response.data.message);
+      }
+    });
+  }
+  vm.display_ratings();
+  /*Rating module end*/
   function change_filter_data() {
     var data = {brand: vm.brand, category: vm.category, is_catalog: true, sale_through: vm.order_type_value};
     vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
@@ -1593,5 +1695,168 @@ angular.module('urbanApp').controller('changePWDCtrl', function ($modalInstance,
   };
 });
 
+angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInstance, $modal, $scope, $rootScope, items, Service, Session) {
+  var vm = this;
+  vm.user_type = Session.roles.permissions.user_type;
+  vm.mark_as_delivered = Session.roles.permissions.mark_as_delivered;
+  vm.model_data = items;
+  vm.service = Service;
+  vm.title = 'Rate Your Order';
+  vm.rate_type = 'Order';
+  vm.sel_reasons = {order_rate:'', order_reason:'', product_rate:'', product_reason:''};
+  vm.rate_query = "What you didn't like!";
+  vm.reason_type = 'order_reasons';
+  vm.btn_text = 'Next';
 
+  vm.resetValues = function(){
+
+    vm.reasons = {
+      order_reasons: {
+        1: ['O_Reason-1-of-1', 'O_Reason-1-of-2', 'O_Reason-1-of-3', 'O_Reason-1-of-4', 'O_Reason-1-of-5', 'O_Reason-1-of-6'],
+        2: ['O_Reason-2-of-1', 'O_Reason-2-of-2', 'O_Reason-2-of-3', 'O_Reason-2-of-4', 'O_Reason-2-of-5', 'O_Reason-2-of-6'],
+        3: ['O_Reason-3-of-1', 'O_Reason-3-of-2', 'O_Reason-3-of-3', 'O_Reason-3-of-4', 'O_Reason-3-of-5', 'O_Reason-3-of-6'],
+        4: ['O_Reason-4-of-1', 'O_Reason-4-of-2', 'O_Reason-4-of-3', 'O_Reason-4-of-4', 'O_Reason-4-of-5', 'O_Reason-4-of-6'],
+        5: ['O_Reason-5-of-1', 'O_Reason-5-of-2', 'O_Reason-5-of-3', 'O_Reason-5-of-4', 'O_Reason-5-of-5', 'O_Reason-5-of-6']
+      },
+      product_reasons: {
+        1: ['P_Reason-1-of-1', 'P_Reason-1-of-2', 'P_Reason-1-of-3', 'P_Reason-1-of-4', 'P_Reason-1-of-5', 'P_Reason-1-of-6'],
+        2: ['P_Reason-2-of-1', 'P_Reason-2-of-2', 'P_Reason-2-of-3', 'P_Reason-2-of-4', 'P_Reason-2-of-5', 'P_Reason-2-of-6'],
+        3: ['P_Reason-3-of-1', 'P_Reason-3-of-2', 'P_Reason-3-of-3', 'P_Reason-3-of-4', 'P_Reason-3-of-5', 'P_Reason-3-of-6'],
+        4: ['P_Reason-4-of-1', 'P_Reason-4-of-2', 'P_Reason-4-of-3', 'P_Reason-4-of-4', 'P_Reason-4-of-5', 'P_Reason-4-of-6'],
+        5: ['P_Reason-5-of-1', 'P_Reason-5-of-2', 'P_Reason-5-of-3', 'P_Reason-5-of-4', 'P_Reason-5-of-5', 'P_Reason-5-of-6']
+      }
+    };
+    
+    vm.selStars = 0; // initial stars count
+    vm.maxStars = 5; // total stars
+    vm.sel_rate = '';
+    vm.rate_cls = '';
+    vm.selected_reason = '';
+  }
+
+  vm.resetValues();
+
+  vm.getStarArray = function() {
+    var result = [];
+    for (var i = 1; i <= vm.maxStars; i++)
+      result.push(i);
+    return result;
+  };
+
+  vm.getClass = function(value) {
+    return 'glyphicon glyphicon-star' + (vm.selStars >= value ? '' : '-empty');
+  };
+
+  vm.addCls = function(value){
+
+    if (value == 1) {
+
+      vm.sel_rate = 'Poor';
+      vm.rate_cls = 'alert-danger';
+    } else if (value == 2) {
+
+      vm.sel_rate = 'Average';
+      vm.rate_cls = 'alert-danger';
+    } else if (value == 3) {
+
+      vm.sel_rate = 'Good';
+      vm.rate_cls = 'alert-warning';
+    } else if (value == 4) {
+
+      vm.sel_rate = 'Very Good';
+      vm.rate_cls = 'alert-info';
+    } else if (value == 5) {
+
+      vm.sel_rate = 'Excellent';
+      vm.rate_cls = 'alert-success';
+      vm.rate_query = "What you like!";
+    }
+  }
+
+  vm.selRate = function(){
+
+    if (vm.title == 'Rate Your Order') {
+
+      vm.sel_reasons.order_rate = vm.selStars;
+    } else if (vm.title == 'Rate Your Product') {
+
+      vm.sel_reasons.product_rate = vm.selStars;
+    }
+  }
+
+  vm.setClass = function(sender, value) {
+
+    vm.selStars = value;
+    sender.currentTarget.setAttribute('class', vm.getClass(value));
+    vm.rate_query = "What you didn't like!";
+
+    vm.addCls(value);
+    vm.selRate();
+  };
+
+  vm.setStyle = function(reason){
+
+    if(vm.selected_reason == reason) {
+
+      return 'btn-selected';
+    } else {
+
+      return 'btn-outline';
+    }
+  }
+
+  vm.resReason = function(reason){
+
+    angular.forEach(vm.reasons[vm.reason_type][vm.selStars], function(row){
+
+      if (row == reason) {
+        
+        if (vm.title == 'Rate Your Order') {
+
+          vm.sel_reasons.order_reason = reason;
+        } else if (vm.title == 'Rate Your Product') {
+
+          vm.sel_reasons.product_reason = reason;
+        }
+      }
+    });
+  }
+
+  vm.submit = function () {
+    if((!vm.sel_reasons.order_reason && vm.title == 'Rate Your Order') || 
+       (!vm.sel_reasons.product_reason && vm.title == 'Rate Your Product')) {
+
+      vm.service.showNoty('Sorry, Please give your rating and proper reason');
+    } else if (vm.sel_reasons.order_reason && !vm.sel_reasons.product_reason) {
+
+      vm.resetValues();
+      vm.title = 'Rate Your Product';
+      vm.btn_text = 'Submit';
+      vm.rate_type = 'Product';
+      vm.reason_type = 'product_reasons';
+    } else if (vm.sel_reasons.order_reason && vm.sel_reasons.product_reason && vm.selStars) {
+
+      var send = vm.sel_reasons;
+      var elem = angular.element($('form'));
+      elem = elem[0];
+      elem = $(elem).serializeArray();
+      angular.forEach(elem, function(row){
+        send[row.name] = row.value;
+      });
+      send['order_details'] = JSON.stringify(vm.model_data.order_ratings);
+      Service.apiCall("save_cutomer_ratings/", "POST", send).then(function(response) {
+        if (response.message) {
+          vm.service.showNoty('Rating Submitted Successfully');
+          vm.cancel();
+        } else {
+          vm.service.showNoty('Something went wrong. Please try again', 'danger');
+        }
+      });
+    }
+  };
+
+  vm.cancel = function () {
+    $modalInstance.dismiss('cancel');
+  };
+});
 })();

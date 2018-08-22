@@ -1233,8 +1233,22 @@ var app = angular.module('urbanApp')
             title: 'Customize Your Orders',
           }
         })
-
-
+        .state('app.outbound.Ratings', {
+          url: '/Ratings',
+          templateUrl: 'views/outbound/ratings.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+              return $ocLazyLoad.load('scripts/controllers/outbound/ratings.js');
+            }]
+          },
+          data: {
+            title: 'Customers Ratings',
+          }
+        })
+        .state('app.outbound.Ratings.Details', {
+            url: '/Details',
+            templateUrl: 'views/outbound/toggle/rating_details.html'
+          })
         .state('app.outbound.ViewOrders', {
           url: '/ViewOrders',
           permission: 'add_picklist',

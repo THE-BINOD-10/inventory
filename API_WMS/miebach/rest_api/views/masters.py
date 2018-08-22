@@ -62,7 +62,7 @@ def save_image_file(image_file, data, user, extra_image='', saved_file_path='', 
 @csrf_exempt
 def get_sku_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
-    lis = ['wms_code', 'sku_desc', 'sku_type', 'sku_category', 'sku_class', 'color', 'zone__zone', 'status']
+    lis = ['wms_code', 'ean_number', 'sku_desc', 'sku_type', 'sku_category', 'sku_class', 'color', 'zone__zone', 'status']
     order_data = SKU_MASTER_HEADERS.values()[col_num]
     search_params1, search_params2 = get_filtered_params_search(filters, lis)
     if 'status__icontains' in search_params1.keys():
@@ -99,29 +99,55 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
                 list1 = [{}]
 
             for item in list1:
-                master_data1 = sku_master.exclude(id__in=ids).filter(
-                    Q(sku_code__iexact=search_term) | Q(wms_code__iexact=search_term) | Q(
-                        sku_desc__iexact=search_term) | Q(sku_type__iexact=search_term) | Q(
-                        sku_category__iexact=search_term) | Q(sku_class__iexact=search_term) | Q(
-                        zone__zone__iexact=search_term) | Q(color__iexact=search_term), user=user.id, **item).order_by(
-                    order_data)
+                try:
+                    master_data1 = sku_master.exclude(id__in=ids).filter(
+                        Q(sku_code__iexact=search_term) | Q(wms_code__iexact=search_term) | Q(
+                            sku_desc__iexact=search_term) | Q(sku_type__iexact=search_term) | Q(
+                            sku_category__iexact=search_term) | Q(sku_class__iexact=search_term) | Q(
+                            zone__zone__iexact=search_term) | Q(color__iexact=search_term) |
+                            Q(ean_number__iexact=search_term), user=user.id, **item).order_by(
+                        order_data)
+                except:
+                    master_data1 = sku_master.exclude(id__in=ids).filter(
+                        Q(sku_code__iexact=search_term) | Q(wms_code__iexact=search_term) | Q(
+                            sku_desc__iexact=search_term) | Q(sku_type__iexact=search_term) | Q(
+                            sku_category__iexact=search_term) | Q(sku_class__iexact=search_term) | Q(
+                            zone__zone__iexact=search_term) | Q(color__iexact=search_term), user=user.id, **item).order_by(
+                        order_data)
                 ids.extend(master_data1.values_list('id', flat=True))
 
-                master_data2 = sku_master.exclude(id__in=ids).filter(
-                    Q(sku_code__istartswith=search_term) | Q(wms_code__istartswith=search_term) | Q(
-                        sku_desc__istartswith=search_term) | Q(sku_type__istartswith=search_term) | Q(
-                        sku_category__istartswith=search_term) | Q(sku_class__istartswith=search_term) | Q(
-                        zone__zone__istartswith=search_term) | Q(color__istartswith=search_term), user=user.id,
-                    **item).order_by(order_data)
-
+                try:
+                    master_data2 = sku_master.exclude(id__in=ids).filter(
+                        Q(sku_code__istartswith=search_term) | Q(wms_code__istartswith=search_term) | Q(
+                            sku_desc__istartswith=search_term) | Q(sku_type__istartswith=search_term) | Q(
+                            sku_category__istartswith=search_term) | Q(sku_class__istartswith=search_term) | Q(
+                            zone__zone__istartswith=search_term) | Q(color__istartswith=search_term) |
+                            Q(ean_number__istartswith), user=user.id,
+                        **item).order_by(order_data)
+                except:
+                    master_data2 = sku_master.exclude(id__in=ids).filter(
+                        Q(sku_code__istartswith=search_term) | Q(wms_code__istartswith=search_term) | Q(
+                            sku_desc__istartswith=search_term) | Q(sku_type__istartswith=search_term) | Q(
+                            sku_category__istartswith=search_term) | Q(sku_class__istartswith=search_term) | Q(
+                            zone__zone__istartswith=search_term) | Q(color__istartswith=search_term), user=user.id,
+                        **item).order_by(order_data)
                 ids.extend(master_data2.values_list('id', flat=True))
 
-                master_data3 = sku_master.filter(
-                    Q(sku_code__icontains=search_term) | Q(wms_code__icontains=search_term) | Q(
-                        sku_desc__icontains=search_term) | Q(sku_type__icontains=search_term) | Q(
-                        sku_category__icontains=search_term) | Q(sku_class__icontains=search_term) | Q(
-                        zone__zone__icontains=search_term) | Q(color__icontains=search_term), user=user.id,
-                    **item).exclude(id__in=ids).order_by(order_data)
+                try:
+                    master_data3 = sku_master.filter(
+                        Q(sku_code__icontains=search_term) | Q(wms_code__icontains=search_term) | Q(
+                            sku_desc__icontains=search_term) | Q(sku_type__icontains=search_term) | Q(
+                            sku_category__icontains=search_term) | Q(sku_class__icontains=search_term) | Q(
+                            zone__zone__icontains=search_term) | Q(color__icontains=search_term) |
+                            Q(ean_number__icontains=search_term), user=user.id,
+                        **item).exclude(id__in=ids).order_by(order_data)
+                except:
+                    master_data3 = sku_master.filter(
+                        Q(sku_code__icontains=search_term) | Q(wms_code__icontains=search_term) | Q(
+                            sku_desc__icontains=search_term) | Q(sku_type__icontains=search_term) | Q(
+                            sku_category__icontains=search_term) | Q(sku_class__icontains=search_term) | Q(
+                            zone__zone__icontains=search_term) | Q(color__icontains=search_term), user=user.id,
+                        **item).exclude(id__in=ids).order_by(order_data)
                 ids.extend(master_data3.values_list('id', flat=True))
                 master_data.extend(list(master_data1))
                 master_data.extend(list(master_data2))
@@ -151,7 +177,7 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
             (('WMS SKU Code', data.wms_code), ('Product Description', data.sku_desc), ('image_url', data.image_url),
              ('SKU Type', data.sku_type), ('SKU Category', data.sku_category), ('DT_RowClass', 'results'),
              ('Zone', zone), ('SKU Class', data.sku_class), ('Status', status), ('DT_RowAttr', {'data-id': data.id}),
-             ('Color', data.color))))
+             ('Color', data.color), ('EAN Number', str(data.ean_number)))))
 
 
 @csrf_exempt
@@ -696,6 +722,7 @@ def get_sku_data(request, user=''):
     sku_data['primary_category'] = data.primary_category
     sku_data['hot_release'] = 0
     sku_data['shelf_life'] = data.shelf_life
+    sku_data['measurement_type'] = data.measurement_type;
     sku_fields = SKUFields.objects.filter(field_type='size_type', sku_id=data.id)
     if sku_fields:
         sku_data['size_type'] = sku_fields[0].field_value
@@ -2602,6 +2629,8 @@ def generate_barcodes(request, user=''):
     if myDict.has_key('order_id'):
         myDict.pop('order_id')
 
+    if myDict.has_key('format'):
+        myDict.pop('format')
     others = {}
     data_dict = [dict(l) for l in zip(*[[(i,k) for k in j] for i,j in myDict.items()])]
     if myDict.has_key('Label'):
@@ -3708,7 +3737,7 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
 
         if data.phone_number:
             data.phone_number = int(float(data.phone_number))
-        temp_data['aaData'].append(OrderedDict((('name', data.name), ('address', data.address),
+        temp_data['aaData'].append(OrderedDict((('id', data.id), ('name', data.name), ('address', data.address),
                                                 ('phone_number', data.phone_number), ('email_id', data.email_id),
                                                 ('cst_number', data.cst_number), ('tin_number', data.tin_number),
                                                 ('pan_number', data.pan_number), ('city', data.city),
@@ -3739,7 +3768,7 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
     if not os.path.exists('static/excel_files/'):
         os.makedirs('static/excel_files/')
     path_to_file = '../' + path
-    headers = ['Name', 'Address', 'Phone Number', 'Email ID', 'CST Number', 'TIN Number', 'PAN Number', 
+    headers = ['Supplier ID', 'Name', 'Address', 'Phone Number', 'Email ID', 'CST Number', 'TIN Number', 'PAN Number',
     'City', 'State', 'Days To Supply', 'Fulfillment Amount', 'Credibility', 'Country', 'Pincode', 
     'Status', 'Supplier Type', 'Tax Type', 'PO Exp Duration', 'Owner Name', 
     'Owner Number', 'Owner Email Id', 'Spoc Name', 'Spoc Number', 'Lead Time', 'Spoc Email ID', 'Credit Period',

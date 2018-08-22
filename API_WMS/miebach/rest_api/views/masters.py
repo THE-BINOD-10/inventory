@@ -900,7 +900,6 @@ def update_sku(request, user=''):
             return HttpResponse('Missing Required Fields')
         data = get_or_none(SKUMaster, {'wms_code': wms, 'user': user.id})
 
-        ean_numbers = request.POST.get('ean_numbers', '').split(',')
         image_file = request.FILES.get('files-0', '')
         if image_file:
             save_image_file(image_file, data, user)
@@ -926,20 +925,18 @@ def update_sku(request, user=''):
                 key = 'zone_id'
                 if zone:
                     value = zone.id
-            elif key == 'ean_number':
-                if not value:
-                    value = 0
-                else:
-                    ean_status = check_ean_number(data.sku_code, value, user)
-                    if ean_status:
-                        return HttpResponse(ean_status)
+            #elif key == 'ean_number':
+            #    if not value:
+            #        value = 0
+            #    else:
+            #        ean_status = check_ean_number(data.sku_code, value, user)
+            #        if ean_status:
+            #            return HttpResponse(ean_status)
             elif key == 'ean_numbers':
-                if ean_numbers:
-                    for ean_number in ean_numbers:
-                        ean_dict = {'ean_number': ean_number, 'sku_id': data.id}
-                        ean_obj = EANNumbers.objects.filter(ean_number=ean_number)
-                        if not ean_obj:
-                            EANNumbers.objects.create(**ean_dict)
+                ean_numbers = value.split(',')
+                ean_status = update_ean_sku_mapping(user, ean_numbers, data)
+                if ean_status:
+                    return HttpResponse(ean_status)
 
             elif key == 'load_unit_handle':
                 value = load_unit_dict.get(value.lower(), 'unit')
@@ -2184,10 +2181,10 @@ def insert_sku(request, user=''):
                             value = 0
                     elif key == 'load_unit_handle':
                         value = load_unit_dict.get(value.lower(), 'unit')
-                    elif key == 'ean_number' and value:
-                        ean_status = check_ean_number(wms, value, user)
-                        if ean_status:
-                            return HttpResponse(ean_status)
+                    #elif key == 'ean_number' and value:
+                    #    ean_status = check_ean_number(wms, value, user)
+                    #    if ean_status:
+                    #        return HttpResponse(ean_status)
                     if value == '':
                         continue
                     data_dict[key] = value
@@ -2207,6 +2204,10 @@ def insert_sku(request, user=''):
             status_msg = 'New WMS Code Added'
 
             update_marketplace_mapping(user, data_dict=dict(request.POST.iterlists()), data=sku_master)
+            ean_numbers = request.POST.get('ean_numbers', '')
+            if ean_numbers:
+                ean_numbers = ean_numbers.split(',')
+                update_ean_sku_mapping(user, ean_numbers, sku_master)
 
         insert_update_brands(user)
         # update master sku txt file

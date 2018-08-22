@@ -1421,7 +1421,7 @@ def get_seller_pick_id(picklist, user):
     return pick_number
 
 
-def update_no_stock_to_location(request, user, picklist, val, picks_all, picklist_batch, enable_damaged_stock):
+def update_no_stock_to_location(request, user, picklist, val, picks_all, picklist_batch):
     new_update_ids = []
     for picklist in picklist_batch:
         if not picklist.stock:
@@ -1573,7 +1573,7 @@ def picklist_confirmation(request, user=''):
                     picklist_batch = list(set([picklist]))
                 if not val['location'] == 'NO STOCK':
                     picklist_batch = update_no_stock_to_location(request, user, picklist, val, picks_all,
-                                                                 picklist_batch, enable_damaged_stock)
+                                                                 picklist_batch)
                 for picklist in picklist_batch:
                     if count == 0:
                         continue

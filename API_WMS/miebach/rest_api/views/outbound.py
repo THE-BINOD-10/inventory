@@ -3492,15 +3492,17 @@ def create_order_from_intermediate_order(request, user):
     message = 'Success'
     wh_name = request.POST.get('warehouse', '')
     wh_usr_obj = User.objects.filter(username=wh_name)
-    if wh_usr_obj:
-        wh_id = wh_usr_obj[0].id
-    else:
-        return HttpResponse('User Missing')
+    status = request.POST.get('status', '')
+    if status != '0':
+        if wh_usr_obj:
+            wh_id = wh_usr_obj[0].id
+        else:
+            return HttpResponse('User Missing')
+    import pdb;pdb.set_trace()
     interm_det_id = request.POST.get('interm_det_id', '')
     shipment_date = request.POST.get('shipment_date', '')
     if shipment_date:
         shipment_date = datetime.datetime.strptime(shipment_date, "%m/%d/%Y")
-    status = request.POST.get('status', '')
     if not status:
         return HttpResponse('Status Missing')
     interm_qs = IntermediateOrders.objects.filter(id=interm_det_id)
@@ -3517,40 +3519,41 @@ def create_order_from_intermediate_order(request, user):
             interm_obj.save()
 
             return HttpResponse('Success, Order Already Created')
-        order_dict['user'] = wh_id
-        sku_id = get_syncedusers_mapped_sku(wh=wh_id, sku_id=interm_obj.sku.id)
-        order_dict['sku_id'] = sku_id
-        order_dict['title'] = interm_obj.sku.sku_desc
-        order_dict['sku_code'] = interm_obj.sku.sku_code
-        customer_user = CustomerUserMapping.objects.filter(user_id=interm_obj.customer_user.id)
-        if customer_user:
-            order_dict['customer_id'] = customer_user[0].customer.customer_id
-            order_dict['customer_name'] = customer_user[0].customer.name
-            order_dict['telephone'] = customer_user[0].customer.phone_number
-            order_dict['email_id'] = customer_user[0].customer.email_id
-            order_dict['address'] = customer_user[0].customer.address
-        else:
-            return HttpResponse('Failed')
-        order_dict['quantity'] = interm_obj.quantity
-        order_dict['order_code'] = 'MN'
-        order_dict['shipment_date'] = interm_obj.shipment_date
-        order_dict['order_id'] = get_order_id(wh_id)
-        order_dict['status'] = 1
-        ord_obj = OrderDetail(**order_dict)
-        ord_obj.save()
-        interm_obj.order_id = ord_obj.id
-        interm_obj.save()
-        cust_ord_dict = {'order_id': ord_obj.id, 'sgst_tax': interm_obj.sgst_tax, 'cgst_tax': interm_obj.cgst_tax,
-                         'igst_tax': interm_obj.igst_tax}
-        CustomerOrderSummary.objects.create(**cust_ord_dict)
+        if status != '0':
+            order_dict['user'] = wh_id
+            sku_id = get_syncedusers_mapped_sku(wh=wh_id, sku_id=interm_obj.sku.id)
+            order_dict['sku_id'] = sku_id
+            order_dict['title'] = interm_obj.sku.sku_desc
+            order_dict['sku_code'] = interm_obj.sku.sku_code
+            customer_user = CustomerUserMapping.objects.filter(user_id=interm_obj.customer_user.id)
+            if customer_user:
+                order_dict['customer_id'] = customer_user[0].customer.customer_id
+                order_dict['customer_name'] = customer_user[0].customer.name
+                order_dict['telephone'] = customer_user[0].customer.phone_number
+                order_dict['email_id'] = customer_user[0].customer.email_id
+                order_dict['address'] = customer_user[0].customer.address
+            else:
+                return HttpResponse('Failed')
+            order_dict['quantity'] = interm_obj.quantity
+            order_dict['order_code'] = 'MN'
+            order_dict['shipment_date'] = interm_obj.shipment_date
+            order_dict['order_id'] = get_order_id(wh_id)
+            order_dict['status'] = 1
+            ord_obj = OrderDetail(**order_dict)
+            ord_obj.save()
+            interm_obj.order_id = ord_obj.id
+            interm_obj.order_assigned_wh_id = wh_id
+            interm_obj.shipment_date = shipment_date
+            interm_obj.save()
+            cust_ord_dict = {'order_id': ord_obj.id, 'sgst_tax': interm_obj.sgst_tax, 'cgst_tax': interm_obj.cgst_tax,
+                             'igst_tax': interm_obj.igst_tax}
+            CustomerOrderSummary.objects.create(**cust_ord_dict)
     except:
         import traceback
         log.debug(traceback.format_exc())
         message = 'Failed'
     else:
         interm_obj.status = status
-        interm_obj.order_assigned_wh_id = wh_id
-        interm_obj.shipment_date = shipment_date
         interm_obj.save()
     return HttpResponse(message)
 

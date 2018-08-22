@@ -14,6 +14,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service = Service;
     vm.self_life_ratio = Number(vm.permissions.shelf_life_ratio) || 0;
     vm.industry_type = Session.user_profile.industry_type;
+    vm.user_type = Session.user_profile.user_type;
     vm.supplier_id = '';
     vm.order_id = 0;
     // vm.industry_type = 'FMCG';
@@ -136,6 +137,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 vm.service.apiCall('get_supplier_data/', 'GET', {supplier_id: aData['DT_RowId']}).then(function(data){
                   if(data.message) {
                     vm.serial_numbers = [];
+                    vm.skus_total_amount = 0;
                     angular.copy(data.data, vm.model_data);
                     vm.title = "Generate GRN";
                     if (vm.industry_type == 'FMCG') {
@@ -169,6 +171,43 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         });
         return nRow;
     }
+
+    $(document).on('keydown', 'input.detectTab', function(e) { 
+      var keyCode = e.keyCode || e.which; 
+
+      var fields_count = 0;
+      
+      if (vm.permissions.pallet_switch || vm.industry_type=='FMCG') {
+        fields_count = (this.closest('#tab_count').childElementCount-2);
+      } else {
+        fields_count = (this.closest('#tab_count').childElementCount-1);
+      }
+      
+      var cur_td_index = (this.parentElement.nextElementSibling.cellIndex);
+
+      if (this.closest('#tab_count').cells[0].children[1].tagName == 'UL') {
+
+        var sku_index = (this.closest('#tab_count').cells[0].children[2].value);
+      } else {
+
+        var sku_index = (this.closest('#tab_count').cells[0].children[1].value);
+      }
+
+
+      if ((keyCode == 9) && (fields_count === cur_td_index)) {
+        e.preventDefault();
+        vm.add_wms_code(Number(sku_index), false);
+      }
+    });
+
+    /*$(document).on('keydown', 'input.detectReceiveTab', function(e) { 
+      var keyCode = e.keyCode || e.which; 
+
+      if (keyCode == 9) { 
+        e.preventDefault();
+        vm.add_wms_code(Number(this.parentNode.children[1].value), false);
+      }
+    });*/
 
     $scope.getExpiryDate = function(index, parent_index){
         var mfg_date = new Date(vm.model_data.data[parent_index][index].mfg_date);
@@ -260,13 +299,26 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     
     vm.new_sku = false
     vm.add_wms_code = add_wms_code;
-    function add_wms_code() {
-      vm.model_data.data.push([{"wms_code":"", "po_quantity":0, "receive_quantity":0, "price":0, "dis": false,
-                                "order_id": '', "is_new": true, 'mrp': 0, "unit": "",
-                                "buy_price": 0, "cess_percent": 0, "tax_percent": 0, "total_amt": 0,
-                                "discount_percentage": 0,
-                                "sku_details": [{"fields": {"load_unit_handle": ""}}]}]);
-      //vm.new_sku = true
+    function add_wms_code(index=0, flag=true) {
+      if (index==vm.model_data.data.length-1 && !flag || !index && flag) {
+        if (flag) {
+
+          vm.model_data.data.push([{"wms_code":"", "po_quantity":0, "receive_quantity":"", "price":"", "dis": false,
+                                  "order_id": '', "is_new": true, 'mrp': 0, "unit": "",
+                                  "buy_price": "", "cess_percent": "", "tax_percent": "", "total_amt": "",
+                                  "discount_percentage": 0,
+                                  "sku_details": [{"fields": {"load_unit_handle": ""}}]}]);
+        } else {
+
+          $scope.$apply(function() {
+            vm.model_data.data.push([{"wms_code":"", "po_quantity":0, "receive_quantity":"", "price":"", "dis": false,
+                                    "order_id": '', "is_new": true, 'mrp': 0, "unit": "",
+                                    "buy_price": "", "cess_percent": "", "tax_percent": "", "total_amt": "",
+                                    "discount_percentage": 0,
+                                    "sku_details": [{"fields": {"load_unit_handle": ""}}]}]);
+          });
+        }
+      }
     }
     vm.get_sku_details = function(data, selected) {
 
@@ -356,6 +408,26 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.submit = submit;
     function submit(form) {
+      if (form.$valid) {
+
+        var abs_inv_value = vm.absOfInvValueTotal(vm.model_data.invoice_value, vm.skus_total_amount);
+        if (vm.permissions.receive_po_invoice_check && abs_inv_value <= 3){
+
+          vm.save_sku();
+        } else if (vm.permissions.receive_po_invoice_check && abs_inv_value >= 3) {
+
+          colFilters.showNoty("Your entered invoice value and total value does not match");
+        } else {
+
+          vm.save_sku();
+        }
+      } else {
+        colFilters.showNoty("Fill Required Fields");
+      }
+    }
+
+    vm.save_sku = function(){
+
       var data = [];
 
       for(var i=0; i<vm.model_data.data.length; i++)  {
@@ -365,9 +437,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           }
         });
       }
+
       data.push({name: 'remarks', value: vm.model_data.remarks});
       data.push({name: 'expected_date', value: vm.model_data.expected_date});
       data.push({name: 'remainder_mail', value: vm.model_data.remainder_mail});
+      data.push({name: 'invoice_number', value: vm.model_data.invoice_number});
+      data.push({name: 'invoice_date', value: vm.model_data.invoice_date});
       vm.service.apiCall('update_putaway/', 'GET', data, true).then(function(data){
         if(data.message) {
           if(data.data == 'Updated Successfully') {
@@ -380,6 +455,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       });
     }
 
+    vm.absOfInvValueTotal = function(inv_value, total_value){
+
+      return Math.abs(inv_value - total_value);
+    }
+
+    // vm.skus_total_amount 
+
     vm.html = "";
     vm.confirm_grn = function(form) {
       // var data = [];
@@ -389,44 +471,66 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       // data.push({name: 'exp_date', value: form.exp_date.$viewValue});
       // data.push({name: 'po_unit', value: form.po_unit.$viewValue});
       // data.push({name: 'tax_per', value: form.tax_per.$viewValue});
-    if(check_receive()){
-      var that = vm;
-      var elem = angular.element($('form'));
-      elem = elem[0];
+      if (vm.permissions.receive_po_invoice_check && vm.model_data.invoice_value){
 
-      var buy_price = parseInt($(elem).find('input[name="buy_price"]').val());
-      var mrp = parseInt($(elem).find('input[name="mrp"]').val());
+        var abs_inv_value = vm.absOfInvValueTotal(vm.model_data.invoice_value, vm.skus_total_amount);
 
-      if(buy_price > mrp) {
-        pop_msg("Buy Price should be less than or equal to MRP");
-        return false;
-      }
-      elem = $(elem).serializeArray();
-      var url = "confirm_grn/"
-      if(vm.po_qc) {
-        url = "confirm_receive_qc/"
-      }
-      vm.service.apiCall(url, 'POST', elem, true).then(function(data){
-        if(data.message) {
-          if(data.data.search("<div") != -1) {
-            vm.extra_width = {}
-            vm.html = $(data.data);
-            vm.extra_width = {}
-            //var html = $(vm.html).closest("form").clone();
-            //angular.element(".modal-body").html($(html).find(".modal-body"));
-            angular.element(".modal-body").html($(data.data));
-            vm.print_enable = true;
-            vm.service.refresh(vm.dtInstance);
-            if(vm.permissions.use_imei) {
-              fb.generate = true;
-              fb.remove_po(fb.poData["id"]);
-            }
-          } else {
-            pop_msg(data.data)
-          }
+        if (vm.permissions.receive_po_invoice_check && abs_inv_value <= 3){
+
+          vm.confirm_grn_api();
+        } else if (vm.permissions.receive_po_invoice_check && abs_inv_value >= 3) {
+
+          colFilters.showNoty("Your entered invoice value and total value does not match");
         }
-      });
-     }
+      } else if (vm.permissions.receive_po_invoice_check && !(vm.model_data.invoice_value)){
+
+        colFilters.showNoty("Please Fill The Invoice Value Field");
+      } else {
+
+        vm.confirm_grn_api();
+      }
+    }
+
+    vm.confirm_grn_api = function(){
+
+      if(check_receive()){
+        var that = vm;
+        var elem = angular.element($('form'));
+        elem = elem[0];
+
+        var buy_price = parseInt($(elem).find('input[name="buy_price"]').val());
+        var mrp = parseInt($(elem).find('input[name="mrp"]').val());
+
+        if(buy_price > mrp) {
+          pop_msg("Buy Price should be less than or equal to MRP");
+          return false;
+        }
+        elem = $(elem).serializeArray();
+        var url = "confirm_grn/"
+        if(vm.po_qc) {
+          url = "confirm_receive_qc/"
+        }
+        vm.service.apiCall(url, 'POST', elem, true).then(function(data){
+          if(data.message) {
+            if(data.data.search("<div") != -1) {
+              vm.extra_width = {}
+              vm.html = $(data.data);
+              vm.extra_width = {}
+              //var html = $(vm.html).closest("form").clone();
+              //angular.element(".modal-body").html($(html).find(".modal-body"));
+              angular.element(".modal-body").html($(data.data));
+              vm.print_enable = true;
+              vm.service.refresh(vm.dtInstance);
+              if(vm.permissions.use_imei) {
+                fb.generate = true;
+                fb.remove_po(fb.poData["id"]);
+              }
+            } else {
+              pop_msg(data.data)
+            }
+          }
+        });
+      }
     }
 
     function check_receive() {
@@ -900,20 +1004,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.barcode_title = 'Barcode Generation';
       vm.model_data['barcodes'] = [];
 
-      angular.forEach(vm.model_data.data, function(barcode_data){
-        var quant = barcode_data[0].po_quantity;
-        var sku_det = barcode_data[0].wms_code;
-        /*var list_of_sku = barcode_data[0].serial_number.split(',');
-        angular.forEach(list_of_sku, function(serial) {
-          console.log(vm.sku_det);
-          var serial_number = vm.sku_det+'/00'+serial;
-          vm.model_data['barcodes'].push({'sku_code': serial_number, 'quantity': 1})
-        })*/
-       vm.model_data['barcodes'].push({'sku_code': sku_det, 'quantity': quant})
-
-      })
-
-      vm.model_data['format_types'] = [];
+	  vm.model_data['format_types'] = [];
       var key_obj = {};//{'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details', 'Bulk Barcode': 'Details'};
       vm.service.apiCall('get_format_types/').then(function(data){
         $.each(data['data']['data'], function(ke, val){
@@ -921,7 +1012,22 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           });
           key_obj = data['data']['data'];
       });
-
+	  var elem = angular.element($('form'));
+      elem = elem[0];
+      elem = $(elem).serializeArray();
+      var list = [];
+      var dict = {};
+      $.each(elem, function(num, key){ 
+      	if(!dict.hasOwnProperty(key['name'])){
+        	dict[key['name']] = key['value'];
+      	}else{
+        	list.push(dict);
+         	dict = {}
+            dict[key['name']] = key['value'];
+      	}
+      });
+	  list.push(dict);
+	  vm.model_data['barcodes'] = list;
       vm.model_data.have_data = true;
       //$state.go('app.inbound.RevceivePo.barcode');
       var modalInstance = $modal.open({
@@ -1723,6 +1829,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     });
   }
 
+  vm.skus_total_amount = 0;
   vm.calc_total_amt = function(event, data, index, parent_index) {
       var sku_row_data = {};
       angular.copy(data.data[parent_index][index], sku_row_data);
@@ -1757,7 +1864,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             }
         }
       }
-
+      vm.skus_total_amount = totals;
       $('.totals').text('Totals: ' + totals);
     }
 }

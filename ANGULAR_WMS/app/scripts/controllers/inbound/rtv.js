@@ -13,25 +13,67 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.apply_filters = colFilters;
     vm.service = Service;
     vm.industry_type = Session.user_profile.industry_type;
-    vm.date = new Date();
+    // vm.date = new Date();
     vm.extra_width = {width:'1100px'};
 
-    vm.date_format_convert = function(utc_date){
-      var date = utc_date.toLocaleDateString();
-      var datearray = date.split("/");
-      vm.date = datearray[1] + '/' + datearray[0] + '/' + datearray[2];
+    function getOS() {
+      var userAgent = window.navigator.userAgent,
+          platform = window.navigator.platform,
+          macosPlatforms = ['Macintosh', 'MacIntel', 'MacPPC', 'Mac68K'],
+          windowsPlatforms = ['Win32', 'Win64', 'Windows', 'WinCE'],
+          iosPlatforms = ['iPhone', 'iPad', 'iPod'],
+          os = null;
+
+      if (macosPlatforms.indexOf(platform) !== -1) {
+        os = 'Mac OS';
+      } else if (iosPlatforms.indexOf(platform) !== -1) {
+        os = 'iOS';
+      } else if (windowsPlatforms.indexOf(platform) !== -1) {
+        os = 'Windows';
+      } else if (/Android/.test(userAgent)) {
+        os = 'Android';
+      } else if (!os && /Linux/.test(platform)) {
+        os = 'Linux';
+      }
+
+      return os;
     }
 
-    vm.date_format_convert(vm.date);
+    vm.date_format_convert = function(utc_date){
+
+      var os_type = getOS();
+
+      var date = utc_date.toLocaleDateString();
+      var datearray = date.split("/");
+
+      if (os_type == 'Windows') {
+
+        if (datearray[1] < 10 && datearray[1].length == 1) {
+          datearray[1] = '0'+datearray[1];
+        }
+
+        if (datearray[0] < 10 && datearray[0].length == 1) {
+          datearray[0] = '0'+datearray[0];
+        }
+
+        vm.date = datearray[0] + '/' + datearray[1] + '/' + datearray[2];
+      } else {
+        
+        vm.date = datearray[1] + '/' + datearray[0] + '/' + datearray[2];
+      }
+    }
+
+    vm.date_format_convert(new Date());
     vm.selected = {};
     vm.selectAll = false;
     vm.bt_disable = true;
     vm.conf_disable = false;
     vm.datatable = Data.datatable;
+    // vm.datatable = 'ReturnToVendor';
     vm.user_type = Session.user_profile.user_type;
 
-    vm.filters = {'datatable': vm.datatable, 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': ''
-                  , 'search5': '', 'search6': '', 'search7': ''};
+    vm.filters = {'datatable': 'ReturnToVendor', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': ''
+                  , 'search5': '', 'search6': '', 'search7': '', 'from_date': vm.date};
     
     vm.dtOptions = DTOptionsBuilder.newOptions()
      .withOption('ajax', {
@@ -61,14 +103,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
      .withOption('initComplete', function( settings ) {
        vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
      });
-
     vm.dtColumns = [
         DTColumnBuilder.newColumn('Supplier ID').withTitle('Supplier ID'),
         DTColumnBuilder.newColumn('Supplier Name').withTitle('Supplier Name'),
         DTColumnBuilder.newColumn('PO Number').withTitle('PO Number'),
         DTColumnBuilder.newColumn('PO Date').withTitle('PO Date'),
         DTColumnBuilder.newColumn('Invoice Number').withTitle('Invoice Number'),
+        DTColumnBuilder.newColumn('Challan Number').withTitle('Challan Number'),
         DTColumnBuilder.newColumn('Invoice Date').withTitle('Invoice Date'),
+        DTColumnBuilder.newColumn('Challan Date').withTitle('Challan Date'),
         DTColumnBuilder.newColumn('Total Quantity').withTitle('Total Quantity'),
         DTColumnBuilder.newColumn('Total Amount').withTitle('Total Amount'),
     ];
@@ -101,6 +144,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.close = close;
     function close() {
       $state.go('app.inbound.rtv');
+      vm.reloadData();
+      vm.empty_filter_fields();
+      vm.date_format_convert(new Date());
     }
 
     vm.create_rtv = function(){
@@ -128,6 +174,37 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           }
         });
       }
+    }
+
+    vm.reset_filters = function(){
+
+      vm.model_data['filters'] = {};
+      vm.model_data.filters['from_date'] = vm.date;
+      vm.model_data.filters['datatable'] = 'ReturnToVendor';
+    }
+
+    vm.empty_filter_fields = function(){
+
+
+      if (Data.rtv_filters) {
+
+        vm.model_data['filters'] = Data.rtv_filters;
+      } else {
+
+        vm.model_data['filters'] = {};
+        vm.model_data.filters['sku_code'] = '';
+        vm.model_data.filters['supplier_id'] = '';
+        vm.model_data.filters['from_date'] = vm.date;
+        vm.model_data.filters['to_date'] = '';
+        vm.model_data.filters['open_po'] = '';
+        vm.model_data.filters['invoice_number'] = '';
+        vm.model_data.filters['datatable'] = 'ReturnToVendor';
+      }
+    }
+
+    vm.saveFilters = function(filters){
+      Data.rtv_filters = filters;
+      vm.enable_dc_return = filters.enable_dc_returns;
     }
 
     //RTV Pop Data
@@ -234,11 +311,53 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       $timeout(function() {$scope.$apply();}, 1000);
     }
 
+    vm.save = save;
+    function save(form) {
+      vm.conf_disable = true;
+      var elem = [];
+      elem.push({'name': 'seller_id', 'value': vm.model_data.seller_details.seller_id});
+      elem.push({'name': 'enable_dc_returns', 'value': vm.enable_dc_return});
+
+      angular.forEach(vm.model_data.data, function(row){
+        angular.forEach(row, function(sku){
+          elem.push({'name': 'sku_code', 'value': sku.sku_code});
+          elem.push({'name': 'order_id', 'value': sku.order_id});
+          elem.push({'name': 'price', 'value': sku.price});
+          elem.push({'name': 'quantity', 'value': sku.quantity});
+          elem.push({'name': 'amount', 'value': sku.amount});
+          elem.push({'name': 'sku_desc', 'value': sku.sku_desc});
+          elem.push({'name': 'summary_id', 'value': sku.summary_id});
+          elem.push({'name': 'tax_percent', 'value': sku.tax_percent});
+          elem.push({'name': 'tax_value', 'value': sku.tax_value});
+          elem.push({'name': 'location', 'value': sku.location});
+          elem.push({'name': 'return_qty', 'value': sku.return_qty});
+          elem.push({'name': 'batch_no', 'value': sku.batch_no});
+          elem.push({'name': 'mrp', 'value': sku.mrp});
+        });
+      });
+
+      vm.service.apiCall('save_rtv/', 'POST', elem, true).then(function(data){
+        if(data.message) {
+          if(data.data == 'Saved Successfully') {
+
+            vm.close();
+            vm.service.refresh(vm.dtInstance);
+          }  else {
+            pop_msg(data.data)
+          }
+        } else {
+          pop_msg(data.data)
+        }
+        vm.conf_disable = false;
+      });
+    }
+
     vm.submit = submit;
     function submit(form) {
       vm.conf_disable = true;
       var elem = [];
       elem.push({'name': 'seller_id', 'value': vm.model_data.seller_details.seller_id});
+      elem.push({'name': 'enable_dc_returns', 'value': vm.enable_dc_return});
 
       angular.forEach(vm.model_data.data, function(row){
         angular.forEach(row, function(sku){

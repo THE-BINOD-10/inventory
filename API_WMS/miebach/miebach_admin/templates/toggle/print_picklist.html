@@ -34,6 +34,16 @@ $(document).ready(function(){
   </div>
 </div>
 {% endif %}
+
+<div class="row" style="padding-left: 2px;">
+  <div class="col-md-12">
+    <div class="col-md-6">
+      <span class="pull-left" style="float: left;"><b>Courier Name: <span>{{ courier_name }}</span></b></span>
+    </div>
+  </div>
+</div>
+
+
 <div class="row" style="padding-left: 2px;">
   <div class="col-md-12">
     <div class="col-md-6" ng-if="customer_name and not marketplace">
@@ -103,6 +113,10 @@ $(document).ready(function(){
         <td>{{ record.category }}</td>
         <td>{{ record.zone }}</td>
         <td>{{ record.location }}</td>
+        {% if fmcg_industry_type %}
+          <td>{{ record.batchno }}</td>
+          <td>{{ record.mrp }}</td>
+        {% endif %}
         <td>{{ record.reserved_quantity }}</td>
         <td></td>
       </tr>

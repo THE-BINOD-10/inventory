@@ -34,12 +34,20 @@
                       <input type="text" name="label" class="form-control" ng-model="barcode.label" ng-required="true">
                     </td>
                     <td ng-if="!barcode.label">
-                      <input type="text" name="wms_code" class="form-control" ng-model="barcode.sku_code">
+                      <input type="text" name="wms_code" class="form-control" ng-model="barcode.wms_code">
                     </td>
                     <td>
                       <input type="text" name="quantity" class="form-control" ng-model="barcode.quantity">
-                    </td>
-                    <td>
+                      <input type="hidden" name="mrp" value="{{barcode.mrp}}">
+                      <input type="hidden" name="price" value="{{barcode.price}}">
+                      <input type="hidden" name="tax_percent" value="{{barcode.tax_percent}}">
+                      <input type="hidden" name="unit" value="{{barcode.unit}}">
+                      <input type="hidden" name="weight" value="{{barcode.weight}}"> 
+                      <input type="hidden" name="cess_percent" value="{{barcode.cess_percent}}">
+                      <input type="hidden" name="exp_date" value="{{barcode.exp_date}}">
+                      <input type="hidden" name="buy_price" value="{{barcode.buy_price}}">
+                      <input type="hidden" name="batch_no" value="{{barcode.batch_no}}">
+                      <input type="hidden" name="mfg_date" value="{{barcode.mfg_date}}">
                       <i title="Remove Field" class="fa fa-minus-square-o" style="padding-left: 15px;"
                          ng-click="pop.model_data.barcodes.splice($index,1)"></i>
                     </td>

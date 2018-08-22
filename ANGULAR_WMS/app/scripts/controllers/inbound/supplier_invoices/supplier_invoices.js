@@ -10,6 +10,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
     vm.user_type = Session.roles.permissions.user_type;
+    vm.industry_type = Session.user_profile.industry_type;
 
     vm.selected = {};
     vm.checked_items = {};

@@ -103,6 +103,7 @@ urlpatterns = [
     url(r'^get_corporates/$', get_corporates),
     url(r'^corporate_mapping_data/$', corporate_mapping_data),
     url(r'^search_corporate_data/$', search_corporate_data),
+    url(r'^push_message_notification/$', push_message_notification),
 
     # Inbound
     url(r'^generated_po_data/$', generated_po_data),
@@ -120,6 +121,9 @@ urlpatterns = [
     url(r'^search_supplier/$', search_supplier),
     url(r'^search_vendor/$', search_vendor),
     url(r'^search_wms_codes/$', search_wms_codes),
+    url(r'^search_corporate_names/$', search_corporate_names),
+    url(r'^search_reseller_names/$', search_reseller_names),
+    url(r'^search_distributor_codes/$', search_distributor_codes),
     url(r'^get_supplier_data/$', get_supplier_data),
     url(r'^update_putaway/$', update_putaway),
     url(r'^close_po/$', close_po),
@@ -170,6 +174,8 @@ urlpatterns = [
     url(r'^po_update_payment_status/$', po_update_payment_status),
     url(r'^get_po_putaway_summary/$', get_po_putaway_summary),
     url(r'^create_rtv/$', create_rtv),
+    url(r'^save_rtv/$', save_rtv),
+    url(r'^get_saved_rtv_data/$', get_saved_rtv_data),
 
     # Production
     url(r'^generated_jo_data/$', generated_jo_data),
@@ -217,6 +223,7 @@ urlpatterns = [
     url(r'^confirm_sku_substitution/$', confirm_sku_substitution),
     url(r'^confirm_move_location_inventory/$', confirm_move_location_inventory),
     url(r'^get_sku_batches/$', get_sku_batches),
+    url(r'^inventory_adj_reasons/$', inventory_adj_reasons),
 
     # OutBound
     url(r'^batch_generate_picklist/$', batch_generate_picklist),
@@ -235,6 +242,7 @@ urlpatterns = [
     url('^insert_order_data/$', insert_order_data),
     url('^get_warehouses_list/$', get_warehouses_list),
     url('^create_stock_transfer/$', create_stock_transfer),
+    url('^stock_transfer_delete/$', stock_transfer_delete),
     url('^get_marketplaces_list/$', get_marketplaces_list),
     url('^generate_po_data/$', generate_po_data),
     url('^generate_jo_data/$', generate_jo_data),
@@ -309,6 +317,15 @@ urlpatterns = [
     url(r'^move_to_inv/$', move_to_inv),
     url(r'^update_dc/$', update_dc),
     url(r'^remove_sku/$', remove_sku),
+    url(r'^get_stock_transfer_order_details/$', get_stock_transfer_order_details),
+    url(r'^update_stock_transfer_data/$', update_stock_transfer_data),
+    url(r'^stock_transfer_generate_picklist/$', stock_transfer_generate_picklist),
+    url(r'^invoice_mark_delivered/$', invoice_mark_delivered),
+    url(r'^get_create_order_mapping_values/$', get_create_order_mapping_values),
+    url(r'^get_ratings_details/$', get_ratings_details),
+    url(r'^get_ratings_data_popup/$', get_ratings_data_popup),
+    url(r'^save_cutomer_ratings/$', save_cutomer_ratings),
+
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),
@@ -363,6 +380,31 @@ urlpatterns = [
     url(r'^print_purchase_order_form/$', print_purchase_order_form),
     url(r'^get_shipment_report/$', get_shipment_report),
     url(r'^print_shipment_report/$', print_shipment_report),
+    url(r'^get_dist_sales_report/$', get_dist_sales_report),
+    url(r'^print_dist_sales_report/$', print_dist_sales_report),
+    url(r'^get_reseller_sales_report/$', get_reseller_sales_report),
+    url(r'^print_reseller_sales_report/$', print_reseller_sales_report),
+    url(r'^get_zone_target_summary_report/$', get_zone_target_summary_report),
+    url(r'^print_zone_target_summary_report/$', print_zone_target_summary_report),
+    url(r'^get_zone_target_detailed_report/$', get_zone_target_detailed_report),
+    url(r'^print_zone_target_detailed_report/$', print_zone_target_detailed_report),
+    url(r'^get_dist_target_summary_report/$', get_dist_target_summary_report),
+    url(r'^print_dist_target_summary_report/$', print_dist_target_summary_report),
+    url(r'^get_dist_target_detailed_report/$', get_dist_target_detailed_report),
+    url(r'^print_dist_target_detailed_report/$', print_dist_target_detailed_report),
+    url(r'^get_reseller_target_summary_report/$', get_reseller_target_summary_report),
+    url(r'^print_reseller_target_summary_report/$', print_reseller_target_summary_report),
+    url(r'^get_reseller_target_detailed_report/$', get_reseller_target_detailed_report),
+    url(r'^print_reseller_target_detailed_report/$', print_reseller_target_detailed_report),
+    url(r'^get_corporate_target_report/$', get_corporate_target_report),
+    url(r'^print_corporate_target_report/$', print_corporate_target_report),
+    url(r'^get_corporate_reseller_mapping_report/$', get_corporate_reseller_mapping_report),
+    url(r'^print_corporate_reseller_mapping_report/$', print_corporate_reseller_mapping_report),
+    url(r'^get_enquiry_status_report/$', get_enquiry_status_report),
+    url(r'^print_enquiry_status_report/$', print_enquiry_status_report),
+    url(r'^get_rtv_report/$', get_rtv_report),
+    url(r'^print_rtv_report/$', print_rtv_report),
+    url(r'^print_debit_note/$', print_debit_note),
 ]
 
 # urlpatterns += patterns('rest_api.views',
@@ -419,6 +461,8 @@ urlpatterns += [
     url(r'^network_master_upload/$', network_master_upload),
     url(r'^sku_substitution_form/$', sku_substitution_form),
     url(r'^sku_substitution_upload/$', sku_substitution_upload),
+    url(r'^targets_form/$', targets_form),
+    url(r'^targets_upload/$', targets_upload),
 
     # configurations
     url(r'^configurations/$', configurations),
@@ -552,5 +596,8 @@ urlpatterns += [
     url(r'^GetSalesInvoices/', tally_api.get_sales_invoices),
     url(r'^GetSalesReturns/', tally_api.get_sales_returns),
     url(r'^GetPurchaseInvoices/', tally_api.get_purchase_invoice),
-    url(r'^GetPurchaseReturns/', tally_api.get_purchase_returns)
+    url(r'^GetPurchaseReturns/', tally_api.get_purchase_returns),
+
+    #WEB PUSH Notifications
+    #url(r'^webpush/', include('webpush.urls')),
 ]

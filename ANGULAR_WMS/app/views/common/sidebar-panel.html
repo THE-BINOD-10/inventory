@@ -146,6 +146,11 @@
             <span>Staff Master</span>
           </a>
         </li>
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin'">
+          <a ui-sref="app.masters.NotificationMaster">
+            <span>Notification Master</span>
+          </a>
+        </li>
       </ul>
     </li>
     <!-- /Masters -->
@@ -197,7 +202,7 @@
             <span>Seller Invoices</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="user.user_profile['user_type'] != 'marketplace_user' && show_tab('inbound_supplier_invoice')">
+        <li ui-sref-active="active" ng-show="show_tab('inbound_supplier_invoice')">
           <a ui-sref="app.inbound.SupplierInvoice">
             <span>Supplier Invoices</span>
           </a>
@@ -347,12 +352,16 @@
             <span>Customer Invoices</span>
           </a>
         </li>
-
         <li ui-sref-active="active" ng-show="user.userName == 'sagar_fab'">
           <a ui-sref="app.outbound.CreateCustomOrder">
             <span>Create Custom Order</span>
           </a>
         </li>
+        <li ui-sref-active="active" ng-if="permissions.mark_as_delivered">
+          <a ui-sref="app.outbound.Ratings">
+            <span>Ratings</span>
+          </a>
+        </li> 
       </ul>
     </li>
     <!-- /maps -->
@@ -503,6 +512,66 @@
         <li ui-sref-active="active">
           <a ui-sref="app.reports.ShipmentReport">
             <span>Shipment</span>
+          </a>
+        </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.reports.RTVReport">
+            <span>RTV</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || permissions.user_type == 'distributor'">
+          <a ui-sref="app.reports.DistributorWiseSalesReport">
+            <span>Distributor Sales</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || permissions.user_type == 'distributor'">
+          <a ui-sref="app.reports.ResellerWiseSalesReport">
+            <span>Reseller Sales</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin'">
+          <a ui-sref="app.reports.ZoneTargetSummaryReport">
+            <span>Zone Target Summary</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin'">
+          <a ui-sref="app.reports.ZoneTargetDetailedReport">
+            <span>Zone Target Detailed</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || permissions.user_type == 'distributor'">
+          <a ui-sref="app.reports.DistTargetSummaryReport">
+            <span>DBR Target Summary</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || permissions.user_type == 'distributor'">
+          <a ui-sref="app.reports.DistTargetDetailedReport">
+            <span>DBR Target Detailed</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || permissions.user_type == 'distributor'">
+          <a ui-sref="app.reports.ResellerTargetSummaryReport">
+            <span>Reseller Target Summary</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || permissions.user_type == 'distributor'">
+          <a ui-sref="app.reports.ResellerTargetDetailedReport">
+            <span>Reseller Target Detailed</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || permissions.user_type == 'distributor'">
+          <a ui-sref="app.reports.CorporateTargetReport">
+            <span>Corporate Target</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || permissions.user_type == 'distributor'">
+          <a ui-sref="app.reports.CorpResellerMappingReport">
+            <span>Corporate Reseller Mapping Report</span>
+          </a>
+        </li>
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || permissions.user_type == 'distributor'">
+          <a ui-sref="app.reports.EnquiryStatusReport">
+            <span>Enquiry Status Report</span>
           </a>
         </li>
       </ul>

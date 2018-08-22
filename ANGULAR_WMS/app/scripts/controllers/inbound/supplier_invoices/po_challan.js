@@ -12,6 +12,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
     vm.user_type = Session.roles.permissions.user_type;
+    vm.industry_type = Session.user_profile.industry_type;
 
     vm.selected = {};
     vm.checked_items = {};
@@ -77,7 +78,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       }
     });
 
-    vm.generate_invoice = function(click_type, DC='false'){
+    vm.generate_invoice = function(click_type, DC='false', move_to_inv='false'){
 
       var supplier_name = '';
       var status = false;
@@ -140,6 +141,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           if(data.message) {
             if(click_type == 'generate') {
               vm.pdf_data = data.data;
+	      vm.pdf_data["move_to_inv"] = move_to_inv;
               if(typeof(vm.pdf_data) == "string" && vm.pdf_data.search("print-invoice") != -1) {
                 $state.go("app.inbound.SupplierInvoice.InvoiceE");
                 $timeout(function () {
@@ -231,59 +233,40 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     } else {
 
       if (click_type == 'move_to_inv') {
-        vm.inv_number = '';
-        swal2({
-          title: 'Please enter invoice number',
-          text: '',
-          input: 'text',
-          confirmButtonColor: '#d33',
-          // cancelButtonColor: '#d33',
-          confirmButtonText: 'Confirm',
-          cancelButtonText: 'Cancel',
-          showLoaderOnConfirm: true,
-          inputOptions: 'Testing',
-          inputPlaceholder: 'Type Reason',
-          confirmButtonClass: 'btn btn-danger',
-          cancelButtonClass: 'btn btn-default',
-          showCancelButton: true,
-          preConfirm: function (text) {
-            return new Promise(function (resolve, reject) {
-              vm.inv_number = text;
-              if (text === "") {
-                $('.swal2-validationerror').remove();
-                vm.service.showNoty("Please enter proper invoice number");
-                $('.swal2-loading') = {};
-              }
-              resolve();
-            })
-          },
-          allowOutsideClick: false,
-          // buttonsStyling: false
-        }).then(function (text) {
-            /*swal2({
-              type: 'success',
-              title: 'Your entered invoice number saved!',
-              // html: 'Submitted text is: ' + text
-            }),*/
-            // $('.swal2-confirm').click(function(){
-              vm.move_to_api(click_type, data);
-            // })
-        });
+
+	vm.move_to_inv_data = data;
+	vm.generate_invoice('generate', 'true', 'true');
       } else {
         vm.move_to_api(click_type, data);
       }
     }
   };
 
+  vm.confirm_move_to_inv = function(){
+    if(!vm.inv_number || !vm.inv_date){
+      vm.service.showNoty("Please enter invoice number and invoice date");
+    } else{
+      vm.move_to_api("move_to_invoice/", vm.move_to_inv_data);
+    }
+  }
+
   vm.move_to_api = function(click_type, data){
     var send = data.join(",");
-    send = {data: send, inv_number: vm.inv_number}
+    send = {data: send, inv_number: vm.inv_number, inv_date: vm.inv_date}
     var url = click_type === 'cancel_poc' ? 'move_to_po_challan/' : 'move_to_invoice/';
     vm.bt_disable = true;
     vm.service.apiCall(url, "GET", send).then(function(data){
       if(data.message) {
-        console.log(data.message);
-        vm.reloadData();
+        console.log(data.data.message);
+        if(data.data.message == 'success'){
+          vm.invoice_number = '';
+          vm.invoice_date = '';
+          vm.close();
+          vm.reloadData();
+        }
+        else {
+          vm.service.showNoty(data.data.message);
+        }
       } else {
         vm.service.showNoty("Something went wrong while moving to po challan !!!");
       }

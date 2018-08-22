@@ -6,6 +6,9 @@ angular.module('urbanApp', ['datatables'])
 function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
     var vm = this;
     vm.service = Service;
+    vm.permissions = Session.roles.permissions;
+    vm.industry_type = Session.user_profile.industry_type;
+    vm.user_type=Session.user_profile.user_type;
     vm.selected = {};
     vm.selectAll = false;
 

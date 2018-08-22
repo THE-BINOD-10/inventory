@@ -227,7 +227,7 @@
               <div class="form-group">
                 <label class="control-label"> EAN Number </label>
                 <!-- <input type="text" name="ean_number" class="form-control" ng-model="showCase.model_data.sku_data.ean_number" decimal-number ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'"> -->
-                <div class="bootstrap-tagsinput">
+                <div class="bootstrap-tagsinput" ng-mouseover="showCase.addValidation()">
                   <input id="ean_numbers" class="ean_numbers" type="text" value="{{showCase.model_data.sku_data.ean_numbers}}" ui-jq="tagsInput"/>
                 </div>
               </div>

@@ -219,9 +219,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
                     vm.model_data.sku_data.ean_number = "";
                   }
-                  // if (vm.model_data.sku_data.ean_numbers) {
-                  //    $(".").importTags(vm.model_data.sku_data.ean_numbers);
-                  // }
                   $(".sales_return_reasons").importTags(vm.model_data.sales_return_reasons||'');
                   $state.go('app.masters.SKUMaster.update');
                  }
@@ -230,6 +227,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             });
         });
         return nRow;
+    }
+
+    vm.addValidation = function(){
+
+      $('.bootstrap-tagsinput').find('input').attr("autocomplete", "off").addClass('number valid');
     }
 
     vm.close = function() {

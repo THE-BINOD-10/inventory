@@ -671,49 +671,26 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.addNewScannedSku = function(event, field){
 
-      swal2({
-          title: "Scanned SKU Does Not Exist",
-          // text: "Do you want to map with existing SKU'S",
-          // input: 'text',
-          html: "<div id='swal2-content' class='swal2-content' style='display: block;'>Do you want to map with existing SKU'S</div>"+
-                "<input type='hidden' id='scanned_val' class='swal2-input' style='margin-bottom:0px' value='"+field+"'>"+
-                "<input type='text' id='map_sku_code' class='swal2-input' style='margin-bottom:0px' value=''>",
-          confirmButtonColor: '#2ecc71',
-          // cancelButtonColor: '#d33',
-          confirmButtonText: 'Map SKU',
-          cancelButtonText: 'Cancel',
-          showLoaderOnConfirm: true,
-          inputOptions: 'Testing',
-          inputPlaceholder: 'Scan SKU',
-          confirmButtonClass: 'btn btn-success',
-          cancelButtonClass: 'btn btn-default',
-          showCancelButton: true,
-          preConfirm: function (text) {
-            return new Promise(function (resolve, reject) {
-              var elem = {'ean_number': $('#scanned_val').val(), 'map_sku_code': $('#map_sku_code').val()};
-              vm.service.apiCall('map_ean_sku_code/', 'GET', elem, true).then(function(data){
-                if(data.message) {
-                  if(data.data.message == 'Success') {
-
-                    vm.scan_sku(event, field);
-                    swal2.closeModal();
-                  } else {
-
-                    Service.showNoty(data.data.message);
-                  }
-                }
-              });
-            })
-          },
-          allowOutsideClick: false,
-          // buttonsStyling: false
-      }).then(function (text) {
-          swal2({
-            type: 'success',
-            title: 'Your Scanned SKU Mapped Now!',
-            // html: 'Submitted text is: ' + text
-          })
+      vm.marginData = {scanned_val: field, map_sku_code: ''};   
+      var mod_data = vm.marginData;
+      var modalInstance = $modal.open({
+        templateUrl: 'views/inbound/toggle/add_new_sku.html',
+        controller: 'addNewSkuCtrl',
+        controllerAs: '$ctrl',
+        size: 'md',
+        backdrop: 'static',
+        keyboard: false,
+        resolve: {
+          items: function () {
+            return mod_data;
+          }
+        }
       });
+
+      modalInstance.result.then(function (selectedItem) {
+
+        console.log(selectedItem);
+      })
     }
 
     FUN.scan_sku = vm.scan_sku;
@@ -1889,3 +1866,40 @@ stockone.directive('dtPoData', function() {
 });
 
 })();
+
+angular.module('urbanApp').controller('addNewSkuCtrl', function ($modalInstance, $modal, items, Service, Data, Session) {
+  var $ctrl = this;
+  $ctrl.model_data = {};
+  angular.copy(items, $ctrl.model_data);
+  $ctrl.service = Service;
+  $ctrl.processing = false;
+  $("#map_sku_code").focus();
+  $ctrl.popup_dyn_style = {};
+
+  $ctrl.ok = function (form) {
+
+    if($ctrl.model_data.map_sku_code) {
+
+      $ctrl.processing = true;
+      var data = {ean_number: $ctrl.model_data.scanned_val, map_sku_code: $ctrl.model_data.map_sku_code};
+
+      Service.apiCall("map_ean_sku_code/", "GET", data).then(function(data) {
+
+        if(data.message) {
+
+          console.log(data.data.data);
+          $ctrl.close();
+        }
+        $ctrl.processing = false;
+      });
+    } else {
+
+      $ctrl.service.showNoty("Please Select SKU")
+    }
+  };
+
+  $ctrl.close = function () {
+
+    $modalInstance.dismiss('cancel');
+  };
+});

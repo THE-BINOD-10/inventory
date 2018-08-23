@@ -154,11 +154,17 @@ def add_user_permissions(request, response_data, user=''):
     status_dict = {1: 'true', 0: 'false'}
     multi_warehouse = 'false'
     user_profile = UserProfile.objects.get(user_id=user.id)
-    tax_type = CustomerUserMapping.objects.filter(user_id=request.user.id).values_list('customer__tax_type', flat=True)
+    cust_obj = CustomerUserMapping.objects.filter(user_id=request.user.id)
+    tax_type = cust_obj.values_list('customer__tax_type', flat=True)
     if tax_type:
         tax_type = tax_type[0]
     else:
         tax_type = ''
+    user_role = cust_obj.values_list('customer__role', flat=True)
+    if user_role:
+        user_role = user_role[0]
+    else:
+        user_role = ''
     request_user_profile = UserProfile.objects.get(user_id=request.user.id)
     show_pull_now = False
     integrations = Integrations.objects.filter(user=user.id, status=1)
@@ -178,6 +184,7 @@ def add_user_permissions(request, response_data, user=''):
     response_data['data']['parent'] = parent_data
     response_data['data']['roles'] = get_user_permissions(request, user)
     response_data['data']['roles']['tax_type'] = tax_type
+    response_data['data']['roles']['user_role'] = user_role
     response_data['data']['roles']['labels'] = get_label_permissions(request, user,
                                                                      response_data['data']['roles']['label_perms'],
                                                                      request_user_profile.user_type)
@@ -498,6 +505,7 @@ data_datatable = {  # masters
     'CustomerOrderView': 'get_order_view_data', 'CustomerCategoryView': 'get_order_category_view_data', \
     'CustomOrders': 'get_custom_order_data', \
     'ShipmentPickedAlternative': 'get_order_shipment_picked', 'CustomerInvoices': 'get_customer_invoice_data', \
+    'OrderApprovals': 'get_order_approval_statuses',
     'ProcessedOrders': 'get_processed_orders_data', 'DeliveryChallans': 'get_delivery_challans_data',
     'CustomerInvoicesTab': 'get_customer_invoice_tab_data', 'SellerOrderView': 'get_seller_order_view', \
     'StockTransferInvoice' : 'get_stock_transfer_invoice_data',
@@ -515,6 +523,7 @@ data_datatable = {  # masters
     'Targets': 'get_distributor_targets',
     #invoice based payment tracker
     'PaymentTrackerInvBased': 'get_inv_based_payment_data',
+    'OutboundPaymentReport': 'get_outbound_payment_report',
 }
 
 
@@ -2264,6 +2273,13 @@ def get_generic_order_id(customer_id):
 
     return gen_ord_id
 
+def get_approval_id(customer_id):
+    cust_cart_qs = ApprovingOrders.objects.filter(customer_user_id=customer_id).order_by('-approve_id')
+    cust_appr_id = 10001
+    if cust_cart_qs:
+        if cust_cart_qs[0].approve_id:
+            cust_appr_id = int(cust_cart_qs[0].approve_id) + 1
+    return cust_appr_id
 
 def get_intr_order_id(user_id):
     intr_ord_qs = IntransitOrders.objects.filter(user=user_id).order_by('-intr_order_id')
@@ -2581,6 +2597,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     show_imei_invoice = get_misc_value('show_imei_invoice', user.id)
     invoice_remarks = get_misc_value('invoice_remarks', user.id)
     show_disc_invoice = get_misc_value('show_disc_invoice', user.id)
+    show_mrp = get_misc_value('show_mrp', user.id)
 
     if len(invoice_remarks.split("<<>>")) > 1:
         invoice_remarks = invoice_remarks.split("<<>>")
@@ -2868,7 +2885,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'order_reference_date_field': order_reference_date_field,
                     'order_reference_date': order_reference_date, 'invoice_header': invoice_header,
                     'cin_no': cin_no, 'challan_no': challan_no, 'customer_id': customer_id,
-                    }
+                    'show_mrp': show_mrp}
     return invoice_data
 
 
@@ -3047,7 +3064,6 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         custom_margin = float(custom_margin)
     except:
         custom_margin = 0
-
     admin_user = get_priceband_admin_user(user)
     msp_min_price = msp_max_price = 0
     if admin_user and from_price and to_price:
@@ -3059,6 +3075,14 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     customer_data_id = request_data.get('customer_data_id', '')
     price_type = ''
     customer_id = ''
+
+    disp_sku_map = get_misc_value('display_sku_cust_mapping', user.id)
+    if disp_sku_map == 'true':
+        cust_mapped_skus = CustomerSKU.objects.filter(sku__user=user.id).values_list('sku_id', flat=True)
+        filtered_sku_master = SKUMaster.objects.exclude(sku_class='').filter(id__in=cust_mapped_skus)
+    else:
+        cust_mapped_skus = []
+        filtered_sku_master = SKUMaster.objects.exclude(sku_class='')
 
     price_field = get_price_field(user)
     customer_master, price_type, customer_data_id, customer_id = get_customer_and_price_type(request, user, customer_data_id, customer_id)
@@ -3121,25 +3145,26 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         if price_field == 'price':
             dis_percent = 0
             if customer_master:
-                dis_percent = customer_master[0].discount_percentage
-            sku_master1 = SKUMaster.objects.exclude(sku_class='').\
-                    annotate(n_price=F(price_field)*(1-(Value(dis_percent)/Value(100)))).annotate(
-                    new_price=F('n_price') + (F('n_price') / Value(100)) * Value(custom_margin)).\
-            filter(**filter_params).exclude(id__in=all_pricing_ids)
+                dis_percent = customer_master.discount_percentage
+            sku_master1 = filtered_sku_master.annotate(
+                n_price=F(price_field) * (1 - (Value(dis_percent) / Value(100)))).annotate(
+                new_price=F('n_price') + (F('n_price') / Value(100)) * Value(custom_margin))\
+                .filter(**filter_params).exclude(id__in=all_pricing_ids)
         else:
             markup = 0
             if customer_master:
-                markup = customer_master[0].markup
-            sku_master1 = SKUMaster.objects.exclude(sku_class='').\
-                annotate(n_price=F(price_field) * (1+(Value(markup) / Value(100)))).\
-                annotate(new_price=F('n_price') + (F('n_price') / Value(100)) * Value(custom_margin)). \
-            filter(**filter_params).exclude(id__in=all_pricing_ids)
+                markup = customer_master.markup
+            sku_master1 = filtered_sku_master.annotate(
+                n_price=F(price_field) * (1 + (Value(markup) / Value(100)))).annotate(
+                new_price=F('n_price') + (F('n_price') / Value(100)) * Value(custom_margin))\
+                .filter(**filter_params).exclude(id__in=all_pricing_ids)
         if filter_params.has_key('new_price__lte'):
             del filter_params['new_price__lte']
         if filter_params.has_key('new_price__gte'):
             del filter_params['new_price__gte']
-        sku_master2 = SKUMaster.objects.exclude(sku_class='').filter(
-                sku_code__in=pricemaster.values_list('sku__sku_code', flat=True)).filter(**filter_params)
+
+        sku_master2 = filtered_sku_master.filter(
+            sku_code__in=pricemaster.values_list('sku__sku_code', flat=True)).filter(**filter_params)
         sku_master = sku_master1 | sku_master2
         sku_prices = dict(sku_master.only('id', 'new_price').values_list('id', 'new_price'))
         pricemaster_prices = dict(pricemaster.only('sku_id', 'new_price').values_list('sku_id', 'new_price'))
@@ -3150,26 +3175,29 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         if price_field == 'price':
             dis_percent = 0
             if customer_master:
-                dis_percent = customer_master[0].discount_percentage
-            sku_master1 = SKUMaster.objects.exclude(sku_class='').\
-                            annotate(n_price=F(price_field)*(1-(Value(dis_percent)/Value(100)))).\
-                            annotate(new_price=F('n_price') + Value(custom_margin)).\
-                            filter(**filter_params).exclude(id__in=all_pricing_ids)
+                dis_percent = customer_master.discount_percentage
+            sku_master1 = filtered_sku_master.annotate(
+                n_price=F(price_field) * (1 - (Value(dis_percent) / Value(100)))).annotate(
+                new_price=F('n_price') + Value(custom_margin))\
+                .filter(**filter_params).exclude(id__in=all_pricing_ids)
         else:
             markup = 0
             if customer_master:
-                markup = customer_master[0].markup
-            sku_master1 = SKUMaster.objects.exclude(sku_class='').\
-                            annotate(n_price=F(price_field)*(1+(Value(markup)/Value(100)))).\
-                            annotate(new_price=F('n_price') + Value(custom_margin)).\
-                            filter(**filter_params).exclude(id__in=all_pricing_ids)
+                markup = customer_master.markup
+            sku_master1 = filtered_sku_master.annotate(
+                n_price=F(price_field) * (1 + (Value(markup) / Value(100)))).annotate(
+                new_price=F('n_price') + Value(custom_margin))\
+                .filter(**filter_params).exclude(id__in=all_pricing_ids)
 
         if filter_params.has_key('new_price__lte'):
             del filter_params['new_price__lte']
         if filter_params.has_key('new_price__gte'):
             del filter_params['new_price__gte']
-        sku_master2 = SKUMaster.objects.exclude(sku_class='').filter(
-            id__in=pricemaster.values_list('sku_id', flat=True)).filter(**filter_params)
+        if cust_mapped_skus:
+            sku_master2 = SKUMaster.objects.exclude(sku_class='').filter(id__in=cust_mapped_skus)
+        else:
+            sku_master2 = SKUMaster.objects.exclude(sku_class='')
+        sku_master2 = sku_master2.filter(id__in=pricemaster.values_list('sku_id', flat=True)).filter(**filter_params)
         sku_master = sku_master1 | sku_master2
         sku_prices = dict(sku_master.only('id', 'new_price').values_list('id', 'new_price'))
         pricemaster_prices = dict(pricemaster.only('sku_id', 'new_price').values_list('sku_id', 'new_price'))
@@ -4940,7 +4968,10 @@ def update_seller_order(seller_order_dict, order, user):
 
 
 def get_invoice_html_data(invoice_data):
+    show_mrp = invoice_data.get('show_mrp', 'false')
     data = {'totals_data': {'label_width': 6, 'value_width': 6}, 'columns': 10, 'emty_tds': [], 'hsn_summary_span': 3}
+    if show_mrp == 'true':
+        data['columns'] = 11
     if invoice_data.get('invoice_remarks', '') not in ['false', '']:
         data['totals_data']['label_width'] = 4
         data['totals_data']['value_width'] = 8

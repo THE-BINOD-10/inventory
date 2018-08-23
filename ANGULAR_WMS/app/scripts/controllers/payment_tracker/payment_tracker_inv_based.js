@@ -158,7 +158,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.invoice_update = function(form){
 
     var elem = angular.element($('form'));
-    elem = elem[0];
+    elem = elem[1];
     elem = $(elem).serializeArray();
     elem.push({'name':'invoice_number', 'value':Data.invoice_data.invoice_number});
 

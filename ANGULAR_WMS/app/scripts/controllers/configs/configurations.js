@@ -342,6 +342,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       class_name: "glyphicon glyphicon-sort",
       display: true
     },
+    {
       name: "Auto Raise Stock Transfer Enable/Disable",
       model_name: "auto_raise_stock_transfer",
       param_no: 62,

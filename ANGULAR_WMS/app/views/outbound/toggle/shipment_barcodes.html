@@ -1,0 +1,70 @@
+<div id="page-pop">
+  <form name="barcodes" role="form" ui-jq="validate" ui-options="validationOpt">
+    <div class="model-custom">
+      <div class="mw60">
+        <div ng-include="'views/common/loader.html'"></div>
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="pop.ok()"><span aria-hidden="true">&times;</span> </button>
+          <h4 class="modal-title">Barcodes</h4>
+        </div>
+        <!-- body-->
+        <div class="modal-body">
+          <div class="form-group col-md-4">
+            <label class="control-label"> PDF Format</label>
+            <select class="form-control col-md-3" name="pdf_format">
+              <option ng-repeat="format in pop.model_data.format_types" value="{{format}}">{{format}}</option>
+            </select>
+            <input type="hidden" name="order_id" value="{{pop.model_data.po_id}}">
+          </div>
+          <div class="row">
+            <div class="col-md-12">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th ng-if="pop.model_data.barcodes[0].label">Label Code</th>
+                    <th ng-if="!pop.model_data.barcodes[0].label">SKU Code</th>
+                    <th>Quantity </th>
+                 </tr>
+                </thead>
+                <tbody>
+                  <tr ng-repeat="barcode in pop.model_data.barcodes">
+                    <td ng-if="barcode.label">
+                      <input type="hidden" name="wms_code" class="form-control" value="{{barcode.wms_code}}">
+                      <input type="text" name="Label" class="form-control" ng-model="barcode.label" ng-required="true">
+                    </td>
+                    <td ng-if="!barcode.label">
+                      <input type="text" name="wms_code" class="form-control" ng-model="barcode.sku_code">
+                    </td>
+                    <td>
+                      <input type="text" name="quantity" class="form-control" ng-model="barcode.shipping_quantity">
+                      <input type="hidden" name="Shipment Number" value="{{barcode.shipment_number}}">
+                      <input type="hidden" name="Shipment Date" value="{{barcode.shipment_date}}">
+                      <input type="hidden" name="Truck Number" value="{{barcode.truck_number}}">
+                      <input type="hidden" name="Invoice Number" value="{{barcode.invoice_number}}">
+                      <input type="hidden" name="Pack Reference" value="{{barcode.package_reference}}">
+                      <input type="hidden" name="Courier Name" value="{{barcode.courier_name}}">
+                      <input type="hidden" name="Shipment Reference" value="{{barcode.shipment_reference}}">
+                      <input type="hidden" name="Customer Name" value="{{ barcode.customer_name}}">
+                      <input type="hidden" name="Customer Id" value="{{ barcode.customer_id}}">
+                    </td>
+
+                    <td>
+                      <i title="Remove Field" class="fa fa-minus-square-o" style="padding-left: 15px;"
+                         ng-click="pop.model_data.barcodes.splice($index,1)"></i>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <div class="form-group" style="margin-bottom:0px;">
+            <button type="submit" class="btn pop pop-green" ng-disabled="pop.model_data.barcodes.length == 0" ng-click="pop.generate_barcodes(barcodes)">Generate Barcodes
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

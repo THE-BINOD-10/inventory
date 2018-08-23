@@ -14,6 +14,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service = Service;
     vm.self_life_ratio = Number(vm.permissions.shelf_life_ratio) || 0;
     vm.industry_type = Session.user_profile.industry_type;
+    vm.user_type = Session.user_profile.user_type;
+    vm.supplier_id = '';
+    vm.order_id = 0;
     // vm.industry_type = 'FMCG';
 
     //default values
@@ -96,7 +99,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         $(elem).removeClass('fa-plus-square');
         $(elem).removeClass();
         $(elem).addClass('glyphicon glyphicon-refresh glyphicon-refresh-animate');
-        Service.apiCall('get_receive_po_style_view/?order_id='+data['PO No'].split("_")[1]).then(function(resp){
+        vm.order_id = data['PO No'].split("_")[1];
+        Service.apiCall('get_receive_po_style_view/?order_id='+vm.order_id).then(function(resp){
           if (resp.message){
 
             if(resp.data.status) {
@@ -128,21 +132,31 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         $(row_click_bind, nRow).unbind('click');
         $(row_click_bind, nRow).bind('click', function() {
             $scope.$apply(function() {
+              // vm.supplier_id = aData['DT_RowId'];
+                vm.supplier_id = aData['Supplier ID/Name'].split('/')[0];
                 vm.service.apiCall('get_supplier_data/', 'GET', {supplier_id: aData['DT_RowId']}).then(function(data){
                   if(data.message) {
                     vm.serial_numbers = [];
+                    vm.skus_total_amount = 0;
                     angular.copy(data.data, vm.model_data);
                     vm.title = "Generate GRN";
                     if (vm.industry_type == 'FMCG') {
                       vm.extra_width = {
-                        'width': '1250px'
+                        'width': '1400px'
                       };
                     } else {
                       vm.extra_width = {};
                     }
                     vm.shelf_life = vm.model_data.data[0][0].shelf_life;
-                    vm.model_data.data[0][0].mrp = 0;
-                    console.log('MRP is: '+vm.model_data.data[0][0].mrp);
+
+                    angular.forEach(vm.model_data.data, function(row){
+                      angular.forEach(row, function(sku){
+                        sku['buy_price'] = sku.price;
+                        sku['discount_percentage'] = 0;
+                      });
+                    });
+
+                    console.log('MRP is: '+vm.model_data.data[0][0].buy_price);
                     if(vm.permissions.use_imei) {
                       fb.push_po(vm.model_data);
                     }
@@ -158,17 +172,70 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         return nRow;
     }
 
-    vm.check_exp_date = function(sel_date, shelf_life_ratio){
-      var mfg_date = new Date(vm.model_data.data[0][0].mfg_date);
+    $(document).on('keydown', 'input.detectTab', function(e) { 
+      var keyCode = e.keyCode || e.which; 
+
+      var fields_count = 0;
+      
+      if (vm.permissions.pallet_switch || vm.industry_type=='FMCG') {
+        fields_count = (this.closest('#tab_count').childElementCount-2);
+      } else {
+        fields_count = (this.closest('#tab_count').childElementCount-1);
+      }
+      
+      var cur_td_index = (this.parentElement.nextElementSibling.cellIndex);
+
+      if (this.closest('#tab_count').cells[0].children[1].tagName == 'UL') {
+
+        var sku_index = (this.closest('#tab_count').cells[0].children[2].value);
+      } else {
+
+        var sku_index = (this.closest('#tab_count').cells[0].children[1].value);
+      }
+
+
+      if ((keyCode == 9) && (fields_count === cur_td_index)) {
+        e.preventDefault();
+        vm.add_wms_code(Number(sku_index), false);
+      }
+    });
+
+    /*$(document).on('keydown', 'input.detectReceiveTab', function(e) { 
+      var keyCode = e.keyCode || e.which; 
+
+      if (keyCode == 9) { 
+        e.preventDefault();
+        vm.add_wms_code(Number(this.parentNode.children[1].value), false);
+      }
+    });*/
+
+    $scope.getExpiryDate = function(index, parent_index){
+        var mfg_date = new Date(vm.model_data.data[parent_index][index].mfg_date);
+        var expiry = new Date(mfg_date.getFullYear(),mfg_date.getMonth(),mfg_date.getDate()+vm.shelf_life);
+        vm.model_data.data[parent_index][index].exp_date = (expiry.getMonth() + 1) + "/" + expiry.getDate() + "/" + expiry.getFullYear() ;
+        $('.mfgDate').each(function(){
+            if($(this).val() != ""){
+                var mfg_date = new Date($(this).val());
+                var expiry = new Date(mfg_date.getFullYear(),mfg_date.getMonth(),mfg_date.getDate()+vm.shelf_life);
+                var response = (expiry.getMonth() + 1) + "/" + expiry.getDate() + "/" + expiry.getFullYear() ;
+                $(this).parent().next().find('.expiryDatePicker').datepicker("setDate", response);
+            }
+        });
+
+
+    }
+
+    vm.check_exp_date = function(sel_date, shelf_life_ratio, index, parent_index){
+      var mfg_date = new Date(vm.model_data.data[parent_index][index].mfg_date);
       var exp_date = new Date(sel_date);
 
-      if (exp_date < mfg_date && vm.model_data.data[0][0].mfg_date) {
+      if (exp_date < mfg_date && vm.model_data.data[parent_index][index].mfg_date) {
         Service.showNoty('Your selected date is less than manufacturer date.');
-        vm.model_data.data[0][0].exp_date = '';
-      } else if(!vm.model_data.data[0][0].mfg_date){
+        vm.model_data.data[parent_index][index].exp_date = '';
+      } else if(!vm.model_data.data[parent_index][index].mfg_date){
 
         Service.showNoty('Please choose manufacturer date first');
-        vm.model_data.data[0][0].exp_date = '';
+        vm.model_data.data[parent_index][index].exp_date = '';
       } else {
         if (vm.shelf_life && shelf_life_ratio) {
           var res_days = (vm.shelf_life * (shelf_life_ratio / 100));
@@ -186,7 +253,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             
           } else {
             Service.showNoty('Please choose proper date');
-            vm.model_data.data[0][0].exp_date = '';
+            vm.model_data.data[parent_index][index].exp_date = '';
           }
         }
       }
@@ -223,7 +290,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           new_dic.batch_no = "";
           new_dic.manf_date = "";
           new_dic.exp_date = "";
-          new_dic.tax_percent = "";
           data.push(new_dic);
         } else {
           data.splice(index,1);
@@ -233,32 +299,150 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     
     vm.new_sku = false
     vm.add_wms_code = add_wms_code;
-    function add_wms_code() {
-      vm.model_data.data.push([{"wms_code":"", "po_quantity":"", "receive_quantity":"", "price":"", "dis": false,
-                                "order_id": vm.model_data.data[0][0].order_id, is_new: true, "unit": "",
-                                "sku_details": [{"fields": {"load_unit_handle": ""}}]}]);
-      //vm.new_sku = true
+    function add_wms_code(index=0, flag=true) {
+      if (index==vm.model_data.data.length-1 && !flag || !index && flag) {
+        if (flag) {
+
+          vm.model_data.data.push([{"wms_code":"", "po_quantity":0, "receive_quantity":"", "price":"", "dis": false,
+                                  "order_id": '', "is_new": true, 'mrp': 0, "unit": "",
+                                  "buy_price": "", "cess_percent": "", "tax_percent": "", "total_amt": "",
+                                  "discount_percentage": 0,
+                                  "sku_details": [{"fields": {"load_unit_handle": ""}}]}]);
+        } else {
+
+          $scope.$apply(function() {
+            vm.model_data.data.push([{"wms_code":"", "po_quantity":0, "receive_quantity":"", "price":"", "dis": false,
+                                    "order_id": '', "is_new": true, 'mrp': 0, "unit": "",
+                                    "buy_price": "", "cess_percent": "", "tax_percent": "", "total_amt": "",
+                                    "discount_percentage": 0,
+                                    "sku_details": [{"fields": {"load_unit_handle": ""}}]}]);
+          });
+        }
+      }
     }
     vm.get_sku_details = function(data, selected) {
 
-      data.sku_details[0].fields.load_unit_handle = selected.load_unit_handle;
       data.wms_code = selected.wms_code;
+      data.measurement_unit = selected.measurement_unit;
+      data.sku_desc = selected.sku_desc;
+      data.po_quantity = 0;
+      data.price = 0;
+      if (Number(selected.mrp)) {
+        data.mrp = selected.mrp;
+      } else {
+        data.mrp = 0;
+      }
+      data.description = selected.sku_desc;
+      data.tax_percent = 0;
+      data.cess_percent = 0;
+      data.discount_percentage = 0;
+
+      data.sku_details[0].fields.load_unit_handle = selected.load_unit_handle;
       $timeout(function() {$scope.$apply();}, 1000);
+
+      if (!vm.supplier_id){
+        return false;
+      } else {
+        var supplier = vm.supplier_id;
+        vm.service.apiCall('get_mapping_values/', 'GET', {'wms_code':data.wms_code, 'supplier_id': supplier}).then(function(resp){
+          if(Object.values(resp).length) {
+            data.price = resp.data.price;
+            data.supplier_code = resp.data.supplier_code;
+            data.ean_number = resp.data.ean_number;
+            data.buy_price = resp.data.price;
+
+            data.row_price = (Number(data.value) * Number(data.price));
+            vm.getTotals();
+          }
+        });
+        vm.get_supplier_sku_prices(data.wms_code).then(function(sku_data){
+            sku_data = sku_data[0];
+            data.tax_type = sku_data.tax_type.replace(" ","_").toLowerCase();
+            // data.tax_type = 'intra_state';
+
+            // data["taxes"] = [];
+            // data.taxes.push({'cgst_tax':0.25, 'sgst_tax':0.25, 'cess_tax': 5});
+            data["taxes"] = sku_data.taxes;
+            vm.get_tax_value(data);
+        })
+      }
     }
+
+    vm.get_supplier_sku_prices = function(sku) {
+
+       var d = $q.defer();
+       var data = {sku_codes: sku, suppli_id: vm.supplier_id}
+       // var data = {sku_codes: sku, suppli_id: 825}
+       vm.service.apiCall("get_supplier_sku_prices/", "POST", data).then(function(data) {
+
+         if(data.message) {
+           d.resolve(data.data);
+         }
+       });
+       return d.promise;
+    }
+
+    vm.get_tax_value = function(sku_data) {
+
+     var tax = 0;
+     for(var i = 0; i < sku_data.taxes.length; i++) {
+
+       // if(sku_data.fields.price <= sku_data.taxes[i].max_amt && sku_data.fields.price >= sku_data.taxes[i].min_amt) {
+
+         if(sku_data.tax_type == "intra_state") {
+
+           tax = sku_data.taxes[i].sgst_tax + sku_data.taxes[i].cgst_tax;
+           sku_data.cess_percent = sku_data.taxes[i].cess_tax;
+         } else if (sku_data.tax_type == "inter_state") {
+
+           sku_data.cess_percent = sku_data.taxes[i].cess_tax;
+           tax = sku_data.taxes[i].igst_tax;
+         }
+         break;
+       // }
+     }
+
+     sku_data.tax_percent = tax;
+     return tax;
+   }
 
     vm.submit = submit;
     function submit(form) {
+      if (form.$valid) {
+
+        var abs_inv_value = vm.absOfInvValueTotal(vm.model_data.invoice_value, vm.skus_total_amount);
+        if (vm.permissions.receive_po_invoice_check && abs_inv_value <= 3){
+
+          vm.save_sku();
+        } else if (vm.permissions.receive_po_invoice_check && abs_inv_value >= 3) {
+
+          colFilters.showNoty("Your entered invoice value and total value does not match");
+        } else {
+
+          vm.save_sku();
+        }
+      } else {
+        colFilters.showNoty("Fill Required Fields");
+      }
+    }
+
+    vm.save_sku = function(){
+
       var data = [];
 
       for(var i=0; i<vm.model_data.data.length; i++)  {
-        var temp = vm.model_data.data[i][0];
-        if(!temp.is_new) {
-          data.push({name: temp.order_id, value: temp.value});
-        }
+        angular.forEach(vm.model_data.data[i], function(sku){
+          if(!sku.is_new) {
+            data.push({name: sku.order_id, value: sku.value});
+          }
+        });
       }
+
       data.push({name: 'remarks', value: vm.model_data.remarks});
       data.push({name: 'expected_date', value: vm.model_data.expected_date});
       data.push({name: 'remainder_mail', value: vm.model_data.remainder_mail});
+      data.push({name: 'invoice_number', value: vm.model_data.invoice_number});
+      data.push({name: 'invoice_date', value: vm.model_data.invoice_date});
       vm.service.apiCall('update_putaway/', 'GET', data, true).then(function(data){
         if(data.message) {
           if(data.data == 'Updated Successfully') {
@@ -271,6 +455,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       });
     }
 
+    vm.absOfInvValueTotal = function(inv_value, total_value){
+
+      return Math.abs(inv_value - total_value);
+    }
+
+    // vm.skus_total_amount 
+
     vm.html = "";
     vm.confirm_grn = function(form) {
       // var data = [];
@@ -280,46 +471,78 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       // data.push({name: 'exp_date', value: form.exp_date.$viewValue});
       // data.push({name: 'po_unit', value: form.po_unit.$viewValue});
       // data.push({name: 'tax_per', value: form.tax_per.$viewValue});
+      if (vm.permissions.receive_po_invoice_check && vm.model_data.invoice_value){
 
-     if(check_receive()){
-      var that = vm;
-      var elem = angular.element($('form'));
-      elem = elem[0];
-      elem = $(elem).serializeArray();
-      var url = "confirm_grn/"
-      if(vm.po_qc) {
-        url = "confirm_receive_qc/"
-      }
-      vm.service.apiCall(url, 'POST', elem, true).then(function(data){
-        if(data.message) {
-          if(data.data.search("<div") != -1) {
-            vm.extra_width = {}
-            vm.html = $(data.data);
-            //var html = $(vm.html).closest("form").clone();
-            //angular.element(".modal-body").html($(html).find(".modal-body"));
-            angular.element(".modal-body").html($(data.data));
-            vm.print_enable = true;
-            vm.service.refresh(vm.dtInstance);
-            if(vm.permissions.use_imei) {
-              fb.generate = true;
-              fb.remove_po(fb.poData["id"]);
-            }
-          } else {
-            pop_msg(data.data)
-          }
+        var abs_inv_value = vm.absOfInvValueTotal(vm.model_data.invoice_value, vm.skus_total_amount);
+
+        if (vm.permissions.receive_po_invoice_check && abs_inv_value <= 3){
+
+          vm.confirm_grn_api();
+        } else if (vm.permissions.receive_po_invoice_check && abs_inv_value >= 3) {
+
+          colFilters.showNoty("Your entered invoice value and total value does not match");
         }
-      });
-     }
+      } else if (vm.permissions.receive_po_invoice_check && !(vm.model_data.invoice_value)){
+
+        colFilters.showNoty("Please Fill The Invoice Value Field");
+      } else {
+
+        vm.confirm_grn_api();
+      }
+    }
+
+    vm.confirm_grn_api = function(){
+
+      if(check_receive()){
+        var that = vm;
+        var elem = angular.element($('form'));
+        elem = elem[0];
+
+        var buy_price = parseInt($(elem).find('input[name="buy_price"]').val());
+        var mrp = parseInt($(elem).find('input[name="mrp"]').val());
+
+        if(buy_price > mrp) {
+          pop_msg("Buy Price should be less than or equal to MRP");
+          return false;
+        }
+        elem = $(elem).serializeArray();
+        var url = "confirm_grn/"
+        if(vm.po_qc) {
+          url = "confirm_receive_qc/"
+        }
+        vm.service.apiCall(url, 'POST', elem, true).then(function(data){
+          if(data.message) {
+            if(data.data.search("<div") != -1) {
+              vm.extra_width = {}
+              vm.html = $(data.data);
+              vm.extra_width = {}
+              //var html = $(vm.html).closest("form").clone();
+              //angular.element(".modal-body").html($(html).find(".modal-body"));
+              angular.element(".modal-body").html($(data.data));
+              vm.print_enable = true;
+              vm.service.refresh(vm.dtInstance);
+              if(vm.permissions.use_imei) {
+                fb.generate = true;
+                fb.remove_po(fb.poData["id"]);
+              }
+            } else {
+              pop_msg(data.data)
+            }
+          }
+        });
+      }
     }
 
     function check_receive() {
       var status = false;
       for(var i=0; i<vm.model_data.data.length; i++)  {
-        if(vm.model_data.data[i][0].value > 0) {
-          status = true;
-          break;
-        }
+        angular.forEach(vm.model_data.data[i], function(sku){
+          if(sku.value > 0) {
+            status = true;
+          }
+        });
       }
+
       if(status){
         return true;
       } else {
@@ -410,7 +633,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 } else {
 
                   for(var i=0; i<vm.model_data.data.length; i++) {
-                    var temp = vm.model_data.data[i][0]
+                    var temp = vm.model_data.data[i][0];
                     if(temp.wms_code == sku_code) {
                       if(vm.po_qc) {
                         vm.current_index = i;
@@ -442,28 +665,39 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               if (vm.permissions.use_imei) {
                 vm.sku_list_1 = [];
                 for(var i=0; i<vm.model_data.data.length; i++) {
-                  vm.sku_list_1.push(vm.model_data.data[i][0]["wms_code"]);
-                  if(vm.field == vm.model_data.data[i][0]["wms_code"]){
-                    $("input[attr-name='imei_"+vm.field+"']").trigger('focus');
-                  }
+                  
+                  angular.forEach(vm.model_data.data[i], function(sku){
+                  
+                    vm.sku_list_1.push(sku.wms_code);
+                    if(vm.field == sku.wms_code){
+                      $("input[attr-name='imei_"+vm.field+"']").trigger('focus');
+                    }
+                  });
                 }
+
+
+
                 if (vm.sku_list_1.indexOf(vm.field) == -1){
                   Service.showNoty(field+" Does Not Exist");
                 }
               } else {
                 vm.sku_list_1 = [];
                 for(var i=0; i<vm.model_data.data.length; i++) {
-                  vm.sku_list_1.push(vm.model_data.data[i][0]["wms_code"]);
-                  if(vm.field == vm.model_data.data[i][0]["wms_code"]){
-                    if(vm.model_data.data[i][0].value < vm.model_data.data[i][0].po_quantity) {
-                      vm.model_data.data[i][0]["value"] = Number(vm.model_data.data[i][0]["value"]) + 1;
-                    } else {
-                       Service.showNoty("Received Quantity Equal To PO Quantity");
+                  
+                  angular.forEach(vm.model_data.data[i], function(sku){
+                  
+                    vm.sku_list_1.push(sku.wms_code);
+                    if(vm.field == sku.wms_code){
+                      if(sku.value < sku.po_quantity) {
+                        sku["value"] = Number(sku["value"]) + 1;
+                      } else {
+                         Service.showNoty("Received Quantity Equal To PO Quantity");
+                      }
+                      $('textarea[name="scan_sku"]').trigger('focus').val('');
                     }
-                    $('textarea[name="scan_sku"]').trigger('focus').val('');
-                  }
+                  });
                 }
-                if (vm.sku_list_1.indexOf(field) == -1){
+                if (vm.sku_list_1.indexOf(vm.field) == -1){
                   Service.showNoty(field+" Does Not Exist");
                 }
               }
@@ -770,20 +1004,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.barcode_title = 'Barcode Generation';
       vm.model_data['barcodes'] = [];
 
-      angular.forEach(vm.model_data.data, function(barcode_data){
-        var quant = barcode_data[0].po_quantity;
-        var sku_det = barcode_data[0].wms_code;
-        /*var list_of_sku = barcode_data[0].serial_number.split(',');
-        angular.forEach(list_of_sku, function(serial) {
-          console.log(vm.sku_det);
-          var serial_number = vm.sku_det+'/00'+serial;
-          vm.model_data['barcodes'].push({'sku_code': serial_number, 'quantity': 1})
-        })*/
-       vm.model_data['barcodes'].push({'sku_code': sku_det, 'quantity': quant})
-
-      })
-
-      vm.model_data['format_types'] = [];
+	  vm.model_data['format_types'] = [];
       var key_obj = {};//{'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details', 'Bulk Barcode': 'Details'};
       vm.service.apiCall('get_format_types/').then(function(data){
         $.each(data['data']['data'], function(ke, val){
@@ -791,7 +1012,22 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           });
           key_obj = data['data']['data'];
       });
-
+	  var elem = angular.element($('form'));
+      elem = elem[0];
+      elem = $(elem).serializeArray();
+      var list = [];
+      var dict = {};
+      $.each(elem, function(num, key){ 
+      	if(!dict.hasOwnProperty(key['name'])){
+        	dict[key['name']] = key['value'];
+      	}else{
+        	list.push(dict);
+         	dict = {}
+            dict[key['name']] = key['value'];
+      	}
+      });
+	  list.push(dict);
+	  vm.model_data['barcodes'] = list;
       vm.model_data.have_data = true;
       //$state.go('app.inbound.RevceivePo.barcode');
       var modalInstance = $modal.open({
@@ -1567,9 +1803,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       $state.go($state.current, {}, {reload: true});
   }
 
-  vm.preview = function(order_detail_id) {
-
-    var data = {order_id: order_detail_id};
+  vm.preview = function(order_detail_id, flag=false) {
+    if (flag) {
+      var data = {order_id: vm.order_id};
+    } else {
+      var data = {order_id: order_detail_id};
+    }
     vm.service.apiCall("get_view_order_details/", "GET", data).then(function(data){
 
       var all_order_details = data.data.data_dict[0].ord_data;
@@ -1589,6 +1828,45 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       });
     });
   }
+
+  vm.skus_total_amount = 0;
+  vm.calc_total_amt = function(event, data, index, parent_index) {
+      var sku_row_data = {};
+      angular.copy(data.data[parent_index][index], sku_row_data);
+      if(sku_row_data.buy_price == ''){
+        sku_row_data.buy_price = 0;
+      }
+      if(sku_row_data.value == ''){
+        sku_row_data.value = 0;
+      }
+      if(sku_row_data.tax_percent == ''){
+        sku_row_data.tax_percent = 0;
+      }
+      if(sku_row_data.cess_percent == ''){
+        sku_row_data.cess_percent = 0;
+      }
+      if(sku_row_data.discount_percentage == ''){
+        sku_row_data.discount_percentage = 0;
+      }
+
+      var total_amt = Number(sku_row_data.value)*Number(sku_row_data.buy_price);
+      var total_amt_dis = Number(total_amt) * Number(sku_row_data.discount_percentage) / 100;
+      var tot_tax = Number(sku_row_data.tax_percent) + Number(sku_row_data.cess_percent);
+      var wo_tax_amt = Number(total_amt)-Number(total_amt_dis);
+      data.data[parent_index][index].total_amt = wo_tax_amt + (wo_tax_amt * (tot_tax/100));
+
+      var totals = 0;
+      for(var index in data.data) {
+        var rows = data.data[index];
+        for (var d in rows) {
+            if(!isNaN(rows[d]['total_amt'])) {
+                totals += rows[d]['total_amt'];
+            }
+        }
+      }
+      vm.skus_total_amount = totals;
+      $('.totals').text('Totals: ' + totals);
+    }
 }
 
 stockone.directive('dtPoData', function() {

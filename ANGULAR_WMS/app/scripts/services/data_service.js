@@ -12,6 +12,10 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
                       style_view: false
                     }
 
+  self.payment_based_invoice = {
+                                  style_view: true
+                                }
+
   /*** Production Data ***/
 
   // Receive Job Order
@@ -30,19 +34,29 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
                          stock_2d: false,
                          view: 'StockSummary',
                          tb_headers: {'StockSummary': ['WMS Code', 'Product Description', 'SKU Brand', 'SKU Category', 'Available Quantity',
-                                                       'Reserved Quantity', 'Total Quantity', 'Unit of Measurement'],
+                                                       'Reserved Quantity', 'Total Quantity', 'Unit of Measurement', 'Stock Value'],
                                       'StockSummaryAlt':['SKU Class', 'Style Name', 'Brand', 'SKU Category']},
                          size_type: 'DEFAULT'
                        }
   //WareHouse stock
-  self.stock_view = {
 
+  self.stock_view = {
                       views: ['Available', 'Available+Intransit', 'Total'],
                       view: 'Available',
                       levels: [1,2],
                       level: 1
                     }
 
+  self.warehouse_alternative_stock_view = {
+                        views: ['Available', 'Reserved', 'Total'],
+                        view: 'Available',
+                        levels: [1,2],
+                        level: 1
+                      }
+
+  self.warehouse_toggle_value = false;
+
+  self.warehouse_view = self.stock_view;
 
   /*** Outbound **/
 
@@ -131,8 +145,11 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
                             alternate_view: false,
                             view: 'normalView',
                             tb_headers: {'normalView': ['Order ID', 'WMS Code', 'Description', 'Location', 'Quantity', 'Picked Quantity', 'Date', 'Time'],
-                                         'serialView': ['Order ID', 'WMS Code', 'Description', 'Customer Name', 'Serial Number', 'Date', 'Time']}
+                                         'serialView': ['Order ID', 'WMS Code', 'Description', 'Customer Name', 'Serial Number', 'Date', 'Time'],
+                                         'customerView': ['Customer ID', 'Customer Name', 'WMS Code', 'Description', 'Quantity', 'Picked Quantity']}
                          }
+
+    self.dispatch_summary_view_types = [{ 'name' : 'Order View', 'value' : 'normalView'}, { 'name' : 'Serial Number View', 'value' : 'serialView'}, { 'name' : 'Customer View', 'value' : 'customerView'}]
 
     if(Session.roles.permissions['batch_switch']) {
 
@@ -153,6 +170,10 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
     self.shipment_number = '';
     self.categories = [];
     self.sub_categories = [];
+    self.invoice_data = {};
+    self.datatable = 'ReturnToVendor';
+    self.seller_types = [];
+    self.rtv_filters = {};
 
     /** login page maintainance **/
     self.login_data = {

@@ -45,7 +45,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 angular.copy(aData, vm.model_data);
                 vm.update = true;
                 vm.title = "Update Supplier SKU";
-                $state.go('app.masters.supplierSKUMapping.mapping');
+                $state.go('app.masters.sourceSKUMapping.mapping');
             });
         });
         return nRow;
@@ -66,7 +66,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.close = function() {
 
     angular.copy(empty_data, vm.model_data);
-    $state.go('app.masters.supplierSKUMapping');
+    $state.go('app.masters.sourceSKUMapping');
   }
 
   // open popup for new supplier sku mapping
@@ -76,7 +76,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     angular.copy(empty_data, vm.model_data);
     vm.update = false;
     get_suppliers();
-    $state.go('app.masters.supplierSKUMapping.mapping');
+    $state.go('app.masters.sourceSKUMapping.mapping');
   }
 
   vm.submit = function(data) {

@@ -6,7 +6,8 @@ function Picklist($scope, $http, $state, $timeout, Session, colFilters, Service,
   vm.state_data = items;
   vm.service = Service;
   vm.permissions = Session.roles.permissions;
-
+  vm.industry_type = Session.user_profile.industry_type;
+  vm.user_type=Session.user_profile.user_type;
   vm.model_data = {};
   vm.status_data = {message:"cancel", data:{}}
 
@@ -165,7 +166,7 @@ function view_orders() {
 
   vm.print_excel = print_excel;
   function print_excel(id)  {
-    vm.service.apiCall('print_picklist_excel/','GET',{data_id: id}).then(function(data){
+    vm.service.apiCall('print_picklist_excel/','GET',{data_id: id, 'display_order_id' : vm.display_order_id}).then(function(data){
       if(data.message) {
         window.location = Session.host+data.data.slice(3);
       }
@@ -174,7 +175,7 @@ function view_orders() {
 
   vm.print_pdf = print_pdf;
   function print_pdf(id) {
-    vm.service.apiCall('print_picklist/','GET',{data_id: id}).then(function(data){
+    vm.service.apiCall('print_picklist/','GET',{data_id: id, 'display_order_id' : vm.display_order_id}).then(function(data){
       if(data.message) {
         var picklist_number = $($.parseHTML(data.data)).find("input").val()
         if (picklist_number) {

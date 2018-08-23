@@ -22,7 +22,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'increment_invoice': false, 'create_shipment_type': false, 'auto_allocate_stock': false,
                     'generic_wh_level': false, 'auto_confirm_po': false, 'create_order_po': false, 'shipment_sku_scan': false,
                     'disable_brands_view': false, 'sellable_segregation': false, 'display_styles_price': false,
-                    'display_sku_cust_mapping': false, 'disable_categories_view': false, 'is_portal_lite': false
+                    'display_sku_cust_mapping': false, 'disable_categories_view': false, 'is_portal_lite': false,
+                    'invoice_based_payment_tracker': false, 'receive_po_invoice_check': false,
+                    'auto_raise_stock_transfer': false, 'inbound_supplier_invoice': false, 'customer_dc': false,
+                    'mark_as_delivered': false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -39,7 +42,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      48: 'priceband_sync', 49: 'generic_wh_level', 50: 'auto_confirm_po', 51: 'create_order_po',
                      52: 'calculate_customer_price', 53: 'shipment_sku_scan', 54: 'disable_brands_view',
                      55: 'sellable_segregation', 56: 'display_styles_price', 57: 'show_purchase_history',
-                     58: 'shelf_life_ratio', 59: 'display_sku_cust_mapping',  60: 'disable_categories_view', 61: 'is_portal_lite'}
+                     58: 'shelf_life_ratio', 59: 'display_sku_cust_mapping',  60: 'disable_categories_view', 61: 'is_portal_lite',
+                     62: 'auto_raise_stock_transfer', 63: 'inbound_supplier_invoice',
+                     64: 'customer_dc', 65: 'auto_expire_enq_limit', 66: 'invoice_based_payment_tracker', 67: 'receive_po_invoice_check',
+                     68: 'mark_as_delivered'}
 
   vm.check_box_data = [
     {
@@ -336,6 +342,47 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       class_name: "glyphicon glyphicon-sort",
       display: true
     },
+      name: "Auto Raise Stock Transfer Enable/Disable",
+      model_name: "auto_raise_stock_transfer",
+      param_no: 62,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+      name: "Supplier Invoice Enable/Disable",
+      model_name: "inbound_supplier_invoice",
+      param_no: 63,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+      name: "Customer DC Enable/Disable",
+      model_name: "customer_dc",
+      param_no: 64,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+     name: "Invoice Based Payment Tracker Enable/Disable",
+     model_name: "invoice_based_payment_tracker",
+     param_no: 66,
+     class_name: "fa fa-server",
+     display: true
+    },
+    {
+     name: "Check Invoice Value In Receive PO",
+     model_name: "receive_po_invoice_check",
+     param_no: 67,
+     class_name: "fa fa-server",
+     display: true
+    },
+    {
+     name: "Enable Ratings",
+     model_name: "mark_as_delivered",
+     param_no: 68,
+     class_name: "fa fa-server",
+     display: true
+    }
 ]
 
   vm.empty = {};
@@ -387,6 +434,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
 
   vm.switches = switches;
   function switches(value, switch_num) {
+    if(vm.switch_names[switch_num] === "auto_raise_stock_transfer" && vm.model_data["auto_po_switch"]) {
+      value = false;
+      vm.model_data[vm.switch_names[switch_num]] = value;
+      Service.showNoty("Auto PO & Auto Raise Stock Transfer can't be enabled simultaneously", 'warning');
+      return
+    }
+    if(vm.switch_names[switch_num] === "auto_po_switch" && vm.model_data["auto_raise_stock_transfer"]) {
+      value = false;
+      vm.model_data[vm.switch_names[switch_num]] = value;
+      Service.showNoty("Auto PO & Auto Raise Stock Transfer can't be enabled simultaneously", 'warning');
+      return
+    }
     vm.service.apiCall("switches/?"+vm.switch_names[switch_num]+"="+String(value)).then(function(data){
       if(data.message) {
         Service.showNoty(data.data);
@@ -481,7 +540,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       $(".stages").importTags(vm.model_data.all_stages);
       $(".extra_view_order_status").importTags(vm.model_data.extra_view_order_status);
       $(".invoice_types").importTags(vm.model_data.invoice_types);
-      $(".mode_of_transport").importTags(vm.model_data.mode_of_transport);
+      $(".mode_of_transport").importTags(vm.model_data.mode_of_transport||'');
+      $(".sales_return_reasons").importTags(vm.model_data.sales_return_reasons||'');
       if (vm.model_data.invoice_titles) {
         $(".titles").importTags(vm.model_data.invoice_titles);
       }
@@ -560,6 +620,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
   vm.update_mode_of_transport = function() {
     var data = $(".mode_of_transport").val();
     vm.service.apiCall("switches?mode_of_transport="+data).then(function(data){
+      if(data.message) {
+        msg = data.data;
+        $scope.showNoty();
+        Auth.status();
+      }
+    });
+  }
+
+  vm.update_sales_return_reasons = function() {
+    var data = $(".sales_return_reasons").val();
+    vm.service.apiCall("switches?sales_return_reasons="+data).then(function(data){
       if(data.message) {
         msg = data.data;
         $scope.showNoty();

@@ -533,6 +533,57 @@ h1 small {
 .order_level {
   height: 22px !important;
 }
+/*These styles belong to  inbound/SalesReturns -- ReturnProcess -->SKU Code popUp page*/
+.main_header {
+  display: block;
+}
+.model_head {
+  left: -10%;
+  width: 105%;
+}
+.model_body {
+  overflow: hidden;
+}
+.tx_field {
+  width: 200px;
+}
+.in_header {
+  overflow-x: auto;
+}
+.mp_field,
+.mf_field,
+.ex_field {
+  width: 10px;
+}
+.table_hea {
+  width: 80px;
+}
+.or_divi {
+  width: 40px;
+}
+.order_field {
+  width: 85px;
+}
+.sku_field {
+  width: 55px;
+}
+.mrp_field {
+  width: 45px;
+}
+.ig_ifield,
+.ig_ifieldg,
+.ig_ifieldh,
+.unitp_field {
+  width: 50px;
+}
+.mfd_field,
+.exp_field {
+  width: 90px;
+}
+#warehouse_stock_alternate_view {
+  padding: 15px;
+  text-align: center;
+}
 body {
   background: #fff;
 }
@@ -751,7 +802,7 @@ select.error {
   width: 170px;
 }
 .sidebar-panel > nav .open > ul.sub-menu {
-  max-height: 800px;
+  max-height: 1500px;
 }
 .reports .dataTables_filter {
   display: none;
@@ -896,8 +947,8 @@ rm-blur:active {
 }
 /* loading */
 .glyphicon-refresh-animate {
-  -animation: spin .7s infinite linear;
-  -webkit-animation: spin2 .7s infinite linear;
+  -animation: spin 0.7s infinite linear;
+  -webkit-animation: spin2 0.7s infinite linear;
 }
 @-webkit-keyframes spin2 {
   from {

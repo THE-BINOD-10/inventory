@@ -249,6 +249,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                   record.igst = data.data[0].taxes[i].igst_tax;
                   record.cgst = data.data[0].taxes[i].cgst_tax;
                   record.sgst = data.data[0].taxes[i].sgst_tax;
+                  record.cess = data.data[0].taxes[i].cess_tax;
                   break;
                 }
               }
@@ -256,6 +257,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               record.igst = 0;
               record.cgst = 0;
               record.sgst = 0;
+              record.cess = 0;
             }
           }
         }
@@ -290,6 +292,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             var all_order_details = data.data.data_dict[0].ord_data;
             vm.ord_status = data.data.data_dict[0].status;
             vm.invoice_type = data.data.data_dict[0].invoice_type;
+            vm.courier_name = data.data.data_dict[0].courier_name;
             vm.display_status_none = (vm.ord_status=="")?true:false;
 
             vm.model_data = {}
@@ -339,6 +342,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             vm.sgst = value.sgst_tax;
             vm.cgst = value.cgst_tax;
             vm.igst = value.igst_tax;
+            vm.cess = value.cess_tax;
             vm.taxes = value.taxes;
             vm.order_charges = value.order_charges;
             vm.client_name = value.client_name;
@@ -362,10 +366,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 	            var img_url = custom_data[0][3];
 	            vm.img_url = vm.service.check_image_url(img_url)
 	          }*/
-
+              
               var record = vm.model_data.data.push({item_code: vm.item_code, product_title: vm.product_title, quantity: vm.quantity,
               image_url: vm.img_url, remarks: vm.remarks, unit_price: vm.unit_price, taxes: vm.taxes,
-              discount_per: vm.discount_per, sgst:vm.sgst, cgst:vm.cgst, igst:vm.igst, default_status: true, sku_status: value.sku_status})
+              discount_per: vm.discount_per, sgst:vm.sgst, cgst:vm.cgst, igst:vm.igst, cess:vm.cess,default_status: true, sku_status: value.sku_status})
               var record = vm.model_data.data[index]
               vm.changeInvoiceAmt(record);
               index++;
@@ -402,6 +406,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               data.igst = data.taxes[i].igst_tax;
               data.cgst = data.taxes[i].cgst_tax;
               data.sgst = data.taxes[i].sgst_tax;
+              data.cess = data.taxes[i].cess_tax;
               break;
             }
           }
@@ -409,10 +414,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           data.igst = 0;
           data.cgst = 0;
           data.sgst = 0;
+          data.cess = 0;
         }
       }
       
-      var tax = Number(data.sgst)+Number(data.cgst)+Number(data.igst);
+      var tax = Number(data.sgst)+Number(data.cgst)+Number(data.igst) + Number(data.cess);
 
       data.discount = discount_amt;
       data.invoice_amount = (invoice_amount_dis + (invoice_amount_dis*tax)/100);
@@ -860,7 +866,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
   }
 
   vm.add_order = function() {
-
     $state.go("app.outbound.ViewOrders.CreateOrder");
   }
 

@@ -109,7 +109,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
           cancelButtonText: 'Cancel',
           showLoaderOnConfirm: true,
           inputOptions: 'Testing',
-          inputPlaceholder: 'Type Reason',
+          inputPlaceholder: 'Enter Carton',
           confirmButtonClass: 'btn btn-success',
           cancelButtonClass: 'btn btn-default',
           showCancelButton: true,
@@ -122,13 +122,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
           allowOutsideClick: false,
           // buttonsStyling: false
         }).then(function (text) {
-            swal2({
-              type: 'success',
-              title: 'Carton Code Added!',
-              // html: 'Submitted text is: ' + text
-            }), $('.swal2-confirm').click(function(){
-              $('#scan_sku').focus();
-            });
+            $('#scan_sku').focus();
+            // swal2({
+            //   type: 'success',
+            //   title: 'Carton Code Added!',
+            //   // html: 'Submitted text is: ' + text
+            // })
         });
     }
 
@@ -160,10 +159,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
         var data = []
         var order_ids = [];
         var mk_places = [];
+        var cust_details = {}
       	angular.forEach(vm.selected, function(key,value){
           if(key) {
             var temp = table[Number(value)]['order_id']
             var temp2 = table[Number(value)]['Marketplace']
+            cust_details['cust_name'] = table[Number(value)]['Customer Name']
+            cust_details['cust_id'] = table[Number(value)]['Customer ID']
+            cust_details['order_id'] = temp
+            cust_details['marketplace'] = temp2
 	        data.push({ name: "order_id", value: temp})
 	        if(order_ids.indexOf(temp) == -1) {
               order_ids.push(temp);
@@ -173,7 +177,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
 	        }
           }
       	});
-
+        vm.model_data['cust_details'] = cust_details;
         if(order_ids.length == 0) {
           vm.service.showNoty("Please Select Orders First");
           vm.bt_disable = false;
@@ -200,7 +204,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
               vm.service.showNoty(data.data.status);
             } else {
               vm.customer_details = (vm.model_data.customer_id) ? true: false;
-              angular.copy(data.data, vm.model_data);
+              angular.extend(vm.model_data, data.data);
               angular.forEach(vm.model_data.data, function(temp) {
 
                 var shipping_quantity = (vm.mk_user || vm.permissions.shipment_sku_scan)? 0 : temp.picked;
@@ -321,6 +325,67 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
       }
     }
   }
+
+  vm.print_barcodes  = function() {
+      vm.barcode_title = 'Barcode Generation';
+      vm.model_data['barcodes'] = [];
+
+	  vm.model_data['format_types'] = [];
+      var key_obj = {};//{'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details', 'Bulk Barcode': 'Details'};
+      vm.service.apiCall('get_format_types/').then(function(data){
+        $.each(data['data']['data'], function(ke, val){
+          vm.model_data['format_types'].push(ke);
+          });
+          key_obj = data['data']['data'];
+      });
+	  var elem = angular.element($('#add-customer'));
+      elem = elem[0];
+      elem = $(elem).serializeArray();
+      var list = [];
+      var dict = {};
+      var onetime_data = {};
+      var masters = ['courier_name', 'invoice_number', 'scan_sku', 'shipment_date', 'shipment_number',
+                    'shipment_reference', 'truck_number', 'view_name', 'cust_name', 'customer_name',
+                    'customer_id', 'package_reference'];
+      $.each(elem, function(num, key){
+        if(masters.indexOf(key['name']) != -1){
+            onetime_data[key['name']] = key['value'];
+        }
+      	if(!dict.hasOwnProperty(key['name'])){
+        	dict[key['name']] = key['value'];
+      	}else{
+            angular.extend(dict, onetime_data)
+        	list.push(dict);
+         	dict = {}
+            dict[key['name']] = key['value'];
+      	}
+      });
+      if(dict.hasOwnProperty('sku_code')){
+          angular.extend(dict, onetime_data)
+	      list.push(dict);
+      }
+	  vm.model_data['barcodes'] = list;
+      vm.model_data.have_data = true;
+      //$state.go('app.inbound.RevceivePo.barcode');
+      var modalInstance = $modal.open({
+        templateUrl: 'views/outbound/toggle/shipment_barcodes.html',
+        controller: 'Barcodes',
+        controllerAs: 'pop',
+        size: 'lg',
+        backdrop: 'static',
+        keyboard: false,
+        windowClass: 'z-2021',
+        resolve: {
+          items: function () {
+            return vm.model_data;
+          }
+        }
+      });
+
+      modalInstance.result.then(function (selectedItem) {
+        console.log(selectedItem);
+      }); 
+    }
 
   vm.add_shipment = function(valid) {
     if(valid.$valid) {
@@ -570,42 +635,39 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
     }
 
     vm.cartonPrintData = {};
-    vm.print_pdf = function(form){
+    vm.print_pdf = function(form, excel=false) {
       if (vm.model_data.sel_cartons) {
         var sel_cartons_len = Object.keys(vm.model_data.sel_cartons);
         var sel_cartons = JSON.stringify(vm.model_data.sel_cartons);
-        
         var total_items = 0;
         angular.forEach(vm.model_data.sel_cartons, function(row){ 
           total_items += row; 
         });
-
         var elem = angular.element($('#add-customer'));
         elem = elem[0];
         elem = $(elem).serializeArray();
         elem.push({'name':'sel_cartons', 'value':sel_cartons});
         elem.push({'name':'total_cartons', 'value':sel_cartons_len.length});
         elem.push({'name':'total_items', 'value':total_items});
+        if (excel) {
+          elem.push({'name':'is_excel', 'value': true});
+        }
         vm.service.apiCall("print_cartons_data/", "POST", elem).then(function(data) {
           if(data.message) {
-
-            if(data.data.search("<div") != -1) {
-
-              vm.service.print_data(data.data, 'Packaging Slip');
-
+            if (excel) {
+              $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";
+              window.location = Session.host+data.data.path;
             } else {
-              vm.service.pop_msg(data.data);
+              if(data.data.search("<div") != -1) {
+                vm.service.print_data(data.data, 'Packaging Slip');
+              } else {
+                vm.service.pop_msg(data.data);
+              }
             }
           }
-
         });
       } else {
         vm.service.showNoty("No cartons codes are entered");
       }
     }
-
-    // vm.get_carton_info = function(carton){
-    //   alert(carton);
-    // }
-
   }

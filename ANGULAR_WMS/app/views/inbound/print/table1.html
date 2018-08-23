@@ -1,0 +1,92 @@
+    <thead>
+      <tr class="rm-padding">
+        <th><center>SKU Code</center></th>
+        <th><center>Description</center></th>
+        <th><center>Qty</center></th>
+        <th ng-if="permissions.show_mrp">MRP</center></th>
+        <th><center>Rate</center></th>
+        <!-- <th><center>Disc</center></th> -->
+        <th><center>{{(showCase.pdf_data.tax_type)?showCase.pdf_data.tax_type: 'Tax'}}(%)</center></th>
+        <th><center>Tax</center></th>
+        <th><center>Total</center></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="rm-padding rm-brdr" ng-repeat="record in showCase.pdf_data.data">
+        <td style="text-align: left;">
+        {{record.sku_code}}
+        </td>
+        <td style="text-align: left;">
+        {{record.title}}
+        </td>
+        <td>{{record.quantity}}</td>
+        <td ng-if="permissions.show_mrp">{{record.amt | number:2}}</td>
+        <td>{{record.unit_price | number:2}}</td>
+        <!-- <td>{{record.discount}}</td> -->
+        <td>{{(record.taxes.cgst_tax) + (record.taxes.sgst_tax) + (record.taxes.igst_tax)}}</td>
+        <td>{{(record.taxes.cgst_amt) + (record.taxes.sgst_amt) + (record.taxes.igst_amt) | number:2}}</td>
+        <td>{{record.invoice_amount | number:2}}</td> 
+      <tr style="border-top: 1px solid rgba(128, 128, 128, 0.14)" class="rm-padding">
+       <td colspan="2" style="text-align:left"><b>Total: </b></td>
+       <td>{{showCase.pdf_data.total_quantity}}</td>
+       <td ng-if="permissions.show_mrp"></td>
+       <!-- <td></td> -->
+       <td></td>
+       <td></td>
+       <td>{{showCase.pdf_data.total_tax | number:2}}</td>
+       <td>{{showCase.pdf_data.total_invoice_amount | number:2}}</td>
+      </tr>
+      <tr class="rm-padding" ng-if="showCase.pdf_data.order_charges">
+        <td colspan='{{(permissions.show_mrp)?8: 7;}}' style="text-align:left;">
+          <div class="row">
+            <div class="col-xs-6">
+            </div>
+            <div class="col-xs-6 text-right fs12">
+              <address class="no-margin" style="margin:0px;padding:0px" ng-repeat="charge in showCase.pdf_data.order_charges">
+                <strong>{{charge.charge_name}} :</strong> {{charge.charge_amount | number:2}}<br>
+              </address>
+              <address class="no-margin" style="margin:0px;padding:0px">
+                <strong>Total Amount :</strong> {{showCase.pdf_data.total_invoice_amount | number:2}}<br>
+              </address>
+            </div>
+          </div>
+        </td>
+      </tr>
+      <tr class="rm-padding">
+        <td colspan='{{(permissions.show_mrp)?8: 7;}}' style="text-align:left;">
+          <b>Total amount (After rounding): &nbsp;&nbsp;&nbsp;&nbsp;<span style="text-transform:uppercase"> {{showCase.pdf_data.rounded_invoice_amount}}</span></b>
+        </td>
+      </tr>
+      <tr class="rm-padding">
+        <td colspan='{{(permissions.show_mrp)?8: 7;}}' style="text-align:left;">
+          <b>Amount in words: &nbsp;&nbsp;&nbsp;&nbsp;<span style="text-transform:uppercase"> {{showCase.pdf_data.price_in_words}}</span></b>
+        </td>
+      </tr>
+      <tr class="rm-padding" ng-if="user.userName == 'sagar_fab' || user.userName == 'adam_clothing'">
+        <td colspan='{{(permissions.show_mrp)?9: 8;}}' style="text-align:left;">
+          <div class="row">
+            <div class="col-xs-6 fs12">
+              <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'sagar_fab'">
+                <strong>Company's VAT TIN:</strong>29640707663<br>
+              </address>
+              <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'sagar_fab'">
+                <strong>Buyer's VAT TIN:</strong>{{showCase.pdf_data.customer_details[0].tin_number}}<br>
+              </address>
+              <address class="no-margin" style="margin:0px;padding:0px" ng-if="user.userName == 'sagar_fab'">
+                <strong>Company's PAN:</strong>ABEFS4899J<br>
+              </address>
+            </div>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+    <tfoot>
+      <tr class="rm-padding">
+        <td colspan='{{(permissions.show_mrp)?8: 7  ;}}' style="text-align:left;">
+          <b class="pull-left">Dispatched Via:</b>
+          <b class="pull-right">{{company_name}}</b><br>
+          <span>DECLARATION:</span><br>
+          <span>We declare that this invoice hows actual price of the goods described inclusive of taxes and that all particulars are true and correct.</span>
+        </td>
+      </tr>
+    </tfoot>

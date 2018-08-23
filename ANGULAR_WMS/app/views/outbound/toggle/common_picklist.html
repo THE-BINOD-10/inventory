@@ -10,10 +10,27 @@
         </div>
         <div class="modal-body">
           <div class="row" ng-hide="pop.permissions.user_type == 'warehouse' || pop.permissions.user_type == 'distributor'">
-            <div class="col-md-11 col-sm-11 col-xs-10">
+			<div class="col-md-6 col-sm-6 col-xs-6" style="margin-bottom: 10px;">
+            <div class="col-md-6 col-sm-6 col-xs-5">
+              <p align="right">Display Order ID in Print View</p>
+            </div>
+            <div>
+              <label class="switch switch-sm square">
+                <div>
+                  <input type="hidden" value="{{pop.display_order_id}}">
+                  <input type="checkbox" ng-model="pop.display_order_id">
+                  <span>
+                    <i class="handle"></i>
+                  </span>
+                </div>
+              </label>
+            </div>
+			</div>
+			<div class="col-md-6 col-sm-6 col-xs-6" style="margin-bottom: 10px;">
+            <div class="col-md-6 col-sm-6 col-xs-5">
               <p align="right">Merged Invoice</p>
             </div>
-            <div class="col-md-1 col-sm-1 col-xs-2">
+            <div>
               <label class="switch switch-sm square">
                 <div>
                   <input type="hidden" value="{{pop.merge_invoice}}" name="merge_invoice">
@@ -24,6 +41,9 @@
                 </div>
               </label>
             </div>
+			</div>
+
+
           </div>
           <!--<div class="row" ng-if="pop.state_data.page == 'ViewOrders'">
             <div class="col-md-3 col-sm-4 col-xs-6">
@@ -110,6 +130,8 @@
                   <th>Channel</th>
                   <!--<th> Zone </th>-->
                   <th class="w12"> Location </th>
+                  <th ng-if ="pop.industry_type=='FMCG'">Batch No</th>
+                  <th ng-if ="pop.industry_type=='FMCG'">MRP</th>
                   <th class="w10" ng-if="pop.permissions.pallet_switch"> Pallet Code </th>
                   <th class="w10"> Reserved Quantity </th>
                   <th class="w10"> Picked Quantity </th>
@@ -133,6 +155,8 @@
                   <td><input ng-model="data.marketplace" class="form-control" type="text" readonly></td>
                   <!--<td><input name="zone_{{data.id}}" ng-model="record.zone" class="form-control" type="text"></td>-->
                   <td><input name="location_{{data.id}}" ng-model="record.location" class="form-control" type="text" ng-blur="pop.checkCapacity($index, data, 'location', $event);"></td>
+                  <td ng-if="pop.industry_type=='FMCG'"><input ng-model="data.batchno" class="form-control" type="text" readonly></td>
+                  <td ng-if="pop.industry_type=='FMCG'"><input ng-model="data.mrp" class="form-control" type="text" readonly></td>
                   <td ng-if="pop.permissions.pallet_switch"><input ng-if="data.load_unit_handle == 'pallet'" ng-model="record.pallet_code" class="form-control" type="text" ng-blur="pop.checkCapacity($index, data, 'pallet_code', $event);"></td>
                   <td><input name="reserved_quantity_{{data.id}}" ng-model="data.reserved_quantity" class="form-control" type="text" readonly></td>
                   <td><input name="picked_quantity_{{data.id}}" ng-model="record.picked_quantity" class="form-control" type="text" ng-change="pop.count_sku_quantity();pop.cal_quantity(record, data)" ng-class="service.get_decimal_perm()" ng-readonly = "pop.permissions.scan_picklist_option != 'scan_sku_location' && pop.permissions.scan_picklist_option != 'scan_sku' && pop.permissions.scan_picklist_option != 'scan_none'"></td>

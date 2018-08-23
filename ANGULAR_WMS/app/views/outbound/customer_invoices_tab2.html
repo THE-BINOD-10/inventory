@@ -1,0 +1,12 @@
+<div ng-controller="StockTransferInvoiceCtrl as showCase">
+  <div class="page-layout">
+    <div class="layout-body">
+      <div class="panel">
+        <div ng-if="showCase.display" ng-include="'views/common/no-onclick-table.html'"></div>
+        <div class="panel-footer">
+          <button type="button" class="btn btn-primary pull-right" ng-click="showCase.generate_invoice('generate')">Generate Invoice</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

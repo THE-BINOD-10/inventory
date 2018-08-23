@@ -243,6 +243,25 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    dparam: "download-file",
                    value: "",
                    perm: "add_sellerstocktransfer"
+                  }, {
+                   title: "SKU Substitution form Download/ Upload",
+                   download: "Download SKU Substitution Form",
+                   upload: "Upload SKU Substitution Form",
+                   durl: "sku_substitution_form/",
+                   uurl: "sku_substitution_upload/",
+                   dparam: "download-file",
+                   value: "",
+                   //perm: "add_sellerstocktransfer"
+                  },
+                  {
+                   title: "Targets form Download/ Upload",
+                   download: "Targets Download Form",
+                   upload: "Targets Upload Form",
+                   durl: "targets_form/",
+                   uurl: "targets_upload/",
+                   dparam: "download-file",
+                   value: "",
+                   perm: "add_targetmaster"
                   }
                 ]
 
@@ -293,7 +312,7 @@ function uploads($scope, Session, $http, $rootScope, Service) {
       if ((data == "Success") || (data.search("Invalid") > -1) || (data.search("not") > -1) || (data.search("Fail") > -1)) {
         var type = "";
         type = (data == "Success")? "": "error";
-        vm.service.showNoty(data, type);
+        vm.service.showNotyNotHide(data, type);
         $scope.disable = false;
         $(".preloader").removeClass("ng-show").addClass("ng-hide");
         $scope.files = [];
@@ -303,7 +322,7 @@ function uploads($scope, Session, $http, $rootScope, Service) {
       }
     })
     .error(function(){
-      vm.service.showNoty("Upload Fail");
+      vm.service.showNotyNotHide("Upload Fail");
       $("input").val('');
       $scope.disable = false;
     });
@@ -315,7 +334,7 @@ function uploads($scope, Session, $http, $rootScope, Service) {
 
       $scope.uploads[parseInt(index)].download = "Download Error Form";
       $scope.uploads[parseInt(index)].value = msg;
-      vm.service.showNoty("Please Download The Error Form");
+      vm.service.showNotyNotHide("Please Download The Error Form");
     } else {
     vm.service.showNoty(msg);
     }

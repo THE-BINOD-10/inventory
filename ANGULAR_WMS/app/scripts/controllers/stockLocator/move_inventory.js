@@ -16,6 +16,7 @@
       vm.bt_disable = true;
       vm.service = Service;
       vm.industry_type = Session.user_profile.industry_type;
+      vm.user_type = Session.user_profile.user_type;
       vm.batch_nos = [];
       vm.batches = {};
 
@@ -124,7 +125,6 @@
             }
           });
         }
-
       }
 
       /*vm.batch_wise_mrps = [];
@@ -258,7 +258,8 @@
       }
 
       //margin value
-    vm.marginData = {margin_type: '', margin: 0, margin_percentage: 0, margin_value: 0, is_margin_percentage: true};
+    vm.marginData = {margin_type: '', margin: 0, margin_percentage: 0, margin_value: 0, is_margin_percentage: true,
+                     industry_type: vm.industry_type, user_type: vm.user_type};
     vm.add_sku_substitute = function() {
 
       var mod_data = vm.marginData;
@@ -294,11 +295,61 @@
     $ctrl.marginData = items;
     $ctrl.service = Service;
     $ctrl.model_data = {};
+    $ctrl.industry_type = items.industry_type;
+    $ctrl.user_type = items.user_type;
     $ctrl.model_data.src_available_quantity = 0;
     $ctrl.data_available = true;
     $ctrl.success_resp = false;
     $ctrl.disabled_button = false;
     $ctrl.model_data.src_quantity = 0;
+    $ctrl.model_data.dest_info = [{dest_sku_code:'', dest_quantity:'', dest_location:'', batch_number:'', mrp:''}];
+    $ctrl.batch_nos = [];
+    $ctrl.batches = {};
+    $ctrl.cols = 2;
+    if (!$ctrl.industry_type) {
+      $ctrl.cols = 3;
+    }
+
+    $ctrl.isLast = isLast;
+    function isLast(check) {
+
+      var cssClass = check ? "fa fa-plus-square-o" : "fa fa-minus-square-o";
+      return cssClass
+    }
+    $ctrl.update_exp_dates = function(batches, mrp, batc_num){
+        var key = batc_num + "_" + mrp;
+        if($ctrl.batch_details.hasOwnProperty(key)){
+            $ctrl.model_data.mfg_date = $ctrl.batch_details[key][0]['manufactured_date'];
+            $ctrl.model_data.exp_date = $ctrl.batch_details[key][0]['expiry_date'];
+            $ctrl.model_data.tax_percent = $ctrl.batch_details[key][0]['tax_percent'];
+        }
+    }
+    $ctrl.get_sku_batches = function(sku_code){
+        if(sku_code && $ctrl.industry_type==="FMCG"){
+          $ctrl.service.apiCall('get_sku_batches/?sku_code='+sku_code).then(function(data){
+            if(data.message) {
+              $ctrl.batch_details = data.data.sku_batch_details
+              $ctrl.batches = data.data.sku_batches;
+              $ctrl.batch_nos = Object.keys($ctrl.batches);
+            }
+          });
+        }
+      }
+
+    $ctrl.update_dest_info = update_dest_info;
+    function update_dest_info(index, data, last) {
+      console.log(data);
+      if (last && (!data.dest_sku_code)) {
+        colFilters.showNoty("Please fill existing record properly");
+        return false;
+      }
+      if (last) {
+        $ctrl.model_data.dest_info.push({dest_sku_code:'', dest_quantity:'', dest_location:'', batch_number:'', mrp:''});
+      } else {
+        $ctrl.model_data.dest_info.splice(index,1);
+        // $ctrl.cal_total();
+      }
+    }
 
     $ctrl.empty_sku =function(){
 
@@ -387,6 +438,72 @@
         $ctrl.model_data.dest_sku_code = '';
         colFilters.showNoty("You have entered same SKU code, Please try with another SKU code");
       }
+    }
+    $ctrl.print_barcodes  = function(frm) {
+      $ctrl.barcode_title = 'Barcode Generation';
+      $ctrl.model_data['barcodes'] = [];
+
+	  $ctrl.model_data['format_types'] = [];
+      var key_obj = {};//{'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details', 'Bulk Barcode': 'Details'};
+      $ctrl.service.apiCall('get_format_types/').then(function(data){
+        $.each(data['data']['data'], function(ke, val){
+          $ctrl.model_data['format_types'].push(ke);
+          });
+          key_obj = data['data']['data'];
+      });
+	  var elem = angular.element($('form[name="myForm"]'));
+      elem = elem[0];
+      elem = $(elem).serializeArray();
+      var list = [];
+      var dict = {};
+      var onetime_data = {};
+      var masters = ['src_batch_number', 'src_location', 'src_mrp', 'src_quantity', 'src_sku_code', 'exp_date', 'mfg_date'];
+      $.each(elem, function(num, key){
+        var tmp = key['name'];
+        key['name'] = key['name'].replace('dest_','')
+        if(key['name'] == 'sku_code'){
+            key['name'] = 'wms_code';
+        }
+        if(key['name'] ==  'batch_number'){
+            key['name'] = 'batch_no';
+        }
+        if(masters.indexOf(key['name']) != -1){
+            onetime_data[key['name']] = key['value'];
+        }else{
+
+            if(!dict.hasOwnProperty(key['name'])){
+                dict[key['name']] = key['value'];
+            }else{
+                angular.extend(dict, onetime_data)
+                list.push(dict);
+                dict = {}
+                dict[key['name']] = key['value'];
+            }
+      	}
+      });
+      angular.extend(dict, onetime_data);
+	  list.push(dict);
+	  $ctrl.model_data['barcodes'] = list;
+      $ctrl.model_data.have_data = true;
+      //$state.go('app.inbound.RevceivePo.barcode');
+      var modalInstance = $modal.open({
+        templateUrl: 'views/outbound/toggle/barcodes.html',
+        controller: 'Barcodes',
+        controllerAs: 'pop',
+        size: 'lg',
+        backdrop: 'static',
+        keyboard: false,
+        windowClass: 'z-2021',
+        resolve: {
+          items: function () {
+            return $ctrl.model_data;
+          }
+        }
+      });
+
+      modalInstance.result.then(function (selectedItem) {
+        console.log(selectedItem);
+      }); 
     }
 
     $ctrl.submit = function (data) {

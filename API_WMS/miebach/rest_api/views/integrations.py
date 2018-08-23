@@ -1485,6 +1485,7 @@ def get_order(orig_order_id, user):
             total_mrp += tot + tot * (order_summary.cgst_tax + order_summary.sgst_tax)/100
         order = order_detail[0]
         order_date = order.creation_date.strftime("%Y-%m-%d %H:%M:%S")#get_local_date(user, order.creation_date)
+        shipment_date = order.shipment_date.strftime("%d-%b-%Y")
         if order.customer_id:
             gen_obj = GenericOrderDetailMapping.objects.filter(orderdetail_id=order.id)
             if gen_obj:
@@ -1517,7 +1518,9 @@ def get_order(orig_order_id, user):
                        'total_mrp': total_mrp,
                        'total_gst': total_gst,
                        'customer_data': customer_data,
-                       'sku_data': sku_data},
+                       'sku_data': sku_data,
+                       'remarks': order.remarks,
+                       'shipment_date': shipment_date},
                 'status': 'success'}
     else:
         return {'data':{}, 'status': 'failure'}
@@ -1688,10 +1691,6 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
         if isinstance(orders, dict):
             orders = [orders]
         for ind, order in enumerate(orders):
-            try:
-                creation_date = datetime.datetime.strptime(order['order_date'], '%Y-%m-%d %H:%M:%S')
-            except:
-                update_error_message(failed_status, 5024, 'Invalid Order Date Format', original_order_id)
             order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
             channel_name = order['source']
             order_details = copy.deepcopy(ORDER_DATA)
@@ -1701,7 +1700,14 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
             order_id = ''.join(re.findall('\d+', original_order_id))
             filter_params = {'user': user.id, 'order_id': order_id}
             filter_params1 = {'user': user.id, 'original_order_id': original_order_id}
-
+            try:
+                creation_date = datetime.datetime.strptime(order['order_date'], '%Y-%m-%d %H:%M:%S')
+            except:
+                update_error_message(failed_status, 5024, 'Invalid Order Date Format', original_order_id)
+            try:
+                shipment_date = datetime.datetime.strptime(order['shipment_date'], '%Y-%m-%d %H:%M:%S')
+            except:
+                update_error_message(failed_status, 5024, 'Invalid Shipment Date Format', original_order_id)
             order_status = order['order_status']
             if order_status not in order_status_dict.keys():
                 error_message = 'Invalid Order Status - Should be ' + ','.join(order_status_dict.keys())
@@ -1762,10 +1768,6 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                     update_error_message(failed_status, 5022, 'SOR Id exists already', original_order_id)
                 sku_items = sub_order['items']
                 for sku_item in sku_items:
-                    try:
-                        shipment_date = NOW
-                    except:
-                        shipment_date = NOW
                     failed_sku_status = []
                     sku_code = sku_item['sku']
                     sku_master = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)

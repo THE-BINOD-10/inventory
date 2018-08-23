@@ -1,21 +1,21 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('RaisePurchaseOrderCtrl',['$scope', '$http', '$q', '$state', '$compile', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
+  .controller('RaisePurchaseOrderCtrl',['$scope', '$http', '$q', '$state', '$compile', '$timeout', 'Session','DTOptionsBuilder', 'DTColumnBuilder', 'DTColumnDefBuilder', 'colFilters', 'Service', 'Data', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, colFilters, Service) {
+function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, DTColumnDefBuilder, colFilters, Service, Data) {
 
     var vm = this;
     vm.apply_filters = colFilters;
     vm.service = Service;
-
+    vm.extra_width = { 'width': '1250px' };
     vm.selected = {};
     vm.selectAll = false;
 
+    vm.date = new Date();
     vm.update_part = true;
     vm.permissions = Session.roles.permissions;
     vm.industry_type = Session.user_profile.industry_type;
-    vm.extra_width = { 'width': '1250px' };
     vm.display_purchase_history_table = false;
 
     vm.filters = {'datatable': 'RaisePO', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
@@ -74,6 +74,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       $('td:not(td:first)', nRow).unbind('click');
       $('td:not(td:first)', nRow).bind('click', function() {
         $scope.$apply(function() {
+          vm.extra_width = { 'width': '1250px' };
           vm.supplier_id = aData['Supplier ID'];
           var data = {supplier_id: aData['Supplier ID'], order_type: aData['Order Type']};
           vm.service.apiCall('generated_po_data/', 'GET', data).then(function(data){
@@ -84,27 +85,31 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
               vm.update_part = false;
               var empty_data = {"supplier_id":vm.supplier_id,
                       "po_name": "",
-                      "ship_to": "",
+                      "ship_to": data.data.ship_to,
+                      "terms_condition": data.data.terms_condition,
                       "receipt_type": data.data.receipt_type,
                       "seller_types": [],
                       "total_price": 0,
                       "tax": "",
                       "sub_total": "",
+                      "po_delivery_date": data.data.po_delivery_date, 
+                      "supplier_name": data.data.supplier_name,
                       "data": data.data.data,
               };
               vm.model_data = {};
               angular.copy(empty_data, vm.model_data);
 
-              if(vm.model_data.receipt_type == 'Hosted Warehouse') {
+              vm.model_data['supplier_id_name'] = vm.model_data.supplier_id + ":" + vm.model_data.supplier_name;
 
-                vm.model_data.seller_type = vm.model_data.data[0].fields.dedicated_seller;
-              }
+              vm.model_data.seller_type = vm.model_data.data[0].fields.dedicated_seller;
+              vm.dedicated_seller = vm.model_data.data[0].fields.dedicated_seller;
 
-              /*angular.forEach(vm.model_data.data, function(one_row){
-               vm.model_data.total_price = vm.model_data.total_price + (one_row.fields.order_quantity * one_row.fields.price);
+              angular.forEach(vm.model_data.data, function(data){
+                if (!data.fields.cess_tax) {
+                  data.fields.cess_tax = 0;
+                }
               });
 
-              vm.model_data.sub_total = ((vm.model_data.total_price / 100) * vm.model_data.tax) + vm.model_data.total_price;*/
               vm.getTotals();
 
               vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
@@ -113,13 +118,19 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
                   vm.model_data.tax = data.data.tax;
                   vm.model_data.seller_supplier_map = data.data.seller_supplier_map;
                   vm.model_data["receipt_types"] = data.data.receipt_types;
+                  vm.model_data.seller_type = vm.dedicated_seller;
                   angular.forEach(seller_data, function(seller_single){
                     vm.model_data.seller_types.push(seller_single.id + ':' + seller_single.name);
                   });
 
-                  vm.default_status = (Session.user_profile.user_type == 'marketplace_user')? true : false;
+                  angular.forEach(vm.model_data.data, function(data){
+
+                    data.fields.dedicated_seller = vm.dedicated_seller;
+                  })
+
+                  vm.default_status = (Session.user_profile.user_type == 'marketplace_user' && Session.user_profile.industry_type != 'FMCG')? true : false;
                   vm.getCompany();
-                  vm.seller_change = function(type) {
+                  vm.seller_change1 = function(type) {
 
                     if(vm.model_data.receipt_type == 'Hosted Warehouse') {
 
@@ -139,6 +150,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
 
               vm.model_data.suppliers = [vm.model_data.supplier_id];
               vm.model_data.supplier_id = vm.model_data.suppliers[0];
+              // vm.model_data.seller_type = vm.model_data.dedicated_seller;
               vm.vendor_receipt = (vm.model_data["Order Type"] == "Vendor Receipt")? true: false;
               vm.title = 'Update PO';
               vm.update = true;
@@ -149,6 +161,20 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       });
       return nRow;
     }
+
+  $(document).on('keydown', 'input.detectTab', function(e) { 
+    var keyCode = e.keyCode || e.which; 
+
+    var fields_count = (this.closest('#tab_count').childElementCount-1);
+    var cur_td_index = (this.parentElement.nextElementSibling.cellIndex);
+    var sku_index = (this.parentNode.nextElementSibling.children[0].value);
+
+
+    if ((keyCode == 9) && (fields_count === cur_td_index)) {
+      e.preventDefault();
+      vm.update_data(Number(sku_index), false);
+    }
+  });
 
     vm.update = false;
     vm.title = 'Raise PO';
@@ -165,6 +191,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
                       "tax": "",
                       "sub_total": "",
                       "supplier_sku_prices": "",
+                      "terms_condition": "",
                       "data": [
                         {'fields':{"supplier_Code":"", "ean_number":"", "order_quantity":"", 'price':0, "measurement_unit":"", 
                                    "dedicated_seller": "", "row_price": 0, 'sku': {"price":"", 'wms_code': ""},
@@ -183,12 +210,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     }
 
     vm.b_close = vm.close;
-    /*vm.b_close = function () {
-      $state.go('app.inbound.RaisePo.PurchaseOrder');
-    }*/
 
     vm.base = function() {
-
       vm.title = "Raise PO";
       vm.vendor_produce = false;
       vm.confirm_print = false;
@@ -196,11 +219,21 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       vm.print_enable = false;
       vm.vendor_receipt = false;
       angular.copy(empty_data, vm.model_data);
+      vm.model_data.seller_types = Data.seller_types;
+      if (vm.service.is_came_from_raise_po) {
+        vm.model_data.supplier_id_name = vm.service.searched_sup_code;
+        vm.model_data = vm.service.raise_po_data;
+        vm.vendor_receipt = Service.raise_po_vendor_receipt;
+        Service.is_came_from_raise_po = false;
+        vm.service.searched_sup_code = '';
+        vm.service.searched_wms_code = '';
+      }
     }
     vm.base();
 
     vm.add = function () {
-
+      vm.extra_width = { 'width': '1250px' };
+      vm.model_data.seller_types = [];
       vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
         if (data.message) {
           var seller_data = data.data.sellers;
@@ -210,17 +243,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
           angular.forEach(seller_data, function(seller_single){
               vm.model_data.seller_types.push(seller_single.id + ':' + seller_single.name);
           });
+          Data.seller_types = vm.model_data.seller_types;
 
           vm.default_status = (Session.user_profile.user_type == 'marketplace_user') ? true: false;
 
-          vm.seller_change = function(type) {
-
-            vm.selected_seller = type;
-            vm.default_status = false;
-            vm.model_data.data[vm.model_data.data.length - 1].fields.dedicated_seller = vm.selected_seller;
-            vm.getCompany();
-			vm.populate_last_transaction('')
-          }
+          
           vm.model_data.receipt_type = 'Purchase Order';
           if (Session.user_profile.user_type == 'marketplace_user') {
             vm.model_data.receipt_type = 'Hosted Warehouse';
@@ -231,27 +258,55 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       });
     }
 
-    vm.update_data = function (index) {
+    vm.seller_change = function(type) {
+      vm.selected_seller = type;
+      vm.default_status = false;
+      vm.model_data.data[vm.model_data.data.length - 1].fields.dedicated_seller = vm.selected_seller;
+      vm.getCompany();
+      vm.populate_last_transaction('');
+    }
+
+    vm.update_data = function (index, flag=true, plus=false) {
       if (index == vm.model_data.data.length-1) {
-        if (vm.model_data.data[index]["fields"]["sku"]["wms_code"] && vm.model_data.data[index]["fields"]["order_quantity"]) {
-          vm.model_data.data.push({"fields": {"wms_code":"", "ean_number": "", "supplier_code":"", "order_quantity":"", "price":0,
-                                   "measurement_unit": "", "dedicated_seller": vm.selected_seller, "order_quantity": "","row_price": 0,
-                                   "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "cess_tax": "", "utgst_tax": "", "tax": ""
-                                   }});
+        if (vm.model_data.data[index]["fields"]["sku"] && (vm.model_data.data[index]["fields"]["sku"]["wms_code"] && vm.model_data.data[index]["fields"]["order_quantity"])) {
+          
+          if (plus) {
+
+            vm.model_data.data.push({"fields": {"wms_code":"", "ean_number": "", "supplier_code":"", "order_quantity":"", "price":0,
+                                     "measurement_unit": "", "dedicated_seller": vm.model_data.seller_type, "order_quantity": "","row_price": 0,
+                                     "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "cess_tax": "", "utgst_tax": "", "tax": "", "is_new":true
+                                     }});
+
+          } else {
+
+            $scope.$apply(function() {
+
+              vm.model_data.data.push({"fields": {"wms_code":"", "ean_number": "", "supplier_code":"", "order_quantity":"", "price":0,
+                                       "measurement_unit": "", "dedicated_seller": vm.model_data.seller_type, "order_quantity": "","row_price": 0,
+                                       "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "cess_tax": "", "utgst_tax": "", "tax": "", "is_new":true
+                                       }});
+
+            });
+          }
+        } else {
+
+          Service.showNoty('SKU Code and Quantity are required fields. Please fill these first');
         }
       } else {
-        if(vm.model_data.data[index].seller_po_id){
-            vm.delete_data('seller_po_id', vm.model_data.data[index].seller_po_id, index);
-        } else {
-            vm.delete_data('id', vm.model_data.data[index].pk, index);
+        if (flag) {
+          if(vm.model_data.data[index].seller_po_id){
+              vm.delete_data('seller_po_id', vm.model_data.data[index].seller_po_id, index);
+          } else {
+              vm.delete_data('id', vm.model_data.data[index].pk, index);
+          }
+          if(vm.permissions.show_purchase_history) {
+              $timeout( function() {
+                  vm.populate_last_transaction('delete')
+              }, 2000 );
+          }
+          vm.model_data.data.splice(index,1);
+          vm.getTotals();
         }
-        if(vm.permissions.show_purchase_history) {
-            $timeout( function() {
-                vm.populate_last_transaction('delete')
-            }, 2000 );
-        }
-        vm.model_data.data.splice(index,1);
-        vm.getTotals();
       }
     }
 
@@ -403,9 +458,12 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
                   vm.title = $(data.data).find('.modal-header h4').text().trim();
 
                 }
-                vm.html = $(data.data)[0];
-                var html = $(vm.html).closest("form").clone();
-                angular.element(".modal-body").html($(html).find(".modal-body > .form-group"));
+                //vm.html = $(data.data)[0];
+                //var html = $(vm.html).closest("form").clone();
+                //angular.element(".modal-body").html($(html).find(".modal-body > .form-group"));
+                vm.extra_width = {'width': '990px'};
+                vm.html = $(data.data);
+                angular.element(".modal-body").html($(data.data));
                 vm.print_enable = true;
               } else {
                 vm.service.pop_msg(data.data);
@@ -506,7 +564,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
            sku_data.fields.sgst_tax = 0;
            sku_data.fields.cgst_tax = 0;
            sku_data.fields.igst_tax = sku_data.taxes[i].igst_tax;
-           sku_data.fields.cgst_tax = sku_data.taxes[i].cess_tax;
+           sku_data.fields.cess_tax = sku_data.taxes[i].cess_tax;
            tax = sku_data.taxes[i].igst_tax;
          }
          break;
@@ -519,17 +577,20 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
 
 
     vm.get_sku_details = function(product, item, index) {
+      console.log(item);
       vm.purchase_history_wms_code = item.wms_code;
       if(vm.permissions.show_purchase_history) {
 	    $timeout( function() {
 	        vm.populate_last_transaction('')
         }, 2000 );
       }
+
       product.fields.sku.wms_code = item.wms_code;
       product.fields.measurement_unit = item.measurement_unit;
       product.fields.description = item.sku_desc;
       product.fields.order_quantity = 1;
       product.fields.price = 0;
+      product.fields.mrp = item.mrp;
       product.fields.description = item.sku_desc;
       product.fields.sgst_tax = "";
       product.fields.cgst_tax = "";
@@ -537,6 +598,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       product.fields.cess_tax = "";
       product.fields.utgst_tax = "";
       product.fields.tax = "";
+      product.taxes = [];
       vm.getTotals();
 
       if(vm.model_data.receipt_type == 'Hosted Warehouse') {
@@ -568,20 +630,25 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       }
     }
 
-    vm.key_event = function(product, item) {
-       if (typeof(vm.model_data.supplier_id) == "undefined" || vm.model_data.supplier_id.length == 0){
-         return false;
-       } else {
-         var supplier = vm.model_data.supplier_id;
-         $http.get(Session.url+'get_mapping_values/?wms_code='+product.fields.sku.wms_code+'&supplier_id='+supplier, {withCredentials : true}).success(function(data, status, headers, config) {
-           if(Object.values(data).length){
-             product.fields.price = data.price;
-             product.fields.supplier_code = data.supplier_code;
-             product.fields.sku.wms_code = data.sku;
-             product.fields.ean_number = data.ean_number;
-           }
-         });
-       }
+    vm.key_event = function(product, item, index) {
+      if (typeof(vm.model_data.supplier_id) == "undefined" || vm.model_data.supplier_id.length == 0) {
+       return false;
+      } else {
+        var supplier = vm.model_data.supplier_id;
+        $http.get(Session.url+'get_create_order_mapping_values/?wms_code='+product.fields.sku.wms_code, {withCredentials : true}).success(function(data, status, headers, config) {
+          if(Object.keys(data).length){
+            console.log(data);
+          } else {
+            Service.searched_sup_code = supplier;
+            Service.searched_wms_code = product.fields.sku.wms_code;
+            Service.is_came_from_raise_po = true;
+            Service.raise_po_data = vm.model_data;
+            Service.raise_po_vendor_receipt = vm.vendor_receipt;
+            Service.sku_id_index = index;
+            $state.go('app.masters.SKUMaster');
+          }
+        });
+      }
     }
 
     vm.add_raise_po = function() {
@@ -721,4 +788,20 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       }
 	}
 
+  vm.checkSupplierExist = function (sup_id) {
+    console.log(sup_id);
+    $http.get(Session.url + 'search_supplier?', {
+      params: {
+        q: sup_id,
+        type: ''
+      }
+    }).then(function(resp){
+      if (resp.data.length == 0) {
+        Service.searched_sup_code = sup_id;
+        Service.is_came_from_raise_po = true;
+        $state.go('app.masters.SupplierMaster.supplier');
+      };
+    });
   }
+
+}

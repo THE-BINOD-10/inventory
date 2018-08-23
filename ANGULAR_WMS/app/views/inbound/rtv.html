@@ -1,0 +1,101 @@
+<div ng-controller="RTVCtrl as showCase">
+  <div class="page-layout reports">
+    <!-- <div class='layout-header'>
+      <div class="row">
+        <div class="col-md-6 col-sm-6 col-xs-12">
+          <div class="pull-left" ng-include="'views/common/title.html'"></div>
+        </div>
+        <div class="col-md-6 col-sm-6 col-xs-12">
+          <button type="button" style="margin-left: 10px" class="btn btn-primary pull-right" ng-click="showCase.service.print_excel(showCase.model_data, showCase.dtInstance, showCase.dtColumns, 'sku_list')" ng-disabled="showCase.service.print_enable">Download Excel</button>
+        </div>
+      </div>
+    </div> -->
+    <div class="layout-sub-header">
+        <form name="form" role="form" class="filters">
+          <div class="clearfix">
+	    <div class="row col-md-12">
+              <p style="float:right">Enable DC Returns :
+              <label class="switch switch-sm square mt5">
+                  <input type="checkbox" name="enable_dc_returns" ng-model="showCase.model_data.filters.enable_dc_returns"
+                         ng-init="showCase.model_data.filters.enable_dc_returns=false">
+                  <span style="margin-top: 28%;">
+                <i class="handle"></i>
+                  </span>
+              </label></p>
+	    </div>
+            <div class="row col-md-12">
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <div class="form-group">
+                  <label class="control-label">SKU Code</label>
+                  <input type="text" autocomplete="off" name="sku_code" class="form-control" placeholder="Search WMS Code" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_wms_codes?')" typeahead-loading="loadingLocations" ng-blur="showCase.service.checkSearchValue2(showCase.model_data,'search_wms_codes?', $event)" ng-model="showCase.model_data.filters.sku_code">
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <div class="form-group">
+                  <label class="control-label">Supplier ID</label>
+                  <input type="text" autocomplete="off" ng-if="(!(showCase.update))" ng-model="showCase.model_data.filters.supplier_id" name="supplier_id" placeholder="Search Supplier ID/Name" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_supplier?')" typeahead-loading="loadingLocations" class="form-control" typeahead-on-select="showCase.model_data.filters.supplier_id = showCase.service.change_search_value(showCase.model_data.filters.supplier_id)" ng-blur="showCase.service.checkSearchValue(showCase.model_data.filters.supplier_id, 'search_supplier?', $event, '', 'Supplier');showCase.supplier_on_change();" ng-required="(showCase.model_data.filters.receipt_type != 'Hosted Warehouse')? true: false;" ng-disabled="showCase.update">
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <div class="form-group">
+                  <label class="control-label">From Date *</label>
+                  <input name="from_date" ui-jq="datepicker" ng-init="showCase.model_data.filters.from_date = showCase.date" ng-model="showCase.model_data.filters.from_date" class="form-control stk-readonly" type="text" id="from_date" data-date-today-highlight="true" data-date-autoclose="true" required>
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <div class="form-group">
+                  <label class="control-label">To Date</label>
+                  <input name="to_date" ui-jq="datepicker" ng-model="showCase.model_data.filters.to_date" class="form-control stk-readonly" type="text" id="to_date" data-date-today-highlight="true" data-date-autoclose="true">
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6">
+                <div class="form-group">
+                  <label class="control-label">PO Number</label>
+                  <input name="open_po" class="form-control" type="text" ng-model="showCase.model_data.filters.open_po">
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.model_data.filters.enable_dc_returns==false">
+                <div class="form-group">
+                  <label class="control-label">Invoice Number</label>
+                  <input name="invoice_number" class="form-control" type="text" ng-model="showCase.model_data.filters.invoice_number"
+                         ng-init="showCase.model_data.filters.dc_number=''">
+                  <input name="datatable" class="form-control" ng-init="showCase.model_data.filters.datatable = 'ReturnToVendor'" type="hidden" ng-model="showCase.model_data.filters.datatable" value="ReturnToVendor">
+                </div>
+              </div>
+              <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.model_data.filters.enable_dc_returns">
+                <div class="form-group">
+                  <label class="control-label">DC Number</label>
+                  <input name="dc_number" class="form-control" type="text" ng-model="showCase.model_data.filters.dc_number"
+                         ng-init="showCase.model_data.filters.invoice_number=''">
+                  <input name="datatable" class="form-control" ng-init="showCase.model_data.filters.datatable = 'ReturnToVendor'" type="hidden" ng-model="showCase.model_data.filters.datatable" value="ReturnToVendor">
+                </div>
+              </div>
+            </div>
+            <div class="col-md-12">
+              <div class="filter-controls">
+                <!-- <button type="button" class="btn btn-default" id="add-shippment-btn" style="margin-right: 10px" ng-click="showCase.service.reset_data(showCase.empty_data, showCase.model_data);showCase.service.generate_report(showCase.dtInstance, showCase.model_data)"> Reset </button> -->
+                <button type="button" class="btn btn-default" id="add-shippment-btn" style="margin-right: 10px" ng-click="showCase.reset_filters()"> Reset </button>
+                <button type="button" class="btn btn-success" id="add-shippment-btn" data-toggle="modal" data-target="#myModal" ng-click="showCase.saveFilters(showCase.model_data.filters);showCase.service.generate_report(showCase.dtInstance, showCase.model_data.filters)" ng-disabled="!showCase.model_data.filters.from_date"> Search </button>
+              </div>
+            </div>
+          </div>
+        </form>
+    </div>
+    <div class="layout-body">
+      <div class="panel">
+        <div class="panel-header">
+          <div ng-include="'views/common/excel.html'"></div>
+        </div>
+        <div ng-include="'views/common/datatable.html'"></div>
+        <!-- <div class="panel-body" style="padding-left: 0px; padding-right: 0px">
+          <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="table custom-table table-condensed datatable no_click_tb"></table>
+          <div ui-view></div>
+        </div> -->
+      </div>
+    </div>
+    <div class="panel-footer">
+        <button type="button" class="btn btn-primary pull-right"
+        ng-disabled="showCase.bt_disable" ng-click="showCase.create_rtv(form)">Create RTV</button>
+    </div>
+  </div>
+</div>

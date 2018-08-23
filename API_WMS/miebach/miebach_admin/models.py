@@ -153,7 +153,7 @@ class IncrementalTable(models.Model):
         db_table = 'INCREMENTAL_TABLE'
 
     def __unicode__(self):
-        return self.value
+        return str(self.value)
 
 
 class LocationMaster(models.Model):
@@ -202,6 +202,20 @@ class SupplierMaster(models.Model):
     days_to_supply = models.IntegerField(default=0)
     fulfillment_amt = models.FloatField(default=0)
     credibility = models.CharField(max_length=32, default='')
+    po_exp_duration = models.IntegerField(default=0)
+    owner_name = models.CharField(max_length=256, default='')
+    owner_number = models.CharField(max_length=64, default='')
+    owner_email_id = models.EmailField(max_length=64, default='')
+    spoc_name = models.CharField(max_length=256, default='')
+    spoc_number = models.CharField(max_length=64, default='')
+    spoc_email_id = models.EmailField(max_length=64, default='')
+    lead_time = models.IntegerField(default=0)
+    credit_period = models.IntegerField(default=0)
+    bank_name = models.CharField(max_length=256, default='')
+    ifsc_code = models.CharField(max_length=64, default='')
+    branch_name = models.CharField(max_length=256, default='')
+    account_number = models.BigIntegerField(default=0)
+    account_holder_name = models.CharField(max_length=256, default='')
 
     class Meta:
         db_table = 'SUPPLIER_MASTER'
@@ -345,25 +359,28 @@ class OpenPO(models.Model):
     order_quantity = models.FloatField(default=0, db_index=True)
     price = models.FloatField(default=0)
     wms_code = models.CharField(max_length=32, default='')
-    po_name = models.CharField(max_length=32, default='')
+    po_name = models.CharField(max_length=128, default='')
     supplier_code = models.CharField(max_length=32, default='')
     order_type = models.CharField(max_length=32, default='SR')
     remarks = models.CharField(max_length=256, default='')
     tax_type = models.CharField(max_length=32, default='')
-    # tax = models.FloatField(default=0)
     sgst_tax = models.FloatField(default=0)
     cgst_tax = models.FloatField(default=0)
     igst_tax = models.FloatField(default=0)
     cess_tax = models.FloatField(default=0)
     utgst_tax = models.FloatField(default=0)
     mrp = models.FloatField(default=0)
+    delivery_date = models.DateField(blank=True, null=True)
     status = models.CharField(max_length=32)
     measurement_unit = models.CharField(max_length=32, default='')
+    ship_to = models.CharField(max_length=128, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
+    terms = models.TextField(default='', max_length=256)
 
     class Meta:
         db_table = 'OPEN_PO'
+        index_together = (('sku', 'supplier'), ('sku', ), ('vendor', 'sku', 'supplier'), ('sku', 'order_quantity', 'price'))
 
     def __unicode__(self):
         return str(str(self.sku) + " : " + str(self.supplier))
@@ -384,11 +401,13 @@ class PurchaseOrder(models.Model):
     remarks = models.TextField(default='')
     expected_date = models.DateField(blank=True, null=True)
     remainder_mail = models.IntegerField(default=0)
+    payment_received = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'PURCHASE_ORDER'
+        index_together = (('order_id', 'open_po'), ('order_id', 'open_po', 'received_quantity'))
 
     def __unicode__(self):
         return str(self.id)
@@ -427,6 +446,7 @@ class POLocation(models.Model):
 
     class Meta:
         db_table = 'PO_LOCATION'
+        index_together = (('purchase_order', 'location'), ('purchase_order', 'location', 'quantity', 'status'))
 
 
 class PalletDetail(models.Model):
@@ -440,6 +460,7 @@ class PalletDetail(models.Model):
 
     class Meta:
         db_table = 'PALLET_DETAIL'
+        index_together = (('user', 'pallet_code'), ('user', 'pallet_code', 'quantity'))
 
 
 class PalletMapping(models.Model):
@@ -452,6 +473,7 @@ class PalletMapping(models.Model):
 
     class Meta:
         db_table = 'PALLET_MAPPING'
+        index_together = ('pallet_detail', 'po_location')
 
 
 class BatchDetail(models.Model):
@@ -469,7 +491,8 @@ class BatchDetail(models.Model):
 
     class Meta:
         db_table = 'BATCH_DETAIL'
-
+        index_together = (('transact_id', 'transact_type'), ('batch_no', 'buy_price', 'mrp', 'manufactured_date', 'expiry_date', 'tax_percent'),
+                            ('batch_no', 'mrp'))
 
 class StockDetail(models.Model):
     id = BigAutoField(primary_key=True)
@@ -481,17 +504,45 @@ class StockDetail(models.Model):
     pallet_detail = models.ForeignKey(PalletDetail, blank=True, null=True)
     batch_detail = models.ForeignKey(BatchDetail, blank=True, null=True)
     quantity = models.FloatField(default=0)
+    unit_price = models.FloatField(default=0)
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'STOCK_DETAIL'
-        unique_together = ('receipt_number', 'receipt_date', 'sku', 'location', 'pallet_detail', 'batch_detail')
+        unique_together = ('receipt_number', 'receipt_date', 'sku', 'location', 'pallet_detail', 'batch_detail', 'unit_price')
         index_together = (('sku', 'location', 'quantity'), ('location', 'sku', 'pallet_detail'))
 
     def __unicode__(self):
         return str(self.sku) + " : " + str(self.location)
+
+
+class ASNStockDetail(models.Model):
+    id = BigAutoField(primary_key=True)
+    asn_po_num = models.CharField(max_length=32, default='')
+    sku = models.ForeignKey(SKUMaster)
+    quantity = models.IntegerField(default=0)
+    arriving_date = models.DateField(blank=True, null=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ASN_STOCK_DETAIL'
+        unique_together = ('asn_po_num', 'sku')
+
+
+class ASNReserveDetail(models.Model):
+    id = BigAutoField(primary_key=True)
+    asnstock = models.ForeignKey(ASNStockDetail, blank=True, null=True)
+    orderdetail = models.ForeignKey(OrderDetail, blank=True, null=True)
+    reserved_qty = models.IntegerField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'ASN_RESERVE_DETAIL'
+        unique_together = ('asnstock', 'orderdetail')
 
 
 class Picklist(models.Model):
@@ -751,6 +802,7 @@ class CustomerMaster(models.Model):
     is_distributor = models.BooleanField(default=False)
     lead_time = models.PositiveIntegerField(blank=True, default=0)
     role = models.CharField(max_length=64, choices=CUSTOMER_ROLE_CHOICES, default='')
+    spoc_name = models.CharField(max_length=256, default='')
 
     class Meta:
         db_table = 'CUSTOMER_MASTER'
@@ -803,7 +855,9 @@ class UserProfile(models.Model):
     cin_number = models.CharField(max_length=64, default='')
     customer_logo = models.ImageField(upload_to='static/images/customer_logos/', default='')
     bank_details = models.TextField(default='')
-    industry_type = models.CharField(max_length=32, default='')
+    industry_type = models.CharField(max_length=32, default='', blank=True)
+    order_prefix = models.CharField(max_length=32, default='', null=True, blank=True)
+    pan_number = models.CharField(max_length=64, default='', blank=True)
 
     class Meta:
         db_table = 'USER_PROFILE'
@@ -983,6 +1037,8 @@ class JOMaterial(models.Model):
 
     class Meta:
         db_table = 'JO_MATERIAL'
+        index_together = (('job_order', 'material_code'), ('job_order', 'material_code', 'status'),
+                            ('job_order', 'material_code', 'status', 'material_quantity'))
 
 
 class MaterialPicklist(models.Model):
@@ -995,6 +1051,7 @@ class MaterialPicklist(models.Model):
 
     class Meta:
         db_table = 'MATERIAL_PICKLIST'
+        index_together = (('jo_material', 'status'), ('jo_material', 'status', 'reserved_quantity'))
 
 
 class RMLocation(models.Model):
@@ -1009,6 +1066,7 @@ class RMLocation(models.Model):
 
     class Meta:
         db_table = 'RM_LOCATION'
+        index_together = (('material_picklist', 'stock'), ('material_picklist', 'stock', 'status'), ('material_picklist', 'stock', 'status', 'reserved'))
 
 
 class SKURelation(models.Model):
@@ -1039,6 +1097,7 @@ class StatusTracking(models.Model):
 
     class Meta:
         db_table = 'STATUS_TRACKING'
+        index_together = (('status_id', 'status_type'),('status_type', 'status_value', 'quantity'), ('status_id', 'status_type', 'status_value'))
 
 
 class StatusTrackingSummary(models.Model):
@@ -1051,6 +1110,7 @@ class StatusTrackingSummary(models.Model):
 
     class Meta:
         db_table = 'STATUS_TRACKING_SUMMARY'
+        index_together = (('status_tracking', 'processed_stage'), ('status_tracking', 'processed_stage', 'processed_quantity'))
 
 
 class BOMMaster(models.Model):
@@ -1314,10 +1374,12 @@ class CustomerOrderSummary(models.Model):
     sgst_tax = models.FloatField(default=0)
     igst_tax = models.FloatField(default=0)
     utgst_tax = models.FloatField(default=0)
+    cess_tax = models.FloatField(default=0)
     invoice_type = models.CharField(max_length=64, default='Tax Invoice')
     client_name = models.CharField(max_length=64, default='')
     mode_of_transport = models.CharField(max_length=24, default='')
     payment_status = models.CharField(max_length=64, default='')
+    courier_name = models.CharField(max_length=64, default='')
 
     class Meta:
         db_table = 'CUSTOMER_ORDER_SUMMARY'
@@ -1688,13 +1750,34 @@ class Integrations(models.Model):
 
 class PaymentSummary(models.Model):
     id = BigAutoField(primary_key=True)
+    payment_id = models.CharField(max_length=60, default='')
     order = models.ForeignKey(OrderDetail, blank=True, null=True)
     payment_received = models.FloatField(default=0)
+    bank = models.CharField(max_length=64, default='')
+    mode_of_pay = models.CharField(max_length=64, default='')
+    remarks = models.CharField(max_length=128, default='')
+    entered_amount = models.FloatField(default=0)
+    balance_amount = models.FloatField(default=0)
+    tds_amount = models.FloatField(default=0)
+    payment_date = models.DateField(blank=True, null=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'PAYMENT_SUMMARY'
+
+class POPaymentSummary(models.Model):
+    id = BigAutoField(primary_key=True)
+    order = models.ForeignKey(PurchaseOrder, blank=True, null=True)
+    payment_received = models.FloatField(default=0)
+    bank = models.CharField(max_length=64, default='')
+    mode_of_pay = models.CharField(max_length=64, default='')
+    remarks = models.CharField(max_length=128, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'PO_PAYMENT_SUMMARY'
 
 
 class FileDump(models.Model):
@@ -1770,18 +1853,24 @@ class SellerPO(models.Model):
 class SellerPOSummary(models.Model):
     id = BigAutoField(primary_key=True)
     receipt_number = models.PositiveIntegerField(default=0)
-    invoice_number = models.PositiveIntegerField(default=0)
+    invoice_number = models.CharField(max_length=64, default='')
     invoice_date = models.DateField(blank=True, null=True)
     seller_po = models.ForeignKey(SellerPO, blank=True, null=True, db_index=True)
     purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True, db_index=True)
     location = models.ForeignKey(LocationMaster, blank=True, null=True)
+    batch_detail = models.ForeignKey(BatchDetail, blank=True, null=True)
     putaway_quantity = models.FloatField(default=0)
     quantity = models.FloatField(default=0)
+    challan_number = models.CharField(max_length=64, default='')
+    order_status_flag = models.CharField(max_length=64, default='processed_pos')
+    challan_date = models.DateField(blank=True, null=True)
+    discount_percent = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'SELLER_PO_SUMMARY'
+        index_together = (('receipt_number',), ('purchase_order', 'receipt_number'))
 
     def __unicode__(self):
         return str(self.id)
@@ -1925,11 +2014,16 @@ class SellerOrderSummary(models.Model):
     picklist = models.ForeignKey(Picklist, blank=True, null=True, db_index=True)
     quantity = models.FloatField(default=0)
     invoice_number = models.CharField(max_length=64, default='')
+    challan_number = models.CharField(max_length=64, default='')
+    order_status_flag = models.CharField(max_length=64, default='processed_orders')
+    delivered_flag = models.IntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'SELLER_ORDER_SUMMARY'
+        index_together = (('pick_number', 'seller_order'), ('pick_number', 'order'), ('pick_number', 'seller_order', 'picklist'),
+                            ('pick_number', 'order', 'picklist'), ('order', 'order_status_flag'), ('seller_order', 'order_status_flag'))
 
     def __unicode__(self):
         return str(self.id)
@@ -2272,6 +2366,22 @@ class InvoiceSequence(models.Model):
         unique_together = ('user', 'marketplace')
 
 
+class ChallanSequence(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    marketplace = models.CharField(max_length=64)
+    prefix = models.CharField(max_length=64)
+    value = models.PositiveIntegerField()
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'CHALLAN_SEQUENCE'
+        index_together = ('user', 'marketplace')
+        unique_together = ('user', 'marketplace')
+
+
 class OrderAwbMap(models.Model):
     user = models.ForeignKey(User)
     original_order_id = models.CharField(max_length=128, default='')
@@ -2462,7 +2572,7 @@ class SKUDetailStats(models.Model):
 
     class Meta:
         db_table = 'SKU_DETAIL_STATS'
-
+        index_together = (('sku', 'transact_type'), ('sku', 'transact_type', 'transact_id'))
 
 class StockStats(models.Model):
     id = BigAutoField(primary_key=True)
@@ -2481,6 +2591,7 @@ class StockStats(models.Model):
 
     class Meta:
         db_table = 'STOCK_STATS'
+        index_together = (('sku',))
 
 
 class IntransitOrders(models.Model):
@@ -2677,3 +2788,93 @@ class MasterDocs(models.Model):
     class Meta:
         db_table = 'MASTER_DOCS'
         index_together = ('master_id', 'master_type', 'uploaded_file')
+
+
+class WarehouseSKUMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    warehouse = models.ForeignKey(User)
+    sku = models.ForeignKey(SKUMaster)
+    priority = models.CharField(max_length=32)
+    moq = models.FloatField(default=0)
+    price = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'WAREHOUSE_SKU_MAPPING'
+        index_together = ('warehouse', 'sku')
+
+    def __unicode__(self):
+        return str(self.sku) + " : " + str(self.warehouse)
+
+
+class SellerOrderTransfer(models.Model):
+    id = BigAutoField(primary_key=True)
+    seller_transfer = models.ForeignKey(SellerTransfer)
+    seller_order = models.ForeignKey(SellerOrder)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'SELLER_ORDER_TRANSFER'
+        unique_together = ('seller_transfer', 'seller_order')
+        index_together = ('seller_transfer', 'seller_order')
+
+
+class ReturnToVendor(models.Model):
+    id = BigAutoField(primary_key=True)
+    rtv_number = models.CharField(max_length=32, default='')
+    seller_po_summary = models.ForeignKey(SellerPOSummary, blank=True, null=True)
+    location = models.ForeignKey(LocationMaster, blank=True, null=True)
+    quantity = models.FloatField(default=0)
+    status = models.IntegerField(default=1)
+    return_type = models.CharField(max_length=32, default='Invoice')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'RETURN_TO_VENDOR'
+
+
+class TargetMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    distributor = models.ForeignKey(User, related_name='distributor', blank=True, null=True)
+    reseller = models.ForeignKey(User, related_name='reseller', blank=True, null=True)
+    corporate_id = models.IntegerField(max_length=10)
+    target_amt = models.FloatField(default=0)
+    target_duration = models.IntegerField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'TARGET_MASTER'
+        unique_together = ('distributor', 'reseller', 'corporate_id')
+
+
+class RatingsMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    original_order_id = models.CharField(max_length=128, default='', blank=True, null=True)
+    rating_product = models.IntegerField(max_length=10)
+    rating_order = models.IntegerField(max_length=10)
+    reason_product = models.CharField(max_length=32, default='')
+    reason_order = models.CharField(max_length=32, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'RATINGS_MASTER'
+        unique_together = ('user', 'original_order_id')
+
+
+class RatingSKUMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    rating = models.ForeignKey(RatingsMaster, blank=True, null=True)
+    sku = models.ForeignKey(SKUMaster)
+    remarks = models.CharField(max_length=128, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'RATINGS_SKU_MAPPING'
+        unique_together = ('rating', 'sku')

@@ -4754,6 +4754,9 @@ def shipment_info_data(request, user=''):
     shipment_orders = ShipmentInfo.objects.filter(order__customer_id=customer_id,
                                                   order_shipment__shipment_number=shipment_number,
                                                   order_shipment__user=user.id)
+    truck_number = ''
+    if shipment_orders:
+        truck_number = shipment_orders[0].order_shipment.truck_number
     for orders in shipment_orders:
         ship_status = copy.deepcopy(SHIPMENT_STATUS)
         status = 'Dispatched'
@@ -4777,7 +4780,8 @@ def shipment_info_data(request, user=''):
             ship_reference = orders.order_packaging.order_shipment.shipment_reference
 
     return HttpResponse(json.dumps({'data': data, 'customer_id': customer_id, 'ship_status': SHIPMENT_STATUS,
-                                    'ship_reference': ship_reference}, cls=DjangoJSONEncoder))
+                                    'ship_reference': ship_reference, 'truck_number': truck_number},
+                                   cls=DjangoJSONEncoder))
 
 
 @csrf_exempt
@@ -4785,6 +4789,7 @@ def shipment_info_data(request, user=''):
 def update_shipment_status(request, user=''):
     data_dict = dict(request.GET.iterlists())
     ship_reference = request.GET.get('ship_reference', '')
+    truck_number = request.GET.get('truck_number', '')
     for i in range(len(data_dict['id'])):
         shipment_info = ShipmentInfo.objects.get(id=data_dict['id'][i])
         tracking = ShipmentTracking.objects.filter(shipment_id=shipment_info.id, shipment__order__user=user.id,
@@ -4795,12 +4800,12 @@ def update_shipment_status(request, user=''):
         else:
             tracking.update(ship_status=data_dict['status'][i])
 
-        orig_ship_ref = shipment_info.order_packaging.order_shipment.shipment_reference
+        order_shipment = shipment_info.order_packaging.order_shipment
         if ship_reference:
-            if not ship_reference == orig_ship_ref:
-                order_shipment = shipment_info.order_packaging.order_shipment
-                order_shipment.shipment_reference = ship_reference
-                order_shipment.save()
+            order_shipment.shipment_reference = ship_reference
+        if truck_number:
+            order_shipment.truck_number = truck_number
+        order_shipment.save()
 
     return HttpResponse(json.dumps({'status': True, 'message': "Updated Successfully"}));
 

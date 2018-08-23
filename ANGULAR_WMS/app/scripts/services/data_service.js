@@ -168,6 +168,8 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
     self.styles_data = {};
     self.tot_corporates = [];
     self.shipment_number = '';
+    self.categories = [];
+    self.sub_categories = [];
     self.invoice_data = {};
     self.datatable = 'ReturnToVendor';
     self.seller_types = [];

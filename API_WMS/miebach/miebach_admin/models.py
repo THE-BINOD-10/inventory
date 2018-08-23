@@ -4,7 +4,8 @@ from miebach_utils import BigAutoField
 from datetime import date
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .choices import UNIT_TYPE_CHOICES, REMARK_CHOICES, TERMS_CHOICES, CUSTOMIZATION_TYPES, ROLE_TYPE_CHOICES
+from .choices import UNIT_TYPE_CHOICES, REMARK_CHOICES, TERMS_CHOICES, CUSTOMIZATION_TYPES, ROLE_TYPE_CHOICES, \
+    CUSTOMER_ROLE_CHOICES, APPROVAL_STATUSES
 
 # from longerusername import MAX_USERNAME_LENGTH
 # Create your models here.
@@ -800,6 +801,7 @@ class CustomerMaster(models.Model):
     customer_type = models.CharField(max_length=64, default='')
     is_distributor = models.BooleanField(default=False)
     lead_time = models.PositiveIntegerField(blank=True, default=0)
+    role = models.CharField(max_length=64, choices=CUSTOMER_ROLE_CHOICES, default='')
     spoc_name = models.CharField(max_length=256, default='')
 
     class Meta:
@@ -1748,11 +1750,16 @@ class Integrations(models.Model):
 
 class PaymentSummary(models.Model):
     id = BigAutoField(primary_key=True)
+    payment_id = models.CharField(max_length=60, default='')
     order = models.ForeignKey(OrderDetail, blank=True, null=True)
     payment_received = models.FloatField(default=0)
     bank = models.CharField(max_length=64, default='')
     mode_of_pay = models.CharField(max_length=64, default='')
     remarks = models.CharField(max_length=128, default='')
+    entered_amount = models.FloatField(default=0)
+    balance_amount = models.FloatField(default=0)
+    tds_amount = models.FloatField(default=0)
+    payment_date = models.DateField(blank=True, null=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -2179,6 +2186,48 @@ class CustomerCartData(models.Model):
             'igst_tax': self.igst_tax,
             'utgst_tax': self.utgst_tax,
             'warehouse_level': self.warehouse_level,
+        }
+
+
+class ApprovingOrders(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User)
+    customer_user = models.ForeignKey(User, related_name='customer', blank=True, null=True)
+    approve_id = models.CharField(max_length=64, default='')
+    approval_status = models.CharField(choices=APPROVAL_STATUSES, default='', max_length=32)
+    approving_user_role = models.CharField(max_length=64, default='')
+    sku = models.ForeignKey(SKUMaster)
+    quantity = models.FloatField(default=1)
+    unit_price = models.FloatField(default=0)
+    tax = models.FloatField(default=0)
+    inter_state = models.IntegerField(default=0)
+    cgst_tax = models.FloatField(default=0)
+    sgst_tax = models.FloatField(default=0)
+    igst_tax = models.FloatField(default=0)
+    utgst_tax = models.FloatField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+    shipment_date = models.DateTimeField(blank=True, null=True)
+    
+    class Meta:
+        db_table = "APPROVING_ORDERS"
+        unique_together = ('user', 'customer_user', 'approve_id', 'approval_status', 'approving_user_role', 'sku')
+
+    def json(self):
+        invoice_amount = self.quantity * self.sku.price
+        return {
+            'sku_id': self.sku.sku_code,
+            'quantity': self.quantity,
+            'price': self.sku.price,
+            'unit_price': self.sku.price,
+            'invoice_amount': invoice_amount,
+            'tax': self.tax,
+            'total_amount': ((invoice_amount * self.tax) / 100) + invoice_amount,
+            'image_url': self.sku.image_url,
+            'cgst_tax': self.cgst_tax,
+            'sgst_tax': self.sgst_tax,
+            'igst_tax': self.igst_tax,
+            'utgst_tax': self.utgst_tax,
         }
 
 

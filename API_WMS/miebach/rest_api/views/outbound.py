@@ -2948,6 +2948,260 @@ def get_customer_data(request, user=''):
         return HttpResponse('')
 
 
+@get_admin_user
+def update_cartdata_for_approval(request, user=''):
+    message = 'success'
+    admin_items, items = [], []
+    approval_status = request.POST.get('approval_status', '')
+    approving_user_role = request.POST.get('approving_user_role', '')
+    approve_id = request.POST.get('approve_id', '')
+    if not approve_id:
+        return HttpResponse('Approve Id missing')
+    approve_data = ApprovingOrders.objects.filter(user_id=user.id, approve_id=approve_id)
+    if approve_data:
+        approve_data.update(approval_status=approval_status,
+                         approving_user_role=approving_user_role,
+                         approve_id=approve_id)
+        #mail to Admin and normal user
+        for data in approve_data:
+            inv_amt = (data.unit_price * data.quantity) + data.tax
+            admin_items.append([data.sku.sku_desc, data.quantity, inv_amt])
+            items.append([data.sku.sku_desc, data.quantity])
+        customer = CustomerUserMapping.objects.get(user_id=approve_data[0].customer_user.id)
+        customer = CustomerMaster.objects.filter(id=customer.customer_id)
+        customer_id = customer[0].customer_id
+        customer_name = customer[0].name
+        normal_user_mail_id = customer.values_list('email_id', flat=True)
+        role = 'HOD' if approving_user_role == 'Admin' else 'Admin'
+        admin_mail_id = CustomerMaster.objects.filter(user=user.id, role=role)\
+                                              .values_list('email_id', flat=True)
+        admin_headers = ['Product Details', 'Ordered Quantity', 'Total']
+        user_headres = ['Product Details', 'Ordered Quantity']
+        admin_data_dict = {'customer_name': customer_name, 'items': admin_items, 'approving_user_role': approving_user_role,
+                           'headers': admin_headers, 'role': role, 'status': approval_status}
+        data_dict = {'customer_name': customer_name, 'items': items, 'approving_user_role': approving_user_role,
+                     'headers': user_headres, 'role': 'Normal Customer', 'status': approval_status}
+        if approval_status == 'accept':
+            t_admin = loader.get_template('templates/customer_portal/order_for_approval.html')
+        else:
+            t_admin = loader.get_template('templates/customer_portal/order_approved_hod.html')
+        rendered_admin = t_admin.render(admin_data_dict)
+        t_user = loader.get_template('templates/customer_portal/order_approved.html')
+        rendered_user = t_user.render(data_dict)
+        if admin_mail_id:
+            if approval_status == 'accept':
+                send_mail(admin_mail_id, 'Order Approval Request, Customer: %s' % customer_name, rendered_admin)
+            else:
+                send_mail(admin_mail_id, 'Order Rejected by %s' % approving_user_role, rendered_admin) 
+        if normal_user_mail_id:
+            send_mail(normal_user_mail_id, 'Your Order status got changed', rendered_user)
+
+    else:
+        message = 'failure'
+
+    return HttpResponse(json.dumps({'message': message}))
+
+
+def get_order_approval_statuses(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
+                                filters):
+    lis = ['approve_id', 'customer_user__username', 'approval_status', 'creation_date_only']
+    result_values = ['customer_user__username', 'approval_status',
+                     'approving_user_role', 'approve_id']
+    cust_obj = CustomerUserMapping.objects.filter(user_id=request.user.id)
+    if cust_obj:
+        customer_role = cust_obj[0].customer.role
+    else:
+        customer_role = ''
+    if customer_role.lower() == 'user':
+        user_filters = {'user_id': user.id, 'customer_user_id': request.user.id}
+    else:
+        user_filters = {'user_id': user.id}
+    search_params = get_filtered_params(filters, lis)
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if search_term:
+        cart_data = ApprovingOrders.objects.filter(**user_filters).filter(**search_params)\
+                                   .values(*result_values).distinct()\
+                                   .annotate(creation_date_only=Cast('creation_date', DateField()))\
+                                   .order_by(order_data)
+    else:
+        cart_data = ApprovingOrders.objects.filter(**user_filters)\
+                                   .values(*result_values).distinct()\
+                                   .annotate(creation_date_only=Cast('creation_date', DateField()))\
+                                   .order_by(order_data)
+    temp_data['recordsTotal'] = cart_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    for data in cart_data[start_index: stop_index]:
+        #shipment_date = data['shipment_date'].strftime('%d-%m-%Y') if data['shipment_date'] else ''
+        temp_data['aaData'].append(
+            OrderedDict((('user', data['customer_user__username']),
+                         ('date', data['creation_date_only'].strftime('%d-%m-%Y')),
+                         ('status', data['approval_status']),
+                         ('approve_id', data['approve_id']),
+                         ('approving_user_role', data['approving_user_role']),
+                       )))
+        """image = data.sku.image_url
+        sku_code = data.sku.sku_code
+        desc = data.sku.sku_desc
+        price = data.unit_price
+        shipment_date = data.shipment_date.strftime('%d-%m-%Y') if data.shipment_date else ''
+        temp_data['aaData'].append(
+            OrderedDict((('user', data.customer_user.username), ('date', data.creation_date.strftime('%d-%m-%Y')),
+                         ('status', data.approval_status), ('image', image), ('sku_code', sku_code),
+                         ('desc', desc), ('price', price), ('tax', data.tax), ('quantity', data.quantity),
+                         ('approve_id', data.approve_id), ('approving_user_role', data.approving_user_role),
+                         ('shipment_date',shipment_date)
+                         )))"""
+
+@get_admin_user
+@login_required
+def order_approval_sku_details(request, user=''):
+    approve_id = request.GET.get('approve_id', '')
+    sku_details_list = []
+    result_data = ['sku__sku_code', 'sku__sku_desc', 'sku__image_url',
+                   'tax', 'quantity', 'unit_price', 'approval_status',
+                   'shipment_date', 'approve_id']
+    approving_orders = ApprovingOrders.objects.filter(approve_id=approve_id)\
+                                      .values(*result_data)
+    for item in approving_orders:
+        sku_details = {'sku_code': item['sku__sku_code'],
+                       'sku_desc': item['sku__sku_desc'],
+                       'price': item['unit_price'],
+                       'tax': item['tax'],
+                       'quantity': item['quantity'],
+                       'image': item['sku__image_url']}
+        sku_details_list.append(sku_details)
+    return HttpResponse(json.dumps({'status': 'success', 'data': sku_details_list}))
+
+@get_admin_user
+@csrf_exempt
+@login_required
+def after_admin_approval(request, user=''):
+    status = update_cartdata_for_approval(request, user= '')
+    message = 'success'
+    admin_items, items = [], []
+    approval_status = request.POST.get('approval_status', '')
+    user_id = user.id
+    approve_id = request.POST.get('approve_id', '')
+    #sku_code = request.POST.get('sku_code', '')
+    #quantity = request.POST.get('quantity', '')
+    #price = request.POST.get('price', '')
+    #tax = request.POST.get('tax', '')
+    #title = request.POST.get('sku_desc', '')
+    shipment_date = request.POST.get('shipment_date',None)
+    order_summary = create_orders_data(request, user='')
+    order_id = get_order_id(user.id)
+    if shipment_date:
+        shipment_date = datetime.datetime.strptime(shipment_date, "%m/%d/%Y")
+        shipment_date = datetime.datetime.combine(shipment_date, datetime.datetime.min.time())
+    approve_status = ApprovingOrders.objects.filter(user_id=user.id, approve_id=approve_id, approval_status='accept')
+    if shipment_date:
+        approve_status.update(shipment_date =shipment_date)
+
+    for ap_status in approve_status:
+        price = ap_status.unit_price
+        quantity = ap_status.quantity
+        customer_user = CustomerUserMapping.objects.filter(user=ap_status.customer_user_id)
+        customer_user_id = ''
+        if customer_user:
+            customer_user_id = customer_user[0].customer.customer_id
+        if order_summary:
+            if not price:
+                price = 0
+            amt = int(quantity) * int(price)
+            invoice_amount = amt + ((amt/100) * (ap_status.cgst_tax + ap_status.sgst_tax + ap_status.igst_tax + ap_status.igst_tax))
+            admin_items.append([ap_status.sku.sku_desc, quantity, invoice_amount])
+            items.append([ap_status.sku.sku_desc, quantity])
+            detail_check = OrderDetail.objects.filter(order_id= order_id,sku_id= ap_status.sku_id,user = user.id,order_code = 'MN')
+            data_dict = {'order_id':order_id, 'customer_id':customer_user_id, 'user':user_id,
+            'title':ap_status.sku.sku_desc, 'quantity':quantity,'invoice_amount':invoice_amount, 'sku_id':ap_status.sku_id,'shipment_date':shipment_date,'order_code':'MN','original_order_id':'MN'+str(order_id)}
+            if detail_check:
+                detail_check.update(quantity= quantity,invoice_amount= invoice_amount)
+            else:
+                order = OrderDetail.objects.create(**data_dict)
+                order.save()
+                CustomerOrderSummary.objects.create(order_id = order.id,cgst_tax = ap_status.cgst_tax, sgst_tax = ap_status.sgst_tax,
+                igst_tax = ap_status.igst_tax, utgst_tax = ap_status.utgst_tax, inter_state = ap_status.inter_state)
+    #mail to HOD and normal user
+    customer_id = customer_user[0].customer_id
+    customer = CustomerMaster.objects.filter(id=customer_id)
+    customer_name = customer[0].name
+    normal_user_mail_id = customer.values_list('email_id', flat=True)
+    hod_mail_id = CustomerMaster.objects.filter(user=user.id, role='HOD')\
+                                         .values_list('email_id', flat=True)
+    hod_headers = ['Product Details', 'Ordered Quantity', 'Total']
+    user_headres = ['Product Details', 'Ordered Quantity']
+    hod_data_dict = {'customer_name': customer_name, 'items': admin_items, 'approving_user_role': 'Admin',
+                    'headers': hod_headers, 'role': 'HOD', 'status': approval_status}
+    user_data_dict = {'customer_name': customer_name, 'items': items,
+                'headers': user_headres, 'role': 'Normal Customer', 'status': approval_status}
+    t_admin = loader.get_template('templates/customer_portal/order_approved_hod.html')
+    rendered_admin = t_admin.render(hod_data_dict)
+    t_user = loader.get_template('templates/customer_portal/order_approved.html')
+    rendered_user = t_user.render(user_data_dict)
+    if hod_mail_id and approval_status == 'accept':
+        send_mail(hod_mail_id, 'Order Approved by Admin for Customer: %s' % customer_name, rendered_admin)
+    if normal_user_mail_id:
+        send_mail(normal_user_mail_id, 'Your Order status got changed', rendered_user)
+
+
+
+    return HttpResponse(json.dumps({'message': message}))
+@get_admin_user
+def update_orders_for_approval(request, user=''):
+    message = 'success'
+    items, user_items = [], []
+    cart_data = CustomerCartData.objects.filter(user_id=user.id, customer_user_id=request.user.id)
+    if cart_data:
+        try:
+            approve_id = get_approval_id(request.user.id)
+            ap_orders = ApprovingOrders.objects.filter(user_id=user.id, customer_user_id=request.user.id,
+                                                       approve_id=approve_id)
+            for cart_item in cart_data:
+                approve_orders_map = {'user_id': user.id, 'customer_user_id': request.user.id,
+                                      'approve_id': approve_id, 'approval_status': 'pending',
+                                      'approving_user_role': 'hod', 'sku_id': cart_item.sku_id,
+                                      'quantity': cart_item.quantity, 'unit_price': cart_item.levelbase_price,
+                                      'tax': cart_item.tax, 'inter_state': cart_item.inter_state,
+                                      'cgst_tax': cart_item.cgst_tax, 'sgst_tax': cart_item.sgst_tax,
+                                      'igst_tax': cart_item.igst_tax, 'utgst_tax': cart_item.utgst_tax
+                                      }
+                if not ap_orders:
+                    ApprovingOrders.objects.create(**approve_orders_map)
+                inv_amt = (cart_item.levelbase_price * cart_item.quantity) + cart_item.tax
+                items.append([cart_item.sku.sku_desc, cart_item.quantity, inv_amt])
+                user_items.append([cart_item.sku.sku_desc, cart_item.quantity])
+        except:
+            log.info('Update Orders Approval Failed')
+        else:
+            #mail to Admin and normal user
+            mail_ids = CustomerMaster.objects.filter(user=user.id, role='Admin')\
+                                             .values_list('email_id', flat=True)
+            customer_id = CustomerUserMapping.objects.get(user_id=request.user.id).customer_id
+            user_mail_id = CustomerMaster.objects.filter(id=customer_id).values_list('email_id', flat=True)
+            headers = ['Product Details', 'Ordered Quantity', 'Total']
+            user_headers = ['Product Details', 'Ordered Quantity']
+            data_dict = {'customer_name': request.user.username, 'items': items,
+                         'headers': headers, 'role': 'HOD'}
+            user_data_dict = {'customer_name': request.user.username, 'items': user_items,
+                              'headers': user_headers, 'role': 'Normal User'}
+            t = loader.get_template('templates/customer_portal/order_for_approval.html')
+            rendered = t.render(data_dict)
+            t_user = loader.get_template('templates/customer_portal/order_placed.html')
+            rendered_user = t_user.render(user_data_dict)
+            if mail_ids:
+                send_mail(mail_ids, 'Order Approval Request, Customer: %s' % request.user.username, rendered)
+            if user_mail_id:
+                send_mail(user_mail_id, 'Order Placed Successfully', rendered_user)
+
+            cart_data.delete()
+    else:
+        message = 'failure'
+
+    return HttpResponse(json.dumps({'message': message}))
+
+
 @fn_timer
 def validate_order_form(myDict, request, user):
     invalid_skus = []
@@ -3545,6 +3799,11 @@ def insert_order_data(request, user=''):
 
     log.info('Request params for ' + user.username + ' is ' + str(myDict))
 
+    # Using the display_sku_cust_mapping flag for ANT Stationers
+    # orders_for_approval_flag = get_misc_value('display_sku_cust_mapping', user.id)
+    # if orders_for_approval_flag == 'true':
+    #     status = update_cartdata_for_approval(request, user)
+    #     return HttpResponse(status)
     is_distributor = False
     cm_id = 0
     generic_order_id = 0
@@ -5862,6 +6121,37 @@ def payment_tracker(request, user=''):
                      'total_payment_receivable': "%.2f" % total_payment_receivable})
     return HttpResponse(json.dumps(response))
 
+
+@login_required
+@get_admin_user
+@csrf_exempt
+def get_customer_list(request, user=''):
+    '''all customers for multiselect in outbound payments'''
+
+    user_profile = UserProfile.objects.get(user_id=user)
+    user_filter = {'order__user': user.id, 'order_status_flag': 'customer_invoices'}
+    result_values = ['order__customer_name', 'order__customer_id']
+    customer_data = []
+    response = {}
+
+    master_data = SellerOrderSummary.objects.filter(**user_filter)\
+                    .exclude(invoice_number='')\
+                    .values(*result_values).distinct()\
+                    .annotate(invoice_amount = Sum('order__invoice_amount'),\
+                     payment_received = Sum('order__payment_received'))
+    for data in master_data:
+        payment_receivable = data['invoice_amount'] - data['payment_received']
+        data_dict = OrderedDict((('customer_name', data['order__customer_name']),
+                                ('customer_id', data['order__customer_id']),
+                                ('invoice_amount', "%.2f" % data['invoice_amount']),
+                                ('payment_received', "%.2f" % data['payment_received']),
+                                ('payment_receivable', "%.2f" % payment_receivable)
+                               ))
+        customer_data.append(data_dict)
+
+    response["data"] = customer_data
+    return HttpResponse(json.dumps(response))
+
 @csrf_exempt
 def get_inv_based_payment_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                          filters):
@@ -5872,6 +6162,11 @@ def get_inv_based_payment_data(start_index, stop_index, temp_data, search_term, 
     lis = ['invoice_number', 'order__customer_name', 'order__customer_id']#for filter purpose
     user_filter = {'order__user': user.id, 'order_status_flag': 'customer_invoices'}
     result_values = ['invoice_number', 'order__customer_name', 'order__customer_id']#to make distinct grouping
+    cust_ids = request.POST.get("customer_ids", '')
+    if cust_ids:
+        cust_ids = cust_ids.split(',')
+        cust_ids = [int(id) for id in cust_ids]
+        user_filter['order__customer_id__in'] = cust_ids
     #invoice date= seller order summary creation date
     #invoice_date = get_local_date(user, invoice_date, send_date='true')
     #invoice_date = invoice_date.strftime("%d %b %Y")
@@ -5976,6 +6271,10 @@ def update_inv_payment_status(request, user=''):
         payment = float(data_dict['amount'][i])
         order_details = OrderDetail.objects.filter(order_id=data_dict['order_id'][i], user=user.id,
                                                    payment_received__lt=F('invoice_amount'))
+        payment_id = get_incremental(user, "payment_summary", 1)
+        entered_amount = float(data_dict.get('entered_amount', {}).get(i, 0))
+        balance_amount = float(data_dict.get('balance_amount', {}).get(i, 0))
+        tds_amount = float(data_dict.get('tds_amount', {}).get(i, 0))
         for order in order_details:
             if not payment:
                 break
@@ -6089,48 +6388,186 @@ def get_customer_master_id(request, user=''):
                                     'level_2_price_type': level_2_price_type, 'price_type': reseller_price_type}))
 
 
+def get_order_ids(user, invoice_number):
+    sell_ids = {}
+    sell_ids['order__user'] = user.id
+    sell_ids['invoice_number'] = invoice_number
+    seller_summary = SellerOrderSummary.objects.filter(**sell_ids)
+    order_id_list = list(set(seller_summary.values_list('order__order_id', flat=True)))
+    order_id_list = map(lambda x: str(x), order_id_list)
+    return order_id_list
+
+
 @login_required
 @csrf_exempt
 @get_admin_user
 def update_payment_status(request, user=''):
-    data_dict = dict(request.GET.iterlists())
-    invoice_number = request.GET.get('invoice_number', '')
-    if invoice_number:
-        sell_ids = {}
-        sell_ids['order__user'] = user.id
-        sell_ids['invoice_number'] = invoice_number
-        seller_summary = SellerOrderSummary.objects.filter(**sell_ids)
-        order_ids = list(set(seller_summary.values_list('order__order_id', flat=True)))
-        order_ids = map(lambda x: str(x), order_ids)
+    if request.method == "POST":
+        data_dict = dict(request.POST.iterlists())
+        invoice_numbers = []
+        order_ids = []
+        for key, val in data_dict.iteritems():
+            if "[invoice_number]" in key:
+                invoice_numbers.append(request.POST.get(key))
+    else:
+        data_dict = dict(request.GET.iterlists())
+        invoice_numbers = [request.GET.get('invoice_number', '')]
+    payment_id = get_incremental(user, "payment_summary", 1)
+    for index, invoice_number in enumerate(invoice_numbers):
+        order_ids = get_order_ids(user, invoice_number)
         data_dict['order_id'] = order_ids
-    payment = float(data_dict['amount'][0])
-    for i in range(0, len(data_dict['order_id'])):
-        if not data_dict['amount']:
+
+        if request.method == "POST":
+            payment = float(data_dict.get('data['+str(index)+'][amount]', [0])[0])
+            entered_amount = float(data_dict.get('data['+str(index)+'][enter_amount]', [0])[0])
+            balance_amount = float(data_dict.get('data['+str(index)+'][balance]', [0])[0])
+            tds_amount = float(data_dict.get('data[0][update_tds][0]', [0])[0])
+            bank = data_dict.get('data[0][bank_name]', [''])[0]
+            mode_of_pay = data_dict.get('data[0][mode_of_pay]', [''])[0]
+            remarks = data_dict.get('data[0][neft_cheque]', [''])[0]
+            payment_date = data_dict.get('data[0][date]', [None])[0]
+            if payment_date:
+                payment_date = datetime.datetime.strptime(payment_date, "%m/%d/%Y")
+        else:
+            payment = float(data_dict['amount'][0])
+            bank = request.GET.get('bank', '')
+            mode_of_pay = request.GET.get('mode_of_payment', '')
+            remarks = request.GET.get('remarks', '')
+            payment_date = None
+        if not payment:
             continue
-        order_details = OrderDetail.objects.filter(order_id=data_dict['order_id'][i], user=user.id,
-                                                   payment_received__lt=F('invoice_amount'))
-        for order in order_details:
-            if not payment:
-                break
-            if float(order.invoice_amount) > float(order.payment_received):
-                diff = float(order.invoice_amount) - float(order.payment_received)
-                bank = request.GET.get('bank', '')
-                mode_of_pay = request.GET.get('mode_of_payment', '')
-                remarks = request.GET.get('remarks', '')
-                if payment > diff:
-                    order.payment_received = diff
-                    payment -= diff
-                    PaymentSummary.objects.create(order_id=order.id, creation_date=datetime.datetime.now(),\
-                                                  payment_received=diff, bank=bank, mode_of_pay=mode_of_pay,\
-                                                  remarks=remarks)
-                else:
-                    PaymentSummary.objects.create(order_id=order.id, creation_date=datetime.datetime.now(),\
-                                                  payment_received=payment, bank=bank,\
-                                                  mode_of_pay=mode_of_pay, remarks=remarks)
-                    order.payment_received = float(order.payment_received) + float(payment)
-                    payment = 0
-                order.save()
-    return HttpResponse("Success")
+
+        for i in range(0, len(data_dict['order_id'])):
+            order_details = OrderDetail.objects.filter(order_id=data_dict['order_id'][i], user=user.id,
+                                                       payment_received__lt=F('invoice_amount'))
+            for order in order_details:
+                if not payment:
+                    break
+                if float(order.invoice_amount) > float(order.payment_received):
+                    diff = float(order.invoice_amount) - float(order.payment_received)
+                    if payment > diff:
+                        order.payment_received = diff
+                        payment -= diff
+                        PaymentSummary.objects.create(order_id=order.id, creation_date=datetime.datetime.now(),\
+                                                      payment_received=diff, bank=bank, mode_of_pay=mode_of_pay,\
+                                                      remarks=remarks, payment_id=payment_id,\
+                                                      entered_amount=entered_amount, balance_amount=balance_amount,\
+                                                      tds_amount=tds_amount, payment_date=payment_date)
+                    else:
+                        PaymentSummary.objects.create(order_id=order.id, creation_date=datetime.datetime.now(),\
+                                                      payment_received=payment, bank=bank,\
+                                                      mode_of_pay=mode_of_pay, remarks=remarks,\
+                                                      payment_id=payment_id, entered_amount=entered_amount,\
+                                                      balance_amount=balance_amount, tds_amount=tds_amount,\
+                                                      payment_date=payment_date)
+                        order.payment_received = float(order.payment_received) + float(payment)
+                        payment = 0
+                    order.save()
+    return HttpResponse(json.dumps({'status': True, 'message': 'Payment Successfully Completed !'}))
+
+
+@csrf_exempt
+def get_outbound_payment_report(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+
+    ''' Outbound Payment Report datatable code '''
+
+    from_date = request.POST.get('from_date', '')
+    to_date = request.POST.get('to_date', '')
+    customer_name = request.POST.get('customer', '')
+    inv_no = request.POST.get('invoice_number', '')
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    admin_user = get_priceband_admin_user(user)
+    lis = ['payment_id', 'payment_date', 'order__sellerordersummary__invoice_number', 'order__customer_name']#for filter purpose
+    user_filter = {'order__user': user.id}
+    result_values = ['payment_id', 'payment_date', 'order__sellerordersummary__invoice_number',
+                     'mode_of_pay', 'remarks', 'order__customer_name', 'order__customer_id',
+                     'order__invoice_amount', 'payment_received']#to make distinct grouping
+    #filter
+    if from_date:
+        from_date = datetime.datetime.strptime(from_date, '%m/%d/%Y')
+        user_filter['payment_date__gte'] = from_date
+    if to_date:
+        to_date = datetime.datetime.strptime(to_date, '%m/%d/%Y')
+        user_filter['payment_date__lte'] = to_date
+    if customer_name:
+        user_filter['order__customer_name'] = customer_name
+    if inv_no:
+        user_filter['order__sellerordersummary__invoice_number'] = inv_no
+    cust_ids = request.POST.get("customer_ids", '')
+    if cust_ids:
+        cust_ids = cust_ids.split(',')
+        cust_ids = [int(id) for id in cust_ids]
+        user_filter['order__customer_id__in'] = cust_ids
+    #invoice date= seller order summary creation date
+    #invoice_date = get_local_date(user, invoice_date, send_date='true')
+    #invoice_date = invoice_date.strftime("%d %b %Y")
+
+    """competed_payment_ids = PaymentSummary.objects.filter(**user_filter)\
+                            .exclude(Q(order__sellerordersummary__invoice_number='') | Q(payment_id=''))\
+                            .values('order__sellerordersummary__invoice_number', 'order__customer_id',\
+                             'payment_received', 'order__invoice_amount').distinct()\
+                            .annotate(tot_payment_received = Sum('payment_received'),\
+                             tot_invoice_amount = Sum('order__invoice_amount'))\
+                            .filter(tot_payment_received=F('tot_invoice_amount'))\
+                            .values_list('id', flat=True)"""
+    all_invoice_numbers = SellerOrderSummary.objects.filter(order__user=user.id)\
+                            .exclude(Q(order__paymentsummary__payment_id='') | Q(invoice_number=''))\
+                            .values('invoice_number', 'order__customer_id').distinct()\
+                            .annotate(tot_inv_amt=Sum('order__invoice_amount'))\
+                            .values_list('order__customer_id', 'invoice_number', 'tot_inv_amt')
+    all_received_amounts = PaymentSummary.objects.filter(**user_filter)\
+                            .exclude(Q(order__sellerordersummary__invoice_number='') | Q(payment_id=''))\
+                            .filter(order__user=user.id).values('order__sellerordersummary__invoice_number', 'order__customer_id').distinct()\
+                            .annotate(tot_rcvd_amt=Sum('payment_received'))\
+                            .values_list('order__customer_id', 'order__sellerordersummary__invoice_number', 'tot_rcvd_amt')
+    competed_inv_nos = []
+    for item in all_received_amounts:
+        #if item in all_invoice_numbers:
+            competed_inv_nos.append(item[1])
+    if search_term:
+        search_term = search_term.replace('(', '\(').replace(')', '\)')
+        search_query = build_search_term_query(lis, search_term)
+        master_data = PaymentSummary.objects.filter(order__sellerordersummary__invoice_number__in=competed_inv_nos)\
+                        .filter(search_query, **user_filter)\
+                        .values(*result_values).distinct()\
+                        .annotate(tot_payment_received = Sum('payment_received'), tot_invoice_amount = Sum('order__invoice_amount'))
+
+    elif order_term:
+        if order_term == 'asc' and (col_num or col_num == 0):
+            order_by = '%s' % lis[col_num]
+        else:
+            order_by = '-%s' % lis[col_num]
+        master_data = PaymentSummary.objects.filter(order__sellerordersummary__invoice_number__in=competed_inv_nos)\
+                        .filter(**user_filter)\
+                        .values(*result_values).distinct()\
+                        .annotate(tot_payment_received = Sum('payment_received'), tot_invoice_amount = Sum('order__invoice_amount'))\
+                        .order_by('-%s' % lis[col_num])
+    else:
+        master_data = PaymentSummary.objects.filter(order__sellerordersummary__invoice_number__in=competed_inv_nos)\
+                            .filter(**user_filter)\
+                            .values(*result_values).distinct()\
+                            .annotate(tot_payment_received = Sum('payment_received'), tot_invoice_amount = Sum('order__invoice_amount'))
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    for data in master_data[start_index:stop_index]:
+
+        tot_inv_amount = SellerOrderSummary.objects.filter(invoice_number=data['order__sellerordersummary__invoice_number'],\
+                                                    order__customer_id=data['order__customer_id'])\
+                                                   .aggregate(tot_inv_amnt=Sum('order__invoice_amount'))
+        payment_date = data['payment_date'].strftime("%d %b %Y") if data['payment_date'] else ''
+
+        data_dict = OrderedDict((('payment_id', data['payment_id']),
+                                ('payment_date', payment_date),
+                                ('invoice_number', data['order__sellerordersummary__invoice_number']),
+                                ('mode_of_pay', data['mode_of_pay']),
+                                ('remarks', data['remarks']),
+                                ('customer_name', data['order__customer_name']),
+                                ('customer_id', data['order__customer_id']),
+                                ('invoice_amount', "%.2f" % tot_inv_amount['tot_inv_amnt']),
+                                ('payment_received', "%.2f" % data['tot_payment_received'])
+                               ))
+        temp_data['aaData'].append(data_dict)
 
 
 @login_required
@@ -7495,6 +7932,8 @@ def get_customer_cart_data(request, user=""):
             json_record['mrp'] = sku_obj[0].mrp
             json_record['cost_price'] = sku_obj[0].cost_price
             json_record['sku_style'] = sku_obj[0].sku_class
+            json_record['sku_pk'] = sku_obj[0].id
+            json_record['add_to_cart'] = 'true'
             product_type = sku_obj[0].product_type
             price_field = get_price_field(user)
             is_sellingprice = False
@@ -7655,6 +8094,7 @@ def insert_customer_cart_data(request, user=""):
     """ insert customer cart data """
 
     response = {'data': [], 'msg': 0}
+    items = []
     cart_data = request.GET.get('data', '')
 
     if cart_data:
@@ -7673,6 +8113,7 @@ def insert_customer_cart_data(request, user=""):
                 cart = cart[0]
                 cart.quantity = cart.quantity + record['quantity']
                 cart.save()
+
         response['data'] = "Inserted Successfully"
 
     return HttpResponse(json.dumps(response, cls=DjangoJSONEncoder))

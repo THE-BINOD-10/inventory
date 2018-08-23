@@ -9,3 +9,5 @@ TERMS_CHOICES = (('sales', 'Sales'),
                   ('purchases', 'Purchases'), ('', ''))
 CUSTOMIZATION_TYPES = (('price_custom', 'Price Customization'), ('product_custom', 'Product Customization'),
                        ('price_product_custom', 'Price and Product Customization'))
+CUSTOMER_ROLE_CHOICES = (('', ''), ('customer_user', 'user'), ('customer_hod', 'hod'), ('customer_admin', 'admin'))
+APPROVAL_STATUSES = (('accept', 'Accept'), ('reject', 'Reject'), ('pending', 'Pending'))

@@ -9,6 +9,9 @@
     overflow: hidden;
     height: auto;
   }
+  .sidebar-panel{
+    z-index: 1000;
+  }
 </style>
 <div id="page-pop" class="popup-style" ng-style="$ctrl.service.popup_dyn_style">
   <form name="form" role="form" ui-jq="validate" ui-options="validationOpt">
@@ -19,7 +22,7 @@
         <div class="modal-body">
           <div class="row">
             <h3 class="modal-title text-center"><strong>Scanned SKU Does Not Exist</strong></h3>
-            <h5 class="text-center">Do you want to map with existing SKU'S</h5>
+            <h5 class="text-center">Do you want to map with existing SKUS</h5>
           </div>
 
           <div class="row m15" id="newSkuAdd">
@@ -29,7 +32,7 @@
           </div>
           <div class="row text-center">
             <button type="button" class="btn btn-success mr5" ng-click="$ctrl.ok(form)" ng-disabled="$ctrl.processing">Map SKU<span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right" ng-if="$ctrl.processing"></button>
-            <button type="button" class="btn btn-default" ng-click="$ctrl.close()">Cancle</button>
+            <button type="button" class="btn btn-default" ng-click="$ctrl.close()">Cancel</button>
           </div>
         </div>
       </div>

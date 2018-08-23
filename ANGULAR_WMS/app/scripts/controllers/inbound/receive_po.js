@@ -144,7 +144,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                         'width': '1400px'
                       };
                     } else {
-                      vm.extra_width = {};
+                      vm.extra_width = {
+                        'width': '900px'
+                      };
                     }
                     vm.shelf_life = vm.model_data.data[0][0].shelf_life;
 

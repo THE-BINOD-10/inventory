@@ -1247,7 +1247,7 @@ def confirm_po(request, user=''):
     round_value = float(round(total) - float(total))
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
                  'telephone': str(telephone),
-                 'name': name, 'order_date': order_date, 'total': round(total), 'round_total' : "%.2f" % round_value, 'po_reference': po_reference,
+                 'name': name, 'order_date': order_date, 'total': round(total), 'po_reference': po_reference,
                  'company_name': company_name,
                  'location': profile.location, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                  'vendor_telephone': vendor_telephone, 'total_qty': total_qty, 'receipt_type': receipt_type,
@@ -1255,6 +1255,8 @@ def confirm_po(request, user=''):
                  'gstin_no': gstin_no, 'w_address': get_purchase_company_address(profile), 
                  'wh_telephone': wh_telephone, 'terms_condition' : terms_condition, 
                  'total_amt_in_words' : total_amt_in_words, 'show_cess_tax': show_cess_tax}
+    if round_value:
+        data_dict['round_total'] = "%.2f" % round_value
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
     if get_misc_value('raise_po', user.id) == 'true':
@@ -4497,12 +4499,12 @@ def confirm_add_po(request, sales_data='', user=''):
     po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
     if industry_type == 'FMCG':
         table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'UOM', 'Unit Price', 'MRP', 'Amount',
-                     'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Total Invoice Amt']
+                     'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Total Amt']
         if show_cess_tax:
             table_headers.insert(11, 'CESS(%)')
     else:
         table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'UOM', 'Unit Price', 'Amount',
-                     'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Total Invoice Amt']
+                     'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Total Amt']
         if show_cess_tax:
             table_headers.insert(10, 'CESS(%)')
     if ean_flag:
@@ -4522,7 +4524,7 @@ def confirm_add_po(request, sales_data='', user=''):
     round_value = float(round(total) - float(total))
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
                  'telephone': str(telephone), 'ship_to_address': ship_to_address,
-                 'name': name, 'order_date': order_date, 'total': round(total), 'round_total': "%.2f" % round_value,'po_reference': po_reference,
+                 'name': name, 'order_date': order_date, 'total': round(total), 'po_reference': po_reference,
                  'user_name': request.user.username, 'total_amt_in_words': total_amt_in_words,
                  'total_qty': total_qty, 'company_name': company_name, 'location': profile.location,
                  'w_address': get_purchase_company_address(profile),
@@ -4531,6 +4533,8 @@ def confirm_add_po(request, sales_data='', user=''):
                  'gstin_no': gstin_no, 'industry_type': industry_type, 'expiry_date': expiry_date,
                  'wh_telephone': wh_telephone, 'wh_gstin': profile.gst_number,
                  'terms_condition': terms_condition, 'show_cess_tax' : show_cess_tax}
+    if round_value:
+        data_dict['round_total'] = "%.2f" % round_value
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
     if get_misc_value('raise_po', user.id) == 'true':
@@ -4723,8 +4727,7 @@ def confirm_po1(request, user=''):
             total_amt_in_words = number_in_words(round(total)) + ' ONLY'
             round_value = float(round(total) - float(total))
             data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
-                         'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': round(total),
-                         'round_total' : "%.2f" % round_value,
+                         'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': round(total),             
                          'company_name': profile.company_name, 'location': profile.location,
                          'po_reference': po_reference,
                          'total_qty': total_qty, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
@@ -4732,6 +4735,8 @@ def confirm_po1(request, user=''):
                          'w_address': get_purchase_company_address(profile), 'ship_to_address': ship_to_address,
                          'wh_telephone': wh_telephone, 'wh_gstin': profile.gst_number,
                          'terms_condition' : terms_condition, 'total_amt_in_words' : total_amt_in_words, 'show_cess_tax': show_cess_tax}
+            if round_value:
+                data_dict['round_total'] = "%.2f" % round_value
             t = loader.get_template('templates/toggle/po_download.html')
             rendered = t.render(data_dict)
             if get_misc_value('raise_po', user.id) == 'true':

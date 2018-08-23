@@ -983,7 +983,6 @@ def switches(request, user=''):
         for key, value in request.GET.iteritems():
             toggle_field = toggle_data.get(key, '')
             selection = value
-
         user_id = user.id
         if toggle_field == 'invoice_prefix':
             user_profile = UserProfile.objects.filter(user_id=user_id)

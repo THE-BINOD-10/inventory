@@ -6008,6 +6008,7 @@ def create_seller_summary_details(seller_order, picklist):
 @fn_timer
 def picklist_generation(order_data, request, picklist_number, user, sku_combos, sku_stocks, switch_vals, status='', remarks='',
                         is_seller_order=False):
+    enable_damaged_stock = request.POST.get('enable_damaged_stock', 'false')
     stock_status = []
     if not status:
         status = 'batch_open'
@@ -6121,12 +6122,13 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
                 picklist_data['stock_id'] = ''
                 picklist_data['order_id'] = order.id
                 picklist_data['status'] = status
+                if enable_damaged_stock  == 'true':
+                    picklist_data['damage_suggested'] = 1
                 if sku_code:
                     picklist_data['sku_code'] = sku_code
                 if 'st_po' not in dir(order):
                     new_picklist = Picklist(**picklist_data)
                     new_picklist.save()
-
                     if seller_order:
                         create_seller_summary_details(seller_order, new_picklist)
                         seller_order.status = 0
@@ -6177,7 +6179,9 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
                 else:
                     picklist_data['order_id'] = order.id
                 picklist_data['status'] = status
-
+                enable_damaged_stock = request.POST.get('enable_damaged_stock', 'false')
+                if enable_damaged_stock  == 'true':
+                    picklist_data['damage_suggested'] = 1
                 new_picklist = Picklist(**picklist_data)
                 new_picklist.save()
                 if seller_order:

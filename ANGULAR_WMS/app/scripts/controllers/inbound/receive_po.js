@@ -291,6 +291,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           new_dic.batch_no = "";
           new_dic.manf_date = "";
           new_dic.exp_date = "";
+          new_dic.total_amt = "";
           data.push(new_dic);
         } else {
           data.splice(index,1);
@@ -1851,6 +1852,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         sku_row_data.discount_percentage = 0;
       }
 
+      if (Number(sku_row_data.tax_percent)) {
+
+        sku_row_data.tax_percent = Number(sku_row_data.tax_percent).toFixed(1)
+      }
+
+      if (Number(sku_row_data.cess_percent)) {
+
+        sku_row_data.cess_percent = Number(sku_row_data.cess_percent).toFixed(1)
+      }
+
+      vm.singleDecimalVal(sku_row_data.tax_percent, 'tax_percent', index, parent_index);
+      vm.singleDecimalVal(sku_row_data.cess_percent, 'cess_percent', index, parent_index);
+
       var total_amt = Number(sku_row_data.value)*Number(sku_row_data.buy_price);
       var total_amt_dis = Number(total_amt) * Number(sku_row_data.discount_percentage) / 100;
       var tot_tax = Number(sku_row_data.tax_percent) + Number(sku_row_data.cess_percent);
@@ -1877,6 +1891,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       vm.pull_cls = key ? 'pull-left' : 'pull-right';
       vm.margin_cls = key ? {marginRight: '0px'} : {marginRight: '50px'};
+    }
+
+    vm.singleDecimalVal = function(value, field, inIndex, outIndex){
+
+      if (Number(value)) {
+
+        vm.model_data.data[outIndex][inIndex][field] = Number(value).toFixed(1);
+      }
     }
 }
 

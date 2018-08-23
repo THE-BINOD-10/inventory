@@ -631,11 +631,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 }
 
                 if (vm.sku_list_1.indexOf(vm.field) == -1){
-                  //if (vm.industry_type == "FMCG" && vm.user_type == "marketplace_user") {
+
+                  if (data.data.sku_code && data.data.sku_code == vm.field) {
+
+                    Service.showNoty(vm.field+' Does Not Exist');
+                  } else {
+
                     vm.addNewScannedSku(event, field);
-                  //} else {
-                  //  Service.showNoty(field+" Does Not Exist");
-                  //}
+                  }
                 }
               } else {
                 vm.sku_list_1 = [];
@@ -655,11 +658,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   });
                 }
                 if (vm.sku_list_1.indexOf(vm.field) == -1){
-                  //if (vm.industry_type == "FMCG" && vm.user_type == "marketplace_user") {
+
+                  if (data.data.sku_code && data.data.sku_code == vm.field) {
+
+                    Service.showNoty(vm.field+' Does Not Exist');
+                  } else {
+
                     vm.addNewScannedSku(event, field);
-                  //} else {
-                  //  Service.showNoty(field+" Does Not Exist");
-                  //}
+                  }
                 }
               }
             } else {
@@ -691,7 +697,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       modalInstance.result.then(function (selectedItem) {
 
-        console.log(selectedItem);
+        vm.scan_sku(event, field);
       })
     }
 
@@ -1876,7 +1882,7 @@ angular.module('urbanApp').controller('addNewSkuCtrl', function ($modalInstance,
   $ctrl.service = Service;
   $ctrl.processing = false;
   $("#map_sku_code").focus();
-  $ctrl.popup_dyn_style = {};
+  $ctrl.service.popup_dyn_style = 155;
 
   $ctrl.ok = function (form) {
 
@@ -1889,7 +1895,8 @@ angular.module('urbanApp').controller('addNewSkuCtrl', function ($modalInstance,
 
         if(data.message) {
 
-          console.log(data.data.data);
+          // console.log(data.data.data);
+          Service.showNoty('Your scanned sku mapped');
           $ctrl.close();
         }
         $ctrl.processing = false;

@@ -1188,7 +1188,7 @@ def confirm_po(request, user=''):
                         wms_code, value['supplier_code'], purchase_order.sku.sku_desc, purchase_order.order_quantity,
                         value['measurement_unit'], purchase_order.price, amount, purchase_order.sgst_tax,
                         purchase_order.cgst_tax,
-                        purchase_order.igst_tax, purchase_order.cess_tax, purchase_order.utgst_tax, total_tax_amt, total_sku_amt]
+                        purchase_order.igst_tax, purchase_order.cess_tax, purchase_order.utgst_tax, total_sku_amt]
         if ean_flag:
             po_temp_data.insert(1, purchase_order.sku.ean_number)
         if display_remarks == 'true':
@@ -1236,7 +1236,7 @@ def confirm_po(request, user=''):
         company_name = 'SHPROC Procurement Pvt. Ltd.'
 
     table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'UOM', 'Unit Price', 'Amount',
-                     'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Total Tax Amt', 'Total Amt']
+                     'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Total Amt']
     if ean_flag:
         table_headers.insert(1, 'EAN Number')
     if display_remarks == 'true':
@@ -4438,7 +4438,6 @@ def confirm_add_po(request, sales_data='', user=''):
                         purchase_order.igst_tax,
                         purchase_order.cess_tax,
                         purchase_order.utgst_tax,
-                        total_tax_amt,
                         total_sku_amt
                         ]
         else:
@@ -4449,8 +4448,7 @@ def confirm_add_po(request, sales_data='', user=''):
                         purchase_order.price, amount, purchase_order.sgst_tax, purchase_order.cgst_tax,
                         purchase_order.igst_tax,
                         purchase_order.cess_tax,
-                        purchase_order.utgst_tax, 
-                        total_tax_amt,
+                        purchase_order.utgst_tax,
                         total_sku_amt
                         ]
         if ean_flag:
@@ -4499,12 +4497,12 @@ def confirm_add_po(request, sales_data='', user=''):
     po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
     if industry_type == 'FMCG':
         table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'UOM', 'Unit Price', 'MRP', 'Amount',
-                     'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Total Tax Amt', 'Total Invoice Amt']
+                     'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Total Invoice Amt']
         if show_cess_tax:
             table_headers.insert(11, 'CESS(%)')
     else:
         table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'UOM', 'Unit Price', 'Amount',
-                     'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Total Tax Amt', 'Total Invoice Amt']
+                     'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Total Invoice Amt']
         if show_cess_tax:
             table_headers.insert(10, 'CESS(%)')
     if ean_flag:
@@ -4672,7 +4670,7 @@ def confirm_po1(request, user=''):
                 po_temp_data = [wms_code, supplier_code, purchase_order.sku.sku_desc, purchase_order.order_quantity,
                                 purchase_order.sku.measurement_type, purchase_order.price, amount,
                                 purchase_order.sgst_tax,
-                                purchase_order.cgst_tax, purchase_order.igst_tax, purchase_order.cess_tax, purchase_order.utgst_tax, total_tax_amt,
+                                purchase_order.cgst_tax, purchase_order.igst_tax, purchase_order.cess_tax, purchase_order.utgst_tax,
                                 total_sku_amt
                                 ]
                 if purchase_order.cess_tax:
@@ -4715,7 +4713,7 @@ def confirm_po1(request, user=''):
             po_reference = '%s%s_%s' % (str(profile.prefix), str(order_date).split(' ')[0].replace('-', ''), order_id)
             # table_headers = ('WMS CODE', 'Supplier Name', 'Description', 'Quantity', 'Unit Price', 'Amount')
             table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'UOM', 'Unit Price',
-                             'Amount', 'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Total Tax Amt', 'Total Amt']
+                             'Amount', 'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Total Amt']
             if ean_flag:
                 table_headers.insert(1, 'EAN Number')
             if display_remarks == 'true':

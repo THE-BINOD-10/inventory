@@ -313,6 +313,10 @@ urlpatterns = [
     url(r'^update_cust_profile/$', update_cust_profile),
     url(r'^print_cartons_data/$', print_cartons_data),
     url(r'^print_cartons_data_view/$', print_cartons_data_view),
+    url(r'^update_orders_for_approval/$', update_orders_for_approval),
+    url(r'^update_cartdata_for_approval/$', update_cartdata_for_approval),
+    url(r'^after_admin_approval/$', after_admin_approval),
+    url(r'^order_approval_sku_details/$', order_approval_sku_details),
     url(r'^move_to_dc/$', move_to_dc),
     url(r'^move_to_inv/$', move_to_inv),
     url(r'^update_dc/$', update_dc),
@@ -325,7 +329,6 @@ urlpatterns = [
     url(r'^get_ratings_details/$', get_ratings_details),
     url(r'^get_ratings_data_popup/$', get_ratings_data_popup),
     url(r'^save_cutomer_ratings/$', save_cutomer_ratings),
-
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),

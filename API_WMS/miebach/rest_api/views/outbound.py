@@ -2948,6 +2948,260 @@ def get_customer_data(request, user=''):
         return HttpResponse('')
 
 
+@get_admin_user
+def update_cartdata_for_approval(request, user=''):
+    message = 'success'
+    admin_items, items = [], []
+    approval_status = request.POST.get('approval_status', '')
+    approving_user_role = request.POST.get('approving_user_role', '')
+    approve_id = request.POST.get('approve_id', '')
+    if not approve_id:
+        return HttpResponse('Approve Id missing')
+    approve_data = ApprovingOrders.objects.filter(user_id=user.id, approve_id=approve_id)
+    if approve_data:
+        approve_data.update(approval_status=approval_status,
+                         approving_user_role=approving_user_role,
+                         approve_id=approve_id)
+        #mail to Admin and normal user
+        for data in approve_data:
+            inv_amt = (data.unit_price * data.quantity) + data.tax
+            admin_items.append([data.sku.sku_desc, data.quantity, inv_amt])
+            items.append([data.sku.sku_desc, data.quantity])
+        customer = CustomerUserMapping.objects.get(user_id=approve_data[0].customer_user.id)
+        customer = CustomerMaster.objects.filter(id=customer.customer_id)
+        customer_id = customer[0].customer_id
+        customer_name = customer[0].name
+        normal_user_mail_id = customer.values_list('email_id', flat=True)
+        role = 'HOD' if approving_user_role == 'Admin' else 'Admin'
+        admin_mail_id = CustomerMaster.objects.filter(user=user.id, role=role)\
+                                              .values_list('email_id', flat=True)
+        admin_headers = ['Product Details', 'Ordered Quantity', 'Total']
+        user_headres = ['Product Details', 'Ordered Quantity']
+        admin_data_dict = {'customer_name': customer_name, 'items': admin_items, 'approving_user_role': approving_user_role,
+                           'headers': admin_headers, 'role': role, 'status': approval_status}
+        data_dict = {'customer_name': customer_name, 'items': items, 'approving_user_role': approving_user_role,
+                     'headers': user_headres, 'role': 'Normal Customer', 'status': approval_status}
+        if approval_status == 'accept':
+            t_admin = loader.get_template('templates/customer_portal/order_for_approval.html')
+        else:
+            t_admin = loader.get_template('templates/customer_portal/order_approved_hod.html')
+        rendered_admin = t_admin.render(admin_data_dict)
+        t_user = loader.get_template('templates/customer_portal/order_approved.html')
+        rendered_user = t_user.render(data_dict)
+        if admin_mail_id:
+            if approval_status == 'accept':
+                send_mail(admin_mail_id, 'Order Approval Request, Customer: %s' % customer_name, rendered_admin)
+            else:
+                send_mail(admin_mail_id, 'Order Rejected by %s' % approving_user_role, rendered_admin) 
+        if normal_user_mail_id:
+            send_mail(normal_user_mail_id, 'Your Order status got changed', rendered_user)
+
+    else:
+        message = 'failure'
+
+    return HttpResponse(json.dumps({'message': message}))
+
+
+def get_order_approval_statuses(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
+                                filters):
+    lis = ['approve_id', 'customer_user__username', 'approval_status', 'creation_date_only']
+    result_values = ['customer_user__username', 'approval_status',
+                     'approving_user_role', 'approve_id']
+    cust_obj = CustomerUserMapping.objects.filter(user_id=request.user.id)
+    if cust_obj:
+        customer_role = cust_obj[0].customer.role
+    else:
+        customer_role = ''
+    if customer_role.lower() == 'user':
+        user_filters = {'user_id': user.id, 'customer_user_id': request.user.id}
+    else:
+        user_filters = {'user_id': user.id}
+    search_params = get_filtered_params(filters, lis)
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if search_term:
+        cart_data = ApprovingOrders.objects.filter(**user_filters).filter(**search_params)\
+                                   .values(*result_values).distinct()\
+                                   .annotate(creation_date_only=Cast('creation_date', DateField()))\
+                                   .order_by(order_data)
+    else:
+        cart_data = ApprovingOrders.objects.filter(**user_filters)\
+                                   .values(*result_values).distinct()\
+                                   .annotate(creation_date_only=Cast('creation_date', DateField()))\
+                                   .order_by(order_data)
+    temp_data['recordsTotal'] = cart_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    for data in cart_data[start_index: stop_index]:
+        #shipment_date = data['shipment_date'].strftime('%d-%m-%Y') if data['shipment_date'] else ''
+        temp_data['aaData'].append(
+            OrderedDict((('user', data['customer_user__username']),
+                         ('date', data['creation_date_only'].strftime('%d-%m-%Y')),
+                         ('status', data['approval_status']),
+                         ('approve_id', data['approve_id']),
+                         ('approving_user_role', data['approving_user_role']),
+                       )))
+        """image = data.sku.image_url
+        sku_code = data.sku.sku_code
+        desc = data.sku.sku_desc
+        price = data.unit_price
+        shipment_date = data.shipment_date.strftime('%d-%m-%Y') if data.shipment_date else ''
+        temp_data['aaData'].append(
+            OrderedDict((('user', data.customer_user.username), ('date', data.creation_date.strftime('%d-%m-%Y')),
+                         ('status', data.approval_status), ('image', image), ('sku_code', sku_code),
+                         ('desc', desc), ('price', price), ('tax', data.tax), ('quantity', data.quantity),
+                         ('approve_id', data.approve_id), ('approving_user_role', data.approving_user_role),
+                         ('shipment_date',shipment_date)
+                         )))"""
+
+@get_admin_user
+@login_required
+def order_approval_sku_details(request, user=''):
+    approve_id = request.GET.get('approve_id', '')
+    sku_details_list = []
+    result_data = ['sku__sku_code', 'sku__sku_desc', 'sku__image_url',
+                   'tax', 'quantity', 'unit_price', 'approval_status',
+                   'shipment_date', 'approve_id']
+    approving_orders = ApprovingOrders.objects.filter(approve_id=approve_id)\
+                                      .values(*result_data)
+    for item in approving_orders:
+        sku_details = {'sku_code': item['sku__sku_code'],
+                       'sku_desc': item['sku__sku_desc'],
+                       'price': item['unit_price'],
+                       'tax': item['tax'],
+                       'quantity': item['quantity'],
+                       'image': item['sku__image_url']}
+        sku_details_list.append(sku_details)
+    return HttpResponse(json.dumps({'status': 'success', 'data': sku_details_list}))
+
+@get_admin_user
+@csrf_exempt
+@login_required
+def after_admin_approval(request, user=''):
+    status = update_cartdata_for_approval(request, user= '')
+    message = 'success'
+    admin_items, items = [], []
+    approval_status = request.POST.get('approval_status', '')
+    user_id = user.id
+    approve_id = request.POST.get('approve_id', '')
+    #sku_code = request.POST.get('sku_code', '')
+    #quantity = request.POST.get('quantity', '')
+    #price = request.POST.get('price', '')
+    #tax = request.POST.get('tax', '')
+    #title = request.POST.get('sku_desc', '')
+    shipment_date = request.POST.get('shipment_date',None)
+    order_summary = create_orders_data(request, user='')
+    order_id = get_order_id(user.id)
+    if shipment_date:
+        shipment_date = datetime.datetime.strptime(shipment_date, "%m/%d/%Y")
+        shipment_date = datetime.datetime.combine(shipment_date, datetime.datetime.min.time())
+    approve_status = ApprovingOrders.objects.filter(user_id=user.id, approve_id=approve_id, approval_status='accept')
+    if shipment_date:
+        approve_status.update(shipment_date =shipment_date)
+
+    for ap_status in approve_status:
+        price = ap_status.unit_price
+        quantity = ap_status.quantity
+        customer_user = CustomerUserMapping.objects.filter(user=ap_status.customer_user_id)
+        customer_user_id = ''
+        if customer_user:
+            customer_user_id = customer_user[0].customer.customer_id
+        if order_summary:
+            if not price:
+                price = 0
+            amt = int(quantity) * int(price)
+            invoice_amount = amt + ((amt/100) * (ap_status.cgst_tax + ap_status.sgst_tax + ap_status.igst_tax + ap_status.igst_tax))
+            admin_items.append([ap_status.sku.sku_desc, quantity, invoice_amount])
+            items.append([ap_status.sku.sku_desc, quantity])
+            detail_check = OrderDetail.objects.filter(order_id= order_id,sku_id= ap_status.sku_id,user = user.id,order_code = 'MN')
+            data_dict = {'order_id':order_id, 'customer_id':customer_user_id, 'user':user_id,
+            'title':ap_status.sku.sku_desc, 'quantity':quantity,'invoice_amount':invoice_amount, 'sku_id':ap_status.sku_id,'shipment_date':shipment_date,'order_code':'MN','original_order_id':'MN'+str(order_id)}
+            if detail_check:
+                detail_check.update(quantity= quantity,invoice_amount= invoice_amount)
+            else:
+                order = OrderDetail.objects.create(**data_dict)
+                order.save()
+                CustomerOrderSummary.objects.create(order_id = order.id,cgst_tax = ap_status.cgst_tax, sgst_tax = ap_status.sgst_tax,
+                igst_tax = ap_status.igst_tax, utgst_tax = ap_status.utgst_tax, inter_state = ap_status.inter_state)
+    #mail to HOD and normal user
+    customer_id = customer_user[0].customer_id
+    customer = CustomerMaster.objects.filter(id=customer_id)
+    customer_name = customer[0].name
+    normal_user_mail_id = customer.values_list('email_id', flat=True)
+    hod_mail_id = CustomerMaster.objects.filter(user=user.id, role='HOD')\
+                                         .values_list('email_id', flat=True)
+    hod_headers = ['Product Details', 'Ordered Quantity', 'Total']
+    user_headres = ['Product Details', 'Ordered Quantity']
+    hod_data_dict = {'customer_name': customer_name, 'items': admin_items, 'approving_user_role': 'Admin',
+                    'headers': hod_headers, 'role': 'HOD', 'status': approval_status}
+    user_data_dict = {'customer_name': customer_name, 'items': items,
+                'headers': user_headres, 'role': 'Normal Customer', 'status': approval_status}
+    t_admin = loader.get_template('templates/customer_portal/order_approved_hod.html')
+    rendered_admin = t_admin.render(hod_data_dict)
+    t_user = loader.get_template('templates/customer_portal/order_approved.html')
+    rendered_user = t_user.render(user_data_dict)
+    if hod_mail_id and approval_status == 'accept':
+        send_mail(hod_mail_id, 'Order Approved by Admin for Customer: %s' % customer_name, rendered_admin)
+    if normal_user_mail_id:
+        send_mail(normal_user_mail_id, 'Your Order status got changed', rendered_user)
+
+
+
+    return HttpResponse(json.dumps({'message': message}))
+@get_admin_user
+def update_orders_for_approval(request, user=''):
+    message = 'success'
+    items, user_items = [], []
+    cart_data = CustomerCartData.objects.filter(user_id=user.id, customer_user_id=request.user.id)
+    if cart_data:
+        try:
+            approve_id = get_approval_id(request.user.id)
+            ap_orders = ApprovingOrders.objects.filter(user_id=user.id, customer_user_id=request.user.id,
+                                                       approve_id=approve_id)
+            for cart_item in cart_data:
+                approve_orders_map = {'user_id': user.id, 'customer_user_id': request.user.id,
+                                      'approve_id': approve_id, 'approval_status': 'pending',
+                                      'approving_user_role': 'hod', 'sku_id': cart_item.sku_id,
+                                      'quantity': cart_item.quantity, 'unit_price': cart_item.levelbase_price,
+                                      'tax': cart_item.tax, 'inter_state': cart_item.inter_state,
+                                      'cgst_tax': cart_item.cgst_tax, 'sgst_tax': cart_item.sgst_tax,
+                                      'igst_tax': cart_item.igst_tax, 'utgst_tax': cart_item.utgst_tax
+                                      }
+                if not ap_orders:
+                    ApprovingOrders.objects.create(**approve_orders_map)
+                inv_amt = (cart_item.levelbase_price * cart_item.quantity) + cart_item.tax
+                items.append([cart_item.sku.sku_desc, cart_item.quantity, inv_amt])
+                user_items.append([cart_item.sku.sku_desc, cart_item.quantity])
+        except:
+            log.info('Update Orders Approval Failed')
+        else:
+            #mail to Admin and normal user
+            mail_ids = CustomerMaster.objects.filter(user=user.id, role='Admin')\
+                                             .values_list('email_id', flat=True)
+            customer_id = CustomerUserMapping.objects.get(user_id=request.user.id).customer_id
+            user_mail_id = CustomerMaster.objects.filter(id=customer_id).values_list('email_id', flat=True)
+            headers = ['Product Details', 'Ordered Quantity', 'Total']
+            user_headers = ['Product Details', 'Ordered Quantity']
+            data_dict = {'customer_name': request.user.username, 'items': items,
+                         'headers': headers, 'role': 'HOD'}
+            user_data_dict = {'customer_name': request.user.username, 'items': user_items,
+                              'headers': user_headers, 'role': 'Normal User'}
+            t = loader.get_template('templates/customer_portal/order_for_approval.html')
+            rendered = t.render(data_dict)
+            t_user = loader.get_template('templates/customer_portal/order_placed.html')
+            rendered_user = t_user.render(user_data_dict)
+            if mail_ids:
+                send_mail(mail_ids, 'Order Approval Request, Customer: %s' % request.user.username, rendered)
+            if user_mail_id:
+                send_mail(user_mail_id, 'Order Placed Successfully', rendered_user)
+
+            cart_data.delete()
+    else:
+        message = 'failure'
+
+    return HttpResponse(json.dumps({'message': message}))
+
+
 @fn_timer
 def validate_order_form(myDict, request, user):
     invalid_skus = []
@@ -3545,6 +3799,11 @@ def insert_order_data(request, user=''):
 
     log.info('Request params for ' + user.username + ' is ' + str(myDict))
 
+    # Using the display_sku_cust_mapping flag for ANT Stationers
+    # orders_for_approval_flag = get_misc_value('display_sku_cust_mapping', user.id)
+    # if orders_for_approval_flag == 'true':
+    #     status = update_cartdata_for_approval(request, user)
+    #     return HttpResponse(status)
     is_distributor = False
     cm_id = 0
     generic_order_id = 0
@@ -7672,6 +7931,8 @@ def get_customer_cart_data(request, user=""):
             json_record['mrp'] = sku_obj[0].mrp
             json_record['cost_price'] = sku_obj[0].cost_price
             json_record['sku_style'] = sku_obj[0].sku_class
+            json_record['sku_pk'] = sku_obj[0].id
+            json_record['add_to_cart'] = 'true'
             product_type = sku_obj[0].product_type
             price_field = get_price_field(user)
             is_sellingprice = False
@@ -7832,6 +8093,7 @@ def insert_customer_cart_data(request, user=""):
     """ insert customer cart data """
 
     response = {'data': [], 'msg': 0}
+    items = []
     cart_data = request.GET.get('data', '')
 
     if cart_data:
@@ -7850,6 +8112,7 @@ def insert_customer_cart_data(request, user=""):
                 cart = cart[0]
                 cart.quantity = cart.quantity + record['quantity']
                 cart.save()
+
         response['data'] = "Inserted Successfully"
 
     return HttpResponse(json.dumps(response, cls=DjangoJSONEncoder))

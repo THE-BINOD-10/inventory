@@ -10798,6 +10798,7 @@ def stock_transfer_mail_pdf(request, f_name, html_data, warehouse):
         send_mail_attachment(receivers, email_subject, email_body, files=attachments)
 """
 def create_mail_attachments(f_name, html_data):
+    html_data = html_data.encode('utf-8').strip()
     from random import randint
     attachments = []
     if not isinstance(html_data, list):

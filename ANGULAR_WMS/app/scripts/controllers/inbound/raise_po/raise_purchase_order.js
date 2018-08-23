@@ -490,19 +490,48 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
         if (msg == "true") {
           vm.service.apiCall('confirm_po1/', 'POST', data, true).then(function(data){
             if(data.message) {
-              vm.confirm_print = true;
+              vm.confirm_print = false;
+              vm.print_enable = true;
+              angular.element(".modal-body").html('');
+              $state.go('app.inbound.RaisePo.PurchaseOrder');
+              vm.service.pop_msg(data.data);
+              vm.service.refresh(vm.dtInstance);
+              if(data.data.search("<div") != -1) {
+                if (vm.model_data.receipt_type == 'Hosted Warehouse') {
+                  vm.title = $(data.data).find('.modal-header h4').text().trim();
+                }
+                vm.html = $(data.data)[0];
+                vm.extra_width = {'width': '990px'};
+                $timeout(function() {
+                  $("#page-pop .modal-body.show").html(vm.html)
+                  vm.confirm_print = false;
+                }, 2000);
+              } else {
+                vm.service.pop_msg(data.data);
+              }
+
+              /*
+              
               vm.print_enable = true;
               $state.go('app.inbound.RaisePo.PurchaseOrder');
               vm.bt_disable = true;
               vm.service.refresh(vm.dtInstance);
               if(data.data.search("<div") != -1) {
+                
                 vm.html = $(data.data)[0];
                 $timeout(function() {
                   var html = $(vm.html).closest("form").clone();
                   angular.element(".modal-body").html($(html).find(".modal-body > .form-group"));
                   vm.confirm_print = false;
                 }, 1000);
+                
+                vm.extra_width = {'width': '990px'};
+                vm.html = $(data.data);
+                angular.element(".modal-body").html($(data.data));
+                vm.print_enable = true;
               }
+              */
+
             }
           });
         } else {

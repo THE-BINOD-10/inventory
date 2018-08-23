@@ -454,13 +454,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
               vm.service.refresh(vm.dtInstance);
               if(data.data.search("<div") != -1) {
                 if (vm.model_data.receipt_type == 'Hosted Warehouse') {
-                  //vm.title = "Stock transfer Note";
                   vm.title = $(data.data).find('.modal-header h4').text().trim();
 
                 }
-                //vm.html = $(data.data)[0];
-                //var html = $(vm.html).closest("form").clone();
-                //angular.element(".modal-body").html($(html).find(".modal-body > .form-group"));
                 vm.extra_width = {'width': '990px'};
                 vm.html = $(data.data);
                 angular.element(".modal-body").html($(data.data));
@@ -476,7 +472,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
 
     vm.confirm_print = false;
     vm.confirm_po1 = function() {
-
       vm.bt_disable = true;
       var that = vm;
       var data = [];
@@ -509,33 +504,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
               } else {
                 vm.service.pop_msg(data.data);
               }
-
-              /*
-              
-              vm.print_enable = true;
-              $state.go('app.inbound.RaisePo.PurchaseOrder');
-              vm.bt_disable = true;
-              vm.service.refresh(vm.dtInstance);
-              if(data.data.search("<div") != -1) {
-                
-                vm.html = $(data.data)[0];
-                $timeout(function() {
-                  var html = $(vm.html).closest("form").clone();
-                  angular.element(".modal-body").html($(html).find(".modal-body > .form-group"));
-                  vm.confirm_print = false;
-                }, 1000);
-                
-                vm.extra_width = {'width': '990px'};
-                vm.html = $(data.data);
-                angular.element(".modal-body").html($(data.data));
-                vm.print_enable = true;
-              }
-              */
-
             }
           });
         } else {
-
           vm.bt_disable = false;
         }
       });

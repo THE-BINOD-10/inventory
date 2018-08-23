@@ -1243,7 +1243,7 @@ def confirm_po(request, user=''):
         table_headers.append('Remarks')
     if show_cess_tax:
         table_headers.insert(10, 'CESS(%)')
-    total_amt_in_words = number_in_words(round(total))
+    total_amt_in_words = number_in_words(round(total)) + ' ONLY'
     round_value = float(round(total) - float(total))
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
                  'telephone': str(telephone),
@@ -4517,13 +4517,10 @@ def confirm_add_po(request, sales_data='', user=''):
     company_name = profile.company_name
     title = 'Purchase Order'
     receipt_type = request.GET.get('receipt_type', '')
-    # if receipt_type == 'Hosted Warehouse':
-    #if request.POST.get('seller_id', ''):
-    #    title = 'Stock Transfer Note'
     if request.POST.get('seller_id', '') and 'shproc' in str(request.POST.get('seller_id').split(":")[1]).lower():
         company_name = 'SHPROC Procurement Pvt. Ltd.'
         title = 'Purchase Order'
-    total_amt_in_words = number_in_words(round(total))
+    total_amt_in_words = number_in_words(round(total)) + ' ONLY'
     round_value = float(round(total) - float(total))
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
                  'telephone': str(telephone), 'ship_to_address': ship_to_address,
@@ -4725,7 +4722,7 @@ def confirm_po1(request, user=''):
                 table_headers.append('Remarks')
             if show_cess_tax:
                 table_headers.insert(10, 'CESS(%)')
-            total_amt_in_words = number_in_words(round(total))
+            total_amt_in_words = number_in_words(round(total)) + ' ONLY'
             round_value = float(round(total) - float(total))
             data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
                          'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': round(total),

@@ -687,7 +687,6 @@ def get_seller_invoice_data(start_index, stop_index, temp_data, search_term, ord
 @login_required
 @get_admin_user
 def generated_po_data(request, user=''):
-
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     status_dict = {'Self Receipt': 'SR', 'Vendor Receipt': 'VR'}
     receipt_type = ''
@@ -1177,9 +1176,7 @@ def confirm_po(request, user=''):
             total += amount
         else:
             total += amount + ((amount / 100) * float(tax))
-        
         total_qty += float(purchase_order.order_quantity)
-
         if purchase_order.sku.wms_code == 'TEMP':
             wms_code = purchase_order.wms_code
         else:
@@ -4365,7 +4362,6 @@ def confirm_add_po(request, sales_data='', user=''):
         else:
             new_mapping = SKUSupplier(**sku_mapping)
             new_mapping.save()
-        #po_suggestions['total_gst_tax'] = value['sgst_tax'] + value['cgst_tax'] + value['igst_tax'] + value['cess_tax'] + value['utgst_tax']
         po_suggestions['sku_id'] = sku_id[0].id
         po_suggestions['supplier_id'] = value['supplier_id']
         po_suggestions['order_quantity'] = value['order_quantity']

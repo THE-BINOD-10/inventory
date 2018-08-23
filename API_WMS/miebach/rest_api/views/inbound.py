@@ -1236,7 +1236,7 @@ def confirm_po(request, user=''):
         company_name = 'SHPROC Procurement Pvt. Ltd.'
 
     table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'UOM', 'Unit Price', 'Amount',
-                     'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Total Amt']
+                     'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Total']
     if ean_flag:
         table_headers.insert(1, 'EAN Number')
     if display_remarks == 'true':
@@ -4499,12 +4499,12 @@ def confirm_add_po(request, sales_data='', user=''):
     po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
     if industry_type == 'FMCG':
         table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'UOM', 'Unit Price', 'MRP', 'Amount',
-                     'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Total Amt']
+                     'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Total']
         if show_cess_tax:
             table_headers.insert(11, 'CESS(%)')
     else:
         table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'UOM', 'Unit Price', 'Amount',
-                     'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Total Amt']
+                     'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Total']
         if show_cess_tax:
             table_headers.insert(10, 'CESS(%)')
     if ean_flag:
@@ -4717,7 +4717,7 @@ def confirm_po1(request, user=''):
             po_reference = '%s%s_%s' % (str(profile.prefix), str(order_date).split(' ')[0].replace('-', ''), order_id)
             # table_headers = ('WMS CODE', 'Supplier Name', 'Description', 'Quantity', 'Unit Price', 'Amount')
             table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'UOM', 'Unit Price',
-                             'Amount', 'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Total Amt']
+                             'Amount', 'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Total']
             if ean_flag:
                 table_headers.insert(1, 'EAN Number')
             if display_remarks == 'true':

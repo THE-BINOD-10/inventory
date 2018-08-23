@@ -6242,7 +6242,7 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
                         user_dict={}):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     user_dict = eval(user_dict)
-    lis = ['order_id', 'customer_name', 'order_id', 'marketplace', 'total', 'shipment_date', 'creation_date', 'city',
+    lis = ['order_id', 'customer_name', 'order_id', 'marketplace', 'total', 'shipment_date', 'date_only', 'city',
            'status']
     # unsort_lis = ['Customer Name', 'Order ID', 'Market Place ', 'Total Quantity']
     unsorted_dict = {7: 'Order Taken By', 8: 'Status'}
@@ -6295,7 +6295,7 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
     if search_term:
         mapping_results = all_orders.values('customer_name', 'order_id', 'order_code', 'original_order_id',
                                             'marketplace'). \
-            distinct().annotate(total=Sum('quantity')).filter(Q(customer_name__icontains=search_term) |
+            distinct().annotate(total=Sum('quantity'), date_only=Cast('creation_date', DateField())).filter(Q(customer_name__icontains=search_term) |
                                                               Q(order_id__icontains=search_term) |
                                                               Q(sku__sku_category__icontains=search_term) |
                                                               Q(original_order_id__icontains=search_term),
@@ -6303,7 +6303,8 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
     else:
         mapping_results = all_orders.values('customer_name', 'order_id', 'order_code', 'original_order_id',
                                             'marketplace'). \
-            distinct().annotate(total=Sum('quantity')).filter(**search_params).order_by(order_data)
+            distinct().annotate(total=Sum('quantity'), date_only=Cast('creation_date', DateField())).\
+            filter(**search_params).order_by(order_data)
 
     temp_data['recordsTotal'] = mapping_results.count()
     temp_data['recordsFiltered'] = mapping_results.count()

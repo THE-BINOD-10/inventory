@@ -2581,6 +2581,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     show_imei_invoice = get_misc_value('show_imei_invoice', user.id)
     invoice_remarks = get_misc_value('invoice_remarks', user.id)
     show_disc_invoice = get_misc_value('show_disc_invoice', user.id)
+    show_mrp = get_misc_value('show_mrp', user.id)
 
     if len(invoice_remarks.split("<<>>")) > 1:
         invoice_remarks = invoice_remarks.split("<<>>")
@@ -2868,7 +2869,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'order_reference_date_field': order_reference_date_field,
                     'order_reference_date': order_reference_date, 'invoice_header': invoice_header,
                     'cin_no': cin_no, 'challan_no': challan_no, 'customer_id': customer_id,
-                    }
+                    'show_mrp': show_mrp}
     return invoice_data
 
 
@@ -4940,7 +4941,10 @@ def update_seller_order(seller_order_dict, order, user):
 
 
 def get_invoice_html_data(invoice_data):
+    show_mrp = invoice_data.get('show_mrp', 'false')
     data = {'totals_data': {'label_width': 6, 'value_width': 6}, 'columns': 10, 'emty_tds': [], 'hsn_summary_span': 3}
+    if show_mrp == 'true':
+        data['columns'] = 11
     if invoice_data.get('invoice_remarks', '') not in ['false', '']:
         data['totals_data']['label_width'] = 4
         data['totals_data']['value_width'] = 8

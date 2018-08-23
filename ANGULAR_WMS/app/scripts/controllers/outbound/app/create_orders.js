@@ -1824,7 +1824,7 @@ angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInst
       });
       send['order_details'] = JSON.stringify(vm.model_data.order_ratings);
       Service.apiCall("save_cutomer_ratings/", "POST", send).then(function(response) {
-        if (response.message) {
+        if (response.status) {
           vm.service.showNoty('Rating Submitted Successfully');
           vm.cancel();
         } else {

@@ -1635,6 +1635,25 @@ var app = angular.module('urbanApp')
                   return $ocLazyLoad.load([
                     'scripts/controllers/payment_tracker/inbound_payment_tracker.js'
                   ])
+                }).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/payment_tracker/outbound_payment_report.js'
+                  ])
+                }).then( function() {
+                    return $ocLazyLoad.load([{
+
+                      insertBefore: '#load_styles_before',
+                      files: [
+                                'scripts/extentions/plugins/multiselect/multi-select.css'
+                              ]
+                      }, {
+                      serie: true,
+                      files: [
+                                'scripts/extentions/plugins/multiselect/jquery.multi-select.js'
+                              ]
+                      }]).then(function () {
+                        return $ocLazyLoad.load('scripts/controllers/payment_tracker/outbound_payment.js');
+                  });
                 });
               }]
           },
@@ -1642,6 +1661,7 @@ var app = angular.module('urbanApp')
             title: 'Invoice Amount'
           }
         })
+
       .state('app.PaymentTrackerInvBased.Inv_Details', {
             url: '/Inv_Details',
             templateUrl: 'views/payment_tracker/toggle/inv_details.html',

@@ -5862,6 +5862,37 @@ def payment_tracker(request, user=''):
                      'total_payment_receivable': "%.2f" % total_payment_receivable})
     return HttpResponse(json.dumps(response))
 
+
+@login_required
+@get_admin_user
+@csrf_exempt
+def get_customer_list(request, user=''):
+    '''all customers for multiselect in outbound payments'''
+
+    user_profile = UserProfile.objects.get(user_id=user)
+    user_filter = {'order__user': user.id, 'order_status_flag': 'customer_invoices'}
+    result_values = ['order__customer_name', 'order__customer_id']
+    customer_data = []
+    response = {}
+
+    master_data = SellerOrderSummary.objects.filter(**user_filter)\
+                    .exclude(invoice_number='')\
+                    .values(*result_values).distinct()\
+                    .annotate(invoice_amount = Sum('order__invoice_amount'),\
+                     payment_received = Sum('order__payment_received'))
+    for data in master_data:
+        payment_receivable = data['invoice_amount'] - data['payment_received']
+        data_dict = OrderedDict((('customer_name', data['order__customer_name']),
+                                ('customer_id', data['order__customer_id']),
+                                ('invoice_amount', "%.2f" % data['invoice_amount']),
+                                ('payment_received', "%.2f" % data['payment_received']),
+                                ('payment_receivable', "%.2f" % payment_receivable)
+                               ))
+        customer_data.append(data_dict)
+
+    response["data"] = customer_data
+    return HttpResponse(json.dumps(response))
+
 @csrf_exempt
 def get_inv_based_payment_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                          filters):
@@ -5872,6 +5903,11 @@ def get_inv_based_payment_data(start_index, stop_index, temp_data, search_term, 
     lis = ['invoice_number', 'order__customer_name', 'order__customer_id']#for filter purpose
     user_filter = {'order__user': user.id, 'order_status_flag': 'customer_invoices'}
     result_values = ['invoice_number', 'order__customer_name', 'order__customer_id']#to make distinct grouping
+    cust_ids = request.POST.get("customer_ids", '')
+    if cust_ids:
+        cust_ids = cust_ids.split(',')
+        cust_ids = [int(id) for id in cust_ids]
+        user_filter['order__customer_id__in'] = cust_ids
     #invoice date= seller order summary creation date
     #invoice_date = get_local_date(user, invoice_date, send_date='true')
     #invoice_date = invoice_date.strftime("%d %b %Y")
@@ -5976,6 +6012,10 @@ def update_inv_payment_status(request, user=''):
         payment = float(data_dict['amount'][i])
         order_details = OrderDetail.objects.filter(order_id=data_dict['order_id'][i], user=user.id,
                                                    payment_received__lt=F('invoice_amount'))
+        payment_id = get_incremental(user, "payment_summary", 1)
+        entered_amount = float(data_dict.get('entered_amount', {}).get(i, 0))
+        balance_amount = float(data_dict.get('balance_amount', {}).get(i, 0))
+        tds_amount = float(data_dict.get('tds_amount', {}).get(i, 0))
         for order in order_details:
             if not payment:
                 break
@@ -6089,48 +6129,186 @@ def get_customer_master_id(request, user=''):
                                     'level_2_price_type': level_2_price_type, 'price_type': reseller_price_type}))
 
 
+def get_order_ids(user, invoice_number):
+    sell_ids = {}
+    sell_ids['order__user'] = user.id
+    sell_ids['invoice_number'] = invoice_number
+    seller_summary = SellerOrderSummary.objects.filter(**sell_ids)
+    order_id_list = list(set(seller_summary.values_list('order__order_id', flat=True)))
+    order_id_list = map(lambda x: str(x), order_id_list)
+    return order_id_list
+
+
 @login_required
 @csrf_exempt
 @get_admin_user
 def update_payment_status(request, user=''):
-    data_dict = dict(request.GET.iterlists())
-    invoice_number = request.GET.get('invoice_number', '')
-    if invoice_number:
-        sell_ids = {}
-        sell_ids['order__user'] = user.id
-        sell_ids['invoice_number'] = invoice_number
-        seller_summary = SellerOrderSummary.objects.filter(**sell_ids)
-        order_ids = list(set(seller_summary.values_list('order__order_id', flat=True)))
-        order_ids = map(lambda x: str(x), order_ids)
+    if request.method == "POST":
+        data_dict = dict(request.POST.iterlists())
+        invoice_numbers = []
+        order_ids = []
+        for key, val in data_dict.iteritems():
+            if "[invoice_number]" in key:
+                invoice_numbers.append(request.POST.get(key))
+    else:
+        data_dict = dict(request.GET.iterlists())
+        invoice_numbers = [request.GET.get('invoice_number', '')]
+    payment_id = get_incremental(user, "payment_summary", 1)
+    for index, invoice_number in enumerate(invoice_numbers):
+        order_ids = get_order_ids(user, invoice_number)
         data_dict['order_id'] = order_ids
-    payment = float(data_dict['amount'][0])
-    for i in range(0, len(data_dict['order_id'])):
-        if not data_dict['amount']:
+
+        if request.method == "POST":
+            payment = float(data_dict.get('data['+str(index)+'][amount]', [0])[0])
+            entered_amount = float(data_dict.get('data['+str(index)+'][enter_amount]', [0])[0])
+            balance_amount = float(data_dict.get('data['+str(index)+'][balance]', [0])[0])
+            tds_amount = float(data_dict.get('data[0][update_tds][0]', [0])[0])
+            bank = data_dict.get('data[0][bank_name]', [''])[0]
+            mode_of_pay = data_dict.get('data[0][mode_of_pay]', [''])[0]
+            remarks = data_dict.get('data[0][neft_cheque]', [''])[0]
+            payment_date = data_dict.get('data[0][date]', [None])[0]
+            if payment_date:
+                payment_date = datetime.datetime.strptime(payment_date, "%m/%d/%Y")
+        else:
+            payment = float(data_dict['amount'][0])
+            bank = request.GET.get('bank', '')
+            mode_of_pay = request.GET.get('mode_of_payment', '')
+            remarks = request.GET.get('remarks', '')
+            payment_date = None
+        if not payment:
             continue
-        order_details = OrderDetail.objects.filter(order_id=data_dict['order_id'][i], user=user.id,
-                                                   payment_received__lt=F('invoice_amount'))
-        for order in order_details:
-            if not payment:
-                break
-            if float(order.invoice_amount) > float(order.payment_received):
-                diff = float(order.invoice_amount) - float(order.payment_received)
-                bank = request.GET.get('bank', '')
-                mode_of_pay = request.GET.get('mode_of_payment', '')
-                remarks = request.GET.get('remarks', '')
-                if payment > diff:
-                    order.payment_received = diff
-                    payment -= diff
-                    PaymentSummary.objects.create(order_id=order.id, creation_date=datetime.datetime.now(),\
-                                                  payment_received=diff, bank=bank, mode_of_pay=mode_of_pay,\
-                                                  remarks=remarks)
-                else:
-                    PaymentSummary.objects.create(order_id=order.id, creation_date=datetime.datetime.now(),\
-                                                  payment_received=payment, bank=bank,\
-                                                  mode_of_pay=mode_of_pay, remarks=remarks)
-                    order.payment_received = float(order.payment_received) + float(payment)
-                    payment = 0
-                order.save()
-    return HttpResponse("Success")
+
+        for i in range(0, len(data_dict['order_id'])):
+            order_details = OrderDetail.objects.filter(order_id=data_dict['order_id'][i], user=user.id,
+                                                       payment_received__lt=F('invoice_amount'))
+            for order in order_details:
+                if not payment:
+                    break
+                if float(order.invoice_amount) > float(order.payment_received):
+                    diff = float(order.invoice_amount) - float(order.payment_received)
+                    if payment > diff:
+                        order.payment_received = diff
+                        payment -= diff
+                        PaymentSummary.objects.create(order_id=order.id, creation_date=datetime.datetime.now(),\
+                                                      payment_received=diff, bank=bank, mode_of_pay=mode_of_pay,\
+                                                      remarks=remarks, payment_id=payment_id,\
+                                                      entered_amount=entered_amount, balance_amount=balance_amount,\
+                                                      tds_amount=tds_amount, payment_date=payment_date)
+                    else:
+                        PaymentSummary.objects.create(order_id=order.id, creation_date=datetime.datetime.now(),\
+                                                      payment_received=payment, bank=bank,\
+                                                      mode_of_pay=mode_of_pay, remarks=remarks,\
+                                                      payment_id=payment_id, entered_amount=entered_amount,\
+                                                      balance_amount=balance_amount, tds_amount=tds_amount,\
+                                                      payment_date=payment_date)
+                        order.payment_received = float(order.payment_received) + float(payment)
+                        payment = 0
+                    order.save()
+    return HttpResponse(json.dumps({'status': True, 'message': 'Payment Successfully Completed !'}))
+
+
+@csrf_exempt
+def get_outbound_payment_report(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+
+    ''' Outbound Payment Report datatable code '''
+
+    from_date = request.POST.get('from_date', '')
+    to_date = request.POST.get('to_date', '')
+    customer_name = request.POST.get('customer', '')
+    inv_no = request.POST.get('invoice_number', '')
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    admin_user = get_priceband_admin_user(user)
+    lis = ['payment_id', 'payment_date', 'order__sellerordersummary__invoice_number', 'order__customer_name']#for filter purpose
+    user_filter = {'order__user': user.id}
+    result_values = ['payment_id', 'payment_date', 'order__sellerordersummary__invoice_number',
+                     'mode_of_pay', 'remarks', 'order__customer_name', 'order__customer_id',
+                     'order__invoice_amount', 'payment_received']#to make distinct grouping
+    #filter
+    if from_date:
+        from_date = datetime.datetime.strptime(from_date, '%m/%d/%Y')
+        user_filter['payment_date__gte'] = from_date
+    if to_date:
+        to_date = datetime.datetime.strptime(to_date, '%m/%d/%Y')
+        user_filter['payment_date__lte'] = to_date
+    if customer_name:
+        user_filter['order__customer_name'] = customer_name
+    if inv_no:
+        user_filter['order__sellerordersummary__invoice_number'] = inv_no
+    cust_ids = request.POST.get("customer_ids", '')
+    if cust_ids:
+        cust_ids = cust_ids.split(',')
+        cust_ids = [int(id) for id in cust_ids]
+        user_filter['order__customer_id__in'] = cust_ids
+    #invoice date= seller order summary creation date
+    #invoice_date = get_local_date(user, invoice_date, send_date='true')
+    #invoice_date = invoice_date.strftime("%d %b %Y")
+
+    """competed_payment_ids = PaymentSummary.objects.filter(**user_filter)\
+                            .exclude(Q(order__sellerordersummary__invoice_number='') | Q(payment_id=''))\
+                            .values('order__sellerordersummary__invoice_number', 'order__customer_id',\
+                             'payment_received', 'order__invoice_amount').distinct()\
+                            .annotate(tot_payment_received = Sum('payment_received'),\
+                             tot_invoice_amount = Sum('order__invoice_amount'))\
+                            .filter(tot_payment_received=F('tot_invoice_amount'))\
+                            .values_list('id', flat=True)"""
+    all_invoice_numbers = SellerOrderSummary.objects.filter(order__user=user.id)\
+                            .exclude(Q(order__paymentsummary__payment_id='') | Q(invoice_number=''))\
+                            .values('invoice_number', 'order__customer_id').distinct()\
+                            .annotate(tot_inv_amt=Sum('order__invoice_amount'))\
+                            .values_list('order__customer_id', 'invoice_number', 'tot_inv_amt')
+    all_received_amounts = PaymentSummary.objects.filter(**user_filter)\
+                            .exclude(Q(order__sellerordersummary__invoice_number='') | Q(payment_id=''))\
+                            .filter(order__user=user.id).values('order__sellerordersummary__invoice_number', 'order__customer_id').distinct()\
+                            .annotate(tot_rcvd_amt=Sum('payment_received'))\
+                            .values_list('order__customer_id', 'order__sellerordersummary__invoice_number', 'tot_rcvd_amt')
+    competed_inv_nos = []
+    for item in all_received_amounts:
+        #if item in all_invoice_numbers:
+            competed_inv_nos.append(item[1])
+    if search_term:
+        search_term = search_term.replace('(', '\(').replace(')', '\)')
+        search_query = build_search_term_query(lis, search_term)
+        master_data = PaymentSummary.objects.filter(order__sellerordersummary__invoice_number__in=competed_inv_nos)\
+                        .filter(search_query, **user_filter)\
+                        .values(*result_values).distinct()\
+                        .annotate(tot_payment_received = Sum('payment_received'), tot_invoice_amount = Sum('order__invoice_amount'))
+
+    elif order_term:
+        if order_term == 'asc' and (col_num or col_num == 0):
+            order_by = '%s' % lis[col_num]
+        else:
+            order_by = '-%s' % lis[col_num]
+        master_data = PaymentSummary.objects.filter(order__sellerordersummary__invoice_number__in=competed_inv_nos)\
+                        .filter(**user_filter)\
+                        .values(*result_values).distinct()\
+                        .annotate(tot_payment_received = Sum('payment_received'), tot_invoice_amount = Sum('order__invoice_amount'))\
+                        .order_by('-%s' % lis[col_num])
+    else:
+        master_data = PaymentSummary.objects.filter(order__sellerordersummary__invoice_number__in=competed_inv_nos)\
+                            .filter(**user_filter)\
+                            .values(*result_values).distinct()\
+                            .annotate(tot_payment_received = Sum('payment_received'), tot_invoice_amount = Sum('order__invoice_amount'))
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    for data in master_data[start_index:stop_index]:
+
+        tot_inv_amount = SellerOrderSummary.objects.filter(invoice_number=data['order__sellerordersummary__invoice_number'],\
+                                                    order__customer_id=data['order__customer_id'])\
+                                                   .aggregate(tot_inv_amnt=Sum('order__invoice_amount'))
+        payment_date = data['payment_date'].strftime("%d %b %Y") if data['payment_date'] else ''
+
+        data_dict = OrderedDict((('payment_id', data['payment_id']),
+                                ('payment_date', payment_date),
+                                ('invoice_number', data['order__sellerordersummary__invoice_number']),
+                                ('mode_of_pay', data['mode_of_pay']),
+                                ('remarks', data['remarks']),
+                                ('customer_name', data['order__customer_name']),
+                                ('customer_id', data['order__customer_id']),
+                                ('invoice_amount', "%.2f" % tot_inv_amount['tot_inv_amnt']),
+                                ('payment_received', "%.2f" % data['tot_payment_received'])
+                               ))
+        temp_data['aaData'].append(data_dict)
 
 
 @login_required

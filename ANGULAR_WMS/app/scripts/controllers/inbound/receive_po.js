@@ -133,6 +133,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         $(row_click_bind, nRow).bind('click', function() {
             $scope.$apply(function() {
               // vm.supplier_id = aData['DT_RowId'];
+              vm.round_off = false;
                 vm.supplier_id = aData['Supplier ID/Name'].split('/')[0];
                 vm.service.apiCall('get_supplier_data/', 'GET', {supplier_id: aData['DT_RowId']}).then(function(data){
                   if(data.message) {
@@ -292,6 +293,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           new_dic.batch_no = "";
           new_dic.manf_date = "";
           new_dic.exp_date = "";
+          new_dic.total_amt = "";
           data.push(new_dic);
         } else {
           data.splice(index,1);
@@ -445,6 +447,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       data.push({name: 'remainder_mail', value: vm.model_data.remainder_mail});
       data.push({name: 'invoice_number', value: vm.model_data.invoice_number});
       data.push({name: 'invoice_date', value: vm.model_data.invoice_date});
+      data.push({name: 'round_off_total', value: vm.model_data.round_off_total});
       vm.service.apiCall('update_putaway/', 'GET', data, true).then(function(data){
         if(data.message) {
           if(data.data == 'Updated Successfully') {
@@ -1887,6 +1890,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         sku_row_data.discount_percentage = 0;
       }
 
+      if (Number(sku_row_data.tax_percent)) {
+
+        sku_row_data.tax_percent = Number(sku_row_data.tax_percent).toFixed(1)
+      }
+
+      if (Number(sku_row_data.cess_percent)) {
+
+        sku_row_data.cess_percent = Number(sku_row_data.cess_percent).toFixed(1)
+      }
+
+      vm.singleDecimalVal(sku_row_data.tax_percent, 'tax_percent', index, parent_index);
+      vm.singleDecimalVal(sku_row_data.cess_percent, 'cess_percent', index, parent_index);
+
       var total_amt = Number(sku_row_data.value)*Number(sku_row_data.buy_price);
       var total_amt_dis = Number(total_amt) * Number(sku_row_data.discount_percentage) / 100;
       var tot_tax = Number(sku_row_data.tax_percent) + Number(sku_row_data.cess_percent);
@@ -1904,6 +1920,23 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
       vm.skus_total_amount = totals;
       $('.totals').text('Totals: ' + totals);
+      vm.model_data.round_off_total = Math.round(totals * 100) / 100;
+    }
+
+    vm.pull_cls = "pull-right";
+    vm.margin_cls = {marginRight: '50px'};
+    vm.round_off_effects = function(key){
+
+      vm.pull_cls = key ? 'pull-left' : 'pull-right';
+      vm.margin_cls = key ? {marginRight: '0px'} : {marginRight: '50px'};
+    }
+
+    vm.singleDecimalVal = function(value, field, inIndex, outIndex){
+
+      if (Number(value)) {
+
+        vm.model_data.data[outIndex][inIndex][field] = Number(value).toFixed(1);
+      }
     }
 }
 

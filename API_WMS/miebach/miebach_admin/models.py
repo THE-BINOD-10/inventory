@@ -1879,6 +1879,7 @@ class SellerPOSummary(models.Model):
     order_status_flag = models.CharField(max_length=64, default='processed_pos')
     challan_date = models.DateField(blank=True, null=True)
     discount_percent = models.FloatField(default=0)
+    round_off_total = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

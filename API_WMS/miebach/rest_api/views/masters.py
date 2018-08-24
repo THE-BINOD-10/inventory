@@ -411,7 +411,7 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
                          ('DT_RowId', data.customer_id), ('DT_RowClass', 'results'),
                          ('discount_percentage', data.discount_percentage), ('lead_time', data.lead_time),
                          ('is_distributor', str(data.is_distributor)), ('markup', data.markup),
-                         ('spoc_name', data.spoc_name))))
+                         ('role', data.role), ('spoc_name', data.spoc_name))))
 
 
 @csrf_exempt
@@ -715,6 +715,14 @@ def get_sku_data(request, user=''):
     sku_data['size_type'] = ''
     sku_data['mix_sku'] = data.mix_sku
     sku_data['ean_number'] = data.ean_number
+    ean_numbers = list(data.eannumbers_set.values_list('ean_number', flat=True))
+    if sku_data['ean_number']:
+        ean_numbers.append(sku_data['ean_number'])
+    if ean_numbers:
+        ean_numbers = ','.join(map(str, ean_numbers))
+    else:
+        ean_numbers = ''
+    sku_data['ean_numbers'] = ean_numbers
     sku_data['color'] = data.color
     sku_data['load_unit_handle'] = load_unit_dict.get(data.load_unit_handle, 'unit')
     sku_data['hsn_code'] = data.hsn_code
@@ -918,6 +926,7 @@ def update_sku(request, user=''):
         if not wms or not description:
             return HttpResponse('Missing Required Fields')
         data = get_or_none(SKUMaster, {'wms_code': wms, 'user': user.id})
+
         image_file = request.FILES.get('files-0', '')
         if image_file:
             save_image_file(image_file, data, user)
@@ -943,13 +952,19 @@ def update_sku(request, user=''):
                 key = 'zone_id'
                 if zone:
                     value = zone.id
-            elif key == 'ean_number':
-                if not value:
-                    value = 0
-                else:
-                    ean_status = check_ean_number(data.sku_code, value, user)
-                    if ean_status:
-                        return HttpResponse(ean_status)
+            #elif key == 'ean_number':
+            #    if not value:
+            #        value = 0
+            #    else:
+            #        ean_status = check_ean_number(data.sku_code, value, user)
+            #        if ean_status:
+            #            return HttpResponse(ean_status)
+            elif key == 'ean_numbers':
+                ean_numbers = value.split(',')
+                ean_status = update_ean_sku_mapping(user, ean_numbers, data)
+                if ean_status:
+                    return HttpResponse(ean_status)
+
             elif key == 'load_unit_handle':
                 value = load_unit_dict.get(value.lower(), 'unit')
             elif key == 'size_type':
@@ -2193,10 +2208,10 @@ def insert_sku(request, user=''):
                             value = 0
                     elif key == 'load_unit_handle':
                         value = load_unit_dict.get(value.lower(), 'unit')
-                    elif key == 'ean_number' and value:
-                        ean_status = check_ean_number(wms, value, user)
-                        if ean_status:
-                            return HttpResponse(ean_status)
+                    #elif key == 'ean_number' and value:
+                    #    ean_status = check_ean_number(wms, value, user)
+                    #    if ean_status:
+                    #        return HttpResponse(ean_status)
                     if value == '':
                         continue
                     data_dict[key] = value
@@ -2216,6 +2231,10 @@ def insert_sku(request, user=''):
             status_msg = 'New WMS Code Added'
 
             update_marketplace_mapping(user, data_dict=dict(request.POST.iterlists()), data=sku_master)
+            ean_numbers = request.POST.get('ean_numbers', '')
+            if ean_numbers:
+                ean_numbers = ean_numbers.split(',')
+                update_ean_sku_mapping(user, ean_numbers, sku_master)
 
         insert_update_brands(user)
         # update master sku txt file
@@ -3737,7 +3756,7 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
 
         if data.phone_number:
             data.phone_number = int(float(data.phone_number))
-        temp_data['aaData'].append(OrderedDict((('name', data.name), ('address', data.address),
+        temp_data['aaData'].append(OrderedDict((('id', data.id), ('name', data.name), ('address', data.address),
                                                 ('phone_number', data.phone_number), ('email_id', data.email_id),
                                                 ('cst_number', data.cst_number), ('tin_number', data.tin_number),
                                                 ('pan_number', data.pan_number), ('city', data.city),
@@ -3768,7 +3787,7 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
     if not os.path.exists('static/excel_files/'):
         os.makedirs('static/excel_files/')
     path_to_file = '../' + path
-    headers = ['Name', 'Address', 'Phone Number', 'Email ID', 'CST Number', 'TIN Number', 'PAN Number', 
+    headers = ['Supplier ID', 'Name', 'Address', 'Phone Number', 'Email ID', 'CST Number', 'TIN Number', 'PAN Number',
     'City', 'State', 'Days To Supply', 'Fulfillment Amount', 'Credibility', 'Country', 'Pincode', 
     'Status', 'Supplier Type', 'Tax Type', 'PO Exp Duration', 'Owner Name', 
     'Owner Number', 'Owner Email Id', 'Spoc Name', 'Spoc Number', 'Lead Time', 'Spoc Email ID', 'Credit Period',

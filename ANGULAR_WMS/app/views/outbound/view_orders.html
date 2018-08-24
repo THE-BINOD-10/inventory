@@ -16,22 +16,38 @@
                 <button type="button" class="btn btn-primary pull-right" style="width: 100%" ng-click="showCase.excel()">Download Excel</button>
               </div>
 
-        <div class="col-md-5 col-sm-4 col-xs-6 mb10">
-        <div class="col-md-8 col-sm-8 col-xs-12" style="padding-top: 7px;text-align: right;">
-          <strong class="ml20">Display Customer address in Picklist</strong>
-        </div>
-        <div class="col-md-2 col-sm-3 col-xs-4">
+			  <div class="col-md-4 col-sm-4 col-xs-6 mb10">
+  				<div class="col-md-10 col-sm-10 col-xs-12" style="padding-top: 7px;text-align: right;">
+  				  <strong class="ml20">Display Customer address in Picklist</strong>
+  				</div>
+  				<div class="col-md-2 col-sm-2 col-xs-12">
             <label class="switch switch-sm square mt5">
-          <div><input type="checkbox" ng-model="showCase.picklist_display_address" ng-change="showCase.address_change(showCase.picklist_display_address)" class="ng-valid ng-dirty"><span><i class="handle"></i></span>
-                    </div>
-                  </label>
-        </div>
+  					<div>
+              <input type="checkbox" ng-model="showCase.picklist_display_address" ng-change="showCase.address_change(showCase.picklist_display_address)" class="ng-valid ng-dirty">
+                <span><i class="handle"></i></span>
+            </div>
+            </label>
+  				</div>
+			  </div>
+
+        <div class="col-md-4 col-sm-4 col-xs-6 mb10">
+          <div class="col-md-10 col-sm-10 col-xs-12" style="padding-top: 7px;text-align: right;">
+            <strong class="ml20">Enable Damaged Stocks</strong>
+          </div>
+          <div class="col-md-2 col-sm-2 col-xs-12">
+            <label class="switch switch-sm square mt5">
+              <div>
+                <input type="checkbox" ng-model="showCase.enable_damaged_stock" ng-change="showCase.change_enable_damaged_stock(showCase.enable_damaged_stock)" class="ng-valid ng-dirty">
+                <span><i class="handle"></i></span>
+              </div>
+            </label>
+          </div>
         </div>
 
-              <div class="col-md-2 col-sm-4 col-xs-6 mb10 pull-right" ng-if="user.roles.permissions['show_pull_now']">
-                <button type="button" class="btn btn btn-warning" style="width: 100%" ng-click="showCase.service.pull_order_now()">Pull Now</button>
-              </div>
-            </div>
+        <div class="col-md-2 col-sm-4 col-xs-6 mb10 pull-right" ng-if="user.roles.permissions['show_pull_now']">
+          <button type="button" class="btn btn btn-warning" style="width: 100%" ng-click="showCase.service.pull_order_now()">Pull Now</button>
+        </div>
+      </div>
             <div class="row">
               <div class="col-md-4 col-sm-hidden col-xs-hidden">
               </div>

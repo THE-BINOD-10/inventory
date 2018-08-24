@@ -127,9 +127,14 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
         ws = write_excel(ws, data_count, excel_mapping['measurement_type'], data.measurement_type, file_type)
         ws = write_excel(ws, data_count, excel_mapping['sale_through'], data.sale_through, file_type)
         ws = write_excel(ws, data_count, excel_mapping['color'], data.color, file_type)
-        ean_number = ''
+        ean_list = []
+        ean_objs = data.eannumbers_set.filter()
         if data.ean_number:
-            ean_number = data.ean_number
+            ean_list.append(str(data.ean_number))
+        if ean_objs.exists():
+            ean_list = ean_list + list(ean_objs.annotate(str_eans=Cast('ean_number', CharField())).
+                          values_list('str_eans', flat=True))
+        ean_number = ','.join(ean_list)
         ws = write_excel(ws, data_count, excel_mapping['ean_number'], ean_number, file_type)
         if excel_mapping.has_key('load_unit_handle'):
             ws = write_excel(ws, data_count, excel_mapping['load_unit_handle'],

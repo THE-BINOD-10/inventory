@@ -12,7 +12,6 @@ function Picklist($scope, $http, $state, $timeout, Session, colFilters, Service,
   vm.status_data = {message:"cancel", data:{}}
 
   vm.getPoData = function(data){
-
     Service.apiCall(data.url, data.method, data.data, true).then(function(data){
       if(data.message) {
          angular.copy(data.data, vm.model_data);
@@ -605,11 +604,39 @@ function pull_confirmation() {
    });
   }
 
+  /*
   vm.update_picklist = function(pick_id) {
 
     vm.service.apiCall('update_picklist_loc/','GET',{picklist_id: pick_id}, true).then(function(data){
       if (data.message) {
         vm.getPoData(vm.state_data);
+      }
+    });
+  }
+  */
+
+  vm.update_picklist = function(pick_id) {
+    vm.service.apiCall('update_picklist_loc/','GET',{picklist_id: pick_id}, true).then(function(data){
+      if (data.message) {
+        vm.service.apiCall('view_picklist/', 'GET' , {data_id: pick_id}, true).then(function(data){
+                if(data.message) {
+                  angular.copy(data.data, vm.model_data);
+                  for(var i=0; i<vm.model_data.data.length; i++){
+                    vm.model_data.data[i]['sub_data'] = [];
+                    var value = (vm.permissions.use_imei)? 0: vm.model_data.data[i].picked_quantity;
+                    var temp = {zone: vm.model_data.data[i].zone,
+                                location: vm.model_data.data[i].location,
+                                orig_location: vm.model_data.data[i].location,
+                                picked_quantity: value, new: false}
+                    if(Session.user_profile.user_type == "marketplace_user") {
+                      temp["picked_quantity"] = vm.model_data.data[i].picked_quantity;
+                    }
+                    vm.model_data.data[i]['sub_data'].push(temp);
+                  }
+                  angular.copy(vm.model_data.sku_total_quantities ,vm.remain_quantity);
+                  vm.count_sku_quantity();
+                }
+        });
       }
     });
   }

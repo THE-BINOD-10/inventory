@@ -15,6 +15,9 @@
                     <th class="w10"><center>SKU Code</center></th>
                     <th class="w7"><center>HSN</center></th>
                     <th><center>Description</center></th>
+                    {% if show_mrp == 'true' %}
+                      <th class="w5"><center>MRP</center></th>
+                    {% endif %}
                     <th class="w7"><center>Unit</br>Rate</center></th>
                     <th class="w5"><center>Qty</center></th>
                     {% if show_disc_invoice == 'true' %}
@@ -36,6 +39,9 @@
                       <div style="overflow: hidden;width: 100px;text-overflow: ellipsis;">{{record.sku_code}}</td>
                     <td class="text-left">{{record.hsn_code}}</td>
                     <td class="text-left"><div class="wrap">{{record.title}}</div></td>
+                    {% if show_mrp == 'true' %}
+                      <td class="text-right">{{record.mrp_price}}</td>
+                    {% endif %}
                     <td class="text-right">{{record.unit_price}}</td>
                     <td class="text-right">{{record.quantity}}</td>
                     {% if show_disc_invoice == 'true' %}
@@ -89,6 +95,9 @@
                   <tr class="fs14" style="border-top: 1px solid black" ng-if="perm_hsn_summary && $last">
                     <td></td>
                     <td></td>
+                    {% if show_mrp == 'true' %}
+                      <td></td>
+                    {% endif %}
                     <td colspan='{{html_data.hsn_summary_span}}'><b>Summary</b></td>
                     <td><b>Taxable</br>Value</b></td>
                     <td><b>CGST</b></td>
@@ -100,6 +109,9 @@
                   <tr class="fs14 text-right rm-border" ng-repeat="(hsn, data) in showCase.pdf_data.hsn_summary" ng-if="permissions.hsn_summary && $parent.$last">
                     <td></td>
                     <td></td>
+                    {% if show_mrp == 'true' %}
+                      <td></td>
+                    {% endif %}
                     <td colspan='{{html_data.hsn_summary_span}}' class="text-left">{{hsn}}</td>
                     <td class="text-right">{{data.taxable}}</td>
                     <td class="text-right">{{data.cgst_amt}}</td>
@@ -112,7 +124,11 @@
                   {% endif %}
                   {% if forloop.last %}
                   <tr style="border-top: 1px solid black;font-weight: bold;" class="fs14 text-right" ng-if="$last">
-                    <td colspan="3" style="text-align:left"><b>Total: </b></td>
+                    {% if show_mrp == 'true' %}
+                      <td colspan="4" style="text-align:left"><b>Total: </b></td>
+                    {% else %}
+                      <td colspan="3" style="text-align:left"><b>Total: </b></td>
+                    {% endif %}
                     <td></td>
                     <td>{{total_quantity}}</td>
                     {% if show_disc_invoice == 'true' %}
@@ -202,7 +218,11 @@
                     </td>
                   </tr>
                   <tr ng-if="$last">
-                    <td colspan='7' style="text-align:left;" class="fs14">
+                    {% if show_mrp == 'true' %}
+                      <td colspan='8' style="text-align:left;" class="fs14">
+                    {% else %}
+                      <td colspan='7' style="text-align:left;" class="fs14">
+                    {% endif %}
                       <span><b class="fs16">DECLARATION:</b></span><br>
                       <p class="pre-custom fs14">{{declaration}}</p>
                     </td>

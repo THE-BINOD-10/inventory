@@ -17,7 +17,7 @@ from django.contrib.auth.models import User, Permission
 from xlwt import Workbook, easyxf
 from xlrd import open_workbook, xldate_as_tuple
 import operator
-from django.db.models import Q, F, Value, FloatField
+from django.db.models import Q, F, Value, FloatField, CharField
 from django.conf import settings
 from sync_sku import *
 import csv
@@ -154,11 +154,17 @@ def add_user_permissions(request, response_data, user=''):
     status_dict = {1: 'true', 0: 'false'}
     multi_warehouse = 'false'
     user_profile = UserProfile.objects.get(user_id=user.id)
-    tax_type = CustomerUserMapping.objects.filter(user_id=request.user.id).values_list('customer__tax_type', flat=True)
+    cust_obj = CustomerUserMapping.objects.filter(user_id=request.user.id)
+    tax_type = cust_obj.values_list('customer__tax_type', flat=True)
     if tax_type:
         tax_type = tax_type[0]
     else:
         tax_type = ''
+    user_role = cust_obj.values_list('customer__role', flat=True)
+    if user_role:
+        user_role = user_role[0]
+    else:
+        user_role = ''
     request_user_profile = UserProfile.objects.get(user_id=request.user.id)
     show_pull_now = False
     integrations = Integrations.objects.filter(user=user.id, status=1)
@@ -178,6 +184,7 @@ def add_user_permissions(request, response_data, user=''):
     response_data['data']['parent'] = parent_data
     response_data['data']['roles'] = get_user_permissions(request, user)
     response_data['data']['roles']['tax_type'] = tax_type
+    response_data['data']['roles']['user_role'] = user_role
     response_data['data']['roles']['labels'] = get_label_permissions(request, user,
                                                                      response_data['data']['roles']['label_perms'],
                                                                      request_user_profile.user_type)
@@ -498,6 +505,7 @@ data_datatable = {  # masters
     'CustomerOrderView': 'get_order_view_data', 'CustomerCategoryView': 'get_order_category_view_data', \
     'CustomOrders': 'get_custom_order_data', \
     'ShipmentPickedAlternative': 'get_order_shipment_picked', 'CustomerInvoices': 'get_customer_invoice_data', \
+    'OrderApprovals': 'get_order_approval_statuses',
     'ProcessedOrders': 'get_processed_orders_data', 'DeliveryChallans': 'get_delivery_challans_data',
     'CustomerInvoicesTab': 'get_customer_invoice_tab_data', 'SellerOrderView': 'get_seller_order_view', \
     'StockTransferInvoice' : 'get_stock_transfer_invoice_data',
@@ -515,6 +523,7 @@ data_datatable = {  # masters
     'Targets': 'get_distributor_targets',
     #invoice based payment tracker
     'PaymentTrackerInvBased': 'get_inv_based_payment_data',
+    'OutboundPaymentReport': 'get_outbound_payment_report',
 }
 
 
@@ -2264,6 +2273,13 @@ def get_generic_order_id(customer_id):
 
     return gen_ord_id
 
+def get_approval_id(customer_id):
+    cust_cart_qs = ApprovingOrders.objects.filter(customer_user_id=customer_id).order_by('-approve_id')
+    cust_appr_id = 10001
+    if cust_cart_qs:
+        if cust_cart_qs[0].approve_id:
+            cust_appr_id = int(cust_cart_qs[0].approve_id) + 1
+    return cust_appr_id
 
 def get_intr_order_id(user_id):
     intr_ord_qs = IntransitOrders.objects.filter(user=user_id).order_by('-intr_order_id')
@@ -2581,6 +2597,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     show_imei_invoice = get_misc_value('show_imei_invoice', user.id)
     invoice_remarks = get_misc_value('invoice_remarks', user.id)
     show_disc_invoice = get_misc_value('show_disc_invoice', user.id)
+    show_mrp = get_misc_value('show_mrp', user.id)
 
     if len(invoice_remarks.split("<<>>")) > 1:
         invoice_remarks = invoice_remarks.split("<<>>")
@@ -2868,7 +2885,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'order_reference_date_field': order_reference_date_field,
                     'order_reference_date': order_reference_date, 'invoice_header': invoice_header,
                     'cin_no': cin_no, 'challan_no': challan_no, 'customer_id': customer_id,
-                    }
+                    'show_mrp': show_mrp}
     return invoice_data
 
 
@@ -2988,41 +3005,44 @@ def get_sku_available_stock(user, sku_masters, query_string, size_dict):
 
 
 def resize_image(url, user):
-    path = 'static/images/resized/'
-    folder = str(user.id)
+    try:
+        path = 'static/images/resized/'
+        folder = str(user.id)
 
-    height = 193
-    width = 258
+        height = 193
+        width = 258
 
-    if url:
-        new_file_name = url.split("/")[-1].split(".")[0] + "-" + str(width) + "x" + str(height) + "." + url.split(".")[
-            1]
-        file_name = url.split(".")
-        file_name = "%s-%sx%s.%s" % (file_name[0], width, height, file_name[1])
+        if url:
+            new_file_name = url.split("/")[-1].split(".")[0] + "-" + str(width) + "x" + str(height) + "." + url.split(".")[
+                1]
+            file_name = url.split(".")
+            file_name = "%s-%sx%s.%s" % (file_name[0], width, height, file_name[1])
 
-        if not os.path.exists(path + folder):
-            os.makedirs(path + folder)
+            if not os.path.exists(path + folder):
+                os.makedirs(path + folder)
 
-        # if os.path.exists(path+folder+"/"+new_file_name):
-        #    return "/"+path+folder+"/"+new_file_name;
+            # if os.path.exists(path+folder+"/"+new_file_name):
+            #    return "/"+path+folder+"/"+new_file_name;
 
-        try:
-            from PIL import Image
-            temp_url = url[1:]
-            image = Image.open(temp_url)
-            if image.size[0] == image.size[1]:
-                height = width = 250
-            imageresize = image.resize((height, width), Image.ANTIALIAS)
-            imageresize.save(path + folder + "/" + new_file_name, 'JPEG', quality=75)
-            url = "/" + path + folder + "/" + new_file_name
+            try:
+                from PIL import Image
+                temp_url = url[1:]
+                image = Image.open(temp_url)
+                if image.size[0] == image.size[1]:
+                    height = width = 250
+                imageresize = image.resize((height, width), Image.ANTIALIAS)
+                imageresize.save(path + folder + "/" + new_file_name, 'JPEG', quality=75)
+                url = "/" + path + folder + "/" + new_file_name
+                return url
+            except:
+                import traceback
+                log.debug(traceback.format_exc())
+                log.info('Issue for ' + url)
+                return url
+        else:
             return url
-        except:
-            import traceback
-            log.debug(traceback.format_exc())
-            log.info('Issue for ' + url)
-            return url
-    else:
-        return url
+    except:
+        return ''
 
 
 def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
@@ -3047,7 +3067,6 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         custom_margin = float(custom_margin)
     except:
         custom_margin = 0
-
     admin_user = get_priceband_admin_user(user)
     msp_min_price = msp_max_price = 0
     if admin_user and from_price and to_price:
@@ -3059,6 +3078,14 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     customer_data_id = request_data.get('customer_data_id', '')
     price_type = ''
     customer_id = ''
+
+    disp_sku_map = get_misc_value('display_sku_cust_mapping', user.id)
+    if disp_sku_map == 'true':
+        cust_mapped_skus = CustomerSKU.objects.filter(sku__user=user.id).values_list('sku_id', flat=True)
+        filtered_sku_master = SKUMaster.objects.exclude(sku_class='').filter(id__in=cust_mapped_skus)
+    else:
+        cust_mapped_skus = []
+        filtered_sku_master = SKUMaster.objects.exclude(sku_class='')
 
     price_field = get_price_field(user)
     customer_master, price_type, customer_data_id, customer_id = get_customer_and_price_type(request, user, customer_data_id, customer_id)
@@ -3122,24 +3149,25 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
             dis_percent = 0
             if customer_master:
                 dis_percent = customer_master[0].discount_percentage
-            sku_master1 = SKUMaster.objects.exclude(sku_class='').\
-                    annotate(n_price=F(price_field)*(1-(Value(dis_percent)/Value(100)))).annotate(
-                    new_price=F('n_price') + (F('n_price') / Value(100)) * Value(custom_margin)).\
-            filter(**filter_params).exclude(id__in=all_pricing_ids)
+            sku_master1 = filtered_sku_master.annotate(
+                n_price=F(price_field) * (1 - (Value(dis_percent) / Value(100)))).annotate(
+                new_price=F('n_price') + (F('n_price') / Value(100)) * Value(custom_margin))\
+                .filter(**filter_params).exclude(id__in=all_pricing_ids)
         else:
             markup = 0
             if customer_master:
                 markup = customer_master[0].markup
-            sku_master1 = SKUMaster.objects.exclude(sku_class='').\
-                annotate(n_price=F(price_field) * (1+(Value(markup) / Value(100)))).\
-                annotate(new_price=F('n_price') + (F('n_price') / Value(100)) * Value(custom_margin)). \
-            filter(**filter_params).exclude(id__in=all_pricing_ids)
+            sku_master1 = filtered_sku_master.annotate(
+                n_price=F(price_field) * (1 + (Value(markup) / Value(100)))).annotate(
+                new_price=F('n_price') + (F('n_price') / Value(100)) * Value(custom_margin))\
+                .filter(**filter_params).exclude(id__in=all_pricing_ids)
         if filter_params.has_key('new_price__lte'):
             del filter_params['new_price__lte']
         if filter_params.has_key('new_price__gte'):
             del filter_params['new_price__gte']
-        sku_master2 = SKUMaster.objects.exclude(sku_class='').filter(
-                sku_code__in=pricemaster.values_list('sku__sku_code', flat=True)).filter(**filter_params)
+
+        sku_master2 = filtered_sku_master.filter(
+            sku_code__in=pricemaster.values_list('sku__sku_code', flat=True)).filter(**filter_params)
         sku_master = sku_master1 | sku_master2
         sku_prices = dict(sku_master.only('id', 'new_price').values_list('id', 'new_price'))
         pricemaster_prices = dict(pricemaster.only('sku_id', 'new_price').values_list('sku_id', 'new_price'))
@@ -3151,25 +3179,28 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
             dis_percent = 0
             if customer_master:
                 dis_percent = customer_master[0].discount_percentage
-            sku_master1 = SKUMaster.objects.exclude(sku_class='').\
-                            annotate(n_price=F(price_field)*(1-(Value(dis_percent)/Value(100)))).\
-                            annotate(new_price=F('n_price') + Value(custom_margin)).\
-                            filter(**filter_params).exclude(id__in=all_pricing_ids)
+            sku_master1 = filtered_sku_master.annotate(
+                n_price=F(price_field) * (1 - (Value(dis_percent) / Value(100)))).annotate(
+                new_price=F('n_price') + Value(custom_margin))\
+                .filter(**filter_params).exclude(id__in=all_pricing_ids)
         else:
             markup = 0
             if customer_master:
                 markup = customer_master[0].markup
-            sku_master1 = SKUMaster.objects.exclude(sku_class='').\
-                            annotate(n_price=F(price_field)*(1+(Value(markup)/Value(100)))).\
-                            annotate(new_price=F('n_price') + Value(custom_margin)).\
-                            filter(**filter_params).exclude(id__in=all_pricing_ids)
+            sku_master1 = filtered_sku_master.annotate(
+                n_price=F(price_field) * (1 + (Value(markup) / Value(100)))).annotate(
+                new_price=F('n_price') + Value(custom_margin))\
+                .filter(**filter_params).exclude(id__in=all_pricing_ids)
 
         if filter_params.has_key('new_price__lte'):
             del filter_params['new_price__lte']
         if filter_params.has_key('new_price__gte'):
             del filter_params['new_price__gte']
-        sku_master2 = SKUMaster.objects.exclude(sku_class='').filter(
-            id__in=pricemaster.values_list('sku_id', flat=True)).filter(**filter_params)
+        if cust_mapped_skus:
+            sku_master2 = SKUMaster.objects.exclude(sku_class='').filter(id__in=cust_mapped_skus)
+        else:
+            sku_master2 = SKUMaster.objects.exclude(sku_class='')
+        sku_master2 = sku_master2.filter(id__in=pricemaster.values_list('sku_id', flat=True)).filter(**filter_params)
         sku_master = sku_master1 | sku_master2
         sku_prices = dict(sku_master.only('id', 'new_price').values_list('id', 'new_price'))
         pricemaster_prices = dict(pricemaster.only('sku_id', 'new_price').values_list('sku_id', 'new_price'))
@@ -4334,12 +4365,13 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
 
 def check_ean_number(sku_code, ean_number, user):
     ''' Check ean number exists'''
-    status = ''
-    ean_check = SKUMaster.objects.filter(user=user.id, ean_number=ean_number).exclude(sku_code=sku_code).values_list(
-        'sku_code', flat=True)
-    if ean_check:
-        status = 'Ean Number is already mapped for sku codes ' + ', '.join(ean_check)
-    return status
+    ean_objs = SKUMaster.objects.filter(Q(ean_number=ean_number) | Q(eannumbers__ean_number=ean_number),
+                                         user=user.id)
+    ean_check = list(ean_objs.exclude(sku_code=sku_code).values_list('sku_code', flat=True))
+    mapped_check = list(ean_objs.filter(sku_code=sku_code).values_list('sku_code', flat=True))
+    #if ean_check:
+    #    status = 'Ean Number is already mapped for sku codes ' + ', '.join(ean_check)
+    return ean_check, mapped_check
 
 
 def get_seller_reserved_stocks(dis_seller_ids, sell_stock_ids, user):
@@ -4940,7 +4972,10 @@ def update_seller_order(seller_order_dict, order, user):
 
 
 def get_invoice_html_data(invoice_data):
+    show_mrp = invoice_data.get('show_mrp', 'false')
     data = {'totals_data': {'label_width': 6, 'value_width': 6}, 'columns': 10, 'emty_tds': [], 'hsn_summary_span': 3}
+    if show_mrp == 'true':
+        data['columns'] = 11
     if invoice_data.get('invoice_remarks', '') not in ['false', '']:
         data['totals_data']['label_width'] = 4
         data['totals_data']['value_width'] = 8
@@ -5977,6 +6012,7 @@ def create_seller_summary_details(seller_order, picklist):
 @fn_timer
 def picklist_generation(order_data, request, picklist_number, user, sku_combos, sku_stocks, switch_vals, status='', remarks='',
                         is_seller_order=False):
+    enable_damaged_stock = request.POST.get('enable_damaged_stock', 'false')
     stock_status = []
     if not status:
         status = 'batch_open'
@@ -6090,12 +6126,13 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
                 picklist_data['stock_id'] = ''
                 picklist_data['order_id'] = order.id
                 picklist_data['status'] = status
+                if enable_damaged_stock  == 'true':
+                    picklist_data['damage_suggested'] = 1
                 if sku_code:
                     picklist_data['sku_code'] = sku_code
                 if 'st_po' not in dir(order):
                     new_picklist = Picklist(**picklist_data)
                     new_picklist.save()
-
                     if seller_order:
                         create_seller_summary_details(seller_order, new_picklist)
                         seller_order.status = 0
@@ -6146,7 +6183,9 @@ def picklist_generation(order_data, request, picklist_number, user, sku_combos, 
                 else:
                     picklist_data['order_id'] = order.id
                 picklist_data['status'] = status
-
+                enable_damaged_stock = request.POST.get('enable_damaged_stock', 'false')
+                if enable_damaged_stock  == 'true':
+                    picklist_data['damage_suggested'] = 1
                 new_picklist = Picklist(**picklist_data)
                 new_picklist.save()
                 if seller_order:
@@ -7636,3 +7675,43 @@ def check_stock_available_quantity(stocks, user, stock_ids=None):
     if stock_qty < 0:
         stock_qty = 0
     return stock_qty
+
+
+def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False):
+    ean_status = ''
+    exist_ean_list = list(EANNumbers.objects.filter(sku_id=data.id).annotate(str_eans=Cast('ean_number', CharField())).\
+                          values_list('str_eans', flat=True))
+    if data.ean_number:
+        exist_ean_list.append(str(data.ean_number))
+    error_eans = []
+    rem_ean_list = []
+    if remove_existing:
+        rem_ean_list = list(set(exist_ean_list) - set(ean_numbers))
+    for ean_number in ean_numbers:
+        try:
+            ean_number = int(float(ean_number))
+        except:
+            continue
+        ean_dict = {'ean_number': ean_number, 'sku_id': data.id}
+        ean_status, mapped_check = check_ean_number(data.sku_code, ean_number, user)
+        if not (ean_status or mapped_check):
+            EANNumbers.objects.create(**ean_dict)
+        elif ean_status:
+            error_eans.append(ean_number)
+    for rem_ean in rem_ean_list:
+        if int(data.ean_number) == int(rem_ean):
+            data.ean_number = 0
+        else:
+            EANNumbers.objects.filter(sku_id=data.id, ean_number=rem_ean).delete()
+    if error_eans:
+        ean_status = '%s EAN Numbers already mapped to Other SKUS' % ','.join(error_eans)
+    return ean_status
+
+
+def po_invoice_number_check(user, invoice_num):
+    status = ''
+    exist_inv_obj = SellerPOSummary.objects.filter(purchase_order__open_po__sku__user=user.id,
+                                                   invoice_number=invoice_num)
+    if exist_inv_obj.exists():
+        status = 'Invoice Number already Mapped to %s' % get_po_reference(exist_inv_obj[0].purchase_order)
+    return status

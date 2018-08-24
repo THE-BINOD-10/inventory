@@ -99,7 +99,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       }
     }
 
-    vm.units = ["KGS", "UNITS", "METERS", "INCHES", "CMS", "REAMS", "GRAMS", "GROSS", "ML"];
+    vm.units = ["KGS", "UNITS", "METERS", "INCHES", "CMS", "REAMS", "GRAMS", "GROSS", "ML", "FEET"];
 
     vm.get_report_data = function(name){
       var send = {};

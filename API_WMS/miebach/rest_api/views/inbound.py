@@ -1723,11 +1723,11 @@ def update_putaway(request, user=''):
 @login_required
 @get_admin_user
 def close_po(request, user=''):
-    if not request.GET:
+    if not request.POST:
         return HttpResponse('Updated Successfully')
     status = ''
-    myDict = dict(request.GET.iterlists())
-    reason = request.GET.get('remarks', '')
+    myDict = dict(request.POST.iterlists())
+    reason = request.POST.get('remarks', '')
     for i in range(0, len(myDict['id'])):
         if myDict['id'][i]:
             if myDict['new_sku'][i] == 'true':

@@ -17,7 +17,7 @@ from django.contrib.auth.models import User, Permission
 from xlwt import Workbook, easyxf
 from xlrd import open_workbook, xldate_as_tuple
 import operator
-from django.db.models import Q, F, Value, FloatField
+from django.db.models import Q, F, Value, FloatField, BooleanField
 from django.conf import settings
 from sync_sku import *
 import csv

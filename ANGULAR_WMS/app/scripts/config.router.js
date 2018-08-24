@@ -2495,7 +2495,7 @@ var app = angular.module('urbanApp')
             }
           })
           .state('user.App.OrderDetails', {
-            url: '/OrderDetails?orderId&state',
+            url: '/OrderDetails?orderId&state&intermediate_order',
             params: {
               state: 'orders',
             },

@@ -16,7 +16,8 @@ input[type="date"]:valid::before {
 }
 </style>
         <div class="order-list">
-          <div class="order-item" ng-class="(!($last))? 'border-grey': ''" ng-repeat="order in orders.order_data.data" ng-click="orders.open_details({orderId: order.order_id, state: orders.status, customerId: order.customer_id})" style="cursor: pointer">
+          <div class="order-item" ng-class="(!($last))? 'border-grey': ''" ng-repeat="order in orders.order_data.data" ng-click="orders.open_details({orderId: order.order_id, state: orders.status, customerId: order.customer_id, intermediate_order: order.intermediate_order})"
+          style="cursor: pointer">
             <div class="row" ng-if="orders.your_orders=='orders'">
               <div class="col-md-6 col-sm-6 col-xs-6">
                 <div class="order-id">
@@ -25,7 +26,9 @@ input[type="date"]:valid::before {
                 </div>
               </div>
               <div class="col-md-6 col-sm-6 col-xs-6">
-                <span class="label pull-right text-uppercase" ng-class="(orders.getStatus(order.total_quantity, order.picked_quantity) == 'Open')? 'label-danger': 'label-success';" style="font-size: 12px;">{{orders.getStatus(order.total_quantity, order.picked_quantity)}}</span>
+                <span class="label pull-right text-uppercase"
+                ng-class="(orders.getStatus(order.total_quantity, order.picked_quantity, order.status) == 'Open')? 'label-danger': 'label-success';" style="font-size: 12px;">
+                {{orders.getStatus(order.total_quantity, order.picked_quantity, order.status)}}</span>
               </div>
             </div>
             <div class="row" ng-if="orders.your_orders=='orders'">

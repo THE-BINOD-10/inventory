@@ -11,6 +11,10 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
 
   vm.order_id = "";
   vm.status = "";
+  vm.intermediate_order = false;
+  if($stateParams.intermediate_order) {
+    vm.intermediate_order = $stateParams.intermediate_order;
+  }
   if($stateParams.orderId && $stateParams.state) {
     vm.order_id = $stateParams.orderId;
     vm.status = $stateParams.state;
@@ -19,6 +23,9 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
   }
 
   var url = "get_customer_order_detail/?order_id=";
+  if (vm.intermediate_order == 'true') {
+    url = "get_intermediate_order_detail/?order_id=";
+  }
   if(vm.status == "enquiry") {
     url = "get_customer_enquiry_detail/?enquiry_id=";
   } else if (vm.status == "manual_enquiry") {

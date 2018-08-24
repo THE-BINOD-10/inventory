@@ -7344,42 +7344,61 @@ def get_customer_orders(request, user=""):
             if central_order_mgmt:
                 orders_dict = {'customer_id': customer_id, 'user__in': users_list}
                 pick_dict = {'order__customer_id': customer_id, 'order__user__in': users_list}
+                intermediate_orders = list(IntermediateOrders.objects.filter(customer_user=request.user.id)\
+                                                             .values('interm_order_id').distinct()\
+                                                             .annotate(total_quantity=Sum('quantity'),\
+                                                              date_only=Cast('creation_date', DateField()),
+                                                             intermediate_order=Value(True, output_field=BooleanField()))\
+                                                             .order_by('-date_only'))
             else:
                 orders_dict = {'custmer_id': customer_id, 'user': user.id}
                 pick_dict = {'order__customer_id': customer_id, 'order__user': user.id}
             orders = OrderDetail.objects.filter(**orders_dict).exclude(status=3).order_by('-creation_date')
             picklist = Picklist.objects.filter(**pick_dict)
-            response_data['data'] = list(orders.values('order_id', 'order_code', 'original_order_id').distinct().
+            real_orders = list(orders.values('order_id', 'order_code', 'original_order_id').distinct().
                                          annotate(total_quantity=Sum('quantity'), total_inv_amt=Sum('invoice_amount'),
-                                                  date_only=Cast('creation_date', DateField())).order_by('-date_only'))
+                                                  date_only=Cast('creation_date', DateField()),
+                                                  intermediate_order=Value(False, output_field=BooleanField())).order_by('-date_only'))
+            response_data['data'] = list(chain(intermediate_orders, real_orders))
 
         response_data['data'] = response_data['data'][start_index:stop_index]
         for record in response_data['data']:
-            data = orders.filter(order_id=int(record['order_id']), order_code=record['order_code'])
-            data_status = data.filter(status=1)
-            if data_status:
-                status = 'open'
+            if record['intermediate_order']:
+                record['status'] = 'Waiting For Approval'
+                record['order_id'] = str(record['interm_order_id'])
+                record['date'] = record['date_only']
+                tot_inv_amt = IntermediateOrders.objects.filter(customer_user=request.user.id,\
+                                        interm_order_id=record['interm_order_id'])\
+                                        .values('interm_order_id', 'unit_price', 'quantity')\
+                                        .aggregate(tot_inv_amt=Sum(F('unit_price')*F('quantity')))['tot_inv_amt']
+                record['total_inv_amt'] = round(tot_inv_amt, 2)
+                record['picked_quantity'] = 0
             else:
-                status = 'closed'
-                pick_status = picklist.filter(order__order_id=int(record['order_id']),
-                                              order__order_code=record['order_code'], status__icontains='open')
-                if pick_status:
+                data = orders.filter(order_id=int(record['order_id']), order_code=record['order_code'])
+                data_status = data.filter(status=1)
+                if data_status:
                     status = 'open'
-            picked_quantity = picklist.filter(order__order_id=int(record['order_id'])).aggregate(
-                Sum('picked_quantity'))['picked_quantity__sum']
-            if not picked_quantity:
-                picked_quantity = 0
-            record['status'] = status
-            record['date'] = get_only_date(request, data[0].creation_date)
-            if record['original_order_id']:
-                record['order_id'] = record['original_order_id']
-            else:
-                record['order_id'] = str(record['order_code']) + str(record['order_id'])
-            other_charges = order_charges_obj_for_orderid(record['order_id'], request.user.id)
-            if not other_charges:
-                other_charges = 0
-            record['total_inv_amt'] = round(record['total_inv_amt'] + other_charges, 2) 
-            record['picked_quantity'] = picked_quantity
+                else:
+                    status = 'closed'
+                    pick_status = picklist.filter(order__order_id=int(record['order_id']),
+                                                  order__order_code=record['order_code'], status__icontains='open')
+                    if pick_status:
+                        status = 'open'
+                picked_quantity = picklist.filter(order__order_id=int(record['order_id'])).aggregate(
+                    Sum('picked_quantity'))['picked_quantity__sum']
+                if not picked_quantity:
+                    picked_quantity = 0
+                record['status'] = status
+                record['date'] = get_only_date(request, data[0].creation_date)
+                if record['original_order_id']:
+                    record['order_id'] = record['original_order_id']
+                else:
+                    record['order_id'] = str(record['order_code']) + str(record['order_id'])
+                other_charges = order_charges_obj_for_orderid(record['order_id'], request.user.id)
+                if not other_charges:
+                    other_charges = 0
+                record['total_inv_amt'] = round(record['total_inv_amt'] + other_charges, 2) 
+                record['picked_quantity'] = picked_quantity
     return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
 
 
@@ -7574,6 +7593,47 @@ def order_charges_obj_for_orderid(order_id, user_id):
     return total_charge_amount
 
 
+@login_required
+@get_admin_user
+def get_intermediate_order_detail(request, user=""):
+    """ Return intermediate order detail """
+    log.info('Request params for ' + user.username + ' is ' + str(request.GET.dict()))
+    response_data = {'data': [], 'sum_data': {}}
+    order_id = request.GET['order_id']
+    if not order_id:
+        return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
+
+    admin_user = get_priceband_admin_user(user)
+    intermediate_order = IntermediateOrders.objects.filter(customer_user=request.user.id,\
+                                                    interm_order_id=order_id)\
+                                                    .values('interm_order_id', 'unit_price', 'quantity',\
+                                                    'sku__image_url', 'tax', 'creation_date', 'status',\
+                                                    'sku__sku_brand', 'sku__sku_category', 'sku__sku_class',\
+                                                    'sku__sku_code', 'sku__sku_desc')
+    aggr_values = intermediate_order.aggregate(tot_inv_amt=Sum(F('unit_price')*F('quantity')), tot_qty = Sum('quantity'))
+    response_data['sum_data'] = {'amount': aggr_values['tot_inv_amt'],
+                                 'picked_quantity': 0,
+                                 'quantity': aggr_values['tot_qty']
+                                }
+    response_data['date'] = intermediate_order[0]['creation_date'].strftime('%d/%m/%Y')
+    response_data['status'] = 'Waiting For Approval'
+    response_data['order_id'] = intermediate_order[0]['interm_order_id']
+    response_data['other_charges'] = 0
+    for order in intermediate_order:
+        response_data['data'].append({
+                                        'order_id': order['interm_order_id'],
+                                        'sku__image_url': order['sku__image_url'],
+                                        'sku__sku_brand': order['sku__sku_brand'],
+                                        'sku__sku_category': order['sku__sku_category'],
+                                        'sku__sku_class': order['sku__sku_class'],
+                                        'sku__sku_code': order['sku__sku_code'],
+                                        'sku__sku_desc': order['sku__sku_desc'],
+                                        'quantity': order['quantity'],
+                                        'picked_quantity': 0,
+                                        'invoice_amount': order['unit_price']*order['quantity']
+                                    })
+    final_data = {'data': [response_data]}
+    return HttpResponse(json.dumps(final_data, cls=DjangoJSONEncoder))
 @login_required
 @get_admin_user
 def get_customer_order_detail(request, user=""):
@@ -10328,6 +10388,29 @@ def order_cancel(request, user=''):
     except:
         import traceback
         log.debug(traceback.format_exc())
+        message = 'Failed'
+    return HttpResponse(message)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def intermediate_order_cancel(request, user=''):
+    message = 'Success'
+    customer_user = CustomerUserMapping.objects.filter(user_id=request.user.id)
+    customer_obj = CustomerMaster.objects.filter(customer_id=customer_user[0].customer.customer_id, user=user.id)
+    if not customer_obj:
+        message = 'Failed'
+        return HttpResponse(message)
+    cm_id = customer_obj[0].id
+    admin_user = get_priceband_admin_user(user)
+    interm_order_id = request.GET.get('order_id', '')
+    order_filter = {'interm_order_id': interm_order_id,
+                    'customer_user_id': request.user.id}
+    order_to_delete = IntermediateOrders.objects.filter(**order_filter)
+    if order_to_delete:
+        order_to_delete.delete()
+    else:
         message = 'Failed'
     return HttpResponse(message)
 

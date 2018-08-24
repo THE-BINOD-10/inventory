@@ -3005,41 +3005,44 @@ def get_sku_available_stock(user, sku_masters, query_string, size_dict):
 
 
 def resize_image(url, user):
-    path = 'static/images/resized/'
-    folder = str(user.id)
+    try:
+        path = 'static/images/resized/'
+        folder = str(user.id)
 
-    height = 193
-    width = 258
+        height = 193
+        width = 258
 
-    if url:
-        new_file_name = url.split("/")[-1].split(".")[0] + "-" + str(width) + "x" + str(height) + "." + url.split(".")[
-            1]
-        file_name = url.split(".")
-        file_name = "%s-%sx%s.%s" % (file_name[0], width, height, file_name[1])
+        if url:
+            new_file_name = url.split("/")[-1].split(".")[0] + "-" + str(width) + "x" + str(height) + "." + url.split(".")[
+                1]
+            file_name = url.split(".")
+            file_name = "%s-%sx%s.%s" % (file_name[0], width, height, file_name[1])
 
-        if not os.path.exists(path + folder):
-            os.makedirs(path + folder)
+            if not os.path.exists(path + folder):
+                os.makedirs(path + folder)
 
-        # if os.path.exists(path+folder+"/"+new_file_name):
-        #    return "/"+path+folder+"/"+new_file_name;
+            # if os.path.exists(path+folder+"/"+new_file_name):
+            #    return "/"+path+folder+"/"+new_file_name;
 
-        try:
-            from PIL import Image
-            temp_url = url[1:]
-            image = Image.open(temp_url)
-            if image.size[0] == image.size[1]:
-                height = width = 250
-            imageresize = image.resize((height, width), Image.ANTIALIAS)
-            imageresize.save(path + folder + "/" + new_file_name, 'JPEG', quality=75)
-            url = "/" + path + folder + "/" + new_file_name
+            try:
+                from PIL import Image
+                temp_url = url[1:]
+                image = Image.open(temp_url)
+                if image.size[0] == image.size[1]:
+                    height = width = 250
+                imageresize = image.resize((height, width), Image.ANTIALIAS)
+                imageresize.save(path + folder + "/" + new_file_name, 'JPEG', quality=75)
+                url = "/" + path + folder + "/" + new_file_name
+                return url
+            except:
+                import traceback
+                log.debug(traceback.format_exc())
+                log.info('Issue for ' + url)
+                return url
+        else:
             return url
-        except:
-            import traceback
-            log.debug(traceback.format_exc())
-            log.info('Issue for ' + url)
-            return url
-    else:
-        return url
+    except:
+        return ''
 
 
 def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
@@ -3145,7 +3148,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         if price_field == 'price':
             dis_percent = 0
             if customer_master:
-                dis_percent = customer_master.discount_percentage
+                dis_percent = customer_master[0].discount_percentage
             sku_master1 = filtered_sku_master.annotate(
                 n_price=F(price_field) * (1 - (Value(dis_percent) / Value(100)))).annotate(
                 new_price=F('n_price') + (F('n_price') / Value(100)) * Value(custom_margin))\
@@ -3153,7 +3156,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         else:
             markup = 0
             if customer_master:
-                markup = customer_master.markup
+                markup = customer_master[0].markup
             sku_master1 = filtered_sku_master.annotate(
                 n_price=F(price_field) * (1 + (Value(markup) / Value(100)))).annotate(
                 new_price=F('n_price') + (F('n_price') / Value(100)) * Value(custom_margin))\
@@ -3175,7 +3178,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         if price_field == 'price':
             dis_percent = 0
             if customer_master:
-                dis_percent = customer_master.discount_percentage
+                dis_percent = customer_master[0].discount_percentage
             sku_master1 = filtered_sku_master.annotate(
                 n_price=F(price_field) * (1 - (Value(dis_percent) / Value(100)))).annotate(
                 new_price=F('n_price') + Value(custom_margin))\
@@ -3183,7 +3186,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         else:
             markup = 0
             if customer_master:
-                markup = customer_master.markup
+                markup = customer_master[0].markup
             sku_master1 = filtered_sku_master.annotate(
                 n_price=F(price_field) * (1 + (Value(markup) / Value(100)))).annotate(
                 new_price=F('n_price') + Value(custom_margin))\

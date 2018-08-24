@@ -4874,6 +4874,26 @@ def get_sku_categories(request, user=''):
                     'primary_details': categories_details['primary_details']}))
 
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_sku_categories_list(request, user=''):
+    sku_master = SKUMaster.objects.filter(user=user.id)
+    categories = list(
+        sku_master.exclude(sku_category='').only('sku_category').values_list('sku_category', flat=True).distinct())
+    brands = list(sku_master.exclude(sku_brand='').only('sku_brand').values_list('sku_brand', flat=True).distinct())
+    sizes = list(sku_master.exclude(sku_brand='').only('sku_size').values_list('sku_size', flat=True).order_by('sequence').distinct())
+    sizes = list(OrderedDict.fromkeys(sizes))
+    colors = list(sku_master.exclude(sku_brand='').exclude(color='').only('color').values_list('color', flat=True).distinct())
+    brands, categories, sizes, colors, categories_details = get_sku_categories_data(request, user)
+    stages_list = list(ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True))
+    sub_categories = list(sku_master.exclude(sub_category='').values_list('sub_category',
+                                                                                                      flat=True).distinct())
+    return HttpResponse(
+        json.dumps({'categories': categories, 'brands': brands, 'size': sizes, 'stages_list': stages_list,
+                    'sub_categories': sub_categories, 'colors': colors}))
+
+
 def fetch_unit_price_based_ranges(dest_loc_id, level, admin_id, wms_code):
     price_ranges_map = {}
     pricemaster_obj = PriceMaster.objects.filter(sku__user=admin_id,

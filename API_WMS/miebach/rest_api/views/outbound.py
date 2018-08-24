@@ -11387,7 +11387,7 @@ def save_cutomer_ratings(request, user=''):
             sku_obj = SKUMaster.objects.filter(sku_code = obj['sku_code'], user = user.id)
             if sku_obj:
                 RatingSKUMapping.objects.create(rating=rating_obj, sku_id=sku_obj[0].id, remarks=obj['remarks'])
-    return HttpResponse(json.dumps({'status':True, 'data':data_dict}), content_type='application/json')
+    return HttpResponse(json.dumps({'status':True}), content_type='application/json')
 
 """
 def render_st_html_data(request, user, warehouse, all_data):

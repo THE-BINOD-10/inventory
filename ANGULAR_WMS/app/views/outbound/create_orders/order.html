@@ -353,12 +353,15 @@
       </div>
       <div class="row mb10">
         <hr>
-	<div class="col-md-6 col-sm-6 col-xs-6">
+	      <div class="col-md-6 col-sm-6 col-xs-6">
           <button type="button" class="btn btn-primary pull-right" style="margin: auto;display: block;" ng-disabled="showCase.bt_disable" ng-click="showCase.insert_order_data($event, form)">Create Order </button>
-	</div>
+	      </div>
         <div class="col-md-6 col-sm-6 col-xs-6">
-	  <button type="button" class="btn btn-primary pull-left" style="margin: auto;display: block;" ng-if="showCase.custom_order" ng-click="showCase.show()">Create Custom SKU</button>
-	</div>
+          <button type="button" class="btn btn-primary pull-right" style="margin: auto;display: block;" ng-disabled="showCase.bt_disable" ng-click="showCase.insert_order_data($event, form, 'sample')">Create Sample Order </button>
+        </div>
+        <div class="col-md-6 col-sm-6 col-xs-6">
+	        <button type="button" class="btn btn-primary pull-left" style="margin: auto;display: block;" ng-if="showCase.custom_order" ng-click="showCase.show()">Create Custom SKU</button>
+	      </div>
       </div>
     </div>
   </div>

@@ -96,11 +96,11 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
   }
 
   vm.bt_disable = false;
-  vm.insert_order_data = function(event, form) {
+  vm.insert_order_data = function(event, form, is_sample='') {
     if (event.keyCode != 13) {
       if (form.$valid && vm.model_data.shipment_date && vm.model_data.shipment_time_slot) {
-        if(vm.model_data.blind_order) {
-          for(var i = 0; i < vm.model_data.data.length; i++) {
+        if (vm.model_data.blind_order) {
+          for (var i = 0; i < vm.model_data.data.length; i++) {
 
             if (vm.model_data.data[i].sku_id && (!vm.model_data.data[i].location)) {
 
@@ -114,6 +114,9 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
         var elem = angular.element($('form'));
         elem = elem[0];
         elem = $(elem).serializeArray();
+        if (is_sample == 'sample') {
+          elem.push({'name':'is_sample', 'value':true});
+        }
         vm.service.apiCall('insert_order_data/', 'POST', elem).then(function(data){
           if(data.message) {
             if(data.data.indexOf("Success") != -1) {

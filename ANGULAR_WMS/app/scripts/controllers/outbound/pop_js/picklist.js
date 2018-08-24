@@ -211,13 +211,15 @@ function view_orders() {
 
             if (!data.data.status) {
               vm.validate_skus = {};
+              // var test = [{371646:"RODSDF-IB-L"}, {371646:"RODSDF-HV-L"}];
+
               for (var i = 0; i < data.data.sku_codes.length; i++) {
                 
-                angular.forEach(data.data.sku_codes[i], function(sku){
+                angular.forEach(data.data.sku_codes[i], function(key, value){
 
-                  if (!vm.validate_skus[sku]) {
+                  if (!vm.validate_skus[key]) {
 
-                    vm.validate_skus[sku] = sku;
+                    vm.validate_skus[key] = value;
                   }
                 });
               }

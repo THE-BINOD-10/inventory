@@ -145,7 +145,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                         'width': '1400px'
                       };
                     } else {
-                      vm.extra_width = {};
+                      vm.extra_width = {
+                        'width': '900px'
+                      };
                     }
                     vm.shelf_life = vm.model_data.data[0][0].shelf_life;
 
@@ -675,10 +677,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   });
                 }
 
-
-
                 if (vm.sku_list_1.indexOf(vm.field) == -1){
-                  Service.showNoty(field+" Does Not Exist");
+
+                  if (data.data.sku_code && data.data.sku_code == vm.field) {
+
+                    Service.showNoty(vm.field+' Does Not Exist');
+                  } else {
+
+                    vm.addNewScannedSku(event, field);
+                  }
                 }
               } else {
                 vm.sku_list_1 = [];
@@ -698,7 +705,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   });
                 }
                 if (vm.sku_list_1.indexOf(vm.field) == -1){
-                  Service.showNoty(field+" Does Not Exist");
+
+                  if (data.data.sku_code && data.data.sku_code == vm.field) {
+
+                    Service.showNoty(vm.field+' Does Not Exist');
+                  } else {
+
+                    vm.addNewScannedSku(event, field);
+                  }
                 }
               }
             } else {
@@ -708,6 +722,30 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           });
         }
       }
+    }
+
+    vm.addNewScannedSku = function(event, field){
+
+      vm.marginData = {scanned_val: field, map_sku_code: ''};   
+      var mod_data = vm.marginData;
+      var modalInstance = $modal.open({
+        templateUrl: 'views/inbound/toggle/add_new_sku.html',
+        controller: 'addNewSkuCtrl',
+        controllerAs: '$ctrl',
+        size: 'md',
+        backdrop: 'static',
+        keyboard: false,
+        resolve: {
+          items: function () {
+            return mod_data;
+          }
+        }
+      });
+
+      modalInstance.result.then(function (selectedItem) {
+
+        vm.scan_sku(event, field);
+      })
     }
 
     FUN.scan_sku = vm.scan_sku;
@@ -1884,3 +1922,41 @@ stockone.directive('dtPoData', function() {
 });
 
 })();
+
+angular.module('urbanApp').controller('addNewSkuCtrl', function ($modalInstance, $modal, items, Service, Data, Session) {
+  var $ctrl = this;
+  $ctrl.model_data = {};
+  angular.copy(items, $ctrl.model_data);
+  $ctrl.service = Service;
+  $ctrl.processing = false;
+  $("#map_sku_code").focus();
+  $ctrl.service.popup_dyn_style = 155;
+
+  $ctrl.ok = function (form) {
+
+    if($ctrl.model_data.map_sku_code) {
+
+      $ctrl.processing = true;
+      var data = {ean_number: $ctrl.model_data.scanned_val, map_sku_code: $ctrl.model_data.map_sku_code};
+
+      Service.apiCall("map_ean_sku_code/", "GET", data).then(function(data) {
+
+        if(data.message) {
+
+          // console.log(data.data.data);
+          Service.showNoty('Your scanned sku mapped');
+          $ctrl.close();
+        }
+        $ctrl.processing = false;
+      });
+    } else {
+
+      $ctrl.service.showNoty("Please Select SKU")
+    }
+  };
+
+  $ctrl.close = function () {
+
+    $modalInstance.dismiss('cancel');
+  };
+});

@@ -17,7 +17,7 @@ from django.contrib.auth.models import User, Permission
 from xlwt import Workbook, easyxf
 from xlrd import open_workbook, xldate_as_tuple
 import operator
-from django.db.models import Q, F, Value, FloatField
+from django.db.models import Q, F, Value, FloatField, CharField
 from django.conf import settings
 from sync_sku import *
 import csv
@@ -4362,12 +4362,13 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
 
 def check_ean_number(sku_code, ean_number, user):
     ''' Check ean number exists'''
-    status = ''
-    ean_check = SKUMaster.objects.filter(user=user.id, ean_number=ean_number).exclude(sku_code=sku_code).values_list(
-        'sku_code', flat=True)
-    if ean_check:
-        status = 'Ean Number is already mapped for sku codes ' + ', '.join(ean_check)
-    return status
+    ean_objs = SKUMaster.objects.filter(Q(ean_number=ean_number) | Q(eannumbers__ean_number=ean_number),
+                                         user=user.id)
+    ean_check = list(ean_objs.exclude(sku_code=sku_code).values_list('sku_code', flat=True))
+    mapped_check = list(ean_objs.filter(sku_code=sku_code).values_list('sku_code', flat=True))
+    #if ean_check:
+    #    status = 'Ean Number is already mapped for sku codes ' + ', '.join(ean_check)
+    return ean_check, mapped_check
 
 
 def get_seller_reserved_stocks(dis_seller_ids, sell_stock_ids, user):
@@ -7671,6 +7672,37 @@ def check_stock_available_quantity(stocks, user, stock_ids=None):
     if stock_qty < 0:
         stock_qty = 0
     return stock_qty
+
+
+def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False):
+    ean_status = ''
+    exist_ean_list = list(EANNumbers.objects.filter(sku_id=data.id).annotate(str_eans=Cast('ean_number', CharField())).\
+                          values_list('str_eans', flat=True))
+    if data.ean_number:
+        exist_ean_list.append(str(data.ean_number))
+    error_eans = []
+    rem_ean_list = []
+    if remove_existing:
+        rem_ean_list = list(set(exist_ean_list) - set(ean_numbers))
+    for ean_number in ean_numbers:
+        try:
+            ean_number = int(float(ean_number))
+        except:
+            continue
+        ean_dict = {'ean_number': ean_number, 'sku_id': data.id}
+        ean_status, mapped_check = check_ean_number(data.sku_code, ean_number, user)
+        if not (ean_status or mapped_check):
+            EANNumbers.objects.create(**ean_dict)
+        elif ean_status:
+            error_eans.append(ean_number)
+    for rem_ean in rem_ean_list:
+        if int(data.ean_number) == int(rem_ean):
+            data.ean_number = 0
+        else:
+            EANNumbers.objects.filter(sku_id=data.id, ean_number=rem_ean).delete()
+    if error_eans:
+        ean_status = '%s EAN Numbers already mapped to Other SKUS' % ','.join(error_eans)
+    return ean_status
 
 
 def po_invoice_number_check(user, invoice_num):

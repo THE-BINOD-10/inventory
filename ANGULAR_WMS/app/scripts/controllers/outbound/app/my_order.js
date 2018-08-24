@@ -31,6 +31,7 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
   vm.show_no_data = false;
   vm.disable_brands_view = Session.roles.permissions.disable_brands_view;
   vm.date = new Date();
+  vm.is_portal_lite = Session.roles.permissions.is_portal_lite;
 
   vm.get_orders = function(key){
 

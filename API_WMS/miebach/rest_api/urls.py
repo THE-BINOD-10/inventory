@@ -176,6 +176,7 @@ urlpatterns = [
     url(r'^create_rtv/$', create_rtv),
     url(r'^save_rtv/$', save_rtv),
     url(r'^get_saved_rtv_data/$', get_saved_rtv_data),
+    url(r'^map_ean_sku_code/$', map_ean_sku_code),
 
     # Production
     url(r'^generated_jo_data/$', generated_jo_data),
@@ -271,6 +272,7 @@ urlpatterns = [
     url(r'^search_wms_data/$', search_wms_data),
     url(r'^update_payment_status/$', update_payment_status),
     url(r'^update_inv_payment_status/$', update_inv_payment_status),
+    url(r'^get_customer_list/$', get_customer_list),
     url(r'^create_orders_data/$', create_orders_data),
     url(r'^order_category_generate_picklist/$', order_category_generate_picklist),
     url(r'^get_customer_orders/$', get_customer_orders),
@@ -312,6 +314,10 @@ urlpatterns = [
     url(r'^update_cust_profile/$', update_cust_profile),
     url(r'^print_cartons_data/$', print_cartons_data),
     url(r'^print_cartons_data_view/$', print_cartons_data_view),
+    url(r'^update_orders_for_approval/$', update_orders_for_approval),
+    url(r'^update_cartdata_for_approval/$', update_cartdata_for_approval),
+    url(r'^after_admin_approval/$', after_admin_approval),
+    url(r'^order_approval_sku_details/$', order_approval_sku_details),
     url(r'^move_to_dc/$', move_to_dc),
     url(r'^move_to_inv/$', move_to_inv),
     url(r'^update_dc/$', update_dc),
@@ -324,7 +330,6 @@ urlpatterns = [
     url(r'^get_ratings_details/$', get_ratings_details),
     url(r'^get_ratings_data_popup/$', get_ratings_data_popup),
     url(r'^save_cutomer_ratings/$', save_cutomer_ratings),
-
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),
@@ -404,6 +409,7 @@ urlpatterns = [
     url(r'^get_rtv_report/$', get_rtv_report),
     url(r'^print_rtv_report/$', print_rtv_report),
     url(r'^print_debit_note/$', print_debit_note),
+    url(r'^get_sku_categories_list/$', get_sku_categories_list),
 ]
 
 # urlpatterns += patterns('rest_api.views',

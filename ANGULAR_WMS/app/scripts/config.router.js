@@ -3,14 +3,20 @@
 var LOGIN_STATE = "user.signin",
     LOGIN_REDIRECT_STATE = "app.dashboard",
     LOGIN_REDIRECT_STATE_CUSTOMER = "user.App.Brands",
+    LOGIN_REDIRECT_STATE_ANT_CUSTOMER = "user.App.newStyle",
     PERMISSION_DENIED = "app.denied";
 
 var app = angular.module('urbanApp')
   app.run(['$rootScope', '$state', '$stateParams', 'Auth', 'AUTH_EVENTS', 'Session', '$timeout',
         function ($rootScope, $state, $stateParams, Auth, AUTH_EVENTS, Session, $timeout) {
       if(Session.user_profile.user_type == "customer") {
-        LOGIN_REDIRECT_STATE = LOGIN_REDIRECT_STATE_CUSTOMER;
+        if (Session.roles.permissions.is_portal_lite) {
+          LOGIN_REDIRECT_STATE = LOGIN_REDIRECT_STATE_ANT_CUSTOMER;
+        } else {
+          LOGIN_REDIRECT_STATE = LOGIN_REDIRECT_STATE_CUSTOMER;
+        }
       }
+
       $rootScope.$state = $state;
       $rootScope.$stateParams = $stateParams;
       $rootScope.$on('$stateChangeSuccess', function () {
@@ -56,8 +62,14 @@ var app = angular.module('urbanApp')
                       return;
                     } else if((Session.user_profile.user_type == "customer") && (thisNext.name.indexOf("App") == -1)) {
 
-                       $state.go(LOGIN_REDIRECT_STATE_CUSTOMER,  {"location": "replace"})
-                       return;
+                        if (Session.roles.permissions.is_portal_lite) {
+
+                          $state.go(LOGIN_REDIRECT_STATE_ANT_CUSTOMER,  {"location": "replace"})
+                        } else {
+
+                          $state.go(LOGIN_REDIRECT_STATE_CUSTOMER,  {"location": "replace"})
+                        }
+                        return;
                     } else if (typeof(next.permission) == "string") {
 
                       var split_variable = '|';
@@ -1233,8 +1245,22 @@ var app = angular.module('urbanApp')
             title: 'Customize Your Orders',
           }
         })
-
-
+        .state('app.outbound.Ratings', {
+          url: '/Ratings',
+          templateUrl: 'views/outbound/ratings.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+              return $ocLazyLoad.load('scripts/controllers/outbound/ratings.js');
+            }]
+          },
+          data: {
+            title: 'Customers Ratings',
+          }
+        })
+        .state('app.outbound.Ratings.Details', {
+            url: '/Details',
+            templateUrl: 'views/outbound/toggle/rating_details.html'
+          })
         .state('app.outbound.ViewOrders', {
           url: '/ViewOrders',
           permission: 'add_picklist',
@@ -1621,6 +1647,25 @@ var app = angular.module('urbanApp')
                   return $ocLazyLoad.load([
                     'scripts/controllers/payment_tracker/inbound_payment_tracker.js'
                   ])
+                }).then( function() {
+                  return $ocLazyLoad.load([
+                    'scripts/controllers/payment_tracker/outbound_payment_report.js'
+                  ])
+                }).then( function() {
+                    return $ocLazyLoad.load([{
+
+                      insertBefore: '#load_styles_before',
+                      files: [
+                                'scripts/extentions/plugins/multiselect/multi-select.css'
+                              ]
+                      }, {
+                      serie: true,
+                      files: [
+                                'scripts/extentions/plugins/multiselect/jquery.multi-select.js'
+                              ]
+                      }]).then(function () {
+                        return $ocLazyLoad.load('scripts/controllers/payment_tracker/outbound_payment.js');
+                  });
                 });
               }]
           },
@@ -1628,6 +1673,7 @@ var app = angular.module('urbanApp')
             title: 'Invoice Amount'
           }
         })
+
       .state('app.PaymentTrackerInvBased.Inv_Details', {
             url: '/Inv_Details',
             templateUrl: 'views/payment_tracker/toggle/inv_details.html',
@@ -2416,6 +2462,24 @@ var app = angular.module('urbanApp')
             url: '/Products',
             templateUrl: 'views/outbound/app/create_orders/catlog.html'
           })
+          .state('user.App.PendingOrder', {
+            url: '/PendingOrder',
+            templateUrl: 'views/outbound/app/create_orders/pending_order.html',
+            resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/outbound/app/pending_order.js');
+              }]
+              }
+            })
+            .state('user.App.PendingOrder.PendingApprovalData', {
+              url: '/PendingApprovalData',
+              templateUrl: 'views/outbound/app/create_orders/pending_approval_popup.html',
+              resolve: {
+                deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                  return $ocLazyLoad.load('scripts/controllers/outbound/app/pending_order.js');
+                }]
+              }
+            })
           .state('user.App.Categories', {
             url: '/Categories',
             templateUrl: 'views/outbound/app/create_orders/categories.html'
@@ -2440,6 +2504,15 @@ var app = angular.module('urbanApp')
             resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load('scripts/controllers/outbound/app/style.js');
+              }]
+            }
+          })
+          .state('user.App.newStyle', {
+            url: '/newStyle',
+            templateUrl: 'views/outbound/app/create_orders/newstyle.html',
+            resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/outbound/app/newstyle.js');
               }]
             }
           })

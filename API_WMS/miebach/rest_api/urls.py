@@ -243,6 +243,7 @@ urlpatterns = [
     url('^insert_order_data/$', insert_order_data),
     url('^get_warehouses_list/$', get_warehouses_list),
     url('^create_stock_transfer/$', create_stock_transfer),
+    url('^stock_transfer_delete/$', stock_transfer_delete),
     url('^get_marketplaces_list/$', get_marketplaces_list),
     url('^generate_po_data/$', generate_po_data),
     url('^generate_jo_data/$', generate_jo_data),
@@ -271,6 +272,7 @@ urlpatterns = [
     url(r'^search_wms_data/$', search_wms_data),
     url(r'^update_payment_status/$', update_payment_status),
     url(r'^update_inv_payment_status/$', update_inv_payment_status),
+    url(r'^get_customer_list/$', get_customer_list),
     url(r'^create_orders_data/$', create_orders_data),
     url(r'^order_category_generate_picklist/$', order_category_generate_picklist),
     url(r'^get_customer_orders/$', get_customer_orders),
@@ -312,6 +314,10 @@ urlpatterns = [
     url(r'^update_cust_profile/$', update_cust_profile),
     url(r'^print_cartons_data/$', print_cartons_data),
     url(r'^print_cartons_data_view/$', print_cartons_data_view),
+    url(r'^update_orders_for_approval/$', update_orders_for_approval),
+    url(r'^update_cartdata_for_approval/$', update_cartdata_for_approval),
+    url(r'^after_admin_approval/$', after_admin_approval),
+    url(r'^order_approval_sku_details/$', order_approval_sku_details),
     url(r'^move_to_dc/$', move_to_dc),
     url(r'^move_to_inv/$', move_to_inv),
     url(r'^update_dc/$', update_dc),
@@ -319,6 +325,11 @@ urlpatterns = [
     url(r'^get_stock_transfer_order_details/$', get_stock_transfer_order_details),
     url(r'^update_stock_transfer_data/$', update_stock_transfer_data),
     url(r'^stock_transfer_generate_picklist/$', stock_transfer_generate_picklist),
+    url(r'^invoice_mark_delivered/$', invoice_mark_delivered),
+    url(r'^get_create_order_mapping_values/$', get_create_order_mapping_values),
+    url(r'^get_ratings_details/$', get_ratings_details),
+    url(r'^get_ratings_data_popup/$', get_ratings_data_popup),
+    url(r'^save_cutomer_ratings/$', save_cutomer_ratings),
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),
@@ -589,5 +600,8 @@ urlpatterns += [
     url(r'^GetSalesInvoices/', tally_api.get_sales_invoices),
     url(r'^GetSalesReturns/', tally_api.get_sales_returns),
     url(r'^GetPurchaseInvoices/', tally_api.get_purchase_invoice),
-    url(r'^GetPurchaseReturns/', tally_api.get_purchase_returns)
+    url(r'^GetPurchaseReturns/', tally_api.get_purchase_returns),
+
+    #WEB PUSH Notifications
+    #url(r'^webpush/', include('webpush.urls')),
 ]

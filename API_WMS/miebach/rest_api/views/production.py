@@ -1776,19 +1776,31 @@ def save_receive_pallet(all_data, user, is_grn=False):
 @get_admin_user
 def save_receive_jo(request, user=''):
     all_data = {}
-    data_dict = dict(request.POST.iterlists())
-    for i in range(len(data_dict['id'])):
-        pallet_dict = {}
-        if data_dict.get('pallet_number', '') and not data_dict['pallet_number'][0] == '':
-            pallet_dict = {'pallet_number': data_dict['pallet_number'][i], 'pallet_id': data_dict['pallet_id'][i]}
-        cond = (data_dict['id'][i])
-        all_data.setdefault(cond, [])
-        all_data[cond].append(
-            [data_dict['received_quantity'][i], pallet_dict, data_dict['stage'][i], data_dict['status_track_id'][i]])
-    save_receive_pallet(all_data, user)
+    try:
+        log.info('Request params Save Receive JO for user %s are %s' % (user.username,
+                                                                        str(dict(request.POST.iterlists()))))
+        data_dict = dict(request.POST.iterlists())
+        for i in range(len(data_dict['id'])):
+            pallet_dict = {}
+            if data_dict.get('pallet_number', '') and not data_dict['pallet_number'][0] == '':
+                pallet_dict = {'pallet_number': data_dict['pallet_number'][i], 'pallet_id': data_dict['pallet_id'][i]}
+            cond = (data_dict['id'][i])
+            all_data.setdefault(cond, [])
+            rec_quantity = data_dict['received_quantity'][i]
+            if not rec_quantity:
+                rec_quantity = 0
+            all_data[cond].append(
+                [rec_quantity, pallet_dict, data_dict['stage'][i], data_dict['status_track_id'][i]])
+        save_receive_pallet(all_data, user)
 
-    return HttpResponse("Saved Successfully")
-
+        return HttpResponse("Saved Successfully")
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Save Receive JO failed for %s and params are %s and error statement is %s' %
+                                                            (str(user.username), str(dict(request.POST.iterlists())),
+                                                                    str(e)))
+        return HttpResponse("Save Receive JO Failed")
 
 @csrf_exempt
 @login_required
@@ -1801,90 +1813,104 @@ def confirm_jo_grn(request, user=''):
     stages = list(ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True))
     stage_status = []
     putaway_data = {GRN_HEADERS: []}
-    data_dict = dict(request.POST.iterlists())
-    for i in range(len(data_dict['id'])):
-        pallet_dict = {}
-        if data_dict.get('pallet_number', '') and not data_dict['pallet_number'][0] == '':
-            pallet_dict = {'pallet_number': data_dict['pallet_number'][i], 'pallet_id': data_dict['pallet_id'][i]}
-        cond = (data_dict['id'][i])
-        all_data.setdefault(cond, [])
-        all_data[cond].append(
-            [data_dict['received_quantity'][i], pallet_dict, data_dict['stage'][i], data_dict['status_track_id'][i]])
+    try:
+        log.info('Request params Confirm JO GRN for user %s are %s' % (user.username,
+                                                                       str(dict(request.POST.iterlists()))))
+        data_dict = dict(request.POST.iterlists())
+        for i in range(len(data_dict['id'])):
+            pallet_dict = {}
+            if data_dict.get('pallet_number', '') and not data_dict['pallet_number'][0] == '':
+                pallet_dict = {'pallet_number': data_dict['pallet_number'][i], 'pallet_id': data_dict['pallet_id'][i]}
+            cond = (data_dict['id'][i])
+            all_data.setdefault(cond, [])
+            rec_quantity = data_dict['received_quantity'][i]
+            if not rec_quantity:
+                rec_quantity = 0
+            all_data[cond].append(
+                [rec_quantity, pallet_dict, data_dict['stage'][i], data_dict['status_track_id'][i]])
 
-    all_data = save_receive_pallet(all_data, user, is_grn=True)
+        all_data = save_receive_pallet(all_data, user, is_grn=True)
 
-    for key, value in all_data.iteritems():
-        count = 0
-        job_order = JobOrder.objects.get(id=key)
-        # pre_product = int(job_order.product_quantity) - int(job_order.received_quantity)
-        sku_cat = job_order.product_code.sku_category
-        stages_list = copy.deepcopy(stages)
-        stats_track = ''
-        for val in value:
-            if stages_list:
-                if not val[3]:
-                    stage_status.append(job_order.product_code.wms_code)
-                    continue
-                stats_track = StatusTracking.objects.get(id=val[3])
-                if not stats_track.status_value == stages_list[-1]:
-                    stage_status.append(job_order.product_code.wms_code)
-                    continue
-            count += float(val[0])
-            pre_product = float(val[0])
-            zone = job_order.product_code.zone
-            if zone:
-                put_zone = zone.zone
-            else:
-                put_zone = 'DEFAULT'
-            temp_dict = {'user': user.id, 'sku': job_order.product_code}
-            if val[1].get('pallet_number', ''):
-                temp_dict['pallet_number'] = val[1]['pallet_number']
-            temp_dict['data'] = job_order
-            locations = get_purchaseorder_locations(put_zone, temp_dict)
-            job_order.received_quantity = float(job_order.received_quantity) + float(val[0])
-            received_quantity = float(val[0])
-            for loc in locations:
-                if loc.zone.zone != 'DEFAULT':
-                    location_quantity, received_quantity = get_remaining_capacity(loc, received_quantity, put_zone,
-                                                                                  val[1], user.id)
+        for key, value in all_data.iteritems():
+            count = 0
+            job_order = JobOrder.objects.get(id=key)
+            # pre_product = int(job_order.product_quantity) - int(job_order.received_quantity)
+            sku_cat = job_order.product_code.sku_category
+            stages_list = copy.deepcopy(stages)
+            stats_track = ''
+            for val in value:
+                if stages_list:
+                    if not val[3]:
+                        stage_status.append(job_order.product_code.wms_code)
+                        continue
+                    stats_track = StatusTracking.objects.get(id=val[3])
+                    if not stats_track.status_value == stages_list[-1]:
+                        stage_status.append(job_order.product_code.wms_code)
+                        continue
+                count += float(val[0])
+                pre_product = float(val[0])
+                zone = job_order.product_code.zone
+                if zone:
+                    put_zone = zone.zone
                 else:
-                    location_quantity = received_quantity
-                    received_quantity = 0
-                if not location_quantity:
-                    continue
-                job_order.status = 'grn-generated'
-                if val[1].get('pallet_id', ''):
-                    pallet_mapping = PalletMapping.objects.get(id=val[1]['pallet_id'])
-                    pallet_mapping.po_location.location_id = loc.id
-                    pallet_mapping.po_location.status = 1
-                    pallet_mapping.po_location.save()
-                    pallet_mapping.status = 1
-                    pallet_mapping.save()
-                else:
-                    job_order.saved_quantity = 0
-                    location_data = {'job_order_id': job_order.id, 'location_id': loc.id, 'status': 1}
+                    put_zone = 'DEFAULT'
+                temp_dict = {'user': user.id, 'sku': job_order.product_code}
+                if val[1].get('pallet_number', ''):
+                    temp_dict['pallet_number'] = val[1]['pallet_number']
+                temp_dict['data'] = job_order
+                locations = get_purchaseorder_locations(put_zone, temp_dict)
+                job_order.received_quantity = float(job_order.received_quantity) + float(val[0])
+                received_quantity = float(val[0])
+                for loc in locations:
+                    if loc.zone.zone != 'DEFAULT':
+                        location_quantity, received_quantity = get_remaining_capacity(loc, received_quantity, put_zone,
+                                                                                      val[1], user.id)
+                    else:
+                        location_quantity = received_quantity
+                        received_quantity = 0
+                    if not location_quantity:
+                        continue
+                    job_order.status = 'grn-generated'
+                    if val[1].get('pallet_id', ''):
+                        pallet_mapping = PalletMapping.objects.get(id=val[1]['pallet_id'])
+                        pallet_mapping.po_location.location_id = loc.id
+                        pallet_mapping.po_location.status = 1
+                        pallet_mapping.po_location.save()
+                        pallet_mapping.status = 1
+                        pallet_mapping.save()
+                    else:
+                        job_order.saved_quantity = 0
+                        location_data = {'job_order_id': job_order.id, 'location_id': loc.id, 'status': 1}
 
-                    save_update_order(location_quantity, location_data, {}, 'job_order__product_code__user', user.id)
-                if not received_quantity or received_quantity == 0:
-                    break
-            if stats_track:
-                stats_track.quantity = float(stats_track.quantity) - float(val[0])
-                stats_track.save()
-            total_received_qty += float(val[0])
-            total_order_qty += pre_product
-        if count:
-            putaway_data[GRN_HEADERS].append((job_order.product_code.wms_code, pre_product, count))
-        if job_order.received_quantity >= job_order.product_quantity:
-            job_order.status = 'location-assigned'
-        job_order.save()
-    if not putaway_data.values()[0]:
-        return HttpResponse(json.dumps({
-            'status': "Complete the production process to generate GRN for wms codes " + ", ".join(
-                list(set(stage_status))), 'data': all_data}))
-    return render(request, 'templates/toggle/jo_grn.html', {'data': putaway_data, 'job_code': job_order.job_code,
-                                                            'total_received_qty': total_received_qty,
-                                                            'total_order_qty': total_order_qty,
-                                                            'order_date': job_order.creation_date})
+                        save_update_order(location_quantity, location_data, {}, 'job_order__product_code__user', user.id)
+                    if not received_quantity or received_quantity == 0:
+                        break
+                if stats_track:
+                    stats_track.quantity = float(stats_track.quantity) - float(val[0])
+                    stats_track.save()
+                total_received_qty += float(val[0])
+                total_order_qty += pre_product
+            if count:
+                putaway_data[GRN_HEADERS].append((job_order.product_code.wms_code, pre_product, count))
+            if job_order.received_quantity >= job_order.product_quantity:
+                job_order.status = 'location-assigned'
+            job_order.save()
+        if not putaway_data.values()[0]:
+            return HttpResponse(json.dumps({
+                'status': "Complete the production process to generate GRN for wms codes " + ", ".join(
+                    list(set(stage_status))), 'data': all_data}))
+        return render(request, 'templates/toggle/jo_grn.html', {'data': putaway_data, 'job_code': job_order.job_code,
+                                                                'total_received_qty': total_received_qty,
+                                                                'total_order_qty': total_order_qty,
+                                                                'order_date': job_order.creation_date})
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Confirm JO GRN failed for %s and params are %s and error statement is %s' %
+                                                                    (str(user.username),
+                                                                     str(dict(request.POST.iterlists())),
+                                                                    str(e)))
+        return HttpResponse("Confirm JO GRN Failed")
 
 
 @csrf_exempt
@@ -1899,7 +1925,7 @@ def received_jo_data(request, user=''):
     temp = get_misc_value('pallet_switch', user.id)
     record = JobOrder.objects.filter(job_code=job_code, product_code__user=user.id,
                                      status__in=['location-assigned', 'grn-generated'],
-                                     product_code_id__in=sku_master_ids)
+                                     product_code_id__in=sku_master_ids).order_by('id')
     if temp == 'true' and 'Pallet Number' not in headers:
         headers.insert(2, 'Pallet Number')
     for rec in record:

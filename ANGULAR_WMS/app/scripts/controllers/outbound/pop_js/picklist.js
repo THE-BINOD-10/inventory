@@ -10,6 +10,7 @@ function Picklist($scope, $http, $state, $timeout, Session, colFilters, Service,
   vm.user_type=Session.user_profile.user_type;
   vm.model_data = {};
   vm.status_data = {message:"cancel", data:{}}
+  vm.qty_validation = {};
 
   vm.getPoData = function(data){
 
@@ -196,7 +197,8 @@ function view_orders() {
       elem = $(elem).serializeArray();
       vm.service.apiCall('picklist_confirmation/', 'POST', elem, true).then(function(data){
         if(data.message) {
-          if(data.data == "Picklist Confirmed") {
+          // if(data.data == "Picklist Confirmed") {
+          if(data.data.message == "Picklist Confirmed") {
             vm.ok("done");
           } else if (typeof(data.data) == "string" && data.data.indexOf("print-invoice")) {
             vm.ok("html");
@@ -206,7 +208,23 @@ function view_orders() {
             vm.status_data.data = data.data.data;
             vm.ok("invoice");
           } else {
-            Service.pop_msg(data.data);
+
+            if (!data.data.status) {
+              vm.validate_skus = {};
+              for (var i = 0; i < data.data.sku_codes.length; i++) {
+                
+                angular.forEach(data.data.sku_codes[i], function(sku){
+
+                  if (!vm.validate_skus[sku]) {
+
+                    vm.validate_skus[sku] = sku;
+                  }
+                });
+              }
+              vm.qty_validation = {borderColor:'#ce402f'};
+            }
+            // Service.pop_msg(data.data);
+            Service.pop_msg(data.data.message);
           }
         }
       });

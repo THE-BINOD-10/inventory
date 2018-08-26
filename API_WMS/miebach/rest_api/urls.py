@@ -20,6 +20,7 @@ urlpatterns = [
     url(r'^get_update_setup_state/$', get_update_setup_state),
     url(r'^load_demo_data/$', load_demo_data),
     url(r'^clear_demo_data/$', clear_demo_data),
+    url(r'^save_webpush_id/', save_webpush_id),
 
     # Dashboard
     url(r'^dashboard/$', dashboard),
@@ -592,6 +593,4 @@ urlpatterns += [
     url(r'^GetPurchaseInvoices/', tally_api.get_purchase_invoice),
     url(r'^GetPurchaseReturns/', tally_api.get_purchase_returns),
 
-    #WEB PUSH Notifications
-    url(r'^webpush/', include('webpush.urls')),
 ]

@@ -3268,7 +3268,8 @@ def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, cus
     continue_list = ['payment_received', 'charge_name', 'charge_amount', 'custom_order', 'user_type', 'invoice_amount',
                      'description', 'extra_data', 'location', 'serials', 'direct_dispatch', 'seller_id', 'sor_id',
                      'ship_to', 'client_name', 'po_number', 'corporate_po_number', 'address_selected', 'is_sample',
-                     'invoice_type', 'default_shipment_addr', 'manual_shipment_addr', 'sample_client_name', 'mode_of_transport', 'payment_status', 'courier_name']
+                     'invoice_type', 'default_shipment_addr', 'manual_shipment_addr', 'sample_client_name',
+                     'mode_of_transport', 'payment_status', 'courier_name']
     inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
     order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
     sku_master = {}
@@ -3634,7 +3635,14 @@ def insert_order_data(request, user=''):
                                                           order_data['quantity'], corporate_po_number, client_name,
                                                           order_data['unit_price'], el_price, del_date)
                         create_ordersummary_data(order_summary_dict, order_obj, ship_to, courier_name)
-                if order_data['warehouse_level'] == 3:
+                    contents = {"en": "Order has been placed by %s" % order_data['customer_name']}
+                    player_ids = []
+                    wh_player_qs = OneSignalDeviceIds.objects.filter(user=user.id)
+                    if wh_player_qs:
+                        wh_player_id = wh_player_qs[0].device_id
+                        player_ids.append(wh_player_id)
+                    send_push_notification(contents, player_ids)
+                if order_data.get('warehouse_level', '') == 3:
                     order_data['warehouse_level'] = 1
                     for lt, st_wh_map in stock_wh_map.iteritems():
                         for usr, qty in st_wh_map.iteritems():
@@ -3664,6 +3672,13 @@ def insert_order_data(request, user=''):
                                 created_skus.append(order_data['sku_id'])
                             items.append(
                                 [sku_master['sku_desc'], order_data['quantity'], order_data.get('invoice_amount', 0)])
+                            contents = {"en": "Order has been placed by %s" % order_data['customer_name']}
+                            player_ids = []
+                            wh_player_qs = OneSignalDeviceIds.objects.filter(user=usr)
+                            if wh_player_qs:
+                                wh_player_id = wh_player_qs[0].device_id
+                                player_ids.append(wh_player_id)
+                            send_push_notification(contents, player_ids)
                 else:
                     for usr, qty in stock_wh_map.iteritems():
                         order_data['order_id'] = user_order_ids_map[usr]
@@ -3687,6 +3702,13 @@ def insert_order_data(request, user=''):
                         else:
                             created_skus.append(order_data['sku_id'])
                         items.append([sku_master['sku_desc'], order_data['quantity'], order_data.get('invoice_amount', 0)])
+                        contents = {"en": "Order has been placed by %s" % order_data['customer_name']}
+                        player_ids = []
+                        wh_player_qs = OneSignalDeviceIds.objects.filter(user=usr)
+                        if wh_player_qs:
+                            wh_player_id = wh_player_qs[0].device_id
+                            player_ids.append(wh_player_id)
+                        send_push_notification(contents, player_ids)
 
             else:
                 if not order_id:
@@ -3747,7 +3769,14 @@ def insert_order_data(request, user=''):
                                                             'data': [{'quantity': order_data['quantity'],
                                                                       'location': myDict['location'][i],
                                                                       'serials': serials}]}
-                    custom_order_data(request, order_detail, ex_image_url, custom_order)
+                    # custom_order_data(request, order_detail, ex_image_url, custom_order)
+                    # contents = {"en": "Order has been placed by %s" % order_data['customer_name']}
+                    # player_ids = []
+                    # wh_player_qs = OneSignalDeviceIds.objects.filter(user=usr)
+                    # if wh_player_qs:
+                    #     wh_player_id = wh_player_qs[0].device_id
+                    #     player_ids.append(wh_player_id)
+                    # send_push_notification(contents, player_ids)
                 elif order_obj and order_data['sku_id'] in created_skus:
                     order_det = order_obj[0]
                     order_det.quantity += float(order_data['quantity'])

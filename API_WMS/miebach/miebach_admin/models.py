@@ -2799,3 +2799,13 @@ class TargetMaster(models.Model):
     class Meta:
         db_table = 'TARGET_MASTER'
         unique_together = ('distributor', 'reseller', 'corporate_id')
+
+
+class OneSignalDeviceIds(models.Model):
+    device_id = models.CharField(max_length = 125, null=False)
+    user = models.ForeignKey(User, null=False)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ONESIGNAL_DEVICEIDS'

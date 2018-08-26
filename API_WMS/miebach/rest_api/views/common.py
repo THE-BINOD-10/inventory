@@ -38,6 +38,7 @@ from django.db.models.fields import DateField, CharField
 import re
 import subprocess
 import importlib
+import requests
 from generate_reports import *
 
 from django.template import loader, Context
@@ -7636,3 +7637,36 @@ def check_stock_available_quantity(stocks, user, stock_ids=None):
     if stock_qty < 0:
         stock_qty = 0
     return stock_qty
+
+
+@csrf_exempt
+@login_required
+def save_webpush_id(request):
+    wpn_obj = eval(request.body)
+    wpn_id = wpn_obj.get('wpn_id', '')
+    if not wpn_id:
+        return HttpResponse({"message": "failure"})
+    user_id = request.user.id
+    os_qs = OneSignalDeviceIds.objects.filter(user_id=user_id)
+    if os_qs:
+        os_obj = os_qs[0]
+        os_obj.device_id = wpn_id
+        os_obj.save()
+    else:
+        OneSignalDeviceIds.objects.create(user_id=user_id, device_id=wpn_id)
+    return HttpResponse({"message": "success"})
+
+
+def send_push_notification(contents, player_ids):
+    auth_key = settings.ONESIGNAL_AUTH_KEY
+    app_id = settings.ONESIGNAL_APP_ID
+    os_notification_url = "https://onesignal.com/api/v1/notifications"
+    header = {"Content-Type": "application/json; charset=utf-8",
+              "Authorization": "Basic %s" %auth_key}
+
+    payload = {"app_id": app_id,
+               "include_player_ids": player_ids,
+               "contents": contents}
+    req = requests.post(os_notification_url, headers=header, data=json.dumps(payload))
+    log.info("Notification Status %s for contents: %s and player_ids: %s " %(req.status_code, contents, player_ids))
+    return req.status_code, req.reason

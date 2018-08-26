@@ -25,6 +25,17 @@
         });
       };
 
+      OneSignal.getUserId(function(userId) {
+        console.log("OneSignal User ID:", userId);
+        OneSignal.webpushid = userId;
+        var data = {'wpn_id': userId};
+        $http.post(Session.url + "save_webpush_id/", data).then(function (resp) {
+            if (resp.message != "success") {
+                console.log("Save web push failed");
+            }
+        });
+      });
+
       this.signup = function(data) {
 
         deferredStatus = null;

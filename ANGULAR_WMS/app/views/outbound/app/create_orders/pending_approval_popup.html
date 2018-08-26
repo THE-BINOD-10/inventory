@@ -1,0 +1,207 @@
+<div id="page-pop" class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
+  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
+  <div class="modal-dialog model-custom modal-lg" style="width: 1200px">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close_popup()"><span aria-hidden="true">&times;</span> </button>
+        <h4 class="modal-title">{{showCase.title}}</h4> </div>
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-4">
+              <div class="form-group">
+                <label class="control-label"> Serial No: * </label>
+                <input type="text" name="serial_no" class="form-control numvalid" ng-model="showCase.model_data.approve_id" ng-readonly="true">
+              </div>
+	  		   </div>
+           <div ng-if="(showCase.user_role | lowercase) == 'admin'" class="col-md-4 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Shipment Date: * </label>
+                <input name="shipment_date" ui-jq="datepicker" ng-model="showCase.model_data.shipment_date" class="form-control stk-readonly" type="text" id="shipment_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}" ng-required="(showCase.user_role | lowercase) != 'admin'">
+              </div>
+            </div>
+        </div>
+        <!-- <div class="row"><hr></div> -->
+        <div class="row" ng-repeat="sku in showCase.model_data.data">
+          <!-- <div class="col-md-1">
+            <div class="form-group">
+              <label class="control-label"> Image: * </label>
+              <img ng-if="sku.image" ng-src="{{sku.image}}" alt="SKU image" style="width: 100%"/>
+              <img ng-if="!(sku.image)" ng-src="images/wms/dflt.jpg" alt="SKU image" style="width: 100%"/>
+            </div>
+          </div> -->
+          <!-- <div class="col-md-1"> -->
+            <table class="table" style="margin: 0px">
+              <tbody>
+                <tr>
+                  <td style="width: 100px">
+                    <div class="form-group">
+                      <label class="control-label"> Image: * </label>
+                      <img ng-if="sku.image" ng-src="{{sku.image}}" alt="SKU image" style="width: 100%"/>
+                      <img ng-if="!(sku.image)" ng-src="images/wms/dflt.jpg" alt="SKU image" style="width: 100%"/>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="form-group">
+                      <label class="control-label"> SKU Code: * </label>
+                      <input type="text" name="sku_code" class="form-control" ng-model="sku.sku_code" ng-readonly="true">
+                    </div>
+                  </td>
+                  <td>
+                    <div class="form-group">
+                      <label class="control-label"> SKU Description: * </label>
+                      <input type="text" name="sku_desc" class="form-control" ng-model="sku.desc" ng-readonly="true">
+                    </div>
+                  </td>
+                  <td>
+                    <div class="form-group">
+                      <label class="control-label"> Quantity: * </label>
+                      <input type="text" name="quantity" class="form-control numvalid" ng-model="sku.quantity" ng-readonly="showCase.show_quantity" required>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="form-group">
+                      <label class="control-label"> Price: * </label>
+                      <input type="text" name="price" class="form-control numvalid" ng-model="sku.price" ng-readonly="true">
+                    </div>
+                  </td>
+                  <td>
+                    <div class="form-group">
+                      <label class="control-label"> Tax: * </label>
+                      <input type="text" name="tax" class="form-control numvalid" ng-model="sku.tax" ng-readonly="true">
+                    </div>
+                  </td>
+                  <!-- <td ng-if="(showCase.user_role | lowercase) == 'admin'">
+                    <div class="form-group">
+                      <label class="control-label"> Shipment Date: * </label>
+                      <input name="shipment_date" ui-jq="datepicker" ng-if="!sku.shipment_date" ng-model="sku.shipment_date" class="form-control stk-readonly" type="text" id="shipment_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}" ng-readonly="sku.shipment_date">
+                      <input type="text" name="shipment_date" ng-if="sku.shipment_date" class="form-control" ng-model="sku.shipment_date" ng-readonly="true">
+                    </div>
+                  </td> -->
+                </tr>
+              </tbody>
+            </table>
+          <!-- </div> -->
+
+            <!-- <div class="col-md-2">
+              <div class="form-group">
+                <label class="control-label"> SKU Code: * </label>
+                <input type="text" name="sku_code" class="form-control" ng-model="sku.sku_code" ng-readonly="true">
+			        </div>
+            </div>
+
+			      <div class="col-md-2">
+              <div class="form-group">
+                <label class="control-label"> SKU Description: * </label>
+                <input type="text" name="sku_desc" class="form-control" ng-model="sku.desc" ng-readonly="true">
+              </div>
+            </div>
+
+			      <div class="col-md-2">
+              <div class="form-group">
+                <label class="control-label"> Quantity: * </label>
+                <input type="text" name="quantity" class="form-control numvalid" ng-model="sku.quantity" ng-readonly="showCase.show_quantity" required>
+              </div>
+            </div>
+
+			      <div class="col-md-2">
+              <div class="form-group">
+                <label class="control-label"> Price: * </label>
+                <input type="text" name="price" class="form-control numvalid" ng-model="sku.price" ng-readonly="true">
+              </div>
+            </div>
+
+			      <div class="col-md-2">
+              <div class="form-group">
+                <label class="control-label"> Tax: * </label>
+                <input type="text" name="tax" class="form-control numvalid" ng-model="sku.tax" ng-readonly="true">
+              </div>
+            </div>
+
+            <div class="col-md-2" ng-if="(showCase.user_role | lowercase) == 'admin'">
+              <div class="form-group">
+                <label class="control-label"> Shipment Date: * </label>
+                <input name="shipment_date" ui-jq="datepicker" ng-if="!sku.shipment_date" ng-model="sku.shipment_date" class="form-control stk-readonly" type="text" id="shipment_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}" ng-readonly="sku.shipment_date">
+                <input type="text" name="shipment_date" ng-if="sku.shipment_date" class="form-control" ng-model="sku.shipment_date" ng-readonly="true">
+              </div>
+            </div> -->
+
+		      </div>
+		  </div>
+    	<div class="modal-footer">
+          <div ng-if="(showCase.user_role | lowercase) == 'hod' || (showCase.user_role | lowercase) == 'admin'">
+			<div ng-if="(showCase.model_data.status | lowercase) == 'accept'">
+              <h3 ng-if="((showCase.model_data.approving_user_role | lowercase) == 'admin' || (showCase.model_data.approving_user_role | lowercase) == '') && (showCase.model_data.status | lowercase) == 'accept'" style="text-align: center;padding-bottom: 10px;">Order Accepted by {{ showCase.model_data.approving_user_role }}</h3>
+			  <div ng-if = "((showCase.model_data.approving_user_role | lowercase) == 'hod') && ((showCase.model_data.status | lowercase) == 'pending')">
+          <!-- <div ng-if = "((showCase.model_data.approving_user_role | lowercase) == 'hod')> -->
+				<button type="button" class="btn pop pop-red" ng-click="showCase.update_cartdata_for_approval('reject', showCase.model_data.approve_id, showCase.model_data.quantity)" style="float:left;">
+                <span>Reject</span>
+                <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+                </button>
+                <button type="submit" class="btn pop pop-green" ng-click="showCase.update_cartdata_for_approval('accept', showCase.model_data.approve_id, showCase.model_data.quantity)" ng-disabled="process">
+                <span>Accept</span>
+                <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+                </button>
+			  </div>
+            </div>
+
+            <div ng-if="(showCase.model_data.status | lowercase) == 'reject'" style="text-align: center;padding-bottom: 10px;">
+              <h3>Order Rejected by {{ showCase.model_data.approving_user_role }}</h3>
+            </div>
+
+			<div ng-if="(showCase.model_data.approving_user_role | lowercase) == 'hod' && (showCase.user_role | lowercase) == 'hod' && (showCase.model_data.status | lowercase) == 'accept'" style="text-align: center;padding-bottom: 10px;"><h3>Order Accepted by {{ showCase.model_data.approving_user_role }}</h3>
+            </div>
+
+			<div ng-if="(showCase.model_data.approving_user_role | lowercase) == 'hod' && (showCase.user_role | lowercase) == 'admin' && (showCase.model_data.status | lowercase) == 'accept'">
+				<button type="button" class="btn pop pop-red" ng-click="showCase.update_cartdata_for_approval('reject', showCase.model_data.approve_id, showCase.model_data.quantity)" style="float:left;">
+                <span>Reject</span>
+                <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+                </button>
+                <button ng-if="(showCase.model_data.approving_user_role | lowercase) == 'hod' && (showCase.user_role | lowercase) == 'hod'" type="submit" class="btn pop pop-green" ng-click="showCase.update_cartdata_for_approval('accept', showCase.model_data.approve_id, showCase.model_data.quantity)" ng-disabled="process">
+                <span>Accept</span>
+                <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+                </button>
+
+                <button ng-if="(showCase.model_data.approving_user_role | lowercase) == 'hod' && (showCase.user_role | lowercase) == 'admin'" type="submit" class="btn pop pop-green" ng-click="showCase.after_admin_approval('accept', showCase.model_data.approve_id, showCase.model_data.quantity)" ng-disabled="process">
+                <span>Accept</span>
+                <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+                </button>
+
+
+			</div>
+
+			<div ng-if="(showCase.model_data.status | lowercase) == 'pending'">
+		      <div ng-if="(showCase.model_data.approving_user_role | lowercase) == (showCase.user_role | lowercase)">
+                <button type="button" class="btn pop pop-red" ng-click="showCase.update_cartdata_for_approval('reject', showCase.model_data.approve_id, showCase.model_data.quantity)" style="float:left;">
+                <span>Reject</span>
+                <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+                </button>
+                <button type="submit" class="btn pop pop-green" ng-click="showCase.update_cartdata_for_approval('accept', showCase.model_data.approve_id, showCase.model_data.quantity)" ng-disabled="process">
+                <span>Accept</span>
+                <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+                </button>
+              </div>
+			</div>
+		    <div ng-if="((showCase.model_data.approving_user_role | lowercase) != (showCase.user_role | lowercase)) && (showCase.model_data.status | lowercase) == 'pending'" style="text-align: center;padding-bottom: 10px;">
+			  <h3 ng-if="showCase.model_data.approving_user_role == '' && (showCase.model_data.status | lowercase) != ''">Order Accepted by Admin</h3>
+			  <h3 ng-if="showCase.model_data.approving_user_role != '' && (showCase.model_data.status | lowercase) == 'pending'">Approval from {{ showCase.model_data.approving_user_role | uppercase }} is Pending</h3>
+		    </div>
+		  </div>
+		  <div ng-if="(showCase.user_role | lowercase) == 'user'">
+            <div ng-if="(showCase.model_data.status | lowercase) == 'accept'">
+                <h3 ng-if="(showCase.model_data.approving_user_role | lowercase) == 'admin' || (showCase.model_data.approving_user_role | lowercase) == '' || (showCase.model_data.approving_user_role | lowercase) == 'hod'" style="text-align: center;padding-bottom: 10px;">Order Accepted by {{ showCase.model_data.approving_user_role }}</h3>
+            </div>
+            <div ng-if="(showCase.model_data.status | lowercase) == 'reject'" style="text-align: center;padding-bottom: 10px;">
+                <h3>Order Rejected by {{ showCase.model_data.approving_user_role }}</h3>
+            </div>
+            <!-- <div ng-if="((showCase.model_data.approving_user_role | lowercase) != 'hod' || (showCase.model_data.approving_user_role | lowercase) != 'admin') && (showCase.model_data.status | lowercase) == 'pending'">
+              <button type="submit" class="btn pop pop-green" ng-click="showCase.submit(form)" ng-disabled="process">
+                <span>Save</span>
+                  <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process"></span>
+              </button>
+            </div> -->
+          </div>
+        </div>
+    </div>
+  </form>
+</div>
+

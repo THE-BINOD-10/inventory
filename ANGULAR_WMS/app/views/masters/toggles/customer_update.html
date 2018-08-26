@@ -144,12 +144,20 @@
                 </select>
               </div>
             </div>
+            <div class="col-md-4" ng-if="showCase.display_sku_cust_mapping==true">
+              <div class="form-group">
+                <label class="control-label"> Role </label>
+                <select class="form-control customer_role" ng-model="showCase.model_data.role" name="role">
+                  <option ng-repeat="role in showCase.customer_roles" ng-selected="role==showCase.model_data.role" value="{{role}}">{{role}}</option>
+                </select>
+              </div>
+            </div>
             <div class="col-md-4">
                 <div class="form-group">
                   <label class="control-label"> SPOC Name </label>
                   <input type="text" name="spoc_name" class="form-control" ng-model="showCase.model_data.spoc_name" maxlength="256">
                 </div>
-              </div>
+            </div>
             <div class="col-md-4" ng-if="permissions.user_type == 'distributor'">
               <div class="form-group">
                 <label class="control-label"> Lead Time </label>

@@ -104,14 +104,14 @@
             <div class="col-md-3 col-sm-3 col-xs-3" ng-if="showCase.alternate_view_value">
               <div class="form-group">
                 <label class="control-label">From Date</label>
-                <input name="from_date" class="form-control stk-readonly" type="text" ng-model="showCase.from_date" ui-jq="datepicker" readonly>
+                <input name="from_date" ui-jq="datepicker" ng-model="showCase.from_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" readonly>
               </div>
             </div>
 
             <div class="col-md-3 col-sm-3 col-xs-3" ng-if="showCase.alternate_view_value">
               <div class="form-group">
                 <label class="control-label">To Date</label>
-                <input name="to_date" class="form-control stk-readonly" type="text" ng-model="showCase.to_date" ui-jq="datepicker" readonly>
+                <input name="to_date" ui-jq="datepicker" ng-model="showCase.to_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" readonly>
               </div>
             </div>
 

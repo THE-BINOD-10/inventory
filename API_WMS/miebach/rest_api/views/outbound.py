@@ -4033,7 +4033,7 @@ def insert_order_data(request, user=''):
                                                             'data': [{'quantity': order_data['quantity'],
                                                                       'location': myDict['location'][i],
                                                                       'serials': serials}]}
-                    # custom_order_data(request, order_detail, ex_image_url, custom_order)
+                    custom_order_data(request, order_detail, ex_image_url, custom_order)
                     # contents = {"en": "Order has been placed by %s" % order_data['customer_name']}
                     # player_ids = []
                     # wh_player_qs = OneSignalDeviceIds.objects.filter(user=usr)

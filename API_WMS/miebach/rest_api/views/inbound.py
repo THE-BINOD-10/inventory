@@ -4518,9 +4518,7 @@ def confirm_add_po(request, sales_data='', user=''):
         table_headers.insert(1, 'EAN Number')
     if display_remarks == 'true':
         table_headers.append('Remarks')
-
     profile = UserProfile.objects.get(user=user.id)
-
     company_name = profile.company_name
     title = 'Purchase Order'
     receipt_type = request.GET.get('receipt_type', '')

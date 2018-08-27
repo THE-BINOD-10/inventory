@@ -125,6 +125,7 @@
                 <tr>
                   <th ng-if="pop.permissions.show_image" style="width: 50px;"> Image </th>
                   <th ng-if="pop.model_data.order_status == 'open'">Order ID</th>
+                  <th ng-if="pop.model_data.data[0].is_combo_picklist && pop.model_data.order_status == 'open'">Combo SKU</th>
                   <th> WMS Code </th>
                   <th> Title </th>
                   <th>Channel</th>
@@ -150,8 +151,9 @@
                   <input type="hidden" name="labels_{{data.id}}" value="{{record.labels.join(',')}}">
                   <td ng-if="pop.permissions.show_image"><img ng-src="{{pop.service.check_image_url(data.image)}}" style="width: 30px;height: 50px;"></td>
                   <td ng-if="pop.model_data.order_status == 'open'"><input ng-model="data.order_no"  class="form-control" type="text" readonly></td>
-                  <td><input name="wms_code_{{data.id}}" ng-model="data.wms_code"  class="form-control" type="text" readonly></td>
-                  <td><input name="title_{{data.id}}" ng-model="data.title" class="form-control" type="text" readonly></td>
+                  <td ng-if="pop.model_data.data[0].is_combo_picklist && pop.model_data.order_status == 'open'"><input name="combo_sku_{{data.id}}" ng-init="data.combo_sku = data.parent_sku_code" ng-model="data.combo_sku"  class="form-control" type="text" value="{{data.combo_sku}}" title="{{data.combo_sku}}" readonly></td>
+                  <td><input name="wms_code_{{data.id}}" ng-model="data.wms_code"  class="form-control" type="text" title="data.wms_code" readonly></td>
+                  <td><input name="title_{{data.id}}" ng-model="data.title" class="form-control" title="{{data.title}}" type="text" readonly></td>
                   <td><input ng-model="data.marketplace" class="form-control" type="text" readonly></td>
                   <!--<td><input name="zone_{{data.id}}" ng-model="record.zone" class="form-control" type="text"></td>-->
                   <td><input name="location_{{data.id}}" ng-model="record.location" class="form-control" type="text" ng-blur="pop.checkCapacity($index, data, 'location', $event);"></td>

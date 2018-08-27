@@ -20,6 +20,7 @@ urlpatterns = [
     url(r'^get_update_setup_state/$', get_update_setup_state),
     url(r'^load_demo_data/$', load_demo_data),
     url(r'^clear_demo_data/$', clear_demo_data),
+    url(r'^save_webpush_id/', save_webpush_id),
 
     # Dashboard
     url(r'^dashboard/$', dashboard),
@@ -176,6 +177,7 @@ urlpatterns = [
     url(r'^create_rtv/$', create_rtv),
     url(r'^save_rtv/$', save_rtv),
     url(r'^get_saved_rtv_data/$', get_saved_rtv_data),
+    url(r'^map_ean_sku_code/$', map_ean_sku_code),
 
     # Production
     url(r'^generated_jo_data/$', generated_jo_data),
@@ -408,6 +410,7 @@ urlpatterns = [
     url(r'^get_rtv_report/$', get_rtv_report),
     url(r'^print_rtv_report/$', print_rtv_report),
     url(r'^print_debit_note/$', print_debit_note),
+    url(r'^get_sku_categories_list/$', get_sku_categories_list),
 ]
 
 # urlpatterns += patterns('rest_api.views',
@@ -601,6 +604,4 @@ urlpatterns += [
     url(r'^GetPurchaseInvoices/', tally_api.get_purchase_invoice),
     url(r'^GetPurchaseReturns/', tally_api.get_purchase_returns),
 
-    #WEB PUSH Notifications
-    #url(r'^webpush/', include('webpush.urls')),
 ]

@@ -126,6 +126,18 @@ class SKUMaster(models.Model):
                 'qc_check': self.qc_check, 'status': self.status, 'relation_type': self.relation_type}
 
 
+class EANNumbers(models.Model):
+    id = BigAutoField(primary_key=True)
+    ean_number = models.DecimalField(max_digits=20, decimal_places=0, db_index=True, default=0)
+    sku = models.ForeignKey(SKUMaster)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'EAN_NUMBERS'
+        unique_together = ('ean_number', 'sku')
+
+
 class SKUJson(models.Model):
     id = BigAutoField(primary_key=True)
     sku = models.ForeignKey(SKUMaster)
@@ -1867,6 +1879,7 @@ class SellerPOSummary(models.Model):
     order_status_flag = models.CharField(max_length=64, default='processed_pos')
     challan_date = models.DateField(blank=True, null=True)
     discount_percent = models.FloatField(default=0)
+    round_off_total = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -2851,6 +2864,16 @@ class TargetMaster(models.Model):
     class Meta:
         db_table = 'TARGET_MASTER'
         unique_together = ('distributor', 'reseller', 'corporate_id')
+
+
+class OneSignalDeviceIds(models.Model):
+    device_id = models.CharField(max_length = 125, null=False)
+    user = models.ForeignKey(User, null=False)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ONESIGNAL_DEVICEIDS'
 
 
 class RatingsMaster(models.Model):

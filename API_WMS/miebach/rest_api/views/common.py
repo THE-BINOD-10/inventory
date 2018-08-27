@@ -17,7 +17,7 @@ from django.contrib.auth.models import User, Permission
 from xlwt import Workbook, easyxf
 from xlrd import open_workbook, xldate_as_tuple
 import operator
-from django.db.models import Q, F, Value, FloatField
+from django.db.models import Q, F, Value, FloatField, CharField
 from django.conf import settings
 from sync_sku import *
 import csv
@@ -38,6 +38,7 @@ from django.db.models.fields import DateField, CharField
 import re
 import subprocess
 import importlib
+import requests
 from generate_reports import *
 
 from django.template import loader, Context
@@ -3005,41 +3006,44 @@ def get_sku_available_stock(user, sku_masters, query_string, size_dict):
 
 
 def resize_image(url, user):
-    path = 'static/images/resized/'
-    folder = str(user.id)
+    try:
+        path = 'static/images/resized/'
+        folder = str(user.id)
 
-    height = 193
-    width = 258
+        height = 193
+        width = 258
 
-    if url:
-        new_file_name = url.split("/")[-1].split(".")[0] + "-" + str(width) + "x" + str(height) + "." + url.split(".")[
-            1]
-        file_name = url.split(".")
-        file_name = "%s-%sx%s.%s" % (file_name[0], width, height, file_name[1])
+        if url:
+            new_file_name = url.split("/")[-1].split(".")[0] + "-" + str(width) + "x" + str(height) + "." + url.split(".")[
+                1]
+            file_name = url.split(".")
+            file_name = "%s-%sx%s.%s" % (file_name[0], width, height, file_name[1])
 
-        if not os.path.exists(path + folder):
-            os.makedirs(path + folder)
+            if not os.path.exists(path + folder):
+                os.makedirs(path + folder)
 
-        # if os.path.exists(path+folder+"/"+new_file_name):
-        #    return "/"+path+folder+"/"+new_file_name;
+            # if os.path.exists(path+folder+"/"+new_file_name):
+            #    return "/"+path+folder+"/"+new_file_name;
 
-        try:
-            from PIL import Image
-            temp_url = url[1:]
-            image = Image.open(temp_url)
-            if image.size[0] == image.size[1]:
-                height = width = 250
-            imageresize = image.resize((height, width), Image.ANTIALIAS)
-            imageresize.save(path + folder + "/" + new_file_name, 'JPEG', quality=75)
-            url = "/" + path + folder + "/" + new_file_name
+            try:
+                from PIL import Image
+                temp_url = url[1:]
+                image = Image.open(temp_url)
+                if image.size[0] == image.size[1]:
+                    height = width = 250
+                imageresize = image.resize((height, width), Image.ANTIALIAS)
+                imageresize.save(path + folder + "/" + new_file_name, 'JPEG', quality=75)
+                url = "/" + path + folder + "/" + new_file_name
+                return url
+            except:
+                import traceback
+                log.debug(traceback.format_exc())
+                log.info('Issue for ' + url)
+                return url
+        else:
             return url
-        except:
-            import traceback
-            log.debug(traceback.format_exc())
-            log.info('Issue for ' + url)
-            return url
-    else:
-        return url
+    except:
+        return ''
 
 
 def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
@@ -3145,7 +3149,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         if price_field == 'price':
             dis_percent = 0
             if customer_master:
-                dis_percent = customer_master.discount_percentage
+                dis_percent = customer_master[0].discount_percentage
             sku_master1 = filtered_sku_master.annotate(
                 n_price=F(price_field) * (1 - (Value(dis_percent) / Value(100)))).annotate(
                 new_price=F('n_price') + (F('n_price') / Value(100)) * Value(custom_margin))\
@@ -3153,7 +3157,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         else:
             markup = 0
             if customer_master:
-                markup = customer_master.markup
+                markup = customer_master[0].markup
             sku_master1 = filtered_sku_master.annotate(
                 n_price=F(price_field) * (1 + (Value(markup) / Value(100)))).annotate(
                 new_price=F('n_price') + (F('n_price') / Value(100)) * Value(custom_margin))\
@@ -3175,7 +3179,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         if price_field == 'price':
             dis_percent = 0
             if customer_master:
-                dis_percent = customer_master.discount_percentage
+                dis_percent = customer_master[0].discount_percentage
             sku_master1 = filtered_sku_master.annotate(
                 n_price=F(price_field) * (1 - (Value(dis_percent) / Value(100)))).annotate(
                 new_price=F('n_price') + Value(custom_margin))\
@@ -3183,7 +3187,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         else:
             markup = 0
             if customer_master:
-                markup = customer_master.markup
+                markup = customer_master[0].markup
             sku_master1 = filtered_sku_master.annotate(
                 n_price=F(price_field) * (1 + (Value(markup) / Value(100)))).annotate(
                 new_price=F('n_price') + Value(custom_margin))\
@@ -4362,12 +4366,13 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
 
 def check_ean_number(sku_code, ean_number, user):
     ''' Check ean number exists'''
-    status = ''
-    ean_check = SKUMaster.objects.filter(user=user.id, ean_number=ean_number).exclude(sku_code=sku_code).values_list(
-        'sku_code', flat=True)
-    if ean_check:
-        status = 'Ean Number is already mapped for sku codes ' + ', '.join(ean_check)
-    return status
+    ean_objs = SKUMaster.objects.filter(Q(ean_number=ean_number) | Q(eannumbers__ean_number=ean_number),
+                                         user=user.id)
+    ean_check = list(ean_objs.exclude(sku_code=sku_code).values_list('sku_code', flat=True))
+    mapped_check = list(ean_objs.filter(sku_code=sku_code).values_list('sku_code', flat=True))
+    #if ean_check:
+    #    status = 'Ean Number is already mapped for sku codes ' + ', '.join(ean_check)
+    return ean_check, mapped_check
 
 
 def get_seller_reserved_stocks(dis_seller_ids, sell_stock_ids, user):
@@ -7679,6 +7684,70 @@ def check_stock_available_quantity(stocks, user, stock_ids=None):
     return stock_qty
 
 
+@csrf_exempt
+@login_required
+def save_webpush_id(request):
+    wpn_obj = eval(request.body)
+    wpn_id = wpn_obj.get('wpn_id', '')
+    if not wpn_id:
+        return HttpResponse({"message": "failure"})
+    user_id = request.user.id
+    os_qs = OneSignalDeviceIds.objects.filter(user_id=user_id)
+    if os_qs:
+        os_obj = os_qs[0]
+        os_obj.device_id = wpn_id
+        os_obj.save()
+    else:
+        OneSignalDeviceIds.objects.create(user_id=user_id, device_id=wpn_id)
+    return HttpResponse({"message": "success"})
+
+
+def send_push_notification(contents, player_ids):
+    auth_key = settings.ONESIGNAL_AUTH_KEY
+    app_id = settings.ONESIGNAL_APP_ID
+    os_notification_url = "https://onesignal.com/api/v1/notifications"
+    header = {"Content-Type": "application/json; charset=utf-8",
+              "Authorization": "Basic %s" %auth_key}
+
+    payload = {"app_id": app_id,
+               "include_player_ids": player_ids,
+               "contents": contents}
+    req = requests.post(os_notification_url, headers=header, data=json.dumps(payload))
+    log.info("Notification Status %s for contents: %s and player_ids: %s " %(req.status_code, contents, player_ids))
+    return req.status_code, req.reason
+
+
+def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False):
+    ean_status = ''
+    exist_ean_list = list(EANNumbers.objects.filter(sku_id=data.id).annotate(str_eans=Cast('ean_number', CharField())).\
+                          values_list('str_eans', flat=True))
+    if data.ean_number:
+        exist_ean_list.append(str(data.ean_number))
+    error_eans = []
+    rem_ean_list = []
+    if remove_existing:
+        rem_ean_list = list(set(exist_ean_list) - set(ean_numbers))
+    for ean_number in ean_numbers:
+        try:
+            ean_number = int(float(ean_number))
+        except:
+            continue
+        ean_dict = {'ean_number': ean_number, 'sku_id': data.id}
+        ean_status, mapped_check = check_ean_number(data.sku_code, ean_number, user)
+        if not (ean_status or mapped_check):
+            EANNumbers.objects.create(**ean_dict)
+        elif ean_status:
+            error_eans.append(ean_number)
+    for rem_ean in rem_ean_list:
+        if int(data.ean_number) == int(rem_ean):
+            data.ean_number = 0
+        else:
+            EANNumbers.objects.filter(sku_id=data.id, ean_number=rem_ean).delete()
+    if error_eans:
+        ean_status = '%s EAN Numbers already mapped to Other SKUS' % ','.join(error_eans)
+    return ean_status
+
+
 def po_invoice_number_check(user, invoice_num):
     status = ''
     exist_inv_obj = SellerPOSummary.objects.filter(purchase_order__open_po__sku__user=user.id,
@@ -7686,3 +7755,4 @@ def po_invoice_number_check(user, invoice_num):
     if exist_inv_obj.exists():
         status = 'Invoice Number already Mapped to %s' % get_po_reference(exist_inv_obj[0].purchase_order)
     return status
+

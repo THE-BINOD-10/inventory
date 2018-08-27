@@ -1684,7 +1684,7 @@ def update_putaway(request, user=''):
             expected_date = expected_date.split('/')
             expected_date = datetime.date(int(expected_date[2]), int(expected_date[0]), int(expected_date[1]))
         for key, value in request.GET.iteritems():
-            if key in ['remarks', 'expected_date', 'remainder_mail']:
+            if key in ['remarks', 'expected_date', 'remainder_mail', 'invoice_date', 'round_off_total', 'invoice_number']:
                 continue
             po = PurchaseOrder.objects.get(id=key)
             total_count = float(value)
@@ -1723,11 +1723,11 @@ def update_putaway(request, user=''):
 @login_required
 @get_admin_user
 def close_po(request, user=''):
-    if not request.GET:
+    if not request.POST:
         return HttpResponse('Updated Successfully')
     status = ''
-    myDict = dict(request.GET.iterlists())
-    reason = request.GET.get('remarks', '')
+    myDict = dict(request.POST.iterlists())
+    reason = request.POST.get('remarks', '')
     for i in range(0, len(myDict['id'])):
         if myDict['id'][i]:
             if myDict['new_sku'][i] == 'true':
@@ -2272,7 +2272,7 @@ def create_update_primary_segregation(data, quantity, temp_dict, batch_obj=None)
                                                                     batch_detail_id=batch_obj.id)
 
 def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number='', invoice_date=None,
-                     challan_number='', challan_date=None, dc_level_grn=''):
+                     challan_number='', challan_date=None, dc_level_grn='', round_off_total=0):
     if not receipt_id:
         return
     seller_pos = SellerPO.objects.filter(seller__user=user.id, open_po_id=data.open_po_id)
@@ -2302,7 +2302,8 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
                                                                            challan_number=challan_number,
                                                                            challan_date=challan_date,
                                                                            order_status_flag=order_status_flag,
-                                                                           discount_percent=discount_percent)
+                                                                           discount_percent=discount_percent,
+                                                                           round_off_total=round_off_total)
         seller_received_list.append(
             {'seller_id': '', 'sku_id': data.open_po.sku_id, 'quantity': value,
              'id': seller_po_summary.id})
@@ -2355,7 +2356,8 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
                                                                                challan_date=challan_date,
                                                                                invoice_number=invoice_number,
                                                                                order_status_flag=order_status_flag,
-                                                                               invoice_date=invoice_date)
+                                                                               invoice_date=invoice_date,
+                                                                               round_off_total=round_off_total)
             seller_received_list.append(
                 {'seller_id': sell_po.seller_id, 'sku_id': data.open_po.sku_id, 'quantity': value,
                  'id': seller_po_summary.id})
@@ -2374,6 +2376,8 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
     remainder_mail = request.POST.get('remainder_mail', '')
     invoice_number = request.POST.get('invoice_number', '')
     dc_level_grn = request.POST.get('dc_level_grn', '')
+    round_off_checkbox = request.POST.get('round_off', '')
+    round_off_total = request.POST.get('round_off_total', 0) if round_off_checkbox=='on' else 0
     bill_date = None if dc_level_grn=='on' else datetime.datetime.now().date()
     challan_number = request.POST.get('dc_number', '')
     challan_date = request.POST.get('dc_date', '')
@@ -2476,7 +2480,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
             seller_received_list = update_seller_po(data, value, user, myDict, i, receipt_id=seller_receipt_id,
                                                     invoice_number=invoice_number, invoice_date=bill_date,
                                                     challan_number=challan_number, challan_date=challan_date,
-                                                    dc_level_grn=dc_level_grn)
+                                                    dc_level_grn=dc_level_grn, round_off_total=round_off_total)
         if 'wms_code' in myDict.keys():
             if myDict['wms_code'][i]:
                 sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
@@ -2583,6 +2587,8 @@ def confirm_grn(request, confirm_returns='', user=''):
     challan_date = request.POST.get('dc_date', '')
     challan_date = datetime.datetime.strptime(challan_date, "%m/%d/%Y").date() if challan_date else ''
     bill_date = datetime.datetime.now().date().strftime('%d-%m-%Y')
+    round_off_checkbox = request.POST.get('round_off', '')
+    round_off_total = request.POST.get('round_off_total', 0)
     if request.POST.get('invoice_date', ''):
         bill_date = datetime.datetime.strptime(str(request.POST.get('invoice_date', '')), "%m/%d/%Y").strftime('%d-%m-%Y')
     if not confirm_returns:
@@ -2609,6 +2615,8 @@ def confirm_grn(request, confirm_returns='', user=''):
             total_received_qty += value
             total_price += entry_price
             total_tax += (key[4] + key[5] + key[6] + key[7] + key[9])
+        if round_off_checkbox=='on':
+            total_price = round_off_total
 
         if is_putaway == 'true':
             btn_class = 'inb-putaway'
@@ -2842,7 +2850,8 @@ def check_sku(request, user=''):
     sku_id = check_and_return_mapping_id(sku_code, '', user, check)
     if not sku_id:
         try:
-            sku_id = SKUMaster.objects.filter(ean_number=sku_code, user=user.id)
+            sku_id = SKUMaster.objects.filter(Q(ean_number=sku_code) | Q(eannumbers__ean_number=sku_code),
+                                              user=user.id)
         except:
             sku_id = ''
     if sku_id:
@@ -4686,25 +4695,25 @@ def confirm_po1(request, user=''):
                 suggestion = OpenPO.objects.get(id=data_id, sku__user=user.id)
                 setattr(suggestion, 'status', 0)
                 suggestion.save()
-                if len(purchase_orders):
-                    address = purchase_orders[0].supplier.address
-                    address = '\n'.join(address.split(','))
-                    wh_address = user.userprofile.wh_address
-                    if purchase_orders[0].ship_to:
-                        ship_to_address = purchase_orders[0].ship_to
-                    else:
-                        ship_to_address = wh_address
-                    ship_to_address = '\n'.join(ship_to_address.split(','))
-                    telephone = purchase_orders[0].supplier.phone_number
-                    name = purchase_orders[0].supplier.name
-                    supplier_email = purchase_orders[0].supplier.email_id
-                    gstin_no = purchase_orders[0].supplier.tin_number
-                    if purchase_order.order_type == 'VR':
-                        vendor_address = purchase_orders[0].vendor.address
-                        vendor_address = '\n'.join(vendor_address.split(','))
-                        vendor_name = purchase_orders[0].vendor.name
-                        vendor_telephone = purchase_orders[0].vendor.phone_number
-                    terms_condition = purchase_orders[0].terms
+            if len(purchase_orders):
+                address = purchase_orders[0].supplier.address
+                address = '\n'.join(address.split(','))
+                wh_address = user.userprofile.wh_address
+                if purchase_orders[0].ship_to:
+                    ship_to_address = purchase_orders[0].ship_to
+                else:
+                    ship_to_address = wh_address
+                ship_to_address = '\n'.join(ship_to_address.split(','))
+                telephone = purchase_orders[0].supplier.phone_number
+                name = purchase_orders[0].supplier.name
+                supplier_email = purchase_orders[0].supplier.email_id
+                gstin_no = purchase_orders[0].supplier.tin_number
+                if purchase_orders[0].order_type == 'VR':
+                    vendor_address = purchase_orders[0].vendor.address
+                    vendor_address = '\n'.join(vendor_address.split(','))
+                    vendor_name = purchase_orders[0].vendor.name
+                    vendor_telephone = purchase_orders[0].vendor.phone_number
+                terms_condition = purchase_orders[0].terms
             wh_telephone = user.userprofile.wh_phone_number
             order_id = ids_dict[supplier]
             order_date = get_local_date(request.user, order.creation_date)
@@ -7931,3 +7940,26 @@ def get_sales_return_print_json(return_id, user):
     data_dict['total_invoice_value'] = total_invoice_value
     data_dict['return_id'] = return_id
     return data_dict
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def map_ean_sku_code(request, user=''):
+    sku_code = request.GET.get('map_sku_code')
+    ean_number = request.GET.get('ean_number')
+    try:
+        ean_number = int(ean_number)
+    except:
+        return HttpResponse(json.dumps({'message': 'EAN Number should be Number', 'status': 0}))
+    sku_master = SKUMaster.objects.filter(user=user.id, sku_code=sku_code)
+    if not sku_master.exists():
+        return HttpResponse(json.dumps({'message': 'Invalid SKU Code', 'status': 0}))
+    ean_number_obj = EANNumbers.objects.filter(sku__user=user.id, ean_number=ean_number)
+    sku_master_ean = SKUMaster.objects.filter(ean_number=ean_number, user=user.id)
+    if not (ean_number_obj or sku_master_ean):
+        EANNumbers.objects.create(sku_id=sku_master[0].id, ean_number=ean_number,
+                                  creation_date=datetime.datetime.now())
+    else:
+        return HttpResponse(json.dumps({'message': 'EAN Number already mapped', 'status': 0}))
+    return HttpResponse(json.dumps({'message': 'Success', 'status': 1}))

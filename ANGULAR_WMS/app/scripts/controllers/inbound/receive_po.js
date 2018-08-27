@@ -1865,7 +1865,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.singleDecimalVal(sku_row_data.tax_percent, 'tax_percent', index, parent_index);
       vm.singleDecimalVal(sku_row_data.cess_percent, 'cess_percent', index, parent_index);
 
-      var total_amt = Number(sku_row_data.value)*Number(sku_row_data.buy_price);
+      if (vm.industry_type == 'FMCG') {
+        var total_amt = Number(sku_row_data.value)*Number(sku_row_data.buy_price);
+      } else {
+        var total_amt = Number(sku_row_data.value)*Number(sku_row_data.price);
+      }
+
       var total_amt_dis = Number(total_amt) * Number(sku_row_data.discount_percentage) / 100;
       var tot_tax = Number(sku_row_data.tax_percent) + Number(sku_row_data.cess_percent);
       var wo_tax_amt = Number(total_amt)-Number(total_amt_dis);

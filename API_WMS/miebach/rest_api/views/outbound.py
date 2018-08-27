@@ -1520,9 +1520,12 @@ def validate_picklist_combos(data, all_picklists, picks_all):
             picklist_batch = picks_all.filter(
                 Q(stock__sku__wms_code__in=scan_wms_codes) | Q(order__sku__wms_code=scan_wms_codes),
                 reserved_quantity__gt=0, status__icontains='open')
-
         else:
-            picklist = picks_all.get(id=key)
+            if picklist_order_id:
+                picklist_batch = picks_all.filter(id=key)
+                picklist = picklist_batch[0]
+            else:
+                picklist = picks_all.get(id=key)
         count = 0
         if not picklist_batch:
             picklist_batch = get_picklist_batch(picklist, value, all_picklists)
@@ -1543,6 +1546,10 @@ def validate_picklist_combos(data, all_picklists, picks_all):
             for picklist in picklist_batch:
                 if not picklist.order or not picklist.order_type == 'combo':
                     continue
+                if float(picklist.reserved_quantity) < count:
+                    pick_val = float(picklist.reserved_quantity)
+                else:
+                    pick_val = count
                 combo_exists = True
                 #grouping_key = '%s:%s' % (str(picklist.order.original_order_id),
                 #                          str(picklist.order.sku.sku_code))
@@ -1553,7 +1560,8 @@ def validate_picklist_combos(data, all_picklists, picks_all):
                     sku_code = picklist.sku_code
                 combo_orders_dict.setdefault(grouping_key, {})
                 combo_orders_dict[grouping_key].setdefault(sku_code, 0)
-                combo_orders_dict[grouping_key][sku_code] += count
+                combo_orders_dict[grouping_key][sku_code] += pick_val
+                count -= pick_val
     if combo_exists:
         for key, value in combo_orders_dict.iteritems():
             if len(set(value.values())) > 1:

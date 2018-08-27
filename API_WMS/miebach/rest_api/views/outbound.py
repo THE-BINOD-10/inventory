@@ -694,6 +694,7 @@ def get_sku_location_stock(wms_code, location, user_id, stock_skus, reserved_sku
 def get_picklist_data(data_id, user_id):
     courier_name = ''
     sku_total_quantities = {}
+    is_combo_picklist = False
     picklist_orders = Picklist.objects.filter(Q(order__sku__user=user_id) | Q(stock__sku__user=user_id),
                                               picklist_number=data_id)
     pick_stocks = StockDetail.objects.filter(sku__user=user_id)
@@ -708,6 +709,8 @@ def get_picklist_data(data_id, user_id):
     data = []
     if not picklist_orders:
         return data, sku_total_quantities, courier_name
+    if picklist_orders.filter(order_type='combo').exists():
+        is_combo_picklist = True
     order_status = ''
     for orders in picklist_orders:
         if 'open' in orders.status:
@@ -819,7 +822,8 @@ def get_picklist_data(data_id, user_id):
                                                'marketplace': marketplace,
                                                'order_no': order_id, 'remarks': remarks,
                                                'load_unit_handle': load_unit_handle, 'category': category,
-                                               'original_order_id': original_order_id, 'mrp':mrp, 'batchno':batch_no}
+                                               'original_order_id': original_order_id, 'mrp':mrp,
+                                               'batchno':batch_no, 'is_combo_picklist': is_combo_picklist}
             else:
                 batch_data[match_condition]['reserved_quantity'] += order.reserved_quantity
                 batch_data[match_condition]['picked_quantity'] += order.reserved_quantity
@@ -851,6 +855,9 @@ def get_picklist_data(data_id, user_id):
             order_id = ''
             mrp = ''
             batch_no = ''
+            parent_sku_code = ''
+            if order.order_type == 'combo' and order.order:
+                parent_sku_code = order.order.sku.sku_code
             if order.order:
                 wms_code = order.order.sku.wms_code
                 if order.order_type == 'combo' and order.sku_code:
@@ -930,7 +937,8 @@ def get_picklist_data(data_id, user_id):
                  'title': title, 'stock_left': stock_left, 'last_picked_locs': last_picked_locs,
                  'customer_name': customer_name, 'marketplace': marketplace, 'remarks': remarks,
                  'load_unit_handle': load_unit_handle, 'category': category, 'customer_address': customer_address,
-                 'original_order_id': original_order_id, 'mrp':mrp, 'batchno':batch_no})
+                 'original_order_id': original_order_id, 'mrp':mrp, 'batchno':batch_no,
+                 'is_combo_picklist': is_combo_picklist, 'parent_sku_code': parent_sku_code})
 
             if wms_code in sku_total_quantities.keys():
                 sku_total_quantities[wms_code] += float(order.reserved_quantity)
@@ -953,6 +961,9 @@ def get_picklist_data(data_id, user_id):
             original_order_id = ''
             mrp = ''
             batch_no = ''
+            parent_sku_code = ''
+            if order.order_type == 'combo' and order.order:
+                parent_sku_code = order.order.sku.sku_code
             if order.stock_id:
                 stock_id = pick_stocks.get(id=order.stock_id)
 
@@ -1010,7 +1021,8 @@ def get_picklist_data(data_id, user_id):
                  'customer_name': customer_name, 'remarks': remarks, 'load_unit_handle': load_unit_handle,
                  'category': category,
                  'marketplace': marketplace, 'original_order_id' : original_order_id, 
-                 'mrp':mrp, 'batchno':batch_no})
+                 'mrp':mrp, 'batchno':batch_no, 'is_combo_picklist': is_combo_picklist,
+                 'parent_sku_code':parent_sku_code})
 
             if wms_code in sku_total_quantities.keys():
                 sku_total_quantities[wms_code] += float(order.reserved_quantity)
@@ -1494,6 +1506,7 @@ def validate_picklist_combos(data, all_picklists, picks_all):
     combo_status = []
     combo_orders_dict = OrderedDict()
     final_data_list = []
+    combo_exists = False
     for key, value in data.iteritems():
         if key in ('name', 'number', 'order', 'sku', 'invoice'):
             continue
@@ -1528,8 +1541,12 @@ def validate_picklist_combos(data, all_picklists, picks_all):
             if picklist_order_id:
                 picklist_batch = list(set([picklist]))
             for picklist in picklist_batch:
-                grouping_key = '%s:%s' % (str(picklist.order.original_order_id),
-                                          str(picklist.order.sku.sku_code))
+                if not picklist.order or not picklist.order_type == 'combo':
+                    continue
+                combo_exists = True
+                #grouping_key = '%s:%s' % (str(picklist.order.original_order_id),
+                #                          str(picklist.order.sku.sku_code))
+                grouping_key = str(picklist.order_id)
                 if picklist.stock:
                     sku_code = picklist.stock.sku.sku_code
                 else:
@@ -1537,9 +1554,10 @@ def validate_picklist_combos(data, all_picklists, picks_all):
                 combo_orders_dict.setdefault(grouping_key, {})
                 combo_orders_dict[grouping_key].setdefault(sku_code, 0)
                 combo_orders_dict[grouping_key][sku_code] += count
-    for key, value in combo_orders_dict.iteritems():
-        if len(set(value.values())) > 1:
-            combo_status.append(value.keys())
+    if combo_exists:
+        for key, value in combo_orders_dict.iteritems():
+            if len(set(value.values())) > 1:
+                combo_status.append({str(key): value.keys()})
     return combo_status, final_data_list
 
 

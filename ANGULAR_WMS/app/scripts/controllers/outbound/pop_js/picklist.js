@@ -210,7 +210,7 @@ function view_orders() {
           } else {
 
             if (!data.data.status) {
-              vm.validate_skus = {};
+              /*vm.validate_skus = {};
               // var test = [{371646:"RODSDF-IB-L"}, {371646:"RODSDF-HV-L"}];
 
               for (var i = 0; i < data.data.sku_codes.length; i++) {
@@ -222,7 +222,7 @@ function view_orders() {
                     vm.validate_skus[key] = value;
                   }
                 });
-              }
+              }*/
               vm.qty_validation = {borderColor:'#ce402f'};
             }
             // Service.pop_msg(data.data);

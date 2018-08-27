@@ -197,7 +197,6 @@ function view_orders() {
       elem = $(elem).serializeArray();
       vm.service.apiCall('picklist_confirmation/', 'POST', elem, true).then(function(data){
         if(data.message) {
-
           vm.qty_validation = {};
           if(data.data == "Picklist Confirmed") {
             vm.ok("done");
@@ -211,7 +210,22 @@ function view_orders() {
           } else {
 
             if (!data.data.status) {
+              vm.validate_skus = {};
+              // var test = [{371646:"RODSDF-IB-L"}, {371646:"RODSDF-HV-L"}];
 
+              for (var i = 0; i < data.data.sku_codes.length; i++) {
+                
+                angular.forEach(data.data.sku_codes[i], function(value, key){
+
+                  for(var j = 0; j < value.length; j++){
+
+                    if (!vm.validate_skus[value[j]]) {
+
+                      vm.validate_skus[value[j]] = key;
+                    }
+                  }
+                });
+              }
               vm.qty_validation = {borderColor:'#ce402f'};
             }
             // Service.pop_msg(data.data);

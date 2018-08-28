@@ -211,18 +211,22 @@ function view_orders() {
 
             if (!data.data.status) {
               vm.validate_skus = {};
-              // var test = [{371646:"RODSDF-IB-L"}, {371646:"RODSDF-HV-L"}];
 
               for (var i = 0; i < data.data.sku_codes.length; i++) {
                 
                 angular.forEach(data.data.sku_codes[i], function(value, key){
 
+                  var temp_combo = {};
                   for(var j = 0; j < value.length; j++){
 
-                    if (!vm.validate_skus[value[j]]) {
-
-                      vm.validate_skus[value[j]] = key;
+                    if (!temp_combo[value[j]]) {
+                      temp_combo[value[j]] = value[j];
                     }
+                  }
+
+                  if(!vm.validate_skus[key]){
+
+                    vm.validate_skus[key] = temp_combo;
                   }
                 });
               }
@@ -284,7 +288,7 @@ function pull_confirmation() {
         for(var i=0; i < data.sub_data.length; i++) {
           total = total + Number(data.sub_data[i].picked_quantity);
         }
-        if(total < data.reserved_quantity) {
+        if(total && total < data.reserved_quantity) {
           var clone = {};
           angular.copy(data.sub_data[index], clone);
           var temp = data.reserved_quantity - total;
@@ -299,6 +303,10 @@ function pull_confirmation() {
             clone.capacity = 0;
           }
           data.sub_data.push(clone);
+        } else if (total == data.reserved_quantity) {
+          vm.service.showNoty("Please compare with Received and Picked Quantity");
+        } else {
+          vm.service.showNoty("Please pick the existing sku quantity first. If you want change another location");
         }
       }
     } else {

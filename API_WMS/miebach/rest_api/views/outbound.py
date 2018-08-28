@@ -1549,7 +1549,6 @@ def validate_picklist_combos(data, all_picklists, picks_all):
                                 'count': count, 'picklist_order_id': picklist_order_id,
                                 'value': value, 'key': key})
         for val in value:
-            print key
             if not val['picked_quantity']:
                 continue
             else:

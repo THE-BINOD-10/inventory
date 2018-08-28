@@ -1433,7 +1433,6 @@ def get_seller_pick_id(picklist, user):
     summary = max(summary1, summary2)
     if summary:
         pick_number = int(summary) + 1
-    print pick_number
     return pick_number
 
 @fn_timer

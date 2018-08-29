@@ -3498,7 +3498,6 @@ def create_order_from_intermediate_order(request, user):
             wh_id = wh_usr_obj[0].id
         else:
             return HttpResponse('User Missing')
-    import pdb;pdb.set_trace()
     interm_det_id = request.POST.get('interm_det_id', '')
     shipment_date = request.POST.get('shipment_date', '')
     if shipment_date:
@@ -7344,7 +7343,8 @@ def get_customer_orders(request, user=""):
             if central_order_mgmt:
                 orders_dict = {'customer_id': customer_id, 'user__in': users_list}
                 pick_dict = {'order__customer_id': customer_id, 'order__user__in': users_list}
-                intermediate_orders = list(IntermediateOrders.objects.filter(customer_user=request.user.id)\
+                intermediate_orders = list(IntermediateOrders.objects.filter(customer_user=request.user.id,\
+                                                             status='')\
                                                              .values('interm_order_id').distinct()\
                                                              .annotate(total_quantity=Sum('quantity'),\
                                                               date_only=Cast('creation_date', DateField()),
@@ -7355,8 +7355,9 @@ def get_customer_orders(request, user=""):
                 pick_dict = {'order__customer_id': customer_id, 'order__user': user.id}
             orders = OrderDetail.objects.filter(**orders_dict).exclude(status=3).order_by('-creation_date')
             picklist = Picklist.objects.filter(**pick_dict)
-            real_orders = list(orders.values('order_id', 'order_code', 'original_order_id').distinct().
-                                         annotate(total_quantity=Sum('quantity'), total_inv_amt=Sum('invoice_amount'),
+            real_orders = list(orders.values('order_id', 'order_code', 'original_order_id', 'intermediateorders__interm_order_id')\
+                                         .distinct()\
+                                         .annotate(total_quantity=Sum('quantity'), total_inv_amt=Sum('invoice_amount'),
                                                   date_only=Cast('creation_date', DateField()),
                                                   intermediate_order=Value(False, output_field=BooleanField())).order_by('-date_only'))
             response_data['data'] = list(chain(intermediate_orders, real_orders))

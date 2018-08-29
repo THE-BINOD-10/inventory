@@ -27,7 +27,9 @@ input[type="date"]:valid::before {
               </div>
               <div class="col-md-6 col-sm-6 col-xs-6">
                 <span class="label pull-right text-uppercase"
-                ng-class="(orders.getStatus(order.total_quantity, order.picked_quantity, order.status) == 'Open')? 'label-danger': 'label-success';" style="font-size: 12px;">
+                ng-class="(orders.getStatus(order.total_quantity, order.picked_quantity, order.status) == 'Open')? 'label-danger': 
+                          (orders.getStatus(order.total_quantity, order.picked_quantity, order.status) == 'Dispatched')? 'label-success':
+                          'label-danger';" style="font-size: 12px;">
                 {{orders.getStatus(order.total_quantity, order.picked_quantity, order.status)}}</span>
               </div>
             </div>
@@ -36,7 +38,9 @@ input[type="date"]:valid::before {
                 <div class="widget-details col-xs-3 text-left">
                   <small class="order-label" ng-if="permissions.user_type == 'distributor'">Reseller Order ID</small>
                   <small class="order-label" ng-if="permissions.user_type != 'distributor'">Order ID</small>
-                  <h2 class="no-margin order-bold">{{order.order_id}}</h2></div>
+                  <h2 class="no-margin order-bold">{{order.order_id}}
+                    <span ng-if="order.intermediateorders__interm_order_id">({{order.intermediateorders__interm_order_id}})</span>
+                  </h2></div>
                 <div class="widget-details col-xs-2 text-center">
                   <small class="order-label">Ordered Qty</small>
                   <h2 class="no-margin order-bold">{{order.total_quantity}}</h2>

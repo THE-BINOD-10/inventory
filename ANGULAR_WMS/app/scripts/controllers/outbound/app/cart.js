@@ -163,9 +163,9 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
         vm.order_data_insertion(data_dict);
       }
     } else {
-      if (!(vm.model_data.shipment_date)) {
+      if (!(vm.model_data.shipment_date) || !(vm.model_data.client_name_header)) {
 
-        vm.service.showNoty("The Shipment Date is Required Please Select", "success", "bottomRight");
+        vm.service.showNoty("The Shipment Date and Client Name are Required. Please Select", "success", "bottomRight");
       } else {
         vm.order_data_insertion(data_dict);
       }

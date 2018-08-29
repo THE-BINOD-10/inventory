@@ -9870,7 +9870,7 @@ def seller_generate_picklist(request, user=''):
         all_sku_stocks = stock_detail1 | stock_detail2
         seller_stocks = SellerStock.objects.filter(seller__user=user.id).values('stock_id', 'seller_id')
         for key, value in request.POST.iteritems():
-            if key in PICKLIST_SKIP_LIST or key in ['filters']:
+            if key in PICKLIST_SKIP_LIST or key in ['filters', 'enable_damaged_stock']:
                 continue
 
             sku_stocks = all_sku_stocks

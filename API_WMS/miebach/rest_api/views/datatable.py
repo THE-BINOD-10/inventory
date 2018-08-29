@@ -153,8 +153,9 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
                              file_type)'''
         att_data = data.skuattributes_set.filter(attribute_name__in=sku_attr_list).values('attribute_name', 'attribute_value')
         for attr in att_data:
-            ws = write_excel(ws, data_count, excel_mapping[attr['attribute_name']], attr['attribute_value'],
-                             file_type)
+            if excel_mapping.get(attr['attribute_name'], ''):
+                ws = write_excel(ws, data_count, excel_mapping[attr['attribute_name']], attr['attribute_value'],
+                                 file_type)
         sku_types = data.marketplacemapping_set.exclude(sku_type='').filter().\
                                                 values_list('sku_type', flat=True).distinct()
         for sku_type in sku_types:

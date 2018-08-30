@@ -331,6 +331,8 @@ urlpatterns = [
     url(r'^get_ratings_details/$', get_ratings_details),
     url(r'^get_ratings_data_popup/$', get_ratings_data_popup),
     url(r'^save_cutomer_ratings/$', save_cutomer_ratings),
+    url(r'^list_notifications/$', list_notifications), #PUSH NOTIFICATIONS
+    url(r'^make_notifications_read/$', make_notifications_read),
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),

@@ -3674,7 +3674,7 @@ def send_mail_ordered_report(order_detail, telephone, items, other_charge_amount
                                    other_charges=other_charge_amounts)
 
 
-def send_mail_enquiry_order_report(items, enquiry_id, user, customer_details):
+def send_mail_enquiry_order_report(items, enquiry_id, user, customer_details, is_expiry=False):
     misc_detail = MiscDetail.objects.filter(user=user.id, misc_type='enquiry', misc_value='true')
     email = customer_details['email_id']
     receivers = [email]
@@ -3693,7 +3693,11 @@ def send_mail_enquiry_order_report(items, enquiry_id, user, customer_details):
         rendered = t.render(data_dict)
 
         if receivers:
-            send_mail(receivers, 'Order Confirmation: %s' % enquiry_id, rendered)
+            if is_expiry:
+                subject = 'Enquiry Order %s is going to expire today'
+            else:
+                subject = 'Order Confirmation: %s'
+            send_mail(receivers, subject % enquiry_id, rendered)
 
 
 def fetch_order_ids(stock_wh_map, user_order_ids_map):
@@ -3899,13 +3903,11 @@ def insert_order_data(request, user=''):
                                                           order_data['quantity'], corporate_po_number, client_name,
                                                           order_data['unit_price'], el_price, del_date)
                         create_ordersummary_data(order_summary_dict, order_obj, ship_to, courier_name)
-                    contents = {"en": "Order has been placed by %s" % order_data['customer_name']}
-                    player_ids = []
-                    wh_player_qs = OneSignalDeviceIds.objects.filter(user=user.id)
-                    if wh_player_qs:
-                        wh_player_id = wh_player_qs[0].device_id
-                        player_ids.append(wh_player_id)
-                    send_push_notification(contents, player_ids)
+                    wh_name = User.Objects.get(id=user.id).first_name
+                    cont_vals = (order_data['customer_name'], order_data['original_order_id'], wh_name)
+                    contents = {"en": "%s placed an order %s to %s warehouse" % cont_vals}
+                    users_list = [user.id, admin_user.id]
+                    send_push_notification(contents, users_list)
                 if order_data.get('warehouse_level', '') == 3:
                     order_data['warehouse_level'] = 1
                     for lt, st_wh_map in stock_wh_map.iteritems():
@@ -3936,13 +3938,11 @@ def insert_order_data(request, user=''):
                                 created_skus.append(order_data['sku_id'])
                             items.append(
                                 [sku_master['sku_desc'], order_data['quantity'], order_data.get('invoice_amount', 0)])
-                            contents = {"en": "Order has been placed by %s" % order_data['customer_name']}
-                            player_ids = []
-                            wh_player_qs = OneSignalDeviceIds.objects.filter(user=usr)
-                            if wh_player_qs:
-                                wh_player_id = wh_player_qs[0].device_id
-                                player_ids.append(wh_player_id)
-                            send_push_notification(contents, player_ids)
+                            wh_name = User.Objects.get(id=usr).first_name
+                            cont_vals = (order_data['customer_name'], order_data['original_order_id'], wh_name)
+                            contents = {"en": "%s placed an order %s to %s warehouse" % cont_vals}
+                            users_list = [user.id, admin_user.id]
+                            send_push_notification(contents, users_list)
                 else:
                     for usr, qty in stock_wh_map.iteritems():
                         order_data['order_id'] = user_order_ids_map[usr]
@@ -3966,13 +3966,11 @@ def insert_order_data(request, user=''):
                         else:
                             created_skus.append(order_data['sku_id'])
                         items.append([sku_master['sku_desc'], order_data['quantity'], order_data.get('invoice_amount', 0)])
-                        contents = {"en": "Order has been placed by %s" % order_data['customer_name']}
-                        player_ids = []
-                        wh_player_qs = OneSignalDeviceIds.objects.filter(user=usr)
-                        if wh_player_qs:
-                            wh_player_id = wh_player_qs[0].device_id
-                            player_ids.append(wh_player_id)
-                        send_push_notification(contents, player_ids)
+                        wh_name = User.Objects.get(id=usr).first_name
+                        cont_vals = (order_data['customer_name'], order_data['original_order_id'], wh_name)
+                        contents = {"en": "%s placed an order %s to %s warehouse" % cont_vals}
+                        users_list = [usr, admin_user.id]
+                        send_push_notification(contents, users_list)
 
             else:
                 if not order_id:
@@ -10260,6 +10258,11 @@ def insert_enquiry_data(request, user=''):
                 enq_sku_obj.levelbase_price = cart_item.levelbase_price
                 enq_sku_obj.warehouse_level = cart_item.warehouse_level
                 enq_sku_obj.save()
+                wh_name = User.Objects.get(id=wh_code.id).first_name
+                cont_vals = (customer_details['customer_name'], enquiry_id, wh_name)
+                contents = {"en": "%s placed an enquiry order %s to %s warehouse" % cont_vals}
+                users_list = [user.id, wh_code.id, admin_user.id]
+                send_push_notification(contents, users_list)
                 items.append([cart_item.sku.style_name, qty, tot_amt])
     except:
         import traceback
@@ -11484,3 +11487,32 @@ def render_st_html_data(request, user, warehouse, all_data):
     html_data = t.render(data_dict)
     return html_data
 """
+
+def list_notifications(request):
+    resp = {'msg': 'Success', 'data': []}
+    push_notifications = PushNotifications.objects.filter(user=request.user.id)
+    push_nots = []
+    for push_not in push_notifications:
+        push_map = {'message': push_not.message, 'is_read': push_not.is_read,
+                    'creation_date': push_not.creation_date, 'id': push_not.id}
+        push_nots.append(push_map)
+
+    resp['data'] = push_nots
+    return HttpResponse(json.dumps(resp), content_type='application/json')
+
+
+def make_notifications_read(request):
+    resp = {'msg': 'Success', 'data': []}
+    is_all_read = request.POST.get('is_all_read', '')
+    push_id = request.POST.get('push_id', '')
+    if not is_all_read or push_id:
+        return HttpResponse('Either push_id or is_all_read should be sent')
+    else:
+        try:
+            if is_all_read == 'true':
+                PushNotifications.objects.filter(user=request.user.id).update(is_read=True)
+            else:
+                PushNotifications.objects.fitler(id=push_id).update(is_read=True)
+        except:
+            resp['msg'] = 'Fail'
+    return HttpResponse(json.dumps(resp), content_type='application/json')

@@ -7696,7 +7696,13 @@ def save_webpush_id(request):
     return HttpResponse({"message": "success"})
 
 
-def send_push_notification(contents, player_ids):
+def send_push_notification(contents, users_list):
+    player_ids = []
+    wh_player_qs = OneSignalDeviceIds.objects.filter(user__in=users_list).distinct()
+    for wh_player in wh_player_qs:
+        wh_player_id = wh_player.device_id
+        player_ids.append(wh_player_id)
+
     auth_key = settings.ONESIGNAL_AUTH_KEY
     app_id = settings.ONESIGNAL_APP_ID
     os_notification_url = "https://onesignal.com/api/v1/notifications"
@@ -7708,6 +7714,8 @@ def send_push_notification(contents, player_ids):
                "contents": contents}
     req = requests.post(os_notification_url, headers=header, data=json.dumps(payload))
     log.info("Notification Status %s for contents: %s and player_ids: %s " %(req.status_code, contents, player_ids))
+    for user in users_list:
+        PushNotifications.objects.create(user_id=user, message=contents['en'])
     return req.status_code, req.reason
 
 

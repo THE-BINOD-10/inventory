@@ -2,7 +2,7 @@
 
 'use strict';
 
-function AppNotifications($scope, $http, $q, Session, colFilters, Service, $state, $window, $timeout, Auth, $stateParams, $modal, Data) {
+function Notifications($scope, $http, $q, Session, colFilters, Service, $state, $window, $timeout, Auth, $stateParams, $modal, Data) {
 
   var vm = this;
   vm.service = Service;
@@ -32,6 +32,6 @@ function AppNotifications($scope, $http, $q, Session, colFilters, Service, $stat
 }
 angular
   .module('urbanApp')
-  .controller('AppNotifications', ['$scope', '$http', '$q', 'Session', 'colFilters', 'Service', '$state', '$window', '$timeout',
-                  'Auth', '$stateParams', '$modal', 'Data', AppNotifications]);
+  .controller('Notifications', ['$scope', '$http', '$q', 'Session', 'colFilters', 'Service', '$state', '$window', '$timeout',
+                  'Auth', '$stateParams', '$modal', 'Data', Notifications]);
 })();

@@ -11494,25 +11494,27 @@ def list_notifications(request):
     push_nots = []
     for push_not in push_notifications:
         push_map = {'message': push_not.message, 'is_read': push_not.is_read,
-                    'creation_date': push_not.creation_date, 'id': push_not.id}
+                    'creation_date': push_not.creation_date.strftime("%d %b %Y"), 'id': push_not.id}
         push_nots.append(push_map)
 
     resp['data'] = push_nots
     return HttpResponse(json.dumps(resp), content_type='application/json')
 
 
+@csrf_exempt
+@login_required
 def make_notifications_read(request):
     resp = {'msg': 'Success', 'data': []}
     is_all_read = request.POST.get('is_all_read', '')
     push_id = request.POST.get('push_id', '')
-    if not is_all_read or push_id:
+    if not is_all_read and not push_id:
         return HttpResponse('Either push_id or is_all_read should be sent')
     else:
         try:
             if is_all_read == 'true':
                 PushNotifications.objects.filter(user=request.user.id).update(is_read=True)
             else:
-                PushNotifications.objects.fitler(id=push_id).update(is_read=True)
+                PushNotifications.objects.filter(id=push_id).update(is_read=True)
         except:
             resp['msg'] = 'Fail'
     return HttpResponse(json.dumps(resp), content_type='application/json')

@@ -217,12 +217,12 @@ var app = angular.module('urbanApp')
                                 'vendor/angular-flot/angular-flot.js'
                             ]
                         }]).then(function () {
-              return $ocLazyLoad.load('scripts/controllers/dashboard/dashboard.js');
+              return $ocLazyLoad.load('scripts/controllers/notifications/notifications.js');
             });
                     }]
         },
         data: {
-          title: 'Dashboard',
+          title: 'Notifications',
         }
       })
 

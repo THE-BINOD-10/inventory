@@ -17,7 +17,8 @@
         "userName": null,
         "parent": {},
         "roles"   : [],
-        "user_profile" : {}
+        "user_profile" : {},
+        "notification_count": 0,
       });
     }
 
@@ -31,7 +32,8 @@
         "userName": this.userName,
         "parent"  : this.parent,
         "roles"   : this.roles,
-        "user_profile" : this.user_profile
+        "user_profile" : this.user_profile,
+        "notification_count" : this.notification_count
       };
     };
 
@@ -42,6 +44,7 @@
       this.parent = data.parent;
       this.roles    = data.roles;
       this.user_profile = data.user_profile;
+      this.notification_count = data.notification_count
 
       this.changeUserData();
     };

@@ -33,10 +33,10 @@
     <!-- /dashboard -->
 
     <!-- notifications -->
-    <li>
+    <li ui-sref-active="">
       <a ui-sref="app.notifications">
         <i class="fa fa-bell"></i>
-        <span class="button__badge">2</span>
+        <span class="button__badge" ng-if="user.notification_count != 0">{{user.notification_count}}</span>
         <span>Notifications</span>
       </a>
     </li>

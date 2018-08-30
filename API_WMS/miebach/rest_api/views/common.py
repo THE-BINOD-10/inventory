@@ -174,6 +174,10 @@ def add_user_permissions(request, response_data, user=''):
     # warehouses = UserGroups.objects.filter(Q(user__username=user.username) | Q(admin_user__username=user.username))
     # if warehouses:
     #    multi_warehouse = 'true'
+    #notification count
+    notification_count = PushNotifications.objects\
+                                   .filter(user_id=request.user.id, is_read=False)\
+                                   .count()
     if user_profile.multi_warehouse:
         multi_warehouse = 'true'
     parent_data = {}
@@ -182,6 +186,7 @@ def add_user_permissions(request, response_data, user=''):
     parent_data['logo'] = COMPANY_LOGO_PATHS.get(user.username, '')
     response_data['data']['userName'] = request.user.username
     response_data['data']['userId'] = request.user.id
+    response_data['data']['notification_count'] = notification_count
     response_data['data']['parent'] = parent_data
     response_data['data']['roles'] = get_user_permissions(request, user)
     response_data['data']['roles']['tax_type'] = tax_type

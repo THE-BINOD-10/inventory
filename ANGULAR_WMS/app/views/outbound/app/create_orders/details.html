@@ -30,7 +30,7 @@
       </div>
       <a class="fa fa-bell pull-right fa-2x" style="color:#fff;margin-right: 20px;padding-top: 5px;"
         ng-click="$state.go('user.App.Notifications')">
-        <span class="button__badge">2</span>
+        <span class="button__badge" ng-if="showCase.notify_count != 0">{{showCase.notify_count}}</span>
       </a>
       <a class="fa fa-filter pull-right fa-2x" style="color:#fff;margin-right: 20px;padding-top: 5px;" ng-click="showCase.showFilters()"></a>
       <a class="fa fa-user pull-right hide fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" ng-click="showCase.logout()"></a>

@@ -1460,3 +1460,12 @@ def print_debit_note(request, user=''):
         return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice': [show_data_invoice]})
     else:
         return HttpResponse("No Data")
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_sku_wise_rtv_filter(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_sku_wise_rtv_filter_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')

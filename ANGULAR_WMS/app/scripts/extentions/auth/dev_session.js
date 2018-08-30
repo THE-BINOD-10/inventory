@@ -22,12 +22,13 @@
     }
 
 (function() {
-      var OneSignal = window.OneSignal || [];
-      OneSignal.push(function() {
-        OneSignal.init({
-          appId: "98737db9-a2c9-4ff7-be74-42149f21679f",
+      setTimeout(function(){
+        var OneSignal = window.OneSignal || [];
+        OneSignal.push(function() {
+            OneSignal.init({
+              appId: "98737db9-a2c9-4ff7-be74-42149f21679f",
+            });
         });
-      });
 
         OneSignal.getUserId(function(userId) {
         console.log("OneSignal User ID:", userId);
@@ -39,6 +40,7 @@
             }
         });
       });
+      }, 0);
     })();
 
     resetSession();

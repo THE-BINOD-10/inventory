@@ -2581,7 +2581,10 @@ def confirm_grn(request, confirm_returns='', user=''):
         return HttpResponse("Invoice/DC Date is Mandatory")
     invoice_num = request.POST.get('invoice_number', '')
     if invoice_num:
-        inv_status = po_invoice_number_check(user, invoice_num)
+        supplier_id = ''
+        if request.POST.get('supplier_id', ''):
+            supplier_id = request.POST['supplier_id']
+        inv_status = po_invoice_number_check(user, invoice_num, supplier_id)
         if inv_status:
             return HttpResponse(inv_status)
     challan_date = request.POST.get('dc_date', '')
@@ -5624,7 +5627,10 @@ def confirm_receive_qc(request, user=''):
         bill_date = datetime.datetime.strptime(str(request.POST.get('invoice_date', '')), "%m/%d/%Y").strftime('%d-%m-%Y')
     invoice_num = request.POST.get('invoice_number', '')
     if invoice_num:
-        inv_status = po_invoice_number_check(user, invoice_num)
+        supplier_id = ''
+        if request.POST.get('supplier_id', ''):
+            supplier_id = request.POST['supplier_id']
+        inv_status = po_invoice_number_check(user, invoice_num, supplier_id)
         if inv_status:
             return HttpResponse(inv_status)
     log.info('Request params for ' + user.username + ' is ' + str(myDict))
@@ -6583,15 +6589,21 @@ def move_to_invoice(request, user=''):
     seller_summary = SellerPOSummary.objects.none()
     req_data = request.GET.get('data', '')
     invoice_number = request.GET.get('inv_number', '')
-    if invoice_number:
-        inv_status = po_invoice_number_check(user, invoice_number)
-        if inv_status:
-            return HttpResponse(json.dumps({'message': inv_status}))
     invoice_date = request.GET.get('inv_date', '')
     invoice_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y") if invoice_date else None
     if req_data:
         req_data = eval(req_data)
         req_data = [req_data] if isinstance(req_data,dict) else req_data
+        if invoice_number:
+            supplier_id = ''
+            if req_data and req_data[0].get('purchase_order__order_id', ''):
+                purchase_order_obj = PurchaseOrder.objects.filter(open_po__sku__user=user.id,
+                                                                  order_id=req_data[0]['purchase_order__order_id'])
+                if purchase_order_obj:
+                    supplier_id = purchase_order_obj[0].open_po.supplier_id
+            inv_status = po_invoice_number_check(user, invoice_number, supplier_id)
+            if inv_status:
+                return HttpResponse(json.dumps({'message': inv_status}))
         for item in req_data:
             cancel_flag = item.get('cancel', '')
             if invoice_number:

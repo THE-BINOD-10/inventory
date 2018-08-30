@@ -411,7 +411,7 @@ def get_quantity_data(user_groups, sku_codes_list):
         stock_user_dict = dict(StockDetail.objects.filter(sku__user=user). \
                                exclude(location__zone__zone='DAMAGED_ZONE').values_list('sku__sku_code').distinct(). \
                                annotate(total=Sum('quantity')))
-        purch_dict = PurchaseOrder.objects.exclude(status__in=['location-assigned', 'confirmed-putaway']).values(
+        purch_dict = PurchaseOrder.objects.filter(open_po__sku__user=user).exclude(status__in=['location-assigned', 'confirmed-putaway']).values(
             'open_po__sku__sku_code'). \
             annotate(total_order=Sum('open_po__order_quantity'), total_received=Sum('received_quantity'))
         pick_reserved_dict = dict(PicklistLocation.objects.filter(stock__sku__user=user, status=1, reserved__gt=0). \

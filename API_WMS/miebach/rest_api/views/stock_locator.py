@@ -420,6 +420,8 @@ def get_quantity_data(user_groups, sku_codes_list):
             RMLocation.objects.filter(status=1, material_picklist__jo_material__material_code__user=user). \
             values_list('material_picklist__jo_material__material_code__wms_code').distinct(). \
             annotate(rm_reserved=Sum('reserved')))
+        enq_block_stock = dict(EnquiredSku.objects.filter(sku__user=user).filter(
+            ~Q(enquiry__extend_status='rejected')).values_list('sku_code').annotate(Sum('quantity')))
         purchases = map(lambda d: d['open_po__sku__sku_code'], purch_dict)
         total_order_dict = dict(zip(purchases, map(lambda d: d['total_order'], purch_dict)))
         total_received_dict = dict(zip(purchases, map(lambda d: d['total_received'], purch_dict)))
@@ -437,7 +439,8 @@ def get_quantity_data(user_groups, sku_codes_list):
             quantity = stock_user_dict.get(single_sku, 0)
             pic_reserved = pick_reserved_dict.get(single_sku, 0)
             raw_reserved = raw_reserved_dict.get(single_sku, 0)
-            available = quantity - pic_reserved
+            enq_reserved = enq_block_stock.get(single_sku, 0)
+            available = quantity - pic_reserved - enq_reserved
             if available < 0:
                 available = 0
             ret_list.append({'available': available, 'name': ware, 'transit': trans_quantity, 'reserved': pic_reserved,
@@ -618,6 +621,8 @@ def get_aggregate_data(user_groups, sku_list):
             total_order=Sum('open_po__order_quantity'), total_received=Sum('received_quantity'))
         raw_reserved = RMLocation.objects.filter(status=1, stock__sku__user=user.id). \
             aggregate(Sum('reserved'))['reserved__sum']
+        enq_block_stock = EnquiredSku.objects.filter(sku__user=user.id, sku__sku_code__in=sku_list).filter(
+            ~Q(enquiry__extend_status='rejected')).values_list('sku_code').aggregate(Sum('quantity'))['quantity__sum']
         total_order = sum(map(lambda d: d['total_order'], purch))
         total_received = sum(map(lambda d: d['total_received'], purch))
         trans_quantity = float(total_order) - float(total_received)
@@ -628,6 +633,8 @@ def get_aggregate_data(user_groups, sku_list):
             reserved = 0
         if raw_reserved:
             reserved += raw_reserved
+        if enq_block_stock:
+            reserved += enq_block_stock
         available -= reserved
         if available < 0:
             available = 0

@@ -82,16 +82,17 @@ def update_inventory(company_name):
                                 if expected_time == 'Unknown':
                                     continue
                                 arriving_date = datetime.datetime.strptime(asn_stock['By'], '%d-%b-%Y')
-                                quantity = asn_stock['Qty']
+                                quantity = int(asn_stock['Qty'])
+                                qc_quantity = int(floor(quantity*90/100))
                                 asn_stock_detail = ASNStockDetail.objects.filter(sku_id=sku.id, asn_po_num=po)
                                 if asn_stock_detail:
                                     asn_stock_detail = asn_stock_detail[0]
-                                    asn_stock_detail.quantity = int(floor(quantity*90/100))
+                                    asn_stock_detail.quantity = qc_quantity
                                     asn_stock_detail.arriving_date = arriving_date
                                     asn_stock_detail.save()
                                 else:
                                     ASNStockDetail.objects.create(asn_po_num=po, sku_id=sku.id,
-                                                                  quantity=quantity,
+                                                                  quantity=qc_quantity,
                                                                   arriving_date=arriving_date)
                                     log.info('New ASN Stock Created for User %s and SKU %s' %
                                              (user.username, str(sku.sku_code)))

@@ -32,6 +32,17 @@
     </li>
     <!-- /dashboard -->
 
+    <!-- notifications -->
+    <li>
+      <a ui-sref="app.notifications">
+        <i class="fa fa-bell"></i>
+        <span class="button__badge">2</span>
+        <span>Notifications</span>
+      </a>
+    </li>
+    <!-- /dashboard -->
+
+
     <!-- 
       Masters -->
     <li data-ng-class="{open: $state.includes('app.masters')}" ng-show="show_tab('MASTERS_LABEL')">
@@ -649,3 +660,15 @@
   </ul>
 </nav>
 <!-- /main navigation -->
+<style>
+.button__badge {
+    background-color: #165b95;
+    border-radius: 2px;
+    color: white;
+    padding: 1px 4px;
+    font-size: 15px;
+    position: absolute;
+    top: 20%;
+    right: 90%;
+}
+</style>

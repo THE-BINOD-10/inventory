@@ -2366,7 +2366,7 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
 
 def generate_grn(myDict, request, user, is_confirm_receive=False):
     order_quantity_dict = {}
-    all_data = {}
+    all_data = OrderedDict()
     seller_receipt_id = 0
     po_data = []
     status_msg = ''
@@ -4980,8 +4980,11 @@ def create_purchase_order(request, myDict, i, user=''):
             po_order_id = po_order[0].order_id
         sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i], user=user.id)
         supplier_master = SupplierMaster.objects.filter(id=myDict['supplier_id'][i], user=user.id)
+        price = myDict['price'][i]
+        if not price:
+            price = 0
         new_data = {'supplier_id': supplier_master[0].id, 'sku_id': sku_master[0].id,
-                    'order_quantity': myDict['po_quantity'][i], 'price': myDict['price'][i],
+                    'order_quantity': myDict['po_quantity'][i], 'price': price,
                     'po_name': po_order[0].open_po.po_name,
                     'order_type': po_order[0].open_po.order_type, 'tax_type': po_order[0].open_po.tax_type,
                     'measurement_unit': sku_master[0].measurement_type,

@@ -2283,14 +2283,15 @@ def sku_wise_purchase_data(search_params, user, sub_user):
     order_term = search_params.get('order_term', '')
     order_index = search_params.get('order_index', '')
 
-    order_data = lis[order_index]
-    if order_term == 'desc':
-        order_data = '-%s' % order_data
-    purchase_orders = purchase_orders.order_by(order_data)
     custom_search = False
-    if columns[order_index] in ['Status', 'Rejected Quantity', 'Pre-Tax PO Amount', 'Tax',
-                                'After Tax PO Amount']:
-        custom_search = True
+    if order_index:
+        order_data = lis[order_index]
+        if order_term == 'desc':
+            order_data = '-%s' % order_data
+        purchase_orders = purchase_orders.order_by(order_data)
+        if columns[order_index] in ['Status', 'Rejected Quantity', 'Pre-Tax PO Amount', 'Tax',
+                                    'After Tax PO Amount']:
+            custom_search = True
     if not custom_search:
         if stop_index:
             purchase_orders = purchase_orders[start_index:stop_index]

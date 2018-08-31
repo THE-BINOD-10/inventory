@@ -1277,7 +1277,7 @@ def warehouse_headers(request, user=''):
     if alternative_view == 'true':
         header = ["SKU Class", "Style Name", "Brand", "SKU Category"]
         if not warehouse_name:
-            user_list = []
+            user_list = [user.username]
             admin_user = UserGroups.objects.filter(Q(admin_user__username__iexact=user.username) | Q(user__username__iexact=user.username)). \
                 values_list('admin_user_id', flat=True)
             user_groups = UserGroups.objects.filter(admin_user_id__in=admin_user).values('user__username',

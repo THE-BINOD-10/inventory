@@ -7742,11 +7742,23 @@ def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False):
     return ean_status
 
 
-def po_invoice_number_check(user, invoice_num):
+def po_invoice_number_check(user, invoice_num, supplier_id):
     status = ''
     exist_inv_obj = SellerPOSummary.objects.filter(purchase_order__open_po__sku__user=user.id,
-                                                   invoice_number=invoice_num)
+                                                   invoice_number=invoice_num,
+                                                   purchase_order__open_po__supplier_id=supplier_id)
     if exist_inv_obj.exists():
         status = 'Invoice Number already Mapped to %s' % get_po_reference(exist_inv_obj[0].purchase_order)
     return status
+
+
+def get_sku_ean_list(sku):
+    eans_list = []
+    if sku.ean_number:
+        eans_list.append(str(sku.ean_number))
+    multi_eans = sku.eannumbers_set.filter().annotate(str_eans=Cast('ean_number', CharField())).\
+                    values_list('str_eans', flat=True)
+    if multi_eans:
+        eans_list = list(chain(eans_list, multi_eans))
+    return eans_list
 

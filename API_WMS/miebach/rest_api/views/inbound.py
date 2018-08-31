@@ -3283,6 +3283,12 @@ def get_received_orders(request, user=''):
                                                    open_st__sku_id__in=sku_master_ids). \
             exclude(po__status__in=['', 'confirmed-putaway', 'stock-transfer']).values_list('po_id', flat=True)
         purchase_orders = PurchaseOrder.objects.filter(id__in=st_orders)
+    if not purchase_orders:
+        rw_orders = RWPurchase.objects.filter(purchase_order__order_id=supplier_id, rwo__vendor__user=user.id,
+                                              rwo__job_order__product_code_id__in=sku_master_ids).\
+                                        exclude(purchase_order__status__in=['', 'confirmed-putaway']).\
+            values_list('purchase_order_id', flat=True)
+        purchase_orders = PurchaseOrder.objects.filter(id__in=rw_orders)
     for order in purchase_orders:
         order_id = order.id
         order_data = get_purchase_order_data(order)
@@ -3684,9 +3690,15 @@ def quality_check_data(request, user=''):
                                                  po_location__location__zone__user=user.id)
         for qc in qc_results:
             purchase_orders.append(qc.purchase_order)
+    if not purchase_orders:
+        rw_orders = RWPurchase.objects.filter(purchase_order__order_id=order_id, rwo__vendor__user=user.id,
+                                              rwo__job_order__product_code_id__in=sku_master_ids). \
+            values_list('purchase_order_id', flat=True)
+        purchase_orders = PurchaseOrder.objects.filter(id__in=rw_orders)
     for order in purchase_orders:
         quality_check = QualityCheck.objects.filter(Q(purchase_order__open_po__sku_id__in=sku_master_ids) |
-                                                    Q(purchase_order_id__in=stock_results),
+                                                    Q(purchase_order_id__in=stock_results) |
+                                                    Q(purchase_order_id__in=rw_orders),
                                                     purchase_order_id=order.id, status='qc_pending',
                                                     po_location__location__zone__user=user.id)
         for qc_data in quality_check:

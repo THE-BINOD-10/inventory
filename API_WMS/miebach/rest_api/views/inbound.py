@@ -6008,8 +6008,13 @@ def get_segregation_pos(start_index, stop_index, temp_data, search_term, order_t
             Q(rwpurchase__rwo__vendor__id__icontains=search_term) | Q(rwpurchase__rwo__vendor__name__icontains=search_term))
     elif order_term:
         orders = purchase_orders
+    primary_segregations = PrimarySegregation.objects.filter(status=1,
+                                 purchase_order_id__in=list(orders.values_list('id', flat=True))). \
+                                 annotate(proc_sum=F('sellable') + F('non_sellable')).\
+                                 filter(quantity__gt=F('proc_sum')).values_list('purchase_order_id', flat=True)
+    orders = orders.filter(id__in=primary_segregations)
     order_ids = orders.values_list('order_id', flat=True).distinct()
-    temp_data['recordsTotal'] = orders.count()
+    temp_data['recordsTotal'] = order_ids.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for order_id in order_ids:
         order = orders.filter(order_id=order_id)[0]

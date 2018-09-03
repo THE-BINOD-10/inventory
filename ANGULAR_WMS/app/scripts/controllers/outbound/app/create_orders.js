@@ -1216,6 +1216,11 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
                            'Travel Gear ': 'travel-gear.jpg',
                            'Writing Instruments ': 'writing.jpg',
                            'TMT Steel': 'TMT_category.jpg',
+                           'Chair': 'Chair.jpg',
+                           'Door': 'Door.jpg',
+                           'Light': 'Lamp.jpg',
+                           'Table': 'Table.jpg',
+                           'Window': 'Window.jpg',
 
                            //swiss military
 

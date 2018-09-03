@@ -3903,8 +3903,8 @@ def insert_order_data(request, user=''):
                                                           order_data['quantity'], corporate_po_number, client_name,
                                                           order_data['unit_price'], el_price, del_date)
                         create_ordersummary_data(order_summary_dict, order_obj, ship_to, courier_name)
-                    wh_name = User.Objects.get(id=user.id).first_name
-                    cont_vals = (order_data['customer_name'], order_data['original_order_id'], wh_name)
+                    wh_name = User.objects.get(id=user.id).first_name
+                    cont_vals = (order_data['customer_name'], order_data['order_id'], wh_name)
                     contents = {"en": "%s placed an order %s to %s warehouse" % cont_vals}
                     users_list = [user.id, admin_user.id]
                     send_push_notification(contents, users_list)
@@ -3938,7 +3938,7 @@ def insert_order_data(request, user=''):
                                 created_skus.append(order_data['sku_id'])
                             items.append(
                                 [sku_master['sku_desc'], order_data['quantity'], order_data.get('invoice_amount', 0)])
-                            wh_name = User.Objects.get(id=usr).first_name
+                            wh_name = User.objects.get(id=usr).first_name
                             cont_vals = (order_data['customer_name'], order_data['original_order_id'], wh_name)
                             contents = {"en": "%s placed an order %s to %s warehouse" % cont_vals}
                             users_list = [user.id, admin_user.id]
@@ -3966,7 +3966,7 @@ def insert_order_data(request, user=''):
                         else:
                             created_skus.append(order_data['sku_id'])
                         items.append([sku_master['sku_desc'], order_data['quantity'], order_data.get('invoice_amount', 0)])
-                        wh_name = User.Objects.get(id=usr).first_name
+                        wh_name = User.objects.get(id=usr).first_name
                         cont_vals = (order_data['customer_name'], order_data['original_order_id'], wh_name)
                         contents = {"en": "%s placed an order %s to %s warehouse" % cont_vals}
                         users_list = [usr, admin_user.id]
@@ -10259,7 +10259,7 @@ def insert_enquiry_data(request, user=''):
                 enq_sku_obj.levelbase_price = cart_item.levelbase_price
                 enq_sku_obj.warehouse_level = cart_item.warehouse_level
                 enq_sku_obj.save()
-                wh_name = User.Objects.get(id=wh_code.id).first_name
+                wh_name = User.objects.get(id=wh_code.id).first_name
                 cont_vals = (customer_details['customer_name'], enquiry_id, wh_name)
                 contents = {"en": "%s placed an enquiry order %s to %s warehouse" % cont_vals}
                 users_list = [user.id, wh_code.id, admin_user.id]

@@ -23,7 +23,7 @@ from itertools import groupby
 import datetime
 import shutil
 from utils import *
-import os
+import os, math
 
 log = init_logger('logs/outbound.log')
 
@@ -4016,8 +4016,8 @@ def insert_order_data(request, user=''):
                                                           order_data['quantity'], corporate_po_number, client_name,
                                                           order_data['unit_price'], el_price, del_date)
                         create_ordersummary_data(order_summary_dict, order_obj, ship_to, courier_name)
-                    wh_name = User.Objects.get(id=user.id).first_name
-                    cont_vals = (order_data['customer_name'], order_data['original_order_id'], wh_name)
+                    wh_name = User.objects.get(id=user.id).first_name
+                    cont_vals = (order_data['customer_name'], order_data['order_id'], wh_name)
                     contents = {"en": "%s placed an order %s to %s warehouse" % cont_vals}
                     users_list = [user.id, admin_user.id]
                     send_push_notification(contents, users_list)
@@ -4051,7 +4051,7 @@ def insert_order_data(request, user=''):
                                 created_skus.append(order_data['sku_id'])
                             items.append(
                                 [sku_master['sku_desc'], order_data['quantity'], order_data.get('invoice_amount', 0)])
-                            wh_name = User.Objects.get(id=usr).first_name
+                            wh_name = User.objects.get(id=usr).first_name
                             cont_vals = (order_data['customer_name'], order_data['original_order_id'], wh_name)
                             contents = {"en": "%s placed an order %s to %s warehouse" % cont_vals}
                             users_list = [user.id, admin_user.id]
@@ -4079,7 +4079,7 @@ def insert_order_data(request, user=''):
                         else:
                             created_skus.append(order_data['sku_id'])
                         items.append([sku_master['sku_desc'], order_data['quantity'], order_data.get('invoice_amount', 0)])
-                        wh_name = User.Objects.get(id=usr).first_name
+                        wh_name = User.objects.get(id=usr).first_name
                         cont_vals = (order_data['customer_name'], order_data['original_order_id'], wh_name)
                         contents = {"en": "%s placed an order %s to %s warehouse" % cont_vals}
                         users_list = [usr, admin_user.id]
@@ -5513,7 +5513,7 @@ def get_sku_variants(request, user=''):
                                         po = asn_stock['PO']
                                         arriving_date = datetime.datetime.strptime(asn_stock['By'], '%d-%b-%Y')
                                         quantity = int(asn_stock['Qty'])
-                                        qc_quantity = int(floor(quantity*90/100))
+                                        qc_quantity = int(math.floor(quantity*90/100))
                                         asn_stock_detail = ASNStockDetail.objects.filter(sku_id=sku[0].id, asn_po_num=po)
                                         if asn_stock_detail:
                                             asn_stock_detail = asn_stock_detail[0]
@@ -10376,7 +10376,7 @@ def insert_enquiry_data(request, user=''):
                 enq_sku_obj.levelbase_price = cart_item.levelbase_price
                 enq_sku_obj.warehouse_level = cart_item.warehouse_level
                 enq_sku_obj.save()
-                wh_name = User.Objects.get(id=wh_code.id).first_name
+                wh_name = User.objects.get(id=wh_code.id).first_name
                 cont_vals = (customer_details['customer_name'], enquiry_id, wh_name)
                 contents = {"en": "%s placed an enquiry order %s to %s warehouse" % cont_vals}
                 users_list = [user.id, wh_code.id, admin_user.id]

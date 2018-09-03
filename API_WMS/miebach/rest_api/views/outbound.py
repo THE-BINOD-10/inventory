@@ -2746,6 +2746,8 @@ def print_picklist_excel(request, user=''):
         headers.pop('Order ID')
     data, sku_total_quantities, courier_name = get_picklist_data(data_id, user.id)
     all_data = []
+    if data and not data[0].get('is_combo_picklist', ''):
+        headers.pop('Combo SKU')
     for dat in data:
         val = itemgetter(*headers.values())(dat)
         temp = OrderedDict(zip(headers.keys(), val))
@@ -2762,6 +2764,9 @@ def print_picklist(request, user=''):
     display_order_id = request.GET.get('display_order_id', 'false')
     data, sku_total_quantities, courier_name = get_picklist_data(data_id, user.id)
     date_data = {}
+    combo_picklist = False
+    if data and data[0].get('is_combo_picklist', ''):
+        combo_picklist = True
     picklist_orders = Picklist.objects.filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id),
                                               picklist_number=data_id)
     if picklist_orders:
@@ -2826,6 +2831,8 @@ def print_picklist(request, user=''):
         fmcg_industry_type = True
     else:
         headers = copy.deepcopy(PRINT_OUTBOUND_PICKLIST_HEADERS)
+    if combo_picklist:
+        headers = ('Combo SKU',) + headers
     if display_order_id == 'true':
         if len(original_order_data):
             order_ids = ','.join(original_order_data)
@@ -2837,7 +2844,9 @@ def print_picklist(request, user=''):
                    'picklist_id': data_id, 'total_quantity': total,
                    'total_price': total_price, 'picklist_id': data_id,'fmcg_industry_type':fmcg_industry_type,
                    'customer_name': customer_name, 'customer_address': customer_address, 'order_ids': order_ids,
-                   'marketplace': marketplace, 'date_data': date_data, 'remarks': remarks_data, 'user': user, 'display_order_id': display_order_id, 'courier_name': courier_name })
+                   'marketplace': marketplace, 'date_data': date_data, 'remarks': remarks_data, 'user': user,
+                   'display_order_id': display_order_id, 'courier_name': courier_name,
+                   'combo_picklist': combo_picklist})
 
 
 @csrf_exempt

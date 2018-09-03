@@ -2908,3 +2908,15 @@ class RatingSKUMapping(models.Model):
     class Meta:
         db_table = 'RATINGS_SKU_MAPPING'
         unique_together = ('rating', 'sku')
+
+
+class PushNotifications(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User, blank=True, null=True)
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'PUSH_NOTIFICATIONS'

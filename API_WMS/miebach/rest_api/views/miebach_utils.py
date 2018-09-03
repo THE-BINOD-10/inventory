@@ -3777,6 +3777,10 @@ def get_dist_sales_report_data(search_params, user, sub_user):
     lis = ['id', 'user', 'original_order_id', 'creation_date', 'sku__sku_category', 'sku__sku_code', 'quantity', 'status']
     if user.userprofile.warehouse_type != 'DIST':
         distributors = get_same_level_warehouses(2, user)
+        if sub_user.userprofile.zone:
+            zone_id = sub_user.userprofile.zone
+            distributors = UserProfile.objects.filter(user__in=distributors,
+                                                      zone__icontains=zone_id).values_list('user_id', flat=True)
     else:
         distributors = [user.id]
     zone_code = search_params.get('zone_code', '')
@@ -3979,6 +3983,10 @@ def get_reseller_sales_report_data(search_params, user, sub_user):
     # distributors = get_same_level_warehouses(2, user)
     if user.userprofile.warehouse_type != 'DIST':
         distributors = get_same_level_warehouses(2, user)
+        if sub_user.userprofile.zone:
+            zone_id = sub_user.userprofile.zone
+            distributors = UserProfile.objects.filter(user__in=distributors,
+                                                      zone__icontains=zone_id).values_list('user_id', flat=True)
     else:
         distributors = [user.id]
     zone_code = search_params.get('zone_code', '')
@@ -4099,10 +4107,10 @@ def get_reseller_sales_report_data(search_params, user, sub_user):
         order_date = data['creation_date'].strftime("%d-%m-%Y")
         reseller_code = cust_id_names_map[data['customer_id']]
         corp_name = data['client_name']
-        cgst_tax = data['orderdetail__customerordersummary__cgst_tax']
-        sgst_tax = data['orderdetail__customerordersummary__sgst_tax']
-        igst_tax = data['orderdetail__customerordersummary__igst_tax']
-        utgst_tax = data['orderdetail__customerordersummary__utgst_tax']
+        cgst_tax = data['orderdetail__customerordersummary__cgst_tax'] or 0
+        sgst_tax = data['orderdetail__customerordersummary__sgst_tax'] or 0
+        igst_tax = data['orderdetail__customerordersummary__igst_tax'] or 0
+        utgst_tax = data['orderdetail__customerordersummary__utgst_tax'] or 0
         gst_rate = (cgst_tax + sgst_tax + igst_tax + utgst_tax)
         gross_amt = round(net_amt + (net_amt * gst_rate / 100), 2)
         gst_value = round(gross_amt - net_amt, 2)
@@ -4161,6 +4169,10 @@ def get_zone_target_summary_report_data(search_params, user, sub_user):
     search_parameters = {}
     lis = ['id', 'user']
     distributors = get_same_level_warehouses(2, user)
+    if sub_user.userprofile.zone:
+        zone_id = sub_user.userprofile.zone
+        distributors = UserProfile.objects.filter(user__in=distributors,
+                                                  zone__icontains=zone_id).values_list('user_id', flat=True)
     zone_code = search_params.get('zone_code', '')
     if zone_code:
         distributors = UserProfile.objects.filter(user__in=distributors, zone=zone_code).values_list('user_id',
@@ -4295,6 +4307,10 @@ def get_zone_target_detailed_report_data(search_params, user, sub_user):
     date_filters = {}
     lis = ['id', 'user']
     distributors = get_same_level_warehouses(2, user)
+    if sub_user.userprofile.zone:
+        zone_id = sub_user.userprofile.zone
+        distributors = UserProfile.objects.filter(user__in=distributors,
+                                                  zone__icontains=zone_id).values_list('user_id', flat=True)
     zone_code = search_params.get('zone_code', '')
     if zone_code:
         distributors = UserProfile.objects.filter(user__in=distributors, zone=zone_code).values_list('user_id',
@@ -4471,6 +4487,10 @@ def get_dist_target_summary_report_data(search_params, user, sub_user):
     # distributors = get_same_level_warehouses(2, user)
     if user.userprofile.warehouse_type != 'DIST':
         distributors = get_same_level_warehouses(2, user)
+        if sub_user.userprofile.zone:
+            zone_id = sub_user.userprofile.zone
+            distributors = UserProfile.objects.filter(user__in=distributors,
+                                                      zone__icontains=zone_id).values_list('user_id', flat=True)
     else:
         distributors = [user.id]
     zone_code = search_params.get('zone_code', '')
@@ -4605,6 +4625,10 @@ def get_dist_target_detailed_report_data(search_params, user, sub_user):
     lis = ['id', 'user']
     if user.userprofile.warehouse_type != 'DIST':
         distributors = get_same_level_warehouses(2, user)
+        if sub_user.userprofile.zone:
+            zone_id = sub_user.userprofile.zone
+            distributors = UserProfile.objects.filter(user__in=distributors,
+                                                      zone__icontains=zone_id).values_list('user_id', flat=True)
     else:
         distributors = [user.id]
     zone_code = search_params.get('zone_code', '')
@@ -4796,6 +4820,10 @@ def get_reseller_target_summary_report_data(search_params, user, sub_user):
     lis = ['id', 'user']
     if user.userprofile.warehouse_type != 'DIST':
         distributors = get_same_level_warehouses(2, user)
+        if sub_user.userprofile.zone:
+            zone_id = sub_user.userprofile.zone
+            distributors = UserProfile.objects.filter(user__in=distributors,
+                                                      zone__icontains=zone_id).values_list('user_id', flat=True)
     else:
         distributors = [user.id]
     zone_code = search_params.get('zone_code', '')
@@ -4902,6 +4930,10 @@ def get_reseller_target_detailed_report_data(search_params, user, sub_user):
     lis = ['id', 'user']
     if user.userprofile.warehouse_type != 'DIST':
         distributors = get_same_level_warehouses(2, user)
+        if sub_user.userprofile.zone:
+            zone_id = sub_user.userprofile.zone
+            distributors = UserProfile.objects.filter(user__in=distributors,
+                                                      zone__icontains=zone_id).values_list('user_id', flat=True)
     else:
         distributors = [user.id]
     search_parameters['quantity__gt'] = 0
@@ -5004,6 +5036,10 @@ def get_corporate_target_report_data(search_params, user, sub_user):
     lis = ['id', 'user']
     if user.userprofile.warehouse_type != 'DIST':
         distributors = get_same_level_warehouses(2, user)
+        if sub_user.userprofile.zone:
+            zone_id = sub_user.userprofile.zone
+            distributors = UserProfile.objects.filter(user__in=distributors,
+                                                      zone__icontains=zone_id).values_list('user_id', flat=True)
     else:
         distributors = [user.id]
     search_parameters['quantity__gt'] = 0
@@ -5069,6 +5105,10 @@ def get_corporate_reseller_mapping_report_data(search_params, user, sub_user):
     lis = ['id', 'user']
     if user.userprofile.warehouse_type != 'DIST':
         distributors = get_same_level_warehouses(2, user)
+        if sub_user.userprofile.zone:
+            zone_id = sub_user.userprofile.zone
+            distributors = UserProfile.objects.filter(user__in=distributors,
+                                                      zone__icontains=zone_id).values_list('user_id', flat=True)
     else:
         distributors = [user.id]
     temp_data = copy.deepcopy(AJAX_DATA)
@@ -5125,6 +5165,10 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
     lis = ['id', 'user']
     if user.userprofile.warehouse_type != 'DIST':
         distributors = get_same_level_warehouses(2, user)
+        if sub_user.userprofile.zone:
+            zone_id = sub_user.userprofile.zone
+            distributors = UserProfile.objects.filter(user__in=distributors,
+                                                      zone__icontains=zone_id).values_list('user_id', flat=True)
     else:
         distributors = [user.id]
     temp_data = copy.deepcopy(AJAX_DATA)

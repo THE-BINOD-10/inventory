@@ -32,6 +32,17 @@
     </li>
     <!-- /dashboard -->
 
+    <!-- notifications -->
+    <li ui-sref-active="">
+      <a ui-sref="app.notifications">
+        <i class="fa fa-bell"></i>
+        <span class="button__badge" ng-if="user.notification_count != 0">{{user.notification_count}}</span>
+        <span>Notifications</span>
+      </a>
+    </li>
+    <!-- /dashboard -->
+
+
     <!-- 
       Masters -->
     <li data-ng-class="{open: $state.includes('app.masters')}" ng-show="show_tab('MASTERS_LABEL')">
@@ -519,57 +530,57 @@
             <span>RTV</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || permissions.user_type == 'distributor'">
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || permissions.user_type == 'distributor' || permissions.user_type == 'admin_sub_user'">
           <a ui-sref="app.reports.DistributorWiseSalesReport">
             <span>Distributor Sales</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || permissions.user_type == 'distributor'">
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || permissions.user_type == 'distributor' || permissions.user_type == 'admin_sub_user'">
           <a ui-sref="app.reports.ResellerWiseSalesReport">
             <span>Reseller Sales</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin'">
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || permissions.user_type == 'admin_sub_user'">
           <a ui-sref="app.reports.ZoneTargetSummaryReport">
             <span>Zone Target Summary</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin'">
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || permissions.user_type == 'admin_sub_user'">
           <a ui-sref="app.reports.ZoneTargetDetailedReport">
             <span>Zone Target Detailed</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || permissions.user_type == 'distributor'">
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || permissions.user_type == 'distributor' || permissions.user_type == 'admin_sub_user'">
           <a ui-sref="app.reports.DistTargetSummaryReport">
             <span>DBR Target Summary</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || permissions.user_type == 'distributor'">
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || permissions.user_type == 'distributor' || permissions.user_type == 'admin_sub_user'">
           <a ui-sref="app.reports.DistTargetDetailedReport">
             <span>DBR Target Detailed</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || permissions.user_type == 'distributor'">
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || permissions.user_type == 'distributor' || permissions.user_type == 'admin_sub_user'">
           <a ui-sref="app.reports.ResellerTargetSummaryReport">
             <span>Reseller Target Summary</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || permissions.user_type == 'distributor'">
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || permissions.user_type == 'distributor' || permissions.user_type == 'admin_sub_user'">
           <a ui-sref="app.reports.ResellerTargetDetailedReport">
             <span>Reseller Target Detailed</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || permissions.user_type == 'distributor'">
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || permissions.user_type == 'distributor' || permissions.user_type == 'admin_sub_user'">
           <a ui-sref="app.reports.CorporateTargetReport">
             <span>Corporate Target</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || permissions.user_type == 'distributor'">
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || permissions.user_type == 'distributor' || permissions.user_type == 'admin_sub_user'">
           <a ui-sref="app.reports.CorpResellerMappingReport">
             <span>Corporate Reseller Mapping Report</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || permissions.user_type == 'distributor'">
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' || permissions.user_type == 'distributor' || permissions.user_type == 'admin_sub_user'">
           <a ui-sref="app.reports.EnquiryStatusReport">
             <span>Enquiry Status Report</span>
           </a>
@@ -649,3 +660,15 @@
   </ul>
 </nav>
 <!-- /main navigation -->
+<style>
+.button__badge {
+    background-color: #165b95;
+    border-radius: 2px;
+    color: white;
+    padding: 1px 4px;
+    font-size: 15px;
+    position: absolute;
+    top: 20%;
+    right: 90%;
+}
+</style>

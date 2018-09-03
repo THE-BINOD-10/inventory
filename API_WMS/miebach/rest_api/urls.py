@@ -331,6 +331,8 @@ urlpatterns = [
     url(r'^get_ratings_details/$', get_ratings_details),
     url(r'^get_ratings_data_popup/$', get_ratings_data_popup),
     url(r'^save_cutomer_ratings/$', save_cutomer_ratings),
+    url(r'^list_notifications/$', list_notifications), #PUSH NOTIFICATIONS
+    url(r'^make_notifications_read/$', make_notifications_read),
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),
@@ -411,6 +413,7 @@ urlpatterns = [
     url(r'^print_rtv_report/$', print_rtv_report),
     url(r'^print_debit_note/$', print_debit_note),
     url(r'^get_sku_categories_list/$', get_sku_categories_list),
+    url(r'^get_sku_wise_rtv_filter/$', get_sku_wise_rtv_filter),
 ]
 
 # urlpatterns += patterns('rest_api.views',

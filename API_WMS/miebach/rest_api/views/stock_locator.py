@@ -411,7 +411,7 @@ def get_quantity_data(user_groups, sku_codes_list):
         stock_user_dict = dict(StockDetail.objects.filter(sku__user=user). \
                                exclude(location__zone__zone='DAMAGED_ZONE').values_list('sku__sku_code').distinct(). \
                                annotate(total=Sum('quantity')))
-        purch_dict = PurchaseOrder.objects.exclude(status__in=['location-assigned', 'confirmed-putaway']).values(
+        purch_dict = PurchaseOrder.objects.filter(open_po__sku__user=user).exclude(status__in=['location-assigned', 'confirmed-putaway']).values(
             'open_po__sku__sku_code'). \
             annotate(total_order=Sum('open_po__order_quantity'), total_received=Sum('received_quantity'))
         pick_reserved_dict = dict(PicklistLocation.objects.filter(stock__sku__user=user, status=1, reserved__gt=0). \
@@ -420,6 +420,8 @@ def get_quantity_data(user_groups, sku_codes_list):
             RMLocation.objects.filter(status=1, material_picklist__jo_material__material_code__user=user). \
             values_list('material_picklist__jo_material__material_code__wms_code').distinct(). \
             annotate(rm_reserved=Sum('reserved')))
+        enq_block_stock = dict(EnquiredSku.objects.filter(sku__user=user).filter(
+            ~Q(enquiry__extend_status='rejected')).values_list('sku_code').annotate(Sum('quantity')))
         purchases = map(lambda d: d['open_po__sku__sku_code'], purch_dict)
         total_order_dict = dict(zip(purchases, map(lambda d: d['total_order'], purch_dict)))
         total_received_dict = dict(zip(purchases, map(lambda d: d['total_received'], purch_dict)))
@@ -437,7 +439,8 @@ def get_quantity_data(user_groups, sku_codes_list):
             quantity = stock_user_dict.get(single_sku, 0)
             pic_reserved = pick_reserved_dict.get(single_sku, 0)
             raw_reserved = raw_reserved_dict.get(single_sku, 0)
-            available = quantity - pic_reserved
+            enq_reserved = enq_block_stock.get(single_sku, 0)
+            available = quantity - pic_reserved - enq_reserved
             if available < 0:
                 available = 0
             ret_list.append({'available': available, 'name': ware, 'transit': trans_quantity, 'reserved': pic_reserved,
@@ -618,6 +621,8 @@ def get_aggregate_data(user_groups, sku_list):
             total_order=Sum('open_po__order_quantity'), total_received=Sum('received_quantity'))
         raw_reserved = RMLocation.objects.filter(status=1, stock__sku__user=user.id). \
             aggregate(Sum('reserved'))['reserved__sum']
+        enq_block_stock = EnquiredSku.objects.filter(sku__user=user.id, sku__sku_code__in=sku_list).filter(
+            ~Q(enquiry__extend_status='rejected')).values_list('sku_code').aggregate(Sum('quantity'))['quantity__sum']
         total_order = sum(map(lambda d: d['total_order'], purch))
         total_received = sum(map(lambda d: d['total_received'], purch))
         trans_quantity = float(total_order) - float(total_received)
@@ -628,6 +633,8 @@ def get_aggregate_data(user_groups, sku_list):
             reserved = 0
         if raw_reserved:
             reserved += raw_reserved
+        if enq_block_stock:
+            reserved += enq_block_stock
         available -= reserved
         if available < 0:
             available = 0
@@ -1277,7 +1284,7 @@ def warehouse_headers(request, user=''):
     if alternative_view == 'true':
         header = ["SKU Class", "Style Name", "Brand", "SKU Category"]
         if not warehouse_name:
-            user_list = []
+            user_list = [user.username]
             admin_user = UserGroups.objects.filter(Q(admin_user__username__iexact=user.username) | Q(user__username__iexact=user.username)). \
                 values_list('admin_user_id', flat=True)
             user_groups = UserGroups.objects.filter(admin_user_id__in=admin_user).values('user__username',

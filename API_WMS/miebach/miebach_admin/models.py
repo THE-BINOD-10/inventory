@@ -575,7 +575,8 @@ class Picklist(models.Model):
     class Meta:
         db_table = 'PICKLIST'
         index_together = (('picklist_number', 'order', 'stock'), ('order', 'order_type', 'picked_quantity'),
-                          ('picklist_number',))
+                          ('picklist_number',), ('picklist_number', 'order'), ('picklist_number', 'stock'),
+                          ('picklist_number', 'reserved_quantity'))
 
     def __unicode__(self):
         return str(self.picklist_number)
@@ -593,7 +594,9 @@ class PicklistLocation(models.Model):
 
     class Meta:
         db_table = 'PICKLIST_LOCATION'
-        index_together = ('picklist', 'stock', 'reserved')
+        index_together = (('picklist', 'stock', 'reserved'), ('picklist', 'status'),
+                          ('picklist', 'reserved'), ('picklist', 'stock', 'status'),
+                          ('picklist', 'reserved', 'stock', 'status'))
 
 
 class OrderLabels(models.Model):
@@ -2038,7 +2041,9 @@ class SellerOrderSummary(models.Model):
     class Meta:
         db_table = 'SELLER_ORDER_SUMMARY'
         index_together = (('pick_number', 'seller_order'), ('pick_number', 'order'), ('pick_number', 'seller_order', 'picklist'),
-                            ('pick_number', 'order', 'picklist'), ('order', 'order_status_flag'), ('seller_order', 'order_status_flag'))
+                            ('pick_number', 'order', 'picklist'), ('order', 'order_status_flag'),
+                          ('seller_order', 'order_status_flag'), ('picklist', 'seller_order'),
+                          ('picklist', 'order'))
 
     def __unicode__(self):
         return str(self.id)
@@ -2903,3 +2908,15 @@ class RatingSKUMapping(models.Model):
     class Meta:
         db_table = 'RATINGS_SKU_MAPPING'
         unique_together = ('rating', 'sku')
+
+
+class PushNotifications(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User, blank=True, null=True)
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'PUSH_NOTIFICATIONS'

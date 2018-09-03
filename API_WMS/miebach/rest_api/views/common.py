@@ -174,6 +174,10 @@ def add_user_permissions(request, response_data, user=''):
     # warehouses = UserGroups.objects.filter(Q(user__username=user.username) | Q(admin_user__username=user.username))
     # if warehouses:
     #    multi_warehouse = 'true'
+    #notification count
+    notification_count = PushNotifications.objects\
+                                   .filter(user_id=request.user.id, is_read=False)\
+                                   .count()
     if user_profile.multi_warehouse:
         multi_warehouse = 'true'
     parent_data = {}
@@ -182,6 +186,7 @@ def add_user_permissions(request, response_data, user=''):
     parent_data['logo'] = COMPANY_LOGO_PATHS.get(user.username, '')
     response_data['data']['userName'] = request.user.username
     response_data['data']['userId'] = request.user.id
+    response_data['data']['notification_count'] = notification_count
     response_data['data']['parent'] = parent_data
     response_data['data']['roles'] = get_user_permissions(request, user)
     response_data['data']['roles']['tax_type'] = tax_type
@@ -7696,7 +7701,13 @@ def save_webpush_id(request):
     return HttpResponse({"message": "success"})
 
 
-def send_push_notification(contents, player_ids):
+def send_push_notification(contents, users_list):
+    player_ids = []
+    wh_player_qs = OneSignalDeviceIds.objects.filter(user__in=users_list).distinct()
+    for wh_player in wh_player_qs:
+        wh_player_id = wh_player.device_id
+        player_ids.append(wh_player_id)
+
     auth_key = settings.ONESIGNAL_AUTH_KEY
     app_id = settings.ONESIGNAL_APP_ID
     os_notification_url = "https://onesignal.com/api/v1/notifications"
@@ -7708,6 +7719,8 @@ def send_push_notification(contents, player_ids):
                "contents": contents}
     req = requests.post(os_notification_url, headers=header, data=json.dumps(payload))
     log.info("Notification Status %s for contents: %s and player_ids: %s " %(req.status_code, contents, player_ids))
+    for user in users_list:
+        PushNotifications.objects.create(user_id=user, message=contents['en'])
     return req.status_code, req.reason
 
 
@@ -7742,11 +7755,23 @@ def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False):
     return ean_status
 
 
-def po_invoice_number_check(user, invoice_num):
+def po_invoice_number_check(user, invoice_num, supplier_id):
     status = ''
     exist_inv_obj = SellerPOSummary.objects.filter(purchase_order__open_po__sku__user=user.id,
-                                                   invoice_number=invoice_num)
+                                                   invoice_number=invoice_num,
+                                                   purchase_order__open_po__supplier_id=supplier_id)
     if exist_inv_obj.exists():
         status = 'Invoice Number already Mapped to %s' % get_po_reference(exist_inv_obj[0].purchase_order)
     return status
+
+
+def get_sku_ean_list(sku):
+    eans_list = []
+    if sku.ean_number:
+        eans_list.append(str(sku.ean_number))
+    multi_eans = sku.eannumbers_set.filter().annotate(str_eans=Cast('ean_number', CharField())).\
+                    values_list('str_eans', flat=True)
+    if multi_eans:
+        eans_list = list(chain(eans_list, multi_eans))
+    return eans_list
 

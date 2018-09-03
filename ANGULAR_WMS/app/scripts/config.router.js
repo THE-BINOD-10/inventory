@@ -188,6 +188,44 @@ var app = angular.module('urbanApp')
         }
       })
 
+      //notifications router
+      .state('app.notifications', {
+        url: '/notifications',
+        templateUrl: 'views/notifications/notifications.html',
+        authRequired: true,
+        resolve: {
+          deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+            return $ocLazyLoad.load([
+              {
+                insertBefore: '#load_styles_before',
+                files: [
+                                'styles/climacons-font.css',
+                                'vendor/rickshaw/rickshaw.min.css'
+                            ]
+                        },
+              {
+                serie: true,
+                files: [
+                                'vendor/d3/d3.min.js',
+                                'vendor/rickshaw/rickshaw.min.js',
+                                'scripts/extentions/plugins/time/jstz.min.js'
+                            ]
+                        },
+              {
+                  name: 'angular-flot',
+                  files: [
+                                'vendor/angular-flot/angular-flot.js'
+                            ]
+                        }]).then(function () {
+              return $ocLazyLoad.load('scripts/controllers/notifications/notifications.js');
+            });
+                    }]
+        },
+        data: {
+          title: 'Notifications',
+        }
+      })
+
 
       // Master Routes
       .state('app.masters', {
@@ -2525,6 +2563,16 @@ var app = angular.module('urbanApp')
               }]
             }
           })
+          .state('user.App.Notifications', {
+            url: '/Notifications',
+            templateUrl: 'views/outbound/app/create_orders/notifications.html',
+            resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/outbound/app/notifications.js');
+              }]
+            }
+          })
+
           .state('user.App.CorporateOrders', {
             url: '/CorporateOrders',
             templateUrl: 'views/outbound/app/create_orders/corporate_orders.html',

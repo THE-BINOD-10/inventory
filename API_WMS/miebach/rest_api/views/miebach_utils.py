@@ -1302,7 +1302,8 @@ PERMISSION_DICT = OrderedDict((
                        ("Receive PO", "add_purchaseorder"),
                        ("Quality Check", "add_qualitycheck"),
                        ("Putaway Confirmation", "add_polocation"), ("Sales Returns", "add_orderreturns"),
-                       ("Returns Putaway", "add_returnslocation"))),
+                       ("Returns Putaway", "add_returnslocation"),
+                       ("RTV", "add_returntovendor"))),
 
     # Production
     ("PRODUCTION_LABEL", (("Raise Job order", "add_jomaterial"), ("RM Picklist", "add_materialpicklist"),

@@ -1853,18 +1853,18 @@ def picklist_confirmation(request, user=''):
                 user_profile = UserProfile.objects.get(user_id=user.id)
                 if not invoice_data['detailed_invoice'] and invoice_data['is_gst_invoice']:
                     invoice_data = build_invoice(invoice_data, user, False)
-                    return HttpResponse(json.dumps({'data': invoice_data, 'message': '',
-                                                    'sku_codes': [], 'status': 1}))
-                    # return HttpResponse(invoice_data)
+                    #return HttpResponse(json.dumps({'data': invoice_data, 'message': '',
+                    #                                'sku_codes': [], 'status': 1}))
+                    return HttpResponse(invoice_data)
                 return HttpResponse(json.dumps({'data': invoice_data, 'message': '', 'status': 'invoice'}))
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info('Picklist Confirmation failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(data), str(e)))
-        return HttpResponse(json.dumps({'message': 'Picklist Confirmation Failed',
-                                        'sku_codes': [], 'status': 0}))
-        # return HttpResponse('Picklist Confirmation Failed')
+        #return HttpResponse(json.dumps({'message': 'Picklist Confirmation Failed',
+        #                                'sku_codes': [], 'status': 0}))
+        return HttpResponse('Picklist Confirmation Failed')
 
     end_time = datetime.datetime.now()
     duration = end_time - st_time

@@ -1004,13 +1004,15 @@ ADD_WAREHOUSE_DICT = {'user_id': '', 'city': '', 'is_active': 1, 'country': '', 
                       'warehouse_level': 0, 'min_order_val': 0, 'level_name': '', 'zone': ''}
 
 PICKLIST_EXCEL = OrderedDict((
-                              ('Order ID', 'original_order_id'), ('WMS Code', 'wms_code'), ('Title', 'title'), ('Category', 'category'),
+                              ('Order ID', 'original_order_id'), ('Combo SKU', 'parent_sku_code'),
+                              ('WMS Code', 'wms_code'), ('Title', 'title'), ('Category', 'category'),
                               ('Zone', 'zone'), ('Location', 'location'), ('Reserved Quantity', 'reserved_quantity'),
                               ('Stock Left', 'stock_left'),('Last Picked Location', 'last_picked_locs')
                             ))
 
 PICKLIST_EXCEL_FMCG = OrderedDict((
-                              ('Order ID', 'original_order_id'), ('WMS Code', 'wms_code'), ('Title', 'title'), ('Category', 'category'),
+                              ('Order ID', 'original_order_id'), ('Combo SKU', 'parent_sku_code'),
+                              ('WMS Code', 'wms_code'), ('Title', 'title'), ('Category', 'category'),
                               ('Zone', 'zone'), ('Location', 'location'), ('Batch No', 'batchno'), ('MRP', 'mrp'), 
                               ('Reserved Quantity', 'reserved_quantity'),
                               ('Stock Left', 'stock_left'),('Last Picked Location', 'last_picked_locs')
@@ -1300,7 +1302,8 @@ PERMISSION_DICT = OrderedDict((
                        ("Receive PO", "add_purchaseorder"),
                        ("Quality Check", "add_qualitycheck"),
                        ("Putaway Confirmation", "add_polocation"), ("Sales Returns", "add_orderreturns"),
-                       ("Returns Putaway", "add_returnslocation"))),
+                       ("Returns Putaway", "add_returnslocation"),
+                       ("RTV", "add_returntovendor"))),
 
     # Production
     ("PRODUCTION_LABEL", (("Raise Job order", "add_jomaterial"), ("RM Picklist", "add_materialpicklist"),

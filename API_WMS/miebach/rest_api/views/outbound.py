@@ -3489,8 +3489,13 @@ def create_central_order(request, user):
 @fn_timer
 def create_order_from_intermediate_order(request, user):
     order_dict = {}
+    created_order_objs = []
     message = 'Success'
     wh_name = request.POST.get('warehouse', '')
+    alt_sku_code = request.POST.get('alt_sku_code', '')
+    sku_master = SKUMaster.objects.filter(user=user.id, sku_code=alt_sku_code)
+    if not sku_master.exists():
+        return HttpResponse('Invalid Alt SKU code')
     wh_usr_obj = User.objects.filter(username=wh_name)
     status = request.POST.get('status', '')
     if status != '0':
@@ -3507,6 +3512,11 @@ def create_order_from_intermediate_order(request, user):
     interm_qs = IntermediateOrders.objects.filter(id=interm_det_id)
     if not interm_qs:
         return HttpResponse('Failed')
+    sel_sku_id = interm_qs[0].sku.id
+    update_alt_sku = False
+    if interm_qs[0].sku.sku_code != alt_sku_code:
+        update_alt_sku = True
+        sel_sku_id = sku_master[0].id
     try:
         interm_obj = interm_qs[0]
         if interm_obj.order_id or interm_obj.order_assigned_wh:
@@ -3515,15 +3525,24 @@ def create_order_from_intermediate_order(request, user):
             if shipment_date and status:
                 interm_obj.shipment_date = shipment_date
                 interm_obj.order.shipment_date = shipment_date
+            if update_alt_sku:
+                interm_obj.alt_sku_id = sel_sku_id
             interm_obj.save()
 
             return HttpResponse('Success, Order Already Created')
         if status != '0':
             order_dict['user'] = wh_id
-            sku_id = get_syncedusers_mapped_sku(wh=wh_id, sku_id=interm_obj.sku.id)
+            sku_id = get_syncedusers_mapped_sku(wh=wh_id, sku_id=sel_sku_id)
+            if not sku_id:
+                return HttpResponse("SKU Not found in Selected Warehouse")
             order_dict['sku_id'] = sku_id
             order_dict['title'] = interm_obj.sku.sku_desc
             order_dict['sku_code'] = interm_obj.sku.sku_code
+            if update_alt_sku:
+                interm_obj.alt_sku_id = sel_sku_id
+                interm_obj.save()
+                order_dict['title'] = interm_obj.alt_sku.sku_desc
+                order_dict['sku_code'] = interm_obj.alt_sku.sku_code
             customer_user = CustomerUserMapping.objects.filter(user_id=interm_obj.customer_user.id)
             if customer_user:
                 order_dict['customer_id'] = customer_user[0].customer.customer_id
@@ -3547,6 +3566,10 @@ def create_order_from_intermediate_order(request, user):
             cust_ord_dict = {'order_id': ord_obj.id, 'sgst_tax': interm_obj.sgst_tax, 'cgst_tax': interm_obj.cgst_tax,
                              'igst_tax': interm_obj.igst_tax}
             CustomerOrderSummary.objects.create(**cust_ord_dict)
+            created_order_objs.append(ord_obj)
+        admin_user = get_admin(user)
+        if admin_user.username in ['one_assist']:
+            create_order_pos(user, created_order_objs)
     except:
         import traceback
         log.debug(traceback.format_exc())
@@ -6645,11 +6668,29 @@ def get_ratings_details(request, user=''):
 @csrf_exempt
 def get_central_orders_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                           filters={}, user_dict={}):
-    lis = ['id', 'interm_order_id', 'sku__sku_code', 'sku__sku_desc', 'quantity']
+    un_sort_dict = {7: 'Status'}
+    lis = ['interm_order_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'shipment_date', 'project_name', 'order_assigned_wh__username', 'id']
     data_dict = {'user': user.id, 'quantity__gt': 0}
     status_map = {'1': 'Accept', '0': 'Reject'}
-    all_orders = IntermediateOrders.objects.filter(**data_dict)
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    interm_orders = IntermediateOrders.objects.filter(**data_dict)
+    if search_term:
+        all_orders = interm_orders.filter(Q(sku__sku_code__icontains=search_term) | Q(sku__sku_desc__icontains=search_term)|
+                                            Q(quantity__icontains=search_term) | Q(shipment_date__regex=search_term)|
+                                            Q(project_name__icontains=search_term) | Q(order_assigned_wh__username__icontains=search_term)|
+                                            Q(interm_order_id__icontains=search_term)).order_by(order_data)
+    else:
+        all_orders = interm_orders.order_by(order_data)
+    temp_data['recordsTotal'] = all_orders.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
     index = 0
+    custom_sort = False
+    if col_num in un_sort_dict.keys():
+        custom_sort = True
+        if stop_index:
+            all_orders = all_orders[start_index:stop_index]
     for dat in all_orders:
         order_id = int(dat.interm_order_id)
         if dat.order_assigned_wh:
@@ -6663,24 +6704,23 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
             status = 'Pending'
         temp_data['aaData'].append(
             OrderedDict((('Order ID', order_id), ('SKU Code', dat.sku.sku_code), ('SKU Desc', dat.sku.sku_desc),
-                         ('Product Quantity', dat.quantity), ('data_id', dat.id),
-                         ('Warehouse', wh_name), ('Status', status),
-                         ('id', index), ('DT_RowClass', 'results'), ('Shipment Date', shipment_date),
-                         ('Project Name', dat.project_name))))
+                         ('Product Quantity', dat.quantity), ('Shipment Date', shipment_date), ('data_id', dat.id),
+                         ('Project Name', dat.project_name), ('Warehouse', wh_name), ('Status', status),
+                         ('id', index), ('DT_RowClass', 'results'))))
         index += 1
 
-    col_val = ['id', 'SKU Code', 'SKU Desc', 'Product Quantity', 'Status', 'Shipment Date']
+    col_headers = ['Order ID', 'SKU Code', 'SKU Desc', 'Product Quantity', 'Shipment Date', 'Project Name', 'Warehouse', 'Status']
 
-    temp_data['aaData'] = apply_search_sort(col_val, temp_data['aaData'], order_term, search_term, col_num)
-    temp_data['recordsTotal'] = len(temp_data['aaData'])
-    temp_data['recordsFiltered'] = temp_data['recordsTotal']
-
-    temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
+    if custom_sort:
+        temp_data['aaData'] = apply_search_sort(col_headers, temp_data['aaData'], order_term, search_term, col_num)[start_index:stop_index]
 
 
-def get_central_order_detail(request):
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_central_order_detail(request, user=''):
     central_order_id = request.GET.get('central_order_id', '')
-    interm_obj = IntermediateOrders.objects.filter(id=central_order_id)
+    interm_obj = IntermediateOrders.objects.filter(id=central_order_id, user=user.id)
     interm_obj = interm_obj[0]
     order_id = interm_obj.order_id
     already_assigned = False
@@ -6701,29 +6741,50 @@ def get_central_order_detail(request):
     warehouses = UserGroups.objects.filter(admin_user_id=interm_obj.user)
     warehouse_names = warehouses.values_list('user__username', flat=True)
     wh_level_stock_map = {}
+    sku_code = interm_obj.sku.sku_code
+    if request.GET.get('alt_sku_code', ''):
+        sku_code= request.GET['alt_sku_code']
+    warehouses.values_list('user_id', flat=True)
+    wh_users = warehouses.values_list('user_id', flat=True)
+    stock_obj_dict = dict(StockDetail.objects.filter(sku__sku_code=sku_code, sku__user__in=wh_users,
+                                           quantity__gt=0).values_list('sku__user').distinct().annotate(in_stock=Sum('quantity')))
+    reserved_obj_dict = dict(PicklistLocation.objects.filter(stock__sku__sku_code=sku_code,stock__sku__user__in=wh_users, status=1).\
+                                            values_list('stock__sku__user').distinct().annotate(in_reserved=Sum('reserved')))
+    raw_reserved_dict = dict(RMLocation.objects.filter(status=1, stock__sku__user__in=wh_users, stock__sku__sku_code=sku_code). \
+                                            values_list('material_picklist__jo_material__material_code__user').distinct(). \
+                                            annotate(rm_reserved=Sum('reserved')))
     for wh in warehouses:
-        stock_obj = StockDetail.objects.filter(sku__sku_code=interm_obj.sku.sku_code, sku__user=wh.user.id,
-                                               quantity__gt=0).values('sku_id').distinct().annotate(
-            in_stock=Sum('quantity'))
-        if stock_obj:
-            stock_qty = stock_obj[0]['in_stock']
-        else:
-            stock_qty = 0
-        reserved_obj = PicklistLocation.objects.filter(stock__sku__sku_code=interm_obj.sku.sku_code,
-                                                       stock__sku__user=wh.user.id, status=1).values(
-            'stock__sku_id').distinct().annotate(in_reserved=Sum('reserved'))
-        if reserved_obj:
-            reserved_qty = reserved_obj[0]['in_reserved']
-        else:
-            reserved_qty = 0
+        #stock_obj = StockDetail.objects.filter(sku__sku_code=sku_code, sku__user=wh.user.id,
+        #                                       quantity__gt=0).values('sku_id').distinct().annotate(
+        #    in_stock=Sum('quantity'))
+        stock_qty = stock_obj_dict.get(wh.user.id, 0)
+        #if stock_obj:
+        #    stock_qty = stock_obj[0]['in_stock']
+        #else:
+        #    stock_qty = 0
+        #reserved_obj = PicklistLocation.objects.filter(stock__sku__sku_code=sku_code,
+        #                                               stock__sku__user=wh.user.id, status=1).values(
+        #    'stock__sku_id').distinct().annotate(in_reserved=Sum('reserved'))
+        #if reserved_obj:
+        #    reserved_qty = reserved_obj[0]['in_reserved']
+        #else:
+        #    reserved_qty = 0
+        reserved_qty = reserved_obj_dict.get(wh.user.id, 0)
+        reserved_qty = reserved_qty + raw_reserved_dict.get(wh.user.id, 0)
         avail_stock = stock_qty - reserved_qty
         wh_uname = wh.user.username
         if wh_uname not in wh_level_stock_map:
             wh_level_stock_map[wh_uname] = avail_stock
         else:
             wh_level_stock_map[wh_uname] += avail_stock
+    alt_sku_code = interm_obj.sku.sku_code
+    alt_sku_desc = interm_obj.sku.sku_desc
+    if interm_obj.alt_sku:
+        alt_sku_code = interm_obj.alt_sku.sku_code
+        alt_sku_desc = interm_obj.alt_sku.sku_desc
     resp = {'warehouses': list(warehouse_names), 'interm_order_id': interm_obj.interm_order_id,
             'sku_code': interm_obj.sku.sku_code, 'sku_desc': interm_obj.sku.sku_desc,
+            'alt_sku_code': alt_sku_code, 'alt_sku_desc': alt_sku_desc,
             'quantity': int(interm_obj.quantity), 'status': interm_obj.status,
             'warehouse': wh_name, 'data_id': interm_obj.id, 'shipment_date': shipment_date,
             'wh_level_stock_map': wh_level_stock_map, 'already_assigned': already_assigned,

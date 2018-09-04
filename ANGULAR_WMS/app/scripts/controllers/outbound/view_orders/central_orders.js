@@ -83,6 +83,8 @@ var vm = this;
                   vm.model_data.order_id = resp_data.interm_order_id;
                   vm.model_data.sku_code = resp_data.sku_code;
                   vm.model_data.sku_desc = resp_data.sku_desc;
+                  vm.model_data.alt_sku_code = resp_data.alt_sku_code;
+                  vm.model_data.alt_sku_desc = resp_data.alt_sku_desc;
                   vm.model_data.warehouses = resp_data.warehouses;
                   vm.model_data.wh_level_stock_map = resp_data.wh_level_stock_map;
                   vm.model_data.already_assigned = resp_data.already_assigned;
@@ -102,6 +104,7 @@ var vm = this;
 
     vm.status_dropdown = {0: 'Reject', 1: 'Accept'};
 
+
     vm.close = close;
     function close() {
       $state.go('app.outbound.ViewOrders');
@@ -116,17 +119,18 @@ var vm = this;
     }
 
     vm.submit = submit;
-    function submit(wh, status, data_id, shipment_date){
+    function submit(wh, status, data_id, shipment_date, alt_sku_code){
       if (status) {
 
-        var elem = {'warehouse': wh, 'status': status, 'interm_det_id': data_id, 'shipment_date': shipment_date};
+        var elem = {'warehouse': wh, 'status': status, 'interm_det_id': data_id, 'shipment_date': shipment_date, 'alt_sku_code': alt_sku_code};
         vm.service.apiCall('create_order_from_intermediate_order/', 'POST', elem, true).then(function(data){
           if(data.message) {
-            if(data.data == 'Success') {
+            if(data.data.indexOf('Success') != -1) {
               vm.service.refresh(vm.dtInstance);
               vm.close();
             } else {
-              vm.service.pop_msg(data.data);
+              Service.showNoty(data.data);
+              //vm.service.pop_msg(data.data);
             }
           }
         });
@@ -135,4 +139,20 @@ var vm = this;
         Service.showNoty('Please select status');
       }
     }
+
+
+    vm.get_sku_details = function(product, item, index) {
+      console.log(item);
+      vm.model_data.alt_sku_code = item.wms_code;
+      vm.model_data.alt_sku_desc = item.sku_desc;
+      vm.service.apiCall('get_central_order_detail/', 'GET', {central_order_id: vm.model_data.data_id, alt_sku_code: vm.model_data.alt_sku_code}).then(function(data){
+        var resp_data = data.data;
+        vm.model_data.warehouses = resp_data.warehouses;
+        vm.model_data.wh_level_stock_map = resp_data.wh_level_stock_map;
+        vm.model_data.warehouse = resp_data.warehouse;
+      });
+    }
+
+
+
 }

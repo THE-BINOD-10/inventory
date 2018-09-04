@@ -318,6 +318,7 @@ class IntermediateOrders(models.Model):
     interm_order_id = models.DecimalField(max_digits=50, decimal_places=0)
     order = models.ForeignKey(OrderDetail, blank=True, null=True)
     sku = models.ForeignKey(SKUMaster)
+    alt_sku = models.ForeignKey(SKUMaster, related_name='alt_sku', blank=True, null=True)
     quantity = models.FloatField(default=1)
     unit_price = models.FloatField(default=0)
     tax = models.FloatField(default=0)

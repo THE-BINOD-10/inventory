@@ -1768,11 +1768,6 @@ def picklist_confirmation(request, user=''):
                     picklist.picked_quantity = float(picklist.picked_quantity) + picking_count1
                     if not seller_pick_number:
                         seller_pick_number = get_seller_pick_id(picklist, user)
-                    if user_profile.user_type == 'marketplace_user' and picklist.order:
-                        create_seller_order_summary(picklist, picking_count1, seller_pick_number, picks_all,
-                                                    seller_stock_objs)
-                    else:
-                        create_order_summary(picklist, picking_count1, seller_pick_number, picks_all)
                     if picklist.reserved_quantity == 0:
 
                         # Auto Shipment check and Mapping the serial Number
@@ -1788,6 +1783,11 @@ def picklist_confirmation(request, user=''):
                         all_pick_locations.filter(picklist_id=picklist.id, status=1).update(status=0)
 
                     picklist.save()
+                    if user_profile.user_type == 'marketplace_user' and picklist.order:
+                        create_seller_order_summary(picklist, picking_count1, seller_pick_number, picks_all,
+                                                    seller_stock_objs)
+                    else:
+                        create_order_summary(picklist, picking_count1, seller_pick_number, picks_all)
                     picked_status = ""
                     if picklist.picked_quantity > 0 and picklist.order:
                         if merge_flag:

@@ -46,7 +46,8 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
         });
         vm.show_extend_date = false;
 
-        Data[key] = vm.order_data.data;
+//        Data[key] = vm.order_data.data;
+        angular.copy(vm.order_data.data, Data[key])
         if(data.data.data.length == 0) {
           vm.show_no_data = true
         }

@@ -10377,9 +10377,9 @@ def insert_enquiry_data(request, user=''):
                 enq_sku_obj.warehouse_level = cart_item.warehouse_level
                 enq_sku_obj.save()
                 wh_name = User.objects.get(id=wh_code).first_name
-                cont_vals = (customer_details['customer_name'], enquiry_id, wh_name)
-                contents = {"en": "%s placed an enquiry order %s to %s warehouse" % cont_vals}
-                users_list = [user.id, wh_code, admin_user.id]
+                cont_vals = (customer_details['customer_name'], enquiry_id, wh_name, cart_item.sku.sku_code)
+                contents = {"en": "%s placed an enquiry order %s to %s for SKU Code %s" % cont_vals}
+                users_list = list(set([user.id, wh_code, admin_user.id]))
                 send_push_notification(contents, users_list)
                 items.append([cart_item.sku.style_name, qty, tot_amt])
     except:
@@ -11608,7 +11608,7 @@ def render_st_html_data(request, user, warehouse, all_data):
 
 def list_notifications(request):
     resp = {'msg': 'Success', 'data': []}
-    push_notifications = PushNotifications.objects.filter(user=request.user.id)
+    push_notifications = PushNotifications.objects.filter(user=request.user.id).order_by('-id')
     push_nots = []
     for push_not in push_notifications:
         push_map = {'message': push_not.message, 'is_read': push_not.is_read,

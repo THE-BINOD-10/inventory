@@ -11519,3 +11519,18 @@ def make_notifications_read(request):
         except:
             resp['msg'] = 'Fail'
     return HttpResponse(json.dumps(resp), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+def delete_notification(request):
+    resp = {'msg': 'Success', 'data': []}
+    notification_id = request.POST.get('notification_id', '')
+    if not notification_id:
+        return HttpResponse('Provide Notification ID')
+    else:
+        try:
+            PushNotifications.objects.filter(id=notification_id).delete()
+        except:
+            resp['msg'] = 'Fail'
+    return HttpResponse(json.dumps(resp), content_type='application/json')

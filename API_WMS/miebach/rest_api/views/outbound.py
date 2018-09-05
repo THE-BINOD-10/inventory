@@ -9353,10 +9353,10 @@ def move_to_inv(request, user=''):
     cancel_flag = request.GET.get('cancel', '')
     if cancel_flag == 'true':
         sell_ids = construct_sell_ids(request, user, cancel_inv=True)
-        del sell_ids['pick_number__in']
+        #del sell_ids['pick_number__in']
     else:
         sell_ids = construct_sell_ids(request, user)
-        del sell_ids['pick_number__in']
+        #del sell_ids['pick_number__in']
     seller_summary = SellerOrderSummary.objects.filter(**sell_ids)
     if cancel_flag != 'true':
         invoice_sequence = get_invoice_sequence_obj(user, "")

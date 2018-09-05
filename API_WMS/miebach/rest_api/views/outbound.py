@@ -1768,11 +1768,6 @@ def picklist_confirmation(request, user=''):
                     picklist.picked_quantity = float(picklist.picked_quantity) + picking_count1
                     if not seller_pick_number:
                         seller_pick_number = get_seller_pick_id(picklist, user)
-                    if user_profile.user_type == 'marketplace_user' and picklist.order:
-                        create_seller_order_summary(picklist, picking_count1, seller_pick_number, picks_all,
-                                                    seller_stock_objs)
-                    else:
-                        create_order_summary(picklist, picking_count1, seller_pick_number, picks_all)
                     if picklist.reserved_quantity == 0:
 
                         # Auto Shipment check and Mapping the serial Number
@@ -1788,6 +1783,11 @@ def picklist_confirmation(request, user=''):
                         all_pick_locations.filter(picklist_id=picklist.id, status=1).update(status=0)
 
                     picklist.save()
+                    if user_profile.user_type == 'marketplace_user' and picklist.order:
+                        create_seller_order_summary(picklist, picking_count1, seller_pick_number, picks_all,
+                                                    seller_stock_objs)
+                    else:
+                        create_order_summary(picklist, picking_count1, seller_pick_number, picks_all)
                     picked_status = ""
                     if picklist.picked_quantity > 0 and picklist.order:
                         if merge_flag:
@@ -10377,9 +10377,9 @@ def insert_enquiry_data(request, user=''):
                 enq_sku_obj.warehouse_level = cart_item.warehouse_level
                 enq_sku_obj.save()
                 wh_name = User.objects.get(id=wh_code).first_name
-                cont_vals = (customer_details['customer_name'], enquiry_id, wh_name)
-                contents = {"en": "%s placed an enquiry order %s to %s warehouse" % cont_vals}
-                users_list = [user.id, wh_code, admin_user.id]
+                cont_vals = (customer_details['customer_name'], enquiry_id, wh_name, cart_item.sku.sku_code)
+                contents = {"en": "%s placed an enquiry order %s to %s for SKU Code %s" % cont_vals}
+                users_list = list(set([user.id, wh_code, admin_user.id]))
                 send_push_notification(contents, users_list)
                 items.append([cart_item.sku.style_name, qty, tot_amt])
     except:
@@ -11608,7 +11608,7 @@ def render_st_html_data(request, user, warehouse, all_data):
 
 def list_notifications(request):
     resp = {'msg': 'Success', 'data': []}
-    push_notifications = PushNotifications.objects.filter(user=request.user.id)
+    push_notifications = PushNotifications.objects.filter(user=request.user.id).order_by('-id')
     push_nots = []
     for push_not in push_notifications:
         push_map = {'message': push_not.message, 'is_read': push_not.is_read,

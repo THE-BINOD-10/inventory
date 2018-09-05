@@ -2768,6 +2768,13 @@ def update_pricing(request, user=''):
     if not price_master_data:
         return HttpResponse('Invalid data')
 
+    wh_ids = get_related_users(user.id)
+    cust_ids = CustomerUserMapping.objects.filter(customer__user__in=wh_ids, customer__price_type=price_type).values_list('user_id', flat=True)
+    notified_users = []
+    notified_users.extend(wh_ids)
+    notified_users.extend(cust_ids)
+    notified_users = list(set(notified_users))
+
     db_set = set(price_master_data.values_list('min_unit_range', 'max_unit_range'))
     ui_set = set()
     ui_map = {}
@@ -2805,6 +2812,8 @@ def update_pricing(request, user=''):
             p.price = price
             p.discount = discount
             p.save()
+        contents = {"en": "Price has revised for SKU %s." % sku[0].sku_code}
+        send_push_notification(contents, notified_users)
     if new_ranges:
         for new_range in new_ranges:
             min_unit_range, max_unit_range = new_range
@@ -2813,6 +2822,8 @@ def update_pricing(request, user=''):
                              'max_unit_range': max_unit_range, 'price': price, 'discount': discount}
             pricing_master = PriceMaster(**new_price_map)
             pricing_master.save()
+        contents = {"en": "New Price Range has added for SKU %s." % sku[0].sku_code}
+        send_push_notification(contents, notified_users)
 
     return HttpResponse('Updated Successfully')
 

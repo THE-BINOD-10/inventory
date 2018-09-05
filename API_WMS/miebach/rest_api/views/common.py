@@ -2864,7 +2864,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
         email = seller.email_id
         gstin_no = seller.tin_number
         company_address = company_address.replace("\n", " ")
-        company_name = 'SHPROC Procurement Pvt. Ltd.'
+        company_name = seller.name #'SHPROC Procurement Pvt. Ltd.'
 
     invoice_data = {'data': data, 'imei_data': imei_data, 'company_name': company_name,
                     'company_address': company_address, 'company_number': company_number,
@@ -4981,13 +4981,13 @@ def get_invoice_html_data(invoice_data):
     show_mrp = invoice_data.get('show_mrp', 'false')
     data = {'totals_data': {'label_width': 6, 'value_width': 6}, 'columns': 10, 'emty_tds': [], 'hsn_summary_span': 3}
     if show_mrp == 'true':
-        data['columns'] = 11
+        data['columns'] += 1
     if invoice_data.get('invoice_remarks', '') not in ['false', '']:
         data['totals_data']['label_width'] = 4
         data['totals_data']['value_width'] = 8
 
     if invoice_data.get('show_disc_invoice', '') == 'true':
-        data['columns'] = 11
+        data['columns'] += 1
         data['hsn_summary_span'] = 4
     data['empty_tds'] = [i for i in range(data['columns'])]
     return data

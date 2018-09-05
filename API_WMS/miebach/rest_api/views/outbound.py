@@ -23,7 +23,7 @@ from itertools import groupby
 import datetime
 import shutil
 from utils import *
-import os
+import os, math
 
 log = init_logger('logs/outbound.log')
 
@@ -1768,11 +1768,6 @@ def picklist_confirmation(request, user=''):
                     picklist.picked_quantity = float(picklist.picked_quantity) + picking_count1
                     if not seller_pick_number:
                         seller_pick_number = get_seller_pick_id(picklist, user)
-                    if user_profile.user_type == 'marketplace_user' and picklist.order:
-                        create_seller_order_summary(picklist, picking_count1, seller_pick_number, picks_all,
-                                                    seller_stock_objs)
-                    else:
-                        create_order_summary(picklist, picking_count1, seller_pick_number, picks_all)
                     if picklist.reserved_quantity == 0:
 
                         # Auto Shipment check and Mapping the serial Number
@@ -1788,6 +1783,11 @@ def picklist_confirmation(request, user=''):
                         all_pick_locations.filter(picklist_id=picklist.id, status=1).update(status=0)
 
                     picklist.save()
+                    if user_profile.user_type == 'marketplace_user' and picklist.order:
+                        create_seller_order_summary(picklist, picking_count1, seller_pick_number, picks_all,
+                                                    seller_stock_objs)
+                    else:
+                        create_order_summary(picklist, picking_count1, seller_pick_number, picks_all)
                     picked_status = ""
                     if picklist.picked_quantity > 0 and picklist.order:
                         if merge_flag:
@@ -1853,18 +1853,18 @@ def picklist_confirmation(request, user=''):
                 user_profile = UserProfile.objects.get(user_id=user.id)
                 if not invoice_data['detailed_invoice'] and invoice_data['is_gst_invoice']:
                     invoice_data = build_invoice(invoice_data, user, False)
-                    return HttpResponse(json.dumps({'data': invoice_data, 'message': '',
-                                                    'sku_codes': [], 'status': 1}))
-                    # return HttpResponse(invoice_data)
+                    #return HttpResponse(json.dumps({'data': invoice_data, 'message': '',
+                    #                                'sku_codes': [], 'status': 1}))
+                    return HttpResponse(invoice_data)
                 return HttpResponse(json.dumps({'data': invoice_data, 'message': '', 'status': 'invoice'}))
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info('Picklist Confirmation failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(data), str(e)))
-        return HttpResponse(json.dumps({'message': 'Picklist Confirmation Failed',
-                                        'sku_codes': [], 'status': 0}))
-        # return HttpResponse('Picklist Confirmation Failed')
+        #return HttpResponse(json.dumps({'message': 'Picklist Confirmation Failed',
+        #                                'sku_codes': [], 'status': 0}))
+        return HttpResponse('Picklist Confirmation Failed')
 
     end_time = datetime.datetime.now()
     duration = end_time - st_time
@@ -2746,6 +2746,8 @@ def print_picklist_excel(request, user=''):
         headers.pop('Order ID')
     data, sku_total_quantities, courier_name = get_picklist_data(data_id, user.id)
     all_data = []
+    if data and not data[0].get('is_combo_picklist', ''):
+        headers.pop('Combo SKU')
     for dat in data:
         val = itemgetter(*headers.values())(dat)
         temp = OrderedDict(zip(headers.keys(), val))
@@ -2762,6 +2764,9 @@ def print_picklist(request, user=''):
     display_order_id = request.GET.get('display_order_id', 'false')
     data, sku_total_quantities, courier_name = get_picklist_data(data_id, user.id)
     date_data = {}
+    combo_picklist = False
+    if data and data[0].get('is_combo_picklist', ''):
+        combo_picklist = True
     picklist_orders = Picklist.objects.filter(Q(order__sku__user=user.id) | Q(stock__sku__user=user.id),
                                               picklist_number=data_id)
     if picklist_orders:
@@ -2826,6 +2831,8 @@ def print_picklist(request, user=''):
         fmcg_industry_type = True
     else:
         headers = copy.deepcopy(PRINT_OUTBOUND_PICKLIST_HEADERS)
+    if combo_picklist:
+        headers = ('Combo SKU',) + headers
     if display_order_id == 'true':
         if len(original_order_data):
             order_ids = ','.join(original_order_data)
@@ -2837,7 +2844,9 @@ def print_picklist(request, user=''):
                    'picklist_id': data_id, 'total_quantity': total,
                    'total_price': total_price, 'picklist_id': data_id,'fmcg_industry_type':fmcg_industry_type,
                    'customer_name': customer_name, 'customer_address': customer_address, 'order_ids': order_ids,
-                   'marketplace': marketplace, 'date_data': date_data, 'remarks': remarks_data, 'user': user, 'display_order_id': display_order_id, 'courier_name': courier_name })
+                   'marketplace': marketplace, 'date_data': date_data, 'remarks': remarks_data, 'user': user,
+                   'display_order_id': display_order_id, 'courier_name': courier_name,
+                   'combo_picklist': combo_picklist})
 
 
 @csrf_exempt
@@ -4007,8 +4016,8 @@ def insert_order_data(request, user=''):
                                                           order_data['quantity'], corporate_po_number, client_name,
                                                           order_data['unit_price'], el_price, del_date)
                         create_ordersummary_data(order_summary_dict, order_obj, ship_to, courier_name)
-                    wh_name = User.Objects.get(id=user.id).first_name
-                    cont_vals = (order_data['customer_name'], order_data['original_order_id'], wh_name)
+                    wh_name = User.objects.get(id=user.id).first_name
+                    cont_vals = (order_data['customer_name'], order_data['order_id'], wh_name)
                     contents = {"en": "%s placed an order %s to %s warehouse" % cont_vals}
                     users_list = [user.id, admin_user.id]
                     send_push_notification(contents, users_list)
@@ -4042,7 +4051,7 @@ def insert_order_data(request, user=''):
                                 created_skus.append(order_data['sku_id'])
                             items.append(
                                 [sku_master['sku_desc'], order_data['quantity'], order_data.get('invoice_amount', 0)])
-                            wh_name = User.Objects.get(id=usr).first_name
+                            wh_name = User.objects.get(id=usr).first_name
                             cont_vals = (order_data['customer_name'], order_data['original_order_id'], wh_name)
                             contents = {"en": "%s placed an order %s to %s warehouse" % cont_vals}
                             users_list = [user.id, admin_user.id]
@@ -4070,7 +4079,7 @@ def insert_order_data(request, user=''):
                         else:
                             created_skus.append(order_data['sku_id'])
                         items.append([sku_master['sku_desc'], order_data['quantity'], order_data.get('invoice_amount', 0)])
-                        wh_name = User.Objects.get(id=usr).first_name
+                        wh_name = User.objects.get(id=usr).first_name
                         cont_vals = (order_data['customer_name'], order_data['original_order_id'], wh_name)
                         contents = {"en": "%s placed an order %s to %s warehouse" % cont_vals}
                         users_list = [usr, admin_user.id]
@@ -5504,7 +5513,7 @@ def get_sku_variants(request, user=''):
                                         po = asn_stock['PO']
                                         arriving_date = datetime.datetime.strptime(asn_stock['By'], '%d-%b-%Y')
                                         quantity = int(asn_stock['Qty'])
-                                        qc_quantity = int(floor(quantity*90/100))
+                                        qc_quantity = int(math.floor(quantity*90/100))
                                         asn_stock_detail = ASNStockDetail.objects.filter(sku_id=sku[0].id, asn_po_num=po)
                                         if asn_stock_detail:
                                             asn_stock_detail = asn_stock_detail[0]
@@ -10367,10 +10376,10 @@ def insert_enquiry_data(request, user=''):
                 enq_sku_obj.levelbase_price = cart_item.levelbase_price
                 enq_sku_obj.warehouse_level = cart_item.warehouse_level
                 enq_sku_obj.save()
-                wh_name = User.Objects.get(id=wh_code.id).first_name
-                cont_vals = (customer_details['customer_name'], enquiry_id, wh_name)
-                contents = {"en": "%s placed an enquiry order %s to %s warehouse" % cont_vals}
-                users_list = [user.id, wh_code.id, admin_user.id]
+                wh_name = User.objects.get(id=wh_code).first_name
+                cont_vals = (customer_details['customer_name'], enquiry_id, wh_name, cart_item.sku.sku_code)
+                contents = {"en": "%s placed an enquiry order %s to %s for SKU Code %s" % cont_vals}
+                users_list = list(set([user.id, wh_code, admin_user.id]))
                 send_push_notification(contents, users_list)
                 items.append([cart_item.sku.style_name, qty, tot_amt])
     except:
@@ -11599,7 +11608,7 @@ def render_st_html_data(request, user, warehouse, all_data):
 
 def list_notifications(request):
     resp = {'msg': 'Success', 'data': []}
-    push_notifications = PushNotifications.objects.filter(user=request.user.id)
+    push_notifications = PushNotifications.objects.filter(user=request.user.id).order_by('-id')
     push_nots = []
     for push_not in push_notifications:
         push_map = {'message': push_not.message, 'is_read': push_not.is_read,

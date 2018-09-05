@@ -3677,6 +3677,7 @@ def quality_check_data(request, user=''):
     headers = ('WMS CODE', 'Location', 'Quantity', 'Accepted Quantity', 'Rejected Quantity', 'Reason')
     data = []
     stock_results = []
+    rw_orders = []
     po_reference = ''
     order_id = request.GET['order_id']
     purchase_orders = PurchaseOrder.objects.filter(order_id=order_id, open_po__sku__user=user.id,

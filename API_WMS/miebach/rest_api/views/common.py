@@ -5734,7 +5734,7 @@ def get_purchase_order_id(user):
     # else:
     #     po_id = int(order_ids[0]) + 1
 
-    po_id = get_incremental(user, 'po')
+    po_id = get_incremental(user, 'po', default_val=1)
     po_id = po_id - 1
     return po_id
 

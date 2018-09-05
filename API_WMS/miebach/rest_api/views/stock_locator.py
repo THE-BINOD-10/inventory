@@ -422,16 +422,35 @@ def get_quantity_data(user_groups, sku_codes_list):
             annotate(rm_reserved=Sum('reserved')))
         enq_block_stock = dict(EnquiredSku.objects.filter(sku__user=user).filter(
             ~Q(enquiry__extend_status='rejected')).values_list('sku_code').annotate(Sum('quantity')))
+
+        # ASN Stock Related to SM
+        today_filter = datetime.datetime.today()
+        hundred_day_filter = today_filter + datetime.timedelta(days=100)
+        ints_filters = {'quantity__gt': 0, 'sku__user': user}
+        asn_qs = ASNStockDetail.objects.filter(**ints_filters)
+        intr_obj_100days_qs = asn_qs.exclude(arriving_date__lte=today_filter).filter(
+            arriving_date__lte=hundred_day_filter)
+        intr_obj_100days_ids = intr_obj_100days_qs.values_list('id', flat=True)
+        asn_res_100days_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
+        asn_res_100days_qty = dict(
+            asn_res_100days_qs.values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
+
+        asn_avail_stock = dict(
+            intr_obj_100days_qs.values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
+        for k, v in asn_avail_stock.items():
+            if k in asn_res_100days_qty:
+                asn_avail_stock[k] = asn_avail_stock[k] - asn_res_100days_qty[k]
         purchases = map(lambda d: d['open_po__sku__sku_code'], purch_dict)
         total_order_dict = dict(zip(purchases, map(lambda d: d['total_order'], purch_dict)))
         total_received_dict = dict(zip(purchases, map(lambda d: d['total_received'], purch_dict)))
         for single_sku in sku_codes_list:
             exist = user_sku_codes.filter(sku_code=single_sku)
+            asn_stock_qty = asn_avail_stock.get(single_sku, 0)
             if not exist:
                 available = 'No SKU'
                 reserved = 0
                 ret_list.append({'available': available, 'name': ware, 'transit': 0, 'reserved': reserved, 'user': user,
-                                 'sku_code': single_sku})
+                                 'sku_code': single_sku, 'asn': asn_stock_qty})
                 continue
             trans_quantity = 0
             if single_sku in purchases:
@@ -444,7 +463,7 @@ def get_quantity_data(user_groups, sku_codes_list):
             if available < 0:
                 available = 0
             ret_list.append({'available': available, 'name': ware, 'transit': trans_quantity, 'reserved': pic_reserved,
-                             'user': user, 'sku_code': single_sku})
+                             'user': user, 'sku_code': single_sku, 'asn': asn_stock_qty})
     return ret_list
 
 
@@ -544,6 +563,39 @@ def get_avinre_stock(start_index, stop_index, temp_data, search_term, order_term
         temp_data['aaData'].append(var)
 
 
+def get_availasn_stock(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    data, temp_data, other, da = get_warehouses_stock(start_index, stop_index, temp_data, search_term, order_term,
+                                                      col_num, request, user, filters)
+
+    list_da = {}
+    for i in da:
+        if i['available'] is None:
+            i['available'] = 0
+        if i['asn'] is None:
+            i['asn'] = 0
+        list_da[i['ware']] = i['available'] + i['asn']
+
+    temp_data['ware_list'] = list_da
+    for one_data, sku_det in zip(data, other['rem']):
+        header = other['header']
+        single_sku = sku_det['single_sku']
+        sku_desc = sku_det['sku_desc']
+        sku_brand = sku_det['sku_brand']
+        sku_category = sku_det['sku_category']
+        var = (OrderedDict(
+            ((header[0], single_sku), (header[1], sku_brand), (header[2], sku_desc), (header[3], sku_category))))
+        for single in one_data:
+            avail = single['available']
+            asn = single['asn']
+            if isinstance(avail, str):
+                available = avail
+            else:
+                available = avail + asn
+            name = single['name']
+            var[name] = available
+        temp_data['aaData'].append(var)
+
+
 def get_warehouses_stock(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     data_to_send = []
     other_data = {}
@@ -623,12 +675,31 @@ def get_aggregate_data(user_groups, sku_list):
             aggregate(Sum('reserved'))['reserved__sum']
         enq_block_stock = EnquiredSku.objects.filter(sku__user=user.id, sku__sku_code__in=sku_list).filter(
             ~Q(enquiry__extend_status='rejected')).values_list('sku_code').aggregate(Sum('quantity'))['quantity__sum']
+
+        today_filter = datetime.datetime.today()
+        hundred_day_filter = today_filter + datetime.timedelta(days=100)
+        ints_filters = {'quantity__gt': 0, 'sku__sku_code__in': sku_list, 'sku__user': user.id}
+        asn_qs = ASNStockDetail.objects.filter(**ints_filters)
+        intr_obj_100days_qs = asn_qs.exclude(arriving_date__lte=today_filter).filter(
+            arriving_date__lte=hundred_day_filter)
+        intr_obj_100days_ids = intr_obj_100days_qs.values_list('id', flat=True)
+        asn_res_100days_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
+        asn_res_100days_qty = asn_res_100days_qs.values_list('asnstock__sku__sku_code').aggregate(Sum('reserved_qty'))['reserved_qty__sum']
+
+        asn_total_qty = intr_obj_100days_qs.values_list('sku__sku_code').distinct().aggregate(Sum('quantity'))['quantity__sum']
+        if not asn_res_100days_qty:
+            asn_res_100days_qty = 0
+        if not asn_total_qty:
+            asn_total_qty = 0
+        asn_avail_stock = asn_total_qty - asn_res_100days_qty
         total_order = sum(map(lambda d: d['total_order'], purch))
         total_received = sum(map(lambda d: d['total_received'], purch))
         trans_quantity = float(total_order) - float(total_received)
         trans_quantity = round(trans_quantity, 2)
         if total:
             available = total
+        if asn_avail_stock:
+            available = available + asn_avail_stock
         if not reserved:
             reserved = 0
         if raw_reserved:
@@ -641,7 +712,8 @@ def get_aggregate_data(user_groups, sku_list):
         available = round(available, 2)
         reserved = round(reserved, 2)
         ware_name = user.username
-        data.append({'ware': ware_name, 'available': available, 'reserved': reserved, 'transit': trans_quantity})
+        data.append({'ware': ware_name, 'available': available, 'reserved': reserved, 'transit': trans_quantity,
+                     'asn': asn_avail_stock})
     return data
 
 

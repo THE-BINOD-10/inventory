@@ -2186,6 +2186,12 @@ def insert_sku(request, user=''):
         filter_params = {'wms_code': wms, 'user': user.id}
         data = filter_or_none(SKUMaster, filter_params)
         status_msg = 'SKU exists'
+        wh_ids = get_related_users(user.id)
+        cust_ids = CustomerUserMapping.objects.filter(customer__user__in=wh_ids).values_list('user_id', flat=True)
+        notified_users = []
+        notified_users.extend(wh_ids)
+        notified_users.extend(cust_ids)
+        notified_users = list(set(notified_users))
 
         if not data:
             data_dict = copy.deepcopy(SKU_DATA)
@@ -2219,6 +2225,8 @@ def insert_sku(request, user=''):
             data_dict['sku_code'] = data_dict['wms_code']
             sku_master = SKUMaster(**data_dict)
             sku_master.save()
+            contents = {"en": "New SKU %s is created." % data_dict['sku_code']}
+            send_push_notification(contents, notified_users)
             update_sku_attributes(sku_master, request)
             image_file = request.FILES.get('files-0', '')
             if image_file:

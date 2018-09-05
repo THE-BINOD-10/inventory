@@ -11491,7 +11491,7 @@ def render_st_html_data(request, user, warehouse, all_data):
 
 def list_notifications(request):
     resp = {'msg': 'Success', 'data': []}
-    push_notifications = PushNotifications.objects.filter(user=request.user.id)
+    push_notifications = PushNotifications.objects.filter(user=request.user.id).order_by('-id')
     push_nots = []
     for push_not in push_notifications:
         push_map = {'message': push_not.message, 'is_read': push_not.is_read,

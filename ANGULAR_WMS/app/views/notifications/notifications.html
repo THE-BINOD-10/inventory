@@ -23,7 +23,6 @@
                  ng-if="notification.is_read==0"
                  ng-click="notify.mark_as_read(notification.id, '')">Mark As Read</div>
             <div type="button" class="btn btn-warning"
-                 ng-if="notification.is_read==0"
                  ng-click="notify.delete_notification(notification.id)">Delete</div>
           </div><!--col-->
         </div>

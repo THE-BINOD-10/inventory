@@ -11,6 +11,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
 
   vm.empty_data = {};
   vm.model_data = {};
+  vm.report_data = {};
+
+  vm.toggle_sku_wise = false;
 
   vm.row_call = function(aData) {
     vm.title = 'Debit Note';
@@ -35,7 +38,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.service.print_data(vm.print_page, "Debit Note");
   }
 
-  vm.report_data = {};
+  /*vm.report_data = {};
   vm.service.get_report_data("rtv_report").then(function(data) {
     angular.copy(data, vm.report_data);
     vm.report_data["row_call"] = vm.row_call;
@@ -47,7 +50,49 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       vm.datatable = true;
       vm.dtInstance = {};
     })
-  })
+  })*/
+
+  vm.reports = {}
+  vm.toggle_rtv_sku_wise = function() {
+    var send = {};
+	var name='';
+	if (vm.toggle_sku_wise) {
+      name = 'sku_wise_rtv_report';
+    } else {
+      name = 'rtv_report';
+    }
+    vm.service.apiCall("get_report_data/", "GET", {report_name: name}).then(function(data) {
+	if(data.message) {
+	  if ($.isEmptyObject(data.data.data)) {
+		vm.datatable = false;
+		vm.dtInstance = {};
+	  } else {
+	  vm.reports[name] = data.data.data;
+	  angular.copy(data.data.data, vm.report_data);
+	  if(name=='rtv_report') {
+        vm.report_data["row_call"] = vm.row_call;
+      }
+      vm.service.get_report_dt(vm.empty_data, vm.report_data).then(function(datam) {
+        vm.empty_data = datam.empty_data;
+        angular.copy(vm.empty_data, vm.model_data);
+        vm.dtOptions = datam.dtOptions;
+        vm.dtColumns = datam.dtColumns;
+        vm.datatable = true;
+        vm.dtInstance = {};
+        vm.report_data['excel2'] = true;
+		vm.report_data['row_click'] = true;
+        if (vm.toggle_sku_wise) {
+            vm.report_data['excel_name'] = 'sku_wise_rtv_report'
+        } else {
+            vm.report_data['excel_name'] = 'get_rtv_report'
+        }
+      })
+	}
+	}
+	})
+  }
+
+  vm.toggle_rtv_sku_wise()
 
   vm.print_page = "";
   vm.dtInstance = {};

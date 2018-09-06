@@ -215,15 +215,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     $scope.getExpiryDate = function(index, parent_index){
         var mfg_date = new Date(vm.model_data.data[parent_index][index].mfg_date);
         var expiry = new Date(mfg_date.getFullYear(),mfg_date.getMonth(),mfg_date.getDate()+vm.shelf_life);
-        vm.model_data.data[parent_index][index].exp_date = (expiry.getMonth() + 1) + "/" + expiry.getDate() + "/" + expiry.getFullYear() ;
-        $('.mfgDate').each(function(){
-            if($(this).val() != ""){
-                var mfg_date = new Date($(this).val());
-                var expiry = new Date(mfg_date.getFullYear(),mfg_date.getMonth(),mfg_date.getDate()+vm.shelf_life);
-                var response = (expiry.getMonth() + 1) + "/" + expiry.getDate() + "/" + expiry.getFullYear() ;
-                $(this).parent().next().find('.expiryDatePicker').datepicker("setDate", response);
-            }
-        });
+        //vm.model_data.data[parent_index][index].exp_date = (expiry.getMonth() + 1) + "/" + expiry.getDate() + "/" + expiry.getFullYear();
+        var row_data = vm.model_data.data[parent_index][index]
+        if (row_data.exp_date == ''){
+            row_data.exp_date = (expiry.getMonth() + 1) + "/" + expiry.getDate() + "/" + expiry.getFullYear();
+        }
+        //$('.mfgDate').each(function(){
+            //if($(this).val() != ""){
+                //var mfg_date = new Date($(this).val());
+                //var expiry = new Date(mfg_date.getFullYear(),mfg_date.getMonth(),mfg_date.getDate()+vm.shelf_life);
+                //var response = (expiry.getMonth() + 1) + "/" + expiry.getDate() + "/" + expiry.getFullYear() ;
+                //vm.model_data.data[parent_index][index]['exp_date'] = response;
+                //$(this).parent().next().find('.expiryDatePicker').datepicker("setDate", response);
+            //}
+        //});
 
 
     }
@@ -1903,7 +1908,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.singleDecimalVal(sku_row_data.tax_percent, 'tax_percent', index, parent_index);
       vm.singleDecimalVal(sku_row_data.cess_percent, 'cess_percent', index, parent_index);
 
-      var total_amt = Number(sku_row_data.value)*Number(sku_row_data.buy_price);
+      if (vm.industry_type == 'FMCG') {
+        var total_amt = Number(sku_row_data.value)*Number(sku_row_data.buy_price);
+      } else {
+        var total_amt = Number(sku_row_data.value)*Number(sku_row_data.price);
+      }
+
       var total_amt_dis = Number(total_amt) * Number(sku_row_data.discount_percentage) / 100;
       var tot_tax = Number(sku_row_data.tax_percent) + Number(sku_row_data.cess_percent);
       var wo_tax_amt = Number(total_amt)-Number(total_amt_dis);

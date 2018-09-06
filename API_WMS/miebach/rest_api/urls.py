@@ -414,6 +414,7 @@ urlpatterns = [
     url(r'^print_rtv_report/$', print_rtv_report),
     url(r'^print_debit_note/$', print_debit_note),
     url(r'^get_sku_categories_list/$', get_sku_categories_list),
+    url(r'^get_sku_wise_rtv_filter/$', get_sku_wise_rtv_filter),
 ]
 
 # urlpatterns += patterns('rest_api.views',

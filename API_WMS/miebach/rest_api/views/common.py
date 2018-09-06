@@ -206,7 +206,8 @@ def add_user_permissions(request, response_data, user=''):
                                              'trail_user': status_dict[int(user_profile.is_trail)],
                                              'company_name': user_profile.company_name,
                                              'industry_type': user_profile.industry_type,
-                                             'user_type': request_user_profile.user_type}
+                                             'user_type': user_profile.user_type,
+                                             'request_user_type': request_user_profile.user_type}
 
     setup_status = 'false'
     if 'completed' not in user_profile.setup_status:

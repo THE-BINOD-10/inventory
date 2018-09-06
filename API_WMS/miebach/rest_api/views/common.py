@@ -2463,10 +2463,66 @@ def get_challan_number(user, seller_order_summary):
     return challan_number, challan_num
 
 
+def get_full_invoice_number(user, order_no, order, invoice_date='', pick_number=''):
+    user_profile = user.userprofile
+    invoice_sequence = ''
+    from_pos = False
+    if not invoice_date:
+        invoice_date = datetime.datetime.now()
+    if order:
+        cod = order.customerordersummary_set.filter()
+        if cod and cod[0].invoice_date:
+            invoice_date = cod[0].invoice_date
+        elif not invoice_date and pick_number:
+            seller_summary = SellerOrderSummary.objects.filter(Q(seller_order__order_id=order.id) |
+                                                               Q(order_id=order.id), pick_number=pick_number)
+            if seller_summary:
+                invoice_date = seller_summary.creation_date
+        if cod:
+            if cod[0].issue_type in ['PRE', 'DC']:
+                from_pos = True
+                order_ids = [order.id]
+        invoice_sequence = get_invoice_sequence_obj(user, order.marketplace)
+    if invoice_sequence:
+        invoice_sequence = invoice_sequence[0]
+        inv_num_lis = []
+        if invoice_sequence.prefix:
+            inv_num_lis.append(invoice_sequence.prefix)
+        if invoice_sequence.date_type:
+            if invoice_sequence.date_type == 'financial':
+                inv_num_lis.append(get_financial_year(invoice_date))
+            elif invoice_sequence.date_type == 'month_year':
+                inv_num_lis.append(invoice_date.strftime('%m%y'))
+        if invoice_sequence.interfix:
+            inv_num_lis.append(invoice_sequence.interfix)
+        inv_num_lis.append(str(order_no))
+        invoice_number = '/'.join(['%s'] * len(inv_num_lis)) % tuple(inv_num_lis)
+    else:
+        if user_profile.user_type == 'marketplace_user':
+            invoice_number = user_profile.prefix + '/' + str(invoice_date.strftime('%m-%y')) + '/A-' + str(order_no)
+        elif user.username == 'TranceHomeLinen':
+            invoice_number = user_profile.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + 'GST' + '/' + str(
+                order_no)
+        elif user.username == 'Subhas_Publishing':
+            invoice_number = user_profile.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + str(order_no)
+        elif user.username == 'campus_sutra':
+            invoice_number = str(get_financial_year(invoice_date)) + '/' + str(order_no)
+        elif user_profile.warehouse_type == 'DIST':
+            invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), order_no)
+        else:
+            if from_pos:
+                sub_usr = ''.join(re.findall('\d+', OrderDetail.objects.get(id=order_ids[0]).order_code))
+                invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), sub_usr + order_no)
+            else:
+                invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), order_no)
+    return invoice_number
+
+
 def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos=False):
     invoice_number = ""
     inv_no = ""
     invoice_sequence = None
+    order = None
     invoice_no_gen = MiscDetail.objects.filter(user=user.id, misc_type='increment_invoice')
     if invoice_no_gen:
         seller_order_summary = SellerOrderSummary.objects.filter(Q(order__id__in=order_ids) |
@@ -2500,38 +2556,40 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
                     invoice_seq.save()
             else:
                 seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)
-    if invoice_sequence:
-        invoice_sequence = invoice_sequence[0]
-        inv_num_lis = []
-        if invoice_sequence.prefix:
-            inv_num_lis.append(invoice_sequence.prefix)
-        if invoice_sequence.date_type:
-            if invoice_sequence.date_type == 'financial':
-                inv_num_lis.append(get_financial_year(invoice_date))
-            elif invoice_sequence.date_type == 'month_year':
-                inv_num_lis.append(invoice_date.strftime('%m%y'))
-        if invoice_sequence.interfix:
-            inv_num_lis.append(invoice_sequence.interfix)
-        inv_num_lis.append(str(order_no))
-        invoice_number = '/'.join(['%s'] * len(inv_num_lis)) % tuple(inv_num_lis)
-    else:
-        if user_profile.user_type == 'marketplace_user':
-            invoice_number = user_profile.prefix + '/' + str(invoice_date.strftime('%m-%y')) + '/A-' + str(order_no)
-        elif user.username == 'TranceHomeLinen':
-            invoice_number = user_profile.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + 'GST' + '/' + str(
-                order_no)
-        elif user.username == 'Subhas_Publishing':
-            invoice_number = user_profile.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + str(order_no)
-        elif user.username == 'campus_sutra':
-            invoice_number = str(get_financial_year(invoice_date)) + '/' + str(order_no)
-        elif user_profile.warehouse_type == 'DIST':
-            invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), order_no)
-        else:
-            if from_pos:
-                sub_usr = ''.join(re.findall('\d+', OrderDetail.objects.get(id=order_ids[0]).order_code))
-                invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), sub_usr + order_no)
-            else:
-                invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), order_no)
+    invoice_number = get_full_invoice_number(user, order_no, order, invoice_date=invoice_date,
+                                             pick_number='')
+    # if invoice_sequence:
+    #     invoice_sequence = invoice_sequence[0]
+    #     inv_num_lis = []
+    #     if invoice_sequence.prefix:
+    #         inv_num_lis.append(invoice_sequence.prefix)
+    #     if invoice_sequence.date_type:
+    #         if invoice_sequence.date_type == 'financial':
+    #             inv_num_lis.append(get_financial_year(invoice_date))
+    #         elif invoice_sequence.date_type == 'month_year':
+    #             inv_num_lis.append(invoice_date.strftime('%m%y'))
+    #     if invoice_sequence.interfix:
+    #         inv_num_lis.append(invoice_sequence.interfix)
+    #     inv_num_lis.append(str(order_no))
+    #     invoice_number = '/'.join(['%s'] * len(inv_num_lis)) % tuple(inv_num_lis)
+    # else:
+    #     if user_profile.user_type == 'marketplace_user':
+    #         invoice_number = user_profile.prefix + '/' + str(invoice_date.strftime('%m-%y')) + '/A-' + str(order_no)
+    #     elif user.username == 'TranceHomeLinen':
+    #         invoice_number = user_profile.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + 'GST' + '/' + str(
+    #             order_no)
+    #     elif user.username == 'Subhas_Publishing':
+    #         invoice_number = user_profile.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + str(order_no)
+    #     elif user.username == 'campus_sutra':
+    #         invoice_number = str(get_financial_year(invoice_date)) + '/' + str(order_no)
+    #     elif user_profile.warehouse_type == 'DIST':
+    #         invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), order_no)
+    #     else:
+    #         if from_pos:
+    #             sub_usr = ''.join(re.findall('\d+', OrderDetail.objects.get(id=order_ids[0]).order_code))
+    #             invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), sub_usr + order_no)
+    #         else:
+    #             invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), order_no)
 
     return invoice_number, inv_no
 

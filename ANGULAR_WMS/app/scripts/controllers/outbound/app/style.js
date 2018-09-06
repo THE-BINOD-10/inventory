@@ -274,7 +274,13 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
 
   vm.style_total_quantity = 0;
   vm.change_style_quantity = function(data, row, index){
-    
+    if (!Boolean(Session.roles.permissions.order_exceed_stock)) {
+      if (row.all_quantity < parseInt(row.quantity)) {
+        vm.service.showNoty("Order quantity can't exceed the stock available");
+        row.quantity = row.all_quantity.toString();
+        return;
+      }
+    }
     if (Number(row.quantity) == 0) {
 
       row.unit_rate = row.org_price;

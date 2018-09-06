@@ -976,6 +976,7 @@ def switches(request, user=''):
                        'central_order_mgmt': 'central_order_mgmt',
                        'receive_po_invoice_check': 'receive_po_invoice_check',
                        'mark_as_delivered': 'mark_as_delivered',
+                       'order_exceed_stock': 'order_exceed_stock',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

@@ -24,7 +24,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'disable_brands_view': false, 'sellable_segregation': false, 'display_styles_price': false,
                     'invoice_based_payment_tracker': false, 'receive_po_invoice_check': false,
                     'auto_raise_stock_transfer': false, 'inbound_supplier_invoice': false, 'customer_dc': false,
-                    'mark_as_delivered': false,
+                    'mark_as_delivered': false, 'order_exceed_stock': false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -43,7 +43,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      55: 'sellable_segregation', 56: 'display_styles_price', 57: 'show_purchase_history',
                      58: 'shelf_life_ratio', 59: 'auto_raise_stock_transfer', 60: 'inbound_supplier_invoice',
                      61: 'customer_dc', 62: 'auto_expire_enq_limit', 63: 'invoice_based_payment_tracker',
-                     64: 'central_order_mgmt', 65: 'receive_po_invoice_check', 66: 'mark_as_delivered'}
+                     64: 'central_order_mgmt', 65: 'receive_po_invoice_check', 66: 'mark_as_delivered',
+                     67: 'order_exceed_stock'}
 
   vm.check_box_data = [
     {
@@ -365,6 +366,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
      name: "Enable Ratings",
      model_name: "mark_as_delivered",
      param_no: 66,
+     class_name: "fa fa-server",
+     display: true
+    },
+    {
+     name: "Order can exceeds stock in customer portal",
+     model_name: "order_exceed_stock",
+     param_no: 67,
      class_name: "fa fa-server",
      display: true
     }

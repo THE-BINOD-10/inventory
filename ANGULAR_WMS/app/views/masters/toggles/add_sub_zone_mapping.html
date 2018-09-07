@@ -1,0 +1,43 @@
+<div id="page-pop" class="modal fade in" id="zoneModal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false" style="overflow: hidden; display: block;">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">×</span>
+        </button>
+        <h4 class="modal-title" id="myLargeModalLabel">Add Sub Zone Mapping</h4>
+      </div>
+      <div class="modal-body">
+        <div class="form-group clearfix">
+          <div class="row col-md-12">
+            <div class="col-md-4 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Zone</label>
+                <select name="zone_id" class="form-control" ng-model="showCase.sub_zone_data.zone">
+                  <option value="" ng-selected="showCase.sub_zone_data.zone == ''">None</option>
+                  <option ng-repeat="zone in showCase.sub_zone_data.zones_list" value="{{zone}}" ng-selected="showCase.sub_zone_data.zone == zone">{{zone}}</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Sub Zone</label>
+                <select name="zone_id" class="form-control" ng-model="showCase.sub_zone_data.sub_zone">
+                  <option value="" ng-selected="showCase.sub_zone_data.sub_zone == ''">None</option>
+                  <option ng-repeat="zone in showCase.sub_zone_data.sub_zones_list" value="{{zone}}" ng-selected="showCase.sub_zone_data.sub_zone == zone">{{zone}}</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="row"><h4 align="center">{{showCase.service.message}}</h4></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn pop pop-normal" ng-click="showCase.close()">Close</button>
+        <button type="submit" class="btn pop pop-green" ng-click="showCase.sub_zone_mapping(showCase.sub_zone_data)" ng-disabled="process">
+          <span>Save</span>
+          <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

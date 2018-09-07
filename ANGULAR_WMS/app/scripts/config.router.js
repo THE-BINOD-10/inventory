@@ -303,6 +303,10 @@ var app = angular.module('urbanApp')
             url: '/Location',
             templateUrl: 'views/masters/toggles/add_location.html'
           })
+          .state('app.masters.LocationMaster.SubZoneMapping', {
+            url: '/Location',
+            templateUrl: 'views/masters/toggles/add_sub_zone_mapping.html'
+          })
         .state('app.masters.sourceSKUMapping', {
           url: '/SourceSKUMapping',
           permission: 'add_skusupplier',

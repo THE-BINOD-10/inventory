@@ -24,6 +24,13 @@
                 </select>
               </div>
             </div>
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-show="permissions.add_subzonemapping">
+              <div class="form-group">
+                <label class="control-label">Level</label>
+                <input type="text" name="level" class="form-control ng-pristine number ng-valid ng-valid-required valid"
+                       ng-model="showCase.level" ng-readonly="showCase.update" ng-keyup="showCase.check_zone_level(showCase.level)">
+              </div>
+            </div>
           </div>
         </div>
         <div class="row"><h4 align="center">{{showCase.service.message}}</h4></div>

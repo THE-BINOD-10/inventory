@@ -17,7 +17,7 @@
                     <label class="control-label">Zone ID *</label>
                     <input type="text" class="form-control" name="zone_id" value="{{showCase.model_data.zone_id}}" ng-readonly="showCase.update" ng-if="showCase.update" required>
                     <select class="form-control" name="zone_id" ng-model="showCase.model_data.zone_id" ng-if="(!(showCase.update))" required>
-                        <option ng-repeat="zone in showCase.data.location_data" value="{{zone.zone}}">{{zone.zone}}</option>
+                        <option ng-repeat="zone in showCase.all_zones_list" value="{{zone}}">{{zone}}</option>
                     </select>
                   </div>
                 </div>

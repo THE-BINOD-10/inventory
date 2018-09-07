@@ -105,6 +105,8 @@ urlpatterns = [
     url(r'^corporate_mapping_data/$', corporate_mapping_data),
     url(r'^search_corporate_data/$', search_corporate_data),
     url(r'^push_message_notification/$', push_message_notification),
+    url(r'^get_zones/$', get_zones),
+    url(r'^add_sub_zone_mapping/$', add_sub_zone_mapping),
 
     # Inbound
     url(r'^generated_po_data/$', generated_po_data),

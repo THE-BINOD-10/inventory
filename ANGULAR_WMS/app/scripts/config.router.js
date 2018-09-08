@@ -1154,7 +1154,11 @@ var app = angular.module('urbanApp')
           templateUrl: 'views/stockLocator/move_inventory.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/stockLocator/move_inventory.js');
+                return $ocLazyLoad.load(['scripts/controllers/stockLocator/move_inventory.js'
+                ]).then(function() {
+                    return $ocLazyLoad.load(['scripts/controllers/stockLocator/auto_sellable.js'
+                  ])
+                });
               }]
           },
           data: {

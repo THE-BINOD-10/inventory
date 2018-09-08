@@ -2283,3 +2283,14 @@ def get_alternative_warehouse_stock(start_index, stop_index, temp_data, search_t
     duration = end_time - st_time
     log.info("total time -- %s" % (duration))
     log.info("process completed")
+
+
+def get_auto_sellable_suggestion_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, status):
+    picklist_exclude_zones = get_exclude_zones(user)
+    non_sellable_zones = get_all_zones(user, zone='Non Sellable Zone')
+    non_sellable_stock = StockDetail.objects.filter(sku__user=user.id, location__zone__zone__in=non_sellable_zones,
+                                                    quantity__gt=0)
+    non_sellable_skus = non_sellable_stock.values_list('sku_id', flat=True)
+    zero_quantity = StockDetail.objects.filter(sku__user=user.id, quantity=0, sku_id__in=non_sellable_skus).\
+                                        exclude(location__zone__zone__in=picklist_exclude_zones).\
+        values_list('sku_id', flat=True)

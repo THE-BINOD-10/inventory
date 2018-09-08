@@ -502,6 +502,7 @@ data_datatable = {  # masters
     'Available': 'get_available_stock', 'Available+Intransit': 'get_availintra_stock', 'Total': 'get_avinre_stock', \
     'StockSummaryAlt': 'get_stock_summary_size', 'SellerStockTable': 'get_seller_stock_data', \
     'BatchLevelStock': 'get_batch_level_stock', 'WarehouseStockAlternative': 'get_alternative_warehouse_stock',
+    'AutoSellableSuggestion': 'get_auto_sellable_suggestion_data',
     # outbound
     'SKUView': 'get_batch_data', 'OrderView': 'get_order_results', 'OpenOrders': 'open_orders', \
     'PickedOrders': 'open_orders', 'BatchPicked': 'open_orders', \
@@ -6376,6 +6377,7 @@ def order_allocate_stock(request, user, stock_data=[], mapping_type=''):
         log.info('Auto Allocate Stock function for %s and params are %s' % (str(user.username), str(stock_data)))
         picklist_order_mapping = {}
         all_skus = stock_data.keys()
+        picklist_exclude_zones = get_exclude_zones(user)
         all_order_mapping = OrderMapping.objects.none()
         if mapping_type:
             mapping_dict = {'mapping_type': mapping_type, 'order__sku_id__in': all_skus}
@@ -6394,7 +6396,7 @@ def order_allocate_stock(request, user, stock_data=[], mapping_type=''):
         seller_stocks = SellerStock.objects.filter(seller__user=user.id, quantity__gt=0, stock__sku_id__in=all_skus). \
             values('stock_id', 'seller_id')
         sku_stocks = StockDetail.objects.prefetch_related('sku', 'location'). \
-            exclude(Q(receipt_number=0) | Q(location__zone__zone__in=PICKLIST_EXCLUDE_ZONES)). \
+            exclude(Q(receipt_number=0) | Q(location__zone__zone__in=picklist_exclude_zones)). \
             filter(sku__user=user.id, quantity__gt=0, sku_id__in=all_skus)
 
         for sku_id, mapping_ids in stock_data.iteritems():
@@ -7775,3 +7777,11 @@ def get_sku_ean_list(sku):
         eans_list = list(chain(eans_list, multi_eans))
     return eans_list
 
+
+def get_exclude_zones(user):
+    exclude_zones = ['DAMAGED_ZONE', 'QC_ZONE', 'Non Sellable Zone']
+    sub_zones = SubZoneMapping.objects.filter(zone__zone__in=exclude_zones, zone__user=user.id).\
+        values_list('sub_zone__zone', flat=True)
+    if sub_zones:
+        exclude_zones = list(chain(exclude_zones, sub_zones))
+    return exclude_zones

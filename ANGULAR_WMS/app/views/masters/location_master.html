@@ -31,6 +31,7 @@
                   <th class="col-md-2">Put Sequence</th>
                   <th class="col-md-2">Get Sequence</th>
                   <th class="col-md-2">Status</th>
+                  <th class="col-md-2" ng-show="permissions.add_subzonemapping">Sub Zone</th>
                 </tr>
               </thead>
               <tbody>
@@ -40,6 +41,7 @@
                   <td>{{location.fill_sequence}}</td>
                   <td>{{location.pick_sequence}}</td>
                   <td>{{location.status}}</td>
+                  <td ng-show="permissions.add_subzonemapping">{{location.sub_zone}}</td>
                 </tr>
               </tbody>
             </table>

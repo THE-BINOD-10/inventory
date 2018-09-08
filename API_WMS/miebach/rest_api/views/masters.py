@@ -625,12 +625,19 @@ def get_vendor_master_results(start_index, stop_index, temp_data, search_term, o
 @get_admin_user
 def location_master(request, user=''):
     filter_params = {'user': user.id, 'level': 0}
-    distinct_loctype = filter_by_values(ZoneMaster, filter_params, ['zone', 'level'])
+    distinct_loctype = ZoneMaster.objects.filter(**filter_params)
+    #distinct_loctype = filter_by_values(ZoneMaster, filter_params, ['zone', 'level'])
     new_loc = []
     location_groups = LocationGroups.objects.filter(location__zone__user=user.id).values('location__location',
                                                                                          'group').distinct()
     for loc_type in distinct_loctype:
-        filter_params = {'zone__zone': loc_type['zone'], 'zone__user': user.id}
+        filter_params = {'zone__zone': loc_type.zone, 'zone__user': user.id}
+        sub_zone_obj = loc_type.subzonemapping_set.filter()
+        sub_zone = ''
+        if sub_zone_obj:
+            sub_zone = sub_zone_obj[0].sub_zone.zone
+            del filter_params['zone__zone']
+            filter_params['zone__zone__in'] = [sub_zone, loc_type.zone]
         loc = filter_by_values(LocationMaster, filter_params,
                                ['location', 'max_capacity', 'fill_sequence', 'pick_sequence', 'status',
                                 'pallet_capacity', 'lock_status'])
@@ -640,10 +647,11 @@ def location_master(request, user=''):
             loc_groups = map(lambda d: d['group'], loc_group_dict)
             loc_groups = [str(x).encode('UTF8') for x in loc_groups]
             loc_location['location_group'] = loc_groups
+            loc_location['sub_zone'] = sub_zone
         new_loc.append(loc)
 
     data = []
-    modified_zone = zip(distinct_loctype, new_loc)
+    modified_zone = zip(distinct_loctype.values('zone'), new_loc)
     if modified_zone:
         for loc in modified_zone:
             zone = loc[0]['zone']

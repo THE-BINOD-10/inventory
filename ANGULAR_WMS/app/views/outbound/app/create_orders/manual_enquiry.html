@@ -26,7 +26,11 @@
           <div class="form-group">
             <label class="col-sm-5 col-xs-5 control-label">Customer Name *</label>
             <div class="col-sm-3 col-xs-5">
-              <input type="text" name="customer_name" ng-model="Enquiry.model_data.customer_name" class="form-control" ng-required="true">
+              <!--<input type="text" name="customer_name" ng-model="Enquiry.model_data.customer_name" class="form-control" ng-required="true">-->
+              <select ng-model="Enquiry.model_data.customer_name" class="form-control" name="customer_name" ng-required="true">
+            <option value="">Select Corporate</option>
+            <option ng-repeat="corp in Enquiry.corporates" value="{{corp}}">{{corp}}</option>
+          </select>
             </div>
             <i ng-if="$ctrl.categories_loading" class="fa fa-spinner fa-spin fa-2x fa-fw mt5"></i>
           </div>

@@ -311,6 +311,7 @@ urlpatterns = [
     url(r'^remove_manual_enquiry_image/$', remove_manual_enquiry_image),
     url(r'^save_manual_enquiry_image/$', save_manual_enquiry_image),
     url(r'^request_manual_enquiry_approval/$', request_manual_enquiry_approval),
+    url(r'^confirm_or_hold_custom_order/$', confirm_or_hold_custom_order),
     url(r'^get_invoice_details/$', get_invoice_details),
     url(r'^update_cust_profile/$', update_cust_profile),
     url(r'^print_cartons_data/$', print_cartons_data),
@@ -333,6 +334,7 @@ urlpatterns = [
     url(r'^save_cutomer_ratings/$', save_cutomer_ratings),
     url(r'^list_notifications/$', list_notifications), #PUSH NOTIFICATIONS
     url(r'^make_notifications_read/$', make_notifications_read),
+    url(r'^delete_notification/$', delete_notification),
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),

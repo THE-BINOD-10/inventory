@@ -370,7 +370,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
      display: true
     },
     {
-     name: "Order can exceeds stock in customer portal",
+     name: "Restrict order to stock availability in customer portal",
      model_name: "order_exceed_stock",
      param_no: 67,
      class_name: "fa fa-server",

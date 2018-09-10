@@ -952,7 +952,7 @@ MAIL_REPORTS = {'sku_list': ['SKU List'], 'location_wise_stock': ['Location Wise
 MAIL_REPORTS_DATA = OrderedDict((('Raise PO', 'raise_po'), ('Receive PO', 'receive_po'), ('Orders', 'order'),
                                  ('Dispatch', 'dispatch'), ('Internal Mail', 'internal_mail'),
                                  ('Raise JO', 'raise_jo'), ('Stock Transfer Note', 'stock_transfer_note'),
-                                 ('Block Stock', 'enquiry'),
+                                 ('Block Stock', 'enquiry'), ('Central Orders', 'central_orders'),
                                  ))
 
 # Configurations

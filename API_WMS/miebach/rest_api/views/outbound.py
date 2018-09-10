@@ -3453,6 +3453,7 @@ def sku_level_total_qtys(myDict, sku_total_qty_map):
 
 
 def create_central_order(request, user):
+    mail_ids, user_mail_id, items = [], [], []
     message = 'Success'
     customer_id = request.user.id
     interm_order_id = get_central_order_id(customer_id)
@@ -3474,6 +3475,35 @@ def create_central_order(request, user):
             interm_order_map['unit_price'] = cart_item.levelbase_price
             interm_order_map['sku_id'] = cart_item.sku_id
             IntermediateOrders.objects.create(**interm_order_map)
+            inv_amt = (cart_item.levelbase_price * cart_item.quantity) + cart_item.tax
+            items.append([cart_item.sku.sku_desc, cart_item.quantity, inv_amt])
+
+
+        #mail to Admin and normal user
+        central_orders_mail = MiscDetail.objects.filter(user=user.id, misc_type='central_orders', misc_value='true')
+        if central_orders_mail:
+            """if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
+                mail_ids = [user.userprofile.email]
+            else:
+                admin_users = UserGroups.objects.filter(user_id=user.id)
+                if admin_users:
+                    mail_ids = [admin_users[0].admin_user.userprofile.email]"""
+            mail_ids = [user.email]
+            user_mail_id = [request.user.email]
+            headers = ['Product Details', 'Ordered Quantity', 'Total']
+            data_dict = {'customer_name': request.user.username, 'items': items,
+                         'headers': headers, 'role': 'Admin', 'order_id': interm_order_id}
+            t = loader.get_template('templates/central_order/order_for_approval.html')
+            rendered = t.render(data_dict)
+            t_user = loader.get_template('templates/central_order/order_placed.html')
+            rendered_user = t_user.render(data_dict)
+            if mail_ids:
+                send_mail(mail_ids, 'Order Approval Request, Customer: %s' % request.user.username, rendered)
+            if user_mail_id:
+                send_mail(user_mail_id, 'Order Placed Successfully', rendered_user)
+
+
+
     except:
         import traceback
         log.debug(traceback.format_exc())
@@ -3488,6 +3518,8 @@ def create_central_order(request, user):
 @get_admin_user
 @fn_timer
 def create_order_from_intermediate_order(request, user):
+
+    mail_ids, user_mail_id, items = [], [], []
     order_dict = {}
     created_order_objs = []
     message = 'Success'
@@ -3519,6 +3551,8 @@ def create_order_from_intermediate_order(request, user):
         sel_sku_id = sku_master[0].id
     try:
         interm_obj = interm_qs[0]
+        inv_amt = (interm_obj.unit_price * interm_obj.quantity) + interm_obj.tax
+        items.append([interm_obj.sku.sku_desc, interm_obj.quantity, inv_amt])
         if interm_obj.order_id or interm_obj.order_assigned_wh:
             if status:
                 interm_obj.status = status
@@ -3566,6 +3600,36 @@ def create_order_from_intermediate_order(request, user):
             cust_ord_dict = {'order_id': ord_obj.id, 'sgst_tax': interm_obj.sgst_tax, 'cgst_tax': interm_obj.cgst_tax,
                              'igst_tax': interm_obj.igst_tax}
             CustomerOrderSummary.objects.create(**cust_ord_dict)
+
+            #mail to Admin and normal user
+            central_orders_mail = MiscDetail.objects.filter(user=request.user.id, misc_type='central_orders', misc_value='true')
+            if central_orders_mail:
+                """if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
+                    mail_ids = [user.userprofile.email]
+                else:
+                    admin_users = UserGroups.objects.filter(user_id=user.id)
+                    if admin_users:
+                        mail_ids = [admin_users[0].admin_user.userprofile.email]"""
+                mail_ids = [request.user.email]
+                interm_qs = interm_qs[0]
+                user_mail_id = [interm_qs.customer_user.email]
+                headers = ['Product Details', 'Ordered Quantity', 'Total']
+                mail_order_id = order_dict['order_code'] + str(order_dict['order_id']) + ' ('\
+                                + str(interm_qs.order_id) + ')'
+                data_dict = {'customer_name': interm_qs.customer_user.username, 'items': items,
+                             'headers': headers, 'role': 'Admin',
+                             'status': 'accept', 'order_id': mail_order_id}
+                t = loader.get_template('templates/central_order/order_approved_admin.html')
+                rendered = t.render(data_dict)
+                t_user = loader.get_template('templates/central_order/order_approved.html')
+                rendered_user = t_user.render(data_dict)
+                if mail_ids:
+                    send_mail(mail_ids, 'Order Approved, Customer: %s' % interm_qs.customer_user.username, rendered)
+                if user_mail_id:
+                    send_mail(user_mail_id, 'Order Approved Successfully', rendered_user)
+
+
+
             created_order_objs.append(ord_obj)
         admin_user = get_admin(user)
         if admin_user.username in ['one_assist']:

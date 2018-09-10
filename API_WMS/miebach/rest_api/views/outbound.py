@@ -5008,10 +5008,18 @@ def get_sku_categories(request, user=''):
         ProductionStages.objects.filter(user=user.id).order_by('order').values_list('stage_name', flat=True))
     sub_categories = list(SKUMaster.objects.filter(user=user.id).exclude(sub_category='').values_list('sub_category',
                                                                                                       flat=True).distinct())
+    reseller_obj = CustomerUserMapping.objects.filter(user=request.user.id)
+    corp_names = []
+    if reseller_obj and price_band_flag == 'true':
+        reseller_id = reseller_obj[0].customer_id
+        res_corps = list(CorpResellerMapping.objects.filter(reseller_id=reseller_id,
+                                                   status=1).values_list('corporate_id', flat=True).distinct())
+        corp_names = list(CorporateMaster.objects.filter(id__in=res_corps).values_list('name', flat=True).distinct())
+
     return HttpResponse(
         json.dumps({'categories': categories, 'brands': brands, 'size': sizes, 'stages_list': stages_list,
                     'sub_categories': sub_categories, 'colors': colors, 'customization_types': dict(CUSTOMIZATION_TYPES),\
-                    'primary_details': categories_details['primary_details']}))
+                    'primary_details': categories_details['primary_details'], 'reseller_corporates': corp_names}))
 
 
 @csrf_exempt
@@ -11000,6 +11008,24 @@ def request_manual_enquiry_approval(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+def confirm_or_hold_custom_order(request, user=''):
+    resp = {'msg': 'Success', 'data': []}
+    cust_order_id = request.POST.get('order_id')
+    cust_order_status = request.POST.get('status')
+    try:
+        cust_ord_qs = ManualEnquiry.objects.filter(user=request.user.id, enquiry_id=cust_order_id)
+        if cust_ord_qs:
+            cust_ord_obj = cust_ord_qs[0]
+            cust_ord_obj.status = cust_order_status
+            cust_ord_obj.save()
+    except:
+        resp['msg'] = 'Fail'
+    return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def update_cust_profile(request, user=''):
     resp = {'message': 'success', 'data':[]}
     logo = request.FILES.get('logo', '')
@@ -11633,6 +11659,21 @@ def make_notifications_read(request):
                 PushNotifications.objects.filter(user=request.user.id).update(is_read=True)
             else:
                 PushNotifications.objects.filter(id=push_id).update(is_read=True)
+        except:
+            resp['msg'] = 'Fail'
+    return HttpResponse(json.dumps(resp), content_type='application/json')
+
+
+@csrf_exempt
+@login_required
+def delete_notification(request):
+    resp = {'msg': 'Success', 'data': []}
+    notification_id = request.POST.get('notification_id', '')
+    if not notification_id:
+        return HttpResponse('Provide Notification ID')
+    else:
+        try:
+            PushNotifications.objects.filter(id=notification_id).delete()
         except:
             resp['msg'] = 'Fail'
     return HttpResponse(json.dumps(resp), content_type='application/json')

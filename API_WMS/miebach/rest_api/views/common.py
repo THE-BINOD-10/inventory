@@ -7807,7 +7807,7 @@ def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False):
             error_eans.append(ean_number)
     for rem_ean in rem_ean_list:
         if int(data.ean_number) == int(rem_ean):
-            data.ean_number = 0
+            data.ean_number = int(rem_ean)
         else:
             EANNumbers.objects.filter(sku_id=data.id, ean_number=rem_ean).delete()
     if error_eans:

@@ -2820,6 +2820,8 @@ def get_daily_production_data(search_params, user, sub_user):
     stop_index = start_index + search_params.get('length', 0)
     status_tracking_objs = StatusTrackingSummary.objects.filter(**status_filter)
     col_sorted = False
+    if not isinstance(order_index, int):
+        order_index = 0
     if sort_keys.keys()[order_index] in ['Date', 'Reduced Quantity', 'Stage']:
         order_data = sort_keys.values()[order_index]
         if order_term == 'desc':
@@ -2835,7 +2837,8 @@ def get_daily_production_data(search_params, user, sub_user):
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     if sort_keys.keys()[order_index] in ['Date', 'Reduced Quantity', 'Stage']:
         col_sorted = True
-        status_summary = status_summary[start_index:stop_index]
+        if stop_index:
+            status_summary = status_summary[start_index:stop_index]
     data = []
     for summary_dict in status_summary:
         temp_val = summary_dict['grouping_val'].split('<<>>')

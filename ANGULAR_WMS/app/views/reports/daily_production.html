@@ -6,7 +6,7 @@
           <div class="pull-left" ng-include="'views/common/title.html'"></div>
         </div>
         <div class="col-md-6 col-sm-6 col-xs-12">
-          <button type="button" style="margin-left: 10px" class="btn btn-primary pull-right" ng-click="showCase.service.print_excel(showCase.model_data, showCase.dtInstance, showCase.dtColumns, 'daily_production_report')" ng-disabled="showCase.service.print_enable">Download Excel</button>
+          <button type="button" style="margin-left: 10px" class="btn btn-primary pull-right" ng-click="showCase.service.print_excel(showCase.model_data, showCase.dtInstance, showCase.dtColumns, 'daily_production_report', 'true')" ng-disabled="showCase.service.print_enable">Download Excel</button>
           <button type="button" class="btn btn-primary pull-right" ng-disabled="showCase.service.print_enable" ng-click="showCase.service.print_report(showCase.model_data, 'print_daily_production_report/?')">Print Report</button>
         </div>
       </div>

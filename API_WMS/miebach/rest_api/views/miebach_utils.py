@@ -2506,17 +2506,32 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
         price = data['purchase_order__open_po__price']
         if data.get('batch_detail__buy_price', 0):
             price = data['batch_detail__buy_price']
-        if data.get('batch_detail__tax_percent', 0):
+        #if data.get('batch_detail__tax_percent', 0):
+        try:
             temp_tax_percent = data['batch_detail__tax_percent']
             if data['purchase_order__open_po__supplier__tax_type'] == 'intra_state':
                 temp_tax_percent = temp_tax_percent / 2
                 data['purchase_order__open_po__cgst_tax'] = truncate_float(temp_tax_percent, 1)
                 data['purchase_order__open_po__sgst_tax'] = truncate_float(temp_tax_percent, 1)
                 data['purchase_order__open_po__igst_tax'] = 0
+                data['purchase_order__open_po__utgst_tax'] = 0
             else:
                 data['purchase_order__open_po__igst_tax'] = temp_tax_percent
                 data['purchase_order__open_po__cgst_tax'] = 0
                 data['purchase_order__open_po__sgst_tax'] = 0
+                data['purchase_order__open_po__utgst_tax'] = 0
+        except Exception:
+            pass
+        if not data['purchase_order__open_po__cgst_tax']:
+            data['purchase_order__open_po__cgst_tax'] = 0
+        if not data['purchase_order__open_po__sgst_tax']:
+            data['purchase_order__open_po__sgst_tax'] = 0
+        if not data['purchase_order__open_po__igst_tax']:
+            data['purchase_order__open_po__igst_tax'] = 0
+        if not data['purchase_order__open_po__utgst_tax']:
+            data['purchase_order__open_po__utgst_tax'] = 0
+        if not data['purchase_order__open_po__cess_tax']:
+            data['purchase_order__open_po__cess_tax'] = 0
         amount = float(data['total_received'] * price)
         tot_tax = float(data['purchase_order__open_po__cgst_tax']) + float(data['purchase_order__open_po__sgst_tax']) +\
                   float(data['purchase_order__open_po__igst_tax']) + float(data['purchase_order__open_po__utgst_tax'])\
@@ -2824,6 +2839,8 @@ def get_daily_production_data(search_params, user, sub_user):
     stop_index = start_index + search_params.get('length', 0)
     status_tracking_objs = StatusTrackingSummary.objects.filter(**status_filter)
     col_sorted = False
+    if not isinstance(order_index, int):
+        order_index = 0
     if sort_keys.keys()[order_index] in ['Date', 'Reduced Quantity', 'Stage']:
         order_data = sort_keys.values()[order_index]
         if order_term == 'desc':
@@ -2839,7 +2856,8 @@ def get_daily_production_data(search_params, user, sub_user):
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     if sort_keys.keys()[order_index] in ['Date', 'Reduced Quantity', 'Stage']:
         col_sorted = True
-        status_summary = status_summary[start_index:stop_index]
+        if stop_index:
+            status_summary = status_summary[start_index:stop_index]
     data = []
     for summary_dict in status_summary:
         temp_val = summary_dict['grouping_val'].split('<<>>')

@@ -2514,12 +2514,24 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                 data['purchase_order__open_po__cgst_tax'] = truncate_float(temp_tax_percent, 1)
                 data['purchase_order__open_po__sgst_tax'] = truncate_float(temp_tax_percent, 1)
                 data['purchase_order__open_po__igst_tax'] = 0
+                data['purchase_order__open_po__utgst_tax'] = 0
             else:
                 data['purchase_order__open_po__igst_tax'] = temp_tax_percent
                 data['purchase_order__open_po__cgst_tax'] = 0
                 data['purchase_order__open_po__sgst_tax'] = 0
+                data['purchase_order__open_po__utgst_tax'] = 0
         except Exception:
             pass
+        if not data['purchase_order__open_po__cgst_tax']:
+            data['purchase_order__open_po__cgst_tax'] = 0
+        if not data['purchase_order__open_po__sgst_tax']:
+            data['purchase_order__open_po__sgst_tax'] = 0
+        if not data['purchase_order__open_po__igst_tax']:
+            data['purchase_order__open_po__igst_tax'] = 0
+        if not data['purchase_order__open_po__utgst_tax']:
+            data['purchase_order__open_po__utgst_tax'] = 0
+        if not data['purchase_order__open_po__cess_tax']:
+            data['purchase_order__open_po__cess_tax'] = 0
         amount = float(data['total_received'] * price)
         tot_tax = float(data['purchase_order__open_po__cgst_tax']) + float(data['purchase_order__open_po__sgst_tax']) +\
                   float(data['purchase_order__open_po__igst_tax']) + float(data['purchase_order__open_po__utgst_tax'])\

@@ -961,7 +961,7 @@ def update_sku(request, user=''):
             #            return HttpResponse(ean_status)
             elif key == 'ean_numbers':
                 ean_numbers = value.split(',')
-                ean_status = update_ean_sku_mapping(user, ean_numbers, data)
+                ean_status = update_ean_sku_mapping(user, ean_numbers, data, True)
                 if ean_status:
                     return HttpResponse(ean_status)
 

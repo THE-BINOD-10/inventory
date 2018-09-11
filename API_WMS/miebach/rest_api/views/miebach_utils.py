@@ -2502,7 +2502,8 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
         price = data['purchase_order__open_po__price']
         if data.get('batch_detail__buy_price', 0):
             price = data['batch_detail__buy_price']
-        if data.get('batch_detail__tax_percent', 0):
+        #if data.get('batch_detail__tax_percent', 0):
+        try:
             temp_tax_percent = data['batch_detail__tax_percent']
             if data['purchase_order__open_po__supplier__tax_type'] == 'intra_state':
                 temp_tax_percent = temp_tax_percent / 2
@@ -2513,6 +2514,8 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                 data['purchase_order__open_po__igst_tax'] = temp_tax_percent
                 data['purchase_order__open_po__cgst_tax'] = 0
                 data['purchase_order__open_po__sgst_tax'] = 0
+        except Exception:
+            pass
         amount = float(data['total_received'] * price)
         tot_tax = float(data['purchase_order__open_po__cgst_tax']) + float(data['purchase_order__open_po__sgst_tax']) +\
                   float(data['purchase_order__open_po__igst_tax']) + float(data['purchase_order__open_po__utgst_tax'])\

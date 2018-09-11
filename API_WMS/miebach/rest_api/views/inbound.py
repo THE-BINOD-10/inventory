@@ -1728,6 +1728,8 @@ def close_po(request, user=''):
     status = ''
     myDict = dict(request.POST.iterlists())
     reason = request.POST.get('remarks', '')
+    log.info("Close PO data for user %s and request params are %s" % (
+        user.username, str(request.POST.dict())))
     for i in range(0, len(myDict['id'])):
         if myDict['id'][i]:
             if myDict['new_sku'][i] == 'true':

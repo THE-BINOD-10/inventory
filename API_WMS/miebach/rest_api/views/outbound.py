@@ -10787,7 +10787,7 @@ def save_manual_enquiry_images(request, enq_data):
 @get_admin_user
 def place_manual_order(request, user=''):
     MANUAL_ENQUIRY_DICT = {'customer_name': '', 'sku_id': '', 'customization_type': '', 'quantity': ''}
-    MANUAL_ENQUIRY_DETAILS_DICT = {'ask_price': '', 'expected_date': '', 'remarks': ''}
+    MANUAL_ENQUIRY_DETAILS_DICT = {'ask_price': '', 'remarks': ''}
     manual_enquiry = copy.deepcopy(MANUAL_ENQUIRY_DICT)
     manual_enquiry_details = copy.deepcopy(MANUAL_ENQUIRY_DETAILS_DICT)
     for key, value in MANUAL_ENQUIRY_DICT.iteritems():
@@ -10827,6 +10827,14 @@ def place_manual_order(request, user=''):
     manual_enquiry_details['user_id'] = request.user.id
     manual_enq_data = ManualEnquiryDetails(**manual_enquiry_details)
     manual_enq_data.save()
+    admin_user = get_priceband_admin_user(user)
+    market_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
+        Q(userprofile__warehouse_type='SM_MARKET_ADMIN')).values_list('id', flat=True)
+    if market_admin_user_id:
+        market_admin_user_id = market_admin_user_id[0]
+    contents = {"en": "%s placed a custom order %s" % (request.user.id, enq_data.enquiry_id)}
+    users_list = [user.id, admin_user.id, market_admin_user_id]
+    send_push_notification(contents, users_list)
     if request.FILES.get('po_file', ''):
         save_manual_enquiry_images(request, enq_data)
     return HttpResponse("Success")
@@ -10867,6 +10875,14 @@ def save_manual_enquiry_data(request, user=''):
     enquiry_data['expected_date'] = expected_date
     manual_enq_data = ManualEnquiryDetails(**enquiry_data)
     manual_enq_data.save()
+    admin_user = get_priceband_admin_user(user)
+    market_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
+        Q(userprofile__warehouse_type='SM_MARKET_ADMIN')).values_list('id', flat=True)
+    if market_admin_user_id:
+        market_admin_user_id = market_admin_user_id[0]
+    contents = {"en": "%s added remarks in custom order %s" % (request.user.id, manual_enq_data.enquiry_id)}
+    users_list = [user.id, admin_user.id, market_admin_user_id]
+    send_push_notification(contents, users_list)
     return HttpResponse("Success")
 
 @csrf_exempt
@@ -10911,7 +10927,8 @@ def get_manual_enquiry_detail(request, user=''):
     customization_type = customization_types[manual_enq[0].customization_type]
     manual_eq_dict = {'enquiry_id': int(manual_enq[0].enquiry_id), 'customer_name': manual_enq[0].customer_name,
                       'date': manual_enq[0].creation_date.strftime('%Y-%m-%d'), 'customization_type': customization_type,
-                      'quantity': manual_enq[0].quantity, 'custom_remarks': manual_enq[0].custom_remarks.split("<<>>")}
+                      'quantity': manual_enq[0].quantity, 'custom_remarks': manual_enq[0].custom_remarks.split("<<>>"),
+                      'status': manual_enq[0].status}
     enquiry_images = list(ManualEnquiryImages.objects.filter(enquiry=manual_enq[0].id).values_list('image', flat=True))
     style_dict = {'sku_code': manual_enq[0].sku.sku_code, 'style_name':  manual_enq[0].sku.sku_class,
                   'description': manual_enq[0].sku.sku_desc, 'images': enquiry_images,
@@ -10924,7 +10941,10 @@ def get_manual_enquiry_detail(request, user=''):
     enq_details = {}
     for enquiry in enquiry_data:
         date = enquiry.creation_date.strftime('%Y-%m-%d')
-        expected_date = enquiry.expected_date.strftime('%Y-%m-%d')
+        if enquiry.expected_date:
+            expected_date = enquiry.expected_date.strftime('%Y-%m-%d')
+        else:
+            expected_date = ''
         user = UserProfile.objects.get(user=enquiry.user_id)
         if user.user_type != 'customer' and enquiry.status != 'approved':
             enq_details = enquiry
@@ -11002,6 +11022,20 @@ def request_manual_enquiry_approval(request, user=''):
         save_manual_enquiry_data(request)
     enq_data[0].status = status
     enq_data[0].save()
+    admin_user = get_priceband_admin_user(user)
+    if not admin_user:
+        admin_user = request.user
+    market_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
+        Q(userprofile__warehouse_type='SM_MARKET_ADMIN')).values_list('id', flat=True)
+    if market_admin_user_id:
+        market_admin_user_id = market_admin_user_id[0]
+    if request.user.id == admin_user.id:
+        contents_msg = "Admin User updated the status to %s for Enquiry order %s" % (status, enq_data[0].enquiry_id)
+    else:
+        contents_msg = "Marketing adming requesting approval for custom order %s" % (enq_data[0].enqiry_id)
+    contents = {"en": contents_msg}
+    users_list = [admin_user.id, market_admin_user_id, enq_data[0].user_id]
+    send_push_notification(contents, users_list)
     return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
 
 
@@ -11016,10 +11050,120 @@ def confirm_or_hold_custom_order(request, user=''):
         cust_ord_qs = ManualEnquiry.objects.filter(user=request.user.id, enquiry_id=cust_order_id)
         if cust_ord_qs:
             cust_ord_obj = cust_ord_qs[0]
+            if cust_ord_obj.status in ['order_placed', 'confirm_order']:
+                return HttpResponse('Already Accepted')
             cust_ord_obj.status = cust_order_status
             cust_ord_obj.save()
     except:
         resp['msg'] = 'Fail'
+    return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def convert_customorder_to_actualorder(request, user=''):
+    resp = {'msg': 'Success', 'data': []}
+    smd_price = request.POST.get('sm_d_price', '')
+    if smd_price:
+        smd_price = float(smd_price)
+    rc_price = request.POST.get('r_c_price', '')
+    enq_id = request.POST.get('enquiry_id', '')
+    res_user_id = request.POST.get('user_id', '')
+    en_qs = ManualEnquiry.objects.filter(enquiry_id=enq_id, user_id=res_user_id)
+    if not en_qs:
+        resp['msg'] = 'Fail'
+        return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
+    enq_obj = en_qs[0]
+    if enq_obj.status != 'confirm_order':
+        return HttpResponse('Either Order is not approved by Admin or Order already Created')
+    sku_id = enq_obj.sku.id
+    sku_code = enq_obj.sku.sku_code
+    title = enq_obj.sku.sku_desc
+    quantity = enq_obj.quantity
+    req_stock = quantity
+    corp_name = enq_obj.customer_name
+    ask_price_qs = enq_obj.manualenquirydetails_set.values_list('ask_price', flat=True).order_by('-id')
+    if ask_price_qs:
+        ask_price = ask_price_qs[0]
+
+    cust_qs = CustomerUserMapping.objects.filter(user_id=enq_obj.user)
+    if not cust_qs:
+        resp['msg'] = 'Fail'
+        return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
+    cust_obj = cust_qs[0]
+    cm_id = cust_obj.customer.id
+    customer_id = cust_obj.customer.customer_id
+    customer_name = cust_obj.customer.name
+    dist_user_id = cust_obj.customer.user
+    admin_user = get_priceband_admin_user(dist_user_id)
+    stock_wh_map = {}
+    source_whs = list(NetworkMaster.objects.filter(dest_location_code_id=dist_user_id).filter(
+        source_location_code__username__in=['DL01', 'MH01']).values_list(
+        'source_location_code_id', flat=True).order_by('lead_time', 'priority'))
+    pick_filter_map = {'picklist__order__user__in': source_whs, 'picklist__order__sku__wms_code': sku_code}
+    res_qtys = dict(PicklistLocation.objects.prefetch_related('picklist', 'stock').filter(status=1).filter(
+        **pick_filter_map).values_list('stock__sku__user').annotate(total=Sum('reserved')))
+    blocked_qtys = dict(EnquiredSku.objects.filter(sku__user__in=source_whs, sku_code=sku_code).filter(
+        ~Q(enquiry__extend_status='rejected')).values_list('sku__user', 'quantity'))
+    stk_dtl_obj = dict(StockDetail.objects.filter(
+        sku__user__in=source_whs, sku__wms_code=sku_code, quantity__gt=0).values_list(
+        'sku__user').distinct().annotate(in_stock=Sum('quantity')))
+    for source_wh in source_whs:
+        avail_stock = stk_dtl_obj.get(source_wh, 0)
+        res_stock = res_qtys.get(source_wh, 0)
+        blocked_stock = blocked_qtys.get(source_wh, 0)
+        if not res_stock:
+            res_stock = 0
+        if not blocked_stock:
+            blocked_stock = 0
+        avail_stock = avail_stock - res_stock - blocked_stock
+        if avail_stock <= 0:
+            continue
+        req_qty = req_stock - avail_stock
+        if req_qty < avail_stock and req_qty < 0:
+            stock_wh_map[source_wh] = avail_stock - abs(req_qty)
+            break
+        if req_qty >= 0:
+            stock_wh_map[source_wh] = avail_stock
+        else:
+            break
+        req_stock = req_qty
+
+    for usr, qty in stock_wh_map.items():
+        order_id = get_order_id(usr)  # user.id should be either DL01 or MH01
+        org_ord_id = 'MN' + str(order_id)
+        shipment_date = datetime.datetime.today()
+        invoice_amount = get_tax_inclusive_invoice_amt(cm_id, smd_price, qty, usr, sku_code, admin_user=admin_user)
+
+        order_detail_dict = {'sku_id': sku_id, 'title': title, 'quantity': quantity, 'order_id': order_id,
+                             'original_order_id': org_ord_id, 'user': usr, 'customer_id': customer_id,
+                             'customer_name': customer_name, 'shipment_date': shipment_date,
+                             'address': '', 'unit_price': smd_price, 'invoice_amount': invoice_amount,
+                             'creation_date': None, 'status': 1}
+        ord_qs = OrderDetail.objects.filter(sku_id=sku_id, order_id=order_id)
+        if not ord_qs:
+            ord_obj = OrderDetail(**order_detail_dict)
+            ord_obj.save()
+        else:
+            ord_obj = ord_qs[0]
+            ord_obj.qty = qty
+            ord_obj.save()
+
+        generic_order_id = get_generic_order_id(cm_id)
+        corporate_po_number = 0  # No PO Number
+        del_date = shipment_date + datetime.timedelta(days=7)
+        create_grouping_order_for_generic(generic_order_id, ord_obj, cm_id, usr, quantity, corporate_po_number,
+                                          corp_name, ask_price, ask_price, del_date)
+        # CustomerOrderSummary.objects.create(order=ord_obj, sgst_tax=sgst_tax, cgst_tax=cgst_tax,
+        #                                     igst_tax=igst_tax, tax_type=tax_type)
+
+    if req_stock == sum(stock_wh_map.values()):
+        enq_obj.status = 'order_placed'
+        enq_obj.save()
+    else:
+        return HttpResponse('No Available Stock to Place the Order')
+
     return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
 
 

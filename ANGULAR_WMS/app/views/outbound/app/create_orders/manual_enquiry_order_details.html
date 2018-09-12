@@ -90,26 +90,46 @@
 
     <div class="row no-margin">
       <form name="form" role="form">
-        <div ng-if="order.edit_enable">
-        <div class="col-md-4 col-sm-4 col-xs-12" ng-if="order.order_details.order.customization_type!='Product Customization'">
-          <div class="form-group">
-            <input type="text" name="ask_price" ng-model="order.model_data.ask_price" class="form-control ng-pristine" placeholder="Modify Price *" decimal-number required>
+        <div ng-if="order.edit_enable && order.order_details.order.status!='confirm_order'">
+          <div class="col-md-4 col-sm-4 col-xs-12" ng-if="order.order_details.order.customization_type!='Product Customization'">
+            <div class="form-group">
+              <input type="text" name="ask_price" ng-model="order.model_data.ask_price" class="form-control ng-pristine" placeholder="Modify Price *" decimal-number required>
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-4 col-xs-12">
+            <div class="form-group">
+              <input name="extended_date" ui-jq="datepicker" ng-model="order.model_data.expected_date" placeholder="Select Expected Date *" class="form-control stk-readonly" type="text" id="extended_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{order.date}}" readonly="true" required>
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-4 col-xs-12">
+            <div class="form-group">
+              <textarea rows="4" class="form-control ng-pristine" cols="27" name="remarks" placeholder="Remarks *" ng-model="order.model_data.remarks" required></textarea>
+            </div>
           </div>
         </div>
-        <div class="col-md-4 col-sm-4 col-xs-12">
-          <div class="form-group">
-            <input name="extended_date" ui-jq="datepicker" ng-model="order.model_data.expected_date" placeholder="Select Expected Date *" class="form-control stk-readonly" type="text" id="extended_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{order.date}}" readonly="true" required>
+        <div ng-if="order.model_data.from == 'custom_order' && order.order_details.order.status=='confirm_order'">
+          <div class="col-md-4 col-sm-4 col-xs-12">
+            <div class="form-group">
+              <input type="text" name="sm_d_price" ng-model="order.model_data.sm_d_price" class="form-control ng-pristine" placeholder="SM-D Price *" decimal-number required>
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-4 col-xs-12">
+            <div class="form-group">
+              <label>D-R Price: {{order.model_data.confirmed_price}}</label>
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-4 col-xs-12">
+            <div class="form-group">
+              <input type="text" name="r_c_price" ng-model="order.model_data.r_c_price" class="form-control ng-pristine" placeholder="R-C Price *" decimal-number required>
+            </div>
           </div>
         </div>
-        <div class="col-md-4 col-sm-4 col-xs-12">
-          <div class="form-group">
-            <textarea rows="4" class="form-control ng-pristine" cols="27" name="remarks" placeholder="Remarks *" ng-model="order.model_data.remarks" required></textarea>
-          </div>
-        </div>
-        </div>
-        <div class="col-md-12 text-center mb10" ng-if="order.model_data.from == 'custom_order'">
+        <div class="col-md-12 text-center mb10" ng-if="order.model_data.from == 'custom_order' && order.order_details.order.status!='confirm_order'">
           <button type='submit' class="btn btn-primary" ng-click="order.notify_to_sub_dist(form)" ng-disabled="order.disable_btn">Notify to Sub Distributor</button>
           <button type='button' class="btn btn-primary" ng-click="order.send_for_approval(form)" ng-disabled="order.disable_btn">Send For Approval</button>
+        </div>
+        <div class="col-md-12 text-center mb10" ng-if="order.model_data.from == 'custom_order' && order.order_details.order.status=='confirm_order'">
+          <button type='submit' class="btn btn-primary" ng-click="order.convert_customorder_to_actualorder(form)" ng-disabled="order.disable_btn">Place Order</button>
         </div>
         <div class="col-md-12 text-center mb10" ng-hide="order.save">
           <button type='submit' class="btn btn-success" ng-if="!order.edit_enable" ng-click="order.edit_enable = true">edit</button>

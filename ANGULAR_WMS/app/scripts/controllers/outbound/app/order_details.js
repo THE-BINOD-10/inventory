@@ -102,19 +102,17 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
           var elem = {'order_id': vm.order_id};
           if(isConfirm){
               elem['status'] = 'confirm_order'
-              vm.service.apiCall('confirm_or_hold_custom_order/', 'POST', elem).then(function(data){
-                if(data.message) {
-                   console.log('Calling Confirm');
-                }
-              })
           }else{
               elem['status'] = 'hold_order'
-              vm.service.apiCall('confirm_or_hold_custom_order/', 'POST', elem).then(function(data){
-                if(data.message){
-                  console.log('Calling Hold');
-                }
-              })
           }
+          vm.service.apiCall('confirm_or_hold_custom_order/', 'POST', elem).then(function(data){
+                if(data.data.msg == 'Success') {
+                   console.log('Calling Confirm or Hold Custom Order Function');
+                   Service.showNoty('Order Confirmed or Blocked Stock Successfully');
+                }else{
+                    Service.showNoty(data.data, 'warning');
+                }
+          })
         }
       );
     }

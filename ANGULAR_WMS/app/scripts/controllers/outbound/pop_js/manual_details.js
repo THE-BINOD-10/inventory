@@ -36,6 +36,20 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
     });
   }
 
+  vm.convert_customorder_to_actualorder = function() {
+  elem = {};
+  angular.copy(vm.model_data, elem);
+    vm.service.apiCall('convert_customorder_to_actualorder/', 'POST', elem).then(function(data){
+        if(data.data.msg == 'Success'){
+          $modalInstance.close();
+          Service.showNoty('Order Placed Successfully');
+        }else{
+          Service.showNoty(data.data, 'warning');
+        }
+    })
+  }
+
+
   vm.send_for_approval = function(form) {
 
     if(vm.model_data.ask_price || vm.model_data.expected_date || vm.model_data.remarks) {
@@ -110,6 +124,9 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
 
         console.log(data.data);
         vm.order_details = data.data;
+        if(vm.order_details.order.status == "confirm_order"){
+            vm.model_data.confirmed_price = vm.order_details.data[vm.order_details.data.length - 1].ask_price;
+        }
         if(vm.order_details.enq_details.expected_date && vm.model_data.from == 'pending_approval') {
 
           vm.model_data.expected_date = vm.order_details.enq_details.expected_date;

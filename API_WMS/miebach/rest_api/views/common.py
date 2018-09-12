@@ -247,6 +247,8 @@ def add_user_permissions(request, response_data, user=''):
             user_type = 'central_admin'
         else:
             user_type = 'admin_sub_user'
+    elif request_user_profile.warehouse_type == 'SM_MARKET_ADMIN':
+        user_type = 'sm_market_admin'
     # elif user_profile.warehouse_type == 'CENTRAL_ADMIN':
     #     user_type = 'default'
     else:

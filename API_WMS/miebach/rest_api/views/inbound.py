@@ -4551,10 +4551,10 @@ def confirm_add_po(request, sales_data='', user=''):
                  'user_name': request.user.username, 'total_amt_in_words': total_amt_in_words,
                  'total_qty': total_qty, 'company_name': company_name, 'location': profile.location,
                  'w_address': get_purchase_company_address(profile),
-                 'company_name': company_name, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
+                 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                  'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title,
                  'gstin_no': gstin_no, 'industry_type': industry_type, 'expiry_date': expiry_date,
-                 'wh_telephone': wh_telephone, 'wh_gstin': profile.gst_number,
+                 'wh_telephone': wh_telephone, 'wh_gstin': profile.gst_number, 'wh_pan': profile.pan_number,
                  'terms_condition': terms_condition, 'show_cess_tax' : show_cess_tax}
     if round_value:
         data_dict['round_total'] = "%.2f" % round_value

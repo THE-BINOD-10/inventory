@@ -41,7 +41,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
   //WareHouse stock
 
   self.stock_view = {
-                      views: ['Available', 'Available+Intransit', 'Total'],
+                      views: ['Available', 'Available+Intransit', 'Available+ASN', 'Total'],
                       view: 'Available',
                       levels: [1,2],
                       level: 1

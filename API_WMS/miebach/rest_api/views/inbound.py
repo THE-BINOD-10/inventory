@@ -2406,7 +2406,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
             continue
 
         if 'po_quantity' in myDict.keys() and 'price' in myDict.keys() and not myDict['id'][i]:
-            if myDict['wms_code'][i] and myDict['po_quantity'][i] and myDict['quantity'][i]:
+            if myDict['wms_code'][i] and myDict['quantity'][i]:
                 sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
                 if not sku_master or not myDict['id'][0]:
                     if not status_msg:
@@ -4986,14 +4986,20 @@ def create_purchase_order(request, myDict, i, user=''):
         price = myDict['price'][i]
         if not price:
             price = 0
+        try:
+            po_quantity = float(myDict['po_quantity'][i])
+        except:
+            po_quantity = 0
+        if not po_quantity:
+            po_quantity = float(myDict['quantity'][i])
         new_data = {'supplier_id': supplier_master[0].id, 'sku_id': sku_master[0].id,
-                    'order_quantity': myDict['po_quantity'][i], 'price': price,
+                    'order_quantity': po_quantity, 'price': price,
                     'po_name': po_order[0].open_po.po_name,
                     'order_type': po_order[0].open_po.order_type, 'tax_type': po_order[0].open_po.tax_type,
                     'measurement_unit': sku_master[0].measurement_type,
                     'creation_date': datetime.datetime.now()}
         if 'mrp' in myDict.keys():
-            new_data['mrp'] = myDict['po_quantity'][i]
+            new_data['mrp'] = myDict['mrp'][i]
         if 'tax_percent' in myDict.keys() and myDict['tax_percent'][i]:
             if supplier_master[0].tax_type == 'intra_state':
                 new_data['cgst_tax'] = float(myDict['tax_percent'][i])/2
@@ -5017,9 +5023,9 @@ def create_purchase_order(request, myDict, i, user=''):
                                                       open_po_id=open_po.id)
             if not exist_seller_po:
                 SellerPO.objects.create(seller_id=seller_po[0].seller_id, open_po_id=open_po.id,
-                                    seller_quantity=myDict['po_quantity'][i],
-                                    received_quantity=myDict['po_quantity'][i],
-                                    receipt_type=seller_po[0].receipt_type, unit_price=myDict['price'][i],
+                                    seller_quantity=po_quantity,
+                                    received_quantity=myDict['quantity'][i],
+                                    receipt_type=seller_po[0].receipt_type, unit_price=price,
                                     status=1)
     return myDict['id'][i]
 

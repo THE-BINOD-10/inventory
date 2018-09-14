@@ -11025,17 +11025,22 @@ def request_manual_enquiry_approval(request, user=''):
     admin_user = get_priceband_admin_user(user)
     if not admin_user:
         admin_user = request.user
-    market_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
-        Q(userprofile__warehouse_type='SM_MARKET_ADMIN')).values_list('id', flat=True)
-    if market_admin_user_id:
-        market_admin_user_id = market_admin_user_id[0]
+    users_list = [admin_user.id]
+    if request.user.userprofile.warehouse_type == 'SM_MARKET_ADMIN':
+        users_list.append(request.user.id)
+    else:
+        market_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
+            Q(userprofile__warehouse_type='SM_MARKET_ADMIN')).values_list('id', flat=True)
+        if market_admin_user_id:
+            market_admin_user_id = market_admin_user_id[0]
+            users_list.append(market_admin_user_id)
     if request.user.id == admin_user.id:
         contents_msg = "Admin User updated the status to %s for Enquiry order %s" % (status, enq_data[0].enquiry_id)
     else:
         contents_msg = "Marketing adming requesting approval for custom order %s" % (enq_data[0].enqiry_id)
     contents = {"en": contents_msg}
-    users_list = [admin_user.id, market_admin_user_id, enq_data[0].user_id]
-    send_push_notification(contents, users_list)
+    users_list.append(enq_data[0].user_id)
+    send_push_notification(contents, list(set(users_list)))
     return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
 
 
@@ -11155,8 +11160,45 @@ def convert_customorder_to_actualorder(request, user=''):
         del_date = shipment_date + datetime.timedelta(days=7)
         create_grouping_order_for_generic(generic_order_id, ord_obj, cm_id, usr, quantity, corporate_po_number,
                                           corp_name, ask_price, ask_price, del_date)
-        # CustomerOrderSummary.objects.create(order=ord_obj, sgst_tax=sgst_tax, cgst_tax=cgst_tax,
-        #                                     igst_tax=igst_tax, tax_type=tax_type)
+        usr_sku_master = SKUMaster.objects.filter(user=usr, sku_code=sku_code)
+        if usr_sku_master:
+            product_type = usr_sku_master[0].product_type
+        else:
+            log.info('No SKUMaster for user(%s) and sku_code(%s)' % (usr, sku_code))
+            product_type = ''
+        customer_master = CustomerMaster.objects.get(id=cm_id)
+        taxes = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0}
+        if customer_master.tax_type:
+            inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
+            inter_state = inter_state_dict.get(customer_master.tax_type, 2)
+            if admin_user:
+                tax_master = TaxMaster.objects.filter(user_id=admin_user, inter_state=inter_state,
+                                                      product_type=product_type,
+                                                      min_amt__lte=smd_price, max_amt__gte=smd_price)
+            else:
+                tax_master = TaxMaster.objects.filter(user_id=usr, inter_state=inter_state,
+                                                      product_type=product_type,
+                                                      min_amt__lte=smd_price, max_amt__gte=smd_price)
+            if tax_master:
+                tax_master = tax_master[0]
+                taxes['cgst_tax'] = float(tax_master.cgst_tax)
+                taxes['sgst_tax'] = float(tax_master.sgst_tax)
+                taxes['igst_tax'] = float(tax_master.igst_tax)
+                taxes['utgst_tax'] = float(tax_master.utgst_tax)
+        CustomerOrderSummary.objects.create(order=ord_obj, sgst_tax=taxes['sgst_tax'], cgst_tax=taxes['cgst_tax'],
+                                            igst_tax=taxes['igst_tax'], tax_type=customer_master.tax_type)
+        generic_orders = GenericOrderDetailMapping.objects.filter(generic_order_id=generic_order_id,
+                                                                  customer_id=cm_id). \
+            values('orderdetail__original_order_id', 'orderdetail__user').distinct()
+        for generic_order in generic_orders:
+            original_order_id = generic_order['orderdetail__original_order_id']
+            order_detail_user = User.objects.get(id=generic_order['orderdetail__user'])
+            try:
+                order_push_status = order_push(original_order_id, order_detail_user, "NEW")
+                log.info('New Order Push Status: %s' % (str(order_push_status)))
+            except:
+                log.info("Order Push failed for order: %s" %original_order_id)
+
 
     if req_stock == sum(stock_wh_map.values()):
         enq_obj.status = 'order_placed'

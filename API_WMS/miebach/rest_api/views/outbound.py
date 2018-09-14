@@ -10816,7 +10816,7 @@ def place_manual_order(request, user=''):
             value = datetime.date(int(expected_date[0]), int(expected_date[1]), int(expected_date[2]))
         manual_enquiry_details[key] = value
     manual_enquiry['custom_remarks'] = request.POST.get('custom_remarks', '')
-    check_enquiry = ManualEnquiry.objects.filter(user=request.user.id,sku=manual_enquiry['sku_id'])
+    check_enquiry = ManualEnquiry.objects.filter(user=request.user.id, sku=manual_enquiry['sku_id'], status__in=['', 'approved', 'confirm_order'])
     if check_enquiry:
         return HttpResponse("Manual Enquiry Already Exists")
     manual_enquiry['user_id'] = request.user.id

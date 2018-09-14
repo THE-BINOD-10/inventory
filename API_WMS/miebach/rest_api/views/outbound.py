@@ -6761,7 +6761,7 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
             wh_name = dat.order_assigned_wh.username
         else:
             wh_name = ''
-        shipment_date = dat.shipment_date.strftime("%m/%d/%Y")
+        shipment_date = dat.shipment_date.strftime("%d/%m/%Y")
         if dat.status:
             status = status_map.get(dat.status)
         else:

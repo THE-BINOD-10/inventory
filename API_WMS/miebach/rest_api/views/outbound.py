@@ -10367,29 +10367,55 @@ def insert_enquiry_data(request, user=''):
             enquiry_data = {'customer_id': customer_id, 'warehouse_level': cart_item.warehouse_level,
                             'user': user.id, 'quantity': cart_item.quantity, 'sku_id': cart_item.sku.id}
             stock_wh_map = split_orders(**enquiry_data)
-            for wh_code, qty in stock_wh_map.items():
-                if qty <= 0:
-                    continue
-                wh_sku_id = get_syncedusers_mapped_sku(wh_code, cart_item.sku.id)
-                enq_sku_obj = EnquiredSku()
-                enq_sku_obj.sku_id = wh_sku_id
-                enq_sku_obj.title = cart_item.sku.style_name
-                enq_sku_obj.enquiry = enq_master_obj
-                enq_sku_obj.quantity = qty
-                tot_amt = get_tax_inclusive_invoice_amt(cm_id, cart_item.levelbase_price, qty,
-                                                        user.id, cart_item.sku.sku_code, admin_user)
-                enq_sku_obj.invoice_amount = tot_amt
-                enq_sku_obj.status = 1
-                enq_sku_obj.sku_code = cart_item.sku.sku_code
-                enq_sku_obj.levelbase_price = cart_item.levelbase_price
-                enq_sku_obj.warehouse_level = cart_item.warehouse_level
-                enq_sku_obj.save()
-                wh_name = User.objects.get(id=wh_code).first_name
-                cont_vals = (customer_details['customer_name'], enquiry_id, wh_name, cart_item.sku.sku_code)
-                contents = {"en": "%s placed an enquiry order %s to %s for SKU Code %s" % cont_vals}
-                users_list = list(set([user.id, wh_code, admin_user.id]))
-                send_push_notification(contents, users_list)
-                items.append([cart_item.sku.style_name, qty, tot_amt])
+            if cart_item.warehouse_level == 3:
+                for lt, stc_wh_map in stock_wh_map.items():
+                    for wh_code, qty in stc_wh_map.items():
+                        if qty <= 0:
+                            continue
+                        wh_sku_id = get_syncedusers_mapped_sku(wh_code, cart_item.sku.id)
+                        enq_sku_obj = EnquiredSku()
+                        enq_sku_obj.sku_id = wh_sku_id
+                        enq_sku_obj.title = cart_item.sku.style_name
+                        enq_sku_obj.enquiry = enq_master_obj
+                        enq_sku_obj.quantity = qty
+                        tot_amt = get_tax_inclusive_invoice_amt(cm_id, cart_item.levelbase_price, qty,
+                                                                user.id, cart_item.sku.sku_code, admin_user)
+                        enq_sku_obj.invoice_amount = tot_amt
+                        enq_sku_obj.status = 1
+                        enq_sku_obj.sku_code = cart_item.sku.sku_code
+                        enq_sku_obj.levelbase_price = cart_item.levelbase_price
+                        enq_sku_obj.warehouse_level = cart_item.warehouse_level
+                        enq_sku_obj.save()
+                        wh_name = User.objects.get(id=wh_code).first_name
+                        cont_vals = (customer_details['customer_name'], enquiry_id, wh_name, cart_item.sku.sku_code)
+                        contents = {"en": "%s placed an enquiry order %s to %s for SKU Code %s" % cont_vals}
+                        users_list = list(set([user.id, wh_code, admin_user.id]))
+                        send_push_notification(contents, users_list)
+                        items.append([cart_item.sku.style_name, qty, tot_amt])
+            else:
+                for wh_code, qty in stock_wh_map.items():
+                    if qty <= 0:
+                        continue
+                    wh_sku_id = get_syncedusers_mapped_sku(wh_code, cart_item.sku.id)
+                    enq_sku_obj = EnquiredSku()
+                    enq_sku_obj.sku_id = wh_sku_id
+                    enq_sku_obj.title = cart_item.sku.style_name
+                    enq_sku_obj.enquiry = enq_master_obj
+                    enq_sku_obj.quantity = qty
+                    tot_amt = get_tax_inclusive_invoice_amt(cm_id, cart_item.levelbase_price, qty,
+                                                            user.id, cart_item.sku.sku_code, admin_user)
+                    enq_sku_obj.invoice_amount = tot_amt
+                    enq_sku_obj.status = 1
+                    enq_sku_obj.sku_code = cart_item.sku.sku_code
+                    enq_sku_obj.levelbase_price = cart_item.levelbase_price
+                    enq_sku_obj.warehouse_level = cart_item.warehouse_level
+                    enq_sku_obj.save()
+                    wh_name = User.objects.get(id=wh_code).first_name
+                    cont_vals = (customer_details['customer_name'], enquiry_id, wh_name, cart_item.sku.sku_code)
+                    contents = {"en": "%s placed an enquiry order %s to %s for SKU Code %s" % cont_vals}
+                    users_list = list(set([user.id, wh_code, admin_user.id]))
+                    send_push_notification(contents, users_list)
+                    items.append([cart_item.sku.style_name, qty, tot_amt])
     except:
         import traceback
         log.debug(traceback.format_exc())
@@ -10445,7 +10471,7 @@ def get_manual_enquiry_data(request, user=''):
         start_index = int(index.split(':')[0])
         stop_index = int(index.split(':')[1])
     response_data = {'data': []}
-    em_qs = ManualEnquiry.objects.filter(user=request.user.id)
+    em_qs = ManualEnquiry.objects.filter(user=request.user.id).order_by('-id')
     for enquiry in em_qs[start_index:stop_index]:
         res_map = {'order_id': enquiry.enquiry_id, 'customer_name': enquiry.customer_name,
                    'date': get_only_date(request, enquiry.creation_date),
@@ -10787,7 +10813,7 @@ def save_manual_enquiry_images(request, enq_data):
 @get_admin_user
 def place_manual_order(request, user=''):
     MANUAL_ENQUIRY_DICT = {'customer_name': '', 'sku_id': '', 'customization_type': '', 'quantity': ''}
-    MANUAL_ENQUIRY_DETAILS_DICT = {'ask_price': '', 'remarks': ''}
+    MANUAL_ENQUIRY_DETAILS_DICT = {'ask_price': '', 'expected_date': '', 'remarks': ''}
     manual_enquiry = copy.deepcopy(MANUAL_ENQUIRY_DICT)
     manual_enquiry_details = copy.deepcopy(MANUAL_ENQUIRY_DETAILS_DICT)
     for key, value in MANUAL_ENQUIRY_DICT.iteritems():
@@ -10832,7 +10858,8 @@ def place_manual_order(request, user=''):
         Q(userprofile__warehouse_type='SM_MARKET_ADMIN')).values_list('id', flat=True)
     if market_admin_user_id:
         market_admin_user_id = market_admin_user_id[0]
-    contents = {"en": "%s placed a custom order %s" % (request.user.id, enq_data.enquiry_id)}
+    cont_vals = (request.user.first_name, enq_data.enquiry_id, enq_data.sku.sku_code)
+    contents = {"en": "%s placed a custom order %s for SKU %s" % cont_vals}
     users_list = [user.id, admin_user.id, market_admin_user_id]
     send_push_notification(contents, users_list)
     if request.FILES.get('po_file', ''):
@@ -10875,13 +10902,21 @@ def save_manual_enquiry_data(request, user=''):
     enquiry_data['expected_date'] = expected_date
     manual_enq_data = ManualEnquiryDetails(**enquiry_data)
     manual_enq_data.save()
-    admin_user = get_priceband_admin_user(user)
-    market_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
-        Q(userprofile__warehouse_type='SM_MARKET_ADMIN')).values_list('id', flat=True)
-    if market_admin_user_id:
-        market_admin_user_id = market_admin_user_id[0]
-    contents = {"en": "%s added remarks in custom order %s" % (request.user.id, manual_enq_data.enquiry_id)}
-    users_list = [user.id, admin_user.id, market_admin_user_id]
+    users_list = []
+    if request.user.userprofile.warehouse_type == 'SM_MARKET_ADMIN':
+        users_list.append(request.user.id)
+        users_list.append(user.id)
+    else:
+        admin_user = get_priceband_admin_user(user)
+        if not admin_user:
+            admin_user = request.user
+        market_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
+            Q(userprofile__warehouse_type='SM_MARKET_ADMIN')).values_list('id', flat=True)
+        if market_admin_user_id:
+            market_admin_user_id = market_admin_user_id[0]
+            users_list.append(market_admin_user_id)
+        users_list.append(admin_user.id)
+    contents = {"en": "%s added remarks in custom order %s" % (request.user.username, manual_enq_data.enquiry_id)}
     send_push_notification(contents, users_list)
     return HttpResponse("Success")
 
@@ -11022,13 +11057,15 @@ def request_manual_enquiry_approval(request, user=''):
         save_manual_enquiry_data(request)
     enq_data[0].status = status
     enq_data[0].save()
-    admin_user = get_priceband_admin_user(user)
-    if not admin_user:
-        admin_user = request.user
-    users_list = [admin_user.id]
+    users_list = []
     if request.user.userprofile.warehouse_type == 'SM_MARKET_ADMIN':
         users_list.append(request.user.id)
+        admin_user = user
+        users_list.append(admin_user.id)
     else:
+        admin_user = get_priceband_admin_user(user)
+        if not admin_user:
+            admin_user = request.user
         market_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
             Q(userprofile__warehouse_type='SM_MARKET_ADMIN')).values_list('id', flat=True)
         if market_admin_user_id:
@@ -11037,7 +11074,7 @@ def request_manual_enquiry_approval(request, user=''):
     if request.user.id == admin_user.id:
         contents_msg = "Admin User updated the status to %s for Enquiry order %s" % (status, enq_data[0].enquiry_id)
     else:
-        contents_msg = "Marketing adming requesting approval for custom order %s" % (enq_data[0].enqiry_id)
+        contents_msg = "Marketing admin requesting approval for custom order %s" % (enq_data[0].enquiry_id)
     contents = {"en": contents_msg}
     users_list.append(enq_data[0].user_id)
     send_push_notification(contents, list(set(users_list)))
@@ -11057,6 +11094,8 @@ def confirm_or_hold_custom_order(request, user=''):
             cust_ord_obj = cust_ord_qs[0]
             if cust_ord_obj.status in ['order_placed', 'confirm_order']:
                 return HttpResponse('Already Accepted')
+            if cust_ord_obj.status != 'approved':
+                return HttpResponse('Yet to be approved by Admin')
             cust_ord_obj.status = cust_order_status
             cust_ord_obj.save()
     except:
@@ -11146,7 +11185,7 @@ def convert_customorder_to_actualorder(request, user=''):
                              'customer_name': customer_name, 'shipment_date': shipment_date,
                              'address': '', 'unit_price': smd_price, 'invoice_amount': invoice_amount,
                              'creation_date': None, 'status': 1}
-        ord_qs = OrderDetail.objects.filter(sku_id=sku_id, order_id=order_id)
+        ord_qs = OrderDetail.objects.filter(sku_id=sku_id, order_id=order_id, user=usr)
         if not ord_qs:
             ord_obj = OrderDetail(**order_detail_dict)
             ord_obj.save()
@@ -11198,7 +11237,6 @@ def convert_customorder_to_actualorder(request, user=''):
                 log.info('New Order Push Status: %s' % (str(order_push_status)))
             except:
                 log.info("Order Push failed for order: %s" %original_order_id)
-
 
     if req_stock == sum(stock_wh_map.values()):
         enq_obj.status = 'order_placed'

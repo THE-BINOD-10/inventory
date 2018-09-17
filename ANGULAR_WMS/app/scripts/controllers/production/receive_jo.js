@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('ReceiveJOCtrl',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', 'Data', ServerSideProcessingCtrl]);
+  .controller('ReceiveJOCtrl',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', 'Data', '$modal', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, Data) {
+function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, Data, $modal) {
     var vm = this;
     vm.service = Service;
     vm.g_data = Data.receive_jo;
@@ -294,6 +294,92 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       //   })
       // }
     }
+  }
+
+  vm.gen_barcode = function() {
+    vm.barcode_title = 'Barcode Generation';
+    vm.model_data['barcodes'] = [];
+
+    vm.model_data['format_types'] = [];
+    var key_obj = {};//{'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details', 'Bulk Barcode': 'Details'};
+    vm.service.apiCall('get_format_types/').then(function(data){
+      $.each(data['data']['data'], function(ke, val){
+        vm.model_data['format_types'].push(ke);
+      });
+      key_obj = data['data']['data'];
+    });
+    var elem = angular.element($('form'));
+    elem = elem[0];
+    elem = $(elem).serializeArray();
+    var list = [];
+    var dict = {};
+    $.each(elem, function(num, key){
+      if(!dict.hasOwnProperty(key['name'])){
+        dict[key['name']] = key['value'];
+      }else{
+        list.push(dict);
+        dict = {}
+          dict[key['name']] = key['value'];
+      }
+    });
+    list.push(dict);
+    vm.model_data['barcodes'] = list;
+    vm.model_data.have_data = true;
+    //$state.go('app.inbound.RevceivePo.barcode');
+    var modalInstance = $modal.open({
+      templateUrl: 'views/outbound/toggle/barcodes.html',
+      controller: 'Barcodes',
+      controllerAs: 'pop',
+      size: 'lg',
+      backdrop: 'static',
+      keyboard: false,
+      windowClass: 'z-2021',
+      resolve: {
+        items: function () {
+          return vm.model_data;
+        }
+      }
+    });
+
+    modalInstance.result.then(function (selectedItem) {
+      console.log(selectedItem);
+    });
+  }
+
+  vm.barcode = function() {
+
+    vm.barcode_title = 'Barcode Generation';
+
+    vm.model_data['barcodes'] = [];
+
+    angular.forEach(vm.model_data.data, function(barcode_data){
+
+      var quant = barcode_data[0].value;
+
+      var sku_det = barcode_data[0].wms_code;
+
+      vm.model_data['barcodes'].push({'sku_code': sku_det, 'quantity': quant})
+
+    })
+
+    var modalInstance = $modal.open({
+      templateUrl: 'views/outbound/toggle/barcodes.html',
+      controller: 'Barcodes',
+      controllerAs: 'pop',
+      size: 'lg',
+      backdrop: 'static',
+      keyboard: false,
+      resolve: {
+        items: function () {
+          console.log(model_data);
+          return model_data;
+        }
+      }
+    });
+
+    modalInstance.result.then(function (selectedItem) {
+    });
+    //$state.go('app.inbound.RevceivePo.barcode');
   }
 
 }

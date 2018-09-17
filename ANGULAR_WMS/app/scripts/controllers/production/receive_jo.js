@@ -67,8 +67,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   angular.forEach(vm.final_data, function(value, key){
                     vm.total_data.quantity += value.quantity;
                   });
-
-
 		  vm.order_ids_list = data.data.order_ids.toString();
                   $state.go('app.production.ReveiveJO.ReceiveJobOrder');
                 }
@@ -222,5 +220,81 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     $state.go($state.current, {}, {reload: true});    
   }
 
+  // vm.serial_numbers = [];
+  vm.check_imei_exists = function(event, data1, index) {
+    event.stopPropagation();
+    if (event.keyCode == 13 && data1.imei_number.length > 0) {
+      //if(vm.imei_list.indexOf(data1.imei_number) > -1) {
+
+      //  Service.showNoty("IMEI Already Scanned");
+
+      /*if (vm.fb.poData.serials.indexOf(data1.imei_number) != -1){
+
+        Service.showNoty("Serial Number already Exist");
+        data1.imei_number = "";
+        if(vm.permissions.grn_scan_option == "sku_serial_scan") {
+          $('textarea[name="scan_sku"]').trigger('focus').val('');
+        }
+      } else {
+
+        data1["disable"] = true;
+        fb.check_imei(data1.imei_number).then(function(resp) {
+          if (resp.status) {
+            Service.showNoty("Serial Number already Exist in other PO: "+resp.data.po);
+            data1.imei_number = "";
+            //if(vm.permissions.barcode_generate_opt != "sku_serial") { 
+            //  $('textarea[name="scan_sku"]').trigger('focus').val('');
+            //}
+            if(vm.permissions.grn_scan_option == "sku_serial_scan") {
+              $('textarea[name="scan_sku"]').trigger('focus').val('');
+            }
+            data1["disable"] = false;
+          } else {*/
+            if(vm.permissions.barcode_generate_opt != "sku_serial") {
+              vm.service.apiCall('check_imei_exists/', 'GET',{imei: data1.imei_number, sku_code: data1.wms_code}).then(function(data){
+                if(data.message) {
+                  if (data.data == "") {
+                    // if(vm.po_qc) {
+                    //   vm.po_qc_imei_scan(data1, index)
+                    // } else {
+                    //   vm.po_imei_scan(data1, data1.imei_number)
+                    // }
+                  } else {
+                    Service.showNoty(data.data);
+                    data1.imei_number = "";
+                  }
+                }
+                data1["disable"] = false;
+              })
+            } else {
+              vm.service.apiCall('check_generated_label/', 'GET',{'label': data1.imei_number, 'order_id': vm.model_data.job_code}).then(function(data){
+                if(data.message) {
+                  if(data.data.message == 'Success') {
+                    data1.imei_number = data.data.data.label;
+                    var sku_code = data.data.data.sku_code;
+                    if (data1.wms_code != sku_code) {
+                      Service.showNoty("Scanned label belongs to "+sku_code);
+                      data1.imei_number = "";
+                      return false;
+                    }
+                    // if(vm.po_qc) {
+                    //   vm.po_qc_imei_scan(data1, index)
+                    // } else {
+                    //   vm.po_imei_scan(data1, data1.imei_number)
+                    // }
+                  } else {
+                     Service.showNoty(data.data.message);
+                     data1.imei_number = "";
+                  }
+                }
+                data1["disable"] = false;
+              })
+            }
+      //     }
+      //   })
+      // }
+    }
   }
+
+}
 

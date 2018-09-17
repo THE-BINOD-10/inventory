@@ -34,13 +34,14 @@
                   <th> JO Quantity </th>
                   <th ng-if="showCase.permissions.pallet_switch"> Pallet Code </th>
                   <th> Received Quantity </th>
+                  <th ng-if="showCase.permissions.use_imei">Serial Number</th>
                   <th> Stage </th>
                   <th class="detail"></th>
                   <th class="plus"></th>
                 </tr>
               </thead>
-              <tbody ng-repeat="data in showCase.model_data.data">
-                <tr ng-repeat="record in data.sub_data" class="field">
+              <tbody ng-repeat="data in showCase.model_data.data" ng-init="outerIndex=$index">
+                <tr ng-repeat="record in data.sub_data" class="field" ng-init="innerIndex=$index" id="tab_count">
                   <input type="hidden" name="id" value="{{data.id}}">
                   <input type="hidden" name="status_track_id" value="{{record.status_track_id}}">
                   <input type="hidden" name="pallet_id" value="{{record.pallet_id}}">
@@ -48,6 +49,11 @@
                   <td><input type="text" name="jo_quantity" class="form-control" ng-model="data.product_quantity" disabled></td>
                   <td ng-if="showCase.permissions.pallet_switch"><input ng-if="data.load_unit_handle == 'pallet'" type="text" name="pallet_number" class="form-control" ng-model="record.pallet_number"></td>
                   <td><input type="text" name="received_quantity" class="form-control" ng-model="record.received_quantity" ng-change="showCase.cal_quantity(record, data)" ng-class="service.get_decimal_perm()"></td>
+                  <td ng-if="showCase.permissions.use_imei">
+                    <input type="text" name="imei" attr-name="{{'imei_'+data.wms_code}}" ng-model="data.imei_number" class="form-control detectTab" ng-readonly="data.disable" ng-keydown="showCase.check_imei_exists($event, data, outerIndex)">
+                    <!-- <input type="text" name="imei" attr-name="{{'imei_'+data.wms_code}}" ng-model="data.imei_number" class="form-control detectTab" ng-readonly="data.po_quantity == data.value || data.disable" ng-keydown="showCase.check_imei_exists($event, data, outerIndex)"> -->
+                    <!-- <input ng-if="!showCase.po_qc" type="hidden" name="imei_number" class="form-control detectTab" value="{{data.imei_list.join(',')}}"> -->
+                  </td>
                   <td><select class="form-control" name="stage" ng-init="record.stages_list[0]" >
                         <option value="" ng-selected="record.stages_list.length == 0" ng-if="record.stages_list.length == 0"> </option>
                         <option ng-repeat="stage in record.stages_list" value="{{stage}}" ng-selected="$first && record.stages_list.length">{{stage}}</option>

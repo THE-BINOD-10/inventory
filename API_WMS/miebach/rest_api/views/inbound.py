@@ -1201,10 +1201,14 @@ def confirm_po(request, user=''):
     address = purchase_order.supplier.address
     address = '\n'.join(address.split(','))
     wh_address = user.userprofile.wh_address
-    if purchase_order.ship_to:
-        ship_to_address = purchase_order.ship_to
-    else:
+    if wh_address:
         ship_to_address = wh_address
+    else:
+        ship_to_address = purchase_order.ship_to
+    #if purchase_order.ship_to:
+        #ship_to_address = purchase_order.ship_to
+    #else:
+        #ship_to_address = wh_address
     ship_to_address = '\n'.join(ship_to_address.split(','))
     wh_telephone = user.userprofile.wh_phone_number
     telephone = purchase_order.supplier.phone_number
@@ -1251,7 +1255,7 @@ def confirm_po(request, user=''):
                  'location': profile.location, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                  'vendor_telephone': vendor_telephone, 'total_qty': total_qty, 'receipt_type': receipt_type,
                  'title': title, 'ship_to_address': ship_to_address,
-                 'gstin_no': gstin_no, 'w_address': get_purchase_company_address(profile), 
+                 'gstin_no': gstin_no, 'w_address': ship_to_address, 
                  'wh_telephone': wh_telephone, 'terms_condition' : terms_condition, 
                  'total_amt_in_words' : total_amt_in_words, 'show_cess_tax': show_cess_tax}
     if round_value:
@@ -4495,10 +4499,10 @@ def confirm_add_po(request, sales_data='', user=''):
     address = purchase_order.supplier.address
     address = '\n'.join(address.split(','))
     wh_address = user.userprofile.wh_address
-    if purchase_order.ship_to:
-        ship_to_address = purchase_order.ship_to
-    else:
+    if wh_address:
         ship_to_address = wh_address
+    else:
+        ship_to_address = purchase_order.ship_to
     wh_telephone = user.userprofile.wh_phone_number
     ship_to_address = '\n'.join(ship_to_address.split(','))
     vendor_name = ''
@@ -4550,7 +4554,7 @@ def confirm_add_po(request, sales_data='', user=''):
                  'name': name, 'order_date': order_date, 'total': round(total), 'po_reference': po_reference,
                  'user_name': request.user.username, 'total_amt_in_words': total_amt_in_words,
                  'total_qty': total_qty, 'company_name': company_name, 'location': profile.location,
-                 'w_address': get_purchase_company_address(profile),
+                 'w_address': ship_to_address,
                  'vendor_name': vendor_name, 'vendor_address': vendor_address,
                  'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title,
                  'gstin_no': gstin_no, 'industry_type': industry_type, 'expiry_date': expiry_date,
@@ -4715,10 +4719,14 @@ def confirm_po1(request, user=''):
                 address = purchase_orders[0].supplier.address
                 address = '\n'.join(address.split(','))
                 wh_address = user.userprofile.wh_address
-                if purchase_orders[0].ship_to:
-                    ship_to_address = purchase_orders[0].ship_to
-                else:
+                if wh_address:
                     ship_to_address = wh_address
+                else:
+                    ship_to_address = purchase_orders[0].ship_to
+                #if purchase_orders[0].ship_to:
+                    #ship_to_address = purchase_orders[0].ship_to
+                #else:
+                    #ship_to_address = wh_address
                 ship_to_address = '\n'.join(ship_to_address.split(','))
                 telephone = purchase_orders[0].supplier.phone_number
                 name = purchase_orders[0].supplier.name
@@ -4755,7 +4763,7 @@ def confirm_po1(request, user=''):
                          'po_reference': po_reference,
                          'total_qty': total_qty, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                          'vendor_telephone': vendor_telephone, 'gstin_no': gstin_no,
-                         'w_address': get_purchase_company_address(profile), 'ship_to_address': ship_to_address,
+                         'w_address': ship_to_address, 'ship_to_address': ship_to_address,
                          'wh_telephone': wh_telephone, 'wh_gstin': profile.gst_number,
                          'terms_condition' : terms_condition, 'total_amt_in_words' : total_amt_in_words, 'show_cess_tax': show_cess_tax}
             if round_value:

@@ -1200,15 +1200,10 @@ def confirm_po(request, user=''):
 
     address = purchase_order.supplier.address
     address = '\n'.join(address.split(','))
-    wh_address = user.userprofile.wh_address
-    if wh_address:
-        ship_to_address = wh_address
-    else:
+    if purchase_order.ship_to:
         ship_to_address = purchase_order.ship_to
-    #if purchase_order.ship_to:
-        #ship_to_address = purchase_order.ship_to
-    #else:
-        #ship_to_address = wh_address
+    else:
+        ship_to_address = get_purchase_company_address(user.userprofile)
     ship_to_address = '\n'.join(ship_to_address.split(','))
     wh_telephone = user.userprofile.wh_phone_number
     telephone = purchase_order.supplier.phone_number
@@ -4498,11 +4493,10 @@ def confirm_add_po(request, sales_data='', user=''):
         return HttpResponse(status)
     address = purchase_order.supplier.address
     address = '\n'.join(address.split(','))
-    wh_address = user.userprofile.wh_address
-    if wh_address:
-        ship_to_address = wh_address
+    if purchase_order.ship_to:
+        purchase_order.ship_to
     else:
-        ship_to_address = purchase_order.ship_to
+        ship_to_address = get_purchase_company_address(user.userprofile)
     wh_telephone = user.userprofile.wh_phone_number
     ship_to_address = '\n'.join(ship_to_address.split(','))
     vendor_name = ''
@@ -4718,15 +4712,10 @@ def confirm_po1(request, user=''):
             if len(purchase_orders):
                 address = purchase_orders[0].supplier.address
                 address = '\n'.join(address.split(','))
-                wh_address = user.userprofile.wh_address
-                if wh_address:
-                    ship_to_address = wh_address
-                else:
+                if purchase_orders[0].ship_to:
                     ship_to_address = purchase_orders[0].ship_to
-                #if purchase_orders[0].ship_to:
-                    #ship_to_address = purchase_orders[0].ship_to
-                #else:
-                    #ship_to_address = wh_address
+                else:
+                    ship_to_address = get_purchase_company_address(user.userprofile)
                 ship_to_address = '\n'.join(ship_to_address.split(','))
                 telephone = purchase_orders[0].supplier.phone_number
                 name = purchase_orders[0].supplier.name

@@ -1356,15 +1356,10 @@ def print_purchase_order_form(request, user=''):
     if open_po:
         address = open_po.supplier.address
         address = '\n'.join(address.split(','))
-        wh_address = user.userprofile.wh_address
-        if wh_address:
-            ship_to_address = wh_address
-        else:
+        if open_po.ship_to:
             ship_to_address = open_po.ship_to
-        #if open_po.ship_to:
-            #ship_to_address = open_po.ship_to
-        #else:
-            #ship_to_address = wh_address
+        else:
+            ship_to_address = get_purchase_company_address(user.userprofile)
         ship_to_address = '\n'.join(ship_to_address.split(','))
         telephone = open_po.supplier.phone_number
         name = open_po.supplier.name

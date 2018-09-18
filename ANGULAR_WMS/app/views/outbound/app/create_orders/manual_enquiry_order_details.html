@@ -104,7 +104,8 @@
           </div>
           <div class="col-md-4 col-sm-4 col-xs-12" ng-if="order.permissions.user_type == 'sm_purchase_admin'">
             <div class="form-group">
-              <input type="text" name="lead_time" ng-model="order.model_data.lead_time" class="form-control ng-pristine" placeholder="LeadTime in Days *" decimal-number required>
+              <input type="text" name="lead_time" ng-model="order.model_data.lead_time" ng-change="order.calcuateExpectedDate()" class="form-control ng-pristine" placeholder="LeadTime in Days *" number required>
+              Expected_date:: {{order.model_data.expected_date}}
             </div>
           </div>
           <div class="col-md-4 col-sm-4 col-xs-12" ng-if="order.permissions.user_type != 'sm_design_admin' && order.permissions.user_type != 'sm_purchase_admin'">

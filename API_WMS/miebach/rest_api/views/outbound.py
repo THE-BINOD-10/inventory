@@ -11005,8 +11005,18 @@ def get_manual_enquiry_detail(request, user=''):
         expected_date = enq_details.expected_date.strftime('%m/%d/%Y')
         enq_details = {'ask_price': enq_details.ask_price, 'remarks': enq_details.remarks,\
                        'expected_date': expected_date}
+    cust_obj = CustomerUserMapping.objects.filter(user_id=user_id)
+    if cust_obj:
+        dest_user = cust_obj[0].customer.user
+        res_lt = cust_obj[0].customer.lead_time
+        far_wh_lt = NetworkMaster.objects.filter(dest_location_code_id=dest_user,
+                                                 source_location_code__username__in=['DL01', 'MH03']).aggregate(
+            max_lt=Max('lead_time'))['max_lt']
+        if not far_wh_lt:
+            far_wh_lt = 0
+        far_wh_lt += res_lt
     return HttpResponse(json.dumps({'data': enquiry_dict, 'style': style_dict, 'order': manual_eq_dict,\
-                                    'enq_details': enq_details}))
+                                    'enq_details': enq_details, 'far_wh_leadtime': far_wh_lt}))
 
 @csrf_exempt
 @login_required
@@ -11203,6 +11213,9 @@ def convert_customorder_to_actualorder(request, user=''):
     ask_price_qs = enq_obj.manualenquirydetails_set.values_list('ask_price', flat=True).order_by('-id')
     if ask_price_qs:
         ask_price = ask_price_qs[0]
+    exp_date_qs = enq_obj.manualenquirydetails_set.values_list('expected_date', flat=True).order_by('-id')
+    if exp_date_qs:
+        exp_date = exp_date_qs[0]
 
     cust_qs = CustomerUserMapping.objects.filter(user_id=enq_obj.user)
     if not cust_qs:
@@ -11248,17 +11261,23 @@ def convert_customorder_to_actualorder(request, user=''):
         req_stock = req_qty
 
     for usr, qty in stock_wh_map.items():
+        if qty <= 0:
+            continue
         order_id = get_order_id(usr)  # user.id should be either DL01 or MH01
         org_ord_id = 'MN' + str(order_id)
-        shipment_date = datetime.datetime.today()
+        if exp_date:
+            shipment_date = exp_date
+        else:
+            shipment_date = datetime.datetime.today()
         invoice_amount = get_tax_inclusive_invoice_amt(cm_id, smd_price, qty, usr, sku_code, admin_user=admin_user)
+        mapped_sku_id = get_syncedusers_mapped_sku(usr, sku_id)
 
-        order_detail_dict = {'sku_id': sku_id, 'title': title, 'quantity': quantity, 'order_id': order_id,
+        order_detail_dict = {'sku_id': mapped_sku_id, 'title': title, 'quantity': quantity, 'order_id': order_id,
                              'original_order_id': org_ord_id, 'user': usr, 'customer_id': customer_id,
-                             'customer_name': customer_name, 'shipment_date': shipment_date,
+                             'customer_name': customer_name, 'shipment_date': exp_date,
                              'address': '', 'unit_price': smd_price, 'invoice_amount': invoice_amount,
                              'creation_date': None, 'status': 1}
-        ord_qs = OrderDetail.objects.filter(sku_id=sku_id, order_id=order_id, user=usr)
+        ord_qs = OrderDetail.objects.filter(sku_id=mapped_sku_id, order_id=order_id, user=usr)
         if not ord_qs:
             ord_obj = OrderDetail(**order_detail_dict)
             ord_obj.save()
@@ -11269,9 +11288,9 @@ def convert_customorder_to_actualorder(request, user=''):
 
         generic_order_id = get_generic_order_id(cm_id)
         corporate_po_number = 0  # No PO Number
-        del_date = shipment_date + datetime.timedelta(days=7)
+        # del_date = shipment_date + datetime.timedelta(days=7)
         create_grouping_order_for_generic(generic_order_id, ord_obj, cm_id, usr, quantity, corporate_po_number,
-                                          corp_name, ask_price, ask_price, del_date)
+                                          corp_name, ask_price, ask_price, exp_date)
         usr_sku_master = SKUMaster.objects.filter(user=usr, sku_code=sku_code)
         if usr_sku_master:
             product_type = usr_sku_master[0].product_type

@@ -150,6 +150,17 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
     });
   }
 
+  vm.calcuateExpectedDate = function(){
+    var numberOfDaysToAdd = parseInt(vm.model_data.lead_time);
+    var farthesWarehouseLt = parseInt(vm.order_details.far_wh_leadtime);
+    var currentDate = new Date();
+    currentDate.setDate(currentDate.getDate() + numberOfDaysToAdd + farthesWarehouseLt);
+    var dd = currentDate.getDate();
+    var mm = currentDate.getMonth() + 1;
+    var y = currentDate.getFullYear();
+    vm.model_data.expected_date = mm + '/'+ dd + '/'+ y;
+  }
+
 
   vm.send_for_approval = function(form) {
 

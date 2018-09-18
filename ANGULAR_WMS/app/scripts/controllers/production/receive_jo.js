@@ -222,7 +222,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     $state.go($state.current, {}, {reload: true});    
   }
 
-  // vm.serial_numbers = [];
+  vm.serial_numbers = [];
   vm.check_imei_exists = function(event, data1, index) {
     event.stopPropagation();
     if (event.keyCode == 13 && data1.imei_number.length > 0) {
@@ -384,10 +384,87 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     //$state.go('app.inbound.RevceivePo.barcode');
   }
 
+  // Qc Work
+  /*vm.imei_list = [];
+  vm.model_data1 = {};
+  vm.po_qc_imei_scan = function(data1, index) {
+
+    //vm.service.apiCall('check_imei_exists/', 'GET',{imei: data1.imei_number}).then(function(data){
+    //  if(data.message) {
+    //    if (data.data == "") {
+
+          vm.current_index = index;
+          // vm.model_data1["sku_data"] = data1.sku_details[0].fields;
+          vm.imei_list.push(data1.imei_number);
+          vm.accept_qc(data1, data1.imei_number);
+          qc_details();
+          data1.imei_number = "";
+          vm.current_sku = "";
+    //    } else {
+    //      Service.showNoty(data.data);
+    //    }
+    //    data1.imei_number = "";
+    //  }
+    //})
+  }
+
+  vm.accept_qc = function(data, field) {
+
+    vm.enable_button = false;
+    // var sku = vm.model_data.data[vm.current_index][0];
+    var sku = vm.model_data.data[vm.current_index];
+    // sku.accepted_quantity = Number(sku.accepted_quantity) + 1;
+    // sku.value = Number(sku.accepted_quantity) + Number(sku.rejected_quantity);
+
+    sku["accept_imei"].push(field);
+    // vm.model_data.data[vm.current_index][0] = sku
+    vm.model_data.data[vm.current_index] = sku
+
+    // fb.accept_serial(sku, field);
+    vm.serial_scan = "";
+  }
+
+  vm.qc_details = qc_details;
+  function qc_details() {
+
+    $state.go('app.inbound.RevceivePo.qc_detail');
+    $timeout(function() {
+      if(vm.permissions.grn_scan_option == "serial_scan") {
+        focus('focusIMEI');
+      }
+    }, 2000);
+  }
+
+  // FUN.scan_sku = vm.scan_sku;
+
+  vm.po_imei_scan = function(data1, field) {
+
+    if(data1["imei_list"].indexOf(field) != -1) {
+
+      Service.showNoty("IMEI Already Scanned");
+      return false;
+    }
+    data1.value = parseInt(data1.value)+1;
+    vm.serial_numbers.push(field);
+    data1["imei_list"].push(field);
+    fb.change_serial(data1, field);
+    vm.current_sku = "";
+    data1.imei_number = "";
+    if(vm.permissions.grn_scan_option == "sku_serial_scan") {
+      $('textarea[name="scan_sku"]').trigger('focus').val('');
+    }
+  }
+
   vm.changeStage = function(record, outerIndex, innerIndex) {
 
     record['stageStatus'] = true;
   }
+
+  vm.showOldQty = false;
+  vm.goBack = function() {
+    vm.showOldQty = true;
+    $state.go('app.inbound.ReceiveJO.ReceiveJobOrder');
+  }*/
 
 }
 

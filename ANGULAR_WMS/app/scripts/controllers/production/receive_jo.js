@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('ReceiveJOCtrl',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', 'Data', ServerSideProcessingCtrl]);
+  .controller('ReceiveJOCtrl',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', 'Data', '$modal', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, Data) {
+function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, Data, $modal) {
     var vm = this;
     vm.service = Service;
     vm.g_data = Data.receive_jo;
@@ -67,8 +67,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   angular.forEach(vm.final_data, function(value, key){
                     vm.total_data.quantity += value.quantity;
                   });
-
-
 		  vm.order_ids_list = data.data.order_ids.toString();
                   $state.go('app.production.ReveiveJO.ReceiveJobOrder');
                 }
@@ -222,5 +220,167 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     $state.go($state.current, {}, {reload: true});    
   }
 
+  // vm.serial_numbers = [];
+  vm.check_imei_exists = function(event, data1, index) {
+    event.stopPropagation();
+    if (event.keyCode == 13 && data1.imei_number.length > 0) {
+      //if(vm.imei_list.indexOf(data1.imei_number) > -1) {
+
+      //  Service.showNoty("IMEI Already Scanned");
+
+      /*if (vm.fb.poData.serials.indexOf(data1.imei_number) != -1){
+
+        Service.showNoty("Serial Number already Exist");
+        data1.imei_number = "";
+        if(vm.permissions.grn_scan_option == "sku_serial_scan") {
+          $('textarea[name="scan_sku"]').trigger('focus').val('');
+        }
+      } else {
+
+        data1["disable"] = true;
+        fb.check_imei(data1.imei_number).then(function(resp) {
+          if (resp.status) {
+            Service.showNoty("Serial Number already Exist in other PO: "+resp.data.po);
+            data1.imei_number = "";
+            //if(vm.permissions.barcode_generate_opt != "sku_serial") { 
+            //  $('textarea[name="scan_sku"]').trigger('focus').val('');
+            //}
+            if(vm.permissions.grn_scan_option == "sku_serial_scan") {
+              $('textarea[name="scan_sku"]').trigger('focus').val('');
+            }
+            data1["disable"] = false;
+          } else {*/
+            if(vm.permissions.barcode_generate_opt != "sku_serial") {
+              vm.service.apiCall('check_imei_exists/', 'GET',{imei: data1.imei_number, sku_code: data1.wms_code}).then(function(data){
+                if(data.message) {
+                  if (data.data == "") {
+                    // if(vm.po_qc) {
+                    //   vm.po_qc_imei_scan(data1, index)
+                    // } else {
+                    //   vm.po_imei_scan(data1, data1.imei_number)
+                    // }
+                  } else {
+                    Service.showNoty(data.data);
+                    data1.imei_number = "";
+                  }
+                }
+                data1["disable"] = false;
+              })
+            } else {
+              vm.service.apiCall('check_generated_label/', 'GET',{'label': data1.imei_number, 'order_id': vm.model_data.job_code}).then(function(data){
+                if(data.message) {
+                  if(data.data.message == 'Success') {
+                    data1.imei_number = data.data.data.label;
+                    var sku_code = data.data.data.sku_code;
+                    if (data1.wms_code != sku_code) {
+                      Service.showNoty("Scanned label belongs to "+sku_code);
+                      data1.imei_number = "";
+                      return false;
+                    }
+                    // if(vm.po_qc) {
+                    //   vm.po_qc_imei_scan(data1, index)
+                    // } else {
+                    //   vm.po_imei_scan(data1, data1.imei_number)
+                    // }
+                  } else {
+                     Service.showNoty(data.data.message);
+                     data1.imei_number = "";
+                  }
+                }
+                data1["disable"] = false;
+              })
+            }
+      //     }
+      //   })
+      // }
+    }
   }
+
+  vm.gen_barcode = function() {
+    vm.barcode_title = 'Barcode Generation';
+    vm.model_data['barcodes'] = [];
+
+    vm.model_data['format_types'] = [];
+    var key_obj = {};//{'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details', 'Bulk Barcode': 'Details'};
+    vm.service.apiCall('get_format_types/').then(function(data){
+      $.each(data['data']['data'], function(ke, val){
+        vm.model_data['format_types'].push(ke);
+      });
+      key_obj = data['data']['data'];
+    });
+    var elem = angular.element($('form'));
+    elem = elem[0];
+    elem = $(elem).serializeArray();
+    var list = [];
+    var dict = {};
+    $.each(elem, function(num, key){
+      if(!dict.hasOwnProperty(key['name'])){
+        dict[key['name']] = key['value'];
+      }else{
+        list.push(dict);
+        dict = {}
+          dict[key['name']] = key['value'];
+      }
+    });
+    list.push(dict);
+    vm.model_data['barcodes'] = list;
+    vm.model_data.have_data = true;
+    //$state.go('app.inbound.RevceivePo.barcode');
+    var modalInstance = $modal.open({
+      templateUrl: 'views/outbound/toggle/barcodes.html',
+      controller: 'Barcodes',
+      controllerAs: 'pop',
+      size: 'lg',
+      backdrop: 'static',
+      keyboard: false,
+      windowClass: 'z-2021',
+      resolve: {
+        items: function () {
+          return vm.model_data;
+        }
+      }
+    });
+
+    modalInstance.result.then(function (selectedItem) {
+      console.log(selectedItem);
+    });
+  }
+
+  vm.barcode = function() {
+
+    vm.barcode_title = 'Barcode Generation';
+
+    vm.model_data['barcodes'] = [];
+
+    angular.forEach(vm.model_data.data, function(barcode_data){
+
+      var quant = barcode_data[0].value;
+
+      var sku_det = barcode_data[0].wms_code;
+
+      vm.model_data['barcodes'].push({'sku_code': sku_det, 'quantity': quant})
+
+    })
+
+    var modalInstance = $modal.open({
+      templateUrl: 'views/outbound/toggle/barcodes.html',
+      controller: 'Barcodes',
+      controllerAs: 'pop',
+      size: 'lg',
+      backdrop: 'static',
+      keyboard: false,
+      resolve: {
+        items: function () {
+          console.log(model_data);
+          return model_data;
+        }
+      }
+    });
+
+    modalInstance.result.then(function (selectedItem) {
+    });
+    //$state.go('app.inbound.RevceivePo.barcode');
+  }
+
+}
 

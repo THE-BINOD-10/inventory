@@ -787,8 +787,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }, 2000);
     }
 
+    vm.showOldQty = false;
     vm.goBack = function() {
-
+      vm.showOldQty = true;
       $state.go('app.inbound.RevceivePo.GRN');
     }
 
@@ -1690,7 +1691,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.enable_button = false;
       var sku = vm.model_data.data[vm.current_index][0];
       sku.accepted_quantity = Number(sku.accepted_quantity) + 1;
-      sku.value = Number(sku.value) + 1;
+      // sku.value = Number(sku.value) + 1;
+      sku.value = Number(sku.accepted_quantity) + Number(sku.rejected_quantity);
 
       sku["accept_imei"].push(field);
       vm.model_data.data[vm.current_index][0] = sku

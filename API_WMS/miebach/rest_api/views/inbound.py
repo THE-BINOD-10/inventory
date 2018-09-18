@@ -6380,7 +6380,7 @@ def get_supplier_invoice_data(start_index, stop_index, temp_data, search_term, o
                                              purchase_order__open_po__supplier__name=data['purchase_order__open_po__supplier__name'])
         tot_amt, rem_quantity = 0, 0
         for seller_sum in seller_summary_obj:
-            #rem_quantity = 0
+            rem_quantity = 0
             price = seller_sum.purchase_order.open_po.price
             temp_qty = float(seller_sum.quantity)
             processed_val = seller_sum.returntovendor_set.filter().aggregate(Sum('quantity'))['quantity__sum']
@@ -6479,7 +6479,7 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
  
         tot_amt, rem_quantity = 0, 0
         for seller_sum in seller_summary_obj:
-            #rem_quantity = 0
+            rem_quantity = 0
             temp_qty = float(seller_sum.quantity)
             processed_val = seller_sum.returntovendor_set.filter().aggregate(Sum('quantity'))['quantity__sum']
             if processed_val:
@@ -6603,14 +6603,13 @@ def move_to_poc(request, user=''):
             seller_summary = seller_summary | SellerPOSummary.objects.filter(**sell_ids)
         if cancel_flag == 'true':
             status_flag = 'processed_pos'
+            chn_no, chn_sequence = '', ''
         else:
             status_flag = 'po_challans'
-    chn_no, chn_sequence = get_po_challan_number(user, seller_summary)
+    if cancel_flag != 'true':
+        chn_no, chn_sequence = get_po_challan_number(user, seller_summary)
     try:
-        for sel_obj in seller_summary:
-            sel_obj.challan_number = chn_no
-            sel_obj.order_status_flag = status_flag
-            sel_obj.save()
+        seller_summary.update(challan_number=chn_no, order_status_flag=status_flag)
         return HttpResponse(json.dumps({'message': 'success'}))
     except Exception as e:
         import traceback

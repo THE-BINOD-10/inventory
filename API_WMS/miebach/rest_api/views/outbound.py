@@ -3233,7 +3233,9 @@ def after_admin_approval(request, user=''):
             items.append([ap_status.sku.sku_desc, quantity])
             detail_check = OrderDetail.objects.filter(order_id= order_id,sku_id= ap_status.sku_id,user = user.id,order_code = 'MN')
             data_dict = {'order_id':order_id, 'customer_id':customer_user_id, 'user':user_id,
-            'title':ap_status.sku.sku_desc, 'quantity':quantity,'invoice_amount':invoice_amount, 'sku_id':ap_status.sku_id,'shipment_date':shipment_date,'order_code':'MN','original_order_id':'MN'+str(order_id)}
+            'title':ap_status.sku.sku_desc, 'quantity':quantity,'invoice_amount':invoice_amount,
+            'sku_id':ap_status.sku_id,'shipment_date':shipment_date,'order_code':'MN',
+            'original_order_id':'MN'+str(order_id), 'status':1}
             if detail_check:
                 detail_check.update(quantity= quantity,invoice_amount= invoice_amount)
             else:

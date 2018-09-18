@@ -1200,15 +1200,10 @@ def confirm_po(request, user=''):
 
     address = purchase_order.supplier.address
     address = '\n'.join(address.split(','))
-    wh_address = user.userprofile.wh_address
-    if wh_address:
-        ship_to_address = wh_address
-    else:
+    if purchase_order.ship_to:
         ship_to_address = purchase_order.ship_to
-    #if purchase_order.ship_to:
-        #ship_to_address = purchase_order.ship_to
-    #else:
-        #ship_to_address = wh_address
+    else:
+        ship_to_address = get_purchase_company_address(user.userprofile)
     ship_to_address = '\n'.join(ship_to_address.split(','))
     wh_telephone = user.userprofile.wh_phone_number
     telephone = purchase_order.supplier.phone_number
@@ -4498,11 +4493,10 @@ def confirm_add_po(request, sales_data='', user=''):
         return HttpResponse(status)
     address = purchase_order.supplier.address
     address = '\n'.join(address.split(','))
-    wh_address = user.userprofile.wh_address
-    if wh_address:
-        ship_to_address = wh_address
+    if purchase_order.ship_to:
+        purchase_order.ship_to
     else:
-        ship_to_address = purchase_order.ship_to
+        ship_to_address = get_purchase_company_address(user.userprofile)
     wh_telephone = user.userprofile.wh_phone_number
     ship_to_address = '\n'.join(ship_to_address.split(','))
     vendor_name = ''
@@ -4718,15 +4712,10 @@ def confirm_po1(request, user=''):
             if len(purchase_orders):
                 address = purchase_orders[0].supplier.address
                 address = '\n'.join(address.split(','))
-                wh_address = user.userprofile.wh_address
-                if wh_address:
-                    ship_to_address = wh_address
-                else:
+                if purchase_orders[0].ship_to:
                     ship_to_address = purchase_orders[0].ship_to
-                #if purchase_orders[0].ship_to:
-                    #ship_to_address = purchase_orders[0].ship_to
-                #else:
-                    #ship_to_address = wh_address
+                else:
+                    ship_to_address = get_purchase_company_address(user.userprofile)
                 ship_to_address = '\n'.join(ship_to_address.split(','))
                 telephone = purchase_orders[0].supplier.phone_number
                 name = purchase_orders[0].supplier.name
@@ -6380,7 +6369,7 @@ def get_supplier_invoice_data(start_index, stop_index, temp_data, search_term, o
                                              purchase_order__open_po__supplier__name=data['purchase_order__open_po__supplier__name'])
         tot_amt, rem_quantity = 0, 0
         for seller_sum in seller_summary_obj:
-            #rem_quantity = 0
+            rem_quantity = 0
             price = seller_sum.purchase_order.open_po.price
             temp_qty = float(seller_sum.quantity)
             processed_val = seller_sum.returntovendor_set.filter().aggregate(Sum('quantity'))['quantity__sum']
@@ -6479,7 +6468,7 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
  
         tot_amt, rem_quantity = 0, 0
         for seller_sum in seller_summary_obj:
-            #rem_quantity = 0
+            rem_quantity = 0
             temp_qty = float(seller_sum.quantity)
             processed_val = seller_sum.returntovendor_set.filter().aggregate(Sum('quantity'))['quantity__sum']
             if processed_val:
@@ -6603,14 +6592,13 @@ def move_to_poc(request, user=''):
             seller_summary = seller_summary | SellerPOSummary.objects.filter(**sell_ids)
         if cancel_flag == 'true':
             status_flag = 'processed_pos'
+            chn_no, chn_sequence = '', ''
         else:
             status_flag = 'po_challans'
-    chn_no, chn_sequence = get_po_challan_number(user, seller_summary)
+    if cancel_flag != 'true':
+        chn_no, chn_sequence = get_po_challan_number(user, seller_summary)
     try:
-        for sel_obj in seller_summary:
-            sel_obj.challan_number = chn_no
-            sel_obj.order_status_flag = status_flag
-            sel_obj.save()
+        seller_summary.update(challan_number=chn_no, order_status_flag=status_flag)
         return HttpResponse(json.dumps({'message': 'success'}))
     except Exception as e:
         import traceback

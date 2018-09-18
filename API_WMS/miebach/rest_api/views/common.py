@@ -6620,7 +6620,10 @@ def update_profile_data(request, user=''):
 def get_purchase_company_address(profile):
     """ Returns Company address for purchase order"""
 
-    address = profile.address
+    if profile.wh_address:
+        address = profile.wh_address
+    else:
+        address = profile.address
     if not address:
         return ''
     if profile.user.email:

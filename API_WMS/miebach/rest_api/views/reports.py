@@ -1357,10 +1357,14 @@ def print_purchase_order_form(request, user=''):
         address = open_po.supplier.address
         address = '\n'.join(address.split(','))
         wh_address = user.userprofile.wh_address
-        if open_po.ship_to:
-            ship_to_address = open_po.ship_to
-        else:
+        if wh_address:
             ship_to_address = wh_address
+        else:
+            ship_to_address = open_po.ship_to
+        #if open_po.ship_to:
+            #ship_to_address = open_po.ship_to
+        #else:
+            #ship_to_address = wh_address
         ship_to_address = '\n'.join(ship_to_address.split(','))
         telephone = open_po.supplier.phone_number
         name = open_po.supplier.name
@@ -1409,7 +1413,7 @@ def print_purchase_order_form(request, user=''):
                  'vendor_address': vendor_address,
                  'vendor_telephone': vendor_telephone,
                  'gstin_no': gstin_no,
-                 'w_address': get_purchase_company_address(profile),
+                 'w_address': ship_to_address,#get_purchase_company_address(profile),
                  'ship_to_address': ship_to_address,
                  'wh_telephone': wh_telephone,
                  'wh_gstin': profile.gst_number,

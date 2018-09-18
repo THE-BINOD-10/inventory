@@ -1419,6 +1419,7 @@ def print_purchase_order_form(request, user=''):
                  'company_name': profile.company_name, 
                  'location': profile.location, 
                  'po_reference': po_reference,
+                 'industry_type': profile.industry_type,
                 }
     if round_value:
         data_dict['round_total'] = "%.2f" % round_value

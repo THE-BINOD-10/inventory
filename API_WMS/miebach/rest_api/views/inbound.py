@@ -4800,11 +4800,11 @@ def check_serial_exists(request, user=''):
     serial = request.POST.get('serial', '')
     data_id = request.POST.get('id', '')
     if serial:
-        filter_params = {"imei_number": serial, "purchase_order__open_po__sku__user": user.id}
+        filter_params = {"imei_number": serial, "sku__user": user.id}
         if data_id:
             quality_check = QualityCheck.objects.filter(id=data_id)
             if quality_check:
-                filter_params['purchase_order__open_po__sku__sku_code'] = quality_check[
+                filter_params['sku__sku_code'] = quality_check[
                     0].purchase_order.open_po.sku.sku_code
         po_mapping = POIMEIMapping.objects.filter(**filter_params)
         if not po_mapping:
@@ -4829,7 +4829,7 @@ def save_qc_serials(key, scan_data, user, qc_id=''):
                     imei, qc_id, reason = value.split('<<>>')
                 if not value:
                     continue
-                po_mapping = POIMEIMapping.objects.filter(imei_number=imei, purchase_order__open_po__sku__user=user)
+                po_mapping = POIMEIMapping.objects.filter(imei_number=imei, sku__user=user)
                 if po_mapping:
                     qc_serial_dict = copy.deepcopy(QC_SERIAL_FIELDS)
                     qc_serial_dict['quality_check_id'] = qc_id
@@ -5521,7 +5521,7 @@ def check_imei_qc(request, user=''):
     log.info(request.GET.dict())
     try:
         if imei:
-            filter_params = {"imei_number": imei, "purchase_order__open_po__sku__user": user.id, "status": 1}
+            filter_params = {"imei_number": imei, "sku__user": user.id, "status": 1}
             po_mapping = {}
             quality_check = {}
             if order_id:
@@ -5530,7 +5530,7 @@ def check_imei_qc(request, user=''):
                 if quality_check_data:
                     for data in quality_check_data:
                         filter_params[
-                            'purchase_order__open_po__sku__sku_code'] = data.purchase_order.open_po.sku.sku_code
+                            'sku__sku_code'] = data.purchase_order.open_po.sku.sku_code
                         filter_params['purchase_order__order_id'] = order_id
                         po_mapping = POIMEIMapping.objects.filter(**filter_params)
                         if po_mapping:

@@ -1150,12 +1150,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       po["po"] = data.po_reference;
       po["serials"] = "";
       angular.forEach(data.data, function(sku){
-        po[sku[0].wms_code] = {};
+        var fb_key = sku[0].sku_details[0].pk;
+        //var fb_key = sku[0].wms_code;
+        po[fb_key] = {};
         sku[0].value = 0;
         sku[0]["imei_list"] = [];
-        po[sku[0].wms_code]["quantity"] = sku[0].value;
-        po[sku[0].wms_code]["wms_code"] = sku[0].wms_code;
-        po[sku[0].wms_code]["serials"] = "";
+        po[fb_key]["quantity"] = sku[0].value;
+        po[fb_key]["wms_code"] = sku[0].wms_code;
+        po[fb_key]["serials"] = "";
       })
       console.log(po);
       firebase.database().ref("/GenerateGRN/"+Session.parent.userId).push(po).then(function(data){
@@ -1187,18 +1189,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     fb["change_serial"] = function(data, serial) {
 
       console.log(data.wms_code, serial);
-      firebase.database().ref("/GenerateGRN/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+ data.wms_code +"/serials/").push(serial);
+      firebase.database().ref("/GenerateGRN/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+ data.sku_details[0].pk +"/serials/").push(serial);
       firebase.database().ref("/GenerateGRN/"+Session.parent.userId+"/"+vm.fb.poData.id+"/serials/").push(serial);
     }
 
     fb["change_po_data"] = function(data) {
 
+      debugger;
       vm.fb.poData['serials'] = Object.values(vm.fb.poData['serials']);
       vm.serial_numbers = Object.values(vm.fb.poData['serials']);
       angular.forEach(vm.model_data.data, function(data){
-        if(vm.fb.poData[data[0].wms_code]) {
-          data[0].value = Object.keys(vm.fb.poData[data[0].wms_code]['serials']).length;
-          data[0]['imei_list'] =  Object.values(vm.fb.poData[data[0].wms_code]['serials']);
+        if(vm.fb.poData[data[0].sku_details[0].pk]) {
+          data[0].value = Object.keys(vm.fb.poData[data[0].sku_details[0].pk]['serials']).length;
+          data[0]['imei_list'] =  Object.values(vm.fb.poData[data[0].sku_details[0].pk]['serials']);
         }
       })
       fb.po_change_event();
@@ -1211,7 +1214,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     fb["po_change_event"] = function() {
 
         angular.forEach(vm.model_data.data, function(sku_data) {
-          firebase.database().ref("/GenerateGRN/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+sku_data[0].wms_code+"/serials/").on("child_added", function(sku) {
+          firebase.database().ref("/GenerateGRN/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+sku_data[0].sku_details[0].pk+"/serials/").on("child_added", function(sku) {
             if(sku_data[0].imei_list.indexOf(sku.val()) == -1 && sku.val()) {
               sku_data[0].imei_list.push(sku.val());
               sku_data[0].value++;
@@ -1360,7 +1363,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       po["po"] = data.po_reference;
       po["serials"] = "";
       angular.forEach(data.data, function(sku){
-        var name = sku[0].wms_code;
+        var name = sku[0].sku_details[0].pk;
         po[name] = {};
         po[name]["wms_code"] = sku[0].wms_code;
         po[name]["accepted"] = "";
@@ -1409,7 +1412,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.fb.poData['serials'] = Object.values(vm.fb.poData['serials']);
       vm.imei_list = vm.fb.poData['serials'];
       angular.forEach(vm.model_data.data, function(data){
-        var name= data[0].wms_code;
+        var name= data[0].sku_details[0].pk;
         if(vm.fb.poData[name]) {
           if(!vm.fb.poData[name]['accepted']){vm.fb.poData[name]['accepted'] = {}}
           if(!vm.fb.poData[name]['rejected']){vm.fb.poData[name]['rejected'] = {}}
@@ -1428,7 +1431,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     fb["recent_accept"] = "";
     fb["accept_serial"] = function(data, serial) {
 
-      firebase.database().ref("/ReceiveQC/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+ data.wms_code +"/accepted/").push(serial).then(function(snapshot){
+      firebase.database().ref("/ReceiveQC/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+ data.sku_details[0].pk +"/accepted/").push(serial).then(function(snapshot){
 
         fb["recent_accept"] = snapshot.path.o[5];
       });
@@ -1437,7 +1440,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     fb["reject_serial"] = function(data, serial) {
 
-      var name= data.wms_code;
+      var name= data.sku_details[0].pk;
       if(fb.recent_accept) {
         firebase.database().ref("/ReceiveQC/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+ name +"/accepted/"+fb.recent_accept).once("value", function(snapshot) {
           snapshot.ref.remove();
@@ -1449,7 +1452,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     fb["remove_add_serial"] = function(data, serial1, serial2, remove_from, add_to) {
 
-      var name= data.wms_code;
+      var name= data.sku_details[0].pk;
       firebase.database().ref("/ReceiveQC/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+ name +"/"+remove_from+"/").once("value", function(snapshot) {
         if(snapshot.val()) {
           var status = true;

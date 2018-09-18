@@ -4195,8 +4195,8 @@ def validate_order_serial_mapping(request, reader, user, no_of_rows, fname, file
                     index_status.setdefault(count, set()).add('Invalid PO Number')
                 if order_details.get('sku_id', ''):
                     po_imei_mapping = POIMEIMapping.objects.filter(
-                        purchase_order__open_po__sku_id=order_details['sku_id'], status=1,
-                        purchase_order__open_po__sku__user=user.id, purchase_order__order_id=value)
+                        sku_id=order_details['sku_id'], status=1,
+                        sku__user=user.id, purchase_order__order_id=value)
                     if not po_imei_mapping:
                         index_status.setdefault(count, set()).add('Invalid PO Number')
                     else:

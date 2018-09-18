@@ -931,7 +931,9 @@ class LRDetail(models.Model):
 
 class POIMEIMapping(models.Model):
     id = BigAutoField(primary_key=True)
-    purchase_order = models.ForeignKey(PurchaseOrder)
+    sku = models.ForeignKey(SKUMaster, blank=True, null=True)
+    purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True)
+    job_order = models.ForeignKey(JobOrder, blank=True, null=True)
     imei_number = models.CharField(max_length=64, default='')
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
@@ -939,7 +941,7 @@ class POIMEIMapping(models.Model):
 
     class Meta:
         db_table = 'PO_IMEI_MAPPING'
-        unique_together = ('purchase_order', 'imei_number')
+        unique_together = ('purchase_order', 'imei_number', 'sku', 'job_order')
 
 
 class OrderIMEIMapping(models.Model):

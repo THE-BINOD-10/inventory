@@ -4543,7 +4543,7 @@ def get_imei_data(request, user=''):
     imei = request.GET.get('imei')
     if not imei:
         return HttpResponse(json.dumps({'imei': imei, 'message': 'Please scan imei number'}))
-    po_imei_mapping = POIMEIMapping.objects.filter(purchase_order__open_po__sku__user=user.id,
+    po_imei_mapping = POIMEIMapping.objects.filter(sku__user=user.id,
                                                    imei_number=imei).order_by('creation_date')
     if not po_imei_mapping:
         return HttpResponse(json.dumps({'imei': imei, 'message': 'Invalid IMEI Number'}))
@@ -4982,14 +4982,14 @@ def check_get_imei_details(imei, wms_code, user_id, check_type='', order=''):
             status = get_serial_limit(user_id, imei)
             if status:
                 return po_mapping, status, data
-        check_params = {'imei_number': imei, 'purchase_order__open_po__sku__user': user_id}
-        st_purchase = STPurchaseOrder.objects.filter(open_st__sku__user=user_id, open_st__sku__wms_code=wms_code). \
-            values_list('po_id', flat=True)
-        check_params1 = {'imei_number': imei, 'purchase_order_id__in': st_purchase}
+        check_params = {'imei_number': imei, 'sku__user': user_id}
+        #st_purchase = STPurchaseOrder.objects.filter(open_st__sku__user=user_id, open_st__sku__wms_code=wms_code). \
+        #    values_list('po_id', flat=True)
+        #check_params1 = {'imei_number': imei, 'purchase_order_id__in': st_purchase}
 
         po_mapping = POIMEIMapping.objects.filter(**check_params)
-        mapping = POIMEIMapping.objects.filter(**check_params1)
-        po_mapping = po_mapping | mapping
+        #mapping = POIMEIMapping.objects.filter(**check_params1)
+        #po_mapping = po_mapping | mapping
         po_mapping = po_mapping.order_by('-creation_date')
         if po_mapping:
             order_data = get_purchase_order_data(po_mapping[0].purchase_order)
@@ -4998,8 +4998,14 @@ def check_get_imei_details(imei, wms_code, user_id, check_type='', order=''):
                 order_imei_mapping = OrderIMEIMapping.objects.filter(po_imei_id=po_mapping[0].id, status=1)
 
                 if po_mapping[0].status == 1 and not order_imei_mapping:
-                    purchase_order_id = get_po_reference(po_mapping[0].purchase_order)
-                    status = '%s is already mapped with %s' % (str(imei), purchase_order_id)
+                    if po_mapping[0].purchase_order:
+                        purchase_order_id = get_po_reference(po_mapping[0].purchase_order)
+                        status = '%s is already mapped with purchase_order %s' % (str(imei), purchase_order_id)
+                    elif po_mapping[0].job_order:
+                        status = '%s is already mapped with job order %s' % (str(imei),
+                                                                             str(po_mapping[0].job_order.job_code))
+                    else:
+                        status = '%s is already in Stock' % str(imei)
                 elif not (order_data['wms_code'] == wms_code):
                     status = '%s will only maps with %s' % (str(imei), order_data['wms_code'])
             elif check_type == 'order_mapping':
@@ -5772,6 +5778,7 @@ def insert_po_mapping(imei_nos, data, user_id):
                 ReturnsIMEIMapping.objects.filter(order_imei__po_imei_id__in=po_mapping_ids, imei_status=1).update(
                     imei_status=0)
             imei_mapping = {'purchase_order_id': data.id, 'imei_number': imei, 'status': 1,
+                            'sku_id': order_data['sku'].id,
                             'creation_date': datetime.datetime.now(),
                             'updation_date': datetime.datetime.now()}
             po_imei = POIMEIMapping(**imei_mapping)

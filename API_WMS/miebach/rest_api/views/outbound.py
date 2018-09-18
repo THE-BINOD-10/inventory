@@ -1890,8 +1890,8 @@ def serial_order_mapping(picklist, user):
             return "Mapping not done"
         order_po_mapping = order_po_mapping[0]
         imeis = list(POIMEIMapping.objects.filter(purchase_order__order_id=order_po_mapping.purchase_order_id,
-                                                  purchase_order__open_po__sku_id=order_po_mapping.sku_id,
-                                                  purchase_order__open_po__sku__user=user.id,
+                                                  sku_id=order_po_mapping.sku_id,
+                                                  sku__user=user.id,
                                                   status=1).values_list('imei_number', flat=True))
 
         val = {}
@@ -3358,7 +3358,7 @@ def validate_order_form(myDict, request, user):
         if '_' in po_number:
             po_number = po_number.split('_')[-1]
             po_imei_objs = POIMEIMapping.objects.filter(purchase_order__order_id=po_number,
-                                                        purchase_order__open_po__sku__user=user.id)
+                                                        sku__user=user.id)
             po_imeis = dict(po_imei_objs.values_list('purchase_order__open_po__sku__sku_code').annotate(Count('id')))
 
             if not po_imeis:

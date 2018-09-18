@@ -2696,7 +2696,8 @@ class ManualEnquiryDetails(models.Model):
 class ManualEnquiryImages(models.Model):
     id = BigAutoField(primary_key=True)
     enquiry = models.ForeignKey(ManualEnquiry)
-    image =  models.ImageField(upload_to='static/images/manual_enquiry/')
+    image = models.ImageField(upload_to='static/images/manual_enquiry/')
+    image_type = models.CharField(max_length=32, default='res_images')
     status = models.CharField(max_length=32)
 
     class Meta:

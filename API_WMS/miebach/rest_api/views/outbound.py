@@ -10790,6 +10790,7 @@ def add_order_charges(request, user=''):
     data_response['message'] = message
     return HttpResponse(json.dumps(data_response))
 
+
 def get_manual_enquiry_id(request):
     enq_qs = ManualEnquiry.objects.filter(user=request.user.id).order_by('-enquiry_id')
     if enq_qs:
@@ -10798,15 +10799,18 @@ def get_manual_enquiry_id(request):
         enq_id = 10001
     return enq_id
 
-def save_manual_enquiry_images(request, enq_data):
 
+def save_manual_enquiry_images(request, enq_data, art_work=False):
     image_urls = []
     for file_data in  request.FILES.getlist('po_file'):
         image_data = {'enquiry_id': enq_data.id, 'image': file_data}
+        if art_work:
+            image_data['image_type'] = 'art_work'
         save_img = ManualEnquiryImages(**image_data)
         save_img.save()
         image_urls.append(str(save_img.image))
     return image_urls
+
 
 @csrf_exempt
 @login_required
@@ -10858,9 +10862,13 @@ def place_manual_order(request, user=''):
         Q(userprofile__warehouse_type='SM_MARKET_ADMIN')).values_list('id', flat=True)
     if market_admin_user_id:
         market_admin_user_id = market_admin_user_id[0]
+    purchase_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
+        Q(userprofile__warehouse_type='SM_PURCHASE_ADMIN')).values_list('id', flat=True)
+    if purchase_admin_user_id:
+        purchase_admin_user_id = purchase_admin_user_id[0]
     cont_vals = (request.user.first_name, enq_data.enquiry_id, enq_data.sku.sku_code)
     contents = {"en": "%s placed a custom order %s for SKU %s" % cont_vals}
-    users_list = [user.id, admin_user.id, market_admin_user_id]
+    users_list = [user.id, admin_user.id, market_admin_user_id, purchase_admin_user_id]
     send_push_notification(contents, users_list)
     if request.FILES.get('po_file', ''):
         save_manual_enquiry_images(request, enq_data)
@@ -10873,6 +10881,7 @@ def save_manual_enquiry_data(request, user=''):
 
     enquiry_id = request.POST.get('enquiry_id', '')
     user_id = request.POST.get('user_id', '')
+    enq_status = request.POST.get('enq_status', '')
     if not enquiry_id or not user_id:
         return HttpResponse("Give information insufficient")
     filters = {'enquiry_id': float(enquiry_id), 'user': user_id}
@@ -10881,6 +10890,9 @@ def save_manual_enquiry_data(request, user=''):
         return HttpResponse("No Enquiry Data for Id")
     MANUAL_ENQUIRY_DETAILS_DICT = {'ask_price': 0, 'expected_date': '', 'remarks': ''}
     manual_enq = manual_enq[0]
+    if enq_status:
+        manual_enq.status = enq_status
+        manual_enq.save()
     ask_price = request.POST.get('ask_price', 0)
     expected_date = request.POST.get('expected_date', '')
     remarks = request.POST.get('remarks', '')
@@ -10903,7 +10915,7 @@ def save_manual_enquiry_data(request, user=''):
     manual_enq_data = ManualEnquiryDetails(**enquiry_data)
     manual_enq_data.save()
     users_list = []
-    if request.user.userprofile.warehouse_type == 'SM_MARKET_ADMIN':
+    if request.user.userprofile.warehouse_type in ('SM_MARKET_ADMIN', 'SM_PURCHASE_ADMIN'):
         users_list.append(request.user.id)
         users_list.append(user.id)
     else:
@@ -10931,6 +10943,8 @@ def get_manual_enquiry_orders(start_index, stop_index, temp_data, search_term, o
         lis = ['enquiry_id', 'customer_name', 'user__username', 'sku__sku_class', 'customization_type', 'creation_date']
     if user.userprofile.warehouse_type != 'CENTRAL_ADMIN':
         data_filters['user'] = user.id
+    elif request.user.userprofile.warehouse_type in ('SM_PURCHASE_ADMIN', 'SM_DESIGN_ADMIN'):
+        data_filters['customization_type'] = 'price_product_custom'
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -10963,11 +10977,12 @@ def get_manual_enquiry_detail(request, user=''):
     manual_eq_dict = {'enquiry_id': int(manual_enq[0].enquiry_id), 'customer_name': manual_enq[0].customer_name,
                       'date': manual_enq[0].creation_date.strftime('%Y-%m-%d'), 'customization_type': customization_type,
                       'quantity': manual_enq[0].quantity, 'custom_remarks': manual_enq[0].custom_remarks.split("<<>>"),
-                      'status': manual_enq[0].status}
-    enquiry_images = list(ManualEnquiryImages.objects.filter(enquiry=manual_enq[0].id).values_list('image', flat=True))
+                      'status': manual_enq[0].status, 'enq_det_id': int(manual_enq[0].id)}
+    enquiry_images = list(ManualEnquiryImages.objects.filter(enquiry=manual_enq[0].id, image_type='res_images').values_list('image', flat=True))
+    art_images = list(ManualEnquiryImages.objects.filter(enquiry=manual_enq[0].id, image_type='art_work').values_list('image', flat=True))
     style_dict = {'sku_code': manual_enq[0].sku.sku_code, 'style_name':  manual_enq[0].sku.sku_class,
                   'description': manual_enq[0].sku.sku_desc, 'images': enquiry_images,
-                  'category': manual_enq[0].sku.sku_category}
+                  'category': manual_enq[0].sku.sku_category, 'art_images': art_images}
     if request.user.id == long(user_id):
         enquiry_data =  ManualEnquiryDetails.objects.filter(enquiry=manual_enq[0].id, status="")
     else:
@@ -11022,16 +11037,62 @@ def save_manual_enquiry_image(request, user=''):
         return HttpResponse(json.dumps(resp))
     filters = {'enquiry_id': float(enquiry_id), 'user': user_id}
     enq_data = ManualEnquiry.objects.filter(**filters)
+    enq_det_id = request.POST.get('enq_det_id', '')
+    if enq_det_id:
+        enq_data = ManualEnquiry.objects.filter(id=enq_det_id)
     if not enq_data:
         resp['msg'] = "No Enquiry Data for Id"
         return HttpResponse(json.dumps(resp))
-    images = []
     enq_data = enq_data[0]
     if request.FILES.get('po_file', ''):
-        resp['data'] = save_manual_enquiry_images(request, enq_data)
+        if request.user.userprofile.warehouse_type == 'SM_DESIGN_ADMIN':
+            resp['data'] = save_manual_enquiry_images(request, enq_data, art_work=True)
+        else:
+            resp['data'] = save_manual_enquiry_images(request, enq_data)
     else:
         resp['msg'] = "Please Select Image"
     return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def notify_designer(request, user=''):
+    enquiry_id = request.POST.get('enquiry_id', '')
+    user_id = request.POST.get('user_id', '')
+    enq_status = request.POST.get('enq_status', '')
+    if not enquiry_id or not user_id:
+        return HttpResponse("Give information insufficient")
+    filters = {'enquiry_id': float(enquiry_id), 'user': user_id}
+    manual_enq = ManualEnquiry.objects.filter(**filters)
+    if not manual_enq:
+        return HttpResponse("No Enquiry Data for Id")
+    manual_enq = manual_enq[0]
+    if enq_status:
+        manual_enq.status = enq_status
+        manual_enq.save()
+    users_list = []
+    if request.user.userprofile.warehouse_type in ('SM_MARKET_ADMIN', 'SM_PURCHASE_ADMIN'):
+        users_list.append(request.user.id)
+        users_list.append(user.id)
+    else:
+        admin_user = get_priceband_admin_user(user)
+        if not admin_user:
+            admin_user = request.user
+        market_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
+            Q(userprofile__warehouse_type='SM_MARKET_ADMIN')).values_list('id', flat=True)
+        if market_admin_user_id:
+            market_admin_user_id = market_admin_user_id[0]
+            users_list.append(market_admin_user_id)
+        purchase_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
+            Q(userprofile__warehouse_type='SM_PURCHASE_ADMIN')).values_list('id', flat=True)
+        if purchase_admin_user_id:
+            purchase_admin_user_id = purchase_admin_user_id[0]
+            users_list.append(purchase_admin_user_id)
+        users_list.append(admin_user.id)
+    contents = {"en": "%s Send Order %s to add ArtWork" % (request.user.username, enquiry_id)}
+    send_push_notification(contents, users_list)
+    return HttpResponse("Success")
 
 
 @csrf_exempt
@@ -11058,7 +11119,7 @@ def request_manual_enquiry_approval(request, user=''):
     enq_data[0].status = status
     enq_data[0].save()
     users_list = []
-    if request.user.userprofile.warehouse_type == 'SM_MARKET_ADMIN':
+    if request.user.userprofile.warehouse_type in ('SM_MARKET_ADMIN', 'SM_PURCHASE_ADMIN', 'SM_DESIGN_ADMIN'):
         users_list.append(request.user.id)
         admin_user = user
         users_list.append(admin_user.id)
@@ -11071,10 +11132,22 @@ def request_manual_enquiry_approval(request, user=''):
         if market_admin_user_id:
             market_admin_user_id = market_admin_user_id[0]
             users_list.append(market_admin_user_id)
-    if request.user.id == admin_user.id:
-        contents_msg = "Admin User updated the status to %s for Enquiry order %s" % (status, enq_data[0].enquiry_id)
+        purchase_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
+            Q(userprofile__warehouse_type='SM_PURCHASE_ADMIN')).values_list('id', flat=True)
+        if purchase_admin_user_id:
+            purchase_admin_user_id = purchase_admin_user_id[0]
+            users_list.append(purchase_admin_user_id)
+    if request.user.userprofile.warehouse_type not in ('SM_PURCHASE_ADMIN', 'SM_DESIGN_ADMIN'):
+        if request.user.id == admin_user.id:
+            contents_msg = "Admin User updated the status to %s for Enquiry order %s" % (status, enq_data[0].enquiry_id)
+        else:
+            contents_msg = "Marketing admin requesting approval for custom order %s" % (enq_data[0].enquiry_id)
     else:
-        contents_msg = "Marketing admin requesting approval for custom order %s" % (enq_data[0].enquiry_id)
+        if request.user.userprofile.warehouse_type == "SM_PURCHASE_ADMIN":
+            contents_msg = "Purchase Admin requesting Designer for ArtWork"
+        else:
+            contents_msg = "Designer Uploaded Artwork"
+
     contents = {"en": contents_msg}
     users_list.append(enq_data[0].user_id)
     send_push_notification(contents, list(set(users_list)))

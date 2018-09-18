@@ -12,6 +12,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.table_name = (vm.g_data.sku_view)? 'ReceiveJOSKU' : 'ReceiveJO';
     vm.filters = {'datatable': vm.table_name};
     vm.tb_data = {};
+    vm.po_qc = true;
+    vm.po_qc = (vm.permissions.receive_process == "receipt-qc")? true: false;
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -380,6 +382,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     modalInstance.result.then(function (selectedItem) {
     });
     //$state.go('app.inbound.RevceivePo.barcode');
+  }
+
+  vm.changeStage = function(record, outerIndex, innerIndex) {
+
+    record['stageStatus'] = true;
   }
 
 }

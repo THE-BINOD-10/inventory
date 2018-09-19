@@ -1374,14 +1374,14 @@ def print_purchase_order_form(request, user=''):
     wh_telephone = user.userprofile.wh_phone_number
     order_date = get_local_date(request.user, order.creation_date)
     po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
-    table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'UOM', 'Unit Price',
-                     'Amount', 'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Total']
+    table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price',
+                     'Amt', 'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
     if ean_flag:
-        table_headers.insert(1, 'EAN Number')
+        table_headers.insert(1, 'EAN')
     if display_remarks == 'true':
         table_headers.append('Remarks')
     if show_cess_tax:
-        table_headers.insert(10, 'CESS(%)')
+        table_headers.insert(10, 'CESS (%)')
     total_amt_in_words = number_in_words(round(total)) + ' ONLY'
     round_value = float(round(total) - float(total))
     profile = user.userprofile

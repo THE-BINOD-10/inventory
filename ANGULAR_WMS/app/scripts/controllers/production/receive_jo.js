@@ -256,9 +256,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               vm.service.apiCall('check_imei_exists/', 'GET',{imei: data1.imei_number, sku_code: data1.wms_code}).then(function(data){
                 if(data.message) {
                   if (data.data == "") {
-                    var sku = data1[index];
+                    // var sku = data1[index];
                     // var sku = vm.model_data.data[vm.current_index];
-                    sku.received_quantity = Number(sku.received_quantity) + 1;
+                    data1.received_quantity = Number(sku.received_quantity) + 1;
                     // sku.value = Number(sku.accepted_quantity) + Number(sku.rejected_quantity);
                     // if(vm.po_qc) {
                     //   vm.po_qc_imei_scan(data1, index)
@@ -314,9 +314,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       });
       key_obj = data['data']['data'];
     });
+    Data.receive_jo_barcodes = true;
     var elem = angular.element($('form'));
     elem = elem[0];
     elem = $(elem).serializeArray();
+    elem.received_quantity = 10;
     var list = [];
     var dict = {};
     $.each(elem, function(num, key){
@@ -463,6 +465,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.changeStage = function(record, outerIndex, innerIndex) {
     vm.showOldQty = true;
     record.received_quantity = 0;
+    angular.forEach(record, function(item, index) {
+      if (record.stage) {
+
+      }
+    })
     record['stageStatus'] = true;
   }
 

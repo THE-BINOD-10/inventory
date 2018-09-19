@@ -1,4 +1,4 @@
-function Barcodes($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items) {
+function Barcodes($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items, Data) {
 
   var vm = this;
   vm.service = Service;
@@ -45,8 +45,10 @@ function Barcodes($scope, $http, $state, $timeout, Session, colFilters, Service,
     if(form.$valid) {
       var elem = $("form[name='barcodes']").serializeArray();
       var url = "generate_barcodes/";
-      if (vm.permissions.barcode_generate_opt == "sku_serial") {
+      if (vm.permissions.barcode_generate_opt == "sku_serial" && !Data.receive_jo_barcodes) {
         url = "generate_po_labels/";
+      } else if (vm.permissions.barcode_generate_opt == "sku_serial" && Data.receive_jo_barcodes) {
+        url = "generate_jo_labels/";
       }
       vm.service.apiCall(url, 'POST', elem, true).then(function(data){
         if(data.message && data.data !== '"Failed"') {
@@ -65,4 +67,4 @@ function Barcodes($scope, $http, $state, $timeout, Session, colFilters, Service,
 
 angular
   .module('urbanApp')
-  .controller('Barcodes', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', Barcodes]);
+  .controller('Barcodes', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', 'Data', Barcodes]);

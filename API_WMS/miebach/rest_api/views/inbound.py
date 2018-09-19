@@ -1233,14 +1233,14 @@ def confirm_po(request, user=''):
     if request.POST.get('seller_id', '') and str(request.POST.get('seller_id').split(":")[1]).lower() == 'shproc':
         company_name = 'SHPROC Procurement Pvt. Ltd.'
 
-    table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'UOM', 'Unit Price', 'Amount',
-                     'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Total']
+    table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'Amt',
+                     'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
     if ean_flag:
-        table_headers.insert(1, 'EAN Number')
+        table_headers.insert(1, 'EAN')
     if display_remarks == 'true':
         table_headers.append('Remarks')
     if show_cess_tax:
-        table_headers.insert(10, 'CESS(%)')
+        table_headers.insert(10, 'CESS (%)')
     total_amt_in_words = number_in_words(round(total)) + ' ONLY'
     round_value = float(round(total) - float(total))
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
@@ -1423,16 +1423,19 @@ def get_raisepo_group_data(user, myDict):
                                    'order_type': order_type, 'mrp': mrp, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax,
                                    'igst_tax': igst_tax, 'cess_tax': cess_tax,
                                    'utgst_tax': utgst_tax, 'po_delivery_date': po_delivery_date})
-        all_data[cond]['order_quantity'] += float(myDict['order_quantity'][i])
+        order_qty = myDict['order_quantity'][i]
+        if not order_qty:
+            order_qty = 0
+        all_data[cond]['order_quantity'] += float(order_qty)
         if 'dedicated_seller' in myDict:
             seller = myDict['dedicated_seller'][i]
             if ':' in seller:
                 seller = seller.split(':')[0]
             seller_master = SellerMaster.objects.get(user=user.id, seller_id=seller)
             if not seller in all_data[cond]['sellers'].keys():
-                all_data[cond]['sellers'][seller_master.id] = [float(myDict['order_quantity'][i]), seller_po_id]
+                all_data[cond]['sellers'][seller_master.id] = [float(order_qty), seller_po_id]
             else:
-                all_data[cond]['sellers'][seller_master.id][0] += float(myDict['order_quantity'][i])
+                all_data[cond]['sellers'][seller_master.id][0] += float(order_qty)
     return all_data
 
 
@@ -4521,17 +4524,17 @@ def confirm_add_po(request, sales_data='', user=''):
         expiry_date = ''
     po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
     if industry_type == 'FMCG':
-        table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'UOM', 'Unit Price', 'MRP', 'Amount',
-                     'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Total']
+        table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP', 'Amt',
+                     'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
         if show_cess_tax:
-            table_headers.insert(11, 'CESS(%)')
+            table_headers.insert(11, 'CESS (%)')
     else:
-        table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'UOM', 'Unit Price', 'Amount',
-                     'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Total']
+        table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'Amt',
+                     'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
         if show_cess_tax:
-            table_headers.insert(10, 'CESS(%)')
+            table_headers.insert(10, 'CESS (%)')
     if ean_flag:
-        table_headers.insert(1, 'EAN Number')
+        table_headers.insert(1, 'EAN')
     if display_remarks == 'true':
         table_headers.append('Remarks')
     profile = UserProfile.objects.get(user=user.id)
@@ -4736,14 +4739,14 @@ def confirm_po1(request, user=''):
             profile = UserProfile.objects.get(user=user.id)
             po_reference = '%s%s_%s' % (str(profile.prefix), str(order_date).split(' ')[0].replace('-', ''), order_id)
             # table_headers = ('WMS CODE', 'Supplier Name', 'Description', 'Quantity', 'Unit Price', 'Amount')
-            table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'UOM', 'Unit Price',
-                             'Amount', 'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Total']
+            table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price',
+                             'Amt', 'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
             if ean_flag:
-                table_headers.insert(1, 'EAN Number')
+                table_headers.insert(1, 'EAN')
             if display_remarks == 'true':
                 table_headers.append('Remarks')
             if show_cess_tax:
-                table_headers.insert(10, 'CESS(%)')
+                table_headers.insert(10, 'CESS (%)')
             total_amt_in_words = number_in_words(round(total)) + ' ONLY'
             round_value = float(round(total) - float(total))
             data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,

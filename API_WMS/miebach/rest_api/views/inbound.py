@@ -731,11 +731,12 @@ def generated_po_data(request, user=''):
                                         'cgst_tax': rec.cgst_tax,
                                         'igst_tax': rec.igst_tax, 'cess_tax': rec.cess_tax, 'utgst_tax': rec.utgst_tax}, 'pk': rec.id})
     vendor_id = ''
-    if record[0].vendor:
-        vendor_id = record[0].vendor.vendor_id
     po_delivery_date = ''
-    if record[0].delivery_date:
-        po_delivery_date = record[0].delivery_date.strftime('%m/%d/%Y')
+    if len(record):
+        if record[0].vendor:
+            vendor_id = record[0].vendor.vendor_id
+        if record[0].delivery_date:
+            po_delivery_date = record[0].delivery_date.strftime('%m/%d/%Y')
     return HttpResponse(json.dumps({'supplier_id': record[0].supplier_id, 'supplier_name': record[0].supplier.name,
                                     'vendor_id': vendor_id,
                                     'Order Type': status_dict[record[0].order_type], 'po_name': record[0].po_name,

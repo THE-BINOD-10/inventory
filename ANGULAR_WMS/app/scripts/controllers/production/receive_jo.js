@@ -277,14 +277,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 if(data.message) {
                   if(data.data.message == 'Success') {
                     data1.imei_number = data.data.data.label;
-                    // data1.received_quantity = Number(data1.received_quantity) + 1;
-                    data1.sub_data[index][innerIndex].received_quantity += 1;
+                    data1.sub_data[index].received_quantity += 1;
                     if (data1.accept_imei) {
                       data1.accept_imei.push(data1.imei_number);
                     } else {
                       data1['accept_imei'] = [];
                       data1.accept_imei.push(data1.imei_number);
                     }
+                    $('#'+index+'_'+innerIndex+'_imei').trigger('focus').val('');
                     var sku_code = data.data.data.sku_code;
                     if (data1.wms_code != sku_code) {
                       Service.showNoty("Scanned label belongs to "+sku_code);

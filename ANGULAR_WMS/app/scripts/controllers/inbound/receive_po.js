@@ -1196,7 +1196,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     fb["change_po_data"] = function(data) {
 
-      debugger;
       vm.fb.poData['serials'] = Object.values(vm.fb.poData['serials']);
       vm.serial_numbers = Object.values(vm.fb.poData['serials']);
       angular.forEach(vm.model_data.data, function(data){

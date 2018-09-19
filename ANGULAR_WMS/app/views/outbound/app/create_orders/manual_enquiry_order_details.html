@@ -118,7 +118,7 @@
               <textarea rows="4" class="form-control ng-pristine" cols="27" name="remarks" placeholder="Remarks *" ng-model="order.model_data.remarks" required></textarea>
             </div>
           </div>
-          <div class="row no-margin" ng-init="order.show_remove={};">
+          <div class="row col-md-12 no-margin" ng-init="order.show_remove={};">
           <div class="col-md-2 no-padding" ng-repeat="image in order.order_details.style.art_images" ng-mouseover="order.show_remove[$index]=true" ng-mouseleave="order.show_remove[$index]=false">
             <img ng-if="order.image_loding[$index]" style="z-index: 12;position:absolute;left: 0px;right: 0px;height:100%;opacity:0.6;" class="img-thumbnail" src="https://m.popkey.co/fe4ba7/DYALX.gif" ng-click="$event.stopPropagation();">
             <button class="btn btn-danger" ng-hide="order.save"  ng-if="order.show_remove[$index]" style="position:absolute;top:0px;right:0px;" ng-click="order.remove_image($index)">X</button>

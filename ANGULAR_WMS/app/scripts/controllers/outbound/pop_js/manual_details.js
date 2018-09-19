@@ -66,6 +66,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
       formData.append(key, value);
     });
     vm.uploading = true;
+    vm.art_image_uploaded = false;
     $.ajax({url: Session.url+'save_manual_enquiry_image/',
           data: formData,
           method: 'POST',
@@ -82,8 +83,9 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
               $scope.$apply(function() {
                 vm.upload_name = [];
                 vm.uploading = false;
+                vm.art_image_uploaded = true;
                 angular.forEach(response.data, function(url) {
-                  vm.order_details.style.images.push(url);
+                  vm.order_details.style.art_images.push(url);
                 })
               });
               $("input[type='file']").val('');
@@ -147,6 +149,10 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
   }
 
   vm.upload_artwork = function() {
+    if (!vm.art_image_uploaded){
+      Service.showNoty('Upload the image first');
+      return;
+    }
     var data = {};
     angular.copy(vm.model_data, data);
     data['status'] = "artwork_submitted";

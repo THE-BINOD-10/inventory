@@ -1329,9 +1329,8 @@ def print_purchase_order_form(request, user=''):
         total_sku_amt = total_tax_amt + amount
         po_temp_data = [open_po.sku.sku_code, open_po.supplier_code, open_po.sku.sku_desc, 
                         open_po.order_quantity, open_po.measurement_unit, open_po.price, amount,
-                        open_po.sgst_tax, open_po.cgst_tax, open_po.igst_tax, open_po.utgst_tax,
-                        open_po.cess_tax,
-                        total_sku_amt]
+                        open_po.sgst_tax, open_po.cgst_tax, open_po.igst_tax, open_po.cess_tax, 
+                        open_po.utgst_tax, total_sku_amt]
         if ean_flag:
             po_temp_data.insert(1, open_po.sku.ean_number)
         if display_remarks == 'true':
@@ -1375,7 +1374,7 @@ def print_purchase_order_form(request, user=''):
     wh_telephone = user.userprofile.wh_phone_number
     order_date = get_local_date(request.user, order.creation_date)
     po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
-    table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price',
+    table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'UOM', 'Unit Price',
                      'Amount', 'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Total']
     if ean_flag:
         table_headers.insert(1, 'EAN Number')

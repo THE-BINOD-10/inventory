@@ -2293,6 +2293,7 @@ class POLabels(models.Model):
     id = BigAutoField(primary_key=True)
     sku = models.ForeignKey(SKUMaster, blank=True, null=True)
     purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True)
+    job_order = models.ForeignKey(JobOrder, blank=True, null=True)
     label = models.CharField(max_length=128, default='')
     serial_number = models.IntegerField(default=0)
     status = models.IntegerField(default=1)
@@ -2301,8 +2302,8 @@ class POLabels(models.Model):
 
     class Meta:
         db_table = 'PO_LABELS'
-        unique_together = ('purchase_order', 'sku', 'label')
-        index_together = ('purchase_order', 'sku', 'label')
+        unique_together = ('purchase_order', 'job_order', 'sku', 'label')
+        index_together = (('purchase_order', 'sku', 'label'), ('job_order', 'sku', 'label'))
 
     def __unicode__(self):
         return str(self.label)

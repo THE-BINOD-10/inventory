@@ -3233,3 +3233,62 @@ def send_job_order_mail(request, user, job_code):
         log.info('Job Order Vendor Mail Notification failed for %s and params are %s and error statement is %s' % (
             str(user.username), str(request.POST.dict()), str(e)))
         return "Mail Sending Failed"
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def generate_jo_labels(request, user=''):
+    data_dict = dict(request.POST.iterlists())
+    order_id = request.POST.get('order_id', '')
+    pdf_format = request.POST.get('pdf_format', '')
+    data = {}
+    data['pdf_format'] = [pdf_format]
+    if not order_id:
+        return HttpResponse(json.dumps({'message': 'Please send Job Order Id', 'data': []}))
+    log.info('Request params for Generate JO Labels for ' + user.username + ' is ' + str(data_dict))
+    try:
+        serial_number = 1
+        max_serial = POLabels.objects.filter(sku__user=user.id).aggregate(Max('serial_number'))['serial_number__max']
+        if max_serial:
+            serial_number = int(max_serial) + 1
+        job_orders = JobOrder.objects.filter(product_code__user=user.id, job_code=order_id)
+        creation_date = datetime.datetime.now()
+        all_po_labels = POLabels.objects.filter(sku__user=user.id, job_order__job_code=order_id, status=1)
+        for ind in range(0, len(data_dict['wms_code'])):
+            order = job_orders.filter(product_code__wms_code=data_dict['wms_code'][ind])
+            if not order:
+                continue
+            else:
+                order = order[0]
+                sku = order.product_code
+            needed_quantity = int(data_dict['quantity'][ind])
+            po_labels = all_po_labels.filter(job_order_id=order.id).order_by('serial_number')
+            data.setdefault('label', [])
+            data.setdefault('wms_code', [])
+            data.setdefault('quantity', [])
+            for labels in po_labels:
+                data['label'].append(labels.label)
+                data['quantity'].append(1)
+                data['wms_code'].append(labels.sku.wms_code)
+                needed_quantity -= 1
+            for quantity in range(0, needed_quantity):
+                label = str(user.username[:2]).upper() + (str(serial_number).zfill(5))
+                data['label'].append(label)
+                data['quantity'].append(1)
+                label_dict = {'job_order_id': order.id, 'serial_number': serial_number, 'label': label,
+                              'status': 1,
+                              'creation_date': creation_date}
+                label_dict['sku_id'] = sku.id
+                data['wms_code'].append(sku.wms_code)
+                POLabels.objects.create(**label_dict)
+
+                serial_number += 1
+
+        barcodes_list = generate_barcode_dict(pdf_format, data, user)
+        return HttpResponse(json.dumps(barcodes_list))
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Generating Labels failed for params " + str(data_dict) + " and error statement is " + str(e))
+        return HttpResponse("Generate Labels Failed")

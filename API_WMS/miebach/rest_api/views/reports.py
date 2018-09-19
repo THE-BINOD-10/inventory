@@ -823,7 +823,7 @@ def print_po_reports(request, user=''):
         order_date = datetime.datetime.strftime(purchase_order.open_po.creation_date, "%d-%m-%Y")
         bill_date = datetime.datetime.strftime(bill_date, "%d-%m-%Y")
         user_profile = UserProfile.objects.get(user_id=user.id)
-        w_address = user_profile.address
+        w_address = get_purchase_company_address(user_profile)#user_profile.address
         data_dict = (('Order ID', order_id), ('Supplier ID', supplier_id),
                      ('Order Date', order_date), ('Supplier Name', name))
     sku_list = po_data[po_data.keys()[0]]
@@ -1329,9 +1329,8 @@ def print_purchase_order_form(request, user=''):
         total_sku_amt = total_tax_amt + amount
         po_temp_data = [open_po.sku.sku_code, open_po.supplier_code, open_po.sku.sku_desc, 
                         open_po.order_quantity, open_po.measurement_unit, open_po.price, amount,
-                        open_po.sgst_tax, open_po.cgst_tax, open_po.igst_tax, open_po.utgst_tax,
-                        open_po.cess_tax,
-                        total_sku_amt]
+                        open_po.sgst_tax, open_po.cgst_tax, open_po.igst_tax, open_po.cess_tax, 
+                        open_po.utgst_tax, total_sku_amt]
         if ean_flag:
             po_temp_data.insert(1, open_po.sku.ean_number)
         if display_remarks == 'true':
@@ -1356,11 +1355,10 @@ def print_purchase_order_form(request, user=''):
     if open_po:
         address = open_po.supplier.address
         address = '\n'.join(address.split(','))
-        wh_address = user.userprofile.wh_address
         if open_po.ship_to:
             ship_to_address = open_po.ship_to
         else:
-            ship_to_address = wh_address
+            ship_to_address = get_purchase_company_address(user.userprofile)
         ship_to_address = '\n'.join(ship_to_address.split(','))
         telephone = open_po.supplier.phone_number
         name = open_po.supplier.name
@@ -1375,14 +1373,14 @@ def print_purchase_order_form(request, user=''):
     wh_telephone = user.userprofile.wh_phone_number
     order_date = get_local_date(request.user, order.creation_date)
     po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
-    table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price',
-                     'Amount', 'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)', 'Total']
+    table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price',
+                     'Amt', 'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
     if ean_flag:
-        table_headers.insert(1, 'EAN Number')
+        table_headers.insert(1, 'EAN')
     if display_remarks == 'true':
         table_headers.append('Remarks')
     if show_cess_tax:
-        table_headers.insert(10, 'CESS(%)')
+        table_headers.insert(10, 'CESS (%)')
     total_amt_in_words = number_in_words(round(total)) + ' ONLY'
     round_value = float(round(total) - float(total))
     profile = user.userprofile
@@ -1409,7 +1407,7 @@ def print_purchase_order_form(request, user=''):
                  'vendor_address': vendor_address,
                  'vendor_telephone': vendor_telephone,
                  'gstin_no': gstin_no,
-                 'w_address': get_purchase_company_address(profile),
+                 'w_address': ship_to_address,#get_purchase_company_address(profile),
                  'ship_to_address': ship_to_address,
                  'wh_telephone': wh_telephone,
                  'wh_gstin': profile.gst_number,
@@ -1419,6 +1417,7 @@ def print_purchase_order_form(request, user=''):
                  'company_name': profile.company_name, 
                  'location': profile.location, 
                  'po_reference': po_reference,
+                 'industry_type': profile.industry_type,
                 }
     if round_value:
         data_dict['round_total'] = "%.2f" % round_value

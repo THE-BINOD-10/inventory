@@ -29,7 +29,7 @@
 	</div>
 
           <div class="row col-md-12">
-            <h4 style="margin-bottom:2px" align="center">Tax Invoice</h4>
+            <h4 style="margin-bottom:2px" align="center">{{showCase.pdf_data.invoice_header}}</h4>
           </div>
           <div class="row col-md-12" style="margin-top: 0px;">
             <table class="table table-bordered bl br mb0" style="margin-bottom:0px">
@@ -65,21 +65,11 @@
                         <span ng-if="user.userName != 'campus_sutra'">To,</span>
                         <span ng-if="user.userName == 'campus_sutra'">CONSIGNEE,</span>
                       </strong><br>
-                      <div ng-if = "showCase.pdf_data.marketplace == 'Offline'">
-                        <p style="margin-bottom:0px" ng-if= "showCase.pdf_data.customer_details[0].name == ''">{{showCase.pdf_data.marketplace}}</p>
-                        <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].name">
-                           &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].name}}</p>
-                        <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].address">
-                           &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].address}}</p>
-                        <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].tin_number">
-                           &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].tin_number}}</p>
-                        <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].customer_id">
-                           &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].customer_id}}</p>
-                        <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].email_id">
-                          &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].email_id}}</p>
-                      </div>
-                      <div ng-if = "showCase.pdf_data.marketplace != 'Offline'">
-                        {{showCase.pdf_data.marketplace}}<br>
+                      <div>
+                        <p style="margin-bottom:0px" class="cust_details">
+                           &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.company_details.name}}</p>
+                        <p style="margin-bottom:0px" class="cust_details">
+                          &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.company_details.address}}</p>
                       </div>
                     </address>
                   </td>

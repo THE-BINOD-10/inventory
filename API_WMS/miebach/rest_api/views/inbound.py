@@ -5839,13 +5839,21 @@ def check_generated_label(request, user=''):
             po_labels = POLabels.objects.filter(sku__user=user.id, label=label)
             if not po_labels:
                 status = {'message': 'Invalid Serial Number', 'data': {}}
-            elif not int(po_labels[0].purchase_order.order_id) == int(order_id):
+            elif po_labels[0].purchase_order and not int(po_labels[0].purchase_order.order_id) == int(order_id):
                 status = {'message': 'Serial Number is mapped with PO Number ' + get_po_reference(
                     po_labels[0].purchase_order), 'data': {}}
+            elif po_labels[0].job_order and not int(po_labels[0].job_order.job_code) == int(order_id):
+                status = {'message': 'Serial Number is mapped with JO Number ' + \
+                                     str(po_labels[0].job_order.job_code), 'data': {}}
             elif int(po_labels[0].status) == 0:
-                status = {
-                    'message': 'Serial Number already mapped with ' + get_po_reference(po_labels[0].purchase_order),
-                    'data': {}}
+                if po_labels[0].purchase_order:
+                    status = {
+                        'message': 'Serial Number already mapped with ' + get_po_reference(po_labels[0].purchase_order),
+                        'data': {}}
+                elif po_labels[0].job_order:
+                    status = {
+                        'message': 'Serial Number already mapped with ' + str(po_labels[0].job_order.job_code),
+                        'data': {}}
             else:
                 po_label = po_labels[0]
                 data = {'sku_code': po_label.sku.sku_code, 'label': po_label.label}

@@ -61,10 +61,11 @@
                     <!-- <input type="text" name="imei" attr-name="{{'imei_'+data.wms_code}}" ng-model="data.imei_number" class="form-control detectTab" ng-readonly="data.po_quantity == data.value || data.disable" ng-keydown="showCase.check_imei_exists($event, data, outerIndex)"> -->
                     <!-- <input ng-if="!showCase.po_qc" type="hidden" name="imei_number" class="form-control detectTab" value="{{data.imei_list.join(',')}}"> -->
                   </td>
-                  <td><select class="form-control" name="stage" ng-model="record.stage" ng-change="showCase.changeStage(record, outerIndex, innerIndex)" ng-init="record.stages_list[0]" >
-                        <option value="" ng-selected="record.stages_list.length == 0" ng-if="record.stages_list.length == 0"> </option>
-                        <option ng-repeat="stage in record.stages_list" value="{{stage}}" ng-selected="$first && record.stages_list.length">{{stage}}</option>
-                      </select>
+                  <td>
+                    <select class="form-control" name="stage" ng-model="record.stage" ng-change="showCase.changeStage(record, outerIndex, innerIndex)" ng-init="record.stages_list[0]" >
+                      <option value="" ng-selected="record.stages_list.length == 0" ng-if="record.stages_list.length == 0"> </option>
+                      <option ng-repeat="stage in record.stages_list" value="{{stage}}" ng-selected="$first && record.stages_list.length">{{stage}}</option>
+                    </select>
                   </td>
                   <td ng-include="'views/production/toggle/common/custom_sku_details.html'">
                   </td>

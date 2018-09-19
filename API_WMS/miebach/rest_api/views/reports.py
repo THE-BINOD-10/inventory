@@ -823,7 +823,7 @@ def print_po_reports(request, user=''):
         order_date = datetime.datetime.strftime(purchase_order.open_po.creation_date, "%d-%m-%Y")
         bill_date = datetime.datetime.strftime(bill_date, "%d-%m-%Y")
         user_profile = UserProfile.objects.get(user_id=user.id)
-        w_address = user_profile.address
+        w_address = get_purchase_company_address(user_profile)#user_profile.address
         data_dict = (('Order ID', order_id), ('Supplier ID', supplier_id),
                      ('Order Date', order_date), ('Supplier Name', name))
     sku_list = po_data[po_data.keys()[0]]

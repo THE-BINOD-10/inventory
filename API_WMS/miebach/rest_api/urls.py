@@ -313,6 +313,7 @@ urlpatterns = [
     url(r'^request_manual_enquiry_approval/$', request_manual_enquiry_approval),
     url(r'^confirm_or_hold_custom_order/$', confirm_or_hold_custom_order),
     url(r'^convert_customorder_to_actualorder/$', convert_customorder_to_actualorder),
+    url(r'^convert_customorder_to_enquiryorder/$', convert_customorder_to_enquiryorder),
     url(r'^notify_designer/$', notify_designer),
     url(r'^get_invoice_details/$', get_invoice_details),
     url(r'^update_cust_profile/$', update_cust_profile),

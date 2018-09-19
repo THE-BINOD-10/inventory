@@ -96,7 +96,7 @@
                           outline: none; background: white; cursor: inherit; display: block;" class="btn btn-primary" type = "file" name="files" id="image-upload1" multi-image-upload multiple/>
           </span>
         </div>
-        <div ng-if="order.edit_enable && order.order_details.order.status!='confirm_order'">
+        <div ng-if="order.edit_enable && (order.order_details.order.status!='confirm_order' && order.order_details.order.status!='hold_order')">
           <div class="col-md-4 col-sm-4 col-xs-12" ng-if="order.order_details.order.customization_type!='Product Customization' && order.permissions.user_type != 'sm_design_admin'">
             <div class="form-group">
               <input type="text" name="ask_price" ng-model="order.model_data.ask_price" class="form-control ng-pristine" placeholder="Modify Price *" decimal-number required>
@@ -126,7 +126,7 @@
           </div>
         </div>
         </div>
-        <div ng-if="order.model_data.from == 'custom_order' && order.order_details.order.status=='confirm_order'">
+        <div ng-if="order.model_data.from == 'custom_order' && (order.order_details.order.status=='confirm_order' || order.order_details.order.status=='hold_order')">
           <div class="col-md-4 col-sm-4 col-xs-12">
             <div class="form-group">
               <input type="text" name="sm_d_price" ng-model="order.model_data.sm_d_price" class="form-control ng-pristine" placeholder="SM-D Price *" decimal-number required>
@@ -143,20 +143,23 @@
             </div>
           </div>
         </div>
-        <div class="col-md-12 text-center mb10" ng-if="order.model_data.from == 'custom_order' && order.order_details.order.status!='confirm_order' && order.order_details.order.customization_type!='Price and Product Customization'">
+        <div class="col-md-12 text-center mb10" ng-if="order.model_data.from == 'custom_order' && order.order_details.order.status!='confirm_order' && order.order_details.order.status!='hold_order' && order.order_details.order.customization_type!='Price and Product Customization'">
           <button type='submit' class="btn btn-primary" ng-click="order.notify_to_sub_dist(form)" ng-disabled="order.disable_btn">Notify to Sub Distributor</button>
           <button type='button' class="btn btn-primary" ng-click="order.send_for_approval(form)" ng-disabled="order.disable_btn">Send For Approval</button>
         </div>
-        <div class="col-md-12 text-center mb10" ng-if="order.model_data.from == 'custom_order' && order.order_details.order.status!='confirm_order' && order.order_details.order.customization_type=='Price and Product Customization' && order.permissions.user_type != 'sm_design_admin'">
+        <div class="col-md-12 text-center mb10" ng-if="order.model_data.from == 'custom_order' && order.order_details.order.status!='confirm_order' && order.order_details.order.status!='hold_order' && order.order_details.order.customization_type=='Price and Product Customization' && order.permissions.user_type != 'sm_design_admin'">
           <button type='submit' class="btn btn-primary" ng-click="order.notify_to_designer(form)" ng-disabled="order.disable_btn">Notify to Designer</button>
           <button type='button' class="btn btn-primary" ng-click="order.send_for_approval(form)" ng-disabled="order.disable_btn">Send For Approval</button>
         </div>
-        <div class="col-md-12 text-center mb10" ng-if="order.model_data.from == 'custom_order' && order.order_details.order.status!='confirm_order' && order.order_details.order.customization_type=='Price and Product Customization' && order.permissions.user_type == 'sm_design_admin'">
+        <div class="col-md-12 text-center mb10" ng-if="order.model_data.from == 'custom_order' && order.order_details.order.status!='confirm_order' && order.order_details.order.status!='hold_order' && order.order_details.order.customization_type=='Price and Product Customization' && order.permissions.user_type == 'sm_design_admin'">
           <!--<button type='submit' class="btn btn-primary" ng-click="order.notify_to_designer(form)" ng-disabled="order.disable_btn">Notify to Designer</button>-->
           <button type='button' class="btn btn-primary" ng-click="order.upload_artwork(form)" ng-disabled="order.disable_btn">Upload ArtWork</button>
         </div>
         <div class="col-md-12 text-center mb10" ng-if="order.model_data.from == 'custom_order' && order.order_details.order.status=='confirm_order'">
           <button type='submit' class="btn btn-primary" ng-click="order.convert_customorder_to_actualorder(form)" ng-disabled="order.disable_btn">Place Order</button>
+        </div>
+        <div class="col-md-12 text-center mb10" ng-if="order.model_data.from == 'custom_order' && order.order_details.order.status=='hold_order'">
+          <button type='submit' class="btn btn-primary" ng-click="order.convert_customorder_to_enquiryorder(form)" ng-disabled="order.disable_btn">Place Enquiry Order</button>
         </div>
         <div class="col-md-12 text-center mb10" ng-hide="order.save">
           <button type='submit' class="btn btn-success" ng-if="!order.edit_enable" ng-click="order.edit_enable = true">edit</button>

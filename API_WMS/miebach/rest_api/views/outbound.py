@@ -10438,7 +10438,7 @@ def get_enquiry_data(request, user=''):
     if not cum_obj:
         return HttpResponse("No Customer User Mapping Object")
     cm_id = cum_obj[0].customer_id
-    em_qs = EnquiryMaster.objects.filter(customer_id=cm_id)
+    em_qs = EnquiryMaster.objects.filter(customer_id=cm_id).order_by('-enquiry_id')
     em_vals = em_qs.values_list('enquiry_id', 'extend_status', 'extend_date', 'corporate_name').distinct()
     total_qty = dict(em_qs.values_list('enquiry_id').distinct().annotate(quantity=Sum('enquiredsku__quantity')))
     total_inv_amt = dict(
@@ -11265,10 +11265,6 @@ def convert_customorder_to_actualorder(request, user=''):
             continue
         order_id = get_order_id(usr)  # user.id should be either DL01 or MH01
         org_ord_id = 'MN' + str(order_id)
-        if exp_date:
-            shipment_date = exp_date
-        else:
-            shipment_date = datetime.datetime.today()
         invoice_amount = get_tax_inclusive_invoice_amt(cm_id, smd_price, qty, usr, sku_code, admin_user=admin_user)
         mapped_sku_id = get_syncedusers_mapped_sku(usr, sku_id)
 
@@ -11288,7 +11284,6 @@ def convert_customorder_to_actualorder(request, user=''):
 
         generic_order_id = get_generic_order_id(cm_id)
         corporate_po_number = 0  # No PO Number
-        # del_date = shipment_date + datetime.timedelta(days=7)
         create_grouping_order_for_generic(generic_order_id, ord_obj, cm_id, usr, quantity, corporate_po_number,
                                           corp_name, ask_price, ask_price, exp_date)
         usr_sku_master = SKUMaster.objects.filter(user=usr, sku_code=sku_code)
@@ -11336,6 +11331,128 @@ def convert_customorder_to_actualorder(request, user=''):
     else:
         return HttpResponse('No Available Stock to Place the Order')
 
+    return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def convert_customorder_to_enquiryorder(request, user=''):
+    resp = {'msg': 'Success', 'data': []}
+    smd_price = request.POST.get('sm_d_price', '')
+    if smd_price:
+        smd_price = float(smd_price)
+    rc_price = request.POST.get('r_c_price', '')
+    enq_id = request.POST.get('enquiry_id', '')
+    res_user_id = request.POST.get('user_id', '')
+    en_qs = ManualEnquiry.objects.filter(enquiry_id=enq_id, user_id=res_user_id)
+    if not en_qs:
+        resp['msg'] = 'Fail'
+        return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
+    enq_obj = en_qs[0]
+    if enq_obj.status != 'hold_order':
+        return HttpResponse('Either Order is not approved by Admin or Order already Created')
+
+    corporate_name = enq_obj.customer_name  # Corporate Name only
+
+    cust_qs = CustomerUserMapping.objects.filter(user_id=enq_obj.user)
+    if not cust_qs:
+        resp['msg'] = 'Fail'
+        return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
+    cust_obj = cust_qs[0]
+    cm_id = cust_obj.customer.id
+    customer_id = cust_obj.customer.customer_id
+    customer_name = cust_obj.customer.name
+    dist_user_id = cust_obj.customer.user
+    admin_user = get_priceband_admin_user(dist_user_id)
+    enq_limit = get_misc_value('auto_expire_enq_limit', admin_user.id)
+    if enq_limit:
+        enq_limit = int(enq_limit)
+    else:
+        enq_limit = 7
+    enquiry_id = get_enquiry_id(cm_id)
+    sku_id = enq_obj.sku.id
+    sku_code = enq_obj.sku.sku_code
+    title = enq_obj.sku.sku_desc
+    quantity = enq_obj.quantity
+    req_stock = quantity
+    # corp_name = enq_obj.customer_name
+    ask_price_qs = enq_obj.manualenquirydetails_set.values_list('ask_price', flat=True).order_by('-id')
+    if ask_price_qs:
+        ask_price = ask_price_qs[0]
+    exp_date_qs = enq_obj.manualenquirydetails_set.values_list('expected_date', flat=True).order_by('-id')
+    if exp_date_qs:
+        exp_date = exp_date_qs[0]
+
+    items = []
+    try:
+        customer_details = {}
+        customer_details = get_order_customer_details(customer_details, request)
+        customer_details['customer_id'] = cm_id  # Updating Customer Master ID
+        enquiry_map = {'user': user.id, 'enquiry_id': enquiry_id,
+                       'extend_date': datetime.datetime.today() + datetime.timedelta(days=enq_limit)}
+        if corporate_name:
+            enquiry_map['corporate_name'] = corporate_name
+        enquiry_map.update(customer_details)
+        enq_master_obj = EnquiryMaster(**enquiry_map)
+        enq_master_obj.save()
+
+        stock_wh_map = {}
+        source_whs = list(NetworkMaster.objects.filter(dest_location_code_id=dist_user_id).filter(
+            source_location_code__username__in=['DL01', 'MH01']).values_list(
+            'source_location_code_id', flat=True).order_by('lead_time', 'priority'))
+        pick_filter_map = {'picklist__order__user__in': source_whs, 'picklist__order__sku__wms_code': sku_code}
+        res_qtys = dict(PicklistLocation.objects.prefetch_related('picklist', 'stock').filter(status=1).filter(
+            **pick_filter_map).values_list('stock__sku__user').annotate(total=Sum('reserved')))
+        blocked_qtys = dict(EnquiredSku.objects.filter(sku__user__in=source_whs, sku_code=sku_code).filter(
+            ~Q(enquiry__extend_status='rejected')).values_list('sku__user', 'quantity'))
+        stk_dtl_obj = dict(StockDetail.objects.filter(
+            sku__user__in=source_whs, sku__wms_code=sku_code, quantity__gt=0).values_list(
+            'sku__user').distinct().annotate(in_stock=Sum('quantity')))
+        for source_wh in source_whs:
+            avail_stock = stk_dtl_obj.get(source_wh, 0)
+            res_stock = res_qtys.get(source_wh, 0)
+            blocked_stock = blocked_qtys.get(source_wh, 0)
+            if not res_stock:
+                res_stock = 0
+            if not blocked_stock:
+                blocked_stock = 0
+            avail_stock = avail_stock - res_stock - blocked_stock
+            if avail_stock <= 0:
+                continue
+            req_qty = req_stock - avail_stock
+            if req_qty < avail_stock and req_qty < 0:
+                stock_wh_map[source_wh] = avail_stock - abs(req_qty)
+                break
+            if req_qty >= 0:
+                stock_wh_map[source_wh] = avail_stock
+            else:
+                break
+            req_stock = req_qty
+
+        for wh_code, qty in stock_wh_map.items():
+            if qty <= 0:
+                continue
+            wh_sku_id = get_syncedusers_mapped_sku(wh_code, sku_id)
+            enq_sku_obj = EnquiredSku()
+            enq_sku_obj.sku_id = wh_sku_id
+            enq_sku_obj.title = title
+            enq_sku_obj.enquiry = enq_master_obj
+            enq_sku_obj.quantity = qty
+            tot_amt = get_tax_inclusive_invoice_amt(cm_id, ask_price, qty, user.id, sku_code, admin_user)
+            enq_sku_obj.invoice_amount = tot_amt
+            enq_sku_obj.status = 1
+            enq_sku_obj.sku_code = sku_code
+            enq_sku_obj.levelbase_price = ask_price
+            enq_sku_obj.warehouse_level = 1  # TODO
+            enq_sku_obj.save()
+            wh_name = User.objects.get(id=wh_code).first_name
+            cont_vals = (customer_details['customer_name'], enquiry_id, wh_name, sku_code)
+            contents = {"en": "%s placed an enquiry order %s to %s for SKU Code %s" % cont_vals}
+            users_list = list(set([user.id, wh_code, admin_user.id]))
+            send_push_notification(contents, users_list)
+    except:
+        pass
     return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
 
 

@@ -277,19 +277,37 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 if(data.message) {
                   if(data.data.message == 'Success') {
                     data1.imei_number = data.data.data.label;
-                    data1.sub_data[index].received_quantity += 1;
-                    if (data1.accept_imei) {
-                      data1.accept_imei.push(data1.imei_number);
+                    let skuWiseQtyTotal = 0;
+                    // let tempUniqueDict = {};
+                    angular.forEach(data1.sub_data, function(row){
+                      skuWiseQtyTotal += Number(row.received_quantity);
+                    });
+                    if (data1.product_quantity > skuWiseQtyTotal) {
+                      if (data1.sub_data[innerIndex].accept_imei && !data1.sub_data[innerIndex].tempUniqueDict[data1.imei_number]) {
+                        data1.sub_data[innerIndex].received_quantity = Number(data1.sub_data[innerIndex].received_quantity) + 1;
+                        data1.sub_data[innerIndex].accept_imei.push(data1.imei_number);
+                        data1.sub_data[innerIndex].tempUniqueDict[data1.imei_number] = data1.imei_number;
+                      } else {
+                        if (data1.sub_data[innerIndex].tempUniqueDict && data1.sub_data[innerIndex].tempUniqueDict[data1.imei_number]) {
+                          Service.showNoty("Scanned serial number already exist");
+                        } else if (!data1.sub_data[innerIndex].tempUniqueDict) {
+                          data1.sub_data[innerIndex]['accept_imei'] = [];
+                          data1.sub_data[innerIndex]['tempUniqueDict'] = {};
+                          data1.sub_data[innerIndex].tempUniqueDict[data1.imei_number] = data1.imei_number; // Testing purpose only don't use anyware
+                          data1.sub_data[innerIndex].accept_imei.push(data1.imei_number);
+                          data1.sub_data[innerIndex].received_quantity = 1;
+                        }
+                      }
+
+                      $('#'+index+'_'+innerIndex+'_imei').trigger('focus').val('');
+                      var sku_code = data.data.data.sku_code;
+                      if (data1.wms_code != sku_code) {
+                        Service.showNoty("Scanned label belongs to "+sku_code);
+                        data1.imei_number = "";
+                        return false;
+                      }
                     } else {
-                      data1['accept_imei'] = [];
-                      data1.accept_imei.push(data1.imei_number);
-                    }
-                    $('#'+index+'_'+innerIndex+'_imei').trigger('focus').val('');
-                    var sku_code = data.data.data.sku_code;
-                    if (data1.wms_code != sku_code) {
-                      Service.showNoty("Scanned label belongs to "+sku_code);
-                      data1.imei_number = "";
-                      return false;
+                      Service.showNoty("No Quantity Available");
                     }
                     // if(vm.po_qc) {
                     //   vm.po_qc_imei_scan(data1, index)
@@ -473,11 +491,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 */
   vm.changeStage = function(record, outerIndex, innerIndex) {
     if (record.stage == (record.stages_list[record.stages_list.length-1]) && vm.permissions.use_imei) {
-      if (record.received_quantity) {
-        vm.confirmSwal2(record);
+      if (!record.stageStatus) {
+        record.received_quantity = 0;
+        record['stageStatus'] = true;
       }
+      // if (record.received_quantity && record.stageStatus) {
+      //   vm.confirmSwal2(record);
+      // }
     } else {
-      record['stageStatus'] = false;
+      if (record.received_quantity && record.stageStatus) {
+        vm.confirmSwal2(record);
+        $('#'+outerIndex+'_'+innerIndex+'_imei').trigger('focus').val('');
+      } else {
+        record['stageStatus'] = false;
+      }
     }
   }
 
@@ -494,12 +521,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }).then(function (result) {
       $scope.$apply(function(){
         record.received_quantity = 0;
-        record['stageStatus'] = true;
+        record.stage = record.stages_list[record.stages_list.length-1];
+        record['stageStatus'] = false;
+        record.accept_imei = [];
+        record.tempUniqueDict = {};
       })
     }).catch(function (result){
       $scope.$apply(function(){
-        record.stage = record.stages_list[0];
-        record['stageStatus'] = false;
+        record['stageStatus'] = true;
       })
     });
   }

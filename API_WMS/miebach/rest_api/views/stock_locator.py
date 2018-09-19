@@ -1673,7 +1673,7 @@ def get_stock_summary_serials_excel(filter_params, temp_data, headers, user, req
                      'imei_number']
 
         filter_params = get_filtered_params(filters, dict_list)
-        dispatched_imeis = OrderIMEIMapping.objects.filter(status=1, order__user=user.id).values_list('po_imei_id',
+        dispatched_imeis = OrderIMEIMapping.objects.filter(status=1, order__user=user.id, po_imei__isnull=False).values_list('po_imei_id',
                                                                                                       flat=True)
         damaged_returns = dict(ReturnsIMEIMapping.objects.filter(status='damaged', order_imei__order__user=user.id). \
                                values_list('order_imei__po_imei__imei_number', 'reason'))

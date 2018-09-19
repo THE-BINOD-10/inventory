@@ -77,7 +77,7 @@
           <div class="row insert-status"><h4 align="center">{{showCase.message}}</h4></div>
         </div>
         <div class="modal-footer">
-          <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-normal" ng-click="showCase.save()">Save</button>
+          <button ng-if="(!(showCase.print_enable))" type="button" class="btn pop pop-normal" ng-click="showCase.save()">Save</button>
           <button ng-if="(!(showCase.print_enable))" type="button" class="btn pop pop-green" ng-click="showCase.submit()">Generate GRN</button>
           <button type="button" class="btn pop pop-green pull-left" style="margin-left:0px;" ng-click="$state.go('app.production.ReveiveJO.Print')">Print</button>
           <button ng-if="showCase.print_enable" type="button" class="btn pop pop-normal" ng-click="showCase.barcode()">Print Barcodes</button>

@@ -464,7 +464,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
 */
   vm.changeStage = function(record, outerIndex, innerIndex) {
-    if (record.stage == record.stages_list[record.stages_list.length-1]) {
+    if (record.stage == (record.stages_list[record.stages_list.length-1]) && vm.permissions.use_imei) {
       if (record.received_quantity) {
         vm.confirmSwal2(record);
       }
@@ -494,6 +494,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         record['stageStatus'] = false;
       })
     });
+  }
+
+  vm.checkRecQty = function (record) {
+    if (!record.stages_list.length) {
+      record.received_quantity = 0;
+    }
   }
 
 /*

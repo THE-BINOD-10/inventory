@@ -57,7 +57,7 @@
                   <td ng-if="showCase.permissions.pallet_switch"><input ng-if="data.load_unit_handle == 'pallet'" type="text" name="pallet_number" class="form-control" ng-model="record.pallet_number"></td>
                   <td><input type="text" name="received_quantity" ng-init="showCase.checkRecQty(record)" class="form-control" ng-model="record.received_quantity" ng-readonly="record.stageStatus" ng-change="showCase.cal_quantity(record, data)" ng-class="service.get_decimal_perm()"></td>
                   <td ng-if="showCase.permissions.use_imei">
-                    <input type="text" name="imei" ng-if="record.stageStatus" attr-name="{{'imei_'+data.wms_code}}" ng-model="data.imei_number" class="form-control detectTab" ng-readonly="data.disable" ng-keydown="showCase.check_imei_exists($event, data, outerIndex)">
+                    <input type="text" name="imei" ng-if="record.stageStatus" attr-name="{{'imei_'+data.wms_code}}" ng-model="data.imei_number" class="form-control detectTab" ng-readonly="data.disable" ng-keydown="showCase.check_imei_exists($event, data, outerIndex, innerIndex)">
                     <!-- <input type="text" name="imei" attr-name="{{'imei_'+data.wms_code}}" ng-model="data.imei_number" class="form-control detectTab" ng-readonly="data.po_quantity == data.value || data.disable" ng-keydown="showCase.check_imei_exists($event, data, outerIndex)"> -->
                     <!-- <input ng-if="!showCase.po_qc" type="hidden" name="imei_number" class="form-control detectTab" value="{{data.imei_list.join(',')}}"> -->
                   </td>

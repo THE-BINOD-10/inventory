@@ -99,7 +99,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       vm.print_enable = false;
       $state.go('app.production.ReveiveJO');
-    } 
+    }
 
     vm.html = "";
     vm.print_enable = false;
@@ -135,7 +135,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           });
         }
       });
-      console.log(vm.model_data, data); 
+      console.log(vm.model_data, data);
     }
 
     vm.save = function() {
@@ -209,7 +209,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         record.received_quantity = quantity;
       }
     }
-  } 
+  }
 
   vm.print = print;
   function print() {
@@ -219,7 +219,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.change_sku_view = function(){
 
     Data.receive_jo.sku_view = vm.sku_view;
-    $state.go($state.current, {}, {reload: true});    
+    $state.go($state.current, {}, {reload: true});
   }
 
   vm.serial_numbers = [];
@@ -244,7 +244,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           if (resp.status) {
             Service.showNoty("Serial Number already Exist in other PO: "+resp.data.po);
             data1.imei_number = "";
-            //if(vm.permissions.barcode_generate_opt != "sku_serial") { 
+            //if(vm.permissions.barcode_generate_opt != "sku_serial") {
             //  $('textarea[name="scan_sku"]').trigger('focus').val('');
             //}
             if(vm.permissions.grn_scan_option == "sku_serial_scan") {
@@ -256,6 +256,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               vm.service.apiCall('check_imei_exists/', 'GET',{imei: data1.imei_number, sku_code: data1.wms_code}).then(function(data){
                 if(data.message) {
                   if (data.data == "") {
+                    var sku = data1[index];
+                    // var sku = vm.model_data.data[vm.current_index];
+                    sku.received_quantity = Number(sku.received_quantity) + 1;
+                    // sku.value = Number(sku.accepted_quantity) + Number(sku.rejected_quantity);
                     // if(vm.po_qc) {
                     //   vm.po_qc_imei_scan(data1, index)
                     // } else {
@@ -454,17 +458,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       $('textarea[name="scan_sku"]').trigger('focus').val('');
     }
   }
-
+*/
+  vm.showOldQty = false;
   vm.changeStage = function(record, outerIndex, innerIndex) {
-
+    vm.showOldQty = true;
+    record.received_quantity = 0;
     record['stageStatus'] = true;
   }
 
+/*
   vm.showOldQty = false;
   vm.goBack = function() {
     vm.showOldQty = true;
     $state.go('app.inbound.ReceiveJO.ReceiveJobOrder');
-  }*/
-
+  }
+*/
 }
-

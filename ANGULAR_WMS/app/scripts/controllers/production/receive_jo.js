@@ -464,12 +464,36 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   }
 */
   vm.changeStage = function(record, outerIndex, innerIndex) {
-    record.received_quantity = 0;
     if (record.stage == record.stages_list[record.stages_list.length-1]) {
-      record['stageStatus'] = true;
+      if (record.received_quantity) {
+        vm.confirmSwal2(record);
+      }
     } else {
       record['stageStatus'] = false;
     }
+  }
+
+  vm.confirmSwal2 = function (record) {
+    swal2({
+      title: '',
+      text: 'Your received quantity will lose',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      confirmButtonText: 'Yes',
+      cancelButtonText: 'No',
+      confirmButtonClass: 'btn btn-danger',
+      cancelButtonClass: 'btn btn-default'
+    }).then(function (result) {
+      $scope.$apply(function(){
+        record.received_quantity = 0;
+        record['stageStatus'] = true;
+      })
+    }).catch(function (result){
+      $scope.$apply(function(){
+        record.stage = record.stages_list[0];
+        record['stageStatus'] = false;
+      })
+    });
   }
 
 /*

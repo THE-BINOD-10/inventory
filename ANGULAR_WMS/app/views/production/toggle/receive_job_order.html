@@ -46,7 +46,7 @@
                 </tr>
               </thead>
               <tbody ng-repeat="data in showCase.model_data.data" ng-init="outerIndex=$index">
-                <tr ng-repeat="record in data.sub_data" class="field" ng-init="innerIndex=$index" id="tab_count">
+                <tr ng-repeat="record in data.sub_data" class="field" ng-init="innerIndex=$index;" id="tab_count">
                   <input type="hidden" name="id" value="{{data.id}}">
                   <input type="hidden" name="status_track_id" value="{{record.status_track_id}}">
                   <input type="hidden" name="pallet_id" value="{{record.pallet_id}}">
@@ -62,7 +62,7 @@
                     <!-- <input ng-if="!showCase.po_qc" type="hidden" name="imei_number" class="form-control detectTab" value="{{data.imei_list.join(',')}}"> -->
                   </td>
                   <td>
-                    <select class="form-control" name="stage" ng-model="record.stage" ng-change="showCase.changeStage(record, outerIndex, innerIndex)" ng-init="record.stages_list[0]" >
+                    <select class="form-control" name="stage" ng-model="record.stage" ng-init="record.stageStatus = (record.stages_list.length > 0) ? false : true" ng-change="showCase.changeStage(record, outerIndex, innerIndex)" ng-init="record.stages_list[0]" >
                       <option value="" ng-selected="record.stages_list.length == 0" ng-if="record.stages_list.length == 0"> </option>
                       <option ng-repeat="stage in record.stages_list" value="{{stage}}" ng-selected="$first && record.stages_list.length">{{stage}}</option>
                     </select>

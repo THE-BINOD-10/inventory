@@ -174,6 +174,10 @@ def add_user_permissions(request, response_data, user=''):
     # warehouses = UserGroups.objects.filter(Q(user__username=user.username) | Q(admin_user__username=user.username))
     # if warehouses:
     #    multi_warehouse = 'true'
+    #notification count
+    notification_count = PushNotifications.objects\
+                                   .filter(user_id=request.user.id, is_read=False)\
+                                   .count()
     if user_profile.multi_warehouse:
         multi_warehouse = 'true'
     parent_data = {}
@@ -182,6 +186,7 @@ def add_user_permissions(request, response_data, user=''):
     parent_data['logo'] = COMPANY_LOGO_PATHS.get(user.username, '')
     response_data['data']['userName'] = request.user.username
     response_data['data']['userId'] = request.user.id
+    response_data['data']['notification_count'] = notification_count
     response_data['data']['parent'] = parent_data
     response_data['data']['roles'] = get_user_permissions(request, user)
     response_data['data']['roles']['tax_type'] = tax_type
@@ -497,6 +502,7 @@ data_datatable = {  # masters
     'Available': 'get_available_stock', 'Available+Intransit': 'get_availintra_stock', 'Total': 'get_avinre_stock', \
     'StockSummaryAlt': 'get_stock_summary_size', 'SellerStockTable': 'get_seller_stock_data', \
     'BatchLevelStock': 'get_batch_level_stock', 'WarehouseStockAlternative': 'get_alternative_warehouse_stock',
+    'Available+ASN': 'get_availasn_stock',
     # outbound
     'SKUView': 'get_batch_data', 'OrderView': 'get_order_results', 'OpenOrders': 'open_orders', \
     'PickedOrders': 'open_orders', 'BatchPicked': 'open_orders', \
@@ -2458,10 +2464,66 @@ def get_challan_number(user, seller_order_summary):
     return challan_number, challan_num
 
 
+def get_full_invoice_number(user, order_no, order, invoice_date='', pick_number=''):
+    user_profile = user.userprofile
+    invoice_sequence = ''
+    from_pos = False
+    if not invoice_date:
+        invoice_date = datetime.datetime.now()
+    if order:
+        cod = order.customerordersummary_set.filter()
+        if cod and cod[0].invoice_date:
+            invoice_date = cod[0].invoice_date
+        elif not invoice_date and pick_number:
+            seller_summary = SellerOrderSummary.objects.filter(Q(seller_order__order_id=order.id) |
+                                                               Q(order_id=order.id), pick_number=pick_number)
+            if seller_summary:
+                invoice_date = seller_summary.creation_date
+        if cod:
+            if cod[0].issue_type in ['PRE', 'DC']:
+                from_pos = True
+                order_ids = [order.id]
+        invoice_sequence = get_invoice_sequence_obj(user, order.marketplace)
+    if invoice_sequence:
+        invoice_sequence = invoice_sequence[0]
+        inv_num_lis = []
+        if invoice_sequence.prefix:
+            inv_num_lis.append(invoice_sequence.prefix)
+        if invoice_sequence.date_type:
+            if invoice_sequence.date_type == 'financial':
+                inv_num_lis.append(get_financial_year(invoice_date))
+            elif invoice_sequence.date_type == 'month_year':
+                inv_num_lis.append(invoice_date.strftime('%m%y'))
+        if invoice_sequence.interfix:
+            inv_num_lis.append(invoice_sequence.interfix)
+        inv_num_lis.append(str(order_no))
+        invoice_number = '/'.join(['%s'] * len(inv_num_lis)) % tuple(inv_num_lis)
+    else:
+        if user_profile.user_type == 'marketplace_user':
+            invoice_number = user_profile.prefix + '/' + str(invoice_date.strftime('%m-%y')) + '/A-' + str(order_no)
+        elif user.username == 'TranceHomeLinen':
+            invoice_number = user_profile.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + 'GST' + '/' + str(
+                order_no)
+        elif user.username == 'Subhas_Publishing':
+            invoice_number = user_profile.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + str(order_no)
+        elif user.username == 'campus_sutra':
+            invoice_number = str(get_financial_year(invoice_date)) + '/' + str(order_no)
+        elif user_profile.warehouse_type == 'DIST':
+            invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), order_no)
+        else:
+            if from_pos:
+                sub_usr = ''.join(re.findall('\d+', OrderDetail.objects.get(id=order_ids[0]).order_code))
+                invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), sub_usr + order_no)
+            else:
+                invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), order_no)
+    return invoice_number
+
+
 def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos=False):
     invoice_number = ""
     inv_no = ""
     invoice_sequence = None
+    order = None
     invoice_no_gen = MiscDetail.objects.filter(user=user.id, misc_type='increment_invoice')
     if invoice_no_gen:
         seller_order_summary = SellerOrderSummary.objects.filter(Q(order__id__in=order_ids) |
@@ -2495,38 +2557,40 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
                     invoice_seq.save()
             else:
                 seller_order_summary.filter(invoice_number='').update(invoice_number=order_no)
-    if invoice_sequence:
-        invoice_sequence = invoice_sequence[0]
-        inv_num_lis = []
-        if invoice_sequence.prefix:
-            inv_num_lis.append(invoice_sequence.prefix)
-        if invoice_sequence.date_type:
-            if invoice_sequence.date_type == 'financial':
-                inv_num_lis.append(get_financial_year(invoice_date))
-            elif invoice_sequence.date_type == 'month_year':
-                inv_num_lis.append(invoice_date.strftime('%m%y'))
-        if invoice_sequence.interfix:
-            inv_num_lis.append(invoice_sequence.interfix)
-        inv_num_lis.append(str(order_no))
-        invoice_number = '/'.join(['%s'] * len(inv_num_lis)) % tuple(inv_num_lis)
-    else:
-        if user_profile.user_type == 'marketplace_user':
-            invoice_number = user_profile.prefix + '/' + str(invoice_date.strftime('%m-%y')) + '/A-' + str(order_no)
-        elif user.username == 'TranceHomeLinen':
-            invoice_number = user_profile.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + 'GST' + '/' + str(
-                order_no)
-        elif user.username == 'Subhas_Publishing':
-            invoice_number = user_profile.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + str(order_no)
-        elif user.username == 'campus_sutra':
-            invoice_number = str(get_financial_year(invoice_date)) + '/' + str(order_no)
-        elif user_profile.warehouse_type == 'DIST':
-            invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), order_no)
-        else:
-            if from_pos:
-                sub_usr = ''.join(re.findall('\d+', OrderDetail.objects.get(id=order_ids[0]).order_code))
-                invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), sub_usr + order_no)
-            else:
-                invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), order_no)
+    invoice_number = get_full_invoice_number(user, order_no, order, invoice_date=invoice_date,
+                                             pick_number='')
+    # if invoice_sequence:
+    #     invoice_sequence = invoice_sequence[0]
+    #     inv_num_lis = []
+    #     if invoice_sequence.prefix:
+    #         inv_num_lis.append(invoice_sequence.prefix)
+    #     if invoice_sequence.date_type:
+    #         if invoice_sequence.date_type == 'financial':
+    #             inv_num_lis.append(get_financial_year(invoice_date))
+    #         elif invoice_sequence.date_type == 'month_year':
+    #             inv_num_lis.append(invoice_date.strftime('%m%y'))
+    #     if invoice_sequence.interfix:
+    #         inv_num_lis.append(invoice_sequence.interfix)
+    #     inv_num_lis.append(str(order_no))
+    #     invoice_number = '/'.join(['%s'] * len(inv_num_lis)) % tuple(inv_num_lis)
+    # else:
+    #     if user_profile.user_type == 'marketplace_user':
+    #         invoice_number = user_profile.prefix + '/' + str(invoice_date.strftime('%m-%y')) + '/A-' + str(order_no)
+    #     elif user.username == 'TranceHomeLinen':
+    #         invoice_number = user_profile.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + 'GST' + '/' + str(
+    #             order_no)
+    #     elif user.username == 'Subhas_Publishing':
+    #         invoice_number = user_profile.prefix + '/' + str(get_financial_year(invoice_date)) + '/' + str(order_no)
+    #     elif user.username == 'campus_sutra':
+    #         invoice_number = str(get_financial_year(invoice_date)) + '/' + str(order_no)
+    #     elif user_profile.warehouse_type == 'DIST':
+    #         invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), order_no)
+    #     else:
+    #         if from_pos:
+    #             sub_usr = ''.join(re.findall('\d+', OrderDetail.objects.get(id=order_ids[0]).order_code))
+    #             invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), sub_usr + order_no)
+    #         else:
+    #             invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), order_no)
 
     return invoice_number, inv_no
 
@@ -2859,7 +2923,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
         email = seller.email_id
         gstin_no = seller.tin_number
         company_address = company_address.replace("\n", " ")
-        company_name = 'SHPROC Procurement Pvt. Ltd.'
+        company_name = seller.name #'SHPROC Procurement Pvt. Ltd.'
 
     invoice_data = {'data': data, 'imei_data': imei_data, 'company_name': company_name,
                     'company_address': company_address, 'company_number': company_number,
@@ -4206,7 +4270,7 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
             prd_sku_codes = sku_master.filter(sku_class=product).only('sku_code').values_list('sku_code', flat=True)
             for prd_sku in prd_sku_codes:
                 total_quantity += needed_stock_data['stock_objs'].get(prd_sku, 0)
-                total_quantity += needed_stock_data['asn_quantities'].get(prd_sku, 0)
+                # total_quantity += needed_stock_data['asn_quantities'].get(prd_sku, 0)
                 total_quantity = total_quantity - float(needed_stock_data['reserved_quantities'].get(prd_sku, 0))
                 total_quantity = total_quantity - float(needed_stock_data['enquiry_res_quantities'].get(prd_sku, 0))
             if total_quantity >= int(stock_quantity):
@@ -4227,7 +4291,7 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
             prd_sku_codes = sku_master.filter(sku_class=product).only('sku_code').values_list('sku_code', flat=True)
             for prd_sku in prd_sku_codes:
                 total_quantity += needed_stock_data['stock_objs'].get(prd_sku, 0)
-                total_quantity += needed_stock_data['asn_quantities'].get(prd_sku, 0)
+                # total_quantity += needed_stock_data['asn_quantities'].get(prd_sku, 0)
                 total_quantity = total_quantity - float(needed_stock_data['reserved_quantities'].get(prd_sku, 0))
                 total_quantity = total_quantity - float(needed_stock_data['enquiry_res_quantities'].get(prd_sku, 0))
         if total_quantity < 0:
@@ -4243,6 +4307,7 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
                                               is_margin_percentage=is_margin_percentage, needed_stock_data=needed_stock_data)
             sku_styles[0]['variants'] = sku_variants
             sku_styles[0]['style_quantity'] = total_quantity
+            sku_styles[0]['asn_quantity'] = needed_stock_data['asn_quantities'].get(prd_sku, 0)
 
             sku_styles[0]['image_url'] = resize_image(sku_styles[0]['image_url'], user)
             if style_quantities.get(sku_styles[0]['sku_class'], ''):
@@ -4976,13 +5041,13 @@ def get_invoice_html_data(invoice_data):
     show_mrp = invoice_data.get('show_mrp', 'false')
     data = {'totals_data': {'label_width': 6, 'value_width': 6}, 'columns': 10, 'emty_tds': [], 'hsn_summary_span': 3}
     if show_mrp == 'true':
-        data['columns'] = 11
+        data['columns'] += 1
     if invoice_data.get('invoice_remarks', '') not in ['false', '']:
         data['totals_data']['label_width'] = 4
         data['totals_data']['value_width'] = 8
 
     if invoice_data.get('show_disc_invoice', '') == 'true':
-        data['columns'] = 11
+        data['columns'] += 1
         data['hsn_summary_span'] = 4
     data['empty_tds'] = [i for i in range(data['columns'])]
     return data
@@ -5729,7 +5794,7 @@ def get_purchase_order_id(user):
     # else:
     #     po_id = int(order_ids[0]) + 1
 
-    po_id = get_incremental(user, 'po')
+    po_id = get_incremental(user, 'po', default_val=1)
     po_id = po_id - 1
     return po_id
 
@@ -6555,7 +6620,10 @@ def update_profile_data(request, user=''):
 def get_purchase_company_address(profile):
     """ Returns Company address for purchase order"""
 
-    address = profile.address
+    if profile.wh_address:
+        address = profile.wh_address
+    else:
+        address = profile.address
     if not address:
         return ''
     if profile.user.email:
@@ -7696,7 +7764,13 @@ def save_webpush_id(request):
     return HttpResponse({"message": "success"})
 
 
-def send_push_notification(contents, player_ids):
+def send_push_notification(contents, users_list):
+    player_ids = []
+    wh_player_qs = OneSignalDeviceIds.objects.filter(user__in=users_list).distinct()
+    for wh_player in wh_player_qs:
+        wh_player_id = wh_player.device_id
+        player_ids.append(wh_player_id)
+
     auth_key = settings.ONESIGNAL_AUTH_KEY
     app_id = settings.ONESIGNAL_APP_ID
     os_notification_url = "https://onesignal.com/api/v1/notifications"
@@ -7708,6 +7782,8 @@ def send_push_notification(contents, player_ids):
                "contents": contents}
     req = requests.post(os_notification_url, headers=header, data=json.dumps(payload))
     log.info("Notification Status %s for contents: %s and player_ids: %s " %(req.status_code, contents, player_ids))
+    for user in users_list:
+        PushNotifications.objects.create(user_id=user, message=contents['en'])
     return req.status_code, req.reason
 
 
@@ -7734,7 +7810,7 @@ def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False):
             error_eans.append(ean_number)
     for rem_ean in rem_ean_list:
         if int(data.ean_number) == int(rem_ean):
-            data.ean_number = 0
+            data.ean_number = int(rem_ean)
         else:
             EANNumbers.objects.filter(sku_id=data.id, ean_number=rem_ean).delete()
     if error_eans:
@@ -7742,11 +7818,23 @@ def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False):
     return ean_status
 
 
-def po_invoice_number_check(user, invoice_num):
+def po_invoice_number_check(user, invoice_num, supplier_id):
     status = ''
     exist_inv_obj = SellerPOSummary.objects.filter(purchase_order__open_po__sku__user=user.id,
-                                                   invoice_number=invoice_num)
+                                                   invoice_number=invoice_num,
+                                                   purchase_order__open_po__supplier_id=supplier_id)
     if exist_inv_obj.exists():
         status = 'Invoice Number already Mapped to %s' % get_po_reference(exist_inv_obj[0].purchase_order)
     return status
+
+
+def get_sku_ean_list(sku):
+    eans_list = []
+    if sku.ean_number:
+        eans_list.append(str(sku.ean_number))
+    multi_eans = sku.eannumbers_set.filter().annotate(str_eans=Cast('ean_number', CharField())).\
+                    values_list('str_eans', flat=True)
+    if multi_eans:
+        eans_list = list(chain(eans_list, multi_eans))
+    return eans_list
 

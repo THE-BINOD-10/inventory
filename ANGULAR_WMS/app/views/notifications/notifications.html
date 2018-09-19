@@ -1,0 +1,67 @@
+<div class="page-layout" ng-controller="Notifications as notify">
+
+  <div class='layout-header'>
+    <div class="pull-left" ng-include="'views/common/title.html'"></div>
+  </div>
+
+  <div class="container notif_container">
+    <div class="row mark_all">
+      <div class="col-md-8">
+        <div type="button" class="btn btn-default" ng-click="notify.mark_as_read('', true)">Mark All As Read</div>
+      </div>
+    </div>
+    <div class="row" ng-repeat="notification in notify.notifications">
+      <div class="col-md-8">
+        <div ng-class="{'alert-common alert-unread': notification.is_read==0, 'alert-common alert-read': notification.is_read!=0,
+                        'first_alert': $index==0}">
+          <div class="col-md-10">
+            <span class="nt-head">{{notification.message}}</span>
+            <p>{{notification.creation_date}}</p>
+          </div>
+          <div class="col-md-2">
+            <div type="button" class="btn btn-success"
+                 ng-if="notification.is_read==0"
+                 ng-click="notify.mark_as_read(notification.id, '')">Mark As Read</div>
+            <div type="button" class="btn btn-warning"
+                 ng-click="notify.delete_notification(notification.id)">Delete</div>
+          </div><!--col-->
+        </div>
+      </div><!--col-->
+    </div>
+  </div>
+
+</div>
+
+<style>
+  .container.notif_container {
+    margin-bottom: 20px;
+  }
+  .alert-unread {
+    background: #edf2fa;
+  }
+  .alert-read {
+  }
+  .alert-common {
+    min-height: 100px;
+    padding: 16px 16px 16px 12px;
+    border-bottom: 1px solid #cfcfcf;
+    border-left: 1px solid #cfcfcf;
+    border-right: 1px solid #cfcfcf;
+    font-size: 14px;
+    line-height: 20px;
+    color: #1d2129;
+  }
+  .first_alert {
+    border-top: 1px solid #cfcfcf;
+  }
+  .nt-head {
+    color: #1d2129;
+    font-size: 20px;
+  }
+  .mark_all {
+    margin: 20px 10px;
+  }
+  .mark_all .btn {
+    float: right;
+  }
+</style>

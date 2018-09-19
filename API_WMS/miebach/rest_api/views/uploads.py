@@ -1636,7 +1636,7 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  inv_mapping)
     if not set(['receipt_date', 'quantity', 'wms_code', 'location']).issubset(excel_mapping.keys()):
-        return 'Invalid File'
+        return 'Invalid File', []
     number_fields = ['quantity', 'mrp']
     optional_fields = ['mrp']
     mandatory_fields = ['receipt_date', 'location', 'quantity', 'receipt_type']
@@ -1711,7 +1711,7 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
                 data_dict[key] = cell_data
             else:
                 data_dict[key] = cell_data
-        if user.userprofile.industry_type == 'FMCG':
+        if user.userprofile.industry_type == 'FMCG' and data_dict['sku_id']:
             if not data_dict.get('manufactured_date', ''):
                 data_dict['manufactured_date'] = datetime.datetime.now()
             if not data_dict.get('expiry_date', ''):

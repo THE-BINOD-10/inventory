@@ -26,6 +26,7 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
         $ctrl.categories = data.data.categories;
         $ctrl.category = "";
         $ctrl.customization_types= data.data.customization_types;
+        $ctrl.corporates = data.data.reseller_corporates;
       }
       $ctrl.categories_loading = false;
     });  

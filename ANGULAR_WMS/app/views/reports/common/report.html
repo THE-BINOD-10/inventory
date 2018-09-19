@@ -53,6 +53,19 @@
 			</label>
 		  </div>
 		</div>
+        <div class="col-md-12 col-sm-12 col-xs-12" ng-if="($state.current.data.title | lowercase) == 'rtv report'">
+		  <div class="col-md-11 col-sm-11 col-xs-11" style="padding: 7px;text-align: right;">
+			<span>SKU Level View</span>
+		  </div>
+		  <div class="col-md-1 col-sm-1 col-xs-1">
+			<label class="switch switch-sm square mt5">
+			  <div>
+				<input type="checkbox" ng-model="showCase.toggle_sku_wise" ng-change="showCase.toggle_rtv_sku_wise()" class="ng-valid ng-dirty">
+				<span><i class="handle"></i></span>
+			  </div>
+			</label>
+		  </div>
+		</div>
         <div ng-if="!(showCase.report_data.row_click)" ng-include="'views/common/no-onclick-table.html'"></div>
         <div ng-if="showCase.report_data.row_click" ng-include="'views/common/datatable.html'"></div>
       </div>

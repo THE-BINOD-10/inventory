@@ -114,7 +114,7 @@
         <div class="col-md-12 text-center mb10" ng-hide="order.save">
           <button type='submit' class="btn btn-success" ng-if="!order.edit_enable" ng-click="order.edit_enable = true">edit</button>
           <button type='submit' class="btn btn-success" ng-if="order.edit_enable" ng-click="order.edit(form)">Notify HO</button>
-          <button type='submit' class="btn btn-primary" ng-click="">Accept</button>
+          <button type='submit' class="btn btn-primary" ng-click="order.accept_or_hold()">Accept</button>
           <button type='submit' class="btn btn-danger" ng-click="">Reject</button>
         </div>
       </form>

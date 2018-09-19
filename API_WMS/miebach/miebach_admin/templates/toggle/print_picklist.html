@@ -102,6 +102,9 @@ $(document).ready(function(){
           {{ record.original_order_id }}
         </td>
         {% endif %}
+        {% if combo_picklist %}
+          <td>{{ record.parent_sku_code }}</td>
+        {% endif %}
         <td>
           {% if record.wms_code == 'TEMP' %}
           <input type="" name="wmscode_{{ record.id }}" value="{{ record.sku_code }}">

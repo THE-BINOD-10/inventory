@@ -411,7 +411,7 @@ def get_quantity_data(user_groups, sku_codes_list):
         stock_user_dict = dict(StockDetail.objects.filter(sku__user=user). \
                                exclude(location__zone__zone='DAMAGED_ZONE').values_list('sku__sku_code').distinct(). \
                                annotate(total=Sum('quantity')))
-        purch_dict = PurchaseOrder.objects.exclude(status__in=['location-assigned', 'confirmed-putaway']).values(
+        purch_dict = PurchaseOrder.objects.filter(open_po__sku__user=user).exclude(status__in=['location-assigned', 'confirmed-putaway']).values(
             'open_po__sku__sku_code'). \
             annotate(total_order=Sum('open_po__order_quantity'), total_received=Sum('received_quantity'))
         pick_reserved_dict = dict(PicklistLocation.objects.filter(stock__sku__user=user, status=1, reserved__gt=0). \
@@ -420,16 +420,37 @@ def get_quantity_data(user_groups, sku_codes_list):
             RMLocation.objects.filter(status=1, material_picklist__jo_material__material_code__user=user). \
             values_list('material_picklist__jo_material__material_code__wms_code').distinct(). \
             annotate(rm_reserved=Sum('reserved')))
+        enq_block_stock = dict(EnquiredSku.objects.filter(sku__user=user).filter(
+            ~Q(enquiry__extend_status='rejected')).values_list('sku_code').annotate(Sum('quantity')))
+
+        # ASN Stock Related to SM
+        today_filter = datetime.datetime.today()
+        hundred_day_filter = today_filter + datetime.timedelta(days=100)
+        ints_filters = {'quantity__gt': 0, 'sku__user': user}
+        asn_qs = ASNStockDetail.objects.filter(**ints_filters)
+        intr_obj_100days_qs = asn_qs.exclude(arriving_date__lte=today_filter).filter(
+            arriving_date__lte=hundred_day_filter)
+        intr_obj_100days_ids = intr_obj_100days_qs.values_list('id', flat=True)
+        asn_res_100days_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
+        asn_res_100days_qty = dict(
+            asn_res_100days_qs.values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
+
+        asn_avail_stock = dict(
+            intr_obj_100days_qs.values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
+        for k, v in asn_avail_stock.items():
+            if k in asn_res_100days_qty:
+                asn_avail_stock[k] = asn_avail_stock[k] - asn_res_100days_qty[k]
         purchases = map(lambda d: d['open_po__sku__sku_code'], purch_dict)
         total_order_dict = dict(zip(purchases, map(lambda d: d['total_order'], purch_dict)))
         total_received_dict = dict(zip(purchases, map(lambda d: d['total_received'], purch_dict)))
         for single_sku in sku_codes_list:
             exist = user_sku_codes.filter(sku_code=single_sku)
+            asn_stock_qty = asn_avail_stock.get(single_sku, 0)
             if not exist:
                 available = 'No SKU'
                 reserved = 0
                 ret_list.append({'available': available, 'name': ware, 'transit': 0, 'reserved': reserved, 'user': user,
-                                 'sku_code': single_sku})
+                                 'sku_code': single_sku, 'asn': asn_stock_qty})
                 continue
             trans_quantity = 0
             if single_sku in purchases:
@@ -437,11 +458,12 @@ def get_quantity_data(user_groups, sku_codes_list):
             quantity = stock_user_dict.get(single_sku, 0)
             pic_reserved = pick_reserved_dict.get(single_sku, 0)
             raw_reserved = raw_reserved_dict.get(single_sku, 0)
-            available = quantity - pic_reserved
+            enq_reserved = enq_block_stock.get(single_sku, 0)
+            available = quantity - pic_reserved - enq_reserved
             if available < 0:
                 available = 0
             ret_list.append({'available': available, 'name': ware, 'transit': trans_quantity, 'reserved': pic_reserved,
-                             'user': user, 'sku_code': single_sku})
+                             'user': user, 'sku_code': single_sku, 'asn': asn_stock_qty})
     return ret_list
 
 
@@ -541,6 +563,39 @@ def get_avinre_stock(start_index, stop_index, temp_data, search_term, order_term
         temp_data['aaData'].append(var)
 
 
+def get_availasn_stock(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    data, temp_data, other, da = get_warehouses_stock(start_index, stop_index, temp_data, search_term, order_term,
+                                                      col_num, request, user, filters)
+
+    list_da = {}
+    for i in da:
+        if i['available'] is None:
+            i['available'] = 0
+        if i['asn'] is None:
+            i['asn'] = 0
+        list_da[i['ware']] = i['available'] + i['asn']
+
+    temp_data['ware_list'] = list_da
+    for one_data, sku_det in zip(data, other['rem']):
+        header = other['header']
+        single_sku = sku_det['single_sku']
+        sku_desc = sku_det['sku_desc']
+        sku_brand = sku_det['sku_brand']
+        sku_category = sku_det['sku_category']
+        var = (OrderedDict(
+            ((header[0], single_sku), (header[1], sku_brand), (header[2], sku_desc), (header[3], sku_category))))
+        for single in one_data:
+            avail = single['available']
+            asn = single['asn']
+            if isinstance(avail, str):
+                available = avail
+            else:
+                available = avail + asn
+            name = single['name']
+            var[name] = available
+        temp_data['aaData'].append(var)
+
+
 def get_warehouses_stock(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     data_to_send = []
     other_data = {}
@@ -618,23 +673,47 @@ def get_aggregate_data(user_groups, sku_list):
             total_order=Sum('open_po__order_quantity'), total_received=Sum('received_quantity'))
         raw_reserved = RMLocation.objects.filter(status=1, stock__sku__user=user.id). \
             aggregate(Sum('reserved'))['reserved__sum']
+        enq_block_stock = EnquiredSku.objects.filter(sku__user=user.id, sku__sku_code__in=sku_list).filter(
+            ~Q(enquiry__extend_status='rejected')).values_list('sku_code').aggregate(Sum('quantity'))['quantity__sum']
+
+        today_filter = datetime.datetime.today()
+        hundred_day_filter = today_filter + datetime.timedelta(days=100)
+        ints_filters = {'quantity__gt': 0, 'sku__sku_code__in': sku_list, 'sku__user': user.id}
+        asn_qs = ASNStockDetail.objects.filter(**ints_filters)
+        intr_obj_100days_qs = asn_qs.exclude(arriving_date__lte=today_filter).filter(
+            arriving_date__lte=hundred_day_filter)
+        intr_obj_100days_ids = intr_obj_100days_qs.values_list('id', flat=True)
+        asn_res_100days_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
+        asn_res_100days_qty = asn_res_100days_qs.values_list('asnstock__sku__sku_code').aggregate(Sum('reserved_qty'))['reserved_qty__sum']
+
+        asn_total_qty = intr_obj_100days_qs.values_list('sku__sku_code').distinct().aggregate(Sum('quantity'))['quantity__sum']
+        if not asn_res_100days_qty:
+            asn_res_100days_qty = 0
+        if not asn_total_qty:
+            asn_total_qty = 0
+        asn_avail_stock = asn_total_qty - asn_res_100days_qty
         total_order = sum(map(lambda d: d['total_order'], purch))
         total_received = sum(map(lambda d: d['total_received'], purch))
         trans_quantity = float(total_order) - float(total_received)
         trans_quantity = round(trans_quantity, 2)
         if total:
             available = total
+        if asn_avail_stock:
+            available = available + asn_avail_stock
         if not reserved:
             reserved = 0
         if raw_reserved:
             reserved += raw_reserved
+        if enq_block_stock:
+            reserved += enq_block_stock
         available -= reserved
         if available < 0:
             available = 0
         available = round(available, 2)
         reserved = round(reserved, 2)
         ware_name = user.username
-        data.append({'ware': ware_name, 'available': available, 'reserved': reserved, 'transit': trans_quantity})
+        data.append({'ware': ware_name, 'available': available, 'reserved': reserved, 'transit': trans_quantity,
+                     'asn': asn_avail_stock})
     return data
 
 
@@ -1263,11 +1342,13 @@ def warehouse_headers(request, user=''):
     admin_user_id = ''
     admin_user_name = ''
     size_list = []
+    market_places = []
     level = request.GET.get('level', '')
     alternative_view = request.GET.get('alternate_view', 'false')
     warehouse_name = request.GET.get('warehouse_name', '')
     price_band_flag = get_misc_value('priceband_sync', user.id)
     size_name = request.GET.get("size_type_value", '')
+    marketplace = request.GET.get("marketplace", '')
     size_list, user_list = [], []
     default_size = ['S', 'M', 'L', 'XL', 'XXL']
     user_id = user.id
@@ -1277,7 +1358,7 @@ def warehouse_headers(request, user=''):
     if alternative_view == 'true':
         header = ["SKU Class", "Style Name", "Brand", "SKU Category"]
         if not warehouse_name:
-            user_list = []
+            user_list = [user.username]
             admin_user = UserGroups.objects.filter(Q(admin_user__username__iexact=user.username) | Q(user__username__iexact=user.username)). \
                 values_list('admin_user_id', flat=True)
             user_groups = UserGroups.objects.filter(admin_user_id__in=admin_user).values('user__username',
@@ -1288,6 +1369,10 @@ def warehouse_headers(request, user=''):
                         user_list.append(value)
             warehouse_name = user_list[0]
         user_id = User.objects.get(username = warehouse_name).id
+        #get marketplace
+        market_places = OrderDetail.objects.filter(user=user_id).values_list('marketplace', flat=True).distinct()
+        market_places = [item for item in market_places]
+
         size_master_objs = SizeMaster.objects.filter(user=user_id)
         size_names = size_master_objs.values_list('size_name', flat=True)
         all_sizes = size_master_objs
@@ -1341,7 +1426,8 @@ def warehouse_headers(request, user=''):
             headers = header + ware_list
         else:
             headers = header + [admin_user_name] + ware_list
-    return HttpResponse(json.dumps({'table_headers': headers, 'size_types': size_list, 'warehouse_names': user_list }))
+    return HttpResponse(json.dumps({'table_headers': headers, 'size_types': size_list,
+                                    'warehouse_names': user_list, 'market_places': market_places }))
 
 @csrf_exempt
 def get_seller_stock_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
@@ -1587,7 +1673,7 @@ def get_stock_summary_serials_excel(filter_params, temp_data, headers, user, req
                      'imei_number']
 
         filter_params = get_filtered_params(filters, dict_list)
-        dispatched_imeis = OrderIMEIMapping.objects.filter(status=1, order__user=user.id).values_list('po_imei_id',
+        dispatched_imeis = OrderIMEIMapping.objects.filter(status=1, order__user=user.id, po_imei__isnull=False).values_list('po_imei_id',
                                                                                                       flat=True)
         damaged_returns = dict(ReturnsIMEIMapping.objects.filter(status='damaged', order_imei__order__user=user.id). \
                                values_list('order_imei__po_imei__imei_number', 'reason'))
@@ -2122,6 +2208,7 @@ def get_alternative_warehouse_stock(start_index, stop_index, temp_data, search_t
     log.info(" ------------warehouse stock alternate view started ------------------")
     size_type_value = request.POST.get('size_type_value', '')
     warehouse_name = request.POST.get('warehouse_name', '')
+    marketplace = request.POST.get('marketplace', '')
     view_type = request.POST.get('view_type', '')
     from_date = request.POST.get('from_date', '')
     to_date = request.POST.get('to_date', '')
@@ -2158,6 +2245,10 @@ def get_alternative_warehouse_stock(start_index, stop_index, temp_data, search_t
                                                             sku_size__in=sizes, **search_params). \
                                             values('sku_class', 'style_name', 'sku_brand',
                                             'sku_category').distinct()
+        if marketplace:
+            sku_ids = OrderDetail.objects.filter(marketplace=marketplace, user=warehouse.id)\
+                                 .values_list('sku_id', flat=True)
+            sku_master_objs = sku_master_objs.filter(id__in=sku_ids)
         if search_term:
             sku_classes = sku_master_objs.filter(Q(sku_class__icontains=search_term) |
                                                  Q(style_name__icontains=search_term) |
@@ -2204,6 +2295,8 @@ def get_alternative_warehouse_stock(start_index, stop_index, temp_data, search_t
             to_date = datetime.date(int(to_date[2]), int(to_date[0]), int(to_date[1]))
             order_filter_params['creation_date__lt'] = datetime.datetime.combine(to_date + datetime.timedelta(1),
                                                                  datetime.time())
+        if marketplace:
+            order_filter_params['marketplace'] = marketplace
 
         order_detail_objs = OrderDetail.objects.filter(**order_filter_params).\
                                  exclude(status__in=[3,5])

@@ -1,10 +1,10 @@
 ;(function (angular) {
   "use strict";
 
-  angular.module("auth").service("Session", function ($rootScope, $q) {
+  angular.module("auth").service("Session", function ($rootScope, $q, $http) {
 
     var that = this;
-    that.host = 'http://localhost:8001/';
+    that.host = 'http://localhost:7654/';
     that.url = that.host+'rest_api/';
 
     that.pos_host = 'http://pos.mieone.com/';
@@ -17,9 +17,32 @@
         "userName": null,
         "parent": {},
         "roles"   : [],
-        "user_profile" : {}
+        "user_profile" : {},
+        "notification_count": 0,
       });
     }
+
+(function() {
+      setTimeout(function(){
+        var OneSignal = window.OneSignal || [];
+        OneSignal.push(function() {
+            OneSignal.init({
+              appId: "98737db9-a2c9-4ff7-be74-42149f21679f",
+            });
+        });
+
+        OneSignal.getUserId(function(userId) {
+        console.log("OneSignal User ID:", userId);
+        OneSignal.webpushid = userId;
+        var data = {'wpn_id': userId};
+        $http.post(that.url + "save_webpush_id/", data).then(function (resp) {
+            if (resp.message != "success") {
+                console.log("Save web push failed");
+            }
+        });
+      });
+      }, 0);
+    })();
 
     resetSession();
 
@@ -31,7 +54,8 @@
         "userName": this.userName,
         "parent"  : this.parent,
         "roles"   : this.roles,
-        "user_profile" : this.user_profile
+        "user_profile" : this.user_profile,
+        "notification_count" : this.notification_count
       };
     };
 
@@ -42,6 +66,7 @@
       this.parent = data.parent;
       this.roles    = data.roles;
       this.user_profile = data.user_profile;
+      this.notification_count = data.notification_count
 
       this.changeUserData();
     };

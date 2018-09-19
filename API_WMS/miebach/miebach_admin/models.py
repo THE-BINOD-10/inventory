@@ -575,7 +575,8 @@ class Picklist(models.Model):
     class Meta:
         db_table = 'PICKLIST'
         index_together = (('picklist_number', 'order', 'stock'), ('order', 'order_type', 'picked_quantity'),
-                          ('picklist_number',))
+                          ('picklist_number',), ('picklist_number', 'order'), ('picklist_number', 'stock'),
+                          ('picklist_number', 'reserved_quantity'))
 
     def __unicode__(self):
         return str(self.picklist_number)
@@ -593,7 +594,9 @@ class PicklistLocation(models.Model):
 
     class Meta:
         db_table = 'PICKLIST_LOCATION'
-        index_together = ('picklist', 'stock', 'reserved')
+        index_together = (('picklist', 'stock', 'reserved'), ('picklist', 'status'),
+                          ('picklist', 'reserved'), ('picklist', 'stock', 'status'),
+                          ('picklist', 'reserved', 'stock', 'status'))
 
 
 class OrderLabels(models.Model):
@@ -837,37 +840,37 @@ class CustomerUserMapping(models.Model):
 class UserProfile(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.OneToOneField(User)
-    phone_number = models.CharField(max_length=32, default='')
+    phone_number = models.CharField(max_length=32, default='', blank=True)
     birth_date = models.DateTimeField(auto_now=True)
     is_active = models.IntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
-    timezone = models.CharField(max_length=64, default='')
+    timezone = models.CharField(max_length=64, default='', blank=True)
     swx_id = models.IntegerField(default=None, blank=True, null=True)
     prefix = models.CharField(max_length=64, default='')
     company_name = models.CharField(max_length=256, default='')
-    location = models.CharField(max_length=60, default='')
-    city = models.CharField(max_length=60, default='')
-    state = models.CharField(max_length=60, default='')
-    country = models.CharField(max_length=60, default='')
+    location = models.CharField(max_length=60, default='', blank=True)
+    city = models.CharField(max_length=60, default='', blank=True)
+    state = models.CharField(max_length=60, default='', blank=True)
+    country = models.CharField(max_length=60, default='', blank=True)
     pin_code = models.PositiveIntegerField(default=0)
-    address = models.CharField(max_length=256, default='')
-    wh_address = models.CharField(max_length=256, default='')
-    wh_phone_number = models.CharField(max_length=32, default='')
-    gst_number = models.CharField(max_length=32, default='')
-    multi_warehouse = models.IntegerField(default=0)
-    is_trail = models.IntegerField(default=0)
-    api_hash = models.CharField(max_length=256, default='')
-    setup_status = models.CharField(max_length=60, default='completed')
+    address = models.CharField(max_length=256, default='', blank=True)
+    wh_address = models.CharField(max_length=256, default='', blank=True)
+    wh_phone_number = models.CharField(max_length=32, default='', blank=True)
+    gst_number = models.CharField(max_length=32, default='', blank=True)
+    multi_warehouse = models.IntegerField(default=0, blank=True)
+    is_trail = models.IntegerField(default=0, blank=True)
+    api_hash = models.CharField(max_length=256, default='', blank=True)
+    setup_status = models.CharField(max_length=60, default='completed', blank=True)
     user_type = models.CharField(max_length=60, default='warehouse_user')
-    warehouse_type = models.CharField(max_length=60, default='')
-    warehouse_level = models.IntegerField(default=0)
+    warehouse_type = models.CharField(max_length=60, default='', blank=True)
+    warehouse_level = models.IntegerField(default=0, blank=True)
     min_order_val = models.PositiveIntegerField(default=0)
-    level_name = models.CharField(max_length=64, default='')
-    zone = models.CharField(max_length=64, default='')
-    cin_number = models.CharField(max_length=64, default='')
-    customer_logo = models.ImageField(upload_to='static/images/customer_logos/', default='')
-    bank_details = models.TextField(default='')
+    level_name = models.CharField(max_length=64, default='', blank=True)
+    zone = models.CharField(max_length=64, default='', blank=True)
+    cin_number = models.CharField(max_length=64, default='', blank=True)
+    customer_logo = models.ImageField(upload_to='static/images/customer_logos/', default='', blank=True)
+    bank_details = models.TextField(default='', blank=True)
     industry_type = models.CharField(max_length=32, default='', blank=True)
     order_prefix = models.CharField(max_length=32, default='', null=True, blank=True)
     pan_number = models.CharField(max_length=64, default='', blank=True)
@@ -2038,7 +2041,9 @@ class SellerOrderSummary(models.Model):
     class Meta:
         db_table = 'SELLER_ORDER_SUMMARY'
         index_together = (('pick_number', 'seller_order'), ('pick_number', 'order'), ('pick_number', 'seller_order', 'picklist'),
-                            ('pick_number', 'order', 'picklist'), ('order', 'order_status_flag'), ('seller_order', 'order_status_flag'))
+                            ('pick_number', 'order', 'picklist'), ('order', 'order_status_flag'),
+                          ('seller_order', 'order_status_flag'), ('picklist', 'seller_order'),
+                          ('picklist', 'order'))
 
     def __unicode__(self):
         return str(self.id)
@@ -2903,3 +2908,15 @@ class RatingSKUMapping(models.Model):
     class Meta:
         db_table = 'RATINGS_SKU_MAPPING'
         unique_together = ('rating', 'sku')
+
+
+class PushNotifications(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User, blank=True, null=True)
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'PUSH_NOTIFICATIONS'

@@ -1070,6 +1070,7 @@ def confirm_rm_no_stock(picklist, picking_count, count, raw_loc, request, user):
                     rw_order = rw_order[0]
                     picklist.jo_material.job_order.status = 'confirmed-putaway'
                     picklist.jo_material.job_order.save()
+                    insert_rwo_po(rw_order, request, user)
     picklist.save()
     return count
 

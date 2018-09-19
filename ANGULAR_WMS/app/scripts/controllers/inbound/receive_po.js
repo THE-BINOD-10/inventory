@@ -215,15 +215,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     $scope.getExpiryDate = function(index, parent_index){
         var mfg_date = new Date(vm.model_data.data[parent_index][index].mfg_date);
         var expiry = new Date(mfg_date.getFullYear(),mfg_date.getMonth(),mfg_date.getDate()+vm.shelf_life);
-        vm.model_data.data[parent_index][index].exp_date = (expiry.getMonth() + 1) + "/" + expiry.getDate() + "/" + expiry.getFullYear() ;
-        $('.mfgDate').each(function(){
-            if($(this).val() != ""){
-                var mfg_date = new Date($(this).val());
-                var expiry = new Date(mfg_date.getFullYear(),mfg_date.getMonth(),mfg_date.getDate()+vm.shelf_life);
-                var response = (expiry.getMonth() + 1) + "/" + expiry.getDate() + "/" + expiry.getFullYear() ;
-                $(this).parent().next().find('.expiryDatePicker').datepicker("setDate", response);
-            }
-        });
+        //vm.model_data.data[parent_index][index].exp_date = (expiry.getMonth() + 1) + "/" + expiry.getDate() + "/" + expiry.getFullYear();
+        var row_data = vm.model_data.data[parent_index][index]
+        if (row_data.exp_date == ''){
+            row_data.exp_date = (expiry.getMonth() + 1) + "/" + expiry.getDate() + "/" + expiry.getFullYear();
+        }
+        //$('.mfgDate').each(function(){
+            //if($(this).val() != ""){
+                //var mfg_date = new Date($(this).val());
+                //var expiry = new Date(mfg_date.getFullYear(),mfg_date.getMonth(),mfg_date.getDate()+vm.shelf_life);
+                //var response = (expiry.getMonth() + 1) + "/" + expiry.getDate() + "/" + expiry.getFullYear() ;
+                //vm.model_data.data[parent_index][index]['exp_date'] = response;
+                //$(this).parent().next().find('.expiryDatePicker').datepicker("setDate", response);
+            //}
+        //});
 
 
     }
@@ -782,8 +787,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }, 2000);
     }
 
+    vm.showOldQty = false;
     vm.goBack = function() {
-
+      vm.showOldQty = true;
       $state.go('app.inbound.RevceivePo.GRN');
     }
 
@@ -1145,12 +1151,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       po["po"] = data.po_reference;
       po["serials"] = "";
       angular.forEach(data.data, function(sku){
-        po[sku[0].wms_code] = {};
+        var fb_key = sku[0].sku_details[0].pk;
+        //var fb_key = sku[0].wms_code;
+        po[fb_key] = {};
         sku[0].value = 0;
         sku[0]["imei_list"] = [];
-        po[sku[0].wms_code]["quantity"] = sku[0].value;
-        po[sku[0].wms_code]["wms_code"] = sku[0].wms_code;
-        po[sku[0].wms_code]["serials"] = "";
+        po[fb_key]["quantity"] = sku[0].value;
+        po[fb_key]["wms_code"] = sku[0].wms_code;
+        po[fb_key]["serials"] = "";
       })
       console.log(po);
       firebase.database().ref("/GenerateGRN/"+Session.parent.userId).push(po).then(function(data){
@@ -1182,7 +1190,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     fb["change_serial"] = function(data, serial) {
 
       console.log(data.wms_code, serial);
-      firebase.database().ref("/GenerateGRN/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+ data.wms_code +"/serials/").push(serial);
+      firebase.database().ref("/GenerateGRN/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+ data.sku_details[0].pk +"/serials/").push(serial);
       firebase.database().ref("/GenerateGRN/"+Session.parent.userId+"/"+vm.fb.poData.id+"/serials/").push(serial);
     }
 
@@ -1191,9 +1199,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.fb.poData['serials'] = Object.values(vm.fb.poData['serials']);
       vm.serial_numbers = Object.values(vm.fb.poData['serials']);
       angular.forEach(vm.model_data.data, function(data){
-        if(vm.fb.poData[data[0].wms_code]) {
-          data[0].value = Object.keys(vm.fb.poData[data[0].wms_code]['serials']).length;
-          data[0]['imei_list'] =  Object.values(vm.fb.poData[data[0].wms_code]['serials']);
+        if(vm.fb.poData[data[0].sku_details[0].pk]) {
+          data[0].value = Object.keys(vm.fb.poData[data[0].sku_details[0].pk]['serials']).length;
+          data[0]['imei_list'] =  Object.values(vm.fb.poData[data[0].sku_details[0].pk]['serials']);
         }
       })
       fb.po_change_event();
@@ -1206,7 +1214,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     fb["po_change_event"] = function() {
 
         angular.forEach(vm.model_data.data, function(sku_data) {
-          firebase.database().ref("/GenerateGRN/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+sku_data[0].wms_code+"/serials/").on("child_added", function(sku) {
+          firebase.database().ref("/GenerateGRN/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+sku_data[0].sku_details[0].pk+"/serials/").on("child_added", function(sku) {
             if(sku_data[0].imei_list.indexOf(sku.val()) == -1 && sku.val()) {
               sku_data[0].imei_list.push(sku.val());
               sku_data[0].value++;
@@ -1355,7 +1363,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       po["po"] = data.po_reference;
       po["serials"] = "";
       angular.forEach(data.data, function(sku){
-        var name = sku[0].wms_code;
+        var name = sku[0].sku_details[0].pk;
         po[name] = {};
         po[name]["wms_code"] = sku[0].wms_code;
         po[name]["accepted"] = "";
@@ -1404,7 +1412,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.fb.poData['serials'] = Object.values(vm.fb.poData['serials']);
       vm.imei_list = vm.fb.poData['serials'];
       angular.forEach(vm.model_data.data, function(data){
-        var name= data[0].wms_code;
+        var name= data[0].sku_details[0].pk;
         if(vm.fb.poData[name]) {
           if(!vm.fb.poData[name]['accepted']){vm.fb.poData[name]['accepted'] = {}}
           if(!vm.fb.poData[name]['rejected']){vm.fb.poData[name]['rejected'] = {}}
@@ -1423,7 +1431,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     fb["recent_accept"] = "";
     fb["accept_serial"] = function(data, serial) {
 
-      firebase.database().ref("/ReceiveQC/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+ data.wms_code +"/accepted/").push(serial).then(function(snapshot){
+      firebase.database().ref("/ReceiveQC/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+ data.sku_details[0].pk +"/accepted/").push(serial).then(function(snapshot){
 
         fb["recent_accept"] = snapshot.path.o[5];
       });
@@ -1432,7 +1440,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     fb["reject_serial"] = function(data, serial) {
 
-      var name= data.wms_code;
+      var name= data.sku_details[0].pk;
       if(fb.recent_accept) {
         firebase.database().ref("/ReceiveQC/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+ name +"/accepted/"+fb.recent_accept).once("value", function(snapshot) {
           snapshot.ref.remove();
@@ -1444,7 +1452,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     fb["remove_add_serial"] = function(data, serial1, serial2, remove_from, add_to) {
 
-      var name= data.wms_code;
+      var name= data.sku_details[0].pk;
       firebase.database().ref("/ReceiveQC/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+ name +"/"+remove_from+"/").once("value", function(snapshot) {
         if(snapshot.val()) {
           var status = true;
@@ -1682,7 +1690,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.enable_button = false;
       var sku = vm.model_data.data[vm.current_index][0];
       sku.accepted_quantity = Number(sku.accepted_quantity) + 1;
-      sku.value = Number(sku.value) + 1;
+      // sku.value = Number(sku.value) + 1;
+      sku.value = Number(sku.accepted_quantity) + Number(sku.rejected_quantity);
 
       sku["accept_imei"].push(field);
       vm.model_data.data[vm.current_index][0] = sku
@@ -1903,7 +1912,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.singleDecimalVal(sku_row_data.tax_percent, 'tax_percent', index, parent_index);
       vm.singleDecimalVal(sku_row_data.cess_percent, 'cess_percent', index, parent_index);
 
-      var total_amt = Number(sku_row_data.value)*Number(sku_row_data.buy_price);
+      if (vm.industry_type == 'FMCG') {
+        var total_amt = Number(sku_row_data.value)*Number(sku_row_data.buy_price);
+      } else {
+        var total_amt = Number(sku_row_data.value)*Number(sku_row_data.price);
+      }
+
       var total_amt_dis = Number(total_amt) * Number(sku_row_data.discount_percentage) / 100;
       var tot_tax = Number(sku_row_data.tax_percent) + Number(sku_row_data.cess_percent);
       var wo_tax_amt = Number(total_amt)-Number(total_amt_dis);

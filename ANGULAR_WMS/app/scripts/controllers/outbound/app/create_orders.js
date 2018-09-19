@@ -15,6 +15,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.size_filter_data = {};
   vm.size_toggle = true;
   vm.brand_size_collect = {};
+  vm.notify_count = Session.notification_count;
   vm.permissions = Session.roles.permissions;
   vm.user_type = Session.roles.permissions.user_type;
   vm.buttons_width = (Session.roles.permissions.create_order_po)? 4: 6;

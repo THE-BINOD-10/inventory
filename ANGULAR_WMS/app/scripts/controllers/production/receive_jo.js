@@ -318,7 +318,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     var elem = angular.element($('form'));
     elem = elem[0];
     elem = $(elem).serializeArray();
-    elem.received_quantity = 10;
     var list = [];
     var dict = {};
     $.each(elem, function(num, key){
@@ -330,8 +329,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           dict[key['name']] = key['value'];
       }
     });
+    dict['quantity'] = 10;
+    dict['po_id'] = dict.job_code;
     list.push(dict);
     vm.model_data['barcodes'] = list;
+    vm.model_data['po_id'] = vm.model_data.job_code;
     vm.model_data.have_data = true;
     //$state.go('app.inbound.RevceivePo.barcode');
     var modalInstance = $modal.open({
@@ -461,16 +463,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
   }
 */
-  vm.showOldQty = false;
   vm.changeStage = function(record, outerIndex, innerIndex) {
-    vm.showOldQty = true;
     record.received_quantity = 0;
-    angular.forEach(record, function(item, index) {
-      if (record.stage) {
-
-      }
-    })
-    record['stageStatus'] = true;
+    if (record.stage == record.stages_list[record.stages_list.length-1]) {
+      record['stageStatus'] = true;
+    } else {
+      record['stageStatus'] = false;
+    }
   }
 
 /*

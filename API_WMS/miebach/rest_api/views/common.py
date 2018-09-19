@@ -7752,6 +7752,9 @@ def check_stock_available_quantity(stocks, user, stock_ids=None):
 @csrf_exempt
 @login_required
 def save_webpush_id(request):
+    null = 'null'
+    true = True
+    false = False
     wpn_obj = eval(request.body)
     wpn_id = wpn_obj.get('wpn_id', '')
     if not wpn_id:

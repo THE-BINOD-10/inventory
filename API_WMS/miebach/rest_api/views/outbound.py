@@ -7902,6 +7902,13 @@ def get_customer_cart_data(request, user=""):
                 dist_reseller_leadtime = cm_obj.lead_time
             json_record = record.json()
             sku_obj = SKUMaster.objects.filter(user=user.id, sku_code=json_record['sku_id'])
+            warehouses = list(UserGroups.objects.filter(admin_user_id=user.id).values_list('user_id', flat=True))
+            warehouses.append(user.id)
+            available_stock = StockDetail.objects.exclude(Q(receipt_number=0) | \
+                              Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE']))\
+                              .filter(sku__sku_code=sku_obj[0].sku_code, sku__user__in=warehouses)\
+                              .aggregate(Sum('quantity'))['quantity__sum']
+            json_record['available_stock'] = available_stock
             if central_order_mgmt:
                 sku_id = sku_obj[0].id
                 sku_spl_attrs = dict(SKUAttributes.objects.filter(sku_id=sku_id).

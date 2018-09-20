@@ -3288,6 +3288,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
                            price_type=price_type, custom_margin=custom_margin, specific_margins=specific_margins,
                            is_margin_percentage=is_margin_percentage, stock_quantity=quantity,
                            needed_stock_data=needed_stock_data, msp_min_price=msp_min_price, msp_max_price=msp_max_price)
+
     return data, start, stop
 
 

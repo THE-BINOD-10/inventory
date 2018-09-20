@@ -12,6 +12,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
   vm.date = new Date();
   vm.user_type = Session.roles.permissions.user_type;
   vm.central_order_mgmt = Session.roles.permissions.central_order_mgmt;
+  vm.order_exceed_stock = Session.roles.permissions.order_exceed_stock;
   vm.deliver_address = ['Distributor Address'];
   vm.checked_address = vm.deliver_address[0];
   vm.shipment_addr = 'default';
@@ -99,6 +100,11 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
 
   vm.update_customer_cart_data = function(data) {
 
+    if (vm.order_exceed_stock){
+      if (data.available_stock <= data.quantity){
+        data.quantity = data.available_stock;
+      }
+    }
     var send = {'sku_code': data.sku_id, 'quantity': data.quantity, 'level': data.warehouse_level, 'price': data.price}
     vm.service.apiCall("update_customer_cart_data/", "POST", send).then(function(response){
 

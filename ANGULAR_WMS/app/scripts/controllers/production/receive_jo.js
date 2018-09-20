@@ -282,6 +282,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     angular.forEach(data1.sub_data, function(row){
                       skuWiseQtyTotal += Number(row.received_quantity);
                     });
+                    // tempUniqueDict dict checking purpose only don't use anyware
                     if (data1.product_quantity > skuWiseQtyTotal) {
                       if (data1.sub_data[innerIndex].accept_imei && !data1.sub_data[innerIndex].tempUniqueDict[data1.imei_number]) {
                         data1.sub_data[innerIndex].received_quantity = Number(data1.sub_data[innerIndex].received_quantity) + 1;
@@ -293,7 +294,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                         } else if (!data1.sub_data[innerIndex].tempUniqueDict) {
                           data1.sub_data[innerIndex]['accept_imei'] = [];
                           data1.sub_data[innerIndex]['tempUniqueDict'] = {};
-                          data1.sub_data[innerIndex].tempUniqueDict[data1.imei_number] = data1.imei_number; // Testing purpose only don't use anyware
+                          data1.sub_data[innerIndex].tempUniqueDict[data1.imei_number] = data1.imei_number;
                           data1.sub_data[innerIndex].accept_imei.push(data1.imei_number);
                           data1.sub_data[innerIndex].received_quantity = 1;
                         }
@@ -496,7 +497,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         record['stageStatus'] = true;
         $timeout( function(){
            $('#'+outerIndex+'_'+innerIndex+'_imei').trigger('focus').val('');
-       }, 500 );
+       }, 400 );
       }
       // if (record.received_quantity && record.stageStatus) {
       //   vm.confirmSwal2(record);

@@ -172,6 +172,9 @@
             <p class="style_name" style="font-size: 14px" ng-if="showCase.central_order_mgmt" style="font-size: 12px;">
               Dimensions(in): {{ item.variants[0].length }} X {{ item.variants[0].breadth }} X {{ item.variants[0].height }}</p>
             <p class="style_name" style="font-size: 12px; padding:2px 5px; font-weight: 500; background: #ccc;">Stock: {{ item.style_quantity }}</p>
+            <p class="style_name" style="font-size: 14px" ng-if="showCase.central_order_mgmt" style="font-size: 12px;">
+                <span ng-if="item.variants[0]['Vendor Code']"> Vendor code: {{item.variants[0]['Vendor Code']}}</span>
+            </p>
             <div ng-if="!(permissions.display_styles_price) && !(showCase.central_order_mgmt)">
               <span style="font-size: 14px">&#8377; {{ item.variants[0].mrp }}</span><br/>
             </div>

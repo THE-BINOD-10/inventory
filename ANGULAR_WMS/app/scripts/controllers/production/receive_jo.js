@@ -299,7 +299,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                         }
                       }
 
-                      $('#'+index+'_'+innerIndex+'_imei').trigger('focus').val('');
                       var sku_code = data.data.data.sku_code;
                       if (data1.wms_code != sku_code) {
                         Service.showNoty("Scanned label belongs to "+sku_code);
@@ -318,6 +317,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                      Service.showNoty(data.data.message);
                      data1.imei_number = "";
                   }
+                  $('#'+index+'_'+innerIndex+'_imei').trigger('focus').val('');
                 }
                 data1["disable"] = false;
               })
@@ -494,6 +494,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if (!record.stageStatus) {
         record.received_quantity = 0;
         record['stageStatus'] = true;
+        $timeout( function(){
+           $('#'+outerIndex+'_'+innerIndex+'_imei').trigger('focus').val('');
+       }, 500 );
       }
       // if (record.received_quantity && record.stageStatus) {
       //   vm.confirmSwal2(record);
@@ -521,13 +524,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }).then(function (result) {
       $scope.$apply(function(){
         record.received_quantity = 0;
-        record.stage = record.stages_list[record.stages_list.length-1];
         record['stageStatus'] = false;
         record.accept_imei = [];
         record.tempUniqueDict = {};
       })
     }).catch(function (result){
       $scope.$apply(function(){
+        record.stage = record.stages_list[record.stages_list.length-1];
         record['stageStatus'] = true;
       })
     });

@@ -554,7 +554,7 @@ DIST_SALES_REPORT_DICT = {
     'dt_headers': ['Zone Code', 'Distributor Code', 'Order No', 'Order Date', 'Product Category',
                    'SKU Code', 'SKU Quantity', 'SKU Price', 'Value Before Tax', 'GST Rate', 'GST Value',
                    'Value After Tax', 'Order Status'],
-    'dt_unsort': ['Zone Code', 'Distributor Code', 'GST Rate', 'GST Value', 'Value After Tax'],
+    'dt_unsort': ['Zone Code', 'Distributor Code', 'SKU Price', 'GST Rate', 'GST Value', 'Value Before Tax', 'Value After Tax', 'Order Status'],
     'dt_url': 'get_dist_sales_report', 'excel_name': 'get_dist_sales_report',
     'print_url': 'print_dist_sales_report',
 
@@ -576,6 +576,7 @@ RESELLER_SALES_REPORT_DICT = {
     'dt_headers': ['Zone Code', 'Distributor Code', 'Reseller Code', 'Corporate Name',
                    'Order No', 'Order Date', 'Product Category', 'SKU Code', 'SKU Quantity', 'SKU Price',
                    'Value Before Tax', 'GST Rate', 'GST Value', 'Value After Tax', 'Order Status'],
+    'dt_unsort': ['Zone Code', 'Distributor Code', 'Reseller Code', 'GST Rate', 'GST Value', 'Value Before Tax', 'Value After Tax', 'Order Status'],
     'dt_url': 'get_reseller_sales_report', 'excel_name': 'get_reseller_sales_report',
     'print_url': 'print_reseller_sales_report',
 }
@@ -3780,7 +3781,7 @@ def get_dist_sales_report_data(search_params, user, sub_user):
     from rest_api.views.outbound import get_same_level_warehouses
     from miebach_admin.models import OrderDetail
     search_parameters = {}
-    lis = ['id', 'user', 'original_order_id', 'creation_date', 'sku__sku_category', 'sku__sku_code', 'quantity', 'status']
+    lis = ['id', '', 'order_id', 'creation_date', 'sku__sku_category', 'sku__sku_code', 'quantity']
     if user.userprofile.warehouse_type != 'DIST':
         distributors = get_same_level_warehouses(2, user)
         if sub_user.userprofile.zone:
@@ -3927,6 +3928,10 @@ def get_dist_sales_report_data(search_params, user, sub_user):
         sgst_tax = data['customerordersummary__sgst_tax']
         igst_tax = data['customerordersummary__igst_tax']
         utgst_tax = data['customerordersummary__utgst_tax']
+        if not cgst_tax: cgst_tax = 0
+        if not sgst_tax: sgst_tax = 0
+        if not igst_tax: igst_tax = 0
+        if not utgst_tax: utgst_tax = 0
         gst_rate = (cgst_tax + sgst_tax + igst_tax + utgst_tax)
         gross_amt = round(net_amt + (net_amt * gst_rate/100), 2)
         gst_value = round(gross_amt - net_amt, 2)
@@ -3985,7 +3990,8 @@ def get_dist_sales_report_data(search_params, user, sub_user):
 def get_reseller_sales_report_data(search_params, user, sub_user):
     from rest_api.views.outbound import get_same_level_warehouses
     search_parameters = {}
-    lis = ['id', 'user', 'original_order_id', 'creation_date', 'sku_category', 'sku__sku_code', 'quantity', 'status']
+    lis = ['id', '', '', 'client_name', 'orderdetail__order_id', 'creation_date', 'orderdetail__sku__sku_category',
+           'orderdetail__sku__sku_code', 'orderdetail__quantity', 'orderdetail__sku__price']
     # distributors = get_same_level_warehouses(2, user)
     if user.userprofile.warehouse_type != 'DIST':
         distributors = get_same_level_warehouses(2, user)

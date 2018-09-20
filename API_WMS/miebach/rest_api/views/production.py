@@ -1618,9 +1618,11 @@ def group_stage_dict(all_data):
             grouping_key = data[2]
             if data[1].get('pallet_number', ''):
                 grouping_key = str(data[2]) + '<<>>' + str(data[1]['pallet_number'])
-            new_dict[key].setdefault(grouping_key, {'quantity': 0, 'pallet_list': [], 'exist_ids': []})
+            new_dict[key].setdefault(grouping_key, {'quantity': 0, 'pallet_list': [], 'exist_ids': [],
+                                                    'imeis': ''})
             new_dict[key][grouping_key]['quantity'] = float(new_dict[key][grouping_key]['quantity']) + float(data[0])
             new_dict[key][grouping_key]['pallet_list'].append({'quantity': data[0], 'pallet_dict': data[1]})
+            new_dict[key][grouping_key]['imeis'] = new_dict[key][grouping_key]['imeis'] + str(data[4])
             if data[3]:
                 new_dict[key][grouping_key]['exist_ids'].append(data[3])
     return new_dict
@@ -1652,7 +1654,7 @@ def update_status_tracking(status_trackings, quantity, user, to_add=False, save_
 
 def build_jo_data(data_list):
     new_dict = {}
-    for key in data_list:
+    for key, value in data_list.iteritems():
         job_order = JobOrder.objects.get(id=key)
         pallet_mapping = PalletMapping.objects.filter(pallet_detail__user=job_order.product_code.user,
                                                       po_location__job_order__job_code=job_order.job_code,
@@ -1665,11 +1667,13 @@ def build_jo_data(data_list):
         for status_tracking in status_trackings:
             new_dict.setdefault(key, [])
             pallet_dict = {}
+            imeis = value.get(status_tracking.status_value, {}).get('imeis', '')
             if status_tracking.status_type == 'JO-PALLET':
                 pallet = pallet_mapping.get(id=status_tracking.status_id)
                 pallet_dict = {'pallet_number': pallet.pallet_detail.pallet_code, 'pallet_id': pallet.id}
             new_dict[key].append(
-                [float(status_tracking.quantity), pallet_dict, status_tracking.status_value, status_tracking.id])
+                [float(status_tracking.quantity), pallet_dict, status_tracking.status_value, status_tracking.id,
+                 imeis])
     return new_dict
 
 
@@ -1766,7 +1770,7 @@ def save_receive_pallet(all_data, user, is_grn=False):
                                                                                  final_update_data=final_update_data,
                                                                                  updated_status_ids=updated_status_ids)
 
-    new_data = build_jo_data(all_data.keys())
+    new_data = build_jo_data(all_data)
     for final_data in final_update_data:
         update_status_tracking(*final_data)
     return new_data
@@ -1790,8 +1794,10 @@ def save_receive_jo(request, user=''):
             rec_quantity = data_dict['received_quantity'][i]
             if not rec_quantity:
                 rec_quantity = 0
+            imeis = ''
             all_data[cond].append(
-                [rec_quantity, pallet_dict, data_dict['stage'][i], data_dict['status_track_id'][i]])
+                [rec_quantity, pallet_dict, data_dict['stage'][i], data_dict['status_track_id'][i],
+                 imeis])
         save_receive_pallet(all_data, user)
 
         return HttpResponse("Saved Successfully")
@@ -1827,8 +1833,12 @@ def confirm_jo_grn(request, user=''):
             rec_quantity = data_dict['received_quantity'][i]
             if not rec_quantity:
                 rec_quantity = 0
+            imeis = ''
+            if 'imei_numbers' in data_dict.keys() and data_dict['imei_numbers'][i]:
+                imeis = data_dict['imei_numbers'][i]
             all_data[cond].append(
-                [rec_quantity, pallet_dict, data_dict['stage'][i], data_dict['status_track_id'][i]])
+                [rec_quantity, pallet_dict, data_dict['stage'][i], data_dict['status_track_id'][i],
+                 imeis])
 
         all_data = save_receive_pallet(all_data, user, is_grn=True)
 
@@ -1862,6 +1872,8 @@ def confirm_jo_grn(request, user=''):
                 locations = get_purchaseorder_locations(put_zone, temp_dict)
                 job_order.received_quantity = float(job_order.received_quantity) + float(val[0])
                 received_quantity = float(val[0])
+                if val[4]:
+                    insert_jo_mapping(val[4], job_order, user.id)
                 for loc in locations:
                     if loc.zone.zone != 'DEFAULT':
                         location_quantity, received_quantity = get_remaining_capacity(loc, received_quantity, put_zone,

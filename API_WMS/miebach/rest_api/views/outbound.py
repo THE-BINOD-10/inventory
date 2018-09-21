@@ -10846,7 +10846,9 @@ def place_manual_order(request, user=''):
             value = datetime.date(int(expected_date[0]), int(expected_date[1]), int(expected_date[2]))
         manual_enquiry_details[key] = value
     manual_enquiry['custom_remarks'] = request.POST.get('custom_remarks', '')
-    check_enquiry = ManualEnquiry.objects.filter(user=request.user.id, sku=manual_enquiry['sku_id'], status__in=['', 'approved', 'confirm_order'])
+    check_enquiry = ManualEnquiry.objects.filter(user=request.user.id, sku=manual_enquiry['sku_id'],
+                                                 status__in=['', 'approved', 'confirm_order'],
+                                                 customer_name=manual_enquiry['customer_name'])
     if check_enquiry:
         return HttpResponse("Manual Enquiry Already Exists")
     manual_enquiry['user_id'] = request.user.id
@@ -10928,7 +10930,7 @@ def save_manual_enquiry_data(request, user=''):
             market_admin_user_id = market_admin_user_id[0]
             users_list.append(market_admin_user_id)
         users_list.append(admin_user.id)
-    contents = {"en": "%s added remarks in custom order %s" % (request.user.username, manual_enq_data.enquiry_id)}
+    contents = {"en": "%s added remarks in custom order %s" % (request.user.username, manual_enq_data.enquiry.enquiry_id)}
     send_push_notification(contents, users_list)
     return HttpResponse("Success")
 
@@ -10984,9 +10986,9 @@ def get_manual_enquiry_detail(request, user=''):
                   'description': manual_enq[0].sku.sku_desc, 'images': enquiry_images,
                   'category': manual_enq[0].sku.sku_category, 'art_images': art_images}
     if request.user.id == long(user_id):
-        enquiry_data =  ManualEnquiryDetails.objects.filter(enquiry=manual_enq[0].id, status="")
+        enquiry_data = ManualEnquiryDetails.objects.filter(enquiry=manual_enq[0].id, status="")
     else:
-        enquiry_data =  ManualEnquiryDetails.objects.filter(enquiry=manual_enq[0].id)
+        enquiry_data = ManualEnquiryDetails.objects.filter(enquiry=manual_enq[0].id)
     enquiry_dict = []
     enq_details = {}
     for enquiry in enquiry_data:
@@ -11171,6 +11173,7 @@ def confirm_or_hold_custom_order(request, user=''):
     resp = {'msg': 'Success', 'data': []}
     cust_order_id = request.POST.get('order_id')
     cust_order_status = request.POST.get('status')
+    ch_map = {'confirm_order': 'Confirmed the Order', 'hold_order': 'Requesting to Block the Stock'}
     try:
         cust_ord_qs = ManualEnquiry.objects.filter(user=request.user.id, enquiry_id=cust_order_id)
         if cust_ord_qs:
@@ -11181,6 +11184,17 @@ def confirm_or_hold_custom_order(request, user=''):
                 return HttpResponse('Yet to be approved by Admin')
             cust_ord_obj.status = cust_order_status
             cust_ord_obj.save()
+            users_list = []
+            admin_user = get_priceband_admin_user(user)
+            market_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
+                Q(userprofile__warehouse_type='SM_MARKET_ADMIN')).values_list('id', flat=True)
+            if market_admin_user_id:
+                market_admin_user_id = market_admin_user_id[0]
+                users_list.append(market_admin_user_id)
+            users_list.append(admin_user.id)
+            contents = {"en": "%s  %s  for custom order %s" % (
+            request.user.username, ch_map[cust_order_status], cust_ord_obj.enquiry_id)}
+            send_push_notification(contents, users_list)
     except:
         resp['msg'] = 'Fail'
     return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))

@@ -107,8 +107,11 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
           }
           vm.service.apiCall('confirm_or_hold_custom_order/', 'POST', elem).then(function(data){
                 if(data.data.msg == 'Success') {
-                   console.log('Calling Confirm or Hold Custom Order Function');
-                   Service.showNoty('Order Confirmed or Blocked Stock Successfully');
+                   if isConfirm{
+                     Service.showNoty('Order Confirmed Successfully');
+                   }else{
+                     Service.showNoty('Placed Enquiry Order Successfully');
+                   }
                 }else{
                     Service.showNoty(data.data, 'warning');
                 }

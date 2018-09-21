@@ -25,7 +25,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
     vm.disable_btn = true;
     Service.apiCall('save_manual_enquiry_data/', 'POST', vm.model_data).then(function(data) {
       if (data.message) {
-        if (data.data.msg == 'Success') {
+        if (data.data == 'Success') {
           $modalInstance.close();
         }
         Service.showNoty(data.data);

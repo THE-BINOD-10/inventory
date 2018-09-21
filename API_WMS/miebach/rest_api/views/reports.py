@@ -1329,7 +1329,7 @@ def print_purchase_order_form(request, user=''):
         total_sku_amt = total_tax_amt + amount
         if user.userprofile.industry_type == 'FMCG':
             po_temp_data = [open_po.sku.sku_code, open_po.supplier_code, open_po.sku.sku_desc,
-                            open_po.order_quantity, open_po.measurement_unit, open_po.price, amount,
+                            open_po.order_quantity, open_po.measurement_unit, open_po.price, open_po.mrp,amount,
                             open_po.sgst_tax, open_po.cgst_tax, open_po.igst_tax, open_po.cess_tax,
                             open_po.utgst_tax, total_sku_amt]
         else:

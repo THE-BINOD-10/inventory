@@ -593,6 +593,7 @@ DIST_TARGET_SUMMARY_REPORT = {
                    'YTD Targets', 'YTD Actual Sale', 'Excess / Shortfall %'
                 ],
     'dt_url': 'get_dist_target_summary_report', 'excel_name': 'get_dist_target_summary_report',
+    'dt_unsort': ['Distributor Code', 'Distributor Target', 'YTD Targets', 'YTD Actual Sale', 'Excess / Shortfall %'],
     'print_url': 'print_dist_target_summary_report',
 }
 
@@ -608,6 +609,8 @@ DIST_TARGET_DETAILED_REPORT = {
                    'Corporate Name', 'Corporate Target', 'YTD Targets', 'YTD Actual Sale', 'Excess / Shortfall %'
                 ],
     'dt_url': 'get_dist_target_detailed_report', 'excel_name': 'get_dist_target_detailed_report',
+    'dt_unsort': ['Distributor Code', 'Distributor Target', 'Reseller Code', 'Reseller Target',
+                   'Corporate Name', 'Corporate Target', 'YTD Targets', 'YTD Actual Sale', 'Excess / Shortfall %'],
     'print_url': 'print_dist_target_detailed_report',
 }
 
@@ -620,6 +623,7 @@ RESELLER_TARGET_SUMMARY_REPORT = {
                    'YTD Targets', 'YTD Actual Sale', 'Excess / Shortfall %'
                 ],
     'dt_url': 'get_reseller_target_summary_report', 'excel_name': 'get_reseller_target_summary_report',
+    'dt_unsort': ['Reseller Code', 'Reseller Target', 'YTD Targets', 'YTD Actual Sale', 'Excess / Shortfall %'],
     'print_url': 'print_reseller_target_summary_report',
 }
 
@@ -632,6 +636,8 @@ RESELLER_TARGET_DETAILED_REPORT = {
                    'YTD Actual Sale', 'Excess / Shortfall %'
                 ],
     'dt_url': 'get_reseller_target_detailed_report', 'excel_name': 'get_reseller_target_detailed_report',
+    'dt_unsort': ['Reseller Code', 'Reseller Target', 'Corporate Name', 'Corporate Target', 'YTD Targets',
+                   'YTD Actual Sale', 'Excess / Shortfall %'],
     'print_url': 'print_reseller_target_detailed_report',
 }
 
@@ -673,6 +679,10 @@ ZONE_TARGET_DETAILED_REPORT = {
                    'Excess / Shortfall %'
                    ],
     'dt_url': 'get_zone_target_detailed_report', 'excel_name': 'get_zone_target_detailed_report',
+    'dt_unsort': ['Zone Code', 'Zone Target', 'Distributor Code', 'Distributor Target', 'Reseller Code',
+                   'Reseller Target', 'Corporate Name', 'Corporate Target', 'YTD Targets', 'YTD Actual Sale',
+                   'Excess / Shortfall %'
+                   ],
     'print_url': 'print_zone_target_detailed_report'
 }
 
@@ -684,6 +694,7 @@ ZONE_TARGET_SUMMARY_REPORT = {
     ],
     'dt_headers': ['Zone Code', 'Zone Target', 'YTD Targets', 'YTD Actual Sale', 'Excess / Shortfall %'],
     'dt_url': 'get_zone_target_summary_report', 'excel_name': 'get_zone_target_summary_report',
+    'dt_unsort': ['Zone Code', 'Zone Target', 'YTD Targets', 'YTD Actual Sale', 'Excess / Shortfall %'],
     'print_url': 'print_zone_target_summary_report'
 }
 
@@ -696,6 +707,7 @@ CORPORATE_RESELLSER_MAPPING_REPORT = {
     ],
     'dt_headers': ['Zone Code', 'Distributor Code','Reseller Code', 'Corporate Name'],
     'dt_url': 'get_corporate_reseller_mapping_report', 'excel_name': 'get_corporate_reseller_mapping_report',
+    'dt_unsort': ['Zone Code', 'Distributor Code','Reseller Code', 'Corporate Name'],
     'print_url': 'print_corporate_reseller_mapping_report'
 }
 
@@ -712,9 +724,10 @@ ENQUIRY_STATUS_REPORT = {
         {'label': 'Enquiry Status', 'name': 'enquiry_status', 'type': 'select'},
     ],
     'dt_headers': ['Zone Code', 'Distributor Code', 'Reseller Code', 'Product Category', 'SKU Code', 'SKU Quantity',
-                   'Enquiry No', 'Enquiry Aging', 'Enquiry Status'
-                ],
+                   'Enquiry No', 'Enquiry Aging', 'Enquiry Status'],
     'dt_url': 'get_enquiry_status_report', 'excel_name': 'get_enquiry_status_report',
+    'dt_unsort': ['Zone Code', 'Distributor Code', 'Reseller Code', 'Product Category', 'SKU Code', 'SKU Quantity',
+                   'Enquiry No', 'Enquiry Aging', 'Enquiry Status'],
     'print_url': 'print_enquiry_status_report',
 }
 

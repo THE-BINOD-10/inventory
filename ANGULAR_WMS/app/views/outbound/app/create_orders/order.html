@@ -201,7 +201,10 @@ input[type="date"]:valid::before {
               </b></h4>
               <h5 ng-if="!(showCase.central_order_mgmt)" align="left" style="margin-bottom:0px;font-size: 16px;"><b>Rs {{data.invoice_amount}}</b></h5>
               <p ng-if="!(showCase.central_order_mgmt)" align="left" class="text-success" ng-if="data.quantity > 1" style="font-size: 12px;">{{data.quantity}} X Rs.{{data.price}}</p>
-              <div class="mt10"><span ng-click="Cart.remove_item($index)" style="cursor: pointer;" title="Delete Order" class="btn-sm btn-danger "><i class="fa fa-trash-o" aria-hidden="true"></i> Remove</span></div>
+               <input type="text" class="form-control" placeholder="Enter Remarks"
+                style="width: 100%; height: 30px" ng-model="data.sku_remarks"
+                ng-change="Cart.change_sku_remarks(data)">
+             <div class="mt10"><span ng-click="Cart.remove_item($index)" style="cursor: pointer;" title="Delete Order" class="btn-sm btn-danger "><i class="fa fa-trash-o" aria-hidden="true"></i> Remove</span></div>
               <div class="alert alert-info" ng-if="data.freight_charges" style="margin-top: 11px;margin-bottom: 0px;">
                 <strong>Note:</strong> Freight as applicable will be charged extra.
               </div>

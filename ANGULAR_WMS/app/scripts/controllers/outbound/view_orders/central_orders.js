@@ -52,6 +52,7 @@ var vm = this;
         DTColumnBuilder.newColumn('Product Quantity').withTitle('Product Quantity'),
         DTColumnBuilder.newColumn('Shipment Date').withTitle('Shipment Date'),
         DTColumnBuilder.newColumn('Project Name').withTitle('Project Name'),
+        DTColumnBuilder.newColumn('Remarks').withTitle('Remarks'),
         DTColumnBuilder.newColumn('Warehouse').withTitle('Warehouse'),
         DTColumnBuilder.newColumn('Status').withTitle('Status')
     ];

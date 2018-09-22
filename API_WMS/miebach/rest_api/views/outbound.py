@@ -3458,6 +3458,8 @@ def create_central_order(request, user):
     customer_id = request.user.id
     interm_order_id = get_central_order_id(customer_id)
     ship_date = request.POST.get('shipment_date', '')
+    myDict = dict(request.POST.iterlists())
+    remarks_dict = dict(zip(myDict['sku_id'], myDict['remarks']))
     if not ship_date:
         return HttpResponse('Failed')
     project_name = request.POST.get('client_name', '') #Corporates In SM is used as Projects for ISPRAVA
@@ -3474,6 +3476,7 @@ def create_central_order(request, user):
             interm_order_map['quantity'] = cart_item.quantity
             interm_order_map['unit_price'] = cart_item.levelbase_price
             interm_order_map['sku_id'] = cart_item.sku_id
+            interm_order_map['remarks'] = remarks_dict[cart_item.sku.sku_code]
             IntermediateOrders.objects.create(**interm_order_map)
             inv_amt = (cart_item.levelbase_price * cart_item.quantity) + cart_item.tax
             items.append([cart_item.sku.sku_desc, cart_item.quantity, inv_amt])
@@ -3591,6 +3594,7 @@ def create_order_from_intermediate_order(request, user):
             order_dict['shipment_date'] = interm_obj.shipment_date
             order_dict['order_id'] = get_order_id(wh_id)
             order_dict['status'] = 1
+            order_dict['remarks'] = interm_obj.remarks
             ord_obj = OrderDetail(**order_dict)
             ord_obj.save()
             interm_obj.order_id = ord_obj.id
@@ -6733,7 +6737,8 @@ def get_ratings_details(request, user=''):
 def get_central_orders_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                           filters={}, user_dict={}):
     un_sort_dict = {7: 'Status'}
-    lis = ['interm_order_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'shipment_date', 'project_name', 'order_assigned_wh__username', 'id']
+    lis = ['interm_order_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'shipment_date', 'project_name', 'remarks',
+           'order_assigned_wh__username', 'id']
     data_dict = {'user': user.id, 'quantity__gt': 0}
     status_map = {'1': 'Accept', '0': 'Reject'}
     order_data = lis[col_num]
@@ -6769,11 +6774,13 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
         temp_data['aaData'].append(
             OrderedDict((('Order ID', order_id), ('SKU Code', dat.sku.sku_code), ('SKU Desc', dat.sku.sku_desc),
                          ('Product Quantity', dat.quantity), ('Shipment Date', shipment_date), ('data_id', dat.id),
-                         ('Project Name', dat.project_name), ('Warehouse', wh_name), ('Status', status),
+                         ('Project Name', dat.project_name), ('Remarks', dat.remarks),
+                         ('Warehouse', wh_name), ('Status', status),
                          ('id', index), ('DT_RowClass', 'results'))))
         index += 1
 
-    col_headers = ['Order ID', 'SKU Code', 'SKU Desc', 'Product Quantity', 'Shipment Date', 'Project Name', 'Warehouse', 'Status']
+    col_headers = ['Order ID', 'SKU Code', 'SKU Desc', 'Product Quantity', 'Shipment Date', 'Project Name', 'Remarks',
+                   'Warehouse', 'Status']
 
     if custom_sort:
         temp_data['aaData'] = apply_search_sort(col_headers, temp_data['aaData'], order_term, search_term, col_num)[start_index:stop_index]

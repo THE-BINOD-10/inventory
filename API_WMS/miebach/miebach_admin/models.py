@@ -330,6 +330,7 @@ class IntermediateOrders(models.Model):
     status = models.CharField(max_length=32, default='')
     shipment_date = models.DateTimeField()
     project_name = models.CharField(max_length=256, default='')
+    remarks = models.CharField(max_length=128, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

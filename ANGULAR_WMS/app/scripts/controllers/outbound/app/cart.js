@@ -87,8 +87,16 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
   vm.change_remarks = function(remark) {
 
     angular.forEach(vm.model_data.data, function(data){
-      data['remarks'] = vm.model_data.remarks;
+      if(!data['sku_remarks']){
+        data['remarks'] = vm.model_data.remarks;
+      } else {
+        data['remarks'] = data['sku_remarks'];
+      }
     })
+  }
+  vm.change_sku_remarks = function(data) {
+
+    data['remarks'] = data['sku_remarks'];
   }
 
   vm.date_changed = function(){

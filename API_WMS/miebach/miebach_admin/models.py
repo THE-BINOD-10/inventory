@@ -336,7 +336,7 @@ class IntermediateOrders(models.Model):
 
     class Meta:
         db_table = "INTERMEDIATE_ORDERS"
-        unique_together = ('interm_order_id', 'sku')
+        #unique_together = ('interm_order_id', 'sku')
 
     def json(self):
         invoice_amount = self.quantity * self.sku.price

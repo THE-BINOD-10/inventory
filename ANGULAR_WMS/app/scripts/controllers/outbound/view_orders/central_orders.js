@@ -123,7 +123,8 @@ var vm = this;
     function submit(wh, status, data_id, shipment_date, alt_sku_code){
       if (status) {
 
-        var elem = {'warehouse': wh, 'status': status, 'interm_det_id': data_id, 'shipment_date': shipment_date, 'alt_sku_code': alt_sku_code};
+        var elem = {'warehouse': JSON.stringify(vm.model_data.wh_level_stock_map), 'status': status,
+                    'interm_det_id': data_id, 'shipment_date': shipment_date, 'alt_sku_code': alt_sku_code};
         vm.service.apiCall('create_order_from_intermediate_order/', 'POST', elem, true).then(function(data){
           if(data.message) {
             if(data.data.indexOf('Success') != -1) {
@@ -152,6 +153,27 @@ var vm = this;
         vm.model_data.wh_level_stock_map = resp_data.wh_level_stock_map;
         vm.model_data.warehouse = resp_data.warehouse;
       });
+    }
+
+    vm.change_wh_quantity = function(key, quantity, actual_quantity) {
+      var tot_filled = 0;
+      for(var dat in vm.model_data.wh_level_stock_map) {
+        tot_filled += parseInt(vm.model_data.wh_level_stock_map[dat].quantity);
+      }
+      if(tot_filled > actual_quantity){
+        var remain = actual_quantity - (tot_filled - parseInt(quantity));
+        vm.model_data.wh_level_stock_map[key].quantity = Math.min(remain, parseInt(vm.model_data.wh_level_stock_map[key].available));
+        return
+      }
+      if(actual_quantity >= parseInt(vm.model_data.wh_level_stock_map[key].available)) {
+        if(parseInt(vm.model_data.wh_level_stock_map[key].available) <= parseInt(quantity)){
+          vm.model_data.wh_level_stock_map[key].quantity = vm.model_data.wh_level_stock_map[key].available;
+        }
+      } else {
+        if(parseInt(vm.model_data.wh_level_stock_map[key].available) <= parseInt(quantity)){
+          vm.model_data.wh_level_stock_map[key].quantity = actual_quantity;
+        }
+      }
     }
 
 

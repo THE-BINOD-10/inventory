@@ -3526,125 +3526,166 @@ def create_order_from_intermediate_order(request, user):
     order_dict = {}
     created_order_objs = []
     message = 'Success'
-    wh_name = request.POST.get('warehouse', '')
-    alt_sku_code = request.POST.get('alt_sku_code', '')
-    sku_master = SKUMaster.objects.filter(user=user.id, sku_code=alt_sku_code)
-    if not sku_master.exists():
-        return HttpResponse('Invalid Alt SKU code')
-    wh_usr_obj = User.objects.filter(username=wh_name)
-    status = request.POST.get('status', '')
-    if status != '0':
-        if wh_usr_obj:
-            wh_id = wh_usr_obj[0].id
-        else:
-            return HttpResponse('User Missing')
-    interm_det_id = request.POST.get('interm_det_id', '')
-    shipment_date = request.POST.get('shipment_date', '')
-    if shipment_date:
-        shipment_date = datetime.datetime.strptime(shipment_date, "%m/%d/%Y")
-    if not status:
-        return HttpResponse('Status Missing')
-    interm_qs = IntermediateOrders.objects.filter(id=interm_det_id)
-    if not interm_qs:
-        return HttpResponse('Failed')
-    sel_sku_id = interm_qs[0].sku.id
-    update_alt_sku = False
-    if interm_qs[0].sku.sku_code != alt_sku_code:
-        update_alt_sku = True
-        sel_sku_id = sku_master[0].id
-    try:
-        interm_obj = interm_qs[0]
-        inv_amt = (interm_obj.unit_price * interm_obj.quantity) + interm_obj.tax
-        items.append([interm_obj.sku.sku_desc, interm_obj.quantity, inv_amt])
-        if interm_obj.order_id or interm_obj.order_assigned_wh:
-            if status:
-                interm_obj.status = status
-            if shipment_date and status:
-                interm_obj.shipment_date = shipment_date
-                interm_obj.order.shipment_date = shipment_date
-            if update_alt_sku:
-                interm_obj.alt_sku_id = sel_sku_id
-            interm_obj.save()
-
-            return HttpResponse('Success, Order Already Created')
-        if status != '0':
-            order_dict['user'] = wh_id
-            sku_id = get_syncedusers_mapped_sku(wh=wh_id, sku_id=sel_sku_id)
-            if not sku_id:
-                return HttpResponse("SKU Not found in Selected Warehouse")
-            order_dict['sku_id'] = sku_id
-            order_dict['title'] = interm_obj.sku.sku_desc
-            order_dict['sku_code'] = interm_obj.sku.sku_code
-            if update_alt_sku:
-                interm_obj.alt_sku_id = sel_sku_id
-                interm_obj.save()
-                order_dict['title'] = interm_obj.alt_sku.sku_desc
-                order_dict['sku_code'] = interm_obj.alt_sku.sku_code
-            customer_user = CustomerUserMapping.objects.filter(user_id=interm_obj.customer_user.id)
-            if customer_user:
-                order_dict['customer_id'] = customer_user[0].customer.customer_id
-                order_dict['customer_name'] = customer_user[0].customer.name
-                order_dict['telephone'] = customer_user[0].customer.phone_number
-                order_dict['email_id'] = customer_user[0].customer.email_id
-                order_dict['address'] = customer_user[0].customer.address
-            else:
-                return HttpResponse('Failed')
-            order_dict['quantity'] = interm_obj.quantity
-            order_dict['order_code'] = 'MN'
-            order_dict['shipment_date'] = interm_obj.shipment_date
-            order_dict['order_id'] = get_order_id(wh_id)
-            order_dict['status'] = 1
-            order_dict['remarks'] = interm_obj.remarks
-            ord_obj = OrderDetail(**order_dict)
-            ord_obj.save()
-            interm_obj.order_id = ord_obj.id
-            interm_obj.order_assigned_wh_id = wh_id
-            interm_obj.shipment_date = shipment_date
-            interm_obj.save()
-            cust_ord_dict = {'order_id': ord_obj.id, 'sgst_tax': interm_obj.sgst_tax, 'cgst_tax': interm_obj.cgst_tax,
-                             'igst_tax': interm_obj.igst_tax}
-            CustomerOrderSummary.objects.create(**cust_ord_dict)
-
-            #mail to Admin and normal user
-            central_orders_mail = MiscDetail.objects.filter(user=request.user.id, misc_type='central_orders', misc_value='true')
-            if central_orders_mail:
-                """if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
-                    mail_ids = [user.userprofile.email]
+    first = True
+    inter_obj_data = {}
+    warehouses = json.loads(request.POST.get('warehouse'))
+    for wh, wh_data in warehouses.iteritems():
+        if int(wh_data['quantity']) > 0:
+            wh_name = wh
+            alt_sku_code = request.POST.get('alt_sku_code', '')
+            sku_master = SKUMaster.objects.filter(user=user.id, sku_code=alt_sku_code)
+            if not sku_master.exists():
+                return HttpResponse('Invalid Alt SKU code')
+            wh_usr_obj = User.objects.filter(username=wh_name)
+            status = request.POST.get('status', '')
+            if status != '0':
+                if wh_usr_obj:
+                    wh_id = wh_usr_obj[0].id
                 else:
-                    admin_users = UserGroups.objects.filter(user_id=user.id)
-                    if admin_users:
-                        mail_ids = [admin_users[0].admin_user.userprofile.email]"""
-                mail_ids = [request.user.email]
-                interm_qs = interm_qs[0]
-                user_mail_id = [interm_qs.customer_user.email]
-                headers = ['Product Details', 'Ordered Quantity', 'Total']
-                mail_order_id = order_dict['order_code'] + str(order_dict['order_id']) + ' ('\
-                                + str(interm_qs.order_id) + ')'
-                data_dict = {'customer_name': interm_qs.customer_user.username, 'items': items,
-                             'headers': headers, 'role': 'Admin',
-                             'status': 'accept', 'order_id': mail_order_id}
-                t = loader.get_template('templates/central_order/order_approved_admin.html')
-                rendered = t.render(data_dict)
-                t_user = loader.get_template('templates/central_order/order_approved.html')
-                rendered_user = t_user.render(data_dict)
-                if mail_ids:
-                    send_mail(mail_ids, 'Order Approved, Customer: %s' % interm_qs.customer_user.username, rendered)
-                if user_mail_id:
-                    send_mail(user_mail_id, 'Order Approved Successfully', rendered_user)
+                    return HttpResponse('User Missing')
+            interm_det_id = request.POST.get('interm_det_id', '')
+            shipment_date = request.POST.get('shipment_date', '')
+            if shipment_date:
+                shipment_date = datetime.datetime.strptime(shipment_date, "%m/%d/%Y")
+            if not status:
+                return HttpResponse('Status Missing')
+            interm_qs = IntermediateOrders.objects.filter(id=interm_det_id)
+            if not interm_qs:
+                return HttpResponse('Failed')
+            sel_sku_id = interm_qs[0].sku.id
+            update_alt_sku = False
+            if interm_qs[0].sku.sku_code != alt_sku_code:
+                update_alt_sku = True
+                sel_sku_id = sku_master[0].id
+            try:
+                interm_obj = interm_qs[0]
+                inter_obj_data = {'interm_order_id': interm_obj.interm_order_id,
+                                  'unit_price': interm_obj.unit_price,
+                                  'tax': interm_obj.tax,
+                                  'user_id': interm_obj.user_id,
+                                  'customer_user_id': interm_obj.customer_user_id,
+                                  'shipment_date': interm_obj.shipment_date,
+                                  'project_name': interm_obj.project_name,
+                                  'sku_id': interm_obj.sku_id,
+                                  'remarks': interm_obj.remarks,
+                                  'status': interm_obj.status,
+                                  'alt_sku_id': interm_obj.alt_sku_id
+                                 }
+                #inv_amt = (interm_obj.unit_price * interm_obj.quantity) + interm_obj.tax
+                if first:
+                    if interm_obj.order_id or interm_obj.order_assigned_wh:
+                        if status:
+                            interm_obj.status = status
+                        if shipment_date and status:
+                            interm_obj.shipment_date = shipment_date
+                            interm_obj.order.shipment_date = shipment_date
+                        if update_alt_sku:
+                            interm_obj.alt_sku_id = sel_sku_id
+                        interm_obj.quantity = wh_data['quantity']
+                        interm_obj.save()
+                        first = False
+                        return HttpResponse('Success, Order Already Created')
+                else:
+                    inter_obj_data['quantity'] = int(wh_data['quantity'])
+                    interm_obj = IntermediateOrders.objects.create(**inter_obj_data)
+                    inv_amt = (interm_obj.unit_price * interm_obj.quantity) + interm_obj.tax
+                    items.append([interm_obj.sku.sku_desc, interm_obj.quantity, inv_amt])
+
+                if status != '0':
+                    order_dict['user'] = wh_id
+                    sku_id = get_syncedusers_mapped_sku(wh=wh_id, sku_id=sel_sku_id)
+                    if not sku_id:
+                        return HttpResponse("SKU Not found in Selected Warehouse")
+                    order_dict['sku_id'] = sku_id
+                    order_dict['title'] = interm_obj.sku.sku_desc
+                    order_dict['sku_code'] = interm_obj.sku.sku_code
+                    if update_alt_sku:
+                        interm_obj.alt_sku_id = sel_sku_id
+                        interm_obj.save()
+                        order_dict['title'] = interm_obj.alt_sku.sku_desc
+                        order_dict['sku_code'] = interm_obj.alt_sku.sku_code
+                    customer_user = CustomerUserMapping.objects.filter(user_id=interm_obj.customer_user.id)
+                    if customer_user:
+                        order_dict['customer_id'] = customer_user[0].customer.customer_id
+                        order_dict['customer_name'] = customer_user[0].customer.name
+                        order_dict['telephone'] = customer_user[0].customer.phone_number
+                        order_dict['email_id'] = customer_user[0].customer.email_id
+                        order_dict['address'] = customer_user[0].customer.address
+                    else:
+                        return HttpResponse('Failed')
+                    order_dict['quantity'] = int(wh_data['quantity'])
+                    order_dict['order_code'] = 'MN'
+                    order_dict['shipment_date'] = interm_obj.shipment_date
+                    order_dict['order_id'] = get_order_id(wh_id)
+                    order_dict['status'] = 1
+                    order_dict['remarks'] = interm_obj.remarks
+                    ord_obj = OrderDetail(**order_dict)
+                    ord_obj.save()
+                    if first:
+                        inv_amt = (interm_obj.unit_price * interm_obj.quantity) + interm_obj.tax
+                        items.append([interm_obj.sku.sku_desc, interm_obj.quantity, inv_amt])
+                        inter_obj_data = {'interm_order_id': interm_obj.interm_order_id,
+                                          'unit_price': interm_obj.unit_price,
+                                          'tax': interm_obj.tax,
+                                          'user_id': interm_obj.user_id,
+                                          'customer_user_id': interm_obj.customer_user_id,
+                                          'shipment_date': interm_obj.shipment_date,
+                                          'project_name': interm_obj.project_name,
+                                          'sku_id': interm_obj.sku_id,
+                                          'remarks': interm_obj.remarks,
+                                          'status': interm_obj.status,
+                                          'alt_sku_id': interm_obj.alt_sku_id
+                                         }
+                        first = False
+                    interm_obj.order_id = ord_obj.id
+                    interm_obj.quantity = int(wh_data['quantity'])
+                    interm_obj.order_assigned_wh_id = wh_id
+                    interm_obj.shipment_date = shipment_date
+                    interm_obj.save()
+                    cust_ord_dict = {'order_id': ord_obj.id, 'sgst_tax': interm_obj.sgst_tax, 'cgst_tax': interm_obj.cgst_tax,
+                                     'igst_tax': interm_obj.igst_tax}
+                    CustomerOrderSummary.objects.create(**cust_ord_dict)
+
+                    #mail to Admin and normal user
+                    central_orders_mail = MiscDetail.objects.filter(user=request.user.id, misc_type='central_orders', misc_value='true')
+                    if central_orders_mail:
+                        """if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
+                            mail_ids = [user.userprofile.email]
+                        else:
+                            admin_users = UserGroups.objects.filter(user_id=user.id)
+                            if admin_users:
+                                mail_ids = [admin_users[0].admin_user.userprofile.email]"""
+                        mail_ids = [request.user.email]
+                        interm_qs = interm_qs[0]
+                        user_mail_id = [interm_qs.customer_user.email]
+                        headers = ['Product Details', 'Ordered Quantity', 'Total']
+                        mail_order_id = order_dict['order_code'] + str(order_dict['order_id']) + ' ('\
+                                        + str(interm_qs.order_id) + ')'
+                        data_dict = {'customer_name': interm_qs.customer_user.username, 'items': items,
+                                     'headers': headers, 'role': 'Admin',
+                                     'status': 'accept', 'order_id': mail_order_id}
+                        t = loader.get_template('templates/central_order/order_approved_admin.html')
+                        rendered = t.render(data_dict)
+                        t_user = loader.get_template('templates/central_order/order_approved.html')
+                        rendered_user = t_user.render(data_dict)
+                        if mail_ids:
+                            send_mail(mail_ids, 'Order Approved, Customer: %s' % interm_qs.customer_user.username, rendered)
+                        if user_mail_id:
+                            send_mail(user_mail_id, 'Order Approved Successfully', rendered_user)
 
 
 
-            created_order_objs.append(ord_obj)
-        admin_user = get_admin(user)
-        if admin_user.username in ['one_assist']:
-            create_order_pos(user, created_order_objs)
-    except:
-        import traceback
-        log.debug(traceback.format_exc())
-        message = 'Failed'
-    else:
-        interm_obj.status = status
-        interm_obj.save()
+                    created_order_objs.append(ord_obj)
+                admin_user = get_admin(user)
+                if admin_user.username in ['one_assist']:
+                    create_order_pos(user, created_order_objs)
+            except:
+                import traceback
+                log.debug(traceback.format_exc())
+                message = 'Failed'
+            else:
+                interm_obj.status = status
+                interm_obj.save()
     return HttpResponse(message)
 
 
@@ -6844,10 +6885,11 @@ def get_central_order_detail(request, user=''):
         reserved_qty = reserved_qty + raw_reserved_dict.get(wh.user.id, 0)
         avail_stock = stock_qty - reserved_qty
         wh_uname = wh.user.username
+        wh_level_stock_map[wh_uname] = {'quantity': 0, 'available': 0}
         if wh_uname not in wh_level_stock_map:
-            wh_level_stock_map[wh_uname] = avail_stock
+            wh_level_stock_map[wh_uname]['available'] = avail_stock
         else:
-            wh_level_stock_map[wh_uname] += avail_stock
+            wh_level_stock_map[wh_uname]['available'] += avail_stock
     alt_sku_code = interm_obj.sku.sku_code
     alt_sku_desc = interm_obj.sku.sku_desc
     if interm_obj.alt_sku:

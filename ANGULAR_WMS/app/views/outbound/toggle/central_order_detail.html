@@ -71,13 +71,43 @@
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
-                <label class="control-label" ng-if="showCase.model_data.status!='0'"> Warehouses </label>
-                <select ng-if="!showCase.model_data.already_assigned && showCase.model_data.status!='0'" class="form-control" name="warehouse" ng-model="showCase.model_data.warehouse"
+                <label class="control-label" ng-if="showCase.model_data.already_assigned"> Warehouse </label>
+                <!--<select ng-if="!showCase.model_data.already_assigned && showCase.model_data.status!='0'" class="form-control" name="warehouse" ng-model="showCase.model_data.warehouse"
                         ng-options="wh_id as wh_id + '(' + wh_stock + ')' for (wh_id, wh_stock) in showCase.model_data.wh_level_stock_map"
-                        ng-selected="type == showCase.model_data.warehouse"></select>
+                        ng-selected="type == showCase.model_data.warehouse"></select>-->
                 <input ng-if="showCase.model_data.already_assigned" type="text" name="status" class="form-control" ng-model="showCase.model_data.warehouse" maxlength="256" disabled>
               </div>
             </div>
+
+            <div class="col-md-12 col-sm-12 col-xs-12" ng-if="!showCase.model_data.already_assigned">
+              <div class="row over-x">
+                <table class="table mw85">
+                  <thead>
+                    <tr>
+                      <th> Warehouse </th>
+                      <th>Available Stock</th>
+                      <th>Quantity</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="field" ng-repeat="(key, data) in showCase.model_data.wh_level_stock_map">
+                      <td>
+                        <input type="text" name="status" class="form-control"
+                               ng-model="key" maxlength="256" disabled>
+                      </td>
+                      <td><input type="text" name="available" class="form-control" ng-model="data.available" disabled></td>
+                      <td><input type="text" name="quantity" class="form-control" ng-model="data.quantity"
+                           ng-change="showCase.change_wh_quantity(key, data.quantity, showCase.model_data.quantity)"</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+              </div>
+
+
+            </div>
+
+
         </div>
       </div>
       <div class="modal-footer">

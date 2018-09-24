@@ -2159,20 +2159,6 @@ def update_location(request, user=''):
     return HttpResponse('Updated Successfully')
 
 
-def get_all_zones(user, zone=''):
-    """ Send Zones under the mentioned Zones"""
-    zone_filter = {'user': user.id}
-    all_zones = []
-    if zone:
-        zone_filter['zone'] = zone
-    zone_master = ZoneMaster.objects.filter(**zone_filter)
-    all_zones = list(zone_master.values_list('zone', flat=True))
-    sub_zones = SubZoneMapping.objects.filter(zone__user=user.id, zone__zone__in=all_zones).\
-                                        values_list('sub_zone__zone', flat=True)
-    if sub_zones.exists():
-        all_zones = list(chain(all_zones, list(sub_zones)))
-    return all_zones
-
 def get_user_zones(user, level='', exclude_mapped=False):
     """ Get Zones based on the filters"""
     zone_filter = {'user': user.id}

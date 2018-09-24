@@ -2937,3 +2937,18 @@ class PushNotifications(models.Model):
     
     class Meta:
         db_table = 'PUSH_NOTIFICATIONS'
+
+
+class SellableSuggestions(models.Model):
+    id = BigAutoField(primary_key=True)
+    seller = models.ForeignKey(SellerMaster, blank=True, null=True)
+    stock = models.ForeignKey(StockDetail, blank=True, null=True)
+    location = models.ForeignKey(LocationMaster)
+    quantity = models.FloatField(default=0)
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'SELLABLE_SUGGESTIONS'
+        index_together = (('seller', 'stock', 'status'), ('stock', 'status'))

@@ -2286,11 +2286,43 @@ def get_alternative_warehouse_stock(start_index, stop_index, temp_data, search_t
 
 
 def get_auto_sellable_suggestion_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, status):
-    picklist_exclude_zones = get_exclude_zones(user)
-    non_sellable_zones = get_all_zones(user, zone='Non Sellable Zone')
-    non_sellable_stock = StockDetail.objects.filter(sku__user=user.id, location__zone__zone__in=non_sellable_zones,
-                                                    quantity__gt=0)
-    non_sellable_skus = non_sellable_stock.values_list('sku_id', flat=True)
-    zero_quantity = StockDetail.objects.filter(sku__user=user.id, quantity=0, sku_id__in=non_sellable_skus).\
-                                        exclude(location__zone__zone__in=picklist_exclude_zones).\
-        values_list('sku_id', flat=True)
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    lis = ['stock__sku__sku_code', 'stock__sku__sku_desc', 'stock__location__location', 'quantity',
+           'location__location', 'quantity']
+    if user.userprofile.user_type == 'marketplace_user':
+        lis.insert(1, 'seller__seller_id')
+        lis.insert(2, 'seller__name')
+    if user.userprofile.industry_type == 'FMCG':
+        lis.insert(3, 'stock__batch_detail__batch_no')
+        lis.insert(4, 'stock__batch_detail__mrp')
+    master_data = SellableSuggestions.objects.filter(stock__sku__user=user.id)
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if search_term:
+        search_term = search_term.replace('(', '\(').replace(')', '\)')
+        search_query = build_search_term_query(lis, search_term)
+        master_data = master_data.filter(search_query)
+    master_data = master_data.order_by(order_data)
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    for data in master_data[start_index:stop_index]:
+        data_dict = OrderedDict()
+        if user_profile.user_type == 'marketplace_user':
+            data_dict['Seller ID'] = data.seller.seller_id
+            data_dict['Seller Name'] = data.seller.name
+        data_dict['SKU Code'] = data.stock.sku.sku_code
+        data_dict['Product Description'] = data.stock.sku.sku_desc
+        if user_profile.industry_type == 'FMCG':
+            batch_no, mrp = '', 0
+            if data.stock.batch_detail:
+                batch_no = data.stock.batch_detail.batch_no
+                mrp = data.stock.batch_detail.mrp
+            data_dict['Batch No'] = batch_no
+            data_dict['MRP'] = mrp
+        data_dict['Source Location'] = data.stock.location.location
+        data_dict['Suggested Quantity'] = data.quantity
+        data_dict['Destination Location'] = data.location.location
+        data_dict['Quantity'] = data.quantity
+        temp_data['aaData'].append(data_dict)

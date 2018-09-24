@@ -11,6 +11,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.selectAll = false;
     vm.bt_disable = true;
     vm.permissions = Session.roles.permissions;
+    vm.industry_type = Session.user_profile.industry_type;
+    vm.user_type = Session.user_profile.user_type;
 
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -38,19 +40,31 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         }).withPaginationType('full_numbers');
 
 	vm.dtColumns = [
-        DTColumnBuilder.newColumn('WMS Code').withTitle('SKU Code'),
-		DTColumnBuilder.newColumn('Location').withTitle('Location'),
-        DTColumnBuilder.newColumn('Product Description').withTitle('Description'),
-        DTColumnBuilder.newColumn('SKU Class').withTitle('SKU Class'),
-        DTColumnBuilder.newColumn('SKU Category').withTitle('Category'),
-        DTColumnBuilder.newColumn('SKU Brand').withTitle('Brand'),
-        DTColumnBuilder.newColumn('Available Quantity').withTitle('Available Qty').notSortable(),
-	    DTColumnBuilder.newColumn('Reserved Quantity').withTitle('Reserved Qty').notSortable(),
-		DTColumnBuilder.newColumn('Total Quantity').withTitle('Total Qty').notSortable(),
-		DTColumnBuilder.newColumn('Addition').withTitle('Addition').notSortable(),
-        DTColumnBuilder.newColumn('Reduction').withTitle('Reduction').notSortable(),
-        DTColumnBuilder.newColumn(' ').withTitle('').notSortable(),
+        DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
+            .renderWith(function(data, type, full, meta) {
+                if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
+                  vm.selected = {}; 
+                }
+                vm.selected[meta.row] = vm.selectAll;
+                return vm.service.frontHtml + meta.row + vm.service.endHtml+full[""];
+            }).notSortable(),
+        DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'),
+        DTColumnBuilder.newColumn('Product Description').withTitle('Product Description'),
+        DTColumnBuilder.newColumn('Source Location').withTitle('Source Location'),
+        DTColumnBuilder.newColumn('Suggested Quantity').withTitle('Suggested Quantity'),
+        DTColumnBuilder.newColumn('Destination Location').withTitle('Destination Location').notSortable(),
+		DTColumnBuilder.newColumn('Quantity').withTitle('Quantity').notSortable(),
     ];
+
+    if (vm.user_type == 'marketplace_user') {
+        vm.dtColumns.splice(1, 0, DTColumnBuilder.newColumn('Seller ID').withTitle('Seller ID'));
+        vm.dtColumns.splice(2, 0, DTColumnBuilder.newColumn('Seller Name').withTitle('Seller Name'));
+    }
+
+    if (vm.industry_type == 'FMCG') {
+        vm.dtColumns.splice(3, 0, DTColumnBuilder.newColumn('Batch No').withTitle('Batch No'));
+        vm.dtColumns.splice(4, 0, DTColumnBuilder.newColumn('MRP').withTitle('MRP'));
+    }
 
     vm.dtInstance = function(instance) {
    		vm.dtInstance = instance

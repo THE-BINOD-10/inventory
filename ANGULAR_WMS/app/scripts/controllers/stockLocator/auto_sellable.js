@@ -48,14 +48,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               }
               vm.selected[meta.row] = vm.selectAll;
               return vm.service.frontHtml + meta.row + vm.service.endHtml;
-              // return vm.frontHtml + meta.row + vm.endHtml;
           }).notSortable(),
       DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'),
       DTColumnBuilder.newColumn('Product Description').withTitle('Product Description'),
       DTColumnBuilder.newColumn('Source Location').withTitle('Source Location'),
       DTColumnBuilder.newColumn('Suggested Quantity').withTitle('Suggested Quantity'),
-      DTColumnBuilder.newColumn('Destination Location').withTitle('Destination Location').notSortable(),
-		  DTColumnBuilder.newColumn('Quantity').withTitle('Quantity').notSortable(),
+      DTColumnBuilder.newColumn('DestinationLocation').withTitle('Destination Location').notSortable()
+        .renderWith(function(data, type, full, meta) {
+          return "<input type='text' name='DestinationLocation' value='"+full.DestinationLocation+"' class='smallbox'>"
+        }),
+      DTColumnBuilder.newColumn('Quantity').withTitle('Quantity')
+        .renderWith(function(data, type, full, meta) {
+          return "<input type='text' name='Quantity' value='"+full.Quantity+"' class='smallbox'>"
+        }),
+		  // DTColumnBuilder.newColumn('Quantity').withTitle('Quantity').notSortable(),
     ];
 
     if (vm.user_type == 'marketplace_user') {
@@ -89,7 +95,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       }
     }
     if(vm.generate_data.length > 0) {
-      var elem = {selctedData: vm.generate_data};
+      var sel_data = [];
+      angular.forEach(vm.generate_data, function(row){
+        sel_data.push({'batch_no':row['Batch No']});
+        sel_data.push({'destination_location':row['Destination Location']});
+        sel_data.push({'mrp':row['MRP']});
+        sel_data.push({'product_description':row['Product Description']});
+        sel_data.push({'quantity':row['Quantity']});
+        sel_data.push({'sku_code':row['SKU Code']});
+        sel_data.push({'seller_id':row['Seller ID']});
+        sel_data.push({'seller_name':row['Seller Name']});
+        sel_data.push({'source_location':row['Source Location']});
+        sel_data.push({'suggested_quantity':row['Suggested Quantity']});
+      })
+      var elem ={data: sel_data};
       vm.service.apiCall('auto_sellable_confirm/', 'POST', elem).then(function(data){
         if(data.message) {
           colFilters.showNoty(data.data);

@@ -2203,6 +2203,7 @@ class CustomerCartData(models.Model):
     sgst_tax = models.FloatField(default=0)
     igst_tax = models.FloatField(default=0)
     utgst_tax = models.FloatField(default=0)
+    remarks = models.CharField(max_length=128, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
     levelbase_price = models.FloatField(default=0)
@@ -2226,6 +2227,7 @@ class CustomerCartData(models.Model):
             'igst_tax': self.igst_tax,
             'utgst_tax': self.utgst_tax,
             'warehouse_level': self.warehouse_level,
+            'remarks': self.remarks,
         }
 
 

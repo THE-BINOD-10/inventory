@@ -36,6 +36,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
           angular.forEach(vm.model_data.data, function(sku){
 
             sku['org_price'] = sku.price;
+            sku['sku_remarks'] = sku.remarks;
             sku.quantity = Number(sku.quantity);
             sku.invoice_amount = Number(sku.price) * sku.quantity;
             sku.total_amount = ((sku.invoice_amount*sku.tax) / 100) + sku.invoice_amount;
@@ -113,7 +114,8 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
         data.quantity = data.available_stock;
       }
     }
-    var send = {'sku_code': data.sku_id, 'quantity': data.quantity, 'level': data.warehouse_level, 'price': data.price}
+    var send = {'sku_code': data.sku_id, 'quantity': data.quantity, 'level': data.warehouse_level,
+                'price': data.price, 'remarks': data.remarks}
     vm.service.apiCall("update_customer_cart_data/", "POST", send).then(function(response){
 
     });
@@ -380,6 +382,12 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
 
     vm.update_customer_cart_data(data);
     vm.cal_total();
+  }
+
+  vm.change_remarks = function(data) {
+    if(data){
+      vm.update_customer_cart_data(data);
+    }
   }
 
   var empty_final_data = {total_quantity: 0, amount: 0, tax_amount: 0, total_amount: 0}

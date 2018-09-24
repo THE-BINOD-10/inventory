@@ -5033,6 +5033,10 @@ def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_
     for item in sku_master:
         ordered_qty = ordered_qties.get(item["wms_code"], 0)
         recieved_qty = recieved_qties.get(item["wms_code"], 0)
+        cart_qty = 0
+        cart_obj = CustomerCartData.objects.filter(sku=item['id'])
+        if cart_obj:
+            cart_qty = cart_obj[0].quantity
 
         putaway_pending_job_qty = putaway_pending_job.get(item["wms_code"], 0)
         putaway_pending_purchase_qty = putaway_pending_purchase.get(item["wms_code"], 0)
@@ -5047,7 +5051,7 @@ def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_
 
         job_order_qty = job_order_product_qty - job_order_recieved_qty + putaway_pending_job_qty
 
-        all_quantity = stock_qty - reserved_qty + intransit_qty + putaway_pending_purchase_qty + job_order_qty
+        all_quantity = stock_qty - reserved_qty + intransit_qty + putaway_pending_purchase_qty + job_order_qty - cart_qty
         if user.id in stock_display_warehouse:
             all_quantity -= item['physical_stock']
         item['all_quantity'] = all_quantity
@@ -8159,6 +8163,7 @@ def update_customer_cart_data(request, user=""):
     response = {'data': [], 'msg': 0}
     sku_code = request.POST.get('sku_code', '')
     quantity = request.POST.get('quantity', '')
+    remarks = request.POST.get('remarks', '')
     price = request.POST.get('price', '')
     level = request.POST.get('level', '')
 
@@ -8169,6 +8174,7 @@ def update_customer_cart_data(request, user=""):
             cart = cart[0]
             cart.quantity = quantity
             cart.levelbase_price = price
+            cart.remarks = remarks
             if float(quantity) == 0.0:
                 cart.delete()
                 response['data'] = "Deleted Successfully"

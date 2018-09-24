@@ -8,6 +8,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.apply_filters = colFilters;
     vm.service = Service;
     vm.selected = {};
+    vm.generate_data = [];
     vm.selectAll = false;
     vm.bt_disable = true;
     vm.permissions = Session.roles.permissions;
@@ -37,23 +38,24 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                 vm.headerCompiled = true;
                 $compile(angular.element(header).contents())($scope);
             }
-        }).withPaginationType('full_numbers');
+        }).withPaginationType('full_numbers')
 
 	vm.dtColumns = [
-        DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
-            .renderWith(function(data, type, full, meta) {
-                if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
-                  vm.selected = {}; 
-                }
-                vm.selected[meta.row] = vm.selectAll;
-                return vm.service.frontHtml + meta.row + vm.service.endHtml+full[""];
-            }).notSortable(),
-        DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'),
-        DTColumnBuilder.newColumn('Product Description').withTitle('Product Description'),
-        DTColumnBuilder.newColumn('Source Location').withTitle('Source Location'),
-        DTColumnBuilder.newColumn('Suggested Quantity').withTitle('Suggested Quantity'),
-        DTColumnBuilder.newColumn('Destination Location').withTitle('Destination Location').notSortable(),
-		DTColumnBuilder.newColumn('Quantity').withTitle('Quantity').notSortable(),
+      DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
+          .renderWith(function(data, type, full, meta) {
+              if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
+                vm.selected = {};
+              }
+              vm.selected[meta.row] = vm.selectAll;
+              return vm.service.frontHtml + meta.row + vm.service.endHtml;
+              // return vm.frontHtml + meta.row + vm.endHtml;
+          }).notSortable(),
+      DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'),
+      DTColumnBuilder.newColumn('Product Description').withTitle('Product Description'),
+      DTColumnBuilder.newColumn('Source Location').withTitle('Source Location'),
+      DTColumnBuilder.newColumn('Suggested Quantity').withTitle('Suggested Quantity'),
+      DTColumnBuilder.newColumn('Destination Location').withTitle('Destination Location').notSortable(),
+		  DTColumnBuilder.newColumn('Quantity').withTitle('Quantity').notSortable(),
     ];
 
     if (vm.user_type == 'marketplace_user') {
@@ -76,6 +78,31 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       vm.dtInstance.reloadData();
       //vm.bt_disable = true;
     };
+
+  vm.confirm = confirm;
+  function confirm() {
+    vm.bt_disable = true;
+    for(var key in vm.selected){
+      console.log(vm.selected[key]);
+      if(vm.selected[key]) {
+        vm.generate_data.push(vm.dtInstance.DataTable.context[0].aoData[key]._aData);
+      }
+    }
+    if(vm.generate_data.length > 0) {
+      var elem = {selctedData: vm.generate_data};
+      vm.service.apiCall('auto_sellable_confirm/', 'POST', elem).then(function(data){
+        if(data.message) {
+          colFilters.showNoty(data.data);
+          reloadData();
+          vm.bt_disable = true;
+        }
+      });
+      vm.generate_data = [];
+    } else {
+
+      vm.bt_disable = false;
+    }
+  }
 }
 
 apps1.directive("limitToMax", function() {

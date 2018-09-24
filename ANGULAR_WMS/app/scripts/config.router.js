@@ -9,7 +9,7 @@ var LOGIN_STATE = "user.signin",
 var app = angular.module('urbanApp')
   app.run(['$rootScope', '$state', '$stateParams', 'Auth', 'AUTH_EVENTS', 'Session', '$timeout',
         function ($rootScope, $state, $stateParams, Auth, AUTH_EVENTS, Session, $timeout) {
-      if(Session.user_profile.user_type == "customer") {
+      if(Session.user_profile.request_user_type == "customer") {
         if (Session.roles.permissions.is_portal_lite) {
           LOGIN_REDIRECT_STATE = LOGIN_REDIRECT_STATE_ANT_CUSTOMER;
         } else {
@@ -60,7 +60,7 @@ var app = angular.module('urbanApp')
                     if (Session.roles.permissions["setup_status"] && thisNext.name.indexOf("Register") == -1) {
                       $state.go("app.Register");
                       return;
-                    } else if((Session.user_profile.user_type == "customer") && (thisNext.name.indexOf("App") == -1)) {
+                    } else if((Session.user_profile.request_user_type == "customer") && (thisNext.name.indexOf("App") == -1)) {
 
                         if (Session.roles.permissions.is_portal_lite) {
 
@@ -117,10 +117,10 @@ var app = angular.module('urbanApp')
 
             $rootScope.$on(AUTH_EVENTS.loginSuccess, function () {
 
-              if (Session.user_profile.user_type == "customer") {
+              if (Session.user_profile.request_user_type == "customer") {
                 $state.go(LOGIN_REDIRECT_STATE_CUSTOMER, {"location": "replace"});
 
-              } else if (Session.user_profile.user_type == "supplier"){
+              } else if (Session.user_profile.request_user_type == "supplier"){
                 $state.go("app.PurchaseOrder", {"location": "replace"});
               } else {
                 $state.go(LOGIN_REDIRECT_STATE, {"location": "replace"});

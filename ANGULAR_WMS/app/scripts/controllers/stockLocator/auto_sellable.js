@@ -53,9 +53,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       DTColumnBuilder.newColumn('Product Description').withTitle('Product Description'),
       DTColumnBuilder.newColumn('Source Location').withTitle('Source Location'),
       DTColumnBuilder.newColumn('Suggested Quantity').withTitle('Suggested Quantity'),
-      DTColumnBuilder.newColumn('DestinationLocation').withTitle('Destination Location').notSortable()
+      DTColumnBuilder.newColumn('Destination Location').withTitle('Destination Location').notSortable()
         .renderWith(function(data, type, full, meta) {
-          return "<input type='text' name='DestinationLocation' value='"+full.DestinationLocation+"' class='smallbox'>"
+          return "<input type='text' name='DestinationLocation' value='"+full['Destination Location']+"' class='smallbox'>"
         }),
       DTColumnBuilder.newColumn('Quantity').withTitle('Quantity')
         .renderWith(function(data, type, full, meta) {

@@ -330,7 +330,7 @@ def get_confirmed_po(start_index, stop_index, temp_data, search_term, order_term
         supplier.prefix, str(supplier.creation_date).split(' ')[0].replace('-', ''), supplier.order_id)
         _date = get_local_date(user, supplier.po_date, True)
         _date = _date.strftime("%d %b, %Y")
-        supplier_id_name = '%s/%s' % (str(order_data['supplier_id']), str(order_data['supplier_name']))
+        supplier_id_name = '%s/%s' % (str(xcode(order_data['supplier_id'])), str(xcode(order_data['supplier_name'])))
 
         columns = ['PO No', 'PO Reference', 'Order Date', 'Supplier ID/Name', 'Total Qty', 'Receivable Qty', 'Received Qty',
                    'Expected Date', 'Remarks', 'Order Type', 'Receive Status']

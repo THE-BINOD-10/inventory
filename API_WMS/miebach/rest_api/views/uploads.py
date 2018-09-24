@@ -3709,6 +3709,8 @@ def pricing_excel_upload(request, reader, user, no_of_rows, fname, file_type='xl
 
     for key, vals in excel_records_map.iteritems():
         user, sku_code, price_type = key
+        if isinstance(sku_code, float):
+            sku_code = str(int(sku_code))
         price_obj = PriceMaster.objects.filter(sku__user=user.id, sku__sku_code=sku_code, price_type=price_type)
         if price_obj:
             price_obj.delete()

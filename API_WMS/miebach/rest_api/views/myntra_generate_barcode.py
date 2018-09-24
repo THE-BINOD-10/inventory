@@ -89,7 +89,6 @@ def get_paragraph(data={}, fields=[]):
 
 def get_barcodes_myntra(request):
     data_dict = request.body
-    #data_dict = eval(request.GET['data'])
     try:
         data_dict = json.loads(data_dict)
         log.info(data_dict)
@@ -195,5 +194,5 @@ def get_barcodes_myntra(request):
     fname = open(url, 'r')
     pdf_contents = fname.read()
     fname.close()
-    pdf_url = 'http://beta.stockone.in:3331/' + url
+    pdf_url = request.get_host() + '/' + url
     return HttpResponse(json.dumps({'pdf':pdf_url}))

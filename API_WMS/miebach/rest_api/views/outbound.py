@@ -4196,7 +4196,6 @@ def insert_order_data(request, user=''):
         log.debug(traceback.format_exc())
         log.info('Create order mail sending failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(myDict), str(e)))
-
     message = "Success"
     success_messages = ["Success", "Order created, Picklist generated Successfully",
                         "Order Created and Dispatched Successfully", "Order created Successfully"]

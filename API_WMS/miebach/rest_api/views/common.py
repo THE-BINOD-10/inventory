@@ -6916,13 +6916,16 @@ def create_new_supplier(user, supp_name, supp_email, supp_phone, supp_address, s
 def create_order_pos(user, order_objs):
     ''' Creating Sampling PO for orders'''
     po_id = ''
+    customer_id = ''
     try:
         cust_supp_mapping = {}
         user_profile = UserProfile.objects.get(user_id=user.id)
         po_id = get_purchase_order_id(user)
         for order_obj in order_objs:
-            if order_obj.customer_id and str(order_obj.customer_id) not in cust_supp_mapping.keys():
-                cust_master = CustomerMaster.objects.filter(customer_id=order_obj.customer_id, user=user.id)
+            if order_obj.customer_id:
+                customer_id = str(int(order_obj.customer_id))
+            if customer_id not in cust_supp_mapping.keys():
+                cust_master = CustomerMaster.objects.filter(customer_id=customer_id, user=user.id)
                 if cust_master:
                     cust_master = cust_master[0]
                     master_mapping = MastersMapping.objects.filter(master_id=cust_master.id,
@@ -6938,13 +6941,13 @@ def create_order_pos(user, order_objs):
                             cust_supp_mapping[str(cust_master.customer_id)] = supplier_id
                     else:
                         cust_supp_mapping[str(cust_master.customer_id)] = master_mapping[0].mapping_id
-            if not cust_supp_mapping.get(str(order_obj.customer_id), ''):
+            if not cust_supp_mapping.get(customer_id, ''):
                 continue
             taxes = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0}
             cust_order_summary = order_obj.customerordersummary_set.filter()
             if cust_order_summary:
                 taxes = cust_order_summary.values('cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax')[0]
-            supplier_id = cust_supp_mapping[str(order_obj.customer_id)]
+            supplier_id = cust_supp_mapping[str(customer_id)]
             purchase_data = copy.deepcopy(PO_DATA)
             po_sku_data = copy.deepcopy(PO_SUGGESTIONS_DATA)
             sku = order_obj.sku
@@ -6967,8 +6970,12 @@ def create_order_pos(user, order_objs):
             order.save()
             OrderMapping.objects.create(mapping_id=order.id, mapping_type='PO', order_id=order_obj.id,
                                         creation_date=datetime.datetime.now())
-        log.info("Sampling PO Creation for the user %s is PO number %s created for Order Id %s " % (user.username,
+        if len(order_objs):
+            log.info("Sampling PO Creation for the user %s is PO number %s created for Order Id %s " % (user.username,
                                                                 str(po_id), str(order_objs[0].original_order_id)))
+        else:
+            log.info("Sampling PO Creation for the user %s is PO number %s created for Order Id %s " % (user.username,
+                                                                str(po_id), '' ))
         check_purchase_order_created(user, po_id)
     except Exception as e:
         if po_id:
@@ -6977,7 +6984,6 @@ def create_order_pos(user, order_objs):
         log.debug(traceback.format_exc())
         log.info('Sampling PO Creation failed for %s and params are %s and error statement is %s' % (
             str(user.username), str(order_objs), str(e)))
-
 
 def get_customer_based_price(customer_obj, price, mrp,is_sellingprice='', user_id=''):
     if is_sellingprice == '':

@@ -399,6 +399,8 @@ def myntra_order_tax_calc(key, value, order_mapping, order_summary_dict, row_idx
 def check_and_save_order(cell_data, order_data, order_mapping, user_profile, seller_order_dict, order_summary_dict,
                          sku_ids,
                          sku_masters_dict, all_sku_decs, exist_created_orders, user):
+    
+    order_detail = ''
     order_obj_list = []
     sku_codes = str(cell_data).split(',')
     for cell_data in sku_codes:
@@ -434,34 +436,34 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
                 order_detail.creation_date = exist_order_ins[0].creation_date
                 order_detail.shipment_date = exist_order_ins[0].shipment_date
                 order_detail.save()
-                if order_data.get('order_type', '') == 'Returnable Order':
-                    order_obj_list.append(order_obj)
             check_create_seller_order(seller_order_dict, order_detail, user)
             if order_data['sku_id'] not in sku_ids:
                 sku_ids.append(order_data['sku_id'])
-
             order_summary_dict['order_id'] = order_detail.id
             time_slot = get_local_date(user, datetime.datetime.now())
             order_summary_dict['shipment_time_slot'] = " ".join(time_slot.split(" ")[-2:])
             order_summary = CustomerOrderSummary(**order_summary_dict)
             order_summary.save()
-
         elif order_data['sku_id'] in sku_ids and order_create:
-            order_obj = order_obj[0]
-            order_obj.quantity = order_obj.quantity + order_data['quantity']
-            order_obj.save()
-            if order_data.get('order_type', '') == 'Returnable Order':
-                order_obj_list.append(order_obj)
-            check_create_seller_order(seller_order_dict, order_obj, user)
+            order_detail = order_obj[0]
+            order_detail.quantity = order_detail.quantity + order_data['quantity']
+            order_detail.save()
+            check_create_seller_order(seller_order_dict, order_detail, user)
         elif order_obj and order_create and seller_order_dict.get('seller_id', '') and \
                         seller_order_dict.get('order_status') == 'DELIVERY_RESCHEDULED':
-            order_obj = order_obj[0]
-            if int(order_obj.status) in [2, 4, 5]:
-                order_obj.status = 1
-                update_seller_order(seller_order_dict, order_obj, user)
-                order_obj.save()
-                if order_data.get('order_type', '') == 'Returnable Order':
-                    order_obj_list.append(order_obj)
+            order_detail = order_obj[0]
+            if int(order_detail.status) in [2, 4, 5]:
+                order_detail.status = 1
+                update_seller_order(seller_order_dict, order_detail, user)
+                order_detail.save()
+        if order_data.get('order_type', '') == 'Returnable Order':
+            if order_detail:
+                order_obj_list.append(order_detail)
+        elif order_data.get('order_type', '') == 'SP':
+            if order_detail:
+                order_obj_list.append(order_detail)
+        if len(order_obj_list):
+            order_obj_list = list(set(order_obj_list))
         create_order_pos(user, order_obj_list)
         log.info("Order Saving Ended %s" % (datetime.datetime.now()))
     return sku_ids
@@ -475,6 +477,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
     order_mapping = get_order_mapping(reader, file_type)
     if not order_mapping:
         return "Headers not matching"
+
     count = 0
     exclude_rows = []
     sku_masters_dict = {}

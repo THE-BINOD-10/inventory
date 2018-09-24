@@ -47,6 +47,7 @@ from barcodes import *
 log = init_logger('logs/common.log')
 init_log = init_logger('logs/integrations.log')
 log_qssi = init_logger('logs/qssi_order_status_update.log')
+log_sellable = init_logger('logs/auto_sellable_suggestions.log')
 
 
 # Create your views here.
@@ -7808,66 +7809,74 @@ def update_auto_sellable_data(user):
     creation_date = datetime.datetime.now()
     industry_type = user.userprofile.industry_type
     user_type = user.userprofile.user_type
-    picklist_exclude_zones = get_exclude_zones(user)
-    non_sellable_zones = get_all_zones(user, zone='Non Sellable Zone')
-    non_sellable_stock = StockDetail.objects.filter(sku__user=user.id, location__zone__zone__in=non_sellable_zones,
-                                                    quantity__gt=0)
-    non_sellable_skus = non_sellable_stock.values_list('sku_id', flat=True)
-    zero_quantity = StockDetail.objects.filter(sku__user=user.id, quantity=0, sku_id__in=non_sellable_skus).\
-                                        exclude(location__zone__zone__in=picklist_exclude_zones)
+    log_sellable.info('Updating the Sellable Auto suggestions for user %s at %s' %
+             (user.username, get_local_date(user,creation_date)))
+    try:
+        picklist_exclude_zones = get_exclude_zones(user)
+        non_sellable_zones = get_all_zones(user, zone='Non Sellable Zone')
+        non_sellable_stock = StockDetail.objects.filter(sku__user=user.id, location__zone__zone__in=non_sellable_zones,
+                                                        quantity__gt=0)
+        non_sellable_skus = non_sellable_stock.values_list('sku_id', flat=True)
+        zero_quantity = StockDetail.objects.filter(sku__user=user.id, quantity=0, sku_id__in=non_sellable_skus).\
+                                            exclude(location__zone__zone__in=picklist_exclude_zones)
 
-    zero_quantity_skus = zero_quantity.values_list('sku_id', flat=True)
-    import pdb;
-    pdb.set_trace()
-    sugg_skus = set(non_sellable_skus).intersection(zero_quantity_skus)
-    for sugg_sku in sugg_skus:
-        sugg_stock = non_sellable_stock.filter(sku_id=sugg_sku)
-        exist_obj = SellableSuggestions.objects.filter(stock_id__in=sugg_stock.values_list('id', flat=True),
-                                                       status=1)
-        if exist_obj.exists():
-            continue
-        if industry_type == 'FMCG':
-            last_used = zero_quantity.filter(batch_detail__isnull=False, sku_id=sugg_sku).order_by('updation_date')
-            if last_used.exists():
-                last_mrp = last_used[0].batch_detail.mrp
-                mrp_stock = sugg_stock.filter(batch_detail__mrp=last_mrp)
-                if mrp_stock:
-                    sugg_stock = mrp_stock
-                else:
-                    other_mrp_obj = sugg_stock.filter(batch_detail__isnull=False)
-                    if other_mrp_obj.exists():
-                        sugg_stock = sugg_stock.filter(batch_detail__mrp=other_mrp_obj[0].batch_detail.mrp)
-        if sugg_stock:
-            suggsting_zone_list = get_all_zones(user, sugg_stock[0].location.zone.zone)
-            sugg_stock = sugg_stock.filter(location__zone__zone__in=suggsting_zone_list)
-        for stock in sugg_stock:
-            sellable_dict = {'stock_id': stock.id, 'status': 1}
-            quantity = stock.quantity
-            if user_type == 'marketplace_user':
-                seller_stock = stock.sellerstock_set.filter(quantity__gt=0)
-                if not seller_stock.exists():
-                    continue
-                sellable_dict['seller_id'] = seller_stock[0].seller_id
-                quantity = seller_stock[0].quantity
-            sellable_suggestions = SellableSuggestions.objects.filter(**sellable_dict)
-            if not sellable_suggestions:
-                sellable_dict['quantity'] = quantity
-                put_zone = 'DEFAULT'
-                if stock.sku.zone:
-                    put_zone = stock.sku.zone.zone
-                temp_dict = {'sku_group': stock.sku.sku_group, 'wms_code': stock.sku.wms_code,
-                      'sku': stock.sku, 'seller_id': sellable_dict.get('seller_id', ''),
-                             'data': '', 'user': user.id}
-                sellable_dict['creation_date'] = creation_date
-                locations = get_purchaseorder_locations(put_zone, temp_dict)
-                received_quantity = sellable_dict['quantity']
-                for location in locations:
-                    location_quantity, received_quantity = get_remaining_capacity(location, received_quantity,
-                                                                                  put_zone,
-                                                                                  '', user.id)
-                    if not location_quantity:
+        zero_quantity_skus = list(zero_quantity.values_list('sku_id', flat=True))
+        remaining_skus = list(SKUMaster.objects.filter(user=user.id).values_list('id', flat=True))
+        sugg_skus = set(non_sellable_skus).intersection(zero_quantity_skus + remaining_skus)
+        for sugg_sku in sugg_skus:
+            sugg_stock = non_sellable_stock.filter(sku_id=sugg_sku)
+            exist_obj = SellableSuggestions.objects.filter(stock_id__in=sugg_stock.values_list('id', flat=True),
+                                                           status=1)
+            if exist_obj.exists():
+                continue
+            if industry_type == 'FMCG':
+                last_used = zero_quantity.filter(batch_detail__isnull=False, sku_id=sugg_sku).order_by('updation_date')
+                if last_used.exists():
+                    last_mrp = last_used[0].batch_detail.mrp
+                    mrp_stock = sugg_stock.filter(batch_detail__mrp=last_mrp)
+                    if mrp_stock:
+                        sugg_stock = mrp_stock
+                    else:
+                        other_mrp_obj = sugg_stock.filter(batch_detail__isnull=False)
+                        if other_mrp_obj.exists():
+                            sugg_stock = sugg_stock.filter(batch_detail__mrp=other_mrp_obj[0].batch_detail.mrp)
+            if sugg_stock:
+                suggsting_zone_list = get_all_zones(user, sugg_stock[0].location.zone.zone)
+                sugg_stock = sugg_stock.filter(location__zone__zone__in=suggsting_zone_list)
+            for stock in sugg_stock:
+                sellable_dict = {'stock_id': stock.id, 'status': 1}
+                quantity = stock.quantity
+                if user_type == 'marketplace_user':
+                    seller_stock = stock.sellerstock_set.filter(quantity__gt=0)
+                    if not seller_stock.exists():
                         continue
-                    sellable_dict1 = copy.deepcopy(sellable_dict)
-                    sellable_dict1['quantity'] = location_quantity
-                    sellable_dict1['location_id'] = location.id
-                    SellableSuggestions.objects.create(**sellable_dict1)
+                    sellable_dict['seller_id'] = seller_stock[0].seller_id
+                    quantity = seller_stock[0].quantity
+                sellable_suggestions = SellableSuggestions.objects.filter(**sellable_dict)
+                if not sellable_suggestions:
+                    sellable_dict['quantity'] = quantity
+                    put_zone = 'DEFAULT'
+                    if stock.sku.zone:
+                        put_zone = stock.sku.zone.zone
+                    temp_dict = {'sku_group': stock.sku.sku_group, 'wms_code': stock.sku.wms_code,
+                          'sku': stock.sku, 'seller_id': sellable_dict.get('seller_id', ''),
+                                 'data': '', 'user': user.id}
+                    sellable_dict['creation_date'] = creation_date
+                    locations = get_purchaseorder_locations(put_zone, temp_dict)
+                    received_quantity = sellable_dict['quantity']
+                    for location in locations:
+                        location_quantity, received_quantity = get_remaining_capacity(location, received_quantity,
+                                                                                      put_zone,
+                                                                                      '', user.id)
+                        if not location_quantity:
+                            continue
+                        sellable_dict1 = copy.deepcopy(sellable_dict)
+                        sellable_dict1['quantity'] = location_quantity
+                        sellable_dict1['location_id'] = location.id
+                        SellableSuggestions.objects.create(**sellable_dict1)
+    except Exception as e:
+        import traceback
+        log_sellable.debug(traceback.format_exc())
+        result_data = []
+        log_sellable.info('Create Sellable Auto Suggestions failed for user %s' % (str(user.username)))
+

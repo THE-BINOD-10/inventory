@@ -107,7 +107,7 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
           }
           vm.service.apiCall('confirm_or_hold_custom_order/', 'POST', elem).then(function(data){
                 if(data.data.msg == 'Success') {
-                   if isConfirm{
+                   if(isConfirm){
                      Service.showNoty('Order Confirmed Successfully');
                    }else{
                      Service.showNoty('Placed Enquiry Order Successfully');

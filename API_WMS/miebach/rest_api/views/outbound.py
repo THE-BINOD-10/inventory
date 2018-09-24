@@ -11192,8 +11192,8 @@ def confirm_or_hold_custom_order(request, user=''):
                 market_admin_user_id = market_admin_user_id[0]
                 users_list.append(market_admin_user_id)
             users_list.append(admin_user.id)
-            contents = {"en": "%s  %s  for custom order %s" % (
-            request.user.username, ch_map[cust_order_status], cust_ord_obj.enquiry_id)}
+            contents = {"en": "%s  %s  for custom order %s" % ( request.user.username, ch_map[cust_order_status],
+                                                                cust_ord_obj.enquiry_id)}
             send_push_notification(contents, users_list)
     except:
         resp['msg'] = 'Fail'

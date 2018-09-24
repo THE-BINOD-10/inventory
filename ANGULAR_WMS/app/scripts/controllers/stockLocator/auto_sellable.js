@@ -95,20 +95,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       }
     }
     if(vm.generate_data.length > 0) {
-      var sel_data = [];
-      angular.forEach(vm.generate_data, function(row){
-        sel_data.push({'batch_no':row['Batch No']});
-        sel_data.push({'destination_location':row['Destination Location']});
-        sel_data.push({'mrp':row['MRP']});
-        sel_data.push({'product_description':row['Product Description']});
-        sel_data.push({'quantity':row['Quantity']});
-        sel_data.push({'sku_code':row['SKU Code']});
-        sel_data.push({'seller_id':row['Seller ID']});
-        sel_data.push({'seller_name':row['Seller Name']});
-        sel_data.push({'source_location':row['Source Location']});
-        sel_data.push({'suggested_quantity':row['Suggested Quantity']});
-      })
-      var elem ={data: sel_data};
+      // var sel_data = [];
+      // angular.forEach(vm.generate_data, function(row){
+      //   sel_data.push({'batch_no':row['Batch No']});
+      //   sel_data.push({'destination_location':row['Destination Location']});
+      //   sel_data.push({'mrp':row['MRP']});
+      //   sel_data.push({'product_description':row['Product Description']});
+      //   sel_data.push({'quantity':row['Quantity']});
+      //   sel_data.push({'sku_code':row['SKU Code']});
+      //   sel_data.push({'seller_id':row['Seller ID']});
+      //   sel_data.push({'seller_name':row['Seller Name']});
+      //   sel_data.push({'source_location':row['Source Location']});
+      //   sel_data.push({'suggested_quantity':row['Suggested Quantity']});
+      // })
+      var elem ={data: vm.generate_data};
       vm.service.apiCall('auto_sellable_confirm/', 'POST', elem).then(function(data){
         if(data.message) {
           colFilters.showNoty(data.data);

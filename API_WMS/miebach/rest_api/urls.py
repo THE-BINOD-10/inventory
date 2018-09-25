@@ -228,6 +228,8 @@ urlpatterns = [
     url(r'^confirm_move_location_inventory/$', confirm_move_location_inventory),
     url(r'^get_sku_batches/$', get_sku_batches),
     url(r'^inventory_adj_reasons/$', inventory_adj_reasons),
+    url(r'^auto_sellable_confirm/$', auto_sellable_confirm),
+    url(r'^update_sellable_suggestions/$', update_sellable_suggestions),
 
     # OutBound
     url(r'^batch_generate_picklist/$', batch_generate_picklist),

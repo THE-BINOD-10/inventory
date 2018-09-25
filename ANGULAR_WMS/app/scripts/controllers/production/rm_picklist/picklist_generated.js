@@ -312,7 +312,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, prin
     event.stopPropagation();
     if (event.keyCode == 13 && data1.imei_number.length > 0) {
       // if(vm.permissions.barcode_generate_opt != "sku_serial") {
-      vm.service.apiCall('check_imei_exists/', 'GET',{imei: data1.imei_number, id: data1.id}).then(function(data){
+      vm.service.apiCall('check_imei_exists/', 'GET',{imei: data1.imei_number, wms_code: data1.wms_code}).then(function(data){
         if(data.message) {
           if (data.data == "Success") {
             // data1.received_quantity = Number(sku.received_quantity) + 1;

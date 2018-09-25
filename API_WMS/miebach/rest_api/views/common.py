@@ -7803,6 +7803,18 @@ def get_all_zones(user, zone=''):
     return all_zones
 
 
+def update_existing_suggestions(user):
+    ''' Updating Existing Suggestions'''
+    suggestions = SellableSuggestions.objects.filter(stock__sku__user=user.id, status=1)
+    for suggestion in suggestions:
+        if float(suggestion.stock.quantity) == float(suggestion.quantity):
+            continue
+        suggestion.quantity = suggestion.stock.quantity
+        if suggestion.quantity <= 0:
+            suggestion.status = 0
+        suggestion.save()
+
+
 def update_auto_sellable_data(user):
     ''' Create Sellable Suggestions '''
     from rest_api.views.inbound import get_purchaseorder_locations, get_remaining_capacity, get_stock_locations
@@ -7823,6 +7835,9 @@ def update_auto_sellable_data(user):
         zero_quantity_skus = list(zero_quantity.values_list('sku_id', flat=True))
         remaining_skus = list(SKUMaster.objects.filter(user=user.id).values_list('id', flat=True))
         sugg_skus = set(non_sellable_skus).intersection(zero_quantity_skus + remaining_skus)
+
+        # Updating already created suggestion Entries
+        update_existing_suggestions(user)
         for sugg_sku in sugg_skus:
             sugg_stock = non_sellable_stock.filter(sku_id=sugg_sku)
             exist_obj = SellableSuggestions.objects.filter(stock_id__in=sugg_stock.values_list('id', flat=True),

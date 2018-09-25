@@ -5760,6 +5760,7 @@ def get_stock_receipt_number(user):
 
 @csrf_exempt
 def insert_po_mapping(imei_nos, data, user_id):
+    ''' Inserting IMEI Mapping throught PO'''
     imei_list = []
     imei_nos = list(set(imei_nos.split(',')))
     order_data = get_purchase_order_data(data)
@@ -5784,6 +5785,34 @@ def insert_po_mapping(imei_nos, data, user_id):
             po_imei = POIMEIMapping(**imei_mapping)
             po_imei.save()
             all_po_labels.filter(purchase_order_id=data.id, label=imei, status=1).update(status=0)
+        imei_list.append(imei)
+
+
+@csrf_exempt
+def insert_jo_mapping(imei_nos, data, user_id):
+    ''' Inserting IMEI Mapping throught JO'''
+    imei_list = []
+    imei_nos = list(set(imei_nos.split(',')))
+    all_po_labels = []
+    all_po_labels = POLabels.objects.filter(sku__user=user_id, status=1)
+    for imei in imei_nos:
+        if not imei:
+            continue
+        po_mapping, status, imei_data = check_get_imei_details(imei, data.product_code.wms_code, user_id,
+                                                               check_type='purchase_check')
+        if not status and (imei not in imei_list):
+            if po_mapping:
+                po_mapping_ids = list(po_mapping.values_list('id', flat=True))
+                OrderIMEIMapping.objects.filter(po_imei_id__in=po_mapping_ids, status=1).update(status=0)
+                ReturnsIMEIMapping.objects.filter(order_imei__po_imei_id__in=po_mapping_ids, imei_status=1).update(
+                    imei_status=0)
+            imei_mapping = {'job_order_id': data.id, 'imei_number': imei, 'status': 1,
+                            'sku_id': data.product_code.id,
+                            'creation_date': datetime.datetime.now(),
+                            'updation_date': datetime.datetime.now()}
+            po_imei = POIMEIMapping(**imei_mapping)
+            po_imei.save()
+            all_po_labels.filter(job_order_id=data.id, label=imei, status=1).update(status=0)
         imei_list.append(imei)
 
 

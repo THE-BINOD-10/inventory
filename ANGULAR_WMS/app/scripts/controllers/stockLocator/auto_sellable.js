@@ -55,11 +55,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       DTColumnBuilder.newColumn('Suggested Quantity').withTitle('Suggested Quantity'),
       DTColumnBuilder.newColumn('Destination Location').withTitle('Destination Location').notSortable()
         .renderWith(function(data, type, full, meta) {
-          return "<input type='text' name='DestinationLocation' value='"+full['Destination Location']+"' class='smallbox'>"
+          return "<input type='text' name='DestinationLocation' value='"+full['Destination Location']+"' id='"+meta.row+"_"+meta.col+"_destLoc' class='smallbox'>"
         }),
       DTColumnBuilder.newColumn('Quantity').withTitle('Quantity')
         .renderWith(function(data, type, full, meta) {
-          return "<input type='text' name='Quantity' value='"+full.Quantity+"' ng-keyup='showCase.updateRowData()' class='smallbox'>"
+          return "<input type='text' name='Quantity' value='"+full.Quantity+"' id='"+meta.row+"_"+meta.col+"_qty' class='smallbox'>"
         }),
 		  // DTColumnBuilder.newColumn('Quantity').withTitle('Quantity').notSortable(),
     ];
@@ -91,6 +91,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     for(var key in vm.selected){
       console.log(vm.selected[key]);
       if(vm.selected[key]) {
+        vm.dtInstance.DataTable.context[0].aoData[key]._aData['Destination Location'] = $('#'+key+'_9_destLoc').val();
+        vm.dtInstance.DataTable.context[0].aoData[key]._aData['Quantity'] = $('#'+key+'_10_qty').val();
         vm.generate_data.push(vm.dtInstance.DataTable.context[0].aoData[key]._aData);
       }
     }
@@ -108,10 +110,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
       vm.bt_disable = false;
     }
-  }
-
-  vm.updateRowData = function(data) {
-    console.log(data);
   }
 
   vm.update_suggestions = function() {

@@ -362,6 +362,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.model_data['barcodes'] = list;
     vm.model_data['po_id'] = vm.model_data.job_code;
     vm.model_data.have_data = true;
+    vm.model_data['custom_confg_flag'] = true;
     //$state.go('app.inbound.RevceivePo.barcode');
     var modalInstance = $modal.open({
       templateUrl: 'views/outbound/toggle/barcodes.html',

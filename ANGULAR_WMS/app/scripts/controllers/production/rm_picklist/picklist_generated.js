@@ -324,7 +324,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, prin
             // tempUniqueDict dict checking purpose only don't use anyware
             if (data1.product_quantity > skuWiseQtyTotal) {
               if (data1.sub_data[innerIndex].accept_imei && !data1.sub_data[innerIndex].tempUniqueDict[data1.imei_number]) {
-                data1.sub_data[innerIndex].received_quantity = Number(data1.sub_data[innerIndex].received_quantity) + 1;
+                data1.sub_data[innerIndex].picked_quantity = Number(data1.sub_data[innerIndex].picked_quantity) + 1;
                 data1.sub_data[innerIndex].accept_imei.push(data1.imei_number);
                 data1.sub_data[innerIndex].tempUniqueDict[data1.imei_number] = data1.imei_number;
               } else {
@@ -335,7 +335,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, prin
                   data1.sub_data[innerIndex]['tempUniqueDict'] = {};
                   data1.sub_data[innerIndex].tempUniqueDict[data1.imei_number] = data1.imei_number;
                   data1.sub_data[innerIndex].accept_imei.push(data1.imei_number);
-                  data1.sub_data[innerIndex].received_quantity = 1;
+                  data1.sub_data[innerIndex].picked_quantity = 1;
                 }
               }
               var sku_code = data.data.data.sku_code;

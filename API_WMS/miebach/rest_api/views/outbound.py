@@ -500,6 +500,7 @@ def generate_picklist(request, user=''):
     out_of_stock = []
     single_order = ''
     picklist_number = get_picklist_number(user)
+    picklist_exclude_zones = get_exclude_zones(user)
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
                    'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
@@ -507,7 +508,7 @@ def generate_picklist(request, user=''):
     if enable_damaged_stock == 'true':
         sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0, location__zone__zone__in=['DAMAGED_ZONE'])
     else:
-        sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
+        sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0)
     all_seller_orders = SellerOrder.objects.prefetch_related('order__sku').filter(**seller_order_filter)
     if switch_vals['fifo_switch'] == 'true':
         stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by(
@@ -605,6 +606,7 @@ def batch_generate_picklist(request, user=''):
     out_of_stock = []
 
     try:
+        picklist_exclude_zones = get_exclude_zones(user)
         switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                        'fifo_switch': get_misc_value('fifo_switch', user.id),
                        'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
@@ -615,7 +617,7 @@ def batch_generate_picklist(request, user=''):
             location__zone__zone__in=['DAMAGED_ZONE']).filter(sku__user=user.id, quantity__gt=0)
         else:
             sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-            location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
+            location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0)
         all_orders = OrderDetail.objects.prefetch_related('sku').filter(**order_filter)
         if switch_vals['fifo_switch'] == 'true':
             stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by(
@@ -3008,9 +3010,10 @@ def st_generate_picklist(request, user=''):
     out_of_stock = []
     picklist_number = get_picklist_number(user)
 
+    picklist_exclude_zones = get_exclude_zones(user)
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
     sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-        location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
+        location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0)
     all_orders = OrderDetail.objects.prefetch_related('sku').filter(status=1, user=user.id, quantity__gt=0)
 
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
@@ -4314,12 +4317,13 @@ def direct_dispatch_orders(user, dispatch_orders, creation_date=datetime.datetim
 
 
 def check_stocks(order_sku, user, request, order_objs):
+    picklist_exclude_zones = get_exclude_zones(user)
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
                    'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
     sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-        location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
+        location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0)
 
     if switch_vals['fifo_switch'] == 'true':
         stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by(
@@ -7170,6 +7174,7 @@ def order_category_generate_picklist(request, user=''):
     stock_status = ''
     out_of_stock = []
     picklist_number = get_picklist_number(user)
+    picklist_exclude_zones = get_exclude_zones(user)
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
                    'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
@@ -7178,7 +7183,7 @@ def order_category_generate_picklist(request, user=''):
         sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0, location__zone__zone__in=['DAMAGED_ZONE'])
     else:
         sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-        location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
+        location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0)
     all_orders = OrderDetail.objects.prefetch_related('sku').filter(**order_filter)
     all_seller_orders = SellerOrder.objects.prefetch_related('order__sku').filter(**seller_order_filter)
     if switch_vals['fifo_switch'] == 'true':
@@ -9864,12 +9869,13 @@ def seller_generate_picklist(request, user=''):
 
     log.info('Request params for ' + user.username + ' is ' + str(request.POST.dict()))
     try:
+        picklist_exclude_zones = get_exclude_zones(user)
         switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                        'fifo_switch': get_misc_value('fifo_switch', user.id),
                        'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
         sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
         sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-            location__zone__zone__in=PICKLIST_EXCLUDE_ZONES). \
+            location__zone__zone__in=picklist_exclude_zones). \
             filter(sku__user=user.id, quantity__gt=0)
         all_seller_orders = SellerOrder.objects.prefetch_related('order__sku').filter(**order_filter)
 
@@ -9978,6 +9984,7 @@ def update_exist_picklists(picklist_no, request, user, sku_code='', location='',
                                                 Q(order__sku__sku_code=sku_code) | Q(sku_code=sku_code), **filter_param)
     picklist_data = {}
     new_pc_locs_list = []
+    picklist_exclude_zones = get_exclude_zones(user)
     for item in picklist_objs:
         _sku_code = ''
         if item.order:
@@ -9992,7 +9999,7 @@ def update_exist_picklists(picklist_no, request, user, sku_code='', location='',
         if item.damage_suggested:
             stock_objs = StockDetail.objects.prefetch_related('sku', 'location').filter(location__zone__zone__in=['DAMAGED_ZONE']).filter(**stock_params).order_by('location__pick_sequence')
         else:
-            stock_objs = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(**stock_params).order_by('location__pick_sequence')
+            stock_objs = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone__in=picklist_exclude_zones).filter(**stock_params).order_by('location__pick_sequence')
         picklist_data['stock_id'] = 0
         stock_quan = 0
         if item.stock_id:
@@ -11381,10 +11388,10 @@ def update_stock_transfer_data(request, user=""):
 def stock_transfer_generate_picklist(request, user=''):
     out_of_stock = []
     picklist_number = get_picklist_number(user)
-
+    picklist_exclude_zones = get_exclude_zones(user)
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
     sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-        location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
+        location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0)
 
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                    'fifo_switch': get_misc_value('fifo_switch', user.id),

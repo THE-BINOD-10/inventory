@@ -2984,7 +2984,8 @@ def create_default_zones(user, zone, location, sequence):
 
 
 def get_return_segregation_locations(order_returns, batch_dict, data):
-    stock_objs = StockDetail.objects.exclude(Q(location__location__in=PICKLIST_EXCLUDE_ZONES) |
+    picklist_exclude_zones = get_exclude_zones(User.objects.get(id=order_returns.sku.user))
+    stock_objs = StockDetail.objects.exclude(Q(location__location__in=picklist_exclude_zones) |
                                              Q(batch_detail__mrp=batch_dict['mrp'])). \
                                     filter(sku__user=order_returns.sku.user,
                                             sku__sku_code=order_returns.sku.sku_code, quantity__gt=0)

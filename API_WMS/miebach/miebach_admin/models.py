@@ -14,6 +14,7 @@ class ZoneMaster(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.PositiveIntegerField()
     zone = models.CharField(max_length=64)
+    level = models.IntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -26,7 +27,23 @@ class ZoneMaster(models.Model):
         return str(self.zone)
 
     def natural_key(self):
-        return {'id': self.id, 'user': self.user, 'zone': self.zone}
+        return {'id': self.id, 'user': self.user, 'zone': self.zone, 'level': self.level}
+
+
+class SubZoneMapping(models.Model):
+    id = BigAutoField(primary_key=True)
+    zone = models.ForeignKey(ZoneMaster, default=None)
+    sub_zone = models.ForeignKey(ZoneMaster, related_name= 'sub_zone',default=None)
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'SUB_ZONE_MAPPING'
+        unique_together = ('zone', 'sub_zone')
+
+    def __unicode__(self):
+        return '%s:%s' % (str(self.zone.zone), str(self.sub_zone.zone))
 
 
 class ZoneMarketplaceMapping(models.Model):
@@ -1909,7 +1926,7 @@ class SellerStock(models.Model):
     class Meta:
         db_table = 'SELLER_STOCK'
         unique_together = ('seller', 'stock', 'seller_po_summary')
-        index_together = ('seller', 'stock', 'seller_po_summary')
+        index_together = (('seller', 'stock', 'seller_po_summary'), ('seller', 'stock'), ('seller', 'stock', 'quantity'))
 
 
 class SellerMarginMapping(models.Model):
@@ -2923,3 +2940,18 @@ class PushNotifications(models.Model):
     
     class Meta:
         db_table = 'PUSH_NOTIFICATIONS'
+
+
+class SellableSuggestions(models.Model):
+    id = BigAutoField(primary_key=True)
+    seller = models.ForeignKey(SellerMaster, blank=True, null=True)
+    stock = models.ForeignKey(StockDetail, blank=True, null=True)
+    location = models.ForeignKey(LocationMaster)
+    quantity = models.FloatField(default=0)
+    status = models.IntegerField(default=1)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'SELLABLE_SUGGESTIONS'
+        index_together = (('seller', 'stock', 'status'), ('stock', 'status'))

@@ -115,7 +115,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
   vm.update_suggestions = function() {
     vm.service.apiCall('update_sellable_suggestions/', 'POST').then(function(data){
       if(data.message) {
-        if (data.data.status) {
+        if (data.data == "Success") {
+          colFilters.showNoty('Updated Successfully');
           reloadData();
         }
       }

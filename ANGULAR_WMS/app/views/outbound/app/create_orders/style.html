@@ -88,6 +88,7 @@
                     <th ng-repeat="hd in Style.style_detail_hd" ng-if="!Style.central_order_mgmt && (Style.en_style_headers.indexOf(Style.style_headers[hd]) != -1)">{{hd}}</th>
                     <th ng-repeat="hd in Style.style_detail_hd" ng-if="Style.user_type == 'customer' && Style.central_order_mgmt && Style.en_style_headers.indexOf(Style.style_headers[hd]) != -1 && (hd == '1-Day Stock' || hd == '3-Day Stock')">Stock Available</th>
                     <!-- <th ng-repeat="hd in Style.style_detail_hd" ng-if="Style.en_style_headers.indexOf(Style.style_headers[hd]) != -1">{{hd}}</th> -->
+                    <th ng-if="Style.order_exceed_stock"> Blocked Stock </th>
                     <th>Quantity</th>
                     <!-- <th>Unit Rate</th>
                     <th>Total Price</th> -->
@@ -95,7 +96,8 @@
                 </thead>
                 <tbody>
                   <tr ng-repeat="style in Style.style_data.data">
-                    <td ng-repeat="hd in Style.style_detail_hd" ng-if="Style.en_style_headers.indexOf(Style.style_headers[hd]) != -1">{{style[Style.style_headers[hd]]}}</td> 
+                    <td ng-repeat="hd in Style.style_detail_hd" ng-if="Style.en_style_headers.indexOf(Style.style_headers[hd]) != -1">{{style[Style.style_headers[hd]]}}</td>
+                    <td ng-if="Style.order_exceed_stock"> {{style['blocked_quantity']}}</td>
                     <td>
                       <input ng-if="style.quantity_status" class="form-control" size="5" ng-model="style.quantity" ng-change="Style.change_style_quantity(Style.style_data.data, style, $index);" ng-class="service.get_decimal_perm()">
                       <input ng-if="!style.quantity_status && Style.generic_wharehouse_level == 'false'" class="form-control" size="5" value="{{style.no_items}}" ng-model="style.quantity" ng-change="Style.change_style_quantity(Style.style_data.data, style, $index)" ng-class="service.get_decimal_perm()" readonly>
@@ -105,6 +107,7 @@
                   </tr>
                   <tr>
                     <td ng-repeat="hd in Style.style_detail_hd" ng-if="Style.en_style_headers.indexOf(Style.style_headers[hd]) != -1" style="font-size: 16px;"><b>{{Style.style_total_counts[Style.style_headers[hd]]}}</b></td>
+                    <td ng-if="Style.order_exceed_stock"></td>
                     <td><b style="font-size:16px">{{Style.style_data.quantity}}</b></td>
                     <!-- <td></td>
                     <td><b style="font-size:16px">Total: {{Style.sel_items_total_price | number}}</b></td> -->

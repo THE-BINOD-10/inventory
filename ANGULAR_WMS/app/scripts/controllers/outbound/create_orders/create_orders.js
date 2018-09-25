@@ -8,6 +8,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
   vm.service = Service;
   vm.g_data = Data.create_orders
   vm.company_name = Session.user_profile.company_name;
+  vm.order_exceed_stock = Boolean(Session.roles.permissions.order_exceed_stock);
   vm.permissions = Session.roles.permissions;
   vm.model_data = {}
   vm.auto_shipment = false;

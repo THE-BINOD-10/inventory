@@ -5033,10 +5033,15 @@ def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_
     for item in sku_master:
         ordered_qty = ordered_qties.get(item["wms_code"], 0)
         recieved_qty = recieved_qties.get(item["wms_code"], 0)
-        cart_qty = 0
+        cart_qty, inter_qty = 0, 0
         cart_obj = CustomerCartData.objects.filter(sku=item['id'])
+        inter_obj = IntermediateOrders.objects.filter(sku=item['id'])
         if cart_obj:
             cart_qty = cart_obj[0].quantity
+        if inter_obj:
+            inter_qty = inter_obj[0].quantity
+        blocked_qty = cart_qty + inter_qty
+        item['blocked_quantity'] = blocked_qty
 
         putaway_pending_job_qty = putaway_pending_job.get(item["wms_code"], 0)
         putaway_pending_purchase_qty = putaway_pending_purchase.get(item["wms_code"], 0)
@@ -5051,7 +5056,7 @@ def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_
 
         job_order_qty = job_order_product_qty - job_order_recieved_qty + putaway_pending_job_qty
 
-        all_quantity = stock_qty - reserved_qty + intransit_qty + putaway_pending_purchase_qty + job_order_qty - cart_qty
+        all_quantity = stock_qty - reserved_qty + intransit_qty + putaway_pending_purchase_qty + job_order_qty
         if user.id in stock_display_warehouse:
             all_quantity -= item['physical_stock']
         item['all_quantity'] = all_quantity
@@ -7961,7 +7966,12 @@ def get_customer_cart_data(request, user=""):
                               Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE']))\
                               .filter(sku__sku_code=sku_obj[0].sku_code, sku__user__in=warehouses)\
                               .aggregate(Sum('quantity'))['quantity__sum']
-            json_record['available_stock'] = available_stock
+            cart_qty, inter_qty = 0, 0
+            inter_obj = IntermediateOrders.objects.filter(sku=sku_obj[0].id)
+            if inter_obj:
+                inter_qty = inter_obj[0].quantity
+            blocked_qty = inter_qty
+            json_record['available_stock'] = available_stock - blocked_qty
             if central_order_mgmt:
                 sku_id = sku_obj[0].id
                 sku_spl_attrs = dict(SKUAttributes.objects.filter(sku_id=sku_id).

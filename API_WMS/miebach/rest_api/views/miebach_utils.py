@@ -13,7 +13,7 @@ from django.db.models import Q, F, FloatField
 from django.db.models.functions import Cast, Concat
 from django.db.models.fields import DateField, CharField
 from django.db.models import Value
-from utils import init_logger
+from utils import init_logger, get_currency_format
 
 # from inbound import *
 
@@ -3993,7 +3993,7 @@ def get_dist_sales_report_data(search_params, user, sub_user):
                                 ))
         temp_data['aaData'].append(ord_dict)
     for i, j in totals_map.items():
-        totals_map[i] = round(j, 2)
+        totals_map[i] = get_currency_format(j)
     temp_data['totals'] = totals_map
     if stop_index:
         temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
@@ -4181,7 +4181,7 @@ def get_reseller_sales_report_data(search_params, user, sub_user):
                                                 ('Order Status', status),
                                                 )))
     for i, j in totals_map.items():
-        totals_map[i] = round(j, 2)
+        totals_map[i] = get_currency_format(j)
     temp_data['totals'] = totals_map
     if stop_index:
         temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
@@ -4321,7 +4321,7 @@ def get_zone_target_summary_report_data(search_params, user, sub_user):
                                 ))
         temp_data['aaData'].append(ord_dict)
     for i, j in totals_map.items():
-        totals_map[i] = round(j, 2)
+        totals_map[i] = get_currency_format(j)
     temp_data['totals'] = totals_map
     return temp_data
 
@@ -4497,7 +4497,7 @@ def get_zone_target_detailed_report_data(search_params, user, sub_user):
                                 ))
         temp_data['aaData'].append(ord_dict)
     for i, j in totals_map.items():
-        totals_map[i] = round(j, 2)
+        totals_map[i] = get_currency_format(j)
     temp_data['totals'] = totals_map
     if stop_index:
         temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
@@ -4635,7 +4635,7 @@ def get_dist_target_summary_report_data(search_params, user, sub_user):
                                 ))
         temp_data['aaData'].append(ord_dict)
     for i, j in totals_map.items():
-        totals_map[i] = round(j, 2)
+        totals_map[i] = get_currency_format(j)
     temp_data['totals'] = totals_map
     if stop_index:
         temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
@@ -4832,7 +4832,7 @@ def get_dist_target_detailed_report_data(search_params, user, sub_user):
                                 ))
         temp_data['aaData'].append(ord_dict)
     for i, j in totals_map.items():
-        totals_map[i] = round(j, 2)
+        totals_map[i] = get_currency_format(j)
     temp_data['totals'] = totals_map
     if stop_index:
         temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
@@ -4942,7 +4942,7 @@ def get_reseller_target_summary_report_data(search_params, user, sub_user):
                                 ))
         temp_data['aaData'].append(ord_dict)
     for i, j in totals_map.items():
-        totals_map[i] = round(j, 2)
+        totals_map[i] = get_currency_format(j)
     temp_data['totals'] = totals_map
     if stop_index:
         temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
@@ -5048,7 +5048,7 @@ def get_reseller_target_detailed_report_data(search_params, user, sub_user):
                                 ))
         temp_data['aaData'].append(ord_dict)
     for i, j in totals_map.items():
-        totals_map[i] = round(j, 2)
+        totals_map[i] = get_currency_format(j)
     temp_data['totals'] = totals_map
     if stop_index:
         temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
@@ -5118,7 +5118,7 @@ def get_corporate_target_report_data(search_params, user, sub_user):
                                 ))
         temp_data['aaData'].append(ord_dict)
     for i, j in totals_map.items():
-        totals_map[i] = round(j, 2)
+        totals_map[i] = get_currency_format(j)
     temp_data['totals'] = totals_map
     if stop_index:
         temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]

@@ -50,7 +50,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, prin
             });
         });
         return nRow;
-    } 
+    }
 
     vm.dtInstance = {};
     vm.reloadData = reloadData;
@@ -307,5 +307,54 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, prin
     })
   }
 
+  vm.serial_numbers = [];
+  vm.check_imei_exists = function(event, data1, index, innerIndex) {
+    event.stopPropagation();
+    if (event.keyCode == 13 && data1.imei_number.length > 0) {
+      // if(vm.permissions.barcode_generate_opt != "sku_serial") {
+      vm.service.apiCall('check_imei_exists/', 'GET',{imei: data1.imei_number, id: data1.id}).then(function(data){
+        if(data.message) {
+          if (data.data == "Success") {
+            // data1.received_quantity = Number(sku.received_quantity) + 1;
+            data1.imei_number = data.data.data.label;
+            let skuWiseQtyTotal = 0;
+            angular.forEach(data1.sub_data, function(row){
+              skuWiseQtyTotal += Number(row.received_quantity);
+            });
+            // tempUniqueDict dict checking purpose only don't use anyware
+            if (data1.product_quantity > skuWiseQtyTotal) {
+              if (data1.sub_data[innerIndex].accept_imei && !data1.sub_data[innerIndex].tempUniqueDict[data1.imei_number]) {
+                data1.sub_data[innerIndex].received_quantity = Number(data1.sub_data[innerIndex].received_quantity) + 1;
+                data1.sub_data[innerIndex].accept_imei.push(data1.imei_number);
+                data1.sub_data[innerIndex].tempUniqueDict[data1.imei_number] = data1.imei_number;
+              } else {
+                if (data1.sub_data[innerIndex].tempUniqueDict && data1.sub_data[innerIndex].tempUniqueDict[data1.imei_number]) {
+                  Service.showNoty("Scanned serial number already exist");
+                } else if (!data1.sub_data[innerIndex].tempUniqueDict) {
+                  data1.sub_data[innerIndex]['accept_imei'] = [];
+                  data1.sub_data[innerIndex]['tempUniqueDict'] = {};
+                  data1.sub_data[innerIndex].tempUniqueDict[data1.imei_number] = data1.imei_number;
+                  data1.sub_data[innerIndex].accept_imei.push(data1.imei_number);
+                  data1.sub_data[innerIndex].received_quantity = 1;
+                }
+              }
+              var sku_code = data.data.data.sku_code;
+              if (data1.wms_code != sku_code) {
+                Service.showNoty("Scanned label belongs to "+sku_code);
+                data1.imei_number = "";
+                return false;
+              }
+            } else {
+              Service.showNoty("No Quantity Available");
+            }
+          } else {
+            Service.showNoty(data.data);
+            data1.imei_number = "";
+          }
+        }
+        data1["disable"] = false;
+      })
+    }
   }
 
+  }

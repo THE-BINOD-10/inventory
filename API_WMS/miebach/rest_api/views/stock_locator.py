@@ -2295,7 +2295,7 @@ def get_auto_sellable_suggestion_data(start_index, stop_index, temp_data, search
     if user.userprofile.industry_type == 'FMCG':
         lis.insert(3, 'stock__batch_detail__batch_no')
         lis.insert(4, 'stock__batch_detail__mrp')
-    master_data = SellableSuggestions.objects.filter(stock__sku__user=user.id)
+    master_data = SellableSuggestions.objects.filter(stock__sku__user=user.id, status=1)
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -2325,4 +2325,73 @@ def get_auto_sellable_suggestion_data(start_index, stop_index, temp_data, search
         data_dict['Suggested Quantity'] = data.quantity
         data_dict['Destination Location'] = data.location.location
         data_dict['Quantity'] = data.quantity
+        data_dict['data_id'] = data.id
         temp_data['aaData'].append(data_dict)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def auto_sellable_confirm(request, user=''):
+    request_data = request.POST.dict()
+    data_dict = {}
+    for key, value in request_data.iteritems():
+        group_key = key.split(']')[0].replace('data[', '')
+        data_dict.setdefault(group_key, {})
+        data_dict[group_key][key.split('[')[-1].strip(']')] = value
+    data_list = data_dict.values()
+    for index, data in enumerate(data_list):
+        suggestions = SellableSuggestions.objects.filter(id=data['data_id'], status=1)
+        if not suggestions.exists():
+            continue
+        suggestion = suggestions[0]
+        destination = LocationMaster.objects.filter(zone__user=user.id, location=data['Destination Location'])
+        if not destination:
+            return HttpResponse(json.dumps({'message': 'Invalid Destination Location', 'status': 0}))
+        data_list[index]['dest_location'] = destination[0].location
+        try:
+            quantity = float(data['Quantity'])
+        except:
+            return HttpResponse(json.dumps({'message': 'Invalid Quantity', 'status': 0}))
+        seller_master = SellerMaster.objects.filter(user=user.id, seller_id=data['Seller ID'])
+        if not seller_master:
+            return HttpResponse(json.dumps({'message': 'Invalid Seller ID', 'status': 0}))
+        if quantity > float(suggestion.quantity):
+            return HttpResponse(json.dumps({'message': 'Quantity exceeding the Suggested quantity', 'status': 0}))
+        if quantity > float(suggestion.stock.quantity):
+            return HttpResponse(json.dumps({'message': 'Quantity exceeding the stock quantity', 'status': 0}))
+        data_list[index]['seller_id'] = seller_master[0].id
+        data_list[index]['quantity'] = quantity
+        data_list[index]['suggestion_obj'] = suggestion
+    cycle_count = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
+    if not cycle_count:
+        cycle_id = 1
+    else:
+        cycle_id = cycle_count[0].cycle + 1
+    for data in data_list:
+        suggestion = data['suggestion_obj']
+        seller_id, batch_no, mrp = '', '', 0
+        if data.get('Seller ID', ''):
+            seller_id = data['Seller ID']
+        if data.get('Batch No', ''):
+            batch_no = ''
+        if data.get('MRP', 0):
+            mrp = float(data['MRP'])
+        status = move_stock_location(cycle_id, suggestion.stock.sku.wms_code, suggestion.stock.location.location,
+                                     data['dest_location'], data['quantity'], user, seller_id,
+                                     batch_no=batch_no, mrp=mrp)
+        if 'success' in status.lower():
+            update_filled_capacity([suggestion.stock.location.location, data['dest_location']], user.id)
+            suggestion.quantity = float(suggestion.quantity) - data['quantity']
+            if suggestion.quantity <= 0:
+                suggestion.status = 0
+            suggestion.save()
+    return HttpResponse(json.dumps({'message': 'Success', 'status': 1}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_sellable_suggestions(request, user=''):
+    update_auto_sellable_data(user)
+    return HttpResponse("Success")

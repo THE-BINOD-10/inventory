@@ -212,6 +212,7 @@ urlpatterns = [
     url(r'^get_vendor_types/$', get_vendor_types),
     url(r'^update_rm_picklist/$', update_rm_picklist),
     url(r'^generate_jo_labels/$', generate_jo_labels),
+    url(r'^check_custom_generated_label/$', check_custom_generated_label),
 
     # Stock Locator
     url(r'^insert_move_inventory/$', insert_move_inventory),

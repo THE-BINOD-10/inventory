@@ -8006,3 +8006,17 @@ def validate_order_imei_mapping_status(imei, order_imei_mapping, order, job_orde
             status = str(imei) + ' is already mapped with another order'
     else:
         status = str(imei) + 'is already Mapped'
+
+@csrf_exempt
+@get_admin_user
+@login_required
+def check_custom_generated_label(request, user=''):
+    status = ''
+    imei = request.GET.get('imei', '')
+    sku_code = request.GET.get('sku_code', '')
+    po_mapping, status, imei_data = check_get_imei_details(imei, sku_code, user.id, check_type='purchase_check')
+    if not status:
+        po_labels = POLabels.objects.filter(sku__user=user.id, label=imei)
+        if not po_labels:
+            status = 'Label already used'
+    return HttpResponse(json.dumps({'message': status}))

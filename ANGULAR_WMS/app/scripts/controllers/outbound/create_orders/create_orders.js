@@ -1400,6 +1400,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
 		  vm.get_customer_sku_prices(data.data.sku).then(function(resp) {
 		  if(resp.length > 0) {
 			resp = resp[0]
+      resp['sku_id'] = resp.wms_code;
 			var foundItem = $filter('filter')(vm.model_data.data, {'sku_id':resp.wms_code}, true)[0];
 			if (foundItem) {
 				var index = vm.model_data.data.indexOf(foundItem);
@@ -1415,7 +1416,8 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
                 vm.model_data.data.push({ 'capacity': 0, 'description':resp.sku_desc, 'discount': 0, 'discount_percentage':'', 'invoice_amount': resp.price, 'location':'', 'price': resp.price, 'priceRanges':[], 'quantity': 1, 'serial':'', 'serials':[], 'sku_id': resp.wms_code, 'tax': 0, 'taxes':[], 'total_amount': resp.price, 'unit_price': resp.price })
                 vm.change_quantity(vm.model_data.data[0])
 			}
-      vm.update_availabe_stock(resp);
+      vm.model_data.data[0]['mrp'] = resp.mrp
+      vm.update_availabe_stock(vm.model_data.data[0]);
 		  }
 		  })
 		  } else {

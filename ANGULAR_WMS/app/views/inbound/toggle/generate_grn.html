@@ -34,7 +34,7 @@
 
 			<div class="col-md-offset-1 col-md-3 col-sm-4 col-xs-4">
 			  <p style="float:right">DC Level GRN :
-			  <label class="switch switch-sm square mt5"> 
+			  <label class="switch switch-sm square mt5">
 				  <input type="checkbox" name="dc_level_grn" ng-model="showCase.model_data.dc_level_grn"
 						 ng-init="showCase.model_data.dc_level_grn=false">
 				  <span style="margin-top: 28%;">
@@ -176,7 +176,7 @@
                       <!-- out of elements end -->
                     </td>
                     <td>
-                      <input type="text" ng-model="data.sku_desc" size="60" title="{{ data.sku_desc }}" class="form-control detectTab" readonly>
+                      <input type="text" ng-model="data.sku_desc" size="70" title="{{ data.sku_desc }}" class="form-control detectTab" readonly>
                     </td>
                     <td><input type="text" ng-model="data.po_quantity" size="10" ng-if="!data.is_new" title="{{ data.po_quantity }}" name="po_quantity" class="form-control detectTab" ng-readonly="records[0].dis" ng-class="service.get_decimal_perm()">
                       <input type="text" ng-model="data.po_quantity" size="10" ng-if="data.is_new" title="{{ data.po_quantity }}" name="po_quantity" class="form-control detectTab" ng-readonly="data.is_new" ng-class="service.get_decimal_perm()"></td>

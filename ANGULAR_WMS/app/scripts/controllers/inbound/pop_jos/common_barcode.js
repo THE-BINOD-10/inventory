@@ -73,23 +73,17 @@ function Barcodes($scope, $http, $state, $timeout, Session, colFilters, Service,
       vm.service.apiCall('check_custom_generated_label/', 'GET',{imei: data1.imei_number, sku_code: data1.wms_code}).then(function(data){
         if(data.message) {
           if (data.data.message == "Success") {
-              if (!vm.tempUniqueDict[data1.accept_imei]) {
+              if (!vm.tempUniqueDict[data1.imei_number]) {
                 data1.quantity = Number(data1.quantity) + 1;
-                data1.accept_imei.push(data1.imei_number);
-                data1.tempUniqueDict[data1.imei_number] = data1.imei_number;
+                vm.accept_imei.push(data1.imei_number);
+                vm.tempUniqueDict[data1.imei_number] = data1.imei_number;
               } else {
                 Service.showNoty("Scanned serial number already exist");
               }
-              var sku_code = data.data.data.sku_code;
-              if (data1.wms_code != sku_code) {
-                Service.showNoty("Scanned label belongs to "+sku_code);
-                data1.imei_number = "";
-                return false;
-              }
           } else {
             Service.showNoty(data.data.message);
-            data1.imei_number = "";
           }
+          data1.imei_number = "";
         }
         data1["disable"] = false;
       })

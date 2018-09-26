@@ -63,6 +63,7 @@
                       <input type="hidden" name="buy_price" value="{{barcode.buy_price}}">
                       <input type="hidden" name="batch_no" value="{{barcode.batch_no}}">
                       <input type="hidden" name="mfg_date" value="{{barcode.mfg_date}}">
+                      <input type="hidden" value="{{pop.accept_imei.join(',')}}" name="imei_numbers">
                     </td>
                     <td ng-if="pop.model_data.custom_config">
                       <input type="text" name="imei" id="imei" attr-name="{{'imei_'+barcode.wms_code}}" ng-model="barcode.imei_number" class="form-control detectTab" ng-keydown="pop.check_imei_exists($event, barcode)">

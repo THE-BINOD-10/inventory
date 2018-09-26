@@ -2671,21 +2671,26 @@ def check_imei(request, user=''):
     shipping_quantity = 0
     try:
         for key, value in request.GET.iteritems():
-            if key in ['is_shipment', 'order_id', 'groupby']:
+            if key in ['is_shipment', 'order_id', 'groupby', 'is_rm_picklist']:
                 continue
             sku_code = ''
             order = None
-            imei_filter = {'imei_number': value, 'purchase_order__open_po__sku__user': user.id}
+            job_order = None
+            imei_filter = {'imei_number': value, 'sku__user': user.id}
             if not is_shipment and not key == 'serial':
-                picklist = Picklist.objects.get(id=key)
-                if not picklist.order:
-                    continue
-                sku_code = picklist.order.sku.sku_code
-                order = picklist.order
-                # imei_filter['purchase_order__open_po__sku__sku_code'] = sku_code
+                if is_rm_picklist:
+                    picklist = RMLocation.objects.get(id=key)
+                    job_order = picklist.material_picklist.jo_material.job_order
+                    sku_code = picklist.material_picklist.jo_material.material_code.sku_code
+                else:
+                    picklist = Picklist.objects.get(id=key)
+                    if not picklist.order:
+                        continue
+                    sku_code = picklist.order.sku.sku_code
+                    order = picklist.order
 
             po_mapping, status, imei_data = check_get_imei_details(value, sku_code, user.id, check_type='order_mapping',
-                                                                   order=order)
+                                                                   order=order, job_order=job_order)
             if imei_data.get('wms_code', ''):
                 sku_code = imei_data['wms_code']
 
@@ -2700,9 +2705,9 @@ def check_imei(request, user=''):
                         status = str(value) + ' is already mapped with this order'
                     else:
                         status = str(value) + ' is already mapped with another order'
-                elif order_mapping[0].job_order:
+                elif order_mapping[0].jo_material:
                     status = str(value) + ' is already mapped with this job order ' + \
-                            str(order_mapping[0].job_order.job_code)
+                            str(order_mapping[0].jo_material.job_order.job_code)
             if is_shipment and po_mapping:
                 seller_id = ''
                 if po_mapping[0].seller:

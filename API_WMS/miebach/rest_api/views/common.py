@@ -4974,7 +4974,7 @@ def get_purchase_order_data(order):
     return order_data
 
 
-def check_get_imei_details(imei, wms_code, user_id, check_type='', order=''):
+def check_get_imei_details(imei, wms_code, user_id, check_type='', order='', job_order=''):
     status = ''
     data = {}
     po_mapping = []
@@ -5015,10 +5015,7 @@ def check_get_imei_details(imei, wms_code, user_id, check_type='', order=''):
                     wms_code = order_data['wms_code']
                 data['wms_code'] = wms_code
                 if order_imei_mapping:
-                    if order and order_imei_mapping[0].order_id == order.id:
-                        status = str(imei) + ' is already mapped with this order'
-                    else:
-                        status = str(imei) + ' is already mapped with another order'
+                    status = validate_order_imei_mapping_status(imei, order_imei_mapping, order, job_order)
             elif check_type == 'shipped_check':
                 order_imei_mapping = OrderIMEIMapping.objects.filter(po_imei_id=po_mapping[0].id, status=1)
                 if order_imei_mapping:
@@ -7993,3 +7990,18 @@ def update_auto_sellable_data(user):
         result_data = []
         log_sellable.info('Create Sellable Auto Suggestions failed for user %s' % (str(user.username)))
 
+
+def validate_order_imei_mapping_status(imei, order_imei_mapping, order, job_order):
+    ''' Validate IMEI Order status'''
+    if order and order_imei_mapping[0].order:
+        if order_imei_mapping[0].order_id == order.id:
+            status = str(imei) + ' is already mapped with this order'
+        else:
+            status = str(imei) + ' is already mapped with another order'
+    elif job_order and order_imei_mapping[0].jo_material:
+        if int(order_imei_mapping[0].jo_material.job_order.job_code) == int(job_order.job_code):
+            status = str(imei) + ' is already mapped with this order'
+        else:
+            status = str(imei) + ' is already mapped with another order'
+    else:
+        status = str(imei) + 'is already Mapped'

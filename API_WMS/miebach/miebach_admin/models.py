@@ -462,6 +462,21 @@ class JobOrder(models.Model):
         index_together = ('product_code', 'job_code')
 
 
+class JOMaterial(models.Model):
+    job_order = models.ForeignKey(JobOrder)
+    material_code = models.ForeignKey(SKUMaster)
+    material_quantity = models.FloatField(default=0)
+    status = models.IntegerField(default=1)
+    unit_measurement_type = models.CharField(max_length=32, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'JO_MATERIAL'
+        index_together = (('job_order', 'material_code'), ('job_order', 'material_code', 'status'),
+                            ('job_order', 'material_code', 'status', 'material_quantity'))
+
+
 class POLocation(models.Model):
     id = BigAutoField(primary_key=True)
     purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True)
@@ -1005,7 +1020,7 @@ class POIMEIMapping(models.Model):
 class OrderIMEIMapping(models.Model):
     id = BigAutoField(primary_key=True)
     order = models.ForeignKey(OrderDetail, blank=True, null=True)
-    job_order = models.ForeignKey(JobOrder, blank=True, null=True)
+    jo_material = models.ForeignKey(JOMaterial, blank=True, null=True)
     sku = models.ForeignKey(SKUMaster)
     seller = models.ForeignKey(SellerMaster, blank=True, null=True)
     po_imei = models.ForeignKey(POIMEIMapping, blank=True, null=True)
@@ -1103,21 +1118,6 @@ class MarketplaceMapping(models.Model):
     class Meta:
         db_table = 'MARKETPLACE_MAPPING'
         index_together = ('sku', 'marketplace_code', 'sku_type')
-
-
-class JOMaterial(models.Model):
-    job_order = models.ForeignKey(JobOrder)
-    material_code = models.ForeignKey(SKUMaster)
-    material_quantity = models.FloatField(default=0)
-    status = models.IntegerField(default=1)
-    unit_measurement_type = models.CharField(max_length=32, default='')
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'JO_MATERIAL'
-        index_together = (('job_order', 'material_code'), ('job_order', 'material_code', 'status'),
-                            ('job_order', 'material_code', 'status', 'material_quantity'))
 
 
 class MaterialPicklist(models.Model):

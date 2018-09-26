@@ -1075,6 +1075,41 @@ def confirm_rm_no_stock(picklist, picking_count, count, raw_loc, request, user):
     return count
 
 
+def insert_jo_material_serial(picklist, val, user):
+    if ',' in val['imei_numbers']:
+        imei_nos = list(set(val['imei_numbers'].split(',')))
+    else:
+        imei_nos = list(set(val['imei_numbers'].split('\r\n')))
+    for imei in imei_nos:
+        imei_filter = {}
+        job_order = picklist.jo_material.job_order
+        sku_id = picklist.jo_material.material_code_id
+        po_mapping, status, imei_data = check_get_imei_details(imei, val['wms_code'], user.id,
+                                                               check_type='order_mapping',
+                                                               job_order=job_order)
+        # po_mapping = POIMEIMapping.objects.filter(purchase_order__open_po__sku__sku_code=val['wms_code'], imei_number=imei, status=1,
+        #                                          purchase_order__open_po__sku__user=user_id)
+        imei_mapping = None
+        if imei and po_mapping:
+            order_mapping = {'jo_material_id': picklist.jo_material_id, 'po_imei_id': po_mapping[0].id,
+                             'imei_number': '',
+                             'sku_id': sku_id}
+            order_mapping_ins = OrderIMEIMapping.objects.filter(po_imei_id=po_mapping[0].id,
+                                                                jo_material_id=picklist.jo_material_id)
+            if not order_mapping_ins:
+                if po_mapping[0].seller_id:
+                    order_mapping['seller_id'] = seller_id
+                imei_mapping = OrderIMEIMapping(**order_mapping)
+                imei_mapping.save()
+                po_imei = po_mapping[0]
+                log.info('%s imei code is mapped for %s and for id %s' %
+                         (str(imei), val['wms_code'], str(picklist.jo_material.job_order.job_code)))
+                if po_imei:
+                    po_imei.status = 0
+                    po_imei.save()
+    return 'success'
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -1138,6 +1173,8 @@ def rm_picklist_confirmation(request, user=''):
                 location = LocationMaster.objects.filter(location=val['location'], zone__user=user.id)
                 if not location:
                     return HttpResponse("Invalid Location")
+                if 'imei_numbers' in val.keys():
+                    insert_jo_material_serial(picklist, val, user)
                 stock_dict = {'sku_id': sku.id, 'location_id': location[0].id, 'sku__user': user.id}
                 stock_detail = StockDetail.objects.filter(**stock_dict)
                 for stock in stock_detail:

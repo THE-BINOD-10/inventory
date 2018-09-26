@@ -1123,9 +1123,11 @@ def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
         imei_filter = {}
         if order:
             order_id = order.id
+            sku_id = order.sku_id
         else:
             order_id = picklist.order.id
             order = picklist.order
+            sku_id = picklist.order.sku_id
         if order:
             user_id = order.user
         po_mapping, status, imei_data = check_get_imei_details(imei, val['wms_code'], user_id,
@@ -1136,8 +1138,10 @@ def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
         all_seller_pos = SellerPO.objects.filter(seller__user=user_id)
         all_seller_orders = SellerOrder.objects.filter(seller__user=user_id)
         sor_id = ''
+        seller_id = ''
         if imei and po_mapping:
-            order_mapping = {'order_id': order_id, 'po_imei_id': po_mapping[0].id, 'imei_number': ''}
+            order_mapping = {'order_id': order_id, 'po_imei_id': po_mapping[0].id, 'imei_number': '',
+                             'sku_id': sku_id}
             if po_mapping[0].purchase_order.open_po_id:
                 seller_po = all_seller_pos.filter(open_po_id=po_mapping[0].purchase_order.open_po_id)
                 if seller_po:
@@ -1145,7 +1149,7 @@ def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
                     seller_order_obj = all_seller_orders.filter(order_id=order_id, seller_id=seller_id)
                     if seller_order_obj:
                         sor_id = seller_order_obj[0].sor_id
-
+                        seller_id = seller_order_obj[0].seller_id
             order_mapping_ins = OrderIMEIMapping.objects.filter(po_imei_id=po_mapping[0].id, order_id=order_id)
             if order_mapping_ins:
                 imei_mapping = order_mapping_ins[0]
@@ -1155,6 +1159,8 @@ def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
                 po_imei = order_mapping_ins[0].po_imei
             else:
                 order_mapping['sor_id'] = sor_id
+                if seller_id:
+                    order_mapping['seller_id'] = seller_id
                 imei_mapping = OrderIMEIMapping(**order_mapping)
                 imei_mapping.save()
                 po_imei = po_mapping[0]
@@ -1164,6 +1170,8 @@ def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
                 po_imei.save()
         elif imei and not po_mapping:
             order_mapping = {'order_id': order_id, 'po_imei_id': None, 'imei_number': imei, 'sor_id': sor_id}
+            if seller_id:
+                order_mapping['seller_id'] = seller_id
             imei_mapping = OrderIMEIMapping(**order_mapping)
             imei_mapping.save()
             log.info('%s imei code is mapped for %s and for id %s' % (str(imei), val['wms_code'], str(order_id)))
@@ -2656,6 +2664,7 @@ def check_imei(request, user=''):
     quantity = 0
     shipped_orders_dict = {}
     is_shipment = request.GET.get('is_shipment', False)
+    is_rm_picklist = request.GET.get('is_rm_picklist', False)
     order_id = request.GET.get('order_id', '')
     groupby = request.GET.get('groupby', '')
     log.info('Request params for Check IMEI ' + user.username + ' is ' + str(request.GET.dict()))
@@ -2684,16 +2693,19 @@ def check_imei(request, user=''):
                 sku_code = po_mapping[0].purchase_order.open_po.sku.sku_code
             if not po_mapping:
                 status = str(value) + ' is invalid Imei number'
-            order_mapping = OrderIMEIMapping.objects.filter(po_imei__imei_number=value, order__user=user.id, status=1)
+            order_mapping = OrderIMEIMapping.objects.filter(po_imei__imei_number=value, sku__user=user.id, status=1)
             if order_mapping:
-                if order and order_mapping[0].order_id == order.id:
-                    status = str(value) + ' is already mapped with this order'
-                else:
-                    status = str(value) + ' is already mapped with another order'
+                if order_mapping[0].order:
+                    if order and order_mapping[0].order_id == order.id:
+                        status = str(value) + ' is already mapped with this order'
+                    else:
+                        status = str(value) + ' is already mapped with another order'
+                elif order_mapping[0].job_order:
+                    status = str(value) + ' is already mapped with this job order ' + \
+                            str(order_mapping[0].job_order.job_code)
             if is_shipment and po_mapping:
                 seller_id = ''
-                seller_po = SellerPO.objects.filter(open_po_id=po_mapping[0].purchase_order.open_po_id)
-                if seller_po:
+                if po_mapping[0].seller:
                     seller_id = seller_po[0].seller_id
                 order_detail_objs = get_order_detail_objs(order_id, user, search_params={}, all_order_objs=[])
                 order_details = order_detail_objs.filter(sku__sku_code=sku_code)

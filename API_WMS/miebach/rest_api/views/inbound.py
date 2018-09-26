@@ -3091,7 +3091,7 @@ def save_return_imeis(user, returns, status, imei_numbers):
             dam_imei = imei.split('<<>>')
             imei = dam_imei[0]
             reason = dam_imei[1]
-        order_imei = OrderIMEIMapping.objects.filter(po_imei__imei_number=imei, order__sku__user=user.id, status=1)
+        order_imei = OrderIMEIMapping.objects.filter(po_imei__imei_number=imei, sku__user=user.id, status=1)
         if not order_imei:
             continue
         elif order_imei:
@@ -4962,6 +4962,7 @@ def check_imei_exists(request, user=''):
     status = ''
     imei = request.GET.get('imei', '')
     sku_code = request.GET.get('sku_code', '')
+    import pdb;pdb.set_trace()
     if imei and sku_code:
         po_mapping, status, imei_data = check_get_imei_details(imei, sku_code, user.id, check_type='purchase_check')
     else:
@@ -5581,7 +5582,7 @@ def check_return_imei(request, user=''):
             sku_code = ''
             order = None
             order_imei_id = ''
-            order_imei = OrderIMEIMapping.objects.filter(po_imei__imei_number=value, order__user=user.id, status=1)
+            order_imei = OrderIMEIMapping.objects.filter(po_imei__imei_number=value, sku__user=user.id, status=1)
             if not order_imei:
                 return_data['status'] = 'Imei Number is invalid'
             else:
@@ -5593,6 +5594,8 @@ def check_return_imei(request, user=''):
                     break
                 return_data['status'] = 'Success'
                 invoice_number = ''
+                if not order_imei[0].order:
+                    return HttpResponse("IMEI Mapped to Job order")
                 order_id = order_imei[0].order.original_order_id
                 if not order_id:
                     order_id = order_imei[0].order.order_code + str(order_imei[0].order.order_id)

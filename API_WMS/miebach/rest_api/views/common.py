@@ -2631,7 +2631,7 @@ def get_mapping_imeis(user, dat, seller_summary, sor_id='', sell_ids=''):
         if not stop_index:
             stop_index = 0
     imeis = list(
-        OrderIMEIMapping.objects.filter(order__user=user.id, order_id=dat.id, sor_id=sor_id).order_by('creation_date'). \
+        OrderIMEIMapping.objects.filter(sku__user=user.id, order_id=dat.id, sor_id=sor_id).order_by('creation_date'). \
         values_list('po_imei__imei_number', flat=True))
     if start_index or stop_index:
         stop_index = int(start_index) + int(stop_index)
@@ -4568,7 +4568,7 @@ def get_imei_data(request, user=''):
                                        'supplier_name': purchase_order.open_po.supplier.name,
                                        'received_date': get_local_date(user, po_mapping.creation_date),
                                        'supplier_address': purchase_order.open_po.supplier.address}
-            order_mappings = OrderIMEIMapping.objects.filter(po_imei_id=po_mapping.id, order__user=user.id).order_by(
+            order_mappings = OrderIMEIMapping.objects.filter(po_imei_id=po_mapping.id, sku__user=user.id).order_by(
                 '-creation_date')
             if not order_mappings:
                 data.append(imei_data)
@@ -5812,6 +5812,8 @@ def insert_jo_mapping(imei_nos, data, user_id):
                             'sku_id': data.product_code.id,
                             'creation_date': datetime.datetime.now(),
                             'updation_date': datetime.datetime.now()}
+            if data.open_po and data.open_po.sellerpo_set.filter():
+                imei_mapping['seller_id'] = data.open_po.sellerpo_set.filter()[0].seller_id
             po_imei = POIMEIMapping(**imei_mapping)
             po_imei.save()
             all_po_labels.filter(job_order_id=data.id, label=imei, status=1).update(status=0)

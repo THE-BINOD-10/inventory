@@ -356,6 +356,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, prin
             Service.showNoty(data.data.status);
             data1.imei_number = "";
           }
+          vm.reloadData();
         }
         data1["disable"] = false;
       })

@@ -4994,7 +4994,8 @@ def check_get_imei_details(imei, wms_code, user_id, check_type='', order='', job
         #po_mapping = po_mapping | mapping
         po_mapping = po_mapping.order_by('-creation_date')
         if po_mapping:
-            order_data = get_purchase_order_data(po_mapping[0].purchase_order)
+            #order_data = get_purchase_order_data(po_mapping[0].purchase_order)
+            order_wms_code = po_mapping[0].sku.wms_code
             order_imei_mapping = OrderIMEIMapping.objects.filter(po_imei_id=po_mapping[0].id, status=1)
             if check_type == 'purchase_check':
                 order_imei_mapping = OrderIMEIMapping.objects.filter(po_imei_id=po_mapping[0].id, status=1)
@@ -5008,11 +5009,11 @@ def check_get_imei_details(imei, wms_code, user_id, check_type='', order='', job
                                                                              str(po_mapping[0].job_order.job_code))
                     else:
                         status = '%s is already in Stock' % str(imei)
-                elif not (order_data['wms_code'] == wms_code):
-                    status = '%s will only maps with %s' % (str(imei), order_data['wms_code'])
+                elif not (order_wms_code == wms_code):
+                    status = '%s will only maps with %s' % (str(imei), order_wms_code)
             elif check_type == 'order_mapping':
                 if not wms_code:
-                    wms_code = order_data['wms_code']
+                    wms_code = order_wms_code
                 data['wms_code'] = wms_code
                 if order_imei_mapping:
                     status = validate_order_imei_mapping_status(imei, order_imei_mapping, order, job_order)

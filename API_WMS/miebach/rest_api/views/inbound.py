@@ -4962,7 +4962,6 @@ def check_imei_exists(request, user=''):
     status = ''
     imei = request.GET.get('imei', '')
     sku_code = request.GET.get('sku_code', '')
-    import pdb;pdb.set_trace()
     if imei and sku_code:
         po_mapping, status, imei_data = check_get_imei_details(imei, sku_code, user.id, check_type='purchase_check')
     else:

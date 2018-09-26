@@ -73,22 +73,12 @@ function Barcodes($scope, $http, $state, $timeout, Session, colFilters, Service,
       vm.service.apiCall('check_custom_generated_label/', 'GET',{imei: data1.imei_number, sku_code: data1.wms_code}).then(function(data){
         if(data.message) {
           if (data.data.message == "Success") {
-            // if (data1.product_quantity > skuWiseQtyTotal) {
-              if (data1.accept_imei && !vm.tempUniqueDict[data1.accept_imei]) {
+              if (!vm.tempUniqueDict[data1.accept_imei]) {
                 data1.quantity = Number(data1.quantity) + 1;
                 data1.accept_imei.push(data1.imei_number);
                 data1.tempUniqueDict[data1.imei_number] = data1.imei_number;
               } else {
                 Service.showNoty("Scanned serial number already exist");
-                // if (data1.sub_data[innerIndex].tempUniqueDict && data1.sub_data[innerIndex].tempUniqueDict[data1.imei_number]) {
-                //   Service.showNoty("Scanned serial number already exist");
-                // } else if (!data1.sub_data[innerIndex].tempUniqueDict) {
-                //   data1.sub_data[innerIndex]['accept_imei'] = [];
-                //   data1.sub_data[innerIndex]['tempUniqueDict'] = {};
-                //   data1.sub_data[innerIndex].tempUniqueDict[data1.imei_number] = data1.imei_number;
-                //   data1.sub_data[innerIndex].accept_imei.push(data1.imei_number);
-                //   data1.sub_data[innerIndex].picked_quantity = 1;
-                // }
               }
               var sku_code = data.data.data.sku_code;
               if (data1.wms_code != sku_code) {
@@ -96,9 +86,6 @@ function Barcodes($scope, $http, $state, $timeout, Session, colFilters, Service,
                 data1.imei_number = "";
                 return false;
               }
-            // } else {
-            //   Service.showNoty("No Quantity Available");
-            // }
           } else {
             Service.showNoty(data.data.message);
             data1.imei_number = "";

@@ -8007,6 +8007,7 @@ def validate_order_imei_mapping_status(imei, order_imei_mapping, order, job_orde
     else:
         status = str(imei) + 'is already Mapped'
 
+
 @csrf_exempt
 @get_admin_user
 @login_required

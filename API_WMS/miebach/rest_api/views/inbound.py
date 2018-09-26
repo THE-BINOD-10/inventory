@@ -5773,7 +5773,7 @@ def generate_po_labels(request, user=''):
     log.info('Request params for Generate PO Labels for ' + user.username + ' is ' + str(data_dict))
     try:
         serial_number = 1
-        max_serial = POLabels.objects.filter(sku__user=user.id).aggregate(Max('serial_number'))['serial_number__max']
+        max_serial = POLabels.objects.filter(sku__user=user.id, custom_label=0).aggregate(Max('serial_number'))['serial_number__max']
         if max_serial:
             serial_number = int(max_serial) + 1
         all_st_purchases = STPurchaseOrder.objects.filter(po__order_id=order_id, open_st__sku__user=user.id)

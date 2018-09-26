@@ -3298,7 +3298,7 @@ def generate_jo_labels(request, user=''):
     log.info('Request params for Generate JO Labels for ' + user.username + ' is ' + str(data_dict))
     try:
         serial_number = 1
-        max_serial = POLabels.objects.filter(sku__user=user.id).aggregate(Max('serial_number'))['serial_number__max']
+        max_serial = POLabels.objects.filter(sku__user=user.id, custom_label=0).aggregate(Max('serial_number'))['serial_number__max']
         if max_serial:
             serial_number = int(max_serial) + 1
         job_orders = JobOrder.objects.filter(product_code__user=user.id, job_code=order_id)
@@ -3322,7 +3322,13 @@ def generate_jo_labels(request, user=''):
                 data['wms_code'].append(labels.sku.wms_code)
                 needed_quantity -= 1
             for quantity in range(0, needed_quantity):
-                label = str(user.username[:2]).upper() + (str(serial_number).zfill(5))
+                imei_numbers = data_dict.get('imei_numbers', '')
+                if imei_numbers and imei_numbers[0] != '':
+                    imei_numbers = imei_numbers[0].split(',')
+                    label = imei_numbers[quantity]
+                    data['custome_label'] = 1
+                else:
+                    label = str(user.username[:2]).upper() + (str(serial_number).zfill(5))
                 data['label'].append(label)
                 data['quantity'].append(1)
                 label_dict = {'job_order_id': order.id, 'serial_number': serial_number, 'label': label,

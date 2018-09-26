@@ -2317,6 +2317,7 @@ class POLabels(models.Model):
     job_order = models.ForeignKey(JobOrder, blank=True, null=True)
     label = models.CharField(max_length=128, default='')
     serial_number = models.IntegerField(default=0)
+    custom_label = models.IntegerField(default=0)
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)

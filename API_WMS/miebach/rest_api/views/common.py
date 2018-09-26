@@ -5014,6 +5014,8 @@ def check_get_imei_details(imei, wms_code, user_id, check_type='', order='', job
             elif check_type == 'order_mapping':
                 if not wms_code:
                     wms_code = order_wms_code
+                elif not (order_wms_code == wms_code):
+                    status = '%s will only maps with %s' % (str(imei), order_wms_code)
                 data['wms_code'] = wms_code
                 if order_imei_mapping:
                     status = validate_order_imei_mapping_status(imei, order_imei_mapping, order, job_order)
@@ -5810,8 +5812,6 @@ def insert_jo_mapping(imei_nos, data, user_id):
                             'sku_id': data.product_code.id,
                             'creation_date': datetime.datetime.now(),
                             'updation_date': datetime.datetime.now()}
-            if data.open_po and data.open_po.sellerpo_set.filter():
-                imei_mapping['seller_id'] = data.open_po.sellerpo_set.filter()[0].seller_id
             po_imei = POIMEIMapping(**imei_mapping)
             po_imei.save()
             all_po_labels.filter(job_order_id=data.id, label=imei, status=1).update(status=0)

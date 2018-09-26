@@ -70,9 +70,9 @@ function Barcodes($scope, $http, $state, $timeout, Session, colFilters, Service,
     event.stopPropagation();
     if (event.keyCode == 13 && data1.imei_number.length > 0) {
       // if(vm.permissions.barcode_generate_opt != "sku_serial") {
-      vm.service.apiCall('check_imei_exists/', 'GET',{imei: data1.imei_number, wms_code: data1.wms_code}).then(function(data){
+      vm.service.apiCall('check_custom_generated_label/', 'GET',{imei: data1.imei_number, sku_code: data1.wms_code}).then(function(data){
         if(data.message) {
-          if (data.data == "Success") {
+          if (data.data.message == "Success") {
             // if (data1.product_quantity > skuWiseQtyTotal) {
               if (data1.accept_imei && !vm.tempUniqueDict[data1.accept_imei]) {
                 data1.quantity = Number(data1.quantity) + 1;
@@ -100,7 +100,7 @@ function Barcodes($scope, $http, $state, $timeout, Session, colFilters, Service,
             //   Service.showNoty("No Quantity Available");
             // }
           } else {
-            Service.showNoty(data.data);
+            Service.showNoty(data.data.message);
             data1.imei_number = "";
           }
         }

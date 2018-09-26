@@ -1142,14 +1142,11 @@ def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
         if imei and po_mapping:
             order_mapping = {'order_id': order_id, 'po_imei_id': po_mapping[0].id, 'imei_number': '',
                              'sku_id': sku_id}
-            if po_mapping[0].purchase_order.open_po_id:
-                seller_po = all_seller_pos.filter(open_po_id=po_mapping[0].purchase_order.open_po_id)
-                if seller_po:
-                    seller_id = seller_po[0].seller_id
-                    seller_order_obj = all_seller_orders.filter(order_id=order_id, seller_id=seller_id)
-                    if seller_order_obj:
-                        sor_id = seller_order_obj[0].sor_id
-                        seller_id = seller_order_obj[0].seller_id
+            if po_mapping[0].seller_id:
+                seller_id = po_mapping[0].seller_id
+                seller_order_obj = all_seller_orders.filter(order_id=order_id, seller_id=seller_id)
+                if seller_order_obj:
+                    sor_id = seller_order_obj[0].sor_id
             order_mapping_ins = OrderIMEIMapping.objects.filter(po_imei_id=po_mapping[0].id, order_id=order_id)
             if order_mapping_ins:
                 imei_mapping = order_mapping_ins[0]
@@ -2694,8 +2691,8 @@ def check_imei(request, user=''):
             if imei_data.get('wms_code', ''):
                 sku_code = imei_data['wms_code']
 
-            if not sku_code and po_mapping and po_mapping[0].purchase_order.open_po:
-                sku_code = po_mapping[0].purchase_order.open_po.sku.sku_code
+            if not sku_code and po_mapping:
+                sku_code = po_mapping[0].sku.sku_code
             if not po_mapping:
                 status = str(value) + ' is invalid Imei number'
             order_mapping = OrderIMEIMapping.objects.filter(po_imei__imei_number=value, sku__user=user.id, status=1)

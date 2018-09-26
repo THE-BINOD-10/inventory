@@ -63,6 +63,57 @@ function Barcodes($scope, $http, $state, $timeout, Session, colFilters, Service,
       })
     }
   }
+
+  vm.accept_imei = [];
+  vm.tempUniqueDict = {};
+  vm.check_imei_exists = function(event, data1) {
+    event.stopPropagation();
+    if (event.keyCode == 13 && data1.imei_number.length > 0) {
+      // if(vm.permissions.barcode_generate_opt != "sku_serial") {
+      vm.service.apiCall('check_imei_exists/', 'GET',{imei: data1.imei_number, wms_code: data1.wms_code}).then(function(data){
+        if(data.message) {
+          if (data.data == "Success") {
+            // if (data1.product_quantity > skuWiseQtyTotal) {
+              if (data1.accept_imei && !vm.tempUniqueDict[data1.accept_imei]) {
+                data1.quantity = Number(data1.quantity) + 1;
+                data1.accept_imei.push(data1.imei_number);
+                data1.tempUniqueDict[data1.imei_number] = data1.imei_number;
+              } else {
+                Service.showNoty("Scanned serial number already exist");
+                // if (data1.sub_data[innerIndex].tempUniqueDict && data1.sub_data[innerIndex].tempUniqueDict[data1.imei_number]) {
+                //   Service.showNoty("Scanned serial number already exist");
+                // } else if (!data1.sub_data[innerIndex].tempUniqueDict) {
+                //   data1.sub_data[innerIndex]['accept_imei'] = [];
+                //   data1.sub_data[innerIndex]['tempUniqueDict'] = {};
+                //   data1.sub_data[innerIndex].tempUniqueDict[data1.imei_number] = data1.imei_number;
+                //   data1.sub_data[innerIndex].accept_imei.push(data1.imei_number);
+                //   data1.sub_data[innerIndex].picked_quantity = 1;
+                // }
+              }
+              var sku_code = data.data.data.sku_code;
+              if (data1.wms_code != sku_code) {
+                Service.showNoty("Scanned label belongs to "+sku_code);
+                data1.imei_number = "";
+                return false;
+              }
+            // } else {
+            //   Service.showNoty("No Quantity Available");
+            // }
+          } else {
+            Service.showNoty(data.data);
+            data1.imei_number = "";
+          }
+        }
+        data1["disable"] = false;
+      })
+    }
+  }
+
+  vm.changeQty = function (data,key) {
+    if (key) {
+      data[0].quantity = 0;
+    }
+  }
 }
 
 angular

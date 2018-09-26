@@ -803,15 +803,12 @@ def modify_po_update(request, user=''):
     myDict = dict(request.POST.iterlists())
     terms_condition = request.POST.get('terms_condition','')
     wrong_wms = []
-
+    status_msg = 'No Changes Made'
     all_data = get_raisepo_group_data(user, myDict)
-
     for key, value in all_data.iteritems():
-
         wms_code = key
         if not wms_code:
             continue
-
         data_id = value['data_id']
         if data_id:
             record = OpenPO.objects.get(id=data_id, sku__user=user.id)
@@ -889,10 +886,15 @@ def modify_po_update(request, user=''):
                 SellerPO.objects.create(seller_id=seller, open_po_id=data.id, seller_quantity=seller_quan[0],
                                         creation_date=datetime.datetime.now(), status=1,
                                         receipt_type=value['receipt_type'])
-
-    status_msg = "Updated Successfully"
+        status_msg = "Updated Successfully"
+    if all_data:
+        t = loader.get_template('templates/save_po_data.html')
+        data_dict = {'sku_data' : dict(all_data), 'sku_ids' : all_data.keys(), 'headers' : ['SKU Code', 'Qty', 'Unit Price'], 'supplier_name' : request.POST['supplier_id_name'].split(':')[1]}
+        rendered = t.render(data_dict)
+        email = user.email
+        if email:
+            send_mail([email], 'BluecatPaper Saved PO Details', rendered)
     return HttpResponse(status_msg)
-
 
 @csrf_exempt
 @get_admin_user
@@ -1264,7 +1266,6 @@ def confirm_po(request, user=''):
     check_purchase_order_created(user, po_id)
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
-
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -1522,9 +1523,13 @@ def add_po(request, user=''):
                                             creation_date=datetime.datetime.now(), status=1,
                                             receipt_type=value['receipt_type'])
             status = 'Added Successfully'
-        else:
-            status = 'Entry Already Exists'
-
+    if all_data:
+        t = loader.get_template('templates/save_po_data.html')
+        data_dict = {'sku_data' : dict(all_data), 'sku_ids' : all_data.keys(), 'headers' : ['SKU Code', 'Qty', 'Unit Price'], 'supplier_name' : request.POST['supplier_id_name'].split(':')[1]}
+        rendered = t.render(data_dict)
+        email = user.email
+        if email:
+            send_mail([email], 'BluecatPaper Saved PO Details', rendered)
     return HttpResponse(status)
 
 
@@ -4594,7 +4599,9 @@ def create_mail_attachments(f_name, html_data):
 def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_no, po_data, order_date, ean_flag=False,
                        internal=False, report_type='Purchase Order'):
     receivers = []
-    attachments = create_mail_attachments(f_name, html_data)
+    attachments = ''
+    if html_data:
+        attachments = create_mail_attachments(f_name, html_data)
     internal_mail = MiscDetail.objects.filter(user=request.user.id, misc_type='Internal Emails')
     misc_internal_mail = MiscDetail.objects.filter(user=request.user.id, misc_type='internal_mail', misc_value='true')
     if misc_internal_mail and internal_mail:
@@ -4619,9 +4626,11 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
     if report_type == 'Job Order':
         email_body = 'Please find the %s with Job Code: <b>%s</b> in the attachment' % (report_type, f_name)
         email_subject = '%s %s with Job Code %s' % (company_name, report_type, f_name)
+    if report_type == 'Save PO':
+        email_body = 'Saved PO Data'
+        email_subject = po_data
     if supplier_email or internal or internal_mail:
         send_mail_attachment(receivers, email_subject, email_body, files=attachments)
-
     if phone_no:
         if report_type == 'Purchase Order':
             po_message(po_data, phone_no, username, f_name, order_date, ean_flag)
@@ -7829,8 +7838,6 @@ def stock_transfer_mail_pdf(request, f_name, html_data, warehouse):
         if destination_warehouse:
             destination_wh_email = destination_warehouse[0].email
             receivers.append(destination_wh_email)
-            receivers.append('aravind@mieone.com')
-
     email_body = 'Please find the Stock Transfer Order in the attachment'
     email_subject = '%s %s' % (company_name, 'Stock Transfer Note')
     if len(receivers):

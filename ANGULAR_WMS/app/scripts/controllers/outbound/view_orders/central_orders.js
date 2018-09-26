@@ -121,6 +121,18 @@ var vm = this;
 
     vm.submit = submit;
     function submit(wh, status, data_id, shipment_date, alt_sku_code){
+
+      var sum = 0;
+      for( var item in vm.model_data.wh_level_stock_map){
+          if(vm.model_data.wh_level_stock_map[item]['quantity']){
+              sum += parseInt(vm.model_data.wh_level_stock_map[item]['quantity']);
+          }
+      }
+      if(vm.model_data.quantity != sum){
+          Service.showNoty('Filled quantity is not matching actual quantity');
+          return
+      }
+
       if (status) {
 
         var elem = {'warehouse': JSON.stringify(vm.model_data.wh_level_stock_map), 'status': status,

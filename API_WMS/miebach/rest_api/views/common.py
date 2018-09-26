@@ -8017,6 +8017,8 @@ def check_custom_generated_label(request, user=''):
     po_mapping, status, imei_data = check_get_imei_details(imei, sku_code, user.id, check_type='purchase_check')
     if not status:
         po_labels = POLabels.objects.filter(sku__user=user.id, label=imei)
-        if not po_labels:
+        if po_labels:
             status = 'Label already used'
+    if not status:
+        status = 'Success'
     return HttpResponse(json.dumps({'message': status}))

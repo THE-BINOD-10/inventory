@@ -356,7 +356,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           dict[key['name']] = key['value'];
       }
     });
-    dict['quantity'] = 10;
+    dict['quantity'] = dict['jo_quantity'];
     dict['po_id'] = dict.job_code;
     list.push(dict);
     vm.model_data['barcodes'] = list;

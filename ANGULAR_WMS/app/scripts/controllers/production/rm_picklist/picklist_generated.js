@@ -316,28 +316,31 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, prin
       temp_dict[data1.id] = data1.imei_number
       vm.service.apiCall('check_imei/', 'GET', temp_dict).then(function(data){
         if(data.message) {
-          if (data.data == "Success") {
+          if (data1.wms_code == data.data.data.sku_code) {
             // data1.received_quantity = Number(sku.received_quantity) + 1;
-            data1.imei_number = data.data.data.label;
+            // data1.imei_number = data.data.data.label;
             let skuWiseQtyTotal = 0;
             angular.forEach(data1.sub_data, function(row){
-              skuWiseQtyTotal += Number(row.received_quantity);
+              skuWiseQtyTotal += Number(row.picked_quantity);
             });
             // tempUniqueDict dict checking purpose only don't use anyware
-            if (data1.product_quantity > skuWiseQtyTotal) {
+            if (data1.reserved_quantity > skuWiseQtyTotal) {
               if (data1.sub_data[innerIndex].accept_imei && !data1.sub_data[innerIndex].tempUniqueDict[data1.imei_number]) {
                 data1.sub_data[innerIndex].picked_quantity = Number(data1.sub_data[innerIndex].picked_quantity) + 1;
                 data1.sub_data[innerIndex].accept_imei.push(data1.imei_number);
                 data1.sub_data[innerIndex].tempUniqueDict[data1.imei_number] = data1.imei_number;
+                data1.imei_number = "";
               } else {
                 if (data1.sub_data[innerIndex].tempUniqueDict && data1.sub_data[innerIndex].tempUniqueDict[data1.imei_number]) {
                   Service.showNoty("Scanned serial number already exist");
+                  data1.imei_number = "";
                 } else if (!data1.sub_data[innerIndex].tempUniqueDict) {
                   data1.sub_data[innerIndex]['accept_imei'] = [];
                   data1.sub_data[innerIndex]['tempUniqueDict'] = {};
                   data1.sub_data[innerIndex].tempUniqueDict[data1.imei_number] = data1.imei_number;
                   data1.sub_data[innerIndex].accept_imei.push(data1.imei_number);
                   data1.sub_data[innerIndex].picked_quantity = 1;
+                  data1.imei_number = "";
                 }
               }
               var sku_code = data.data.data.sku_code;
@@ -350,7 +353,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, prin
               Service.showNoty("No Quantity Available");
             }
           } else {
-            Service.showNoty(data.data);
+            Service.showNoty(data.data.status);
             data1.imei_number = "";
           }
         }

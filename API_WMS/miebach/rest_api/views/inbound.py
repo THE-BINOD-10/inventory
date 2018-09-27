@@ -803,7 +803,6 @@ def modify_po_update(request, user=''):
     myDict = dict(request.POST.iterlists())
     terms_condition = request.POST.get('terms_condition','')
     wrong_wms = []
-    status_msg = 'No Changes Made'
     all_data = get_raisepo_group_data(user, myDict)
     for key, value in all_data.iteritems():
         wms_code = key
@@ -886,7 +885,6 @@ def modify_po_update(request, user=''):
                 SellerPO.objects.create(seller_id=seller, open_po_id=data.id, seller_quantity=seller_quan[0],
                                         creation_date=datetime.datetime.now(), status=1,
                                         receipt_type=value['receipt_type'])
-        status_msg = "Updated Successfully"
     if all_data:
         t = loader.get_template('templates/save_po_data.html')
         data_dict = {'sku_data' : dict(all_data), 'sku_ids' : all_data.keys(), 'headers' : ['SKU Code', 'Qty', 'Unit Price'], 'supplier_name' : request.POST['supplier_id_name'].split(':')[1]}
@@ -894,7 +892,7 @@ def modify_po_update(request, user=''):
         email = user.email
         if email:
             send_mail([email], 'BluecatPaper Saved PO Details', rendered)
-    return HttpResponse(status_msg)
+    return HttpResponse("Updated Successfully")
 
 @csrf_exempt
 @get_admin_user

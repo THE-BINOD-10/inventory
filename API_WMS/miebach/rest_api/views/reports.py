@@ -823,7 +823,7 @@ def print_po_reports(request, user=''):
         order_date = datetime.datetime.strftime(purchase_order.open_po.creation_date, "%d-%m-%Y")
         bill_date = datetime.datetime.strftime(bill_date, "%d-%m-%Y")
         user_profile = UserProfile.objects.get(user_id=user.id)
-        w_address = get_purchase_company_address(user_profile)#user_profile.address
+        w_address, company_address = get_purchase_company_address(user_profile)#user_profile.address
         data_dict = (('Order ID', order_id), ('Supplier ID', supplier_id),
                      ('Order Date', order_date), ('Supplier Name', name))
     sku_list = po_data[po_data.keys()[0]]
@@ -841,7 +841,8 @@ def print_po_reports(request, user=''):
                    'total_price': total, 'data_dict': data_dict, 'bill_no': bill_no,
                    'po_number': po_reference, 'company_address': w_address, 'company_name': user_profile.company_name,
                    'display': 'display-none', 'receipt_type': receipt_type, 'title': title,
-                   'total_received_qty': total_qty, 'bill_date': bill_date, 'total_tax': total_tax})
+                   'total_received_qty': total_qty, 'bill_date': bill_date, 'total_tax': total_tax,
+                   'company_address': company_address})
 
 
 @csrf_exempt
@@ -1363,8 +1364,9 @@ def print_purchase_order_form(request, user=''):
         address = '\n'.join(address.split(','))
         if open_po.ship_to:
             ship_to_address = open_po.ship_to
+            company_address = user.userprofile.address
         else:
-            ship_to_address = get_purchase_company_address(user.userprofile)
+            ship_to_address, company_address = get_purchase_company_address(user.userprofile)
         ship_to_address = '\n'.join(ship_to_address.split(','))
         telephone = open_po.supplier.phone_number
         name = open_po.supplier.name
@@ -1428,6 +1430,7 @@ def print_purchase_order_form(request, user=''):
                  'location': profile.location, 
                  'po_reference': po_reference,
                  'industry_type': profile.industry_type,
+                 'company_address': company_address
                 }
     if round_value:
         data_dict['round_total'] = "%.2f" % round_value

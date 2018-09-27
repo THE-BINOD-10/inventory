@@ -435,11 +435,11 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
                 order_detail.creation_date = exist_order_ins[0].creation_date
                 order_detail.shipment_date = exist_order_ins[0].shipment_date
                 order_detail.save()
-                if order_data.get('order_type', '') == 'Returnable Order':
-                    order_obj_list.append(order_obj)
-                elif order_data.get('order_type', '') == 'SP':
-                    if order_detail:
-                        order_obj_list.append(order_detail)
+            if order_data.get('order_type', '') == 'Returnable Order':
+                order_obj_list.append(order_obj)
+            elif order_data.get('order_type', '').upper() == 'SP':
+                if order_detail:
+                    order_obj_list.append(order_detail)
                 if len(order_obj_list):
                     order_obj_list = list(set(order_obj_list))
             check_create_seller_order(seller_order_dict, order_detail, user)
@@ -456,9 +456,9 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
             order_obj.save()
             if order_data.get('order_type', '') == 'Returnable Order':
                 order_obj_list.append(order_obj)
-            elif order_data.get('order_type', '') == 'SP':
-                if order_detail:
-                    order_obj_list.append(order_detail)
+            elif order_data.get('order_type', '').upper() == 'SP':
+                if order_obj:
+                    order_obj_list.append(order_obj)
             if len(order_obj_list):
                 order_obj_list = list(set(order_obj_list))
             check_create_seller_order(seller_order_dict, order_obj, user)
@@ -471,9 +471,9 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
                 order_obj.save()
                 if order_data.get('order_type', '') == 'Returnable Order':
                     order_obj_list.append(order_obj)
-                elif order_data.get('order_type', '') == 'SP':
-                    if order_detail:
-                        order_obj_list.append(order_detail)
+                elif order_data.get('order_type', '').upper() == 'SP':
+                    if order_obj:
+                        order_obj_list.append(order_obj)
                 if len(order_obj_list):
                     order_obj_list = list(set(order_obj_list))
         create_order_pos(user, order_obj_list)

@@ -80,9 +80,15 @@
                 <div class="col-md-8 col-sm-8 col-xs-7" style="padding-left: 20px;">
                   <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>Style Name: {{Enquiry.selected_style.sku_class}}</b></h4>
                   <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>Description: {{Enquiry.selected_style.sku_desc}}</b></h4>
-                  <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>MSP: {{Enquiry.selected_style.variants[0].your_price}}</b></h4>
-                  <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>MRP: {{Enquiry.selected_style.variants[0].mrp}}</b></h4>
-                  <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>Stock: {{Enquiry.selected_style.style_quantity}}</b></h4>
+                  <h4 align="left" style="margin-bottom:0px;font-size: 14px;">
+                    <b>MSP: {{Enquiry.selected_style.variants[0].your_price}}</b> &nbsp;&nbsp;&nbsp;
+                    <b>MRP: {{Enquiry.selected_style.variants[0].mrp}}</b>
+                  </h4>
+                  <h4 align="left" style="margin-bottom:0px;font-size: 14px;">
+                    <b>Stock: {{Enquiry.selected_style.style_quantity}}</b> &nbsp;&nbsp;&nbsp;
+                    <b>Intransit: {{ Enquiry.selected_style.asn_quantity }}</b> &nbsp;&nbsp;&nbsp;
+                    <b>Blocked Qty: {{ Enquiry.selected_style.blocked_qty }}</b>
+                  </h4>
                   <div ng-if="Enquiry.selected_style.variants[0].price_ranges.length > 0">
                     <table class="table table-bordered mb0 mt5" style="font-size:10px;">
                       <tbody>

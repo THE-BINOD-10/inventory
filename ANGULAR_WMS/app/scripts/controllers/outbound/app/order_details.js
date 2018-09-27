@@ -87,6 +87,11 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
       vm.disable_btn = false;
     });
   }
+  vm.clear_flag = false;
+  vm.clear = function(){
+    vm.clear_flag = true;
+    vm.edit_enable = false;
+  }
 
   vm.accept_or_hold = function(){
     swal({
@@ -95,7 +100,7 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
         type: "warning",
         showCancelButton: true,
         confirmButtonText: "Confirm Order",
-        cancelButtonText: "Hold",
+        cancelButtonText: "Block Stock",
         closeOnConfirm: true
         },
         function(isConfirm){

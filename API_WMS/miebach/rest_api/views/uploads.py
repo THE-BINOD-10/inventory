@@ -561,7 +561,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
 
         if 'order_type' in order_mapping:
             cell_data = get_cell_data(row_idx, order_mapping['order_type'], reader, file_type)
-            if cell_data == 'Returnable Order':
+            if cell_data == 'Returnable Order' or cell_data.upper() == 'SP':
                 if not get_cell_data(row_idx, order_mapping['customer_id'], reader, file_type):
                     index_status.setdefault(count, set()).add('Customer ID mandatory for Returnable Order')
 

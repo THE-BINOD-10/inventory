@@ -980,12 +980,13 @@ def insert_rwo_po(rw_order, request, user):
     profile = UserProfile.objects.get(user=user.id)
     phone_no = str(rw_order.vendor.phone_number)
     po_reference = '%s%s_%s' % (prefix, str(po_order.creation_date).split(' ')[0].replace('-', ''), po_order.order_id)
+    w_address, company_address = get_purchase_company_address(profile)
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': rw_order.vendor.address,
                  'order_id': po_order.order_id,
                  'telephone': phone_no, 'name': rw_order.vendor.name, 'order_date': order_date,
                  'total': total, 'user_name': user.username, 'total_qty': total_qty,
-                 'location': profile.location, 'w_address': get_purchase_company_address(profile),
-                 'company_name': profile.company_name}
+                 'location': profile.location, 'w_address': w_address,
+                 'company_name': profile.company_name, 'company_address': company_address}
 
     check_purchase_order_created(user, po_id)
     t = loader.get_template('templates/toggle/po_download.html')
@@ -2586,15 +2587,15 @@ def get_grn_json_data(order, user, request):
         'WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Unit Price', 'Amount', 'SGST', 'CGST', 'IGST', 'UTGST',
         'Remarks')
     profile = UserProfile.objects.get(user=user.id)
-
+    w_address, company_address = get_purchase_company_address(profile)
     data_dictionary = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
                        'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total,
                        'po_reference': po_reference, 'user_name': request.user.username, 'total_qty': total_qty,
                        'company_name': profile.company_name, 'location': profile.location, 'w_address': profile.address,
                        'vendor_name': vendor_name, 'vendor_address': vendor_address,
                        'vendor_telephone': vendor_telephone,
-                       'gstin_no': gstin_no, 'w_address': get_purchase_company_address(profile),
-                       'supplier_email': supplier_email}
+                       'gstin_no': gstin_no, 'w_address': w_address, 'wh_gstin': profile.gst_number,
+                       'supplier_email': supplier_email, 'company_address': company_address}
     return data_dictionary
 
 

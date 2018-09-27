@@ -1203,8 +1203,9 @@ def confirm_po(request, user=''):
     address = '\n'.join(address.split(','))
     if purchase_order.ship_to:
         ship_to_address = purchase_order.ship_to
+        company_address = user.userprofile.address
     else:
-        ship_to_address = get_purchase_company_address(user.userprofile)
+        ship_to_address, company_address = get_purchase_company_address(user.userprofile)
     ship_to_address = '\n'.join(ship_to_address.split(','))
     wh_telephone = user.userprofile.wh_phone_number
     telephone = purchase_order.supplier.phone_number
@@ -1253,7 +1254,8 @@ def confirm_po(request, user=''):
                  'title': title, 'ship_to_address': ship_to_address,
                  'gstin_no': gstin_no, 'w_address': ship_to_address, 
                  'wh_telephone': wh_telephone, 'terms_condition' : terms_condition, 
-                 'total_amt_in_words' : total_amt_in_words, 'show_cess_tax': show_cess_tax}
+                 'total_amt_in_words' : total_amt_in_words, 'show_cess_tax': show_cess_tax,
+                 'company_address': company_address, 'wh_gstin': profile.gst_number}
     if round_value:
         data_dict['round_total'] = "%.2f" % round_value
     t = loader.get_template('templates/toggle/po_download.html')
@@ -4500,7 +4502,7 @@ def confirm_add_po(request, sales_data='', user=''):
     if purchase_order.ship_to:
         purchase_order.ship_to
     else:
-        ship_to_address = get_purchase_company_address(user.userprofile)
+        ship_to_address, company_address = get_purchase_company_address(user.userprofile)
     wh_telephone = user.userprofile.wh_phone_number
     ship_to_address = '\n'.join(ship_to_address.split(','))
     vendor_name = ''
@@ -4557,7 +4559,8 @@ def confirm_add_po(request, sales_data='', user=''):
                  'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title,
                  'gstin_no': gstin_no, 'industry_type': industry_type, 'expiry_date': expiry_date,
                  'wh_telephone': wh_telephone, 'wh_gstin': profile.gst_number, 'wh_pan': profile.pan_number,
-                 'terms_condition': terms_condition, 'show_cess_tax' : show_cess_tax}
+                 'terms_condition': terms_condition, 'show_cess_tax' : show_cess_tax,
+                 'company_address': company_address}
     if round_value:
         data_dict['round_total'] = "%.2f" % round_value
     t = loader.get_template('templates/toggle/po_download.html')
@@ -4718,8 +4721,9 @@ def confirm_po1(request, user=''):
                 address = '\n'.join(address.split(','))
                 if purchase_orders[0].ship_to:
                     ship_to_address = purchase_orders[0].ship_to
+                    company_address = user.userprofile.address
                 else:
-                    ship_to_address = get_purchase_company_address(user.userprofile)
+                    ship_to_address, company_address = get_purchase_company_address(user.userprofile)
                 ship_to_address = '\n'.join(ship_to_address.split(','))
                 telephone = purchase_orders[0].supplier.phone_number
                 name = purchase_orders[0].supplier.name
@@ -4758,7 +4762,8 @@ def confirm_po1(request, user=''):
                          'vendor_telephone': vendor_telephone, 'gstin_no': gstin_no,
                          'w_address': ship_to_address, 'ship_to_address': ship_to_address,
                          'wh_telephone': wh_telephone, 'wh_gstin': profile.gst_number,
-                         'terms_condition' : terms_condition, 'total_amt_in_words' : total_amt_in_words, 'show_cess_tax': show_cess_tax}
+                         'terms_condition' : terms_condition, 'total_amt_in_words' : total_amt_in_words,
+                         'show_cess_tax': show_cess_tax, 'company_address': company_address}
             if round_value:
                 data_dict['round_total'] = "%.2f" % round_value
             t = loader.get_template('templates/toggle/po_download.html')

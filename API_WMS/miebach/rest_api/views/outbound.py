@@ -11226,7 +11226,10 @@ def create_orders_check_ean(request, user=''):
     data = {}
     sku_code = ''
     ean = request.GET.get('ean')
-    sku_obj = SKUMaster.objects.filter(ean_number=ean, user=user.id)
+    try:
+        sku_obj = SKUMaster.objects.filter(Q(ean_number=ean) | Q(sku_code=ean) | Q(eannumbers__ean_number=ean), user=user.id)
+    except:
+        pass
     if sku_obj:
         sku_code = sku_obj[0].sku_code
     return HttpResponse(json.dumps({ 'sku' : sku_code }))

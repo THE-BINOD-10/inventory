@@ -1,3 +1,14 @@
+<style>
+  .table > tbody > tr > td{
+    padding: 5px 5px;
+  }
+  .form-control {
+    padding: 6px;
+  }
+  .text-overflow {
+    overflow: hidden;
+  }
+</style>
 <div class="mr20 ml20">
   <form id="order-create" name="form" role="form" ui-jq="validate">
     <div class="clearfix">
@@ -51,7 +62,7 @@
             </div>
           </div>
           <!-- <div class="row">
-            
+
           </div> -->
         </div>
         <div class="col-md-2 col-sm-3 col-xs-12 mt10">
@@ -136,8 +147,8 @@
         </div>
         <div class="col-md-4 col-sm-4 col-xs-6">
           <div class="form-group">
-            <label class="control-label">Scan EAN</label>
-            <textarea class="form-control ng-valid ng-model-dirty valid scan_ean" rows="1" ng-model="showCase.model_data.scan_ean" type="text" ng-keydown="showCase.scan_ean($event, showCase.model_data.scan_ean)" focus-on="focusSKU" auto-focus="" aria-invalid="false" placeholder="Scan EAN"></textarea>
+            <label class="control-label">Scan EAN / SKU</label>
+            <textarea class="form-control ng-valid ng-model-dirty valid scan_ean text-overflow" rows="1" ng-model="showCase.model_data.scan_ean" type="text" ng-keydown="showCase.scan_ean($event, showCase.model_data.scan_ean)" focus-on="focusSKU" auto-focus="" aria-invalid="false" placeholder="Scan EAN / SKU"></textarea>
           </div>
         </div>
         <div class="col-md-4 col-sm-4 col-xs-6 mb20">
@@ -156,17 +167,22 @@
             </div>
           </div>
         </div>
-
+        <div class="col-md-4 col-sm-4 col-xs-6">
+          <div class="form-group">
+            <label class="control-label">Order Discount</label>
+            <input name="order_discount" ng-model="showCase.model_data.order_discount" ng-class="service.get_decimal_perm()" class="form-control" type="text">
+          </div>
+        </div>
         <div class="col-md-4 col-sm-4 col-xs-6">
           <div class="form-group">
             <label class="control-label">Address</label>
-            <textarea rows="4" class="form-control" cols="27" name="address" ng-model="showCase.model_data.address" readonly></textarea>
+            <textarea rows="4" class="form-control text-overflow" cols="27" name="address" ng-model="showCase.model_data.address" readonly></textarea>
           </div>
         </div>
         <div class="col-md-4 col-sm-4 col-xs-6">
           <div class="form-group">
             <label class="control-label">Ship To Address</label>
-            <textarea rows="4" class="form-control" cols="27" name="ship_to" ng-model="showCase.model_data.ship_to"></textarea>
+            <textarea rows="4" class="form-control text-overflow" cols="27" name="ship_to" ng-model="showCase.model_data.ship_to"></textarea>
           </div>
         </div>
       </div>
@@ -183,8 +199,8 @@
             <label class="control-label">SOR ID *</label>
             <input name="sor_id" ng-model="showCase.model_data.sor_id" class="form-control" type="text" maxlength="10" required>
           </div>
-        </div> 
-      </div>  
+        </div>
+      </div>
       <div class="row"><hr></div>
       <div class="row">
         <table class="table table-stk">
@@ -215,7 +231,7 @@
                 <input type="text" name="payment_received" class="form-control" ng-model="showCase.model_data.payment_received">
               </td>
               <td>
-                <input type="text" name="order_taken_by" class="form-control" ng-model="showCase.model_data.order_taken_by">
+                <input type="text" name="order_taken_by" class="form-control" ng-model="showCase.model_data.order_taken_by" value="{{showCase.model_data.order_taken_by}}">
               </td>
             </tr>
           </tbody>
@@ -228,25 +244,25 @@
               <th>SKU Code *</th>
               <th> Description </th>
               <th> Available Quantity </th>
-              <th ng-if="showCase.model_data.blind_order" class="w10">Location</th>
+              <th ng-if="showCase.model_data.blind_order" class="w10_">Location</th>
               <th ng-if="showCase.model_data.blind_order && showCase.permissions.use_imei">Serial Scan</th>
-              <!--<th class="w10">Selected Quantity</th>-->
-              <th class="w10">Quantity</th>
+              <!--<th class="w10_">Selected Quantity</th>-->
+              <th class="w10_">Quantity</th>
               <th>MRP</th>
               <th ng-show="showCase.fields.indexOf('Unit Price') == -1">Unit Price</th>
               <th ng-show="showCase.fields.indexOf('Amount') == -1">Amount</th>
-              <th class="w10" ng-show="showCase.fields.indexOf('Discount') == -1">Discount</th>
-              <th class="w10" ng-show="showCase.fields.indexOf('Discount Percentage') == -1">Discount(%)</th>
-              <th ng-show="showCase.fields.indexOf('Tax') == -1 && showCase.model_data.tax_type == 'intra_state'" class="w10">SGST(%)</th>
-              <th ng-show="showCase.fields.indexOf('Tax') == -1 && showCase.model_data.tax_type == 'intra_state'" class="w10">CGST(%)</th>
-              <th ng-show="showCase.fields.indexOf('Tax') == -1 && showCase.model_data.tax_type == 'inter_state'" class="w10">IGST(%)</th>
+              <th class="w10_" ng-show="showCase.fields.indexOf('Discount') == -1">Discount</th>
+              <th class="w10_" ng-show="showCase.fields.indexOf('Discount Percentage') == -1">Discount(%)</th>
+              <th ng-show="showCase.fields.indexOf('Tax') == -1 && showCase.model_data.tax_type == 'intra_state'" class="w10_">SGST(%)</th>
+              <th ng-show="showCase.fields.indexOf('Tax') == -1 && showCase.model_data.tax_type == 'intra_state'" class="w10_">CGST(%)</th>
+              <th ng-show="showCase.fields.indexOf('Tax') == -1 && showCase.model_data.tax_type == 'inter_state'" class="w10_">IGST(%)</th>
               <th ng-show="showCase.fields.indexOf('Total Amount') == -1">Total Amount</th>
               <th ng-show="showCase.fields.indexOf('Remarks') == -1">Remarks</th>
               <th ng-show="showCase.fields.indexOf('Price Ranges') == -1"> Price Ranges </th>
               <th class="plus"></th>
             </tr>
           </thead>
-          <tbody>
+          <tbody style="padding: 0px 0px">
             <tr ng-repeat="data in showCase.model_data.data">
               <td>
                 <input type="hidden" name="extra_data" value="{{data.extra}}">
@@ -256,7 +272,7 @@
 
               </td>
               <td>
-                <input type="text" class="form-control" ng-model="data.description" name="description">
+                <input type="text" class="form-control" ng-model="data.description" title="{{data.description}}" size="50" name="description">
               </td>
               <td class="text-center"> <span style="font-style: italic;font-size: 14px;line-height: 30px;font-weight: 600;">{{data.capacity}}</span> </td>
               <td ng-if="showCase.model_data.blind_order">
@@ -267,25 +283,25 @@
                 <input name="serials" type="hidden" value="{{data.serials.join(',')}}">
               </td>
               <td>
-                <input type="text" name="quantity" class="form-control" ng-model="data.quantity" ng-class="service.get_decimal_perm()" ng-change="showCase.change_quantity(data)" ng-readonly="showCase.model_data.blind_order && showCase.permissions.use_imei" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Quantity', $index, data)"></div>
+                <input type="text" name="quantity" class="form-control" ng-model="data.quantity" ng-class="service.get_decimal_perm()" ng-change="showCase.change_quantity(data)" size="12" ng-readonly="showCase.model_data.blind_order && showCase.permissions.use_imei" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Quantity', $index, data)"></div>
               </td>
               <td>
-                <input type="text" name="mrp" class="form-control" ng-model="data.mrp" ng-class="service.get_decimal_perm()">
+                <input type="text" name="mrp" class="form-control" size="12" ng-model="data.mrp" ng-class="service.get_decimal_perm()">
               </td>
               <td ng-show="showCase.fields.indexOf('Unit Price') == -1">
-                <input type="text" name="unit_price" class="form-control" ng-model="data.price" ng-change="showCase.change_unit_price(data)" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Unit Price', $index, data)">
+                <input type="text" name="unit_price" class="form-control" ng-model="data.price" ng-change="showCase.change_unit_price(data)" size="12" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Unit Price', $index, data)">
               </td>
 	      <td ng-show="showCase.fields.indexOf('Amount') == -1">
-	        <input type="text" class="form-control" ng-model="data.invoice_amount"  ng-change="showCase.cal_percentage(data)" name="invoice_amount" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Amount', $index, data)" decimal-number>
+	        <input type="text" class="form-control" ng-model="data.invoice_amount"  ng-change="showCase.cal_percentage(data)" name="invoice_amount" size="12" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Amount', $index, data)" decimal-number>
 	      </td>
               <td ng-show="showCase.fields.indexOf('Discount') == -1">
-                <input type="text" class="form-control" ng-model="data.discount" ng-change="showCase.discountChange(data)" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Discount', $index, data)" decimal-number>
+                <input type="text" class="form-control" ng-model="data.discount" size="12" ng-change="showCase.discountChange(data)" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Discount', $index, data)" decimal-number>
               </td>
               <td ng-show="showCase.fields.indexOf('Discount Percentage') == -1">
-                <input type="text" class="form-control" ng-model="data.discount_percentage" ng-change="showCase.cal_percentage(data, false)" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Discount Percentage', $index, data)" decimal-number>
+                <input type="text" class="form-control" ng-model="data.discount_percentage" size="12" ng-change="showCase.cal_percentage(data, false)" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Discount Percentage', $index, data)" decimal-number>
               </td>
               <td ng-show="showCase.fields.indexOf('Tax') == -1 && showCase.model_data.tax_type == 'intra_state'">
-                <input type="text" name="sgst_tax" class="form-control" ng-model="data.sgst_tax" decimal-number ng-change="showCase.cal_percentage(data)" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Tax', $index, data)" readonly>
+                <input type="text" name="sgst_tax" class="form-control" ng-model="data.sgst_tax" size="15" decimal-number ng-change="showCase.cal_percentage(data)" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Tax', $index, data)" readonly>
               </td>
               <td ng-show="showCase.fields.indexOf('Tax') == -1 && showCase.model_data.tax_type == 'intra_state'">
                 <input type="text" name="cgst_tax" class="form-control" ng-model="data.cgst_tax" decimal-number ng-change="showCase.cal_percentage(data)" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Tax', $index, data)" readonly>
@@ -294,7 +310,7 @@
                 <input type="text" name="igst_tax" class="form-control" ng-model="data.igst_tax" decimal-number ng-change="showCase.cal_percentage(data)" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Tax', $index, data)" readonly>
               </td>
               <td ng-show="showCase.fields.indexOf('Total Amount') == -1">
-                <input type="text" name="total_amount" class="form-control" ng-model="data.total_amount" ng-change="showCase.cal_total()" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Total Amount', $index, data)" decimal-number>
+                <input type="text" name="total_amount" class="form-control" ng-model="data.total_amount" size="15" ng-change="showCase.cal_total()" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Total Amount', $index, data)" decimal-number>
               </td>
   	          <td ng-show="showCase.fields.indexOf('Remarks') == -1">
                 <input type="text" name="remarks" class="form-control" ng-model="data.remarks" ng-keydown="showCase.tab_event_check($event, showCase.assign_tab_event, 'Remarks', $index, data)">

@@ -235,12 +235,12 @@ var app = angular.module('urbanApp')
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
               return $ocLazyLoad.load([
-                { 
+                {
                   name: 'angularFileUpload',
                   files: [
                                 'vendor/angular-file-upload/angular-file-upload.min.js'
                             ]
-              }]);   
+              }]);
                     }]
           },
         })
@@ -655,11 +655,11 @@ var app = angular.module('urbanApp')
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load([
                   'scripts/controllers/inbound/raise_po/raise_purchase_order.js'
-                ]).then( function() { 
+                ]).then( function() {
                   return $ocLazyLoad.load([
                     'scripts/controllers/inbound/raise_po/raise_stock_transfer.js'
                   ])
-                }).then( function() { 
+                }).then( function() {
                   return $ocLazyLoad.load([
                     'scripts/controllers/inbound/raise_po/raise_intransit_orders.js'
                   ])
@@ -696,7 +696,7 @@ var app = angular.module('urbanApp')
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load([
                   'scripts/controllers/outbound/pop_js/custom_order_details.js'
-                ]).then( function() { 
+                ]).then( function() {
                   return $ocLazyLoad.load([
                     'scripts/controllers/inbound/receive_po.js'
                   ])
@@ -1089,7 +1089,7 @@ var app = angular.module('urbanApp')
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load([
                   'scripts/controllers/stockLocator/stock_detail.js'
-                ]).then( function() { 
+                ]).then( function() {
                   return $ocLazyLoad.load([
                     'scripts/controllers/stockLocator/batch_level_stock.js'
                   ])
@@ -2248,20 +2248,20 @@ var app = angular.module('urbanApp')
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
               return $ocLazyLoad.load([
-                { 
+                {
                   serie: true,
-                  files: [   
+                  files: [
                              'scripts/controllers/manage_users/manage_groups.js'
                             ]
                         }]).then(function () {
                 return $ocLazyLoad.load('scripts/controllers/manage_users/manage_users.js');
-              });   
+              });
                     }]
           },
           data: {
             title: 'Manage Users'
           }
-        })   
+        })
           .state('app.ManageUsers.UpdateUser', {
             url: '/UpdateUser',
             templateUrl: 'views/manage_users/update_user.html'
@@ -2305,7 +2305,7 @@ var app = angular.module('urbanApp')
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load([
                   'scripts/controllers/outbound/pop_js/custom_order_details.js'
-                ]).then( function() { 
+                ]).then( function() {
                   return $ocLazyLoad.load([
                     'scripts/controllers/inbound/supplier_purchase_order.js'
                   ])
@@ -2346,7 +2346,7 @@ var app = angular.module('urbanApp')
           url: '/Completed',
           templateUrl: 'views/register/completed.html'
         })
-        
+
 
       //Customer page
       .state('user.Customer', {
@@ -2370,7 +2370,7 @@ var app = angular.module('urbanApp')
           }
         })
 
-      // User route 
+      // User route
       .state('user', {
           templateUrl: 'views/common/session.html',
         })
@@ -2591,7 +2591,8 @@ var app = angular.module('urbanApp')
             resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load([
-                  'scripts/controllers/outbound/app/my_order.js'
+                  'scripts/controllers/outbound/app/my_order.js',
+                  'scripts/controllers/outbound/pop_js/enquiry_details.js'
                 ]);
               }]
             }

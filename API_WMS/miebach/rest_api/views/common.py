@@ -6622,19 +6622,23 @@ def update_profile_data(request, user=''):
 def get_purchase_company_address(profile):
     """ Returns Company address for purchase order"""
 
+    company_address = profile.address
     if profile.wh_address:
         address = profile.wh_address
     else:
         address = profile.address
-    if not address:
-        return ''
+    if not (address and company_address):
+        return '', ''
     if profile.user.email:
         address = ("%s, Email:%s") % (address, profile.user.email)
+        company_address = ("%s, Email:%s") % (company_address, profile.user.email)
     if profile.phone_number:
-        address = ("%s, Phone:%s") % (address, profile.phone_number)
+        #address = ("%s, Phone:%s") % (address, profile.phone_number)
+        company_address = ("%s, Phone:%s") % (company_address, profile.phone_number)
     if profile.gst_number:
-        address = ("%s, GSTINo:%s") % (address, profile.gst_number)
-    return address
+        #address = ("%s, GSTINo:%s") % (address, profile.gst_number)
+        company_address = ("%s, GSTINo:%s") % (company_address, profile.gst_number)
+    return address, company_address
 
 
 def update_level_price_type(customer_master, level, price_type):

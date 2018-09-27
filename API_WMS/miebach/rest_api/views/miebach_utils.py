@@ -421,7 +421,7 @@ SKU_WISE_PO_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'typ
                                    'Rejected Quantity', 'Receipt Date', 'Status'],
                     'mk_dt_headers': ['PO Date', 'PO Number', 'Supplier ID', 'Supplier Name', 'SKU Code',
                                       'SKU Description', 'SKU Class', 'SKU Style Name', 'SKU Brand', 'SKU Category',
-                                      'PO Qty', 'Unit Rate', 'Pre-Tax PO Amount', 'Tax', 'After Tax PO Amount',
+                                      'PO Qty', 'Unit Rate', 'MRP', 'Pre-Tax PO Amount', 'Tax', 'After Tax PO Amount',
                                       'Qty received', 'Status'],
                     'dt_url': 'get_sku_purchase_filter', 'excel_name': 'sku_wise_purchases',
                     'print_url': 'print_sku_wise_purchase',
@@ -2261,7 +2261,7 @@ def sku_wise_purchase_data(search_params, user, sub_user):
         lis = ['po_date', 'order_id', 'open_po__supplier_id', 'open_po__supplier__name',
                'open_po__sku__sku_code', 'open_po__sku__sku_desc', 'open_po__sku__sku_class',
                'open_po__sku__style_name', 'open_po__sku__sku_brand', 'open_po__sku__sku_category',
-               'open_po__order_quantity', 'open_po__price', 'id', 'id', 'id', 'id', 'id']
+               'open_po__order_quantity', 'open_po__price', 'open_po__mrp', 'id', 'id', 'id', 'id', 'id']
         columns = SKU_WISE_PO_DICT['mk_dt_headers']
     if 'sku_code' in search_params:
         search_parameters['open_po__sku__sku_code'] = search_params['sku_code']
@@ -2348,6 +2348,7 @@ def sku_wise_purchase_data(search_params, user, sub_user):
                                 ('SKU Brand', order_data['sku'].sku_brand),
                                 ('SKU Category', order_data['sku'].sku_category),
                                 ('PO Qty', order_data['order_quantity']), ('Unit Rate', order_data['price']),
+                                ('MRP', order_data['mrp']),
                                 ('Pre-Tax PO Amount', pre_amount), ('Tax', tax), ('After Tax PO Amount', aft_amount),
                                 ('Qty received', data.received_quantity), ('Status', status)
                                 ))
@@ -2638,6 +2639,7 @@ def get_po_filter_data(search_params, user, sub_user):
         search_parameters[field_mapping['wms_code']] = search_params['sku_code']
     search_parameters[field_mapping['user']] = user.id
     search_parameters[field_mapping['sku_id__in']] = sku_master_ids
+    search_parameters['received_quantity__gt'] = 0
     query_data = model_name.objects.prefetch_related('open_po__sku','open_po__supplier').select_related('open_po', 'open_po__sku','open_po__supplier').exclude(**excl_status).filter(**search_parameters)
     model_data = query_data.values(*result_values).distinct().annotate(ordered_qty=Sum(ord_quan),
                                                                    total_received=Sum(rec_quan),

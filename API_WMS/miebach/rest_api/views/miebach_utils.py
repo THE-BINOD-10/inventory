@@ -1496,6 +1496,12 @@ STYLE_DETAIL_HEADERS = OrderedDict((('SKU Code', 'wms_code'), ('SKU Description'
                                     ('1-Day Stock', 'physical_stock'), ('3-Day Stock', 'all_quantity')
                                     ))
 
+RECEIVE_PO_MANDATORY_FIELDS = OrderedDict((
+                      ('Buy Price', 'buy_price'), ('MRP', 'mrp'),
+                      ('Weight', 'weight'), ('Batch No', 'batch_no'),
+                      ('Mfg Date', 'mfg_date'), ('Exp Date', 'exp_date')
+                    ))
+
 STYLE_DETAIL_WITHOUT_STATIC_LEADTIME = OrderedDict((('SKU Code', 'wms_code'), ('SKU Description', 'sku_desc'),
                                                     ('Size', 'sku_size')))
 
@@ -1786,7 +1792,8 @@ CONFIG_DEF_DICT = {'receive_options': dict(RECEIVE_OPTIONS),
                    'mail_reports': MAIL_REPORTS, 'style_detail_headers': STYLE_DETAIL_HEADERS,
                    'picklist_options': PICKLIST_OPTIONS,
                    'order_headers': ORDER_HEADERS_d, 'barcode_generate_options': BARCODE_OPTIONS,
-                   'rem_mail_alerts': REMAINDER_MAIL_ALERTS
+                   'rem_mail_alerts': REMAINDER_MAIL_ALERTS,
+                   'receive_po_mandatory_fields': RECEIVE_PO_MANDATORY_FIELDS
                    }
 
 MARKETPLACE_SERIAL_EXCEL_HEADERS = ['Order Reference', 'Marketplace', 'Serial Number']

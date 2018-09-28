@@ -885,7 +885,7 @@ def modify_po_update(request, user=''):
                 SellerPO.objects.create(seller_id=seller, open_po_id=data.id, seller_quantity=seller_quan[0],
                                         creation_date=datetime.datetime.now(), status=1,
                                         receipt_type=value['receipt_type'])
-    if all_data:
+    if all_data and user.username == 'bluecatpaper':
         t = loader.get_template('templates/save_po_data.html')
         data_dict = {'sku_data' : dict(all_data), 'sku_ids' : all_data.keys(), 'headers' : ['SKU Code', 'Qty', 'Unit Price'], 'supplier_name' : request.POST['supplier_id_name'].split(':')[1]}
         rendered = t.render(data_dict)
@@ -1521,7 +1521,7 @@ def add_po(request, user=''):
                                             creation_date=datetime.datetime.now(), status=1,
                                             receipt_type=value['receipt_type'])
             status = 'Added Successfully'
-    if all_data:
+    if all_data and user.username == 'bluecatpaper':
         t = loader.get_template('templates/save_po_data.html')
         data_dict = {'sku_data' : dict(all_data), 'sku_ids' : all_data.keys(), 'headers' : ['SKU Code', 'Qty', 'Unit Price'], 'supplier_name' : request.POST['supplier_id_name'].split(':')[1]}
         rendered = t.render(data_dict)

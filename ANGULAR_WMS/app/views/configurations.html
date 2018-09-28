@@ -460,7 +460,7 @@
         </div>
         <div class="col-md-2 col-sm-4 col-xs-4">
           <select id="receive_po_mandatory_fields" class="selectpicker show-menu-arrow form-control" ng-model="showCase.receive_po_mandatory_fields" multiple ng-change="showCase.multi_select_switch('#receive_po_mandatory_fields', 69)">
-            <option ng-selected="showCase.check_selected(value, 'receive_po_mandatory_fields')" ng-repeat="(key, value) in showCase.model_data.receive_po_mandatory_fields" value="{{value}}"> {{key}} </option>
+            <option ng-selected="showCase.check_selected(value, 'selected_receive_po_mandatory')" ng-repeat="(key, value) in showCase.model_data.receive_po_mandatory_fields" value="{{value}}"> {{key}} </option>
           </select>
         </div>
       </div>

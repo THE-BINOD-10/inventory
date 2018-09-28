@@ -115,7 +115,7 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
       })
       formData.append("custom_remarks", remarks);
       $ctrl.uploading = true;
-      $.ajax({url: Session.url+'place_manual_order_test/',
+      $.ajax({url: Session.url+'place_manual_order/',
             data: formData,
             method: 'POST',
             processData : false,

@@ -650,6 +650,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
 
     vm.final_data.total_quantity = 0;
     vm.final_data.total_amount = 0;
+    vm.final_data.temp_total_amount = 0;
     angular.forEach(vm.model_data.data, function(record){
       vm.final_data.total_amount += Number(record.total_amount);
       vm.final_data.temp_total_amount += Number(record.total_amount);
@@ -662,6 +663,9 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
           vm.final_data.temp_total_amount += Number(record.total_amount);
         }
       })
+    }
+    if (vm.model_data.order_discount) {
+      vm.addDiscountToInv(vm.model_data.order_discount)
     }
   }
   vm.cal_percentage = function(data, no_total) {

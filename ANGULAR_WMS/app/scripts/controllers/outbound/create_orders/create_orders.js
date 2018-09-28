@@ -645,19 +645,21 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     });
   }
 
-  vm.final_data = {total_quantity:0,total_amount:0}
+  vm.final_data = {total_quantity:0,total_amount:0,temp_total_amount:0}
   vm.cal_total = function() {
 
     vm.final_data.total_quantity = 0;
     vm.final_data.total_amount = 0;
     angular.forEach(vm.model_data.data, function(record){
       vm.final_data.total_amount += Number(record.total_amount);
+      vm.final_data.temp_total_amount += Number(record.total_amount);
       vm.final_data.total_quantity += Number(record.quantity);
     })
     if(vm.model_data.other_charges) {
       angular.forEach(vm.model_data.other_charges, function(record){
         if(record.amount){
           vm.final_data.total_amount += Number(record.amount);
+          vm.final_data.temp_total_amount += Number(record.total_amount);
         }
       })
     }
@@ -1502,6 +1504,16 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     }
   }
   vm.assign_sku_id_from_sku_master();
+
+  vm.addDiscountToInv = function(discount) {
+    if (discount < vm.final_data.total_amount) {
+      vm.final_data.total_amount = Number(vm.final_data.temp_total_amount) - Number(discount);
+    } else {
+      Service.showNoty("Please enter proper discount");
+      vm.model_data.order_discount = '';
+      vm.final_data.total_amount = vm.final_data.temp_total_amount;
+    }
+  }
 }
 angular
   .module('urbanApp')

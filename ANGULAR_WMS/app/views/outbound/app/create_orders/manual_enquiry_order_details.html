@@ -1,20 +1,22 @@
 <div class="mb10">
-  <div class="detail-list" ng-init="order.labels = {'category': 'Category', 'sku_code': 'SKU Code', 'style_name': 'Style Name'}">
+  <!-- <div class="detail-list" ng-init="order.labels = {'category': 'Category', 'sku_code': 'SKU Code', 'style_name': 'Style Name'}"> -->
+  <div class="detail-list" ng-init="order.labels = {'category': 'Category', 'style_name': 'Style Name'}">
     <div class="detail-item border-grey detail-bg-grey mb5">
       <h4><b>Order Details: #{{order.order_details.order.enquiry_id}}</b></h4>
       <div class="row no-margin">
         <div class="col-md-4 col-sm-4 col-xs-4">
           <span>Customer Name</span>
         </div>
-        <div class="col-md-4 col-sm-4 col-xs-4">
+        <div class="col-md-8 col-sm-8 col-xs-8">
           <span>: {{order.order_details.order.customer_name}}</span>
         </div>
       </div>
-      <div class="row no-margin" ng-repeat="name in ['style_name', 'sku_code', 'category']">
+      <!-- <div class="row no-margin" ng-repeat="name in ['style_name', 'sku_code', 'category']"> -->
+      <div class="row no-margin" ng-repeat="name in ['style_name', 'category']">
         <div class="col-md-4 col-sm-4 col-xs-4">
           <span>{{order.labels[name]}}</span>
         </div>
-        <div class="col-md-4 col-sm-4 col-xs-4">
+        <div class="col-md-8 col-sm-8 col-xs-8">
           <span>: {{order.order_details.style[name]}}</span>
         </div>
       </div>
@@ -22,7 +24,7 @@
         <div class="col-md-4 col-sm-4 col-xs-4">
           <span><b>Quantity</b></span>
         </div>
-        <div class="col-md-4 col-sm-4 col-xs-4">
+        <div class="col-md-8 col-sm-8 col-xs-8">
           <span><b>: {{order.order_details.order.quantity}}</b></span>
         </div>
       </div>
@@ -30,7 +32,7 @@
         <div class="col-md-4 col-sm-4 col-xs-4">
           <span><b>Customization Type</b></span>
         </div>
-        <div class="col-md-4 col-sm-4 col-xs-4">
+        <div class="col-md-8 col-sm-8 col-xs-8">
           <span><b>: {{order.order_details.order.customization_type}}</b></span>
         </div>
       </div>
@@ -38,7 +40,7 @@
         <div class="col-md-4 col-sm-4 col-xs-4">
           <span><b>Customization Remarks</b></span>
         </div>
-        <div class="col-md-6 col-sm-6 col-xs-6">
+        <div class="col-md-8 col-sm-8 col-xs-8">
           <ol style="padding-left: 20px;"><li ng-repeat="remark in order.order_details.order.custom_remarks"> {{remark}}.<br></li></ol>
         </div>
       </div>
@@ -65,21 +67,22 @@
       <accordion-heading>
         <span><b>{{hist.username}}</b></span>
         <i class="pull-right glyphicon" ng-class="{'glyphicon-chevron-down': status.open, 'glyphicon-chevron-right': !status.open}"></i>
-        <span class="pull-right mr20">Date: {{hist.date}}</span>
+        <!-- <span class="pull-right mr20">Date: {{hist.date}}</span> -->
+        <span class="pull-right mr20">Date: {{hist.date | date:"dd/MM/yyyy"}}</span>
       </accordion-heading>
       <div class="over-x">
         <table class="table mb0 mw40">
           <thead>
             <tr>
               <th class="col-md-4" ng-hide="order.order_details.order.customization_type=='Product Customization'">Price</th>
-              <th class="col-md-4">Expected Date</th>
+              <th class="col-md-4">Approximate Delivery Date</th>
               <th class="col-md-4">Remarks</th>
             </tr>
           </thead>
           <tbody>
             <tr style="cursor:pointer">
               <td ng-hide="order.order_details.order.customization_type=='Product Customization'">{{hist.ask_price}}</td>
-              <td>{{hist.expected_date}}</td>
+              <td>{{hist.expected_date | date:"dd/MM/yyyy"}}</td>
               <td>{{hist.remarks}}</td>
             </tr>
           </tbody>
@@ -105,7 +108,7 @@
           <div class="col-md-4 col-sm-4 col-xs-12" ng-if="order.permissions.user_type == 'sm_purchase_admin'">
             <div class="form-group">
               <input type="text" ng-if="!order.clear_flag" name="lead_time" ng-model="order.model_data.lead_time" ng-change="order.calcuateExpectedDate()" class="form-control ng-pristine" placeholder="LeadTime in Days *" number required>
-              Expected_date:: {{order.model_data.expected_date}}
+              Expected_date: {{order.model_data.expected_date}}
             </div>
           </div>
           <div class="col-md-4 col-sm-4 col-xs-12" ng-if="order.permissions.user_type != 'sm_design_admin' && order.permissions.user_type != 'sm_purchase_admin'">

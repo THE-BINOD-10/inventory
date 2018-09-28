@@ -3533,7 +3533,7 @@ def get_customer_sku_prices(request, user=""):
                     discount = price_master_objs[0].discount
             result_data.append(
                 {'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'price': price, 'discount': discount,
-                 'taxes': taxes_data, 'price_bands_map': price_bands_list})
+                 'taxes': taxes_data, 'price_bands_map': price_bands_list, 'mrp': data.mrp})
 
     except Exception as e:
         import traceback

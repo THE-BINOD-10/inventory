@@ -3385,7 +3385,6 @@ def validate_order_form(myDict, request, user):
             stock_check = False
         else:
             all_sku_codes[i] = sku_master[0]
-            import pdb;pdb.set_trace()
             temp_distinct_skus.append(sku_master[0]['wms_code'])
         try:
             value = float(myDict['quantity'][i])

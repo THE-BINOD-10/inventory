@@ -453,7 +453,17 @@
         <div class="col-md-1 col-sm-1 col-xs-2"><i ng-click="showCase.update_sales_return_reasons()" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i>
         </div>
       </div>
-
+      <div class="row col-md-12" style="padding-bottom: 15px" ng-if="user.user_profile.industry_type == 'FMCG'">
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i style="line-height: 34px;" class="fa fa-th fa-15px pull-left"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Receive PO Mandatory Fields </strong>
+        </div>
+        <div class="col-md-2 col-sm-4 col-xs-4">
+          <select id="receive_po_mandatory_fields" class="selectpicker show-menu-arrow form-control" ng-model="showCase.receive_po_mandatory_fields" multiple ng-change="showCase.multi_select_switch('#receive_po_mandatory_fields', 69)">
+            <option ng-selected="showCase.check_selected(value, 'selected_receive_po_mandatory')" ng-repeat="(key, value) in showCase.model_data.receive_po_mandatory_fields" value="{{value}}"> {{key}} </option>
+          </select>
+        </div>
+      </div>
       <div class="row col-md-12" style="padding-bottom: 15px"> <div class="col-md-12"><button class="btn btn-primary" role="button" data-toggle="collapse" ng-click="showCase.toggle_reports();">Configure Mail Reports</a>
       </div>
       </div>

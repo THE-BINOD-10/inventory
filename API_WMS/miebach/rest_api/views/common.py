@@ -802,6 +802,10 @@ def configurations(request, user=''):
             config_dict['tax_data'].append({'tax_name': tax.misc_type[4:], 'tax_value': tax.misc_value})
     config_dict['rem_saved_mail_alerts'] = list(MailAlerts.objects.filter(user_id=user.id).\
                                                 values('alert_name', 'alert_value'))
+    config_dict['selected_receive_po_mandatory'] = []
+    mandatory_receive_po = get_misc_value('receive_po_mandatory_fields', user.id)
+    if mandatory_receive_po != 'false':
+        config_dict['selected_receive_po_mandatory'] = mandatory_receive_po.split(',')
     return HttpResponse(json.dumps(config_dict))
 
 
@@ -3533,7 +3537,7 @@ def get_customer_sku_prices(request, user=""):
                     discount = price_master_objs[0].discount
             result_data.append(
                 {'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'price': price, 'discount': discount,
-                 'taxes': taxes_data, 'price_bands_map': price_bands_list})
+                 'taxes': taxes_data, 'price_bands_map': price_bands_list, 'mrp': data.mrp})
 
     except Exception as e:
         import traceback

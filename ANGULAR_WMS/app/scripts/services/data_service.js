@@ -144,7 +144,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
 
                             alternate_view: false,
                             view: 'normalView',
-                            tb_headers: {'normalView': ['Order ID', 'WMS Code', 'Description', 'Location', 'Quantity', 'Picked Quantity', 'Date', 'Time'],
+                            tb_headers: {'normalView': ['Order ID', 'WMS Code', 'Child SKU', 'Description', 'Location', 'Quantity', 'Picked Quantity', 'Date', 'Time'],
                                          'serialView': ['Order ID', 'WMS Code', 'Description', 'Customer Name', 'Serial Number', 'Date', 'Time'],
                                          'customerView': ['Customer ID', 'Customer Name', 'WMS Code', 'Description', 'Quantity', 'Picked Quantity']}
                          }

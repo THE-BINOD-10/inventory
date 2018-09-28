@@ -802,6 +802,10 @@ def configurations(request, user=''):
             config_dict['tax_data'].append({'tax_name': tax.misc_type[4:], 'tax_value': tax.misc_value})
     config_dict['rem_saved_mail_alerts'] = list(MailAlerts.objects.filter(user_id=user.id).\
                                                 values('alert_name', 'alert_value'))
+
+    misc_value_obj = MiscDetail.objects.filter(misc_type='receive_po_mandatory_fields', user=request.user.id)
+    if misc_value_obj:
+        config_dict['choose_receive_po_mandatory_fields'] = misc_value_obj[0].misc_value.split(',')
     return HttpResponse(json.dumps(config_dict))
 
 

@@ -177,7 +177,7 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
 
   vm.open_details = function(data) {
 
-    if (Session.user_profile.user_type == 'warehouse_user') {
+    if (Session.user_profile.request_user_type == 'warehouse_user') {
 
       var mod_data = {order_id: data['orderId'], url: 'get_customer_order_detail', customer_id: data['customerId']};
       var page_url = window.location.href

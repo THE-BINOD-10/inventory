@@ -18,12 +18,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.supplier_id = '';
     vm.order_id = 0;
     vm.receive_po_mandatory_fields = {};
-    angular.forEach(vm.permissions.receive_po_mandatory_fields.split(','), function(field){
-      console.log(field+'\n');
-      if (!vm.receive_po_mandatory_fields[field]) {
-        vm.receive_po_mandatory_fields[field] = field;
-      }
-    })
+    if(vm.permissions.receive_po_mandatory_fields) {
+      angular.forEach(vm.permissions.receive_po_mandatory_fields.split(','), function(field){
+        console.log(field+'\n');
+        if (!vm.receive_po_mandatory_fields[field]) {
+          vm.receive_po_mandatory_fields[field] = field;
+        }
+      })
+    }
     console.log(vm.receive_po_mandatory_fields);
     //default values
     if(!vm.permissions.grn_scan_option) {

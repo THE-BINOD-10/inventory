@@ -2144,11 +2144,27 @@ def update_invoice(request, user=''):
                 else:
                     CustomerOrderSummary.objects.create(order=order_id, sgst_tax=sgst_tax, cgst_tax=cgst_tax,
                                                         igst_tax=igst_tax, tax_type=tax_type)
-                sos_obj = SellerOrderSummary.objects.filter(order_id=order_id)
-                if sos_obj:
-                    sos_obj = sos_obj[0]
-                    sos_obj.quantity = int(myDict['quantity'][unit_price_index])
-                    sos_obj.save()
+                sos_objs = SellerOrderSummary.objects.filter(order_id=order_id)
+                updating_quantity = float(myDict['quantity'][unit_price_index])
+                seller_exist_qty = sos_objs.aggregate(Sum('quantity'))['quantity__sum']
+                if not seller_exist_qty:
+                    seller_exist_qty = 0
+                if float(seller_exist_qty) != float(updating_quantity):
+                    updating_diff = float(updating_quantity) - float(seller_exist_qty)
+                    for sos_obj in sos_objs:
+                        if updating_diff <= 0:
+                            if updating_diff > float(sos_obj.quantity):
+                                sos_updating_qty = float(sos_obj.quantity)
+                                updating_diff -= float(sos_obj.quantity)
+                            else:
+                                sos_updating_qty = updating_diff
+                                updating_diff = 0
+                        else:
+                            sos_updating_qty = updating_diff
+                            updating_diff = 0
+
+                        sos_obj.quantity = sos_obj.quantity + sos_updating_qty
+                        sos_obj.save()
 
 
         # Updating or Creating Order other charges Table

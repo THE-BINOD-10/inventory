@@ -5035,7 +5035,7 @@ def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_
         recieved_qty = recieved_qties.get(item["wms_code"], 0)
         cart_qty, inter_qty = 0, 0
         cart_obj = CustomerCartData.objects.filter(sku=item['id'])
-        inter_obj = IntermediateOrders.objects.filter(sku=item['id'])
+        inter_obj = IntermediateOrders.objects.filter(sku=item['id'], status='')
         if cart_obj:
             cart_qty = cart_obj[0].quantity
         if inter_obj:
@@ -7967,7 +7967,7 @@ def get_customer_cart_data(request, user=""):
                               .filter(sku__sku_code=sku_obj[0].sku_code, sku__user__in=warehouses)\
                               .aggregate(Sum('quantity'))['quantity__sum']
             cart_qty, inter_qty = 0, 0
-            inter_obj = IntermediateOrders.objects.filter(sku=sku_obj[0].id)
+            inter_obj = IntermediateOrders.objects.filter(sku=sku_obj[0].id, status='')
             if inter_obj:
                 inter_qty = inter_obj[0].quantity
             blocked_qty = inter_qty

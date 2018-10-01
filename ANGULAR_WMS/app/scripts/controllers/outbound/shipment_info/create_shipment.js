@@ -135,9 +135,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
             vm.box_num = $('#box_num').val();
             angular.forEach(vm.model_data.data, function(data){
               angular.forEach(data.sub_data, function(record){
-                // if (vm.carton == record.pack_reference) {
+                if (vm.carton == record.pack_reference) {
                   record.box_num = vm.box_num;
-                // }
+                }
               });
             });
           })

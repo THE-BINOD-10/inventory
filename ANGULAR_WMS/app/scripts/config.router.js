@@ -937,6 +937,10 @@ var app = angular.module('urbanApp')
             title: 'GRN Edit',
           }
         })
+        .state('app.inbound.GrnEdit.GrnEditPopup', {
+          url: '/GrnEditPopup',
+          templateUrl: 'views/inbound/toggle/grn_edit_popup.html'
+        })
 
       // Production routes
       .state('app.production', {

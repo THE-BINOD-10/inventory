@@ -2144,11 +2144,27 @@ def update_invoice(request, user=''):
                 else:
                     CustomerOrderSummary.objects.create(order=order_id, sgst_tax=sgst_tax, cgst_tax=cgst_tax,
                                                         igst_tax=igst_tax, tax_type=tax_type)
-                sos_obj = SellerOrderSummary.objects.filter(order_id=order_id)
-                if sos_obj:
-                    sos_obj = sos_obj[0]
-                    sos_obj.quantity = int(myDict['quantity'][unit_price_index])
-                    sos_obj.save()
+                sos_objs = SellerOrderSummary.objects.filter(order_id=order_id)
+                updating_quantity = float(myDict['quantity'][unit_price_index])
+                seller_exist_qty = sos_objs.aggregate(Sum('quantity'))['quantity__sum']
+                if not seller_exist_qty:
+                    seller_exist_qty = 0
+                if float(seller_exist_qty) != float(updating_quantity):
+                    updating_diff = float(updating_quantity) - float(seller_exist_qty)
+                    for sos_obj in sos_objs:
+                        if updating_diff <= 0:
+                            if updating_diff > float(sos_obj.quantity):
+                                sos_updating_qty = float(sos_obj.quantity)
+                                updating_diff -= float(sos_obj.quantity)
+                            else:
+                                sos_updating_qty = updating_diff
+                                updating_diff = 0
+                        else:
+                            sos_updating_qty = updating_diff
+                            updating_diff = 0
+
+                        sos_obj.quantity = sos_obj.quantity + sos_updating_qty
+                        sos_obj.save()
 
 
         # Updating or Creating Order other charges Table
@@ -10376,29 +10392,55 @@ def insert_enquiry_data(request, user=''):
             enquiry_data = {'customer_id': customer_id, 'warehouse_level': cart_item.warehouse_level,
                             'user': user.id, 'quantity': cart_item.quantity, 'sku_id': cart_item.sku.id}
             stock_wh_map = split_orders(**enquiry_data)
-            for wh_code, qty in stock_wh_map.items():
-                if qty <= 0:
-                    continue
-                wh_sku_id = get_syncedusers_mapped_sku(wh_code, cart_item.sku.id)
-                enq_sku_obj = EnquiredSku()
-                enq_sku_obj.sku_id = wh_sku_id
-                enq_sku_obj.title = cart_item.sku.style_name
-                enq_sku_obj.enquiry = enq_master_obj
-                enq_sku_obj.quantity = qty
-                tot_amt = get_tax_inclusive_invoice_amt(cm_id, cart_item.levelbase_price, qty,
-                                                        user.id, cart_item.sku.sku_code, admin_user)
-                enq_sku_obj.invoice_amount = tot_amt
-                enq_sku_obj.status = 1
-                enq_sku_obj.sku_code = cart_item.sku.sku_code
-                enq_sku_obj.levelbase_price = cart_item.levelbase_price
-                enq_sku_obj.warehouse_level = cart_item.warehouse_level
-                enq_sku_obj.save()
-                wh_name = User.objects.get(id=wh_code).first_name
-                cont_vals = (customer_details['customer_name'], enquiry_id, wh_name, cart_item.sku.sku_code)
-                contents = {"en": "%s placed an enquiry order %s to %s for SKU Code %s" % cont_vals}
-                users_list = list(set([user.id, wh_code, admin_user.id]))
-                send_push_notification(contents, users_list)
-                items.append([cart_item.sku.style_name, qty, tot_amt])
+            if cart_item.warehouse_level == 3:
+                for lt, stc_wh_map in stock_wh_map.items():
+                    for wh_code, qty in stc_wh_map.items():
+                        if qty <= 0:
+                            continue
+                        wh_sku_id = get_syncedusers_mapped_sku(wh_code, cart_item.sku.id)
+                        enq_sku_obj = EnquiredSku()
+                        enq_sku_obj.sku_id = wh_sku_id
+                        enq_sku_obj.title = cart_item.sku.style_name
+                        enq_sku_obj.enquiry = enq_master_obj
+                        enq_sku_obj.quantity = qty
+                        tot_amt = get_tax_inclusive_invoice_amt(cm_id, cart_item.levelbase_price, qty,
+                                                                user.id, cart_item.sku.sku_code, admin_user)
+                        enq_sku_obj.invoice_amount = tot_amt
+                        enq_sku_obj.status = 1
+                        enq_sku_obj.sku_code = cart_item.sku.sku_code
+                        enq_sku_obj.levelbase_price = cart_item.levelbase_price
+                        enq_sku_obj.warehouse_level = cart_item.warehouse_level
+                        enq_sku_obj.save()
+                        wh_name = User.objects.get(id=wh_code).first_name
+                        cont_vals = (customer_details['customer_name'], enquiry_id, wh_name, cart_item.sku.sku_code)
+                        contents = {"en": "%s placed an enquiry order %s to %s for SKU Code %s" % cont_vals}
+                        users_list = list(set([user.id, wh_code, admin_user.id]))
+                        send_push_notification(contents, users_list)
+                        items.append([cart_item.sku.style_name, qty, tot_amt])
+            else:
+                for wh_code, qty in stock_wh_map.items():
+                    if qty <= 0:
+                        continue
+                    wh_sku_id = get_syncedusers_mapped_sku(wh_code, cart_item.sku.id)
+                    enq_sku_obj = EnquiredSku()
+                    enq_sku_obj.sku_id = wh_sku_id
+                    enq_sku_obj.title = cart_item.sku.style_name
+                    enq_sku_obj.enquiry = enq_master_obj
+                    enq_sku_obj.quantity = qty
+                    tot_amt = get_tax_inclusive_invoice_amt(cm_id, cart_item.levelbase_price, qty,
+                                                            user.id, cart_item.sku.sku_code, admin_user)
+                    enq_sku_obj.invoice_amount = tot_amt
+                    enq_sku_obj.status = 1
+                    enq_sku_obj.sku_code = cart_item.sku.sku_code
+                    enq_sku_obj.levelbase_price = cart_item.levelbase_price
+                    enq_sku_obj.warehouse_level = cart_item.warehouse_level
+                    enq_sku_obj.save()
+                    wh_name = User.objects.get(id=wh_code).first_name
+                    cont_vals = (customer_details['customer_name'], enquiry_id, wh_name, cart_item.sku.sku_code)
+                    contents = {"en": "%s placed an enquiry order %s to %s for SKU Code %s" % cont_vals}
+                    users_list = list(set([user.id, wh_code, admin_user.id]))
+                    send_push_notification(contents, users_list)
+                    items.append([cart_item.sku.style_name, qty, tot_amt])
     except:
         import traceback
         log.debug(traceback.format_exc())
@@ -10421,7 +10463,7 @@ def get_enquiry_data(request, user=''):
     if not cum_obj:
         return HttpResponse("No Customer User Mapping Object")
     cm_id = cum_obj[0].customer_id
-    em_qs = EnquiryMaster.objects.filter(customer_id=cm_id)
+    em_qs = EnquiryMaster.objects.filter(customer_id=cm_id).order_by('-enquiry_id')
     em_vals = em_qs.values_list('enquiry_id', 'extend_status', 'extend_date', 'corporate_name').distinct()
     total_qty = dict(em_qs.values_list('enquiry_id').distinct().annotate(quantity=Sum('enquiredsku__quantity')))
     total_inv_amt = dict(
@@ -10454,7 +10496,7 @@ def get_manual_enquiry_data(request, user=''):
         start_index = int(index.split(':')[0])
         stop_index = int(index.split(':')[1])
     response_data = {'data': []}
-    em_qs = ManualEnquiry.objects.filter(user=request.user.id)
+    em_qs = ManualEnquiry.objects.filter(user=request.user.id).order_by('-id')
     for enquiry in em_qs[start_index:stop_index]:
         res_map = {'order_id': enquiry.enquiry_id, 'customer_name': enquiry.customer_name,
                    'date': get_only_date(request, enquiry.creation_date),

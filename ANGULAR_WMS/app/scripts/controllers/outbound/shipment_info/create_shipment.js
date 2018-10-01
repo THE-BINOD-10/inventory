@@ -99,14 +99,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
     vm.carton_code = "";
     vm.carton = "";
     vm.box_num = "";
-    vm.add_carton = function(test="Sample") {
+    vm.add_carton = function(carton) {
         var carton_code = '';
         swal2({
           title: 'Please enter your carton code',
           text: '',
           // input: 'text',
           html:
-            '<input class="swal2-input" name="carton_num" id="carton_num" placeholder="Enter Carton" type="text" style="display: block;" value="'+test+'"  readonly>' +
+            '<input class="swal2-input" name="carton_num" id="carton_num" placeholder="Enter Carton" type="text" style="display: block;" value="'+carton+'"  readonly>' +
             '<input class="swal2-input" name="box_num" id="box_num" placeholder="Enter Box Number" value="" type="text" style="display: block;">',
           confirmButtonColor: '#33cc66',
           // cancelButtonColor: '#d33',

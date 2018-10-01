@@ -810,6 +810,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
         if len(order_obj_list):
             collect_order_obj_list = collect_order_obj_list + order_obj_list
     if len(collect_order_obj_list):
+        collect_order_obj_list = list(set(collect_order_obj_list))
         create_order_pos(user, collect_order_obj_list)
     return 'success'
 

@@ -514,8 +514,8 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
 
         if type(cell_data) == float:
             sku_code = str(int(cell_data))
-        elif isinstance(cell_data, str) and '.' in cell_data:
-            sku_code = str(int(float(cell_data)))
+        #elif isinstance(cell_data, str) and '.' in cell_data:
+        #    sku_code = str(int(float(cell_data)))
         else:
             sku_code = cell_data.upper()
 

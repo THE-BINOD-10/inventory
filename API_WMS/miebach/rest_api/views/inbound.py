@@ -22,6 +22,7 @@ from xmljson import badgerfish as bf
 from xml.etree.ElementTree import fromstring
 from sync_sku import insert_skus
 from utils import *
+from rest_api.views import *
 
 log = init_logger('logs/inbound.log')
 

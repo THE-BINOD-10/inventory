@@ -98,6 +98,14 @@
                 <input name="po_delivery_date" ui-jq="datepicker" ng-model="showCase.model_data.po_delivery_date" class="form-control stk-readonly" type="text" id="po_delivery_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}">
               </div>
             </div>
+            <div class="col-md-4 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Warehouse </label>
+                <select class="form-control" name="warehouse_name" ng-model="showCase.model_data.warehouse_name" ng-init="showCase.model_data.warehouse_name=showCase.model_data.warehouse_name[0]">
+                  <option ng-repeat="type in showCase.model_data.warehouse_name" ng-selected="showCase.model_data.seller_type==type" value="{{type}}">{{type}}</option>
+                </select>
+              </div>
+            </div>
           </div>
           <div class="row">
             <div class="col-md-12"><hr></div>

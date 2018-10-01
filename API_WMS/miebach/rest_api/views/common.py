@@ -44,6 +44,8 @@ from generate_reports import *
 from django.template import loader, Context
 from barcodes import *
 
+
+
 log = init_logger('logs/common.log')
 init_log = init_logger('logs/integrations.log')
 log_qssi = init_logger('logs/qssi_order_status_update.log')
@@ -3870,8 +3872,10 @@ def get_sellers_list(request, user=''):
         seller_list.append({'id': seller.seller_id, 'name': seller.name})
         if seller.supplier:
             seller_supplier[seller.seller_id] = seller.supplier.id
+    import pdb;pdb.set_trace()
+    user_list = get_all_warehouses(user)
     return HttpResponse(json.dumps({'sellers': seller_list, 'tax': 5.5, 'receipt_types': PO_RECEIPT_TYPES, \
-                                    'seller_supplier_map': seller_supplier}))
+                                    'seller_supplier_map': seller_supplier, 'warehouse' : user_list}))
 
 
 def update_filled_capacity(locations, user_id):
@@ -7844,3 +7848,16 @@ def get_sku_ean_list(sku):
         eans_list = list(chain(eans_list, multi_eans))
     return eans_list
 
+
+def get_all_warehouses(user):
+    user_list = []
+    admin_user = UserGroups.objects.filter(
+        Q(admin_user__username__iexact=user.username) | Q(user__username__iexact=user.username)). \
+        values_list('admin_user_id', flat=True)
+    user_groups = UserGroups.objects.filter(admin_user_id__in=admin_user).values('user__username',
+                                                                                 'admin_user__username')
+    for users in user_groups:
+        for key, value in users.iteritems():
+            if user.username != value and value not in user_list:
+                user_list.append(value)
+    return user_list

@@ -408,7 +408,6 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
         order_data['sku_id'] = sku_masters_dict[cell_data]
         if not order_data.get('title', ''):
             order_data['title'] = all_sku_decs.get(order_data['sku_id'], '')
-
         order_obj = OrderDetail.objects.filter(order_id=order_data['order_id'], \
             order_code=order_data.get('order_code', ''), user=user.id, sku_id=order_data['sku_id'])
         order_create = True
@@ -476,9 +475,8 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
                         order_obj_list.append(order_obj)
                 if len(order_obj_list):
                     order_obj_list = list(set(order_obj_list))
-        create_order_pos(user, order_obj_list)
         log.info("Order Saving Ended %s" % (datetime.datetime.now()))
-    return sku_ids
+    return sku_ids, order_obj_list
 
 
 def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
@@ -588,6 +586,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
         return f_name
 
     sku_ids = []
+    collect_order_obj_list = []
 
     user_profile = UserProfile.objects.get(user_id=user.id)
     log.info("Validation Ended %s" % (datetime.datetime.now()))
@@ -805,9 +804,13 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 order_data['telephone'] = str(int(order_data['telephone']))
 
         log.info("Order Saving Started %s" % (datetime.datetime.now()))
-        sku_ids = check_and_save_order(cell_data, order_data, order_mapping, user_profile, seller_order_dict,
+        sku_ids, order_obj_list = check_and_save_order(cell_data, order_data, order_mapping, user_profile, seller_order_dict,
                                        order_summary_dict, sku_ids,
                                        sku_masters_dict, all_sku_decs, exist_created_orders, user)
+        if len(order_obj_list):
+            collect_order_obj_list = collect_order_obj_list + order_obj_list
+    if len(collect_order_obj_list):
+        create_order_pos(user, collect_order_obj_list)
     return 'success'
 
 

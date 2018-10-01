@@ -3,7 +3,7 @@
     <div class="modal-dialog modal-lg">
       <!-- Modal content-->
       <div class="modal-content model-custom" id = "add-customer">
-        <div ng-include="'views/common/loader.html'"></div> 
+        <div ng-include="'views/common/loader.html'"></div>
         <div class="modal-header">
           <button ng-click="showCase.close()" type="button" class="close" data-dismiss="modal"> ×</button>
           <h4 class="modal-title">Add Shippment </h4>
@@ -105,6 +105,7 @@
                   <th> Picked Quantity </th>
                   <th> Shipping Quantity </th>
                   <th ng-hide="user.user_profile['user_type'] == 'marketplace_user'"> Pack Reference </th>
+                  <th> Box Number </th>
                   <!--<th ng-if="showCase.mk_user"> Serial Number </th>-->
                   <th class="plus" ng-hide="user.user_profile['user_type'] == 'marketplace_user'"></th>
                 </tr>
@@ -130,6 +131,7 @@
                   <td><input class="form-control" name="shipping_quantity" ng-model="record.shipping_quantity" type="text" ng-class="service.get_decimal_perm()" ng-change="showCase.cal_quantity(record, data)" ng-readonly="showCase.mk_user"></td>
                   <!-- <td ng-hide="user.user_profile['user_type'] == 'marketplace_user'"><input class="form-control" name="package_reference" ng-model="record.pack_reference" type="text"></td> -->
                   <td ng-hide="user.user_profile['user_type'] == 'marketplace_user'"><input class="form-control" name="package_reference" ng-model="record.pack_reference" ng-blur="showCase.add_carton_code(record)" type="text"></td>
+                  <td><input class="form-control" name="box_num" ng-model="record.box_num" type="text"></td>
                   <!--<td ng-if="showCase.mk_user">
                     <input type="text" ng-model="record.imei_number" class="form-control" ng-keydown="showCase.check_imei_exists($event, record, data)" ng-disabled="data.equal">
                     <input type="hidden" name="imei_number" class="form-control" ng-init="record.imei_list=[]" value="{{record.imei_list.join(',')}}">

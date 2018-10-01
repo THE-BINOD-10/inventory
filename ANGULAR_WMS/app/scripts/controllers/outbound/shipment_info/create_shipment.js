@@ -99,7 +99,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
     vm.carton_code = "";
     vm.carton = "";
     vm.box_num = "";
-    vm.add_carton = function(carton) {
+    vm.add_carton = function(carton='123') {
         var carton_code = '';
         swal2({
           title: 'Please enter your carton code',
@@ -129,9 +129,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
           allowOutsideClick: false,
           // buttonsStyling: false
         }).then(function (text) {
+          $scope.$apply(function() {
             $('#scan_sku').focus();
             vm.carton = $('#carton_num').val();
             vm.box_num = $('#box_num').val();
+            angular.forEach(vm.model_data.data, function(data){
+              angular.forEach(data.sub_data, function(record){
+                // if (vm.carton == record.pack_reference) {
+                  record.box_num = vm.box_num;
+                // }
+              });
+            });
+          })
             // swal2({
             //   type: 'success',
             //   title: 'Carton Code Added!',

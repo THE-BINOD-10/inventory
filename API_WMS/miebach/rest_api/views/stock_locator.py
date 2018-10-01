@@ -1342,11 +1342,13 @@ def warehouse_headers(request, user=''):
     admin_user_id = ''
     admin_user_name = ''
     size_list = []
+    market_places = []
     level = request.GET.get('level', '')
     alternative_view = request.GET.get('alternate_view', 'false')
     warehouse_name = request.GET.get('warehouse_name', '')
     price_band_flag = get_misc_value('priceband_sync', user.id)
     size_name = request.GET.get("size_type_value", '')
+    marketplace = request.GET.get("marketplace", '')
     size_list, user_list = [], []
     default_size = ['S', 'M', 'L', 'XL', 'XXL']
     user_id = user.id
@@ -1367,6 +1369,10 @@ def warehouse_headers(request, user=''):
                         user_list.append(value)
             warehouse_name = user_list[0]
         user_id = User.objects.get(username = warehouse_name).id
+        #get marketplace
+        market_places = OrderDetail.objects.filter(user=user_id).values_list('marketplace', flat=True).distinct()
+        market_places = [item for item in market_places]
+
         size_master_objs = SizeMaster.objects.filter(user=user_id)
         size_names = size_master_objs.values_list('size_name', flat=True)
         all_sizes = size_master_objs
@@ -1420,7 +1426,8 @@ def warehouse_headers(request, user=''):
             headers = header + ware_list
         else:
             headers = header + [admin_user_name] + ware_list
-    return HttpResponse(json.dumps({'table_headers': headers, 'size_types': size_list, 'warehouse_names': user_list }))
+    return HttpResponse(json.dumps({'table_headers': headers, 'size_types': size_list,
+                                    'warehouse_names': user_list, 'market_places': market_places }))
 
 @csrf_exempt
 def get_seller_stock_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
@@ -1666,7 +1673,7 @@ def get_stock_summary_serials_excel(filter_params, temp_data, headers, user, req
                      'imei_number']
 
         filter_params = get_filtered_params(filters, dict_list)
-        dispatched_imeis = OrderIMEIMapping.objects.filter(status=1, order__user=user.id).values_list('po_imei_id',
+        dispatched_imeis = OrderIMEIMapping.objects.filter(status=1, order__user=user.id, po_imei__isnull=False).values_list('po_imei_id',
                                                                                                       flat=True)
         damaged_returns = dict(ReturnsIMEIMapping.objects.filter(status='damaged', order_imei__order__user=user.id). \
                                values_list('order_imei__po_imei__imei_number', 'reason'))
@@ -2201,6 +2208,7 @@ def get_alternative_warehouse_stock(start_index, stop_index, temp_data, search_t
     log.info(" ------------warehouse stock alternate view started ------------------")
     size_type_value = request.POST.get('size_type_value', '')
     warehouse_name = request.POST.get('warehouse_name', '')
+    marketplace = request.POST.get('marketplace', '')
     view_type = request.POST.get('view_type', '')
     from_date = request.POST.get('from_date', '')
     to_date = request.POST.get('to_date', '')
@@ -2237,6 +2245,10 @@ def get_alternative_warehouse_stock(start_index, stop_index, temp_data, search_t
                                                             sku_size__in=sizes, **search_params). \
                                             values('sku_class', 'style_name', 'sku_brand',
                                             'sku_category').distinct()
+        if marketplace:
+            sku_ids = OrderDetail.objects.filter(marketplace=marketplace, user=warehouse.id)\
+                                 .values_list('sku_id', flat=True)
+            sku_master_objs = sku_master_objs.filter(id__in=sku_ids)
         if search_term:
             sku_classes = sku_master_objs.filter(Q(sku_class__icontains=search_term) |
                                                  Q(style_name__icontains=search_term) |
@@ -2283,6 +2295,8 @@ def get_alternative_warehouse_stock(start_index, stop_index, temp_data, search_t
             to_date = datetime.date(int(to_date[2]), int(to_date[0]), int(to_date[1]))
             order_filter_params['creation_date__lt'] = datetime.datetime.combine(to_date + datetime.timedelta(1),
                                                                  datetime.time())
+        if marketplace:
+            order_filter_params['marketplace'] = marketplace
 
         order_detail_objs = OrderDetail.objects.filter(**order_filter_params).\
                                  exclude(status__in=[3,5])

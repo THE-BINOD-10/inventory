@@ -422,7 +422,7 @@ SKU_WISE_PO_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'typ
                                    'Rejected Quantity', 'Receipt Date', 'Status'],
                     'mk_dt_headers': ['PO Date', 'PO Number', 'Supplier ID', 'Supplier Name', 'SKU Code',
                                       'SKU Description', 'SKU Class', 'SKU Style Name', 'SKU Brand', 'SKU Category',
-                                      'PO Qty', 'Unit Rate', 'Pre-Tax PO Amount', 'Tax', 'After Tax PO Amount',
+                                      'PO Qty', 'Unit Rate', 'MRP', 'Pre-Tax PO Amount', 'Tax', 'After Tax PO Amount',
                                       'Qty received', 'Status'],
                     'dt_url': 'get_sku_purchase_filter', 'excel_name': 'sku_wise_purchases',
                     'print_url': 'print_sku_wise_purchase',
@@ -1511,6 +1511,12 @@ STYLE_DETAIL_HEADERS = OrderedDict((('SKU Code', 'wms_code'), ('SKU Description'
                                     ('1-Day Stock', 'physical_stock'), ('3-Day Stock', 'all_quantity')
                                     ))
 
+RECEIVE_PO_MANDATORY_FIELDS = OrderedDict((
+                      ('Buy Price', 'buy_price'), ('MRP', 'mrp'),
+                      ('Weight', 'weight'), ('Batch No', 'batch_no'),
+                      ('Mfg Date', 'mfg_date'), ('Exp Date', 'exp_date')
+                    ))
+
 STYLE_DETAIL_WITHOUT_STATIC_LEADTIME = OrderedDict((('SKU Code', 'wms_code'), ('SKU Description', 'sku_desc'),
                                                     ('Size', 'sku_size')))
 
@@ -1801,7 +1807,8 @@ CONFIG_DEF_DICT = {'receive_options': dict(RECEIVE_OPTIONS),
                    'mail_reports': MAIL_REPORTS, 'style_detail_headers': STYLE_DETAIL_HEADERS,
                    'picklist_options': PICKLIST_OPTIONS,
                    'order_headers': ORDER_HEADERS_d, 'barcode_generate_options': BARCODE_OPTIONS,
-                   'rem_mail_alerts': REMAINDER_MAIL_ALERTS
+                   'rem_mail_alerts': REMAINDER_MAIL_ALERTS,
+                   'receive_po_mandatory_fields': RECEIVE_PO_MANDATORY_FIELDS
                    }
 
 MARKETPLACE_SERIAL_EXCEL_HEADERS = ['Order Reference', 'Marketplace', 'Serial Number']
@@ -2226,7 +2233,14 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                     order_id = data.order.original_order_id
                     if not order_id:
                         order_id = str(data.order.order_code) + str(data.order.order_id)
-                    temp_data['aaData'].append(OrderedDict((('Order ID', order_id), ('WMS Code', data.stock.sku.wms_code),
+                    child_sku_code = ''
+                    if data.order_type == 'combo':
+                        if data.stock:
+                            child_sku_code = data.stock.sku.sku_code
+                        else:
+                            child_sku_code = data.order.sku.sku_code
+                    temp_data['aaData'].append(OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.sku_code),
+                                                            ('Child SKU', child_sku_code),
                                                             ('Description', data.stock.sku.sku_desc),
                                                             ('Location', pick_loc.stock.location.location),
                                                             ('Quantity', data.order.quantity),
@@ -2272,7 +2286,7 @@ def sku_wise_purchase_data(search_params, user, sub_user):
         lis = ['po_date', 'order_id', 'open_po__supplier_id', 'open_po__supplier__name',
                'open_po__sku__sku_code', 'open_po__sku__sku_desc', 'open_po__sku__sku_class',
                'open_po__sku__style_name', 'open_po__sku__sku_brand', 'open_po__sku__sku_category',
-               'open_po__order_quantity', 'open_po__price', 'id', 'id', 'id', 'id', 'id']
+               'open_po__order_quantity', 'open_po__price', 'open_po__mrp', 'id', 'id', 'id', 'id', 'id']
         columns = SKU_WISE_PO_DICT['mk_dt_headers']
     if 'sku_code' in search_params:
         search_parameters['open_po__sku__sku_code'] = search_params['sku_code']
@@ -2359,6 +2373,7 @@ def sku_wise_purchase_data(search_params, user, sub_user):
                                 ('SKU Brand', order_data['sku'].sku_brand),
                                 ('SKU Category', order_data['sku'].sku_category),
                                 ('PO Qty', order_data['order_quantity']), ('Unit Rate', order_data['price']),
+                                ('MRP', order_data['mrp']),
                                 ('Pre-Tax PO Amount', pre_amount), ('Tax', tax), ('After Tax PO Amount', aft_amount),
                                 ('Qty received', data.received_quantity), ('Status', status)
                                 ))
@@ -2517,17 +2532,32 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
         price = data['purchase_order__open_po__price']
         if data.get('batch_detail__buy_price', 0):
             price = data['batch_detail__buy_price']
-        if data.get('batch_detail__tax_percent', 0):
+        #if data.get('batch_detail__tax_percent', 0):
+        try:
             temp_tax_percent = data['batch_detail__tax_percent']
             if data['purchase_order__open_po__supplier__tax_type'] == 'intra_state':
                 temp_tax_percent = temp_tax_percent / 2
                 data['purchase_order__open_po__cgst_tax'] = truncate_float(temp_tax_percent, 1)
                 data['purchase_order__open_po__sgst_tax'] = truncate_float(temp_tax_percent, 1)
                 data['purchase_order__open_po__igst_tax'] = 0
+                data['purchase_order__open_po__utgst_tax'] = 0
             else:
                 data['purchase_order__open_po__igst_tax'] = temp_tax_percent
                 data['purchase_order__open_po__cgst_tax'] = 0
                 data['purchase_order__open_po__sgst_tax'] = 0
+                data['purchase_order__open_po__utgst_tax'] = 0
+        except Exception:
+            pass
+        if not data['purchase_order__open_po__cgst_tax']:
+            data['purchase_order__open_po__cgst_tax'] = 0
+        if not data['purchase_order__open_po__sgst_tax']:
+            data['purchase_order__open_po__sgst_tax'] = 0
+        if not data['purchase_order__open_po__igst_tax']:
+            data['purchase_order__open_po__igst_tax'] = 0
+        if not data['purchase_order__open_po__utgst_tax']:
+            data['purchase_order__open_po__utgst_tax'] = 0
+        if not data['purchase_order__open_po__cess_tax']:
+            data['purchase_order__open_po__cess_tax'] = 0
         amount = float(data['total_received'] * price)
         tot_tax = float(data['purchase_order__open_po__cgst_tax']) + float(data['purchase_order__open_po__sgst_tax']) +\
                   float(data['purchase_order__open_po__igst_tax']) + float(data['purchase_order__open_po__utgst_tax'])\
@@ -2634,6 +2664,7 @@ def get_po_filter_data(search_params, user, sub_user):
         search_parameters[field_mapping['wms_code']] = search_params['sku_code']
     search_parameters[field_mapping['user']] = user.id
     search_parameters[field_mapping['sku_id__in']] = sku_master_ids
+    search_parameters['received_quantity__gt'] = 0
     query_data = model_name.objects.prefetch_related('open_po__sku','open_po__supplier').select_related('open_po', 'open_po__sku','open_po__supplier').exclude(**excl_status).filter(**search_parameters)
     model_data = query_data.values(*result_values).distinct().annotate(ordered_qty=Sum(ord_quan),
                                                                    total_received=Sum(rec_quan),

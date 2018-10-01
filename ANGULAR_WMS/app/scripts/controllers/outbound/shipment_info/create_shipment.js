@@ -562,8 +562,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
       event.stopPropagation();
       if (event.keyCode == 13 && scanned_sku.length > 0) {
           console.log(vm);
+        vm.service.apiCall("create_orders_check_ean", "GET", {ean: scanned_sku}).then(function(api_data){
+        if(api_data.message) {
           var found_sku = false;
           var is_updated = false;
+          scanned_sku = api_data.data.sku;
           for(var i=0;i<vm.model_data.data.length;i++) {
             var data_sku = String(vm.model_data.data[i].sku__sku_code).toLocaleLowerCase();
             if(data_sku==String(scanned_sku).toLocaleLowerCase()) {
@@ -580,14 +583,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
                 var exist_quan = vm.model_data.data[i].sub_data[last_index].shipping_quantity;
                 exist_quan = (!isNaN(exist_quan)) ? exist_quan: 0;
 
-                for(var p_ref=0; p_ref<vm.model_data.data[i].sub_data.length; p_ref++){
+               for(var p_ref=0; p_ref<vm.model_data.data[i].sub_data.length; p_ref++){
                   if (vm.carton_code == vm.model_data.data[i].sub_data[p_ref].pack_reference) {
                     last_index = p_ref;
-                  }
+                 }
                 }
 
-                if (vm.carton_code == vm.model_data.data[i].sub_data[last_index].pack_reference || 
-                  !vm.model_data.data[i].sub_data[last_index].pack_reference || 
+                if (vm.carton_code == vm.model_data.data[i].sub_data[last_index].pack_reference ||
+                  !vm.model_data.data[i].sub_data[last_index].pack_reference ||
                   (!vm.model_data.data[i].sub_data[last_index].shipping_quantity && vm.model_data.data[i].sub_data[last_index].pack_reference)) {
                   
                   vm.model_data.data[i].sub_data[last_index].shipping_quantity = Number(exist_quan) + 1;
@@ -620,8 +623,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
             }
           }
           if(!found_sku){ vm.service.showNoty("Scanned SKU Code not found");}
-          else if(!is_updated){ vm.service.showNoty("Scanned SKU Code exceeded the quantity");}
-          vm.scan_sku = '';
+            else if(!is_updated){ vm.service.showNoty("Scanned SKU Code exceeded the quantity");}
+            vm.scan_sku = '';
+          }
+        });
       }
     }
 

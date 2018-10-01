@@ -2144,11 +2144,27 @@ def update_invoice(request, user=''):
                 else:
                     CustomerOrderSummary.objects.create(order=order_id, sgst_tax=sgst_tax, cgst_tax=cgst_tax,
                                                         igst_tax=igst_tax, tax_type=tax_type)
-                sos_obj = SellerOrderSummary.objects.filter(order_id=order_id)
-                if sos_obj:
-                    sos_obj = sos_obj[0]
-                    sos_obj.quantity = int(myDict['quantity'][unit_price_index])
-                    sos_obj.save()
+                sos_objs = SellerOrderSummary.objects.filter(order_id=order_id)
+                updating_quantity = float(myDict['quantity'][unit_price_index])
+                seller_exist_qty = sos_objs.aggregate(Sum('quantity'))['quantity__sum']
+                if not seller_exist_qty:
+                    seller_exist_qty = 0
+                if float(seller_exist_qty) != float(updating_quantity):
+                    updating_diff = float(updating_quantity) - float(seller_exist_qty)
+                    for sos_obj in sos_objs:
+                        if updating_diff <= 0:
+                            if updating_diff > float(sos_obj.quantity):
+                                sos_updating_qty = float(sos_obj.quantity)
+                                updating_diff -= float(sos_obj.quantity)
+                            else:
+                                sos_updating_qty = updating_diff
+                                updating_diff = 0
+                        else:
+                            sos_updating_qty = updating_diff
+                            updating_diff = 0
+
+                        sos_obj.quantity = sos_obj.quantity + sos_updating_qty
+                        sos_obj.save()
 
 
         # Updating or Creating Order other charges Table
@@ -3233,7 +3249,9 @@ def after_admin_approval(request, user=''):
             items.append([ap_status.sku.sku_desc, quantity])
             detail_check = OrderDetail.objects.filter(order_id= order_id,sku_id= ap_status.sku_id,user = user.id,order_code = 'MN')
             data_dict = {'order_id':order_id, 'customer_id':customer_user_id, 'user':user_id,
-            'title':ap_status.sku.sku_desc, 'quantity':quantity,'invoice_amount':invoice_amount, 'sku_id':ap_status.sku_id,'shipment_date':shipment_date,'order_code':'MN','original_order_id':'MN'+str(order_id)}
+            'title':ap_status.sku.sku_desc, 'quantity':quantity,'invoice_amount':invoice_amount,
+            'sku_id':ap_status.sku_id,'shipment_date':shipment_date,'order_code':'MN',
+            'original_order_id':'MN'+str(order_id), 'status':1}
             if detail_check:
                 detail_check.update(quantity= quantity,invoice_amount= invoice_amount)
             else:
@@ -3331,6 +3349,7 @@ def validate_order_form(myDict, request, user):
     po_imeis = []
 
     status = ''
+    temp_distinct_skus = []
     direct_dispatch = request.POST.get('direct_dispatch', '')
     if not myDict['shipment_date'][0]:
         status = 'Shipment Date should not be empty'
@@ -3382,6 +3401,7 @@ def validate_order_form(myDict, request, user):
             stock_check = False
         else:
             all_sku_codes[i] = sku_master[0]
+            temp_distinct_skus.append(sku_master[0]['wms_code'])
         try:
             value = float(myDict['quantity'][i])
         except:
@@ -3419,7 +3439,7 @@ def validate_order_form(myDict, request, user):
     if sor_id_status:
         status += " " + sor_id_status
 
-    return status, all_sku_codes
+    return status, all_sku_codes, list(set(temp_distinct_skus))
 
 
 def create_order_json(order_detail, json_dat={}, ex_image_url={}):
@@ -3641,7 +3661,7 @@ def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, cus
                      'description', 'extra_data', 'location', 'serials', 'direct_dispatch', 'seller_id', 'sor_id',
                      'ship_to', 'client_name', 'po_number', 'corporate_po_number', 'address_selected', 'is_sample',
                      'invoice_type', 'default_shipment_addr', 'manual_shipment_addr', 'sample_client_name',
-                     'mode_of_transport', 'payment_status', 'courier_name']
+                     'mode_of_transport', 'payment_status', 'courier_name', 'order_discount']
     inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
     order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
     sku_master = {}
@@ -3889,7 +3909,7 @@ def insert_order_data(request, user=''):
     dispatch_orders = OrderedDict()
 
     # Validate sku, quantity, stock
-    valid_status, all_sku_codes = validate_order_form(myDict, request, user)
+    valid_status, all_sku_codes, temp_distinct_skus = validate_order_form(myDict, request, user)
 
     payment_mode = request.POST.get('payment_mode', '')
     payment_received = request.POST.get('payment_received', '')
@@ -3897,7 +3917,7 @@ def insert_order_data(request, user=''):
     tax_percent = request.POST.get('tax', '')
     telephone = request.POST.get('telephone', '')
     custom_order = request.POST.get('custom_order', '')
-    user_type = request.POST.get('user_type', '')
+    user_type = request.user.userprofile.user_type #request.POST.get('user_type', '')
     seller_id = request.POST.get('seller_id', '')
     sor_id = request.POST.get('sor_id', '')
     ship_to = request.POST.get('ship_to', '')
@@ -3910,6 +3930,7 @@ def insert_order_data(request, user=''):
     sample_client_name = request.POST.get('sample_client_name', '')
     mode_of_transport = request.POST.get('mode_of_transport','')
     courier_name = request.POST.get('courier_name', '')
+    order_discount = request.POST.get('order_discount', 0)
     dist_shipment_address = request.POST.get('manual_shipment_addr', '')
     if dist_shipment_address:
         ship_to = dist_shipment_address
@@ -3970,6 +3991,10 @@ def insert_order_data(request, user=''):
             order_summary_dict['client_name'] = sample_client_name
             order_summary_dict['mode_of_transport'] = mode_of_transport
             order_summary_dict['payment_status'] = payment_status
+            if order_discount:
+                order_summary_dict.setdefault('discount', 0)
+                order_summary_dict['discount'] = order_summary_dict['discount'] + \
+                                                 (float(order_discount)/len(temp_distinct_skus))
 
             if admin_user:
                 if user_type == 'customer':
@@ -11671,7 +11696,10 @@ def create_orders_check_ean(request, user=''):
     data = {}
     sku_code = ''
     ean = request.GET.get('ean')
-    sku_obj = SKUMaster.objects.filter(ean_number=ean, user=user.id)
+    try:
+        sku_obj = SKUMaster.objects.filter(Q(ean_number=ean) | Q(sku_code=ean) | Q(eannumbers__ean_number=ean), user=user.id)
+    except:
+        pass
     if sku_obj:
         sku_code = sku_obj[0].sku_code
     return HttpResponse(json.dumps({ 'sku' : sku_code }))

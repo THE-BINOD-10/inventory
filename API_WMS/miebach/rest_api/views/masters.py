@@ -961,7 +961,7 @@ def update_sku(request, user=''):
             #            return HttpResponse(ean_status)
             elif key == 'ean_numbers':
                 ean_numbers = value.split(',')
-                ean_status = update_ean_sku_mapping(user, ean_numbers, data)
+                ean_status = update_ean_sku_mapping(user, ean_numbers, data, True)
                 if ean_status:
                     return HttpResponse(ean_status)
 
@@ -2667,11 +2667,18 @@ def generate_barcodes(request, user=''):
     tmp = []
     for d in data_dict:
         if d.has_key('quantity') and int(d['quantity']) > 1:
+            tmp.append(d)
             for i in range(int(d['quantity'])-1):
                 d['quantity'] = 1
-                tmp.append(d) 
-    if tmp:
-        data_dict.extend(tmp)
+                tmp.append(d)
+        else:
+            tmp.append(d)
+    data_dict = tmp
+    #if tmp:
+    #    data_dict.extend(tmp)
+    #if not tmp:
+    #    tmp = data_dict
+    #print tmp
     barcodes_list = generate_barcode_dict(pdf_format, data_dict, user)
 
     return HttpResponse(json.dumps(barcodes_list))

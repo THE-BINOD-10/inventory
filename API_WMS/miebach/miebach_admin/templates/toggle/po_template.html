@@ -16,7 +16,7 @@
           <tr>
             <td colspan="2">
               <h3 class="m0" align="center"><b>{{ company_name }}</b></h3>
-              <p class="m0" align="center">{{ w_address|linebreaks }}</p>
+              <p class="m0" align="center">{{ company_address|linebreaks }}</p>
             </td>
           </tr>
           <tr>
@@ -99,7 +99,7 @@
 
                   {% if not show_cess_tax %}
                     {% if industry_type == 'FMCG' %}
-                      {% if forloop.counter0 != 11 %}
+                      {% if forloop.counter0 != 12 %}
                         <td style="text-align: center;">{{ d }}</td>
                       {% endif %}
                     {% else %}
@@ -123,7 +123,7 @@
                 {% if round_total %}
                   <span>RoundOff value :</span> {{ round_total }}<br>
                 {% endif %}
-				  			<span><b>Total Invoice Amt :</b></span> {{ total }} <br>
+				  			<span><b>Total PO Amt :</b></span> {{ total }} <br>
 							</div>
 			  		</div>
 					</td>

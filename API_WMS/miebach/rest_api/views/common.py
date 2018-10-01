@@ -206,7 +206,8 @@ def add_user_permissions(request, response_data, user=''):
                                              'trail_user': status_dict[int(user_profile.is_trail)],
                                              'company_name': user_profile.company_name,
                                              'industry_type': user_profile.industry_type,
-                                             'user_type': request_user_profile.user_type}
+                                             'user_type': user_profile.user_type,
+                                             'request_user_type': request_user_profile.user_type}
 
     setup_status = 'false'
     if 'completed' not in user_profile.setup_status:
@@ -807,6 +808,10 @@ def configurations(request, user=''):
             config_dict['tax_data'].append({'tax_name': tax.misc_type[4:], 'tax_value': tax.misc_value})
     config_dict['rem_saved_mail_alerts'] = list(MailAlerts.objects.filter(user_id=user.id).\
                                                 values('alert_name', 'alert_value'))
+    config_dict['selected_receive_po_mandatory'] = []
+    mandatory_receive_po = get_misc_value('receive_po_mandatory_fields', user.id)
+    if mandatory_receive_po != 'false':
+        config_dict['selected_receive_po_mandatory'] = mandatory_receive_po.split(',')
     return HttpResponse(json.dumps(config_dict))
 
 
@@ -3538,7 +3543,7 @@ def get_customer_sku_prices(request, user=""):
                     discount = price_master_objs[0].discount
             result_data.append(
                 {'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'price': price, 'discount': discount,
-                 'taxes': taxes_data, 'price_bands_map': price_bands_list})
+                 'taxes': taxes_data, 'price_bands_map': price_bands_list, 'mrp': data.mrp})
 
     except Exception as e:
         import traceback
@@ -6627,16 +6632,23 @@ def update_profile_data(request, user=''):
 def get_purchase_company_address(profile):
     """ Returns Company address for purchase order"""
 
-    address = profile.address
-    if not address:
-        return ''
+    company_address = profile.address
+    if profile.wh_address:
+        address = profile.wh_address
+    else:
+        address = profile.address
+    if not (address and company_address):
+        return '', ''
     if profile.user.email:
         address = ("%s, Email:%s") % (address, profile.user.email)
+        company_address = ("%s, Email:%s") % (company_address, profile.user.email)
     if profile.phone_number:
-        address = ("%s, Phone:%s") % (address, profile.phone_number)
+        #address = ("%s, Phone:%s") % (address, profile.phone_number)
+        company_address = ("%s, Phone:%s") % (company_address, profile.phone_number)
     if profile.gst_number:
-        address = ("%s, GSTINo:%s") % (address, profile.gst_number)
-    return address
+        #address = ("%s, GSTINo:%s") % (address, profile.gst_number)
+        company_address = ("%s, GSTINo:%s") % (company_address, profile.gst_number)
+    return address, company_address
 
 
 def update_level_price_type(customer_master, level, price_type):
@@ -7817,7 +7829,7 @@ def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False):
             error_eans.append(ean_number)
     for rem_ean in rem_ean_list:
         if int(data.ean_number) == int(rem_ean):
-            data.ean_number = 0
+            data.ean_number = int(rem_ean)
         else:
             EANNumbers.objects.filter(sku_id=data.id, ean_number=rem_ean).delete()
     if error_eans:

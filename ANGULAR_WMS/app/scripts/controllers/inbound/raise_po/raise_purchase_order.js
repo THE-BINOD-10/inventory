@@ -11,13 +11,13 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     vm.extra_width = { 'width': '1250px' };
     vm.selected = {};
     vm.selectAll = false;
-
     vm.date = new Date();
     vm.update_part = true;
     vm.permissions = Session.roles.permissions;
-    vm.industry_type = Session.user_profile.industry_type;
+    vm.user_profile = Session.user_profile;
+    vm.industry_type = vm.user_profile.industry_type;
     vm.display_purchase_history_table = false;
-
+    vm.warehouse_type = vm.user_profile.warehouse_type;
     vm.filters = {'datatable': 'RaisePO', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -119,6 +119,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
                   vm.model_data.seller_supplier_map = data.data.seller_supplier_map;
                   vm.model_data["receipt_types"] = data.data.receipt_types;
                   vm.model_data.seller_type = vm.dedicated_seller;
+                  vm.model_data.warehouse_names = data.data.warehouse
                   angular.forEach(seller_data, function(seller_single){
                     vm.model_data.seller_types.push(seller_single.id + ':' + seller_single.name);
                   });
@@ -239,7 +240,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
         if (data.message) {
           var seller_data = data.data.sellers;
           vm.model_data.tax = data.data.tax;
-           vm.model_data.seller_supplier_map = data.data.seller_supplier_map;
+          vm.model_data.seller_supplier_map = data.data.seller_supplier_map
+          vm.model_data.warehouse_names = data.data.warehouse
           vm.model_data["receipt_types"] = data.data.receipt_types;
           angular.forEach(seller_data, function(seller_single){
               vm.model_data.seller_types.push(seller_single.id + ':' + seller_single.name);

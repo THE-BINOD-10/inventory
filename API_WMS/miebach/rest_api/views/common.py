@@ -44,12 +44,9 @@ from generate_reports import *
 from django.template import loader, Context
 from barcodes import *
 
-
-
 log = init_logger('logs/common.log')
 init_log = init_logger('logs/integrations.log')
 log_qssi = init_logger('logs/qssi_order_status_update.log')
-
 
 # Create your views here.
 
@@ -209,7 +206,8 @@ def add_user_permissions(request, response_data, user=''):
                                              'company_name': user_profile.company_name,
                                              'industry_type': user_profile.industry_type,
                                              'user_type': user_profile.user_type,
-                                             'request_user_type': request_user_profile.user_type}
+                                             'request_user_type': request_user_profile.user_type,
+                                             'warehouse_type': user_profile.warehouse_type}
 
     setup_status = 'false'
     if 'completed' not in user_profile.setup_status:
@@ -3876,7 +3874,6 @@ def get_sellers_list(request, user=''):
         seller_list.append({'id': seller.seller_id, 'name': seller.name})
         if seller.supplier:
             seller_supplier[seller.seller_id] = seller.supplier.id
-    import pdb;pdb.set_trace()
     user_list = get_all_warehouses(user)
     return HttpResponse(json.dumps({'sellers': seller_list, 'tax': 5.5, 'receipt_types': PO_RECEIPT_TYPES, \
                                     'seller_supplier_map': seller_supplier, 'warehouse' : user_list}))

@@ -802,6 +802,10 @@ def configurations(request, user=''):
             config_dict['tax_data'].append({'tax_name': tax.misc_type[4:], 'tax_value': tax.misc_value})
     config_dict['rem_saved_mail_alerts'] = list(MailAlerts.objects.filter(user_id=user.id).\
                                                 values('alert_name', 'alert_value'))
+    config_dict['selected_receive_po_mandatory'] = []
+    mandatory_receive_po = get_misc_value('receive_po_mandatory_fields', user.id)
+    if mandatory_receive_po != 'false':
+        config_dict['selected_receive_po_mandatory'] = mandatory_receive_po.split(',')
     return HttpResponse(json.dumps(config_dict))
 
 
@@ -3533,7 +3537,7 @@ def get_customer_sku_prices(request, user=""):
                     discount = price_master_objs[0].discount
             result_data.append(
                 {'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'price': price, 'discount': discount,
-                 'taxes': taxes_data, 'price_bands_map': price_bands_list})
+                 'taxes': taxes_data, 'price_bands_map': price_bands_list, 'mrp': data.mrp})
 
     except Exception as e:
         import traceback
@@ -4309,6 +4313,7 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
             sku_styles[0]['variants'] = sku_variants
             sku_styles[0]['style_quantity'] = total_quantity
             sku_styles[0]['asn_quantity'] = needed_stock_data['asn_quantities'].get(prd_sku, 0)
+            sku_styles[0]['blocked_qty'] = needed_stock_data['enquiry_res_quantities'].get(prd_sku, 0)
 
             sku_styles[0]['image_url'] = resize_image(sku_styles[0]['image_url'], user)
             if style_quantities.get(sku_styles[0]['sku_class'], ''):
@@ -6621,19 +6626,23 @@ def update_profile_data(request, user=''):
 def get_purchase_company_address(profile):
     """ Returns Company address for purchase order"""
 
+    company_address = profile.address
     if profile.wh_address:
         address = profile.wh_address
     else:
         address = profile.address
-    if not address:
-        return ''
+    if not (address and company_address):
+        return '', ''
     if profile.user.email:
         address = ("%s, Email:%s") % (address, profile.user.email)
+        company_address = ("%s, Email:%s") % (company_address, profile.user.email)
     if profile.phone_number:
-        address = ("%s, Phone:%s") % (address, profile.phone_number)
+        #address = ("%s, Phone:%s") % (address, profile.phone_number)
+        company_address = ("%s, Phone:%s") % (company_address, profile.phone_number)
     if profile.gst_number:
-        address = ("%s, GSTINo:%s") % (address, profile.gst_number)
-    return address
+        #address = ("%s, GSTINo:%s") % (address, profile.gst_number)
+        company_address = ("%s, GSTINo:%s") % (company_address, profile.gst_number)
+    return address, company_address
 
 
 def update_level_price_type(customer_master, level, price_type):

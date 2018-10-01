@@ -1496,6 +1496,12 @@ STYLE_DETAIL_HEADERS = OrderedDict((('SKU Code', 'wms_code'), ('SKU Description'
                                     ('1-Day Stock', 'physical_stock'), ('3-Day Stock', 'all_quantity')
                                     ))
 
+RECEIVE_PO_MANDATORY_FIELDS = OrderedDict((
+                      ('Buy Price', 'buy_price'), ('MRP', 'mrp'),
+                      ('Weight', 'weight'), ('Batch No', 'batch_no'),
+                      ('Mfg Date', 'mfg_date'), ('Exp Date', 'exp_date')
+                    ))
+
 STYLE_DETAIL_WITHOUT_STATIC_LEADTIME = OrderedDict((('SKU Code', 'wms_code'), ('SKU Description', 'sku_desc'),
                                                     ('Size', 'sku_size')))
 
@@ -1786,7 +1792,8 @@ CONFIG_DEF_DICT = {'receive_options': dict(RECEIVE_OPTIONS),
                    'mail_reports': MAIL_REPORTS, 'style_detail_headers': STYLE_DETAIL_HEADERS,
                    'picklist_options': PICKLIST_OPTIONS,
                    'order_headers': ORDER_HEADERS_d, 'barcode_generate_options': BARCODE_OPTIONS,
-                   'rem_mail_alerts': REMAINDER_MAIL_ALERTS
+                   'rem_mail_alerts': REMAINDER_MAIL_ALERTS,
+                   'receive_po_mandatory_fields': RECEIVE_PO_MANDATORY_FIELDS
                    }
 
 MARKETPLACE_SERIAL_EXCEL_HEADERS = ['Order Reference', 'Marketplace', 'Serial Number']
@@ -2211,7 +2218,14 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                     order_id = data.order.original_order_id
                     if not order_id:
                         order_id = str(data.order.order_code) + str(data.order.order_id)
-                    temp_data['aaData'].append(OrderedDict((('Order ID', order_id), ('WMS Code', data.stock.sku.wms_code),
+                    child_sku_code = ''
+                    if data.order_type == 'combo':
+                        if data.stock:
+                            child_sku_code = data.stock.sku.sku_code
+                        else:
+                            child_sku_code = data.order.sku.sku_code
+                    temp_data['aaData'].append(OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.sku_code),
+                                                            ('Child SKU', child_sku_code),
                                                             ('Description', data.stock.sku.sku_desc),
                                                             ('Location', pick_loc.stock.location.location),
                                                             ('Quantity', data.order.quantity),
@@ -2635,6 +2649,7 @@ def get_po_filter_data(search_params, user, sub_user):
         search_parameters[field_mapping['wms_code']] = search_params['sku_code']
     search_parameters[field_mapping['user']] = user.id
     search_parameters[field_mapping['sku_id__in']] = sku_master_ids
+    search_parameters['received_quantity__gt'] = 0
     query_data = model_name.objects.prefetch_related('open_po__sku','open_po__supplier').select_related('open_po', 'open_po__sku','open_po__supplier').exclude(**excl_status).filter(**search_parameters)
     model_data = query_data.values(*result_values).distinct().annotate(ordered_qty=Sum(ord_quan),
                                                                    total_received=Sum(rec_quan),

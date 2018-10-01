@@ -25,7 +25,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'display_sku_cust_mapping': false, 'disable_categories_view': false, 'is_portal_lite': false,
                     'invoice_based_payment_tracker': false, 'receive_po_invoice_check': false,
                     'auto_raise_stock_transfer': false, 'inbound_supplier_invoice': false, 'customer_dc': false,
-                    'mark_as_delivered': false,
+                    'mark_as_delivered': false, 'receive_po_mandatory_fields': false
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -45,7 +45,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      58: 'shelf_life_ratio', 59: 'display_sku_cust_mapping',  60: 'disable_categories_view', 61: 'is_portal_lite',
                      62: 'auto_raise_stock_transfer', 63: 'inbound_supplier_invoice',
                      64: 'customer_dc', 65: 'auto_expire_enq_limit', 66: 'invoice_based_payment_tracker', 67: 'receive_po_invoice_check',
-                     68: 'mark_as_delivered'}
+                     68: 'mark_as_delivered', 69: 'receive_po_mandatory_fields'}
 
   vm.check_box_data = [
     {

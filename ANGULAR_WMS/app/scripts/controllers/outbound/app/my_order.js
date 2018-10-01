@@ -8,6 +8,7 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
   vm.page_url = $state.href($state.current.name, $state.params, {absolute: true})
   vm.your_orders = $state.params.state;
   vm.status = $state.params.state;
+  vm.state_name = $state.current.name;
 
   var url = "";
   if (vm.your_orders == 'enquiry') {
@@ -16,6 +17,10 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
     url = "get_manual_enquiry_data/";
   } else {
     url = "get_customer_orders/";
+  }
+
+  if (vm.state_name == 'app.inbound.AutoBackOrders') {
+    Data.my_orders = [];
   }
 
   //you orders
@@ -172,7 +177,7 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
 
   vm.open_details = function(data) {
 
-    if (Session.user_profile.user_type == 'warehouse_user') {
+    if (Session.user_profile.request_user_type == 'warehouse_user') {
 
       var mod_data = {order_id: data['orderId'], url: 'get_customer_order_detail', customer_id: data['customerId']};
       var page_url = window.location.href

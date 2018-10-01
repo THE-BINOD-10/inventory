@@ -97,12 +97,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
 
     //DATA table end
     vm.carton_code = "";
-    vm.add_carton = function() {
+    vm.carton = "";
+    vm.box_num = "";
+    vm.add_carton = function(test="Sample") {
         var carton_code = '';
         swal2({
           title: 'Please enter your carton code',
           text: '',
-          input: 'text',
+          // input: 'text',
+          html:
+            '<input class="swal2-input" name="carton_num" id="carton_num" placeholder="Enter Carton" type="text" style="display: block;" value="'+test+'"  readonly>' +
+            '<input class="swal2-input" name="box_num" id="box_num" placeholder="Enter Box Number" value="" type="text" style="display: block;">',
           confirmButtonColor: '#33cc66',
           // cancelButtonColor: '#d33',
           confirmButtonText: 'Save',
@@ -113,16 +118,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
           confirmButtonClass: 'btn btn-success',
           cancelButtonClass: 'btn btn-default',
           showCancelButton: true,
-          preConfirm: function (text) {
-            return new Promise(function (resolve, reject) {
-              vm.update_carton_code(text);
-              resolve();
+          preConfirm: function () {
+            return new Promise(function (resolve) {
+              resolve([
+                $('#carton_num').val(),
+                $('#box_num').val()
+              ])
             })
           },
           allowOutsideClick: false,
           // buttonsStyling: false
         }).then(function (text) {
             $('#scan_sku').focus();
+            vm.carton = $('#carton_num').val();
+            vm.box_num = $('#box_num').val();
             // swal2({
             //   type: 'success',
             //   title: 'Carton Code Added!',
@@ -134,7 +143,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
     vm.update_carton_code = function(carton_code){
       $scope.$apply(function() {
         vm.carton_code = carton_code;
-        
+
         if (!vm.model_data.sel_cartons[carton_code]) {
           vm.model_data.sel_cartons[carton_code] = 0;
         }
@@ -384,7 +393,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
 
       modalInstance.result.then(function (selectedItem) {
         console.log(selectedItem);
-      }); 
+      });
     }
 
   vm.add_shipment = function(valid) {
@@ -537,7 +546,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
         }
         vm.awb_no = '';
         vm.bt_disable = true;
-        }); 
+        });
       }
     }
     vm.bt_disable = false;
@@ -592,7 +601,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
                 if (vm.carton_code == vm.model_data.data[i].sub_data[last_index].pack_reference ||
                   !vm.model_data.data[i].sub_data[last_index].pack_reference ||
                   (!vm.model_data.data[i].sub_data[last_index].shipping_quantity && vm.model_data.data[i].sub_data[last_index].pack_reference)) {
-                  
+
                   vm.model_data.data[i].sub_data[last_index].shipping_quantity = Number(exist_quan) + 1;
 
                   if (vm.model_data.data[i].sub_data[last_index].shipping_quantity) {
@@ -645,8 +654,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
         var sel_cartons_len = Object.keys(vm.model_data.sel_cartons);
         var sel_cartons = JSON.stringify(vm.model_data.sel_cartons);
         var total_items = 0;
-        angular.forEach(vm.model_data.sel_cartons, function(row){ 
-          total_items += row; 
+        angular.forEach(vm.model_data.sel_cartons, function(row){
+          total_items += row;
         });
         var elem = angular.element($('#add-customer'));
         elem = elem[0];

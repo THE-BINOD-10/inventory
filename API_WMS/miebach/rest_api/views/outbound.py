@@ -3528,6 +3528,13 @@ def create_order_from_intermediate_order(request, user):
     message = 'Success'
     first = True
     inter_obj_data = {}
+
+    # Picklist generation
+    order_user_sku = {}
+    order_user_objs = {}
+    order_sku = {}
+    order_objs = []
+
     warehouses = json.loads(request.POST.get('warehouse'))
     for wh, wh_data in warehouses.iteritems():
         if int(wh_data['quantity']) > 0:
@@ -3541,6 +3548,7 @@ def create_order_from_intermediate_order(request, user):
             if status != '0':
                 if wh_usr_obj:
                     wh_id = wh_usr_obj[0].id
+                    wh_usr_obj = wh_usr_obj[0]
                 else:
                     return HttpResponse('User Missing')
             interm_det_id = request.POST.get('interm_det_id', '')
@@ -3621,6 +3629,22 @@ def create_order_from_intermediate_order(request, user):
                     order_dict['remarks'] = interm_obj.remarks
                     ord_obj = OrderDetail(**order_dict)
                     ord_obj.save()
+                    order_objs.append(ord_obj)
+                    import pdb;pdb.set_trace()
+                    order_sku.update({ord_obj.sku: order_dict['quantity']})
+                    # Collecting needed data for Picklist generation
+                    order_user_sku.setdefault(wh_id, {})
+                    order_user_sku[wh_id].setdefault(ord_obj.sku, 0)
+                    order_user_sku[wh_id][ord_obj.sku] += order_dict['quantity']
+
+                    # Collecting User order objs for picklist generation
+                    order_user_objs.setdefault(wh_id, [])
+                    order_user_objs[wh_id].append(ord_obj)
+
+                    auto_picklist_signal = get_misc_value('auto_generate_picklist', wh_id)
+                    if auto_picklist_signal == 'true':
+                        message = check_stocks(order_sku, wh_usr_obj, request, order_objs)
+
                     if first:
                         inv_amt = (interm_obj.unit_price * interm_obj.quantity) + interm_obj.tax
                         items.append([interm_obj.sku.sku_desc, interm_obj.quantity, inv_amt])
@@ -5039,7 +5063,7 @@ def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_
         if cart_obj:
             cart_qty = cart_obj[0].quantity
         if inter_obj:
-            inter_qty = inter_obj[0].quantity
+            inter_qty = inter_obj.aggregate(Sum('quantity'))['quantity__sum']
         blocked_qty = cart_qty + inter_qty
         item['blocked_quantity'] = blocked_qty
 
@@ -7969,7 +7993,7 @@ def get_customer_cart_data(request, user=""):
             cart_qty, inter_qty = 0, 0
             inter_obj = IntermediateOrders.objects.filter(sku=sku_obj[0].id, status='')
             if inter_obj:
-                inter_qty = inter_obj[0].quantity
+                inter_qty = inter_obj.aggregate(Sum('quantity'))['quantity__sum']#inter_obj[0].quantity
             blocked_qty = inter_qty
             json_record['available_stock'] = available_stock - blocked_qty
             if central_order_mgmt:

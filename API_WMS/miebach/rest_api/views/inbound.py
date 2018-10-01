@@ -901,7 +901,6 @@ def switches(request, user=''):
     
     log.info('Request params for ' + user.username + ' on ' + str(
         get_local_date(user, datetime.datetime.now())) + ' is ' + str(request.GET.dict()))
-
     try:
         toggle_data = {'fifo_switch': 'fifo_switch',
                        'batch_switch': 'batch_switch',
@@ -980,6 +979,7 @@ def switches(request, user=''):
                        'sales_return_reasons': 'sales_return_reasons',
                        'receive_po_invoice_check': 'receive_po_invoice_check',
                        'mark_as_delivered': 'mark_as_delivered',
+                       'receive_po_mandatory_fields': 'receive_po_mandatory_fields'
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -4569,9 +4569,7 @@ def confirm_add_po(request, sales_data='', user=''):
     if get_misc_value('raise_po', user.id) == 'true':
         write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, phone_no, po_data,
                            str(order_date).split(' ')[0], ean_flag=ean_flag)
-
     check_purchase_order_created(user, po_id)
-
     return render(request, 'templates/toggle/po_template.html', data_dict)
 
 

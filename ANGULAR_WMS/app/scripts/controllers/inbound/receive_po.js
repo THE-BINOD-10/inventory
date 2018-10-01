@@ -17,8 +17,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.user_type = Session.user_profile.user_type;
     vm.supplier_id = '';
     vm.order_id = 0;
-    // vm.industry_type = 'FMCG';
-
+    vm.receive_po_mandatory_fields = {};
+    if(vm.permissions.receive_po_mandatory_fields) {
+      angular.forEach(vm.permissions.receive_po_mandatory_fields.split(','), function(field){
+        console.log(field+'\n');
+        if (!vm.receive_po_mandatory_fields[field]) {
+          vm.receive_po_mandatory_fields[field] = field;
+        }
+      })
+    }
+    console.log(vm.receive_po_mandatory_fields);
     //default values
     if(!vm.permissions.grn_scan_option) {
       vm.permissions.grn_scan_option = "sku_serial_scan";
@@ -175,17 +183,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         return nRow;
     }
 
-    $(document).on('keydown', 'input.detectTab', function(e) { 
-      var keyCode = e.keyCode || e.which; 
+    $(document).on('keydown', 'input.detectTab', function(e) {
+      var keyCode = e.keyCode || e.which;
 
       var fields_count = 0;
-      
+
       if (vm.permissions.pallet_switch || vm.industry_type=='FMCG') {
         fields_count = (this.closest('#tab_count').childElementCount-2);
       } else {
         fields_count = (this.closest('#tab_count').childElementCount-1);
       }
-      
+
       var cur_td_index = (this.parentElement.nextElementSibling.cellIndex);
 
       if (this.closest('#tab_count').cells[0].children[1].tagName == 'UL') {
@@ -203,10 +211,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     });
 
-    /*$(document).on('keydown', 'input.detectReceiveTab', function(e) { 
-      var keyCode = e.keyCode || e.which; 
+    /*$(document).on('keydown', 'input.detectReceiveTab', function(e) {
+      var keyCode = e.keyCode || e.which;
 
-      if (keyCode == 9) { 
+      if (keyCode == 9) {
         e.preventDefault();
         vm.add_wms_code(Number(this.parentNode.children[1].value), false);
       }
@@ -258,7 +266,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               Service.showNoty('Product has crossed acceptable shelf life ratio');
               //vm.model_data.data[0][0].exp_date = '';
             }
-            
+
           } else {
             Service.showNoty('Please choose proper date');
             vm.model_data.data[parent_index][index].exp_date = '';
@@ -305,7 +313,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }
       }
     }
-    
+
     vm.new_sku = false
     vm.add_wms_code = add_wms_code;
     function add_wms_code(index=0, flag=true) {
@@ -470,7 +478,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       return Math.abs(inv_value - total_value);
     }
 
-    // vm.skus_total_amount 
+    // vm.skus_total_amount
 
     vm.html = "";
     vm.confirm_grn = function(form) {
@@ -481,23 +489,27 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       // data.push({name: 'exp_date', value: form.exp_date.$viewValue});
       // data.push({name: 'po_unit', value: form.po_unit.$viewValue});
       // data.push({name: 'tax_per', value: form.tax_per.$viewValue});
-      if (vm.permissions.receive_po_invoice_check && vm.model_data.invoice_value){
+      if (form.$valid) {
+        if (vm.permissions.receive_po_invoice_check && vm.model_data.invoice_value){
 
-        var abs_inv_value = vm.absOfInvValueTotal(vm.model_data.invoice_value, vm.skus_total_amount);
+          var abs_inv_value = vm.absOfInvValueTotal(vm.model_data.invoice_value, vm.skus_total_amount);
 
-        if (vm.permissions.receive_po_invoice_check && abs_inv_value <= 3){
+          if (vm.permissions.receive_po_invoice_check && abs_inv_value <= 3){
+
+            vm.confirm_grn_api();
+          } else if (vm.permissions.receive_po_invoice_check && abs_inv_value >= 3) {
+
+            colFilters.showNoty("Your entered invoice value and total value does not match");
+          }
+        } else if (vm.permissions.receive_po_invoice_check && !(vm.model_data.invoice_value)){
+
+          colFilters.showNoty("Please Fill The Invoice Value Field");
+        } else {
 
           vm.confirm_grn_api();
-        } else if (vm.permissions.receive_po_invoice_check && abs_inv_value >= 3) {
-
-          colFilters.showNoty("Your entered invoice value and total value does not match");
         }
-      } else if (vm.permissions.receive_po_invoice_check && !(vm.model_data.invoice_value)){
-
-        colFilters.showNoty("Please Fill The Invoice Value Field");
       } else {
-
-        vm.confirm_grn_api();
+        colFilters.showNoty("Fill Required Fields");
       }
     }
 
@@ -675,9 +687,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               if (vm.permissions.use_imei) {
                 vm.sku_list_1 = [];
                 for(var i=0; i<vm.model_data.data.length; i++) {
-                  
+
                   angular.forEach(vm.model_data.data[i], function(sku){
-                  
+
                     vm.sku_list_1.push(sku.wms_code);
                     if(vm.field == sku.wms_code){
                       $("input[attr-name='imei_"+vm.field+"']").trigger('focus');
@@ -698,9 +710,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               } else {
                 vm.sku_list_1 = [];
                 for(var i=0; i<vm.model_data.data.length; i++) {
-                  
+
                   angular.forEach(vm.model_data.data[i], function(sku){
-                  
+
                     vm.sku_list_1.push(sku.wms_code);
                     if(vm.field == sku.wms_code){
                       if(sku.value < sku.po_quantity) {
@@ -734,7 +746,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.addNewScannedSku = function(event, field){
 
-      vm.marginData = {scanned_val: field, map_sku_code: ''};   
+      vm.marginData = {scanned_val: field, map_sku_code: ''};
       var mod_data = vm.marginData;
       var modalInstance = $modal.open({
         templateUrl: 'views/inbound/toggle/add_new_sku.html',
@@ -919,7 +931,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             if (resp.status) {
               Service.showNoty("Serial Number already Exist in other PO: "+resp.data.po);
               data1.imei_number = "";
-              //if(vm.permissions.barcode_generate_opt != "sku_serial") { 
+              //if(vm.permissions.barcode_generate_opt != "sku_serial") {
               //  $('textarea[name="scan_sku"]').trigger('focus').val('');
               //}
               if(vm.permissions.grn_scan_option == "sku_serial_scan") {
@@ -1064,7 +1076,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       elem = $(elem).serializeArray();
       var list = [];
       var dict = {};
-      $.each(elem, function(num, key){ 
+      $.each(elem, function(num, key){
       	if(!dict.hasOwnProperty(key['name'])){
         	dict[key['name']] = key['value'];
       	}else{
@@ -1094,7 +1106,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       modalInstance.result.then(function (selectedItem) {
         console.log(selectedItem);
-      }); 
+      });
     }
 
     vm.vendor_receive = function(data) {

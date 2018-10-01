@@ -2667,11 +2667,18 @@ def generate_barcodes(request, user=''):
     tmp = []
     for d in data_dict:
         if d.has_key('quantity') and int(d['quantity']) > 1:
+            tmp.append(d)
             for i in range(int(d['quantity'])-1):
                 d['quantity'] = 1
-                tmp.append(d) 
-    if tmp:
-        data_dict.extend(tmp)
+                tmp.append(d)
+        else:
+            tmp.append(d)
+    data_dict = tmp
+    #if tmp:
+    #    data_dict.extend(tmp)
+    #if not tmp:
+    #    tmp = data_dict
+    #print tmp
     barcodes_list = generate_barcode_dict(pdf_format, data_dict, user)
 
     return HttpResponse(json.dumps(barcodes_list))

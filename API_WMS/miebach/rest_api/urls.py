@@ -337,6 +337,7 @@ urlpatterns = [
     url(r'^list_notifications/$', list_notifications), #PUSH NOTIFICATIONS
     url(r'^make_notifications_read/$', make_notifications_read),
     url(r'^delete_notification/$', delete_notification),
+    url(r'^shipment_pack_ref/$', shipment_pack_ref),
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),

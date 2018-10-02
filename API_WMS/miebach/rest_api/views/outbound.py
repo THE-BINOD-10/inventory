@@ -2654,11 +2654,20 @@ def get_customer_sku(request, user=''):
             courier_name = customer_order_summary[0].courier_name
     data = get_shipment_quantity(user, all_orders, sku_grouping)
     if data:
+        #pack_ref_no = get_incremental(user, 'shipment_pack_ref')
         return HttpResponse(json.dumps({'data': data,
                                         'shipment_id': '',
                                         'display_fields': '',
-                                        'marketplace': '', 'shipment_number': ship_no, 'courier_name': courier_name}, cls=DjangoJSONEncoder))
+                                        'marketplace': '', 'shipment_number': ship_no,
+                                        'courier_name': courier_name}, cls=DjangoJSONEncoder))
     return HttpResponse(json.dumps({'status': 'No Orders found'}))
+
+
+@login_required
+@get_admin_user
+def shipment_pack_ref(request, user=''):
+    pack_ref_no = get_incremental(user, 'shipment_pack_ref')
+    return HttpResponse(json.dumps({'pack_ref_no': pack_ref_no}))
 
 
 @login_required

@@ -8040,8 +8040,8 @@ def get_grn_level_data(request, user=''):
                 seller_summary_objs = data.sellerposummary_set.filter(receipt_number=receipt_no)
                 open_data = data.open_po
                 for seller_summary_obj in seller_summary_objs:
-                    po_data_dict['sku_code'] = data.purchase_order.open_po.sku.sku_code
-                    po_data_dict['sku_desc'] = data.purchase_order.open_po.sku.sku_code
+                    po_data_dict['sku_code'] = data.open_po.sku.sku_code
+                    po_data_dict['sku_desc'] = data.open_po.sku.sku_code
                     po_data_dict['quantity'] = seller_summary_obj.quantity
                     po_data_dict['invoice_no'] = seller_summary_obj.invoice_number if seller_summary_obj.invoice_number else ''
                     po_data_dict['price'] = open_data.price
@@ -8070,9 +8070,9 @@ def get_grn_level_data(request, user=''):
             else:
                 open_data = data.open_po
                 po_data_dict = {}
-                po_data_dict['sku_code'] = data.purchase_order.open_po.sku.sku_code
-                po_data_dict['sku_desc'] = data.purchase_order.open_po.sku.sku_code
-                po_data_dict['quantity'] = seller_summary_obj.quantity
+                po_data_dict['sku_code'] = data.open_po.sku.sku_code
+                po_data_dict['sku_desc'] = data.open_po.sku.sku_code
+                po_data_dict['quantity'] = data.received_quantity
                 po_data_dict['price'] = open_data.price
                 po_data_dict['cgst_tax'] = open_data.cgst_tax
                 po_data_dict['sgst_tax'] = open_data.sgst_tax

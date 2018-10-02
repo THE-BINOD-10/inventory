@@ -19,7 +19,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.report_data = {};
 
   vm.row_call = function(aData) {
-    $http.get(Session.url+'grn_edit_popup/', {withCredential: true}).success(function(data, status, headers, config) {
+    $http.get(Session.url+'grn_edit_popup/', {withCredential: true, 'po_number': aData['PO Number']}).success(function(data, status, headers, config) {
       console.log(data)
     });
     $state.go('app.inbound.GrnEdit.GrnEditPopup');
@@ -36,7 +36,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     	  } else {
       	  vm.reports[name] = data.data.data;
       	  angular.copy(data.data.data, vm.report_data)
-          debugger;
           vm.report_data["row_call"] = vm.row_call;
           vm.service.get_report_dt(vm.empty_data, vm.report_data).then(function(datam) {
             vm.empty_data = datam.empty_data;
@@ -58,25 +57,25 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   	})
   }
 
-    vm.toggle_grn()
+  vm.toggle_grn()
 
-    vm.print_page = "";
-    vm.dtInstance = {};
+  vm.print_page = "";
+  vm.dtInstance = {};
 
-    vm.empty_data = {
-                    'from_date': '',
-                    'to_date': '',
-                    'po_number': '',
-                    'invoice_number': '',
-                    'supplier_id': '',
-                    };
+  vm.empty_data = {
+                  'from_date': '',
+                  'to_date': '',
+                  'po_number': '',
+                  'invoice_number': '',
+                  'supplier_id': '',
+                  };
 
-    vm.model_data = {};
-    angular.copy(vm.empty_data, vm.model_data);
+  vm.model_data = {};
+  angular.copy(vm.empty_data, vm.model_data);
 
-    vm.close = close;
-    function close() {
-      vm.title = "GRN Edit";
-      $state.go('app.inbound.grn_edit');
-    }
+  vm.close = close;
+  function close() {
+    vm.title = "GRN Edit";
+    $state.go('app.inbound.GrnEdit');
   }
+}

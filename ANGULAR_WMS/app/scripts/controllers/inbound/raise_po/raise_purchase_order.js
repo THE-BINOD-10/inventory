@@ -410,10 +410,17 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
 
     vm.confirm = function(data) {
       if (data.$valid) {
-        if(!(vm.update)) {
-          vm.confirm_add_po();
+        if (vm.warehouse_type == 'CENTRAL_ADMIN') {
+          var elem = angular.element($('form'))
+          elem = elem[0]
+          elem = $(elem).serializeArray()
+          vm.common_confirm('confirm_central_admin/', elem)
         } else {
-          vm.confirm_po();
+          if(!(vm.update)) {
+            vm.confirm_add_po();
+          } else {
+            vm.confirm_po();
+          }
         }
       }
     }

@@ -22,23 +22,22 @@
           </div>
           <button type="button" class="close" ng-click="showCase.close()"><span>&times;</span> </button>
         </div>
-        <div class="modal-body raise_po"
-             ng-class="(showCase.confirm_print)? 'hide': 'show'">
-           <div ng-if="!(user.user_profile.user_type == 'marketplace_user')">
-           <div class="row" ng-if="(!(showCase.update))">
-            <div class="col-md-11 col-sm-11 col-xs-10">
-              <p align="right">Vendor Receipt</p>
-            </div>
-            <div class="col-md-1 col-sm-1 col-xs-2">
-              <label class="switch switch-sm square">
-                <div>
-                  <input type="checkbox" ng-model="showCase.vendor_receipt">
-                  <span>
-                    <i class="handle"></i>
-                  </span>
-                </div>
-              </label>
-            </div>
+        <div class="modal-body raise_po" ng-class="(showCase.confirm_print)? 'hide': 'show'">
+          <div ng-if="!(user.user_profile.user_type == 'marketplace_user')">
+            <div class="row" ng-if="(!(showCase.update)) && showCase.warehouse_type != 'CENTRAL_ADMIN'">
+              <div class="col-md-11 col-sm-11 col-xs-10">
+                <p align="right">Vendor Receipt</p>
+              </div>
+              <div class="col-md-1 col-sm-1 col-xs-2">
+                <label class="switch switch-sm square">
+                  <div>
+                    <input type="checkbox" ng-model="showCase.vendor_receipt">
+                    <span>
+                      <i class="handle"></i>
+                    </span>
+                  </div>
+                </label>
+              </div>
             </div>
           </div>
           <div class="row">
@@ -266,11 +265,14 @@
           <div class="row insert-status"><h4 align="center">{{ showCase.message }}</h4></div>
         </div>
 		</div>
-        <div class="modal-footer">
+        <div class="modal-footer" ng-if="showCase.warehouse_type != 'CENTRAL_ADMIN'">
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop {{showCase.permissions.change_openpo?'pop-normal':'pop-green'}}" ng-click="showCase.save_raise_po(form)">{{showCase.permissions.change_openpo?'Save':'Send for Approval'}}</button>
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-show="showCase.permissions.change_openpo" data-dismiss="modal" ng-click="showCase.confirm(form)">Confirm PO</button>
           <button ng-if="showCase.print_enable" type="button" class="btn pop pop-normal" ng-click="showCase.barcode()">Print Barcodes</button>
           <button ng-if="showCase.print_enable" type="button" class="btn pop pop-green" ng-click="showCase.print_grn()">Print</button>
+        </div>
+        <div class="modal-footer" ng-if="showCase.warehouse_type == 'CENTRAL_ADMIN'">
+          <button type="submit" class="btn pop pop-green" ng-show="showCase.permissions.change_openpo" data-dismiss="modal" ng-click="showCase.confirm(form)">Confirm PO</button>
         </div>
       </div>
     </div>

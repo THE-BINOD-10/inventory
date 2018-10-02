@@ -8005,3 +8005,110 @@ def map_ean_sku_code(request, user=''):
     else:
         return HttpResponse(json.dumps({'message': 'EAN Number already mapped', 'status': 0}))
     return HttpResponse(json.dumps({'message': 'Success', 'status': 1}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_grn_level_data(request, user=''):
+    data_dict = ''
+    bill_no = ''
+    bill_date = ''
+    po_data = []
+    try:
+        po_number = request.GET['po_number']
+        temp = po_number.split('_')[1]
+        temp1 = temp.split('/')
+        receipt_no = ''
+        if len(temp1) > 1:
+            po_order_id = temp1[0]
+            receipt_no = temp1[1]
+        else:
+            po_order_id = temp1[0]
+        results = PurchaseOrder.objects.filter(order_id=po_order_id, open_po__sku__user=user.id)
+        if receipt_no:
+            results = results.distinct().filter(sellerposummary__receipt_number=receipt_no)
+        total = 0
+        total_qty = 0
+        total_tax = 0
+        for data in results:
+            receipt_type = ''
+            quantity = data.received_quantity
+            bill_date = data.updation_date
+            if receipt_no:
+                po_data_dict = {}
+                seller_summary_objs = data.sellerposummary_set.filter(receipt_number=receipt_no)
+                open_data = data.open_po
+                for seller_summary_obj in seller_summary_objs:
+                    po_data_dict['quantity'] = seller_summary_obj.quantity
+                    po_data_dict['invoice_no'] = seller_summary_obj.invoice_number if seller_summary_obj.invoice_number else ''
+                    po_data_dict['price'] = open_data.price
+                    po_data_dict['cgst_tax'] = open_data.cgst_tax
+                    po_data_dict['sgst_tax'] = open_data.sgst_tax
+                    po_data_dict['igst_tax'] = open_data.igst_tax
+                    po_data_dict['utgst_tax'] = open_data.utgst_tax
+                    po_data_dict['cess_tax'] = open_data.cess_tax
+                    if seller_summary_obj.batch_detail:
+                        po_data_dict['price'] = seller_summary_obj.batch_detail.buy_price
+                        temp_tax_percent = seller_summary_obj.batch_detail.tax_percent
+                        if seller_summary_obj.purchase_order.open_po.supplier.tax_type == 'intra_state':
+                            temp_tax_percent = temp_tax_percent / 2
+                            po_data_dict['cgst_tax'] = truncate_float(temp_tax_percent, 1)
+                            po_data_dict['sgst_tax'] = truncate_float(temp_tax_percent, 1)
+                            po_data_dict['igst_tax'] = 0
+                        else:
+                            po_data_dict['igst_tax'] = temp_tax_percent
+                            po_data_dict['cgst_tax'] = 0
+                            po_data_dict['sgst_tax'] = 0
+                    amount = float(po_data_dict['quantity']) * float(po_data_dict['price'])
+                    total += amount
+                    total_qty += quantity
+                    po_data.append(po_data_dict)
+
+            else:
+                open_data = data.open_po
+                amount = float(quantity) * float(data.open_po.price)
+                gst_tax = open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax
+                if gst_tax:
+                    amount += (amount / 100) * gst_tax
+                po_data[headers].append((open_data.sku.wms_code, open_data.order_quantity, quantity,
+                                         open_data.measurement_unit,
+                                         open_data.price, open_data.cgst_tax, open_data.sgst_tax, open_data.igst_tax,
+                                         open_data.utgst_tax, amount, open_data.sku.sku_desc))
+                total += amount
+                total_qty += quantity
+                total_tax += (open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax)
+        if results:
+            purchase_order = results[0]
+            address = purchase_order.open_po.supplier.address
+            address = '\n'.join(address.split(','))
+            telephone = purchase_order.open_po.supplier.phone_number
+            name = purchase_order.open_po.supplier.name
+            supplier_id = purchase_order.open_po.supplier.id
+            order_id = purchase_order.order_id
+            po_reference = '%s%s_%s' % (
+            purchase_order.prefix, str(purchase_order.creation_date).split(' ')[0].replace('-', ''),
+            purchase_order.order_id)
+            if receipt_no:
+                po_reference = '%s/%s' % (po_reference, receipt_no)
+            order_date = datetime.datetime.strftime(purchase_order.open_po.creation_date, "%d-%m-%Y")
+            bill_date = datetime.datetime.strftime(bill_date, "%d-%m-%Y")
+            user_profile = UserProfile.objects.get(user_id=user.id)
+            w_address, company_address = get_purchase_company_address(user_profile)#user_profile.address
+
+        title = 'Purchase Order'
+        #if receipt_type == 'Hosted Warehouse':
+        #    title = 'Stock Transfer Note'
+        return HttpResponse(json.dumps({'data': po_data, 'address': address,
+                       'order_id': order_id, 'telephone': str(telephone), 'name': name, 'order_date': order_date,
+                       'total_price': total, 'data_dict': data_dict, 'bill_no': bill_no,
+                       'po_number': po_reference, 'company_address': w_address, 'company_name': user_profile.company_name,
+                       'display': 'display-none', 'receipt_type': receipt_type, 'title': title,
+                       'total_received_qty': total_qty, 'bill_date': bill_date, 'total_tax': total_tax,
+                       'company_address': company_address}))
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Get GRN data failed for request user %s user %s and request data is %s and error is %s" %
+                 (str(request.user.username), str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Get GRN Data Failed")

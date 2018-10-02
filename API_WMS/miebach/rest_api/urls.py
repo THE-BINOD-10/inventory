@@ -180,6 +180,7 @@ urlpatterns = [
     url(r'^save_rtv/$', save_rtv),
     url(r'^get_saved_rtv_data/$', get_saved_rtv_data),
     url(r'^map_ean_sku_code/$', map_ean_sku_code),
+    url(r'^get_grn_level_data/$', get_grn_level_data),
 
     # Production
     url(r'^generated_jo_data/$', generated_jo_data),

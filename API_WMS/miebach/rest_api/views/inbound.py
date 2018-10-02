@@ -8040,6 +8040,8 @@ def get_grn_level_data(request, user=''):
                 seller_summary_objs = data.sellerposummary_set.filter(receipt_number=receipt_no)
                 open_data = data.open_po
                 for seller_summary_obj in seller_summary_objs:
+                    po_data_dict['sku_code'] = data.purchase_order.open_po.sku.sku_code
+                    po_data_dict['sku_desc'] = data.purchase_order.open_po.sku.sku_code
                     po_data_dict['quantity'] = seller_summary_obj.quantity
                     po_data_dict['invoice_no'] = seller_summary_obj.invoice_number if seller_summary_obj.invoice_number else ''
                     po_data_dict['price'] = open_data.price
@@ -8067,17 +8069,18 @@ def get_grn_level_data(request, user=''):
 
             else:
                 open_data = data.open_po
-                amount = float(quantity) * float(data.open_po.price)
-                gst_tax = open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax
-                if gst_tax:
-                    amount += (amount / 100) * gst_tax
-                po_data[headers].append((open_data.sku.wms_code, open_data.order_quantity, quantity,
-                                         open_data.measurement_unit,
-                                         open_data.price, open_data.cgst_tax, open_data.sgst_tax, open_data.igst_tax,
-                                         open_data.utgst_tax, amount, open_data.sku.sku_desc))
-                total += amount
-                total_qty += quantity
-                total_tax += (open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + open_data.utgst_tax)
+                po_data_dict = {}
+                po_data_dict['sku_code'] = data.purchase_order.open_po.sku.sku_code
+                po_data_dict['sku_desc'] = data.purchase_order.open_po.sku.sku_code
+                po_data_dict['quantity'] = seller_summary_obj.quantity
+                po_data_dict['price'] = open_data.price
+                po_data_dict['cgst_tax'] = open_data.cgst_tax
+                po_data_dict['sgst_tax'] = open_data.sgst_tax
+                po_data_dict['igst_tax'] = open_data.igst_tax
+                po_data_dict['utgst_tax'] = open_data.utgst_tax
+                po_data_dict['cess_tax'] = open_data.cess_tax
+                amount = float(po_data_dict['quantity']) * float(po_data_dict['price'])
+                po_data.append(po_data_dict)
         if results:
             purchase_order = results[0]
             address = purchase_order.open_po.supplier.address

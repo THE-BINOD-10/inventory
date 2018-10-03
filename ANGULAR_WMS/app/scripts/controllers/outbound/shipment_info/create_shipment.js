@@ -99,64 +99,75 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
     vm.carton_code = "";
     vm.carton = "";
     vm.box_num = "";
-    vm.add_carton = function(carton='123') {
+    vm.add_carton = function() {
         var carton_code = '';
-        swal2({
-          title: 'Please enter your carton code',
-          text: '',
-          // input: 'text',
-          html:
-            '<input class="swal2-input" name="carton_num" id="carton_num" placeholder="Enter Carton" type="text" style="display: block;" value="'+carton+'"  readonly>' +
-            '<input class="swal2-input" name="box_num" id="box_num" placeholder="Enter Box Number" value="" type="text" style="display: block;">',
-          confirmButtonColor: '#33cc66',
-          // cancelButtonColor: '#d33',
-          confirmButtonText: 'Save',
-          cancelButtonText: 'Cancel',
-          showLoaderOnConfirm: true,
-          inputOptions: 'Testing',
-          inputPlaceholder: 'Enter Carton',
-          confirmButtonClass: 'btn btn-success',
-          cancelButtonClass: 'btn btn-default',
-          showCancelButton: true,
-          preConfirm: function () {
-            return new Promise(function (resolve) {
-              resolve([
-                $('#carton_num').val(),
-                $('#box_num').val()
-              ])
-            })
-          },
-          allowOutsideClick: false,
-          // buttonsStyling: false
-        }).then(function (text) {
-          $scope.$apply(function() {
-            $('#scan_sku').focus();
-            vm.carton = $('#carton_num').val();
-            vm.box_num = $('#box_num').val();
-            angular.forEach(vm.model_data.data, function(data){
-              angular.forEach(data.sub_data, function(record){
-                if (vm.carton == record.pack_reference) {
-                  record.box_num = vm.box_num;
-                }
-              });
+        vm.service.apiCall('shipment_pack_ref').then(function(data){
+          if(data.message) {
+            console.log(data);
+            // carton = data.data.pack_ref_no;
+
+            swal2({
+              title: 'Please enter your carton code',
+              text: '',
+              // input: 'text',
+              html:
+                '<input class="swal2-input" name="carton_num" id="carton_num" placeholder="Enter Carton" type="text" style="display: block;" value="'+data.data.pack_ref_no+'"  readonly>' +
+                '<input class="swal2-input" name="box_num" id="box_num" placeholder="Enter Box Number" value="" type="text" style="display: block;">',
+              confirmButtonColor: '#33cc66',
+              // cancelButtonColor: '#d33',
+              confirmButtonText: 'Save',
+              cancelButtonText: 'Cancel',
+              showLoaderOnConfirm: true,
+              inputOptions: 'Testing',
+              inputPlaceholder: 'Enter Carton',
+              confirmButtonClass: 'btn btn-success',
+              cancelButtonClass: 'btn btn-default',
+              showCancelButton: true,
+              preConfirm: function () {
+                return new Promise(function (resolve) {
+                  resolve([
+                    $('#carton_num').val(),
+                    $('#box_num').val()
+                  ])
+                })
+              },
+              allowOutsideClick: false,
+              // buttonsStyling: false
+            }).then(function (text) {
+              $scope.$apply(function() {
+                $('#scan_sku').focus();
+                vm.carton = $('#carton_num').val();
+                vm.box_num = $('#box_num').val();
+                // angular.forEach(vm.model_data.data, function(data){
+                  // angular.forEach(data.sub_data, function(record){
+                    // if (vm.carton == record.pack_reference) {
+                      // record.pack_reference = vm.carton;
+                      // record.box_num = vm.box_num;
+                      vm.update_carton_code(vm.carton);
+                      // resolve();
+                    // }
+                  });
+                });
+              })
+                // swal2({
+                //   type: 'success',
+                //   title: 'Carton Code Added!',
+                //   // html: 'Submitted text is: ' + text
+                // })
             });
-          })
-            // swal2({
-            //   type: 'success',
-            //   title: 'Carton Code Added!',
-            //   // html: 'Submitted text is: ' + text
-            // })
-        });
+          }
+        })
+        // carton='123'
     }
 
     vm.update_carton_code = function(carton_code){
-      $scope.$apply(function() {
+      // $scope.$apply(function() {
         vm.carton_code = carton_code;
 
         if (!vm.model_data.sel_cartons[carton_code]) {
           vm.model_data.sel_cartons[carton_code] = 0;
         }
-      });
+      // });
     }
 
    vm.bt_disable = false;
@@ -621,6 +632,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
                       vm.model_data.sel_cartons[vm.carton_code] = 1;
                     }
                     vm.model_data.data[i].sub_data[last_index].pack_reference = vm.carton_code;
+                    vm.model_data.data[i].sub_data[last_index].box_num = vm.box_num;
                   }
 
                   // if (!vm.model_data.data[i].sub_data[last_index].pack_reference) {

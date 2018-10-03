@@ -751,8 +751,13 @@ def generated_po_data(request, user=''):
 def validate_wms(request, user=''):
     myDict = dict(request.POST.iterlists())
     wms_list = ''
+    wh_wms_list = ''
     tax_list = []
     receipt_type = request.POST.get('receipt_type', '')
+    is_central_po = request.POST.get('is_central_po', '')
+    warehouse = None
+    if is_central_po == 'true':
+        warehouse = User.objects.get(username=request.POST['warehouse_name'])
     supplier_master = SupplierMaster.objects.filter(id=myDict['supplier_id'][0], user=user.id)
     if not supplier_master and not receipt_type == 'Hosted Warehouse':
         return HttpResponse("Invalid Supplier " + myDict['supplier_id'][0])
@@ -773,6 +778,17 @@ def validate_wms(request, user=''):
                 wms_list = 'Invalid WMS Codes are ' + myDict['wms_code'][i].upper()
             else:
                 wms_list += ',' + myDict['wms_code'][i].upper()
+        if warehouse:
+            if myDict['wms_code'][i].isdigit():
+                sku_master = SKUMaster.objects.filter(
+                    Q(ean_number=myDict['wms_code'][i]) | Q(wms_code=myDict['wms_code'][i]), user=warehouse.id)
+            else:
+                sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=warehouse.id)
+            if not sku_master:
+                if not wh_wms_list:
+                    wh_wms_list = 'Invalid WMS Codes in Destination warehouse are ' + myDict['wms_code'][i].upper()
+                else:
+                    wh_wms_list += ',' + myDict['wms_code'][i].upper()
         if 'cgst_tax' in myDict.keys():
             try:
                 cgst_tax = float(myDict['cgst_tax'][i])
@@ -794,6 +810,11 @@ def validate_wms(request, user=''):
             message = tax_list
         else:
             message = '%s and %s' % (message, tax_list)
+    if wh_wms_list:
+        if message == 'success':
+            message = wh_wms_list
+        else:
+            message = '%s and %s' % (message, wh_wms_list)
     return HttpResponse(message)
 
 

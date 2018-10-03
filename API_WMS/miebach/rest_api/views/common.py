@@ -50,6 +50,10 @@ log_qssi = init_logger('logs/qssi_order_status_update.log')
 
 # Create your views here.
 
+def create_log_message(log_obj, request_user, user, message, request_data):
+    log_obj.info('Request params for %s for request user %s user %s is %s' %
+                 (str(message), str(request_user.username), str(user.username), str(request_data)))
+
 def process_date(value):
     value = value.split('/')
     value = datetime.date(int(value[2]), int(value[0]), int(value[1]))
@@ -7862,3 +7866,19 @@ def get_all_warehouses(user):
             if user.username != value and value not in user_list:
                 user_list.append(value)
     return user_list
+
+
+def check_and_create_supplier_wh_mapping(user, warehouse, supplier_id):
+    master_mapping = MastersMapping.objects.filter(user=user.id, master_id=supplier_id,
+                                               mapping_type='central_supplier_mapping')
+    supplier_master = SupplierMaster.objects.get(id=supplier_id, user=user.id)
+    if master_mapping:
+        new_supplier_id = master_mapping[0].mapping_id
+    else:
+        new_supplier_id = create_new_supplier(warehouse, supplier_master.name, supplier_master.email_id,
+                                          supplier_master.phone_number,
+                                        supplier_master.address, supplier_master.tin_number)
+        if new_supplier_id:
+            MastersMapping.objects.create(user=user.id, master_id=supplier_id, mapping_id=new_supplier_id,
+                                         mapping_type='central_supplier_mapping')
+    return new_supplier_id

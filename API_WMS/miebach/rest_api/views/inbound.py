@@ -8040,19 +8040,28 @@ def get_grn_level_data(request, user=''):
                 seller_summary_objs = data.sellerposummary_set.filter(receipt_number=receipt_no)
                 open_data = data.open_po
                 for seller_summary_obj in seller_summary_objs:
+                    if seller_summary_obj.invoice_date:
+                        bill_date = seller_summary_obj.invoice_date
                     po_data_dict['sku_code'] = data.open_po.sku.sku_code
                     po_data_dict['sku_desc'] = data.open_po.sku.sku_code
                     po_data_dict['quantity'] = seller_summary_obj.quantity
-                    po_data_dict['invoice_no'] = seller_summary_obj.invoice_number if seller_summary_obj.invoice_number else ''
+                    #po_data_dict['invoice_no'] = seller_summary_obj.invoice_number if seller_summary_obj.invoice_number else ''
                     po_data_dict['price'] = open_data.price
                     po_data_dict['cgst_tax'] = open_data.cgst_tax
                     po_data_dict['sgst_tax'] = open_data.sgst_tax
                     po_data_dict['igst_tax'] = open_data.igst_tax
                     po_data_dict['utgst_tax'] = open_data.utgst_tax
                     po_data_dict['cess_tax'] = open_data.cess_tax
+                    po_data_dict['tax_percent'] = open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + \
+                                                    open_data.utgst_tax
                     if seller_summary_obj.batch_detail:
-                        po_data_dict['price'] = seller_summary_obj.batch_detail.buy_price
+                        po_data_dict['buy_price'] = seller_summary_obj.batch_detail.buy_price
+                        po_data_dict['batch_no'] = seller_summary_obj.batch_detail.batch_no
+                        po_data_dict['mrp'] = seller_summary_obj.batch_detail.mrp
+                        po_data_dict['mfg_date'] = seller_summary_obj.batch_detail.manufactured_date.strftime('%m/%d/%Y')
+                        po_data_dict['exp_date'] = seller_summary_obj.batch_detail.expiry_date.strftime('%m/%d/%Y')
                         temp_tax_percent = seller_summary_obj.batch_detail.tax_percent
+                        po_data_dict['tax_percent'] = temp_tax_percent
                         if seller_summary_obj.purchase_order.open_po.supplier.tax_type == 'intra_state':
                             temp_tax_percent = temp_tax_percent / 2
                             po_data_dict['cgst_tax'] = truncate_float(temp_tax_percent, 1)
@@ -8079,6 +8088,8 @@ def get_grn_level_data(request, user=''):
                 po_data_dict['igst_tax'] = open_data.igst_tax
                 po_data_dict['utgst_tax'] = open_data.utgst_tax
                 po_data_dict['cess_tax'] = open_data.cess_tax
+                po_data_dict['tax_percent'] = open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + \
+                                              open_data.utgst_tax
                 amount = float(po_data_dict['quantity']) * float(po_data_dict['price'])
                 po_data.append(po_data_dict)
         if results:
@@ -8088,6 +8099,7 @@ def get_grn_level_data(request, user=''):
             telephone = purchase_order.open_po.supplier.phone_number
             name = purchase_order.open_po.supplier.name
             supplier_id = purchase_order.open_po.supplier.id
+            supplier_name = purchase_order.open_po.supplier.name
             order_id = purchase_order.order_id
             po_reference = '%s%s_%s' % (
             purchase_order.prefix, str(purchase_order.creation_date).split(' ')[0].replace('-', ''),
@@ -8108,7 +8120,8 @@ def get_grn_level_data(request, user=''):
                        'po_number': po_reference, 'company_address': w_address, 'company_name': user_profile.company_name,
                        'display': 'display-none', 'receipt_type': receipt_type, 'title': title,
                        'total_received_qty': total_qty, 'bill_date': bill_date, 'total_tax': total_tax,
-                       'company_address': company_address}))
+                       'company_address': company_address, 'supplier_id': supplier_id,
+                                        'supplier_name': supplier_name}))
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

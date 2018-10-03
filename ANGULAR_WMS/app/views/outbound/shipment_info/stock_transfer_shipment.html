@@ -1,0 +1,127 @@
+<div class="panel" ng-controller="StockTransferShipmentCtrl as stobj">
+  <div class="panel-header" style="overflow: visible;">
+    <div class="layout-sub-header">
+      <form name="form" role="form" ui-jq="validate" ui-options="showCase.validationOpt" class="filters">
+
+        <div class="clearfix" ng-if='showCase.awb_ship_type'>
+          <div class="row">
+
+            <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
+              <div class="form-group">
+                <label class="control-label">Market Place</label>
+                <select name="marketplace" ng-model="showCase.special_key.market_place" class="form-control" ng-change="showCase.get_courier_for_marketplace(showCase.special_key.market_place)">
+                  <option value="">All</option>
+                  <option ng-repeat="market in showCase.model_data.market_list" ng-selected="market == ''" value="{{market}}">{{market}}</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
+              <div class="form-group">
+                <label class="control-label">Courier Name</label>
+                <select name="courier" ng-model="showCase.special_key.courier_name" class="form-control">
+                  <option value="">All</option>
+                  <option ng-repeat="market in showCase.model_data.courier_name" ng-selected="market == ''" value="{{market}}">{{market}}</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Scan AWB</label>
+                <input id='awb_no' type="text" autocomplete="off" name="awb_no" class="form-control" ng-model="showCase.awb_no" ng-keydown="showCase.scanAwb($event, showCase.awb_no)" auto-focus placeholder="Scan AWB" required />
+              </div>
+            </div>
+
+          </div>
+        </div>
+        
+        <div class="clearfix" ng-if='!showCase.awb_ship_type'>
+          <div class="row hide">
+            <div class="col-md-11 col-sm-11 col-xs-10">
+              <p align="right"><b> SKU Grouping: </b></p>
+            </div>
+            <div class="col-md-1 col-sm-1 col-xs-2">
+              <input type="hidden" name="sku_grouping" value="{{showCase.sku_group}}">
+              <label class="switch switch-sm square">
+                <div>
+                  <input type="checkbox" ng-model="showCase.sku_group">
+                  <span>
+                    <i class="handle"></i>
+                  </span>
+                </div>
+              </label>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-4 pull-right" style="height: 34px;padding:20px;padding-top: 0px !important;">
+              <label class="switch switch-sm square pull-right mt5">
+                <div>
+                  <input type="checkbox" ng-model="showCase.g_data.alternate_view" ng-change="showCase.change_datatable()" class="ng-pristine ng-valid">
+                  <span>
+                    <i class="handle"></i>
+                  </span>
+                </div>
+              </label>
+              <label style="padding: 5px;" class="control-label pull-right"><b>Alternate View : </b></label>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-4 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Customer ID</label>
+                <input type="text" autocomplete="off" name="customer_id" class="form-control" placeholder="Search Customer ID/Name" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_customer_sku_mapping?','shipment')" typeahead-loading="loadingLocations" ng-model="showCase.special_key.customer" typeahead-on-select="showCase.special_key.customer=$item.split(':')[0]">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Market Place</label>
+                <select name="marketplace" ng-model="showCase.special_key.market_place" class="form-control">
+                  <option value="">Default</option>
+                  <option ng-repeat="market in showCase.model_data.market_list" value="{{market}}">{{market}}</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.g_data.alternate_view">
+              <div class="form-group">
+                <label class="control-label">Order ID</label>
+                <input name="order_id" ng-model="showCase.special_key.order_id" class="form-control" type="text">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.g_data.alternate_view">
+              <div class="form-group">
+                <label class="control-label">From Date</label>
+                <input name="from_date" ui-jq="datepicker" ng-model="showCase.special_key.from_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" readonly>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.g_data.alternate_view">
+              <div class="form-group">
+                <label class="control-label">To Date</label>
+                <input name="to_date" ui-jq="datepicker" ng-model="showCase.special_key.to_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" readonly>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Group By</label>
+                <select name="marketplace" ng-model="showCase.group_by" ng-init="showCase.group_by='order'" class="form-control">
+                  <option value="order">Order</option>
+                  <option value="marketplace">Marketplace</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-12">
+              <button type="button" class="btn btn-primary mb10" style="display: block;margin: auto;margin-bottom:10px;" ng-click="showCase.apply()">Apply</button>
+            </div>
+          </div>
+        </div>
+      </form>
+
+    </div>
+  </div>
+  <div ng-include="'views/common/datatable.html'"></div>
+  <div class="col-md-12">
+    	<button type="submit" class="btn btn-success" ng-disabled="showCase.bt_disable" style="display: block;margin: auto;" ng-click="showCase.add(form)">Create Shipment</button>
+  </div>
+</div>

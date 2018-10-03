@@ -1103,7 +1103,8 @@ def update_orders(request):
                 failed_status = failed_status[0]
                 failed_status.update({'Status': 'Failure'})
             return HttpResponse(json.dumps(failed_status))
-        status = update_ingram_order_dicts(final_data_dict, seller_id, user=request.user)
+        #status = update_ingram_order_dicts(final_data_dict, seller_id, user=request.user)
+        status = update_order_dicts(final_data_dict, user=request.user, company_name='mieone')
         log.info(status)
     except Exception as e:
         import traceback

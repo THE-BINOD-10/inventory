@@ -13,7 +13,7 @@ from django.db.models import Q, F, FloatField
 from django.db.models.functions import Cast, Concat
 from django.db.models.fields import DateField, CharField
 from django.db.models import Value
-from utils import init_logger
+from utils import init_logger, get_currency_format
 
 # from inbound import *
 
@@ -553,7 +553,7 @@ DIST_SALES_REPORT_DICT = {
     'dt_headers': ['Zone Code', 'Distributor Code', 'Order No', 'Order Date', 'Product Category',
                    'SKU Code', 'SKU Quantity', 'SKU Price', 'Value Before Tax', 'GST Rate', 'GST Value',
                    'Value After Tax', 'Order Status'],
-    'dt_unsort': ['Zone Code', 'Distributor Code', 'GST Rate', 'GST Value', 'Value After Tax'],
+    'dt_unsort': ['Zone Code', 'Distributor Code', 'SKU Price', 'GST Rate', 'GST Value', 'Value Before Tax', 'Value After Tax', 'Order Status'],
     'dt_url': 'get_dist_sales_report', 'excel_name': 'get_dist_sales_report',
     'print_url': 'print_dist_sales_report',
 
@@ -575,6 +575,7 @@ RESELLER_SALES_REPORT_DICT = {
     'dt_headers': ['Zone Code', 'Distributor Code', 'Reseller Code', 'Corporate Name',
                    'Order No', 'Order Date', 'Product Category', 'SKU Code', 'SKU Quantity', 'SKU Price',
                    'Value Before Tax', 'GST Rate', 'GST Value', 'Value After Tax', 'Order Status'],
+    'dt_unsort': ['Zone Code', 'Distributor Code', 'Reseller Code', 'GST Rate', 'GST Value', 'Value Before Tax', 'Value After Tax', 'Order Status'],
     'dt_url': 'get_reseller_sales_report', 'excel_name': 'get_reseller_sales_report',
     'print_url': 'print_reseller_sales_report',
 }
@@ -591,6 +592,7 @@ DIST_TARGET_SUMMARY_REPORT = {
                    'YTD Targets', 'YTD Actual Sale', 'Excess / Shortfall %'
                 ],
     'dt_url': 'get_dist_target_summary_report', 'excel_name': 'get_dist_target_summary_report',
+    'dt_unsort': ['Distributor Code', 'Distributor Target', 'YTD Targets', 'YTD Actual Sale', 'Excess / Shortfall %'],
     'print_url': 'print_dist_target_summary_report',
 }
 
@@ -606,6 +608,8 @@ DIST_TARGET_DETAILED_REPORT = {
                    'Corporate Name', 'Corporate Target', 'YTD Targets', 'YTD Actual Sale', 'Excess / Shortfall %'
                 ],
     'dt_url': 'get_dist_target_detailed_report', 'excel_name': 'get_dist_target_detailed_report',
+    'dt_unsort': ['Distributor Code', 'Distributor Target', 'Reseller Code', 'Reseller Target',
+                   'Corporate Name', 'Corporate Target', 'YTD Targets', 'YTD Actual Sale', 'Excess / Shortfall %'],
     'print_url': 'print_dist_target_detailed_report',
 }
 
@@ -618,6 +622,7 @@ RESELLER_TARGET_SUMMARY_REPORT = {
                    'YTD Targets', 'YTD Actual Sale', 'Excess / Shortfall %'
                 ],
     'dt_url': 'get_reseller_target_summary_report', 'excel_name': 'get_reseller_target_summary_report',
+    'dt_unsort': ['Reseller Code', 'Reseller Target', 'YTD Targets', 'YTD Actual Sale', 'Excess / Shortfall %'],
     'print_url': 'print_reseller_target_summary_report',
 }
 
@@ -630,6 +635,8 @@ RESELLER_TARGET_DETAILED_REPORT = {
                    'YTD Actual Sale', 'Excess / Shortfall %'
                 ],
     'dt_url': 'get_reseller_target_detailed_report', 'excel_name': 'get_reseller_target_detailed_report',
+    'dt_unsort': ['Reseller Code', 'Reseller Target', 'Corporate Name', 'Corporate Target', 'YTD Targets',
+                   'YTD Actual Sale', 'Excess / Shortfall %'],
     'print_url': 'print_reseller_target_detailed_report',
 }
 
@@ -671,6 +678,10 @@ ZONE_TARGET_DETAILED_REPORT = {
                    'Excess / Shortfall %'
                    ],
     'dt_url': 'get_zone_target_detailed_report', 'excel_name': 'get_zone_target_detailed_report',
+    'dt_unsort': ['Zone Code', 'Zone Target', 'Distributor Code', 'Distributor Target', 'Reseller Code',
+                   'Reseller Target', 'Corporate Name', 'Corporate Target', 'YTD Targets', 'YTD Actual Sale',
+                   'Excess / Shortfall %'
+                   ],
     'print_url': 'print_zone_target_detailed_report'
 }
 
@@ -682,6 +693,7 @@ ZONE_TARGET_SUMMARY_REPORT = {
     ],
     'dt_headers': ['Zone Code', 'Zone Target', 'YTD Targets', 'YTD Actual Sale', 'Excess / Shortfall %'],
     'dt_url': 'get_zone_target_summary_report', 'excel_name': 'get_zone_target_summary_report',
+    'dt_unsort': ['Zone Code', 'Zone Target', 'YTD Targets', 'YTD Actual Sale', 'Excess / Shortfall %'],
     'print_url': 'print_zone_target_summary_report'
 }
 
@@ -694,6 +706,7 @@ CORPORATE_RESELLSER_MAPPING_REPORT = {
     ],
     'dt_headers': ['Zone Code', 'Distributor Code','Reseller Code', 'Corporate Name'],
     'dt_url': 'get_corporate_reseller_mapping_report', 'excel_name': 'get_corporate_reseller_mapping_report',
+    'dt_unsort': ['Zone Code', 'Distributor Code','Reseller Code', 'Corporate Name'],
     'print_url': 'print_corporate_reseller_mapping_report'
 }
 
@@ -710,9 +723,10 @@ ENQUIRY_STATUS_REPORT = {
         {'label': 'Enquiry Status', 'name': 'enquiry_status', 'type': 'select'},
     ],
     'dt_headers': ['Zone Code', 'Distributor Code', 'Reseller Code', 'Product Category', 'SKU Code', 'SKU Quantity',
-                   'Enquiry No', 'Enquiry Aging', 'Enquiry Status'
-                ],
+                   'Enquiry No', 'Enquiry Aging', 'Enquiry Status'],
     'dt_url': 'get_enquiry_status_report', 'excel_name': 'get_enquiry_status_report',
+    'dt_unsort': ['Zone Code', 'Distributor Code', 'Reseller Code', 'Product Category', 'SKU Code', 'SKU Quantity',
+                   'Enquiry No', 'Enquiry Aging', 'Enquiry Status'],
     'print_url': 'print_enquiry_status_report',
 }
 
@@ -3814,7 +3828,7 @@ def get_dist_sales_report_data(search_params, user, sub_user):
     from rest_api.views.outbound import get_same_level_warehouses
     from miebach_admin.models import OrderDetail
     search_parameters = {}
-    lis = ['id', 'user', 'original_order_id', 'creation_date', 'sku__sku_category', 'sku__sku_code', 'quantity', 'status']
+    lis = ['id', '', 'order_id', 'creation_date', 'sku__sku_category', 'sku__sku_code', 'quantity']
     if user.userprofile.warehouse_type != 'DIST':
         distributors = get_same_level_warehouses(2, user)
         if sub_user.userprofile.zone:
@@ -3961,6 +3975,10 @@ def get_dist_sales_report_data(search_params, user, sub_user):
         sgst_tax = data['customerordersummary__sgst_tax']
         igst_tax = data['customerordersummary__igst_tax']
         utgst_tax = data['customerordersummary__utgst_tax']
+        if not cgst_tax: cgst_tax = 0
+        if not sgst_tax: sgst_tax = 0
+        if not igst_tax: igst_tax = 0
+        if not utgst_tax: utgst_tax = 0
         gst_rate = (cgst_tax + sgst_tax + igst_tax + utgst_tax)
         gross_amt = round(net_amt + (net_amt * gst_rate/100), 2)
         gst_value = round(gross_amt - net_amt, 2)
@@ -4009,7 +4027,7 @@ def get_dist_sales_report_data(search_params, user, sub_user):
                                 ))
         temp_data['aaData'].append(ord_dict)
     for i, j in totals_map.items():
-        totals_map[i] = round(j, 2)
+        totals_map[i] = get_currency_format(j)
     temp_data['totals'] = totals_map
     if stop_index:
         temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
@@ -4019,7 +4037,8 @@ def get_dist_sales_report_data(search_params, user, sub_user):
 def get_reseller_sales_report_data(search_params, user, sub_user):
     from rest_api.views.outbound import get_same_level_warehouses
     search_parameters = {}
-    lis = ['id', 'user', 'original_order_id', 'creation_date', 'sku_category', 'sku__sku_code', 'quantity', 'status']
+    lis = ['id', '', '', 'client_name', 'orderdetail__order_id', 'creation_date', 'orderdetail__sku__sku_category',
+           'orderdetail__sku__sku_code', 'orderdetail__quantity', 'orderdetail__sku__price']
     # distributors = get_same_level_warehouses(2, user)
     if user.userprofile.warehouse_type != 'DIST':
         distributors = get_same_level_warehouses(2, user)
@@ -4196,7 +4215,7 @@ def get_reseller_sales_report_data(search_params, user, sub_user):
                                                 ('Order Status', status),
                                                 )))
     for i, j in totals_map.items():
-        totals_map[i] = round(j, 2)
+        totals_map[i] = get_currency_format(j)
     temp_data['totals'] = totals_map
     if stop_index:
         temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
@@ -4336,7 +4355,7 @@ def get_zone_target_summary_report_data(search_params, user, sub_user):
                                 ))
         temp_data['aaData'].append(ord_dict)
     for i, j in totals_map.items():
-        totals_map[i] = round(j, 2)
+        totals_map[i] = get_currency_format(j)
     temp_data['totals'] = totals_map
     return temp_data
 
@@ -4512,7 +4531,7 @@ def get_zone_target_detailed_report_data(search_params, user, sub_user):
                                 ))
         temp_data['aaData'].append(ord_dict)
     for i, j in totals_map.items():
-        totals_map[i] = round(j, 2)
+        totals_map[i] = get_currency_format(j)
     temp_data['totals'] = totals_map
     if stop_index:
         temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
@@ -4650,7 +4669,7 @@ def get_dist_target_summary_report_data(search_params, user, sub_user):
                                 ))
         temp_data['aaData'].append(ord_dict)
     for i, j in totals_map.items():
-        totals_map[i] = round(j, 2)
+        totals_map[i] = get_currency_format(j)
     temp_data['totals'] = totals_map
     if stop_index:
         temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
@@ -4847,7 +4866,7 @@ def get_dist_target_detailed_report_data(search_params, user, sub_user):
                                 ))
         temp_data['aaData'].append(ord_dict)
     for i, j in totals_map.items():
-        totals_map[i] = round(j, 2)
+        totals_map[i] = get_currency_format(j)
     temp_data['totals'] = totals_map
     if stop_index:
         temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
@@ -4957,7 +4976,7 @@ def get_reseller_target_summary_report_data(search_params, user, sub_user):
                                 ))
         temp_data['aaData'].append(ord_dict)
     for i, j in totals_map.items():
-        totals_map[i] = round(j, 2)
+        totals_map[i] = get_currency_format(j)
     temp_data['totals'] = totals_map
     if stop_index:
         temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
@@ -5063,7 +5082,7 @@ def get_reseller_target_detailed_report_data(search_params, user, sub_user):
                                 ))
         temp_data['aaData'].append(ord_dict)
     for i, j in totals_map.items():
-        totals_map[i] = round(j, 2)
+        totals_map[i] = get_currency_format(j)
     temp_data['totals'] = totals_map
     if stop_index:
         temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
@@ -5133,7 +5152,7 @@ def get_corporate_target_report_data(search_params, user, sub_user):
                                 ))
         temp_data['aaData'].append(ord_dict)
     for i, j in totals_map.items():
-        totals_map[i] = round(j, 2)
+        totals_map[i] = get_currency_format(j)
     temp_data['totals'] = totals_map
     if stop_index:
         temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]

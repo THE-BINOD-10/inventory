@@ -148,15 +148,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
                     // }
                   });
                 });
-              })
+              }
                 // swal2({
                 //   type: 'success',
                 //   title: 'Carton Code Added!',
                 //   // html: 'Submitted text is: ' + text
                 // })
             });
-          }
-        })
+        //   }
+        // })
         // carton='123'
     }
 

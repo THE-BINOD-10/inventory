@@ -440,8 +440,13 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     }
 
     vm.common_confirm = function(url, elem) {
-
-      vm.service.apiCall('validate_wms/', 'POST', elem, true).then(function(data){
+      var confirm_url;
+      if (vm.warehouse_type == 'CENTRAL_ADMIN') {
+        confirm_url = 'validate_central_wms/'
+      } else {
+        confirm_url = 'validate_wms/'
+      }
+      vm.service.apiCall(confirm_url, 'POST', elem, true).then(function(data){
         if(data.message) {
           if (data.data == "success") {
             vm.raise_po(url, elem);

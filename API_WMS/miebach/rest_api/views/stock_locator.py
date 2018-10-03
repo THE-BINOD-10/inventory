@@ -402,7 +402,7 @@ def get_stock_counts(quantity, single_sku):
 
 
 @fn_timer
-def get_quantity_data(user_groups, sku_codes_list):
+def get_quantity_data(user_groups, sku_codes_list,asn_true=False):
     ret_list = []
 
     for user in user_groups:
@@ -450,7 +450,7 @@ def get_quantity_data(user_groups, sku_codes_list):
                 available = 'No SKU'
                 reserved = 0
                 ret_list.append({'available': available, 'name': ware, 'transit': 0, 'reserved': reserved, 'user': user,
-                                 'sku_code': single_sku, 'asn': asn_stock_qty})
+                                 'sku_code': single_sku, 'asn': asn_stock_qty, 'blocked': 0})
                 continue
             trans_quantity = 0
             if single_sku in purchases:
@@ -459,11 +459,14 @@ def get_quantity_data(user_groups, sku_codes_list):
             pic_reserved = pick_reserved_dict.get(single_sku, 0)
             raw_reserved = raw_reserved_dict.get(single_sku, 0)
             enq_reserved = enq_block_stock.get(single_sku, 0)
-            available = quantity - pic_reserved - enq_reserved
+            if not asn_true:
+                available = quantity - pic_reserved
+            else:
+                available = quantity
             if available < 0:
                 available = 0
             ret_list.append({'available': available, 'name': ware, 'transit': trans_quantity, 'reserved': pic_reserved,
-                             'user': user, 'sku_code': single_sku, 'asn': asn_stock_qty})
+                             'user': user, 'sku_code': single_sku, 'asn': asn_stock_qty, 'blocked': enq_reserved})
     return ret_list
 
 
@@ -565,42 +568,47 @@ def get_avinre_stock(start_index, stop_index, temp_data, search_term, order_term
 
 def get_availasn_stock(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     data, temp_data, other, da = get_warehouses_stock(start_index, stop_index, temp_data, search_term, order_term,
-                                                      col_num, request, user, filters)
+                                                      col_num, request, user, filters, asn_true=True)
 
     list_da = {}
     for i in da:
         if i['available'] is None:
             i['available'] = 0
-        if i['asn'] is None:
-            i['asn'] = 0
-        list_da[i['ware']] = i['available'] + i['asn']
+        # if i['asn'] is None:
+        #     i['asn'] = 0
+        list_da[i['ware']] = i['available']
 
     temp_data['ware_list'] = list_da
     for one_data, sku_det in zip(data, other['rem']):
         header = other['header']
         single_sku = sku_det['single_sku']
-        sku_desc = sku_det['sku_desc']
-        sku_brand = sku_det['sku_brand']
-        sku_category = sku_det['sku_category']
-        var = (OrderedDict(
-            ((header[0], single_sku), (header[1], sku_brand), (header[2], sku_desc), (header[3], sku_category))))
+        var = {header[0]: single_sku, 'Net Open': 0}
         for single in one_data:
-            avail = single['available']
-            asn = single['asn']
-            if isinstance(avail, str):
-                available = avail
-            else:
-                available = avail + asn
-            name = single['name']
-            var[name] = available
+            if single['name']:
+                wh_name = single['name']
+                var[wh_name + '-Total'] = single['available']
+                var[wh_name + '-Res'] = single['reserved']
+                var[wh_name + '-Blocked'] = single['blocked']
+                if not isinstance(single['available'], float):
+                    single['available'] = 0
+                net_amt = single['available'] - single['blocked'] - single['reserved']
+                if net_amt < 0:
+                    net_amt = 0
+                var[wh_name + '-Open'] = net_amt
+                var['Net Open'] += net_amt
+
         temp_data['aaData'].append(var)
 
 
-def get_warehouses_stock(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+def get_warehouses_stock(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters,
+                         asn_true=False):
     data_to_send = []
     other_data = {}
 
-    lis = ['sku_code', 'sku_brand', 'sku_desc', 'sku_category']
+    if asn_true:
+        lis = ['sku_code']
+    else:
+        lis = ['sku_code', 'sku_brand', 'sku_desc', 'sku_category']
 
     if len(filters) <= 4:
         search_params = get_filtered_params(filters, lis)
@@ -612,18 +620,26 @@ def get_warehouses_stock(start_index, stop_index, temp_data, search_term, order_
         if order_term == 'desc':
             order_data = '-%s' % order_data
 
-    warehouses = UserGroups.objects.filter(admin_user_id=user.id).values_list('user_id', flat=True)
+    warehouses = UserGroups.objects.filter(admin_user_id=user.id,
+                                           user__userprofile__warehouse_level=1).values_list('user_id', flat=True)
     ware_list = list(User.objects.filter(id__in=warehouses).values_list('username', flat=True))
     ware_list.append(user.username)
-    header = ["SKU Code", "SKU Brand", "SKU Description", "SKU Category"]
-    headers = header + ware_list
+    if asn_true:
+        header = ["SKU Code"]
+    else:
+        header = ["SKU Code", "SKU Brand", "SKU Description", "SKU Category"]
+        # headers = header + ware_list
 
     user_groups = UserGroups.objects.filter(Q(admin_user_id=user.id) | Q(user_id=user.id))
     if user_groups:
         admin_user_id = user_groups[0].admin_user_id
     else:
         admin_user_id = user.id
-    user_groups = list(UserGroups.objects.filter(admin_user_id=admin_user_id).values_list('user_id', flat=True))
+    if asn_true:
+        user_group_filters = {'admin_user_id': admin_user_id, 'user__userprofile__warehouse_level': 1}
+    else:
+        user_group_filters = {'admin_user_id': admin_user_id}
+    user_groups = list(UserGroups.objects.filter(**user_group_filters).values_list('user_id', flat=True))
     user_groups.append(admin_user_id)
     sku_master = SKUMaster.objects.filter(user__in=user_groups, **search_params)
     if col_num <= 3:
@@ -639,20 +655,27 @@ def get_warehouses_stock(start_index, stop_index, temp_data, search_term, order_
     other_data['rem'] = []
     data = get_aggregate_data(user_groups, list(sku_codes)[0:temp_data['recordsTotal']])
 
-    sku_master_dat = sku_master.values('sku_code', 'sku_desc', 'sku_brand', 'sku_category').distinct()
-    sku_descs = dict(zip(map(lambda d: d['sku_code'], sku_master_dat), map(lambda d: d['sku_desc'], sku_master_dat)))
-    sku_brands = dict(zip(map(lambda d: d['sku_code'], sku_master_dat), map(lambda d: d['sku_brand'], sku_master_dat)))
-    sku_categorys = dict(
-        zip(map(lambda d: d['sku_code'], sku_master_dat), map(lambda d: d['sku_category'], sku_master_dat)))
-    user_quantity_dict = get_quantity_data(user_groups, sku_codes[start_index:stop_index])
-    for single_sku in sku_codes[start_index:stop_index]:
-        sku_brand = sku_brands.get(single_sku, '')
-        sku_desc = sku_descs.get(single_sku, '')
-        sku_category = sku_categorys.get(single_sku, '')
-        quantity = filter(lambda d: d['sku_code'] == single_sku, user_quantity_dict)
-        data_to_send.append(quantity)
-        other_data['rem'].append(
-            {'single_sku': single_sku, 'sku_brand': sku_brand, 'sku_desc': sku_desc, 'sku_category': sku_category})
+    if asn_true:
+        user_quantity_dict = get_quantity_data(user_groups, sku_codes[start_index:stop_index], asn_true=True)
+        for single_sku in sku_codes[start_index:stop_index]:
+            quantity = filter(lambda d: d['sku_code'] == single_sku, user_quantity_dict)
+            data_to_send.append(quantity)
+            other_data['rem'].append({'single_sku': single_sku})
+    else:
+        user_quantity_dict = get_quantity_data(user_groups, sku_codes[start_index:stop_index])
+        sku_master_dat = sku_master.values('sku_code', 'sku_desc', 'sku_brand', 'sku_category').distinct()
+        sku_descs = dict(zip(map(lambda d: d['sku_code'], sku_master_dat), map(lambda d: d['sku_desc'], sku_master_dat)))
+        sku_brands = dict(zip(map(lambda d: d['sku_code'], sku_master_dat), map(lambda d: d['sku_brand'], sku_master_dat)))
+        sku_categorys = dict(
+            zip(map(lambda d: d['sku_code'], sku_master_dat), map(lambda d: d['sku_category'], sku_master_dat)))
+        for single_sku in sku_codes[start_index:stop_index]:
+            sku_brand = sku_brands.get(single_sku, '')
+            sku_desc = sku_descs.get(single_sku, '')
+            sku_category = sku_categorys.get(single_sku, '')
+            quantity = filter(lambda d: d['sku_code'] == single_sku, user_quantity_dict)
+            data_to_send.append(quantity)
+            other_data['rem'].append(
+                {'single_sku': single_sku, 'sku_brand': sku_brand, 'sku_desc': sku_desc, 'sku_category': sku_category})
     return data_to_send, temp_data, other_data, data
 
 
@@ -1354,7 +1377,10 @@ def warehouse_headers(request, user=''):
     user_id = user.id
     if price_band_flag == 'true':
         user = get_admin(user)
-    header = ["SKU Code", "SKU Brand", "SKU Description", "SKU Category"]
+    if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
+        header = ["SKU Code"]
+    else:
+        header = ["SKU Code", "SKU Brand", "SKU Description", "SKU Category"]
     if alternative_view == 'true':
         header = ["SKU Class", "Style Name", "Brand", "SKU Category"]
         if not warehouse_name:
@@ -1423,7 +1449,12 @@ def warehouse_headers(request, user=''):
             admin_user_id = user_id
             admin_user_name = user.username
         if level:
-            headers = header + ware_list
+            warehouse_suffixes = ['Total', 'Res', 'Blocked', 'Open']
+            wh_list = []
+            for wh in ware_list:
+                wh_list.extend(list(map(lambda x: wh+'-'+x, warehouse_suffixes)))
+            wh_list.append('Net Open')
+            headers = header + wh_list
         else:
             headers = header + [admin_user_name] + ware_list
     return HttpResponse(json.dumps({'table_headers': headers, 'size_types': size_list,

@@ -111,7 +111,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
               });
 
               vm.getTotals();
-              debugger;
               vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
                 if (data.message) {
                   var seller_data = data.data.sellers;
@@ -235,7 +234,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     vm.add = function () {
       vm.extra_width = { 'width': '1250px' };
       vm.model_data.seller_types = [];
-      debugger;
       vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
         if (data.message) {
           var seller_data = data.data.sellers;
@@ -414,7 +412,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
           var elem = angular.element($('form'))
           elem = elem[0]
           elem = $(elem).serializeArray()
-          vm.common_confirm('confirm_central_admin/', elem)
+          vm.common_confirm('confirm_central_po/', elem)
         } else {
           if(!(vm.update)) {
             vm.confirm_add_po();

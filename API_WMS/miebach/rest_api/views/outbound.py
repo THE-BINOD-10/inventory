@@ -4844,6 +4844,7 @@ def insert_shipment_info(request, user=''):
                 # Until Here
                 order_pack_instance = OrderPackaging.objects.filter(order_shipment_id=order_shipment.id,
                                                                     package_reference=myDict['package_reference'][i],
+                                                                    box_number=myDict['box_num'][i],
                                                                     order_shipment__user=user.id)
                 if not order_pack_instance:
                     data_dict['order_shipment_id'] = order_shipment.id
@@ -11133,6 +11134,7 @@ def print_cartons_data(request, user=''):
             customer_info = {'name': customers_obj[0]['customer_name'], 'address': customers_obj[0]['address']}
     for ind in xrange(0, len(request_dict['sku_code'])):
         pack_reference = request_dict['package_reference'][ind]
+        box_num = request_dict['box_num'][ind]
         if pack_reference != selected_carton:
             continue
         sku_code = request_dict['sku_code'][ind]

@@ -182,7 +182,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
         return false;
       }
 
-      // if(vm.g_data.view == 'Shipmenttransfer'){
+      // if(vm.g_data.view == 'StockTransferShipment'){
       //   if (vm.group_by == 'order' && order_ids.length > 1) {
       //     vm.bt_disable = false;
       //     vm.service.showNoty("Please Select Single Order");
@@ -492,7 +492,7 @@ vm.add_shipment = function(valid) {
   }
 
   vm.change_datatable = function() {
-    Data.tranfer_shipment.view = 'Shipmenttransfer';
+    Data.tranfer_shipment.view = 'StockTransferShipment';
     $state.go($state.current, {}, {reload: true});
   }
 

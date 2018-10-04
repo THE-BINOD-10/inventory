@@ -70,16 +70,22 @@
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label">Destination WareHouse</label>
-                <input type="text" autocomplete="off" name="customer_id" class="form-control" placeholder="Destination WareHouse" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_customer_sku_mapping?','shipment')" typeahead-loading="loadingLocations" ng-model="showCase.special_key.customer" typeahead-on-select="showCase.special_key.customer=$item.split(':')[0]">
+                <input type="text" autocomplete="off" name="destination_warehouse" class="form-control" placeholder="Destination WareHouse" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_customer_sku_mapping?','shipment')" typeahead-loading="loadingLocations" ng-model="showCase.special_key.destination_warehouse" typeahead-on-select="showCase.special_key.customer=$item.split(':')[0]">
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label">Stock Transfer ID</label>
-                <select name="marketplace" ng-model="showCase.special_key.market_place" class="form-control">
+                <input type="text" autocomplete="off" name="stock_transfer_id"
+                 class="form-control" placeholder="Stock Transfer ID"
+                 typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_customer_sku_mapping?','shipment')"
+                 typeahead-loading="loadingLocations"
+                 ng-model="showCase.special_key.stock_transfer_id"
+                 typeahead-on-select="showCase.special_key.customer=$item.split(':')[0]">
+                <!-- <select name="marketplace" ng-model="showCase.special_key.stock_transfer_id" class="form-control">
                   <option value="">Default</option>
                   <option ng-repeat="market in showCase.model_data.market_list" value="{{market}}">{{market}}</option>
-                </select>
+                </select> -->
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6">

@@ -17,7 +17,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
   vm.selected = {};
   vm.selectAll = false;
 
-  vm.special_key = {customer: '', market_place:'', order_id: '', from_date: '', to_date: ''}
+  vm.special_key = {destination_warehouse: '', stock_transfer_id:'',from_date: '', to_date: ''}
   vm.filters = {'datatable': vm.g_data.view, 'special_key': JSON.stringify(vm.special_key)}
   vm.dtOptions = DTOptionsBuilder.newOptions()
      .withOption('ajax', {
@@ -182,7 +182,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
         return false;
       }
 
-      // if(vm.g_data.view == 'Shipmenttransfer'){
+      // if(vm.g_data.view == 'StockTransferShipment'){
       //   if (vm.group_by == 'order' && order_ids.length > 1) {
       //     vm.bt_disable = false;
       //     vm.service.showNoty("Please Select Single Order");

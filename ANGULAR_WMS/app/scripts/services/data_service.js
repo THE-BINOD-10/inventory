@@ -82,7 +82,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
   self.tranfer_shipment = {
                        //alternate_view: true,
                        view: 'StockTransferShipment',
-                       tb_headers: {'StockTransferShipment': ['ST ID', 'Dest WH', 'Total Qty', 'Picked Qty', 'ST Date']}
+                       tb_headers: {'StockTransferShipment': ['Stock Transfer ID', 'Destination Warehouse', 'Total Quantity', 'Picked Quantity', 'Stock Transfer Date&Time']}
                                     // 'ShipmentPickedAlternative': ['Order ID', 'Customer ID', 'Customer Name', 'Marketplace',
                                     //                          'Picked Quantity', 'Total Quantity', 'Order Date']}
                     }

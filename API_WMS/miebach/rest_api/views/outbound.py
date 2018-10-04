@@ -2636,7 +2636,6 @@ def get_customer_sku(request, user=''):
     sku_grouping = request.GET.get('sku_grouping', 'false')
     datatable_view = request.GET.get('view', '')
     search_params = {'user': user.id}
-    import pdb;pdb.set_trace()
     headers = ('', 'SKU Code', 'Order Quantity', 'Shipping Quantity', 'Pack Reference', '')
     request_data = dict(request.GET.iterlists())
     if 'order_id' in request_data.keys() and not datatable_view == 'ShipmentPickedAlternative':
@@ -11776,16 +11775,15 @@ def get_stock_transfer_shipment_data(start_index, stop_index, temp_data, search_
                     new_qty = total_picked_quantity
                     exist_amt = search_val['Total Amount']
                     new_amt = total_price
-                    search_val.update({'Picked Quantity' : exist_qty + new_qty, 'Total Amount' : exist_amt + new_amt})
+                    search_val.update({'Picked Quantity' : str(exist_qty + new_qty), 'Total Amount' : str(exist_amt + new_amt)})
             except:
-                temp_data['aaData'].append({'Stock Transfer ID' : ord_id, 'Picked Quantity' : total_picked_quantity, 'Total Amount' : total_price, 'Stock Transfer Date&Time' : shipment_date, 'Warehouse Name': warehouse, 'Picklist Number' : picklist_num})
+                temp_data['aaData'].append({'Stock Transfer ID' : ord_id, 'Picked Quantity' : str(total_picked_quantity), 'Total Amount' : total_price, 'Stock Transfer Date&Time' : shipment_date, 'Destination Warehouse': warehouse, 'Picklist Number' : picklist_num, 'Total Quantity' : str(total_picked_quantity)})
 
 
 @csrf_exempt
 @login_required
 def create_shipment_stock_transfer(request, user=''):
     stock_transfer_id = request.GET.get('stock_transfer_id', '')
-    import pdb;pdb.set_trace()
     try:
         st_order = StockTransfer.objects.filter(order_id=stock_transfer_id, sku__user=user.id)
         if len(st_order):
@@ -11794,3 +11792,40 @@ def create_shipment_stock_transfer(request, user=''):
             st_order.save()
     except:
         pass
+
+
+def get_stock_transfer_shipment_popup_data(request, user=''):
+    data = []
+    courier_name = ''
+    ship_no = get_shipment_number(user)
+    sku_grouping = request.GET.get('sku_grouping', 'false')
+    datatable_view = request.GET.get('view', '')
+    search_params = {'user': user.id}
+    request_data = dict(request.GET.iterlists())
+    if 'stock_transfer_id' in request_data.keys() and datatable_view == 'StockTransferShipment':
+        filter_order_ids = []
+        search_params['id__in'] = request_data['order_id']
+        for order_ids in request_data['order_id']:
+            order_id_val = order_ids
+            order_id_search = ''.join(re.findall('\d+', order_id_val))
+            order_code_search = ''.join(re.findall('\D+', order_id_val))
+            fil_ids = list(OrderDetail.objects.filter(Q(order_id=order_id_search, 
+                order_code=order_code_search) | Q(original_order_id=order_id_val),
+                user=user.id).values_list('id', flat=True))
+            filter_order_ids = list(chain(filter_order_ids, fil_ids))
+        if filter_order_ids:
+            search_params['id__in'] = filter_order_ids
+    all_orders = OrderDetail.objects.filter(**search_params)
+    for obj in all_orders:
+        customer_order_summary = obj.customerordersummary_set.filter()
+        if customer_order_summary:
+            courier_name = customer_order_summary[0].courier_name
+    data = get_shipment_quantity(user, all_orders, sku_grouping)
+    if data:
+        return HttpResponse(json.dumps({'data': data,
+                                        'shipment_id': '',
+                                        'display_fields': '',
+                                        'marketplace': '', 
+                                        'shipment_number': ship_no, 
+                                        'courier_name': courier_name}, cls=DjangoJSONEncoder))
+    return HttpResponse(json.dumps({'status': 'No Orders found'}))

@@ -95,19 +95,22 @@
               </div>
             </div> -->
 
-            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.model_data.dc_level_grn==false">
+            <!-- <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.model_data.dc_level_grn==false"> -->
+            <div class="col-md-3 col-sm-3 col-xs-6">
               <div class="form-group">
                 <label for="invoice_number" class="control-label"> Invoice Number <span ng-if="showCase.user_type=='marketplace_user'">*</span></label>
-                <input class="form-control notallowspace" ng-model="showCase.model_data.invoice_number" type="text" name="invoice_number" ng-if="showCase.user_type=='marketplace_user'" required>
-                <input class="form-control notallowspace" ng-model="showCase.model_data.invoice_number" type="text" name="invoice_number" ng-if="showCase.user_type!='marketplace_user'">
+                <!-- <input class="form-control notallowspace" ng-model="showCase.model_data.invoice_number" type="text" name="invoice_number" ng-if="showCase.user_type=='marketplace_user'" required>
+                <input class="form-control notallowspace" ng-model="showCase.model_data.invoice_number" type="text" name="invoice_number" ng-if="showCase.user_type!='marketplace_user'"> -->
+                <input class="form-control notallowspace" ng-model="showCase.model_data.invoice_number" type="text" name="invoice_number">
               </div>
             </div>
-            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.model_data.dc_level_grn==false">
+            <!-- <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.model_data.dc_level_grn==false"> -->
+            <div class="col-md-3 col-sm-3 col-xs-6">
               <div class="form-group">
                 <label for="invoice_date" class="control-label">Invoice Date <span ng-if="showCase.user_type=='marketplace_user'">*</span></label>
-                <input name="invoice_date" ui-jq="datepicker" ng-model="showCase.model_data.invoice_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" ng-if="showCase.user_type=='marketplace_user'" required>
+                <!-- <input name="invoice_date" ui-jq="datepicker" ng-model="showCase.model_data.invoice_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" ng-if="showCase.user_type=='marketplace_user'" required> -->
                 <!-- <input name="invoice_date" ui-jq="datepicker" ng-model="showCase.model_data.invoice_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" ng-if="showCase.user_type=='marketplace_user'" required readonly> -->
-                <input name="invoice_date" ui-jq="datepicker" ng-model="showCase.model_data.invoice_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" ng-if="showCase.user_type!='marketplace_user'">
+                <input name="invoice_date" ui-jq="datepicker" ng-model="showCase.model_data.invoice_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true">
                 <!-- <input name="invoice_date" ui-jq="datepicker" ng-model="showCase.model_data.invoice_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" ng-if="showCase.user_type!='marketplace_user'" readonly> -->
               </div>
             </div>
@@ -162,16 +165,16 @@
                   <tr id="tab_count">
                   <!-- <tr ng-repeat="data in records" ng-init="innerIndex=$index" id="tab_count"> -->
                     <td>
-                      <input type="text" name="sku_code" size="30" class="form-control detectTab pricevalid" value="{{(data.sku_code == 'TEMP')? data.temp_wms: data.sku_code;}}" title="{{ data.sku_code }}" ng-if="!data.is_new">
+                      <!-- <input type="text" name="sku_code" size="30" class="form-control detectTab pricevalid" value="{{(data.sku_code == 'TEMP')? data.temp_wms: data.sku_code;}}" title="{{ data.sku_code }}"> -->
                       <!-- <input type="text" name="sku_code" size="30" class="form-control detectTab pricevalid" value="{{(data.sku_code == 'TEMP')? data.temp_wms: data.sku_code;}}" ng-readonly="records[0].dis && data.sku_code != 'TEMP'" title="{{ data.sku_code }}" ng-if="!data.is_new"> -->
 
-                      <input type="text" autocomplete="off" name="sku_code" size="30" class="form-control detectTab" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" ng-model="data.sku_code" title="{{ data.sku_code }}" typeahead-on-select="showCase.get_sku_details(data, $item, innerIndex)" ng-if="data.is_new">
+                      <input type="text" autocomplete="off" name="sku_code" size="30" class="form-control detectTab" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" ng-model="data.sku_code" title="{{ data.sku_code }}" typeahead-on-select="showCase.get_sku_details(data, $item, innerIndex)">
 
                       <!-- out of elements start -->
                       <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{outerIndex}}">
                       <input type="hidden" name="supplier_id" value="{{showCase.model_data.supplier_id}}">
                       <input type="hidden" name="id" value="{{data.order_id}}" ng-model="data.order_id">
-                      <input type="hidden" name="new_sku" value="{{data.is_new}}">
+                      <!-- <input type="hidden" name="new_sku" value="{{data.is_new}}"> -->
                       <!-- <input ng-if="showCase.po_qc" type="hidden" class="form-control" value="{{data.accepted_quantity}}" name="accepted_quantity">
                       <input ng-if="showCase.po_qc" type="hidden" class="form-control" value="{{data.rejected_quantity}}" name="rejected_quantity">
                       <input ng-if="showCase.po_qc" type="hidden" class="form-control" value="{{data.accept_imei.join(',')}}" name="accepted">
@@ -184,8 +187,9 @@
                     <!-- <td><input type="text" ng-model="data.po_quantity" size="10" ng-if="!data.is_new" title="{{ data.po_quantity }}" name="po_quantity" class="form-control detectTab" ng-readonly="records[0].dis" ng-class="service.get_decimal_perm()">
                       <input type="text" ng-model="data.po_quantity" size="10" ng-if="data.is_new" title="{{ data.po_quantity }}" name="po_quantity" class="form-control detectTab" ng-readonly="data.is_new" ng-class="service.get_decimal_perm()"></td> -->
                     <!-- <td ng-if="showCase.permissions.pallet_switch"><input type="text" ng-show=" data.sku_details[0].fields.load_unit_handle == 'pallet'" ng-model="data.pallet_number" name="pallet_number" class="form-control detectTab"></td> -->
-                    <td><input ng-if="showCase.model_data.use_imei=='false'" type="text" size="20" ng-model="data.value" name="quantity" class="form-control detectTab" ng-class="service.get_decimal_perm()" required ng-keyup="showCase.calc_total_amt($event, showCase.model_data, innerIndex, outerIndex)">
-                    <input type="text" size="20" ng-model="data.value" ng-init="data.value = !showCase.showOldQty ? 0 : data.value" name="quantity" class="form-control detectTab" ng-class="service.get_decimal_perm()" required ng-keyup="showCase.calc_total_amt($event, showCase.model_data, innerIndex, outerIndex)"> </div></td>
+                    <td>
+                    <!-- <input ng-if="showCase.model_data.use_imei=='false'" type="text" size="20" ng-model="data.value" name="quantity" class="form-control detectTab" ng-class="service.get_decimal_perm()" required ng-keyup="showCase.calc_total_amt($event, showCase.model_data, innerIndex, outerIndex)"> -->
+                    <input type="text" size="20" ng-model="data.value" ng-init="data.quantity = !data.quantity ? 0 : data.quantity" name="quantity" class="form-control detectTab" ng-class="service.get_decimal_perm()" required ng-keyup="showCase.calc_total_amt($event, showCase.model_data, innerIndex, outerIndex)"> </div></td>
                     <!-- <td><input ng-if="showCase.model_data.use_imei=='false'" type="text" size="20" ng-model="data.value" name="quantity" class="form-control detectTab" ng-class="service.get_decimal_perm()" required ng-keyup="showCase.calc_total_amt($event, showCase.model_data, innerIndex, outerIndex)" ng-readonly="showCase.permissions.use_imei">
                     <input ng-if="showCase.model_data.use_imei=='true'" type="text" size="20" ng-model="data.value" ng-init="data.value = !showCase.showOldQty ? 0 : data.value" name="quantity" class="form-control detectTab" ng-class="service.get_decimal_perm()" required ng-keyup="showCase.calc_total_amt($event, showCase.model_data, innerIndex, outerIndex)" ng-readonly="showCase.permissions.use_imei"> </div></td> -->
                     <!-- <td><input type="text" ng-model="data.unit" size="12" title="{{ data.unit }}" name="unit" class="form-control detectTab"></td> -->
@@ -255,9 +259,9 @@
       </div>
       <!-- body end-->
       <div class="modal-footer">
-        <button ng-if="(!(showCase.print_enable))" type="button" class="pull-left btn pop pop-green col-xs-12 col-sm-3 col-md-2" ng-click="showCase.close_po(form)">Close PO</button>
+        <!-- <button ng-if="(!(showCase.print_enable))" type="button" class="pull-left btn pop pop-green col-xs-12 col-sm-3 col-md-2" ng-click="showCase.close_po(form)">Close PO</button> -->
         <button ng-if="(!(showCase.print_enable))" type="button" class="btn pop pop-green pull-right col-xs-12 col-sm-3 col-md-2" ng-click="showCase.submit(form)">Save</button>
-        <button ng-if="(!(showCase.print_enable))" type="button" class="btn pop pop-normal pull-right col-xs-12 col-sm-4 col-md-3" data-dismiss="modal" ng-click="showCase.confirm_grn(update_grn_form)">Generate GRN</button>
+        <button ng-if="(!(showCase.print_enable))" type="button" class="btn pop pop-normal pull-right col-xs-12 col-sm-4 col-md-3" data-dismiss="modal" ng-click="showCase.confirm_grn(update_grn_form)">Update GRN</button>
         <button ng-if="showCase.print_enable" type="button" class="btn pop pop-green pull-right" ng-click="showCase.print_grn()">Print</button>
         <button ng-if="showCase.print_enable" type="button" class="btn pop pop-normal" ng-click="showCase.barcode()">Print Barcodes</button>
       </div>

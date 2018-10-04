@@ -141,19 +141,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       // }
       vm.service.apiCall(url, 'POST', elem, true).then(function(data){
         if(data.message) {
-          if(data.data.search("<div") != -1) {
-            vm.extra_width = {}
-            vm.html = $(data.data);
-            vm.extra_width = {}
-            //var html = $(vm.html).closest("form").clone();
-            //angular.element(".modal-body").html($(html).find(".modal-body"));
-            angular.element(".modal-body").html($(data.data));
-            vm.print_enable = true;
+          if(data.data == 'success') {
+          // if(data.data.search("<div") != -1) {
+            // vm.extra_width = {}
+            // vm.html = $(data.data);
+            // vm.extra_width = {}
+            // //var html = $(vm.html).closest("form").clone();
+            // //angular.element(".modal-body").html($(html).find(".modal-body"));
+            // angular.element(".modal-body").html($(data.data));
+            // vm.print_enable = true;
+            vm.close();
             vm.service.refresh(vm.dtInstance);
-            // if(vm.permissions.use_imei) {
-            //   fb.generate = true;
-            //   fb.remove_po(fb.poData["id"]);
-            // }
           } else {
             pop_msg(data.data)
           }

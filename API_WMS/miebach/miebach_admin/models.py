@@ -2922,7 +2922,7 @@ class PushNotifications(models.Model):
         db_table = 'PUSH_NOTIFICATIONS'
 
 
-class TableUpdateHistry(models.Model):
+class TableUpdateHistory(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User, blank=True, null=True)
     model_id = models.PositiveIntegerField()

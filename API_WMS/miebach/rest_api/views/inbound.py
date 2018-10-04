@@ -8017,8 +8017,8 @@ def map_ean_sku_code(request, user=''):
 @get_admin_user
 def get_grn_level_data(request, user=''):
     data_dict = ''
-    bill_no = ''
-    bill_date = ''
+    invoice_no = ''
+    invoice_date = ''
     po_data = []
     try:
         po_number = request.GET['po_number']
@@ -8039,18 +8039,18 @@ def get_grn_level_data(request, user=''):
         for data in results:
             receipt_type = ''
             quantity = data.received_quantity
-            bill_date = data.updation_date
+            invoice_date = data.updation_date
             if receipt_no:
                 po_data_dict = {}
                 seller_summary_objs = data.sellerposummary_set.filter(receipt_number=receipt_no)
                 open_data = data.open_po
                 for seller_summary_obj in seller_summary_objs:
                     if seller_summary_obj.invoice_date:
-                        bill_date = seller_summary_obj.invoice_date
+                        invoice_date = seller_summary_obj.invoice_date
                     po_data_dict['sku_code'] = data.open_po.sku.sku_code
                     po_data_dict['sku_desc'] = data.open_po.sku.sku_desc
                     po_data_dict['quantity'] = seller_summary_obj.quantity
-                    #po_data_dict['invoice_no'] = seller_summary_obj.invoice_number if seller_summary_obj.invoice_number else ''
+                    invoice_no = seller_summary_obj.invoice_number
                     po_data_dict['price'] = open_data.price
                     po_data_dict['cgst_tax'] = open_data.cgst_tax
                     po_data_dict['sgst_tax'] = open_data.sgst_tax
@@ -8126,7 +8126,7 @@ def get_grn_level_data(request, user=''):
             if receipt_no:
                 po_reference = '%s/%s' % (po_reference, receipt_no)
             order_date = datetime.datetime.strftime(purchase_order.open_po.creation_date, "%d-%m-%Y")
-            bill_date = datetime.datetime.strftime(bill_date, "%d-%m-%Y")
+            invoice_date = datetime.datetime.strftime(invoice_date, "%m/%d/%Y")
             user_profile = UserProfile.objects.get(user_id=user.id)
             w_address, company_address = get_purchase_company_address(user_profile)#user_profile.address
 
@@ -8135,10 +8135,10 @@ def get_grn_level_data(request, user=''):
         #    title = 'Stock Transfer Note'
         return HttpResponse(json.dumps({'data': po_data, 'address': address,
                        'order_id': order_id, 'telephone': str(telephone), 'name': name, 'order_date': order_date,
-                       'total_price': total, 'data_dict': data_dict, 'bill_no': bill_no,
+                       'total_price': total, 'data_dict': data_dict, 'invoice_number': invoice_no,
                        'po_number': po_reference, 'company_address': w_address, 'company_name': user_profile.company_name,
                        'display': 'display-none', 'receipt_type': receipt_type, 'title': title,
-                       'total_received_qty': total_qty, 'bill_date': bill_date, 'total_tax': total_tax,
+                       'total_received_qty': total_qty, 'invoice_date': invoice_date, 'total_tax': total_tax,
                        'company_address': company_address, 'supplier_id': supplier_id,
                                         'supplier_name': supplier_name}))
     except Exception as e:
@@ -8185,14 +8185,20 @@ def update_existing_grn(request, user=''):
 
     log.info('Request params for Update GRN for request user ' + request.user.username +' user ' + user.username + ' is ' + str(myDict))
     try:
-        field_mapping = {'exp_date': 'expiry_date', 'mfg_date': 'mfg_date'}
+        field_mapping = {'exp_date': 'expiry_date', 'mfg_date': 'manufactured_date', 'quantity': 'quantity',
+                         'discount_percentage': 'discount_percent', 'batch_no': 'batch_no',
+                         'mrp': 'mrp', 'buy_price': 'buy_price'}
         for ind in range(0, len(myDict['confirm_key'])):
             model_name = myDict['confirm_key'][ind].strip('_id')
             if myDict['confirm_key'][ind] == 'seller_po_summary_id':
                 model_obj = SellerPOSummary.objects.get(id=myDict['confirm_id'][ind])
             else:
                 model_obj = PurchaseOrder.objects.get(id=myDict['confirm_id'][ind])
-            for key, value in myDict.keys():
+            batch_dict = {}
+            for key, value in myDict.iteritems():
+                if not key in field_mapping.keys():
+                    continue
+                value = value[ind]
                 if key in ['exp_date', 'mfg_date']:
                     if model_obj.batch_detail:
                         if getattr(model_obj.batch_detail, field_mapping[key]):
@@ -8200,93 +8206,123 @@ def update_existing_grn(request, user=''):
                             if myDict[key][ind] != prev_val:
                                 setattr(model_obj.batch_detail, field_mapping[key],
                                         datetime.datetime.strptime(value, '%m/%d/%Y'))
-                                model_obj.save()
+                                model_obj.batch_detail.save()
                                 create_update_table_history(user, model_obj.id, model_name, field_mapping[key],
                                                             prev_val, value)
                         else:
                             setattr(model_obj.batch_detail, field_mapping[key],
                                     datetime.datetime.strptime(value, '%m/%d/%Y'))
-                            model_obj.save()
+                            model_obj.batch_detail.save()
                             create_update_table_history(user, model_obj.id, model_name, field_mapping[key],
                                                         '', value)
-                elif key in ['mrp', 'buy_price']:
+                    else:
+                        batch_dict[field_mapping[key]] = value
+                elif key in ['mrp', 'buy_price', 'tax_percnet']:
+                    try:
+                        value = float(value)
+                    except:
+                        value = 0
                     if model_obj.batch_detail:
-                        try:
-                            value = float(value)
-                        except:
-                            value = 0
-                        prev_val = float(getattr(model_obj.batch_detail, key))
+                        prev_val = float(getattr(model_obj.batch_detail, field_mapping[key]))
                         if prev_val != value:
-                            setattr(model_obj.batch_detail, key, value)
-                            model_obj.save()
-                            create_update_table_history(user, model_obj.id, model_name, key, prev_val, value)
+                            setattr(model_obj.batch_detail, field_mapping[key], value)
+                            model_obj.batch_detail.save()
+                            create_update_table_history(user, model_obj.id, model_name, field_mapping[key], prev_val, value)
+                    else:
+                        batch_dict[field_mapping[key]] = value
+                elif key in ['quantity', 'discount_percentage']:
+                    try:
+                        value = float(value)
+                    except:
+                        value = 0
+                    prev_val = float(getattr(model_obj, field_mapping[key]))
+                    if prev_val != value:
+                        setattr(model_obj, field_mapping[key], value)
+                        model_obj.save()
+                        create_update_table_history(user, model_obj.id, model_name, field_mapping[key],
+                                                    prev_val, value)
+                elif key == 'batch_no':
+                    if model_obj.batch_detail:
+                        prev_val = getattr(model_obj.batch_detail, field_mapping[key])
+                        if prev_val != value:
+                            setattr(model_obj.batch_detail, field_mapping[key], value)
+                            model_obj.batch_detail.save()
+                            create_update_table_history(user, model_obj.id, model_name, field_mapping[key],
+                                                        prev_val, value)
+                    else:
+                        batch_dict[field_mapping[key]] = value
+            if batch_dict and not model_obj.batch_detail:
+                batch_dict['transact_id'] = model_obj.id
+                batch_dict['transact_type'] = 'seller_po_summary'
+                batch_obj = create_update_batch_data(batch_dict)
+                model_obj.batch_detail_id = batch_obj.id
 
-        for key, value in all_data.iteritems():
-            entry_price = float(key[3]) * float(value)
-            if key[10]:
-                entry_price -= (entry_price * (float(key[10])/100))
-            entry_tax = float(key[4]) + float(key[5]) + float(key[6]) + float(key[7] + float(key[9]))
-            if entry_tax:
-                entry_price += (float(entry_price) / 100) * entry_tax
-            putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5],
-                                          key[6], key[7], entry_price, key[8], key[9]))
-            total_order_qty += order_quantity_dict[key[0]]
-            total_received_qty += value
-            total_price += entry_price
-            total_tax += (key[4] + key[5] + key[6] + key[7] + key[9])
-        if round_off_checkbox=='on':
-            total_price = round_off_total
-
-        if is_putaway == 'true':
-            btn_class = 'inb-putaway'
-        else:
-            btn_class = 'inb-qc'
-
-        if not status_msg:
-            if not purchase_data:
-                return HttpResponse('Success')
-            address = purchase_data['address']
-            address = '\n'.join(address.split(','))
-            telephone = purchase_data['phone_number']
-            name = purchase_data['supplier_name']
-            supplier_email = purchase_data['email_id']
-            gstin_number = purchase_data['gstin_number']
-            order_id = data.order_id
-            order_date = get_local_date(request.user, data.creation_date)
-            order_date = datetime.datetime.strftime(datetime.datetime.strptime(order_date, "%d %b, %Y %I:%M %p"), "%d-%m-%Y")
-
-            profile = UserProfile.objects.get(user=user.id)
-            po_reference = '%s%s_%s' % (data.prefix, str(data.creation_date).split(' ')[0].replace('-', ''), order_id)
-            table_headers = (
-            'WMS Code', 'Supplier Code', 'Description', 'Ordered Quantity', 'Received Quantity', 'Amount')
-            '''report_data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
-                                'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total_price,
-                                'po_reference': po_reference, 'total_qty': total_received_qty,
-                                'report_name': 'Goods Receipt Note', 'company_name': profile.company_name, 'location': profile.location}'''
-            sku_list = putaway_data[putaway_data.keys()[0]]
-            sku_slices = generate_grn_pagination(sku_list)
-            if seller_receipt_id:
-                po_number = str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id) \
-                            + '/' + str(seller_receipt_id)
-            else:
-                po_number = str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id)
-            dc_level_grn = request.POST.get('dc_level_grn', '')
-            if dc_level_grn == 'on':
-                bill_no = request.POST.get('dc_number', '')
-                bill_date = challan_date.strftime('%d-%m-%Y') if challan_date else ''
-            else:
-                bill_no = request.POST.get('invoice_number', '')
-            report_data_dict = {'data': putaway_data, 'data_dict': data_dict, 'data_slices': sku_slices,
-                                'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty,
-                                'total_price': total_price, 'total_tax': total_tax,
-                                'address': address,
-                                'company_name': profile.company_name, 'company_address': profile.address,
-                                'po_number': po_number, 'bill_no': bill_no,
-                                'order_date': order_date, 'order_id': order_id,
-                                'btn_class': btn_class, 'bill_date': bill_date }
-            return render(request, 'templates/toggle/c_putaway_toggle.html', report_data_dict)
-        else:
-            return HttpResponse(status_msg)
+        # for key, value in all_data.iteritems():
+        #     entry_price = float(key[3]) * float(value)
+        #     if key[10]:
+        #         entry_price -= (entry_price * (float(key[10])/100))
+        #     entry_tax = float(key[4]) + float(key[5]) + float(key[6]) + float(key[7] + float(key[9]))
+        #     if entry_tax:
+        #         entry_price += (float(entry_price) / 100) * entry_tax
+        #     putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5],
+        #                                   key[6], key[7], entry_price, key[8], key[9]))
+        #     total_order_qty += order_quantity_dict[key[0]]
+        #     total_received_qty += value
+        #     total_price += entry_price
+        #     total_tax += (key[4] + key[5] + key[6] + key[7] + key[9])
+        # if round_off_checkbox=='on':
+        #     total_price = round_off_total
+        #
+        # if is_putaway == 'true':
+        #     btn_class = 'inb-putaway'
+        # else:
+        #     btn_class = 'inb-qc'
+        #
+        # if not status_msg:
+        #     if not purchase_data:
+        #         return HttpResponse('Success')
+        #     address = purchase_data['address']
+        #     address = '\n'.join(address.split(','))
+        #     telephone = purchase_data['phone_number']
+        #     name = purchase_data['supplier_name']
+        #     supplier_email = purchase_data['email_id']
+        #     gstin_number = purchase_data['gstin_number']
+        #     order_id = data.order_id
+        #     order_date = get_local_date(request.user, data.creation_date)
+        #     order_date = datetime.datetime.strftime(datetime.datetime.strptime(order_date, "%d %b, %Y %I:%M %p"), "%d-%m-%Y")
+        #
+        #     profile = UserProfile.objects.get(user=user.id)
+        #     po_reference = '%s%s_%s' % (data.prefix, str(data.creation_date).split(' ')[0].replace('-', ''), order_id)
+        #     table_headers = (
+        #     'WMS Code', 'Supplier Code', 'Description', 'Ordered Quantity', 'Received Quantity', 'Amount')
+        #     '''report_data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
+        #                         'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total_price,
+        #                         'po_reference': po_reference, 'total_qty': total_received_qty,
+        #                         'report_name': 'Goods Receipt Note', 'company_name': profile.company_name, 'location': profile.location}'''
+        #     sku_list = putaway_data[putaway_data.keys()[0]]
+        #     sku_slices = generate_grn_pagination(sku_list)
+        #     if seller_receipt_id:
+        #         po_number = str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id) \
+        #                     + '/' + str(seller_receipt_id)
+        #     else:
+        #         po_number = str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id)
+        #     dc_level_grn = request.POST.get('dc_level_grn', '')
+        #     if dc_level_grn == 'on':
+        #         bill_no = request.POST.get('dc_number', '')
+        #         bill_date = challan_date.strftime('%d-%m-%Y') if challan_date else ''
+        #     else:
+        #         bill_no = request.POST.get('invoice_number', '')
+        #     report_data_dict = {'data': putaway_data, 'data_dict': data_dict, 'data_slices': sku_slices,
+        #                         'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty,
+        #                         'total_price': total_price, 'total_tax': total_tax,
+        #                         'address': address,
+        #                         'company_name': profile.company_name, 'company_address': profile.address,
+        #                         'po_number': po_number, 'bill_no': bill_no,
+        #                         'order_date': order_date, 'order_id': order_id,
+        #                         'btn_class': btn_class, 'bill_date': bill_date }
+        #     return render(request, 'templates/toggle/c_putaway_toggle.html', report_data_dict)
+        # else:
+        return HttpResponse("Success")
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

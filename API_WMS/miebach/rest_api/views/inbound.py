@@ -8174,7 +8174,10 @@ def update_existing_grn(request, user=''):
             supplier_id = request.POST['supplier_id']
         inv_status = po_invoice_number_check(user, invoice_num, supplier_id)
         if inv_status:
-            return HttpResponse(inv_status)
+            req_po_number = request.POST['po_number']
+            temp_inv_status = inv_status.strip('Invoice Number already Mapped to ')
+            if temp_inv_status != po_number:
+                return HttpResponse(inv_status)
     request_data = request.POST
     myDict = dict(request_data.iterlists())
 

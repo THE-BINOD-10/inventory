@@ -141,7 +141,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       // }
       vm.service.apiCall(url, 'POST', elem, true).then(function(data){
         if(data.message) {
-          if(data.data == 'success') {
+          if(data.data.message == 'Success') {
           // if(data.data.search("<div") != -1) {
             // vm.extra_width = {}
             // vm.html = $(data.data);

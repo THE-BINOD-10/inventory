@@ -161,9 +161,9 @@
                     <th class="detail"></th> -->
                   <tr>
                 </thead>
-                <tbody ng-repeat="data in showCase.model_data.data" ng-init="outerIndex=$index">
-                  <tr id="tab_count">
-                  <!-- <tr ng-repeat="data in records" ng-init="innerIndex=$index" id="tab_count"> -->
+                <tbody ng-repeat="records in showCase.model_data.data" ng-init="outerIndex=$index">
+                  <!-- <tr id="tab_count"> -->
+                  <tr ng-repeat="data in records" ng-init="innerIndex=$index" id="tab_count">
                     <td>
                       <!-- <input type="text" name="sku_code" size="30" class="form-control detectTab pricevalid" value="{{(data.sku_code == 'TEMP')? data.temp_wms: data.sku_code;}}" title="{{ data.sku_code }}"> -->
                       <!-- <input type="text" name="sku_code" size="30" class="form-control detectTab pricevalid" value="{{(data.sku_code == 'TEMP')? data.temp_wms: data.sku_code;}}" ng-readonly="records[0].dis && data.sku_code != 'TEMP'" title="{{ data.sku_code }}" ng-if="!data.is_new"> -->

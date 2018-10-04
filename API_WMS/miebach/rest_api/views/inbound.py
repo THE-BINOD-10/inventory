@@ -8091,7 +8091,7 @@ def get_grn_level_data(request, user=''):
                     amount = float(po_data_dict['quantity']) * float(po_data_dict['price'])
                     total += amount
                     total_qty += quantity
-                    po_data.append(po_data_dict)
+                    po_data.append([po_data_dict])
 
             else:
                 open_data = data.open_po
@@ -8110,7 +8110,7 @@ def get_grn_level_data(request, user=''):
                 po_data_dict['confirm_key'] = 'purchase_order_id'
                 po_data_dict['confirm_id'] = data.id
                 amount = float(po_data_dict['quantity']) * float(po_data_dict['price'])
-                po_data.append(po_data_dict)
+                po_data.append([po_data_dict])
         if results:
             purchase_order = results[0]
             address = purchase_order.open_po.supplier.address
@@ -8185,22 +8185,41 @@ def update_existing_grn(request, user=''):
 
     log.info('Request params for Update GRN for request user ' + request.user.username +' user ' + user.username + ' is ' + str(myDict))
     try:
+        field_mapping = {'exp_date': 'expiry_date', 'mfg_date': 'mfg_date'}
         for ind in range(0, len(myDict['confirm_key'])):
+            model_name = myDict['confirm_key'][ind].strip('_id')
             if myDict['confirm_key'][ind] == 'seller_po_summary_id':
                 model_obj = SellerPOSummary.objects.get(id=myDict['confirm_id'][ind])
             else:
                 model_obj = PurchaseOrder.objects.get(id=myDict['confirm_id'][ind])
-            if model_obj.batch_detail:
-                if model_obj.batch_detail.expiry_date:
-                    if myDict['exp_date'][ind] != datetime.datetime.strftime(model_obj.batch_detail.expiry_date, '%m/%d/%Y'):
-                        prev_val = model_obj.batch_detail.expiry_date
-                        model_obj.batch_detail.expiry_date = datetime.datetime.strptime(myDict['exp_date'], '%m/%d/%Y')
-                        model_obj.save()
-                        model_name = myDict['confirm_key'][ind].strip('_id')
-                        create_update_table_history(user, model_obj.id, model_name, prev_val, myDict['exp_date'][ind])
-                else:
-                    model_obj.batch_detail.expiry_date = datetime.datetime.strptime(myDict['exp_date'], '%m/%d/%Y')
-                    model_obj.save()
+            for key, value in myDict.keys():
+                if key in ['exp_date', 'mfg_date']:
+                    if model_obj.batch_detail:
+                        if getattr(model_obj.batch_detail, field_mapping[key]):
+                            prev_val = datetime.datetime.strftime(getattr(model_obj.batch_detail, field_mapping[key]), '%m/%d/%Y')
+                            if myDict[key][ind] != prev_val:
+                                setattr(model_obj.batch_detail, field_mapping[key],
+                                        datetime.datetime.strptime(value, '%m/%d/%Y'))
+                                model_obj.save()
+                                create_update_table_history(user, model_obj.id, model_name, field_mapping[key],
+                                                            prev_val, value)
+                        else:
+                            setattr(model_obj.batch_detail, field_mapping[key],
+                                    datetime.datetime.strptime(value, '%m/%d/%Y'))
+                            model_obj.save()
+                            create_update_table_history(user, model_obj.id, model_name, field_mapping[key],
+                                                        '', value)
+                elif key in ['mrp', 'buy_price']:
+                    if model_obj.batch_detail:
+                        try:
+                            value = float(value)
+                        except:
+                            value = 0
+                        prev_val = float(getattr(model_obj.batch_detail, key))
+                        if prev_val != value:
+                            setattr(model_obj.batch_detail, key, value)
+                            model_obj.save()
+                            create_update_table_history(user, model_obj.id, model_name, key, prev_val, value)
 
         for key, value in all_data.iteritems():
             entry_price = float(key[3]) * float(value)

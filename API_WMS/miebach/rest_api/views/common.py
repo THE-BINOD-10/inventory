@@ -7853,11 +7853,11 @@ def get_sku_ean_list(sku):
     return eans_list
 
 
-def create_update_table_history(user, model_id, model_name, prev_val, new_val):
+def create_update_table_history(user, model_id, model_name, model_field, prev_val, new_val):
     table_history = TableUpdateHistry.objects.filter(user=user.id, model_id=model_id,
-                                                     model_name=model_name)
+                                                     model_name=model_name, model_field=model_field)
     if not table_history.exists():
         TableUpdateHistry.objects.create(user=user.id, model_id=model_id,
-                                         model_name=model_name, previous_val=prev_val,
-                                         updated_val=new_val)
+                                         model_name=model_name, model_field=model_field,
+                                         previous_val=prev_val, updated_val=new_val)
 

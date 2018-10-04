@@ -1,4 +1,4 @@
-<div class="panel" ng-controller="CreateShipmentCtrl as showCase">
+<div class="panel" ng-controller="StockTransferShipmentCtrl as showCase">
   <div class="panel-header" style="overflow: visible;">
     <div class="layout-sub-header">
       <form name="form" role="form" ui-jq="validate" ui-options="showCase.validationOpt" class="filters">
@@ -105,7 +105,9 @@
 
     </div>
   </div>
-  <div ng-include="'views/common/datatable.html'"></div>
+  <!-- <div ng-include="'views/common/datatable.html'"></div> -->
+  <table datatable="" dt-options="vm.dtOptions" dt-columns="vm.dtColumns" dt-instance="vm.dtInstance" class="table custom-table table-condensed datatable"></table>
+  <div ui-view></div>
   <div class="col-md-12">
     	<button type="submit" class="btn btn-success" ng-disabled="showCase.bt_disable" style="display: block;margin: auto;" ng-click="showCase.add(form)">Create Shipment</button>
   </div>

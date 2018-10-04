@@ -1467,6 +1467,10 @@ var app = angular.module('urbanApp')
                 return $ocLazyLoad.load([
                   'scripts/controllers/outbound/shipment_info/gateout.js'
                 ])
+              }).then( function() {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/outbound/shipment_info/stock_transfer_shipment.js'
+                ])
               });
             }]
           },

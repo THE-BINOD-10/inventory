@@ -7838,7 +7838,8 @@ def po_invoice_number_check(user, invoice_num, supplier_id):
                                                    invoice_number=invoice_num,
                                                    purchase_order__open_po__supplier_id=supplier_id)
     if exist_inv_obj.exists():
-        status = 'Invoice Number already Mapped to %s' % get_po_reference(exist_inv_obj[0].purchase_order)
+        status = 'Invoice Number already Mapped to %s/%s' % (get_po_reference(exist_inv_obj[0].purchase_order),
+                                                             str(exist_inv_obj[0].receipt_number))
     return status
 
 

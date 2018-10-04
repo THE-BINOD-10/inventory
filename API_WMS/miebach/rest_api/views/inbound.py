@@ -8061,6 +8061,12 @@ def get_grn_level_data(request, user=''):
                                                     open_data.utgst_tax
                     po_data_dict['confirm_key'] = 'seller_po_summary_id'
                     po_data_dict['confirm_id'] = seller_summary_obj.id
+                    po_data_dict['buy_price'] = 0
+                    po_data_dict['batch_no'] = ''
+                    po_data_dict['mrp'] = 0
+                    po_data_dict['mfg_date'] = ''
+                    po_data_dict['exp_date'] = ''
+                    po_data_dict['discount_percentage'] = seller_summary_obj.discount_percent
                     if seller_summary_obj.batch_detail:
                         po_data_dict['buy_price'] = seller_summary_obj.batch_detail.buy_price
                         po_data_dict['batch_no'] = seller_summary_obj.batch_detail.batch_no
@@ -8085,7 +8091,7 @@ def get_grn_level_data(request, user=''):
                     amount = float(po_data_dict['quantity']) * float(po_data_dict['price'])
                     total += amount
                     total_qty += quantity
-                    po_data.append(po_data_dict)
+                    po_data.append([po_data_dict])
 
             else:
                 open_data = data.open_po
@@ -8104,7 +8110,7 @@ def get_grn_level_data(request, user=''):
                 po_data_dict['confirm_key'] = 'purchase_order_id'
                 po_data_dict['confirm_id'] = data.id
                 amount = float(po_data_dict['quantity']) * float(po_data_dict['price'])
-                po_data.append(po_data_dict)
+                po_data.append([po_data_dict])
         if results:
             purchase_order = results[0]
             address = purchase_order.open_po.supplier.address
@@ -8156,12 +8162,7 @@ def update_existing_grn(request, user=''):
     total_order_qty = 0
     total_price = 0
     total_tax = 0
-    pallet_number = ''
     is_putaway = ''
-    purchase_data = ''
-    seller_name = user.username
-    seller_address = user.userprofile.address
-    seller_receipt_id = 0
     if user.username=='milkbasket' and (not request.POST.get('invoice_number', '') and not request.POST.get('dc_number', '')):
         return HttpResponse("Invoice/DC Number  is Mandatory")
     if user.username == 'milkbasket' and (not request.POST.get('invoice_date', '') and not request.POST.get('dc_date', '')):
@@ -8177,20 +8178,48 @@ def update_existing_grn(request, user=''):
     challan_date = request.POST.get('dc_date', '')
     challan_date = datetime.datetime.strptime(challan_date, "%m/%d/%Y").date() if challan_date else ''
     bill_date = datetime.datetime.now().date().strftime('%d-%m-%Y')
-    round_off_checkbox = request.POST.get('round_off', '')
-    round_off_total = request.POST.get('round_off_total', 0)
     if request.POST.get('invoice_date', ''):
         bill_date = datetime.datetime.strptime(str(request.POST.get('invoice_date', '')), "%m/%d/%Y").strftime('%d-%m-%Y')
-    if not confirm_returns:
-        request_data = request.POST
-        myDict = dict(request_data.iterlists())
-    else:
-        myDict = confirm_returns
+    request_data = request.POST
+    myDict = dict(request_data.iterlists())
 
-    log.info('Request params for ' + user.username + ' is ' + str(myDict))
+    log.info('Request params for Update GRN for request user ' + request.user.username +' user ' + user.username + ' is ' + str(myDict))
     try:
-        po_data, status_msg, all_data, order_quantity_dict, \
-        purchase_data, data, data_dict, seller_receipt_id = generate_grn(myDict, request, user)
+        field_mapping = {'exp_date': 'expiry_date', 'mfg_date': 'mfg_date'}
+        for ind in range(0, len(myDict['confirm_key'])):
+            model_name = myDict['confirm_key'][ind].strip('_id')
+            if myDict['confirm_key'][ind] == 'seller_po_summary_id':
+                model_obj = SellerPOSummary.objects.get(id=myDict['confirm_id'][ind])
+            else:
+                model_obj = PurchaseOrder.objects.get(id=myDict['confirm_id'][ind])
+            for key, value in myDict.keys():
+                if key in ['exp_date', 'mfg_date']:
+                    if model_obj.batch_detail:
+                        if getattr(model_obj.batch_detail, field_mapping[key]):
+                            prev_val = datetime.datetime.strftime(getattr(model_obj.batch_detail, field_mapping[key]), '%m/%d/%Y')
+                            if myDict[key][ind] != prev_val:
+                                setattr(model_obj.batch_detail, field_mapping[key],
+                                        datetime.datetime.strptime(value, '%m/%d/%Y'))
+                                model_obj.save()
+                                create_update_table_history(user, model_obj.id, model_name, field_mapping[key],
+                                                            prev_val, value)
+                        else:
+                            setattr(model_obj.batch_detail, field_mapping[key],
+                                    datetime.datetime.strptime(value, '%m/%d/%Y'))
+                            model_obj.save()
+                            create_update_table_history(user, model_obj.id, model_name, field_mapping[key],
+                                                        '', value)
+                elif key in ['mrp', 'buy_price']:
+                    if model_obj.batch_detail:
+                        try:
+                            value = float(value)
+                        except:
+                            value = 0
+                        prev_val = float(getattr(model_obj.batch_detail, key))
+                        if prev_val != value:
+                            setattr(model_obj.batch_detail, key, value)
+                            model_obj.save()
+                            create_update_table_history(user, model_obj.id, model_name, key, prev_val, value)
 
         for key, value in all_data.iteritems():
             entry_price = float(key[3]) * float(value)

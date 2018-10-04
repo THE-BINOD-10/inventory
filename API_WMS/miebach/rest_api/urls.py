@@ -181,7 +181,7 @@ urlpatterns = [
     url(r'^get_saved_rtv_data/$', get_saved_rtv_data),
     url(r'^map_ean_sku_code/$', map_ean_sku_code),
     url(r'^get_grn_level_data/$', get_grn_level_data),
-    url(r'^update_confirm_grn/$', update_existing_grn),
+    url(r'^update_existing_grn/$', update_existing_grn),
 
     # Production
     url(r'^generated_jo_data/$', generated_jo_data),

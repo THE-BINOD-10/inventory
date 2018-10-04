@@ -4128,6 +4128,10 @@ def save_tally_data(request, user=""):
             if tally_obj:
                 setattr(tally_obj, key, value)
         if tally_obj:
+            if 'maintain_bill' not in request_data.keys():
+                tally_obj.maintain_bill = 0
+            if 'automatic_voucher' not in request_data.keys():
+                tally_obj.automatic_voucher = 0
             tally_obj.save()
         else:
             TallyConfiguration.objects.create(**tally_dict)
@@ -7838,7 +7842,8 @@ def po_invoice_number_check(user, invoice_num, supplier_id):
                                                    invoice_number=invoice_num,
                                                    purchase_order__open_po__supplier_id=supplier_id)
     if exist_inv_obj.exists():
-        status = 'Invoice Number already Mapped to %s' % get_po_reference(exist_inv_obj[0].purchase_order)
+        status = 'Invoice Number already Mapped to %s/%s' % (get_po_reference(exist_inv_obj[0].purchase_order),
+                                                             str(exist_inv_obj[0].receipt_number))
     return status
 
 
@@ -7851,4 +7856,13 @@ def get_sku_ean_list(sku):
     if multi_eans:
         eans_list = list(chain(eans_list, multi_eans))
     return eans_list
+
+
+def create_update_table_history(user, model_id, model_name, model_field, prev_val, new_val):
+    table_history = TableUpdateHistory.objects.filter(user_id=user.id, model_id=model_id,
+                                                     model_name=model_name, model_field=model_field)
+    if not table_history.exists():
+        TableUpdateHistory.objects.create(user_id=user.id, model_id=model_id,
+                                         model_name=model_name, model_field=model_field,
+                                         previous_val=prev_val, updated_val=new_val)
 

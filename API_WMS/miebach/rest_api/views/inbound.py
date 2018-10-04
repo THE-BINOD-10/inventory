@@ -8061,6 +8061,12 @@ def get_grn_level_data(request, user=''):
                                                     open_data.utgst_tax
                     po_data_dict['confirm_key'] = 'seller_po_summary_id'
                     po_data_dict['confirm_id'] = seller_summary_obj.id
+                    po_data_dict['buy_price'] = 0
+                    po_data_dict['batch_no'] = ''
+                    po_data_dict['mrp'] = 0
+                    po_data_dict['mfg_date'] = ''
+                    po_data_dict['exp_date'] = ''
+                    po_data_dict['discount_percentage'] = seller_summary_obj.discount_percent
                     if seller_summary_obj.batch_detail:
                         po_data_dict['buy_price'] = seller_summary_obj.batch_detail.buy_price
                         po_data_dict['batch_no'] = seller_summary_obj.batch_detail.batch_no
@@ -8156,12 +8162,7 @@ def update_existing_grn(request, user=''):
     total_order_qty = 0
     total_price = 0
     total_tax = 0
-    pallet_number = ''
     is_putaway = ''
-    purchase_data = ''
-    seller_name = user.username
-    seller_address = user.userprofile.address
-    seller_receipt_id = 0
     if user.username=='milkbasket' and (not request.POST.get('invoice_number', '') and not request.POST.get('dc_number', '')):
         return HttpResponse("Invoice/DC Number  is Mandatory")
     if user.username == 'milkbasket' and (not request.POST.get('invoice_date', '') and not request.POST.get('dc_date', '')):
@@ -8177,20 +8178,29 @@ def update_existing_grn(request, user=''):
     challan_date = request.POST.get('dc_date', '')
     challan_date = datetime.datetime.strptime(challan_date, "%m/%d/%Y").date() if challan_date else ''
     bill_date = datetime.datetime.now().date().strftime('%d-%m-%Y')
-    round_off_checkbox = request.POST.get('round_off', '')
-    round_off_total = request.POST.get('round_off_total', 0)
     if request.POST.get('invoice_date', ''):
         bill_date = datetime.datetime.strptime(str(request.POST.get('invoice_date', '')), "%m/%d/%Y").strftime('%d-%m-%Y')
-    if not confirm_returns:
-        request_data = request.POST
-        myDict = dict(request_data.iterlists())
-    else:
-        myDict = confirm_returns
+    request_data = request.POST
+    myDict = dict(request_data.iterlists())
 
-    log.info('Request params for ' + user.username + ' is ' + str(myDict))
+    log.info('Request params for Update GRN for request user ' + request.user.username +' user ' + user.username + ' is ' + str(myDict))
     try:
-        po_data, status_msg, all_data, order_quantity_dict, \
-        purchase_data, data, data_dict, seller_receipt_id = generate_grn(myDict, request, user)
+        for ind in range(0, len(myDict['confirm_key'])):
+            if myDict['confirm_key'][ind] == 'seller_po_summary_id':
+                model_obj = SellerPOSummary.objects.get(id=myDict['confirm_id'][ind])
+            else:
+                model_obj = PurchaseOrder.objects.get(id=myDict['confirm_id'][ind])
+            if model_obj.batch_detail:
+                if model_obj.batch_detail.expiry_date:
+                    if myDict['exp_date'][ind] != datetime.datetime.strftime(model_obj.batch_detail.expiry_date, '%m/%d/%Y'):
+                        prev_val = model_obj.batch_detail.expiry_date
+                        model_obj.batch_detail.expiry_date = datetime.datetime.strptime(myDict['exp_date'], '%m/%d/%Y')
+                        model_obj.save()
+                        model_name = myDict['confirm_key'][ind].strip('_id')
+                        create_update_table_history(user, model_obj.id, model_name, prev_val, myDict['exp_date'][ind])
+                else:
+                    model_obj.batch_detail.expiry_date = datetime.datetime.strptime(myDict['exp_date'], '%m/%d/%Y')
+                    model_obj.save()
 
         for key, value in all_data.iteritems():
             entry_price = float(key[3]) * float(value)

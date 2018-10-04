@@ -1583,7 +1583,6 @@ def validate_picklist_combos(data, all_picklists, picks_all):
 @login_required
 @get_admin_user
 def picklist_confirmation(request, user=''):
-
     st_time = datetime.datetime.now()
     data = {}
     all_data = {}
@@ -1745,6 +1744,13 @@ def picklist_confirmation(request, user=''):
                         pick_loc = all_pick_locations.filter(picklist_id=picklist.id,
                                                              stock__location_id=stock.location_id, status=1)
                         # update_picked = picking_count1
+                        try:
+                            st_order = STOrder.objects.get(picklist = picklist, stock_transfer__sku__user=user.id)
+                            if st_order:
+                                st_order.stock_transfer.status = 2
+                                st_order.save()
+                        except:
+                            pass
                         if pick_loc:
                             update_picklist_locations(pick_loc, picklist, update_picked)
                         else:
@@ -2630,6 +2636,7 @@ def get_customer_sku(request, user=''):
     sku_grouping = request.GET.get('sku_grouping', 'false')
     datatable_view = request.GET.get('view', '')
     search_params = {'user': user.id}
+    import pdb;pdb.set_trace()
     headers = ('', 'SKU Code', 'Order Quantity', 'Shipping Quantity', 'Pack Reference', '')
     request_data = dict(request.GET.iterlists())
     if 'order_id' in request_data.keys() and not datatable_view == 'ShipmentPickedAlternative':
@@ -2657,7 +2664,9 @@ def get_customer_sku(request, user=''):
         return HttpResponse(json.dumps({'data': data,
                                         'shipment_id': '',
                                         'display_fields': '',
-                                        'marketplace': '', 'shipment_number': ship_no, 'courier_name': courier_name}, cls=DjangoJSONEncoder))
+                                        'marketplace': '', 
+                                        'shipment_number': ship_no, 
+                                        'courier_name': courier_name}, cls=DjangoJSONEncoder))
     return HttpResponse(json.dumps({'status': 'No Orders found'}))
 
 
@@ -11731,3 +11740,57 @@ def delete_notification(request):
         except:
             resp['msg'] = 'Fail'
     return HttpResponse(json.dumps(resp), content_type='application/json')
+
+@csrf_exempt
+def get_stock_transfer_shipment_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    data_dict = {}
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    temp_data['recordsTotal'] = 0
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    stock_transfer_id = ''
+    ordered_quantity = ''
+    st_orders_id = STOrder.objects.filter(picklist__stock__sku__user = user.id, stock_transfer__status = 2).distinct().values_list('picklist__picklist_number', flat=True)
+    for picklist_num in st_orders_id:
+        data = get_picked_data(picklist_num, user.id, marketplace='')
+        for obj in data:
+            try:
+                ord_id = str(int(obj['order_id']))
+            except:
+                ord_id = str(obj['order_id'])
+            total_picked_quantity = obj['picked_quantity']
+            sku = obj['wms_code']
+            get_stock_transfer = StockTransfer.objects.filter(sku__sku_code=obj['wms_code'], order_id = ord_id).distinct()
+            for obj in get_stock_transfer:
+                try:
+                    shipment_date = str(obj.updation_date)
+                    warehouse = obj.st_po.open_st.warehouse.username
+                    sku_price = obj.st_po.open_st.price
+                    total_price = obj.st_po.open_st.price * total_picked_quantity
+                except:
+                    continue
+            search_val = ''
+            try:
+                search_val = (item for idx,item in enumerate(temp_data['aaData']) if item["Stock Transfer ID"] == ord_id and item["Warehouse Name"] == warehouse).next()
+                if search_val:
+                    exist_qty = search_val['Picked Quantity']
+                    new_qty = total_picked_quantity
+                    exist_amt = search_val['Total Amount']
+                    new_amt = total_price
+                    search_val.update({'Picked Quantity' : exist_qty + new_qty, 'Total Amount' : exist_amt + new_amt})
+            except:
+                temp_data['aaData'].append({'Stock Transfer ID' : ord_id, 'Picked Quantity' : total_picked_quantity, 'Total Amount' : total_price, 'Stock Transfer Date&Time' : shipment_date, 'Warehouse Name': warehouse, 'Picklist Number' : picklist_num})
+
+
+@csrf_exempt
+@login_required
+def create_shipment_stock_transfer(request, user=''):
+    stock_transfer_id = request.GET.get('stock_transfer_id', '')
+    import pdb;pdb.set_trace()
+    try:
+        st_order = StockTransfer.objects.filter(order_id=stock_transfer_id, sku__user=user.id)
+        if len(st_order):
+            st_order = st_order[0]
+            st_order.stock_transfer.status = 3
+            st_order.save()
+    except:
+        pass

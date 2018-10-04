@@ -27,7 +27,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.model_data = data.data;
       if (vm.industry_type == 'FMCG') {
         vm.extra_width = {
-          'width': '1100px'
+          'width': '1200px'
         };
       } else {
         vm.extra_width = {
@@ -154,11 +154,86 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     // }
   }
 
+  vm.skus_total_amount = 0;
+  vm.calc_total_amt = function(event, data, index, parent_index) {
+      var sku_row_data = {};
+      angular.copy(data.data[parent_index][index], sku_row_data);
+      if(sku_row_data.buy_price == ''){
+        sku_row_data.buy_price = 0;
+      }
+      if(sku_row_data.quantity == ''){
+        sku_row_data.quantity = 0;
+      }
+      if(sku_row_data.tax_percent == ''){
+        sku_row_data.tax_percent = 0;
+      }
+      if(sku_row_data.cess_percent == ''){
+        sku_row_data.cess_percent = 0;
+      }
+      if(sku_row_data.discount_percentage == ''){
+        sku_row_data.discount_percentage = 0;
+      }
+
+      if (Number(sku_row_data.tax_percent)) {
+
+        sku_row_data.tax_percent = Number(sku_row_data.tax_percent).toFixed(1)
+      }
+
+      if (Number(sku_row_data.cess_percent)) {
+
+        sku_row_data.cess_percent = Number(sku_row_data.cess_percent).toFixed(1)
+      }
+
+      vm.singleDecimalVal(sku_row_data.tax_percent, 'tax_percent', index, parent_index);
+      vm.singleDecimalVal(sku_row_data.cess_percent, 'cess_percent', index, parent_index);
+
+      if (vm.industry_type == 'FMCG') {
+        var total_amt = Number(sku_row_data.quantity)*Number(sku_row_data.buy_price);
+      } else {
+        var total_amt = Number(sku_row_data.quantity)*Number(sku_row_data.price);
+      }
+
+      var total_amt_dis = Number(total_amt) * Number(sku_row_data.discount_percentage) / 100;
+      var tot_tax = Number(sku_row_data.tax_percent) + Number(sku_row_data.cess_percent);
+      var wo_tax_amt = Number(total_amt)-Number(total_amt_dis);
+      data.data[parent_index][index].total_amt = wo_tax_amt + (wo_tax_amt * (tot_tax/100));
+
+      var totals = 0;
+      for(var index in data.data) {
+        var rows = data.data[index];
+        for (var d in rows) {
+            if(!isNaN(rows[d]['total_amt'])) {
+                totals += rows[d]['total_amt'];
+            }
+        }
+      }
+      vm.skus_total_amount = totals;
+      $('.totals').text('Totals: ' + totals);
+      vm.model_data.round_off_total = Math.round(totals * 100) / 100;
+    }
+
+    vm.pull_cls = "pull-right";
+    vm.margin_cls = {marginRight: '50px'};
+    vm.round_off_effects = function(key){
+
+      vm.pull_cls = key ? 'pull-left' : 'pull-right';
+      vm.margin_cls = key ? {marginRight: '0px'} : {marginRight: '50px'};
+    }
+
+    vm.singleDecimalVal = function(value, field, inIndex, outIndex){
+
+      if (Number(value)) {
+
+        vm.model_data.data[outIndex][inIndex][field] = Number(value).toFixed(1);
+      }
+    }
+  }
+
   function check_receive() {
     var status = false;
     for(var i=0; i<vm.model_data.data.length; i++)  {
       angular.forEach(vm.model_data.data[i], function(sku){
-        if(sku.value > 0) {
+        if(sku.quantity > 0) {
           status = true;
         }
       });

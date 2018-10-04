@@ -5372,7 +5372,11 @@ def get_sku_variants(request, user=''):
                                             log.info('New ASN Stock Created for User %s and SKU %s' %
                                                 (user.username, str(sku[0].sku_code)))
     sku_master, total_qty = all_whstock_quant(sku_master, user, level, lead_times, dist_reseller_leadtime)
-    _data = {'data': sku_master, 'gen_wh_level_status': levels_config, 'total_qty': total_qty, }
+    central_order_mgmt = get_misc_value('central_order_mgmt', user.id)
+    if central_order_mgmt:
+        sku_id = sku_master[0]['id']
+        sku_spl_attrs = dict(SKUAttributes.objects.filter(sku_id=sku_id).values_list('attribute_name', 'attribute_value'))
+    _data = {'data': sku_master, 'gen_wh_level_status': levels_config, 'total_qty': total_qty, 'sku_spl_attrs': sku_spl_attrs}
     if level == 2:
         _data['freight_charges'] = "true"
     else:

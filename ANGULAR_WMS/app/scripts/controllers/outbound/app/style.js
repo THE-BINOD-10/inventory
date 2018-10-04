@@ -77,6 +77,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
         vm.style_open = true;
         vm.check_stock=true;
         var style_data = data.data.data;
+        vm.sku_spl_attrs = data.data.sku_spl_attrs;
         var total_stocks = {};
         vm.charge_remarks = data.data.charge_remarks;
         vm.generic_wharehouse_level = data.data.gen_wh_level_status;

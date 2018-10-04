@@ -535,6 +535,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
         vm.style_data = data.data.data;
         vm.style_total_counts = data.data.total_qty;
         vm.style_headers = data.data.style_headers;
+        vm.sku_spl_attrs = data.data.sku_spl_attrs;
         vm.style_detail_hd = Object.keys(vm.style_headers);
         //var quant_len = data.data.data.length-1;
         //vm.stock_quantity = vm.style_data[quant_len].style_quantity;

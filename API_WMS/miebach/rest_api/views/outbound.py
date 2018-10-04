@@ -3630,7 +3630,6 @@ def create_order_from_intermediate_order(request, user):
                     ord_obj = OrderDetail(**order_dict)
                     ord_obj.save()
                     order_objs.append(ord_obj)
-                    import pdb;pdb.set_trace()
                     order_sku.update({ord_obj.sku: order_dict['quantity']})
                     # Collecting needed data for Picklist generation
                     order_user_sku.setdefault(wh_id, {})

@@ -79,6 +79,14 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
                                                                   'Picked Quantity', 'Total Quantity', 'Order Date']}
                          }
 
+  self.tranfer_shipment = {
+                       //alternate_view: true,
+                       view: 'Shipmenttransfer',
+                       tb_headers: {'Shipmenttransfer': ['ST ID', 'Dest WH', 'Total Qty', 'Picked Qty', 'ST Date']}
+                                    // 'ShipmentPickedAlternative': ['Order ID', 'Customer ID', 'Customer Name', 'Marketplace',
+                                    //                          'Picked Quantity', 'Total Quantity', 'Order Date']}
+                    }
+
   /*** Production ***/
 
     //RM Picklist
@@ -184,4 +192,3 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
       default: 'user.signin'
     }
 }
-

@@ -1,18 +1,17 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('StockTransferShipmentCtrl', ['$scope', '$http', '$state', '$compile', '$rootScope', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'Service', '$modal', 'Data', ServerSideProcessingCtrl]);
+  .controller('StockTransferShipmentCtrl', ['$scope', '$http', '$state', '$compile', '$rootScope', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'Service', 'colFilters', '$timeout', '$modal', 'Data', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, Session, DTOptionsBuilder, DTColumnBuilder, Service, $modal, Data)
-{
+function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, Session, DTOptionsBuilder, DTColumnBuilder, Service, colFilters, $timeout, $modal, Data) {
   var vm = this;
-  vm.service = service;
+  vm.service = Service;
   vm.apply_filters = colFilters;
   vm.sku_group = false;
   vm.permissions = Session.roles.permissions;
   vm.mk_user = (vm.permissions.use_imei == true) ? true: false;
   vm.awb_ship_type = (vm.permissions.create_shipment_type == true) ? true: false;
-  vm.g_data = Data.create_shipment;
+  vm.g_data = Data.tranfer_shipment;
 
   //table start
   vm.selected = {};
@@ -183,17 +182,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
         return false;
       }
 
-      if(vm.g_data.view == 'ShipmentPickedAlternative'){
-        if (vm.group_by == 'order' && order_ids.length > 1) {
-          vm.bt_disable = false;
-          vm.service.showNoty("Please Select Single Order");
-          return;
-        } else if(vm.group_by == 'marketplace' && mk_places.length > 1) {
-          vm.bt_disable = false;
-          vm.service.showNoty("Please Select Single Marketplace");
-          return;
-        }
-      }
+      // if(vm.g_data.view == 'Shipmenttransfer'){
+      //   if (vm.group_by == 'order' && order_ids.length > 1) {
+      //     vm.bt_disable = false;
+      //     vm.service.showNoty("Please Select Single Order");
+      //     return;
+      //   } else if(vm.group_by == 'marketplace' && mk_places.length > 1) {
+      //     vm.bt_disable = false;
+      //     vm.service.showNoty("Please Select Single Marketplace");
+      //     return;
+      //   }
+      // }
 
       data.push({name:'view', value:vm.g_data.view});
       vm.service.apiCall(apiUrl, "GET", data).then(function(data){
@@ -493,7 +492,7 @@ vm.add_shipment = function(valid) {
   }
 
   vm.change_datatable = function() {
-    Data.create_shipment.view = (vm.g_data.alternate_view)? 'ShipmentPickedAlternative': 'ShipmentPickedOrders';
+    Data.tranfer_shipment.view = 'Shipmenttransfer';
     $state.go($state.current, {}, {reload: true});
   }
 

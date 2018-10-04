@@ -43,7 +43,7 @@
 			  </label></p>
 			</div> -->
 
-            <!-- <div class="col-sm-12"><hr></div>
+            <!-- <div class="col-sm-12"><hr></div> -->
           </div>
           <div class="row">
             <div class="col-md-3 col-sm-3 col-xs-6">
@@ -80,7 +80,7 @@
             </div>
 
 
-            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.model_data.dc_level_grn">
+            <!-- <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.model_data.dc_level_grn">
               <div class="form-group">
                 <label for="dc_number" class="control-label"> DC Number <span ng-if="showCase.user_type=='marketplace_user'">*</span></label>
                 <input class="form-control" ng-model="showCase.model_data.dc_number" type="text" name="dc_number" ng-if="showCase.user_type=='marketplace_user'" required>
@@ -174,6 +174,8 @@
                       <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{outerIndex}}">
                       <input type="hidden" name="supplier_id" value="{{showCase.model_data.supplier_id}}">
                       <input type="hidden" name="id" value="{{data.order_id}}" ng-model="data.order_id">
+                      <input type="hidden" name="confirm_id" value="{{data.confirm_id}}" ng-model="data.confirm_id">
+                      <input type="hidden" name="confirm_key" value="{{data.confirm_key}}" ng-model="data.confirm_key">
                       <!-- <input type="hidden" name="new_sku" value="{{data.is_new}}"> -->
                       <!-- <input ng-if="showCase.po_qc" type="hidden" class="form-control" value="{{data.accepted_quantity}}" name="accepted_quantity">
                       <input ng-if="showCase.po_qc" type="hidden" class="form-control" value="{{data.rejected_quantity}}" name="rejected_quantity">

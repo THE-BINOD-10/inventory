@@ -923,6 +923,25 @@ var app = angular.module('urbanApp')
           }
         })
 
+        .state('app.inbound.GrnEdit', {
+          url: '/GrnEdit',
+          templateUrl: 'views/inbound/grn_edit.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                    'scripts/controllers/inbound/grn_edit.js'
+                ])
+            }]
+          },
+          data: {
+            title: 'GRN Edit',
+          }
+        })
+        .state('app.inbound.GrnEdit.GrnEditPopup', {
+          url: '/GrnEditPopup',
+          templateUrl: 'views/inbound/toggle/grn_edit_popup.html'
+        })
+
       // Production routes
       .state('app.production', {
           template: '<div ui-view></div>',

@@ -180,6 +180,8 @@ urlpatterns = [
     url(r'^save_rtv/$', save_rtv),
     url(r'^get_saved_rtv_data/$', get_saved_rtv_data),
     url(r'^map_ean_sku_code/$', map_ean_sku_code),
+    url(r'^get_grn_level_data/$', get_grn_level_data),
+    url(r'^update_existing_grn/$', update_existing_grn),
 
     # Production
     url(r'^generated_jo_data/$', generated_jo_data),
@@ -337,6 +339,7 @@ urlpatterns = [
     url(r'^list_notifications/$', list_notifications), #PUSH NOTIFICATIONS
     url(r'^make_notifications_read/$', make_notifications_read),
     url(r'^delete_notification/$', delete_notification),
+    url(r'^get_grn_edit_filter/$', get_grn_edit_filter),
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),

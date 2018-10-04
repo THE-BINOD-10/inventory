@@ -4124,6 +4124,10 @@ def save_tally_data(request, user=""):
             if tally_obj:
                 setattr(tally_obj, key, value)
         if tally_obj:
+            if 'maintain_bill' not in request_data.keys():
+                tally_obj.maintain_bill = 0
+            if 'automatic_voucher' not in request_data.keys():
+                tally_obj.automatic_voucher = 0
             tally_obj.save()
         else:
             TallyConfiguration.objects.create(**tally_dict)

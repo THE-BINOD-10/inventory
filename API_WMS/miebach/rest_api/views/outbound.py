@@ -2636,6 +2636,7 @@ def get_customer_sku(request, user=''):
     sku_grouping = request.GET.get('sku_grouping', 'false')
     datatable_view = request.GET.get('view', '')
     search_params = {'user': user.id}
+    import pdb;pdb.set_trace()
     headers = ('', 'SKU Code', 'Order Quantity', 'Shipping Quantity', 'Pack Reference', '')
     request_data = dict(request.GET.iterlists())
     if 'order_id' in request_data.keys() and not datatable_view == 'ShipmentPickedAlternative':
@@ -2663,7 +2664,9 @@ def get_customer_sku(request, user=''):
         return HttpResponse(json.dumps({'data': data,
                                         'shipment_id': '',
                                         'display_fields': '',
-                                        'marketplace': '', 'shipment_number': ship_no, 'courier_name': courier_name}, cls=DjangoJSONEncoder))
+                                        'marketplace': '', 
+                                        'shipment_number': ship_no, 
+                                        'courier_name': courier_name}, cls=DjangoJSONEncoder))
     return HttpResponse(json.dumps({'status': 'No Orders found'}))
 
 
@@ -11782,6 +11785,7 @@ def get_stock_transfer_shipment_data(start_index, stop_index, temp_data, search_
 @login_required
 def create_shipment_stock_transfer(request, user=''):
     stock_transfer_id = request.GET.get('stock_transfer_id', '')
+    import pdb;pdb.set_trace()
     try:
         st_order = StockTransfer.objects.filter(order_id=stock_transfer_id, sku__user=user.id)
         if len(st_order):

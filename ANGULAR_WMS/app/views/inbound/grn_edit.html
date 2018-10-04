@@ -1,0 +1,67 @@
+<div ng-controller="GRNEdit as showCase">  
+  <div class="page-layout reports">
+
+    <div class='layout-header'>
+      <div class="row">
+        <div class="col-md-6 col-sm-6 col-xs-12">
+          <div class="pull-left" ng-include="'views/common/title.html'"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="layout-sub-header">
+      <form name="form" role="form" class="filters">
+        <div class="clearfix">
+          <div class="row col-md-12">
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-repeat="field in showCase.report_data.filters">
+              <div ng-include="service.get_view_url(field.type, 'inputs')"></div>
+            </div>
+          </div>
+          <div class="col-md-12">
+            <div ng-include="'views/common/controls/report_controls.html'"></div>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="row" ng-if="showCase.service.totals_tb_data">
+      <div class = "col-md-12">
+        <div class="col-md-2" ng-repeat="(key,value) in showCase.service.totals_tb_data">
+          <div class="widget bg-white" style="margin-bottom: 0;text-align: center;">
+            <div class="overflow-hidden">
+            <span class="widget-subtitle">{{key}}: </span>
+            <span class="widget-title bold">{{value}}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="layout-body">
+	  <div class="col-md-12 col-sm-12 col-xs-12">
+
+
+      <div class="panel" ng-if="showCase.datatable">
+
+        <div class="col-md-12 col-sm-12 col-xs-12" ng-if="($state.current.data.title | lowercase) == 'goods receipt note'">
+    		  <div class="col-md-1 col-sm-1 col-xs-1">
+      			<label class="switch switch-sm square mt5">
+      			  <div>
+        				<input type="checkbox" ng-model="showCase.toggle_sku_wise" ng-change="showCase.toggle_grn()" class="ng-valid ng-dirty">
+        				<span><i class="handle"></i></span>
+      			  </div>
+      			</label>
+    		  </div>
+    		</div>
+
+        <div ng-if="!(showCase.report_data.row_click)" ng-include="'views/common/no-onclick-table.html'"></div>
+        <div ng-if="showCase.report_data.row_click" ng-include="'views/common/datatable.html'"></div>
+
+      </div>
+      <div ui-view></div>
+
+
+    </div>
+	</div>
+  </div>
+</div>

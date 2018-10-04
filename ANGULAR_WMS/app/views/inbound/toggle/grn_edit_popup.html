@@ -43,10 +43,10 @@
 			  </label></p>
 			</div> -->
 
-            <!-- <div class="col-sm-12"><hr></div> -->
+            <div class="col-sm-12"><hr></div>
           </div>
           <div class="row">
-            <div class="col-md-3 col-sm-3 col-xs-6">
+            <!-- <div class="col-md-3 col-sm-3 col-xs-6">
               <div class="form-group">
                 <label for="lr_number" class="control-label"> LR Number </label>
                 <input class="form-control" ng-model="showCase.model_data.lr_number" type="text" name="lr_number">
@@ -77,7 +77,7 @@
                 <input class="form-control number" ng-model="showCase.model_data.remainder_mail" type="text" name="remainder_mail"
                   maxlength="4">
               </div>
-            </div>
+            </div> -->
 
 
             <!-- <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.model_data.dc_level_grn">
@@ -168,12 +168,13 @@
                       <!-- <input type="text" name="sku_code" size="30" class="form-control detectTab pricevalid" value="{{(data.sku_code == 'TEMP')? data.temp_wms: data.sku_code;}}" title="{{ data.sku_code }}"> -->
                       <!-- <input type="text" name="sku_code" size="30" class="form-control detectTab pricevalid" value="{{(data.sku_code == 'TEMP')? data.temp_wms: data.sku_code;}}" ng-readonly="records[0].dis && data.sku_code != 'TEMP'" title="{{ data.sku_code }}" ng-if="!data.is_new"> -->
 
-                      <input type="text" autocomplete="off" name="sku_code" size="30" class="form-control detectTab" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" ng-model="data.sku_code" title="{{ data.sku_code }}" typeahead-on-select="showCase.get_sku_details(data, $item, innerIndex)">
+                      <input type="text" autocomplete="off" name="sku_code" size="30" class="form-control detectTab" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" ng-model="data.sku_code" title="{{ data.sku_code }}" typeahead-on-select="showCase.get_sku_details(data, $item, innerIndex)" readonly>
 
                       <!-- out of elements start -->
                       <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{outerIndex}}">
                       <input type="hidden" name="supplier_id" value="{{showCase.model_data.supplier_id}}">
-                      <input type="hidden" name="id" value="{{data.order_id}}" ng-model="data.order_id">
+                      <input type="hidden" name="id" value="{{data.order_id}}" ng-model="showCase.model_data.order_id">
+                      <input type="hidden" name="po_number" value="{{data.po_number}}" ng-model="showCase.model_data.po_number">
                       <input type="hidden" name="confirm_id" value="{{data.confirm_id}}" ng-model="data.confirm_id">
                       <input type="hidden" name="confirm_key" value="{{data.confirm_key}}" ng-model="data.confirm_key">
                       <!-- <input type="hidden" name="new_sku" value="{{data.is_new}}"> -->
@@ -262,8 +263,8 @@
       <!-- body end-->
       <div class="modal-footer">
         <!-- <button ng-if="(!(showCase.print_enable))" type="button" class="pull-left btn pop pop-green col-xs-12 col-sm-3 col-md-2" ng-click="showCase.close_po(form)">Close PO</button> -->
-        <button ng-if="(!(showCase.print_enable))" type="button" class="btn pop pop-green pull-right col-xs-12 col-sm-3 col-md-2" ng-click="showCase.submit(form)">Save</button>
-        <button ng-if="(!(showCase.print_enable))" type="button" class="btn pop pop-normal pull-right col-xs-12 col-sm-4 col-md-3" data-dismiss="modal" ng-click="showCase.confirm_grn(update_grn_form)">Update GRN</button>
+        <button ng-if="(!(showCase.print_enable))" type="button" class="btn pop pop-green pull-right col-xs-12 col-sm-3 col-md-2" ng-click="showCase.confirm_grn(update_grn_form)">Update GRN</button>
+        <button ng-if="(!(showCase.print_enable))" type="button" class="btn pop pop-normal pull-right col-xs-12 col-sm-3 col-md-2" data-dismiss="modal" ng-click="showCase.close()">Close</button>
         <button ng-if="showCase.print_enable" type="button" class="btn pop pop-green pull-right" ng-click="showCase.print_grn()">Print</button>
         <button ng-if="showCase.print_enable" type="button" class="btn pop pop-normal" ng-click="showCase.barcode()">Print Barcodes</button>
       </div>

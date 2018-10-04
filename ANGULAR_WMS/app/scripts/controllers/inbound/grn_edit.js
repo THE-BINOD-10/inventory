@@ -16,6 +16,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.toggle_sku_wise = false;
 
   vm.title = "Purchase Order";
+  //GRN Pop Data
+  vm.grn_details = {po_number: 'PO Reference', supplier_id: 'Supplier ID', supplier_name: 'Supplier Name',
+                    order_date: 'Order Date'}
+  vm.grn_details_keys = Object.keys(vm.grn_details);
 
   vm.report_data = {};
 

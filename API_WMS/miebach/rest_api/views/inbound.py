@@ -8054,12 +8054,18 @@ def get_grn_level_data(request, user=''):
                     po_data_dict['cess_tax'] = open_data.cess_tax
                     po_data_dict['tax_percent'] = open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + \
                                                     open_data.utgst_tax
+                    po_data_dict['confirm_key'] = 'seller_po_summary_id'
+                    po_data_dict['confirm_id'] = seller_summary_obj.id
                     if seller_summary_obj.batch_detail:
                         po_data_dict['buy_price'] = seller_summary_obj.batch_detail.buy_price
                         po_data_dict['batch_no'] = seller_summary_obj.batch_detail.batch_no
                         po_data_dict['mrp'] = seller_summary_obj.batch_detail.mrp
-                        po_data_dict['mfg_date'] = seller_summary_obj.batch_detail.manufactured_date.strftime('%m/%d/%Y')
-                        po_data_dict['exp_date'] = seller_summary_obj.batch_detail.expiry_date.strftime('%m/%d/%Y')
+                        po_data_dict['mfg_date'] = ''
+                        po_data_dict['exp_date'] = ''
+                        if seller_summary_obj.batch_detail.manufactured_date:
+                            po_data_dict['mfg_date'] = seller_summary_obj.batch_detail.manufactured_date.strftime('%m/%d/%Y')
+                        if seller_summary_obj.batch_detail.expiry_date:
+                            po_data_dict['exp_date'] = seller_summary_obj.batch_detail.expiry_date.strftime('%m/%d/%Y')
                         temp_tax_percent = seller_summary_obj.batch_detail.tax_percent
                         po_data_dict['tax_percent'] = temp_tax_percent
                         if seller_summary_obj.purchase_order.open_po.supplier.tax_type == 'intra_state':
@@ -8090,6 +8096,8 @@ def get_grn_level_data(request, user=''):
                 po_data_dict['cess_tax'] = open_data.cess_tax
                 po_data_dict['tax_percent'] = open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + \
                                               open_data.utgst_tax
+                po_data_dict['confirm_key'] = 'purchase_order_id'
+                po_data_dict['confirm_id'] = data.id
                 amount = float(po_data_dict['quantity']) * float(po_data_dict['price'])
                 po_data.append(po_data_dict)
         if results:

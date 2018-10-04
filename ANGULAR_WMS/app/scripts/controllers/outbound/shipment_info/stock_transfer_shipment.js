@@ -492,7 +492,7 @@ vm.add_shipment = function(valid) {
   }
 
   vm.change_datatable = function() {
-    Data.tranfer_shipment.view = 'Shipmenttransfer';
+    Data.tranfer_shipment.view = 'StockTransferShipment';
     $state.go($state.current, {}, {reload: true});
   }
 

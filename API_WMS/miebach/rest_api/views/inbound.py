@@ -8175,11 +8175,6 @@ def update_existing_grn(request, user=''):
         inv_status = po_invoice_number_check(user, invoice_num, supplier_id)
         if inv_status:
             return HttpResponse(inv_status)
-    challan_date = request.POST.get('dc_date', '')
-    challan_date = datetime.datetime.strptime(challan_date, "%m/%d/%Y").date() if challan_date else ''
-    bill_date = datetime.datetime.now().date().strftime('%d-%m-%Y')
-    if request.POST.get('invoice_date', ''):
-        bill_date = datetime.datetime.strptime(str(request.POST.get('invoice_date', '')), "%m/%d/%Y").strftime('%d-%m-%Y')
     request_data = request.POST
     myDict = dict(request_data.iterlists())
 
@@ -8187,7 +8182,8 @@ def update_existing_grn(request, user=''):
     try:
         field_mapping = {'exp_date': 'expiry_date', 'mfg_date': 'manufactured_date', 'quantity': 'quantity',
                          'discount_percentage': 'discount_percent', 'batch_no': 'batch_no',
-                         'mrp': 'mrp', 'buy_price': 'buy_price'}
+                         'mrp': 'mrp', 'buy_price': 'buy_price', 'invoice_number': 'invoice_number'}
+        zero_index_keys = ['invoice_number', 'invoice_date']
         for ind in range(0, len(myDict['confirm_key'])):
             model_name = myDict['confirm_key'][ind].strip('_id')
             if myDict['confirm_key'][ind] == 'seller_po_summary_id':
@@ -8198,7 +8194,12 @@ def update_existing_grn(request, user=''):
             for key, value in myDict.iteritems():
                 if not key in field_mapping.keys():
                     continue
-                value = value[ind]
+                if key in zero_index_keys:
+                    value = value[0]
+                else:
+                    value = value[ind]
+                if not myDict['confirm_key'][ind] == 'seller_po_summary_id':
+                    continue
                 if key in ['exp_date', 'mfg_date']:
                     if model_obj.batch_detail:
                         if getattr(model_obj.batch_detail, field_mapping[key]):
@@ -8251,6 +8252,22 @@ def update_existing_grn(request, user=''):
                                                         prev_val, value)
                     else:
                         batch_dict[field_mapping[key]] = value
+                elif key == 'invoice_date':
+                    if getattr(model_obj, field_mapping[key]):
+                        prev_val = datetime.datetime.strftime(getattr(model_obj, field_mapping[key]), '%m/%d/%Y')
+                        if myDict[key][ind] != prev_val:
+                            setattr(model_obj, field_mapping[key],
+                                    datetime.datetime.strptime(value, '%m/%d/%Y'))
+                            model_obj.save()
+                            create_update_table_history(user, model_obj.id, model_name, field_mapping[key],
+                                                        prev_val, value)
+                elif key == 'invoice_number':
+                    prev_val = getattr(model_obj, field_mapping[key])
+                    if prev_val != value:
+                        setattr(model_obj, field_mapping[key], value)
+                        model_obj.save()
+                        create_update_table_history(user, model_obj.id, model_name, field_mapping[key],
+                                                    prev_val, value)
             if batch_dict and not model_obj.batch_detail:
                 batch_dict['transact_id'] = model_obj.id
                 batch_dict['transact_type'] = 'seller_po_summary'

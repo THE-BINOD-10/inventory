@@ -8185,7 +8185,7 @@ def update_existing_grn(request, user=''):
     try:
         field_mapping = {'exp_date': 'expiry_date', 'mfg_date': 'manufactured_date', 'quantity': 'quantity',
                          'discount_percentage': 'discount_percent', 'batch_no': 'batch_no',
-                         'mrp': 'mrp', 'buy_price': 'buy_price', 'invoice_number': 'invoice_number'}
+                         'mrp': 'mrp', 'buy_price': 'buy_price', 'invoice_number': 'invoice_number', 'invoice_date': 'invoice_date'}
         zero_index_keys = ['invoice_number', 'invoice_date']
         for ind in range(0, len(myDict['confirm_key'])):
             model_name = myDict['confirm_key'][ind].strip('_id')
@@ -8258,7 +8258,7 @@ def update_existing_grn(request, user=''):
                 elif key == 'invoice_date':
                     if getattr(model_obj, field_mapping[key]):
                         prev_val = datetime.datetime.strftime(getattr(model_obj, field_mapping[key]), '%m/%d/%Y')
-                        if myDict[key][ind] != prev_val:
+                        if value != prev_val:
                             setattr(model_obj, field_mapping[key],
                                     datetime.datetime.strptime(value, '%m/%d/%Y'))
                             model_obj.save()

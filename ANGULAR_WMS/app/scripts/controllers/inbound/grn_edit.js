@@ -127,7 +127,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         return false;
       }
       elem = $(elem).serializeArray();
-      var url = "update_confirm_grn/"
+      var url = "update_existing_grn/";
       // if(vm.po_qc) {
       //   url = "confirm_receive_qc/"
       // }

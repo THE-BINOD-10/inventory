@@ -2349,7 +2349,11 @@ def check_and_update_stock(wms_codes, user):
             sku_count = int(sku_count)
             if sku_count < 0:
                 sku_count = 0
-            data.append({'sku': wms_code, 'quantity': sku_count})
+            temp_data_dict = {'sku': wms_code, 'quantity': sku_count, 'sku_options': []}
+            sku_attributes = SKUAttributes.objects.filter(sku__user=user.id, sku__sku_code=wms_code).values('attribute_name', 'attribute_value')
+            if sku_attributes.exists():
+                temp_data_dict['sku_options'] = list(sku_attributes)
+            data.append(temp_data_dict)
         try:
             obj.update_sku_count(data=data, user=user)
         except:
@@ -7820,7 +7824,7 @@ def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False):
             error_eans.append(ean_number)
     for rem_ean in rem_ean_list:
         if int(data.ean_number) == int(rem_ean):
-            data.ean_number = int(rem_ean)
+            data.ean_number = 0
         else:
             EANNumbers.objects.filter(sku_id=data.id, ean_number=rem_ean).delete()
     if error_eans:

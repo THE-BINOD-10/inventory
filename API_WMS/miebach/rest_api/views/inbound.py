@@ -8043,7 +8043,7 @@ def get_grn_level_data(request, user=''):
                     if seller_summary_obj.invoice_date:
                         bill_date = seller_summary_obj.invoice_date
                     po_data_dict['sku_code'] = data.open_po.sku.sku_code
-                    po_data_dict['sku_desc'] = data.open_po.sku.sku_code
+                    po_data_dict['sku_desc'] = data.open_po.sku.sku_desc
                     po_data_dict['quantity'] = seller_summary_obj.quantity
                     #po_data_dict['invoice_no'] = seller_summary_obj.invoice_number if seller_summary_obj.invoice_number else ''
                     po_data_dict['price'] = open_data.price
@@ -8086,7 +8086,7 @@ def get_grn_level_data(request, user=''):
                 open_data = data.open_po
                 po_data_dict = {}
                 po_data_dict['sku_code'] = data.open_po.sku.sku_code
-                po_data_dict['sku_desc'] = data.open_po.sku.sku_code
+                po_data_dict['sku_desc'] = data.open_po.sku.sku_desc
                 po_data_dict['quantity'] = data.received_quantity
                 po_data_dict['price'] = open_data.price
                 po_data_dict['cgst_tax'] = open_data.cgst_tax
@@ -8136,3 +8136,125 @@ def get_grn_level_data(request, user=''):
         log.info("Get GRN data failed for request user %s user %s and request data is %s and error is %s" %
                  (str(request.user.username), str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse("Get GRN Data Failed")
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_existing_grn(request, user=''):
+    data_dict = ''
+    headers = (
+    'WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
+    'UTGST(%)', 'Amount', 'Description', 'CESS(%)')
+    putaway_data = {headers: []}
+    total_received_qty = 0
+    total_order_qty = 0
+    total_price = 0
+    total_tax = 0
+    pallet_number = ''
+    is_putaway = ''
+    purchase_data = ''
+    seller_name = user.username
+    seller_address = user.userprofile.address
+    seller_receipt_id = 0
+    if user.username=='milkbasket' and (not request.POST.get('invoice_number', '') and not request.POST.get('dc_number', '')):
+        return HttpResponse("Invoice/DC Number  is Mandatory")
+    if user.username == 'milkbasket' and (not request.POST.get('invoice_date', '') and not request.POST.get('dc_date', '')):
+        return HttpResponse("Invoice/DC Date is Mandatory")
+    invoice_num = request.POST.get('invoice_number', '')
+    if invoice_num:
+        supplier_id = ''
+        if request.POST.get('supplier_id', ''):
+            supplier_id = request.POST['supplier_id']
+        inv_status = po_invoice_number_check(user, invoice_num, supplier_id)
+        if inv_status:
+            return HttpResponse(inv_status)
+    challan_date = request.POST.get('dc_date', '')
+    challan_date = datetime.datetime.strptime(challan_date, "%m/%d/%Y").date() if challan_date else ''
+    bill_date = datetime.datetime.now().date().strftime('%d-%m-%Y')
+    round_off_checkbox = request.POST.get('round_off', '')
+    round_off_total = request.POST.get('round_off_total', 0)
+    if request.POST.get('invoice_date', ''):
+        bill_date = datetime.datetime.strptime(str(request.POST.get('invoice_date', '')), "%m/%d/%Y").strftime('%d-%m-%Y')
+    if not confirm_returns:
+        request_data = request.POST
+        myDict = dict(request_data.iterlists())
+    else:
+        myDict = confirm_returns
+
+    log.info('Request params for ' + user.username + ' is ' + str(myDict))
+    try:
+        po_data, status_msg, all_data, order_quantity_dict, \
+        purchase_data, data, data_dict, seller_receipt_id = generate_grn(myDict, request, user)
+
+        for key, value in all_data.iteritems():
+            entry_price = float(key[3]) * float(value)
+            if key[10]:
+                entry_price -= (entry_price * (float(key[10])/100))
+            entry_tax = float(key[4]) + float(key[5]) + float(key[6]) + float(key[7] + float(key[9]))
+            if entry_tax:
+                entry_price += (float(entry_price) / 100) * entry_tax
+            putaway_data[headers].append((key[1], order_quantity_dict[key[0]], value, key[2], key[3], key[4], key[5],
+                                          key[6], key[7], entry_price, key[8], key[9]))
+            total_order_qty += order_quantity_dict[key[0]]
+            total_received_qty += value
+            total_price += entry_price
+            total_tax += (key[4] + key[5] + key[6] + key[7] + key[9])
+        if round_off_checkbox=='on':
+            total_price = round_off_total
+
+        if is_putaway == 'true':
+            btn_class = 'inb-putaway'
+        else:
+            btn_class = 'inb-qc'
+
+        if not status_msg:
+            if not purchase_data:
+                return HttpResponse('Success')
+            address = purchase_data['address']
+            address = '\n'.join(address.split(','))
+            telephone = purchase_data['phone_number']
+            name = purchase_data['supplier_name']
+            supplier_email = purchase_data['email_id']
+            gstin_number = purchase_data['gstin_number']
+            order_id = data.order_id
+            order_date = get_local_date(request.user, data.creation_date)
+            order_date = datetime.datetime.strftime(datetime.datetime.strptime(order_date, "%d %b, %Y %I:%M %p"), "%d-%m-%Y")
+
+            profile = UserProfile.objects.get(user=user.id)
+            po_reference = '%s%s_%s' % (data.prefix, str(data.creation_date).split(' ')[0].replace('-', ''), order_id)
+            table_headers = (
+            'WMS Code', 'Supplier Code', 'Description', 'Ordered Quantity', 'Received Quantity', 'Amount')
+            '''report_data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
+                                'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total_price,
+                                'po_reference': po_reference, 'total_qty': total_received_qty,
+                                'report_name': 'Goods Receipt Note', 'company_name': profile.company_name, 'location': profile.location}'''
+            sku_list = putaway_data[putaway_data.keys()[0]]
+            sku_slices = generate_grn_pagination(sku_list)
+            if seller_receipt_id:
+                po_number = str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id) \
+                            + '/' + str(seller_receipt_id)
+            else:
+                po_number = str(data.prefix) + str(data.creation_date).split(' ')[0] + '_' + str(data.order_id)
+            dc_level_grn = request.POST.get('dc_level_grn', '')
+            if dc_level_grn == 'on':
+                bill_no = request.POST.get('dc_number', '')
+                bill_date = challan_date.strftime('%d-%m-%Y') if challan_date else ''
+            else:
+                bill_no = request.POST.get('invoice_number', '')
+            report_data_dict = {'data': putaway_data, 'data_dict': data_dict, 'data_slices': sku_slices,
+                                'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty,
+                                'total_price': total_price, 'total_tax': total_tax,
+                                'address': address,
+                                'company_name': profile.company_name, 'company_address': profile.address,
+                                'po_number': po_number, 'bill_no': bill_no,
+                                'order_date': order_date, 'order_id': order_id,
+                                'btn_class': btn_class, 'bill_date': bill_date }
+            return render(request, 'templates/toggle/c_putaway_toggle.html', report_data_dict)
+        else:
+            return HttpResponse(status_msg)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Update GRN failed for params " + str(myDict) + " and error statement is " + str(e))
+        return HttpResponse("Update GRN Failed")

@@ -1,7 +1,8 @@
 import os, sys
 activate_this = os.path.abspath('../stockone/Scripts/activate_this.py')
 execfile(activate_this, dict(__file__=activate_this))
-sys.path.append('C:\\Users\\stockone\\Downloads\\Project\\WMS_ANGULAR\\TallyHolder')
+#sys.path.append('C:\\Users\\stockone\\Downloads\\Project\\WMS_ANGULAR\\TallyHolder')
+sys.path.append('C:\\Users\\stockone\\Documents\\tally_partial_invoices\\WMS_ANGULAR\\TallyHolder')
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "TallyHolder.settings")
 import django
 django.setup()
@@ -15,8 +16,8 @@ from tally.tally.logger_file import *
 
 log = init_logger('logs/stockone_to_db.log')
 
-dns = 'http://beta.stockone.in:8988/rest_api/'
-#dns = 'https://api.stockone.in/rest_api/'
+#dns = 'http://beta.stockone.in:1996/rest_api/'
+dns = 'https://api.stockone.in/rest_api/'
 
 def get_latest_updation_date(model_name, filter_dict={}):
     updated_date = model_name.objects.filter(**filter_dict).aggregate(Max('updated_at'))['updated_at__max']

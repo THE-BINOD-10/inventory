@@ -11768,16 +11768,20 @@ def get_stock_transfer_shipment_data(start_index, stop_index, temp_data, search_
                 except:
                     continue
             search_val = ''
-            try:
-                search_val = (item for idx,item in enumerate(temp_data['aaData']) if item["Stock Transfer ID"] == ord_id and item["Warehouse Name"] == warehouse).next()
-                if search_val:
-                    exist_qty = search_val['Picked Quantity']
-                    new_qty = total_picked_quantity
-                    exist_amt = search_val['Total Amount']
-                    new_amt = total_price
-                    search_val.update({'Picked Quantity' : str(exist_qty + new_qty), 'Total Amount' : str(exist_amt + new_amt)})
-            except:
+            for idx,item in enumerate(temp_data['aaData']):
+                if item["Stock Transfer ID"] == ord_id and item["Destination Warehouse"] == warehouse:
+                    search_val = item
+                    exist_qty = int(float(search_val['Picked Quantity']))
+                    new_qty = int(float(total_picked_quantity))
+                    exist_amt = int(float(search_val['Total Amount']))
+                    new_amt = int(float(total_price))
+                    temp_data['aaData'][idx].update({'Picked Quantity' : str(exist_qty + new_qty), 'Total Amount' : str(exist_amt + new_amt)})
+                    break
+                if idx+1 == len(temp_data['aaData']) and not(item["Stock Transfer ID"] == ord_id and item["Destination Warehouse"] == warehouse):
+                    temp_data['aaData'].append({'Stock Transfer ID' : ord_id, 'Picked Quantity' : str(total_picked_quantity), 'Total Amount' : total_price, 'Stock Transfer Date&Time' : shipment_date, 'Destination Warehouse': warehouse, 'Picklist Number' : picklist_num, 'Total Quantity' : str(total_picked_quantity)})
+            else:
                 temp_data['aaData'].append({'Stock Transfer ID' : ord_id, 'Picked Quantity' : str(total_picked_quantity), 'Total Amount' : total_price, 'Stock Transfer Date&Time' : shipment_date, 'Destination Warehouse': warehouse, 'Picklist Number' : picklist_num, 'Total Quantity' : str(total_picked_quantity)})
+                
 
 
 @csrf_exempt

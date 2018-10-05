@@ -337,6 +337,7 @@ urlpatterns = [
     url(r'^list_notifications/$', list_notifications), #PUSH NOTIFICATIONS
     url(r'^make_notifications_read/$', make_notifications_read),
     url(r'^delete_notification/$', delete_notification),
+    url(r'^get_stock_transfer_shipment_popup_data/$', get_stock_transfer_shipment_popup_data),
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),
@@ -474,7 +475,7 @@ urlpatterns += [
     url(r'^network_master_upload/$', network_master_upload),
     url(r'^sku_substitution_form/$', sku_substitution_form),
     url(r'^sku_substitution_upload/$', sku_substitution_upload),
-    url(r'^targets_form/$', targets_form),
+    url(r'^targets_form/$', targets_form),  
     url(r'^targets_upload/$', targets_upload),
 
     # configurations

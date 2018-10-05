@@ -88,6 +88,12 @@
                 </select> -->
               </div>
             </div>
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.mk_user">
+              <div class="form-group">
+                <label class="control-label"> IMEI Scan </label>
+                <input type="text" ng-model="showCase.imei_number" class="form-control" ng-keydown="showCase.check_imei_exists($event, showCase.imei_number)" auto-focus>
+              </div>
+            </div>
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label">From Date</label>
@@ -112,6 +118,6 @@
   </div>
   <div ng-include="'views/common/datatable.html'"></div>
   <div class="col-md-12">
-    	<button type="submit" class="btn btn-success" ng-disabled="showCase.bt_disable" style="display: block;margin: auto;" ng-click="showCase.add(form)">Create Shipment</button>
+    	<button type="submit" class="btn btn-success" ng-disabled="showCase.bt_disable" style="display: block;margin: auto;" ng-click="showCase.add_st_shipment(form)">Create ST Shipment</button>
   </div>
 </div>

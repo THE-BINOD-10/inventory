@@ -150,79 +150,88 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
 
   vm.today_date = new Date();
   vm.customer_details = false;
-  vm.add = function (data) {
-      vm.bt_disable = true;
-      var table = vm.dtInstance.DataTable.data()
-      var apiUrl = "get_customer_sku/";
-      var data = []
-      var order_ids = [];
-      var mk_places = [];
-      var cust_details = {}
-      angular.forEach(vm.selected, function(key,value){
-        if(key) {
-          var temp = table[Number(value)]['order_id']
-          var temp2 = table[Number(value)]['Marketplace']
-          cust_details['cust_name'] = table[Number(value)]['Customer Name']
-          cust_details['cust_id'] = table[Number(value)]['Customer ID']
-          cust_details['order_id'] = temp
-          cust_details['marketplace'] = temp2
-        data.push({ name: "order_id", value: temp})
-        if(order_ids.indexOf(temp) == -1) {
-            order_ids.push(temp);
+  vm.add_st_shipment = function (data) {
+    vm.bt_disable = true;
+    var table = vm.dtInstance.DataTable.data()
+    var apiUrl = "get_stock_transfer_shipment_popup_data/";
+    var data = []
+    var st_order_ids = [];
+    var mk_places = [];
+    var st_details = {}
+    angular.forEach(vm.selected, function(key,value){
+      if(key) {
+        var temp = table[Number(value)]['Stock Transfer ID']
+        var picked_qty = table[Number(value)]['Picked Quantity']
+        var picklist_num = table[Number(value)]['Picklist Number']
+        var stock_transfer_date_time = table[Number(value)]['Stock Transfer Date&Time']
+        var total_amount = table[Number(value)]['Total Amount']
+        var total_qty = table[Number(value)]['Total Quantity']
+        var dest_warehouse = table[Number(value)]['Destination Warehouse']
+        //var temp2 = table[Number(value)]['Marketplace']
+        //cust_details['cust_name'] = table[Number(value)]['Customer Name']
+        //cust_details['cust_id'] = table[Number(value)]['Customer ID']
+        st_details['st_order_id'] = temp
+        //cust_details['marketplace'] = temp2
+        data.push({ name: "st_order_id", value: temp})
+        data.push({ name: "total_qty", value: total_qty})
+        data.push({ name: "picklist_num", value: picklist_num})
+        data.push({ name: "stock_transfer_date", value: stock_transfer_date_time})
+        data.push({ name: "total_amount", value: total_amount})
+        data.push({ name: "dest_warehouse", value: dest_warehouse})
+        if(st_order_ids.indexOf(temp) == -1) {
+          st_order_ids.push(temp);
         }
-        if(mk_places.indexOf(temp2) == -1) {
-          mk_places.push(temp2);
-        }
-        }
-      });
-      vm.model_data['cust_details'] = cust_details;
-      if(order_ids.length == 0) {
-        vm.service.showNoty("Please Select Orders First");
-        vm.bt_disable = false;
-        return false;
+        //if(mk_places.indexOf(temp2) == -1) {
+        //  mk_places.push(temp2);
+        //}
       }
-
-      // if(vm.g_data.view == 'StockTransferShipment'){
-      //   if (vm.group_by == 'order' && order_ids.length > 1) {
-      //     vm.bt_disable = false;
-      //     vm.service.showNoty("Please Select Single Order");
-      //     return;
-      //   } else if(vm.group_by == 'marketplace' && mk_places.length > 1) {
-      //     vm.bt_disable = false;
-      //     vm.service.showNoty("Please Select Single Marketplace");
-      //     return;
-      //   }
-      // }
-
-      data.push({name:'view', value:vm.g_data.view});
-      vm.service.apiCall(apiUrl, "GET", data).then(function(data){
-        if(data.message) {
-          if(data.data["status"]) {
-
-            vm.service.showNoty(data.data.status);
-          } else {
-            vm.customer_details = (vm.model_data.customer_id) ? true: false;
-            angular.extend(vm.model_data, data.data);
-            angular.forEach(vm.model_data.data, function(temp) {
-
-              var shipping_quantity = (vm.mk_user || vm.permissions.shipment_sku_scan)? 0 : temp.picked;
-              temp["sub_data"] = [{"shipping_quantity": shipping_quantity, "pack_reference":""}]
-            });
-            if(vm.mk_user) {
-              vm.model_data.marketplace = Session.user_profile.company_name;
-            }
-            vm.carton_code = "";
-            vm.model_data.sel_cartons = {};
-            vm.print_enable = false;
-            $state.go('app.outbound.ShipmentInfo.Shipment');
-            $timeout(function() {
-              $('#shipment_date').datepicker('setDate', vm.today_date);
-            }, 1000)
-            vm.serial_numbers = [];
+    });
+    vm.model_data['st_details'] = st_details;
+    if(st_order_ids.length == 0) {
+      vm.service.showNoty("Please Select Orders First");
+      vm.bt_disable = false;
+      return false;
+    }
+    if(vm.g_data.view == 'StockTransferShipment') {
+      if (st_order_ids.length > 1) {
+        vm.bt_disable = false;
+        vm.service.showNoty("Please Select Single Order");
+        return;
+      }
+    }
+    // else if(vm.group_by == 'marketplace' && mk_places.length > 1) {
+    //     vm.bt_disable = false;
+    //     vm.service.showNoty("Please Select Single Marketplace");
+    //     return;
+    //   }
+    // }
+    data.push({name:'view', value:vm.g_data.view});
+    vm.service.apiCall(apiUrl, "GET", data).then(function(data) {
+      if(data.message) {
+        if(data.data["status"]) {
+          vm.service.showNoty(data.data.status);
+        } else {
+          vm.customer_details = (vm.model_data.customer_id) ? true: false;
+          angular.extend(vm.model_data, data.data);
+          angular.forEach(vm.model_data.data, function(temp) {
+            var shipping_quantity = (vm.mk_user || vm.permissions.shipment_sku_scan)? 0 : temp.picked;
+            temp["sub_data"] = [{"shipping_quantity": shipping_quantity, "pack_reference":""}]
+          });
+          if(vm.mk_user) {
+            vm.model_data.marketplace = Session.user_profile.company_name;
           }
-          vm.bt_disable = false;
+          vm.carton_code = "";
+          vm.model_data.sel_cartons = {};
+          vm.print_enable = false;
+          $state.go('app.outbound.ShipmentInfo.Shipment');
+          $timeout(function() {
+            $('#shipment_date').datepicker('setDate', vm.today_date);
+          }, 1000)
+          vm.serial_numbers = [];
         }
-      });
+        vm.bt_disable = false;
+      }
+    });
   }
 
   vm.empty_data = {"shipment_number":"", "shipment_date":"","truck_number":"","shipment_reference":"","customer_id":"", "marketplace":"",

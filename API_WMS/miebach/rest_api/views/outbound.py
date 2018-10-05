@@ -3529,14 +3529,14 @@ def create_order_from_intermediate_order(request, user):
     first = True
     inter_obj_data = {}
 
-    # Picklist generation
-    order_user_sku = {}
-    order_user_objs = {}
-    order_sku = {}
-    order_objs = []
-
     warehouses = json.loads(request.POST.get('warehouse'))
     for wh, wh_data in warehouses.iteritems():
+        # Picklist generation
+        order_user_sku = {}
+        order_user_objs = {}
+        order_sku = {}
+        order_objs = []
+
         if int(wh_data['quantity']) > 0:
             wh_name = wh
             alt_sku_code = request.POST.get('alt_sku_code', '')

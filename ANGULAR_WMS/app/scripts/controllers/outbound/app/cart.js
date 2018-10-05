@@ -111,7 +111,8 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
 
     if (vm.order_exceed_stock){
       if (data.available_stock <= data.quantity){
-        data.quantity = data.available_stock;
+        data.quantity = 1;//data.available_stock;
+        vm.service.showNoty("Order quantity can't exceed available stock.");
       }
     }
     var send = {'sku_code': data.sku_id, 'quantity': data.quantity, 'level': data.warehouse_level,

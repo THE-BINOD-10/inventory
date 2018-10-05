@@ -279,7 +279,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
     if (Boolean(Session.roles.permissions.order_exceed_stock)) {
       if ((row.all_quantity - row.blocked_quantity) < parseInt(row.quantity)) {
         vm.service.showNoty("Order quantity can't exceed the stock available");
-        row.quantity = (row.all_quantity - row.blocked_quantity).toString();
+        row.quantity = 0;//(row.all_quantity - row.blocked_quantity).toString();
         return;
       }
     }

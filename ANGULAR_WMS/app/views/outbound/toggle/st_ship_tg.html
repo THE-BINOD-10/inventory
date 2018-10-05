@@ -55,14 +55,14 @@
                 <input name="invoice_number" class="form-control" type="text" ng-model="showCase.model_data.invoice_number">
               </div>
             </div>
-            <!--
+            
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.mk_user">
               <div class="form-group">
                 <label class="control-label"> IMEI Scan </label>
                 <input type="text" ng-model="showCase.imei_number" class="form-control" ng-keydown="showCase.check_imei_exists($event, showCase.imei_number)" auto-focus>
               </div>
             </div>
-
+            <!--
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.permissions.shipment_sku_scan">
               <div class="form-group">
                 <label class="control-label"> Scan SKU/EAN</label>
@@ -106,29 +106,23 @@
                   <th> Pack Reference </th>
                 </tr>
               </thead>
-              <tbody ng-repeat="data in showCase.model_data.data">
-                <tr ng-repeat="record in data.sub_data">
-                  <!--
-                  <input type="hidden" name="order_shipment_id" value="{{showCase.model_data.shipment_id}}">
-                  <input type="hidden" name="id" value="{{data.id}}">
-                  <input type="hidden" name="sku_code" value="{{data.sku__sku_code}}">
-                  <input type="hidden" name="order_quantity" value="{{data.picked}}">
-                  <input type="hidden" name="imei_number" class="form-control" ng-init="record.imei_list=[]" value="{{record.imei_list.join(',')}}">
-                  <input ng-if="data.original_order_id" type="hidden" name="label" value="{{data.original_order_id}}">
-                  <input ng-if="!data.original_order_id" type="hidden" name="label" value="{{showCase.model_data.cust_details.order_id}}">
-                  <input type="hidden" name="customer_name" value="{{showCase.model_data.cust_details.cust_name}}">
-                  <input type="hidden" name="customer_id" value="{{showCase.model_data.cust_details.cust_id}}">
+              <tbody ng-repeat="record in showCase.model_data.data">
+                <tr>
+                  <td>{{record.order_id}}</td>
+                  <td>{{record.sku_code}}</td>
+                  <td>{{record.sku_desc}}</td>
+                  <td>{{record.quantity}}</td>
+                  <td>{{record.quantity}}</td>
+                  <td>
+                    <input class="form-control" name="shipping_quantity" ng-model="record.shipping_quantity" type="text" ng-class="service.get_decimal_perm()" ng-change="showCase.cal_quantity(record, data)">
+                  </td>
+                  <td>
+                    <input class="form-control" name="package_reference" ng-model="record.pack_reference" ng-blur="showCase.add_carton_code(record)" type="text">
+                  </td>
+                  <!--<td>
+                    <i ng-click="showCase.update_data($index, data, $last)" ng-hide="user.user_profile['user_type'] == 'marketplace_user'" ng-class="showCase.isLast($last)"></i>
+                  </td>
                   -->
-                  <!--<td ng-if="(!(showCase.sku_group))">{{data.original_order_id}}</td>-->
-                  <!--<td ng-if="data.original_order_id"><input type="text" value="{{data.original_order_id}}" readonly></td>-->
-                  <td ng-if="!data.original_order_id">{{showCase.model_data.cust_details.order_id}}</td>
-                  <td>{{data.sku__sku_code}}</td>
-                  <td>{{data.sku__sku_desc}}</td>
-                  <td> {{data.ordered}} </td>
-                  <td> {{data.picked}} </td>
-                  <td><input class="form-control" name="shipping_quantity" ng-model="record.shipping_quantity" type="text" ng-class="service.get_decimal_perm()" ng-change="showCase.cal_quantity(record, data)" ng-readonly="showCase.mk_user"></td>
-                  <!-- <td ng-hide="user.user_profile['user_type'] == 'marketplace_user'"><input class="form-control" name="package_reference" ng-model="record.pack_reference" type="text"></td> -->
-                  <td ng-hide="user.user_profile['user_type'] == 'marketplace_user'"><input class="form-control" name="package_reference" ng-model="record.pack_reference" ng-blur="showCase.add_carton_code(record)" type="text"></td>
                 </tr>
               </tbody>
             </table>

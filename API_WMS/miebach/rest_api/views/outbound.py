@@ -11798,18 +11798,42 @@ def create_shipment_stock_transfer(request, user=''):
         pass
 
 
+@csrf_exempt
+@login_required
+@get_admin_user
 def get_stock_transfer_shipment_popup_data(request, user=''):
     data = []
     courier_name = ''
+    #import pdb;pdb.set_trace()
     ship_no = get_shipment_number(user)
     sku_grouping = request.GET.get('sku_grouping', 'false')
     datatable_view = request.GET.get('view', '')
+    st_order_id = request.GET.get('st_order_id', '')
     search_params = {'user': user.id}
     request_data = dict(request.GET.iterlists())
-    if 'stock_transfer_id' in request_data.keys() and datatable_view == 'StockTransferShipment':
+    if 'st_order_id' in request_data.keys() and datatable_view == 'StockTransferShipment':
         filter_order_ids = []
-        search_params['id__in'] = request_data['order_id']
-        for order_ids in request_data['order_id']:
+        st_order_id = request_data['st_order_id']
+        stock_transfer_obj = StockTransfer.objects.filter(order_id__in = st_order_id)
+        if len(stock_transfer_obj):
+            stock_transfer_obj = stock_transfer_obj.values()
+        '''
+        {'status': 2L, u'sku_id': 149723L, 'updation_date': datetime.datetime(2017, 2, 27, 11, 5, 22, tzinfo=<UTC>),
+        'order_id': 1008L, u'st_po_id': 24L, 'creation_date': datetime.datetime(2017, 2, 27, 9, 38, 44, tzinfo=<UTC>), 
+        'shipment_date': datetime.datetime(2017, 2, 27, 9, 38, 44, tzinfo=<UTC>), 'invoice_amount': 0.0, 
+        'id': 24L, 'quantity': 1.0}
+        '''
+        for obj in stock_transfer_obj:
+            data_dict = obj
+            sku_obj = SKUMaster.objects.get(id=data_dict['sku_id'])
+            if sku_obj:
+                sku_code = sku_obj.sku_code
+                sku_desc = sku_obj.sku_desc
+            data_dict['sku_code'] = sku_code
+            data_dict['sku_desc'] = sku_desc
+            data.append(data_dict)
+        '''
+        for order_ids in request_data['stock_transfer_id']:
             order_id_val = order_ids
             order_id_search = ''.join(re.findall('\d+', order_id_val))
             order_code_search = ''.join(re.findall('\D+', order_id_val))
@@ -11819,17 +11843,18 @@ def get_stock_transfer_shipment_popup_data(request, user=''):
             filter_order_ids = list(chain(filter_order_ids, fil_ids))
         if filter_order_ids:
             search_params['id__in'] = filter_order_ids
-    all_orders = OrderDetail.objects.filter(**search_params)
-    for obj in all_orders:
-        customer_order_summary = obj.customerordersummary_set.filter()
-        if customer_order_summary:
-            courier_name = customer_order_summary[0].courier_name
-    data = get_shipment_quantity(user, all_orders, sku_grouping)
-    if data:
+        all_orders = OrderDetail.objects.filter(**search_params)
+        for obj in all_orders:
+            customer_order_summary = obj.customerordersummary_set.filter()
+            if customer_order_summary:
+                courier_name = customer_order_summary[0].courier_name
+        data = get_shipment_quantity(user, all_orders, sku_grouping)
+        '''
+    if len(data):
         return HttpResponse(json.dumps({'data': data,
                                         'shipment_id': '',
                                         'display_fields': '',
                                         'marketplace': '', 
                                         'shipment_number': ship_no, 
-                                        'courier_name': courier_name}, cls=DjangoJSONEncoder))
+                                        'courier_name': ''}, cls=DjangoJSONEncoder))
     return HttpResponse(json.dumps({'status': 'No Orders found'}))

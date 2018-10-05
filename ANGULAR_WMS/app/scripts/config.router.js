@@ -1478,14 +1478,18 @@ var app = angular.module('urbanApp')
             title: 'Shipment Info',
           }
         })
-          .state('app.outbound.ShipmentInfo.Shipment', {
-            url: '/Shipment',
-            templateUrl: 'views/outbound/toggle/ship_tg.html'
-          })
-          .state('app.outbound.ShipmentInfo.ConfirmShipment', {
-            url: '/ConfirmShipment',
-            templateUrl: 'views/outbound/toggle/confirm_ship_tg.html'
-          })
+        .state('app.outbound.ShipmentInfo.Shipment', {
+          url: '/Shipment',
+          templateUrl: 'views/outbound/toggle/ship_tg.html'
+        })
+        .state('app.outbound.ShipmentInfo.ConfirmShipment', {
+          url: '/ConfirmShipment',
+          templateUrl: 'views/outbound/toggle/confirm_ship_tg.html'
+        })
+        .state('app.outbound.ShipmentInfo.ST_Shipment', {
+          url: '/STShipment',
+          templateUrl: 'views/outbound/toggle/st_ship_tg.html'
+        })
         .state('app.outbound.BackOrders', {
           url: '/BackOrders',
           templateUrl: 'views/outbound/back_orders.html',

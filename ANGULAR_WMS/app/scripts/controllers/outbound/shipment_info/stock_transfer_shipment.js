@@ -211,21 +211,23 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
         if(data.data["status"]) {
           vm.service.showNoty(data.data.status);
         } else {
+          /*
           vm.customer_details = (vm.model_data.customer_id) ? true: false;
-          angular.extend(vm.model_data, data.data);
           angular.forEach(vm.model_data.data, function(temp) {
             var shipping_quantity = (vm.mk_user || vm.permissions.shipment_sku_scan)? 0 : temp.picked;
             temp["sub_data"] = [{"shipping_quantity": shipping_quantity, "pack_reference":""}]
           });
+          */
+          angular.extend(vm.model_data, data.data);
           if(vm.mk_user) {
             vm.model_data.marketplace = Session.user_profile.company_name;
           }
           vm.carton_code = "";
           vm.model_data.sel_cartons = {};
           vm.print_enable = false;
-          $state.go('app.outbound.ShipmentInfo.Shipment');
+          $state.go('app.outbound.ShipmentInfo.ST_Shipment');
           $timeout(function() {
-            $('#shipment_date').datepicker('setDate', vm.today_date);
+            $('#shipment_date').datepicker('setDate', new Date());
           }, 1000)
           vm.serial_numbers = [];
         }

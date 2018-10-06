@@ -7732,3 +7732,22 @@ def po_invoice_number_check(user, invoice_num):
     if exist_inv_obj.exists():
         status = 'Invoice Number already Mapped to %s' % get_po_reference(exist_inv_obj[0].purchase_order)
     return status
+
+
+def get_sister_warehouse(user):
+    warehouses = UserGroups.objects.filter(Q(admin_user=user) | Q(user=user))
+    return warehouses
+
+
+@login_required
+@csrf_exempt
+@get_admin_user
+def get_linked_warehouse_names(request, user=''):
+    current_user = request.GET.get('current_user', '')
+    warehouses = get_sister_warehouse(user)
+    if current_user == 'true':
+        wh_names = list(warehouses.values_list('user__username', flat=True))
+    else:
+        wh_names = list(warehouses.exclude(user_id=user.id).values_list('user__username', flat=True))
+    return HttpResponse(json.dumps({'wh_names': wh_names}))
+

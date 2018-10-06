@@ -505,6 +505,7 @@ urlpatterns += [
     url(r'change_user_password/$', change_user_password),
     url(r'update_profile_data/$', update_profile_data),
     url(r'get_cust_profile_info/$', get_cust_profile_info),
+    url(r'get_linked_warehouse_names/$', get_linked_warehouse_names),
 
     # Retailone
     url(r'^get_marketplace_data/$', get_marketplace_data),

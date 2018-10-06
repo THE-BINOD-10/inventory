@@ -69,9 +69,10 @@
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label">Select Warehouse *</label>
-                <select ng-model="showCase.model_data.shipment_time_slot" class="form-control" name="shipment_time_slot">
+                <select ng-model="showCase.model_data.cur_warehouse" ng-change="showCase.selWarehouse = showCase.model_data.cur_warehouse" class="form-control" name="shipment_time_slot">
                   <!-- <option value="" ng-selected="showCase.model_data.shipment_time_slot == ''">Select Warehouse</option> -->
                   <option value="">Select Warehouse</option>
+                  <option ng-repeat="val in showCase.warehouseInfo" value="{{val}}">{{val}}</option>
                 </select>
               </div>
             </div>
@@ -239,7 +240,7 @@
               </tbody>
             </table>
           </div>
-          <div class="row over-x" style="overflow-y: hidden;">
+          <div ng-if="showCase.selWarehouse" class="row over-x" style="overflow-y: hidden;">
             <table class="table" ng-class="showCase.min_width">
               <thead>
                 <tr>

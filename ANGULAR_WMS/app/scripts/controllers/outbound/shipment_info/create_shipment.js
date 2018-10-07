@@ -389,7 +389,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
 
   vm.add_shipment = function(valid) {
     if(valid.$valid) {
-      if(vm.service.check_quantity(vm.model_data.data, 'sub_data', 'shipping_quantity'))  {
+      if(vm.service.check_quantity(vm.model_data.data, 'sub_data', 'shipping_quantity')) {
         vm.bt_disable = true;
         var data = $("#add-customer:visible").serializeArray();
         vm.service.apiCall("insert_shipment_info/", "POST", data, true).then(function(data){

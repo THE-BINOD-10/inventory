@@ -398,7 +398,7 @@ vm.print_barcodes  = function() {
 
 vm.add_shipment = function(valid) {
   if(valid.$valid) {
-    if(vm.service.check_quantity(vm.model_data.data, 'sub_data', 'shipping_quantity'))  {
+    if(vm.service.check_quantity(vm.model_data.data, 'sub_data', 'shipping_quantity')) {
       vm.bt_disable = true;
       var data = $("#add-customer:visible").serializeArray();
       vm.service.apiCall("insert_shipment_info/", "POST", data, true).then(function(data){
@@ -682,6 +682,47 @@ vm.add_shipment = function(valid) {
       });
     } else {
       vm.service.showNoty("No cartons codes are entered");
+    }
+  }
+
+  vm.check_st_quantity = function(data, a) {
+    var status = false;
+    for(var j=0; j<data.length; j++) {
+      var temp = false;
+      if(!parseInt(data[j][a])) {
+        temp = true;
+        break;
+      }
+      if (temp) {
+        status = false;
+        return status
+      } else {
+        status = true;
+        return status
+      }
+    }
+  }
+
+  vm.confirm_st_shipment = function(valid) {
+    if(valid.$valid) {
+      if(vm.check_st_quantity(vm.model_data.data, 'shipping_quantity')) {
+        vm.bt_disable = true
+        var data = $("#add-customer").serializeArray()
+        data.push({ 'name' : 'sku_data', 'value' : JSON.stringify(vm.model_data.data) })
+        vm.service.apiCall("insert_st_shipment_info/", "POST", data, true).then(function(data) {
+          if(data.data.status) {
+            vm.service.showNoty(data.data.message);
+            vm.close();
+            vm.reloadData()
+            vm.awb_no = '';
+            vm.bt_disable = false;
+          };
+        });
+      } else {
+        vm.service.showNoty("Please Enter Quantity");
+      }
+    } else {
+      vm.service.showNoty("Please Fill Required Fields");
     }
   }
 

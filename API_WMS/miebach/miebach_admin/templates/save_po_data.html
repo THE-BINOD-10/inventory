@@ -1,0 +1,31 @@
+<html><head></head><body style="font-family:arial; font-size:100%;">
+Hi,<br>
+<p>PO Saved for the Supplier : {{ supplier_name }} </p>
+
+<p>Item(s) details:</p>
+<table border="1" bordercolor="#D2D9E7" cellpadding="2" cellspacing="2" style="border-collapse:collapse; font-size:13px; border:1px solid #D2D9E7">
+    <tbody>
+    <tr style="background-color:#00648B; color:#FFFFFF;">
+        {% for header in headers %}
+        <td> {{ header }} </td>
+        {% endfor %}
+    </tr>
+    {% for key, val in sku_data.items %}
+    <tr>
+        <td>{{ key }}</td>
+        
+          <td>{{ val.order_quantity }}</td>
+          <td>{{ val.price }}</td>
+        
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<br>
+Thanks
+<br>
+<!--<br>The shipment will be sent to:
+{{ address }}
+<br>Phone: {{ phone_number }}<br>-->
+</body></html>

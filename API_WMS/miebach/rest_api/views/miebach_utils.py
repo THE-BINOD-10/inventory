@@ -42,7 +42,8 @@ SUB_CATEGORIES = {'round_neck': 'ROUND NECK', 'v_neck': 'V NECK', 'polo': 'POLO'
                   'hoodie': 'HOODIE', 'jackets': 'JACKETS'}
 
 MANUAL_ENQUIRY_STATUS = {'pending_approval': 'Pending For Approval', 'approved': 'Approved',
-                         'confirm_order': 'Confirm Order', 'hold_order': 'Block Stock'}
+                         'confirm_order': 'Confirm Order', 'hold_order': 'Block Stock', 'order_placed': 'Order Placed',
+                         'pending_artwork': 'Pending ArtWork', 'artwork_submitted': 'ArtWork Submitted'}
 
 DECLARATIONS = {
     'default': 'We declare that this invoice shows actual price of the goods described inclusive of taxes and that all particulars are true and correct.',

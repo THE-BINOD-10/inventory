@@ -248,6 +248,12 @@ def add_user_permissions(request, response_data, user=''):
             user_type = 'central_admin'
         else:
             user_type = 'admin_sub_user'
+    elif request_user_profile.warehouse_type == 'SM_MARKET_ADMIN':
+        user_type = 'sm_market_admin'
+    elif request_user_profile.warehouse_type == 'SM_PURCHASE_ADMIN':
+        user_type = 'sm_purchase_admin'
+    elif request_user_profile.warehouse_type == 'SM_DESIGN_ADMIN':
+        user_type = 'sm_design_admin'
     # elif user_profile.warehouse_type == 'CENTRAL_ADMIN':
     #     user_type = 'default'
     else:
@@ -3329,14 +3335,24 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     asn_qs = ASNStockDetail.objects.filter(**ints_filters)
     intr_obj_100days_qs = asn_qs.exclude(arriving_date__lte=today_filter).filter(arriving_date__lte=hundred_day_filter)
     intr_obj_100days_ids = intr_obj_100days_qs.values_list('id', flat=True)
-    asn_res_100days_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
+    asnres_det_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
+    asn_res_100days_qs = asnres_det_qs.filter(orderdetail__isnull=False)  # Reserved Quantity
     asn_res_100days_qty = dict(asn_res_100days_qs.values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
+    asn_blk_100days_qs = asnres_det_qs.filter(orderdetail__isnull=True)  # Blocked Quantity
+    asn_blk_100days_qty = dict(
+        asn_blk_100days_qs.values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
 
     needed_stock_data['asn_quantities'] = dict(
         intr_obj_100days_qs.values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
+    needed_stock_data['asn_blocked_quantities'] = {}
     for k, v in needed_stock_data['asn_quantities'].items():
         if k in asn_res_100days_qty:
-            needed_stock_data['asn_quantities'][k] = needed_stock_data['asn_quantities'][k] - asn_res_100days_qty[k]
+            asn_qty = needed_stock_data['asn_quantities'][k]
+            asn_res_qty = asn_res_100days_qty.get(k, 0)
+            asn_blk_qty = asn_blk_100days_qty.get(k, 0)
+            needed_stock_data['asn_quantities'][k] = asn_qty - asn_res_qty - asn_blk_qty
+            needed_stock_data['asn_blocked_quantities'][k] = asn_blk_qty
+
     data = get_styles_data(user, product_styles, sku_master, start, stop, request, customer_id=customer_id,
                            customer_data_id=customer_data_id, is_file=is_file, prices_dict=prices_dict,
                            price_type=price_type, custom_margin=custom_margin, specific_margins=specific_margins,
@@ -7767,6 +7783,9 @@ def check_stock_available_quantity(stocks, user, stock_ids=None):
 @csrf_exempt
 @login_required
 def save_webpush_id(request):
+    null = 'null'
+    true = True
+    false = False
     wpn_obj = eval(request.body)
     wpn_id = wpn_obj.get('wpn_id', '')
     if not wpn_id:

@@ -544,19 +544,6 @@ class ASNStockDetail(models.Model):
         unique_together = ('asn_po_num', 'sku')
 
 
-class ASNReserveDetail(models.Model):
-    id = BigAutoField(primary_key=True)
-    asnstock = models.ForeignKey(ASNStockDetail, blank=True, null=True)
-    orderdetail = models.ForeignKey(OrderDetail, blank=True, null=True)
-    reserved_qty = models.IntegerField(default=0)
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-    
-    class Meta:
-        db_table = 'ASN_RESERVE_DETAIL'
-        unique_together = ('asnstock', 'orderdetail')
-
-
 class Picklist(models.Model):
     id = BigAutoField(primary_key=True)
     order = models.ForeignKey(OrderDetail, blank=True, null=True)
@@ -2569,6 +2556,20 @@ class EnquiredSku(models.Model):
         # unique_together = ('sku', 'enquiry')
 
 
+class ASNReserveDetail(models.Model):
+    id = BigAutoField(primary_key=True)
+    asnstock = models.ForeignKey(ASNStockDetail, blank=True, null=True)
+    orderdetail = models.ForeignKey(OrderDetail, blank=True, null=True)
+    enquirydetail = models.ForeignKey(EnquiredSku, blank=True, null=True)
+    reserved_qty = models.IntegerField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ASN_RESERVE_DETAIL'
+        unique_together = ('asnstock', 'orderdetail')
+
+
 class TANDCMaster(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.PositiveIntegerField()
@@ -2696,7 +2697,8 @@ class ManualEnquiryDetails(models.Model):
 class ManualEnquiryImages(models.Model):
     id = BigAutoField(primary_key=True)
     enquiry = models.ForeignKey(ManualEnquiry)
-    image =  models.ImageField(upload_to='static/images/manual_enquiry/')
+    image = models.ImageField(upload_to='static/images/manual_enquiry/')
+    image_type = models.CharField(max_length=32, default='res_images')
     status = models.CharField(max_length=32)
 
     class Meta:

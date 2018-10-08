@@ -431,26 +431,35 @@ def get_quantity_data(user_groups, sku_codes_list,asn_true=False):
         intr_obj_100days_qs = asn_qs.exclude(arriving_date__lte=today_filter).filter(
             arriving_date__lte=hundred_day_filter)
         intr_obj_100days_ids = intr_obj_100days_qs.values_list('id', flat=True)
-        asn_res_100days_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
+        asnres_det_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
+        asn_res_100days_qs = asnres_det_qs.filter(orderdetail__isnull=False)  # Reserved Quantity
         asn_res_100days_qty = dict(
             asn_res_100days_qs.values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
+        asn_blk_100days_qs = asnres_det_qs.filter(orderdetail__isnull=True)  # Blocked Quantity
+        asn_blk_100days_qty = dict(
+            asn_blk_100days_qs.values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
 
         asn_avail_stock = dict(
             intr_obj_100days_qs.values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
         for k, v in asn_avail_stock.items():
             if k in asn_res_100days_qty:
-                asn_avail_stock[k] = asn_avail_stock[k] - asn_res_100days_qty[k]
+                res_qty = asn_res_100days_qty.get(k, 0)
+                blk_qty = asn_blk_100days_qty.get(k, 0)
+                asn_avail_stock[k] = asn_avail_stock[k] - res_qty - blk_qty
         purchases = map(lambda d: d['open_po__sku__sku_code'], purch_dict)
         total_order_dict = dict(zip(purchases, map(lambda d: d['total_order'], purch_dict)))
         total_received_dict = dict(zip(purchases, map(lambda d: d['total_received'], purch_dict)))
         for single_sku in sku_codes_list:
             exist = user_sku_codes.filter(sku_code=single_sku)
             asn_stock_qty = asn_avail_stock.get(single_sku, 0)
+            asn_res_qty = asn_res_100days_qty.get(single_sku, 0)
+            asn_blk_qty = asn_blk_100days_qty.get(single_sku, 0)
             if not exist:
                 available = 'No SKU'
                 reserved = 0
                 ret_list.append({'available': available, 'name': ware, 'transit': 0, 'reserved': reserved, 'user': user,
-                                 'sku_code': single_sku, 'asn': asn_stock_qty, 'blocked': 0})
+                                 'sku_code': single_sku, 'asn': asn_stock_qty, 'blocked': 0, 'asn_res': asn_res_qty,
+                                 'asn_blocked': asn_blk_qty})
                 continue
             trans_quantity = 0
             if single_sku in purchases:
@@ -466,7 +475,8 @@ def get_quantity_data(user_groups, sku_codes_list,asn_true=False):
             if available < 0:
                 available = 0
             ret_list.append({'available': available, 'name': ware, 'transit': trans_quantity, 'reserved': pic_reserved,
-                             'user': user, 'sku_code': single_sku, 'asn': asn_stock_qty, 'blocked': enq_reserved})
+                             'user': user, 'sku_code': single_sku, 'asn': asn_stock_qty, 'blocked': enq_reserved,
+                             'asn_res': asn_res_qty, 'asn_blocked': asn_blk_qty})
     return ret_list
 
 
@@ -582,7 +592,8 @@ def get_availasn_stock(start_index, stop_index, temp_data, search_term, order_te
     for one_data, sku_det in zip(data, other['rem']):
         header = other['header']
         single_sku = sku_det['single_sku']
-        var = {header[0]: single_sku, 'Net Open': 0}
+        var = {header[0]: single_sku, 'WH Net Open': 0, 'Net Open': 0,
+               'ASN Total': 0, 'ASN Res': 0, 'ASN Blocked': 0, 'ASN Open': 0}
         for single in one_data:
             if single['name']:
                 wh_name = single['name']
@@ -595,7 +606,13 @@ def get_availasn_stock(start_index, stop_index, temp_data, search_term, order_te
                 if net_amt < 0:
                     net_amt = 0
                 var[wh_name + '-Open'] = net_amt
-                var['Net Open'] += net_amt
+                var['WH Net Open'] += net_amt
+                var['ASN Total'] += single['asn']
+                var['ASN Res'] += single['asn_res']
+                var['ASN Blocked'] += single['asn_blocked']
+                asn_open = var['ASN Total'] - var['ASN Res'] - var['ASN Blocked']
+                var['ASN Open'] = asn_open
+        var['Net Open'] = var['WH Net Open'] + var['ASN Open']
 
         temp_data['aaData'].append(var)
 
@@ -1453,7 +1470,9 @@ def warehouse_headers(request, user=''):
             wh_list = []
             for wh in ware_list:
                 wh_list.extend(list(map(lambda x: wh+'-'+x, warehouse_suffixes)))
-            wh_list.append('Net Open')
+            wh_list.append('WH Net Open')
+            intr_headers = ['ASN Total', 'ASN Res', 'ASN Blocked', 'ASN Open', 'Net Open']
+            wh_list.extend(intr_headers)
             headers = header + wh_list
         else:
             headers = header + [admin_user_name] + ware_list

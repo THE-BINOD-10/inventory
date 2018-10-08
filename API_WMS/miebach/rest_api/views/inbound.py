@@ -8010,3 +8010,275 @@ def map_ean_sku_code(request, user=''):
     else:
         return HttpResponse(json.dumps({'message': 'EAN Number already mapped', 'status': 0}))
     return HttpResponse(json.dumps({'message': 'Success', 'status': 1}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_grn_level_data(request, user=''):
+    data_dict = ''
+    invoice_no = ''
+    invoice_date = ''
+    po_data = []
+    try:
+        po_number = request.GET['po_number']
+        temp = po_number.split('_')[1]
+        temp1 = temp.split('/')
+        receipt_no = ''
+        if len(temp1) > 1:
+            po_order_id = temp1[0]
+            receipt_no = temp1[1]
+        else:
+            po_order_id = temp1[0]
+        results = PurchaseOrder.objects.filter(order_id=po_order_id, open_po__sku__user=user.id)
+        if receipt_no:
+            results = results.distinct().filter(sellerposummary__receipt_number=receipt_no)
+        total = 0
+        total_qty = 0
+        total_tax = 0
+        for data in results:
+            receipt_type = ''
+            quantity = data.received_quantity
+            invoice_date = data.updation_date
+            if receipt_no:
+                po_data_dict = {}
+                seller_summary_objs = data.sellerposummary_set.filter(receipt_number=receipt_no)
+                open_data = data.open_po
+                for seller_summary_obj in seller_summary_objs:
+                    if seller_summary_obj.invoice_date:
+                        invoice_date = seller_summary_obj.invoice_date
+                    po_data_dict['sku_code'] = data.open_po.sku.sku_code
+                    po_data_dict['sku_desc'] = data.open_po.sku.sku_desc
+                    po_data_dict['quantity'] = seller_summary_obj.quantity
+                    invoice_no = seller_summary_obj.invoice_number
+                    po_data_dict['price'] = open_data.price
+                    po_data_dict['cgst_tax'] = open_data.cgst_tax
+                    po_data_dict['sgst_tax'] = open_data.sgst_tax
+                    po_data_dict['igst_tax'] = open_data.igst_tax
+                    po_data_dict['utgst_tax'] = open_data.utgst_tax
+                    po_data_dict['cess_tax'] = open_data.cess_tax
+                    po_data_dict['tax_percent'] = open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + \
+                                                    open_data.utgst_tax
+                    po_data_dict['confirm_key'] = 'seller_po_summary_id'
+                    po_data_dict['confirm_id'] = seller_summary_obj.id
+                    po_data_dict['buy_price'] = 0
+                    po_data_dict['batch_no'] = ''
+                    po_data_dict['mrp'] = 0
+                    po_data_dict['mfg_date'] = ''
+                    po_data_dict['exp_date'] = ''
+                    po_data_dict['discount_percentage'] = seller_summary_obj.discount_percent
+                    if seller_summary_obj.batch_detail:
+                        po_data_dict['buy_price'] = seller_summary_obj.batch_detail.buy_price
+                        po_data_dict['batch_no'] = seller_summary_obj.batch_detail.batch_no
+                        po_data_dict['mrp'] = seller_summary_obj.batch_detail.mrp
+                        po_data_dict['mfg_date'] = ''
+                        po_data_dict['exp_date'] = ''
+                        if seller_summary_obj.batch_detail.manufactured_date:
+                            po_data_dict['mfg_date'] = seller_summary_obj.batch_detail.manufactured_date.strftime('%m/%d/%Y')
+                        if seller_summary_obj.batch_detail.expiry_date:
+                            po_data_dict['exp_date'] = seller_summary_obj.batch_detail.expiry_date.strftime('%m/%d/%Y')
+                        temp_tax_percent = seller_summary_obj.batch_detail.tax_percent
+                        po_data_dict['tax_percent'] = temp_tax_percent
+                        if seller_summary_obj.purchase_order.open_po.supplier.tax_type == 'intra_state':
+                            temp_tax_percent = temp_tax_percent / 2
+                            po_data_dict['cgst_tax'] = truncate_float(temp_tax_percent, 1)
+                            po_data_dict['sgst_tax'] = truncate_float(temp_tax_percent, 1)
+                            po_data_dict['igst_tax'] = 0
+                        else:
+                            po_data_dict['igst_tax'] = temp_tax_percent
+                            po_data_dict['cgst_tax'] = 0
+                            po_data_dict['sgst_tax'] = 0
+                    amount = float(po_data_dict['quantity']) * float(po_data_dict['price'])
+                    total += amount
+                    total_qty += quantity
+                    po_data.append([po_data_dict])
+
+            else:
+                open_data = data.open_po
+                po_data_dict = {}
+                po_data_dict['sku_code'] = data.open_po.sku.sku_code
+                po_data_dict['sku_desc'] = data.open_po.sku.sku_desc
+                po_data_dict['quantity'] = data.received_quantity
+                po_data_dict['price'] = open_data.price
+                po_data_dict['cgst_tax'] = open_data.cgst_tax
+                po_data_dict['sgst_tax'] = open_data.sgst_tax
+                po_data_dict['igst_tax'] = open_data.igst_tax
+                po_data_dict['utgst_tax'] = open_data.utgst_tax
+                po_data_dict['cess_tax'] = open_data.cess_tax
+                po_data_dict['tax_percent'] = open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + \
+                                              open_data.utgst_tax
+                po_data_dict['confirm_key'] = 'purchase_order_id'
+                po_data_dict['confirm_id'] = data.id
+                amount = float(po_data_dict['quantity']) * float(po_data_dict['price'])
+                po_data.append([po_data_dict])
+        if results:
+            purchase_order = results[0]
+            address = purchase_order.open_po.supplier.address
+            address = '\n'.join(address.split(','))
+            telephone = purchase_order.open_po.supplier.phone_number
+            name = purchase_order.open_po.supplier.name
+            supplier_id = purchase_order.open_po.supplier.id
+            supplier_name = purchase_order.open_po.supplier.name
+            order_id = purchase_order.order_id
+            po_reference = '%s%s_%s' % (
+            purchase_order.prefix, str(purchase_order.creation_date).split(' ')[0].replace('-', ''),
+            purchase_order.order_id)
+            if receipt_no:
+                po_reference = '%s/%s' % (po_reference, receipt_no)
+            order_date = datetime.datetime.strftime(purchase_order.open_po.creation_date, "%d-%m-%Y")
+            invoice_date = datetime.datetime.strftime(invoice_date, "%m/%d/%Y")
+            user_profile = UserProfile.objects.get(user_id=user.id)
+            w_address, company_address = get_purchase_company_address(user_profile)#user_profile.address
+
+        title = 'Purchase Order'
+        #if receipt_type == 'Hosted Warehouse':
+        #    title = 'Stock Transfer Note'
+        return HttpResponse(json.dumps({'data': po_data, 'address': address,
+                       'order_id': order_id, 'telephone': str(telephone), 'name': name, 'order_date': order_date,
+                       'total_price': total, 'data_dict': data_dict, 'invoice_number': invoice_no,
+                       'po_number': po_reference, 'company_address': w_address, 'company_name': user_profile.company_name,
+                       'display': 'display-none', 'receipt_type': receipt_type, 'title': title,
+                       'total_received_qty': total_qty, 'invoice_date': invoice_date, 'total_tax': total_tax,
+                       'company_address': company_address, 'supplier_id': supplier_id,
+                                        'supplier_name': supplier_name}))
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Get GRN data failed for request user %s user %s and request data is %s and error is %s" %
+                 (str(request.user.username), str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Get GRN Data Failed")
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_existing_grn(request, user=''):
+    data_dict = ''
+    headers = (
+    'WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
+    'UTGST(%)', 'Amount', 'Description', 'CESS(%)')
+    putaway_data = {headers: []}
+    total_received_qty = 0
+    total_order_qty = 0
+    total_price = 0
+    total_tax = 0
+    is_putaway = ''
+    if user.username=='milkbasket' and (not request.POST.get('invoice_number', '') and not request.POST.get('dc_number', '')):
+        return HttpResponse("Invoice/DC Number  is Mandatory")
+    if user.username == 'milkbasket' and (not request.POST.get('invoice_date', '') and not request.POST.get('dc_date', '')):
+        return HttpResponse("Invoice/DC Date is Mandatory")
+    invoice_num = request.POST.get('invoice_number', '')
+    if invoice_num:
+        supplier_id = ''
+        if request.POST.get('supplier_id', ''):
+            supplier_id = request.POST['supplier_id']
+        inv_status = po_invoice_number_check(user, invoice_num, supplier_id)
+        if inv_status:
+            req_po_number = request.POST['po_number']
+            temp_inv_status = inv_status.replace('Invoice Number already Mapped to ', '')
+            if temp_inv_status != req_po_number:
+                return HttpResponse(inv_status)
+    request_data = request.POST
+    myDict = dict(request_data.iterlists())
+
+    log.info('Request params for Update GRN for request user ' + request.user.username +' user ' + user.username + ' is ' + str(myDict))
+    try:
+        field_mapping = {'exp_date': 'expiry_date', 'mfg_date': 'manufactured_date', 'quantity': 'quantity',
+                         'discount_percentage': 'discount_percent', 'batch_no': 'batch_no',
+                         'mrp': 'mrp', 'buy_price': 'buy_price', 'invoice_number': 'invoice_number', 'invoice_date': 'invoice_date'}
+        zero_index_keys = ['invoice_number', 'invoice_date']
+        for ind in range(0, len(myDict['confirm_key'])):
+            model_name = myDict['confirm_key'][ind].strip('_id')
+            if myDict['confirm_key'][ind] == 'seller_po_summary_id':
+                model_obj = SellerPOSummary.objects.get(id=myDict['confirm_id'][ind])
+            else:
+                model_obj = PurchaseOrder.objects.get(id=myDict['confirm_id'][ind])
+            batch_dict = {}
+            for key, value in myDict.iteritems():
+                if not key in field_mapping.keys():
+                    continue
+                if key in zero_index_keys:
+                    value = value[0]
+                else:
+                    value = value[ind]
+                if not myDict['confirm_key'][ind] == 'seller_po_summary_id':
+                    continue
+                if key in ['exp_date', 'mfg_date']:
+                    if model_obj.batch_detail:
+                        if getattr(model_obj.batch_detail, field_mapping[key]):
+                            prev_val = datetime.datetime.strftime(getattr(model_obj.batch_detail, field_mapping[key]), '%m/%d/%Y')
+                            if myDict[key][ind] != prev_val:
+                                setattr(model_obj.batch_detail, field_mapping[key],
+                                        datetime.datetime.strptime(value, '%m/%d/%Y'))
+                                model_obj.batch_detail.save()
+                                create_update_table_history(user, model_obj.id, model_name, field_mapping[key],
+                                                            prev_val, value)
+                        else:
+                            setattr(model_obj.batch_detail, field_mapping[key],
+                                    datetime.datetime.strptime(value, '%m/%d/%Y'))
+                            model_obj.batch_detail.save()
+                            create_update_table_history(user, model_obj.id, model_name, field_mapping[key],
+                                                        '', value)
+                    else:
+                        batch_dict[field_mapping[key]] = value
+                elif key in ['mrp', 'buy_price', 'tax_percnet']:
+                    try:
+                        value = float(value)
+                    except:
+                        value = 0
+                    if model_obj.batch_detail:
+                        prev_val = float(getattr(model_obj.batch_detail, field_mapping[key]))
+                        if prev_val != value:
+                            setattr(model_obj.batch_detail, field_mapping[key], value)
+                            model_obj.batch_detail.save()
+                            create_update_table_history(user, model_obj.id, model_name, field_mapping[key], prev_val, value)
+                    else:
+                        batch_dict[field_mapping[key]] = value
+                elif key in ['quantity', 'discount_percentage']:
+                    try:
+                        value = float(value)
+                    except:
+                        value = 0
+                    prev_val = float(getattr(model_obj, field_mapping[key]))
+                    if prev_val != value:
+                        setattr(model_obj, field_mapping[key], value)
+                        model_obj.save()
+                        create_update_table_history(user, model_obj.id, model_name, field_mapping[key],
+                                                    prev_val, value)
+                elif key == 'batch_no':
+                    if model_obj.batch_detail:
+                        prev_val = getattr(model_obj.batch_detail, field_mapping[key])
+                        if prev_val != value:
+                            setattr(model_obj.batch_detail, field_mapping[key], value)
+                            model_obj.batch_detail.save()
+                            create_update_table_history(user, model_obj.id, model_name, field_mapping[key],
+                                                        prev_val, value)
+                    else:
+                        batch_dict[field_mapping[key]] = value
+                elif key == 'invoice_date':
+                    if getattr(model_obj, field_mapping[key]):
+                        prev_val = datetime.datetime.strftime(getattr(model_obj, field_mapping[key]), '%m/%d/%Y')
+                        if value != prev_val:
+                            setattr(model_obj, field_mapping[key],
+                                    datetime.datetime.strptime(value, '%m/%d/%Y'))
+                            model_obj.save()
+                            create_update_table_history(user, model_obj.id, model_name, field_mapping[key],
+                                                        prev_val, value)
+                elif key == 'invoice_number':
+                    prev_val = getattr(model_obj, field_mapping[key])
+                    if prev_val != value:
+                        setattr(model_obj, field_mapping[key], value)
+                        model_obj.save()
+                        create_update_table_history(user, model_obj.id, model_name, field_mapping[key],
+                                                    prev_val, value)
+            if batch_dict and not model_obj.batch_detail:
+                batch_dict['transact_id'] = model_obj.id
+                batch_dict['transact_type'] = 'seller_po_summary'
+                batch_obj = create_update_batch_data(batch_dict)
+                model_obj.batch_detail_id = batch_obj.id
+        return HttpResponse("Success")
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Update GRN failed for params " + str(myDict) + " and error statement is " + str(e))
+        return HttpResponse("Update GRN Failed")

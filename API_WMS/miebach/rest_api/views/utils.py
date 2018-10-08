@@ -1,5 +1,5 @@
 import logging
-
+import locale  # To convert numbers into Currency
 
 def init_logger(log_file):
     log = logging.getLogger(log_file)
@@ -12,3 +12,8 @@ def init_logger(log_file):
     log.setLevel(logging.DEBUG)
 
     return log
+
+
+def get_currency_format(value, currency_format='en_IN'):
+    locale.setlocale(locale.LC_ALL, currency_format)
+    return locale.currency(value, grouping=True)

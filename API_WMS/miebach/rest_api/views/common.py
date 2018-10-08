@@ -3514,7 +3514,27 @@ def build_search_data(to_data, from_data, limit):
                 if status:
                     to_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc,
                                     'measurement_unit': data.measurement_type,
-                                    'mrp': data.mrp})
+                                    'mrp': data.mrp, 'sku_class': data.sku_class,
+                                    'style_name': data.style_name})
+        return to_data
+
+
+def build_style_search_data(to_data, from_data, limit):
+    if (len(to_data) >= limit):
+        return to_data
+    else:
+        for data in from_data:
+            if (len(to_data) >= limit):
+                break
+            else:
+                status = True
+                for item in to_data:
+                    if (item['sku_class'] == data['sku_class']):
+                        status = False
+                        break
+                if status:
+                    to_data.append({'sku_class': data['sku_class'],
+                                    'style_name': data['style_name']})
         return to_data
 
 
@@ -7731,3 +7751,54 @@ def po_invoice_number_check(user, invoice_num):
     if exist_inv_obj.exists():
         status = 'Invoice Number already Mapped to %s' % get_po_reference(exist_inv_obj[0].purchase_order)
     return status
+
+
+@get_admin_user
+def search_style_data(request, user=''):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    search_key = request.GET.get('q', '')
+    total_data = []
+    limit = 10
+
+    if not search_key:
+        return HttpResponse(json.dumps(total_data))
+
+    lis = ['sku_class', 'style_name']
+    query_objects = sku_master.filter(Q(sku_class__icontains=search_key) | Q(style_name__icontains=search_key),
+                                      user=user.id).values(*lis).distinct()
+
+    master_data = query_objects.filter(Q(sku_class__exact=search_key) | Q(style_name__exact=search_key),
+                                       user=user.id).values(*lis).distinct()
+    if master_data:
+        master_data = master_data[0]
+        total_data.append(master_data)
+
+    master_data = query_objects.filter(Q(sku_class__istartswith=search_key) | Q(style_name__istartswith=search_key),
+                                       user=user.id).values(*lis).distinct()
+    total_data = build_style_search_data(total_data, master_data, limit)
+
+    if len(total_data) < limit:
+        total_data = build_style_search_data(total_data, query_objects, limit)
+    return HttpResponse(json.dumps(total_data))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_style_level_stock(request, user=''):
+    sku_wise_list = []
+    sku_class = request.GET.get('sku_class', '')
+    sel_warehouse = request.GET.get('warehouse', '')
+    if sel_warehouse:
+        user = User.objects.get(username=sel_warehouse)
+    if not sku_class:
+        return HttpResponse(json.dumps({}))
+    sku_codes = SKUMaster.objects.filter(sku_class=sku_class, user=user.id)
+    for sku in sku_codes[0:3]:
+        stock_data = StockDetail.objects.exclude(Q(receipt_number=0) |
+                                                 Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])).\
+                                            filter(sku__user=user.id, sku__sku_code=sku.sku_code)
+        zones_data, available_quantity = get_sku_stock_summary(stock_data, '', user)
+        avail_qty = sum(map(lambda d: available_quantity[d] if available_quantity[d] > 0 else 0, available_quantity))
+        sku_wise_list.append({'sku_code': sku.sku_code, 'sku_desc': sku.sku_desc, 'avail_qty': avail_qty})
+    return HttpResponse(json.dumps(sku_wise_list))

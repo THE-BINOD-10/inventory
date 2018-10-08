@@ -224,6 +224,7 @@ urlpatterns = [
     url(r'^confirm_move_location_inventory/$', confirm_move_location_inventory),
     url(r'^get_sku_batches/$', get_sku_batches),
     url(r'^inventory_adj_reasons/$', inventory_adj_reasons),
+    url(r'^get_style_level_stock/$', get_style_level_stock),
 
     # OutBound
     url(r'^batch_generate_picklist/$', batch_generate_picklist),
@@ -269,6 +270,7 @@ urlpatterns = [
     url(r'^get_customer_master_id/$', get_customer_master_id),
     url(r'^get_corporate_master_id/$', get_corporate_master_id),
     url(r'^search_wms_data/$', search_wms_data),
+    url(r'^search_style_data/$', search_style_data),
     url(r'^update_payment_status/$', update_payment_status),
     url(r'^update_inv_payment_status/$', update_inv_payment_status),
     url(r'^create_orders_data/$', create_orders_data),

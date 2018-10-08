@@ -6,7 +6,7 @@
         <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span></button>
         <h4 class="modal-title">Update</h4>
       </div>
-      <div class="modal-body" id="update_sku">
+      <div class="modal-body" id="update_sku" style="height:570px;">
         <div class="row">
             <input type="hidden" name="data_id" ng-model="showCase.model_data.data_id" class="form-control" value="">
             <div class="col-md-4 col-sm-6 col-xs-6">
@@ -78,7 +78,52 @@
                 <input ng-if="showCase.model_data.already_assigned" type="text" name="status" class="form-control" ng-model="showCase.model_data.warehouse" maxlength="256" disabled>
               </div>
             </div>
+            <div class="col-md-4 col-sm-6 col-xs-6" ng-if="!showCase.model_data.already_assigned">
+              <div class="form-group">
+                <label class="control-label" ng-if="showCase.model_data.status!='0'"> Style Search</label>
+                <input type="text" autocomplete="off" name="sku_class" class="form-control detectTab"
+                       placeholder="Search SKU Class/Style Name" typeahead="address.sku_class+' : '+address.style_name for address in showCase.service.getSearchValues($viewValue, 'search_style_data?')"
+                       typeahead-loading="loadingLocations" ng-model="showCase.model_data.sku_class"
+                       typeahead-on-select="showCase.get_sku_qty_details(product, $item, $index)"
+                       ng-keyup="$event.keyCode == 13 ? showCase.key_event(product, $item, $index) : null"
+                       ng-readonly="showCase.model_data.warehouse==''">
+              </div>
+            </div>
         </div>
+
+
+        <div class="col-md-12 col-sm-12 col-xs-12" ng-if="(showCase.display_style_stock_table)">
+		  <div class="col-md-12 col-sm-12 col-xs-12">
+              <div style="margin-bottom: 10px;"><strong>SKU Level Available Quantity :</strong></div>
+		  </div>
+
+		  <div class="col-md-12 col-sm-12 col-xs-12 mb10">
+          <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th>SKU Code</th>
+                <th>SKU Description</th>
+                <th>Available Quantity</th>
+              </tr>
+            </thead>
+            <tbody ng-repeat="data in showCase.sku_level_qtys">
+                <tr class="field">
+				  <td>{{data.sku_code}}</td>
+                  <td>{{data.sku_desc}}</td>
+                  <td>{{data.avail_qty}}</td>
+                </tr>
+            </tbody>
+          </table>
+		  </div>
+		  </div>
+
+
+
+
+
+
+
+
       </div>
       <div class="modal-footer">
         <div class="form-group" style="margin-bottom:0px;">

@@ -11155,7 +11155,6 @@ def print_cartons_data(request, user=''):
     customers_obj = OrderDetail.objects.select_related('customer_id', 'customer_name', 'marketplace').\
                                 filter(id__in=request_dict['id']).only('customer_id', 'customer_name', 'marketplace').\
                                 values('customer_id', 'customer_name', 'marketplace', 'address').distinct()
-
     customer_info = {}
     if customers_obj.count() > 1:
         customer_info = {'name': customers_obj[0]['marketplace']}
@@ -11294,10 +11293,10 @@ def create_orders_check_ean(request, user=''):
     ean = request.GET.get('ean')
     try:
         sku_obj = SKUMaster.objects.filter(Q(ean_number=ean) | Q(sku_code=ean) | Q(eannumbers__ean_number=ean), user=user.id)
+        if sku_obj:
+            sku_code = sku_obj[0].sku_code
     except:
         pass
-    if sku_obj:
-        sku_code = sku_obj[0].sku_code
     return HttpResponse(json.dumps({ 'sku' : sku_code }))
 
 
@@ -11924,6 +11923,7 @@ def insert_shipment_info(request, user=''):
                 picked_orders = Picklist.objects.filter(order_id=order_id, status__icontains='picked',
                                                         order__user=user.id)
                 order_quantity = int(order_detail.quantity)
+                customers_name = order_detail.customer_name
                 if order_quantity == 0:
                     continue
                 elif order_quantity < received_quantity:
@@ -11985,4 +11985,8 @@ def insert_shipment_info(request, user=''):
         log.info(
             'Shipment info saving is failed for params ' + str(request.POST.dict()) + ' error statement is ' + str(e))
 
+    final_data = {'customer_name': customers_name, 'product_make': ' ', 
+                 'product_model': ' ', 'imei': ' ', 'date': ' '}
+    if final_data:
+        return render(request, 'templates/toggle/order_shipment_confirmation_form.html', final_data)
     return HttpResponse(json.dumps({'status': True, 'message': 'Shipment Created Successfully'}))

@@ -395,33 +395,35 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
         vm.service.apiCall("insert_shipment_info/", "POST", data, true).then(function(data){
           if(data.message) {
             vm.service.showNoty("Shipment Created Successfully");
-            if(data.data.search("<div") != -1 && !(data.data.status)) {
-              if(!(data)) {
-                data = $('.print:visible').clone();
-              } else {
-                data = $(data.data).clone();
+            if (!(data.data.status)) {
+              if(data.data.search("<div") != -1) {
+                if(!(data)) {
+                  data = $('.print:visible').clone();
+                } else {
+                  data = $(data.data).clone();
+                }
+                var print_div= "<div class='print'></div>";
+                print_div= $(print_div).html(data);
+                print_div = $(print_div).clone();
+                $(print_div).find(".modal-body").css('max-height', 'none');
+                $(print_div).find(".modal-footer").remove();
+                print_div = $(print_div).html();
+                var title = "Order Shipment Print"
+                var mywindow = window.open('', title, 'height=400,width=600');
+                mywindow.document.write('<html><head><title>'+title+'</title>');
+                mywindow.document.write('<link rel="stylesheet" type="text/css" href="vendor/bootstrap/dist/css/bootstrap.min.css" />');
+                mywindow.document.write('<link rel="stylesheet" type="text/css" href="styles/custom/page.css" media="print"/>');
+                mywindow.document.write('</head><body>');
+                mywindow.document.write(print_div);
+                mywindow.document.write('</body></html>');
+                mywindow.document.close();
+                mywindow.focus();
+                $timeout(function(){
+                  mywindow.print();
+                  mywindow.close();
+                }, 3000);
+                return true;
               }
-              var print_div= "<div class='print'></div>";
-              print_div= $(print_div).html(data);
-              print_div = $(print_div).clone();
-              $(print_div).find(".modal-body").css('max-height', 'none');
-              $(print_div).find(".modal-footer").remove();
-              print_div = $(print_div).html();
-              var title = "Order Shipment Print"
-              var mywindow = window.open('', title, 'height=400,width=600');
-              mywindow.document.write('<html><head><title>'+title+'</title>');
-              mywindow.document.write('<link rel="stylesheet" type="text/css" href="vendor/bootstrap/dist/css/bootstrap.min.css" />');
-              mywindow.document.write('<link rel="stylesheet" type="text/css" href="styles/custom/page.css" media="print"/>');
-              mywindow.document.write('</head><body>');
-              mywindow.document.write(print_div);
-              mywindow.document.write('</body></html>');
-              mywindow.document.close();
-              mywindow.focus();
-              $timeout(function(){
-                mywindow.print();
-                mywindow.close();
-              }, 3000);
-              return true;
             }
             vm.close();
             vm.reloadData();

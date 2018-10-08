@@ -544,19 +544,6 @@ class ASNStockDetail(models.Model):
         unique_together = ('asn_po_num', 'sku')
 
 
-class ASNReserveDetail(models.Model):
-    id = BigAutoField(primary_key=True)
-    asnstock = models.ForeignKey(ASNStockDetail, blank=True, null=True)
-    orderdetail = models.ForeignKey(OrderDetail, blank=True, null=True)
-    reserved_qty = models.IntegerField(default=0)
-    creation_date = models.DateTimeField(auto_now_add=True)
-    updation_date = models.DateTimeField(auto_now=True)
-    
-    class Meta:
-        db_table = 'ASN_RESERVE_DETAIL'
-        unique_together = ('asnstock', 'orderdetail')
-
-
 class Picklist(models.Model):
     id = BigAutoField(primary_key=True)
     order = models.ForeignKey(OrderDetail, blank=True, null=True)
@@ -2567,6 +2554,20 @@ class EnquiredSku(models.Model):
     class Meta:
         db_table = 'EnquiredSKUS'
         # unique_together = ('sku', 'enquiry')
+
+
+class ASNReserveDetail(models.Model):
+    id = BigAutoField(primary_key=True)
+    asnstock = models.ForeignKey(ASNStockDetail, blank=True, null=True)
+    orderdetail = models.ForeignKey(OrderDetail, blank=True, null=True)
+    enquirydetail = models.ForeignKey(EnquiredSku, blank=True, null=True)
+    reserved_qty = models.IntegerField(default=0)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ASN_RESERVE_DETAIL'
+        unique_together = ('asnstock', 'orderdetail')
 
 
 class TANDCMaster(models.Model):

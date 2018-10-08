@@ -3849,13 +3849,17 @@ def sku_level_total_qtys(myDict, sku_total_qty_map):
             sku_total_qty_map[sku_id] = int(quantity)
 
 
-def block_asn_stock(sku_id, qty, lead_time, ord_det_id):
+def block_asn_stock(sku_id, qty, lead_time, ord_det_id, is_enquiry=False):
     todays_date = datetime.datetime.today().date()
     lt_date = todays_date + datetime.timedelta(days=lead_time)
     asn_qs = ASNStockDetail.objects.filter(sku_id=sku_id, arriving_date__gte= todays_date,
                                            arriving_date__lte=lt_date).order_by('arriving_date')
     for asn_obj in asn_qs:
-        asn_res_map = {'asnstock_id': asn_obj.id, 'orderdetail_id': ord_det_id}
+        asn_res_map = {'asnstock_id': asn_obj.id}
+        if not is_enquiry:
+            asn_res_map['orderdetail_id'] = ord_det_id
+        else:
+            asn_res_map['enquirydetail'] = ord_det_id  # Here ord_det_id is EnquiryDetailID when calling block_asn_stock
         if not asn_obj.asnreservedetail_set.values():
             # Create ASN Reserve Detail Object
             if qty <= asn_obj.quantity:
@@ -10411,6 +10415,7 @@ def insert_enquiry_data(request, user=''):
                         enq_sku_obj.levelbase_price = cart_item.levelbase_price
                         enq_sku_obj.warehouse_level = cart_item.warehouse_level
                         enq_sku_obj.save()
+                        block_asn_stock(wh_sku_id, qty, lt, enq_sku_obj, is_enquiry=True)
                         wh_name = User.objects.get(id=wh_code).first_name
                         cont_vals = (customer_details['customer_name'], enquiry_id, wh_name, cart_item.sku.sku_code)
                         contents = {"en": "%s placed an enquiry order %s to %s for SKU Code %s" % cont_vals}

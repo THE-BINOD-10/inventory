@@ -1,0 +1,164 @@
+<div id="page-pop" style="display: block; z-index:1050" class="modal fade process-toggle in" id="location-toggle" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="false">
+  <form name="form" role="form" id="add-customer">
+    <div class="modal-dialog modal-lg">
+      <!-- Modal content-->
+      <div class="modal-content model-custom" id = "add-customer">
+        <div ng-include="'views/common/loader.html'"></div> 
+        <div class="modal-header">
+          <button ng-click="showCase.close()" type="button" class="close" data-dismiss="modal"> ×</button>
+          <h4 class="modal-title">Add Stock Transfer Shippment </h4>
+        </div>
+        <div class="modal-body">
+          <input name="view_name" class="form-control" type="hidden" value="{{vm.g_data.view}}">
+          <div class="row">
+            <!--
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.customer_details">
+              <div class="form-group">
+                <label class="control-label">Customer ID </label>
+                <input name="market_place" class="form-control" disabled="" type="text" value="{{showCase.model_data.customer_details[0]['customer_id']}}">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.customer_details">
+              <div class="form-group">
+                <label class="control-label">Customer Name </label>
+                <input name="market_place" class="form-control" disabled="" type="text" value="{{showCase.model_data.customer_details[0]['customer_name']}}">
+              </div>
+            </div>
+            -->
+            <div class="col-md-4 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Shipment Number *</label>
+                <input name="shipment_number" class="form-control" ng-model="showCase.model_data.shipment_number" type="text" natural-number required>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Shipment Date *</label>
+                <input type="text" class="form-control stk-readonly shipment-date" ui-jq="datepicker" name="shipment_date" readonly required data-date-start-date="showCase.today_date" id="shipment_date" data-date-today-highlight="true" ng-init="showCase.updateDate()">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Truck Number</label>
+                <input name="truck_number" class="form-control" type="text" ng-model="showCase.model_data.truck_number">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Shipment Reference</label>
+                <input name="shipment_reference" class="form-control" type="text" ng-model="showCase.model_data.shipment_reference">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.g_data.alternate_view">
+              <div class="form-group">
+                <label class="control-label"> Invoice Number</label>
+                <input name="invoice_number" class="form-control" type="text" ng-model="showCase.model_data.invoice_number">
+              </div>
+            </div>
+            
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.mk_user">
+              <div class="form-group">
+                <label class="control-label"> IMEI Scan </label>
+                <input type="text" ng-model="showCase.imei_number" class="form-control" ng-keydown="showCase.check_imei_exists($event, showCase.imei_number)" auto-focus>
+              </div>
+            </div>
+            <!--
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.permissions.shipment_sku_scan">
+              <div class="form-group">
+                <label class="control-label"> Scan SKU/EAN</label>
+                <input type="text" id="scan_sku" name="scan_sku" ng-model="showCase.scan_sku" class="form-control" ng-keydown="showCase.update_sku_quan($event, showCase.scan_sku)" auto-focus>
+              </div>
+            </div>
+            -->
+            <div class="col-md-4 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <span class="btn btn-success mt25" ng-click="showCase.add_carton()" style="width: 100%">Start Carton</span>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Courier Name </label>
+                <input type="text" name="courier_name" ng-model="showCase.model_data.courier_name" class="form-control">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.carton_code">
+              <div class="form-group">
+                <label class="control-label"> Selected Carton code <b>{{ showCase.carton_code}}</b> </label>
+              </div>
+            </div>
+
+          </div>
+          <div class="row">
+            <div class="col-md-12">
+              <hr>
+            </div>
+          </div>
+          <div class="row over-x">
+            <table class="table mw55">
+              <thead>
+                <tr>
+                  <th> Stock Transfer ID </th>
+                  <th> SKU Code </th>
+                  <th> Description </th>
+                  <th> Order Quantity </th>
+                  <th> Picked Quantity </th>
+                  <th> Shipping Quantity </th>
+                  <th> Pack Reference </th>
+                </tr>
+              </thead>
+              <tbody ng-repeat="record in showCase.model_data.data">
+                <tr>
+                  <td>{{record.order_id}}</td>
+                  <td>{{record.sku_code}}</td>
+                  <td>{{record.sku_desc}}</td>
+                  <td>{{record.quantity}}</td>
+                  <td>{{record.quantity}}</td>
+                  <td>
+                    <input class="form-control" name="shipping_quantity" ng-model="record.shipping_quantity" type="text" ng-class="service.get_decimal_perm()" ng-change="showCase.cal_quantity(record, data)">
+                  </td>
+                  <td>
+                    <input class="form-control" name="package_reference" ng-model="record.pack_reference" ng-blur="showCase.add_carton_code(record)" type="text">
+                  </td>
+                  <!--<td>
+                    <i ng-click="showCase.update_data($index, data, $last)" ng-hide="user.user_profile['user_type'] == 'marketplace_user'" ng-class="showCase.isLast($last)"></i>
+                  </td>
+                  -->
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="row">
+            <div class="col-lg-10 col-md-10 col-sm-10 col-xs-10 col-md-offset-2 col-lg-offset-2">
+              <div class="col-md-5">
+                <div class="form-group">
+                <!-- <label class="control-label">Selected Cartons</label> -->
+                  <select name="sel_carton" ng-model="showCase.sel_carton" class="form-control mt25" ng-change="showCase.get_carton_info(showCase.sel_carton)">
+                    <option value="">Select Carton</option>
+                    <option  ng-repeat="(key, value) in showCase.model_data.sel_cartons" value="{{key}}">{{key}}</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <button type="button" class="btn btn-success mt25" style="width: 100%" ng-click="showCase.print_pdf(form)">Print</button>
+              </div>
+              <div class="col-md-3">
+                <button type="button" class="btn btn-success mt25" style="width: 100%" ng-click="showCase.print_pdf(form, 'true')">Excel</button>
+              </div>
+            </div>
+          </div>
+          <div class="row insert-status"><h4 align="center"></h4></div>
+        </div>
+        <div class="modal-footer">
+          <!-- <button type="button" class="btn pop pop-green pull-left col-md-3 col-sm-4 col-xs-12" ng-click="pop.print_excel(pop.model_data.picklist_id)">Print to Excel</button>
+          <div class="col-md-3 col-sm-1 col-xs-0"></div>
+          <button type="button" class="btn pop pop-normal col-md-3 col-sm-4 col-xs-12" ng-click="pop.print_pdf(pop.model_data.picklist_id)">Print Picklist</button>
+          <button type="button" class="btn pop pop-green col-md-3 col-sm-3 col-xs-12" style="margin-left:0px;" ng-click="pop.picklist_confirmation()">Confirm</button> -->
+
+          <button type="button" class="btn pop pop-normal" data-dismiss="modal" ng-click="showCase.close()">Close</button>
+          <button class="btn pop pop-green" value="Print Barcodes" type="button" ng-disabled="showCase.bt_disable" ng-click="showCase.print_barcodes(form)">Print Barcodes</button>
+          <button class="btn pop pop-green" value="Add Shippment" type="button" ng-disabled="showCase.bt_disable" ng-click="showCase.confirm_st_shipment(form)">Add Shippment</button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

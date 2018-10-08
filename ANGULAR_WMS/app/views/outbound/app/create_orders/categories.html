@@ -41,7 +41,7 @@
       <div class="col-md-9 col-sm-9 col-xs-7">
         <div class="input-group mb10">
           <span class="input-group-addon" style="background: #ed1c24;color: white;"><i style="background: #ed1c24;width: 15px;font-size: 15px;" class="fa fa-search"></i></span>
-            <input type="text" class="form-control" placeholder="Search for Products" ng-model="showCase.style" ng-focus="$state.go('user.App.Products'); showCase.get_category(true, false);" ng-debounce>
+            <input type="text" class="form-control" placeholder="Search for Products" ng-model="showCase.style" ng-blur="$state.go('user.App.Products'); showCase.get_category(true, false);" ng-debounce>
         </div>
       </div>
       <div class="col-md-2 col-sm-2 col-xs-5" style="text-align: center;">

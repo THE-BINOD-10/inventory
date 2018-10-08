@@ -2,13 +2,14 @@
   <div class="page-layout" style="background: #f0f0f0;">
     <div class='layout-header'>
       <div class="row">
-        <div class="col-md-6 col-sm-12 col-xs-12">
+        <div class="col-md-5 col-sm-12 col-xs-12">
           <div ng-include="'views/common/title.html'"></div>
         </div>
-        <div class="col-md-6 col-sm-12 col-xs-12">
+        <div class="col-md-7 col-sm-12 col-xs-12">
           <div class="row">
             <button type="button" class="btn btn-success col-md-3 col-sm-3 col-xs-3" ng-click="showCase.add_location()">Add Location</button>
             <button type="button" class="btn btn-success col-md-3 col-sm-3 col-xs-3" ng-click="showCase.add_zone()">Add Zone</button>
+            <button type="button" class="btn btn-success col-md-3 col-sm-3 col-xs-3" ng-click="showCase.add_sub_zone_mapping()" ng-show="permissions.add_subzonemapping">Add Sub Zone Mapping</button>
           </div>
         </div>
       </div>
@@ -30,6 +31,7 @@
                   <th class="col-md-2">Put Sequence</th>
                   <th class="col-md-2">Get Sequence</th>
                   <th class="col-md-2">Status</th>
+                  <th class="col-md-2" ng-show="permissions.add_subzonemapping">Sub Zone</th>
                 </tr>
               </thead>
               <tbody>
@@ -39,6 +41,7 @@
                   <td>{{location.fill_sequence}}</td>
                   <td>{{location.pick_sequence}}</td>
                   <td>{{location.status}}</td>
+                  <td ng-show="permissions.add_subzonemapping">{{location.sub_zone}}</td>
                 </tr>
               </tbody>
             </table>

@@ -342,7 +342,7 @@
           </a>
         </li>
         <!--<li ng-show="permissions.user_type == 'distributor'" ui-sref-active="active">-->
-        <li ng-show="show_tab('add_enquirymaster') && (permissions.user_type == 'distributor' || permissions.user_type == 'central_admin' || permissions.user_type == 'admin_sub_user')" ui-sref-active="active">
+        <li ng-show="show_tab('add_enquirymaster') && (permissions.user_type == 'distributor' || permissions.user_type == 'central_admin' || permissions.user_type == 'admin_sub_user' || permissions.user_type == 'sm_market_admin' || permissions.user_type == 'sm_purchase_admin' || permissions.user_type == 'sm_design_admin')" ui-sref-active="active">
           <a ui-sref="app.outbound.EnquiryOrders">
             <span>Marketing Enquiry Orders</span>
           </a>

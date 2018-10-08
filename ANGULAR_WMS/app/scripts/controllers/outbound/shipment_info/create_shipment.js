@@ -395,7 +395,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
         vm.service.apiCall("insert_shipment_info/", "POST", data, true).then(function(data){
           if(data.message) {
             vm.service.showNoty("Shipment Created Successfully");
-            if(data.data.search("<div") != -1) {
+            if(data.data.search("<div") != -1 && !(data.data.status)) {
               if(!(data)) {
                 data = $('.print:visible').clone();
               } else {

@@ -11776,19 +11776,20 @@ def get_stock_transfer_shipment_data(start_index, stop_index, temp_data, search_
                 except:
                     continue
             search_val = ''
-            for idx,item in enumerate(temp_data['aaData']):
-                if item["Stock Transfer ID"] == ord_id and item["Destination Warehouse"] == warehouse:
-                    search_val = item
-                    exist_qty = int(float(search_val['Picked Quantity']))
-                    new_qty = int(float(total_picked_quantity))
-                    exist_amt = int(float(search_val['Total Amount']))
-                    new_amt = int(float(total_price))
-                    temp_data['aaData'][idx].update({'Picked Quantity' : str(exist_qty + new_qty), 'Total Amount' : str(exist_amt + new_amt)})
-                    break
-                if idx+1 == len(temp_data['aaData']) and not(item["Stock Transfer ID"] == ord_id and item["Destination Warehouse"] == warehouse):
+            if get_stock_transfer:
+                for idx,item in enumerate(temp_data['aaData']):
+                    if item["Stock Transfer ID"] == ord_id and item["Destination Warehouse"] == warehouse:
+                        search_val = item
+                        exist_qty = int(float(search_val['Picked Quantity']))
+                        new_qty = int(float(total_picked_quantity))
+                        exist_amt = int(float(search_val['Total Amount']))
+                        new_amt = int(float(total_price))
+                        temp_data['aaData'][idx].update({'Picked Quantity' : str(exist_qty + new_qty), 'Total Amount' : str(exist_amt + new_amt)})
+                        break
+                    if idx+1 == len(temp_data['aaData']) and not(item["Stock Transfer ID"] == ord_id and item["Destination Warehouse"] == warehouse):
+                        temp_data['aaData'].append({'Stock Transfer ID' : ord_id, 'Picked Quantity' : str(total_picked_quantity), 'Total Amount' : total_price, 'Stock Transfer Date&Time' : shipment_date, 'Destination Warehouse': warehouse, 'Picklist Number' : picklist_num, 'Total Quantity' : str(total_picked_quantity)})
+                else:
                     temp_data['aaData'].append({'Stock Transfer ID' : ord_id, 'Picked Quantity' : str(total_picked_quantity), 'Total Amount' : total_price, 'Stock Transfer Date&Time' : shipment_date, 'Destination Warehouse': warehouse, 'Picklist Number' : picklist_num, 'Total Quantity' : str(total_picked_quantity)})
-            else:
-                temp_data['aaData'].append({'Stock Transfer ID' : ord_id, 'Picked Quantity' : str(total_picked_quantity), 'Total Amount' : total_price, 'Stock Transfer Date&Time' : shipment_date, 'Destination Warehouse': warehouse, 'Picklist Number' : picklist_num, 'Total Quantity' : str(total_picked_quantity)})
                 
 
 
@@ -11984,9 +11985,9 @@ def insert_shipment_info(request, user=''):
         log.debug(traceback.format_exc())
         log.info(
             'Shipment info saving is failed for params ' + str(request.POST.dict()) + ' error statement is ' + str(e))
-
-    final_data = {'customer_name': customers_name, 'product_make': ' ', 
-                 'product_model': ' ', 'imei': ' ', 'date': ' '}
-    if final_data:
-        return render(request, 'templates/toggle/order_shipment_confirmation_form.html', final_data)
+    if user.username == "one_assist":
+        final_data = {'customer_name': customers_name, 'product_make': ' ', 
+                     'product_model': ' ', 'imei': ' ', 'date': ' '}
+        if final_data:
+            return render(request, 'templates/toggle/order_shipment_confirmation_form.html', final_data)
     return HttpResponse(json.dumps({'status': True, 'message': 'Shipment Created Successfully'}))

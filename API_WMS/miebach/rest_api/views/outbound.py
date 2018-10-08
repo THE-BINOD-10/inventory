@@ -2151,11 +2151,27 @@ def update_invoice(request, user=''):
                 else:
                     CustomerOrderSummary.objects.create(order=order_id, sgst_tax=sgst_tax, cgst_tax=cgst_tax,
                                                         igst_tax=igst_tax, tax_type=tax_type)
-                sos_obj = SellerOrderSummary.objects.filter(order_id=order_id)
-                if sos_obj:
-                    sos_obj = sos_obj[0]
-                    sos_obj.quantity = int(myDict['quantity'][unit_price_index])
-                    sos_obj.save()
+                sos_objs = SellerOrderSummary.objects.filter(order_id=order_id)
+                updating_quantity = float(myDict['quantity'][unit_price_index])
+                seller_exist_qty = sos_objs.aggregate(Sum('quantity'))['quantity__sum']
+                if not seller_exist_qty:
+                    seller_exist_qty = 0
+                if float(seller_exist_qty) != float(updating_quantity):
+                    updating_diff = float(updating_quantity) - float(seller_exist_qty)
+                    for sos_obj in sos_objs:
+                        if updating_diff <= 0:
+                            if updating_diff > float(sos_obj.quantity):
+                                sos_updating_qty = float(sos_obj.quantity)
+                                updating_diff -= float(sos_obj.quantity)
+                            else:
+                                sos_updating_qty = updating_diff
+                                updating_diff = 0
+                        else:
+                            sos_updating_qty = updating_diff
+                            updating_diff = 0
+
+                        sos_obj.quantity = sos_obj.quantity + sos_updating_qty
+                        sos_obj.save()
 
 
         # Updating or Creating Order other charges Table
@@ -3250,7 +3266,9 @@ def after_admin_approval(request, user=''):
             items.append([ap_status.sku.sku_desc, quantity])
             detail_check = OrderDetail.objects.filter(order_id= order_id,sku_id= ap_status.sku_id,user = user.id,order_code = 'MN')
             data_dict = {'order_id':order_id, 'customer_id':customer_user_id, 'user':user_id,
-            'title':ap_status.sku.sku_desc, 'quantity':quantity,'invoice_amount':invoice_amount, 'sku_id':ap_status.sku_id,'shipment_date':shipment_date,'order_code':'MN','original_order_id':'MN'+str(order_id)}
+            'title':ap_status.sku.sku_desc, 'quantity':quantity,'invoice_amount':invoice_amount,
+            'sku_id':ap_status.sku_id,'shipment_date':shipment_date,'order_code':'MN',
+            'original_order_id':'MN'+str(order_id), 'status':1}
             if detail_check:
                 detail_check.update(quantity= quantity,invoice_amount= invoice_amount)
             else:
@@ -3348,6 +3366,7 @@ def validate_order_form(myDict, request, user):
     po_imeis = []
 
     status = ''
+    temp_distinct_skus = []
     direct_dispatch = request.POST.get('direct_dispatch', '')
     if not myDict['shipment_date'][0]:
         status = 'Shipment Date should not be empty'
@@ -3399,6 +3418,7 @@ def validate_order_form(myDict, request, user):
             stock_check = False
         else:
             all_sku_codes[i] = sku_master[0]
+            temp_distinct_skus.append(sku_master[0]['wms_code'])
         try:
             value = float(myDict['quantity'][i])
         except:
@@ -3436,7 +3456,7 @@ def validate_order_form(myDict, request, user):
     if sor_id_status:
         status += " " + sor_id_status
 
-    return status, all_sku_codes
+    return status, all_sku_codes, list(set(temp_distinct_skus))
 
 
 def create_order_json(order_detail, json_dat={}, ex_image_url={}):
@@ -3658,7 +3678,7 @@ def construct_order_data_dict(request, i, order_data, myDict, all_sku_codes, cus
                      'description', 'extra_data', 'location', 'serials', 'direct_dispatch', 'seller_id', 'sor_id',
                      'ship_to', 'client_name', 'po_number', 'corporate_po_number', 'address_selected', 'is_sample',
                      'invoice_type', 'default_shipment_addr', 'manual_shipment_addr', 'sample_client_name',
-                     'mode_of_transport', 'payment_status', 'courier_name']
+                     'mode_of_transport', 'payment_status', 'courier_name', 'order_discount']
     inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
     order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
     sku_master = {}
@@ -3906,7 +3926,7 @@ def insert_order_data(request, user=''):
     dispatch_orders = OrderedDict()
 
     # Validate sku, quantity, stock
-    valid_status, all_sku_codes = validate_order_form(myDict, request, user)
+    valid_status, all_sku_codes, temp_distinct_skus = validate_order_form(myDict, request, user)
 
     payment_mode = request.POST.get('payment_mode', '')
     payment_received = request.POST.get('payment_received', '')
@@ -3914,7 +3934,7 @@ def insert_order_data(request, user=''):
     tax_percent = request.POST.get('tax', '')
     telephone = request.POST.get('telephone', '')
     custom_order = request.POST.get('custom_order', '')
-    user_type = request.POST.get('user_type', '')
+    user_type = request.user.userprofile.user_type #request.POST.get('user_type', '')
     seller_id = request.POST.get('seller_id', '')
     sor_id = request.POST.get('sor_id', '')
     ship_to = request.POST.get('ship_to', '')
@@ -3927,6 +3947,7 @@ def insert_order_data(request, user=''):
     sample_client_name = request.POST.get('sample_client_name', '')
     mode_of_transport = request.POST.get('mode_of_transport','')
     courier_name = request.POST.get('courier_name', '')
+    order_discount = request.POST.get('order_discount', 0)
     dist_shipment_address = request.POST.get('manual_shipment_addr', '')
     if dist_shipment_address:
         ship_to = dist_shipment_address
@@ -3987,6 +4008,10 @@ def insert_order_data(request, user=''):
             order_summary_dict['client_name'] = sample_client_name
             order_summary_dict['mode_of_transport'] = mode_of_transport
             order_summary_dict['payment_status'] = payment_status
+            if order_discount:
+                order_summary_dict.setdefault('discount', 0)
+                order_summary_dict['discount'] = order_summary_dict['discount'] + \
+                                                 (float(order_discount)/len(temp_distinct_skus))
 
             if admin_user:
                 if user_type == 'customer':
@@ -10388,29 +10413,55 @@ def insert_enquiry_data(request, user=''):
             enquiry_data = {'customer_id': customer_id, 'warehouse_level': cart_item.warehouse_level,
                             'user': user.id, 'quantity': cart_item.quantity, 'sku_id': cart_item.sku.id}
             stock_wh_map = split_orders(**enquiry_data)
-            for wh_code, qty in stock_wh_map.items():
-                if qty <= 0:
-                    continue
-                wh_sku_id = get_syncedusers_mapped_sku(wh_code, cart_item.sku.id)
-                enq_sku_obj = EnquiredSku()
-                enq_sku_obj.sku_id = wh_sku_id
-                enq_sku_obj.title = cart_item.sku.style_name
-                enq_sku_obj.enquiry = enq_master_obj
-                enq_sku_obj.quantity = qty
-                tot_amt = get_tax_inclusive_invoice_amt(cm_id, cart_item.levelbase_price, qty,
-                                                        user.id, cart_item.sku.sku_code, admin_user)
-                enq_sku_obj.invoice_amount = tot_amt
-                enq_sku_obj.status = 1
-                enq_sku_obj.sku_code = cart_item.sku.sku_code
-                enq_sku_obj.levelbase_price = cart_item.levelbase_price
-                enq_sku_obj.warehouse_level = cart_item.warehouse_level
-                enq_sku_obj.save()
-                wh_name = User.objects.get(id=wh_code).first_name
-                cont_vals = (customer_details['customer_name'], enquiry_id, wh_name, cart_item.sku.sku_code)
-                contents = {"en": "%s placed an enquiry order %s to %s for SKU Code %s" % cont_vals}
-                users_list = list(set([user.id, wh_code, admin_user.id]))
-                send_push_notification(contents, users_list)
-                items.append([cart_item.sku.style_name, qty, tot_amt])
+            if cart_item.warehouse_level == 3:
+                for lt, stc_wh_map in stock_wh_map.items():
+                    for wh_code, qty in stc_wh_map.items():
+                        if qty <= 0:
+                            continue
+                        wh_sku_id = get_syncedusers_mapped_sku(wh_code, cart_item.sku.id)
+                        enq_sku_obj = EnquiredSku()
+                        enq_sku_obj.sku_id = wh_sku_id
+                        enq_sku_obj.title = cart_item.sku.style_name
+                        enq_sku_obj.enquiry = enq_master_obj
+                        enq_sku_obj.quantity = qty
+                        tot_amt = get_tax_inclusive_invoice_amt(cm_id, cart_item.levelbase_price, qty,
+                                                                user.id, cart_item.sku.sku_code, admin_user)
+                        enq_sku_obj.invoice_amount = tot_amt
+                        enq_sku_obj.status = 1
+                        enq_sku_obj.sku_code = cart_item.sku.sku_code
+                        enq_sku_obj.levelbase_price = cart_item.levelbase_price
+                        enq_sku_obj.warehouse_level = cart_item.warehouse_level
+                        enq_sku_obj.save()
+                        wh_name = User.objects.get(id=wh_code).first_name
+                        cont_vals = (customer_details['customer_name'], enquiry_id, wh_name, cart_item.sku.sku_code)
+                        contents = {"en": "%s placed an enquiry order %s to %s for SKU Code %s" % cont_vals}
+                        users_list = list(set([user.id, wh_code, admin_user.id]))
+                        send_push_notification(contents, users_list)
+                        items.append([cart_item.sku.style_name, qty, tot_amt])
+            else:
+                for wh_code, qty in stock_wh_map.items():
+                    if qty <= 0:
+                        continue
+                    wh_sku_id = get_syncedusers_mapped_sku(wh_code, cart_item.sku.id)
+                    enq_sku_obj = EnquiredSku()
+                    enq_sku_obj.sku_id = wh_sku_id
+                    enq_sku_obj.title = cart_item.sku.style_name
+                    enq_sku_obj.enquiry = enq_master_obj
+                    enq_sku_obj.quantity = qty
+                    tot_amt = get_tax_inclusive_invoice_amt(cm_id, cart_item.levelbase_price, qty,
+                                                            user.id, cart_item.sku.sku_code, admin_user)
+                    enq_sku_obj.invoice_amount = tot_amt
+                    enq_sku_obj.status = 1
+                    enq_sku_obj.sku_code = cart_item.sku.sku_code
+                    enq_sku_obj.levelbase_price = cart_item.levelbase_price
+                    enq_sku_obj.warehouse_level = cart_item.warehouse_level
+                    enq_sku_obj.save()
+                    wh_name = User.objects.get(id=wh_code).first_name
+                    cont_vals = (customer_details['customer_name'], enquiry_id, wh_name, cart_item.sku.sku_code)
+                    contents = {"en": "%s placed an enquiry order %s to %s for SKU Code %s" % cont_vals}
+                    users_list = list(set([user.id, wh_code, admin_user.id]))
+                    send_push_notification(contents, users_list)
+                    items.append([cart_item.sku.style_name, qty, tot_amt])
     except:
         import traceback
         log.debug(traceback.format_exc())
@@ -10433,7 +10484,7 @@ def get_enquiry_data(request, user=''):
     if not cum_obj:
         return HttpResponse("No Customer User Mapping Object")
     cm_id = cum_obj[0].customer_id
-    em_qs = EnquiryMaster.objects.filter(customer_id=cm_id)
+    em_qs = EnquiryMaster.objects.filter(customer_id=cm_id).order_by('-enquiry_id')
     em_vals = em_qs.values_list('enquiry_id', 'extend_status', 'extend_date', 'corporate_name').distinct()
     total_qty = dict(em_qs.values_list('enquiry_id').distinct().annotate(quantity=Sum('enquiredsku__quantity')))
     total_inv_amt = dict(
@@ -10466,7 +10517,7 @@ def get_manual_enquiry_data(request, user=''):
         start_index = int(index.split(':')[0])
         stop_index = int(index.split(':')[1])
     response_data = {'data': []}
-    em_qs = ManualEnquiry.objects.filter(user=request.user.id)
+    em_qs = ManualEnquiry.objects.filter(user=request.user.id).order_by('-id')
     for enquiry in em_qs[start_index:stop_index]:
         res_map = {'order_id': enquiry.enquiry_id, 'customer_name': enquiry.customer_name,
                    'date': get_only_date(request, enquiry.creation_date),
@@ -11245,7 +11296,10 @@ def create_orders_check_ean(request, user=''):
     data = {}
     sku_code = ''
     ean = request.GET.get('ean')
-    sku_obj = SKUMaster.objects.filter(ean_number=ean, user=user.id)
+    try:
+        sku_obj = SKUMaster.objects.filter(Q(ean_number=ean) | Q(sku_code=ean) | Q(eannumbers__ean_number=ean), user=user.id)
+    except:
+        pass
     if sku_obj:
         sku_code = sku_obj[0].sku_code
     return HttpResponse(json.dumps({ 'sku' : sku_code }))

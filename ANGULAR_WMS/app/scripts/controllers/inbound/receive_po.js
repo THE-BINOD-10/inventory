@@ -17,8 +17,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.user_type = Session.user_profile.user_type;
     vm.supplier_id = '';
     vm.order_id = 0;
-    // vm.industry_type = 'FMCG';
-
+    vm.receive_po_mandatory_fields = {};
+    if(vm.permissions.receive_po_mandatory_fields) {
+      angular.forEach(vm.permissions.receive_po_mandatory_fields.split(','), function(field){
+        console.log(field+'\n');
+        if (!vm.receive_po_mandatory_fields[field]) {
+          vm.receive_po_mandatory_fields[field] = field;
+        }
+      })
+    }
+    console.log(vm.receive_po_mandatory_fields);
     //default values
     if(!vm.permissions.grn_scan_option) {
       vm.permissions.grn_scan_option = "sku_serial_scan";
@@ -481,23 +489,27 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       // data.push({name: 'exp_date', value: form.exp_date.$viewValue});
       // data.push({name: 'po_unit', value: form.po_unit.$viewValue});
       // data.push({name: 'tax_per', value: form.tax_per.$viewValue});
-      if (vm.permissions.receive_po_invoice_check && vm.model_data.invoice_value){
+      if (form.$valid) {
+        if (vm.permissions.receive_po_invoice_check && vm.model_data.invoice_value){
 
-        var abs_inv_value = vm.absOfInvValueTotal(vm.model_data.invoice_value, vm.skus_total_amount);
+          var abs_inv_value = vm.absOfInvValueTotal(vm.model_data.invoice_value, vm.skus_total_amount);
 
-        if (vm.permissions.receive_po_invoice_check && abs_inv_value <= 3){
+          if (vm.permissions.receive_po_invoice_check && abs_inv_value <= 3){
+
+            vm.confirm_grn_api();
+          } else if (vm.permissions.receive_po_invoice_check && abs_inv_value >= 3) {
+
+            colFilters.showNoty("Your entered invoice value and total value does not match");
+          }
+        } else if (vm.permissions.receive_po_invoice_check && !(vm.model_data.invoice_value)){
+
+          colFilters.showNoty("Please Fill The Invoice Value Field");
+        } else {
 
           vm.confirm_grn_api();
-        } else if (vm.permissions.receive_po_invoice_check && abs_inv_value >= 3) {
-
-          colFilters.showNoty("Your entered invoice value and total value does not match");
         }
-      } else if (vm.permissions.receive_po_invoice_check && !(vm.model_data.invoice_value)){
-
-        colFilters.showNoty("Please Fill The Invoice Value Field");
       } else {
-
-        vm.confirm_grn_api();
+        colFilters.showNoty("Fill Required Fields");
       }
     }
 

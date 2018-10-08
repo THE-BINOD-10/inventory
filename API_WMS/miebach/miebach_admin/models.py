@@ -2960,3 +2960,20 @@ class SellableSuggestions(models.Model):
     class Meta:
         db_table = 'SELLABLE_SUGGESTIONS'
         index_together = (('seller', 'stock', 'status'), ('stock', 'status'))
+
+
+class TableUpdateHistory(models.Model):
+    id = BigAutoField(primary_key=True)
+    user = models.ForeignKey(User, blank=True, null=True)
+    model_id = models.PositiveIntegerField()
+    model_name = models.CharField(max_length=32, default='')
+    model_field = models.CharField(max_length=32, default='')
+    previous_val = models.CharField(max_length=64, default='')
+    updated_val = models.CharField(max_length=64, default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'TABLE_UPDATE_HISTORY'
+        index_together = (('user', 'model_id'), ('user', 'model_id', 'model_name'),
+                          ('user', 'model_id', 'model_name', 'model_field'))

@@ -514,8 +514,8 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
 
         if type(cell_data) == float:
             sku_code = str(int(cell_data))
-        elif isinstance(cell_data, str) and '.' in cell_data:
-            sku_code = str(int(float(cell_data)))
+        #elif isinstance(cell_data, str) and '.' in cell_data:
+        #    sku_code = str(int(float(cell_data)))
         else:
             sku_code = cell_data.upper()
 
@@ -1636,7 +1636,7 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
     excel_mapping = get_excel_upload_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type,
                                                  inv_mapping)
     if not set(['receipt_date', 'quantity', 'wms_code', 'location']).issubset(excel_mapping.keys()):
-        return 'Invalid File'
+        return 'Invalid File', []
     number_fields = ['quantity', 'mrp']
     optional_fields = ['mrp']
     mandatory_fields = ['receipt_date', 'location', 'quantity', 'receipt_type']
@@ -1711,7 +1711,7 @@ def validate_inventory_form(request, reader, user, no_of_rows, no_of_cols, fname
                 data_dict[key] = cell_data
             else:
                 data_dict[key] = cell_data
-        if user.userprofile.industry_type == 'FMCG':
+        if user.userprofile.industry_type == 'FMCG' and data_dict['sku_id']:
             if not data_dict.get('manufactured_date', ''):
                 data_dict['manufactured_date'] = datetime.datetime.now()
             if not data_dict.get('expiry_date', ''):
@@ -2629,13 +2629,15 @@ def purchase_upload_mail(request, data_to_send, user):
 
         profile = UserProfile.objects.get(user=request.user.id)
         t = loader.get_template('templates/toggle/po_download.html')
+        w_address, company_address = get_purchase_company_address(profile)
         data_dictionary = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
                            'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total,
                            'po_reference': po_reference, 'user_name': request.user.username, 'total_qty': total_qty,
                            'company_name': profile.company_name, 'location': profile.location,
-                           'w_address': get_purchase_company_address(profile), 'vendor_name': vendor_name,
+                           'w_address': w_address, 'vendor_name': vendor_name,
                            'vendor_address': vendor_address, 'vendor_telephone': vendor_telephone,
-                           'customization': customization, 'ship_to_address': ship_to_address}
+                           'customization': customization, 'ship_to_address': ship_to_address,
+                           'company_address': company_address, 'wh_gstin': profile.gst_number}
         rendered = t.render(data_dictionary)
         write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
                            str(order_date).split(' ')[0])
@@ -3709,6 +3711,8 @@ def pricing_excel_upload(request, reader, user, no_of_rows, fname, file_type='xl
 
     for key, vals in excel_records_map.iteritems():
         user, sku_code, price_type = key
+        if isinstance(sku_code, float):
+            sku_code = str(int(sku_code))
         price_obj = PriceMaster.objects.filter(sku__user=user.id, sku__sku_code=sku_code, price_type=price_type)
         if price_obj:
             price_obj.delete()

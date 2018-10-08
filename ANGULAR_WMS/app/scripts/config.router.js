@@ -9,7 +9,7 @@ var LOGIN_STATE = "user.signin",
 var app = angular.module('urbanApp')
   app.run(['$rootScope', '$state', '$stateParams', 'Auth', 'AUTH_EVENTS', 'Session', '$timeout',
         function ($rootScope, $state, $stateParams, Auth, AUTH_EVENTS, Session, $timeout) {
-      if(Session.user_profile.user_type == "customer") {
+      if(Session.user_profile.request_user_type == "customer") {
         if (Session.roles.permissions.is_portal_lite) {
           LOGIN_REDIRECT_STATE = LOGIN_REDIRECT_STATE_ANT_CUSTOMER;
         } else {
@@ -60,7 +60,7 @@ var app = angular.module('urbanApp')
                     if (Session.roles.permissions["setup_status"] && thisNext.name.indexOf("Register") == -1) {
                       $state.go("app.Register");
                       return;
-                    } else if((Session.user_profile.user_type == "customer") && (thisNext.name.indexOf("App") == -1)) {
+                    } else if((Session.user_profile.request_user_type == "customer") && (thisNext.name.indexOf("App") == -1)) {
 
                         if (Session.roles.permissions.is_portal_lite) {
 
@@ -117,10 +117,10 @@ var app = angular.module('urbanApp')
 
             $rootScope.$on(AUTH_EVENTS.loginSuccess, function () {
 
-              if (Session.user_profile.user_type == "customer") {
+              if (Session.user_profile.request_user_type == "customer") {
                 $state.go(LOGIN_REDIRECT_STATE_CUSTOMER, {"location": "replace"});
 
-              } else if (Session.user_profile.user_type == "supplier"){
+              } else if (Session.user_profile.request_user_type == "supplier"){
                 $state.go("app.PurchaseOrder", {"location": "replace"});
               } else {
                 $state.go(LOGIN_REDIRECT_STATE, {"location": "replace"});
@@ -235,12 +235,12 @@ var app = angular.module('urbanApp')
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
               return $ocLazyLoad.load([
-                { 
+                {
                   name: 'angularFileUpload',
                   files: [
                                 'vendor/angular-file-upload/angular-file-upload.min.js'
                             ]
-              }]);   
+              }]);
                     }]
           },
         })
@@ -659,11 +659,11 @@ var app = angular.module('urbanApp')
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load([
                   'scripts/controllers/inbound/raise_po/raise_purchase_order.js'
-                ]).then( function() { 
+                ]).then( function() {
                   return $ocLazyLoad.load([
                     'scripts/controllers/inbound/raise_po/raise_stock_transfer.js'
                   ])
-                }).then( function() { 
+                }).then( function() {
                   return $ocLazyLoad.load([
                     'scripts/controllers/inbound/raise_po/raise_intransit_orders.js'
                   ])
@@ -700,7 +700,7 @@ var app = angular.module('urbanApp')
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load([
                   'scripts/controllers/outbound/pop_js/custom_order_details.js'
-                ]).then( function() { 
+                ]).then( function() {
                   return $ocLazyLoad.load([
                     'scripts/controllers/inbound/receive_po.js'
                   ])
@@ -927,6 +927,25 @@ var app = angular.module('urbanApp')
           }
         })
 
+        .state('app.inbound.GrnEdit', {
+          url: '/GrnEdit',
+          templateUrl: 'views/inbound/grn_edit.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                    'scripts/controllers/inbound/grn_edit.js'
+                ])
+            }]
+          },
+          data: {
+            title: 'GRN Edit',
+          }
+        })
+        .state('app.inbound.GrnEdit.GrnEditPopup', {
+          url: '/GrnEditPopup',
+          templateUrl: 'views/inbound/toggle/grn_edit_popup.html'
+        })
+
       // Production routes
       .state('app.production', {
           template: '<div ui-view></div>',
@@ -1093,7 +1112,7 @@ var app = angular.module('urbanApp')
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load([
                   'scripts/controllers/stockLocator/stock_detail.js'
-                ]).then( function() { 
+                ]).then( function() {
                   return $ocLazyLoad.load([
                     'scripts/controllers/stockLocator/batch_level_stock.js'
                   ])
@@ -2256,20 +2275,20 @@ var app = angular.module('urbanApp')
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
               return $ocLazyLoad.load([
-                { 
+                {
                   serie: true,
-                  files: [   
+                  files: [
                              'scripts/controllers/manage_users/manage_groups.js'
                             ]
                         }]).then(function () {
                 return $ocLazyLoad.load('scripts/controllers/manage_users/manage_users.js');
-              });   
+              });
                     }]
           },
           data: {
             title: 'Manage Users'
           }
-        })   
+        })
           .state('app.ManageUsers.UpdateUser', {
             url: '/UpdateUser',
             templateUrl: 'views/manage_users/update_user.html'
@@ -2313,7 +2332,7 @@ var app = angular.module('urbanApp')
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load([
                   'scripts/controllers/outbound/pop_js/custom_order_details.js'
-                ]).then( function() { 
+                ]).then( function() {
                   return $ocLazyLoad.load([
                     'scripts/controllers/inbound/supplier_purchase_order.js'
                   ])
@@ -2354,7 +2373,7 @@ var app = angular.module('urbanApp')
           url: '/Completed',
           templateUrl: 'views/register/completed.html'
         })
-        
+
 
       //Customer page
       .state('user.Customer', {
@@ -2378,7 +2397,7 @@ var app = angular.module('urbanApp')
           }
         })
 
-      // User route 
+      // User route
       .state('user', {
           templateUrl: 'views/common/session.html',
         })
@@ -2599,7 +2618,8 @@ var app = angular.module('urbanApp')
             resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
                 return $ocLazyLoad.load([
-                  'scripts/controllers/outbound/app/my_order.js'
+                  'scripts/controllers/outbound/app/my_order.js',
+                  'scripts/controllers/outbound/pop_js/enquiry_details.js'
                 ]);
               }]
             }

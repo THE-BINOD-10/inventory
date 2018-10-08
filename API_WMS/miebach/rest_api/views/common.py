@@ -207,7 +207,8 @@ def add_user_permissions(request, response_data, user=''):
                                              'trail_user': status_dict[int(user_profile.is_trail)],
                                              'company_name': user_profile.company_name,
                                              'industry_type': user_profile.industry_type,
-                                             'user_type': request_user_profile.user_type}
+                                             'user_type': user_profile.user_type,
+                                             'request_user_type': request_user_profile.user_type}
 
     setup_status = 'false'
     if 'completed' not in user_profile.setup_status:
@@ -803,6 +804,10 @@ def configurations(request, user=''):
             config_dict['tax_data'].append({'tax_name': tax.misc_type[4:], 'tax_value': tax.misc_value})
     config_dict['rem_saved_mail_alerts'] = list(MailAlerts.objects.filter(user_id=user.id).\
                                                 values('alert_name', 'alert_value'))
+    config_dict['selected_receive_po_mandatory'] = []
+    mandatory_receive_po = get_misc_value('receive_po_mandatory_fields', user.id)
+    if mandatory_receive_po != 'false':
+        config_dict['selected_receive_po_mandatory'] = mandatory_receive_po.split(',')
     return HttpResponse(json.dumps(config_dict))
 
 
@@ -2346,7 +2351,11 @@ def check_and_update_stock(wms_codes, user):
             sku_count = int(sku_count)
             if sku_count < 0:
                 sku_count = 0
-            data.append({'sku': wms_code, 'quantity': sku_count})
+            temp_data_dict = {'sku': wms_code, 'quantity': sku_count, 'sku_options': []}
+            sku_attributes = SKUAttributes.objects.filter(sku__user=user.id, sku__sku_code=wms_code).values('attribute_name', 'attribute_value')
+            if sku_attributes.exists():
+                temp_data_dict['sku_options'] = list(sku_attributes)
+            data.append(temp_data_dict)
         try:
             obj.update_sku_count(data=data, user=user)
         except:
@@ -3534,7 +3543,7 @@ def get_customer_sku_prices(request, user=""):
                     discount = price_master_objs[0].discount
             result_data.append(
                 {'wms_code': data.wms_code, 'sku_desc': data.sku_desc, 'price': price, 'discount': discount,
-                 'taxes': taxes_data, 'price_bands_map': price_bands_list})
+                 'taxes': taxes_data, 'price_bands_map': price_bands_list, 'mrp': data.mrp})
 
     except Exception as e:
         import traceback
@@ -4121,6 +4130,10 @@ def save_tally_data(request, user=""):
             if tally_obj:
                 setattr(tally_obj, key, value)
         if tally_obj:
+            if 'maintain_bill' not in request_data.keys():
+                tally_obj.maintain_bill = 0
+            if 'automatic_voucher' not in request_data.keys():
+                tally_obj.automatic_voucher = 0
             tally_obj.save()
         else:
             TallyConfiguration.objects.create(**tally_dict)
@@ -4310,6 +4323,7 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
             sku_styles[0]['variants'] = sku_variants
             sku_styles[0]['style_quantity'] = total_quantity
             sku_styles[0]['asn_quantity'] = needed_stock_data['asn_quantities'].get(prd_sku, 0)
+            sku_styles[0]['blocked_qty'] = needed_stock_data['enquiry_res_quantities'].get(prd_sku, 0)
 
             sku_styles[0]['image_url'] = resize_image(sku_styles[0]['image_url'], user)
             if style_quantities.get(sku_styles[0]['sku_class'], ''):
@@ -6659,16 +6673,23 @@ def update_profile_data(request, user=''):
 def get_purchase_company_address(profile):
     """ Returns Company address for purchase order"""
 
-    address = profile.address
-    if not address:
-        return ''
+    company_address = profile.address
+    if profile.wh_address:
+        address = profile.wh_address
+    else:
+        address = profile.address
+    if not (address and company_address):
+        return '', ''
     if profile.user.email:
         address = ("%s, Email:%s") % (address, profile.user.email)
+        company_address = ("%s, Email:%s") % (company_address, profile.user.email)
     if profile.phone_number:
-        address = ("%s, Phone:%s") % (address, profile.phone_number)
+        #address = ("%s, Phone:%s") % (address, profile.phone_number)
+        company_address = ("%s, Phone:%s") % (company_address, profile.phone_number)
     if profile.gst_number:
-        address = ("%s, GSTINo:%s") % (address, profile.gst_number)
-    return address
+        #address = ("%s, GSTINo:%s") % (address, profile.gst_number)
+        company_address = ("%s, GSTINo:%s") % (company_address, profile.gst_number)
+    return address, company_address
 
 
 def update_level_price_type(customer_master, level, price_type):
@@ -7846,7 +7867,7 @@ def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False):
             error_eans.append(ean_number)
     for rem_ean in rem_ean_list:
         if int(data.ean_number) == int(rem_ean):
-            data.ean_number = int(rem_ean)
+            data.ean_number = 0
         else:
             EANNumbers.objects.filter(sku_id=data.id, ean_number=rem_ean).delete()
     if error_eans:
@@ -7860,7 +7881,8 @@ def po_invoice_number_check(user, invoice_num, supplier_id):
                                                    invoice_number=invoice_num,
                                                    purchase_order__open_po__supplier_id=supplier_id)
     if exist_inv_obj.exists():
-        status = 'Invoice Number already Mapped to %s' % get_po_reference(exist_inv_obj[0].purchase_order)
+        status = 'Invoice Number already Mapped to %s/%s' % (get_po_reference(exist_inv_obj[0].purchase_order),
+                                                             str(exist_inv_obj[0].receipt_number))
     return status
 
 
@@ -8023,3 +8045,12 @@ def check_custom_generated_label(request, user=''):
     if not status:
         status = 'Success'
     return HttpResponse(json.dumps({'message': status}))
+
+
+def create_update_table_history(user, model_id, model_name, model_field, prev_val, new_val):
+    table_history = TableUpdateHistory.objects.filter(user_id=user.id, model_id=model_id,
+                                                     model_name=model_name, model_field=model_field)
+    if not table_history.exists():
+        TableUpdateHistory.objects.create(user_id=user.id, model_id=model_id,
+                                         model_name=model_name, model_field=model_field,
+                                         previous_val=prev_val, updated_val=new_val)

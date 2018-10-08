@@ -18,7 +18,7 @@ from miebach_utils import *
 from retailone import *
 from uploaded_pos import *
 from targets import *
-
+from myntra_generate_barcode import *
 
 @fn_timer
 def sku_excel_download(search_params, temp_data, headers, user, request):

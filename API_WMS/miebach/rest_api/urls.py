@@ -107,6 +107,8 @@ urlpatterns = [
     url(r'^corporate_mapping_data/$', corporate_mapping_data),
     url(r'^search_corporate_data/$', search_corporate_data),
     url(r'^push_message_notification/$', push_message_notification),
+    url(r'^get_zones/$', get_zones),
+    url(r'^add_sub_zone_mapping/$', add_sub_zone_mapping),
 
     # Inbound
     url(r'^generated_po_data/$', generated_po_data),
@@ -213,6 +215,8 @@ urlpatterns = [
     url(r'^generate_vendor_picklist/$', generate_vendor_picklist),
     url(r'^get_vendor_types/$', get_vendor_types),
     url(r'^update_rm_picklist/$', update_rm_picklist),
+    url(r'^generate_jo_labels/$', generate_jo_labels),
+    url(r'^check_custom_generated_label/$', check_custom_generated_label),
 
     # Stock Locator
     url(r'^insert_move_inventory/$', insert_move_inventory),
@@ -230,6 +234,8 @@ urlpatterns = [
     url(r'^confirm_move_location_inventory/$', confirm_move_location_inventory),
     url(r'^get_sku_batches/$', get_sku_batches),
     url(r'^inventory_adj_reasons/$', inventory_adj_reasons),
+    url(r'^auto_sellable_confirm/$', auto_sellable_confirm),
+    url(r'^update_sellable_suggestions/$', update_sellable_suggestions),
 
     # OutBound
     url(r'^batch_generate_picklist/$', batch_generate_picklist),

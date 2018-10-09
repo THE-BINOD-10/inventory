@@ -303,6 +303,10 @@ var app = angular.module('urbanApp')
             url: '/Location',
             templateUrl: 'views/masters/toggles/add_location.html'
           })
+          .state('app.masters.LocationMaster.SubZoneMapping', {
+            url: '/Location',
+            templateUrl: 'views/masters/toggles/add_sub_zone_mapping.html'
+          })
         .state('app.masters.sourceSKUMapping', {
           url: '/SourceSKUMapping',
           permission: 'add_skusupplier',
@@ -1169,7 +1173,11 @@ var app = angular.module('urbanApp')
           templateUrl: 'views/stockLocator/move_inventory.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/stockLocator/move_inventory.js');
+                return $ocLazyLoad.load(['scripts/controllers/stockLocator/move_inventory.js'
+                ]).then(function() {
+                    return $ocLazyLoad.load(['scripts/controllers/stockLocator/auto_sellable.js'
+                  ])
+                });
               }]
           },
           data: {

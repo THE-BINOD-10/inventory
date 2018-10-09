@@ -441,11 +441,6 @@ def get_quantity_data(user_groups, sku_codes_list,asn_true=False):
 
         asn_avail_stock = dict(
             intr_obj_100days_qs.values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
-        for k, v in asn_avail_stock.items():
-            if k in asn_res_100days_qty:
-                res_qty = asn_res_100days_qty.get(k, 0)
-                blk_qty = asn_blk_100days_qty.get(k, 0)
-                asn_avail_stock[k] = asn_avail_stock[k] - res_qty - blk_qty
         purchases = map(lambda d: d['open_po__sku__sku_code'], purch_dict)
         total_order_dict = dict(zip(purchases, map(lambda d: d['total_order'], purch_dict)))
         total_received_dict = dict(zip(purchases, map(lambda d: d['total_received'], purch_dict)))

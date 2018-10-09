@@ -11756,7 +11756,23 @@ def get_stock_transfer_shipment_data(start_index, stop_index, temp_data, search_
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     stock_transfer_id = ''
     ordered_quantity = ''
-    st_orders_id = STOrder.objects.filter(picklist__stock__sku__user = user.id, stock_transfer__status = 2).distinct().values_list('picklist__picklist_number', flat=True)
+    st_order_dict = {}
+    #{'customer': '1', 'stock_transfer_id': '1:Customer Name 1', 'market_place': '', 'courier_name': '', 
+    #'destination_warehouse': '106:Subbu', 'from_date': '10/09/2018', 'to_date': '10/10/2018'}
+    st_order_dict['picklist__stock__sku__user'] = user.id
+    st_order_dict['stock_transfer__status'] = 2
+    filter_dict = eval(filters)
+    if filter_dict['destination_warehouse']:
+        st_order_dict['stock_transfer__st_po__open_st__warehouse__username'] = filter_dict['destination_warehouse']
+    if filter_dict['stock_transfer_id']:
+        st_order_dict['stock_transfer__order_id'] = filter_dict['stock_transfer_id']
+    if filter_dict['from_date']:
+        from_date = datetime.datetime.strptime(filter_dict['from_date'], '%m/%d/%Y')
+        st_order_dict['creation_date__gte'] = from_date
+    if filter_dict['to_date']:
+        to_date = datetime.datetime.strptime(filter_dict['to_date'], '%m/%d/%Y')
+        st_order_dict['creation_date__lte'] = to_date
+    st_orders_id = STOrder.objects.filter(**st_order_dict).distinct().values_list('picklist__picklist_number', flat=True)
     for picklist_num in st_orders_id:
         data = get_picked_data(picklist_num, user.id, marketplace='')
         for obj in data:
@@ -11764,7 +11780,6 @@ def get_stock_transfer_shipment_data(start_index, stop_index, temp_data, search_
                 ord_id = str(int(obj['order_id']))
             except:
                 ord_id = str(obj['order_id'])
-            total_picked_quantity = obj['picked_quantity']
             sku = obj['wms_code']
             get_stock_transfer = StockTransfer.objects.filter(sku__sku_code=obj['wms_code'], order_id = ord_id).distinct()
             for obj in get_stock_transfer:
@@ -11772,11 +11787,11 @@ def get_stock_transfer_shipment_data(start_index, stop_index, temp_data, search_
                     shipment_date = str(obj.updation_date)
                     warehouse = obj.st_po.open_st.warehouse.username
                     sku_price = obj.st_po.open_st.price
+                    total_picked_quantity = obj.quantity
                     total_price = obj.st_po.open_st.price * total_picked_quantity
                 except:
                     continue
-            search_val = ''
-            if get_stock_transfer:
+                search_val = ''
                 for idx,item in enumerate(temp_data['aaData']):
                     if item["Stock Transfer ID"] == ord_id and item["Destination Warehouse"] == warehouse:
                         search_val = item
@@ -11784,14 +11799,27 @@ def get_stock_transfer_shipment_data(start_index, stop_index, temp_data, search_
                         new_qty = int(float(total_picked_quantity))
                         exist_amt = int(float(search_val['Total Amount']))
                         new_amt = int(float(total_price))
-                        temp_data['aaData'][idx].update({'Picked Quantity' : str(exist_qty + new_qty), 'Total Amount' : str(exist_amt + new_amt)})
+                        temp_data['aaData'][idx].update({'Picked Quantity' : str(total_picked_quantity), 
+                            'Total Amount' : str(exist_amt + new_amt),
+                            'Total Quantity' : str(total_picked_quantity)
+                        })
                         break
                     if idx+1 == len(temp_data['aaData']) and not(item["Stock Transfer ID"] == ord_id and item["Destination Warehouse"] == warehouse):
-                        temp_data['aaData'].append({'Stock Transfer ID' : ord_id, 'Picked Quantity' : str(total_picked_quantity), 'Total Amount' : total_price, 'Stock Transfer Date&Time' : shipment_date, 'Destination Warehouse': warehouse, 'Picklist Number' : picklist_num, 'Total Quantity' : str(total_picked_quantity)})
+                        temp_data['aaData'].append({'Stock Transfer ID' : ord_id, 
+                            'Picked Quantity' : str(total_picked_quantity), 
+                            'Total Amount' : total_price, 
+                            'Stock Transfer Date&Time' : shipment_date, 
+                            'Destination Warehouse': warehouse, 
+                            'Picklist Number' : picklist_num, 
+                            'Total Quantity' : str(total_picked_quantity)
+                        })
                 else:
-                    temp_data['aaData'].append({'Stock Transfer ID' : ord_id, 'Picked Quantity' : str(total_picked_quantity), 'Total Amount' : total_price, 'Stock Transfer Date&Time' : shipment_date, 'Destination Warehouse': warehouse, 'Picklist Number' : picklist_num, 'Total Quantity' : str(total_picked_quantity)})
-                
-
+                    temp_data['aaData'].append({'Stock Transfer ID' : ord_id, 
+                        'Picked Quantity' : str(total_picked_quantity), 
+                        'Total Amount' : total_price, 'Stock Transfer Date&Time' : shipment_date, 
+                        'Destination Warehouse': warehouse, 'Picklist Number' : picklist_num, 
+                        'Total Quantity' : str(total_picked_quantity)
+                    })
 
 @csrf_exempt
 @login_required
@@ -11817,12 +11845,13 @@ def get_stock_transfer_shipment_popup_data(request, user=''):
     sku_grouping = request.GET.get('sku_grouping', 'false')
     datatable_view = request.GET.get('view', '')
     st_order_id = request.GET.get('st_order_id', '')
+    dest_wh_username = request.GET.get('dest_warehouse', '')
     search_params = {'user': user.id}
     request_data = dict(request.GET.iterlists())
     if 'st_order_id' in request_data.keys() and datatable_view == 'StockTransferShipment':
         filter_order_ids = []
         st_order_id = request_data['st_order_id']
-        stock_transfer_obj = StockTransfer.objects.filter(order_id__in = st_order_id, sku__user = user.id)
+        stock_transfer_obj = StockTransfer.objects.filter(order_id__in = st_order_id, st_po__open_st__warehouse__username = dest_wh_username)
         if len(stock_transfer_obj):
             stock_transfer_obj = stock_transfer_obj.values()
         '''

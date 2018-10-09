@@ -16,8 +16,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
   //table start
   vm.selected = {};
   vm.selectAll = false;
-
-  vm.special_key = {destination_warehouse: '', stock_transfer_id:'',from_date: '', to_date: ''}
+  vm.special_key = {destination_warehouse: '', stock_transfer_id:'',from_date: '', 
+                    to_date: '', imei_number: '', customer: ''}
   vm.filters = {'datatable': vm.g_data.view, 'special_key': JSON.stringify(vm.special_key)}
   vm.dtOptions = DTOptionsBuilder.newOptions()
      .withOption('ajax', {
@@ -508,7 +508,6 @@ vm.add_shipment = function(valid) {
   }
 
   vm.apply = function() {
-
     vm.dtInstance.DataTable.context[0].ajax.data['special_key'] = JSON.stringify(vm.special_key);
     vm.reloadData();
   }

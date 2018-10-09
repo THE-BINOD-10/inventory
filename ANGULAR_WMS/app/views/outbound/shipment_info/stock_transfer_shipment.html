@@ -70,18 +70,13 @@
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label">Destination WareHouse</label>
-                <input type="text" autocomplete="off" name="destination_warehouse" class="form-control" placeholder="Destination WareHouse" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_customer_sku_mapping?','shipment')" typeahead-loading="loadingLocations" ng-model="showCase.special_key.destination_warehouse" typeahead-on-select="showCase.special_key.customer=$item.split(':')[0]">
+                <input type="text" autocomplete="off" name="destination_warehouse" class="form-control" placeholder="Destination WareHouse" ng-model="showCase.special_key.destination_warehouse">
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
                 <label class="control-label">Stock Transfer ID</label>
-                <input type="text" autocomplete="off" name="stock_transfer_id"
-                 class="form-control" placeholder="Stock Transfer ID"
-                 typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_customer_sku_mapping?','shipment')"
-                 typeahead-loading="loadingLocations"
-                 ng-model="showCase.special_key.stock_transfer_id"
-                 typeahead-on-select="showCase.special_key.customer=$item.split(':')[0]">
+                <input type="text" autocomplete="off" name="stock_transfer_id" class="form-control" placeholder="Stock Transfer ID" ng-model="showCase.special_key.stock_transfer_id">
                 <!-- <select name="marketplace" ng-model="showCase.special_key.stock_transfer_id" class="form-control">
                   <option value="">Default</option>
                   <option ng-repeat="market in showCase.model_data.market_list" value="{{market}}">{{market}}</option>
@@ -91,7 +86,7 @@
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.mk_user">
               <div class="form-group">
                 <label class="control-label"> IMEI Scan </label>
-                <input type="text" ng-model="showCase.imei_number" class="form-control" ng-keydown="showCase.check_imei_exists($event, showCase.imei_number)" auto-focus>
+                <input type="text" ng-model="showCase.special_key.imei_number" class="form-control" ng-keydown="showCase.check_imei_exists($event, showCase.imei_number)" auto-focus>
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6">

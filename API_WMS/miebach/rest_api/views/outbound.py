@@ -11752,18 +11752,15 @@ def delete_notification(request):
 def get_stock_transfer_shipment_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     data_dict = {}
     user_profile = UserProfile.objects.get(user_id=user.id)
-    temp_data['recordsTotal'] = 0
-    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    
     stock_transfer_id = ''
     ordered_quantity = ''
     st_order_dict = {}
-    #{'customer': '1', 'stock_transfer_id': '1:Customer Name 1', 'market_place': '', 'courier_name': '', 
-    #'destination_warehouse': '106:Subbu', 'from_date': '10/09/2018', 'to_date': '10/10/2018'}
+    st_filter_dict = {}
+    sort_column_list = ['stock_transfer__order_id', 'stock_transfer__order_id', 'st_po__open_st__warehouse__username', 'quantity', 'quantity', 'creation_date']
     st_order_dict['picklist__stock__sku__user'] = user.id
     st_order_dict['stock_transfer__status'] = 2
     filter_dict = eval(filters)
-    if filter_dict['destination_warehouse']:
-        st_order_dict['stock_transfer__st_po__open_st__warehouse__username'] = filter_dict['destination_warehouse']
     if filter_dict['stock_transfer_id']:
         st_order_dict['stock_transfer__order_id'] = filter_dict['stock_transfer_id']
     if filter_dict['from_date']:
@@ -11772,7 +11769,21 @@ def get_stock_transfer_shipment_data(start_index, stop_index, temp_data, search_
     if filter_dict['to_date']:
         to_date = datetime.datetime.strptime(filter_dict['to_date'], '%m/%d/%Y')
         st_order_dict['creation_date__lte'] = to_date
-    st_orders_id = STOrder.objects.filter(**st_order_dict).distinct().values_list('picklist__picklist_number', flat=True)
+    sort_data = 'stock_transfer__order_id'
+    if sort_column_list[col_num] in ['stock_transfer__order_id']:
+        sort_data = sort_column_list[col_num]
+        if order_term == 'desc':
+            sort_data = '-%s' % sort_data
+    st_sort_data = 'creation_date'
+    if sort_column_list[col_num] in ['st_po__open_st__warehouse__username', 'quantity', 'creation_date']:
+        st_sort_data = sort_column_list[col_num]
+        if order_term == 'desc':
+            st_sort_data = '-%s' % st_sort_data
+    if search_term:
+        st_order_obj = STOrder.objects.filter(Q(stock_transfer__order_id__icontains=search_term))
+    else:
+        st_order_obj = STOrder.objects.all()
+    st_orders_id = st_order_obj.filter(**st_order_dict).distinct().values_list('picklist__picklist_number', flat=True).order_by(sort_data)
     for picklist_num in st_orders_id:
         data = get_picked_data(picklist_num, user.id, marketplace='')
         for obj in data:
@@ -11781,10 +11792,14 @@ def get_stock_transfer_shipment_data(start_index, stop_index, temp_data, search_
             except:
                 ord_id = str(obj['order_id'])
             sku = obj['wms_code']
-            get_stock_transfer = StockTransfer.objects.filter(sku__sku_code=obj['wms_code'], order_id = ord_id).distinct()
-            for obj in get_stock_transfer:
+            if filter_dict['destination_warehouse']:
+                st_filter_dict['st_po__open_st__warehouse__username'] = filter_dict['destination_warehouse']
+            st_filter_dict['sku__sku_code'] = obj['wms_code']
+            st_filter_dict['order_id'] = ord_id
+            get_stock_transfer = StockTransfer.objects.filter(**st_filter_dict).order_by(st_sort_data).distinct()
+            for obj in get_stock_transfer[start_index:stop_index]:
                 try:
-                    shipment_date = str(obj.updation_date)
+                    shipment_date = str(obj.creation_date)
                     warehouse = obj.st_po.open_st.warehouse.username
                     sku_price = obj.st_po.open_st.price
                     total_picked_quantity = obj.quantity
@@ -11820,6 +11835,9 @@ def get_stock_transfer_shipment_data(start_index, stop_index, temp_data, search_
                         'Destination Warehouse': warehouse, 'Picklist Number' : picklist_num, 
                         'Total Quantity' : str(total_picked_quantity)
                     })
+    temp_data['recordsTotal'] = len(temp_data['aaData'])
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
 
 @csrf_exempt
 @login_required

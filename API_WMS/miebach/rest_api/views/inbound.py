@@ -8218,13 +8218,17 @@ def update_existing_grn(request, user=''):
                     if model_obj.batch_detail:
                         if getattr(model_obj.batch_detail, field_mapping[key]):
                             prev_val = datetime.datetime.strftime(getattr(model_obj.batch_detail, field_mapping[key]), '%m/%d/%Y')
-                            if myDict[key][ind] != prev_val:
+                            if myDict[key][ind] != prev_val and value:
                                 setattr(model_obj.batch_detail, field_mapping[key],
                                         datetime.datetime.strptime(value, '%m/%d/%Y'))
                                 model_obj.batch_detail.save()
                                 create_update_table_history(user, model_obj.id, model_name, field_mapping[key],
                                                             prev_val, value)
-                        else:
+                            else:
+                                setattr(model_obj.batch_detail, field_mapping[key], None)
+                                model_obj.batch_detail.save()
+                                create_update_table_history(user, model_obj.id, model_name, field_mapping[key], prev_val, value)
+                        elif value:
                             setattr(model_obj.batch_detail, field_mapping[key],
                                     datetime.datetime.strptime(value, '%m/%d/%Y'))
                             model_obj.batch_detail.save()
@@ -8269,12 +8273,16 @@ def update_existing_grn(request, user=''):
                 elif key == 'invoice_date':
                     if getattr(model_obj, field_mapping[key]):
                         prev_val = datetime.datetime.strftime(getattr(model_obj, field_mapping[key]), '%m/%d/%Y')
-                        if value != prev_val:
+                        if value != prev_val and value:
                             setattr(model_obj, field_mapping[key],
                                     datetime.datetime.strptime(value, '%m/%d/%Y'))
                             model_obj.save()
                             create_update_table_history(user, model_obj.id, model_name, field_mapping[key],
                                                         prev_val, value)
+                        else:
+                            setattr(model_obj, field_mapping[key], None)
+                            model_obj.save()
+                            create_update_table_history(user, model_obj.id, model_name, field_mapping[key], prev_val, value)
                 elif key == 'invoice_number':
                     prev_val = getattr(model_obj, field_mapping[key])
                     if prev_val != value:
@@ -8287,6 +8295,7 @@ def update_existing_grn(request, user=''):
                 batch_dict['transact_type'] = 'seller_po_summary'
                 batch_obj = create_update_batch_data(batch_dict)
                 model_obj.batch_detail_id = batch_obj.id
+                model_obj.save()
         return HttpResponse("Success")
     except Exception as e:
         import traceback

@@ -4504,7 +4504,8 @@ def confirm_add_po(request, sales_data='', user=''):
     address = purchase_order.supplier.address
     address = '\n'.join(address.split(','))
     if purchase_order.ship_to:
-        purchase_order.ship_to
+        ship_to_address = purchase_order.ship_to
+        company_address = user.userprofile.address
     else:
         ship_to_address, company_address = get_purchase_company_address(user.userprofile)
     wh_telephone = user.userprofile.wh_phone_number

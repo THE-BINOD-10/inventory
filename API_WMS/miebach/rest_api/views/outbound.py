@@ -500,6 +500,7 @@ def generate_picklist(request, user=''):
     out_of_stock = []
     single_order = ''
     picklist_number = get_picklist_number(user)
+    picklist_exclude_zones = get_exclude_zones(user)
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
                    'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
@@ -507,7 +508,7 @@ def generate_picklist(request, user=''):
     if enable_damaged_stock == 'true':
         sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0, location__zone__zone__in=['DAMAGED_ZONE'])
     else:
-        sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
+        sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0)
     all_seller_orders = SellerOrder.objects.prefetch_related('order__sku').filter(**seller_order_filter)
     if switch_vals['fifo_switch'] == 'true':
         stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by(
@@ -605,6 +606,7 @@ def batch_generate_picklist(request, user=''):
     out_of_stock = []
 
     try:
+        picklist_exclude_zones = get_exclude_zones(user)
         switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                        'fifo_switch': get_misc_value('fifo_switch', user.id),
                        'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
@@ -615,7 +617,7 @@ def batch_generate_picklist(request, user=''):
             location__zone__zone__in=['DAMAGED_ZONE']).filter(sku__user=user.id, quantity__gt=0)
         else:
             sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-            location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
+            location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0)
         all_orders = OrderDetail.objects.prefetch_related('sku').filter(**order_filter)
         if switch_vals['fifo_switch'] == 'true':
             stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by(
@@ -1121,9 +1123,11 @@ def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
         imei_filter = {}
         if order:
             order_id = order.id
+            sku_id = order.sku_id
         else:
             order_id = picklist.order.id
             order = picklist.order
+            sku_id = picklist.order.sku_id
         if order:
             user_id = order.user
         po_mapping, status, imei_data = check_get_imei_details(imei, val['wms_code'], user_id,
@@ -1134,16 +1138,15 @@ def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
         all_seller_pos = SellerPO.objects.filter(seller__user=user_id)
         all_seller_orders = SellerOrder.objects.filter(seller__user=user_id)
         sor_id = ''
+        seller_id = ''
         if imei and po_mapping:
-            order_mapping = {'order_id': order_id, 'po_imei_id': po_mapping[0].id, 'imei_number': ''}
-            if po_mapping[0].purchase_order.open_po_id:
-                seller_po = all_seller_pos.filter(open_po_id=po_mapping[0].purchase_order.open_po_id)
-                if seller_po:
-                    seller_id = seller_po[0].seller_id
-                    seller_order_obj = all_seller_orders.filter(order_id=order_id, seller_id=seller_id)
-                    if seller_order_obj:
-                        sor_id = seller_order_obj[0].sor_id
-
+            order_mapping = {'order_id': order_id, 'po_imei_id': po_mapping[0].id, 'imei_number': '',
+                             'sku_id': sku_id}
+            if po_mapping[0].seller_id:
+                seller_id = po_mapping[0].seller_id
+                seller_order_obj = all_seller_orders.filter(order_id=order_id, seller_id=seller_id)
+                if seller_order_obj:
+                    sor_id = seller_order_obj[0].sor_id
             order_mapping_ins = OrderIMEIMapping.objects.filter(po_imei_id=po_mapping[0].id, order_id=order_id)
             if order_mapping_ins:
                 imei_mapping = order_mapping_ins[0]
@@ -1153,6 +1156,8 @@ def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
                 po_imei = order_mapping_ins[0].po_imei
             else:
                 order_mapping['sor_id'] = sor_id
+                if seller_id:
+                    order_mapping['seller_id'] = seller_id
                 imei_mapping = OrderIMEIMapping(**order_mapping)
                 imei_mapping.save()
                 po_imei = po_mapping[0]
@@ -1162,6 +1167,8 @@ def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
                 po_imei.save()
         elif imei and not po_mapping:
             order_mapping = {'order_id': order_id, 'po_imei_id': None, 'imei_number': imei, 'sor_id': sor_id}
+            if seller_id:
+                order_mapping['seller_id'] = seller_id
             imei_mapping = OrderIMEIMapping(**order_mapping)
             imei_mapping.save()
             log.info('%s imei code is mapped for %s and for id %s' % (str(imei), val['wms_code'], str(order_id)))
@@ -1890,8 +1897,8 @@ def serial_order_mapping(picklist, user):
             return "Mapping not done"
         order_po_mapping = order_po_mapping[0]
         imeis = list(POIMEIMapping.objects.filter(purchase_order__order_id=order_po_mapping.purchase_order_id,
-                                                  purchase_order__open_po__sku_id=order_po_mapping.sku_id,
-                                                  purchase_order__open_po__sku__user=user.id,
+                                                  sku_id=order_po_mapping.sku_id,
+                                                  sku__user=user.id,
                                                   status=1).values_list('imei_number', flat=True))
 
         val = {}
@@ -2670,44 +2677,53 @@ def check_imei(request, user=''):
     quantity = 0
     shipped_orders_dict = {}
     is_shipment = request.GET.get('is_shipment', False)
+    is_rm_picklist = request.GET.get('is_rm_picklist', False)
     order_id = request.GET.get('order_id', '')
     groupby = request.GET.get('groupby', '')
     log.info('Request params for Check IMEI ' + user.username + ' is ' + str(request.GET.dict()))
     shipping_quantity = 0
     try:
         for key, value in request.GET.iteritems():
-            if key in ['is_shipment', 'order_id', 'groupby']:
+            if key in ['is_shipment', 'order_id', 'groupby', 'is_rm_picklist']:
                 continue
             sku_code = ''
             order = None
-            imei_filter = {'imei_number': value, 'purchase_order__open_po__sku__user': user.id}
+            job_order = None
+            imei_filter = {'imei_number': value, 'sku__user': user.id}
             if not is_shipment and not key == 'serial':
-                picklist = Picklist.objects.get(id=key)
-                if not picklist.order:
-                    continue
-                sku_code = picklist.order.sku.sku_code
-                order = picklist.order
-                # imei_filter['purchase_order__open_po__sku__sku_code'] = sku_code
+                if is_rm_picklist:
+                    picklist = RMLocation.objects.get(id=key)
+                    job_order = picklist.material_picklist.jo_material.job_order
+                    sku_code = picklist.material_picklist.jo_material.material_code.sku_code
+                else:
+                    picklist = Picklist.objects.get(id=key)
+                    if not picklist.order:
+                        continue
+                    sku_code = picklist.order.sku.sku_code
+                    order = picklist.order
 
             po_mapping, status, imei_data = check_get_imei_details(value, sku_code, user.id, check_type='order_mapping',
-                                                                   order=order)
+                                                                   order=order, job_order=job_order)
             if imei_data.get('wms_code', ''):
                 sku_code = imei_data['wms_code']
 
-            if not sku_code and po_mapping and po_mapping[0].purchase_order.open_po:
-                sku_code = po_mapping[0].purchase_order.open_po.sku.sku_code
+            if not sku_code and po_mapping:
+                sku_code = po_mapping[0].sku.sku_code
             if not po_mapping:
                 status = str(value) + ' is invalid Imei number'
-            order_mapping = OrderIMEIMapping.objects.filter(po_imei__imei_number=value, order__user=user.id, status=1)
+            order_mapping = OrderIMEIMapping.objects.filter(po_imei__imei_number=value, sku__user=user.id, status=1)
             if order_mapping:
-                if order and order_mapping[0].order_id == order.id:
-                    status = str(value) + ' is already mapped with this order'
-                else:
-                    status = str(value) + ' is already mapped with another order'
+                if order_mapping[0].order:
+                    if order and order_mapping[0].order_id == order.id:
+                        status = str(value) + ' is already mapped with this order'
+                    else:
+                        status = str(value) + ' is already mapped with another order'
+                elif order_mapping[0].jo_material:
+                    status = str(value) + ' is already mapped with this job order ' + \
+                            str(order_mapping[0].jo_material.job_order.job_code)
             if is_shipment and po_mapping:
                 seller_id = ''
-                seller_po = SellerPO.objects.filter(open_po_id=po_mapping[0].purchase_order.open_po_id)
-                if seller_po:
+                if po_mapping[0].seller:
                     seller_id = seller_po[0].seller_id
                 order_detail_objs = get_order_detail_objs(order_id, user, search_params={}, all_order_objs=[])
                 order_details = order_detail_objs.filter(sku__sku_code=sku_code)
@@ -3024,9 +3040,10 @@ def st_generate_picklist(request, user=''):
     out_of_stock = []
     picklist_number = get_picklist_number(user)
 
+    picklist_exclude_zones = get_exclude_zones(user)
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
     sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-        location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
+        location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0)
     all_orders = OrderDetail.objects.prefetch_related('sku').filter(status=1, user=user.id, quantity__gt=0)
 
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
@@ -3377,7 +3394,7 @@ def validate_order_form(myDict, request, user):
         if '_' in po_number:
             po_number = po_number.split('_')[-1]
             po_imei_objs = POIMEIMapping.objects.filter(purchase_order__order_id=po_number,
-                                                        purchase_order__open_po__sku__user=user.id)
+                                                        sku__user=user.id)
             po_imeis = dict(po_imei_objs.values_list('purchase_order__open_po__sku__sku_code').annotate(Count('id')))
 
             if not po_imeis:
@@ -3849,13 +3866,17 @@ def sku_level_total_qtys(myDict, sku_total_qty_map):
             sku_total_qty_map[sku_id] = int(quantity)
 
 
-def block_asn_stock(sku_id, qty, lead_time, ord_det_id):
+def block_asn_stock(sku_id, qty, lead_time, ord_det_id, is_enquiry=False):
     todays_date = datetime.datetime.today().date()
     lt_date = todays_date + datetime.timedelta(days=lead_time)
     asn_qs = ASNStockDetail.objects.filter(sku_id=sku_id, arriving_date__gte= todays_date,
                                            arriving_date__lte=lt_date).order_by('arriving_date')
     for asn_obj in asn_qs:
-        asn_res_map = {'asnstock_id': asn_obj.id, 'orderdetail_id': ord_det_id}
+        asn_res_map = {'asnstock_id': asn_obj.id}
+        if not is_enquiry:
+            asn_res_map['orderdetail_id'] = ord_det_id
+        else:
+            asn_res_map['enquirydetail'] = ord_det_id  # Here ord_det_id is EnquiryDetailID when calling block_asn_stock
         if not asn_obj.asnreservedetail_set.values():
             # Create ASN Reserve Detail Object
             if qty <= asn_obj.quantity:
@@ -4219,7 +4240,6 @@ def insert_order_data(request, user=''):
         log.debug(traceback.format_exc())
         log.info('Create order mail sending failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(myDict), str(e)))
-
     message = "Success"
     success_messages = ["Success", "Order created, Picklist generated Successfully",
                         "Order Created and Dispatched Successfully", "Order created Successfully"]
@@ -4339,12 +4359,13 @@ def direct_dispatch_orders(user, dispatch_orders, creation_date=datetime.datetim
 
 
 def check_stocks(order_sku, user, request, order_objs):
+    picklist_exclude_zones = get_exclude_zones(user)
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
                    'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
     sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-        location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
+        location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0)
 
     if switch_vals['fifo_switch'] == 'true':
         stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by(
@@ -7195,6 +7216,7 @@ def order_category_generate_picklist(request, user=''):
     stock_status = ''
     out_of_stock = []
     picklist_number = get_picklist_number(user)
+    picklist_exclude_zones = get_exclude_zones(user)
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
                    'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
@@ -7203,7 +7225,7 @@ def order_category_generate_picklist(request, user=''):
         sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0, location__zone__zone__in=['DAMAGED_ZONE'])
     else:
         sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-        location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
+        location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0)
     all_orders = OrderDetail.objects.prefetch_related('sku').filter(**order_filter)
     all_seller_orders = SellerOrder.objects.prefetch_related('order__sku').filter(**seller_order_filter)
     if switch_vals['fifo_switch'] == 'true':
@@ -9889,12 +9911,13 @@ def seller_generate_picklist(request, user=''):
 
     log.info('Request params for ' + user.username + ' is ' + str(request.POST.dict()))
     try:
+        picklist_exclude_zones = get_exclude_zones(user)
         switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                        'fifo_switch': get_misc_value('fifo_switch', user.id),
                        'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
         sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
         sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-            location__zone__zone__in=PICKLIST_EXCLUDE_ZONES). \
+            location__zone__zone__in=picklist_exclude_zones). \
             filter(sku__user=user.id, quantity__gt=0)
         all_seller_orders = SellerOrder.objects.prefetch_related('order__sku').filter(**order_filter)
 
@@ -10003,6 +10026,7 @@ def update_exist_picklists(picklist_no, request, user, sku_code='', location='',
                                                 Q(order__sku__sku_code=sku_code) | Q(sku_code=sku_code), **filter_param)
     picklist_data = {}
     new_pc_locs_list = []
+    picklist_exclude_zones = get_exclude_zones(user)
     for item in picklist_objs:
         _sku_code = ''
         if item.order:
@@ -10017,7 +10041,7 @@ def update_exist_picklists(picklist_no, request, user, sku_code='', location='',
         if item.damage_suggested:
             stock_objs = StockDetail.objects.prefetch_related('sku', 'location').filter(location__zone__zone__in=['DAMAGED_ZONE']).filter(**stock_params).order_by('location__pick_sequence')
         else:
-            stock_objs = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(**stock_params).order_by('location__pick_sequence')
+            stock_objs = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone__in=picklist_exclude_zones).filter(**stock_params).order_by('location__pick_sequence')
         picklist_data['stock_id'] = 0
         stock_quan = 0
         if item.stock_id:
@@ -10411,6 +10435,7 @@ def insert_enquiry_data(request, user=''):
                         enq_sku_obj.levelbase_price = cart_item.levelbase_price
                         enq_sku_obj.warehouse_level = cart_item.warehouse_level
                         enq_sku_obj.save()
+                        block_asn_stock(wh_sku_id, qty, lt, enq_sku_obj, is_enquiry=True)
                         wh_name = User.objects.get(id=wh_code).first_name
                         cont_vals = (customer_details['customer_name'], enquiry_id, wh_name, cart_item.sku.sku_code)
                         contents = {"en": "%s placed an enquiry order %s to %s for SKU Code %s" % cont_vals}
@@ -10815,6 +10840,7 @@ def add_order_charges(request, user=''):
     data_response['message'] = message
     return HttpResponse(json.dumps(data_response))
 
+
 def get_manual_enquiry_id(request):
     enq_qs = ManualEnquiry.objects.filter(user=request.user.id).order_by('-enquiry_id')
     if enq_qs:
@@ -10823,15 +10849,18 @@ def get_manual_enquiry_id(request):
         enq_id = 10001
     return enq_id
 
-def save_manual_enquiry_images(request, enq_data):
 
+def save_manual_enquiry_images(request, enq_data, art_work=False):
     image_urls = []
     for file_data in  request.FILES.getlist('po_file'):
         image_data = {'enquiry_id': enq_data.id, 'image': file_data}
+        if art_work:
+            image_data['image_type'] = 'art_work'
         save_img = ManualEnquiryImages(**image_data)
         save_img.save()
         image_urls.append(str(save_img.image))
     return image_urls
+
 
 @csrf_exempt
 @login_required
@@ -10867,7 +10896,9 @@ def place_manual_order(request, user=''):
             value = datetime.date(int(expected_date[0]), int(expected_date[1]), int(expected_date[2]))
         manual_enquiry_details[key] = value
     manual_enquiry['custom_remarks'] = request.POST.get('custom_remarks', '')
-    check_enquiry = ManualEnquiry.objects.filter(user=request.user.id,sku=manual_enquiry['sku_id'])
+    check_enquiry = ManualEnquiry.objects.filter(user=request.user.id, sku=manual_enquiry['sku_id'],
+                                                 status__in=['', 'approved', 'confirm_order'],
+                                                 customer_name=manual_enquiry['customer_name'])
     if check_enquiry:
         return HttpResponse("Manual Enquiry Already Exists")
     manual_enquiry['user_id'] = request.user.id
@@ -10878,6 +10909,19 @@ def place_manual_order(request, user=''):
     manual_enquiry_details['user_id'] = request.user.id
     manual_enq_data = ManualEnquiryDetails(**manual_enquiry_details)
     manual_enq_data.save()
+    admin_user = get_priceband_admin_user(user)
+    market_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
+        Q(userprofile__warehouse_type='SM_MARKET_ADMIN')).values_list('id', flat=True)
+    if market_admin_user_id:
+        market_admin_user_id = market_admin_user_id[0]
+    purchase_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
+        Q(userprofile__warehouse_type='SM_PURCHASE_ADMIN')).values_list('id', flat=True)
+    if purchase_admin_user_id:
+        purchase_admin_user_id = purchase_admin_user_id[0]
+    cont_vals = (request.user.first_name, enq_data.enquiry_id, enq_data.sku.sku_code)
+    contents = {"en": "%s placed a custom order %s for SKU %s" % cont_vals}
+    users_list = [user.id, admin_user.id, market_admin_user_id, purchase_admin_user_id]
+    send_push_notification(contents, users_list)
     if request.FILES.get('po_file', ''):
         save_manual_enquiry_images(request, enq_data)
     return HttpResponse("Success")
@@ -10889,6 +10933,7 @@ def save_manual_enquiry_data(request, user=''):
 
     enquiry_id = request.POST.get('enquiry_id', '')
     user_id = request.POST.get('user_id', '')
+    enq_status = request.POST.get('enq_status', '')
     if not enquiry_id or not user_id:
         return HttpResponse("Give information insufficient")
     filters = {'enquiry_id': float(enquiry_id), 'user': user_id}
@@ -10897,6 +10942,9 @@ def save_manual_enquiry_data(request, user=''):
         return HttpResponse("No Enquiry Data for Id")
     MANUAL_ENQUIRY_DETAILS_DICT = {'ask_price': 0, 'expected_date': '', 'remarks': ''}
     manual_enq = manual_enq[0]
+    if enq_status:
+        manual_enq.status = enq_status
+        manual_enq.save()
     ask_price = request.POST.get('ask_price', 0)
     expected_date = request.POST.get('expected_date', '')
     remarks = request.POST.get('remarks', '')
@@ -10918,6 +10966,22 @@ def save_manual_enquiry_data(request, user=''):
     enquiry_data['expected_date'] = expected_date
     manual_enq_data = ManualEnquiryDetails(**enquiry_data)
     manual_enq_data.save()
+    users_list = []
+    if request.user.userprofile.warehouse_type in ('SM_MARKET_ADMIN', 'SM_PURCHASE_ADMIN'):
+        users_list.append(request.user.id)
+        users_list.append(user.id)
+    else:
+        admin_user = get_priceband_admin_user(user)
+        if not admin_user:
+            admin_user = request.user
+        market_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
+            Q(userprofile__warehouse_type='SM_MARKET_ADMIN')).values_list('id', flat=True)
+        if market_admin_user_id:
+            market_admin_user_id = market_admin_user_id[0]
+            users_list.append(market_admin_user_id)
+        users_list.append(admin_user.id)
+    contents = {"en": "%s added remarks in custom order %s" % (request.user.username, manual_enq_data.enquiry.enquiry_id)}
+    send_push_notification(contents, users_list)
     return HttpResponse("Success")
 
 @csrf_exempt
@@ -10931,6 +10995,8 @@ def get_manual_enquiry_orders(start_index, stop_index, temp_data, search_term, o
         lis = ['enquiry_id', 'customer_name', 'user__username', 'sku__sku_class', 'customization_type', 'creation_date']
     if user.userprofile.warehouse_type != 'CENTRAL_ADMIN':
         data_filters['user'] = user.id
+    elif request.user.userprofile.warehouse_type in ('SM_PURCHASE_ADMIN', 'SM_DESIGN_ADMIN'):
+        data_filters['customization_type'] = 'price_product_custom'
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -10962,20 +11028,25 @@ def get_manual_enquiry_detail(request, user=''):
     customization_type = customization_types[manual_enq[0].customization_type]
     manual_eq_dict = {'enquiry_id': int(manual_enq[0].enquiry_id), 'customer_name': manual_enq[0].customer_name,
                       'date': manual_enq[0].creation_date.strftime('%Y-%m-%d'), 'customization_type': customization_type,
-                      'quantity': manual_enq[0].quantity, 'custom_remarks': manual_enq[0].custom_remarks.split("<<>>")}
-    enquiry_images = list(ManualEnquiryImages.objects.filter(enquiry=manual_enq[0].id).values_list('image', flat=True))
+                      'quantity': manual_enq[0].quantity, 'custom_remarks': manual_enq[0].custom_remarks.split("<<>>"),
+                      'status': manual_enq[0].status, 'enq_det_id': int(manual_enq[0].id)}
+    enquiry_images = list(ManualEnquiryImages.objects.filter(enquiry=manual_enq[0].id, image_type='res_images').values_list('image', flat=True))
+    art_images = list(ManualEnquiryImages.objects.filter(enquiry=manual_enq[0].id, image_type='art_work').values_list('image', flat=True))
     style_dict = {'sku_code': manual_enq[0].sku.sku_code, 'style_name':  manual_enq[0].sku.sku_class,
                   'description': manual_enq[0].sku.sku_desc, 'images': enquiry_images,
-                  'category': manual_enq[0].sku.sku_category}
+                  'category': manual_enq[0].sku.sku_category, 'art_images': art_images}
     if request.user.id == long(user_id):
-        enquiry_data =  ManualEnquiryDetails.objects.filter(enquiry=manual_enq[0].id, status="")
+        enquiry_data = ManualEnquiryDetails.objects.filter(enquiry=manual_enq[0].id, status="")
     else:
-        enquiry_data =  ManualEnquiryDetails.objects.filter(enquiry=manual_enq[0].id)
+        enquiry_data = ManualEnquiryDetails.objects.filter(enquiry=manual_enq[0].id)
     enquiry_dict = []
     enq_details = {}
     for enquiry in enquiry_data:
         date = enquiry.creation_date.strftime('%Y-%m-%d')
-        expected_date = enquiry.expected_date.strftime('%Y-%m-%d')
+        if enquiry.expected_date:
+            expected_date = enquiry.expected_date.strftime('%Y-%m-%d')
+        else:
+            expected_date = ''
         user = UserProfile.objects.get(user=enquiry.user_id)
         if user.user_type != 'customer' and enquiry.status != 'approved':
             enq_details = enquiry
@@ -10986,8 +11057,18 @@ def get_manual_enquiry_detail(request, user=''):
         expected_date = enq_details.expected_date.strftime('%m/%d/%Y')
         enq_details = {'ask_price': enq_details.ask_price, 'remarks': enq_details.remarks,\
                        'expected_date': expected_date}
+    cust_obj = CustomerUserMapping.objects.filter(user_id=user_id)
+    if cust_obj:
+        dest_user = cust_obj[0].customer.user
+        res_lt = cust_obj[0].customer.lead_time
+        far_wh_lt = NetworkMaster.objects.filter(dest_location_code_id=dest_user,
+                                                 source_location_code__username__in=['DL01', 'MH03']).aggregate(
+            max_lt=Max('lead_time'))['max_lt']
+        if not far_wh_lt:
+            far_wh_lt = 0
+        far_wh_lt += res_lt
     return HttpResponse(json.dumps({'data': enquiry_dict, 'style': style_dict, 'order': manual_eq_dict,\
-                                    'enq_details': enq_details}))
+                                    'enq_details': enq_details, 'far_wh_leadtime': far_wh_lt}))
 
 @csrf_exempt
 @login_required
@@ -11018,16 +11099,62 @@ def save_manual_enquiry_image(request, user=''):
         return HttpResponse(json.dumps(resp))
     filters = {'enquiry_id': float(enquiry_id), 'user': user_id}
     enq_data = ManualEnquiry.objects.filter(**filters)
+    enq_det_id = request.POST.get('enq_det_id', '')
+    if enq_det_id:
+        enq_data = ManualEnquiry.objects.filter(id=enq_det_id)
     if not enq_data:
         resp['msg'] = "No Enquiry Data for Id"
         return HttpResponse(json.dumps(resp))
-    images = []
     enq_data = enq_data[0]
     if request.FILES.get('po_file', ''):
-        resp['data'] = save_manual_enquiry_images(request, enq_data)
+        if request.user.userprofile.warehouse_type == 'SM_DESIGN_ADMIN':
+            resp['data'] = save_manual_enquiry_images(request, enq_data, art_work=True)
+        else:
+            resp['data'] = save_manual_enquiry_images(request, enq_data)
     else:
         resp['msg'] = "Please Select Image"
     return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def notify_designer(request, user=''):
+    enquiry_id = request.POST.get('enquiry_id', '')
+    user_id = request.POST.get('user_id', '')
+    enq_status = request.POST.get('enq_status', '')
+    if not enquiry_id or not user_id:
+        return HttpResponse("Give information insufficient")
+    filters = {'enquiry_id': float(enquiry_id), 'user': user_id}
+    manual_enq = ManualEnquiry.objects.filter(**filters)
+    if not manual_enq:
+        return HttpResponse("No Enquiry Data for Id")
+    manual_enq = manual_enq[0]
+    if enq_status:
+        manual_enq.status = enq_status
+        manual_enq.save()
+    users_list = []
+    if request.user.userprofile.warehouse_type in ('SM_MARKET_ADMIN', 'SM_PURCHASE_ADMIN'):
+        users_list.append(request.user.id)
+        users_list.append(user.id)
+    else:
+        admin_user = get_priceband_admin_user(user)
+        if not admin_user:
+            admin_user = request.user
+        market_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
+            Q(userprofile__warehouse_type='SM_MARKET_ADMIN')).values_list('id', flat=True)
+        if market_admin_user_id:
+            market_admin_user_id = market_admin_user_id[0]
+            users_list.append(market_admin_user_id)
+        purchase_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
+            Q(userprofile__warehouse_type='SM_PURCHASE_ADMIN')).values_list('id', flat=True)
+        if purchase_admin_user_id:
+            purchase_admin_user_id = purchase_admin_user_id[0]
+            users_list.append(purchase_admin_user_id)
+        users_list.append(admin_user.id)
+    contents = {"en": "%s Send Order %s to add ArtWork" % (request.user.username, enquiry_id)}
+    send_push_notification(contents, users_list)
+    return HttpResponse("Success")
 
 
 @csrf_exempt
@@ -11053,6 +11180,39 @@ def request_manual_enquiry_approval(request, user=''):
         save_manual_enquiry_data(request)
     enq_data[0].status = status
     enq_data[0].save()
+    users_list = []
+    if request.user.userprofile.warehouse_type in ('SM_MARKET_ADMIN', 'SM_PURCHASE_ADMIN', 'SM_DESIGN_ADMIN'):
+        users_list.append(request.user.id)
+        admin_user = user
+        users_list.append(admin_user.id)
+    else:
+        admin_user = get_priceband_admin_user(user)
+        if not admin_user:
+            admin_user = request.user
+        market_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
+            Q(userprofile__warehouse_type='SM_MARKET_ADMIN')).values_list('id', flat=True)
+        if market_admin_user_id:
+            market_admin_user_id = market_admin_user_id[0]
+            users_list.append(market_admin_user_id)
+        purchase_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
+            Q(userprofile__warehouse_type='SM_PURCHASE_ADMIN')).values_list('id', flat=True)
+        if purchase_admin_user_id:
+            purchase_admin_user_id = purchase_admin_user_id[0]
+            users_list.append(purchase_admin_user_id)
+    if request.user.userprofile.warehouse_type not in ('SM_PURCHASE_ADMIN', 'SM_DESIGN_ADMIN'):
+        if request.user.id == admin_user.id:
+            contents_msg = "Admin User updated the status to %s for Enquiry order %s" % (status, enq_data[0].enquiry_id)
+        else:
+            contents_msg = "Marketing admin requesting approval for custom order %s" % (enq_data[0].enquiry_id)
+    else:
+        if request.user.userprofile.warehouse_type == "SM_PURCHASE_ADMIN":
+            contents_msg = "Purchase Admin requesting Designer for ArtWork"
+        else:
+            contents_msg = "Designer Uploaded Artwork"
+
+    contents = {"en": contents_msg}
+    users_list.append(enq_data[0].user_id)
+    send_push_notification(contents, list(set(users_list)))
     return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
 
 
@@ -11063,14 +11223,300 @@ def confirm_or_hold_custom_order(request, user=''):
     resp = {'msg': 'Success', 'data': []}
     cust_order_id = request.POST.get('order_id')
     cust_order_status = request.POST.get('status')
+    ch_map = {'confirm_order': 'Confirmed the Order', 'hold_order': 'Requesting to Block the Stock'}
     try:
         cust_ord_qs = ManualEnquiry.objects.filter(user=request.user.id, enquiry_id=cust_order_id)
         if cust_ord_qs:
             cust_ord_obj = cust_ord_qs[0]
+            if cust_ord_obj.status in ['order_placed', 'confirm_order']:
+                return HttpResponse('Already Accepted')
+            if cust_ord_obj.status != 'approved':
+                return HttpResponse('Yet to be approved by Admin')
             cust_ord_obj.status = cust_order_status
             cust_ord_obj.save()
+            users_list = []
+            admin_user = get_priceband_admin_user(user)
+            market_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
+                Q(userprofile__warehouse_type='SM_MARKET_ADMIN')).values_list('id', flat=True)
+            if market_admin_user_id:
+                market_admin_user_id = market_admin_user_id[0]
+                users_list.append(market_admin_user_id)
+            users_list.append(admin_user.id)
+            contents = {"en": "%s  %s  for custom order %s" % ( request.user.username, ch_map[cust_order_status],
+                                                                cust_ord_obj.enquiry_id)}
+            send_push_notification(contents, users_list)
     except:
         resp['msg'] = 'Fail'
+    return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def convert_customorder_to_actualorder(request, user=''):
+    resp = {'msg': 'Success', 'data': []}
+    smd_price = request.POST.get('sm_d_price', '')
+    if smd_price:
+        smd_price = float(smd_price)
+    rc_price = request.POST.get('r_c_price', '')
+    enq_id = request.POST.get('enquiry_id', '')
+    res_user_id = request.POST.get('user_id', '')
+    en_qs = ManualEnquiry.objects.filter(enquiry_id=enq_id, user_id=res_user_id)
+    if not en_qs:
+        resp['msg'] = 'Fail'
+        return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
+    enq_obj = en_qs[0]
+    if enq_obj.status != 'confirm_order':
+        return HttpResponse('Either Order is not approved by Admin or Order already Created')
+    sku_id = enq_obj.sku.id
+    sku_code = enq_obj.sku.sku_code
+    title = enq_obj.sku.sku_desc
+    quantity = enq_obj.quantity
+    req_stock = quantity
+    corp_name = enq_obj.customer_name
+    ask_price_qs = enq_obj.manualenquirydetails_set.values_list('ask_price', flat=True).order_by('-id')
+    if ask_price_qs:
+        ask_price = ask_price_qs[0]
+    exp_date_qs = enq_obj.manualenquirydetails_set.values_list('expected_date', flat=True).order_by('-id')
+    if exp_date_qs:
+        exp_date = exp_date_qs[0]
+
+    cust_qs = CustomerUserMapping.objects.filter(user_id=enq_obj.user)
+    if not cust_qs:
+        resp['msg'] = 'Fail'
+        return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
+    cust_obj = cust_qs[0]
+    cm_id = cust_obj.customer.id
+    customer_id = cust_obj.customer.customer_id
+    customer_name = cust_obj.customer.name
+    dist_user_id = cust_obj.customer.user
+    admin_user = get_priceband_admin_user(dist_user_id)
+    stock_wh_map = {}
+    source_whs = list(NetworkMaster.objects.filter(dest_location_code_id=dist_user_id).filter(
+        source_location_code__username__in=['DL01', 'MH01']).values_list(
+        'source_location_code_id', flat=True).order_by('lead_time', 'priority'))
+    pick_filter_map = {'picklist__order__user__in': source_whs, 'picklist__order__sku__wms_code': sku_code}
+    res_qtys = dict(PicklistLocation.objects.prefetch_related('picklist', 'stock').filter(status=1).filter(
+        **pick_filter_map).values_list('stock__sku__user').annotate(total=Sum('reserved')))
+    blocked_qtys = dict(EnquiredSku.objects.filter(sku__user__in=source_whs, sku_code=sku_code).filter(
+        ~Q(enquiry__extend_status='rejected')).values_list('sku__user', 'quantity'))
+    stk_dtl_obj = dict(StockDetail.objects.filter(
+        sku__user__in=source_whs, sku__wms_code=sku_code, quantity__gt=0).values_list(
+        'sku__user').distinct().annotate(in_stock=Sum('quantity')))
+    for source_wh in source_whs:
+        avail_stock = stk_dtl_obj.get(source_wh, 0)
+        res_stock = res_qtys.get(source_wh, 0)
+        blocked_stock = blocked_qtys.get(source_wh, 0)
+        if not res_stock:
+            res_stock = 0
+        if not blocked_stock:
+            blocked_stock = 0
+        avail_stock = avail_stock - res_stock - blocked_stock
+        if avail_stock <= 0:
+            continue
+        req_qty = req_stock - avail_stock
+        if req_qty < avail_stock and req_qty < 0:
+            stock_wh_map[source_wh] = avail_stock - abs(req_qty)
+            break
+        if req_qty >= 0:
+            stock_wh_map[source_wh] = avail_stock
+        else:
+            break
+        req_stock = req_qty
+
+    for usr, qty in stock_wh_map.items():
+        if qty <= 0:
+            continue
+        order_id = get_order_id(usr)  # user.id should be either DL01 or MH01
+        org_ord_id = 'MN' + str(order_id)
+        invoice_amount = get_tax_inclusive_invoice_amt(cm_id, smd_price, qty, usr, sku_code, admin_user=admin_user)
+        mapped_sku_id = get_syncedusers_mapped_sku(usr, sku_id)
+
+        order_detail_dict = {'sku_id': mapped_sku_id, 'title': title, 'quantity': quantity, 'order_id': order_id,
+                             'original_order_id': org_ord_id, 'user': usr, 'customer_id': customer_id,
+                             'customer_name': customer_name, 'shipment_date': exp_date,
+                             'address': '', 'unit_price': smd_price, 'invoice_amount': invoice_amount,
+                             'creation_date': None, 'status': 1}
+        ord_qs = OrderDetail.objects.filter(sku_id=mapped_sku_id, order_id=order_id, user=usr)
+        if not ord_qs:
+            ord_obj = OrderDetail(**order_detail_dict)
+            ord_obj.save()
+        else:
+            ord_obj = ord_qs[0]
+            ord_obj.qty = qty
+            ord_obj.save()
+
+        generic_order_id = get_generic_order_id(cm_id)
+        corporate_po_number = 0  # No PO Number
+        create_grouping_order_for_generic(generic_order_id, ord_obj, cm_id, usr, quantity, corporate_po_number,
+                                          corp_name, ask_price, ask_price, exp_date)
+        usr_sku_master = SKUMaster.objects.filter(user=usr, sku_code=sku_code)
+        if usr_sku_master:
+            product_type = usr_sku_master[0].product_type
+        else:
+            log.info('No SKUMaster for user(%s) and sku_code(%s)' % (usr, sku_code))
+            product_type = ''
+        customer_master = CustomerMaster.objects.get(id=cm_id)
+        taxes = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0}
+        if customer_master.tax_type:
+            inter_state_dict = dict(zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
+            inter_state = inter_state_dict.get(customer_master.tax_type, 2)
+            if admin_user:
+                tax_master = TaxMaster.objects.filter(user_id=admin_user, inter_state=inter_state,
+                                                      product_type=product_type,
+                                                      min_amt__lte=smd_price, max_amt__gte=smd_price)
+            else:
+                tax_master = TaxMaster.objects.filter(user_id=usr, inter_state=inter_state,
+                                                      product_type=product_type,
+                                                      min_amt__lte=smd_price, max_amt__gte=smd_price)
+            if tax_master:
+                tax_master = tax_master[0]
+                taxes['cgst_tax'] = float(tax_master.cgst_tax)
+                taxes['sgst_tax'] = float(tax_master.sgst_tax)
+                taxes['igst_tax'] = float(tax_master.igst_tax)
+                taxes['utgst_tax'] = float(tax_master.utgst_tax)
+        CustomerOrderSummary.objects.create(order=ord_obj, sgst_tax=taxes['sgst_tax'], cgst_tax=taxes['cgst_tax'],
+                                            igst_tax=taxes['igst_tax'], tax_type=customer_master.tax_type)
+        generic_orders = GenericOrderDetailMapping.objects.filter(generic_order_id=generic_order_id,
+                                                                  customer_id=cm_id). \
+            values('orderdetail__original_order_id', 'orderdetail__user').distinct()
+        for generic_order in generic_orders:
+            original_order_id = generic_order['orderdetail__original_order_id']
+            order_detail_user = User.objects.get(id=generic_order['orderdetail__user'])
+            try:
+                order_push_status = order_push(original_order_id, order_detail_user, "NEW")
+                log.info('New Order Push Status: %s' % (str(order_push_status)))
+            except:
+                log.info("Order Push failed for order: %s" %original_order_id)
+
+    if req_stock == sum(stock_wh_map.values()):
+        enq_obj.status = 'order_placed'
+        enq_obj.save()
+    else:
+        return HttpResponse('No Available Stock to Place the Order')
+
+    return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def convert_customorder_to_enquiryorder(request, user=''):
+    resp = {'msg': 'Success', 'data': []}
+    smd_price = request.POST.get('sm_d_price', '')
+    if smd_price:
+        smd_price = float(smd_price)
+    rc_price = request.POST.get('r_c_price', '')
+    enq_id = request.POST.get('enquiry_id', '')
+    res_user_id = request.POST.get('user_id', '')
+    en_qs = ManualEnquiry.objects.filter(enquiry_id=enq_id, user_id=res_user_id)
+    if not en_qs:
+        resp['msg'] = 'Fail'
+        return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
+    enq_obj = en_qs[0]
+    if enq_obj.status != 'hold_order':
+        return HttpResponse('Either Order is not approved by Admin or Order already Created')
+
+    corporate_name = enq_obj.customer_name  # Corporate Name only
+
+    cust_qs = CustomerUserMapping.objects.filter(user_id=enq_obj.user)
+    if not cust_qs:
+        resp['msg'] = 'Fail'
+        return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
+    cust_obj = cust_qs[0]
+    cm_id = cust_obj.customer.id
+    customer_id = cust_obj.customer.customer_id
+    customer_name = cust_obj.customer.name
+    dist_user_id = cust_obj.customer.user
+    admin_user = get_priceband_admin_user(dist_user_id)
+    enq_limit = get_misc_value('auto_expire_enq_limit', admin_user.id)
+    if enq_limit:
+        enq_limit = int(enq_limit)
+    else:
+        enq_limit = 7
+    enquiry_id = get_enquiry_id(cm_id)
+    sku_id = enq_obj.sku.id
+    sku_code = enq_obj.sku.sku_code
+    title = enq_obj.sku.sku_desc
+    quantity = enq_obj.quantity
+    req_stock = quantity
+    # corp_name = enq_obj.customer_name
+    ask_price_qs = enq_obj.manualenquirydetails_set.values_list('ask_price', flat=True).order_by('-id')
+    if ask_price_qs:
+        ask_price = ask_price_qs[0]
+    exp_date_qs = enq_obj.manualenquirydetails_set.values_list('expected_date', flat=True).order_by('-id')
+    if exp_date_qs:
+        exp_date = exp_date_qs[0]
+
+    items = []
+    try:
+        customer_details = {}
+        customer_details = get_order_customer_details(customer_details, request)
+        customer_details['customer_id'] = cm_id  # Updating Customer Master ID
+        enquiry_map = {'user': user.id, 'enquiry_id': enquiry_id,
+                       'extend_date': datetime.datetime.today() + datetime.timedelta(days=enq_limit)}
+        if corporate_name:
+            enquiry_map['corporate_name'] = corporate_name
+        enquiry_map.update(customer_details)
+        enq_master_obj = EnquiryMaster(**enquiry_map)
+        enq_master_obj.save()
+
+        stock_wh_map = {}
+        source_whs = list(NetworkMaster.objects.filter(dest_location_code_id=dist_user_id).filter(
+            source_location_code__username__in=['DL01', 'MH01']).values_list(
+            'source_location_code_id', flat=True).order_by('lead_time', 'priority'))
+        pick_filter_map = {'picklist__order__user__in': source_whs, 'picklist__order__sku__wms_code': sku_code}
+        res_qtys = dict(PicklistLocation.objects.prefetch_related('picklist', 'stock').filter(status=1).filter(
+            **pick_filter_map).values_list('stock__sku__user').annotate(total=Sum('reserved')))
+        blocked_qtys = dict(EnquiredSku.objects.filter(sku__user__in=source_whs, sku_code=sku_code).filter(
+            ~Q(enquiry__extend_status='rejected')).values_list('sku__user', 'quantity'))
+        stk_dtl_obj = dict(StockDetail.objects.filter(
+            sku__user__in=source_whs, sku__wms_code=sku_code, quantity__gt=0).values_list(
+            'sku__user').distinct().annotate(in_stock=Sum('quantity')))
+        for source_wh in source_whs:
+            avail_stock = stk_dtl_obj.get(source_wh, 0)
+            res_stock = res_qtys.get(source_wh, 0)
+            blocked_stock = blocked_qtys.get(source_wh, 0)
+            if not res_stock:
+                res_stock = 0
+            if not blocked_stock:
+                blocked_stock = 0
+            avail_stock = avail_stock - res_stock - blocked_stock
+            if avail_stock <= 0:
+                continue
+            req_qty = req_stock - avail_stock
+            if req_qty < avail_stock and req_qty < 0:
+                stock_wh_map[source_wh] = avail_stock - abs(req_qty)
+                break
+            if req_qty >= 0:
+                stock_wh_map[source_wh] = avail_stock
+            else:
+                break
+            req_stock = req_qty
+
+        for wh_code, qty in stock_wh_map.items():
+            if qty <= 0:
+                continue
+            wh_sku_id = get_syncedusers_mapped_sku(wh_code, sku_id)
+            enq_sku_obj = EnquiredSku()
+            enq_sku_obj.sku_id = wh_sku_id
+            enq_sku_obj.title = title
+            enq_sku_obj.enquiry = enq_master_obj
+            enq_sku_obj.quantity = qty
+            tot_amt = get_tax_inclusive_invoice_amt(cm_id, ask_price, qty, user.id, sku_code, admin_user)
+            enq_sku_obj.invoice_amount = tot_amt
+            enq_sku_obj.status = 1
+            enq_sku_obj.sku_code = sku_code
+            enq_sku_obj.levelbase_price = ask_price
+            enq_sku_obj.warehouse_level = 1  # TODO
+            enq_sku_obj.save()
+            wh_name = User.objects.get(id=wh_code).first_name
+            cont_vals = (customer_details['customer_name'], enquiry_id, wh_name, sku_code)
+            contents = {"en": "%s placed an enquiry order %s to %s for SKU Code %s" % cont_vals}
+            users_list = list(set([user.id, wh_code, admin_user.id]))
+            send_push_notification(contents, users_list)
+    except:
+        pass
     return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
 
 
@@ -11435,10 +11881,10 @@ def update_stock_transfer_data(request, user=""):
 def stock_transfer_generate_picklist(request, user=''):
     out_of_stock = []
     picklist_number = get_picklist_number(user)
-
+    picklist_exclude_zones = get_exclude_zones(user)
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
     sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-        location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
+        location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0)
 
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                    'fifo_switch': get_misc_value('fifo_switch', user.id),

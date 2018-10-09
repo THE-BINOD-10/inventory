@@ -1,26 +1,78 @@
-<div ng-controller="MoveInventoryCtrl as showCase">
+<style>
+  .smallbox {
+    width: 100px
+  }
+</style>
+<div>
   <div class="page-layout">
     <div class='layout-header'>
       <div class="pull-left" ng-include="'views/common/title.html'"></div>
-      <button type="button" class="btn btn-success pull-right" ng-click="showCase.move_location_inventory()">
-        Move Location Inventory
-      </button>
-      <button type="button" class="btn btn-success pull-right" ng-click="showCase.add()">New Move Inventory</button>
-      <button type="button" class="btn btn-success pull-right" ng-click="showCase.move_imei()">Status Swap</button>
-      <button type="button" class="btn btn-success pull-right" ng-click="showCase.add_sku_substitute()">SKU Substitute</button>
     </div>
     <div class="layout-body">
-      <div class="panel">
-        <div class="panel-body" style="padding-left: 0px; padding-right: 0px">
-          <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="table custom-table table-condensed datatable no_click_tb"></table>
-          <div class="clearfix">
+      <tabset class="box-tab">
+	  <tab heading="Move Inventory" ng-controller="MoveInventoryCtrl as showCase">
+		  <div class="panel">
+  			<div class="panel-header">
+          <div class="row">
+            <div class="col-md-5 col-sm-4 col-xs-6 mb10"></div>
+            <div class="col-md-7 col-sm-4 col-xs-6 mb10">
+              <div class="row">
+                <div class="col-md-1"></div>
+                <div class="col-md-11">
+                  <button type="button" class="btn btn-success" ng-click="showCase.move_location_inventory()">
+                    Move Location Inventory
+                  </button>
+                  <button type="button" class="btn btn-success" ng-click="showCase.add()">New Move Inventory</button>
+                  <button type="button" class="btn btn-success" ng-click="showCase.move_imei()">Status Swap</button>
+                  <button type="button" class="btn btn-success" ng-click="showCase.add_sku_substitute()">Add SKU Substitute</button>
+                </div>
+              </div>
+            </div>
           </div>
-          <div ui-view></div>
+  			</div>
+  			<div class="panel-body" style="padding-left: 0px; padding-right: 0px">
+  			  <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="table custom-table table-condensed datatable no_click_tb"></table>
+  			  <div ui-view></div>
+  			</div>
+  			<div class="panel-footer">
+  				<button type="submit" class="btn btn-danger pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.confirm_adjustment()">Confirm Ajustment</button>
+  				<button type="submit" style="margin-right:10px" class="btn btn-danger pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.delete_adjustment()">Delete</button>
+  			</div>
+		  </div>
+	  </tab>
+      <tab heading="Auto Sellable Suggestions" ng-controller="AutoSellableCtrl as showCase">
+        <div class="panel">
+          <div class="panel-header" style="overflow: visible;">
+		        <div class="row">
+      			  <div class="col-md-2 col-sm-4 col-xs-6 mb10 pull-right">
+                <button type="button" class="btn btn-success pull-right" ng-click="showCase.update_suggestions()">Update Suggestions</button>
+              </div>
+            </div>
+          </div>
+  			  <div class="panel-body">
+    				<table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="custom-table table table-condensed datatable sku-table"></table>
+            <div ui-view></div>
+          </div>
+          <div class="panel-footer">
+    				<button type="submit" class="btn btn-primary pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.confirm()">Confirm</button>
+    				<!-- <button type="submit" style="margin-right:10px" class="btn btn-danger pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.delete_adjustment()">Delete</button> -->
+    			</div>
+          </div>
         </div>
-        <div class="panel-footer">
-          <button type="submit" class="btn btn-danger pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.confirm_move()">Confirm Move</button>
-        </div>
-      </div>
+      </tab>
+    </tabset>
+
+      <!--<div class="panel">-->
+        <!--<div class="panel-body" style="padding-left: 0px; padding-right: 0px">-->
+          <!--<table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="table custom-table table-condensed datatable no_click_tb"></table>-->
+          <!--<div class="clearfix">-->
+          <!--</div>-->
+          <!--<div ui-view></div>-->
+        <!--</div>-->
+        <!--<div class="panel-footer">-->
+          <!--<button type="submit" class="btn btn-danger pull-right" ng-disabled="showCase.bt_disable" ng-click="showCase.confirm_move()">Confirm Move</button>-->
+        <!--</div>-->
+      <!--</div>-->
     </div>
   </div>
 </div>

@@ -402,7 +402,7 @@ def get_stock_counts(quantity, single_sku):
 
 
 @fn_timer
-def get_quantity_data(user_groups, sku_codes_list):
+def get_quantity_data(user_groups, sku_codes_list,asn_true=False):
     ret_list = []
 
     for user in user_groups:
@@ -431,26 +431,30 @@ def get_quantity_data(user_groups, sku_codes_list):
         intr_obj_100days_qs = asn_qs.exclude(arriving_date__lte=today_filter).filter(
             arriving_date__lte=hundred_day_filter)
         intr_obj_100days_ids = intr_obj_100days_qs.values_list('id', flat=True)
-        asn_res_100days_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
+        asnres_det_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
+        asn_res_100days_qs = asnres_det_qs.filter(orderdetail__isnull=False)  # Reserved Quantity
         asn_res_100days_qty = dict(
             asn_res_100days_qs.values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
+        asn_blk_100days_qs = asnres_det_qs.filter(orderdetail__isnull=True)  # Blocked Quantity
+        asn_blk_100days_qty = dict(
+            asn_blk_100days_qs.values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
 
         asn_avail_stock = dict(
             intr_obj_100days_qs.values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
-        for k, v in asn_avail_stock.items():
-            if k in asn_res_100days_qty:
-                asn_avail_stock[k] = asn_avail_stock[k] - asn_res_100days_qty[k]
         purchases = map(lambda d: d['open_po__sku__sku_code'], purch_dict)
         total_order_dict = dict(zip(purchases, map(lambda d: d['total_order'], purch_dict)))
         total_received_dict = dict(zip(purchases, map(lambda d: d['total_received'], purch_dict)))
         for single_sku in sku_codes_list:
             exist = user_sku_codes.filter(sku_code=single_sku)
             asn_stock_qty = asn_avail_stock.get(single_sku, 0)
+            asn_res_qty = asn_res_100days_qty.get(single_sku, 0)
+            asn_blk_qty = asn_blk_100days_qty.get(single_sku, 0)
             if not exist:
                 available = 'No SKU'
                 reserved = 0
                 ret_list.append({'available': available, 'name': ware, 'transit': 0, 'reserved': reserved, 'user': user,
-                                 'sku_code': single_sku, 'asn': asn_stock_qty})
+                                 'sku_code': single_sku, 'asn': asn_stock_qty, 'blocked': 0, 'asn_res': asn_res_qty,
+                                 'asn_blocked': asn_blk_qty})
                 continue
             trans_quantity = 0
             if single_sku in purchases:
@@ -459,11 +463,15 @@ def get_quantity_data(user_groups, sku_codes_list):
             pic_reserved = pick_reserved_dict.get(single_sku, 0)
             raw_reserved = raw_reserved_dict.get(single_sku, 0)
             enq_reserved = enq_block_stock.get(single_sku, 0)
-            available = quantity - pic_reserved - enq_reserved
+            if not asn_true:
+                available = quantity - pic_reserved
+            else:
+                available = quantity
             if available < 0:
                 available = 0
             ret_list.append({'available': available, 'name': ware, 'transit': trans_quantity, 'reserved': pic_reserved,
-                             'user': user, 'sku_code': single_sku, 'asn': asn_stock_qty})
+                             'user': user, 'sku_code': single_sku, 'asn': asn_stock_qty, 'blocked': enq_reserved,
+                             'asn_res': asn_res_qty, 'asn_blocked': asn_blk_qty})
     return ret_list
 
 
@@ -565,42 +573,54 @@ def get_avinre_stock(start_index, stop_index, temp_data, search_term, order_term
 
 def get_availasn_stock(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     data, temp_data, other, da = get_warehouses_stock(start_index, stop_index, temp_data, search_term, order_term,
-                                                      col_num, request, user, filters)
+                                                      col_num, request, user, filters, asn_true=True)
 
     list_da = {}
     for i in da:
         if i['available'] is None:
             i['available'] = 0
-        if i['asn'] is None:
-            i['asn'] = 0
-        list_da[i['ware']] = i['available'] + i['asn']
+        # if i['asn'] is None:
+        #     i['asn'] = 0
+        list_da[i['ware']] = i['available']
 
     temp_data['ware_list'] = list_da
     for one_data, sku_det in zip(data, other['rem']):
         header = other['header']
         single_sku = sku_det['single_sku']
-        sku_desc = sku_det['sku_desc']
-        sku_brand = sku_det['sku_brand']
-        sku_category = sku_det['sku_category']
-        var = (OrderedDict(
-            ((header[0], single_sku), (header[1], sku_brand), (header[2], sku_desc), (header[3], sku_category))))
+        var = {header[0]: single_sku, 'WH Net Open': 0, 'Net Open': 0,
+               'ASN Total': 0, 'ASN Res': 0, 'ASN Blocked': 0, 'ASN Open': 0}
         for single in one_data:
-            avail = single['available']
-            asn = single['asn']
-            if isinstance(avail, str):
-                available = avail
-            else:
-                available = avail + asn
-            name = single['name']
-            var[name] = available
+            if single['name']:
+                wh_name = single['name']
+                var[wh_name + '-Total'] = single['available']
+                var[wh_name + '-Res'] = single['reserved']
+                var[wh_name + '-Blocked'] = single['blocked']
+                if not isinstance(single['available'], float):
+                    single['available'] = 0
+                net_amt = single['available'] - single['blocked'] - single['reserved']
+                if net_amt < 0:
+                    net_amt = 0
+                var[wh_name + '-Open'] = net_amt
+                var['WH Net Open'] += net_amt
+                var['ASN Total'] += single['asn']
+                var['ASN Res'] += single['asn_res']
+                var['ASN Blocked'] += single['asn_blocked']
+                asn_open = var['ASN Total'] - var['ASN Res'] - var['ASN Blocked']
+                var['ASN Open'] = asn_open
+        var['Net Open'] = var['WH Net Open'] + var['ASN Open']
+
         temp_data['aaData'].append(var)
 
 
-def get_warehouses_stock(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+def get_warehouses_stock(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters,
+                         asn_true=False):
     data_to_send = []
     other_data = {}
 
-    lis = ['sku_code', 'sku_brand', 'sku_desc', 'sku_category']
+    if asn_true:
+        lis = ['sku_code']
+    else:
+        lis = ['sku_code', 'sku_brand', 'sku_desc', 'sku_category']
 
     if len(filters) <= 4:
         search_params = get_filtered_params(filters, lis)
@@ -612,18 +632,26 @@ def get_warehouses_stock(start_index, stop_index, temp_data, search_term, order_
         if order_term == 'desc':
             order_data = '-%s' % order_data
 
-    warehouses = UserGroups.objects.filter(admin_user_id=user.id).values_list('user_id', flat=True)
+    warehouses = UserGroups.objects.filter(admin_user_id=user.id,
+                                           user__userprofile__warehouse_level=1).values_list('user_id', flat=True)
     ware_list = list(User.objects.filter(id__in=warehouses).values_list('username', flat=True))
     ware_list.append(user.username)
-    header = ["SKU Code", "SKU Brand", "SKU Description", "SKU Category"]
-    headers = header + ware_list
+    if asn_true:
+        header = ["SKU Code"]
+    else:
+        header = ["SKU Code", "SKU Brand", "SKU Description", "SKU Category"]
+        # headers = header + ware_list
 
     user_groups = UserGroups.objects.filter(Q(admin_user_id=user.id) | Q(user_id=user.id))
     if user_groups:
         admin_user_id = user_groups[0].admin_user_id
     else:
         admin_user_id = user.id
-    user_groups = list(UserGroups.objects.filter(admin_user_id=admin_user_id).values_list('user_id', flat=True))
+    if asn_true:
+        user_group_filters = {'admin_user_id': admin_user_id, 'user__userprofile__warehouse_level': 1}
+    else:
+        user_group_filters = {'admin_user_id': admin_user_id}
+    user_groups = list(UserGroups.objects.filter(**user_group_filters).values_list('user_id', flat=True))
     user_groups.append(admin_user_id)
     sku_master = SKUMaster.objects.filter(user__in=user_groups, **search_params)
     if col_num <= 3:
@@ -639,20 +667,27 @@ def get_warehouses_stock(start_index, stop_index, temp_data, search_term, order_
     other_data['rem'] = []
     data = get_aggregate_data(user_groups, list(sku_codes)[0:temp_data['recordsTotal']])
 
-    sku_master_dat = sku_master.values('sku_code', 'sku_desc', 'sku_brand', 'sku_category').distinct()
-    sku_descs = dict(zip(map(lambda d: d['sku_code'], sku_master_dat), map(lambda d: d['sku_desc'], sku_master_dat)))
-    sku_brands = dict(zip(map(lambda d: d['sku_code'], sku_master_dat), map(lambda d: d['sku_brand'], sku_master_dat)))
-    sku_categorys = dict(
-        zip(map(lambda d: d['sku_code'], sku_master_dat), map(lambda d: d['sku_category'], sku_master_dat)))
-    user_quantity_dict = get_quantity_data(user_groups, sku_codes[start_index:stop_index])
-    for single_sku in sku_codes[start_index:stop_index]:
-        sku_brand = sku_brands.get(single_sku, '')
-        sku_desc = sku_descs.get(single_sku, '')
-        sku_category = sku_categorys.get(single_sku, '')
-        quantity = filter(lambda d: d['sku_code'] == single_sku, user_quantity_dict)
-        data_to_send.append(quantity)
-        other_data['rem'].append(
-            {'single_sku': single_sku, 'sku_brand': sku_brand, 'sku_desc': sku_desc, 'sku_category': sku_category})
+    if asn_true:
+        user_quantity_dict = get_quantity_data(user_groups, sku_codes[start_index:stop_index], asn_true=True)
+        for single_sku in sku_codes[start_index:stop_index]:
+            quantity = filter(lambda d: d['sku_code'] == single_sku, user_quantity_dict)
+            data_to_send.append(quantity)
+            other_data['rem'].append({'single_sku': single_sku})
+    else:
+        user_quantity_dict = get_quantity_data(user_groups, sku_codes[start_index:stop_index])
+        sku_master_dat = sku_master.values('sku_code', 'sku_desc', 'sku_brand', 'sku_category').distinct()
+        sku_descs = dict(zip(map(lambda d: d['sku_code'], sku_master_dat), map(lambda d: d['sku_desc'], sku_master_dat)))
+        sku_brands = dict(zip(map(lambda d: d['sku_code'], sku_master_dat), map(lambda d: d['sku_brand'], sku_master_dat)))
+        sku_categorys = dict(
+            zip(map(lambda d: d['sku_code'], sku_master_dat), map(lambda d: d['sku_category'], sku_master_dat)))
+        for single_sku in sku_codes[start_index:stop_index]:
+            sku_brand = sku_brands.get(single_sku, '')
+            sku_desc = sku_descs.get(single_sku, '')
+            sku_category = sku_categorys.get(single_sku, '')
+            quantity = filter(lambda d: d['sku_code'] == single_sku, user_quantity_dict)
+            data_to_send.append(quantity)
+            other_data['rem'].append(
+                {'single_sku': single_sku, 'sku_brand': sku_brand, 'sku_desc': sku_desc, 'sku_category': sku_category})
     return data_to_send, temp_data, other_data, data
 
 
@@ -1354,7 +1389,10 @@ def warehouse_headers(request, user=''):
     user_id = user.id
     if price_band_flag == 'true':
         user = get_admin(user)
-    header = ["SKU Code", "SKU Brand", "SKU Description", "SKU Category"]
+    if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':
+        header = ["SKU Code"]
+    else:
+        header = ["SKU Code", "SKU Brand", "SKU Description", "SKU Category"]
     if alternative_view == 'true':
         header = ["SKU Class", "Style Name", "Brand", "SKU Category"]
         if not warehouse_name:
@@ -1423,7 +1461,14 @@ def warehouse_headers(request, user=''):
             admin_user_id = user_id
             admin_user_name = user.username
         if level:
-            headers = header + ware_list
+            warehouse_suffixes = ['Total', 'Res', 'Blocked', 'Open']
+            wh_list = []
+            for wh in ware_list:
+                wh_list.extend(list(map(lambda x: wh+'-'+x, warehouse_suffixes)))
+            wh_list.append('WH Net Open')
+            intr_headers = ['ASN Total', 'ASN Res', 'ASN Blocked', 'ASN Open', 'Net Open']
+            wh_list.extend(intr_headers)
+            headers = header + wh_list
         else:
             headers = header + [admin_user_name] + ware_list
     return HttpResponse(json.dumps({'table_headers': headers, 'size_types': size_list,
@@ -1668,8 +1713,8 @@ def get_stock_summary_serials_excel(filter_params, temp_data, headers, user, req
                        'Reason']
         for n, header in enumerate(exc_headers):
             worksheet.write(0, n, header, bold)
-        dict_list = ['purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
-                     'purchase_order__open_po__sku__sku_brand', 'purchase_order__open_po__sku__sku_category',
+        dict_list = ['sku__sku_code', 'sku__sku_desc',
+                     'sku__sku_brand', 'sku__sku_category',
                      'imei_number']
 
         filter_params = get_filtered_params(filters, dict_list)
@@ -1682,16 +1727,15 @@ def get_stock_summary_serials_excel(filter_params, temp_data, headers, user, req
                                                                                         'reason'))
         qc_damaged.update(damaged_returns)
         if search_term:
-            imei_data = POIMEIMapping.objects.filter(Q(purchase_order__open_po__sku__sku_code__icontains=search_term) |
-                                                     Q(purchase_order__open_po__sku__sku_desc__icontains=search_term) |
-                                                     Q(purchase_order__open_po__sku__sku_brand__icontains=search_term) |
-                                                     Q(
-                                                         purchase_order__open_po__sku__sku_category__icontains=search_term),
-                                                     status=1, purchase_order__open_po__sku__user=user.id,
+            imei_data = POIMEIMapping.objects.filter(Q(sku__sku_code__icontains=search_term) |
+                                                     Q(sku__sku_desc__icontains=search_term) |
+                                                     Q(sku__sku_brand__icontains=search_term) |
+                                                     Q(sku__sku_category__icontains=search_term),
+                                                     status=1, sku__user=user.id,
                                                      **filter_params). \
                 exclude(id__in=dispatched_imeis).values_list(*dict_list)
         else:
-            imei_data = POIMEIMapping.objects.filter(status=1, purchase_order__open_po__sku__user=user.id,
+            imei_data = POIMEIMapping.objects.filter(status=1, sku__user=user.id,
                                                      **filter_params). \
                 exclude(id__in=dispatched_imeis).values_list(*dict_list)
         row = 1
@@ -2369,3 +2413,124 @@ def get_alternative_warehouse_stock(start_index, stop_index, temp_data, search_t
     duration = end_time - st_time
     log.info("total time -- %s" % (duration))
     log.info("process completed")
+
+
+def get_auto_sellable_suggestion_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, status):
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    lis = ['stock__sku__sku_code', 'stock__sku__sku_desc', 'stock__location__location', 'quantity',
+           'location__location', 'quantity']
+    if user.userprofile.user_type == 'marketplace_user':
+        lis.insert(1, 'seller__seller_id')
+        lis.insert(2, 'seller__name')
+    if user.userprofile.industry_type == 'FMCG':
+        lis.insert(3, 'stock__batch_detail__batch_no')
+        lis.insert(4, 'stock__batch_detail__mrp')
+    master_data = SellableSuggestions.objects.filter(stock__sku__user=user.id, status=1)
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if search_term:
+        search_term = search_term.replace('(', '\(').replace(')', '\)')
+        search_query = build_search_term_query(lis, search_term)
+        master_data = master_data.filter(search_query)
+    master_data = master_data.order_by(order_data)
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    for data in master_data[start_index:stop_index]:
+        data_dict = OrderedDict()
+        if user_profile.user_type == 'marketplace_user':
+            data_dict['Seller ID'] = data.seller.seller_id
+            data_dict['Seller Name'] = data.seller.name
+        data_dict['SKU Code'] = data.stock.sku.sku_code
+        data_dict['Product Description'] = data.stock.sku.sku_desc
+        if user_profile.industry_type == 'FMCG':
+            batch_no, mrp = '', 0
+            if data.stock.batch_detail:
+                batch_no = data.stock.batch_detail.batch_no
+                mrp = data.stock.batch_detail.mrp
+            data_dict['Batch No'] = batch_no
+            data_dict['MRP'] = mrp
+        data_dict['Source Location'] = data.stock.location.location
+        data_dict['Suggested Quantity'] = data.quantity
+        data_dict['Destination Location'] = data.location.location
+        data_dict['Quantity'] = data.quantity
+        data_dict['data_id'] = data.id
+        temp_data['aaData'].append(data_dict)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def auto_sellable_confirm(request, user=''):
+    try:
+        request_data = request.POST.dict()
+        log.info('Request Params for Confirm Sellable Suggestions for user %s is %s' %
+                 (user.username, str(request_data)))
+        data_dict = {}
+        for key, value in request_data.iteritems():
+            group_key = key.split(']')[0].replace('data[', '')
+            data_dict.setdefault(group_key, {})
+            data_dict[group_key][key.split('[')[-1].strip(']')] = value
+        data_list = data_dict.values()
+        for index, data in enumerate(data_list):
+            suggestions = SellableSuggestions.objects.filter(id=data['data_id'], status=1)
+            if not suggestions.exists():
+                continue
+            suggestion = suggestions[0]
+            destination = LocationMaster.objects.filter(zone__user=user.id, location=data['Destination Location'])
+            if not destination:
+                return HttpResponse(json.dumps({'message': 'Invalid Destination Location', 'status': 0}))
+            data_list[index]['dest_location'] = destination[0].location
+            try:
+                quantity = float(data['Quantity'])
+            except:
+                return HttpResponse(json.dumps({'message': 'Invalid Quantity', 'status': 0}))
+            seller_master = SellerMaster.objects.filter(user=user.id, seller_id=data['Seller ID'])
+            if not seller_master:
+                return HttpResponse(json.dumps({'message': 'Invalid Seller ID', 'status': 0}))
+            if quantity > float(suggestion.quantity):
+                return HttpResponse(json.dumps({'message': 'Quantity exceeding the Suggested quantity', 'status': 0}))
+            if quantity > float(suggestion.stock.quantity):
+                return HttpResponse(json.dumps({'message': 'Quantity exceeding the stock quantity', 'status': 0}))
+            data_list[index]['seller_id'] = seller_master[0].id
+            data_list[index]['quantity'] = quantity
+            data_list[index]['suggestion_obj'] = suggestion
+        cycle_count = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
+        if not cycle_count:
+            cycle_id = 1
+        else:
+            cycle_id = cycle_count[0].cycle + 1
+        for data in data_list:
+            suggestion = data['suggestion_obj']
+            seller_id, batch_no, mrp = '', '', 0
+            if data.get('Seller ID', ''):
+                seller_id = data['Seller ID']
+            if data.get('Batch No', ''):
+                batch_no = ''
+            if data.get('MRP', 0):
+                mrp = float(data['MRP'])
+            status = move_stock_location(cycle_id, suggestion.stock.sku.wms_code, suggestion.stock.location.location,
+                                         data['dest_location'], data['quantity'], user, seller_id,
+                                         batch_no=batch_no, mrp=mrp)
+            if 'success' in status.lower():
+                update_filled_capacity([suggestion.stock.location.location, data['dest_location']], user.id)
+                suggestion.quantity = float(suggestion.quantity) - data['quantity']
+                if suggestion.quantity <= 0:
+                    suggestion.status = 0
+                suggestion.save()
+        return HttpResponse(json.dumps({'message': 'Success', 'status': 1}))
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        result_data = []
+        log.info('Confirm Sellable Suggestions failed for user %s' % (str(user.username)))
+        return HttpResponse(json.dumps({'message': 'Failed', 'status': 0}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_sellable_suggestions(request, user=''):
+    update_auto_sellable_data(user)
+    return HttpResponse("Success")

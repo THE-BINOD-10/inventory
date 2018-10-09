@@ -174,6 +174,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
     self.datatable = 'ReturnToVendor';
     self.seller_types = [];
     self.rtv_filters = {};
+    self.receive_jo_barcodes = false;
 
     /** login page maintainance **/
     self.login_data = {
@@ -184,4 +185,3 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
       default: 'user.signin'
     }
 }
-

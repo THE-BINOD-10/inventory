@@ -55,7 +55,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session , pri
             });
         });
         return nRow;
-    } 
+    }
 
     vm.dtInstance = {};
     vm.reloadData = reloadData;
@@ -110,4 +110,3 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session , pri
       $state.go($state.current, {}, {reload: true});
     }
   }
-

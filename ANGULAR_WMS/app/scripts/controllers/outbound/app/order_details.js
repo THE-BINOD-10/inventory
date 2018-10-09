@@ -87,6 +87,11 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
       vm.disable_btn = false;
     });
   }
+  vm.clear_flag = false;
+  vm.clear = function(){
+    vm.clear_flag = true;
+    vm.edit_enable = false;
+  }
 
   vm.accept_or_hold = function(){
     swal({
@@ -95,26 +100,27 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
         type: "warning",
         showCancelButton: true,
         confirmButtonText: "Confirm Order",
-        cancelButtonText: "Hold",
+        cancelButtonText: "Block Stock",
         closeOnConfirm: true
         },
         function(isConfirm){
           var elem = {'order_id': vm.order_id};
           if(isConfirm){
               elem['status'] = 'confirm_order'
-              vm.service.apiCall('confirm_or_hold_custom_order/', 'POST', elem).then(function(data){
-                if(data.message) {
-                   console.log('Calling Confirm');
-                }
-              })
           }else{
               elem['status'] = 'hold_order'
-              vm.service.apiCall('confirm_or_hold_custom_order/', 'POST', elem).then(function(data){
-                if(data.message){
-                  console.log('Calling Hold');
-                }
-              })
           }
+          vm.service.apiCall('confirm_or_hold_custom_order/', 'POST', elem).then(function(data){
+                if(data.data.msg == 'Success') {
+                   if(isConfirm){
+                     Service.showNoty('Order Confirmed Successfully');
+                   }else{
+                     Service.showNoty('Placed Enquiry Order Successfully');
+                   }
+                }else{
+                    Service.showNoty(data.data, 'warning');
+                }
+          })
         }
       );
     }

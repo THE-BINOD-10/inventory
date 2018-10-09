@@ -1,4 +1,4 @@
-function Barcodes($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items) {
+function Barcodes($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items, Data) {
 
   var vm = this;
   vm.service = Service;
@@ -45,8 +45,10 @@ function Barcodes($scope, $http, $state, $timeout, Session, colFilters, Service,
     if(form.$valid) {
       var elem = $("form[name='barcodes']").serializeArray();
       var url = "generate_barcodes/";
-      if (vm.permissions.barcode_generate_opt == "sku_serial") {
+      if (vm.permissions.barcode_generate_opt == "sku_serial" && !Data.receive_jo_barcodes) {
         url = "generate_po_labels/";
+      } else if (vm.permissions.barcode_generate_opt == "sku_serial" && Data.receive_jo_barcodes) {
+        url = "generate_jo_labels/";
       }
       vm.service.apiCall(url, 'POST', elem, true).then(function(data){
         if(data.message && data.data !== '"Failed"') {
@@ -61,8 +63,40 @@ function Barcodes($scope, $http, $state, $timeout, Session, colFilters, Service,
       })
     }
   }
+
+  vm.accept_imei = [];
+  vm.tempUniqueDict = {};
+  vm.check_imei_exists = function(event, data1) {
+    event.stopPropagation();
+    if (event.keyCode == 13 && data1.imei_number.length > 0) {
+      // if(vm.permissions.barcode_generate_opt != "sku_serial") {
+      vm.service.apiCall('check_custom_generated_label/', 'GET',{imei: data1.imei_number, sku_code: data1.wms_code}).then(function(data){
+        if(data.message) {
+          if (data.data.message == "Success") {
+              if (!vm.tempUniqueDict[data1.imei_number]) {
+                data1.quantity = Number(data1.quantity) + 1;
+                vm.accept_imei.push(data1.imei_number);
+                vm.tempUniqueDict[data1.imei_number] = data1.imei_number;
+              } else {
+                Service.showNoty("Scanned serial number already exist");
+              }
+          } else {
+            Service.showNoty(data.data.message);
+          }
+          data1.imei_number = "";
+        }
+        data1["disable"] = false;
+      })
+    }
+  }
+
+  vm.changeQty = function (data,key) {
+    if (key) {
+      data[0].quantity = 0;
+    }
+  }
 }
 
 angular
   .module('urbanApp')
-  .controller('Barcodes', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', Barcodes]);
+  .controller('Barcodes', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', 'Data', Barcodes]);

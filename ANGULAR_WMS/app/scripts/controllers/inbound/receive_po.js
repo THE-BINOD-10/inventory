@@ -1071,6 +1071,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           });
           key_obj = data['data']['data'];
       });
+    Data.receive_jo_barcodes = false;
 	  var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();

@@ -2992,7 +2992,8 @@ def create_default_zones(user, zone, location, sequence):
 
 
 def get_return_segregation_locations(order_returns, batch_dict, data):
-    stock_objs = StockDetail.objects.exclude(Q(location__location__in=PICKLIST_EXCLUDE_ZONES) |
+    picklist_exclude_zones = get_exclude_zones(User.objects.get(id=order_returns.sku.user))
+    stock_objs = StockDetail.objects.exclude(Q(location__location__in=picklist_exclude_zones) |
                                              Q(batch_detail__mrp=batch_dict['mrp'])). \
                                     filter(sku__user=order_returns.sku.user,
                                             sku__sku_code=order_returns.sku.sku_code, quantity__gt=0)
@@ -3098,7 +3099,7 @@ def save_return_imeis(user, returns, status, imei_numbers):
             dam_imei = imei.split('<<>>')
             imei = dam_imei[0]
             reason = dam_imei[1]
-        order_imei = OrderIMEIMapping.objects.filter(po_imei__imei_number=imei, order__sku__user=user.id, status=1)
+        order_imei = OrderIMEIMapping.objects.filter(po_imei__imei_number=imei, sku__user=user.id, status=1)
         if not order_imei:
             continue
         elif order_imei:
@@ -4811,11 +4812,11 @@ def check_serial_exists(request, user=''):
     serial = request.POST.get('serial', '')
     data_id = request.POST.get('id', '')
     if serial:
-        filter_params = {"imei_number": serial, "purchase_order__open_po__sku__user": user.id}
+        filter_params = {"imei_number": serial, "sku__user": user.id}
         if data_id:
             quality_check = QualityCheck.objects.filter(id=data_id)
             if quality_check:
-                filter_params['purchase_order__open_po__sku__sku_code'] = quality_check[
+                filter_params['sku__sku_code'] = quality_check[
                     0].purchase_order.open_po.sku.sku_code
         po_mapping = POIMEIMapping.objects.filter(**filter_params)
         if not po_mapping:
@@ -4840,7 +4841,7 @@ def save_qc_serials(key, scan_data, user, qc_id=''):
                     imei, qc_id, reason = value.split('<<>>')
                 if not value:
                     continue
-                po_mapping = POIMEIMapping.objects.filter(imei_number=imei, purchase_order__open_po__sku__user=user)
+                po_mapping = POIMEIMapping.objects.filter(imei_number=imei, sku__user=user)
                 if po_mapping:
                     qc_serial_dict = copy.deepcopy(QC_SERIAL_FIELDS)
                     qc_serial_dict['quality_check_id'] = qc_id
@@ -5532,7 +5533,7 @@ def check_imei_qc(request, user=''):
     log.info(request.GET.dict())
     try:
         if imei:
-            filter_params = {"imei_number": imei, "purchase_order__open_po__sku__user": user.id, "status": 1}
+            filter_params = {"imei_number": imei, "sku__user": user.id, "status": 1}
             po_mapping = {}
             quality_check = {}
             if order_id:
@@ -5541,7 +5542,7 @@ def check_imei_qc(request, user=''):
                 if quality_check_data:
                     for data in quality_check_data:
                         filter_params[
-                            'purchase_order__open_po__sku__sku_code'] = data.purchase_order.open_po.sku.sku_code
+                            'sku__sku_code'] = data.purchase_order.open_po.sku.sku_code
                         filter_params['purchase_order__order_id'] = order_id
                         po_mapping = POIMEIMapping.objects.filter(**filter_params)
                         if po_mapping:
@@ -5591,7 +5592,7 @@ def check_return_imei(request, user=''):
             sku_code = ''
             order = None
             order_imei_id = ''
-            order_imei = OrderIMEIMapping.objects.filter(po_imei__imei_number=value, order__user=user.id, status=1)
+            order_imei = OrderIMEIMapping.objects.filter(po_imei__imei_number=value, sku__user=user.id, status=1)
             if not order_imei:
                 return_data['status'] = 'Imei Number is invalid'
             else:
@@ -5603,6 +5604,8 @@ def check_return_imei(request, user=''):
                     break
                 return_data['status'] = 'Success'
                 invoice_number = ''
+                if not order_imei[0].order:
+                    return HttpResponse("IMEI Mapped to Job order")
                 order_id = order_imei[0].order.original_order_id
                 if not order_id:
                     order_id = order_imei[0].order.order_code + str(order_imei[0].order.order_id)
@@ -5781,7 +5784,7 @@ def generate_po_labels(request, user=''):
     log.info('Request params for Generate PO Labels for ' + user.username + ' is ' + str(data_dict))
     try:
         serial_number = 1
-        max_serial = POLabels.objects.filter(sku__user=user.id).aggregate(Max('serial_number'))['serial_number__max']
+        max_serial = POLabels.objects.filter(sku__user=user.id, custom_label=0).aggregate(Max('serial_number'))['serial_number__max']
         if max_serial:
             serial_number = int(max_serial) + 1
         all_st_purchases = STPurchaseOrder.objects.filter(po__order_id=order_id, open_st__sku__user=user.id)
@@ -5850,13 +5853,21 @@ def check_generated_label(request, user=''):
             po_labels = POLabels.objects.filter(sku__user=user.id, label=label)
             if not po_labels:
                 status = {'message': 'Invalid Serial Number', 'data': {}}
-            elif not int(po_labels[0].purchase_order.order_id) == int(order_id):
+            elif po_labels[0].purchase_order and not int(po_labels[0].purchase_order.order_id) == int(order_id):
                 status = {'message': 'Serial Number is mapped with PO Number ' + get_po_reference(
                     po_labels[0].purchase_order), 'data': {}}
+            elif po_labels[0].job_order and not int(po_labels[0].job_order.job_code) == int(order_id):
+                status = {'message': 'Serial Number is mapped with JO Number ' + \
+                                     str(po_labels[0].job_order.job_code), 'data': {}}
             elif int(po_labels[0].status) == 0:
-                status = {
-                    'message': 'Serial Number already mapped with ' + get_po_reference(po_labels[0].purchase_order),
-                    'data': {}}
+                if po_labels[0].purchase_order:
+                    status = {
+                        'message': 'Serial Number already mapped with ' + get_po_reference(po_labels[0].purchase_order),
+                        'data': {}}
+                elif po_labels[0].job_order:
+                    status = {
+                        'message': 'Serial Number already mapped with ' + str(po_labels[0].job_order.job_code),
+                        'data': {}}
             else:
                 po_label = po_labels[0]
                 data = {'sku_code': po_label.sku.sku_code, 'label': po_label.label}

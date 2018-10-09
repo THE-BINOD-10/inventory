@@ -500,6 +500,7 @@ def generate_picklist(request, user=''):
     out_of_stock = []
     single_order = ''
     picklist_number = get_picklist_number(user)
+    picklist_exclude_zones = get_exclude_zones(user)
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
                    'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
@@ -507,7 +508,7 @@ def generate_picklist(request, user=''):
     if enable_damaged_stock == 'true':
         sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0, location__zone__zone__in=['DAMAGED_ZONE'])
     else:
-        sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
+        sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0)
     all_seller_orders = SellerOrder.objects.prefetch_related('order__sku').filter(**seller_order_filter)
     if switch_vals['fifo_switch'] == 'true':
         stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by(
@@ -605,6 +606,7 @@ def batch_generate_picklist(request, user=''):
     out_of_stock = []
 
     try:
+        picklist_exclude_zones = get_exclude_zones(user)
         switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                        'fifo_switch': get_misc_value('fifo_switch', user.id),
                        'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
@@ -615,7 +617,7 @@ def batch_generate_picklist(request, user=''):
             location__zone__zone__in=['DAMAGED_ZONE']).filter(sku__user=user.id, quantity__gt=0)
         else:
             sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-            location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
+            location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0)
         all_orders = OrderDetail.objects.prefetch_related('sku').filter(**order_filter)
         if switch_vals['fifo_switch'] == 'true':
             stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by(
@@ -1121,9 +1123,11 @@ def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
         imei_filter = {}
         if order:
             order_id = order.id
+            sku_id = order.sku_id
         else:
             order_id = picklist.order.id
             order = picklist.order
+            sku_id = picklist.order.sku_id
         if order:
             user_id = order.user
         po_mapping, status, imei_data = check_get_imei_details(imei, val['wms_code'], user_id,
@@ -1134,16 +1138,15 @@ def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
         all_seller_pos = SellerPO.objects.filter(seller__user=user_id)
         all_seller_orders = SellerOrder.objects.filter(seller__user=user_id)
         sor_id = ''
+        seller_id = ''
         if imei and po_mapping:
-            order_mapping = {'order_id': order_id, 'po_imei_id': po_mapping[0].id, 'imei_number': ''}
-            if po_mapping[0].purchase_order.open_po_id:
-                seller_po = all_seller_pos.filter(open_po_id=po_mapping[0].purchase_order.open_po_id)
-                if seller_po:
-                    seller_id = seller_po[0].seller_id
-                    seller_order_obj = all_seller_orders.filter(order_id=order_id, seller_id=seller_id)
-                    if seller_order_obj:
-                        sor_id = seller_order_obj[0].sor_id
-
+            order_mapping = {'order_id': order_id, 'po_imei_id': po_mapping[0].id, 'imei_number': '',
+                             'sku_id': sku_id}
+            if po_mapping[0].seller_id:
+                seller_id = po_mapping[0].seller_id
+                seller_order_obj = all_seller_orders.filter(order_id=order_id, seller_id=seller_id)
+                if seller_order_obj:
+                    sor_id = seller_order_obj[0].sor_id
             order_mapping_ins = OrderIMEIMapping.objects.filter(po_imei_id=po_mapping[0].id, order_id=order_id)
             if order_mapping_ins:
                 imei_mapping = order_mapping_ins[0]
@@ -1153,6 +1156,8 @@ def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
                 po_imei = order_mapping_ins[0].po_imei
             else:
                 order_mapping['sor_id'] = sor_id
+                if seller_id:
+                    order_mapping['seller_id'] = seller_id
                 imei_mapping = OrderIMEIMapping(**order_mapping)
                 imei_mapping.save()
                 po_imei = po_mapping[0]
@@ -1162,6 +1167,8 @@ def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
                 po_imei.save()
         elif imei and not po_mapping:
             order_mapping = {'order_id': order_id, 'po_imei_id': None, 'imei_number': imei, 'sor_id': sor_id}
+            if seller_id:
+                order_mapping['seller_id'] = seller_id
             imei_mapping = OrderIMEIMapping(**order_mapping)
             imei_mapping.save()
             log.info('%s imei code is mapped for %s and for id %s' % (str(imei), val['wms_code'], str(order_id)))
@@ -1890,8 +1897,8 @@ def serial_order_mapping(picklist, user):
             return "Mapping not done"
         order_po_mapping = order_po_mapping[0]
         imeis = list(POIMEIMapping.objects.filter(purchase_order__order_id=order_po_mapping.purchase_order_id,
-                                                  purchase_order__open_po__sku_id=order_po_mapping.sku_id,
-                                                  purchase_order__open_po__sku__user=user.id,
+                                                  sku_id=order_po_mapping.sku_id,
+                                                  sku__user=user.id,
                                                   status=1).values_list('imei_number', flat=True))
 
         val = {}
@@ -2670,44 +2677,53 @@ def check_imei(request, user=''):
     quantity = 0
     shipped_orders_dict = {}
     is_shipment = request.GET.get('is_shipment', False)
+    is_rm_picklist = request.GET.get('is_rm_picklist', False)
     order_id = request.GET.get('order_id', '')
     groupby = request.GET.get('groupby', '')
     log.info('Request params for Check IMEI ' + user.username + ' is ' + str(request.GET.dict()))
     shipping_quantity = 0
     try:
         for key, value in request.GET.iteritems():
-            if key in ['is_shipment', 'order_id', 'groupby']:
+            if key in ['is_shipment', 'order_id', 'groupby', 'is_rm_picklist']:
                 continue
             sku_code = ''
             order = None
-            imei_filter = {'imei_number': value, 'purchase_order__open_po__sku__user': user.id}
+            job_order = None
+            imei_filter = {'imei_number': value, 'sku__user': user.id}
             if not is_shipment and not key == 'serial':
-                picklist = Picklist.objects.get(id=key)
-                if not picklist.order:
-                    continue
-                sku_code = picklist.order.sku.sku_code
-                order = picklist.order
-                # imei_filter['purchase_order__open_po__sku__sku_code'] = sku_code
+                if is_rm_picklist:
+                    picklist = RMLocation.objects.get(id=key)
+                    job_order = picklist.material_picklist.jo_material.job_order
+                    sku_code = picklist.material_picklist.jo_material.material_code.sku_code
+                else:
+                    picklist = Picklist.objects.get(id=key)
+                    if not picklist.order:
+                        continue
+                    sku_code = picklist.order.sku.sku_code
+                    order = picklist.order
 
             po_mapping, status, imei_data = check_get_imei_details(value, sku_code, user.id, check_type='order_mapping',
-                                                                   order=order)
+                                                                   order=order, job_order=job_order)
             if imei_data.get('wms_code', ''):
                 sku_code = imei_data['wms_code']
 
-            if not sku_code and po_mapping and po_mapping[0].purchase_order.open_po:
-                sku_code = po_mapping[0].purchase_order.open_po.sku.sku_code
+            if not sku_code and po_mapping:
+                sku_code = po_mapping[0].sku.sku_code
             if not po_mapping:
                 status = str(value) + ' is invalid Imei number'
-            order_mapping = OrderIMEIMapping.objects.filter(po_imei__imei_number=value, order__user=user.id, status=1)
+            order_mapping = OrderIMEIMapping.objects.filter(po_imei__imei_number=value, sku__user=user.id, status=1)
             if order_mapping:
-                if order and order_mapping[0].order_id == order.id:
-                    status = str(value) + ' is already mapped with this order'
-                else:
-                    status = str(value) + ' is already mapped with another order'
+                if order_mapping[0].order:
+                    if order and order_mapping[0].order_id == order.id:
+                        status = str(value) + ' is already mapped with this order'
+                    else:
+                        status = str(value) + ' is already mapped with another order'
+                elif order_mapping[0].jo_material:
+                    status = str(value) + ' is already mapped with this job order ' + \
+                            str(order_mapping[0].jo_material.job_order.job_code)
             if is_shipment and po_mapping:
                 seller_id = ''
-                seller_po = SellerPO.objects.filter(open_po_id=po_mapping[0].purchase_order.open_po_id)
-                if seller_po:
+                if po_mapping[0].seller:
                     seller_id = seller_po[0].seller_id
                 order_detail_objs = get_order_detail_objs(order_id, user, search_params={}, all_order_objs=[])
                 order_details = order_detail_objs.filter(sku__sku_code=sku_code)
@@ -3024,9 +3040,10 @@ def st_generate_picklist(request, user=''):
     out_of_stock = []
     picklist_number = get_picklist_number(user)
 
+    picklist_exclude_zones = get_exclude_zones(user)
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
     sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-        location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
+        location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0)
     all_orders = OrderDetail.objects.prefetch_related('sku').filter(status=1, user=user.id, quantity__gt=0)
 
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
@@ -3377,7 +3394,7 @@ def validate_order_form(myDict, request, user):
         if '_' in po_number:
             po_number = po_number.split('_')[-1]
             po_imei_objs = POIMEIMapping.objects.filter(purchase_order__order_id=po_number,
-                                                        purchase_order__open_po__sku__user=user.id)
+                                                        sku__user=user.id)
             po_imeis = dict(po_imei_objs.values_list('purchase_order__open_po__sku__sku_code').annotate(Count('id')))
 
             if not po_imeis:
@@ -4343,12 +4360,13 @@ def direct_dispatch_orders(user, dispatch_orders, creation_date=datetime.datetim
 
 
 def check_stocks(order_sku, user, request, order_objs):
+    picklist_exclude_zones = get_exclude_zones(user)
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
                    'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
     sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-        location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
+        location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0)
 
     if switch_vals['fifo_switch'] == 'true':
         stock_detail1 = sku_stocks.exclude(location__zone__zone='TEMP_ZONE').filter(quantity__gt=0).order_by(
@@ -7199,6 +7217,7 @@ def order_category_generate_picklist(request, user=''):
     stock_status = ''
     out_of_stock = []
     picklist_number = get_picklist_number(user)
+    picklist_exclude_zones = get_exclude_zones(user)
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
                    'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
@@ -7207,7 +7226,7 @@ def order_category_generate_picklist(request, user=''):
         sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').filter(sku__user=user.id, quantity__gt=0, location__zone__zone__in=['DAMAGED_ZONE'])
     else:
         sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-        location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
+        location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0)
     all_orders = OrderDetail.objects.prefetch_related('sku').filter(**order_filter)
     all_seller_orders = SellerOrder.objects.prefetch_related('order__sku').filter(**seller_order_filter)
     if switch_vals['fifo_switch'] == 'true':
@@ -9893,12 +9912,13 @@ def seller_generate_picklist(request, user=''):
 
     log.info('Request params for ' + user.username + ' is ' + str(request.POST.dict()))
     try:
+        picklist_exclude_zones = get_exclude_zones(user)
         switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                        'fifo_switch': get_misc_value('fifo_switch', user.id),
                        'no_stock_switch': get_misc_value('no_stock_switch', user.id)}
         sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
         sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-            location__zone__zone__in=PICKLIST_EXCLUDE_ZONES). \
+            location__zone__zone__in=picklist_exclude_zones). \
             filter(sku__user=user.id, quantity__gt=0)
         all_seller_orders = SellerOrder.objects.prefetch_related('order__sku').filter(**order_filter)
 
@@ -10007,6 +10027,7 @@ def update_exist_picklists(picklist_no, request, user, sku_code='', location='',
                                                 Q(order__sku__sku_code=sku_code) | Q(sku_code=sku_code), **filter_param)
     picklist_data = {}
     new_pc_locs_list = []
+    picklist_exclude_zones = get_exclude_zones(user)
     for item in picklist_objs:
         _sku_code = ''
         if item.order:
@@ -10021,7 +10042,7 @@ def update_exist_picklists(picklist_no, request, user, sku_code='', location='',
         if item.damage_suggested:
             stock_objs = StockDetail.objects.prefetch_related('sku', 'location').filter(location__zone__zone__in=['DAMAGED_ZONE']).filter(**stock_params).order_by('location__pick_sequence')
         else:
-            stock_objs = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(**stock_params).order_by('location__pick_sequence')
+            stock_objs = StockDetail.objects.prefetch_related('sku', 'location').exclude(location__zone__zone__in=picklist_exclude_zones).filter(**stock_params).order_by('location__pick_sequence')
         picklist_data['stock_id'] = 0
         stock_quan = 0
         if item.stock_id:
@@ -11861,10 +11882,10 @@ def update_stock_transfer_data(request, user=""):
 def stock_transfer_generate_picklist(request, user=''):
     out_of_stock = []
     picklist_number = get_picklist_number(user)
-
+    picklist_exclude_zones = get_exclude_zones(user)
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
     sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
-        location__zone__zone__in=PICKLIST_EXCLUDE_ZONES).filter(sku__user=user.id, quantity__gt=0)
+        location__zone__zone__in=picklist_exclude_zones).filter(sku__user=user.id, quantity__gt=0)
 
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                    'fifo_switch': get_misc_value('fifo_switch', user.id),

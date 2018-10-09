@@ -624,13 +624,20 @@ def get_vendor_master_results(start_index, stop_index, temp_data, search_term, o
 
 @get_admin_user
 def location_master(request, user=''):
-    filter_params = {'user': user.id}
-    distinct_loctype = filter_by_values(ZoneMaster, filter_params, ['zone'])
+    filter_params = {'user': user.id, 'level': 0}
+    distinct_loctype = ZoneMaster.objects.filter(**filter_params)
+    #distinct_loctype = filter_by_values(ZoneMaster, filter_params, ['zone', 'level'])
     new_loc = []
     location_groups = LocationGroups.objects.filter(location__zone__user=user.id).values('location__location',
                                                                                          'group').distinct()
     for loc_type in distinct_loctype:
-        filter_params = {'zone__zone': loc_type['zone'], 'zone__user': user.id}
+        filter_params = {'zone__zone': loc_type.zone, 'zone__user': user.id}
+        sub_zone_obj = loc_type.subzonemapping_set.filter()
+        sub_zone = ''
+        if sub_zone_obj:
+            sub_zone = sub_zone_obj[0].sub_zone.zone
+            del filter_params['zone__zone']
+            filter_params['zone__zone__in'] = [sub_zone, loc_type.zone]
         loc = filter_by_values(LocationMaster, filter_params,
                                ['location', 'max_capacity', 'fill_sequence', 'pick_sequence', 'status',
                                 'pallet_capacity', 'lock_status'])
@@ -640,10 +647,11 @@ def location_master(request, user=''):
             loc_groups = map(lambda d: d['group'], loc_group_dict)
             loc_groups = [str(x).encode('UTF8') for x in loc_groups]
             loc_location['location_group'] = loc_groups
+            loc_location['sub_zone'] = sub_zone
         new_loc.append(loc)
 
     data = []
-    modified_zone = zip(distinct_loctype, new_loc)
+    modified_zone = zip(distinct_loctype.values('zone'), new_loc)
     if modified_zone:
         for loc in modified_zone:
             zone = loc[0]['zone']
@@ -2029,6 +2037,9 @@ def add_zone(request, user=''):
     data = ZoneMaster.objects.filter(zone=zone, user=user.id)
     update = request.GET.get('update', '')
     marketplace = request.GET.get('marketplaces', '')
+    level = request.GET.get('level', 0)
+    if level == '':
+        level = 0
     if update == 'true':
         if not data:
             status = 'ZONE not found'
@@ -2040,6 +2051,7 @@ def add_zone(request, user=''):
             location_dict = copy.deepcopy(ZONE_DATA)
             location_dict['user'] = user.id
             location_dict['zone'] = zone
+            location_dict['level'] = level
             loc_master = ZoneMaster(**location_dict)
             loc_master.save()
             update_zone_marketplace_mapping(loc_master, marketplace)
@@ -2063,6 +2075,7 @@ def get_zone_data(request, user=''):
             ZoneMarketplaceMapping.objects.filter(zone__user=user.id, zone__zone=zone, status=1).values_list(
                 'marketplace', flat=True))
         resp['marketplaces'] = marketplace_list
+        resp['level'] = data[0].level
         status = 'Success'
     resp['msg'] = status
     return HttpResponse(json.dumps(resp))
@@ -2146,11 +2159,34 @@ def update_location(request, user=''):
     return HttpResponse('Updated Successfully')
 
 
+def get_user_zones(user, level='', exclude_mapped=False):
+    """ Get Zones based on the filters"""
+    zone_filter = {'user': user.id}
+    if level:
+        zone_filter['level'] = level
+    zone_master = ZoneMaster.objects.filter(**zone_filter)
+    if exclude_mapped:
+        excl_list = SubZoneMapping.objects.filter(zone__user=user.id).values_list('sub_zone_id', flat=True)
+        zone_master = zone_master.exclude(id__in=excl_list)
+    zones_list = list(zone_master.values_list('zone', flat=True))
+    return zones_list
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_zones(request, user=''):
+    level = request.GET.get('level', '')
+    exclude_mapped = request.GET.get('exclude_mapped', '')
+    zones_list = get_user_zones(user, level=level, exclude_mapped=exclude_mapped)
+    return HttpResponse(json.dumps({'zones_list': zones_list}))
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
 def get_zones_list(request, user=''):
-    zones_list = list(ZoneMaster.objects.filter(user=user.id).values_list('zone', flat=True))
+    zones_list = get_user_zones(user)
     all_groups = list(SKUGroups.objects.filter(user=user.id).values_list('group', flat=True))
     market_places = list(Marketplaces.objects.filter(user=user.id).values_list('name', flat=True))
     size_names = SizeMaster.objects.filter(user=user.id)
@@ -3878,3 +3914,26 @@ def push_message_notification(request, user=''):
         if sms_enabled:
             send_sms(receivers_phnums, message)
     return HttpResponse('Message sent Successfully')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def add_sub_zone_mapping(request, user=''):
+    """ Create Sub Zone Mapping"""
+    zone = request.GET.get('zone', '')
+    sub_zone = request.GET.get('sub_zone', '')
+    zone_obj = ZoneMaster.objects.filter(zone=zone, user=user.id)
+    sub_zone_obj = ZoneMaster.objects.filter(zone=sub_zone, user=user.id)
+    if not zone_obj:
+        return HttpResponse('Invalid Zone')
+    if not sub_zone_obj:
+        return HttpResponse('Invalid Sub zone')
+    exist_mapping = SubZoneMapping.objects.filter(zone_id=zone_obj[0].id, sub_zone_id=sub_zone_obj[0].id)
+    if not exist_mapping:
+        mapping_dict = {'zone_id': zone_obj[0].id, 'sub_zone_id': sub_zone_obj[0].id, 'status': 1,
+                        'creation_date': datetime.datetime.now()}
+        mapping_obj = SubZoneMapping(**mapping_dict)
+        mapping_obj.save()
+        return HttpResponse('Added Successfully')
+    return HttpResponse('Mapping Already Exists')

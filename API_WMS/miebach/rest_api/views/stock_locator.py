@@ -1713,8 +1713,8 @@ def get_stock_summary_serials_excel(filter_params, temp_data, headers, user, req
                        'Reason']
         for n, header in enumerate(exc_headers):
             worksheet.write(0, n, header, bold)
-        dict_list = ['purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
-                     'purchase_order__open_po__sku__sku_brand', 'purchase_order__open_po__sku__sku_category',
+        dict_list = ['sku__sku_code', 'sku__sku_desc',
+                     'sku__sku_brand', 'sku__sku_category',
                      'imei_number']
 
         filter_params = get_filtered_params(filters, dict_list)
@@ -1727,16 +1727,15 @@ def get_stock_summary_serials_excel(filter_params, temp_data, headers, user, req
                                                                                         'reason'))
         qc_damaged.update(damaged_returns)
         if search_term:
-            imei_data = POIMEIMapping.objects.filter(Q(purchase_order__open_po__sku__sku_code__icontains=search_term) |
-                                                     Q(purchase_order__open_po__sku__sku_desc__icontains=search_term) |
-                                                     Q(purchase_order__open_po__sku__sku_brand__icontains=search_term) |
-                                                     Q(
-                                                         purchase_order__open_po__sku__sku_category__icontains=search_term),
-                                                     status=1, purchase_order__open_po__sku__user=user.id,
+            imei_data = POIMEIMapping.objects.filter(Q(sku__sku_code__icontains=search_term) |
+                                                     Q(sku__sku_desc__icontains=search_term) |
+                                                     Q(sku__sku_brand__icontains=search_term) |
+                                                     Q(sku__sku_category__icontains=search_term),
+                                                     status=1, sku__user=user.id,
                                                      **filter_params). \
                 exclude(id__in=dispatched_imeis).values_list(*dict_list)
         else:
-            imei_data = POIMEIMapping.objects.filter(status=1, purchase_order__open_po__sku__user=user.id,
+            imei_data = POIMEIMapping.objects.filter(status=1, sku__user=user.id,
                                                      **filter_params). \
                 exclude(id__in=dispatched_imeis).values_list(*dict_list)
         row = 1
@@ -2414,3 +2413,124 @@ def get_alternative_warehouse_stock(start_index, stop_index, temp_data, search_t
     duration = end_time - st_time
     log.info("total time -- %s" % (duration))
     log.info("process completed")
+
+
+def get_auto_sellable_suggestion_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, status):
+    user_profile = UserProfile.objects.get(user_id=user.id)
+    lis = ['stock__sku__sku_code', 'stock__sku__sku_desc', 'stock__location__location', 'quantity',
+           'location__location', 'quantity']
+    if user.userprofile.user_type == 'marketplace_user':
+        lis.insert(1, 'seller__seller_id')
+        lis.insert(2, 'seller__name')
+    if user.userprofile.industry_type == 'FMCG':
+        lis.insert(3, 'stock__batch_detail__batch_no')
+        lis.insert(4, 'stock__batch_detail__mrp')
+    master_data = SellableSuggestions.objects.filter(stock__sku__user=user.id, status=1)
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if search_term:
+        search_term = search_term.replace('(', '\(').replace(')', '\)')
+        search_query = build_search_term_query(lis, search_term)
+        master_data = master_data.filter(search_query)
+    master_data = master_data.order_by(order_data)
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    for data in master_data[start_index:stop_index]:
+        data_dict = OrderedDict()
+        if user_profile.user_type == 'marketplace_user':
+            data_dict['Seller ID'] = data.seller.seller_id
+            data_dict['Seller Name'] = data.seller.name
+        data_dict['SKU Code'] = data.stock.sku.sku_code
+        data_dict['Product Description'] = data.stock.sku.sku_desc
+        if user_profile.industry_type == 'FMCG':
+            batch_no, mrp = '', 0
+            if data.stock.batch_detail:
+                batch_no = data.stock.batch_detail.batch_no
+                mrp = data.stock.batch_detail.mrp
+            data_dict['Batch No'] = batch_no
+            data_dict['MRP'] = mrp
+        data_dict['Source Location'] = data.stock.location.location
+        data_dict['Suggested Quantity'] = data.quantity
+        data_dict['Destination Location'] = data.location.location
+        data_dict['Quantity'] = data.quantity
+        data_dict['data_id'] = data.id
+        temp_data['aaData'].append(data_dict)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def auto_sellable_confirm(request, user=''):
+    try:
+        request_data = request.POST.dict()
+        log.info('Request Params for Confirm Sellable Suggestions for user %s is %s' %
+                 (user.username, str(request_data)))
+        data_dict = {}
+        for key, value in request_data.iteritems():
+            group_key = key.split(']')[0].replace('data[', '')
+            data_dict.setdefault(group_key, {})
+            data_dict[group_key][key.split('[')[-1].strip(']')] = value
+        data_list = data_dict.values()
+        for index, data in enumerate(data_list):
+            suggestions = SellableSuggestions.objects.filter(id=data['data_id'], status=1)
+            if not suggestions.exists():
+                continue
+            suggestion = suggestions[0]
+            destination = LocationMaster.objects.filter(zone__user=user.id, location=data['Destination Location'])
+            if not destination:
+                return HttpResponse(json.dumps({'message': 'Invalid Destination Location', 'status': 0}))
+            data_list[index]['dest_location'] = destination[0].location
+            try:
+                quantity = float(data['Quantity'])
+            except:
+                return HttpResponse(json.dumps({'message': 'Invalid Quantity', 'status': 0}))
+            seller_master = SellerMaster.objects.filter(user=user.id, seller_id=data['Seller ID'])
+            if not seller_master:
+                return HttpResponse(json.dumps({'message': 'Invalid Seller ID', 'status': 0}))
+            if quantity > float(suggestion.quantity):
+                return HttpResponse(json.dumps({'message': 'Quantity exceeding the Suggested quantity', 'status': 0}))
+            if quantity > float(suggestion.stock.quantity):
+                return HttpResponse(json.dumps({'message': 'Quantity exceeding the stock quantity', 'status': 0}))
+            data_list[index]['seller_id'] = seller_master[0].id
+            data_list[index]['quantity'] = quantity
+            data_list[index]['suggestion_obj'] = suggestion
+        cycle_count = CycleCount.objects.filter(sku__user=user.id).order_by('-cycle')
+        if not cycle_count:
+            cycle_id = 1
+        else:
+            cycle_id = cycle_count[0].cycle + 1
+        for data in data_list:
+            suggestion = data['suggestion_obj']
+            seller_id, batch_no, mrp = '', '', 0
+            if data.get('Seller ID', ''):
+                seller_id = data['Seller ID']
+            if data.get('Batch No', ''):
+                batch_no = ''
+            if data.get('MRP', 0):
+                mrp = float(data['MRP'])
+            status = move_stock_location(cycle_id, suggestion.stock.sku.wms_code, suggestion.stock.location.location,
+                                         data['dest_location'], data['quantity'], user, seller_id,
+                                         batch_no=batch_no, mrp=mrp)
+            if 'success' in status.lower():
+                update_filled_capacity([suggestion.stock.location.location, data['dest_location']], user.id)
+                suggestion.quantity = float(suggestion.quantity) - data['quantity']
+                if suggestion.quantity <= 0:
+                    suggestion.status = 0
+                suggestion.save()
+        return HttpResponse(json.dumps({'message': 'Success', 'status': 1}))
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        result_data = []
+        log.info('Confirm Sellable Suggestions failed for user %s' % (str(user.username)))
+        return HttpResponse(json.dumps({'message': 'Failed', 'status': 0}))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def update_sellable_suggestions(request, user=''):
+    update_auto_sellable_data(user)
+    return HttpResponse("Success")

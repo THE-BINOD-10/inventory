@@ -1317,7 +1317,9 @@ def get_mapping_values(request, user=''):
     else:
         ean_number = 0
         sku_supplier = SKUSupplier.objects.filter(sku__wms_code=wms_code, supplier_id=supplier_id, sku__user=user.id)
-    data = {}
+    sku_master = SKUMaster.objects.get(wms_code=wms_code, user=user.id)
+    data = {'supplier_code': '', 'price': sku_master.cost_price, 'sku': sku_master.sku_code,
+            'ean_number': 0, 'measurement_unit': sku_master.measurement_type}
     if sku_supplier:
         data['supplier_code'] = sku_supplier[0].supplier_code
         data['price'] = sku_supplier[0].price

@@ -8033,6 +8033,8 @@ def get_grn_level_data(request, user=''):
     data_dict = ''
     invoice_no = ''
     invoice_date = ''
+    dc_number = ''
+    dc_date = ''
     po_data = []
     try:
         po_number = request.GET['po_number']
@@ -8053,7 +8055,7 @@ def get_grn_level_data(request, user=''):
         for data in results:
             receipt_type = ''
             quantity = data.received_quantity
-            invoice_date = data.updation_date
+            #invoice_date = data.updation_date
             if receipt_no:
                 po_data_dict = {}
                 seller_summary_objs = data.sellerposummary_set.filter(receipt_number=receipt_no)
@@ -8061,10 +8063,13 @@ def get_grn_level_data(request, user=''):
                 for seller_summary_obj in seller_summary_objs:
                     if seller_summary_obj.invoice_date:
                         invoice_date = seller_summary_obj.invoice_date
+                    if seller_summary_obj.challan_date:
+                        dc_date = seller_summary_obj.challan_date
                     po_data_dict['sku_code'] = data.open_po.sku.sku_code
                     po_data_dict['sku_desc'] = data.open_po.sku.sku_desc
                     po_data_dict['quantity'] = seller_summary_obj.quantity
                     invoice_no = seller_summary_obj.invoice_number
+                    dc_number = seller_summary_obj.challan_number
                     po_data_dict['price'] = open_data.price
                     po_data_dict['cgst_tax'] = open_data.cgst_tax
                     po_data_dict['sgst_tax'] = open_data.sgst_tax
@@ -8140,7 +8145,10 @@ def get_grn_level_data(request, user=''):
             if receipt_no:
                 po_reference = '%s/%s' % (po_reference, receipt_no)
             order_date = datetime.datetime.strftime(purchase_order.open_po.creation_date, "%d-%m-%Y")
-            invoice_date = datetime.datetime.strftime(invoice_date, "%m/%d/%Y")
+            if invoice_date:
+                invoice_date = datetime.datetime.strftime(invoice_date, "%m/%d/%Y")
+            if dc_date:
+                dc_date = datetime.datetime.strftime(dc_date, "%m/%d/%Y")
             user_profile = UserProfile.objects.get(user_id=user.id)
             w_address, company_address = get_purchase_company_address(user_profile)#user_profile.address
 
@@ -8154,7 +8162,9 @@ def get_grn_level_data(request, user=''):
                        'display': 'display-none', 'receipt_type': receipt_type, 'title': title,
                        'total_received_qty': total_qty, 'invoice_date': invoice_date, 'total_tax': total_tax,
                        'company_address': company_address, 'supplier_id': supplier_id,
-                                        'supplier_name': supplier_name}))
+                       'supplier_name': supplier_name, 'dc_number': dc_number,
+                        'dc_date': dc_date
+                    }))
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -8199,7 +8209,8 @@ def update_existing_grn(request, user=''):
     try:
         field_mapping = {'exp_date': 'expiry_date', 'mfg_date': 'manufactured_date', 'quantity': 'quantity',
                          'discount_percentage': 'discount_percent', 'batch_no': 'batch_no',
-                         'mrp': 'mrp', 'buy_price': 'buy_price', 'invoice_number': 'invoice_number', 'invoice_date': 'invoice_date'}
+                         'mrp': 'mrp', 'buy_price': 'buy_price', 'invoice_number': 'invoice_number',
+                         'invoice_date': 'invoice_date', 'dc_date': 'challan_date', 'dc_number': 'challan_number'}
         zero_index_keys = ['invoice_number', 'invoice_date']
         for ind in range(0, len(myDict['confirm_key'])):
             model_name = myDict['confirm_key'][ind].strip('_id')
@@ -8227,7 +8238,7 @@ def update_existing_grn(request, user=''):
                                 model_obj.batch_detail.save()
                                 create_update_table_history(user, model_obj.id, model_name, field_mapping[key],
                                                             prev_val, value)
-                            else:
+                            elif not value:
                                 setattr(model_obj.batch_detail, field_mapping[key], None)
                                 model_obj.batch_detail.save()
                                 create_update_table_history(user, model_obj.id, model_name, field_mapping[key], prev_val, value)
@@ -8273,7 +8284,7 @@ def update_existing_grn(request, user=''):
                                                         prev_val, value)
                     else:
                         batch_dict[field_mapping[key]] = value
-                elif key == 'invoice_date':
+                elif key in ['invoice_date', 'dc_date']:
                     if getattr(model_obj, field_mapping[key]):
                         prev_val = datetime.datetime.strftime(getattr(model_obj, field_mapping[key]), '%m/%d/%Y')
                         if value != prev_val and value:
@@ -8282,11 +8293,15 @@ def update_existing_grn(request, user=''):
                             model_obj.save()
                             create_update_table_history(user, model_obj.id, model_name, field_mapping[key],
                                                         prev_val, value)
-                        else:
+                        elif not value:
                             setattr(model_obj, field_mapping[key], None)
                             model_obj.save()
                             create_update_table_history(user, model_obj.id, model_name, field_mapping[key], prev_val, value)
-                elif key == 'invoice_number':
+                    elif value:
+                        setattr(model_obj, field_mapping[key], datetime.datetime.strptime(value, '%m/%d/%Y'))
+                        model_obj.save()
+                        create_update_table_history(user, model_obj.id, model_name, field_mapping[key], '', value)
+                elif key in ['invoice_number', 'dc_number']:
                     prev_val = getattr(model_obj, field_mapping[key])
                     if prev_val != value:
                         setattr(model_obj, field_mapping[key], value)

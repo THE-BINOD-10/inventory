@@ -6405,9 +6405,12 @@ def get_supplier_invoice_data(start_index, stop_index, temp_data, search_term, o
                 temp_qty -= processed_val
             rem_quantity += temp_qty
             quantity = rem_quantity
-            tot_price = price * quantity
             tot_tax_perc = seller_sum.purchase_order.open_po.cgst_tax +\
                            seller_sum.purchase_order.open_po.sgst_tax + seller_sum.purchase_order.open_po.igst_tax
+            if seller_sum.batch_detail:
+                price = seller_sum.batch_detail.buy_price
+                tot_tax_perc = seller_sum.batch_detail.tax_percent
+            tot_price = price * quantity
             tot_tax = float(tot_price * tot_tax_perc) / 100
             tot_amt += (tot_price + tot_tax)
 
@@ -6436,6 +6439,7 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
            #'purchase_order__open_po__order_quantity', 'quantity', 'date_only', 'id', 'challan_number']
     lis = ['challan_number', 'challan_number', 'purchase_order__open_po__supplier__name', 'challan_number',
            'challan_number', 'challan_number', 'challan_number', 'challan_number']
+    filt_lis = ['challan_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name']
     user_filter = {'purchase_order__open_po__sku__user': user.id, 'order_status_flag': 'po_challans'}
     result_values = ['challan_number', 'receipt_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name']
                      #'purchase_order__creation_date', 'id']
@@ -6453,7 +6457,7 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
                                 values_list('seller_po_summary_id', flat=True)
 
     if search_term:
-        lis1 = copy.deepcopy(lis)
+        lis1 = copy.deepcopy(filt_lis)
         if 'date_only' in lis:
             lis1 = map(lambda x: x if x not in ['date_only'] else field_mapping['date_only'], lis1)
 
@@ -6504,9 +6508,12 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
             rem_quantity += temp_qty
             price = seller_sum.purchase_order.open_po.price
             quantity = rem_quantity
-            tot_price = price * quantity
             tot_tax_perc = seller_sum.purchase_order.open_po.cgst_tax +\
                            seller_sum.purchase_order.open_po.sgst_tax + seller_sum.purchase_order.open_po.igst_tax
+            if seller_sum.batch_detail:
+                price = seller_sum.batch_detail.buy_price
+                tot_tax_perc = seller_sum.batch_detail.tax_percent
+            tot_price = price * quantity
             tot_tax = float(tot_price * tot_tax_perc) / 100
             tot_amt += (tot_price + tot_tax)
 
@@ -6531,7 +6538,7 @@ def get_processed_po_data(start_index, stop_index, temp_data, search_term, order
 
     user_profile = UserProfile.objects.get(user_id=user.id)
     admin_user = get_priceband_admin_user(user)
-    lis = ['purchase_order__id', 'purchase_order__id', 'purchase_order__open_po__supplier__name',
+    lis = ['purchase_order__id', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name',
            'purchase_order__open_po__order_quantity', 'quantity', 'date_only', 'id']
     user_filter = {'purchase_order__open_po__sku__user': user.id, 'order_status_flag': 'processed_pos'}
     result_values = ['receipt_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name']
@@ -6545,7 +6552,7 @@ def get_processed_po_data(start_index, stop_index, temp_data, search_term, order
             lis1 = map(lambda x: x if x not in ['date_only'] else field_mapping['date_only'], lis1)
 
         search_term = search_term.replace('(', '\(').replace(')', '\)')
-        search_query = build_search_term_query(lis1, search_term)
+        search_query = build_search_term_query(lis1[1:5], search_term)
         master_data = SellerPOSummary.objects.filter(search_query, **user_filter)\
                             .values(*result_values).distinct().annotate(total_received=Sum('quantity'),\
                             total_ordered=Sum('purchase_order__open_po__order_quantity'),\
@@ -6585,9 +6592,12 @@ def get_processed_po_data(start_index, stop_index, temp_data, search_term, order
         for seller_sum in seller_summary_obj:
             price = seller_sum.purchase_order.open_po.price
             quantity = seller_sum.quantity
-            tot_price = price * quantity
             tot_tax_perc = seller_sum.purchase_order.open_po.cgst_tax +\
                            seller_sum.purchase_order.open_po.sgst_tax + seller_sum.purchase_order.open_po.igst_tax
+            if seller_sum.batch_detail:
+                price = seller_sum.batch_detail.buy_price
+                tot_tax_perc = seller_sum.batch_detail.tax_percent
+            tot_price = price * quantity
             tot_tax = float(tot_price * tot_tax_perc) / 100
             tot_amt += (tot_price + tot_tax)
 
@@ -6768,6 +6778,20 @@ def generate_supplier_invoice(request, user=''):
                         sgst_tax = open_po.sgst_tax
                         igst_tax = open_po.igst_tax
                         utgst_tax = open_po.utgst_tax
+                        if seller_sum.batch_detail:
+                            unit_price = seller_sum.batch_detail.buy_price
+                            temp_tax_percent = seller_sum.batch_detail.tax_percent
+                            if open_po.supplier.tax_type == 'intra_state':
+                                temp_tax_percent = temp_tax_percent / 2
+                                cgst_tax = truncate_float(temp_tax_percent, 1)
+                                sgst_tax = truncate_float(temp_tax_percent, 1)
+                                igst_tax = 0
+                                utgst_tax = 0
+                            else:
+                                igst_tax = temp_tax_percent
+                                cgst_tax = 0
+                                sgst_tax = 0
+                                utgst_tax = 0
                         cgst_amt = float((unit_price * qty * cgst_tax) / 100)
                         sgst_amt = float((unit_price * qty * sgst_tax) / 100)
                         igst_amt = float((unit_price * qty * igst_tax) / 100)

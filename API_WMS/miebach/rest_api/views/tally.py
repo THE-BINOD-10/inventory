@@ -95,8 +95,8 @@ class TallyAPI:
             order_no = obj['invoice_number'] if obj['invoice_number'] else obj['order__order_id']
             order_obj = OrderDetail.objects.get(id=obj['order_id'])
             invoice_date = obj['creation_date']
-            if COD['invoice_date']:
-                invoice_date = obj['invoice_date']
+            #if COD['invoice_date']:
+            #    invoice_date = obj['invoice_date']
             pick_number = obj['pick_number']
             if int(pick_number) == 1:
                 pick_number = ''

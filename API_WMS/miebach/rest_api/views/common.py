@@ -47,6 +47,7 @@ from barcodes import *
 log = init_logger('logs/common.log')
 init_log = init_logger('logs/integrations.log')
 log_qssi = init_logger('logs/qssi_order_status_update.log')
+log_sellable = init_logger('logs/auto_sellable_suggestions.log')
 
 
 # Create your views here.
@@ -248,6 +249,12 @@ def add_user_permissions(request, response_data, user=''):
             user_type = 'central_admin'
         else:
             user_type = 'admin_sub_user'
+    elif request_user_profile.warehouse_type == 'SM_MARKET_ADMIN':
+        user_type = 'sm_market_admin'
+    elif request_user_profile.warehouse_type == 'SM_PURCHASE_ADMIN':
+        user_type = 'sm_purchase_admin'
+    elif request_user_profile.warehouse_type == 'SM_DESIGN_ADMIN':
+        user_type = 'sm_design_admin'
     # elif user_profile.warehouse_type == 'CENTRAL_ADMIN':
     #     user_type = 'default'
     else:
@@ -504,6 +511,7 @@ data_datatable = {  # masters
     'StockSummaryAlt': 'get_stock_summary_size', 'SellerStockTable': 'get_seller_stock_data', \
     'BatchLevelStock': 'get_batch_level_stock', 'WarehouseStockAlternative': 'get_alternative_warehouse_stock',
     'Available+ASN': 'get_availasn_stock',
+    'AutoSellableSuggestion': 'get_auto_sellable_suggestion_data',
     # outbound
     'SKUView': 'get_batch_data', 'OrderView': 'get_order_results', 'OpenOrders': 'open_orders', \
     'PickedOrders': 'open_orders', 'BatchPicked': 'open_orders', \
@@ -2638,7 +2646,7 @@ def get_mapping_imeis(user, dat, seller_summary, sor_id='', sell_ids=''):
         if not stop_index:
             stop_index = 0
     imeis = list(
-        OrderIMEIMapping.objects.filter(order__user=user.id, order_id=dat.id, sor_id=sor_id).order_by('creation_date'). \
+        OrderIMEIMapping.objects.filter(sku__user=user.id, order_id=dat.id, sor_id=sor_id).order_by('creation_date'). \
         values_list('po_imei__imei_number', flat=True))
     if start_index or stop_index:
         stop_index = int(start_index) + int(stop_index)
@@ -3329,14 +3337,24 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     asn_qs = ASNStockDetail.objects.filter(**ints_filters)
     intr_obj_100days_qs = asn_qs.exclude(arriving_date__lte=today_filter).filter(arriving_date__lte=hundred_day_filter)
     intr_obj_100days_ids = intr_obj_100days_qs.values_list('id', flat=True)
-    asn_res_100days_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
+    asnres_det_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
+    asn_res_100days_qs = asnres_det_qs.filter(orderdetail__isnull=False)  # Reserved Quantity
     asn_res_100days_qty = dict(asn_res_100days_qs.values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
+    asn_blk_100days_qs = asnres_det_qs.filter(orderdetail__isnull=True)  # Blocked Quantity
+    asn_blk_100days_qty = dict(
+        asn_blk_100days_qs.values_list('asnstock__sku__sku_code').annotate(in_res=Sum('reserved_qty')))
 
     needed_stock_data['asn_quantities'] = dict(
         intr_obj_100days_qs.values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
+    needed_stock_data['asn_blocked_quantities'] = {}
     for k, v in needed_stock_data['asn_quantities'].items():
         if k in asn_res_100days_qty:
-            needed_stock_data['asn_quantities'][k] = needed_stock_data['asn_quantities'][k] - asn_res_100days_qty[k]
+            asn_qty = needed_stock_data['asn_quantities'][k]
+            asn_res_qty = asn_res_100days_qty.get(k, 0)
+            asn_blk_qty = asn_blk_100days_qty.get(k, 0)
+            needed_stock_data['asn_quantities'][k] = asn_qty - asn_res_qty - asn_blk_qty
+            needed_stock_data['asn_blocked_quantities'][k] = asn_blk_qty
+
     data = get_styles_data(user, product_styles, sku_master, start, stop, request, customer_id=customer_id,
                            customer_data_id=customer_data_id, is_file=is_file, prices_dict=prices_dict,
                            price_type=price_type, custom_margin=custom_margin, specific_margins=specific_margins,
@@ -4557,7 +4575,7 @@ def get_imei_data(request, user=''):
     imei = request.GET.get('imei')
     if not imei:
         return HttpResponse(json.dumps({'imei': imei, 'message': 'Please scan imei number'}))
-    po_imei_mapping = POIMEIMapping.objects.filter(purchase_order__open_po__sku__user=user.id,
+    po_imei_mapping = POIMEIMapping.objects.filter(sku__user=user.id,
                                                    imei_number=imei).order_by('creation_date')
     if not po_imei_mapping:
         return HttpResponse(json.dumps({'imei': imei, 'message': 'Invalid IMEI Number'}))
@@ -4580,7 +4598,7 @@ def get_imei_data(request, user=''):
                                        'supplier_name': purchase_order.open_po.supplier.name,
                                        'received_date': get_local_date(user, po_mapping.creation_date),
                                        'supplier_address': purchase_order.open_po.supplier.address}
-            order_mappings = OrderIMEIMapping.objects.filter(po_imei_id=po_mapping.id, order__user=user.id).order_by(
+            order_mappings = OrderIMEIMapping.objects.filter(po_imei_id=po_mapping.id, sku__user=user.id).order_by(
                 '-creation_date')
             if not order_mappings:
                 data.append(imei_data)
@@ -4986,7 +5004,7 @@ def get_purchase_order_data(order):
     return order_data
 
 
-def check_get_imei_details(imei, wms_code, user_id, check_type='', order=''):
+def check_get_imei_details(imei, wms_code, user_id, check_type='', order='', job_order=''):
     status = ''
     data = {}
     po_mapping = []
@@ -4996,35 +5014,41 @@ def check_get_imei_details(imei, wms_code, user_id, check_type='', order=''):
             status = get_serial_limit(user_id, imei)
             if status:
                 return po_mapping, status, data
-        check_params = {'imei_number': imei, 'purchase_order__open_po__sku__user': user_id}
-        st_purchase = STPurchaseOrder.objects.filter(open_st__sku__user=user_id, open_st__sku__wms_code=wms_code). \
-            values_list('po_id', flat=True)
-        check_params1 = {'imei_number': imei, 'purchase_order_id__in': st_purchase}
+        check_params = {'imei_number': imei, 'sku__user': user_id}
+        #st_purchase = STPurchaseOrder.objects.filter(open_st__sku__user=user_id, open_st__sku__wms_code=wms_code). \
+        #    values_list('po_id', flat=True)
+        #check_params1 = {'imei_number': imei, 'purchase_order_id__in': st_purchase}
 
         po_mapping = POIMEIMapping.objects.filter(**check_params)
-        mapping = POIMEIMapping.objects.filter(**check_params1)
-        po_mapping = po_mapping | mapping
+        #mapping = POIMEIMapping.objects.filter(**check_params1)
+        #po_mapping = po_mapping | mapping
         po_mapping = po_mapping.order_by('-creation_date')
         if po_mapping:
-            order_data = get_purchase_order_data(po_mapping[0].purchase_order)
+            #order_data = get_purchase_order_data(po_mapping[0].purchase_order)
+            order_wms_code = po_mapping[0].sku.wms_code
             order_imei_mapping = OrderIMEIMapping.objects.filter(po_imei_id=po_mapping[0].id, status=1)
             if check_type == 'purchase_check':
                 order_imei_mapping = OrderIMEIMapping.objects.filter(po_imei_id=po_mapping[0].id, status=1)
 
                 if po_mapping[0].status == 1 and not order_imei_mapping:
-                    purchase_order_id = get_po_reference(po_mapping[0].purchase_order)
-                    status = '%s is already mapped with %s' % (str(imei), purchase_order_id)
-                elif not (order_data['wms_code'] == wms_code):
-                    status = '%s will only maps with %s' % (str(imei), order_data['wms_code'])
+                    if po_mapping[0].purchase_order:
+                        purchase_order_id = get_po_reference(po_mapping[0].purchase_order)
+                        status = '%s is already mapped with purchase_order %s' % (str(imei), purchase_order_id)
+                    elif po_mapping[0].job_order:
+                        status = '%s is already mapped with job order %s' % (str(imei),
+                                                                             str(po_mapping[0].job_order.job_code))
+                    else:
+                        status = '%s is already in Stock' % str(imei)
+                elif not (order_wms_code == wms_code):
+                    status = '%s will only maps with %s' % (str(imei), order_wms_code)
             elif check_type == 'order_mapping':
                 if not wms_code:
-                    wms_code = order_data['wms_code']
+                    wms_code = order_wms_code
+                elif not (order_wms_code == wms_code):
+                    status = '%s will only maps with %s' % (str(imei), order_wms_code)
                 data['wms_code'] = wms_code
                 if order_imei_mapping:
-                    if order and order_imei_mapping[0].order_id == order.id:
-                        status = str(imei) + ' is already mapped with this order'
-                    else:
-                        status = str(imei) + ' is already mapped with another order'
+                    status = validate_order_imei_mapping_status(imei, order_imei_mapping, order, job_order)
             elif check_type == 'shipped_check':
                 order_imei_mapping = OrderIMEIMapping.objects.filter(po_imei_id=po_mapping[0].id, status=1)
                 if order_imei_mapping:
@@ -5768,6 +5792,7 @@ def get_stock_receipt_number(user):
 
 @csrf_exempt
 def insert_po_mapping(imei_nos, data, user_id):
+    ''' Inserting IMEI Mapping throught PO'''
     imei_list = []
     imei_nos = list(set(imei_nos.split(',')))
     order_data = get_purchase_order_data(data)
@@ -5786,11 +5811,40 @@ def insert_po_mapping(imei_nos, data, user_id):
                 ReturnsIMEIMapping.objects.filter(order_imei__po_imei_id__in=po_mapping_ids, imei_status=1).update(
                     imei_status=0)
             imei_mapping = {'purchase_order_id': data.id, 'imei_number': imei, 'status': 1,
+                            'sku_id': order_data['sku'].id,
                             'creation_date': datetime.datetime.now(),
                             'updation_date': datetime.datetime.now()}
             po_imei = POIMEIMapping(**imei_mapping)
             po_imei.save()
             all_po_labels.filter(purchase_order_id=data.id, label=imei, status=1).update(status=0)
+        imei_list.append(imei)
+
+
+@csrf_exempt
+def insert_jo_mapping(imei_nos, data, user_id):
+    ''' Inserting IMEI Mapping throught JO'''
+    imei_list = []
+    imei_nos = list(set(imei_nos.split(',')))
+    all_po_labels = []
+    all_po_labels = POLabels.objects.filter(sku__user=user_id, status=1)
+    for imei in imei_nos:
+        if not imei:
+            continue
+        po_mapping, status, imei_data = check_get_imei_details(imei, data.product_code.wms_code, user_id,
+                                                               check_type='purchase_check')
+        if not status and (imei not in imei_list):
+            if po_mapping:
+                po_mapping_ids = list(po_mapping.values_list('id', flat=True))
+                OrderIMEIMapping.objects.filter(po_imei_id__in=po_mapping_ids, status=1).update(status=0)
+                ReturnsIMEIMapping.objects.filter(order_imei__po_imei_id__in=po_mapping_ids, imei_status=1).update(
+                    imei_status=0)
+            imei_mapping = {'job_order_id': data.id, 'imei_number': imei, 'status': 1,
+                            'sku_id': data.product_code.id,
+                            'creation_date': datetime.datetime.now(),
+                            'updation_date': datetime.datetime.now()}
+            po_imei = POIMEIMapping(**imei_mapping)
+            po_imei.save()
+            all_po_labels.filter(job_order_id=data.id, label=imei, status=1).update(status=0)
         imei_list.append(imei)
 
 
@@ -6450,6 +6504,7 @@ def order_allocate_stock(request, user, stock_data=[], mapping_type=''):
         log.info('Auto Allocate Stock function for %s and params are %s' % (str(user.username), str(stock_data)))
         picklist_order_mapping = {}
         all_skus = stock_data.keys()
+        picklist_exclude_zones = get_exclude_zones(user)
         all_order_mapping = OrderMapping.objects.none()
         if mapping_type:
             mapping_dict = {'mapping_type': mapping_type, 'order__sku_id__in': all_skus}
@@ -6468,7 +6523,7 @@ def order_allocate_stock(request, user, stock_data=[], mapping_type=''):
         seller_stocks = SellerStock.objects.filter(seller__user=user.id, quantity__gt=0, stock__sku_id__in=all_skus). \
             values('stock_id', 'seller_id')
         sku_stocks = StockDetail.objects.prefetch_related('sku', 'location'). \
-            exclude(Q(receipt_number=0) | Q(location__zone__zone__in=PICKLIST_EXCLUDE_ZONES)). \
+            exclude(Q(receipt_number=0) | Q(location__zone__zone__in=picklist_exclude_zones)). \
             filter(sku__user=user.id, quantity__gt=0, sku_id__in=all_skus)
 
         for sku_id, mapping_ids in stock_data.iteritems():
@@ -6933,13 +6988,16 @@ def create_new_supplier(user, supp_name, supp_email, supp_phone, supp_address, s
 def create_order_pos(user, order_objs):
     ''' Creating Sampling PO for orders'''
     po_id = ''
+    customer_id = ''
     try:
         cust_supp_mapping = {}
         user_profile = UserProfile.objects.get(user_id=user.id)
         po_id = get_purchase_order_id(user)
         for order_obj in order_objs:
-            if order_obj.customer_id and str(order_obj.customer_id) not in cust_supp_mapping.keys():
-                cust_master = CustomerMaster.objects.filter(customer_id=order_obj.customer_id, user=user.id)
+            if order_obj.customer_id:
+                customer_id = str(int(order_obj.customer_id))
+            if customer_id not in cust_supp_mapping.keys():
+                cust_master = CustomerMaster.objects.filter(customer_id=customer_id, user=user.id)
                 if cust_master:
                     cust_master = cust_master[0]
                     master_mapping = MastersMapping.objects.filter(master_id=cust_master.id,
@@ -6955,13 +7013,13 @@ def create_order_pos(user, order_objs):
                             cust_supp_mapping[str(cust_master.customer_id)] = supplier_id
                     else:
                         cust_supp_mapping[str(cust_master.customer_id)] = master_mapping[0].mapping_id
-            if not cust_supp_mapping.get(str(order_obj.customer_id), ''):
+            if not cust_supp_mapping.get(customer_id, ''):
                 continue
             taxes = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0}
             cust_order_summary = order_obj.customerordersummary_set.filter()
             if cust_order_summary:
                 taxes = cust_order_summary.values('cgst_tax', 'sgst_tax', 'igst_tax', 'utgst_tax')[0]
-            supplier_id = cust_supp_mapping[str(order_obj.customer_id)]
+            supplier_id = cust_supp_mapping[str(customer_id)]
             purchase_data = copy.deepcopy(PO_DATA)
             po_sku_data = copy.deepcopy(PO_SUGGESTIONS_DATA)
             sku = order_obj.sku
@@ -6984,8 +7042,12 @@ def create_order_pos(user, order_objs):
             order.save()
             OrderMapping.objects.create(mapping_id=order.id, mapping_type='PO', order_id=order_obj.id,
                                         creation_date=datetime.datetime.now())
-        log.info("Sampling PO Creation for the user %s is PO number %s created for Order Id %s " % (user.username,
+        if len(order_objs):
+            log.info("Sampling PO Creation for the user %s is PO number %s created for Order Id %s " % (user.username,
                                                                 str(po_id), str(order_objs[0].original_order_id)))
+        else:
+            log.info("Sampling PO Creation for the user %s is PO number %s created for Order Id %s " % (user.username,
+                                                                str(po_id), '' ))
         check_purchase_order_created(user, po_id)
     except Exception as e:
         if po_id:
@@ -6994,7 +7056,6 @@ def create_order_pos(user, order_objs):
         log.debug(traceback.format_exc())
         log.info('Sampling PO Creation failed for %s and params are %s and error statement is %s' % (
             str(user.username), str(order_objs), str(e)))
-
 
 def get_customer_based_price(customer_obj, price, mrp,is_sellingprice='', user_id=''):
     if is_sellingprice == '':
@@ -7767,6 +7828,9 @@ def check_stock_available_quantity(stocks, user, stock_ids=None):
 @csrf_exempt
 @login_required
 def save_webpush_id(request):
+    null = 'null'
+    true = True
+    false = False
     wpn_obj = eval(request.body)
     wpn_id = wpn_obj.get('wpn_id', '')
     if not wpn_id:
@@ -7858,6 +7922,156 @@ def get_sku_ean_list(sku):
     return eans_list
 
 
+def get_exclude_zones(user):
+    exclude_zones = ['DAMAGED_ZONE', 'QC_ZONE', 'Non Sellable Zone']
+    sub_zones = SubZoneMapping.objects.filter(zone__zone__in=exclude_zones, zone__user=user.id).\
+        values_list('sub_zone__zone', flat=True)
+    if sub_zones:
+        exclude_zones = list(chain(exclude_zones, sub_zones))
+    return exclude_zones
+
+
+def get_all_zones(user, zone=''):
+    """ Send Zones under the mentioned Zones"""
+    zone_filter = {'user': user.id}
+    all_zones = []
+    if zone:
+        zone_filter['zone'] = zone
+    zone_master = ZoneMaster.objects.filter(**zone_filter)
+    all_zones = list(zone_master.values_list('zone', flat=True))
+    sub_zones = SubZoneMapping.objects.filter(zone__user=user.id, zone__zone__in=all_zones).\
+                                        values_list('sub_zone__zone', flat=True)
+    if sub_zones.exists():
+        all_zones = list(chain(all_zones, list(sub_zones)))
+    return all_zones
+
+
+def update_existing_suggestions(user):
+    ''' Updating Existing Suggestions'''
+    suggestions = SellableSuggestions.objects.filter(stock__sku__user=user.id, status=1)
+    for suggestion in suggestions:
+        if float(suggestion.stock.quantity) == float(suggestion.quantity):
+            continue
+        suggestion.quantity = suggestion.stock.quantity
+        if suggestion.quantity <= 0:
+            suggestion.status = 0
+        suggestion.save()
+
+
+def update_auto_sellable_data(user):
+    ''' Create Sellable Suggestions '''
+    from rest_api.views.inbound import get_purchaseorder_locations, get_remaining_capacity, get_stock_locations
+    creation_date = datetime.datetime.now()
+    industry_type = user.userprofile.industry_type
+    user_type = user.userprofile.user_type
+    log_sellable.info('Updating the Sellable Auto suggestions for user %s at %s' %
+             (user.username, get_local_date(user,creation_date)))
+    try:
+        picklist_exclude_zones = get_exclude_zones(user)
+        non_sellable_zones = get_all_zones(user, zone='Non Sellable Zone')
+        non_sellable_stock = StockDetail.objects.filter(sku__user=user.id, location__zone__zone__in=non_sellable_zones,
+                                                        quantity__gt=0)
+        non_sellable_skus = non_sellable_stock.values_list('sku_id', flat=True)
+        zero_quantity = StockDetail.objects.filter(sku__user=user.id, quantity=0, sku_id__in=non_sellable_skus).\
+                                            exclude(location__zone__zone__in=picklist_exclude_zones)
+
+        zero_quantity_skus = list(zero_quantity.values_list('sku_id', flat=True))
+        remaining_skus = list(SKUMaster.objects.filter(user=user.id).values_list('id', flat=True))
+        sugg_skus = set(non_sellable_skus).intersection(zero_quantity_skus + remaining_skus)
+
+        # Updating already created suggestion Entries
+        update_existing_suggestions(user)
+        for sugg_sku in sugg_skus:
+            sugg_stock = non_sellable_stock.filter(sku_id=sugg_sku)
+            exist_obj = SellableSuggestions.objects.filter(stock_id__in=sugg_stock.values_list('id', flat=True),
+                                                           status=1)
+            if exist_obj.exists():
+                continue
+            if industry_type == 'FMCG':
+                last_used = zero_quantity.filter(batch_detail__isnull=False, sku_id=sugg_sku).order_by('updation_date')
+                if last_used.exists():
+                    last_mrp = last_used[0].batch_detail.mrp
+                    mrp_stock = sugg_stock.filter(batch_detail__mrp=last_mrp)
+                    if mrp_stock:
+                        sugg_stock = mrp_stock
+                    else:
+                        other_mrp_obj = sugg_stock.filter(batch_detail__isnull=False)
+                        if other_mrp_obj.exists():
+                            sugg_stock = sugg_stock.filter(batch_detail__mrp=other_mrp_obj[0].batch_detail.mrp)
+            if sugg_stock:
+                suggsting_zone_list = get_all_zones(user, sugg_stock[0].location.zone.zone)
+                sugg_stock = sugg_stock.filter(location__zone__zone__in=suggsting_zone_list)
+            for stock in sugg_stock:
+                sellable_dict = {'stock_id': stock.id, 'status': 1}
+                quantity = stock.quantity
+                if user_type == 'marketplace_user':
+                    seller_stock = stock.sellerstock_set.filter(quantity__gt=0)
+                    if not seller_stock.exists():
+                        continue
+                    sellable_dict['seller_id'] = seller_stock[0].seller_id
+                    quantity = seller_stock[0].quantity
+                sellable_suggestions = SellableSuggestions.objects.filter(**sellable_dict)
+                if not sellable_suggestions:
+                    sellable_dict['quantity'] = quantity
+                    put_zone = 'DEFAULT'
+                    if stock.sku.zone:
+                        put_zone = stock.sku.zone.zone
+                    temp_dict = {'sku_group': stock.sku.sku_group, 'wms_code': stock.sku.wms_code,
+                          'sku': stock.sku, 'seller_id': sellable_dict.get('seller_id', ''),
+                                 'data': '', 'user': user.id}
+                    sellable_dict['creation_date'] = creation_date
+                    locations = get_purchaseorder_locations(put_zone, temp_dict)
+                    received_quantity = sellable_dict['quantity']
+                    for location in locations:
+                        location_quantity, received_quantity = get_remaining_capacity(location, received_quantity,
+                                                                                      put_zone,
+                                                                                      '', user.id)
+                        if not location_quantity:
+                            continue
+                        sellable_dict1 = copy.deepcopy(sellable_dict)
+                        sellable_dict1['quantity'] = location_quantity
+                        sellable_dict1['location_id'] = location.id
+                        SellableSuggestions.objects.create(**sellable_dict1)
+    except Exception as e:
+        import traceback
+        log_sellable.debug(traceback.format_exc())
+        result_data = []
+        log_sellable.info('Create Sellable Auto Suggestions failed for user %s' % (str(user.username)))
+
+
+def validate_order_imei_mapping_status(imei, order_imei_mapping, order, job_order):
+    ''' Validate IMEI Order status'''
+    if order and order_imei_mapping[0].order:
+        if order_imei_mapping[0].order_id == order.id:
+            status = str(imei) + ' is already mapped with this order'
+        else:
+            status = str(imei) + ' is already mapped with another order'
+    elif job_order and order_imei_mapping[0].jo_material:
+        if int(order_imei_mapping[0].jo_material.job_order.job_code) == int(job_order.job_code):
+            status = str(imei) + ' is already mapped with this order'
+        else:
+            status = str(imei) + ' is already mapped with another order'
+    else:
+        status = str(imei) + 'is already Mapped'
+
+
+@csrf_exempt
+@get_admin_user
+@login_required
+def check_custom_generated_label(request, user=''):
+    status = ''
+    imei = request.GET.get('imei', '')
+    sku_code = request.GET.get('sku_code', '')
+    po_mapping, status, imei_data = check_get_imei_details(imei, sku_code, user.id, check_type='purchase_check')
+    if not status:
+        po_labels = POLabels.objects.filter(sku__user=user.id, label=imei)
+        if po_labels:
+            status = 'Label already used'
+    if not status:
+        status = 'Success'
+    return HttpResponse(json.dumps({'message': status}))
+
+
 def create_update_table_history(user, model_id, model_name, model_field, prev_val, new_val):
     table_history = TableUpdateHistory.objects.filter(user_id=user.id, model_id=model_id,
                                                      model_name=model_name, model_field=model_field)
@@ -7865,4 +8079,3 @@ def create_update_table_history(user, model_id, model_name, model_field, prev_va
         TableUpdateHistory.objects.create(user_id=user.id, model_id=model_id,
                                          model_name=model_name, model_field=model_field,
                                          previous_val=prev_val, updated_val=new_val)
-

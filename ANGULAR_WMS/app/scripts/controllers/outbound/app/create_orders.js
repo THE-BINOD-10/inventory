@@ -124,12 +124,12 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
   vm.selected = {}
 
-  vm.buyStyle={height:143}
+  vm.buyStyle={height:156}
   vm.add_height = function(){
     if (vm.buy_price) {
-      vm.buyStyle={height:163}
+      vm.buyStyle={height:175}
     } else {
-      vm.buyStyle={height:143}
+      vm.buyStyle={height:156}
     }
   }
 

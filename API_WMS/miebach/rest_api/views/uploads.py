@@ -399,6 +399,7 @@ def myntra_order_tax_calc(key, value, order_mapping, order_summary_dict, row_idx
 def check_and_save_order(cell_data, order_data, order_mapping, user_profile, seller_order_dict, order_summary_dict,
                          sku_ids,
                          sku_masters_dict, all_sku_decs, exist_created_orders, user):
+    order_detail = ''
     order_obj_list = []
     sku_codes = str(cell_data).split(',')
     for cell_data in sku_codes:
@@ -407,7 +408,6 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
         order_data['sku_id'] = sku_masters_dict[cell_data]
         if not order_data.get('title', ''):
             order_data['title'] = all_sku_decs.get(order_data['sku_id'], '')
-
         order_obj = OrderDetail.objects.filter(order_id=order_data['order_id'], \
             order_code=order_data.get('order_code', ''), user=user.id, sku_id=order_data['sku_id'])
         order_create = True
@@ -434,24 +434,32 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
                 order_detail.creation_date = exist_order_ins[0].creation_date
                 order_detail.shipment_date = exist_order_ins[0].shipment_date
                 order_detail.save()
-                if order_data.get('order_type', '') == 'Returnable Order':
-                    order_obj_list.append(order_obj)
+            if order_data.get('order_type', '') == 'Returnable Order':
+                order_obj_list.append(order_obj)
+            elif order_data.get('order_type', '').upper() == 'SP':
+                if order_detail:
+                    order_obj_list.append(order_detail)
+                if len(order_obj_list):
+                    order_obj_list = list(set(order_obj_list))
             check_create_seller_order(seller_order_dict, order_detail, user)
             if order_data['sku_id'] not in sku_ids:
                 sku_ids.append(order_data['sku_id'])
-
             order_summary_dict['order_id'] = order_detail.id
             time_slot = get_local_date(user, datetime.datetime.now())
             order_summary_dict['shipment_time_slot'] = " ".join(time_slot.split(" ")[-2:])
             order_summary = CustomerOrderSummary(**order_summary_dict)
             order_summary.save()
-
         elif order_data['sku_id'] in sku_ids and order_create:
             order_obj = order_obj[0]
             order_obj.quantity = order_obj.quantity + order_data['quantity']
             order_obj.save()
             if order_data.get('order_type', '') == 'Returnable Order':
                 order_obj_list.append(order_obj)
+            elif order_data.get('order_type', '').upper() == 'SP':
+                if order_obj:
+                    order_obj_list.append(order_obj)
+            if len(order_obj_list):
+                order_obj_list = list(set(order_obj_list))
             check_create_seller_order(seller_order_dict, order_obj, user)
         elif order_obj and order_create and seller_order_dict.get('seller_id', '') and \
                         seller_order_dict.get('order_status') == 'DELIVERY_RESCHEDULED':
@@ -462,9 +470,13 @@ def check_and_save_order(cell_data, order_data, order_mapping, user_profile, sel
                 order_obj.save()
                 if order_data.get('order_type', '') == 'Returnable Order':
                     order_obj_list.append(order_obj)
-        create_order_pos(user, order_obj_list)
+                elif order_data.get('order_type', '').upper() == 'SP':
+                    if order_obj:
+                        order_obj_list.append(order_obj)
+                if len(order_obj_list):
+                    order_obj_list = list(set(order_obj_list))
         log.info("Order Saving Ended %s" % (datetime.datetime.now()))
-    return sku_ids
+    return sku_ids, order_obj_list
 
 
 def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
@@ -475,6 +487,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
     order_mapping = get_order_mapping(reader, file_type)
     if not order_mapping:
         return "Headers not matching"
+
     count = 0
     exclude_rows = []
     sku_masters_dict = {}
@@ -546,7 +559,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
 
         if 'order_type' in order_mapping:
             cell_data = get_cell_data(row_idx, order_mapping['order_type'], reader, file_type)
-            if cell_data == 'Returnable Order':
+            if cell_data == 'Returnable Order' or cell_data.upper() == 'SP':
                 if not get_cell_data(row_idx, order_mapping['customer_id'], reader, file_type):
                     index_status.setdefault(count, set()).add('Customer ID mandatory for Returnable Order')
 
@@ -573,6 +586,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
         return f_name
 
     sku_ids = []
+    collect_order_obj_list = []
 
     user_profile = UserProfile.objects.get(user_id=user.id)
     log.info("Validation Ended %s" % (datetime.datetime.now()))
@@ -790,9 +804,14 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 order_data['telephone'] = str(int(order_data['telephone']))
 
         log.info("Order Saving Started %s" % (datetime.datetime.now()))
-        sku_ids = check_and_save_order(cell_data, order_data, order_mapping, user_profile, seller_order_dict,
+        sku_ids, order_obj_list = check_and_save_order(cell_data, order_data, order_mapping, user_profile, seller_order_dict,
                                        order_summary_dict, sku_ids,
                                        sku_masters_dict, all_sku_decs, exist_created_orders, user)
+        if len(order_obj_list):
+            collect_order_obj_list = collect_order_obj_list + order_obj_list
+    if len(collect_order_obj_list):
+        collect_order_obj_list = list(set(collect_order_obj_list))
+        create_order_pos(user, collect_order_obj_list)
     return 'success'
 
 
@@ -4199,8 +4218,8 @@ def validate_order_serial_mapping(request, reader, user, no_of_rows, fname, file
                     index_status.setdefault(count, set()).add('Invalid PO Number')
                 if order_details.get('sku_id', ''):
                     po_imei_mapping = POIMEIMapping.objects.filter(
-                        purchase_order__open_po__sku_id=order_details['sku_id'], status=1,
-                        purchase_order__open_po__sku__user=user.id, purchase_order__order_id=value)
+                        sku_id=order_details['sku_id'], status=1,
+                        sku__user=user.id, purchase_order__order_id=value)
                     if not po_imei_mapping:
                         index_status.setdefault(count, set()).add('Invalid PO Number')
                     else:

@@ -1379,7 +1379,7 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                 if cell_data:
                     if not str(cell_data).lower() in ['enable', 'disable']:
                         index_status.setdefault(row_idx, set()).add('Hot Release Should be Enable or Disable')
-            elif key == 'enable_serial_number':
+            elif key == 'enable_serial_based':
                 if cell_data:
                     if not str(cell_data).lower() in ['enable', 'disable']:
                         index_status.setdefault(row_idx, set()).add('Enable Serial Number Should be Enable or Disable')
@@ -1559,7 +1559,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
             elif key == 'ean_number':
                 if cell_data:
                     ean_numbers = str(cell_data).split(',')
-            elif key == 'enable_serial_number':
+            elif key == 'enable_serial_based':
                 toggle_value = str(cell_data).lower()
                 if toggle_value == "enable":
                     cell_data = 1

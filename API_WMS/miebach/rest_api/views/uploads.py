@@ -1379,6 +1379,14 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                 if cell_data:
                     if not str(cell_data).lower() in ['enable', 'disable']:
                         index_status.setdefault(row_idx, set()).add('Hot Release Should be Enable or Disable')
+            elif key == 'enable_serial_number':
+                if cell_data:
+                    if not str(cell_data).lower() in ['enable', 'disable']:
+                        index_status.setdefault(row_idx, set()).add('Enable Serial Number Should be Enable or Disable')
+            elif key == 'sequence':
+                if cell_data:
+                    if not isinstance(cell_data, (int, float)):
+                        index_status.setdefault(row_idx, set()).add('Sequence should be in number')
 
     master_sku = SKUMaster.objects.filter(user=user.id)
     master_sku = [data.sku_code for data in master_sku]
@@ -1411,7 +1419,6 @@ def get_sku_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
                                                  sku_mapping)
     if get_cell_data(0, 1, reader, file_type) == 'Product Code' and get_cell_data(0, 2, reader, file_type) == 'Name':
         sku_file_mapping = copy.deepcopy(ITEM_MASTER_EXCEL)
-
     return sku_file_mapping
 
 
@@ -1552,11 +1559,21 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
             elif key == 'ean_number':
                 if cell_data:
                     ean_numbers = str(cell_data).split(',')
+            elif key == 'enable_serial_number':
+                toggle_value = str(cell_data).lower()
+                if toggle_value == "enable":
+                    cell_data = 1
+                if toggle_value == "disable":
+                    cell_data = 0
+                setattr(sku_data, key, cell_data)
+                data_dict[key] = cell_data
             elif cell_data:
                 data_dict[key] = cell_data
                 if sku_data:
                     setattr(sku_data, key, cell_data)
                 data_dict[key] = cell_data
+
+
         if sku_data:
             sku_data.save()
             all_sku_masters.append(sku_data)
@@ -1567,7 +1584,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
             sku_master.save()
             all_sku_masters.append(sku_master)
             sku_data = sku_master
-
+        
         if _size_type:
             check_update_size_type(sku_data, _size_type)
         if hot_release:

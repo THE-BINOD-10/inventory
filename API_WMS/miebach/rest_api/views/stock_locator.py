@@ -420,7 +420,7 @@ def get_quantity_data(user_groups, sku_codes_list,asn_true=False):
             RMLocation.objects.filter(status=1, material_picklist__jo_material__material_code__user=user). \
             values_list('material_picklist__jo_material__material_code__wms_code').distinct(). \
             annotate(rm_reserved=Sum('reserved')))
-        enq_block_stock = dict(EnquiredSku.objects.filter(sku__user=user).filter(
+        enq_block_stock = dict(EnquiredSku.objects.filter(sku__user=user).exclude(warehouse_level=3).filter(
             ~Q(enquiry__extend_status='rejected')).values_list('sku_code').annotate(Sum('quantity')))
 
         # ASN Stock Related to SM

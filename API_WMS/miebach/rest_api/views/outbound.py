@@ -5499,6 +5499,10 @@ def get_sku_variants(request, user=''):
     if get_priceband_admin_user(user):
         # wh_admin = get_priceband_admin_user(user)
         integration_obj = Integrations.objects.filter(user=user.id)
+        if not integration_obj and not is_distributor:
+            dist_customer = WarehouseCustomerMapping.objects.filter(warehouse=user.id, status=1)
+            wh_user = dist_customer[0].customer.user
+            integration_obj = Integrations.objects.filter(user=wh_user)
         if integration_obj:
             company_name = integration_obj[0].name
             integration_users = Integrations.objects.filter(name=company_name).values_list('user', flat=True)

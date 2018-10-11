@@ -191,7 +191,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.model_data.sku_data.zone = vm.model_data.zones[index];
                   vm.model_data.attributes = data.attributes;
                   vm.model_data.measurement_type = data.sku_data.measurement_type;
-
+                  //vm.model_data.enable_serial_based = data.sku_data.enable_serial_based;
                   angular.forEach(vm.model_data.attributes, function(attr_dat){
                     if(data.sku_attributes[attr_dat.attribute_name])
                     {
@@ -220,6 +220,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   if(vm.model_data.sku_data.ean_number == "0") {
 
                       vm.model_data.sku_data.ean_number = "";
+                  }
+                  if(vm.model_data.sku_data.enable_serial_based) {
+                    vm.model_data.sku_data.enable_serial_based = true
+                  } else {
+                    vm.model_data.sku_data.enable_serial_based = false
                   }
                   $(".sales_return_reasons").importTags(vm.model_data.sales_return_reasons||'');
                   $state.go('app.masters.SKUMaster.update');

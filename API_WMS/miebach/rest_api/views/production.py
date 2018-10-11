@@ -3326,10 +3326,12 @@ def generate_jo_labels(request, user=''):
             data.setdefault('label', [])
             data.setdefault('wms_code', [])
             data.setdefault('quantity', [])
+            data.setdefault('mfg_date', [])
             for labels in po_labels:
                 data['label'].append(labels.label)
                 data['quantity'].append(1)
                 data['wms_code'].append(labels.sku.wms_code)
+                data['mfg_date'].append(labels.creation_date.strftime("%d %B %Y"))
                 needed_quantity -= 1
             for quantity in range(0, needed_quantity):
                 imei_numbers = data_dict.get('imei_numbers', '')
@@ -3347,7 +3349,7 @@ def generate_jo_labels(request, user=''):
                 label_dict['sku_id'] = sku.id
                 data['wms_code'].append(sku.wms_code)
                 POLabels.objects.create(**label_dict)
-
+                data['mfg_date'].append(creation_date.strftime("%d %B %Y"))
                 serial_number += 1
 
         barcodes_list = generate_barcode_dict(pdf_format, data, user)

@@ -4719,6 +4719,8 @@ def generate_barcode_dict(pdf_format, myDicts, user):
                     if barcode_opt == 'sku_ean' and sku_data.ean_number:
                         single['Label'] = str(sku_data.ean_number)
                     single['SKUPrintQty'] = quant
+                    if myDict.get('mfg_date', ''):
+                        single['mfg_date'] = myDict['mfg_date'][ind]
                     for show_keys1 in show_fields:
                         show_keys2 = [show_keys1]
                         if isinstance(show_keys1, list):

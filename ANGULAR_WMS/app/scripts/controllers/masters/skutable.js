@@ -400,6 +400,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service.apiCall('get_zones_list/').then(function(data){
       if(data.message) {
         data = data.data;
+        vm.model_data.serial_number = vm.permissions.use_imei;
         vm.model_data.zones = data.zones;
         vm.model_data.product_types = data.product_types;
         vm.model_data.sku_data.product_type = '';

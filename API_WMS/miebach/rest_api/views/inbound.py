@@ -1243,8 +1243,8 @@ def confirm_po(request, user=''):
         table_headers.append('Remarks')
     if show_cess_tax:
         table_headers.insert(10, 'CESS (%)')
-    company_logo = get_company_logo(user, COMPANY_LOGO_PATHS)
-    iso_company_logo = get_company_logo(user, ISO_COMPANY_LOGO_PATHS)
+    company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
+    iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
     total_amt_in_words = number_in_words(round(total)) + ' ONLY'
     round_value = float(round(total) - float(total))
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 
@@ -4558,8 +4558,8 @@ def confirm_add_po(request, sales_data='', user=''):
         title = 'Purchase Order'
     total_amt_in_words = number_in_words(round(total)) + ' ONLY'
     round_value = float(round(total) - float(total))
-    company_logo = get_company_logo(user, COMPANY_LOGO_PATHS)
-    iso_company_logo = get_company_logo(user, ISO_COMPANY_LOGO_PATHS)
+    company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
+    iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
                  'telephone': str(telephone), 'ship_to_address': ship_to_address,
                  'name': name, 'order_date': order_date, 'total': round(total), 'po_reference': po_reference,
@@ -4768,8 +4768,8 @@ def confirm_po1(request, user=''):
                 table_headers.insert(10, 'CESS (%)')
             total_amt_in_words = number_in_words(round(total)) + ' ONLY'
             round_value = float(round(total) - float(total))
-            company_logo = get_company_logo(user, COMPANY_LOGO_PATHS)
-            iso_company_logo = get_company_logo(user, ISO_COMPANY_LOGO_PATHS)
+            company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
+            iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
             data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
                          'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': round(total),             
                          'company_name': profile.company_name, 'location': profile.location,

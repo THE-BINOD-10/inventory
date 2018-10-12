@@ -1757,11 +1757,11 @@ ORDER_ID_AWB_EXCEL_MAPPING = OrderedDict((('order_id', 0), ('awb_no', 1), ('cour
 # Company logo names
 COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg', 'Subhas_Publishing': 'book_publications.png', 
                       'sm_admin': 'sm-brand.jpg', 'corp_attire': 'corp_attire.jpg', 
-                      'aidin_technologies': 'aidin_technologies.jpg', 'nutricane': 'nutricane.jpg'}
+                      'aidin_technologies': 'aidin_tech.jpg', 'nutricane': 'nutricane.jpg'}
 
 TOP_COMPANY_LOGO_PATHS = {'Konda_foundation': 'dr_reddy_logo.png'}
 
-ISO_COMPANY_LOGO_PATHS = {'aidin_technologies': 'iso_aidin_technologies.jpg'}
+ISO_COMPANY_LOGO_PATHS = {'aidin_technologies': 'iso_aidin_tech.jpg'}
 
 # Configurtions Mapping
 REMAINDER_MAIL_ALERTS = OrderedDict((('po_remainder', 'PO Remainder'),))

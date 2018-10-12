@@ -5,16 +5,19 @@
     {% include 'toggle/page1.css' %}
   </style>
   <div class="print-invoice2 mb20">
-    
-    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-      <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
-        <img id="image1" alt="Image1" ng-src="{{ company_logo }}"/>
+    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12" style="margin-bottom:15px">
+      {% if company_logo %}
+      <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
+        <img id="image1" alt="Image1" src="{{ company_logo }}" style="width:250px;height:100px"/>
       </div>
-      <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
-        <img id="image2" alt="Image2" ng-src="{{ company_iso_logo }}"/>
+      {% endif %}
+      <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4"></div>
+      {% if iso_company_logo %}
+      <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
+        <img id="image2" alt="Image2" src="{{ iso_company_logo }}" style="width:250px;height:100px"/>
       </div>
+      {% endif %}
     </div>
-
     <div class="invoice-body">
       <table class="table table-bordered m0" style="width:1052px !important">
         <tbody>

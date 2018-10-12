@@ -979,8 +979,8 @@ def insert_rwo_po(rw_order, request, user):
 
     profile = UserProfile.objects.get(user=user.id)
     phone_no = str(rw_order.vendor.phone_number)
-    company_logo = get_company_logo(user, COMPANY_LOGO_PATHS)
-    iso_company_logo = get_company_logo(user, ISO_COMPANY_LOGO_PATHS)
+    company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
+    iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
     po_reference = '%s%s_%s' % (prefix, str(po_order.creation_date).split(' ')[0].replace('-', ''), po_order.order_id)
     w_address, company_address = get_purchase_company_address(profile)
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': rw_order.vendor.address,

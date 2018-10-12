@@ -116,7 +116,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     if (Service.searched_wms_code != '') {
       vm.model_data.sku_data.sku_code = Service.searched_wms_code;
     };
-    
+
     function readImage(input) {
       var deferred = $.Deferred();
 
@@ -165,7 +165,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     }
 
-    vm.isEmptyMarket = false 
+    vm.isEmptyMarket = false
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
         $('td', nRow).unbind('click');
         $('td', nRow).bind('click', function() {
@@ -174,10 +174,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 vm.model_data = {};
                 angular.copy(empty_data, vm.model_data);
                 vm.service.apiCall("get_sku_data/", "GET", {data_id: aData.DT_RowAttr["data-id"]}).then(function(data) {
-
                  if (data.message) {
                   data = data.data;
                   vm.update=true;
+                  vm.model_data.serial_number = vm.permissions.use_imei;
                   vm.model_data.user_type = vm.permissions.user_type;
                   vm.model_data.sku_data = data.sku_data;
                   vm.model_data.market_data = data.market_data;
@@ -209,10 +209,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
                   index = vm.sku_types.indexOf(vm.model_data.sku_data.sku_type);
                   vm.model_data.sku_data.sku_type = vm.sku_types[index];
- 
+
                   vm.model_data.sku_data.status = vm.status_data[vm.model_data.sku_data.status];
                   vm.model_data.sku_data.qc_check = vm.qc_data[vm.model_data.sku_data.qc_check];
- 
+
                   vm.isEmptyMarket = (data.market_data.length > 0) ? false : true;
                   vm.combo = (vm.model_data.combo_data.length > 0) ? true: false;
                   vm.model_data.sku_data.image_url = vm.service.check_image_url(vm.model_data.sku_data.image_url);
@@ -353,7 +353,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.close();
                 }
               } else {
-                vm.pop_msg(response); 
+                vm.pop_msg(response);
               }
               $rootScope.process = false;
             }});
@@ -500,7 +500,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           reader.readAsDataURL(input.files[0]);
           reader.onload = function (e) {
 
-              $('#photo-id').attr('src', e.target.result);                    
+              $('#photo-id').attr('src', e.target.result);
               var canvas = document.createElement("canvas");
               var imageElement = document.createElement("img");
 
@@ -559,7 +559,7 @@ app.directive('fileUpload', function () {
                 for (var i = 0;i<files.length;i++) {
                     //emit event upward
                     scope.$emit("fileSelected", { file: files[i] });
-                }                                       
+                }
             });
         }
     };

@@ -65,11 +65,11 @@
                 <div class="row">
                   <div class="col-md-2 col-sm-2 col-xs-3">
                     <b>JO Id</b></br></br>
-                    <!-- {{history.po_details.jo_id}} -->
+                    {{showCase.model_data.data[0].jo_details.jo_number}}
                   </div>
-                  <div class="col-md-2 col-sm-2 col-xs-3">
+                  <div class="col-md-3 col-sm-3 col-xs-3">
                     <b>JO Creation Date</b></br></br>
-                    <!-- {{history.po_details.jo_creation_date}} -->
+                    {{showCase.model_data.data[0].jo_details.jo_creation_date}}
                   </div>
                   <!-- <div class="col-md-8 col-sm-8 col-xs-6">
                     <b>IMEI</b></br></br>
@@ -207,32 +207,28 @@
             </div>
           </div>
         </div>
-        <div class="row mb20" ng-if="showCase.model_data.sku_details && showCase.scan_item_type=='JO'">
+        <div class="row mb20" ng-if="showCase.scan_item_type=='JO'">
           <div class="col-md-2 col-sm-1 hidden-xs">
           </div>
           <div class="col-md-8">
             <div class="panel">
               <div class="panel-body" style="border: 1px solid #f0f0f0;padding: 10px !important;">
-                <div class="row">
-                  <!-- <div class="col-md-2 col-sm-2 col-xs-2">
-                    <img ng-src="{{service.check_image_url(showCase.model_data.sku_details.image_url)}}" height="15" alt="" style="width: 60px;height: 100%;">
-                  </div> -->
-                  <!-- <div class="col-md-2 col-sm-2 col-xs-2">
-                    <b>Serial</b></br></br>
-                    {{showCase.model_data.imei}}
-                  </div> -->
-                  <div class="col-md-3 col-sm-3 col-xs-3">
-                    <b>SKU Code</b></br></br>
-                    {{history.sku_code}}
+                <div ng-repeat="jo in history.rm_picklist_data">
+                  <div class="row">
+                    <div class="col-md-3 col-sm-3 col-xs-3">
+                      <b>SKU Code</b></br></br>
+                      {{jo.sku_code}}
+                    </div>
+                    <div class="col-md-3 col-sm-3 col-xs-3">
+                      <b>Required Quantity</b></br></br>
+                      {{jo.required_quantity}}
+                    </div>
+                    <div class="col-md-6 col-sm-6 col-xs-6">
+                      <b>IMEI</b></br></br>
+                       {{jo.imeis.join(', ')}}
+                    </div>
                   </div>
-                  <div class="col-md-2 col-sm-2 col-xs-3">
-                    <b>Required Quantity</b></br></br>
-                    {{history.req_quantity}}
-                  </div>
-                  <div class="col-md-7 col-sm-7 col-xs-6">
-                    <b>IMEI</b></br></br>
-                     {{history.imeis}}
-                  </div>
+                  <hr>
                 </div>
               </div>
             </div>

@@ -64,8 +64,8 @@ def get_company_logo(user, IMAGE_PATH_DICT):
         logo_name = IMAGE_PATH_DICT.get(user.username, '')
         logo_path = 'static/company_logos/' + logo_name
         image = logo_path
-        #with open(logo_path, "rb") as image_file:
-        #    image = base64.b64encode(image_file.read())
+        with open(logo_path, "rb") as image_file:
+            image = base64.b64encode(image_file.read())
     except:
         image = ""
     return image

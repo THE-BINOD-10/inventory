@@ -799,7 +799,7 @@ SKU_HEADERS = ['WMS Code', 'SKU Description', 'Product Type', 'SKU Group', 'SKU 
                'MRP Price', 'Sequence', 'Image Url',
                'Threshold Quantity', 'Measurment Type', 'Sale Through', 'Color', 'EAN Number',
                'Load Unit Handling(Options: Enable, Disable)', 'HSN Code', 'Sub Category', 'Hot Release',
-               'Mix SKU Attribute(Options: No Mix, Mix within Group)', 'Status', 'Enable Serial Number']
+               'Mix SKU Attribute(Options: No Mix, Mix within Group)', 'Status']
 
 MARKET_USER_SKU_HEADERS = ['WMS Code', 'SKU Description', 'Product Type', 'SKU Group', 'SKU Type(Options: FG, RM)',
                            'SKU Category',
@@ -1041,7 +1041,7 @@ PICKLIST_EXCEL = OrderedDict((
 PICKLIST_EXCEL_FMCG = OrderedDict((
                               ('Order ID', 'original_order_id'), ('Combo SKU', 'parent_sku_code'),
                               ('WMS Code', 'wms_code'), ('Title', 'title'), ('Category', 'category'),
-                              ('Zone', 'zone'), ('Location', 'location'), ('Batch No', 'batchno'), ('MRP', 'mrp'), 
+                              ('Zone', 'zone'), ('Location', 'location'), ('Batch No', 'batchno'), ('MRP', 'mrp'),
                               ('Reserved Quantity', 'reserved_quantity'),
                               ('Stock Left', 'stock_left'),('Last Picked Location', 'last_picked_locs')
                             ))
@@ -1124,7 +1124,7 @@ SKU_COMMON_MAPPING = OrderedDict((('WMS Code', 'wms_code'), ('SKU Description', 
                                   ('Hot Release', 'hot_release'),
                                   ('Mix SKU Attribute(Options: No Mix, Mix within Group)', 'mix_sku'),
                                   ('Status', 'status'), ('Shelf life', 'shelf_life'),
-                                  ('Enable Serial Number', 'enable_serial_based')
+                                  # ('Enable Serial Number', 'enable_serial_based')
                                 ))
 
 SKU_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('product_type', 2), ('sku_group', 3), ('sku_type', 4),
@@ -5508,7 +5508,7 @@ def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
         if open_po.sku.hsn_code:
             hsn_code = str(open_po.sku.hsn_code)
         invoice_date = ''
-        data['invoice_date'] = seller_po_summary.invoice_date   
+        data['invoice_date'] = seller_po_summary.invoice_date
         if data['invoice_date']:
             invoice_date = data['invoice_date'].strftime("%d %b, %Y")
         ean_numbers = get_sku_ean_list(open_po.sku)

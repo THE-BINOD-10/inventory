@@ -879,6 +879,8 @@ def sku_form(request, user=''):
         headers = copy.deepcopy(USER_SKU_EXCEL[user_profile.user_type])
     attributes = get_user_attributes(user, 'sku')
     attr_headers = list(attributes.values_list('attribute_name', flat=True))
+    if get_misc_value('use_imei', user.id)  == 'true':
+        headers.append("Enable Serial Number")
     if attr_headers:
         headers += attr_headers
     if user_profile.industry_type == "FMCG":
@@ -1603,7 +1605,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
             sku_master.save()
             all_sku_masters.append(sku_master)
             sku_data = sku_master
-        
+
         if _size_type:
             check_update_size_type(sku_data, _size_type)
         if hot_release:

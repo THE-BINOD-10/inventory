@@ -893,7 +893,6 @@ def view_rm_picklist(request, user=''):
         headers.insert(0, 'Image')
     if get_misc_value('pallet_switch', user.id) == 'true' and 'Pallet Code' not in headers:
         headers.insert(headers.index('Location') + 1, 'Pallet Code')
-
     return HttpResponse(
         json.dumps({'data': data, 'job_code': data_id, 'show_image': show_image, 'user': request.user.id,
                     'display_update': display_update}))
@@ -919,7 +918,6 @@ def get_raw_picklist_data(data_id, user):
                 zone = location.stock.location.zone.zone
                 sequence = location.stock.location.pick_sequence
                 stock_id = location.stock_id
-
             match_condition = (location_name, pallet_detail, picklist.jo_material.material_code.sku_code)
             if match_condition not in batch_data:
                 if pallet_detail:
@@ -937,15 +935,16 @@ def get_raw_picklist_data(data_id, user):
                     'pallet_code': pallet_code, 'id': location.id,
                     'title': location.material_picklist.jo_material.material_code.sku_desc,
                     'image': picklist.jo_material.material_code.image_url,
-                    'measurement_type': picklist.jo_material.unit_measurement_type}
+                    'measurement_type': picklist.jo_material.unit_measurement_type,
+                    'show_imei': location.material_picklist.jo_material.material_code.enable_serial_based
+                }
             else:
                 batch_data[match_condition]['reserved_quantity'] = get_decimal_limit(user.id, float(
                     float(batch_data[match_condition]['reserved_quantity']) + float(location.reserved)))
                 batch_data[match_condition]['picked_quantity'] = get_decimal_limit(user.id, float(
                     float(batch_data[match_condition]['picked_quantity']) + float(location.reserved)))
-
+                batch_data[match_condition]['show_imei'] = location.material_picklist.jo_material.material_code.enable_serial_based
     data = batch_data.values()
-
     data = sorted(data, key=itemgetter('sequence'))
     return data
 

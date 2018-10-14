@@ -5502,6 +5502,10 @@ def get_sku_variants(request, user=''):
     if get_priceband_admin_user(user):
         # wh_admin = get_priceband_admin_user(user)
         integration_obj = Integrations.objects.filter(user=user.id)
+        if not integration_obj and not is_distributor:
+            dist_customer = WarehouseCustomerMapping.objects.filter(warehouse=user.id, status=1)
+            wh_user = dist_customer[0].customer.user
+            integration_obj = Integrations.objects.filter(user=wh_user)
         if integration_obj:
             company_name = integration_obj[0].name
             integration_users = Integrations.objects.filter(name=company_name).values_list('user', flat=True)
@@ -5528,25 +5532,23 @@ def get_sku_variants(request, user=''):
                                     actual_sku_id = sku_id
                                     if sku_id[-3:]=="-TU":
                                         sku_id = sku_id[:-3]
+                                        expected_items = item['Expected']
+                                        if isinstance(expected_items, list) and expected_items:
+                                            asn_stock_map.setdefault(sku_id, []).extend(expected_items)
+                                        wait_on_qc = [v for d in item['OnHoldDetails'] for k, v in d.items() if
+                                                      k == 'WAITONQC']
+                                        if wait_on_qc:
+                                            if int(wait_on_qc[0]):
+                                                log.info("Wait ON QC Value %s for SKU %s" % (actual_sku_id, wait_on_qc))
+                                            if sku_id in stock_dict:
+                                                stock_dict[sku_id] += int(wait_on_qc[0])
+                                            else:
+                                                stock_dict[sku_id] = int(wait_on_qc[0])
+                                    else:
                                         if sku_id in stock_dict:
                                             stock_dict[sku_id] += int(item['Inventory'])
                                         else:
                                             stock_dict[sku_id] = int(item['Inventory'])
-                                        expected_items = item['Expected']
-                                        if isinstance(expected_items, list) and expected_items:
-                                            asn_stock_map.setdefault(sku_id, []).extend(expected_items)
-                                    else:
-                                        if sku_id in stock_dict:
-                                            stock_dict[sku_id] += int(item['FG'])
-                                        else:
-                                            stock_dict[sku_id] = int(item['FG'])
-                                    wait_on_qc = [v for d in item['OnHoldDetails'] for k, v in d.items()
-                                                  if k == 'WAITONQC']
-                                    if wait_on_qc:
-                                        if int(wait_on_qc[0]):
-                                            log.info("Wait ON QC Value %s for SKU %s" % (actual_sku_id, wait_on_qc))
-                                        stock_dict[sku_id] += int(wait_on_qc[0])
-
                                 for sku_id, inventory in stock_dict.iteritems():
                                     sku = SKUMaster.objects.filter(user = user_id, sku_code = sku_id)
                                     if sku:

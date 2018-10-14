@@ -2557,7 +2557,11 @@ def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, fr
             check_dict = {prefix_key + 'order_id': order.order_id, prefix_key + 'order_code': order.order_code,
                           prefix_key + 'original_order_id': order.original_order_id, prefix_key + 'user': user.id}
             # invoice_ins = SellerOrderSummary.objects.filter(**check_dict).exclude(invoice_number='')
-            invoice_ins = SellerOrderSummary.objects.filter(order__id__in=order_ids).exclude(invoice_number='')
+            if user.userprofile.user_type == 'marketplace_user':
+                invoice_ins = SellerOrderSummary.objects.filter(seller_order__order__id__in=order_ids).\
+                                exclude(invoice_number='')
+            else:
+                invoice_ins = SellerOrderSummary.objects.filter(order__id__in=order_ids).exclude(invoice_number='')
             invoice_sequence = get_invoice_sequence_obj(user, order.marketplace)
             if invoice_ins:
                 order_no = invoice_ins[0].invoice_number

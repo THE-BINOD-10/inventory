@@ -420,7 +420,7 @@ def get_quantity_data(user_groups, sku_codes_list,asn_true=False):
             RMLocation.objects.filter(status=1, material_picklist__jo_material__material_code__user=user). \
             values_list('material_picklist__jo_material__material_code__wms_code').distinct(). \
             annotate(rm_reserved=Sum('reserved')))
-        enq_block_stock = dict(EnquiredSku.objects.filter(sku__user=user).filter(
+        enq_block_stock = dict(EnquiredSku.objects.filter(sku__user=user).exclude(warehouse_level=3).filter(
             ~Q(enquiry__extend_status='rejected')).values_list('sku_code').annotate(Sum('quantity')))
 
         # ASN Stock Related to SM
@@ -586,9 +586,8 @@ def get_availasn_stock(start_index, stop_index, temp_data, search_term, order_te
     temp_data['ware_list'] = list_da
     for one_data, sku_det in zip(data, other['rem']):
         header = other['header']
-        single_sku = sku_det['single_sku']
-        var = {header[0]: single_sku, 'WH Net Open': 0, 'Net Open': 0,
-               'ASN Total': 0, 'ASN Res': 0, 'ASN Blocked': 0, 'ASN Open': 0}
+        var = OrderedDict()
+        var[header[0]] = sku_det['single_sku']
         for single in one_data:
             if single['name']:
                 wh_name = single['name']
@@ -601,10 +600,23 @@ def get_availasn_stock(start_index, stop_index, temp_data, search_term, order_te
                 if net_amt < 0:
                     net_amt = 0
                 var[wh_name + '-Open'] = net_amt
-                var['WH Net Open'] += net_amt
-                var['ASN Total'] += single['asn']
-                var['ASN Res'] += single['asn_res']
-                var['ASN Blocked'] += single['asn_blocked']
+                if 'WH Net Open' in var:
+                    var['WH Net Open'] += net_amt
+                else:
+                    var['WH Net Open'] = net_amt
+
+                if 'ASN Total' in var:
+                    var['ASN Total'] += single['asn']
+                else:
+                    var['ASN Total'] = single['asn']
+                if 'ASN Res' in var:
+                    var['ASN Res'] += single['asn_res']
+                else:
+                    var['ASN Res'] = single['asn_res']
+                if 'ASN Blocked' in var:
+                    var['ASN Blocked'] += single['asn_blocked']
+                else:
+                    var['ASN Blocked'] = single['asn_blocked']
                 asn_open = var['ASN Total'] - var['ASN Res'] - var['ASN Blocked']
                 var['ASN Open'] = asn_open
         var['Net Open'] = var['WH Net Open'] + var['ASN Open']

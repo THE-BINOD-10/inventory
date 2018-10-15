@@ -2,8 +2,17 @@
   <!--<div ng-if="showCase.pdfDownloading" style="position: fixed;z-index: 101;width: 100%;height: 100%;top: 0px;background: rgba(0, 0, 0, 0.1);padding-top: 125px;"><img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;"></div>-->
   <div class="row style-menu" style="height: 60px;position: absolute;top:0px;width:100%;z-index:100">
     <div class="col-md-4 col-sm-4 col-xs-4">
-      <div class="menu-left" style="line-height: 60px">
-        <span ng-click="$state.go('user.App.Brands');showCase.showFilter = false;"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
+      <div ng-if="!showCase.disable_brands && showCase.disable_categories" class="menu-left" style="line-height: 60px">
+        <span ng-click="$state.go('user.App.Brands');showCase.showFilter = false;"><i class="fa fa-arrow-left" style="color:#fff;" title="Go to Brand Page"></i></span>
+        <!-- <span ng-click="showCase.change_brand(showCase.brand)" title="Go to Brand Page">Back</span> -->
+        <span ng-click="$state.go('user.App.Brands');showCase.showFilter = false;" title="Go to Brand Page">Back</span>
+      </div>
+      <div ng-if="showCase.disable_brands && !showCase.disable_categories" class="menu-left" style="line-height: 60px">
+        <span ng-click="showCase.change_brand(showCase.brand)"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
+        <span ng-click="showCase.change_brand(showCase.brand)" title="Go to Brand Page">Back</span>
+      </div>
+      <div ng-if="!showCase.disable_brands && !showCase.disable_categories" class="menu-left" style="line-height: 60px">
+        <span ng-click="showCase.change_brand(showCase.brand)"><i class="fa fa-arrow-left" style="color:#fff;" title="Go Back"></i></span>
         <span ng-click="showCase.change_brand(showCase.brand)" title="Go to Brand Page">Back</span>
       </div>
     </div>
@@ -22,6 +31,7 @@
           <li><a ng-click="$state.go('user.App.MyOrders');showCase.get_orders();">Your Orders</a></li>
           <li><a ng-click="$state.go('user.App.Profile')">Profile</a></li>
           <li><a ng-click="$state.go('user.App.ManualEnquiry');">Create Custom Order</a></li>
+          <li ng-if="showCase.permissions.display_sku_cust_mapping"><a ng-click="$state.go('user.App.PendingOrder');">Pending Order</a></li>
           <!--<li><a ng-click="$state.go('user.App.CorporateOrders');" ng-if="showCase.user_type=='reseller'">Corporate Orders</a></li>-->
           <li><a ng-click="showCase.logout()">Logout</a></li>
         </ul>
@@ -88,11 +98,13 @@
             <p class="style_name" style="font-size: 14px" title="{{ item.sku_class }}">{{ item.variants[0].style_name }}</p>
             <div class="style_name" style="font-size: 12px; padding:2px 5px; font-weight: 500; background: #ccc;">
               <span class="pull-left">Stock: <b>{{ item.style_quantity }}</b></span>
-              <span>MSP: <b>{{ item.variants[0].your_price }}</b></span></br>
+              <span class="pull-right">Blocked Qty: {{ item.blocked_qty }}</b></span></br>
+              <span style="float: center;">Intransit: <b>{{ item.asn_quantity }}</b></span></br>
               <span style="float: left;">MRP: <b style="color: #1515f5">{{ item.variants[0].mrp }}
                 <span ng-if="item.variants[0].taxes.length">({{item.variants[0].taxes[0].cgst_tax + item.variants[0].taxes[0].sgst_tax + item.variants[0].taxes[0].igst_tax}}%)</span>
                 <span ng-if="!item.variants[0].taxes.length">(0%)</span></b>
               </span>
+              <span class="pull-right">MSP: <b>{{ item.variants[0].your_price }}</b></span></br>
             </div>
             <div ng-if="item.variants[0].price_ranges.length > 0">
               <table class="table table-bordered mb0 mt5" style="font-size:10px;">

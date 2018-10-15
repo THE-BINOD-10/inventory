@@ -118,45 +118,65 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       $state.go('app.inbound.QualityCheck.qc_detail');
     }
 
+    vm.getSku = function (field) {
+      vm.service.apiCall('create_orders_check_ean/', 'GET', {'ean': field}).then(function(data) {
+        if(data.message) {
+  		    if(data.data.sku) {
+            return data.data.sku;
+          } else {
+            return field;
+          }
+        }
+      })
+    }
+
     vm.scan_sku = function(event, field) {
       if ( event.keyCode == 13 && field.length > 0) {
         console.log(field);
-        var data = [{name: field, value: vm.model_data.po_reference}];
-        vm.service.apiCall('check_wms_qc/', 'POST', data).then(function(data){
+
+        vm.service.apiCall('create_orders_check_ean/', 'GET', {'ean': field}).then(function(data) {
           if(data.message) {
-            if ('WMS Code not found'==data.data) {
-               pop_msg(data.data);
-            } else {
-
-              for(var i=0;vm.model_data.data.length; i++) {
-                if(vm.model_data.data[i].wms_code == data.data.sku_data['SKU Code']) {
-
-                  vm.model_data.data[i].acc_qty = false;
-                  vm.current_index = i;
-                  var temp = Number(vm.model_data.data[i].accepted_quantity) + 1;
-                  if (Number(vm.model_data.data[i].accepted_quantity) < Number(vm.model_data.data[i].quantity)) {
-
-                    vm.model_data.data[i].accepted_quantity = Number(vm.model_data.data[i].accepted_quantity) + 1;
-                  }
-
-                  if (Number(vm.model_data.data[i].quantity) == Number(vm.model_data.data[i].accepted_quantity)) {
-
-                    vm.model_data.data[i].acc_qty = true;
-                  }
-
-                  if (temp > Number(vm.model_data.data[i].accepted_quantity)) {
-
-                    vm.model_data.data[i].acc_qty = true;
-                    vm.service.showNoty("You don't have quantity in "+vm.model_data.data[i].wms_code+" SKU");
-                  }
-
-                  break;
-                }
-              }
-              vm.model_data1 = data.data;
-              qc_details();
+    		    if(data.data.sku) {
+              field = data.data.sku;
             }
           }
+          var data = [{name: field, value: vm.model_data.po_reference}];
+          vm.service.apiCall('check_wms_qc/', 'POST', data).then(function(data){
+            if(data.message) {
+              if ('WMS Code not found'==data.data) {
+                 pop_msg(data.data);
+              } else {
+
+                for(var i=0;vm.model_data.data.length; i++) {
+                  if(vm.model_data.data[i].wms_code == data.data.sku_data['SKU Code']) {
+
+                    vm.model_data.data[i].acc_qty = false;
+                    vm.current_index = i;
+                    var temp = Number(vm.model_data.data[i].accepted_quantity) + 1;
+                    if (Number(vm.model_data.data[i].accepted_quantity) < Number(vm.model_data.data[i].quantity)) {
+
+                      vm.model_data.data[i].accepted_quantity = Number(vm.model_data.data[i].accepted_quantity) + 1;
+                    }
+
+                    if (Number(vm.model_data.data[i].quantity) == Number(vm.model_data.data[i].accepted_quantity)) {
+
+                      vm.model_data.data[i].acc_qty = true;
+                    }
+
+                    if (temp > Number(vm.model_data.data[i].accepted_quantity)) {
+
+                      vm.model_data.data[i].acc_qty = true;
+                      vm.service.showNoty("You don't have quantity in "+vm.model_data.data[i].wms_code+" SKU");
+                    }
+
+                    break;
+                  }
+                }
+                vm.model_data1 = data.data;
+                qc_details();
+              }
+            }
+          });
         });
         vm.scan = '';
       }
@@ -792,4 +812,3 @@ swal2({
       fb["add_new"] = false;
     }
   }
-

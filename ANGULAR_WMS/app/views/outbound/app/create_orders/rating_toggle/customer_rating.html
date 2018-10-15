@@ -33,9 +33,9 @@
   p {
     line-height: 0.9;
   }
-  .modal-dialog {
+  /*.modal-dialog {
     width: 650px;
-  }
+  }*/
 </style>
 
 <form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
@@ -70,17 +70,22 @@
   <div  ng-if="$ctrl.selStars && $ctrl.reason_type == 'product_reasons'">
     <div ng-if="$ctrl.selStars" class="alert alert-info mb10 mt10 transition text-center" style="font-size:15px;font-weight:600">Give Your Valuable Product Wise Feedback&nbsp;&nbsp;<i style="font-size: 22px" class="fa fa-hand-o-down"></i></div>
     <div class="row mt15">
-      <div class="col-md-2 text-center"><strong>SKU Code</strong></div>
-      <div class="col-md-5 text-center"><strong>SKU Description</strong></div>
-      <div class="col-md-5 text-center"><strong>Remarks</strong></div>
-    </div>
-    <div class="row" ng-repeat="sku in $ctrl.model_data.order_ratings.items">
-      <hr>
-      <div class="col-md-2" ng-model="sku.sku_code">{{sku.sku_code}}</div>
-      <div class="col-md-5" ng-model="sku.sku_desc">{{sku.sku_desc}}</div>
-      <div class="col-md-5">
-        <textarea rows="1" name="{{sku.sku_code}}" placeholder="{{sku.sku_code}} Product Remarks" class="form-control" ng-model="sku.remarks"></textarea>
-      </div>
+      <table class="table">
+        <thead>
+          <th>SKU Code</th>
+          <th>SKU Description</th>
+          <th>Remarks</th>
+        </thead>
+        <tbody>
+          <tr ng-repeat="sku in $ctrl.model_data.order_ratings.items">
+            <td>{{sku.sku_code}}</td>
+            <td>{{sku.sku_desc}}</td>
+            <td>
+              <textarea rows="1" name="{{sku.sku_code}}" placeholder="{{sku.sku_code}} Product Remarks" class="form-control" ng-model="sku.remarks"></textarea>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </div>

@@ -8,6 +8,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.apply_filters = colFilters;
     vm.service = Service;
     vm.priceband_sync = Session.roles.permissions.priceband_sync;
+    vm.display_sku_cust_mapping = Session.roles.permissions.display_sku_cust_mapping;
 
     vm.filters = {'datatable': 'CustomerMaster', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
@@ -65,8 +66,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
   vm.status_data = ["Inactive", "Active"];
+  vm.customer_roles = ["User", "HOD", "Admin"];
   var empty_data = {customer_id: "", name: "", email_id: "", address: "", phone_number: "", status: "", create_login: false,
-                    login_created: false, tax_type: "", margin: 0};
+                    login_created: false, tax_type: "", margin: 0, customer_roles: ""};
   vm.model_data = {};
 
   vm.base = function() {
@@ -75,6 +77,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.update = false;
     angular.copy(empty_data, vm.model_data);
     vm.model_data.status = vm.status_data[1];
+    vm.model_data.role = vm.customer_roles[0];
   }
   vm.base();
 

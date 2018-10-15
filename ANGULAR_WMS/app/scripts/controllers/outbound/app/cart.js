@@ -10,9 +10,10 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
   vm.model_data = {};
   angular.copy(empty_data, vm.model_data);
   vm.date = new Date();
-  vm.user_type = Session.roles.permissions.user_type;
-  vm.central_order_mgmt = Session.roles.permissions.central_order_mgmt;
-  vm.order_exceed_stock = Session.roles.permissions.order_exceed_stock;
+  vm.permissions = Session.roles.permissions;
+  vm.user_type = vm.permissions.user_type;
+  vm.central_order_mgmt = vm.permissions.central_order_mgmt;
+  vm.order_exceed_stock = vm.permissions.order_exceed_stock;
   vm.deliver_address = ['Distributor Address'];
   vm.checked_address = vm.deliver_address[0];
   vm.shipment_addr = 'default';
@@ -20,6 +21,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
   vm.default_shipment_addr = true;
   vm.client_logo = Session.parent.logo;
   vm.api_url = Session.host;
+  vm.is_portal_lite = Session.roles.permissions.is_portal_lite;
 
   vm.sel_styles = {};
   vm.get_customer_cart_data = function() {
@@ -105,6 +107,33 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
     // console.log(vm.model_data.shipment_date_new);
     //var date = new Date(vm.model_data.shipment_date_new);
     //vm.model_data.shipment_date = (date.getMonth() + 1) + '/' + date.getDate() + '/' +  date.getFullYear();
+  }
+
+vm.update_cartdata_for_approval = function() {
+    var send = {}
+    vm.service.apiCall("update_orders_for_approval/", "POST", send).then(function(response){
+        if(response.message) {
+          if(response.data.message == "success") {
+            Data.my_orders = [];
+            swal({
+              title: "Success!",
+              text: "Your Order Has Been Sent for Approval",
+              type: "success",
+              showCancelButton: false,
+              confirmButtonText: "OK",
+              closeOnConfirm: true
+              },
+              function(isConfirm){
+                $state.go("user.App.Brands");
+              }
+            )
+          } else {
+            vm.insert_cool = true;
+            vm.data_status = true;
+            vm.service.showNoty(response.data, "danger", "bottomRight");
+          }
+        }
+    });
   }
 
   vm.update_customer_cart_data = function(data) {

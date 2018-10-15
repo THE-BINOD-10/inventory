@@ -221,9 +221,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
                       vm.model_data.sku_data.ean_number = "";
                   }
-                  if (vm.model_data.sku_data.ean_numbers) {
-                     $(".").importTags(vm.model_data.sku_data.ean_numbers);
-                  }
+                  $(".sales_return_reasons").importTags(vm.model_data.sales_return_reasons||'');
                   $state.go('app.masters.SKUMaster.update');
                  }
                 });
@@ -231,6 +229,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             });
         });
         return nRow;
+    }
+
+    vm.addValidation = function(){
+
+      $('.bootstrap-tagsinput').find('input').attr("autocomplete", "off").addClass('number valid');
     }
 
     vm.close = function() {
@@ -260,6 +263,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     var elem = angular.element($('form'));
     elem = elem[0];
     elem = $(elem).serializeArray();
+    elem.push({name:'ean_numbers', value:$('.ean_numbers').val()});
     for (var i=0;i<elem.length;i++) {
       //if(elem[i].name == "market_sku_type") {
       //  elem[i].value = vm.model_data.market_list[parseInt(elem[i].value)];

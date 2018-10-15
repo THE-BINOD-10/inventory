@@ -99,7 +99,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       }
     }
 
-    vm.units = ["KGS", "UNITS", "METERS", "INCHES", "CMS", "REAMS", "GRAMS", "GROSS", "ML"];
+    vm.units = ["KGS", "UNITS", "METERS", "INCHES", "CMS", "REAMS", "GRAMS", "GROSS", "ML", "LITRE","FEET"];
 
     vm.get_report_data = function(name){
       var send = {};
@@ -586,6 +586,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
         if (results.length > 7) {
           results = results.slice(0,7);
         }
+        vm.popup_dyn_style = {height: (175 + (25 * results.length))}; // It is for scaning sku alert popup height
         return results.map(function(item){
           vm.search_res.push(item);
           return item;

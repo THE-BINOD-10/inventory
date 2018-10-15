@@ -15,11 +15,15 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.size_filter_data = {};
   vm.size_toggle = true;
   vm.brand_size_collect = {};
+  vm.notify_count = Session.notification_count;
+  vm.permissions = Session.roles.permissions;
   vm.user_type = Session.roles.permissions.user_type;
   vm.central_order_mgmt = Session.roles.permissions.central_order_mgmt;
   vm.buttons_width = (Session.roles.permissions.create_order_po)? 4: 6;
   vm.priceband_sync = Session.roles.permissions.priceband_sync;
   vm.disable_brands = Session.roles.permissions.disable_brands_view;
+  vm.disable_categories = Session.roles.permissions.disable_categories_view;
+  vm.is_portal_lite = Session.roles.permissions.is_portal_lite;
   vm.date = new Date();
   vm.client_logo = Session.parent.logo;
   vm.api_url = Session.host;
@@ -80,6 +84,9 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.display_ratings()
   }
 
+  vm.main_menus = Session.categories;
+  vm.sub_menus = Session.sub_categories;
+
   $('#delivery_date').datepicker();
 
   $('#delivery_date').on('focus',function(){
@@ -94,6 +101,12 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.margin_types = ['Margin Percentage', 'Margin Value'];
   Data.styles_data = {};
   vm.location = $location.$$path;
+
+  if (Session.roles.permissions.is_portal_lite) {
+    if (vm.location == '/App/Brands' || vm.location == '/App/Categories' || vm.location == '/App/Products') {
+      $state.go('user.App.newStyle');
+    }
+  }
 
   var empty_data = {data: [{sku_id: "", quantity: "", invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: ""}], 
                             customer_id: "", payment_received: "", order_taken_by: "", other_charges: [], shipment_time_slot: "", remarks: ""};
@@ -112,12 +125,12 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
   vm.selected = {}
 
-  vm.buyStyle={height:143}
+  vm.buyStyle={height:156}
   vm.add_height = function(){
     if (vm.buy_price) {
-      vm.buyStyle={height:163}
+      vm.buyStyle={height:175}
     } else {
-      vm.buyStyle={height:143}
+      vm.buyStyle={height:156}
     }
   }
 
@@ -131,7 +144,15 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       $state.go('user.App.Categories');
     }
   }
+
+  vm.disable_categories_view = function(){
+    if(Session.roles.permissions.disable_categories_view){
+      $state.go('user.App.Products');
+    }
+  }
+
   vm.disable_brands_view();
+  vm.disable_categories_view();
 
   vm.goBack = function(){
     if(Session.roles.permissions.disable_brands_view){
@@ -194,6 +215,10 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
         vm.categories = data.data.categories;
         vm.all_cate = data.data.categories;
+        
+        Data.categories = data.data.categories;
+        Data.sub_categories = data.data.sub_categories;
+
         vm.filterData = data.data;
         vm.filterData.brand_size_data = [];
         if(["reseller", "dist_customer"].indexOf(Session.roles.permissions.user_type) == -1) {
@@ -530,16 +555,21 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.pdfDownloading = true;
     vm.catDisplay = true;
     var data = {brand: vm.brand, category: vm.category, is_catalog: true, sale_through: vm.order_type_value};
-    vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
-      if(data.message) {
-        vm.all_cate = data.data.categories;
-        vm.categories_details = data.data.categories_details;
-        vm.old_path = vm.location;
-        vm.location = '/App/Categories';
-        $state.go('user.App.Categories');
-      }
+    if (vm.disable_categories && !vm.disable_brands) {
+      vm.change_category('')
       vm.pdfDownloading = false;
-    });
+    } else {
+      vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
+        if(data.message) {
+          vm.all_cate = data.data.categories;
+          vm.categories_details = data.data.categories_details;
+          vm.old_path = vm.location;
+          vm.location = '/App/Categories';
+          $state.go('user.App.Categories');
+        }
+        vm.pdfDownloading = false;
+      });
+    }
   }
 
   vm.change_category = function(category) {
@@ -1789,12 +1819,25 @@ angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInst
     }
   }
 
+  vm.clearCheckedValues = function(){
+
+    if (vm.title == 'Rate Your Order') {
+
+      vm.sel_reasons.order_reason = '';
+    } else if (vm.title == 'Rate Your Product') {
+
+      vm.sel_reasons.product_reason = '';
+    }
+    vm.selected_reason = '';
+  }
+
   vm.setClass = function(sender, value) {
 
     vm.selStars = value;
     sender.currentTarget.setAttribute('class', vm.getClass(value));
     vm.rate_query = "What you didn't like!";
 
+    vm.clearCheckedValues();
     vm.addCls(value);
     vm.selRate();
   };
@@ -1850,7 +1893,7 @@ angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInst
       });
       send['order_details'] = JSON.stringify(vm.model_data.order_ratings);
       Service.apiCall("save_cutomer_ratings/", "POST", send).then(function(response) {
-        if (response.message) {
+        if (response.data.status) {
           vm.service.showNoty('Rating Submitted Successfully');
           vm.cancel();
         } else {

@@ -980,12 +980,13 @@ def insert_rwo_po(rw_order, request, user):
     profile = UserProfile.objects.get(user=user.id)
     phone_no = str(rw_order.vendor.phone_number)
     po_reference = '%s%s_%s' % (prefix, str(po_order.creation_date).split(' ')[0].replace('-', ''), po_order.order_id)
+    w_address, company_address = get_purchase_company_address(profile)
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': rw_order.vendor.address,
                  'order_id': po_order.order_id,
                  'telephone': phone_no, 'name': rw_order.vendor.name, 'order_date': order_date,
                  'total': total, 'user_name': user.username, 'total_qty': total_qty,
-                 'location': profile.location, 'w_address': get_purchase_company_address(profile),
-                 'company_name': profile.company_name}
+                 'location': profile.location, 'w_address': w_address,
+                 'company_name': profile.company_name, 'company_address': company_address}
 
     check_purchase_order_created(user, po_id)
     t = loader.get_template('templates/toggle/po_download.html')
@@ -1070,173 +1071,220 @@ def confirm_rm_no_stock(picklist, picking_count, count, raw_loc, request, user):
                     rw_order = rw_order[0]
                     picklist.jo_material.job_order.status = 'confirmed-putaway'
                     picklist.jo_material.job_order.save()
+                    insert_rwo_po(rw_order, request, user)
     picklist.save()
     return count
+
+
+def insert_jo_material_serial(picklist, val, user):
+    if ',' in val['imei_numbers']:
+        imei_nos = list(set(val['imei_numbers'].split(',')))
+    else:
+        imei_nos = list(set(val['imei_numbers'].split('\r\n')))
+    for imei in imei_nos:
+        imei_filter = {}
+        job_order = picklist.jo_material.job_order
+        sku_id = picklist.jo_material.material_code_id
+        po_mapping, status, imei_data = check_get_imei_details(imei, val['wms_code'], user.id,
+                                                               check_type='order_mapping',
+                                                               job_order=job_order)
+        # po_mapping = POIMEIMapping.objects.filter(purchase_order__open_po__sku__sku_code=val['wms_code'], imei_number=imei, status=1,
+        #                                          purchase_order__open_po__sku__user=user_id)
+        imei_mapping = None
+        if imei and po_mapping:
+            order_mapping = {'jo_material_id': picklist.jo_material_id, 'po_imei_id': po_mapping[0].id,
+                             'imei_number': '',
+                             'sku_id': sku_id}
+            order_mapping_ins = OrderIMEIMapping.objects.filter(po_imei_id=po_mapping[0].id,
+                                                                jo_material_id=picklist.jo_material_id)
+            if not order_mapping_ins:
+                if po_mapping[0].seller_id:
+                    order_mapping['seller_id'] = seller_id
+                imei_mapping = OrderIMEIMapping(**order_mapping)
+                imei_mapping.save()
+                po_imei = po_mapping[0]
+                log.info('%s imei code is mapped for %s and for id %s' %
+                         (str(imei), val['wms_code'], str(picklist.jo_material.job_order.job_code)))
+                if po_imei:
+                    po_imei.status = 0
+                    po_imei.save()
+    return 'success'
 
 
 @csrf_exempt
 @login_required
 @get_admin_user
 def rm_picklist_confirmation(request, user=''):
-    stages = get_user_stages(user, user)
-    status_ids = StatusTracking.objects.filter(status_value__in=stages, status_type='JO').values_list('status_id',
-                                                                                                      flat=True)
-    data = {}
-    all_data = {}
-    auto_skus = []
-    mod_locations = []
-    for key, value in request.POST.iterlists():
-        name, picklist_id = key.rsplit('_', 1)
-        data.setdefault(picklist_id, [])
-        for index, val in enumerate(value):
-            if len(data[picklist_id]) < index + 1:
-                data[picklist_id].append({})
-            data[picklist_id][index][name] = val
+    try:
+        log.info('Request params Confirm RM Picklist for user %s are %s' % (user.username,
+                                                                       str(dict(request.POST.iterlists()))))
+        stages = get_user_stages(user, user)
+        status_ids = StatusTracking.objects.filter(status_value__in=stages, status_type='JO').values_list('status_id',
+                                                                                                          flat=True)
+        data = {}
+        all_data = {}
+        auto_skus = []
+        mod_locations = []
+        for key, value in request.POST.iterlists():
+            name, picklist_id = key.rsplit('_', 1)
+            data.setdefault(picklist_id, [])
+            for index, val in enumerate(value):
+                if len(data[picklist_id]) < index + 1:
+                    data[picklist_id].append({})
+                data[picklist_id][index][name] = val
 
-    status = validate_picklist(data, user.id)
-    if status:
-        return HttpResponse(status)
+        status = validate_picklist(data, user.id)
+        if status:
+            return HttpResponse(status)
 
-    decimal_limit = get_decimal_value(user.id)
-    for key, value in data.iteritems():
-        if key == 'code':
-            continue
-        raw_locs = RMLocation.objects.get(id=key)
-        picklist = raw_locs.material_picklist
-        filter_params = {
-            'material_picklist__jo_material__material_code__wms_code': picklist.jo_material.material_code.wms_code,
-            'material_picklist__jo_material__job_order__product_code__user': user.id,
-            'material_picklist__jo_material__job_order__job_code': picklist.jo_material.job_order.job_code, 'status': 1}
-        if raw_locs.stock:
-            filter_params['stock__location__location'] = value[0]['orig_location']
-        else:
-            filter_params['stock__isnull'] = True
-        batch_raw_locs = RMLocation.objects.filter(**filter_params)
-        count = 0
-        for val in value:
-            if val['picked_quantity']:
-                count += float(val['picked_quantity'])
-        for val in value:
-            if not val['picked_quantity'] or float(val['picked_quantity']) == 0:
+        decimal_limit = get_decimal_value(user.id)
+        for key, value in data.iteritems():
+            if key == 'code':
                 continue
-            picked_quantity_val = float(val['picked_quantity'])
-            for raw_loc in batch_raw_locs:
-                if count == 0:
+            raw_locs = RMLocation.objects.get(id=key)
+            picklist = raw_locs.material_picklist
+            filter_params = {
+                'material_picklist__jo_material__material_code__wms_code': picklist.jo_material.material_code.wms_code,
+                'material_picklist__jo_material__job_order__product_code__user': user.id,
+                'material_picklist__jo_material__job_order__job_code': picklist.jo_material.job_order.job_code, 'status': 1}
+            if raw_locs.stock:
+                filter_params['stock__location__location'] = value[0]['orig_location']
+            else:
+                filter_params['stock__isnull'] = True
+            batch_raw_locs = RMLocation.objects.filter(**filter_params)
+            count = 0
+            for val in value:
+                if val['picked_quantity']:
+                    count += float(val['picked_quantity'])
+            for val in value:
+                if not val['picked_quantity'] or float(val['picked_quantity']) == 0:
                     continue
-                picklist = raw_loc.material_picklist
-
-                sku = picklist.jo_material.material_code
-                if float(picklist.reserved_quantity) > picked_quantity_val:
-                    picking_count = picked_quantity_val
-                else:
-                    picking_count = float(picklist.reserved_quantity)
-                picking_count1 = picking_count
-                if not raw_loc.stock:
-                    count = confirm_rm_no_stock(picklist, picking_count, count, raw_loc, request, user)
-                    continue
-                location = LocationMaster.objects.filter(location=val['location'], zone__user=user.id)
-                if not location:
-                    return HttpResponse("Invalid Location")
-                stock_dict = {'sku_id': sku.id, 'location_id': location[0].id, 'sku__user': user.id}
-                stock_detail = StockDetail.objects.filter(**stock_dict)
-                for stock in stock_detail:
-                    if picking_count == 0:
-                        break
-                    if picking_count > stock.quantity:
-                        picking_count = truncate_float(picking_count - stock.quantity, decimal_limit)
-                        picklist.reserved_quantity = truncate_float(picklist.reserved_quantity - stock.quantity,
-                                                                    decimal_limit)
-                        stock.quantity = 0
+                picked_quantity_val = float(val['picked_quantity'])
+                for raw_loc in batch_raw_locs:
+                    if count == 0:
+                        continue
+                    picklist = raw_loc.material_picklist
+                    sku = picklist.jo_material.material_code
+                    if float(picklist.reserved_quantity) > picked_quantity_val:
+                        picking_count = picked_quantity_val
                     else:
-                        stock.quantity = truncate_float(stock.quantity - picking_count, decimal_limit)
-                        picklist.reserved_quantity = truncate_float(picklist.reserved_quantity - picking_count,
-                                                                    decimal_limit)
-                        picking_count = 0
-
-                        if float(stock.location.filled_capacity) - picking_count1 >= 0:
-                            filled_capacity = float(stock.location.filled_capacity) - picking_count1
-                            filled_capacity = truncate_float(filled_capacity, decimal_limit)
-                            setattr(stock.location, 'filled_capacity', filled_capacity)
-                            stock.location.save()
-
-                        pick_loc = RMLocation.objects.filter(material_picklist_id=picklist.id,
-                                                             stock__location_id=stock.location_id,
-                                                             material_picklist__jo_material__material_code__user=user.id,
-                                                             status=1)
-                        picking_count1 = truncate_float(picking_count1, decimal_limit)
-                        update_picked = picking_count1
-                        # SKU Stats
-                        save_sku_stats(user, stock.sku_id, picklist.id, 'rm_picklist', update_picked)
-                        if pick_loc:
-                            update_picklist_locations(pick_loc, picklist, update_picked, '', decimal_limit)
+                        picking_count = float(picklist.reserved_quantity)
+                    picking_count1 = picking_count
+                    if not raw_loc.stock:
+                        count = confirm_rm_no_stock(picklist, picking_count, count, raw_loc, request, user)
+                        continue
+                    location = LocationMaster.objects.filter(location=val['location'], zone__user=user.id)
+                    if not location:
+                        return HttpResponse("Invalid Location")
+                    if 'imei_numbers' in val.keys():
+                        insert_jo_material_serial(picklist, val, user)
+                    stock_dict = {'sku_id': sku.id, 'location_id': location[0].id, 'sku__user': user.id}
+                    stock_detail = StockDetail.objects.filter(**stock_dict)
+                    for stock in stock_detail:
+                        if picking_count == 0:
+                            break
+                        if picking_count > stock.quantity:
+                            picking_count = truncate_float(picking_count - stock.quantity, decimal_limit)
+                            picklist.reserved_quantity = truncate_float(picklist.reserved_quantity - stock.quantity,
+                                                                        decimal_limit)
+                            stock.quantity = 0
                         else:
-                            data = RMLocation(material_picklist_id=picklist.id, stock=stock, quantity=picking_count1,
-                                              reserved=0,
-                                              status=0, creation_date=datetime.datetime.now(),
-                                              updation_date=datetime.datetime.now())
-                            data.save()
-                            exist_pics = RMLocation.objects.exclude(id=data.id).filter(material_picklist_id=picklist.id,
-                                                                                       status=1, reserved__gt=0)
-                            update_picklist_locations(exist_pics, picklist, update_picked, 'true', decimal_limit)
+                            stock.quantity = truncate_float(stock.quantity - picking_count, decimal_limit)
+                            picklist.reserved_quantity = truncate_float(picklist.reserved_quantity - picking_count,
+                                                                        decimal_limit)
+                            picking_count = 0
 
-                        picklist.picked_quantity = float(picklist.picked_quantity) + picking_count1
+                            if float(stock.location.filled_capacity) - picking_count1 >= 0:
+                                filled_capacity = float(stock.location.filled_capacity) - picking_count1
+                                filled_capacity = truncate_float(filled_capacity, decimal_limit)
+                                setattr(stock.location, 'filled_capacity', filled_capacity)
+                                stock.location.save()
 
-                    raw_loc = RMLocation.objects.get(id=raw_loc.id)
-                    stock.quantity = truncate_float(stock.quantity, decimal_limit)
-                    stock.save()
-                    mod_locations.append(stock.location.location)
-                    if stock.location.zone.zone == 'BAY_AREA':
-                        reduce_putaway_stock(stock, picking_count1, user.id)
-                    if raw_loc.reserved == 0:
-                        raw_loc.status = 0
-                        raw_loc_obj = RMLocation.objects.filter(
-                            material_picklist__jo_material_id=picklist.jo_material_id,
-                            material_picklist__jo_material__material_code__user=user.id, status=1)
-                        if not raw_loc_obj:
-                            raw_loc.material_picklist.jo_material.status = 2
-                            raw_loc.material_picklist.jo_material.save()
-                    auto_skus.append(sku.sku_code)
-                picked_quantity_val -= picking_count1
-                picked_quantity_val = truncate_float(picked_quantity_val, decimal_limit)
-                if picklist.reserved_quantity < 0:
-                    picklist.reserved_quantity = 0
-                if picklist.reserved_quantity == 0:
-                    picklist.status = 'picked'
-                if picklist.picked_quantity > 0 and picklist.jo_material.job_order.status in ['order-confirmed',
-                                                                                              'picklist_gen']:
-                    if stages:
-                        stat_obj = StatusTracking(status_id=picklist.jo_material.job_order.id, status_value=stages[0],
-                                                  status_type='JO',
-                                                  quantity=picklist.jo_material.job_order.product_quantity,
-                                                  original_quantity=picklist.jo_material.job_order.product_quantity)
-                        stat_obj.save()
-                    picklist.jo_material.job_order.status = 'partial_pick'
-                    picklist.jo_material.job_order.save()
-                picklist.save()
+                            pick_loc = RMLocation.objects.filter(material_picklist_id=picklist.id,
+                                                                 stock__location_id=stock.location_id,
+                                                                 material_picklist__jo_material__material_code__user=user.id,
+                                                                 status=1)
+                            picking_count1 = truncate_float(picking_count1, decimal_limit)
+                            update_picked = picking_count1
+                            # SKU Stats
+                            save_sku_stats(user, stock.sku_id, picklist.id, 'rm_picklist', update_picked)
+                            if pick_loc:
+                                update_picklist_locations(pick_loc, picklist, update_picked, '', decimal_limit)
+                            else:
+                                data = RMLocation(material_picklist_id=picklist.id, stock=stock, quantity=picking_count1,
+                                                  reserved=0,
+                                                  status=0, creation_date=datetime.datetime.now(),
+                                                  updation_date=datetime.datetime.now())
+                                data.save()
+                                exist_pics = RMLocation.objects.exclude(id=data.id).filter(material_picklist_id=picklist.id,
+                                                                                           status=1, reserved__gt=0)
+                                update_picklist_locations(exist_pics, picklist, update_picked, 'true', decimal_limit)
 
-                material = MaterialPicklist.objects.filter(jo_material__job_order_id=picklist.jo_material.job_order_id,
-                                                           status='open',
-                                                           jo_material__material_code__user=user.id)
-                if not material:
-                    if not picklist.jo_material.job_order.status in ['grn-generated', 'location-assigned',
-                                                                     'confirmed-putaway']:
-                        picklist.jo_material.job_order.status = 'pick_confirm'
-                    picklist.jo_material.job_order.save()
-                    rw_order = RWOrder.objects.filter(job_order_id=picklist.jo_material.job_order_id,
-                                                      vendor__user=user.id)
-                    if rw_order:
-                        rw_order = rw_order[0]
-                        picklist.jo_material.job_order.status = 'confirmed-putaway'
+                            picklist.picked_quantity = float(picklist.picked_quantity) + picking_count1
+
+                        raw_loc = RMLocation.objects.get(id=raw_loc.id)
+                        stock.quantity = truncate_float(stock.quantity, decimal_limit)
+                        stock.save()
+                        mod_locations.append(stock.location.location)
+                        if stock.location.zone.zone == 'BAY_AREA':
+                            reduce_putaway_stock(stock, picking_count1, user.id)
+                        if raw_loc.reserved == 0:
+                            raw_loc.status = 0
+                            raw_loc_obj = RMLocation.objects.filter(
+                                material_picklist__jo_material_id=picklist.jo_material_id,
+                                material_picklist__jo_material__material_code__user=user.id, status=1)
+                            if not raw_loc_obj:
+                                raw_loc.material_picklist.jo_material.status = 2
+                                raw_loc.material_picklist.jo_material.save()
+                        auto_skus.append(sku.sku_code)
+                    picked_quantity_val -= picking_count1
+                    picked_quantity_val = truncate_float(picked_quantity_val, decimal_limit)
+                    if picklist.reserved_quantity < 0:
+                        picklist.reserved_quantity = 0
+                    if picklist.reserved_quantity == 0:
+                        picklist.status = 'picked'
+                    if picklist.picked_quantity > 0 and picklist.jo_material.job_order.status in ['order-confirmed',
+                                                                                                  'picklist_gen']:
+                        if stages:
+                            stat_obj = StatusTracking(status_id=picklist.jo_material.job_order.id, status_value=stages[0],
+                                                      status_type='JO',
+                                                      quantity=picklist.jo_material.job_order.product_quantity,
+                                                      original_quantity=picklist.jo_material.job_order.product_quantity)
+                            stat_obj.save()
+                        picklist.jo_material.job_order.status = 'partial_pick'
                         picklist.jo_material.job_order.save()
-                        insert_rwo_po(rw_order, request, user)
+                    picklist.save()
 
-            if auto_skus:
-                auto_po(list(set(auto_skus)), user.id)
+                    material = MaterialPicklist.objects.filter(jo_material__job_order_id=picklist.jo_material.job_order_id,
+                                                               status='open',
+                                                               jo_material__material_code__user=user.id)
+                    if not material:
+                        if not picklist.jo_material.job_order.status in ['grn-generated', 'location-assigned',
+                                                                         'confirmed-putaway']:
+                            picklist.jo_material.job_order.status = 'pick_confirm'
+                        picklist.jo_material.job_order.save()
+                        rw_order = RWOrder.objects.filter(job_order_id=picklist.jo_material.job_order_id,
+                                                          vendor__user=user.id)
+                        if rw_order:
+                            rw_order = rw_order[0]
+                            picklist.jo_material.job_order.status = 'confirmed-putaway'
+                            picklist.jo_material.job_order.save()
+                            insert_rwo_po(rw_order, request, user)
 
-    if mod_locations:
-        update_filled_capacity(list(set(mod_locations)), user.id)
+                if auto_skus:
+                    auto_po(list(set(auto_skus)), user.id)
 
-    return HttpResponse('Picklist Confirmed')
+        if mod_locations:
+            update_filled_capacity(list(set(mod_locations)), user.id)
+
+        return HttpResponse('Picklist Confirmed')
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Confirm RM Picklist failed for %s and params are %s and error statement is %s' %
+                                                                    (str(user.username),
+                                                                     str(dict(request.POST.iterlists())),
+                                                                    str(e)))
 
 
 def validate_jo_stock(all_data, user, job_code):
@@ -1617,9 +1665,11 @@ def group_stage_dict(all_data):
             grouping_key = data[2]
             if data[1].get('pallet_number', ''):
                 grouping_key = str(data[2]) + '<<>>' + str(data[1]['pallet_number'])
-            new_dict[key].setdefault(grouping_key, {'quantity': 0, 'pallet_list': [], 'exist_ids': []})
+            new_dict[key].setdefault(grouping_key, {'quantity': 0, 'pallet_list': [], 'exist_ids': [],
+                                                    'imeis': ''})
             new_dict[key][grouping_key]['quantity'] = float(new_dict[key][grouping_key]['quantity']) + float(data[0])
             new_dict[key][grouping_key]['pallet_list'].append({'quantity': data[0], 'pallet_dict': data[1]})
+            new_dict[key][grouping_key]['imeis'] = new_dict[key][grouping_key]['imeis'] + str(data[4])
             if data[3]:
                 new_dict[key][grouping_key]['exist_ids'].append(data[3])
     return new_dict
@@ -1651,7 +1701,7 @@ def update_status_tracking(status_trackings, quantity, user, to_add=False, save_
 
 def build_jo_data(data_list):
     new_dict = {}
-    for key in data_list:
+    for key, value in data_list.iteritems():
         job_order = JobOrder.objects.get(id=key)
         pallet_mapping = PalletMapping.objects.filter(pallet_detail__user=job_order.product_code.user,
                                                       po_location__job_order__job_code=job_order.job_code,
@@ -1664,11 +1714,13 @@ def build_jo_data(data_list):
         for status_tracking in status_trackings:
             new_dict.setdefault(key, [])
             pallet_dict = {}
+            imeis = value.get(status_tracking.status_value, {}).get('imeis', '')
             if status_tracking.status_type == 'JO-PALLET':
                 pallet = pallet_mapping.get(id=status_tracking.status_id)
                 pallet_dict = {'pallet_number': pallet.pallet_detail.pallet_code, 'pallet_id': pallet.id}
             new_dict[key].append(
-                [float(status_tracking.quantity), pallet_dict, status_tracking.status_value, status_tracking.id])
+                [float(status_tracking.quantity), pallet_dict, status_tracking.status_value, status_tracking.id,
+                 imeis])
     return new_dict
 
 
@@ -1765,7 +1817,7 @@ def save_receive_pallet(all_data, user, is_grn=False):
                                                                                  final_update_data=final_update_data,
                                                                                  updated_status_ids=updated_status_ids)
 
-    new_data = build_jo_data(all_data.keys())
+    new_data = build_jo_data(all_data)
     for final_data in final_update_data:
         update_status_tracking(*final_data)
     return new_data
@@ -1789,8 +1841,10 @@ def save_receive_jo(request, user=''):
             rec_quantity = data_dict['received_quantity'][i]
             if not rec_quantity:
                 rec_quantity = 0
+            imeis = ''
             all_data[cond].append(
-                [rec_quantity, pallet_dict, data_dict['stage'][i], data_dict['status_track_id'][i]])
+                [rec_quantity, pallet_dict, data_dict['stage'][i], data_dict['status_track_id'][i],
+                 imeis])
         save_receive_pallet(all_data, user)
 
         return HttpResponse("Saved Successfully")
@@ -1826,8 +1880,12 @@ def confirm_jo_grn(request, user=''):
             rec_quantity = data_dict['received_quantity'][i]
             if not rec_quantity:
                 rec_quantity = 0
+            imeis = ''
+            if 'imei_numbers' in data_dict.keys() and data_dict['imei_numbers'][i]:
+                imeis = data_dict['imei_numbers'][i]
             all_data[cond].append(
-                [rec_quantity, pallet_dict, data_dict['stage'][i], data_dict['status_track_id'][i]])
+                [rec_quantity, pallet_dict, data_dict['stage'][i], data_dict['status_track_id'][i],
+                 imeis])
 
         all_data = save_receive_pallet(all_data, user, is_grn=True)
 
@@ -1861,6 +1919,8 @@ def confirm_jo_grn(request, user=''):
                 locations = get_purchaseorder_locations(put_zone, temp_dict)
                 job_order.received_quantity = float(job_order.received_quantity) + float(val[0])
                 received_quantity = float(val[0])
+                if val[4]:
+                    insert_jo_mapping(val[4], job_order, user.id)
                 for loc in locations:
                     if loc.zone.zone != 'DEFAULT':
                         location_quantity, received_quantity = get_remaining_capacity(loc, received_quantity, put_zone,
@@ -2585,15 +2645,15 @@ def get_grn_json_data(order, user, request):
         'WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Unit Price', 'Amount', 'SGST', 'CGST', 'IGST', 'UTGST',
         'Remarks')
     profile = UserProfile.objects.get(user=user.id)
-
+    w_address, company_address = get_purchase_company_address(profile)
     data_dictionary = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
                        'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': total,
                        'po_reference': po_reference, 'user_name': request.user.username, 'total_qty': total_qty,
                        'company_name': profile.company_name, 'location': profile.location, 'w_address': profile.address,
                        'vendor_name': vendor_name, 'vendor_address': vendor_address,
                        'vendor_telephone': vendor_telephone,
-                       'gstin_no': gstin_no, 'w_address': get_purchase_company_address(profile),
-                       'supplier_email': supplier_email}
+                       'gstin_no': gstin_no, 'w_address': w_address, 'wh_gstin': profile.gst_number,
+                       'supplier_email': supplier_email, 'company_address': company_address}
     return data_dictionary
 
 
@@ -3232,3 +3292,68 @@ def send_job_order_mail(request, user, job_code):
         log.info('Job Order Vendor Mail Notification failed for %s and params are %s and error statement is %s' % (
             str(user.username), str(request.POST.dict()), str(e)))
         return "Mail Sending Failed"
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def generate_jo_labels(request, user=''):
+    data_dict = dict(request.POST.iterlists())
+    order_id = request.POST.get('order_id', '')
+    pdf_format = request.POST.get('pdf_format', '')
+    data = {}
+    data['pdf_format'] = [pdf_format]
+    if not order_id:
+        return HttpResponse(json.dumps({'message': 'Please send Job Order Id', 'data': []}))
+    log.info('Request params for Generate JO Labels for ' + user.username + ' is ' + str(data_dict))
+    try:
+        serial_number = 1
+        max_serial = POLabels.objects.filter(sku__user=user.id, custom_label=0).aggregate(Max('serial_number'))['serial_number__max']
+        if max_serial:
+            serial_number = int(max_serial) + 1
+        job_orders = JobOrder.objects.filter(product_code__user=user.id, job_code=order_id)
+        creation_date = datetime.datetime.now()
+        all_po_labels = POLabels.objects.filter(sku__user=user.id, job_order__job_code=order_id, status=1)
+        for ind in range(0, len(data_dict['wms_code'])):
+            order = job_orders.filter(product_code__wms_code=data_dict['wms_code'][ind])
+            if not order:
+                continue
+            else:
+                order = order[0]
+                sku = order.product_code
+            needed_quantity = int(data_dict['quantity'][ind])
+            po_labels = all_po_labels.filter(job_order_id=order.id).order_by('serial_number')
+            data.setdefault('label', [])
+            data.setdefault('wms_code', [])
+            data.setdefault('quantity', [])
+            for labels in po_labels:
+                data['label'].append(labels.label)
+                data['quantity'].append(1)
+                data['wms_code'].append(labels.sku.wms_code)
+                needed_quantity -= 1
+            for quantity in range(0, needed_quantity):
+                imei_numbers = data_dict.get('imei_numbers', '')
+                if imei_numbers and imei_numbers[0] != '':
+                    imei_numbers = imei_numbers[0].split(',')
+                    label = imei_numbers[quantity]
+                    data['custome_label'] = 1
+                else:
+                    label = str(user.username[:2]).upper() + (str(serial_number).zfill(5))
+                data['label'].append(label)
+                data['quantity'].append(1)
+                label_dict = {'job_order_id': order.id, 'serial_number': serial_number, 'label': label,
+                              'status': 1,
+                              'creation_date': creation_date}
+                label_dict['sku_id'] = sku.id
+                data['wms_code'].append(sku.wms_code)
+                POLabels.objects.create(**label_dict)
+
+                serial_number += 1
+
+        barcodes_list = generate_barcode_dict(pdf_format, data, user)
+        return HttpResponse(json.dumps(barcodes_list))
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Generating Labels failed for params " + str(data_dict) + " and error statement is " + str(e))
+        return HttpResponse("Generate Labels Failed")

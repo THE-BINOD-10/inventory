@@ -1,0 +1,31 @@
+<html><head></head><body style="font-family:arial; font-size:100%;">
+Dear {{ customer_name }},<br>
+
+<p>
+{{approving_user_role}} have {% ifequal status 'accept' %} accepted your order and will process in shortly.{% else %} rejected {% endifequal %} your order. For your reference, here are the details of your order:
+</p>
+
+<p>Item(s) details:</p>
+<table border="1" bordercolor="#D2D9E7" cellpadding="2" cellspacing="2" style="border-collapse:collapse; font-size:13px; border:1px solid #D2D9E7">
+    <tbody>
+    <tr style="background-color:#00648B; color:#FFFFFF;">
+
+        {% for header in headers %}
+        <td> {{ header }} </td>
+        {% endfor %}
+
+    </tr>
+    {% for item in items %}
+    <tr>
+        {% for i in item %}
+            <td>{{ i }}</td>
+        {% endfor %}
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<br>
+Thanks
+<br><br>
+</body></html>

@@ -142,6 +142,14 @@ def get_po_filter(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+def get_grn_edit_filter(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_grn_edit_filter_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
 def get_sku_wise_po_filter(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     temp_data = get_sku_wise_po_filter_data(search_params, user, request.user)
@@ -823,7 +831,7 @@ def print_po_reports(request, user=''):
         order_date = datetime.datetime.strftime(purchase_order.open_po.creation_date, "%d-%m-%Y")
         bill_date = datetime.datetime.strftime(bill_date, "%d-%m-%Y")
         user_profile = UserProfile.objects.get(user_id=user.id)
-        w_address = user_profile.address
+        w_address, company_address = get_purchase_company_address(user_profile)#user_profile.address
         data_dict = (('Order ID', order_id), ('Supplier ID', supplier_id),
                      ('Order Date', order_date), ('Supplier Name', name))
     sku_list = po_data[po_data.keys()[0]]
@@ -841,7 +849,8 @@ def print_po_reports(request, user=''):
                    'total_price': total, 'data_dict': data_dict, 'bill_no': bill_no,
                    'po_number': po_reference, 'company_address': w_address, 'company_name': user_profile.company_name,
                    'display': 'display-none', 'receipt_type': receipt_type, 'title': title,
-                   'total_received_qty': total_qty, 'bill_date': bill_date, 'total_tax': total_tax})
+                   'total_received_qty': total_qty, 'bill_date': bill_date, 'total_tax': total_tax,
+                   'company_address': company_address})
 
 
 @csrf_exempt
@@ -1308,6 +1317,7 @@ def print_purchase_order_form(request, user=''):
     po_id = request.GET.get('po_id', '')
     total_qty = 0
     total = 0
+    show_cess_tax = False
     if not po_id:
         return HttpResponse("Purchase Order Id is missing")
     purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user=user.id, order_id=po_id)
@@ -1319,10 +1329,23 @@ def print_purchase_order_form(request, user=''):
         total_qty += open_po.order_quantity
         amount = open_po.order_quantity * open_po.price
         tax = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax
+        if open_po.cess_tax:
+            tax += open_po.cess_tax
+            show_cess_tax = True
         total += amount + ((amount / 100) * float(tax))
-        po_temp_data = [open_po.sku.sku_code, open_po.supplier_code, open_po.sku.sku_desc, open_po.order_quantity,
-                        open_po.measurement_unit, open_po.price, amount,
-                        open_po.sgst_tax, open_po.cgst_tax, open_po.igst_tax, open_po.utgst_tax]
+        total_tax_amt = (open_po.utgst_tax + open_po.sgst_tax + open_po.cgst_tax + open_po.igst_tax + open_po.cess_tax 
+            + open_po.utgst_tax) * (amount/100)
+        total_sku_amt = total_tax_amt + amount
+        if user.userprofile.industry_type == 'FMCG':
+            po_temp_data = [open_po.sku.sku_code, open_po.supplier_code, open_po.sku.sku_desc,
+                            open_po.order_quantity, open_po.measurement_unit, open_po.price, open_po.mrp,amount,
+                            open_po.sgst_tax, open_po.cgst_tax, open_po.igst_tax, open_po.cess_tax,
+                            open_po.utgst_tax, total_sku_amt]
+        else:
+            po_temp_data = [open_po.sku.sku_code, open_po.supplier_code, open_po.sku.sku_desc,
+                            open_po.order_quantity, open_po.measurement_unit, open_po.price, amount,
+                            open_po.sgst_tax, open_po.cgst_tax, open_po.igst_tax, open_po.cess_tax,
+                            open_po.utgst_tax, total_sku_amt]
         if ean_flag:
             po_temp_data.insert(1, open_po.sku.ean_number)
         if display_remarks == 'true':
@@ -1344,18 +1367,43 @@ def print_purchase_order_form(request, user=''):
     name = open_po.supplier.name
     order_id = order.order_id
     gstin_no = open_po.supplier.tin_number
+    if open_po:
+        address = open_po.supplier.address
+        address = '\n'.join(address.split(','))
+        if open_po.ship_to:
+            ship_to_address = open_po.ship_to
+            company_address = user.userprofile.address
+        else:
+            ship_to_address, company_address = get_purchase_company_address(user.userprofile)
+        ship_to_address = '\n'.join(ship_to_address.split(','))
+        telephone = open_po.supplier.phone_number
+        name = open_po.supplier.name
+        supplier_email = open_po.supplier.email_id
+        gstin_no = open_po.supplier.tin_number
+        if open_po.order_type == 'VR':
+            vendor_address = open_po.vendor.address
+            vendor_address = '\n'.join(vendor_address.split(','))
+            vendor_name = open_po.vendor.name
+            vendor_telephone = open_po.vendor.phone_number
+        terms_condition = open_po.terms
+    wh_telephone = user.userprofile.wh_phone_number
     order_date = get_local_date(request.user, order.creation_date)
     po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
-    table_headers = ['WMS Code', 'Supplier Code', 'Description', 'Quantity', 'Measurement Type', 'Unit Price',
-                     'Amount',
-                     'SGST(%)', 'CGST(%)', 'IGST(%)', 'UTGST(%)']
+    if user.userprofile.industry_type == 'FMCG':
+        table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP',
+                         'Amt', 'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
+    else:
+        table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price',
+                         'Amt', 'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
     if ean_flag:
-        table_headers.insert(1, 'EAN Number')
+        table_headers.insert(1, 'EAN')
     if display_remarks == 'true':
         table_headers.append('Remarks')
-
+    if show_cess_tax:
+        table_headers.insert(10, 'CESS (%)')
+    total_amt_in_words = number_in_words(round(total)) + ' ONLY'
+    round_value = float(round(total) - float(total))
     profile = user.userprofile
-
     company_name = profile.company_name
     title = 'Purchase Order'
     receipt_type = request.GET.get('receipt_type', '')
@@ -1365,19 +1413,36 @@ def print_purchase_order_form(request, user=''):
     if request.POST.get('seller_id', '') and 'shproc' in str(request.POST.get('seller_id').split(":")[1]).lower():
         company_name = 'SHPROC Procurement Pvt. Ltd.'
         title = 'Purchase Order'
-
-    data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
+    data_dict = {
+                 'table_headers': table_headers, 
+                 'data': po_data, 
+                 'address': address, 
+                 'order_id': order_id,
                  'telephone': str(telephone),
-                 'name': name, 'order_date': order_date, 'total': total, 'po_reference': po_reference,
-                 'user_name': request.user.username,
-                 'total_qty': total_qty, 'company_name': company_name, 'location': profile.location,
-                 'w_address': get_purchase_company_address(profile),
-                 'company_name': company_name, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
-                 'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title,
-                 'gstin_no': gstin_no, 'wh_gstin': profile.gst_number, 'wh_telephone': profile.phone_number}
-
+                 'name': name, 
+                 'order_date': order_date,
+                 'total': round(total), 
+                 'total_qty': total_qty,
+                 'vendor_name': vendor_name,
+                 'vendor_address': vendor_address,
+                 'vendor_telephone': vendor_telephone,
+                 'gstin_no': gstin_no,
+                 'w_address': ship_to_address,#get_purchase_company_address(profile),
+                 'ship_to_address': ship_to_address,
+                 'wh_telephone': wh_telephone,
+                 'wh_gstin': profile.gst_number,
+                 'terms_condition' : terms_condition,
+                 'total_amt_in_words' : total_amt_in_words,
+                 'show_cess_tax': show_cess_tax,
+                 'company_name': profile.company_name, 
+                 'location': profile.location, 
+                 'po_reference': po_reference,
+                 'industry_type': profile.industry_type,
+                 'company_address': company_address
+                }
+    if round_value:
+        data_dict['round_total'] = "%.2f" % round_value
     return render(request, 'templates/toggle/po_template.html', data_dict)
-
 
 @csrf_exempt
 @login_required
@@ -1415,3 +1480,12 @@ def print_debit_note(request, user=''):
         return render(request, 'templates/toggle/milk_basket_print.html', {'show_data_invoice': [show_data_invoice]})
     else:
         return HttpResponse("No Data")
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_sku_wise_rtv_filter(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_sku_wise_rtv_filter_data(search_params, user, request.user)
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')

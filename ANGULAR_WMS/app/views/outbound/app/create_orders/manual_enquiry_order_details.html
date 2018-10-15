@@ -1,20 +1,22 @@
 <div class="mb10">
-  <div class="detail-list" ng-init="order.labels = {'category': 'Category',  'description': 'Description', 'sku_code': 'SKU Code', 'style_name': 'Style Name'}">
+  <!-- <div class="detail-list" ng-init="order.labels = {'category': 'Category', 'sku_code': 'SKU Code', 'style_name': 'Style Name'}"> -->
+  <div class="detail-list" ng-init="order.labels = {'category': 'Category', 'style_name': 'Style Name'}">
     <div class="detail-item border-grey detail-bg-grey mb5">
       <h4><b>Order Details: #{{order.order_details.order.enquiry_id}}</b></h4>
       <div class="row no-margin">
         <div class="col-md-4 col-sm-4 col-xs-4">
           <span>Customer Name</span>
         </div>
-        <div class="col-md-4 col-sm-4 col-xs-4">
+        <div class="col-md-8 col-sm-8 col-xs-8">
           <span>: {{order.order_details.order.customer_name}}</span>
         </div>
       </div>
-      <div class="row no-margin" ng-repeat="name in ['style_name', 'sku_code', 'description', 'category']">
+      <!-- <div class="row no-margin" ng-repeat="name in ['style_name', 'sku_code', 'category']"> -->
+      <div class="row no-margin" ng-repeat="name in ['style_name', 'category']">
         <div class="col-md-4 col-sm-4 col-xs-4">
           <span>{{order.labels[name]}}</span>
         </div>
-        <div class="col-md-4 col-sm-4 col-xs-4">
+        <div class="col-md-8 col-sm-8 col-xs-8">
           <span>: {{order.order_details.style[name]}}</span>
         </div>
       </div>
@@ -22,7 +24,7 @@
         <div class="col-md-4 col-sm-4 col-xs-4">
           <span><b>Quantity</b></span>
         </div>
-        <div class="col-md-4 col-sm-4 col-xs-4">
+        <div class="col-md-8 col-sm-8 col-xs-8">
           <span><b>: {{order.order_details.order.quantity}}</b></span>
         </div>
       </div>
@@ -30,7 +32,7 @@
         <div class="col-md-4 col-sm-4 col-xs-4">
           <span><b>Customization Type</b></span>
         </div>
-        <div class="col-md-4 col-sm-4 col-xs-4">
+        <div class="col-md-8 col-sm-8 col-xs-8">
           <span><b>: {{order.order_details.order.customization_type}}</b></span>
         </div>
       </div>
@@ -38,7 +40,7 @@
         <div class="col-md-4 col-sm-4 col-xs-4">
           <span><b>Customization Remarks</b></span>
         </div>
-        <div class="col-md-6 col-sm-6 col-xs-6">
+        <div class="col-md-8 col-sm-8 col-xs-8">
           <ol style="padding-left: 20px;"><li ng-repeat="remark in order.order_details.order.custom_remarks"> {{remark}}.<br></li></ol>
         </div>
       </div>
@@ -55,7 +57,7 @@
     </div>
     <div class="row no-margin" ng-init="order.show_remove={};">
       <div class="col-md-2 no-padding" ng-repeat="image in order.order_details.style.images" ng-mouseover="order.show_remove[$index]=true" ng-mouseleave="order.show_remove[$index]=false">
-        <img ng-if="order.image_loding[$index]" style="z-index: 12;position:absolute;left: 0px;right: 0px;height:100%;opacity:0.6;" class="img-thumbnail" src="https://m.popkey.co/fe4ba7/DYALX.gif" ng-click="$event.stopPropagation();">
+        <img ng-if="order.image_loding[$index]" style="z-index: 12;position:absolute;left: 0px;right: 0px;height:100%;opacity:0.6;" class="img-thumbnail" src="images/DYALX.gif" ng-click="$event.stopPropagation();">
         <button class="btn btn-danger" ng-hide="order.save"  ng-if="order.show_remove[$index]" style="position:absolute;top:0px;right:0px;" ng-click="order.remove_image($index)">X</button>
         <img  style="width: 100%;" ng-src="{{order.service.check_image_url('/'+image)}}">
       </div>
@@ -65,21 +67,22 @@
       <accordion-heading>
         <span><b>{{hist.username}}</b></span>
         <i class="pull-right glyphicon" ng-class="{'glyphicon-chevron-down': status.open, 'glyphicon-chevron-right': !status.open}"></i>
-        <span class="pull-right mr20">Date: {{hist.date}}</span>
+        <!-- <span class="pull-right mr20">Date: {{hist.date}}</span> -->
+        <span class="pull-right mr20">Date: {{hist.date | date:"dd/MM/yyyy"}}</span>
       </accordion-heading>
       <div class="over-x">
         <table class="table mb0 mw40">
           <thead>
             <tr>
               <th class="col-md-4" ng-hide="order.order_details.order.customization_type=='Product Customization'">Price</th>
-              <th class="col-md-4">Expected Date</th>
+              <th class="col-md-4">Approximate Delivery Date</th>
               <th class="col-md-4">Remarks</th>
             </tr>
           </thead>
           <tbody>
             <tr style="cursor:pointer">
               <td ng-hide="order.order_details.order.customization_type=='Product Customization'">{{hist.ask_price}}</td>
-              <td>{{hist.expected_date}}</td>
+              <td>{{hist.expected_date | date:"dd/MM/yyyy"}}</td>
               <td>{{hist.remarks}}</td>
             </tr>
           </tbody>
@@ -90,31 +93,82 @@
 
     <div class="row no-margin">
       <form name="form" role="form">
-        <div ng-if="order.edit_enable">
-        <div class="col-md-4 col-sm-4 col-xs-12" ng-if="order.order_details.order.customization_type!='Product Customization'">
-          <div class="form-group">
-            <input type="text" name="ask_price" ng-model="order.model_data.ask_price" class="form-control ng-pristine" placeholder="Modify Price *" decimal-number required>
+        <div class="col-md-4 col-sm-4 col-xs-12" ng-if="order.permissions.user_type == 'sm_design_admin'">
+          <span class="btn btn-primary up-btn pull-left" style="position: relative;overflow: hidden;width: 150px;">{{(order.uploading)?'Uploading Images':'Choose File';}}
+            <input style="position: absolute;top: 0;right: 0; min-width: 100%; min-height: 100%; font-size: 100px; text-align: right; filter: alpha(opacity=0); opacity: 0;
+                          outline: none; background: white; cursor: inherit; display: block;" class="btn btn-primary" type = "file" name="files" id="image-upload1" multi-image-upload multiple/>
+          </span>
+        </div>
+        <div ng-if="order.edit_enable && (order.order_details.order.status!='confirm_order' && order.order_details.order.status!='hold_order')">
+          <div class="col-md-4 col-sm-4 col-xs-12" ng-if="order.order_details.order.customization_type!='Product Customization' && order.permissions.user_type != 'sm_design_admin'">
+            <div class="form-group">
+              <input type="text" ng-if="!order.clear_flag" name="ask_price" ng-model="order.model_data.ask_price" class="form-control ng-pristine" placeholder="Modify Price *" decimal-number required>
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-4 col-xs-12" ng-if="order.permissions.user_type == 'sm_purchase_admin'">
+            <div class="form-group">
+              <input type="text" ng-if="!order.clear_flag" name="lead_time" ng-model="order.model_data.lead_time" ng-change="order.calcuateExpectedDate()" class="form-control ng-pristine" placeholder="LeadTime in Days *" number required>
+              Expected_date: {{order.model_data.expected_date}}
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-4 col-xs-12" ng-if="order.permissions.user_type != 'sm_design_admin' && order.permissions.user_type != 'sm_purchase_admin'">
+            <div class="form-group">
+              <input name="extended_date" ng-if="!order.clear_flag" ui-jq="datepicker" ng-model="order.model_data.expected_date" placeholder="Select Expected Date *" class="form-control stk-readonly" type="text" id="extended_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{order.date}}" readonly="true" required>
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-4 col-xs-12">
+            <div class="form-group">
+              <textarea ng-if="!order.clear_flag" rows="4" class="form-control ng-pristine" cols="27" name="remarks" placeholder="Remarks *" ng-model="order.model_data.remarks" required></textarea>
+            </div>
+          </div>
+          <div class="row col-md-12 no-margin" ng-init="order.show_remove={};">
+          <div class="col-md-2 no-padding" ng-repeat="image in order.order_details.style.art_images" ng-mouseover="order.show_remove[$index]=true" ng-mouseleave="order.show_remove[$index]=false">
+            <img ng-if="order.image_loding[$index]" style="z-index: 12;position:absolute;left: 0px;right: 0px;height:100%;opacity:0.6;" class="img-thumbnail" src="images/DYALX.gif" ng-click="$event.stopPropagation();">
+            <button class="btn btn-danger" ng-hide="order.save"  ng-if="order.show_remove[$index]" style="position:absolute;top:0px;right:0px;" ng-click="order.remove_image($index)">X</button>
+            <img  style="width: 100%;" ng-src="{{order.service.check_image_url('/'+image)}}">
           </div>
         </div>
-        <div class="col-md-4 col-sm-4 col-xs-12">
-          <div class="form-group">
-            <input name="extended_date" ui-jq="datepicker" ng-model="order.model_data.expected_date" placeholder="Select Expected Date *" class="form-control stk-readonly" type="text" id="extended_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{order.date}}" readonly="true" required>
+        </div>
+        <div ng-if="order.model_data.from == 'custom_order' && (order.order_details.order.status=='confirm_order' || order.order_details.order.status=='hold_order')">
+          <div class="col-md-4 col-sm-4 col-xs-12">
+            <div class="form-group">
+              <input type="text" name="sm_d_price" ng-model="order.model_data.sm_d_price" class="form-control ng-pristine" placeholder="SM-D Price *" decimal-number required>
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-4 col-xs-12">
+            <div class="form-group">
+              <label>D-R Price: {{order.model_data.confirmed_price}}</label>
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-4 col-xs-12">
+            <div class="form-group">
+              <input type="text" name="r_c_price" ng-model="order.model_data.r_c_price" class="form-control ng-pristine" placeholder="R-C Price *" decimal-number required>
+            </div>
           </div>
         </div>
-        <div class="col-md-4 col-sm-4 col-xs-12">
-          <div class="form-group">
-            <textarea rows="4" class="form-control ng-pristine" cols="27" name="remarks" placeholder="Remarks *" ng-model="order.model_data.remarks" required></textarea>
-          </div>
-        </div>
-        </div>
-        <div class="col-md-12 text-center mb10" ng-if="order.model_data.from == 'custom_order'">
+        <div class="col-md-12 text-center mb10" ng-if="order.model_data.from == 'custom_order' && order.order_details.order.status!='confirm_order' && order.order_details.order.status!='hold_order' && order.order_details.order.customization_type!='Price and Product Customization'">
           <button type='submit' class="btn btn-primary" ng-click="order.notify_to_sub_dist(form)" ng-disabled="order.disable_btn">Notify to Sub Distributor</button>
           <button type='button' class="btn btn-primary" ng-click="order.send_for_approval(form)" ng-disabled="order.disable_btn">Send For Approval</button>
         </div>
+        <div class="col-md-12 text-center mb10" ng-if="order.model_data.from == 'custom_order' && order.order_details.order.status!='confirm_order' && order.order_details.order.status!='hold_order' && order.order_details.order.customization_type=='Price and Product Customization' && order.permissions.user_type != 'sm_design_admin'">
+          <button type='submit' class="btn btn-primary" ng-click="order.notify_to_sub_dist(form)" ng-disabled="order.disable_btn">Notify to Sub Distributor</button>
+          <button type='submit' class="btn btn-primary" ng-click="order.notify_to_designer(form)" ng-disabled="order.disable_btn">Notify to Designer</button>
+          <button type='button' class="btn btn-primary" ng-click="order.send_for_approval(form)" ng-disabled="order.disable_btn">Send For Approval</button>
+        </div>
+        <div class="col-md-12 text-center mb10" ng-if="order.model_data.from == 'custom_order' && order.order_details.order.status!='confirm_order' && order.order_details.order.status!='hold_order' && order.order_details.order.customization_type=='Price and Product Customization' && order.permissions.user_type == 'sm_design_admin'">
+          <button type='button' class="btn btn-primary" ng-click="order.upload_artwork(form)" ng-disabled="order.disable_btn">Upload ArtWork</button>
+        </div>
+        <div class="col-md-12 text-center mb10" ng-if="order.model_data.from == 'custom_order' && order.order_details.order.status=='confirm_order'">
+          <button type='submit' class="btn btn-primary" ng-click="order.convert_customorder_to_actualorder(form)" ng-disabled="order.disable_btn">Place Order</button>
+        </div>
+        <div class="col-md-12 text-center mb10" ng-if="order.model_data.from == 'custom_order' && order.order_details.order.status=='hold_order'">
+          <button type='submit' class="btn btn-primary" ng-click="order.convert_customorder_to_enquiryorder(form)" ng-disabled="order.disable_btn">Place Enquiry Order</button>
+        </div>
         <div class="col-md-12 text-center mb10" ng-hide="order.save">
-          <button type='submit' class="btn btn-success" ng-if="!order.edit_enable" ng-click="order.edit_enable = true">edit</button>
+          <button type='submit' class="btn btn-success" ng-if="!order.edit_enable" ng-click="order.edit_enable = true; order.clear_flag=false;">edit</button>
+          <button type='submit' class="btn btn-success" ng-if="order.edit_enable" ng-click="order.clear()">clear</button>
           <button type='submit' class="btn btn-success" ng-if="order.edit_enable" ng-click="order.edit(form)">Notify HO</button>
-          <button type='submit' class="btn btn-primary" ng-click="">Accept</button>
+          <button type='submit' class="btn btn-primary" ng-if="order.order_details.order.status=='approved'" ng-click="order.accept_or_hold()">Accept</button>
           <button type='submit' class="btn btn-danger" ng-click="">Reject</button>
         </div>
       </form>

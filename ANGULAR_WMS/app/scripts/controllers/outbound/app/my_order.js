@@ -8,6 +8,7 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
   vm.page_url = $state.href($state.current.name, $state.params, {absolute: true})
   vm.your_orders = $state.params.state;
   vm.status = $state.params.state;
+  vm.state_name = $state.current.name;
 
   var url = "";
   if (vm.your_orders == 'enquiry') {
@@ -18,6 +19,10 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
     url = "get_customer_orders/";
   }
 
+  if (vm.state_name == 'app.inbound.AutoBackOrders') {
+    Data.my_orders = [];
+  }
+
   //you orders
   vm.you_orders = false;
   vm.orders_loading = false;
@@ -26,6 +31,7 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
   vm.show_no_data = false;
   vm.disable_brands_view = Session.roles.permissions.disable_brands_view;
   vm.date = new Date();
+  vm.is_portal_lite = Session.roles.permissions.is_portal_lite;
 
   vm.get_orders = function(key){
 
@@ -45,7 +51,8 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
         });
         vm.show_extend_date = false;
 
-        Data[key] = vm.order_data.data;
+//        Data[key] = vm.order_data.data;
+        angular.copy(vm.order_data.data, Data[key])
         if(data.data.data.length == 0) {
           vm.show_no_data = true
         }
@@ -189,7 +196,7 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
 
   vm.open_details = function(data) {
 
-    if (Session.user_profile.user_type == 'warehouse_user') {
+    if (Session.user_profile.request_user_type == 'warehouse_user') {
 
       var mod_data = {order_id: data['orderId'], url: 'get_customer_order_detail', customer_id: data['customerId']};
       var page_url = window.location.href

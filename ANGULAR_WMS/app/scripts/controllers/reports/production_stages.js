@@ -45,7 +45,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
    vm.model_data = {};
    angular.copy(vm.empty_data, vm.model_data);
 
-   vm.service.apiCall('get_sku_categories/').then(function(data){
+   vm.service.apiCall('get_sku_categories_list/').then(function(data){
      if(data.message) {
        angular.copy(data.data, vm.data)
      }

@@ -1554,12 +1554,12 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
             try:
                 creation_date = datetime.datetime.strptime(order['order_date'], '%Y-%m-%d %H:%M:%S')
             except:
-                update_error_message(failed_status, 5024, 'Invalid Order Date Format', original_order_id)
+                update_error_message(failed_status, 5024, 'Invalid Order Date Format', '')
             order_summary_dict = copy.deepcopy(ORDER_SUMMARY_FIELDS)
             channel_name = order['source']
             order_details = copy.deepcopy(ORDER_DATA)
             data = order
-            original_order_id = order['order_id']
+            original_order_id = str(order['order_id'])
             order_code = ''.join(re.findall('\D+', original_order_id))
             order_id = ''.join(re.findall('\d+', original_order_id))
             filter_params = {'user': user.id, 'order_id': order_id}
@@ -1573,6 +1573,12 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
 
             if order.has_key('billing_address'):
                 order_details['customer_id'] = order['billing_address'].get('customer_id', 0)
+                if order_details['customer_id']:
+                    customer_master = CustomerMaster.objects.filter(user=user.id, customer_id=order_details['customer_id'])
+                    if not customer_master:
+                        error_message = 'Invalid Customer ID %s' % str(order_details['customer_id'])
+                        update_error_message(failed_status, 5024, error_message, original_order_id)
+                        break
                 order_details['customer_name'] = order['billing_address'].get('name', '')
                 order_details['telephone'] = order['billing_address'].get('phone_number', '')
                 order_details['city'] = order['billing_address'].get('city', '')
@@ -1668,7 +1674,7 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                     }
                     break
 
-                final_data_dict[grouping_key]['shipping_tax'] = eval(order_mapping.get('shipping_tax', ''))
+                #final_data_dict[grouping_key]['shipping_tax'] = eval(order_mapping.get('shipping_tax', ''))
                 final_data_dict[grouping_key]['status_type'] = order_status
     except Exception as e:
         import traceback

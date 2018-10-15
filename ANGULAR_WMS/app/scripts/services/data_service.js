@@ -41,7 +41,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
   //WareHouse stock
 
   self.stock_view = {
-                      views: ['Available', 'Available+Intransit', 'Total'],
+                      views: ['Available', 'Available+Intransit', 'Available+ASN', 'Total'],
                       view: 'Available',
                       levels: [1,2],
                       level: 1
@@ -144,7 +144,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
 
                             alternate_view: false,
                             view: 'normalView',
-                            tb_headers: {'normalView': ['Order ID', 'WMS Code', 'Description', 'Location', 'Quantity', 'Picked Quantity', 'Date', 'Time'],
+                            tb_headers: {'normalView': ['Order ID', 'WMS Code', 'Child SKU', 'Description', 'Location', 'Quantity', 'Picked Quantity', 'Date', 'Time'],
                                          'serialView': ['Order ID', 'WMS Code', 'Description', 'Customer Name', 'Serial Number', 'Date', 'Time'],
                                          'customerView': ['Customer ID', 'Customer Name', 'WMS Code', 'Description', 'Quantity', 'Picked Quantity']}
                          }
@@ -168,10 +168,13 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
     self.styles_data = {};
     self.tot_corporates = [];
     self.shipment_number = '';
+    self.categories = [];
+    self.sub_categories = [];
     self.invoice_data = {};
     self.datatable = 'ReturnToVendor';
     self.seller_types = [];
     self.rtv_filters = {};
+    self.receive_jo_barcodes = false;
 
     /** login page maintainance **/
     self.login_data = {
@@ -182,4 +185,3 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
       default: 'user.signin'
     }
 }
-

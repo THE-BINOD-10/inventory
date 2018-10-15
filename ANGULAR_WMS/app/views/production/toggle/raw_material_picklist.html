@@ -38,15 +38,17 @@
                    <th ng-if="showCase.permissions.pallet_switch">Pallet Code</th>
                    <th>Reserved Quantity</th>
                    <th>Picked Quantity</th>
+                   <th ng-if="showCase.permissions.use_imei">Serial Number</th>
                    <th>Units Of Measurement</th>
                    <th class="plus"></th>
                  </tr>
                </thead>
-               <tbody ng-repeat="data in showCase.model_data.data">
-                 <tr  ng-repeat="record in data.sub_data" class="field">
+               <tbody ng-repeat="data in showCase.model_data.data" ng-init="outerIndex=$index">
+                 <tr  ng-repeat="record in data.sub_data" class="field" ng-init="innerIndex=$index">
                    <input type="hidden" name="order_id_{{data.id}}"  value="{{data.id}}">
                    <input type="hidden" name="stock_id_{{data.id}}" value="{{data.stock_id}}">
                    <input type="hidden" name="orig_location_{{data.id}}"  value="{{data.location}}">
+                   <input type="hidden" value="{{record.accept_imei.join(',')}}" name="imei_numbers_{{data.id}}">
                    <td ng-if="showCase.permissions.show_image"><img ng-src="{{showCase.service.check_image_url(data.image)}}" style="height: 35px;"></img></td>
                    <td><input type="text" name="wms_code_{{data.id}}" class="form-control" ng-readonly="showCase.update" value="{{data.wms_code}}"></td>
                    <td><input type="text" name="title_{{data.id}}" class="form-control" ng-readonly="showCase.update" value="{{data.title}}"></td>
@@ -54,7 +56,11 @@
                    <td><input type="text" name="location_{{data.id}}" class="form-control" ng-model="record.location" required ng-blur="showCase.checkCapacity($index, data, 'location', $event);"></td>
                    <td ng-if="showCase.permissions.pallet_switch"><input type="text" name="pallet_{{data.id}}" class="form-control" ng-model="record.pallet_code" ng-blur="showCase.checkCapacity($index, data, 'pallet_code', $event);" ng-show="record.pallet_visible"></td>
                    <td><input type="text" name="reserved_quantity_{{data.id}}" class="form-control" value="{{data.reserved_quantity}}" ng-readonly="showCase.update"></td>
-                   <td><input type="text" name="picked_quantity_{{data.id}}" class="form-control" ng-model="record.picked_quantity" ng-change="showCase.cal_quantity(record, data)" ng-class="service.get_decimal_perm()"></td>
+                   <!-- <td><input type="text" name="picked_quantity_{{data.id}}" class="form-control" ng-model="record.picked_quantity" ng-change="showCase.cal_quantity(record, data)" ng-class="service.get_decimal_perm()"></td> -->
+                   <td><input type="text" name="picked_quantity_{{data.id}}" class="form-control" ng-init="record.picked_quantity = (showCase.permissions.use_imei) ? '0' : record.picked_quantity" ng-model="record.picked_quantity" ng-change="showCase.cal_quantity(record, data)" ng-class="service.get_decimal_perm()" ng-readonly="showCase.permissions.use_imei"></td>
+                   <td ng-if="showCase.permissions.use_imei">
+                     <input type="text" name="imei_{{data.id}}" id="{{outerIndex}}_{{innerIndex}}_imei" attr-name="{{'imei_'+data.wms_code}}" ng-model="data.imei_number" class="form-control detectTab" ng-readonly="data.disable" ng-keydown="showCase.check_imei_exists($event, data, outerIndex, innerIndex)">
+                   </td>
                    <td><input type="text" name="measurement_type_{{data.id}}" class="form-control"value="{{data.measurement_type}}" ng-readonly="showCase.update"></td>
                    <td><i ng-click="showCase.update_data($index, data, $last)" ng-class="($last)? 'fa fa-plus-square-o' : 'fa fa-minus-square-o'"></i> </td>
                  </tr>
@@ -66,7 +72,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn pop pop-normal" ng-disabled="showCase.confirm_disable" ng-click="showCase.print()">Print Picklist</button>
-          <button type="submit" class="btn pop pop-green" ng-disabled="showCase.confirm_disable" ng-click="showCase.submit(form)">Confirm</button>
+          <button type="button" class="btn pop pop-green" ng-disabled="showCase.confirm_disable" ng-click="showCase.submit(form)">Confirm</button>
         </div>
       </div>
     </div>

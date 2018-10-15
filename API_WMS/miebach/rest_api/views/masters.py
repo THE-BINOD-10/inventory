@@ -411,7 +411,7 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
                          ('DT_RowId', data.customer_id), ('DT_RowClass', 'results'),
                          ('discount_percentage', data.discount_percentage), ('lead_time', data.lead_time),
                          ('is_distributor', str(data.is_distributor)), ('markup', data.markup),
-                         ('spoc_name', data.spoc_name))))
+                         ('role', data.role), ('spoc_name', data.spoc_name))))
 
 
 @csrf_exempt
@@ -624,13 +624,20 @@ def get_vendor_master_results(start_index, stop_index, temp_data, search_term, o
 
 @get_admin_user
 def location_master(request, user=''):
-    filter_params = {'user': user.id}
-    distinct_loctype = filter_by_values(ZoneMaster, filter_params, ['zone'])
+    filter_params = {'user': user.id, 'level': 0}
+    distinct_loctype = ZoneMaster.objects.filter(**filter_params)
+    #distinct_loctype = filter_by_values(ZoneMaster, filter_params, ['zone', 'level'])
     new_loc = []
     location_groups = LocationGroups.objects.filter(location__zone__user=user.id).values('location__location',
                                                                                          'group').distinct()
     for loc_type in distinct_loctype:
-        filter_params = {'zone__zone': loc_type['zone'], 'zone__user': user.id}
+        filter_params = {'zone__zone': loc_type.zone, 'zone__user': user.id}
+        sub_zone_obj = loc_type.subzonemapping_set.filter()
+        sub_zone = ''
+        if sub_zone_obj:
+            sub_zone = sub_zone_obj[0].sub_zone.zone
+            del filter_params['zone__zone']
+            filter_params['zone__zone__in'] = [sub_zone, loc_type.zone]
         loc = filter_by_values(LocationMaster, filter_params,
                                ['location', 'max_capacity', 'fill_sequence', 'pick_sequence', 'status',
                                 'pallet_capacity', 'lock_status'])
@@ -640,10 +647,11 @@ def location_master(request, user=''):
             loc_groups = map(lambda d: d['group'], loc_group_dict)
             loc_groups = [str(x).encode('UTF8') for x in loc_groups]
             loc_location['location_group'] = loc_groups
+            loc_location['sub_zone'] = sub_zone
         new_loc.append(loc)
 
     data = []
-    modified_zone = zip(distinct_loctype, new_loc)
+    modified_zone = zip(distinct_loctype.values('zone'), new_loc)
     if modified_zone:
         for loc in modified_zone:
             zone = loc[0]['zone']
@@ -715,6 +723,14 @@ def get_sku_data(request, user=''):
     sku_data['size_type'] = ''
     sku_data['mix_sku'] = data.mix_sku
     sku_data['ean_number'] = data.ean_number
+    ean_numbers = list(data.eannumbers_set.values_list('ean_number', flat=True))
+    if sku_data['ean_number']:
+        ean_numbers.append(sku_data['ean_number'])
+    if ean_numbers:
+        ean_numbers = ','.join(map(str, ean_numbers))
+    else:
+        ean_numbers = ''
+    sku_data['ean_numbers'] = ean_numbers
     sku_data['color'] = data.color
     sku_data['load_unit_handle'] = load_unit_dict.get(data.load_unit_handle, 'unit')
     sku_data['hsn_code'] = data.hsn_code
@@ -918,6 +934,7 @@ def update_sku(request, user=''):
         if not wms or not description:
             return HttpResponse('Missing Required Fields')
         data = get_or_none(SKUMaster, {'wms_code': wms, 'user': user.id})
+
         image_file = request.FILES.get('files-0', '')
         if image_file:
             save_image_file(image_file, data, user)
@@ -943,13 +960,19 @@ def update_sku(request, user=''):
                 key = 'zone_id'
                 if zone:
                     value = zone.id
-            elif key == 'ean_number':
-                if not value:
-                    value = 0
-                else:
-                    ean_status = check_ean_number(data.sku_code, value, user)
-                    if ean_status:
-                        return HttpResponse(ean_status)
+            #elif key == 'ean_number':
+            #    if not value:
+            #        value = 0
+            #    else:
+            #        ean_status = check_ean_number(data.sku_code, value, user)
+            #        if ean_status:
+            #            return HttpResponse(ean_status)
+            elif key == 'ean_numbers':
+                ean_numbers = value.split(',')
+                ean_status = update_ean_sku_mapping(user, ean_numbers, data, True)
+                if ean_status:
+                    return HttpResponse(ean_status)
+
             elif key == 'load_unit_handle':
                 value = load_unit_dict.get(value.lower(), 'unit')
             elif key == 'size_type':
@@ -2014,6 +2037,9 @@ def add_zone(request, user=''):
     data = ZoneMaster.objects.filter(zone=zone, user=user.id)
     update = request.GET.get('update', '')
     marketplace = request.GET.get('marketplaces', '')
+    level = request.GET.get('level', 0)
+    if level == '':
+        level = 0
     if update == 'true':
         if not data:
             status = 'ZONE not found'
@@ -2025,6 +2051,7 @@ def add_zone(request, user=''):
             location_dict = copy.deepcopy(ZONE_DATA)
             location_dict['user'] = user.id
             location_dict['zone'] = zone
+            location_dict['level'] = level
             loc_master = ZoneMaster(**location_dict)
             loc_master.save()
             update_zone_marketplace_mapping(loc_master, marketplace)
@@ -2048,6 +2075,7 @@ def get_zone_data(request, user=''):
             ZoneMarketplaceMapping.objects.filter(zone__user=user.id, zone__zone=zone, status=1).values_list(
                 'marketplace', flat=True))
         resp['marketplaces'] = marketplace_list
+        resp['level'] = data[0].level
         status = 'Success'
     resp['msg'] = status
     return HttpResponse(json.dumps(resp))
@@ -2131,11 +2159,34 @@ def update_location(request, user=''):
     return HttpResponse('Updated Successfully')
 
 
+def get_user_zones(user, level='', exclude_mapped=False):
+    """ Get Zones based on the filters"""
+    zone_filter = {'user': user.id}
+    if level:
+        zone_filter['level'] = level
+    zone_master = ZoneMaster.objects.filter(**zone_filter)
+    if exclude_mapped:
+        excl_list = SubZoneMapping.objects.filter(zone__user=user.id).values_list('sub_zone_id', flat=True)
+        zone_master = zone_master.exclude(id__in=excl_list)
+    zones_list = list(zone_master.values_list('zone', flat=True))
+    return zones_list
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_zones(request, user=''):
+    level = request.GET.get('level', '')
+    exclude_mapped = request.GET.get('exclude_mapped', '')
+    zones_list = get_user_zones(user, level=level, exclude_mapped=exclude_mapped)
+    return HttpResponse(json.dumps({'zones_list': zones_list}))
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
 def get_zones_list(request, user=''):
-    zones_list = list(ZoneMaster.objects.filter(user=user.id).values_list('zone', flat=True))
+    zones_list = get_user_zones(user)
     all_groups = list(SKUGroups.objects.filter(user=user.id).values_list('group', flat=True))
     market_places = list(Marketplaces.objects.filter(user=user.id).values_list('name', flat=True))
     size_names = SizeMaster.objects.filter(user=user.id)
@@ -2171,6 +2222,12 @@ def insert_sku(request, user=''):
         filter_params = {'wms_code': wms, 'user': user.id}
         data = filter_or_none(SKUMaster, filter_params)
         status_msg = 'SKU exists'
+        wh_ids = get_related_users(user.id)
+        cust_ids = CustomerUserMapping.objects.filter(customer__user__in=wh_ids).values_list('user_id', flat=True)
+        notified_users = []
+        notified_users.extend(wh_ids)
+        notified_users.extend(cust_ids)
+        notified_users = list(set(notified_users))
 
         if not data:
             data_dict = copy.deepcopy(SKU_DATA)
@@ -2193,10 +2250,10 @@ def insert_sku(request, user=''):
                             value = 0
                     elif key == 'load_unit_handle':
                         value = load_unit_dict.get(value.lower(), 'unit')
-                    elif key == 'ean_number' and value:
-                        ean_status = check_ean_number(wms, value, user)
-                        if ean_status:
-                            return HttpResponse(ean_status)
+                    #elif key == 'ean_number' and value:
+                    #    ean_status = check_ean_number(wms, value, user)
+                    #    if ean_status:
+                    #        return HttpResponse(ean_status)
                     if value == '':
                         continue
                     data_dict[key] = value
@@ -2204,6 +2261,8 @@ def insert_sku(request, user=''):
             data_dict['sku_code'] = data_dict['wms_code']
             sku_master = SKUMaster(**data_dict)
             sku_master.save()
+            contents = {"en": "New SKU %s is created." % data_dict['sku_code']}
+            send_push_notification(contents, notified_users)
             update_sku_attributes(sku_master, request)
             image_file = request.FILES.get('files-0', '')
             if image_file:
@@ -2216,6 +2275,10 @@ def insert_sku(request, user=''):
             status_msg = 'New WMS Code Added'
 
             update_marketplace_mapping(user, data_dict=dict(request.POST.iterlists()), data=sku_master)
+            ean_numbers = request.POST.get('ean_numbers', '')
+            if ean_numbers:
+                ean_numbers = ean_numbers.split(',')
+                update_ean_sku_mapping(user, ean_numbers, sku_master)
 
         insert_update_brands(user)
         # update master sku txt file
@@ -2640,11 +2703,18 @@ def generate_barcodes(request, user=''):
     tmp = []
     for d in data_dict:
         if d.has_key('quantity') and int(d['quantity']) > 1:
+            tmp.append(d)
             for i in range(int(d['quantity'])-1):
                 d['quantity'] = 1
-                tmp.append(d) 
-    if tmp:
-        data_dict.extend(tmp)
+                tmp.append(d)
+        else:
+            tmp.append(d)
+    data_dict = tmp
+    #if tmp:
+    #    data_dict.extend(tmp)
+    #if not tmp:
+    #    tmp = data_dict
+    #print tmp
     barcodes_list = generate_barcode_dict(pdf_format, data_dict, user)
 
     return HttpResponse(json.dumps(barcodes_list))
@@ -2741,6 +2811,13 @@ def update_pricing(request, user=''):
     if not price_master_data:
         return HttpResponse('Invalid data')
 
+    wh_ids = get_related_users(user.id)
+    cust_ids = CustomerUserMapping.objects.filter(customer__user__in=wh_ids, customer__price_type=price_type).values_list('user_id', flat=True)
+    notified_users = []
+    notified_users.extend(wh_ids)
+    notified_users.extend(cust_ids)
+    notified_users = list(set(notified_users))
+
     db_set = set(price_master_data.values_list('min_unit_range', 'max_unit_range'))
     ui_set = set()
     ui_map = {}
@@ -2778,6 +2855,8 @@ def update_pricing(request, user=''):
             p.price = price
             p.discount = discount
             p.save()
+        contents = {"en": "Price has revised for SKU %s." % sku[0].sku_code}
+        send_push_notification(contents, notified_users)
     if new_ranges:
         for new_range in new_ranges:
             min_unit_range, max_unit_range = new_range
@@ -2786,6 +2865,8 @@ def update_pricing(request, user=''):
                              'max_unit_range': max_unit_range, 'price': price, 'discount': discount}
             pricing_master = PriceMaster(**new_price_map)
             pricing_master.save()
+        contents = {"en": "New Price Range has added for SKU %s." % sku[0].sku_code}
+        send_push_notification(contents, notified_users)
 
     return HttpResponse('Updated Successfully')
 
@@ -3833,3 +3914,26 @@ def push_message_notification(request, user=''):
         if sms_enabled:
             send_sms(receivers_phnums, message)
     return HttpResponse('Message sent Successfully')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def add_sub_zone_mapping(request, user=''):
+    """ Create Sub Zone Mapping"""
+    zone = request.GET.get('zone', '')
+    sub_zone = request.GET.get('sub_zone', '')
+    zone_obj = ZoneMaster.objects.filter(zone=zone, user=user.id)
+    sub_zone_obj = ZoneMaster.objects.filter(zone=sub_zone, user=user.id)
+    if not zone_obj:
+        return HttpResponse('Invalid Zone')
+    if not sub_zone_obj:
+        return HttpResponse('Invalid Sub zone')
+    exist_mapping = SubZoneMapping.objects.filter(zone_id=zone_obj[0].id, sub_zone_id=sub_zone_obj[0].id)
+    if not exist_mapping:
+        mapping_dict = {'zone_id': zone_obj[0].id, 'sub_zone_id': sub_zone_obj[0].id, 'status': 1,
+                        'creation_date': datetime.datetime.now()}
+        mapping_obj = SubZoneMapping(**mapping_dict)
+        mapping_obj.save()
+        return HttpResponse('Added Successfully')
+    return HttpResponse('Mapping Already Exists')

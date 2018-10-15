@@ -1,0 +1,289 @@
+<style>
+	.card {
+		transform: translate3d(0px, 0px, 0px);
+    transition-duration: 0.25s;
+    transition-property: transform, opacity, margin-top;
+    transition-timing-function: ease-in-out;
+    background-color: #fff;
+    border-radius: 3px;
+    /*box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);*/
+    box-shadow: none;
+	}
+
+	.card > .item {
+		padding: 10px;
+		border-bottom: 2px solid #f0f0f0;
+	}
+	.sku_name {
+		color: #333;
+    font-size: 16px;
+    font-weight: 400;
+	}
+	.sku_name span {
+		font-size: 14px;
+	}
+	.sku_values {
+		color: #333;
+    font-size: 14px;
+    font-weight: bold;
+	}
+	.modify-qty i {
+		display: inline-block;
+	}
+	.modify-qty input {
+		display: inline-block;
+		width: 40px;
+		height: 20px
+	}
+	.opacity {
+		background: #616161;
+		/*opacity: 0.3;
+		filter: alpha(opacity=100);*/
+	}
+	.del_icon{
+		font-size: 16px;
+	}
+	.row_hover{
+		padding: 5px 0;
+	}
+	.row_hover:hover{
+		background: #F0F0F0;
+		padding: 5px 0;
+	}
+
+	ul {list-style: none;padding: 0px;margin: 0px;}
+	ul li {display: block;position: relative;float: left}
+	li ul {display: none;}
+	ul li a {display: block;padding: 10px 30px 10px 30px;text-decoration: none; white-space: nowrap;color: #616161;cursor: pointer;}
+	/*ul li a:hover {background: #ed1c24;}*/
+	ul li a:hover {background: #ed1c24;color: #fff}
+	li:hover ul {display: block; position: absolute;z-index: 1000}
+	li:hover li {float: none;z-index: 1000}
+	li:hover a {background: #ed1c24;z-index: 1}
+	/*li:hover li a:hover {background: #ed1c24;z-index: 1}*/
+	li:hover li a:hover {background: #ed1c24;z-index: 1;color: #fff;cursor: pointer;}
+	#drop-nav li ul li {border-top: 0px;}
+</style>
+<div class="clearfix" ng-controller="AppNewStyle as Style" style="background: #f0f0f0;">
+	<!-- Loading -->
+	<div ng-if="Style.place_order_loading" style="position: fixed;z-index: 2001;width: 100%;height: 100%;top: 0px;background: rgba(0, 0, 0, 0.5);padding-top: 125px;">
+    <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;">
+  </div>
+
+  <div class="row style-menu" style="line-height: 40px;">
+  	<div class="col-md-10 col-sm-10 col-xs-2">
+  		<h5 class="pull-left" ng-if="Style.category && Style.pagenation_count">Displaying <b>"{{ Style.category }}"</b> category styles <b ng-if="Style.pagenation_count">({{ Style.pagenation_count }})</b></h5>
+      <!-- <div class="menu-left">
+        <ul id="drop-nav">
+			<li ng-repeat="list in Style.main_menus"><a href="#">{{list}}</a> -->
+				<!-- <ul ng-if="Style.sub_menus">
+			      <li ng-repeat="sub_list in Style.sub_menus"><a href="#">{{sub_list}}</a></li>
+			    </ul> -->
+		  	<!-- </li>
+		</ul>
+      </div> -->
+    </div>
+    <div class="col-md-2 col-sm-2 col-xs-2">
+    	<div class="btn-group pull-right" role="group">
+        <a class="" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          <i class="fa fa-user fa-2x" style="color:#fff;padding-right: 10px;padding-top: 10px;"></i>
+        </a>
+        <ul class="dropdown-menu">
+          <!-- <li><a ng-click="showCase.addMargin()">Add Margin</a></li> -->
+          <li><a ng-click="$state.go('user.App.MyOrders');showCase.get_orders();">Your Orders</a></li>
+          <li><a ng-click="$state.go('user.App.Profile')">Profile</a></li>
+          <li><a ng-click="$state.go('user.App.PendingOrder');">Pending Orders</a></li>
+          <!--<li><a ng-click="$state.go('user.App.CorporateOrders');" ng-if="showCase.user_type=='reseller'">Corporate Orders</a></li>-->
+          <li><a ng-click="showCase.logout()">Logout</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search box div -->
+  <div class="row search-items pt15 search-box" style="background: #fff">
+    <div class="row">
+      <div class="col-md-1 col-sm-1 col-xs-12"></div>
+      <div ng-class="showCase.search_box_cls">
+        <div class="input-group mb10">
+          <span class="input-group-addon" style="background: #ed1c24;color: white;"><i style="background: #ed1c24;width: 15px;font-size: 15px;" class="fa fa-search"></i></span>
+          <input type="text" class="form-control" placeholder="Search for styles" ng-model="Style.style" ng-change="Style.catlog_data.index='';Style.get_category(true, true);" ng-debounce>
+        </div>
+      </div>
+      <div ng-class="showCase.buttons_cls" ng-style="showCase.margin_style" style="text-align: center;">
+        <div class="hidden-xs" style="left: 25px;"></div>
+        <div class="text-center">
+          <button class="btn btn-icon-icon" style="background: white;float:left;">
+            <i class="fa fa-filter" style="font-size: 15px;border-radius: 18px;color:white" title="Show Filters" ng-click="showCase.showFilters()"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+  	<div class="col-md-10 col-sm-10 col-xs-2">
+      <div class="menu-left">
+        <ul id="drop-nav">
+					<li><a ng-click="Style.get_styles('')">All</a></li>
+					<li ng-repeat="list in Style.main_menus"><a ng-click="Style.get_styles(list)">{{ list }}</a>
+						<!-- <ul ng-if="Style.sub_menus">
+					      <li ng-repeat="sub_list in Style.sub_menus"><a href="#">{{sub_list}}</a></li>
+					    </ul> -->
+				  	</li>
+				</ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="row catalog-div mt5">
+		<div class="col-lg-8 col-md-8 col-sm-12 col-xs-12">
+
+			<div class="card">
+				
+				<!-- <div class="item" ng-repeat="sku_variants in Style.gotData.data"> -->
+					<div class="item" ng-repeat="style in Style.filteredStyles">
+					
+					<!-- <div ng-repeat="style in sku_variants.variants"> -->
+						
+						<div class="row mb10 mt10">
+				
+							<div class="col-lg-2 col-md-2 col-sm-2 col-xs-4" style="">
+								<img ng-src="{{ Style.service.check_image_url(style.image_url) }}" style="width: 120px; height: 95px">
+							</div>
+				
+							<div class="col-lg-10 col-md-10 col-sm-10 col-xs-8">
+				
+								<div class="row mb15">
+									<div class="col-lg-7 col-md-7 col-sm-7 col-xs-7 sku_name"><strong>{{ style.wms_code }}</strong>, &nbsp;&nbsp;<span>{{style.sku_desc}}&nbsp;&nbsp;</span><span ng-if="style.sku_size">({{ style.sku_size }})</span></div>
+									<div class="col-lg-3 col-md-3 col-sm-3 col-xs-3"></div>
+									<div class="col-lg-2 col-md-2 col-sm-2 col-xs-2 modify-qty">
+										<div class="pull-right">
+											<i class="fa fa-minus" align="center" ng-click="Style.change_cart_quantity(style, false)"></i>
+	                    <input class="form-control ng-pristine ng-valid valid" autocomplete="off" name="quantity" ng-model="style.quantity" ng-blur="Style.change_amount(style)" aria-invalid="false">
+	                    <i class="fa fa-plus" ng-click="Style.change_cart_quantity(style, true)"></i>
+										</div>
+									</div>
+								</div>
+				
+								<div class="row">
+								
+									<div class="col-lg-3 col-md-3 col-sm-3 col-xs-3" ng-if="Style.display_styles_price">Price: 
+										<span class="sku_values">{{ style.price }}</span>
+									</div>
+								
+									<div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">Style:
+										<span class="sku_values">{{ style.style_name }}</span>
+									</div>
+								
+									<div class="col-lg-{{Style.sku_list_stock}} col-md-{{Style.sku_list_stock}} col-sm-{{Style.sku_list_stock}} col-xs-{{Style.sku_list_stock}} text-right">Stock: 
+										<span class="sku_values">{{ style.physical_stock }}</span>
+									</div>
+								
+									<div class="col-lg-{{Style.add_to_cart}} col-md-{{Style.add_to_cart}} col-sm-{{Style.add_to_cart}} col-xs-{{Style.add_to_cart}}">
+										<button class="btn btn-sm btn-danger pull-right" ng-click="Style.add_to_cart(style)">Add to cart</button>
+									</div>
+								</div>
+							</div>
+						</div>
+					<!-- </div> -->
+				</div>
+			</div>
+
+			<div class="row col-md-12 col-sm-12 col-xs-12 opacity mt10" ng-if="Style.data_loading">
+	      <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;">
+	    </div>
+
+	    <div class="row col-md-12 col-sm-12 col-xs-12 mt10 text-center opacity" ng-if="Style.show_no_data && !Style.data_loading">
+		    <h5 style="padding:35px 0px;color: #fff"><b>------ STYLES ARE NOT AVAILABLE ------</b></h5>
+		  </div>
+
+			<div class="row" ng-if="!Style.data_loading">
+		  	<div class="col-lg-12 col-md-12 col-sm-12 col-xs-12" align="right">
+
+		  		<ul ng-if="Style.pager.pages.length" class="pagination" style="margin-right: -15px">
+              <li ng-class="{disabled:Style.pager.currentPage === 1}">
+                  <a ng-click="Style.setPage(1)">First</a>
+              </li>
+              <li ng-class="{disabled:Style.pager.currentPage === 1}">
+                  <a ng-click="Style.setPage(Style.pager.currentPage - 1)">Previous</a>
+              </li>
+              <li ng-repeat="page in Style.pager.pages" ng-class="{active:Style.pager.currentPage === page}">
+                  <a ng-click="Style.setPage(page)">{{page}}</a>
+              </li>                
+              <li ng-class="{disabled:Style.pager.currentPage === Style.pager.totalPages}">
+                  <a ng-click="Style.setPage(Style.pager.currentPage + 1)">Next</a>
+              </li>
+              <li ng-class="{disabled:Style.pager.currentPage === Style.pager.totalPages}">
+                  <a ng-click="Style.setPage(Style.pager.totalPages)">Last</a>
+              </li>
+          </ul>
+		  	</div>
+		  </div>
+		</div>
+		<div class="col-lg-4 col-md-4 visible-md visible-lg">
+			<div class="card" style="padding: 10px">
+				<div class="col-md-12 col-sm-12 col-xs-12">
+          <h5><b>PRICE DETAILS</b></h5><hr>
+        </div>
+        <div class="row col-md-12 col-sm-12 col-xs-12 opacity" ng-if="Style.cart_data_loading">
+		      <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 160px;">
+		    </div>
+        <span ng-if="Style.price_details_flag && !(Style.cart_data_loading)">Nothing added to your cart...</span>
+				<div class="row" ng-if="!Style.price_details_flag">
+					<div class="col-md-12 col-sm-12 col-xs-12">
+            <div class="row">
+              <div class="col-md-{{Style.p_d_sku_code}} col-xs-{{Style.p_d_sku_code}} no-padding">
+                <span class="pull-left"><b>SKU Code</b></span>
+              </div>
+              <div class="col-md-2 col-xs-2" title="Effective Landing Price" ng-if="Style.display_styles_price">
+                <center><b>Unit Price</b></center>
+              </div>
+              <div class="col-md-{{Style.p_d_sku_code}} col-xs-{{Style.p_d_sku_code}}"><center><b>Quantity</b></center></div>
+              <div class="col-md-2 col-xs-2" ng-if="Style.display_styles_price"><center><b>Tax Amount</b></center></div>
+              <div class="col-md-3 col-sm-3 no-padding" ng-if="Style.display_styles_price">
+                <span class="pull-right"><b>Total Amount</b></span>
+              </div>
+              <div class="col-md-{{Style.p_d_delete}} col-xs-{{Style.p_d_delete}}"></div>
+            </div>
+          </div>
+				</div>
+				<div class="row" ng-if="!Style.price_details_flag">
+					<div class="col-md-12 col-sm-12 col-xs-12" ng-repeat="data in Style.model_data.selected_styles">
+	          <div class="row row_hover" ng-if="data.quantity && data.add_to_cart">
+	            <div class="col-md-{{Style.p_d_sku_code}} col-xs-{{Style.p_d_sku_code}}">
+	              <span class="pull-left">{{data.wms_code}}</span>
+	            </div>
+	            <div class="col-md-2 col-xs-2 no-padding" ng-if="Style.display_styles_price">
+	              <center>{{data.price | number : 2}}</center>
+	            </div>
+	            <div class="col-md-{{Style.p_d_sku_code}} col-xs-{{Style.p_d_sku_code}} no-padding"><center>{{data.quantity}}</center></div>
+	            <div class="col-md-2 col-xs-2 no-padding" ng-if="Style.display_styles_price"><center>{{data.tax_amount | number:2}}</center></div>
+	            <div class="col-md-3 col-sm-3 no-padding" ng-if="Style.display_styles_price">
+	              <span class="pull-right"><i class="fa fa-inr" aria-hidden="true"></i> {{data.total_amount | number : 2}}</span>
+	            </div>
+	            <div class="col-md-{{Style.p_d_delete}} col-xs-{{Style.p_d_delete}}"><a class="pull-right" ng-click="Style.remove_item(data, $index)" title="Cancel '{{data.wms_code}}'"><i class="fa fa-trash text-danger del_icon"></i></a></div>
+	          </div>
+	          <div ng-if="$last"><hr></div>
+	        </div>
+				</div>
+
+				<div class="list-group mt20" ng-if="!Style.price_details_flag && Style.display_styles_price">
+					<div class="list-group-item">
+						Sub Total ({{ Style.final_data.total_quantity }} Qty)<span class="badge">Rs {{ Style.final_data.amount | number : 2 }}</span>
+					</div>
+					<div class="list-group-item">
+						Tax Amount <span class="badge">Rs {{ Style.final_data.tax_amount | number : 2 }}</span>
+					</div>
+					<div class="list-group-item">
+						Total Amount <span class="badge">Rs {{ Style.final_data.total_amount | number : 2 }}</span>
+					</div>
+				</div>
+				<div class="text-center" ng-if="!Style.price_details_flag">
+					<button type="button" id ="approval_for_order" class="btn btn-success" ng-click="Style.update_cartdata_for_approval();Style.approval_reload = true;" ng-disabled="Style.approval_reload">
+						<span>SUBMIT FOR APPROVAL &nbsp;</span><span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right" ng-if="Style.approval_reload"></button>
+				</div>
+			</div>
+		</div>
+  </div>
+</div>

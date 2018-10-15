@@ -97,11 +97,11 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
   }
 
   vm.bt_disable = false;
-  vm.insert_order_data = function(event, form) {
+  vm.insert_order_data = function(event, form, is_sample='') {
     if (event.keyCode != 13) {
       if (form.$valid && vm.model_data.shipment_date && vm.model_data.shipment_time_slot) {
-        if(vm.model_data.blind_order) {
-          for(var i = 0; i < vm.model_data.data.length; i++) {
+        if (vm.model_data.blind_order) {
+          for (var i = 0; i < vm.model_data.data.length; i++) {
 
             if (vm.model_data.data[i].sku_id && (!vm.model_data.data[i].location)) {
 
@@ -115,6 +115,9 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
         var elem = angular.element($('form'));
         elem = elem[0];
         elem = $(elem).serializeArray();
+        if (is_sample == 'sample') {
+          elem.push({'name':'is_sample', 'value':true});
+        }
         vm.service.apiCall('insert_order_data/', 'POST', elem).then(function(data){
           if(data.message) {
             if(data.data.indexOf("Success") != -1) {
@@ -131,7 +134,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
       }
     }
   }
-  
+
   vm.catlog = false;
   vm.categories = [];
   vm.category = "";
@@ -140,11 +143,11 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
   function change_filter_data() {
     var data = {brand: vm.brand, category: vm.category, is_catalog: true, sale_through: vm.order_type_value};
     vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
-  
+
       if(data.message) {
 
         vm.categories = data.data.categories;
-        
+
 	vm.brands = data.data.brands;
 	if (vm.brands.length === 0){
 	  vm.details = false;
@@ -152,14 +155,14 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
 	/*vm.brands_images = {'6 Degree': '6degree.png', 'AWG (All Weather Gear)': 'awg.jpg', 'BIO WASH': 'biowash.jpg', 'Scala': 'scala.png',
         'Scott International': 'scott.jpg', 'Scott Young': 'scottyoung.png', 'Spark': 'spark.jpg', 'Star - 11': 'star11.png',
 	 'Super Sigma': 'supersigma.jpg', 'Sulphur Cotton': 'dflt.jpg', 'Sulphur Dryfit': 'dflt.jpg'}*/
-        vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'awg.jpg', 'BIO WASH': 'bio-wash.jpg', 
-	'Scala': 'scala.jpg','Scott International': 'scott.jpg', 'Scott Young': 'scott-young.jpg', 'Spark': 'spark.jpg', 
+        vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'awg.jpg', 'BIO WASH': 'bio-wash.jpg',
+	'Scala': 'scala.jpg','Scott International': 'scott.jpg', 'Scott Young': 'scott-young.jpg', 'Spark': 'spark.jpg',
 	'Star - 11': 'star-11.jpg','Super Sigma': 'super-sigma-dryfit.jpg', 'Sulphur Cotton': 'sulphur-cottnt.jpg', 'Sulphur Dryfit': 'sulphur-dryfit.jpg', 'Spring': 'spring.jpg', '100% Cotton': '100cotton.jpg', 'Sprint': 'sprint.jpg', 'Supreme': 'supreme.jpg'}
 
         vm.brands_logos = {'6 Degree': 'six-degrees-1.png', 'AWG (All Weather Gear)': 'awg-1.png', 'BIO WASH': 'bio-wash-1.png',
         'Scala': 'scala-1.png','Scott International': 'scott-1.png', 'Scott Young': 'scott-young-1.png', 'Spark': 'spark-1.png',
         'Star - 11': 'star-11-1.png','Super Sigma': 'super-sigma-dryfit-1.png', 'Sulphur Cotton': 'sulphur-cottnt-1.png',                             'Sulphur Dryfit': 'sulphur-dryfit-1.png', 'Spring': 'spring-1.png', '100% Cotton': '100-cotton-1.png', 'Sprint': 'sprint-1.png',
-        'Supreme': 'supreme-1.png'}	
+        'Supreme': 'supreme-1.png'}
         vm.get_category(true);
       }
     });
@@ -316,7 +319,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
       if(data.message) {
 
-        vm.all_cate = data.data.categories; 
+        vm.all_cate = data.data.categories;
         if(vm.all_cate.length> 0) {
           vm.all_cate.push("All")
           vm.category = vm.all_cate[0];
@@ -327,7 +330,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
   }
 
   vm.show = function() {
-  
+
     vm.base();
     vm.model_data.template_value = "";
     vm.model_data.template_type = ""
@@ -425,7 +428,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
                 vm.image = "";
                 vm.model_data.template_value = "";
                 vm.model_data.template_type = "";
-                vm.close(); 
+                vm.close();
               } else {
                 vm.service.pop_msg(response.message);
               }
@@ -435,18 +438,18 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
           if(data.message) {
 
             if(data.data.message == "SKU Created Successfully") {
-              
+
               colFilters.showNoty("Custom SKU Created And Also Added In Order");
               vm.add_to_order(data.data.data, vm.pop_data);
               vm.attributes = [];
               vm.image = "";
               vm.model_data.template_value = "";
               vm.model_data.template_type = "";
-              vm.close(); 
+              vm.close();
             } else {
               vm.service.pop_msg(data.data.message);
             }
-          }	
+          }
 	})*/
     } else {
       vm.service.pop_msg('Please fill required fields');
@@ -494,17 +497,17 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
 
       if(data.message) {
 
-        if(brand_data) {   
+        if(brand_data) {
 
 	  vm.catlog_data.details = [];
 	  vm.catlog_data.brand = brand_data;
         }
-        
+
 	angular.forEach(data.data.data, function(item){
 
 	  vm.catlog_data.details.push(item);
         });
-      }	
+      }
     });*/
   }
 
@@ -647,21 +650,27 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     });
   }
 
-  vm.final_data = {total_quantity:0,total_amount:0}
+  vm.final_data = {total_quantity:0,total_amount:0,temp_total_amount:0}
   vm.cal_total = function() {
 
     vm.final_data.total_quantity = 0;
     vm.final_data.total_amount = 0;
+    vm.final_data.temp_total_amount = 0;
     angular.forEach(vm.model_data.data, function(record){
       vm.final_data.total_amount += Number(record.total_amount);
+      vm.final_data.temp_total_amount += Number(record.total_amount);
       vm.final_data.total_quantity += Number(record.quantity);
     })
     if(vm.model_data.other_charges) {
       angular.forEach(vm.model_data.other_charges, function(record){
         if(record.amount){
           vm.final_data.total_amount += Number(record.amount);
+          vm.final_data.temp_total_amount += Number(record.total_amount);
         }
       })
+    }
+    if (vm.model_data.order_discount) {
+      vm.addDiscountToInv(vm.model_data.order_discount)
     }
   }
   vm.cal_percentage = function(data, no_total) {
@@ -683,7 +692,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
 
   vm.discountChange = function(data) {
 
-    vm.cal_percentage(data, false); 
+    vm.cal_percentage(data, false);
   }
 
   vm.discountPercentageChange = function(data, status) {
@@ -789,7 +798,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     }
   }
 
-  //Order type 
+  //Order type
   vm.order_type = false;
   vm.order_type_value = "offline"
   vm.change_order_type = function() {
@@ -819,6 +828,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     vm.service.apiCall("create_orders_data/").then(function(data){
       if(data.message) {
         vm.create_order_data = data.data;
+        vm.model_data.order_taken_by = Session.user_profile.first_name;
         if(!Service.create_order_data.tax_type) {
           vm.model_data.tax_type = '';
         }
@@ -954,6 +964,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
           }
         }
         record["taxes"] = data.taxes;
+        record["mrp"] = data.mrp;
         record.invoice_amount = Number(record.price)*Number(record.quantity);
         record["priceRanges"] = data.price_bands_map;
         vm.cal_percentage(record);
@@ -1326,16 +1337,16 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     if(data.priceRanges && data.priceRanges.length > 0) {
 
       for(var skuRec = 0; skuRec < data.priceRanges.length; skuRec++){
-    
+
         if(data.quantity >= data.priceRanges[skuRec].min_unit_range && data.quantity <= data.priceRanges[skuRec].max_unit_range){
-    
+
           data.price = data.priceRanges[skuRec].price;
           flag = true;
         }
       }
 
       if (!flag) {
-    
+
         data.price = data.priceRanges[data.priceRanges.length-1].price;
       }
     }
@@ -1400,6 +1411,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
 		  vm.get_customer_sku_prices(data.data.sku).then(function(resp) {
 		  if(resp.length > 0) {
 			resp = resp[0]
+      resp['sku_id'] = resp.wms_code;
 			var foundItem = $filter('filter')(vm.model_data.data, {'sku_id':resp.wms_code}, true)[0];
 			if (foundItem) {
 				var index = vm.model_data.data.indexOf(foundItem);
@@ -1415,6 +1427,8 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
                 vm.model_data.data.push({ 'capacity': 0, 'description':resp.sku_desc, 'discount': 0, 'discount_percentage':'', 'invoice_amount': resp.price, 'location':'', 'price': resp.price, 'priceRanges':[], 'quantity': 1, 'serial':'', 'serials':[], 'sku_id': resp.wms_code, 'tax': 0, 'taxes':[], 'total_amount': resp.price, 'unit_price': resp.price })
                 vm.change_quantity(vm.model_data.data[0])
 			}
+      vm.model_data.data[0]['mrp'] = resp.mrp
+      vm.update_availabe_stock(vm.model_data.data[0]);
 		  }
 		  })
 		  } else {
@@ -1499,6 +1513,16 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     }
   }
   vm.assign_sku_id_from_sku_master();
+
+  vm.addDiscountToInv = function(discount) {
+    if (discount < vm.final_data.total_amount) {
+      vm.final_data.total_amount = Number(vm.final_data.temp_total_amount) - Number(discount);
+    } else {
+      Service.showNoty("Please enter proper discount");
+      vm.model_data.order_discount = '';
+      vm.final_data.total_amount = vm.final_data.temp_total_amount;
+    }
+  }
 }
 angular
   .module('urbanApp')

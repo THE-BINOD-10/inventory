@@ -17,8 +17,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.user_type = Session.user_profile.user_type;
     vm.supplier_id = '';
     vm.order_id = 0;
-    // vm.industry_type = 'FMCG';
-
+    vm.receive_po_mandatory_fields = {};
+    if(vm.permissions.receive_po_mandatory_fields) {
+      angular.forEach(vm.permissions.receive_po_mandatory_fields.split(','), function(field){
+        console.log(field+'\n');
+        if (!vm.receive_po_mandatory_fields[field]) {
+          vm.receive_po_mandatory_fields[field] = field;
+        }
+      })
+    }
+    console.log(vm.receive_po_mandatory_fields);
     //default values
     if(!vm.permissions.grn_scan_option) {
       vm.permissions.grn_scan_option = "sku_serial_scan";
@@ -133,6 +141,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         $(row_click_bind, nRow).bind('click', function() {
             $scope.$apply(function() {
               // vm.supplier_id = aData['DT_RowId'];
+              vm.round_off = false;
                 vm.supplier_id = aData['Supplier ID/Name'].split('/')[0];
                 vm.service.apiCall('get_supplier_data/', 'GET', {supplier_id: aData['DT_RowId']}).then(function(data){
                   if(data.message) {
@@ -145,7 +154,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                         'width': '1400px'
                       };
                     } else {
-                      vm.extra_width = {};
+                      vm.extra_width = {
+                        'width': '900px'
+                      };
                     }
                     vm.shelf_life = vm.model_data.data[0][0].shelf_life;
 
@@ -172,17 +183,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         return nRow;
     }
 
-    $(document).on('keydown', 'input.detectTab', function(e) { 
-      var keyCode = e.keyCode || e.which; 
+    $(document).on('keydown', 'input.detectTab', function(e) {
+      var keyCode = e.keyCode || e.which;
 
       var fields_count = 0;
-      
+
       if (vm.permissions.pallet_switch || vm.industry_type=='FMCG') {
         fields_count = (this.closest('#tab_count').childElementCount-2);
       } else {
         fields_count = (this.closest('#tab_count').childElementCount-1);
       }
-      
+
       var cur_td_index = (this.parentElement.nextElementSibling.cellIndex);
 
       if (this.closest('#tab_count').cells[0].children[1].tagName == 'UL') {
@@ -200,10 +211,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     });
 
-    /*$(document).on('keydown', 'input.detectReceiveTab', function(e) { 
-      var keyCode = e.keyCode || e.which; 
+    /*$(document).on('keydown', 'input.detectReceiveTab', function(e) {
+      var keyCode = e.keyCode || e.which;
 
-      if (keyCode == 9) { 
+      if (keyCode == 9) {
         e.preventDefault();
         vm.add_wms_code(Number(this.parentNode.children[1].value), false);
       }
@@ -212,15 +223,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     $scope.getExpiryDate = function(index, parent_index){
         var mfg_date = new Date(vm.model_data.data[parent_index][index].mfg_date);
         var expiry = new Date(mfg_date.getFullYear(),mfg_date.getMonth(),mfg_date.getDate()+vm.shelf_life);
-        vm.model_data.data[parent_index][index].exp_date = (expiry.getMonth() + 1) + "/" + expiry.getDate() + "/" + expiry.getFullYear() ;
-        $('.mfgDate').each(function(){
-            if($(this).val() != ""){
-                var mfg_date = new Date($(this).val());
-                var expiry = new Date(mfg_date.getFullYear(),mfg_date.getMonth(),mfg_date.getDate()+vm.shelf_life);
-                var response = (expiry.getMonth() + 1) + "/" + expiry.getDate() + "/" + expiry.getFullYear() ;
-                $(this).parent().next().find('.expiryDatePicker').datepicker("setDate", response);
-            }
-        });
+        //vm.model_data.data[parent_index][index].exp_date = (expiry.getMonth() + 1) + "/" + expiry.getDate() + "/" + expiry.getFullYear();
+        var row_data = vm.model_data.data[parent_index][index]
+        if (row_data.exp_date == ''){
+            row_data.exp_date = (expiry.getMonth() + 1) + "/" + expiry.getDate() + "/" + expiry.getFullYear();
+        }
+        //$('.mfgDate').each(function(){
+            //if($(this).val() != ""){
+                //var mfg_date = new Date($(this).val());
+                //var expiry = new Date(mfg_date.getFullYear(),mfg_date.getMonth(),mfg_date.getDate()+vm.shelf_life);
+                //var response = (expiry.getMonth() + 1) + "/" + expiry.getDate() + "/" + expiry.getFullYear() ;
+                //vm.model_data.data[parent_index][index]['exp_date'] = response;
+                //$(this).parent().next().find('.expiryDatePicker').datepicker("setDate", response);
+            //}
+        //});
 
 
     }
@@ -250,7 +266,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               Service.showNoty('Product has crossed acceptable shelf life ratio');
               //vm.model_data.data[0][0].exp_date = '';
             }
-            
+
           } else {
             Service.showNoty('Please choose proper date');
             vm.model_data.data[parent_index][index].exp_date = '';
@@ -290,13 +306,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           new_dic.batch_no = "";
           new_dic.manf_date = "";
           new_dic.exp_date = "";
+          new_dic.total_amt = "";
           data.push(new_dic);
         } else {
           data.splice(index,1);
         }
       }
     }
-    
+
     vm.new_sku = false
     vm.add_wms_code = add_wms_code;
     function add_wms_code(index=0, flag=true) {
@@ -443,6 +460,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       data.push({name: 'remainder_mail', value: vm.model_data.remainder_mail});
       data.push({name: 'invoice_number', value: vm.model_data.invoice_number});
       data.push({name: 'invoice_date', value: vm.model_data.invoice_date});
+      data.push({name: 'round_off_total', value: vm.model_data.round_off_total});
       vm.service.apiCall('update_putaway/', 'GET', data, true).then(function(data){
         if(data.message) {
           if(data.data == 'Updated Successfully') {
@@ -460,7 +478,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       return Math.abs(inv_value - total_value);
     }
 
-    // vm.skus_total_amount 
+    // vm.skus_total_amount
 
     vm.html = "";
     vm.confirm_grn = function(form) {
@@ -471,23 +489,27 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       // data.push({name: 'exp_date', value: form.exp_date.$viewValue});
       // data.push({name: 'po_unit', value: form.po_unit.$viewValue});
       // data.push({name: 'tax_per', value: form.tax_per.$viewValue});
-      if (vm.permissions.receive_po_invoice_check && vm.model_data.invoice_value){
+      if (form.$valid) {
+        if (vm.permissions.receive_po_invoice_check && vm.model_data.invoice_value){
 
-        var abs_inv_value = vm.absOfInvValueTotal(vm.model_data.invoice_value, vm.skus_total_amount);
+          var abs_inv_value = vm.absOfInvValueTotal(vm.model_data.invoice_value, vm.skus_total_amount);
 
-        if (vm.permissions.receive_po_invoice_check && abs_inv_value <= 3){
+          if (vm.permissions.receive_po_invoice_check && abs_inv_value <= 3){
+
+            vm.confirm_grn_api();
+          } else if (vm.permissions.receive_po_invoice_check && abs_inv_value >= 3) {
+
+            colFilters.showNoty("Your entered invoice value and total value does not match");
+          }
+        } else if (vm.permissions.receive_po_invoice_check && !(vm.model_data.invoice_value)){
+
+          colFilters.showNoty("Please Fill The Invoice Value Field");
+        } else {
 
           vm.confirm_grn_api();
-        } else if (vm.permissions.receive_po_invoice_check && abs_inv_value >= 3) {
-
-          colFilters.showNoty("Your entered invoice value and total value does not match");
         }
-      } else if (vm.permissions.receive_po_invoice_check && !(vm.model_data.invoice_value)){
-
-        colFilters.showNoty("Please Fill The Invoice Value Field");
       } else {
-
-        vm.confirm_grn_api();
+        colFilters.showNoty("Fill Required Fields");
       }
     }
 
@@ -573,7 +595,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           preConfirm: function (text) {
             return new Promise(function (resolve, reject) {
               vm.closed_po.elem.push({name: 'remarks', value: text});
-              vm.service.apiCall('close_po/', 'GET', vm.closed_po.elem, true).then(function(data){
+              vm.service.apiCall('close_po/', 'POST', vm.closed_po.elem, true).then(function(data){
                 if(data.message) {
                   if(data.data == 'Updated Successfully') {
                     vm.close();
@@ -665,9 +687,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               if (vm.permissions.use_imei) {
                 vm.sku_list_1 = [];
                 for(var i=0; i<vm.model_data.data.length; i++) {
-                  
+
                   angular.forEach(vm.model_data.data[i], function(sku){
-                  
+
                     vm.sku_list_1.push(sku.wms_code);
                     if(vm.field == sku.wms_code){
                       $("input[attr-name='imei_"+vm.field+"']").trigger('focus');
@@ -675,17 +697,22 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   });
                 }
 
-
-
                 if (vm.sku_list_1.indexOf(vm.field) == -1){
-                  Service.showNoty(field+" Does Not Exist");
+
+                  if (data.data.sku_code && data.data.sku_code == vm.field) {
+
+                    Service.showNoty(vm.field+' Does Not Exist');
+                  } else {
+
+                    vm.addNewScannedSku(event, field);
+                  }
                 }
               } else {
                 vm.sku_list_1 = [];
                 for(var i=0; i<vm.model_data.data.length; i++) {
-                  
+
                   angular.forEach(vm.model_data.data[i], function(sku){
-                  
+
                     vm.sku_list_1.push(sku.wms_code);
                     if(vm.field == sku.wms_code){
                       if(sku.value < sku.po_quantity) {
@@ -698,7 +725,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   });
                 }
                 if (vm.sku_list_1.indexOf(vm.field) == -1){
-                  Service.showNoty(field+" Does Not Exist");
+
+                  if (data.data.sku_code && data.data.sku_code == vm.field) {
+
+                    Service.showNoty(vm.field+' Does Not Exist');
+                  } else {
+
+                    vm.addNewScannedSku(event, field);
+                  }
                 }
               }
             } else {
@@ -708,6 +742,30 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           });
         }
       }
+    }
+
+    vm.addNewScannedSku = function(event, field){
+
+      vm.marginData = {scanned_val: field, map_sku_code: ''};
+      var mod_data = vm.marginData;
+      var modalInstance = $modal.open({
+        templateUrl: 'views/inbound/toggle/add_new_sku.html',
+        controller: 'addNewSkuCtrl',
+        controllerAs: '$ctrl',
+        size: 'md',
+        backdrop: 'static',
+        keyboard: false,
+        resolve: {
+          items: function () {
+            return mod_data;
+          }
+        }
+      });
+
+      modalInstance.result.then(function (selectedItem) {
+
+        vm.scan_sku(event, field);
+      })
     }
 
     FUN.scan_sku = vm.scan_sku;
@@ -741,8 +799,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }, 2000);
     }
 
+    vm.showOldQty = false;
     vm.goBack = function() {
-
+      vm.showOldQty = true;
       $state.go('app.inbound.RevceivePo.GRN');
     }
 
@@ -872,7 +931,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             if (resp.status) {
               Service.showNoty("Serial Number already Exist in other PO: "+resp.data.po);
               data1.imei_number = "";
-              //if(vm.permissions.barcode_generate_opt != "sku_serial") { 
+              //if(vm.permissions.barcode_generate_opt != "sku_serial") {
               //  $('textarea[name="scan_sku"]').trigger('focus').val('');
               //}
               if(vm.permissions.grn_scan_option == "sku_serial_scan") {
@@ -1012,12 +1071,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           });
           key_obj = data['data']['data'];
       });
+    Data.receive_jo_barcodes = false;
 	  var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
       var list = [];
       var dict = {};
-      $.each(elem, function(num, key){ 
+      $.each(elem, function(num, key){
       	if(!dict.hasOwnProperty(key['name'])){
         	dict[key['name']] = key['value'];
       	}else{
@@ -1047,7 +1107,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       modalInstance.result.then(function (selectedItem) {
         console.log(selectedItem);
-      }); 
+      });
     }
 
     vm.vendor_receive = function(data) {
@@ -1104,12 +1164,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       po["po"] = data.po_reference;
       po["serials"] = "";
       angular.forEach(data.data, function(sku){
-        po[sku[0].wms_code] = {};
+        var fb_key = sku[0].sku_details[0].pk;
+        //var fb_key = sku[0].wms_code;
+        po[fb_key] = {};
         sku[0].value = 0;
         sku[0]["imei_list"] = [];
-        po[sku[0].wms_code]["quantity"] = sku[0].value;
-        po[sku[0].wms_code]["wms_code"] = sku[0].wms_code;
-        po[sku[0].wms_code]["serials"] = "";
+        po[fb_key]["quantity"] = sku[0].value;
+        po[fb_key]["wms_code"] = sku[0].wms_code;
+        po[fb_key]["serials"] = "";
       })
       console.log(po);
       firebase.database().ref("/GenerateGRN/"+Session.parent.userId).push(po).then(function(data){
@@ -1141,7 +1203,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     fb["change_serial"] = function(data, serial) {
 
       console.log(data.wms_code, serial);
-      firebase.database().ref("/GenerateGRN/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+ data.wms_code +"/serials/").push(serial);
+      firebase.database().ref("/GenerateGRN/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+ data.sku_details[0].pk +"/serials/").push(serial);
       firebase.database().ref("/GenerateGRN/"+Session.parent.userId+"/"+vm.fb.poData.id+"/serials/").push(serial);
     }
 
@@ -1150,9 +1212,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.fb.poData['serials'] = Object.values(vm.fb.poData['serials']);
       vm.serial_numbers = Object.values(vm.fb.poData['serials']);
       angular.forEach(vm.model_data.data, function(data){
-        if(vm.fb.poData[data[0].wms_code]) {
-          data[0].value = Object.keys(vm.fb.poData[data[0].wms_code]['serials']).length;
-          data[0]['imei_list'] =  Object.values(vm.fb.poData[data[0].wms_code]['serials']);
+        if(vm.fb.poData[data[0].sku_details[0].pk]) {
+          data[0].value = Object.keys(vm.fb.poData[data[0].sku_details[0].pk]['serials']).length;
+          data[0]['imei_list'] =  Object.values(vm.fb.poData[data[0].sku_details[0].pk]['serials']);
         }
       })
       fb.po_change_event();
@@ -1165,7 +1227,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     fb["po_change_event"] = function() {
 
         angular.forEach(vm.model_data.data, function(sku_data) {
-          firebase.database().ref("/GenerateGRN/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+sku_data[0].wms_code+"/serials/").on("child_added", function(sku) {
+          firebase.database().ref("/GenerateGRN/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+sku_data[0].sku_details[0].pk+"/serials/").on("child_added", function(sku) {
             if(sku_data[0].imei_list.indexOf(sku.val()) == -1 && sku.val()) {
               sku_data[0].imei_list.push(sku.val());
               sku_data[0].value++;
@@ -1314,7 +1376,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       po["po"] = data.po_reference;
       po["serials"] = "";
       angular.forEach(data.data, function(sku){
-        var name = sku[0].wms_code;
+        var name = sku[0].sku_details[0].pk;
         po[name] = {};
         po[name]["wms_code"] = sku[0].wms_code;
         po[name]["accepted"] = "";
@@ -1363,7 +1425,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.fb.poData['serials'] = Object.values(vm.fb.poData['serials']);
       vm.imei_list = vm.fb.poData['serials'];
       angular.forEach(vm.model_data.data, function(data){
-        var name= data[0].wms_code;
+        var name= data[0].sku_details[0].pk;
         if(vm.fb.poData[name]) {
           if(!vm.fb.poData[name]['accepted']){vm.fb.poData[name]['accepted'] = {}}
           if(!vm.fb.poData[name]['rejected']){vm.fb.poData[name]['rejected'] = {}}
@@ -1382,7 +1444,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     fb["recent_accept"] = "";
     fb["accept_serial"] = function(data, serial) {
 
-      firebase.database().ref("/ReceiveQC/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+ data.wms_code +"/accepted/").push(serial).then(function(snapshot){
+      firebase.database().ref("/ReceiveQC/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+ data.sku_details[0].pk +"/accepted/").push(serial).then(function(snapshot){
 
         fb["recent_accept"] = snapshot.path.o[5];
       });
@@ -1391,7 +1453,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     fb["reject_serial"] = function(data, serial) {
 
-      var name= data.wms_code;
+      var name= data.sku_details[0].pk;
       if(fb.recent_accept) {
         firebase.database().ref("/ReceiveQC/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+ name +"/accepted/"+fb.recent_accept).once("value", function(snapshot) {
           snapshot.ref.remove();
@@ -1403,7 +1465,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     fb["remove_add_serial"] = function(data, serial1, serial2, remove_from, add_to) {
 
-      var name= data.wms_code;
+      var name= data.sku_details[0].pk;
       firebase.database().ref("/ReceiveQC/"+Session.parent.userId+"/"+vm.fb.poData.id+"/"+ name +"/"+remove_from+"/").once("value", function(snapshot) {
         if(snapshot.val()) {
           var status = true;
@@ -1641,7 +1703,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.enable_button = false;
       var sku = vm.model_data.data[vm.current_index][0];
       sku.accepted_quantity = Number(sku.accepted_quantity) + 1;
-      sku.value = Number(sku.value) + 1;
+      // sku.value = Number(sku.value) + 1;
+      sku.value = Number(sku.accepted_quantity) + Number(sku.rejected_quantity);
 
       sku["accept_imei"].push(field);
       vm.model_data.data[vm.current_index][0] = sku
@@ -1849,7 +1912,25 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         sku_row_data.discount_percentage = 0;
       }
 
-      var total_amt = Number(sku_row_data.value)*Number(sku_row_data.buy_price);
+      if (Number(sku_row_data.tax_percent)) {
+
+        sku_row_data.tax_percent = Number(sku_row_data.tax_percent).toFixed(1)
+      }
+
+      if (Number(sku_row_data.cess_percent)) {
+
+        sku_row_data.cess_percent = Number(sku_row_data.cess_percent).toFixed(1)
+      }
+
+      vm.singleDecimalVal(sku_row_data.tax_percent, 'tax_percent', index, parent_index);
+      vm.singleDecimalVal(sku_row_data.cess_percent, 'cess_percent', index, parent_index);
+
+      if (vm.industry_type == 'FMCG') {
+        var total_amt = Number(sku_row_data.value)*Number(sku_row_data.buy_price);
+      } else {
+        var total_amt = Number(sku_row_data.value)*Number(sku_row_data.price);
+      }
+
       var total_amt_dis = Number(total_amt) * Number(sku_row_data.discount_percentage) / 100;
       var tot_tax = Number(sku_row_data.tax_percent) + Number(sku_row_data.cess_percent);
       var wo_tax_amt = Number(total_amt)-Number(total_amt_dis);
@@ -1866,6 +1947,23 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
       vm.skus_total_amount = totals;
       $('.totals').text('Totals: ' + totals);
+      vm.model_data.round_off_total = Math.round(totals * 100) / 100;
+    }
+
+    vm.pull_cls = "pull-right";
+    vm.margin_cls = {marginRight: '50px'};
+    vm.round_off_effects = function(key){
+
+      vm.pull_cls = key ? 'pull-left' : 'pull-right';
+      vm.margin_cls = key ? {marginRight: '0px'} : {marginRight: '50px'};
+    }
+
+    vm.singleDecimalVal = function(value, field, inIndex, outIndex){
+
+      if (Number(value)) {
+
+        vm.model_data.data[outIndex][inIndex][field] = Number(value).toFixed(1);
+      }
     }
 }
 
@@ -1884,3 +1982,41 @@ stockone.directive('dtPoData', function() {
 });
 
 })();
+
+angular.module('urbanApp').controller('addNewSkuCtrl', function ($modalInstance, $modal, items, Service, Data, Session) {
+  var $ctrl = this;
+  $ctrl.model_data = {};
+  angular.copy(items, $ctrl.model_data);
+  $ctrl.service = Service;
+  $ctrl.processing = false;
+  $("#map_sku_code").focus();
+  $ctrl.service.popup_dyn_style = 155;
+
+  $ctrl.ok = function (form) {
+
+    if($ctrl.model_data.map_sku_code) {
+
+      $ctrl.processing = true;
+      var data = {ean_number: $ctrl.model_data.scanned_val, map_sku_code: $ctrl.model_data.map_sku_code};
+
+      Service.apiCall("map_ean_sku_code/", "GET", data).then(function(data) {
+
+        if(data.message) {
+
+          // console.log(data.data.data);
+          Service.showNoty('Your scanned sku mapped');
+          $ctrl.close();
+        }
+        $ctrl.processing = false;
+      });
+    } else {
+
+      $ctrl.service.showNoty("Please Select SKU")
+    }
+  };
+
+  $ctrl.close = function () {
+
+    $modalInstance.dismiss('cancel');
+  };
+});

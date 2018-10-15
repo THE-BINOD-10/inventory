@@ -50,7 +50,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, prin
             });
         });
         return nRow;
-    } 
+    }
 
     vm.dtInstance = {};
     vm.reloadData = reloadData;
@@ -307,5 +307,60 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, prin
     })
   }
 
+  vm.serial_numbers = [];
+  vm.check_imei_exists = function(event, data1, index, innerIndex) {
+    event.stopPropagation();
+    if (event.keyCode == 13 && data1.imei_number.length > 0) {
+      // if(vm.permissions.barcode_generate_opt != "sku_serial") {
+      var temp_dict = {'is_rm_picklist': true}
+      temp_dict[data1.id] = data1.imei_number
+      vm.service.apiCall('check_imei/', 'GET', temp_dict).then(function(data){
+        if(data.message) {
+          if (!data.data.status && data1.wms_code == data.data.data.sku_code) {
+            // data1.received_quantity = Number(sku.received_quantity) + 1;
+            // data1.imei_number = data.data.data.label;
+            let skuWiseQtyTotal = 0;
+            angular.forEach(data1.sub_data, function(row){
+              skuWiseQtyTotal += Number(row.picked_quantity);
+            });
+            // tempUniqueDict dict checking purpose only don't use anyware
+            if (data1.reserved_quantity > skuWiseQtyTotal) {
+              if (data1.sub_data[innerIndex].accept_imei && !data1.sub_data[innerIndex].tempUniqueDict[data1.imei_number]) {
+                data1.sub_data[innerIndex].picked_quantity = Number(data1.sub_data[innerIndex].picked_quantity) + 1;
+                data1.sub_data[innerIndex].accept_imei.push(data1.imei_number);
+                data1.sub_data[innerIndex].tempUniqueDict[data1.imei_number] = data1.imei_number;
+                data1.imei_number = "";
+              } else {
+                if (data1.sub_data[innerIndex].tempUniqueDict && data1.sub_data[innerIndex].tempUniqueDict[data1.imei_number]) {
+                  Service.showNoty("Scanned serial number already exist");
+                  data1.imei_number = "";
+                } else if (!data1.sub_data[innerIndex].tempUniqueDict) {
+                  data1.sub_data[innerIndex]['accept_imei'] = [];
+                  data1.sub_data[innerIndex]['tempUniqueDict'] = {};
+                  data1.sub_data[innerIndex].tempUniqueDict[data1.imei_number] = data1.imei_number;
+                  data1.sub_data[innerIndex].accept_imei.push(data1.imei_number);
+                  data1.sub_data[innerIndex].picked_quantity = 1;
+                  data1.imei_number = "";
+                }
+              }
+              var sku_code = data.data.data.sku_code;
+              if (data1.wms_code != sku_code) {
+                Service.showNoty("Scanned label belongs to "+sku_code);
+                data1.imei_number = "";
+                return false;
+              }
+            } else {
+              Service.showNoty("No Quantity Available");
+            }
+          } else {
+            Service.showNoty(data.data.status);
+            data1.imei_number = "";
+          }
+          vm.reloadData();
+        }
+        data1["disable"] = false;
+      })
+    }
   }
 
+  }

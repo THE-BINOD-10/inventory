@@ -29,7 +29,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.profile_name = Session.user_profile.first_name;
   vm.mark_as_delivered = Session.roles.permissions.mark_as_delivered;
 
-  vm.test = [{wms_code: '101', sku_desc: 'Description-1'}, {wms_code: '102', sku_desc: 'Description-2'}, 
+  vm.test = [{wms_code: '101', sku_desc: 'Description-1'}, {wms_code: '102', sku_desc: 'Description-2'},
              {wms_code: '103', sku_desc: 'Description-3'}, {wms_code: '104', sku_desc: 'Description-4'}];
   vm.modelData = {'profile_name': vm.profile_name, 'ordered_skus':vm.test};
   $rootScope.customerRating = function (data_ratings) {
@@ -53,10 +53,10 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       console.log(selectedItem);
     })
   }
-  
-  
+
+
   vm.display_ratings = function() {
-    var formData = {}  
+    var formData = {}
     $.ajax({
       url: Session.url+'get_ratings_data_popup/',
       data: formData,
@@ -95,7 +95,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.order_type_value = "offline";
   vm.service = Service;
   vm.company_name = Session.user_profile.company_name;
-  
+
   vm.required_quantity = {};
   vm.margin_types = ['Margin Percentage', 'Margin Value'];
   Data.styles_data = {};
@@ -107,7 +107,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     }
   }
 
-  var empty_data = {data: [{sku_id: "", quantity: "", invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: ""}], 
+  var empty_data = {data: [{sku_id: "", quantity: "", invoice_amount: "", price: "", tax: "", total_amount: "", unit_price: ""}],
                             customer_id: "", payment_received: "", order_taken_by: "", other_charges: [], shipment_time_slot: "", remarks: ""};
 
   angular.copy(empty_data, vm.model_data);
@@ -137,7 +137,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.category = "";
   vm.brand = "";
   vm.filterData = {};
-  
+
   vm.disable_brands_view = function(){
     if(Session.roles.permissions.disable_brands_view && $state.$current.name == "user.App.Brands"){
       $state.go('user.App.Categories');
@@ -163,7 +163,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
   /*Rating module start*/
   function customerRating() {
- 
+
     var mod_data = vm.modelData;
     var modalInstance = $modal.open({
       templateUrl: 'views/outbound/app/create_orders/rating_toggle/customer_rating.html',
@@ -186,8 +186,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
   vm.display_ratings = function() {
 
-    var formData = {}  
-    
+    var formData = {}
+
     Service.apiCall("get_ratings_data_popup/", "POST", formData).then(function(response) {
 
       if (response.message) {
@@ -214,7 +214,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
         vm.categories = data.data.categories;
         vm.all_cate = data.data.categories;
-        
+
         Data.categories = data.data.categories;
         Data.sub_categories = data.data.sub_categories;
 
@@ -238,8 +238,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 	if (vm.brands.length === 0){
 	  vm.details = false;
 	}
-        vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'awg.jpg', 'BIO WASH': 'bio-wash.jpg', 
-	'Scala': 'scala.jpg','Scott International': 'scott.jpg', 'Scott Young': 'scott-young.jpg', 'Spark': 'spark.jpg', 
+        vm.brands_images = {'6 Degree': 'six-degrees.jpg', 'AWG (All Weather Gear)': 'awg.jpg', 'BIO WASH': 'bio-wash.jpg',
+	'Scala': 'scala.jpg','Scott International': 'scott.jpg', 'Scott Young': 'scott-young.jpg', 'Spark': 'spark.jpg',
 	'Star - 11': 'star-11.jpg','Super Sigma': 'super-sigma-dryfit.jpg', 'Sulphur Cotton': 'sulphur-cottnt.jpg', 'Sulphur Dryfit': 'sulphur-dryfit.jpg', 'Spring': 'spring.jpg', '100% Cotton': '100cotton.jpg', 'Sprint': 'sprint.jpg', 'Supreme': 'supreme.jpg', 'Sport': 'sport.jpg', 'Swiss Military': 'sm-brand.jpg',
         'A-one gold': 'A-ONE.jpg',
         'Agni': 'AGNI.jpg',
@@ -442,7 +442,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
           angular.copy([], vm.catlog_data.data);
         }
         vm.catlog_data.index = data.data.next_index;
-        
+
         angular.forEach(data.data.data, function(item){
           vm.required_quantity[item.variants[0].style_name] = vm.quantity;
           vm.catlog_data.data.push(item);
@@ -657,7 +657,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.model_data.data[0].tax = vm.tax;
   empty_data.data[0].tax = vm.tax;
 
-  //Order type 
+  //Order type
   vm.order_type = false;
   vm.order_type_value = "offline"
   vm.change_order_type = function() {
@@ -734,7 +734,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       //var search = $(".search-box").height();
       //search = (search)? search+25 : 0;
       var cart = $(".cart_button:visible").outerHeight();
-      
+
       if(vm.location == '/App/Categories'){
         $(".app_body").css('height',height-menu-cart);
         vm.location = vm.old_path;
@@ -744,7 +744,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       } else {
         $(".app_body").css('height',height-header-menu-cart);
       }
-      
+
       $(".app_body").css('overflow-y', 'auto');
     }
     }, 500)
@@ -1052,7 +1052,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   //margin value
   vm.marginData = {margin_type: '', margin: 0, margin_percentage: 0, margin_value: 0, is_margin_percentage: true, sale_through: vm.order_type_value};
   vm.addMargin = function() {
- 
+
     var mod_data = vm.marginData;
     var modalInstance = $modal.open({
       templateUrl: 'views/outbound/app/create_orders/add_margin.html',
@@ -1071,11 +1071,11 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     modalInstance.result.then(function (selectedItem) {
       vm.marginData = selectedItem;
       if (vm.marginData.margin_type == 'Margin Percentage') {
-        
+
         vm.marginData.is_margin_percentage = true;
         vm.marginData.margin = vm.marginData.margin_percentage;
       } else {
-        
+
         vm.marginData.is_margin_percentage = false;
         vm.marginData.margin = vm.marginData.margin_value;
       }
@@ -1135,7 +1135,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
         }
       }
       if(flag) {
-        Data.marginSKUData.data.push(data_list);  
+        Data.marginSKUData.data.push(data_list);
       }
     } else {
       Data.marginSKUData.data.push(data_list);
@@ -1149,8 +1149,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     var dict_values = {};
     dict_values['margin_data'] = { 'wms_code':item.wms_code, 'price':item.your_price, 'margin' : item.margin }
     dict_values['margin_values'] = { 'brand':item.sku_brand, 'category':item.sku_category, 'sku_class':item.sku_class,
-      'index':$index, 'is_catalog':true, 'sale_through':item.sale_through, 'size_filter':item.sku_size, 
-      'color':'', 'from_price': '', 'to_price': '', 'is_margin_percentage': vm.marginData.is_margin_percentage, 
+      'index':$index, 'is_catalog':true, 'sale_through':item.sale_through, 'size_filter':item.sku_size,
+      'color':'', 'from_price': '', 'to_price': '', 'is_margin_percentage': vm.marginData.is_margin_percentage,
       'margin':item.margin };
     var data_list = [];
     data_list.push(dict_values['margin_data']);
@@ -1206,7 +1206,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
                            'Hoodie - 400 GSM': 'software-catagaies-final_22.png',
                            'Hoodie - 400 GSM ZIP': 'software-catagaies-final_25.png',
                            'Ladies Polo': 'software-catagaies-final_06.png',
-                           'Polo': 'software-catagaies-final_52.png', 
+                           'Polo': 'software-catagaies-final_52.png',
                            'Round Neck': 'software-catagaies-final_46.png',
                            'Scott Basic - RN': 'software-catagaies-final_57.png',
                            'V Neck T Shirt': 'software-catagaies-final_37.png',
@@ -1426,7 +1426,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
   vm.changePWDData = {};
   vm.changePWD = function() {
- 
+
     var mod_data = vm.changePWDData;
     var modalInstance = $modal.open({
       templateUrl: 'views/outbound/app/create_orders/change_pwd.html',
@@ -1615,6 +1615,7 @@ angular.module('urbanApp').controller('downloadPDFCtrl', function ($modalInstanc
     Service.apiCall("get_sku_catalogs/", "POST", data).then(function(response) {
       if(response.message) {
         window.open(Session.host + response.data, '_blank');
+        vm.cancel();
       }
       vm.pdfDownloading = false;
     });
@@ -1735,7 +1736,7 @@ angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInst
         5: ['P_Reason-5-of-1', 'P_Reason-5-of-2', 'P_Reason-5-of-3', 'P_Reason-5-of-4', 'P_Reason-5-of-5', 'P_Reason-5-of-6']
       }
     };
-    
+
     vm.selStars = 0; // initial stars count
     vm.maxStars = 5; // total stars
     vm.sel_rate = '';
@@ -1832,7 +1833,7 @@ angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInst
     angular.forEach(vm.reasons[vm.reason_type][vm.selStars], function(row){
 
       if (row == reason) {
-        
+
         if (vm.title == 'Rate Your Order') {
 
           vm.sel_reasons.order_reason = reason;
@@ -1845,7 +1846,7 @@ angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInst
   }
 
   vm.submit = function () {
-    if((!vm.sel_reasons.order_reason && vm.title == 'Rate Your Order') || 
+    if((!vm.sel_reasons.order_reason && vm.title == 'Rate Your Order') ||
        (!vm.sel_reasons.product_reason && vm.title == 'Rate Your Product')) {
 
       vm.service.showNoty('Sorry, Please give your rating and proper reason');

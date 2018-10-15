@@ -4930,7 +4930,8 @@ def get_purchase_order_data(order):
                       'supplier_code': '', 'load_unit_handle': order.product_code.load_unit_handle,
                       'sku_desc': order.product_code.sku_desc,
                       'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0, 'tin_number': '',
-                      'intransit_quantity': intransit_quantity, 'shelf_life': order.product_code.shelf_life}
+                      'intransit_quantity': intransit_quantity, 'shelf_life': order.product_code.shelf_life,
+                      'show_imei': sku.enable_serial_based}
         return order_data
     elif rw_purchase and not order.open_po:
         rw_purchase = rw_purchase[0]
@@ -4993,7 +4994,6 @@ def get_purchase_order_data(order):
         utgst_tax = 0
         cess_tax = 0
         tin_number = ''
-
     order_data = {'order_quantity': order_quantity, 'price': price, 'mrp': mrp, 'wms_code': sku.wms_code,
                   'sku_code': sku.sku_code, 'supplier_id': user_data.id, 'zone': sku.zone,
                   'qc_check': sku.qc_check, 'supplier_name': username, 'gstin_number': gstin_number,
@@ -5003,7 +5003,7 @@ def get_purchase_order_data(order):
                   'order_type': order_type,
                   'supplier_code': supplier_code, 'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax,
                   'utgst_tax': utgst_tax, 'cess_tax':cess_tax, 'intransit_quantity': intransit_quantity,
-                  'tin_number': tin_number, 'shelf_life': sku.shelf_life}
+                  'tin_number': tin_number, 'shelf_life': sku.shelf_life, 'show_imei': sku.enable_serial_based }
 
     return order_data
 

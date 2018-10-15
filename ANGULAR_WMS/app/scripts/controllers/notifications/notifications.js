@@ -25,6 +25,10 @@ function Notifications($scope, $http, $q, Session, colFilters, Service, $state, 
       if(resp.message){
         Service.showNoty(resp.data.msg);
         vm.load_notifications();
+        if ($scope.user.notification_count) {
+          $scope.user.notification_count = Number($scope.user.notification_count) - 1;
+        }
+
       }
     });
   }

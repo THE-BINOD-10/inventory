@@ -8235,7 +8235,7 @@ def update_existing_grn(request, user=''):
                          'discount_percentage': 'discount_percent', 'batch_no': 'batch_no',
                          'mrp': 'mrp', 'buy_price': 'buy_price', 'invoice_number': 'invoice_number',
                          'invoice_date': 'invoice_date', 'dc_date': 'challan_date', 'dc_number': 'challan_number'}
-        zero_index_keys = ['invoice_number', 'invoice_date']
+        zero_index_keys = ['invoice_number', 'invoice_date', 'dc_number', 'dc_date']
         for ind in range(0, len(myDict['confirm_key'])):
             model_name = myDict['confirm_key'][ind].strip('_id')
             if myDict['confirm_key'][ind] == 'seller_po_summary_id':

@@ -2667,7 +2667,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     tax_type, seller_company, order_reference, order_reference_date = '', '', '', ''
     invoice_header = ''
     total_quantity, total_amt, total_taxable_amt, total_invoice, total_tax, total_mrp, _total_tax = 0, 0, 0, 0, 0, 0, 0
-    total_taxes = {'cgst_amt': 0, 'sgst_amt': 0, 'igst_amt': 0, 'utgst_amt': 0}
+    total_taxes = {'cgst_amt': 0, 'sgst_amt': 0, 'igst_amt': 0, 'utgst_amt': 0, 'cess_amt': 0}
     hsn_summary = {}
     is_gst_invoice = False
     invoice_date = datetime.datetime.now()
@@ -2786,7 +2786,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             vat = 0
             discount = 0
             el_price = 0
-            cgst_tax, sgst_tax, igst_tax, utgst_tax = 0, 0, 0, 0
+            cgst_tax, sgst_tax, igst_tax, utgst_tax, cess_tax = 0, 0, 0, 0, 0
             mrp_price = dat.sku.mrp
             taxes_dict = {}
             order_summary = CustomerOrderSummary.objects.filter(order_id=dat.id)
@@ -2801,6 +2801,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 sgst_tax = order_summary[0].sgst_tax
                 igst_tax = order_summary[0].igst_tax
                 utgst_tax = order_summary[0].utgst_tax
+                cess_tax = order_summary[0].cess_tax
                 invoice_header = order_summary[0].invoice_type
                 if order_summary[0].invoice_date:
                     invoice_date = order_summary[0].invoice_date
@@ -2846,23 +2847,26 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 sgst_amt = float(sgst_tax) * (float(amt) / 100)
                 igst_amt = float(igst_tax) * (float(amt) / 100)
                 utgst_amt = float(utgst_tax) * (float(amt) / 100)
+                cess_amt = float(cess_tax) * (float(amt) / 100)
                 taxes_dict = {'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax, 'utgst_tax': utgst_tax,
-                              'cgst_amt': '%.2f' % cgst_amt, 'sgst_amt': '%.2f' % sgst_amt,
+                              'cess_tax': cess_tax, 'cgst_amt': '%.2f' % cgst_amt, 'sgst_amt': '%.2f' % sgst_amt,
                               'igst_amt': '%.2f' % igst_amt,
-                              'utgst_amt': '%.2f' % utgst_amt}
+                              'utgst_amt': '%.2f' % utgst_amt, 'cess_amt': '%.2f' % cess_amt}
                 total_taxes['cgst_amt'] += float(taxes_dict['cgst_amt'])
                 total_taxes['sgst_amt'] += float(taxes_dict['sgst_amt'])
                 total_taxes['igst_amt'] += float(taxes_dict['igst_amt'])
                 total_taxes['utgst_amt'] += float(taxes_dict['utgst_amt'])
+                total_taxes['cess_amt'] += float(taxes_dict['cess_amt'])
                 _tax = float(taxes_dict['cgst_amt']) + float(taxes_dict['sgst_amt']) + float(taxes_dict['igst_amt']) + \
-                       float(taxes_dict['utgst_amt'])
-                summary_key = str(hsn_code) + "@" + str(cgst_tax + sgst_tax + igst_tax + utgst_tax)
+                       float(taxes_dict['utgst_amt']) + float(taxes_dict['cess_amt'])
+                summary_key = str(hsn_code) + "@" + str(cgst_tax + sgst_tax + igst_tax + utgst_tax+cess_tax)
                 if hsn_summary.get(summary_key, ''):
                     hsn_summary[summary_key]['taxable'] += float("%.2f" % float(amt))
                     hsn_summary[summary_key]['sgst_amt'] += float("%.2f" % float(sgst_amt))
                     hsn_summary[summary_key]['cgst_amt'] += float("%.2f" % float(cgst_amt))
                     hsn_summary[summary_key]['igst_amt'] += float("%.2f" % float(igst_amt))
                     hsn_summary[summary_key]['utgst_amt'] += float("%.2f" % float(utgst_amt))
+                    hsn_summary[summary_key]['cess_amt'] += float("%.2f" % float(cess_amt))
                 else:
                     hsn_summary[summary_key] = {}
                     hsn_summary[summary_key]['taxable'] = float("%.2f" % float(amt))
@@ -2870,6 +2874,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     hsn_summary[summary_key]['cgst_amt'] = float("%.2f" % float(cgst_amt))
                     hsn_summary[summary_key]['igst_amt'] = float("%.2f" % float(igst_amt))
                     hsn_summary[summary_key]['utgst_amt'] = float("%.2f" % float(utgst_amt))
+                    hsn_summary[summary_key]['cess_amt'] = float("%.2f" % float(cess_amt))
             else:
                 _tax = (amt * (vat / 100))
 
@@ -5081,7 +5086,7 @@ def update_seller_order(seller_order_dict, order, user):
 
 def get_invoice_html_data(invoice_data):
     show_mrp = invoice_data.get('show_mrp', 'false')
-    data = {'totals_data': {'label_width': 6, 'value_width': 6}, 'columns': 10, 'emty_tds': [], 'hsn_summary_span': 3}
+    data = {'totals_data': {'label_width': 6, 'value_width': 6}, 'columns': 11, 'emty_tds': [], 'hsn_summary_span': 3}
     if show_mrp == 'true':
         data['columns'] += 1
     if invoice_data.get('invoice_remarks', '') not in ['false', '']:

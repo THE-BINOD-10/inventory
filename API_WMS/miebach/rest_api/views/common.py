@@ -17,7 +17,7 @@ from django.contrib.auth.models import User, Permission
 from xlwt import Workbook, easyxf
 from xlrd import open_workbook, xldate_as_tuple
 import operator
-from django.db.models import Q, F, Value, FloatField, CharField
+from django.db.models import Q, F, Value, FloatField, BooleanField, CharField
 from django.conf import settings
 from sync_sku import *
 import csv
@@ -519,7 +519,7 @@ data_datatable = {  # masters
     'PullToLocate': 'get_cancelled_putaway', \
     'StockTransferOrders': 'get_stock_transfer_orders', 'OutboundBackOrders': 'get_back_order_data', \
     'CustomerOrderView': 'get_order_view_data', 'CustomerCategoryView': 'get_order_category_view_data', \
-    'CustomOrders': 'get_custom_order_data', \
+    'CustomOrders': 'get_custom_order_data', 'CentralOrders': 'get_central_orders_data',
     'ShipmentPickedAlternative': 'get_order_shipment_picked', 'CustomerInvoices': 'get_customer_invoice_data', \
     'OrderApprovals': 'get_order_approval_statuses',
     'ProcessedOrders': 'get_processed_orders_data', 'DeliveryChallans': 'get_delivery_challans_data',
@@ -2320,6 +2320,15 @@ def get_enquiry_id(customer_id):
     return enq_id
 
 
+def get_central_order_id(customer_id):
+    inter_qs = IntermediateOrders.objects.filter(customer_user_id=customer_id).order_by('-interm_order_id')
+    if inter_qs:
+        interm_id = int(inter_qs[0].interm_order_id) + 1
+    else:
+        interm_id = 10001
+    return interm_id
+
+
 def check_and_update_stock(wms_codes, user):
     stock_sync = get_misc_value('stock_sync', user.id)
     if not stock_sync == 'true':
@@ -3151,6 +3160,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     hot_release = request_data.get('hot_release', '')
     quantity = request_data.get('quantity', 0)
     delivery_date = request_data.get('delivery_date', '')
+    dimensions = request_data.get('dimensions', {})
     customer_master = None
     if not quantity:
         quantity = 0
@@ -3221,6 +3231,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         filter_params['id__in'] = hot_release_data
         filter_params1['id__in'] = hot_release_data
 
+    skumaster_qs = SKUMaster.objects.exclude(sku_class='')
     if admin_user:
         filter_params1['sku__user'] = admin_user.id
     else:
@@ -3230,7 +3241,44 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     if sku_class:
         filter_params['sku_class__icontains'] = sku_class
         filter_params1['sku__sku_class__icontains'] = sku_class
-
+    if dimensions:
+        dimensions = eval(dimensions)
+        if "from_Length" in dimensions:
+            if dimensions["from_Length"]:
+                from_length = int(dimensions["from_Length"])
+                skumaster_qs = skumaster_qs.filter(user=user.id).\
+                    filter(Q(skuattributes__attribute_name='length')&
+                           Q(skuattributes__attribute_value__gte=Value(from_length)))
+        if "to_Length" in dimensions:
+            if dimensions["to_Length"]:
+                to_length = int(dimensions["to_Length"])
+                skumaster_qs = skumaster_qs.filter(user=user.id). \
+                    filter(Q(skuattributes__attribute_name='length') &
+                           Q(skuattributes__attribute_value__lte=Value(to_length)))
+        if "from_Breadth" in dimensions:
+            if dimensions["from_Breadth"]:
+                from_breadth = int(dimensions["from_Breadth"])
+                skumaster_qs = skumaster_qs.filter(user=user.id).\
+                    filter(Q(skuattributes__attribute_name='breadth')&
+                           Q(skuattributes__attribute_value__gte=Value(from_breadth)))
+        if "to_Breadth" in dimensions:
+            if dimensions["to_Breadth"]:
+                to_breadth = int(dimensions["to_Breadth"])
+                skumaster_qs = skumaster_qs.filter(user=user.id). \
+                    filter(Q(skuattributes__attribute_name='breadth') &
+                           Q(skuattributes__attribute_value__lte=Value(to_breadth)))
+        if "from_Height" in dimensions:
+            if dimensions["from_Height"]:
+                from_height = int(dimensions["from_Height"])
+                skumaster_qs = skumaster_qs.filter(user=user.id).\
+                    filter(Q(skuattributes__attribute_name='height')&
+                           Q(skuattributes__attribute_value__gte=Value(from_height)))
+        if "to_Height" in dimensions:
+            if dimensions["to_Height"]:
+                to_height = int(dimensions["to_Height"])
+                skumaster_qs = skumaster_qs.filter(user=user.id). \
+                    filter(Q(skuattributes__attribute_name='height') &
+                           Q(skuattributes__attribute_value__lte=Value(to_height)))
     all_pricing_ids = PriceMaster.objects.filter(sku__user=user.id, price_type=price_type).values_list('sku_id',
                                                                                                        flat=True)
     if is_margin_percentage == 'true':
@@ -3316,6 +3364,9 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
 
     needed_stock_data = {}
     gen_whs = get_gen_wh_ids(request, user, delivery_date)
+    is_central_order_mgmt = get_misc_value('central_order_mgmt', user.id)
+    if is_central_order_mgmt:
+        gen_whs = UserGroups.objects.filter(admin_user=user).values_list('user', flat=True)
     needed_stock_data['gen_whs'] = gen_whs
     needed_skus = list(sku_master.only('sku_code').values_list('sku_code', flat=True))
     needed_stock_data['stock_objs'] = dict(StockDetail.objects.filter(sku__user__in=gen_whs, quantity__gt=0,
@@ -3369,6 +3420,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
                            price_type=price_type, custom_margin=custom_margin, specific_margins=specific_margins,
                            is_margin_percentage=is_margin_percentage, stock_quantity=quantity,
                            needed_stock_data=needed_stock_data, msp_min_price=msp_min_price, msp_max_price=msp_max_price)
+
     return data, start, stop
 
 
@@ -4297,6 +4349,8 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
     data = []
     style_quantities = eval(request.POST.get('required_quantity', '{}'))
     levels_config = get_misc_value('generic_wh_level', user.id)
+    central_order_mgmt = get_misc_value('central_order_mgmt', user.id)
+    sku_spl_attrs = {}
     get_values = ['wms_code', 'sku_desc', 'hsn_code', 'image_url', 'sku_class', 'cost_price', 'price', 'mrp', 'id',
                   'sku_category', 'sku_brand', 'sku_size', 'style_name', 'sale_through', 'product_type']
 
@@ -4324,6 +4378,10 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
         sku_object = sku_master.filter(user=user.id, sku_class=product)
         sku_styles = sku_object.values('image_url', 'sku_class', 'sku_desc', 'sequence', 'id'). \
             order_by('-image_url')
+        if central_order_mgmt:
+            sku_id = sku_object[0].id
+            sku_spl_attrs = dict(SKUAttributes.objects.filter(sku_id=sku_id).
+                                 values_list('attribute_name', 'attribute_value'))
         if qty_dict_flag:
             total_quantity = product_styles_tot_qty_map[product]
         else:
@@ -4345,6 +4403,7 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
                                               levels_config=levels_config, price_type=price_type,
                                               default_margin=custom_margin, specific_margins=specific_margins,
                                               is_margin_percentage=is_margin_percentage, needed_stock_data=needed_stock_data)
+            sku_variants[0].update(sku_spl_attrs)
             sku_styles[0]['variants'] = sku_variants
             sku_styles[0]['style_quantity'] = total_quantity
             sku_styles[0]['asn_quantity'] = needed_stock_data['asn_quantities'].get(prd_sku, 0)
@@ -4542,6 +4601,34 @@ def get_order_detail_objs(order_id, user, search_params={}, all_order_objs=[]):
     order_detail_objs = OrderDetail.objects.filter(Q(order_id=order_id_search, order_code=order_code_search) |
                                                    Q(original_order_id=order_id), **search_param)
     return order_detail_objs
+
+
+def order_cancel_functionality(order_det_ids):
+    ord_det_qs = OrderDetail.objects.filter(id__in=order_det_ids)
+    for order_det in ord_det_qs:
+        if int(order_det.status) == 1:
+            order_det.status = 3
+            order_det.save()
+        else:
+            picklists = Picklist.objects.filter(order_id=order_det.id)
+            for picklist in picklists:
+                if picklist.picked_quantity <= 0:
+                    picklist.delete()
+                elif picklist.stock:
+                    cancel_location = CancelledLocation.objects.filter(picklist_id=picklist.id,
+                                                                       picklist__order_id=order_det.id)
+                    if not cancel_location:
+                        CancelledLocation.objects.create(picklist_id=picklist.id,
+                                                         quantity=picklist.picked_quantity,
+                                                         location_id=picklist.stock.location_id,
+                                                         creation_date=datetime.datetime.now(), status=1)
+                        picklist.status = 'cancelled'
+                        picklist.save()
+                else:
+                    picklist.status = 'cancelled'
+                    picklist.save()
+            order_det.status = 3
+            order_det.save()
 
 
 @csrf_exempt
@@ -7918,6 +8005,25 @@ def po_invoice_number_check(user, invoice_num, supplier_id):
         status = 'Invoice Number already Mapped to %s/%s' % (get_po_reference(exist_inv_obj[0].purchase_order),
                                                              str(exist_inv_obj[0].receipt_number))
     return status
+
+
+
+def get_sister_warehouse(user):
+    warehouses = UserGroups.objects.filter(Q(admin_user=user) | Q(user=user))
+    return warehouses
+
+
+@login_required
+@csrf_exempt
+@get_admin_user
+def get_linked_warehouse_names(request, user=''):
+    current_user = request.GET.get('current_user', '')
+    warehouses = get_sister_warehouse(user)
+    if current_user == 'true':
+        wh_names = list(warehouses.values_list('user__username', flat=True))
+    else:
+        wh_names = list(warehouses.exclude(user_id=user.id).values_list('user__username', flat=True))
+    return HttpResponse(json.dumps({'wh_names': wh_names}))
 
 
 def get_sku_ean_list(sku):

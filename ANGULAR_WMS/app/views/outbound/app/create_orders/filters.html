@@ -147,6 +147,26 @@
           </table>
         </div>
       </div>
+
+      <!-- Dimensions start -->
+      <div class="filter-box" ng-if="showCase.filterData.dimensions.length > 0 && showCase.user_type == 'customer' && showCase.central_order_mgmt">
+        <div class="box-header">
+          <span><b>Dimensions: </b></span>
+          <i class="fa fa-angle-down pull-right mr10" style="font-size: 20px;font-weight: 900;cursor:pointer" ng-class="(showCase.dimension_open)? 'fa-angle-up': 'fa-angle-down'" ng-click="showCase.dimension_open = (showCase.dimension_open)? false: true;"></i>
+        </div>
+        <div class="box-body mt10" style="overflow: auto;" ng-if="showCase.dimension_open">
+          <table class="table table-bordered filter-table">
+            <tbody>
+              <tr ng-repeat="dimension in showCase.filterData.dimensions">
+                <td>{{dimension}}</td>
+                <td style="text-align:center"><input name="{{'from_'+dimension}}" class="form-control number" type="text" placeholder="From" ng-model="showCase.filterData.dimension_filter['from_'+dimension]"/></td>
+                <td style="text-align:center"><input name="{{'to_'+dimension}}" class="form-control number" type="text" placeholder="To" ng-model="showCase.filterData.dimension_filter['to_'+dimension]"/></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <!-- Dimensions end -->
       <div>
         <button type="button" class="btn btn-danger pull-right" ng-click="showCase.applyFilters();">Apply</button>
         <button type="button" class="btn btn-default pull-right mr10" ng-click="showCase.clearFilters();">Clear</button>

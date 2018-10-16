@@ -3365,7 +3365,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
     needed_stock_data = {}
     gen_whs = get_gen_wh_ids(request, user, delivery_date)
     is_central_order_mgmt = get_misc_value('central_order_mgmt', user.id)
-    if is_central_order_mgmt:
+    if is_central_order_mgmt == 'true':
         gen_whs = UserGroups.objects.filter(admin_user=user).values_list('user', flat=True)
     needed_stock_data['gen_whs'] = gen_whs
     needed_skus = list(sku_master.only('sku_code').values_list('sku_code', flat=True))
@@ -4378,7 +4378,7 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
         sku_object = sku_master.filter(user=user.id, sku_class=product)
         sku_styles = sku_object.values('image_url', 'sku_class', 'sku_desc', 'sequence', 'id'). \
             order_by('-image_url')
-        if central_order_mgmt:
+        if central_order_mgmt == 'true':
             sku_id = sku_object[0].id
             sku_spl_attrs = dict(SKUAttributes.objects.filter(sku_id=sku_id).
                                  values_list('attribute_name', 'attribute_value'))

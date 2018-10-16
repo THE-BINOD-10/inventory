@@ -5863,7 +5863,7 @@ def get_sku_variants(request, user=''):
                                                 (user.username, str(sku[0].sku_code)))
     sku_master, total_qty = all_whstock_quant(sku_master, user, level, lead_times, dist_reseller_leadtime)
     central_order_mgmt = get_misc_value('central_order_mgmt', user.id)
-    if central_order_mgmt:
+    if central_order_mgmt == 'true':
         sku_id = sku_master[0]['id']
         sku_spl_attrs = dict(SKUAttributes.objects.filter(sku_id=sku_id).values_list('attribute_name', 'attribute_value'))
     _data = {'data': sku_master, 'gen_wh_level_status': levels_config, 'total_qty': total_qty, 'sku_spl_attrs': sku_spl_attrs}
@@ -8222,7 +8222,7 @@ def get_customer_orders(request, user=""):
 
         if customer:
             customer_id = customer[0].customer.customer_id
-            if central_order_mgmt:
+            if central_order_mgmt == 'true':
                 orders_dict = {'customer_id': customer_id, 'user__in': users_list}
                 pick_dict = {'order__customer_id': customer_id, 'order__user__in': users_list}
                 intermediate_orders = list(IntermediateOrders.objects.filter(customer_user=request.user.id,\
@@ -8534,7 +8534,7 @@ def get_customer_order_detail(request, user=""):
         final_data = response_data_list
     else:
         central_order_mgmt = get_misc_value('central_order_mgmt', user.id)
-        if central_order_mgmt:
+        if central_order_mgmt == 'true':
             customer = CustomerUserMapping.objects.filter(user=request.user.id)
             if customer:
                 customer_id = customer[0].customer.customer_id
@@ -8671,7 +8671,7 @@ def get_customer_cart_data(request, user=""):
                 inter_qty = inter_obj.aggregate(Sum('quantity'))['quantity__sum']#inter_obj[0].quantity
             blocked_qty = inter_qty
             json_record['available_stock'] = available_stock - blocked_qty
-            if central_order_mgmt:
+            if central_order_mgmt == 'true':
                 sku_id = sku_obj[0].id
                 sku_spl_attrs = dict(SKUAttributes.objects.filter(sku_id=sku_id).
                                      values_list('attribute_name', 'attribute_value'))
@@ -11308,7 +11308,7 @@ def order_cancel(request, user=''):
                 gen_qs.delete()
         else:
             central_order_mgmt = get_misc_value('central_order_mgmt', user.id)
-            if central_order_mgmt: # Here user.id is admin id. Bcz all customers are created under admin login only.
+            if central_order_mgmt == 'true': # Here user.id is admin id. Bcz all customers are created under admin login only.
                 order_id = request.GET.get('order_id', '')
                 customer_id = customer_obj[0].customer_id
                 whusers = UserGroups.objects.filter(admin_user=user.id).values_list('user').distinct()

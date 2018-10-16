@@ -2271,7 +2271,7 @@ class CustomerCartData(models.Model):
 class ApprovingOrders(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User)
-    customer_user = models.ForeignKey(User, related_name='customer', blank=True, null=True)
+    customer_user = models.ForeignKey(User, related_name='accessing_customer', blank=True, null=True)
     approve_id = models.CharField(max_length=64, default='')
     approval_status = models.CharField(choices=APPROVAL_STATUSES, default='', max_length=32)
     approving_user_role = models.CharField(max_length=64, default='')

@@ -3318,7 +3318,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
                                     values_list('stock__sku__sku_code').distinct().annotate(in_reserved=Sum('reserved')))
     needed_stock_data['enquiry_res_quantities'] = dict(EnquiredSku.objects.filter(sku__user__in=gen_whs,
                                                                                   sku__sku_code__in=needed_skus).\
-                                                filter(~Q(enquiry__extend_status='rejected')).\
+                                                filter(~Q(enquiry__extend_status='rejected')).exclude(warehouse_level=3).\
                                 only('sku__sku_code', 'quantity').values_list('sku__sku_code').\
                                 annotate(tot_qty=Sum('quantity')))
 
@@ -3348,12 +3348,11 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
         intr_obj_100days_qs.values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
     needed_stock_data['asn_blocked_quantities'] = {}
     for k, v in needed_stock_data['asn_quantities'].items():
-        if k in asn_res_100days_qty:
-            asn_qty = needed_stock_data['asn_quantities'][k]
-            asn_res_qty = asn_res_100days_qty.get(k, 0)
-            asn_blk_qty = asn_blk_100days_qty.get(k, 0)
-            needed_stock_data['asn_quantities'][k] = asn_qty - asn_res_qty - asn_blk_qty
-            needed_stock_data['asn_blocked_quantities'][k] = asn_blk_qty
+        asn_qty = needed_stock_data['asn_quantities'][k]
+        asn_res_qty = asn_res_100days_qty.get(k, 0)
+        asn_blk_qty = asn_blk_100days_qty.get(k, 0)
+        needed_stock_data['asn_quantities'][k] = asn_qty - asn_res_qty - asn_blk_qty
+        needed_stock_data['asn_blocked_quantities'][k] = asn_blk_qty
 
     data = get_styles_data(user, product_styles, sku_master, start, stop, request, customer_id=customer_id,
                            customer_data_id=customer_data_id, is_file=is_file, prices_dict=prices_dict,
@@ -4339,7 +4338,9 @@ def get_styles_data(user, product_styles, sku_master, start, stop, request, cust
             sku_styles[0]['variants'] = sku_variants
             sku_styles[0]['style_quantity'] = total_quantity
             sku_styles[0]['asn_quantity'] = needed_stock_data['asn_quantities'].get(prd_sku, 0)
-            sku_styles[0]['blocked_qty'] = needed_stock_data['enquiry_res_quantities'].get(prd_sku, 0)
+            stock_blk_qty = needed_stock_data['enquiry_res_quantities'].get(prd_sku, 0)
+            intr_blk_qty = needed_stock_data['asn_blocked_quantities'].get(prd_sku, 0)
+            sku_styles[0]['blocked_qty'] = stock_blk_qty + intr_blk_qty
 
             sku_styles[0]['image_url'] = resize_image(sku_styles[0]['image_url'], user)
             if style_quantities.get(sku_styles[0]['sku_class'], ''):

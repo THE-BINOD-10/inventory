@@ -5173,7 +5173,8 @@ def get_stock_qty_leadtime(item, wh_code):
         aggregate(Sum('reserved'))['reserved__sum']
     log.info("Reserved Qtys for SKU Code (%s)::%s::%s" % (wms_code, wh_code, repr(reserved_quantities)))
     enquiry_res_quantities = EnquiredSku.objects.filter(sku__user__in=wh_code, sku_code=wms_code).\
-    filter(~Q(enquiry__extend_status='rejected')).values_list('sku_code').aggregate(Sum('quantity'))['quantity__sum']
+    exclude(warehouse_level=3).filter(~Q(enquiry__extend_status='rejected')).values_list('sku_code').\
+        aggregate(Sum('quantity'))['quantity__sum']
     log.info("EnquiryOrders for SKU Code (%s)::%s::%s" % (wms_code, wh_code, repr(enquiry_res_quantities)))
     if not reserved_quantities:
         reserved_quantities = 0
@@ -5460,7 +5461,8 @@ def get_sku_variants(request, user=''):
                                            only('stock__sku__sku_code', 'reserved').\
                                     values_list('stock__sku__sku_code').distinct().annotate(in_reserved=Sum('reserved')))
     needed_stock_data['enquiry_res_quantities'] = dict(EnquiredSku.objects.filter(sku__user__in=gen_whs,
-                                                                                  sku__sku_code__in=needed_skus).\
+                                                                                  sku__sku_code__in=needed_skus
+                                                                                  ).exclude(warehouse_level=3).
                                                 filter(~Q(enquiry__extend_status='rejected')).\
                                 only('sku__sku_code', 'quantity').values_list('sku__sku_code').\
                                 annotate(tot_qty=Sum('quantity')))
@@ -10187,7 +10189,8 @@ def get_custom_template_styles(request, user=''):
                                            only('stock__sku__sku_code', 'reserved').\
                                     values_list('stock__sku__sku_code').distinct().annotate(in_reserved=Sum('reserved')))
     needed_stock_data['enquiry_res_quantities'] = dict(EnquiredSku.objects.filter(sku__user__in=gen_whs,
-                                                                                  sku__sku_code__in=needed_skus).\
+                                                                                  sku__sku_code__in=needed_skus
+                                                                                  ).exclude(warehouse_level=3).\
                                                 filter(~Q(enquiry__extend_status='rejected')).\
                                 only('sku__sku_code', 'quantity').values_list('sku__sku_code').\
                                 annotate(tot_qty=Sum('quantity')))

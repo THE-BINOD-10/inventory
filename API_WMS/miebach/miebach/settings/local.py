@@ -8,7 +8,6 @@ DATABASES = {
         'USER': 'root',
         'PASSWORD': 'krothapalli',
         'TEST_MIRROR': 'default'
-	
     }
 }
 

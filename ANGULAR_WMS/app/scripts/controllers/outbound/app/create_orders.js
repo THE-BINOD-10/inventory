@@ -18,6 +18,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   vm.notify_count = Session.notification_count;
   vm.permissions = Session.roles.permissions;
   vm.user_type = Session.roles.permissions.user_type;
+  vm.central_order_mgmt = Session.roles.permissions.central_order_mgmt;
   vm.buttons_width = (Session.roles.permissions.create_order_po)? 4: 6;
   vm.priceband_sync = Session.roles.permissions.priceband_sync;
   vm.disable_brands = Session.roles.permissions.disable_brands_view;
@@ -226,6 +227,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
           }
           vm.filterData.brand_size_data = ['XS','S','M', 'L', 'XL', '2XL', '3XL', '4XL'];
         }
+        vm.filterData.dimensions = ['Length', 'Breadth', 'Height'];
         vm.filterData.brands.push("All");
         vm.filterData.categories.push("All");
         vm.filterData.colors.push("All");
@@ -404,6 +406,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.scroll_data = false;
     vm.show_no_data = false;
     var size_stock = "";
+    var dimension_data = "";
     var cat_name = vm.category;
     var sub_cat_name = vm.sub_category;
     // vm.required_quantity = {};
@@ -421,10 +424,17 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       size_stock = vm.size_filter_data;
     }
 
+    if($.type(vm.size_filter_data) != "string"){
+      dimension_data = JSON.stringify(vm.dimensions_filter_data);
+    } else {
+      dimension_data = vm.dimensions_filter_data;
+    }
+
     var data = {brand: vm.brand, sub_category: sub_cat_name, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
                 sale_through: vm.order_type_value, size_filter: size_stock, color: vm.color, from_price: vm.fromPrice,
                 to_price: vm.toPrice, quantity: vm.quantity, delivery_date: vm.delivery_date, is_margin_percentage: vm.marginData.is_margin_percentage,
-                margin: vm.marginData.margin, hot_release: vm.hot_release, margin_data: JSON.stringify(Data.marginSKUData.data)};
+                margin: vm.marginData.margin, hot_release: vm.hot_release, margin_data: JSON.stringify(Data.marginSKUData.data),
+                dimensions: dimension_data};
 
     if(status) {
       angular.copy([], vm.catlog_data.data);
@@ -840,6 +850,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     var category= [];
     var sub_category = [];
     var color = [];
+    var dimensions = [];
+
     angular.forEach(vm.filterData.selectedBrands, function(value, key) {
       if (value) {
         brand.push(key);
@@ -890,6 +902,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.sub_category = temp_sub_cat_data.join(","); //category.join(",");
     vm.color = color.join(",");
     vm.size_filter_data = vm.filterData.size_filter
+    vm.dimensions_filter_data = vm.filterData.dimension_filter
     //vm.primary_data = JSON.stringify(temp_primary_data);
     vm.fromPrice = vm.filterData.fromPrice;
     vm.toPrice = vm.filterData.toPrice;
@@ -916,6 +929,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     vm.showFilter = true;
   }
 
+
   vm.checkPrimaryFilter = function(primary_cat) {
 
     if(!vm.filterData.selectedCats[primary_cat]) {
@@ -938,9 +952,14 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
 
   vm.clearFilterData = function() {
 
-    angular.forEach(vm.filterData.size_filter, function(value, key) {
+      angular.forEach(vm.filterData.size_filter, function(value, key) {
         vm.filterData.size_filter[key] = "";
       })
+
+      angular.forEach(vm.filterData.dimension_filter, function(value, key){
+
+        vm.filterData.dimension_filter[key] = "";
+      });
 
       angular.forEach(vm.filterData.selectedBrands, function(value, key) {
         vm.filterData.selectedBrands[key] = false;
@@ -954,6 +973,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       angular.forEach(vm.filterData.selectedColors, function(value, key) {
         vm.filterData.selectedColors[key] = false;
       });
+
       vm.brand = "";
       vm.category = "";
       vm.color = "";
@@ -961,6 +981,7 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       vm.filterData.toPrice = "";
       vm.filterData.quantity = "";
       vm.filterData.delivery_date = "";
+      vm.dimensions_filter_data = "";
       vm.filterData.hotRelease = false;
       vm.hot_release = vm.filterData.hotRelease;
       vm.fromPrice = vm.filterData.fromPrice;
@@ -1225,6 +1246,11 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
                            'Travel Gear ': 'travel-gear.jpg',
                            'Writing Instruments ': 'writing.jpg',
                            'TMT Steel': 'TMT_category.jpg',
+                           'Chair': 'Chair.jpg',
+                           'Door': 'Door.jpg',
+                           'Light': 'Lamp.jpg',
+                           'Table': 'Table.jpg',
+                           'Window': 'Window.jpg',
 
                            //swiss military
 
@@ -1714,26 +1740,25 @@ angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInst
   vm.title = 'Rate Your Order';
   vm.rate_type = 'Order';
   vm.sel_reasons = {order_rate:'', order_reason:'', product_rate:'', product_reason:''};
-  vm.rate_query = "What you didn't like!";
+  vm.rate_query = "What did you not like?";
   vm.reason_type = 'order_reasons';
   vm.btn_text = 'Next';
 
   vm.resetValues = function(){
-
     vm.reasons = {
       order_reasons: {
-        1: ['O_Reason-1-of-1', 'O_Reason-1-of-2', 'O_Reason-1-of-3', 'O_Reason-1-of-4', 'O_Reason-1-of-5', 'O_Reason-1-of-6'],
-        2: ['O_Reason-2-of-1', 'O_Reason-2-of-2', 'O_Reason-2-of-3', 'O_Reason-2-of-4', 'O_Reason-2-of-5', 'O_Reason-2-of-6'],
-        3: ['O_Reason-3-of-1', 'O_Reason-3-of-2', 'O_Reason-3-of-3', 'O_Reason-3-of-4', 'O_Reason-3-of-5', 'O_Reason-3-of-6'],
-        4: ['O_Reason-4-of-1', 'O_Reason-4-of-2', 'O_Reason-4-of-3', 'O_Reason-4-of-4', 'O_Reason-4-of-5', 'O_Reason-4-of-6'],
-        5: ['O_Reason-5-of-1', 'O_Reason-5-of-2', 'O_Reason-5-of-3', 'O_Reason-5-of-4', 'O_Reason-5-of-5', 'O_Reason-5-of-6']
+        1: ['High waiting time time during pickup', 'Late/ Wrong bill', 'Bad customer support', 'Software issues during order placement', 'Lack of product information', 'Delivery commitment not honoured', 'My reason not listed (with remarks box)'],
+        2: ['High waiting time time during pickup', 'Late/ Wrong bill', 'Bad customer support', 'Software issues during order placement', 'Lack of product information', 'Delivery commitment not honoured', 'My reason not listed (with remarks box)'],
+        3: ['High waiting time time during pickup', 'Late/ Wrong bill', 'Bad customer support', 'Software issues during order placement', 'Lack of product information', 'Delivery commitment not honoured', 'My reason not listed (with remarks box)'],
+        4: ['Prompt service during pickup', 'Perfect billing and delivery process', 'Delightful customer support', 'Excellent software for order placement', 'Product information crystal clear', 'Delivery commitment as promised', 'My reason not listed (with remarks box)'],
+        5: ['Prompt service during pickup', 'Perfect billing and delivery process', 'Delightful customer support', 'Excellent software for order placement', 'Product information crystal clear', 'Delivery commitment as promised', 'My reason not listed (with remarks box)']
       },
       product_reasons: {
-        1: ['P_Reason-1-of-1', 'P_Reason-1-of-2', 'P_Reason-1-of-3', 'P_Reason-1-of-4', 'P_Reason-1-of-5', 'P_Reason-1-of-6'],
-        2: ['P_Reason-2-of-1', 'P_Reason-2-of-2', 'P_Reason-2-of-3', 'P_Reason-2-of-4', 'P_Reason-2-of-5', 'P_Reason-2-of-6'],
-        3: ['P_Reason-3-of-1', 'P_Reason-3-of-2', 'P_Reason-3-of-3', 'P_Reason-3-of-4', 'P_Reason-3-of-5', 'P_Reason-3-of-6'],
-        4: ['P_Reason-4-of-1', 'P_Reason-4-of-2', 'P_Reason-4-of-3', 'P_Reason-4-of-4', 'P_Reason-4-of-5', 'P_Reason-4-of-6'],
-        5: ['P_Reason-5-of-1', 'P_Reason-5-of-2', 'P_Reason-5-of-3', 'P_Reason-5-of-4', 'P_Reason-5-of-5', 'P_Reason-5-of-6']
+        1: ['Fabric quality substandard', 'Product damaged', 'Poor stitch quality', 'Shade mismatch', 'Colour bleeding', 'My reason not listed (with remarks box)'],
+        2: ['Fabric quality substandard', 'Product damaged', 'Poor stitch quality', 'Shade mismatch', 'Colour bleeding', 'My reason not listed (with remarks box)'],
+        3: ['Fabric quality substandard', 'Product damaged', 'Poor stitch quality', 'Shade mismatch', 'Colour bleeding', 'My reason not listed (with remarks box)'],
+        4: ['Good fabric quality', 'High product quality', 'Excellent stitch', 'Perfect shade', 'No colour bleeding', 'My reason not listed (with remarks box)'],
+        5: ['Good fabric quality', 'High product quality', 'Excellent stitch', 'Perfect shade', 'No colour bleeding', 'My reason not listed (with remarks box)']
       }
     };
 
@@ -1775,11 +1800,12 @@ angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInst
 
       vm.sel_rate = 'Very Good';
       vm.rate_cls = 'alert-info';
+      vm.rate_query = "What did you like?";
     } else if (value == 5) {
 
       vm.sel_rate = 'Excellent';
       vm.rate_cls = 'alert-success';
-      vm.rate_query = "What you like!";
+      vm.rate_query = "What did you like?";
     }
   }
 
@@ -1810,7 +1836,7 @@ angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInst
 
     vm.selStars = value;
     sender.currentTarget.setAttribute('class', vm.getClass(value));
-    vm.rate_query = "What you didn't like!";
+    vm.rate_query = "What did you not like?";
 
     vm.clearCheckedValues();
     vm.addCls(value);

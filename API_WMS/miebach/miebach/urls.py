@@ -18,7 +18,7 @@ urlpatterns =  [
     url(r'^o/', include('oauth2_provider.urls', namespace='oauth2_provider')),
 
     #url(r'^grappelli/', include('grappelli.urls')), # grappelli URLS
-    url(r'^admin/',  include(admin.site.urls)), # admin site
+    url(r'^mieone_panel/',  include(admin.site.urls)), # admin site
 
     # Login and logout
     url(r'^login/$', login),

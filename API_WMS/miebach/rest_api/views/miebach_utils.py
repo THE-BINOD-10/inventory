@@ -1003,7 +1003,7 @@ MAIL_REPORTS = {'sku_list': ['SKU List'], 'location_wise_stock': ['Location Wise
 MAIL_REPORTS_DATA = OrderedDict((('Raise PO', 'raise_po'), ('Receive PO', 'receive_po'), ('Orders', 'order'),
                                  ('Dispatch', 'dispatch'), ('Internal Mail', 'internal_mail'),
                                  ('Raise JO', 'raise_jo'), ('Stock Transfer Note', 'stock_transfer_note'),
-                                 ('Block Stock', 'enquiry'),
+                                 ('Block Stock', 'enquiry'), ('Central Orders', 'central_orders'),
                                  ))
 
 # Configurations
@@ -1796,9 +1796,12 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'display_sku_cust_mapping': 'display_sku_cust_mapping', 'disable_categories_view': 'disable_categories_view',
                         'is_portal_lite': 'is_portal_lite',
                         'show_purchase_history':'show_purchase_history', 'auto_raise_stock_transfer': 'auto_raise_stock_transfer',
+                        'inbound_supplier_invoice': 'inbound_supplier_invoice', 'customer_dc': 'customer_dc',
+                        'central_order_mgmt': 'central_order_mgmt',
                         'invoice_based_payment_tracker': 'invoice_based_payment_tracker',
                         'inbound_supplier_invoice': 'inbound_supplier_invoice', 'customer_dc': 'customer_dc',
                         'receive_po_invoice_check': 'receive_po_invoice_check', 'mark_as_delivered': 'mark_as_delivered',
+                        'order_exceed_stock': 'order_exceed_stock',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',

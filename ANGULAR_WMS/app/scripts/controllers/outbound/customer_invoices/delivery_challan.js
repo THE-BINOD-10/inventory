@@ -85,7 +85,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           data.push(temp['id']);
         }
       });
-      var ids = data.join(",");
+      var ids = data.join("<<>>");
       var send = {seller_summary_id: ids, data: true, edit_dc: true};
       
       vm.service.apiCall("generate_customer_invoice/", "GET", send).then(function(data){
@@ -149,7 +149,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         vm.service.showNoty("Please select same "+field_name+"'s");
       } else {
 
-        var ids = data.join(",");
+        var ids = data.join("<<>>");
         var url = click_type === 'cancel_dc' ? 'move_to_dc/' : 'move_to_inv/';
         var send = {seller_summary_id: ids};
         if (click_type === 'cancel_dc') {
@@ -206,7 +206,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         vm.service.showNoty("Please select same "+field_name+"'s");
       } else {
 
-        var ids = data.join(",");
+        var ids = data.join("<<>>");
         var send = {seller_summary_id: ids};
         if(po_number && field_name == 'SOR ID') {
           send['sor_id'] = po_number;

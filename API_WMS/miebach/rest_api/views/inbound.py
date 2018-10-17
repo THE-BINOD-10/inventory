@@ -973,11 +973,13 @@ def switches(request, user=''):
                        'auto_raise_stock_transfer': 'auto_raise_stock_transfer',
                        'inbound_supplier_invoice': 'inbound_supplier_invoice',
                        'invoice_based_payment_tracker': 'invoice_based_payment_tracker',
-                       'customer_dc': 'customer_dc', 
+                       'customer_dc': 'customer_dc',
                        'auto_expire_enq_limit': 'auto_expire_enq_limit',
                        'sales_return_reasons': 'sales_return_reasons',
+                       'central_order_mgmt': 'central_order_mgmt',
                        'receive_po_invoice_check': 'receive_po_invoice_check',
                        'mark_as_delivered': 'mark_as_delivered',
+                       'order_exceed_stock': 'order_exceed_stock',
                        'receive_po_mandatory_fields': 'receive_po_mandatory_fields'
                        }
         toggle_field, selection = "", ""
@@ -6405,9 +6407,12 @@ def get_supplier_invoice_data(start_index, stop_index, temp_data, search_term, o
                 temp_qty -= processed_val
             rem_quantity += temp_qty
             quantity = rem_quantity
-            tot_price = price * quantity
             tot_tax_perc = seller_sum.purchase_order.open_po.cgst_tax +\
                            seller_sum.purchase_order.open_po.sgst_tax + seller_sum.purchase_order.open_po.igst_tax
+            if seller_sum.batch_detail:
+                price = seller_sum.batch_detail.buy_price
+                tot_tax_perc = seller_sum.batch_detail.tax_percent
+            tot_price = price * quantity
             tot_tax = float(tot_price * tot_tax_perc) / 100
             tot_amt += (tot_price + tot_tax)
 
@@ -6436,6 +6441,7 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
            #'purchase_order__open_po__order_quantity', 'quantity', 'date_only', 'id', 'challan_number']
     lis = ['challan_number', 'challan_number', 'purchase_order__open_po__supplier__name', 'challan_number',
            'challan_number', 'challan_number', 'challan_number', 'challan_number']
+    filt_lis = ['challan_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name']
     user_filter = {'purchase_order__open_po__sku__user': user.id, 'order_status_flag': 'po_challans'}
     result_values = ['challan_number', 'receipt_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name']
                      #'purchase_order__creation_date', 'id']
@@ -6453,7 +6459,7 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
                                 values_list('seller_po_summary_id', flat=True)
 
     if search_term:
-        lis1 = copy.deepcopy(lis)
+        lis1 = copy.deepcopy(filt_lis)
         if 'date_only' in lis:
             lis1 = map(lambda x: x if x not in ['date_only'] else field_mapping['date_only'], lis1)
 
@@ -6504,9 +6510,12 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
             rem_quantity += temp_qty
             price = seller_sum.purchase_order.open_po.price
             quantity = rem_quantity
-            tot_price = price * quantity
             tot_tax_perc = seller_sum.purchase_order.open_po.cgst_tax +\
                            seller_sum.purchase_order.open_po.sgst_tax + seller_sum.purchase_order.open_po.igst_tax
+            if seller_sum.batch_detail:
+                price = seller_sum.batch_detail.buy_price
+                tot_tax_perc = seller_sum.batch_detail.tax_percent
+            tot_price = price * quantity
             tot_tax = float(tot_price * tot_tax_perc) / 100
             tot_amt += (tot_price + tot_tax)
 
@@ -6531,7 +6540,7 @@ def get_processed_po_data(start_index, stop_index, temp_data, search_term, order
 
     user_profile = UserProfile.objects.get(user_id=user.id)
     admin_user = get_priceband_admin_user(user)
-    lis = ['purchase_order__id', 'purchase_order__id', 'purchase_order__open_po__supplier__name',
+    lis = ['purchase_order__id', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name',
            'purchase_order__open_po__order_quantity', 'quantity', 'date_only', 'id']
     user_filter = {'purchase_order__open_po__sku__user': user.id, 'order_status_flag': 'processed_pos'}
     result_values = ['receipt_number', 'purchase_order__order_id', 'purchase_order__open_po__supplier__name']
@@ -6545,7 +6554,7 @@ def get_processed_po_data(start_index, stop_index, temp_data, search_term, order
             lis1 = map(lambda x: x if x not in ['date_only'] else field_mapping['date_only'], lis1)
 
         search_term = search_term.replace('(', '\(').replace(')', '\)')
-        search_query = build_search_term_query(lis1, search_term)
+        search_query = build_search_term_query(lis1[1:5], search_term)
         master_data = SellerPOSummary.objects.filter(search_query, **user_filter)\
                             .values(*result_values).distinct().annotate(total_received=Sum('quantity'),\
                             total_ordered=Sum('purchase_order__open_po__order_quantity'),\
@@ -6585,9 +6594,12 @@ def get_processed_po_data(start_index, stop_index, temp_data, search_term, order
         for seller_sum in seller_summary_obj:
             price = seller_sum.purchase_order.open_po.price
             quantity = seller_sum.quantity
-            tot_price = price * quantity
             tot_tax_perc = seller_sum.purchase_order.open_po.cgst_tax +\
                            seller_sum.purchase_order.open_po.sgst_tax + seller_sum.purchase_order.open_po.igst_tax
+            if seller_sum.batch_detail:
+                price = seller_sum.batch_detail.buy_price
+                tot_tax_perc = seller_sum.batch_detail.tax_percent
+            tot_price = price * quantity
             tot_tax = float(tot_price * tot_tax_perc) / 100
             tot_amt += (tot_price + tot_tax)
 
@@ -6768,6 +6780,20 @@ def generate_supplier_invoice(request, user=''):
                         sgst_tax = open_po.sgst_tax
                         igst_tax = open_po.igst_tax
                         utgst_tax = open_po.utgst_tax
+                        if seller_sum.batch_detail:
+                            unit_price = seller_sum.batch_detail.buy_price
+                            temp_tax_percent = seller_sum.batch_detail.tax_percent
+                            if open_po.supplier.tax_type == 'intra_state':
+                                temp_tax_percent = temp_tax_percent / 2
+                                cgst_tax = truncate_float(temp_tax_percent, 1)
+                                sgst_tax = truncate_float(temp_tax_percent, 1)
+                                igst_tax = 0
+                                utgst_tax = 0
+                            else:
+                                igst_tax = temp_tax_percent
+                                cgst_tax = 0
+                                sgst_tax = 0
+                                utgst_tax = 0
                         cgst_amt = float((unit_price * qty * cgst_tax) / 100)
                         sgst_amt = float((unit_price * qty * sgst_tax) / 100)
                         igst_amt = float((unit_price * qty * igst_tax) / 100)
@@ -8033,6 +8059,8 @@ def get_grn_level_data(request, user=''):
     data_dict = ''
     invoice_no = ''
     invoice_date = ''
+    dc_number = ''
+    dc_date = ''
     po_data = []
     try:
         po_number = request.GET['po_number']
@@ -8053,7 +8081,7 @@ def get_grn_level_data(request, user=''):
         for data in results:
             receipt_type = ''
             quantity = data.received_quantity
-            invoice_date = data.updation_date
+            #invoice_date = data.updation_date
             if receipt_no:
                 po_data_dict = {}
                 seller_summary_objs = data.sellerposummary_set.filter(receipt_number=receipt_no)
@@ -8061,10 +8089,13 @@ def get_grn_level_data(request, user=''):
                 for seller_summary_obj in seller_summary_objs:
                     if seller_summary_obj.invoice_date:
                         invoice_date = seller_summary_obj.invoice_date
+                    if seller_summary_obj.challan_date:
+                        dc_date = seller_summary_obj.challan_date
                     po_data_dict['sku_code'] = data.open_po.sku.sku_code
                     po_data_dict['sku_desc'] = data.open_po.sku.sku_desc
                     po_data_dict['quantity'] = seller_summary_obj.quantity
                     invoice_no = seller_summary_obj.invoice_number
+                    dc_number = seller_summary_obj.challan_number
                     po_data_dict['price'] = open_data.price
                     po_data_dict['cgst_tax'] = open_data.cgst_tax
                     po_data_dict['sgst_tax'] = open_data.sgst_tax
@@ -8140,7 +8171,10 @@ def get_grn_level_data(request, user=''):
             if receipt_no:
                 po_reference = '%s/%s' % (po_reference, receipt_no)
             order_date = datetime.datetime.strftime(purchase_order.open_po.creation_date, "%d-%m-%Y")
-            invoice_date = datetime.datetime.strftime(invoice_date, "%m/%d/%Y")
+            if invoice_date:
+                invoice_date = datetime.datetime.strftime(invoice_date, "%m/%d/%Y")
+            if dc_date:
+                dc_date = datetime.datetime.strftime(dc_date, "%m/%d/%Y")
             user_profile = UserProfile.objects.get(user_id=user.id)
             w_address, company_address = get_purchase_company_address(user_profile)#user_profile.address
 
@@ -8154,7 +8188,9 @@ def get_grn_level_data(request, user=''):
                        'display': 'display-none', 'receipt_type': receipt_type, 'title': title,
                        'total_received_qty': total_qty, 'invoice_date': invoice_date, 'total_tax': total_tax,
                        'company_address': company_address, 'supplier_id': supplier_id,
-                                        'supplier_name': supplier_name}))
+                       'supplier_name': supplier_name, 'dc_number': dc_number,
+                        'dc_date': dc_date
+                    }))
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -8199,8 +8235,9 @@ def update_existing_grn(request, user=''):
     try:
         field_mapping = {'exp_date': 'expiry_date', 'mfg_date': 'manufactured_date', 'quantity': 'quantity',
                          'discount_percentage': 'discount_percent', 'batch_no': 'batch_no',
-                         'mrp': 'mrp', 'buy_price': 'buy_price', 'invoice_number': 'invoice_number', 'invoice_date': 'invoice_date'}
-        zero_index_keys = ['invoice_number', 'invoice_date']
+                         'mrp': 'mrp', 'buy_price': 'buy_price', 'invoice_number': 'invoice_number',
+                         'invoice_date': 'invoice_date', 'dc_date': 'challan_date', 'dc_number': 'challan_number'}
+        zero_index_keys = ['invoice_number', 'invoice_date', 'dc_number', 'dc_date']
         for ind in range(0, len(myDict['confirm_key'])):
             model_name = myDict['confirm_key'][ind].strip('_id')
             if myDict['confirm_key'][ind] == 'seller_po_summary_id':
@@ -8227,7 +8264,7 @@ def update_existing_grn(request, user=''):
                                 model_obj.batch_detail.save()
                                 create_update_table_history(user, model_obj.id, model_name, field_mapping[key],
                                                             prev_val, value)
-                            else:
+                            elif not value:
                                 setattr(model_obj.batch_detail, field_mapping[key], None)
                                 model_obj.batch_detail.save()
                                 create_update_table_history(user, model_obj.id, model_name, field_mapping[key], prev_val, value)
@@ -8273,7 +8310,7 @@ def update_existing_grn(request, user=''):
                                                         prev_val, value)
                     else:
                         batch_dict[field_mapping[key]] = value
-                elif key == 'invoice_date':
+                elif key in ['invoice_date', 'dc_date']:
                     if getattr(model_obj, field_mapping[key]):
                         prev_val = datetime.datetime.strftime(getattr(model_obj, field_mapping[key]), '%m/%d/%Y')
                         if value != prev_val and value:
@@ -8282,11 +8319,15 @@ def update_existing_grn(request, user=''):
                             model_obj.save()
                             create_update_table_history(user, model_obj.id, model_name, field_mapping[key],
                                                         prev_val, value)
-                        else:
+                        elif not value:
                             setattr(model_obj, field_mapping[key], None)
                             model_obj.save()
                             create_update_table_history(user, model_obj.id, model_name, field_mapping[key], prev_val, value)
-                elif key == 'invoice_number':
+                    elif value:
+                        setattr(model_obj, field_mapping[key], datetime.datetime.strptime(value, '%m/%d/%Y'))
+                        model_obj.save()
+                        create_update_table_history(user, model_obj.id, model_name, field_mapping[key], '', value)
+                elif key in ['invoice_number', 'dc_number']:
                     prev_val = getattr(model_obj, field_mapping[key])
                     if prev_val != value:
                         setattr(model_obj, field_mapping[key], value)

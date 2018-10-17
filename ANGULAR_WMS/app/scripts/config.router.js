@@ -1333,7 +1333,9 @@ var app = angular.module('urbanApp')
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
               return $ocLazyLoad.load([
-                       'scripts/controllers/outbound/view_orders/custom_orders.js'
+                       'scripts/controllers/outbound/view_orders/custom_orders.js',
+                       'scripts/controllers/outbound/view_orders/central_orders.js',
+                       'scripts/controllers/outbound/view_orders/create_central_orders.js',
                         ]).then( function() {
                   return $ocLazyLoad.load([
                     'scripts/controllers/outbound/view_orders/stock_transfer_orders.js'
@@ -1368,6 +1370,10 @@ var app = angular.module('urbanApp')
           .state('app.outbound.ViewOrders.CustomOrderDetails', {
             url: '/CustomOrderDetails',
             templateUrl: 'views/outbound/toggle/custom_order_detail.html'
+          })
+          .state('app.outbound.ViewOrders.CentralOrderDetails', {
+            url: '/CentralOrderDetails',
+            templateUrl: 'views/outbound/toggle/central_order_detail.html'
           })
           .state('app.outbound.ViewOrders.GenerateInvoice', {
             url: '/Invoice',
@@ -2625,7 +2631,7 @@ var app = angular.module('urbanApp')
             }
           })
           .state('user.App.OrderDetails', {
-            url: '/OrderDetails?orderId&state',
+            url: '/OrderDetails?orderId&state&intermediate_order',
             params: {
               state: 'orders',
             },

@@ -9,7 +9,7 @@ from common import *
 from miebach_utils import *
 from django.db.models import Sum, Count
 from miebach_admin.models import *
-from miebach_admin.custom_decorators import login_required, get_admin_user
+from miebach_admin.custom_decorators import login_required, get_admin_user, check_customer_user
 from django.core import serializers
 
 
@@ -134,6 +134,7 @@ def get_orders_statistics(user, order_level=True):
 
 
 @csrf_exempt
+@check_customer_user
 @login_required
 @get_admin_user
 def dashboard(request, user=''):

@@ -89,6 +89,13 @@ input[type="date"]:valid::before {
           </select>
         </div>
 
+        <div class="col-md-2 col-sm-6 col-xs-6 mt10" ng-if="showCase.user_type=='customer' && Cart.central_order_mgmt">
+          <select ng-model="Cart.model_data.client_name_header" class="form-control" name="client_name">
+            <option value="">Select Project</option>
+            <option ng-repeat="corp in Cart.corporates" value="{{corp}}">{{corp}}</option>
+          </select>
+        </div>
+
         <div class="col-md-2 col-sm-6 col-xs-6" ng-if="showCase.user_type=='reseller'">
           <div class="btn btn-primary up-btn mt10" style="position: relative;overflow: hidden;height: 34px;padding: 6px;width: 100%;text-overflow: ellipsis;">{{(Cart.upload_file_name)? Cart.upload_file_name: 'Upload PO';}}
             <input class="btn btn-primary upload-button" value="Upload" type = "file" ng-model="Cart.model_data.uploaded_po" name="file" id="po-upload" file-uploadd>&nbsp;
@@ -152,6 +159,11 @@ input[type="date"]:valid::before {
             <input name="corporate_po_number" class="form-control" type="hidden" value="{{Cart.model_data.po_number_header}}">
           </div>
         </div>
+        <div class="col-md-4" ng-if="showCase.user_type=='customer' && Cart.central_order_mgmt">
+          <div class="form-group">
+            <input name="client_name" class="form-control" type="hidden" value="{{Cart.model_data.client_name_header}}">
+          </div>
+        </div>
       </div>
     </div>
     <div class="form-group clearfix app_body" style="padding: 0px 10px;padding-top: 10px; margin-bottom: 40px;">
@@ -186,17 +198,21 @@ input[type="date"]:valid::before {
                   <span ng-if="data.del_date">(Sch.date: {{data.del_date}})</span>
                 </span>
               </h4>
-              <p align="left">{{data.sku_desc}}</p>
               <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>Description: {{data.sku_desc}}</b></h4>
-              <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>MRP: {{data.mrp}}</b></h4>
-              <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>
+              <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>Dimensions: {{ data.length }} X {{ data.breadth }} X {{ data.height }}</b></h4>
+              <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>Colour: {{data.colour}}</b></h4>
+              <h4 align="left" ng-if="!(showCase.central_order_mgmt)" style="margin-bottom:0px;font-size: 14px;"><b>MRP: {{data.mrp}}</b></h4>
+              <h4 ng-if="!(showCase.central_order_mgmt)" align="left" style="margin-bottom:0px;font-size: 14px;"><b>
                 <span class="mr20" ng-if="data.sgst_tax">SGST ({{data.sgst_tax}}%): {{(data.invoice_amount / 100 * data.sgst_tax) | number:2}}</span>
                 <span class="mr20" ng-if="data.cgst_tax">CGST ({{data.cgst_tax}}%): {{(data.invoice_amount / 100 * data.cgst_tax) | number:2}}</span>
                 <span class="mr20" ng-if="data.igst_tax">IGST ({{data.igst_tax}}%): {{(data.invoice_amount / 100 * data.igst_tax) | number:2}}</span>
               </b></h4>
-              <h5 align="left" style="margin-bottom:0px;font-size: 16px;"><b>Rs {{data.invoice_amount}}</b></h5>
-              <p align="left" class="text-success" ng-if="data.quantity > 1" style="font-size: 12px;">{{data.quantity}} X Rs.{{data.price}}</p>
-              <div><span ng-click="Cart.remove_item($index)" style="cursor: pointer;" title="Delete Order" class="btn-sm btn-danger "><i class="fa fa-trash-o" aria-hidden="true"></i> Remove</span></div>
+              <h5 ng-if="!(showCase.central_order_mgmt)" align="left" style="margin-bottom:0px;font-size: 16px;"><b>Rs {{data.invoice_amount}}</b></h5>
+              <p ng-if="!(showCase.central_order_mgmt)" align="left" class="text-success" ng-if="data.quantity > 1" style="font-size: 12px;">{{data.quantity}} X Rs.{{data.price}}</p>
+               <input type="text" class="form-control" placeholder="Enter Remarks"
+                style="width: 100%; height: 30px" ng-model="data.sku_remarks"
+                ng-change="Cart.change_sku_remarks(data)" ng-blur="Cart.change_remarks(data)">
+             <div class="mt10"><span ng-click="Cart.remove_item($index)" style="cursor: pointer;" title="Delete Order" class="btn-sm btn-danger "><i class="fa fa-trash-o" aria-hidden="true"></i> Remove</span></div>
               <div class="alert alert-info" ng-if="data.freight_charges" style="margin-top: 11px;margin-bottom: 0px;">
                 <strong>Note:</strong> Freight as applicable will be charged extra.
               </div>
@@ -266,7 +282,7 @@ input[type="date"]:valid::before {
             </div>
           </div>
 
-          <div class="style col-md-12 col-sm-12 col-xs-12 cart-item" ng-if="Cart.final_data.total_quantity && Cart.model_data.data.length > 0">
+          <div class="style col-md-12 col-sm-12 col-xs-12 cart-item" ng-if="Cart.final_data.total_quantity && Cart.model_data.data.length > 0 && !(showCase.central_order_mgmt)">
             <div class="col-md-12 col-sm-12 col-xs-12">
               <h5><b>PRICE DETAILS</b></h5><hr>
             </div>
@@ -335,9 +351,11 @@ input[type="date"]:valid::before {
           <!--<div class="row" style="border-top:1px solid rgba(0,0,0,.1)">-->
         <button type="button" class="btn btn-primary btn-lg col-xs-{{ showCase.buttons_width}} cart_button" ng-click="Cart.place_enquiry()" ng-show="permissions.user_type == 'reseller'">PLACE MARKETING ENQUIRY</button>
         <button type="button" class="btn btn-white btn-lg col-xs-{{ showCase.buttons_width}} cart_button" ng-click="$state.go('user.App.Products')" ng-show="permissions.user_type != 'reseller'">CONTINUE</button>
+
         <button type="button" id ="approval_for_order" class="btn btn-success btn-lg col-xs-{{ showCase.buttons_width}}" ng-click="Cart.update_cartdata_for_approval()" ng-show="permissions.display_sku_cust_mapping == true">SUBMIT FOR APPROVAL</button>
         <button type="button" id ="place_sample" class="btn btn-warning btn-lg col-xs-{{ showCase.buttons_width}}" ng-click="Cart.insert_order_data({'is_sample': true})" ng-show="permissions.create_order_po && permissions.display_sku_cust_mapping != true">PLACE SAMPLE</button>
-        <button type="button" id ="place_order" class="btn btn-success btn-lg col-xs-{{ showCase.buttons_width}}" ng-click="Cart.insert_order_data()" ng-show="permissions.display_sku_cust_mapping != true">PLACE ORDER</button>
+        <button type="button" id ="place_central_order" class="btn btn-warning btn-lg col-xs-{{ showCase.buttons_width}}" ng-click="Cart.insert_order_data({'is_central_order': true})" ng-show="permissions.central_order_mgmt">PLACE CENTRAL ORDER</button>
+        <button type="button" id ="place_order" class="btn btn-success btn-lg col-xs-{{ showCase.buttons_width}}" ng-click="Cart.insert_order_data()" ng-show="permissions.display_sku_cust_mapping != true || permissions.display_sku_cust_mapping != true">PLACE ORDER</button>
             <!--<button type="button" class="btn btn-warning btn-lg col-xs-12 hide" ng-if="Cart.model_data.data.length == 0" ng-click="Cart.catlog=false;Cart.details=true;Cart.detailed_list=false;Cart.orderspage=false">SHOP NOW</button>-->
 <!--          </div>--
         <!--</div>-->

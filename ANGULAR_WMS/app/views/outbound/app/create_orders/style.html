@@ -61,7 +61,7 @@
           <img ng-src="{{ showCase.service.check_image_url(Style.style_details.image_url) }}" style="border:0px !important;padding: 0px;width:100%" class="img-thumbnail">
           <h5 align="center"><b>{{Style.style_data.data[0].sku_class}}</b></h5>
           <h5 align="center" ng-if="Style.style_data.data[0].pricing_price"><b>{{showCase.service.price_format(Style.style_data.data[0].pricing_price)}}</b></h5>
-          <h5 align="center" ng-if="!(Style.style_data.data[0].pricing_price) && Style.style_data.data[0].price"><b>{{showCase.service.price_format(Style.style_data.data[0].price)}}</b></h5> 
+          <h5 align="center" ng-if="!(Style.style_data.data[0].pricing_price) && Style.style_data.data[0].price"><b>{{showCase.service.price_format(Style.style_data.data[0].price)}}</b></h5>
         </div>
 
         <!-- <div class="col-md-3">
@@ -158,10 +158,11 @@
               <span class="pull-right"><i class="fa fa-inr" aria-hidden="true"></i> <b>{{Style.wish_data.total_amount | number}}</b></span>
             </div>
           </div>
-          <hr>
+          <!-- Working button before fixed bottom -->
+          <!-- <hr>
           <div class="row">
             <button style="display:block;margin:auto" type="button" class="btn btn-warning btn-round" ng-click="Style.add_to_cart(Style.level_data)">ADD TO CART</button>
-          </div>
+          </div> -->
         </div>
 
         <!-- <div class="col-md-2 style cart-item" ng-if="Style.def_lead_tm" style="margin-top: 2.8em">
@@ -169,7 +170,7 @@
             <h5><b>WISH LIST</b></h5><hr>
           </div>
           <span ng-if="Style.sel_items_total_price == 0"><b>No items selected</b></span>
-          
+
           <div class="row" ng-repeat="data in Style.sel_cart_info">
             <div ng-if="data.quantity">
               <div class="col-md-5 col-xs-5 no-padding">
@@ -181,9 +182,9 @@
               </div>
             </div>
           </div>
-          
+
           <hr>
-          
+
           <div class="row">
             <div class="col-md-6 col-xs-6 no-padding">
               <span class="pull-left">Tax Amount</span>
@@ -192,9 +193,9 @@
               <span class="pull-right"><i class="fa fa-inr" aria-hidden="true"></i> 0</span>
             </div>
           </div>
-          
+
           <hr>
-          
+
           <div class="row">
             <div class="col-md-6 col-xs-6 no-padding">
               <span class="pull-left">Total Amount</span>
@@ -203,9 +204,9 @@
               <span class="pull-right"><i class="fa fa-inr" aria-hidden="true"></i> <b>{{Style.sel_items_total_price | number}}</b></span>
             </div>
           </div>
-          
+
           <hr>
-          
+
           <div class="row">
             <button style="display:block;margin:auto" type="button" class="btn btn-warning btn-round" ng-click="Style.add_to_cart(Style.style_data.data);Style.make_empty();">ADD TO CART</button>
           </div>
@@ -213,7 +214,7 @@
  -->
         <div class="col-md-6 col-sm-6 col-xs-12" ng-if="Style.gen_wh_lead_tm">
           <div class="row">
-            
+
             <div class="col-md-9">
               <div class="form-group">
                   <label class="control-label" style="margin-top:10px"> {{Style.charge_remarks}} </label>
@@ -232,7 +233,7 @@
           <div class="row col-md-12 col-sm-12 col-xs-12" ng-if="Style.data_loading">
             <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;">
           </div>
-          
+
           <div class="row" ng-if="!Style.data_loading">
             <div>
               <table class="table table-bordered" ng-if="Style.gen_wh_lead_tm">
@@ -252,7 +253,7 @@
 
                       <span ng-if="style[hd]">{{style[hd]}}</span>
                       <span ng-if="!style[hd]">No stock</span>
-                    </td> 
+                    </td>
                     <td>
                       <input class="form-control" size="5" ng-model="style.quantity" ng-change="Style.change_style_quantity(Style.style_data.data, style, $index)" ng-class="service.get_decimal_perm()" ng-readonly="!style.overall_sku_total_quantity">
 
@@ -327,13 +328,19 @@
                 <span class="pull-right"><i class="fa fa-inr" aria-hidden="true"></i> <b>{{Style.wish_data.total_amount | number}}</b></span>
               </div>
             </div>
-            <hr>
+            <!-- Working button before fixed bottom -->
+            <!-- <hr>
             <div class="row">
               <button style="display:block;margin:auto" type="button" class="btn btn-warning btn-round" ng-click="Style.add_to_cart(Style.level_data)">ADD TO CART</button>
-            </div>
+            </div> -->
           </div>
         </div>
 
+      </div>
+      <div class="row" style="margin-left:-20px">
+        <div style="position: fixed; bottom: 0;z-index: 2000;width:100%;">
+          <button style="display:block;margin:auto" type="button" class="btn btn-warning btn-lg col-xs-12" ng-click="Style.add_to_cart(Style.level_data)">ADD TO CART</button>
+        </div>
       </div>
     </div>
   </div>

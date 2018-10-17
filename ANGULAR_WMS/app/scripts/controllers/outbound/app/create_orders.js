@@ -1641,6 +1641,7 @@ angular.module('urbanApp').controller('downloadPDFCtrl', function ($modalInstanc
     Service.apiCall("get_sku_catalogs/", "POST", data).then(function(response) {
       if(response.message) {
         window.open(Session.host + response.data, '_blank');
+        vm.cancel();
       }
       vm.pdfDownloading = false;
     });
@@ -1760,6 +1761,7 @@ angular.module('urbanApp').controller('customerRatingCtrl', function ($modalInst
         5: ['Good fabric quality', 'High product quality', 'Excellent stitch', 'Perfect shade', 'No colour bleeding', 'My reason not listed (with remarks box)']
       }
     };
+
     vm.selStars = 0; // initial stars count
     vm.maxStars = 5; // total stars
     vm.sel_rate = '';

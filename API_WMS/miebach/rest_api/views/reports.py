@@ -337,7 +337,7 @@ def print_sku_wise_data(search_params, user, sub_user):
     cmp_data = ('sku_code', 'wms_code', 'sku_category', 'sku_type', 'sku_class')
     for data in cmp_data:
         if data in search_params:
-            search_parameters['%s__%s' % (data, 'iexact')] = search_params[data]
+            search_parameters['%s__%s' % (data, 'icontains')] = search_params[data]
 
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)

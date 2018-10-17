@@ -63,6 +63,7 @@ def get_company_logo(user, IMAGE_PATH_DICT):
     try:
         logo_name = IMAGE_PATH_DICT.get(user.username, '')
         logo_path = 'static/company_logos/' + logo_name
+        image = logo_path
         with open(logo_path, "rb") as image_file:
             image = base64.b64encode(image_file.read())
     except:
@@ -8194,3 +8195,14 @@ def create_update_table_history(user, model_id, model_name, model_field, prev_va
         TableUpdateHistory.objects.create(user_id=user.id, model_id=model_id,
                                          model_name=model_name, model_field=model_field,
                                          previous_val=prev_val, updated_val=new_val)
+
+def get_po_company_logo(user, IMAGE_PATH_DICT, request):
+    import base64
+    logo_path = ""
+    try:
+        logo_name = IMAGE_PATH_DICT.get(user.username, '')
+        if logo_name:
+            logo_path = 'http://' + request.get_host() + '/static/company_logos/' + logo_name
+    except:
+        pass
+    return logo_path

@@ -2645,7 +2645,8 @@ def purchase_upload_mail(request, data_to_send, user):
             total_qty += one_stat['quantity']
             po_data.append((one_stat['sku_code'], '', '', one_stat['quantity'], one_stat['price'],
                             one_stat['quantity'] * one_stat['price']))
-
+        company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
+        iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
         profile = UserProfile.objects.get(user=request.user.id)
         t = loader.get_template('templates/toggle/po_download.html')
         w_address, company_address = get_purchase_company_address(profile)
@@ -2656,7 +2657,8 @@ def purchase_upload_mail(request, data_to_send, user):
                            'w_address': w_address, 'vendor_name': vendor_name,
                            'vendor_address': vendor_address, 'vendor_telephone': vendor_telephone,
                            'customization': customization, 'ship_to_address': ship_to_address,
-                           'company_address': company_address, 'wh_gstin': profile.gst_number}
+                           'company_address': company_address, 'wh_gstin': profile.gst_number,
+                           'company_logo': company_logo, 'iso_company_logo': iso_company_logo}
         rendered = t.render(data_dictionary)
         write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
                            str(order_date).split(' ')[0])

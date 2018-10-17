@@ -4217,6 +4217,7 @@ def insert_order_data(request, user=''):
     courier_name = request.POST.get('courier_name', '')
     order_discount = request.POST.get('order_discount', 0)
     dist_shipment_address = request.POST.get('manual_shipment_addr', '')
+    vechile_number = request.POST.get('vechile_num', '')
     is_central_order = request.POST.get('is_central_order', '')
     if dist_shipment_address:
         ship_to = dist_shipment_address
@@ -4282,6 +4283,7 @@ def insert_order_data(request, user=''):
             order_summary_dict['client_name'] = sample_client_name
             order_summary_dict['mode_of_transport'] = mode_of_transport
             order_summary_dict['payment_status'] = payment_status
+            order_summary_dict['vechile_number'] = vechile_number
             if order_discount:
                 order_summary_dict.setdefault('discount', 0)
                 order_summary_dict['discount'] = order_summary_dict['discount'] + \
@@ -4315,6 +4317,8 @@ def insert_order_data(request, user=''):
                             order_data.pop('el_price')
                         if 'del_date' in order_data:
                             order_data.pop('del_date')
+                        if 'vechile_num' in order_data:
+                            order_data.pop('vechile_num')
                         order_data['sku_id'] = mapped_sku_id
                         order_obj = OrderDetail(**order_data)
                         order_obj.save()
@@ -4328,10 +4332,10 @@ def insert_order_data(request, user=''):
                         order_user_objs.setdefault(user.id, [])
                         order_user_objs[user.id].append(order_obj)
 
-                        create_grouping_order_for_generic(generic_order_id, order_obj, cm_id, user.id,
+                    create_grouping_order_for_generic(generic_order_id, order_obj, cm_id, user.id,
                                                           order_data['quantity'], corporate_po_number, client_name,
                                                           order_data['unit_price'], el_price, del_date)
-                        create_ordersummary_data(order_summary_dict, order_obj, ship_to, courier_name)
+                    create_ordersummary_data(order_summary_dict, order_obj, ship_to, courier_name)
                     wh_name = User.objects.get(id=user.id).first_name
                     cont_vals = (order_data['customer_name'], order_data['order_id'], wh_name)
                     contents = {"en": "%s placed an order %s to %s warehouse" % cont_vals}
@@ -4435,6 +4439,8 @@ def insert_order_data(request, user=''):
                         order_data.pop('el_price')
                     if 'del_date' in order_data:
                         order_data.pop('del_date')
+                    if 'vechile_num' in order_data:
+                        order_data.pop('vechile_num')
                     order_detail = OrderDetail(**order_data)
                     order_detail.save()
                     created_order_objs.append(order_detail)

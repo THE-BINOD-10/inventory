@@ -19,7 +19,7 @@
           <li><a ng-click="$state.go('user.App.ManualEnquiry');">Create Custom Order</a></li>
           <li ng-if="showCase.permissions.display_sku_cust_mapping"><a ng-click="$state.go('user.App.PendingOrder');">Pending Order</a></li>
           <li><a ng-click="showCase.logout()">Logout</a></li>
-        </ul> 
+        </ul>
       </div>
       <a class="fa fa-user pull-right hide fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" ng-click="showCase.logout()"></a>
       <a href="" class="hide pull-right" ng-click="$state.go('user.App.Cart')">
@@ -29,25 +29,35 @@
   </div>
 
 
-  <div class="container notif_container">
+  <div class="container-fluid notif_container">
     <div class="row mark_all">
       <div class="col-md-offset-2 col-md-8">
-        <div type="button" class="btn btn-default" ng-click="notify.mark_as_read('', true)">Mark All As Read</div>
+        <div type="button" class="btn btn-success" ng-click="notify.mark_as_read('', true)">Mark All As Read</div>
       </div>
     </div>
     <div class="row" ng-repeat="notification in notify.notifications">
       <div class="col-md-offset-2 col-md-8">
         <div ng-class="{'alert-common alert-unread': notification.is_read==0, 'alert-common alert-read': notification.is_read!=0,
                         'first_alert': $index==0}">
-          <div class="col-md-10">
+            <div class="row">
+          <div class="col-lg-10 col-md-10 col-sm-10 col-xs-10">
+            <div class ="pull-left">
             <span class="nt-head">{{notification.message}}</span>
             <p>{{notification.creation_date}}</p>
           </div>
-          <div class="col-md-2">
-            <div type="button" class="btn btn-success"
+          </div>
+          <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+            <div class ="pull-right">
+            <div type="button" class="fa fa-check fa-2x"
                  ng-if="notification.is_read==0"
-                 ng-click="notify.mark_as_read(notification.id, '')">Mark As Read</div>
+                 ng-click="notify.mark_as_read(notification.id, '')">
+               </div>
+                 <div  class="fa fa-trash fa-2x"
+                      ng-click="notify.delete_notification(notification.id)"
+                      title="Delete"></div>
+                    </div>
           </div><!--col-->
+        </div>
         </div>
       </div><!--col-->
     </div>
@@ -65,7 +75,7 @@
   .alert-read {
   }
   .alert-common {
-    min-height: 72px;
+    min-height: 80px;
     padding: 16px 16px 16px 12px;
     border-bottom: 1px solid #cfcfcf;
     border-left: 1px solid #cfcfcf;
@@ -74,12 +84,21 @@
     line-height: 20px;
     color: #1d2129;
   }
+  .btn-success
+  {
+    height:22px;
+    width:130px;
+    padding-bottom: 25px;
+  }
+  .fa{
+    padding-right: 20px;
+  }
   .first_alert {
     border-top: 1px solid #cfcfcf;
   }
   .nt-head {
     color: #1d2129;
-    font-size: 20px;
+    font-size: 15px;
   }
   .mark_all {
     margin: 20px 10px;

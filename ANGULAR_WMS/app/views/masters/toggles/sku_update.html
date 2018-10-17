@@ -8,21 +8,19 @@
       </div>
       <div class="modal-body" id="update_sku">
           <div class="row">
-            <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-              <div class="row">
-                <div class="col-md-11 col-sm-11 col-xs-10">
-                  <p align="right">Enable Serial Based</p>
-                </div>
-                <div class="col-md-1 col-sm-1 col-xs-2">
-                  <label class="switch switch-sm square">
-                    <div>
-                      <input type="checkbox" ng-model="showCase.model_data.enable_serial_based">
-                      <span>
-                        <i class="handle"></i>
-                      </span>
-                    </div>
-                  </label>
-                </div>
+            <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12" ng-if ="showCase.model_data.serial_number">
+              <div class="col-md-11 col-sm-11 col-xs-10">
+                <p align="right">Enable Serial Based</p>
+              </div>
+              <div class="col-md-1 col-sm-1 col-xs-2">
+                <label class="switch switch-sm square">
+                  <div>
+                    <input name="enable_serial_based" type="checkbox" ng-model="showCase.model_data.sku_data.enable_serial_based">
+                    <span>
+                      <i class="handle"></i>
+                    </span>
+                  </div>
+                </label>
               </div>
             </div>
             <input type="hidden" name="data_id" ng-model="showCase.form.data_id" class="form-control" value="" ng-if="showCase.update">
@@ -42,7 +40,7 @@
               <div class="form-group">
                 <label class="control-label"> SKU Type </label>
                 <select class="form-control zone" name="sku_type" ng-model="showCase.model_data.sku_data.sku_type" ng-init="showCase.model_data.sku_data.sku_type" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" ng-options="type for type in showCase.sku_types" ng-selected="type == showCase.model_data.sku_data.sku_type"></select>
-                
+
                 <input ng-if="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" type="hidden" name="sku_type" class="form-control" value="{{showCase.model_data.sku_data.sku_type}}" readonly>
               </div>
             </div>
@@ -58,7 +56,7 @@
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> SKU Class </label>
-                <input type="text" name="sku_class" class="form-control" ng-model="showCase.model_data.sku_data.sku_class" maxlength="60" ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'"> 
+                <input type="text" name="sku_class" class="form-control" ng-model="showCase.model_data.sku_data.sku_class" maxlength="60" ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">

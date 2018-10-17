@@ -4685,16 +4685,34 @@ def get_imei_data(request, user=''):
     try:
         for index, po_mapping in enumerate(po_imei_mapping):
             imei_data = {}
-            sku = po_mapping.purchase_order.open_po.sku
-            purchase_order = po_mapping.purchase_order
-            if not sku_details:
-                sku_details = {'sku_code': sku.sku_code, 'sku_desc': sku.sku_desc, 'sku_category': sku.sku_category,
-                               'image_url': sku.image_url}
-            imei_data['po_details'] = {'po_number': get_po_reference(purchase_order),
-                                       'supplier_id': purchase_order.open_po.supplier_id,
-                                       'supplier_name': purchase_order.open_po.supplier.name,
-                                       'received_date': get_local_date(user, po_mapping.creation_date),
-                                       'supplier_address': purchase_order.open_po.supplier.address}
+            sku = po_mapping.sku
+            if po_mapping.purchase_order:
+                purchase_order = po_mapping.purchase_order
+                if not sku_details:
+                    sku_details = {'sku_code': sku.sku_code, 'sku_desc': sku.sku_desc, 'sku_category': sku.sku_category,
+                                   'image_url': sku.image_url}
+                imei_data['po_details'] = {'po_number': get_po_reference(purchase_order),
+                                           'supplier_id': purchase_order.open_po.supplier_id,
+                                           'supplier_name': purchase_order.open_po.supplier.name,
+                                           'received_date': get_local_date(user, po_mapping.creation_date),
+                                           'supplier_address': purchase_order.open_po.supplier.address}
+            elif po_mapping.job_order:
+                job_order = po_mapping.job_order
+                if not sku_details:
+                    sku_details = {'sku_code': sku.sku_code, 'sku_desc': sku.sku_desc, 'sku_category': sku.sku_category,
+                                   'image_url': sku.image_url}
+                imei_data['jo_details'] = {'jo_number': job_order.job_code,
+                                           'jo_creation_date': get_local_date(user, job_order.creation_date),
+                                           'received_date': get_local_date(user, po_mapping.creation_date)}
+                jo_materials = job_order.jomaterial_set.filter()
+                imei_data['rm_picklist_data'] = []
+                for jo_material in jo_materials:
+                    jo_imeis = list(jo_material.orderimeimapping_set.filter().values_list('po_imei__imei_number', flat=True))
+                    imei_data['rm_picklist_data'].append({'sku_code': jo_material.material_code.sku_code,
+                                                          'sku_desc': jo_material.material_code.sku_desc,
+                                                          'required_quantity': jo_material.material_quantity,
+                                                          'imeis': jo_imeis})
+
             order_mappings = OrderIMEIMapping.objects.filter(po_imei_id=po_mapping.id, sku__user=user.id).order_by(
                 '-creation_date')
             if not order_mappings:
@@ -4798,6 +4816,8 @@ def generate_barcode_dict(pdf_format, myDicts, user):
                     if barcode_opt == 'sku_ean' and sku_data.ean_number:
                         single['Label'] = str(sku_data.ean_number)
                     single['SKUPrintQty'] = quant
+                    if myDict.get('mfg_date', ''):
+                        single['mfg_date'] = myDict['mfg_date'][ind]
                     for show_keys1 in show_fields:
                         show_keys2 = [show_keys1]
                         if isinstance(show_keys1, list):

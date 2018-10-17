@@ -4931,7 +4931,7 @@ def get_purchase_order_data(order):
                       'sku_desc': order.product_code.sku_desc,
                       'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0, 'tin_number': '',
                       'intransit_quantity': intransit_quantity, 'shelf_life': order.product_code.shelf_life,
-                      'show_imei': sku.enable_serial_based}
+                      'show_imei': order.product_code.enable_serial_based}
         return order_data
     elif rw_purchase and not order.open_po:
         rw_purchase = rw_purchase[0]

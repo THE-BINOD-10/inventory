@@ -5863,6 +5863,7 @@ def get_sku_variants(request, user=''):
                                                 (user.username, str(sku[0].sku_code)))
     sku_master, total_qty = all_whstock_quant(sku_master, user, level, lead_times, dist_reseller_leadtime)
     central_order_mgmt = get_misc_value('central_order_mgmt', user.id)
+    sku_spl_attrs = {}
     if central_order_mgmt == 'true':
         sku_id = sku_master[0]['id']
         sku_spl_attrs = dict(SKUAttributes.objects.filter(sku_id=sku_id).values_list('attribute_name', 'attribute_value'))
@@ -10090,8 +10091,8 @@ def generate_customer_invoice_tab(request, user=''):
             # invoice_no = user_profile.prefix + '/' + str(inv_month_year) + '/' + 'A-' + str(order.order_id)
             # invoice_data['order_id'] = sor_id
             invoice_data['sor_id'] = sor_id
-        if not len(set(sell_ids.get('pick_number__in', ''))) > 1:
-            invoice_no = invoice_no + '/' + str(max(map(int, sell_ids.get('pick_number__in', ''))))
+        #if not len(set(sell_ids.get('pick_number__in', ''))) > 1:
+        #    invoice_no = invoice_no + '/' + str(max(map(int, sell_ids.get('pick_number__in', ''))))
         invoice_data['invoice_no'] = invoice_no
         invoice_data['pick_number'] = pick_number
         invoice_data = add_consignee_data(invoice_data, ord_ids, user)

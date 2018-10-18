@@ -73,7 +73,7 @@
 
         $http.get(Session.url + "status/", {withCredentials: true}).then(function (resp) {
 
-          $http.get(Session.url + "service_worker_check/?current_version="+Session.current_version).then(function (data) {
+          $http.get(Session.url + "service_worker_check/?current_version="+window.current_version).then(function (data) {
 
             if (data.data.reload) {
               location.reload();

@@ -5628,3 +5628,40 @@ def get_grn_edit_filter_data(search_params, user, sub_user):
             temp_data['aaData'] = apply_search_sort(temp_data['aaData'][0].keys(), temp_data['aaData'], order_term, '', col_num, exact=False)
         temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
     return temp_data
+
+
+def print_sku_wise_data(search_params, user, sub_user):
+    from rest_api.views.common import get_sku_master
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    temp_data = copy.deepcopy(AJAX_DATA)
+    search_parameters = {}
+    cmp_data = ('sku_code', 'wms_code', 'sku_category', 'sku_type', 'sku_class')
+    for data in cmp_data:
+        if data in search_params:
+            search_parameters['%s__%s' % (data, 'icontains')] = search_params[data]
+
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+    search_parameters['user'] = user.id
+
+    sku_master = sku_master.filter(**search_parameters)
+    temp_data['recordsTotal'] = sku_master.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    if stop_index:
+        sku_master = sku_master[start_index:stop_index]
+
+    stock_dict = dict(StockDetail.objects.exclude(location__zone__zone='DEFAULT').filter(sku__user=user.id).\
+                      values_list('sku_id').distinct().annotate(tsum=Sum('quantity')))
+    for data in sku_master:
+        print data.sku_code
+        total_quantity = stock_dict.get(data.id, 0)
+        # stock_data = StockDetail.objects.exclude(location__zone__zone='DEFAULT').filter(sku_id=data.id)
+        # for stock in stock_data:
+        #     total_quantity += int(stock.quantity)
+
+        temp_data['aaData'].append(OrderedDict((('SKU Code', data.sku_code), ('WMS Code', data.wms_code),
+                                                ('Product Description', data.sku_desc),
+                                                ('SKU Category', data.sku_category),
+                                                ('Total Quantity', total_quantity))))
+    return temp_data

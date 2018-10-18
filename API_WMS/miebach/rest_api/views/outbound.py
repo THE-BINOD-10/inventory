@@ -9627,7 +9627,7 @@ def get_processed_orders_data(start_index, stop_index, temp_data, search_term, o
                                             .annotate(cur_amt=(F('seller_order__order__invoice_amount')/F('seller_order__order__quantity'))* F('pic_qty'))\
                                             .aggregate(Sum('cur_amt'))['cur_amt__sum']
             else:
-                order = orders.filter(original_order_id=data['order__original_order_id'])[0]
+                order = OrderDetail.objects.filter(original_order_id=data['order__original_order_id'], user=user.id)[0]
                 ordered_quantity = orders.get(data['order__original_order_id'], 0)
                 picked_amount = order_summaries.filter(order__original_order_id=data['order__original_order_id'])\
                                 .values('order__sku_id', 'order__invoice_amount', 'order__quantity')\

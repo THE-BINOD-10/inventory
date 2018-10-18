@@ -10,6 +10,8 @@ var vm = this;
     vm.selected = {};
     vm.selectAll = false;
     vm.bt_disable = true;
+    vm.display_style_stock_table = false;
+    vm.sku_level_qtys = [];
 
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -64,7 +66,7 @@ var vm = this;
         vm.dtInstance.reloadData();
     };
 
-    var empty_data = {"order_id": ""}
+    var empty_data = {"order_id": "", "sku_class": ""}
     vm.model_data = {};
     angular.copy(empty_data, vm.model_data);
 
@@ -108,6 +110,9 @@ var vm = this;
 
     vm.close = close;
     function close() {
+      vm.model_data = {};
+      vm.display_style_stock_table = false;
+      vm.sku_level_qtys = [];
       $state.go('app.outbound.ViewOrders');
     }
 
@@ -163,7 +168,7 @@ var vm = this;
         var resp_data = data.data;
         vm.model_data.warehouses = resp_data.warehouses;
         vm.model_data.wh_level_stock_map = resp_data.wh_level_stock_map;
-        vm.model_data.warehouse = resp_data.warehouse;
+        //vm.model_data.warehouse = resp_data.warehouse;
       });
     }
 
@@ -188,6 +193,14 @@ var vm = this;
       }
     }
 
+    vm.get_sku_qty_details = function(product, item, index) {
+      console.log(item);
+      vm.service.apiCall('get_style_level_stock/', 'GET', {sku_class: item['sku_class'], warehouse: vm.model_data.warehouse}).then(function(data){
+        var resp_data = data.data;
+        vm.display_style_stock_table = true;
+        angular.copy(resp_data, vm.sku_level_qtys);
+      });
+    }
 
 
 }

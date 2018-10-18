@@ -50,7 +50,7 @@
         <div class="col-md-3 col-sm-3 col-xs-12" ng-if="showCase.service.check_image_url(Style.style_details.image_url) && Style.includeDesktopTemplate">
           <img ng-src="{{ showCase.service.check_image_url(Style.style_details.image_url) }}" style="border:0px !important;padding: 0px;" class="img-thumbnail" ez-plus ezp-model="{thumb: showCase.service.check_image_url(Style.style_details.image_url) , small: showCase.service.check_image_url(Style.style_details.image_url), large:showCase.service.check_image_url(Style.style_details.image_url)}" ezp-options="{scrollZoom: true, easing: true, zoomWindowWidth: 600, zoomWindowHeight: 600}" id="zoom_01">
           <h5 align="center"><b>{{Style.style_data.data[0].sku_class}}</b></h5>
-          <p align="center" ng-if="Style.sku_spl_attrs">Dimensions(in) : {{Style.sku_spl_attrs.length}} X {{Style.sku_spl_attrs.breadth}} X {{Style.sku_spl_attrs.height}}</p>
+          <p align="center" ng-if="Style.sku_spl_attrs&&Style.central_order_mgmt">Dimensions(in) : {{Style.sku_spl_attrs.length}} X {{Style.sku_spl_attrs.breadth}} X {{Style.sku_spl_attrs.height}}</p>
           <div ng-if="permissions.user_type=='customer'">
             <h5 align="center" ng-if="Style.style_data.data[0].pricing_price"><b>{{showCase.service.price_format(Style.style_data.data[0].pricing_price)}}</b></h5>
             <h5 align="center" ng-if="!(Style.style_data.data[0].pricing_price) && Style.style_data.data[0].price"><b>{{showCase.service.price_format(Style.style_data.data[0].price)}}</b></h5>

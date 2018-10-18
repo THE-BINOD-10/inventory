@@ -8677,7 +8677,10 @@ def get_customer_cart_data(request, user=""):
             if inter_obj:
                 inter_qty = inter_obj.aggregate(Sum('quantity'))['quantity__sum']#inter_obj[0].quantity
             blocked_qty = inter_qty
-            json_record['available_stock'] = available_stock - blocked_qty
+            if available_stock:
+                json_record['available_stock'] = available_stock - blocked_qty
+            else:
+                json_record['available_stock'] = 0
             if central_order_mgmt == 'true':
                 sku_id = sku_obj[0].id
                 sku_spl_attrs = dict(SKUAttributes.objects.filter(sku_id=sku_id).

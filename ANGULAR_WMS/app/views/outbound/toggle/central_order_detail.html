@@ -84,20 +84,29 @@
                 <table class="table mw85">
                   <thead>
                     <tr>
-                      <th> Warehouse </th>
+                      <th>Warehouse</th>
                       <th>Available Stock</th>
                       <th>Quantity</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr class="field" ng-repeat="(key, data) in showCase.model_data.wh_level_stock_map">
+                    <!-- <tr class="field" ng-repeat="(key, data) in showCase.model_data.wh_level_stock_map"> -->
+                    <tr class="field">
                       <td>
-                        <input type="text" name="status" class="form-control"
-                               ng-model="key" maxlength="256" disabled>
+                        <!-- <input type="text" name="status" class="form-control" ng-model="key" maxlength="256" disabled> -->
+                        <!-- <select class="form-control" name="warehouse" ng-change="showCase.change_wh(showCase.model_data.warehouse)" ng-model="showCase.model_data.warehouse"> -->
+                        <select class="form-control" name="warehouse" ng-model="showCase.model_data.warehouse">
+                          <option value="" style="display:None;">Select Warehouse</option>
+                          <option ng-repeat="(key, data) in showCase.model_data.wh_level_stock_map" value="{{key}}">{{key}}</option>
+                        </select>
                       </td>
-                      <td><input type="text" name="available" class="form-control" ng-model="data.available" disabled></td>
-                      <td><input type="text" name="quantity" class="form-control" ng-model="data.quantity"
-                           ng-change="showCase.change_wh_quantity(key, data.quantity, showCase.model_data.quantity)"</td>
+                      <td><input type="text" name="available" class="form-control" ng-init="showCase.model_data.available = showCase.model_data.invoice_type" ng-model="showCase.model_data.wh_level_stock_map[showCase.model_data.warehouse].available" disabled></td>
+                      <td>
+                        <!-- <input type="text" name="quantity" class="form-control" ng-model="showCase.model_data.quantity"
+                           ng-change="showCase.change_wh_quantity(key, data.quantity, showCase.model_data.quantity)"> -->
+                        <input type="text" name="quantity" class="form-control" ng-model="showCase.model_data.wh_level_stock_map[showCase.model_data.warehouse].quantity"
+                           ng-change="showCase.change_wh_quantity(showCase.model_data.warehouse, showCase.model_data.wh_level_stock_map[showCase.model_data.warehouse].quantity, showCase.model_data.quantity)">
+                      </td>
                     </tr>
                   </tbody>
                 </table>

@@ -1024,7 +1024,7 @@ def get_picklist_data(data_id, user_id):
                  'title': order.order.title, 'stock_left': stock_left, 'last_picked_locs': last_picked_locs,
                  'customer_name': customer_name, 'remarks': remarks, 'load_unit_handle': load_unit_handle,
                  'category': category,
-                 'marketplace': marketplace, 'original_order_id' : original_order_id, 
+                 'marketplace': marketplace, 'original_order_id' : original_order_id,
                  'mrp':mrp, 'batchno':batch_no, 'is_combo_picklist': is_combo_picklist,
                  'parent_sku_code':parent_sku_code})
 
@@ -3147,7 +3147,7 @@ def update_cartdata_for_approval(request, user=''):
             if approval_status == 'accept':
                 send_mail(admin_mail_id, 'Order Approval Request, Customer: %s' % customer_name, rendered_admin)
             else:
-                send_mail(admin_mail_id, 'Order Rejected by %s' % approving_user_role, rendered_admin) 
+                send_mail(admin_mail_id, 'Order Rejected by %s' % approving_user_role, rendered_admin)
         if normal_user_mail_id:
             send_mail(normal_user_mail_id, 'Your Order status got changed', rendered_user)
 
@@ -3887,7 +3887,7 @@ def create_central_order(request, user):
     if not cart_items:
         return HttpResponse('No Data in Cart')
     try:
-        interm_order_map = {'user_id': user.id, 'interm_order_id': interm_order_id, 
+        interm_order_map = {'user_id': user.id, 'interm_order_id': interm_order_id,
                             'customer_user_id': customer_id, 'shipment_date': shipment_date,
                             'project_name': project_name}
         for cart_item in cart_items:
@@ -5863,6 +5863,7 @@ def get_sku_variants(request, user=''):
                                                 (user.username, str(sku[0].sku_code)))
     sku_master, total_qty = all_whstock_quant(sku_master, user, level, lead_times, dist_reseller_leadtime)
     central_order_mgmt = get_misc_value('central_order_mgmt', user.id)
+    sku_spl_attrs = {}
     if central_order_mgmt == 'true':
         sku_id = sku_master[0]['id']
         sku_spl_attrs = dict(SKUAttributes.objects.filter(sku_id=sku_id).values_list('attribute_name', 'attribute_value'))
@@ -8280,7 +8281,7 @@ def get_customer_orders(request, user=""):
                 other_charges = order_charges_obj_for_orderid(record['order_id'], request.user.id)
                 if not other_charges:
                     other_charges = 0
-                record['total_inv_amt'] = round(record['total_inv_amt'] + other_charges, 2) 
+                record['total_inv_amt'] = round(record['total_inv_amt'] + other_charges, 2)
                 record['picked_quantity'] = picked_quantity
     return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
 
@@ -10311,7 +10312,7 @@ def generate_customer_invoice(request, user=''):
         str(user.username), str(request.GET.dict()), str(e)))
         return HttpResponse(json.dumps({'message': 'failed'}))
     return HttpResponse(invoice_data)
-    
+
 
 def pagination(sku_list):
     # header 220
@@ -10331,7 +10332,7 @@ def pagination(sku_list):
         sku['index'] = index
         index = index + 1
     temp = {"sku_code": "", "title": "", "quantity": ""}
-    sku_slices = [sku_list[i: i+mx] for i in range(0, len(sku_list), mx)] 
+    sku_slices = [sku_list[i: i+mx] for i in range(0, len(sku_list), mx)]
     #extra_tuple = ('', '', '', '', '', '', '', '', '', '', '', '')
     if len(sku_slices[-1]) == mx:
         temp = sku_slices[-1]
@@ -12619,9 +12620,9 @@ def get_ratings_data_popup(request, user=''):
             data_dict['order_creation_date'] = str(creation_date)
             data_dict['order_updation_date'] = str(updation_date)
             #seller_order.seller.order.sku
-            #quantity = obj.quantity   
+            #quantity = obj.quantity
             #customer_name = obj.order.customer_name
-            #original_order_id = obj.order.original_order_id        
+            #original_order_id = obj.order.original_order_id
             #if not original_order_id:
                 #order_id = str(obj.order.order_id)
                 #order_code = str(obj.order.order_code)
@@ -12664,7 +12665,7 @@ def save_cutomer_ratings(request, user=''):
 def render_st_html_data(request, user, warehouse, all_data):
     user_profile = UserProfile.objects.filter(user = user).values('phone_number', 'company_name', 'location',
         'city', 'state', 'country', 'pin_code', 'address', 'wh_address', 'wh_phone_number', 'gst_number')
-    destination_user_profile = UserProfile.objects.filter(user = warehouse).values('phone_number', 
+    destination_user_profile = UserProfile.objects.filter(user = warehouse).values('phone_number',
         'company_name', 'location', 'city', 'state', 'country', 'pin_code', 'address', 'wh_address', 'wh_phone_number', 'gst_number')
     po_skus_list = []
     po_skus_dict = OrderedDict()
@@ -12676,10 +12677,10 @@ def render_st_html_data(request, user, warehouse, all_data):
             po_skus_dict = {}
             st_id = obj[3]
             stock_transfer_obj = OpenST.objects.get(id=st_id)
-            po_skus_list.append( OrderedDict( ( ('sku', stock_transfer_obj.sku), 
-                ('sku_desc', stock_transfer_obj.sku.sku_desc), ( 'order_qty', int(stock_transfer_obj.order_quantity)), 
+            po_skus_list.append( OrderedDict( ( ('sku', stock_transfer_obj.sku),
+                ('sku_desc', stock_transfer_obj.sku.sku_desc), ( 'order_qty', int(stock_transfer_obj.order_quantity)),
                 ('measurement_type', stock_transfer_obj.sku.measurement_type), ('price', float(stock_transfer_obj.price)),
-                ('amount', stock_transfer_obj.price * stock_transfer_obj.order_quantity), ('sgst', 0), ('cgst', 0), 
+                ('amount', stock_transfer_obj.price * stock_transfer_obj.order_quantity), ('sgst', 0), ('cgst', 0),
                 ('igst', 0), ('utgst', 0) )) )
             total_order_qty += int(stock_transfer_obj.order_quantity)
             total_amount += float(stock_transfer_obj.price) * int(stock_transfer_obj.order_quantity)

@@ -1348,7 +1348,7 @@ def auto_po(wms_codes, user):
                 if auto_confirm_po == 'true':
                     po.status = 0
                     po.save()
-                    po_order_id = get_purchase_order_id(User.objects.get(id=user))
+                    po_order_id = get_purchase_order_id(User.objects.get(id=user)) + 1
                     user_profile = UserProfile.objects.get(user_id=sku.user)
                     PurchaseOrder.objects.create(open_po_id=po.id, order_id=po_order_id, status='',
                                                  received_quantity=0, po_date=datetime.datetime.now(),
@@ -7090,7 +7090,7 @@ def create_order_pos(user, order_objs):
     try:
         cust_supp_mapping = {}
         user_profile = UserProfile.objects.get(user_id=user.id)
-        po_id = get_purchase_order_id(user)
+        po_id = get_purchase_order_id(user) + 1
         for order_obj in order_objs:
             if order_obj.customer_id:
                 customer_id = str(int(order_obj.customer_id))

@@ -3525,7 +3525,7 @@ def check_and_raise_po(generic_order_id, cm_id):
         supplier = supplier[0]
         if not supplier.supplier:
             continue
-        po_id = get_purchase_order_id(mapping.warehouse)
+        po_id = get_purchase_order_id(mapping.warehouse) + 1
         for data in po_data:
             purchase_data = copy.deepcopy(PO_DATA)
             po_sku_data = copy.deepcopy(PO_SUGGESTIONS_DATA)
@@ -4785,7 +4785,7 @@ def insert_st(all_data, user):
 
 def confirm_stock_transfer(all_data, user, warehouse_name):
     for key, value in all_data.iteritems():
-        po_id = get_purchase_order_id(user)
+        po_id = get_purchase_order_id(user) + 1
         warehouse = User.objects.get(username__iexact=warehouse_name)
         stock_transfer_obj = StockTransfer.objects.filter(sku__user=warehouse.id).order_by('-order_id')
         if stock_transfer_obj:

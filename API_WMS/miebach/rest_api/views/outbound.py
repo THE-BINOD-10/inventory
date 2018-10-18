@@ -4332,10 +4332,10 @@ def insert_order_data(request, user=''):
                         order_user_objs.setdefault(user.id, [])
                         order_user_objs[user.id].append(order_obj)
 
-                    create_grouping_order_for_generic(generic_order_id, order_obj, cm_id, user.id,
+                        create_grouping_order_for_generic(generic_order_id, order_obj, cm_id, user.id,
                                                           order_data['quantity'], corporate_po_number, client_name,
                                                           order_data['unit_price'], el_price, del_date)
-                    create_ordersummary_data(order_summary_dict, order_obj, ship_to, courier_name)
+                        create_ordersummary_data(order_summary_dict, order_obj, ship_to, courier_name)
                     wh_name = User.objects.get(id=user.id).first_name
                     cont_vals = (order_data['customer_name'], order_data['order_id'], wh_name)
                     contents = {"en": "%s placed an order %s to %s warehouse" % cont_vals}

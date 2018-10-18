@@ -49,8 +49,11 @@ init_log = init_logger('logs/integrations.log')
 log_qssi = init_logger('logs/qssi_order_status_update.log')
 log_sellable = init_logger('logs/auto_sellable_suggestions.log')
 
-
 # Create your views here.
+
+def create_log_message(log_obj, request_user, user, message, request_data):
+    log_obj.info('Request params for %s for request user %s user %s is %s' %
+                 (str(message), str(request_user.username), str(user.username), str(request_data)))
 
 def process_date(value):
     value = value.split('/')
@@ -208,7 +211,8 @@ def add_user_permissions(request, response_data, user=''):
                                              'company_name': user_profile.company_name,
                                              'industry_type': user_profile.industry_type,
                                              'user_type': user_profile.user_type,
-                                             'request_user_type': request_user_profile.user_type}
+                                             'request_user_type': request_user_profile.user_type,
+                                             'warehouse_type': user_profile.warehouse_type}
 
     setup_status = 'false'
     if 'completed' not in user_profile.setup_status:
@@ -3957,8 +3961,9 @@ def get_sellers_list(request, user=''):
         seller_list.append({'id': seller.seller_id, 'name': seller.name})
         if seller.supplier:
             seller_supplier[seller.seller_id] = seller.supplier.id
+    user_list = get_all_warehouses(user)
     return HttpResponse(json.dumps({'sellers': seller_list, 'tax': 5.5, 'receipt_types': PO_RECEIPT_TYPES, \
-                                    'seller_supplier_map': seller_supplier}))
+                                    'seller_supplier_map': seller_supplier, 'warehouse' : user_list}))
 
 
 def update_filled_capacity(locations, user_id):
@@ -8194,3 +8199,33 @@ def create_update_table_history(user, model_id, model_name, model_field, prev_va
         TableUpdateHistory.objects.create(user_id=user.id, model_id=model_id,
                                          model_name=model_name, model_field=model_field,
                                          previous_val=prev_val, updated_val=new_val)
+
+
+def get_all_warehouses(user):
+    user_list = []
+    admin_user = UserGroups.objects.filter(
+        Q(admin_user__username__iexact=user.username) | Q(user__username__iexact=user.username)). \
+        values_list('admin_user_id', flat=True)
+    user_groups = UserGroups.objects.filter(admin_user_id__in=admin_user).values('user__username',
+                                                                                 'admin_user__username')
+    for users in user_groups:
+        for key, value in users.iteritems():
+            if user.username != value and value not in user_list:
+                user_list.append(value)
+    return user_list
+
+
+def check_and_create_supplier_wh_mapping(user, warehouse, supplier_id):
+    master_mapping = MastersMapping.objects.filter(user=user.id, master_id=supplier_id,
+                                               mapping_type='central_supplier_mapping')
+    supplier_master = SupplierMaster.objects.get(id=supplier_id, user=user.id)
+    if master_mapping:
+        new_supplier_id = master_mapping[0].mapping_id
+    else:
+        new_supplier_id = create_new_supplier(warehouse, supplier_master.name, supplier_master.email_id,
+                                          supplier_master.phone_number,
+                                        supplier_master.address, supplier_master.tin_number)
+        if new_supplier_id:
+            MastersMapping.objects.create(user=user.id, master_id=supplier_id, mapping_id=new_supplier_id,
+                                         mapping_type='central_supplier_mapping')
+    return new_supplier_id

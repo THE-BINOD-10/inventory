@@ -11,13 +11,13 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     vm.extra_width = { 'width': '1250px' };
     vm.selected = {};
     vm.selectAll = false;
-
     vm.date = new Date();
     vm.update_part = true;
     vm.permissions = Session.roles.permissions;
-    vm.industry_type = Session.user_profile.industry_type;
+    vm.user_profile = Session.user_profile;
+    vm.industry_type = vm.user_profile.industry_type;
     vm.display_purchase_history_table = false;
-
+    vm.warehouse_type = vm.user_profile.warehouse_type;
     vm.filters = {'datatable': 'RaisePO', 'search0':'', 'search1':'', 'search2': '', 'search3': ''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -111,7 +111,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
               });
 
               vm.getTotals();
-
               vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
                 if (data.message) {
                   var seller_data = data.data.sellers;
@@ -119,6 +118,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
                   vm.model_data.seller_supplier_map = data.data.seller_supplier_map;
                   vm.model_data["receipt_types"] = data.data.receipt_types;
                   vm.model_data.seller_type = vm.dedicated_seller;
+                  vm.model_data.warehouse_names = data.data.warehouse
                   angular.forEach(seller_data, function(seller_single){
                     vm.model_data.seller_types.push(seller_single.id + ':' + seller_single.name);
                   });
@@ -238,7 +238,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
         if (data.message) {
           var seller_data = data.data.sellers;
           vm.model_data.tax = data.data.tax;
-           vm.model_data.seller_supplier_map = data.data.seller_supplier_map;
+          vm.model_data.seller_supplier_map = data.data.seller_supplier_map
+          vm.model_data.warehouse_names = data.data.warehouse
           vm.model_data["receipt_types"] = data.data.receipt_types;
           angular.forEach(seller_data, function(seller_single){
               vm.model_data.seller_types.push(seller_single.id + ':' + seller_single.name);
@@ -407,10 +408,17 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
 
     vm.confirm = function(data) {
       if (data.$valid) {
-        if(!(vm.update)) {
-          vm.confirm_add_po();
+        if (vm.warehouse_type == 'CENTRAL_ADMIN') {
+          var elem = angular.element($('form'))
+          elem = elem[0]
+          elem = $(elem).serializeArray()
+          vm.common_confirm('confirm_central_po/', elem)
         } else {
-          vm.confirm_po();
+          if(!(vm.update)) {
+            vm.confirm_add_po();
+          } else {
+            vm.confirm_po();
+          }
         }
       }
     }
@@ -432,8 +440,11 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     }
 
     vm.common_confirm = function(url, elem) {
-
-      vm.service.apiCall('validate_wms/', 'POST', elem, true).then(function(data){
+      var confirm_url = 'validate_wms/';
+      if (vm.warehouse_type == 'CENTRAL_ADMIN') {
+        elem.push({name:'is_central_po', value:true});
+      }
+      vm.service.apiCall(confirm_url, 'POST', elem, true).then(function(data){
         if(data.message) {
           if (data.data == "success") {
             vm.raise_po(url, elem);

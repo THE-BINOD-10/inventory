@@ -184,6 +184,7 @@ urlpatterns = [
     url(r'^map_ean_sku_code/$', map_ean_sku_code),
     url(r'^get_grn_level_data/$', get_grn_level_data),
     url(r'^update_existing_grn/$', update_existing_grn),
+    url(r'^confirm_central_po/$', confirm_central_po),
 
     # Production
     url(r'^generated_jo_data/$', generated_jo_data),

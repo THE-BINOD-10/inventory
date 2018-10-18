@@ -2724,8 +2724,8 @@ class StaffMaster(models.Model):
 class MastersMapping(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.PositiveIntegerField()
-    master_id = models.PositiveIntegerField()
-    mapping_id = models.PositiveIntegerField()
+    master_id = models.CharField(max_length=32)
+    mapping_id = models.CharField(max_length=32)
     mapping_type = models.CharField(max_length=32)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)

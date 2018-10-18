@@ -1454,7 +1454,7 @@ class CustomerOrderSummary(models.Model):
     payment_status = models.CharField(max_length=64, default='')
     courier_name = models.CharField(max_length=64, default='')
     vechile_number = models.CharField(max_length=64, default='')
-    
+
     class Meta:
         db_table = 'CUSTOMER_ORDER_SUMMARY'
 

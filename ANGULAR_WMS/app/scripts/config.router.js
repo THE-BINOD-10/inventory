@@ -888,6 +888,20 @@ var app = angular.module('urbanApp')
             title: 'Supplier Invoice',
           }
         })
+        .state('app.inbound.GrnEdit', {
+          url: '/GrnEdit',
+          templateUrl: 'views/inbound/grn_edit.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                    'scripts/controllers/inbound/grn_edit.js'
+                ])
+            }]
+          },
+          data: {
+            title: 'GRN Edit',
+          }
+        })
         .state('app.inbound.SupplierInvoice.InvoiceM', {
             url: '/InvoiceM',
             templateUrl: 'views/inbound/print/supplier_inv.html'

@@ -155,10 +155,11 @@
                   <input type="hidden" name="picklist_number" value="{{data.picklist_number}}">
                   <input type="hidden" name="labels_{{data.id}}" value="{{record.labels.join(',')}}">
                   <input type="hidden" name="picklist_status_{{data.id}}" value="{{pop.model_data.order_status}}">
+                  <input type="hidden" name="wms_code" value="{{pop.model_data.order_status}}">
                   <td ng-if="pop.permissions.show_image"><img ng-src="{{pop.service.check_image_url(data.image)}}" style="width: 30px;height: 50px;"></td>
                   <td ng-if="pop.model_data.order_status == 'open'"><input ng-model="data.order_no"  class="form-control" type="text" readonly></td>
                   <td ng-if="pop.model_data.data[0].is_combo_picklist && pop.model_data.order_status == 'open'"><input name="combo_sku_{{data.id}}" ng-init="data.combo_sku = data.parent_sku_code" ng-model="data.combo_sku"  class="form-control" type="text" value="{{data.combo_sku}}" title="{{data.combo_sku}}" size="35" readonly></td>
-                  <td><input name="wms_code_{{data.id}}" ng-model="data.wms_code"  class="form-control" type="text" title="data.wms_code" size="35" readonly></td>
+                  <td><input name="wms_code_{{data.id}}" ng-model="data.wms_code" ng-init="record.wms_code = data.wms_code;record.parent_sku_code=data.parent_sku_code" class="form-control" type="text" title="data.wms_code" size="35" readonly></td>
                   <td><input name="title_{{data.id}}" ng-model="data.title" class="form-control" title="{{data.title}}" type="text" readonly></td>
                   <td><input ng-model="data.marketplace" class="form-control" type="text" readonly></td>
                   <!--<td><input name="zone_{{data.id}}" ng-model="record.zone" class="form-control" type="text"></td>-->

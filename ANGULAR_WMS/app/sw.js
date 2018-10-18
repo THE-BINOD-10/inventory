@@ -94,17 +94,17 @@ if( 'undefined' === typeof window){
        Directory+ "/scripts/directives/scrollup.js",
        Directory+ "/scripts/directives/vector.js",
        Directory+ "/scripts/directives/image.js",
-       Directory+ "/scripts/services/col_filters.js",
-       Directory+ "/scripts/services/wms_service.js",
-       Directory+ "/scripts/services/table_service.js",
-
-       Directory+"/views/App/app.html",
-       Directory+"/views/App/create_orders.html",
-       Directory+"/views/App/create_orders/catlog.html",
-       Directory+"/views/App/create_orders/company_name.html",
-       Directory+"/views/App/create_orders/details.html",
-       Directory+"/views/App/create_orders/order.html",
-       Directory+"/views/App/create_orders/style.html",
+       // Directory+ "/scripts/services/col_filters.js",
+       // Directory+ "/scripts/services/wms_service.js",
+       // Directory+ "/scripts/services/table_service.js",
+       //
+       // Directory+"/views/App/app.html",
+       // Directory+"/views/App/create_orders.html",
+       // Directory+"/views/App/create_orders/catlog.html",
+       // Directory+"/views/App/create_orders/company_name.html",
+       // Directory+"/views/App/create_orders/details.html",
+       // Directory+"/views/App/create_orders/order.html",
+       // Directory+"/views/App/create_orders/style.html",
 
        Directory+"/styles/App/app.css",
 

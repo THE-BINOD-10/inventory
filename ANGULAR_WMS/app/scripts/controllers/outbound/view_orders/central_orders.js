@@ -201,6 +201,7 @@ var vm = this;
 
     vm.get_sku_qty_details = function(product, item, index) {
       console.log(item);
+
       vm.service.apiCall('get_style_level_stock/', 'GET', {sku_class: item['sku_class'], warehouse: vm.model_data.warehouse}).then(function(data){
         var resp_data = data.data;
         vm.display_style_stock_table = true;
@@ -213,6 +214,11 @@ var vm = this;
       vm.model_data.data.splice(index,1);
       if (Object.keys(vm.sel_warehouse_obj).length) {
         delete vm.sel_warehouse_obj[index];
+        if (vm.model_data.data.length) {
+          vm.model_data.warehouse = vm.model_data.data[vm.model_data.data.length-1].sel_warehouse;
+        } else {
+          vm.model_data.warehouse = "";
+        }
       }
       if (!Object.keys(vm.sel_warehouse_obj).length) {
         vm.sel_warehouse_flag = false;
@@ -231,11 +237,13 @@ var vm = this;
           } else if (data.sel_warehouse != value && !flag) {
             vm.sel_warehouse_obj[index] = data.sel_warehouse;
             data.wh_available = vm.model_data.wh_level_stock_map[data.sel_warehouse].available;
+            vm.model_data.warehouse = vm.model_data.data[vm.model_data.data.length-1].sel_warehouse;
           }
         })
       } else {
         vm.sel_warehouse_obj[index] = data.sel_warehouse;
         data.wh_available = vm.model_data.wh_level_stock_map[data.sel_warehouse].available;
+        vm.model_data.warehouse = data.sel_warehouse;
         vm.sel_warehouse_flag = true;
       }
       if (flag) {
@@ -244,15 +252,19 @@ var vm = this;
       }
     }
 
+    vm.warehouse_list_len = 1;
     vm.add_warehouse = function(index=0, flag=true) {
+      // vm.warehouse_list_len = vm.model_data.data.length
       if (index==vm.model_data.data.length-1 && !flag || !index && flag) {
         if (flag) {
           vm.model_data.data.push([{"sel_warehouse":"", "wh_available":"", "wh_quantity":""}]);
         } else {
-
           $scope.$apply(function() {
             vm.model_data.data.push([{"sel_warehouse":"", "wh_available":"", "wh_quantity":""}]);
           });
+        }
+        if (vm.model_data.data.length-1) {
+          vm.model_data.warehouse = vm.model_data.data[vm.model_data.data.length-1].sel_warehouse;
         }
       }
     }

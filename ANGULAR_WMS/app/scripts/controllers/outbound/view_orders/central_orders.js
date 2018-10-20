@@ -12,6 +12,7 @@ var vm = this;
     vm.bt_disable = true;
     vm.display_style_stock_table = false;
     vm.sku_level_qtys = [];
+    vm.sel_warehouse_flag = false;
 
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -208,13 +209,14 @@ var vm = this;
     }
 
     vm.update_data = update_data;
-    function update_data(index) {
-      // if (index == vm.model_data.data.length-1) {
-      //   var new_dic = {"sel_warehouse":"", "wh_available":"", "wh_quantity":""};
-      //   vm.model_data.data.push(new_dic);
-      // } else {
-        vm.model_data.data.splice(index,1);
-      // }
+    function update_data(data, index) {
+      vm.model_data.data.splice(index,1);
+      if (Object.keys(vm.sel_warehouse_obj).length) {
+        delete vm.sel_warehouse_obj[index];
+      }
+      if (!Object.keys(vm.sel_warehouse_obj).length) {
+        vm.sel_warehouse_flag = false;
+      }
     }
 
     vm.sel_warehouse_obj = {};
@@ -226,7 +228,7 @@ var vm = this;
             flag = true;
             data.wh_available = "";
             delete vm.sel_warehouse_obj[index];
-          } else if (data.sel_warehouse != value && !flag){
+          } else if (data.sel_warehouse != value && !flag) {
             vm.sel_warehouse_obj[index] = data.sel_warehouse;
             data.wh_available = vm.model_data.wh_level_stock_map[data.sel_warehouse].available;
           }
@@ -234,11 +236,9 @@ var vm = this;
       } else {
         vm.sel_warehouse_obj[index] = data.sel_warehouse;
         data.wh_available = vm.model_data.wh_level_stock_map[data.sel_warehouse].available;
+        vm.sel_warehouse_flag = true;
       }
       if (flag) {
-      //   vm.sel_warehouse_obj[index] = data.sel_warehouse;
-      //   vm.model_data.data[index].available = vm.model_data.wh_level_stock_map[data.sel_warehouse].available;
-      // } else {
         vm.service.showNoty("<b>"+data.sel_warehouse+"</b> warehouse already selected plese try with another");
         data.sel_warehouse = "";
       }

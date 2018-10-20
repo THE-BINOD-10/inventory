@@ -86,7 +86,7 @@
                        typeahead-loading="loadingLocations" ng-model="showCase.model_data.sku_class"
                        typeahead-on-select="showCase.get_sku_qty_details(product, $item, $index)"
                        ng-keyup="$event.keyCode == 13 ? showCase.key_event(product, $item, $index) : null"
-                       ng-readonly="showCase.model_data.warehouse==''">
+                       ng-readonly="!showCase.sel_warehouse_flag">
               </div>
             </div>
 
@@ -116,7 +116,7 @@
                            ng-change="showCase.change_wh_quantity(records.warehouse, records.wh_quantity, showCase.model_data.quantity)">
                       </td>
                       <td>
-                        <i ng-click="showCase.update_data($index)" class="fa fa-minus-square-o"></i>
+                        <i ng-click="showCase.update_data(records,$index)" class="fa fa-minus-square-o"></i>
                       </td>
                     </tr>
                   </tbody>

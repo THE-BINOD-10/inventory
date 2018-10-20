@@ -96,7 +96,11 @@ def number_in_words(value):
 def service_worker_check(request):
     current_sw = request.GET.get('current_version')
     sw_version = settings.SERVICE_WORKER_VERSION
-    log.info("Current SW Version %s and System SW Version %s" % (current_sw, sw_version))
+    request_user = ''
+    if request.user.is_authenticated():
+        request_user = request.user.username
+    log.info("Current SW Version %s and System SW Version %s for request user name %s" %
+             (current_sw, sw_version, request_user))
     if current_sw != sw_version:
         return HttpResponse(json.dumps({'reload': True}))
     else:

@@ -21,6 +21,7 @@ urlpatterns = [
     url(r'^load_demo_data/$', load_demo_data),
     url(r'^clear_demo_data/$', clear_demo_data),
     url(r'^save_webpush_id/', save_webpush_id),
+    url(r'^service_worker_check/', service_worker_check),
 
     # Dashboard
     url(r'^dashboard/$', dashboard),

@@ -93,6 +93,16 @@ def number_in_words(value):
     return value
 
 
+def service_worker_check(request):
+    current_sw = request.GET.get('current_version')
+    sw_version = settings.SERVICE_WORKER_VERSION
+    log.info("Current SW Version %s and System SW Version %s" % (current_sw, sw_version))
+    if current_sw != sw_version:
+        return HttpResponse(json.dumps({'reload': True}))
+    else:
+        return HttpResponse(json.dumps({'reload': False}))
+
+
 @fn_timer
 def get_user_permissions(request, user):
     roles = {}

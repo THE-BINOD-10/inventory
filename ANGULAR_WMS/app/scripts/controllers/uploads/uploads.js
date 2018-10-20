@@ -223,7 +223,6 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    dparam: "marketplace-serial-file",
                    value: "",
                    perm: "use_imei"
-
                  }, {
                     title: "OrderId AWB Mapping Download/Upload",
                     download: "Download OrderId AWB Mapping Form",
@@ -243,7 +242,7 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    dparam: "download-file",
                    value: "",
                    perm: "add_sellerstocktransfer"
-                  }, {
+                 }, {
                    title: "SKU Substitution form Download/ Upload",
                    download: "Download SKU Substitution Form",
                    upload: "Upload SKU Substitution Form",
@@ -252,8 +251,7 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    dparam: "download-file",
                    value: "",
                    //perm: "add_sellerstocktransfer"
-                  },
-                  {
+                 }, {
                    title: "Targets form Download/ Upload",
                    download: "Targets Download Form",
                    upload: "Targets Upload Form",
@@ -262,7 +260,17 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    dparam: "download-file",
                    value: "",
                    perm: "add_targetmaster"
-                  }
+                 }, {
+                   title: "Central Order form Download/ Upload",
+                   download: "Central Order Download Form",
+                   upload: "Central Order Upload Form",
+                   durl: "central_order_form/",
+                   uurl: "central_order_upload/",
+                   dparam: "download-file",
+                   value: "",
+                   show: true,
+                   perm: "add_central_order"
+                 }
                 ]
 
   $scope.download = function(data) {

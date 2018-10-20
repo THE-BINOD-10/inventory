@@ -98,6 +98,9 @@ var vm = this;
                   vm.model_data.warehouse = resp_data.warehouse;
                   vm.model_data.shipment_date = resp_data.shipment_date;
                   vm.model_data.project_name = resp_data.project_name;
+
+                  vm.model_data.data = [{"sel_warehouse":"", "wh_available":"", "wh_quantity":""}];
+
                   $state.go('app.outbound.ViewOrders.CentralOrderDetails');
                 });
             });
@@ -168,6 +171,8 @@ var vm = this;
         var resp_data = data.data;
         vm.model_data.warehouses = resp_data.warehouses;
         vm.model_data.wh_level_stock_map = resp_data.wh_level_stock_map;
+        // vm.model_data.data = [{"warehouse":vm.model_data.wh_level_stock_map, "wh_available":"", "wh_quantity":""}];
+        vm.model_data.data = [{"sel_warehouse":"", "wh_available":"", "wh_quantity":""}];
         //vm.model_data.warehouse = resp_data.warehouse;
       });
     }
@@ -202,5 +207,53 @@ var vm = this;
       });
     }
 
+    vm.update_data = update_data;
+    function update_data(index) {
+      // if (index == vm.model_data.data.length-1) {
+      //   var new_dic = {"sel_warehouse":"", "wh_available":"", "wh_quantity":""};
+      //   vm.model_data.data.push(new_dic);
+      // } else {
+        vm.model_data.data.splice(index,1);
+      // }
+    }
 
+    vm.sel_warehouse_obj = {};
+    vm.change_warehouse = function(data, index) {
+      var flag = false;
+      if (Object.keys(vm.sel_warehouse_obj).length) {
+        angular.forEach(vm.sel_warehouse_obj, function(value){
+          if (data.sel_warehouse == value) {
+            flag = true;
+            data.wh_available = "";
+            delete vm.sel_warehouse_obj[index];
+          } else if (data.sel_warehouse != value && !flag){
+            vm.sel_warehouse_obj[index] = data.sel_warehouse;
+            data.wh_available = vm.model_data.wh_level_stock_map[data.sel_warehouse].available;
+          }
+        })
+      } else {
+        vm.sel_warehouse_obj[index] = data.sel_warehouse;
+        data.wh_available = vm.model_data.wh_level_stock_map[data.sel_warehouse].available;
+      }
+      if (flag) {
+      //   vm.sel_warehouse_obj[index] = data.sel_warehouse;
+      //   vm.model_data.data[index].available = vm.model_data.wh_level_stock_map[data.sel_warehouse].available;
+      // } else {
+        vm.service.showNoty("<b>"+data.sel_warehouse+"</b> warehouse already selected plese try with another");
+        data.sel_warehouse = "";
+      }
+    }
+
+    vm.add_warehouse = function(index=0, flag=true) {
+      if (index==vm.model_data.data.length-1 && !flag || !index && flag) {
+        if (flag) {
+          vm.model_data.data.push([{"sel_warehouse":"", "wh_available":"", "wh_quantity":""}]);
+        } else {
+
+          $scope.$apply(function() {
+            vm.model_data.data.push([{"sel_warehouse":"", "wh_available":"", "wh_quantity":""}]);
+          });
+        }
+      }
+    }
 }

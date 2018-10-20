@@ -6,7 +6,7 @@
         <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span></button>
         <h4 class="modal-title">Update</h4>
       </div>
-      <div class="modal-body" id="update_sku" style="height:570px;">
+      <div class="modal-body" id="update_sku">
         <div class="row">
             <input type="hidden" name="data_id" ng-model="showCase.model_data.data_id" class="form-control" value="">
             <div class="col-md-4 col-sm-6 col-xs-6">
@@ -78,47 +78,6 @@
                 <input ng-if="showCase.model_data.already_assigned" type="text" name="status" class="form-control" ng-model="showCase.model_data.warehouse" maxlength="256" disabled>
               </div>
             </div>
-<!--<<<<<<< HEAD-->
-
-            <div class="col-md-12 col-sm-12 col-xs-12" ng-if="!showCase.model_data.already_assigned">
-              <div class="row over-x">
-                <table class="table mw85">
-                  <thead>
-                    <tr>
-                      <th>Warehouse</th>
-                      <th>Available Stock</th>
-                      <th>Quantity</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <!-- <tr class="field" ng-repeat="(key, data) in showCase.model_data.wh_level_stock_map"> -->
-                    <tr class="field">
-                      <td>
-                        <!-- <input type="text" name="status" class="form-control" ng-model="key" maxlength="256" disabled> -->
-                        <!-- <select class="form-control" name="warehouse" ng-change="showCase.change_wh(showCase.model_data.warehouse)" ng-model="showCase.model_data.warehouse"> -->
-                        <select class="form-control" name="warehouse" ng-model="showCase.model_data.warehouse">
-                          <option value="" style="display:None;">Select Warehouse</option>
-                          <option ng-repeat="(key, data) in showCase.model_data.wh_level_stock_map" value="{{key}}">{{key}}</option>
-                        </select>
-                      </td>
-                      <td><input type="text" name="available" class="form-control" ng-init="showCase.model_data.available = showCase.model_data.invoice_type" ng-model="showCase.model_data.wh_level_stock_map[showCase.model_data.warehouse].available" disabled></td>
-                      <td>
-                        <!-- <input type="text" name="quantity" class="form-control" ng-model="showCase.model_data.quantity"
-                           ng-change="showCase.change_wh_quantity(key, data.quantity, showCase.model_data.quantity)"> -->
-                        <input type="text" name="quantity" class="form-control" ng-model="showCase.model_data.wh_level_stock_map[showCase.model_data.warehouse].quantity"
-                           ng-change="showCase.change_wh_quantity(showCase.model_data.warehouse, showCase.model_data.wh_level_stock_map[showCase.model_data.warehouse].quantity, showCase.model_data.quantity)">
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-
-              </div>
-
-
-            </div>
-
-
-<!--=======-->
             <div class="col-md-4 col-sm-6 col-xs-6" ng-if="!showCase.model_data.already_assigned">
               <div class="form-group">
                 <label class="control-label" ng-if="showCase.model_data.status!='0'"> Style Search</label>
@@ -130,34 +89,70 @@
                        ng-readonly="showCase.model_data.warehouse==''">
               </div>
             </div>
-<!--
->>>>>>> 531965ec9f5c8701b75a682fe3ea22d2560fcf2b
--->
-        </div>
-        <div class="col-md-12 col-sm-12 col-xs-12" ng-if="(showCase.display_style_stock_table)">
-		  <div class="col-md-12 col-sm-12 col-xs-12">
-              <div style="margin-bottom: 10px;"><strong>SKU Level Available Quantity :</strong></div>
-		  </div>
 
-		  <div class="col-md-12 col-sm-12 col-xs-12 mb10">
-          <table class="table table-bordered">
-            <thead>
-              <tr>
-                <th>SKU Code</th>
-                <th>SKU Description</th>
-                <th>Available Quantity</th>
-              </tr>
-            </thead>
-            <tbody ng-repeat="data in showCase.sku_level_qtys">
-                <tr class="field">
-				  <td>{{data.sku_code}}</td>
-                  <td>{{data.sku_desc}}</td>
-                  <td>{{data.avail_qty}}</td>
-                </tr>
-            </tbody>
-          </table>
-		  </div>
-		  </div>
+            <div class="col-md-12 col-sm-12 col-xs-12" ng-if="!showCase.model_data.already_assigned">
+              <div class="row over-x">
+                <table class="table mw85">
+                  <thead>
+                    <tr>
+                      <th>Warehouse</th>
+                      <th>Available Stock</th>
+                      <th>Quantity</th>
+                      <th class="plus"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="field" ng-repeat="records in showCase.model_data.data">
+                      <td>
+                        <!-- <input type="text" name="status" class="form-control" ng-model="key" maxlength="256" disabled> -->
+                        <select class="form-control" name="warehouse" ng-model="records.sel_warehouse" ng-change="showCase.change_warehouse(records,$index)">
+                          <option value="">Select Warehouse</option>
+                          <option ng-repeat="(key, data) in showCase.model_data.wh_level_stock_map" value="{{key}}">{{key}}</option>
+                        </select>
+                      </td>
+                      <td><input type="text" name="available" class="form-control" ng-init="records.wh_available = showCase.model_data.wh_level_stock_map[records.warehouse].available" ng-model="records.wh_available" disabled></td>
+                      <td>
+                        <input type="text" name="quantity" class="form-control" ng-init="records.wh_quantity = showCase.model_data.wh_level_stock_map[records.warehouse].quantity" ng-model="records.wh_quantity"
+                           ng-change="showCase.change_wh_quantity(records.warehouse, records.wh_quantity, showCase.model_data.quantity)">
+                      </td>
+                      <td>
+                        <i ng-click="showCase.update_data($index)" class="fa fa-minus-square-o"></i>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="row">
+                <center>
+                  <button type="button" class="btn btn-default" style="margin-top:10px" ng-click="showCase.add_warehouse()">Add New Warehouse</button>
+                </center>
+              </div>
+            </div>
+            <div class="col-md-12 col-sm-12 col-xs-12" ng-if="(showCase.display_style_stock_table)">
+        		  <div class="col-md-12 col-sm-12 col-xs-12">
+                      <div style="margin-bottom: 10px;"><strong>SKU Level Available Quantity :</strong></div>
+        		  </div>
+
+        		  <div class="col-md-12 col-sm-12 col-xs-12 mb10">
+                  <table class="table table-bordered">
+                    <thead>
+                      <tr>
+                        <th>SKU Code</th>
+                        <th>SKU Description</th>
+                        <th>Available Quantity</th>
+                      </tr>
+                    </thead>
+                    <tbody ng-repeat="data in showCase.sku_level_qtys">
+                        <tr class="field">
+        				  <td>{{data.sku_code}}</td>
+                          <td>{{data.sku_desc}}</td>
+                          <td>{{data.avail_qty}}</td>
+                        </tr>
+                    </tbody>
+                  </table>
+        		  </div>
+        		</div>
+        </div>
       </div>
       <div class="modal-footer">
         <div class="form-group" style="margin-bottom:0px;">

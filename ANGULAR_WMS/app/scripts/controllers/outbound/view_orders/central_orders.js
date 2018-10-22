@@ -132,11 +132,17 @@ var vm = this;
     function submit(wh, status, data_id, shipment_date, alt_sku_code){
 
       var sum = 0;
-      for( var item in vm.model_data.wh_level_stock_map){
-          if(vm.model_data.wh_level_stock_map[item]['quantity']){
-              sum += parseInt(vm.model_data.wh_level_stock_map[item]['quantity']);
-          }
-      }
+      // for( var item in vm.model_data.wh_level_stock_map){
+      //     if(vm.model_data.wh_level_stock_map[item]['quantity']){
+      //         sum += parseInt(vm.model_data.wh_level_stock_map[item]['quantity']);
+      //     }
+      // }
+      angular.forEach(vm.model_data.data, function(row){
+        if(row.wh_quantity){
+          sum += parseInt(row.wh_quantity);
+        }
+      })
+      vm.model_data.quantity = 0;
       if(vm.model_data.quantity != sum){
           Service.showNoty('Filled quantity is not matching actual quantity');
           return
@@ -178,23 +184,30 @@ var vm = this;
       });
     }
 
-    vm.change_wh_quantity = function(key, quantity, actual_quantity) {
+    vm.change_wh_quantity = function(key, quantity, actual_quantity, index) {
       var tot_filled = 0;
-      for(var dat in vm.model_data.wh_level_stock_map) {
-        tot_filled += parseInt(vm.model_data.wh_level_stock_map[dat].quantity);
-      }
+      vm.model_data.wh_level_stock_map[key].quantity = quantity;
+      // for(var dat in vm.model_data.wh_level_stock_map) {
+      //   tot_filled += parseInt(vm.model_data.wh_level_stock_map[dat].quantity);
+      // }
+      angular.forEach(vm.model_data.data, function(row){
+        tot_filled += parseInt(row.wh_quantity);
+      })
       if(tot_filled > actual_quantity){
         var remain = actual_quantity - (tot_filled - parseInt(quantity));
         vm.model_data.wh_level_stock_map[key].quantity = Math.min(remain, parseInt(vm.model_data.wh_level_stock_map[key].available));
+        vm.model_data.data[index].wh_quantity = Math.min(remain, parseInt(vm.model_data.wh_level_stock_map[key].available));
         return
       }
       if(actual_quantity >= parseInt(vm.model_data.wh_level_stock_map[key].available)) {
         if(parseInt(vm.model_data.wh_level_stock_map[key].available) <= parseInt(quantity)){
           vm.model_data.wh_level_stock_map[key].quantity = vm.model_data.wh_level_stock_map[key].available;
+          vm.model_data.data[index].wh_quantity = vm.model_data.wh_level_stock_map[key].available;
         }
       } else {
         if(parseInt(vm.model_data.wh_level_stock_map[key].available) <= parseInt(quantity)){
           vm.model_data.wh_level_stock_map[key].quantity = actual_quantity;
+          vm.model_data.data[index].wh_quantity = actual_quantity;
         }
       }
     }

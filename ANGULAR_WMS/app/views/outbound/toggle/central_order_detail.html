@@ -113,7 +113,7 @@
                       <td><input type="text" name="available" class="form-control" ng-init="records.wh_available = showCase.model_data.wh_level_stock_map[records.warehouse].available" ng-model="records.wh_available" disabled></td>
                       <td>
                         <input type="text" name="quantity" class="form-control" ng-init="records.wh_quantity = showCase.model_data.wh_level_stock_map[records.warehouse].quantity" ng-model="records.wh_quantity"
-                           ng-change="showCase.change_wh_quantity(records.warehouse, records.wh_quantity, showCase.model_data.quantity)">
+                           ng-change="showCase.change_wh_quantity(records.sel_warehouse, records.wh_quantity, showCase.model_data.quantity)" ng-readonly="!records.sel_warehouse">
                       </td>
                       <td>
                         <i ng-click="showCase.update_data(records,$index)" class="fa fa-minus-square-o"></i>

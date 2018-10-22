@@ -361,6 +361,8 @@ class IntermediateOrders(models.Model):
     shipment_date = models.DateTimeField()
     project_name = models.CharField(max_length=256, default='')
     remarks = models.CharField(max_length=128, default='')
+    customer_id = models.PositiveIntegerField(default=0)
+    customer_name = models.CharField(max_length=256, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -392,6 +394,7 @@ class OrderFields(models.Model):
     original_order_id = models.CharField(max_length=128, default='')
     name = models.CharField(max_length=256, default='')
     value = models.CharField(max_length=256, default='')
+    order_type = models.CharField(max_length=256, default='order')
 
     class Meta:
         db_table = 'ORDER_FIELDS'

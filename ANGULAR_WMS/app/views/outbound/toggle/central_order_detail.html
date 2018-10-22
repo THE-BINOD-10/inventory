@@ -69,9 +69,9 @@
                 <input ng-if="showCase.model_data.already_assigned" type="text" name="status" class="form-control" ng-model="showCase.status_dropdown[showCase.model_data.status]" maxlength="256" disabled>
               </div>
             </div>
-            <div class="col-md-4 col-sm-6 col-xs-6">
+            <div class="col-md-4 col-sm-6 col-xs-6" ng-if="showCase.model_data.already_assigned">
               <div class="form-group">
-                <label class="control-label" ng-if="showCase.model_data.already_assigned"> Warehouse </label>
+                <label class="control-label"> Warehouse </label>
                 <!--<select ng-if="!showCase.model_data.already_assigned && showCase.model_data.status!='0'" class="form-control" name="warehouse" ng-model="showCase.model_data.warehouse"
                         ng-options="wh_id as wh_id + '(' + wh_stock + ')' for (wh_id, wh_stock) in showCase.model_data.wh_level_stock_map"
                         ng-selected="type == showCase.model_data.warehouse"></select>-->

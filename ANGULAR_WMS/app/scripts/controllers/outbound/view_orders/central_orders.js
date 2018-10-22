@@ -104,6 +104,8 @@ var vm = this;
 
                   $state.go('app.outbound.ViewOrders.CentralOrderDetails');
                 });
+                vm.sel_warehouse_obj = {};
+                vm.temp_warehouse_obj = {};
             });
         });
         return nRow;
@@ -142,7 +144,6 @@ var vm = this;
           sum += parseInt(row.wh_quantity);
         }
       })
-      vm.model_data.quantity = 0;
       if(vm.model_data.quantity != sum){
           Service.showNoty('Filled quantity is not matching actual quantity');
           return
@@ -227,6 +228,7 @@ var vm = this;
       vm.model_data.data.splice(index,1);
       if (Object.keys(vm.sel_warehouse_obj).length) {
         delete vm.sel_warehouse_obj[index];
+        delete vm.temp_warehouse_obj[data.sel_warehouse];
         if (vm.model_data.data.length) {
           vm.model_data.warehouse = vm.model_data.data[vm.model_data.data.length-1].sel_warehouse;
         } else {
@@ -239,29 +241,42 @@ var vm = this;
     }
 
     vm.sel_warehouse_obj = {};
+    vm.temp_warehouse_obj = {};
     vm.change_warehouse = function(data, index) {
       var flag = false;
       if (Object.keys(vm.sel_warehouse_obj).length) {
-        angular.forEach(vm.sel_warehouse_obj, function(value){
-          if (data.sel_warehouse == value) {
-            flag = true;
+        if (vm.sel_warehouse_obj[index]) {
+          data.wh_available = vm.model_data.wh_level_stock_map[data.sel_warehouse].available;
+          delete vm.temp_warehouse_obj[vm.sel_warehouse_obj[index]]
+          angular.forEach(vm.sel_warehouse_obj, function(value){
+            if (data.sel_warehouse == value) {
+              vm.service.showNoty("<b>"+data.sel_warehouse+"</b> warehouse already selected plese try with another");
+              data.sel_warehouse = "";
+              data.wh_available = "";
+            }
+          })
+          vm.sel_warehouse_obj[index] = data.sel_warehouse;
+          vm.temp_warehouse_obj[data.sel_warehouse] = data.sel_warehouse;
+        } else {
+          if (vm.temp_warehouse_obj[data.sel_warehouse]) {
+            vm.service.showNoty("<b>"+data.sel_warehouse+"</b> warehouse already selected plese try with another");
+            data.sel_warehouse = "";
             data.wh_available = "";
             delete vm.sel_warehouse_obj[index];
-          } else if (data.sel_warehouse != value && !flag) {
+            delete vm.temp_warehouse_obj[data.sel_warehouse];
+          } else if (!vm.temp_warehouse_obj[data.sel_warehouse]) {
             vm.sel_warehouse_obj[index] = data.sel_warehouse;
+            vm.temp_warehouse_obj[data.sel_warehouse] = data.sel_warehouse;;
             data.wh_available = vm.model_data.wh_level_stock_map[data.sel_warehouse].available;
             vm.model_data.warehouse = vm.model_data.data[vm.model_data.data.length-1].sel_warehouse;
           }
-        })
+        }
       } else {
         vm.sel_warehouse_obj[index] = data.sel_warehouse;
+        vm.temp_warehouse_obj[data.sel_warehouse] = data.sel_warehouse;
         data.wh_available = vm.model_data.wh_level_stock_map[data.sel_warehouse].available;
         vm.model_data.warehouse = data.sel_warehouse;
         vm.sel_warehouse_flag = true;
-      }
-      if (flag) {
-        vm.service.showNoty("<b>"+data.sel_warehouse+"</b> warehouse already selected plese try with another");
-        data.sel_warehouse = "";
       }
     }
 

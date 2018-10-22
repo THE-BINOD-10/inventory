@@ -261,15 +261,14 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    value: "",
                    perm: "add_targetmaster"
                  }, {
-                   title: "Central Order form Download/ Upload",
+                   title: "Central Order Form Download/ Upload",
                    download: "Central Order Download Form",
                    upload: "Central Order Upload Form",
                    durl: "central_order_form/",
                    uurl: "central_order_upload/",
                    dparam: "download-file",
                    value: "",
-                   show: true,
-                   perm: "add_central_order"
+                   perm: "add_suppliermaster"
                  }
                 ]
 

@@ -1,6 +1,6 @@
 'use strict';
 
-function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, $state, $window, $timeout, Data, SweetAlert) {
+function CreateCentralOrders($scope, $filter, $http, $q, Session, colFilters, Service, $state, $window, $timeout, Data, SweetAlert) {
 
   $scope.msg = "start";
   var vm = this;
@@ -18,7 +18,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
                             location: "", serials: [], serial: "", capacity: 0, discount: ""
                           }],
                     customer_id: "", payment_received: "", order_taken_by: "", other_charges: [],  shipment_time_slot: "",
-                    tax_type: "", vehicle_num: "",blind_order: false, mode_of_transport: "", payment_status: ""};
+                    tax_type: "", blind_order: false, mode_of_transport: "", payment_status: ""};
 
   angular.copy(empty_data, vm.model_data);
 
@@ -36,11 +36,22 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
   }
 
   vm.isLast = isLast;
-    function isLast(check) {
+  function isLast(check) {
 
-      var cssClass = check ? "fa fa-plus-square-o" : "fa fa-minus-square-o";
-      return cssClass
-    }
+    var cssClass = check ? "fa fa-plus-square-o" : "fa fa-minus-square-o";
+    return cssClass
+  }
+
+  vm.selWarehouse = '';
+  vm.warehouseInfo = [];
+  vm.getWarehouseInfo = function (){
+    vm.service.apiCall('get_linked_warehouse_names/', 'GET').then(function(data){
+      console.log(data);
+      vm.warehouseInfo = data.data.wh_names
+    })
+  }
+
+  vm.getWarehouseInfo();
 
   vm.update_data = update_data;
   function update_data(index, data, last) {
@@ -97,11 +108,11 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
   }
 
   vm.bt_disable = false;
-  vm.insert_order_data = function(event, form, is_sample='') {
+  vm.insert_order_data = function(event, form) {
     if (event.keyCode != 13) {
       if (form.$valid && vm.model_data.shipment_date && vm.model_data.shipment_time_slot) {
-        if (vm.model_data.blind_order) {
-          for (var i = 0; i < vm.model_data.data.length; i++) {
+        if(vm.model_data.blind_order) {
+          for(var i = 0; i < vm.model_data.data.length; i++) {
 
             if (vm.model_data.data[i].sku_id && (!vm.model_data.data[i].location)) {
 
@@ -115,9 +126,8 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
         var elem = angular.element($('form'));
         elem = elem[0];
         elem = $(elem).serializeArray();
-        if (is_sample == 'sample') {
-          elem.push({'name':'is_sample', 'value':true});
-        }
+        elem.push({name: "sel_warehouse", value: vm.selWarehouse})
+        debugger
         vm.service.apiCall('insert_order_data/', 'POST', elem).then(function(data){
           if(data.message) {
             if(data.data.indexOf("Success") != -1) {
@@ -141,7 +151,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
   vm.brand = "";
 
   function change_filter_data() {
-    var data = {brand: vm.brand, category: vm.category, is_catalog: true, sale_through: vm.order_type_value};
+    var data = {brand: vm.brand, category: vm.category, is_catalog: true, sale_through: vm.order_type_value,sel_warehouse:vm.selWarehouse};
     vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
 
       if(data.message) {
@@ -202,7 +212,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
       vm.catlog_data.index = "";
     }
     var data = {brand: vm.brand, category: cat_name, sku_class: vm.style, index: vm.catlog_data.index, is_catalog: true,
-                sale_through: vm.order_type_value, customer_data_id: vm.model_data.customer_id};
+                sale_through: vm.order_type_value, customer_data_id: vm.model_data.customer_id, sel_warehouse: vm.selWarehouse};
     vm.catlog_data.index = ""
     vm.scroll_data = false;
     //vm.service.apiCall("get_sku_catalogs/", "GET", data).then(function(data) {
@@ -315,7 +325,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     vm.category = '';
     vm.style='';
     var all = $(".cat-tags");
-    var data = {brand: vm.brand, sale_through: vm.order_type_value}
+    var data = {brand: vm.brand, sale_through: vm.order_type_value, sel_warehouse: vm.selWarehouse}
     vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
       if(data.message) {
 
@@ -358,7 +368,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
   vm.image = "";
   vm.change_category_values = function(){
 
-    vm.service.apiCall('get_product_properties/',"GET",{'property_type':vm.property_type,'property_name':vm.model_data.template_value,'template_name':vm.template_name}).then(function(data){
+    vm.service.apiCall('get_product_properties/',"GET",{'property_type':vm.property_type,'property_name':vm.model_data.template_value,'template_name':vm.template_name,'sel_warehouse': vm.selWarehouse}).then(function(data){
         if (data.data.data.length > 0) {
 
           vm.attributes = data.data.data[0].attributes;
@@ -530,7 +540,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
   vm.open_style = function(data) {
 
     vm.stock_quantity = data.style_quantity;
-    vm.service.apiCall("get_sku_variants/", "POST", {sku_class: data.sku_class, is_catalog: true, customer_data_id: vm.model_data.customer_id}).then(function(data) {
+    vm.service.apiCall("get_sku_variants/", "POST", {sku_class: data.sku_class, is_catalog: true, customer_data_id: vm.model_data.customer_id,sel_warehouse: vm.selWarehouse}).then(function(data) {
 
       if(data.message) {
         vm.style_open = true;
@@ -634,7 +644,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     var sku = item.wms_code;
     record.sku_id = sku;
     record["description"] = item.sku_desc;
-    vm.service.apiCall("get_sku_variants/", "POST", {sku_code: sku, customer_id: vm.model_data.customer_id, is_catalog: true}).then(function(data) {
+    vm.service.apiCall("get_sku_variants/", "POST", {sku_code: sku, customer_id: vm.model_data.customer_id, is_catalog: true,sel_warehouse: vm.selWarehouse}).then(function(data) {
 
       if(data.message) {
         if(data.data.data.length == 1) {
@@ -650,27 +660,21 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     });
   }
 
-  vm.final_data = {total_quantity:0,total_amount:0,temp_total_amount:0}
+  vm.final_data = {total_quantity:0,total_amount:0}
   vm.cal_total = function() {
 
     vm.final_data.total_quantity = 0;
     vm.final_data.total_amount = 0;
-    vm.final_data.temp_total_amount = 0;
     angular.forEach(vm.model_data.data, function(record){
       vm.final_data.total_amount += Number(record.total_amount);
-      vm.final_data.temp_total_amount += Number(record.total_amount);
       vm.final_data.total_quantity += Number(record.quantity);
     })
     if(vm.model_data.other_charges) {
       angular.forEach(vm.model_data.other_charges, function(record){
         if(record.amount){
           vm.final_data.total_amount += Number(record.amount);
-          vm.final_data.temp_total_amount += Number(record.total_amount);
         }
       })
-    }
-    if (vm.model_data.order_discount) {
-      vm.addDiscountToInv(vm.model_data.order_discount)
     }
   }
   vm.cal_percentage = function(data, no_total) {
@@ -725,7 +729,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
 
       var data = {customer_id: vm.model_data.customer_id, name: vm.model_data.customer_name,
                   email_id: vm.model_data.email_id, phone_number: vm.model_data.telephone,
-                  address: vm.model_data.address}
+                  address: vm.model_data.address, sel_warehouse: vm.selWarehouse}
       vm.service.apiCall("insert_customer/","POST", data).then(function(data){
         if(data.message)  {
           if(data.data == 'New Customer Added') {
@@ -805,7 +809,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
 
     vm.catlog_data.index = "";
     vm.get_order_type();
-    var data = {is_catalog: true, sale_through: vm.order_type_value};
+    var data = {is_catalog: true, sale_through: vm.order_type_value, sel_warehouse: vm.selWarehouse};
     vm.service.apiCall("get_sku_categories/", "GET",data).then(function(data){
 
       if(data.message) {
@@ -828,7 +832,6 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     vm.service.apiCall("create_orders_data/").then(function(data){
       if(data.message) {
         vm.create_order_data = data.data;
-        vm.model_data.order_taken_by = Session.user_profile.first_name;
         if(!Service.create_order_data.tax_type) {
           vm.model_data.tax_type = '';
         }
@@ -930,7 +933,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
 
   vm.update_availabe_stock = function(sku_data) {
 
-     var send = {sku_code: sku_data.sku_id, location: ""}
+     var send = {sku_code: sku_data.sku_id, location: "",sel_warehouse: vm.selWarehouse}
      vm.service.apiCall("get_sku_stock_check/", "GET", send).then(function(data){
       sku_data["capacity"] = 0
       if(data.message) {
@@ -964,7 +967,6 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
           }
         }
         record["taxes"] = data.taxes;
-        record["mrp"] = data.mrp;
         record.invoice_amount = Number(record.price)*Number(record.quantity);
         record["priceRanges"] = data.price_bands_map;
         vm.cal_percentage(record);
@@ -976,7 +978,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
   vm.get_customer_sku_prices = function(sku) {
 
     var d = $q.defer();
-    var data = {sku_codes: sku, cust_id: vm.model_data.customer_id, tax_type: vm.model_data.tax_type}
+    var data = {sku_codes: sku, cust_id: vm.model_data.customer_id, tax_type: vm.model_data.tax_type, sel_warehouse: vm.selWarehouse}
     vm.service.apiCall("get_customer_sku_prices/", "POST", data).then(function(data) {
 
       if(data.message) {
@@ -1280,7 +1282,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
       return false;
     } else {
 
-    var send = {sku_code: sku_data.sku_id, location: sku_data.location}
+    var send = {sku_code: sku_data.sku_id, location: sku_data.location,sel_warehouse: vm.selWarehouse}
 
     vm.service.apiCall("get_sku_stock_check/", "GET", send).then(function(data){
 
@@ -1411,7 +1413,6 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
 		  vm.get_customer_sku_prices(data.data.sku).then(function(resp) {
 		  if(resp.length > 0) {
 			resp = resp[0]
-      resp['sku_id'] = resp.wms_code;
 			var foundItem = $filter('filter')(vm.model_data.data, {'sku_id':resp.wms_code}, true)[0];
 			if (foundItem) {
 				var index = vm.model_data.data.indexOf(foundItem);
@@ -1427,8 +1428,6 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
                 vm.model_data.data.push({ 'capacity': 0, 'description':resp.sku_desc, 'discount': 0, 'discount_percentage':'', 'invoice_amount': resp.price, 'location':'', 'price': resp.price, 'priceRanges':[], 'quantity': 1, 'serial':'', 'serials':[], 'sku_id': resp.wms_code, 'tax': 0, 'taxes':[], 'total_amount': resp.price, 'unit_price': resp.price })
                 vm.change_quantity(vm.model_data.data[0])
 			}
-      vm.model_data.data[0]['mrp'] = resp.mrp
-      vm.update_availabe_stock(vm.model_data.data[0]);
 		  }
 		  })
 		  } else {
@@ -1513,17 +1512,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     }
   }
   vm.assign_sku_id_from_sku_master();
-
-  vm.addDiscountToInv = function(discount) {
-    if (discount < vm.final_data.total_amount) {
-      vm.final_data.total_amount = Number(vm.final_data.temp_total_amount) - Number(discount);
-    } else {
-      Service.showNoty("Please enter proper discount");
-      vm.model_data.order_discount = '';
-      vm.final_data.total_amount = vm.final_data.temp_total_amount;
-    }
-  }
 }
 angular
   .module('urbanApp')
-  .controller('CreateOrders', ['$scope', '$filter','$http', '$q', 'Session', 'colFilters', 'Service', '$state', '$window', '$timeout', 'Data', 'SweetAlert', CreateOrders]);
+  .controller('CreateCentralOrders', ['$scope', '$filter','$http', '$q', 'Session', 'colFilters', 'Service', '$state', '$window', '$timeout', 'Data', 'SweetAlert', CreateCentralOrders]);

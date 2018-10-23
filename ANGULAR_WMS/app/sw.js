@@ -1,6 +1,10 @@
 
-self.importScripts('./scripts/App/dexie.js');
-self.importScripts('./scripts/App/offlineDB.js');
+// self.importScripts('./scripts/App/dexie.js');
+// self.importScripts('./scripts/App/offlineDB.js');
+if( 'undefined' === typeof window){
+  importScripts('./scripts/App/dexie.js');
+  importScripts('./scripts/App/offlineDB.js');
+}
 
  ;(function(){
    "use strict";
@@ -11,7 +15,8 @@ self.importScripts('./scripts/App/offlineDB.js');
       Directory     ="";
  var APICALL        ="https://dev.stockone.in/rest_api/";
  var UIAPICALL      ="http://beta.stockone.in/";
-// var APICALL        ="http://176.9.181.43:7654/rest_api/";   
+// var APICALL        ="http://176.9.181.43:7654/rest_api/";
+ window['current_version'] = version;
 
  var filesToBeCached = [
        Directory+ "/",
@@ -20,7 +25,7 @@ self.importScripts('./scripts/App/offlineDB.js');
        Directory+ "/favicon.ico",
        Directory+ "/vendor/bootstrap/dist/css/bootstrap.min.css",
        Directory+ "/vendor/perfect-scrollbar/css/perfect-scrollbar.min.css",
-       Directory+ "/styles/roboto.css", 
+       Directory+ "/styles/roboto.css",
        Directory+ "/styles/font-awesome.css",
        Directory+ "/styles/panel.css",
        Directory+ "/styles/feather.css",
@@ -89,19 +94,19 @@ self.importScripts('./scripts/App/offlineDB.js');
        Directory+ "/scripts/directives/scrollup.js",
        Directory+ "/scripts/directives/vector.js",
        Directory+ "/scripts/directives/image.js",
-       Directory+ "/scripts/services/col_filters.js",
-       Directory+ "/scripts/services/wms_service.js",
-       Directory+ "/scripts/services/table_service.js",
-       
-       Directory+"/views/App/app.html",
-       Directory+"/views/App/create_orders.html",
-       Directory+"/views/App/create_orders/catlog.html",
-       Directory+"/views/App/create_orders/company_name.html",
-       Directory+"/views/App/create_orders/details.html",
-       Directory+"/views/App/create_orders/order.html",
-       Directory+"/views/App/create_orders/style.html",
+       // Directory+ "/scripts/services/col_filters.js",
+       // Directory+ "/scripts/services/wms_service.js",
+       // Directory+ "/scripts/services/table_service.js",
+       //
+       // Directory+"/views/App/app.html",
+       // Directory+"/views/App/create_orders.html",
+       // Directory+"/views/App/create_orders/catlog.html",
+       // Directory+"/views/App/create_orders/company_name.html",
+       // Directory+"/views/App/create_orders/details.html",
+       // Directory+"/views/App/create_orders/order.html",
+       // Directory+"/views/App/create_orders/style.html",
 
-       Directory+"/styles/App/app.css",       
+       Directory+"/styles/App/app.css",
 
       // Directory+ "/scripts/App/**.{js}",
       // Directory+ "/scripts/App/**/**.{js}",
@@ -110,7 +115,7 @@ self.importScripts('./scripts/App/offlineDB.js');
 
   blacklist = [
         "/rest_api/",
-        
+
       ];
 
   function isBlacklisted (url) {
@@ -134,44 +139,44 @@ self.importScripts('./scripts/App/offlineDB.js');
   }
 
 
- 
- self.addEventListener('push', function(event) {  
-    var title = 'Yay a message.';  
-    var body = 'We have received a push message.';  
-    var icon = 'images/stockone_logo.png';  
+
+ self.addEventListener('push', function(event) {
+    var title = 'Yay a message.';
+    var body = 'We have received a push message.';
+    var icon = 'images/stockone_logo.png';
     var tag = 'simple-push-example-tag';
-    event.waitUntil(  
-      self.registration.showNotification(title, {  
-        body: body,  
-        icon: icon, 
-        "sound":"./sounds/notification_sound.mp3", 
+    event.waitUntil(
+      self.registration.showNotification(title, {
+        body: body,
+        icon: icon,
+        "sound":"./sounds/notification_sound.mp3",
     "vibrate": [200, 100, 200, 100, 200, 100, 400],
-        tag: tag  
-      }) 
-    );  
+        tag: tag
+      })
+    );
   });
 
 
-  self.addEventListener('notificationclick', function(event) {  
-    console.log('On notification click: ', event.notification.tag);  
-    // Android doesn't close the notification when you click on it  
-    // See: http://crbug.com/463146  
+  self.addEventListener('notificationclick', function(event) {
+    console.log('On notification click: ', event.notification.tag);
+    // Android doesn't close the notification when you click on it
+    // See: http://crbug.com/463146
     event.notification.close();
 
-    // This looks to see if the current is already open and  
-    // focuses if it is  
+    // This looks to see if the current is already open and
+    // focuses if it is
     event.waitUntil(
-      clients.matchAll({  
-        type: "window"  
+      clients.matchAll({
+        type: "window"
       })
-     .then(function(clientList) {  
-       for (var i = 0; i < clientList.length; i++) {  
-         var client = clientList[i];  
-         if (client.url == '/' && 'focus' in client)  
-           return client.focus();  
-         }  
+     .then(function(clientList) {
+       for (var i = 0; i < clientList.length; i++) {
+         var client = clientList[i];
+         if (client.url == '/' && 'focus' in client)
+           return client.focus();
+         }
         if (clients.openWindow) {
-         return clients.openWindow(UIAPICALL+'#/App/createorder');  
+         return clients.openWindow(UIAPICALL+'#/App/createorder');
         }
       })
     );
@@ -264,17 +269,17 @@ self.importScripts('./scripts/App/offlineDB.js');
                event.ports[0].postMessage("1");
              }).catch(function(err){
                  event.ports[0].postMessage("1");
-             }); 
+             });
           } else {
              event.ports[0].postMessage("1");
           }
-     
+
       }).catch(function () {
 		event.ports[0].postMessage("1");
       });
   });
-   
- 
+
+
 
 
   function checkSum(){
@@ -293,7 +298,7 @@ self.importScripts('./scripts/App/offlineDB.js');
 				  if(Object.keys(val_data).length>0){
 
 					var file_data=val_data['file_data'];
-				 
+
 						db.checksum.toArray().then(function(data){
 						  var diff_checksum=false;
 						  if(data.length>0){
@@ -302,23 +307,23 @@ self.importScripts('./scripts/App/offlineDB.js');
 						   }else{
 							 diff_checksum=true;
 						   }
-						  
+
 						   if(diff_checksum){
 								var checksum_status=setCheckSum(file_data['checksum']);
 								checksum_status.then(function(data){
 								  if(data)
 									 return resolve(true);
 								   else
-									 return resolve(false); 
+									 return resolve(false);
 								  });
 						  }else{
 							  return resolve(false);
-						  } 
+						  }
 						});
 				  }
 			   });
 			 }else{
-			   return resolve(false);  
+			   return resolve(false);
 			}
 		   }).catch(function(){
 			 return resolve(false);
@@ -349,16 +354,16 @@ self.importScripts('./scripts/App/offlineDB.js');
             var brands=brands_data[0];
             var categories=brands_data[1];
             var skus=sku_data[0];
-         
+
             setBrands(brands);
             setCategories(categories);
-            
+
             if(setSku(skus)){
               return resolve(true);
             }else{
               return reject(true);
             }
-        }   
+        }
        });
      }else{
      return reject(false);
@@ -405,7 +410,7 @@ self.importScripts('./scripts/App/offlineDB.js');
             }
           }
 
-   
+
 
    fetch(APICALL +'insert_order_data/?'+params,{
            method: 'get',
@@ -428,13 +433,13 @@ self.importScripts('./scripts/App/offlineDB.js');
               });
               */
 
-               var data=deleteOrder(order_data.time); 
+               var data=deleteOrder(order_data.time);
                       data.then(function(count){
                          console.log("record deleted");
                       }).catch(function(err){
                          console.log("record del err "+err);
                       });
-               
+
 
 
                 self.registration.showNotification("Order Place",{
@@ -447,11 +452,9 @@ self.importScripts('./scripts/App/offlineDB.js');
 
                return true;
            }
-          
+
          });
 
 
  }
  }());
-
-

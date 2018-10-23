@@ -958,7 +958,7 @@ def insert_rwo_po(rw_order, request, user):
     po_data = []
     if job_order.filter(status='order-confirmed'):
         return
-    po_id = get_purchase_order_id(user)
+    po_id = get_purchase_order_id(user) + 1
     for order in job_order:
         total_qty += order.product_quantity
         prefix = UserProfile.objects.get(user_id=rw_order.vendor.user).prefix

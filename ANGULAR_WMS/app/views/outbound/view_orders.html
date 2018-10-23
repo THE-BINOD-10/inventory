@@ -165,6 +165,12 @@
       <tab heading="Custom Orders">
         <div ng-include="'views/outbound/view_orders/custom_orders.html'"></div>
       </tab>
+      <tab heading="Central Orders" ng-if="show_tab(permissions.central_order_mgmt == 'true')">
+        <div ng-include="'views/outbound/view_orders/central_orders.html'"></div>
+      </tab>
+      <!--<tab heading="Create Central Orders" ng-if="show_tab(showCase.permissions.central_order_mgmt == true)">
+        <div ng-include="'views/outbound/view_orders/create_central_orders.html'"></div>
+      </tab>-->
     </tabset>
   </div>
 </div>

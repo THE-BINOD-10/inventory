@@ -19,7 +19,7 @@
           if (resp.message != "Fail") {
              //setloginStatus(resp);
              Session.set(resp.data);
-            
+
           }
           return resp;
         });
@@ -73,6 +73,12 @@
 
         $http.get(Session.url + "status/", {withCredentials: true}).then(function (resp) {
 
+          $http.get(Session.url + "service_worker_check/?current_version="+window.current_version).then(function (data) {
+
+            if (data.data.reload) {
+              location.reload();
+            }
+          })
           resp = resp.data;
 
           if ((resp.message != "Fail") && resp.data.userId) {
@@ -84,22 +90,22 @@
               $state.go("app.Register");
             }
           } else {
-            
+
             $state.go("user.signin");
           }
 
           deferredStatus.resolve(resp.message);
-       
+
         }).catch(function(err){
 
             /*getloginStatus().then(function(resp){
               if((resp.message != "Fail") && resp.data.userId) {
-                 //TODO add the statusinto indexDb  
+                 //TODO add the statusinto indexDb
                  Session.set(resp.data);
                   if(resp.data.roles.permissions["setup_status"] == "true") {
                    $state.go("app.Register");
                   }
-                
+
                }else{
                  $state.go("user.signin");
                }

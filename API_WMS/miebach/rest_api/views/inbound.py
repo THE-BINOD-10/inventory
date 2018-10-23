@@ -973,11 +973,13 @@ def switches(request, user=''):
                        'auto_raise_stock_transfer': 'auto_raise_stock_transfer',
                        'inbound_supplier_invoice': 'inbound_supplier_invoice',
                        'invoice_based_payment_tracker': 'invoice_based_payment_tracker',
-                       'customer_dc': 'customer_dc', 
+                       'customer_dc': 'customer_dc',
                        'auto_expire_enq_limit': 'auto_expire_enq_limit',
                        'sales_return_reasons': 'sales_return_reasons',
+                       'central_order_mgmt': 'central_order_mgmt',
                        'receive_po_invoice_check': 'receive_po_invoice_check',
                        'mark_as_delivered': 'mark_as_delivered',
+                       'order_exceed_stock': 'order_exceed_stock',
                        'receive_po_mandatory_fields': 'receive_po_mandatory_fields'
                        }
         toggle_field, selection = "", ""
@@ -4076,7 +4078,7 @@ def insert_st(all_data, user):
 @csrf_exempt
 def confirm_stock_transfer(all_data, user, warehouse_name):
     for key, value in all_data.iteritems():
-        po_id = get_purchase_order_id(user)
+        po_id = get_purchase_order_id(user) + 1
         warehouse = User.objects.get(username__iexact=warehouse_name)
         stock_transfer_obj = StockTransfer.objects.filter(sku__user=warehouse.id).order_by('-order_id')
         if stock_transfer_obj:

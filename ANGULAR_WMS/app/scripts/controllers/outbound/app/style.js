@@ -9,6 +9,9 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
   var vm = this;
   vm.styleId = "";
   vm.tax_type = Session.roles.tax_type;
+  vm.central_order_mgmt = Session.roles.permissions.central_order_mgmt;
+  vm.order_exceed_stock = Boolean(Session.roles.permissions.order_exceed_stock);
+  vm.user_type = Session.roles.permissions.user_type;
   vm.service = Service;
   if($stateParams.styleId){
     vm.styleId = $stateParams.styleId;
@@ -74,6 +77,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
         vm.style_open = true;
         vm.check_stock=true;
         var style_data = data.data.data;
+        vm.sku_spl_attrs = data.data.sku_spl_attrs;
         var total_stocks = {};
         vm.charge_remarks = data.data.charge_remarks;
         vm.generic_wharehouse_level = data.data.gen_wh_level_status;
@@ -272,7 +276,13 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
 
   vm.style_total_quantity = 0;
   vm.change_style_quantity = function(data, row, index){
-    
+    if (Boolean(Session.roles.permissions.order_exceed_stock)) {
+      if ((row.all_quantity - row.blocked_quantity) < parseInt(row.quantity)) {
+        vm.service.showNoty("Order quantity can't exceed the stock available");
+        row.quantity = 0;//(row.all_quantity - row.blocked_quantity).toString();
+        return;
+      }
+    }
     if (Number(row.quantity) == 0) {
 
       row.unit_rate = row.org_price;

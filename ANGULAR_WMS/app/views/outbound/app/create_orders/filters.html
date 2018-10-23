@@ -1,7 +1,12 @@
-  <div class="toggle-filter" ng-if="showCase.showFilter">
-    <div class="toggle-header">
-      <span>Filters</span>
-      <span class="pull-right" ng-click="showCase.showFilter = false" style="cursor: pointer"> X </span>
+<style>
+  .filter-box{
+    cursor: pointer;
+  }
+</style>
+  <div class="toggle-filter" ng-if="showCase.showFilter" style="width:400px">
+    <div class="toggle-header" style="width:400px">
+      <span><b>Filters</b></span>
+      <span class="pull-right" ng-click="showCase.showFilter = false" style="cursor: pointer"> <b>X</b> </span>
     </div>
     <div class="toggle-body">
       <div class="filter-box" ng-if="permissions.user_type == 'customer'">
@@ -15,9 +20,9 @@
         </div>
       </div>
       <div class="filter-box">
-        <div class="box-header">
+        <div class="box-header" ng-click="showCase.brand_open = (showCase.brand_open)? false: true;">
           <span><b>Brands: </b>
-            <i class="fa fa-angle-down pull-right mr10" style="font-size: 20px;font-weight: 900;cursor:pointer" ng-class="(showCase.brand_open)? 'fa-angle-up': 'fa-angle-down'" ng-click="showCase.brand_open = (showCase.brand_open)? false: true;"></i>
+            <i class="fa fa-angle-down pull-right mr10" style="font-size: 20px;font-weight: 900" ng-class="(showCase.brand_open)? 'fa-angle-up': 'fa-angle-down'"></i>
           </span>
         </div>
         <div class="box-body" ng-if="showCase.brand_open">
@@ -27,9 +32,9 @@
       </div>
 
       <div class="filter-box">
-        <div class="box-header">
+        <div class="box-header" ng-click="showCase.category_open = (showCase.category_open)? false: true;">
           <span><b>Categories: </b></span>
-          <i class="fa fa-angle-down pull-right mr10" style="font-size: 20px;font-weight: 900;cursor:pointer" ng-class="(showCase.category_open)? 'fa-angle-up': 'fa-angle-down'" ng-click="showCase.category_open = (showCase.category_open)? false: true;"></i>
+          <i class="fa fa-angle-down pull-right mr10" style="font-size: 20px;font-weight: 900;" ng-class="(showCase.category_open)? 'fa-angle-up': 'fa-angle-down'"></i>
         </div>
         <div class="box-body" ng-if="showCase.category_open">
 
@@ -82,9 +87,9 @@
       </div>
 
       <div class="filter-box">
-        <div class="box-header">
+        <div class="box-header" ng-click="showCase.color_open = (showCase.color_open)? false: true;">
           <span><b>Colours: </b></span>
-          <i class="fa fa-angle-down pull-right mr10" style="font-size: 20px;font-weight: 900;cursor:pointer" ng-class="(showCase.color_open)? 'fa-angle-up': 'fa-angle-down'" ng-click="showCase.color_open = (showCase.color_open)? false: true;"></i>
+          <i class="fa fa-angle-down pull-right mr10" style="font-size: 20px;font-weight: 900;" ng-class="(showCase.color_open)? 'fa-angle-up': 'fa-angle-down'"></i>
         </div>
         <div class="box-body" ng-if="showCase.color_open">
             <span ng-repeat="color in showCase.filterData.colors"  ng-hide="!showCase.filterData.colorShow && $index > 5"><input type="checkbox" ng-model="showCase.filterData.selectedColors[color]" ng-click="showCase.checkFilters(color, showCase.filterData.selectedColors)">{{color}}</br></span>
@@ -93,10 +98,10 @@
       </div>
 
       <div class="filter-box">
-        <div class="box-header">
+        <div class="box-header" ng-click="showCase.price_open = (showCase.price_open)? false: true;">
           <span ng-if="showCase.priceband_sync"><b>MSP Ranges: </b></span>
           <span ng-if="!showCase.priceband_sync"><b>Price Ranges: </b></span>
-          <i class="fa fa-angle-down pull-right mr10" style="font-size: 20px;font-weight: 900;cursor:pointer" ng-class="(showCase.price_open)? 'fa-angle-up': 'fa-angle-down'" ng-click="showCase.price_open = (showCase.price_open)? false: true;"></i>
+          <i class="fa fa-angle-down pull-right mr10" style="font-size: 20px;font-weight: 900;cursor:pointer" ng-class="(showCase.price_open)? 'fa-angle-up': 'fa-angle-down'"></i>
         </div>
         <div class="box-body mt10" style="overflow: auto;" ng-if="showCase.price_open">
           <input type="number" class="form-control pull-left" style="width:70px" ng-model="showCase.filterData.fromPrice">
@@ -106,9 +111,9 @@
       </div>
 
       <div class="filter-box">
-        <div class="box-header">
+        <div class="box-header" ng-click="showCase.quantity_open = (showCase.quantity_open)? false: true;">
           <span><b>Quantity: </b></span>
-          <i class="fa fa-angle-down pull-right mr10" style="font-size: 20px;font-weight: 900;cursor:pointer" ng-class="(showCase.quantity_open)? 'fa-angle-up': 'fa-angle-down'" ng-click="showCase.quantity_open = (showCase.quantity_open)? false: true;"></i>
+          <i class="fa fa-angle-down pull-right mr10" style="font-size: 20px;font-weight: 900;" ng-class="(showCase.quantity_open)? 'fa-angle-up': 'fa-angle-down'"></i>
         </div>
         <div class="box-body mt10" style="overflow: auto;" ng-if="showCase.quantity_open">
           <input type="number" class="form-control pull-left" style="width:70px" ng-model="showCase.filterData.quantity">
@@ -116,9 +121,9 @@
       </div>
 
       <div class="filter-box">
-        <div class="box-header">
+        <div class="box-header" ng-click="showCase.d_date = (showCase.d_date)? false: true;">
           <span><b>Delivery Date: </b></span>
-          <i class="fa fa-angle-down pull-right mr10" style="font-size: 20px;font-weight: 900;cursor:pointer" ng-class="(showCase.d_date)? 'fa-angle-up': 'fa-angle-down'" ng-click="showCase.d_date = (showCase.d_date)? false: true;"></i>
+          <i class="fa fa-angle-down pull-right mr10" style="font-size: 20px;font-weight: 900" ng-class="(showCase.d_date)? 'fa-angle-up': 'fa-angle-down'"></i>
         </div>
         <div class="box-body mt10 filter_date" style="overflow: auto;" ng-if="showCase.d_date">
           <input type="text" ui-jq="datepicker" class="form-control stk-readonly pull-left" name="delivery_date" ng-model="showCase.filterData.delivery_date" id="delivery_date" ng-change="showCase.date_changed()" required data-date-today-highlight="true" data-date-autoclose="true" placeholder="Delivery Date" data-date-start-date="{{showCase.date}}">
@@ -126,9 +131,9 @@
       </div>
 
       <div class="filter-box" ng-if="showCase.filterData.brand_size_data.length > 0">
-        <div class="box-header">
+        <div class="box-header" ng-click="showCase.size_open = (showCase.size_open)? false: true;">
           <span><b>Sizes: </b></span>
-          <i class="fa fa-angle-down pull-right mr10" style="font-size: 20px;font-weight: 900;cursor:pointer" ng-class="(showCase.size_open)? 'fa-angle-up': 'fa-angle-down'" ng-click="showCase.size_open = (showCase.size_open)? false: true;"></i>
+          <i class="fa fa-angle-down pull-right mr10" style="font-size: 20px;font-weight: 900" ng-class="(showCase.size_open)? 'fa-angle-up': 'fa-angle-down'"></i>
         </div>
         <div class="box-body mt10" style="overflow: auto;" ng-if="showCase.size_open">
           <table class="table table-bordered filter-table">
@@ -147,6 +152,26 @@
           </table>
         </div>
       </div>
+
+      <!-- Dimensions start -->
+      <div class="filter-box" ng-if="showCase.filterData.dimensions.length > 0 && showCase.user_type == 'customer' && showCase.central_order_mgmt">
+        <div class="box-header">
+          <span><b>Dimensions: </b></span>
+          <i class="fa fa-angle-down pull-right mr10" style="font-size: 20px;font-weight: 900;cursor:pointer" ng-class="(showCase.dimension_open)? 'fa-angle-up': 'fa-angle-down'" ng-click="showCase.dimension_open = (showCase.dimension_open)? false: true;"></i>
+        </div>
+        <div class="box-body mt10" style="overflow: auto;" ng-if="showCase.dimension_open">
+          <table class="table table-bordered filter-table">
+            <tbody>
+              <tr ng-repeat="dimension in showCase.filterData.dimensions">
+                <td>{{dimension}}</td>
+                <td style="text-align:center"><input name="{{'from_'+dimension}}" class="form-control number" type="text" placeholder="From" ng-model="showCase.filterData.dimension_filter['from_'+dimension]"/></td>
+                <td style="text-align:center"><input name="{{'to_'+dimension}}" class="form-control number" type="text" placeholder="To" ng-model="showCase.filterData.dimension_filter['to_'+dimension]"/></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <!-- Dimensions end -->
       <div>
         <button type="button" class="btn btn-danger pull-right" ng-click="showCase.applyFilters();">Apply</button>
         <button type="button" class="btn btn-default pull-right mr10" ng-click="showCase.clearFilters();">Clear</button>

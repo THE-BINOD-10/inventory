@@ -6,6 +6,7 @@ from datetime import datetime
 from models import UserProfile, UserAccessTokens, AdminGroups, CustomerUserMapping
 from django.contrib.auth.models import User,Permission,Group
 from django.http import HttpResponse
+from django.contrib.auth import authenticate, login, logout as wms_logout
 from django.contrib.auth.decorators import login_required as django_login_required
 import re
 import json
@@ -107,6 +108,18 @@ def get_admin_user(f):
                 user = User.objects.get(id=user_id)
 
         kwargs['user'] = user
+        return f(request, *args, **kwargs)
+    wrap.__doc__ = f.__doc__
+    wrap.__name__ = f.__name__
+    return wrap
+
+
+def check_customer_user(f):
+    def wrap(request, *args, **kwargs):
+        if request.user.is_authenticated():
+            user_prof = UserProfile.objects.filter(user_id=request.user.id)
+            if user_prof and user_prof[0].user_type == 'customer':
+                wms_logout(request)
         return f(request, *args, **kwargs)
     wrap.__doc__ = f.__doc__
     wrap.__name__ = f.__name__

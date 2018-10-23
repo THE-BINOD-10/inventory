@@ -1332,15 +1332,17 @@ var app = angular.module('urbanApp')
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
               return $ocLazyLoad.load([
-                       'scripts/controllers/outbound/view_orders/custom_orders.js',
+                       // 'scripts/controllers/outbound/view_orders/custom_orders.js',
                        'scripts/controllers/outbound/view_orders/central_orders.js',
                        'scripts/controllers/outbound/view_orders/create_central_orders.js',
-                        ]).then( function() {
-                  return $ocLazyLoad.load([
+              ]).then( function() {
+                return $ocLazyLoad.load([
                     'scripts/controllers/outbound/view_orders/stock_transfer_orders.js'
                   ])
-                }).then(function () {
+              }).then(function () {
                 return $ocLazyLoad.load('scripts/controllers/outbound/view_orders/orders.js');
+              }).then(function () {
+                return $ocLazyLoad.load('scripts/controllers/outbound/view_orders/custom_orders.js');
               });
             }]
           },

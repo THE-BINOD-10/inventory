@@ -81,7 +81,7 @@ def update_inventory(company_name):
                                     continue
                                 arriving_date = datetime.datetime.strptime(asn_stock['By'], '%d-%b-%Y')
                                 quantity = int(asn_stock['Qty'])
-                                qc_quantity = int(floor(quantity*90/100))
+                                qc_quantity = int(floor(quantity*95/100))
                                 asn_stock_detail = ASNStockDetail.objects.filter(sku_id=sku.id, asn_po_num=po)
                                 if asn_stock_detail:
                                     asn_stock_detail = asn_stock_detail[0]

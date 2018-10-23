@@ -1003,7 +1003,7 @@ MAIL_REPORTS = {'sku_list': ['SKU List'], 'location_wise_stock': ['Location Wise
 MAIL_REPORTS_DATA = OrderedDict((('Raise PO', 'raise_po'), ('Receive PO', 'receive_po'), ('Orders', 'order'),
                                  ('Dispatch', 'dispatch'), ('Internal Mail', 'internal_mail'),
                                  ('Raise JO', 'raise_jo'), ('Stock Transfer Note', 'stock_transfer_note'),
-                                 ('Block Stock', 'enquiry'),
+                                 ('Block Stock', 'enquiry'), ('Central Orders', 'central_orders'),
                                  ))
 
 # Configurations
@@ -1800,9 +1800,12 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'display_sku_cust_mapping': 'display_sku_cust_mapping', 'disable_categories_view': 'disable_categories_view',
                         'is_portal_lite': 'is_portal_lite',
                         'show_purchase_history':'show_purchase_history', 'auto_raise_stock_transfer': 'auto_raise_stock_transfer',
+                        'inbound_supplier_invoice': 'inbound_supplier_invoice', 'customer_dc': 'customer_dc',
+                        'central_order_mgmt': 'central_order_mgmt',
                         'invoice_based_payment_tracker': 'invoice_based_payment_tracker',
                         'inbound_supplier_invoice': 'inbound_supplier_invoice', 'customer_dc': 'customer_dc',
                         'receive_po_invoice_check': 'receive_po_invoice_check', 'mark_as_delivered': 'mark_as_delivered',
+                        'order_exceed_stock': 'order_exceed_stock',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
@@ -2453,7 +2456,8 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'purchase_order__open_po__utgst_tax', 'purchase_order__open_po__cess_tax',
                          'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price', 'id',
                          'seller_po__receipt_type', 'receipt_number', 'batch_detail__buy_price',
-                         'batch_detail__tax_percent', 'invoice_number', 'invoice_date', 'challan_number', 'challan_date']
+                         'batch_detail__tax_percent', 'invoice_number', 'invoice_date', 'challan_number',
+                         'challan_date', 'discount_percent']
     else:
         unsorted_dict = {15: 'Pre-Tax Received Value', 26: 'Post-Tax Received Value',
                          27: 'Invoiced Unit Rate',
@@ -2493,7 +2497,8 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'purchase_order__open_po__utgst_tax', 'purchase_order__open_po__cess_tax',
                          'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price', 'id',
                          'seller_po__receipt_type', 'receipt_number', 'batch_detail__buy_price',
-                         'batch_detail__tax_percent', 'invoice_number', 'invoice_date', 'challan_number', 'challan_date'
+                         'batch_detail__tax_percent', 'invoice_number', 'invoice_date', 'challan_number',
+                         'challan_date', 'discount_percent'
                          ]
     excl_status = {'purchase_order__status': ''}
     ord_quan = 'quantity'
@@ -2574,11 +2579,11 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
             data['purchase_order__open_po__utgst_tax'] = 0
         if not data['purchase_order__open_po__cess_tax']:
             data['purchase_order__open_po__cess_tax'] = 0
-        amount = float(data['total_received'] * price)
+        amount = (float(data['total_received'] * price)) * float(data['discount_percent'])/100
         tot_tax = float(data['purchase_order__open_po__cgst_tax']) + float(data['purchase_order__open_po__sgst_tax']) +\
                   float(data['purchase_order__open_po__igst_tax']) + float(data['purchase_order__open_po__utgst_tax'])\
                     + float(data['purchase_order__open_po__cess_tax'])
-        aft_unit_price = float(price) + (float(price / 100) * tot_tax)
+        aft_unit_price = (float(price) + (float(price / 100) * tot_tax)) * float(data['discount_percent'])/100
         post_amount = aft_unit_price * float(data['total_received'])
         #seller_po_unit_price = data['seller_po__unit_price']
         #if not data['seller_po__unit_price']:
@@ -5628,4 +5633,41 @@ def get_grn_edit_filter_data(search_params, user, sub_user):
         if temp_data['aaData']:
             temp_data['aaData'] = apply_search_sort(temp_data['aaData'][0].keys(), temp_data['aaData'], order_term, '', col_num, exact=False)
         temp_data['aaData'] = temp_data['aaData'][start_index:stop_index]
+    return temp_data
+
+
+def print_sku_wise_data(search_params, user, sub_user):
+    from rest_api.views.common import get_sku_master
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    temp_data = copy.deepcopy(AJAX_DATA)
+    search_parameters = {}
+    cmp_data = ('sku_code', 'wms_code', 'sku_category', 'sku_type', 'sku_class')
+    for data in cmp_data:
+        if data in search_params:
+            search_parameters['%s__%s' % (data, 'icontains')] = search_params[data]
+
+    start_index = search_params.get('start', 0)
+    stop_index = start_index + search_params.get('length', 0)
+    search_parameters['user'] = user.id
+
+    sku_master = sku_master.filter(**search_parameters)
+    temp_data['recordsTotal'] = sku_master.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+
+    if stop_index:
+        sku_master = sku_master[start_index:stop_index]
+
+    stock_dict = dict(StockDetail.objects.exclude(location__zone__zone='DEFAULT').filter(sku__user=user.id).\
+                      values_list('sku_id').distinct().annotate(tsum=Sum('quantity')))
+    for data in sku_master:
+        print data.sku_code
+        total_quantity = stock_dict.get(data.id, 0)
+        # stock_data = StockDetail.objects.exclude(location__zone__zone='DEFAULT').filter(sku_id=data.id)
+        # for stock in stock_data:
+        #     total_quantity += int(stock.quantity)
+
+        temp_data['aaData'].append(OrderedDict((('SKU Code', data.sku_code), ('WMS Code', data.wms_code),
+                                                ('Product Description', data.sku_desc),
+                                                ('SKU Category', data.sku_category),
+                                                ('Total Quantity', total_quantity))))
     return temp_data

@@ -21,6 +21,7 @@ urlpatterns = [
     url(r'^load_demo_data/$', load_demo_data),
     url(r'^clear_demo_data/$', clear_demo_data),
     url(r'^save_webpush_id/', save_webpush_id),
+    url(r'^service_worker_check/', service_worker_check),
 
     # Dashboard
     url(r'^dashboard/$', dashboard),
@@ -288,6 +289,7 @@ urlpatterns = [
     url(r'^order_category_generate_picklist/$', order_category_generate_picklist),
     url(r'^get_customer_orders/$', get_customer_orders),
     url(r'^get_customer_order_detail/$', get_customer_order_detail),
+    url(r'^get_intermediate_order_detail/$', get_intermediate_order_detail),
     url(r'^generate_pdf_file/$', generate_pdf_file),
     url(r'^get_customer_cart_data/$', get_customer_cart_data),
     url(r'^insert_customer_cart_data/$', insert_customer_cart_data),
@@ -313,6 +315,7 @@ urlpatterns = [
     url(r'^move_enquiry_to_order/$', move_enquiry_to_order),
     url(r'^extend_enquiry_date/$', extend_enquiry_date),
     url(r'^order_cancel/$', order_cancel),
+    url(r'^intermediate_order_cancel/$', intermediate_order_cancel),
     url(r'^add_order_charges/$', add_order_charges),
     url(r'^place_manual_order/$', place_manual_order),
     url(r'^get_manual_enquiry_data/$', get_manual_enquiry_data),
@@ -337,6 +340,8 @@ urlpatterns = [
     url(r'^move_to_inv/$', move_to_inv),
     url(r'^update_dc/$', update_dc),
     url(r'^remove_sku/$', remove_sku),
+    url(r'^get_central_order_detail/$', get_central_order_detail),
+    url(r'^create_order_from_intermediate_order/$', create_order_from_intermediate_order),
     url(r'^get_stock_transfer_order_details/$', get_stock_transfer_order_details),
     url(r'^update_stock_transfer_data/$', update_stock_transfer_data),
     url(r'^stock_transfer_generate_picklist/$', stock_transfer_generate_picklist),
@@ -527,6 +532,7 @@ urlpatterns += [
     url(r'change_user_password/$', change_user_password),
     url(r'update_profile_data/$', update_profile_data),
     url(r'get_cust_profile_info/$', get_cust_profile_info),
+    url(r'get_linked_warehouse_names/$', get_linked_warehouse_names),
 
     # Retailone
     url(r'^get_marketplace_data/$', get_marketplace_data),

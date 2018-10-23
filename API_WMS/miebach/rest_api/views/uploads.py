@@ -5209,7 +5209,10 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                 index_status.setdefault(count, set()).add('Invalid Location')
             else:
                 try:
-                    user_obj = UserProfile.objects.get(user__username=location)
+                    sister_wh = get_sister_warehouse(user)
+                    user_obj = sister_wh.objects.filter(user=location)
+                    if not user_obj:
+                        index_status.setdefault(count, set()).add('Invalid Warehouse Location')
                 except:
                     index_status.setdefault(count, set()).add('Invalid Warehouse Location')
     if index_status and file_type == 'csv':
@@ -5246,10 +5249,10 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                 try:
                     cell_data = str(get_cell_data(row_idx, value, reader, file_type))
                     year, month, day, hour, minute, second = xldate_as_tuple(float(cell_data), 0)
-                    batch_date = datetime.datetime(year, month, day, hour, minute, second)
+                    key_value = datetime.datetime(year, month, day, hour, minute, second)
                 except:
-                    batch_date = datetime.datetime.now()
-                order_data['batch_date'] = batch_date
+                    key_value = datetime.datetime.now()
+                create_order_fields_entry(interm_order_id, key, key_value, user)
             elif key == 'branch_id':
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
                 create_order_fields_entry(interm_order_id, key, key_value, user)
@@ -5299,7 +5302,10 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
                 create_order_fields_entry(interm_order_id, key, key_value, user)
             elif key == 'sku_code':
-                value = str(get_cell_data(row_idx, value, reader, file_type))
+                try:
+                    value = str(int(get_cell_data(row_idx, value, reader, file_type)))
+                except:
+                    value = str(get_cell_data(row_idx, value, reader, file_type))
                 sku_data = SKUMaster.objects.filter(wms_code=value, user=user.id)
                 if sku_data:
                     order_data['sku'] = sku_data[0]
@@ -5319,7 +5325,8 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                 create_order_fields_entry(interm_order_id, key, key_value, user)
             elif key == 'location':
                 value = str(get_cell_data(row_idx, value, reader, file_type))
-                user_obj = UserProfile.objects.filter(user__username=value)
+                sister_wh = get_sister_warehouse(user)
+                user_obj = sister_wh.objects.filter(user=value)
                 if user_obj:
                     order_data['order_assigned_wh'] = user_obj[0].user
         try:

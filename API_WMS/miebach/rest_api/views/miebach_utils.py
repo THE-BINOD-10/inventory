@@ -2579,11 +2579,15 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
             data['purchase_order__open_po__utgst_tax'] = 0
         if not data['purchase_order__open_po__cess_tax']:
             data['purchase_order__open_po__cess_tax'] = 0
-        amount = (float(data['total_received'] * price)) * float(data['discount_percent'])/100
+        amount = float(data['total_received'] * price)
+        if data['discount_percent']:
+            amount = amount * float(data['discount_percent'])/100
         tot_tax = float(data['purchase_order__open_po__cgst_tax']) + float(data['purchase_order__open_po__sgst_tax']) +\
                   float(data['purchase_order__open_po__igst_tax']) + float(data['purchase_order__open_po__utgst_tax'])\
                     + float(data['purchase_order__open_po__cess_tax'])
-        aft_unit_price = (float(price) + (float(price / 100) * tot_tax)) * float(data['discount_percent'])/100
+        aft_unit_price = float(price) + (float(price / 100) * tot_tax)
+        if data['discount_percent']:
+            aft_unit_price = aft_unit_price * float(data['discount_percent'])/100
         post_amount = aft_unit_price * float(data['total_received'])
         #seller_po_unit_price = data['seller_po__unit_price']
         #if not data['seller_po__unit_price']:

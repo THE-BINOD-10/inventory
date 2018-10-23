@@ -5203,6 +5203,19 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
             sku_master = SKUMaster.objects.filter(user=user.id, sku_code=sku_id)
             if not sku_master:
                 index_status.setdefault(count, set()).add('Invalid SKU Code')
+        if order_mapping.has_key('original_order_id'):
+            try:
+                original_order_id = str(int(get_cell_data(row_idx, order_mapping['original_order_id'], reader, file_type)))
+            except:
+                original_order_id = str(get_cell_data(row_idx, order_mapping['original_order_id'], reader, file_type))
+            order_fields_obj = OrderFields.objects.filter(user=user.id, name='original_order_id',
+                value=original_order_id, order_type = 'intermediate_order')
+            if order_fields_obj:
+                index_status.setdefault(count, set()).add('Order ID already present')
+            else:
+                order_detail_obj = OrderDetail.objects.filter(user=user.id, original_order_id=original_order_id)
+                if order_detail_obj:
+                    index_status.setdefault(count, set()).add('Order ID already present')
         if order_mapping.has_key('location'):
             location = get_cell_data(row_idx, order_mapping['location'], reader, file_type)
             if not location:

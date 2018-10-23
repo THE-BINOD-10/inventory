@@ -720,6 +720,7 @@ def print_po_reports(request, user=''):
                     utgst_tax = open_data.utgst_tax
                     cess_tax = open_data.cess_tax
                     gst_tax = cgst_tax + sgst_tax + igst_tax + utgst_tax + cess_tax
+                    discount = seller_summary_obj.discount_percent
                     if seller_summary_obj.batch_detail:
                         price = seller_summary_obj.batch_detail.buy_price
                         temp_tax_percent = seller_summary_obj.batch_detail.tax_percent
@@ -734,7 +735,7 @@ def print_po_reports(request, user=''):
                             sgst_tax = 0
                         gst_tax = cgst_tax + sgst_tax + igst_tax + utgst_tax + cess_tax
                     grouping_key = '%s:%s' % (str(open_data.sku.sku_code), str(price))
-                    amount = float(quantity) * float(price)
+                    amount = (float(quantity) * float(price)) * float(discount)/100
                     if gst_tax:
                         amount += (amount / 100) * gst_tax
                     grouped_data.setdefault(grouping_key, [open_data.sku.wms_code, open_data.order_quantity, 0,

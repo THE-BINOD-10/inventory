@@ -2452,7 +2452,8 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'purchase_order__open_po__utgst_tax', 'purchase_order__open_po__cess_tax',
                          'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price', 'id',
                          'seller_po__receipt_type', 'receipt_number', 'batch_detail__buy_price',
-                         'batch_detail__tax_percent', 'invoice_number', 'invoice_date', 'challan_number', 'challan_date']
+                         'batch_detail__tax_percent', 'invoice_number', 'invoice_date', 'challan_number',
+                         'challan_date', 'discount_percent']
     else:
         unsorted_dict = {15: 'Pre-Tax Received Value', 26: 'Post-Tax Received Value',
                          27: 'Invoiced Unit Rate',
@@ -2492,7 +2493,8 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'purchase_order__open_po__utgst_tax', 'purchase_order__open_po__cess_tax',
                          'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price', 'id',
                          'seller_po__receipt_type', 'receipt_number', 'batch_detail__buy_price',
-                         'batch_detail__tax_percent', 'invoice_number', 'invoice_date', 'challan_number', 'challan_date'
+                         'batch_detail__tax_percent', 'invoice_number', 'invoice_date', 'challan_number',
+                         'challan_date', 'discount_percent'
                          ]
     excl_status = {'purchase_order__status': ''}
     ord_quan = 'quantity'
@@ -2573,11 +2575,11 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
             data['purchase_order__open_po__utgst_tax'] = 0
         if not data['purchase_order__open_po__cess_tax']:
             data['purchase_order__open_po__cess_tax'] = 0
-        amount = float(data['total_received'] * price)
+        amount = (float(data['total_received'] * price)) * float(data['discount_percent'])/100
         tot_tax = float(data['purchase_order__open_po__cgst_tax']) + float(data['purchase_order__open_po__sgst_tax']) +\
                   float(data['purchase_order__open_po__igst_tax']) + float(data['purchase_order__open_po__utgst_tax'])\
                     + float(data['purchase_order__open_po__cess_tax'])
-        aft_unit_price = float(price) + (float(price / 100) * tot_tax)
+        aft_unit_price = (float(price) + (float(price / 100) * tot_tax)) * float(data['discount_percent'])/100
         post_amount = aft_unit_price * float(data['total_received'])
         #seller_po_unit_price = data['seller_po__unit_price']
         #if not data['seller_po__unit_price']:

@@ -241,7 +241,9 @@ def get_order_mapping1(reader, file_type, no_of_rows, no_of_cols):
 
 def get_order_mapping(reader, file_type):
     order_mapping = {}
-    if get_cell_data(0, 2, reader, file_type) == 'Channel' and get_cell_data(0, 6, reader,
+    if get_cell_data(0, 0, reader, file_type) == 'Central Order ID':
+        order_mapping = copy.deepcopy(CENTRAL_ORDER_EXCEL)
+    elif get_cell_data(0, 2, reader, file_type) == 'Channel' and get_cell_data(0, 6, reader,
                                                                              file_type) == 'Fulfillment TAT':
         order_mapping = copy.deepcopy(UNI_COMMERCE_EXCEL)
     elif get_cell_data(0, 0, reader, file_type) == 'Order No.' and get_cell_data(0, 1, reader,
@@ -336,7 +338,6 @@ def get_order_mapping(reader, file_type):
     elif get_cell_data(0, 0, reader, file_type) == 'OrderNo' and get_cell_data(0, 5, reader,
                                                                                file_type) == 'BuyerAccountOrganizationName':
         order_mapping = copy.deepcopy(ALPHA_ACE_ORDER_EXCEL)
-
     return order_mapping
 
 
@@ -5154,3 +5155,206 @@ def sku_substitution_upload(request, user=''):
                                  data_dict['dest_quantity'],user, data_dict.get('seller_master_id', ''),
                                  data_dict['source_updated'], mrp_dict)
     return HttpResponse('Success')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def central_order_form(request, user=''):
+    central_order_file = request.GET['download-file']
+    if central_order_file:
+        return error_file_download(central_order_file)
+    wb, ws = get_work_sheet('central_order_form', CENTRAL_ORDER_MAPPING.keys())
+    return xls_to_response(wb, '%s.central_order_form.xls' % str(user.id))
+
+def create_order_fields_entry(interm_order_id, name, value, user):
+    order_fields_data = {}
+    order_fields_data['original_order_id'] = interm_order_id
+    order_fields_data['name'] = name
+    order_fields_data['value'] = value
+    order_fields_data['user'] = user.id
+    order_fields_data['order_type'] = 'intermediate_order'
+    order_fields_obj = OrderFields.objects.create(**order_fields_data)
+
+
+def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
+    log.info("order upload started")
+    st_time = datetime.datetime.now()
+    index_status = {}
+    order_mapping = get_order_mapping(reader, file_type)
+    if not order_mapping:
+        return "Headers not matching"
+    count = 0
+    exclude_rows = []
+    sku_masters_dict = {}
+    order_id_order_type = {}
+    order_data = {}
+    log.info("Validation Started %s" % datetime.datetime.now())
+    log.info("Order data Processing Started %s" % (datetime.datetime.now()))
+    for row_idx in range(1, no_of_rows):
+        if not order_mapping:
+            break
+        count += 1
+        if order_mapping.has_key('sku_code'):
+            try:
+                sku_id = str(int(get_cell_data(row_idx, order_mapping['sku_code'], reader, file_type)))
+            except:
+                sku_id = str(get_cell_data(row_idx, order_mapping['sku_code'], reader, file_type))
+            sku_master = SKUMaster.objects.filter(user=user.id, sku_code=sku_id)
+            if not sku_master:
+                index_status.setdefault(count, set()).add('Invalid SKU Code')
+        if order_mapping.has_key('location'):
+            location = get_cell_data(row_idx, order_mapping['location'], reader, file_type)
+            if not location:
+                index_status.setdefault(count, set()).add('Invalid Location')
+            else:
+                try:
+                    sister_wh = get_sister_warehouse(user)
+                    user_obj = sister_wh.objects.filter(user=location)
+                    if not user_obj:
+                        index_status.setdefault(count, set()).add('Invalid Warehouse Location')
+                except:
+                    index_status.setdefault(count, set()).add('Invalid Warehouse Location')
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name
+    order_amount = 0
+    interm_order_id = ''
+    for row_idx in range(1, no_of_rows):
+        order_data = copy.deepcopy(CENTRAL_ORDER_XLS_UPLOAD)
+        order_data['user'] = user
+        for key, value in order_mapping.iteritems():
+            order_fields_data = {}
+            if key == 'original_order_id':
+                order_id = get_cell_data(row_idx, value, reader, file_type)
+                get_interm_order_id = IntermediateOrders.objects.all().aggregate(Max('interm_order_id'))
+                if get_interm_order_id:
+                    interm_order_id = get_interm_order_id['interm_order_id__max'] + 1
+                else:
+                    interm_order_id = 10000
+                order_data['interm_order_id'] = interm_order_id
+            elif key == 'batch_number':
+                key_value = str(get_cell_data(row_idx, value, reader, file_type))
+                create_order_fields_entry(interm_order_id, key, key_value, user)
+            elif key == 'batch_date':
+                try:
+                    cell_data = str(get_cell_data(row_idx, value, reader, file_type))
+                    year, month, day, hour, minute, second = xldate_as_tuple(float(cell_data), 0)
+                    key_value = datetime.datetime(year, month, day, hour, minute, second)
+                except:
+                    key_value = datetime.datetime.now()
+                create_order_fields_entry(interm_order_id, key, key_value, user)
+            elif key == 'branch_id':
+                key_value = str(get_cell_data(row_idx, value, reader, file_type))
+                create_order_fields_entry(interm_order_id, key, key_value, user)
+            elif key == 'branch_name':
+                key_value = str(get_cell_data(row_idx, value, reader, file_type))
+                create_order_fields_entry(interm_order_id, key, key_value, user)
+            elif key == 'loan_proposal_id':
+                key_value = str(get_cell_data(row_idx, value, reader, file_type))
+                create_order_fields_entry(interm_order_id, key, key_value, user)
+            elif key == 'loan_proposal_code':
+                key_value = str(get_cell_data(row_idx, value, reader, file_type))
+                create_order_fields_entry(interm_order_id, key, key_value, user)
+            elif key == 'client_code':
+                key_value = str(get_cell_data(row_idx, value, reader, file_type))
+                create_order_fields_entry(interm_order_id, key, key_value, user)
+            elif key == 'client_id':
+                key_value = str(get_cell_data(row_idx, value, reader, file_type))
+                create_order_fields_entry(interm_order_id, key, key_value, user)
+            elif key == 'customer_name':
+                order_data['customer_name'] = get_cell_data(row_idx, value, reader, file_type)
+                order_data['customer_id'] = 0
+            elif key == 'address1':
+                key_value = str(get_cell_data(row_idx, value, reader, file_type))
+                create_order_fields_entry(interm_order_id, key, key_value, user)
+            elif key == 'address2':
+                key_value = str(get_cell_data(row_idx, value, reader, file_type))
+                create_order_fields_entry(interm_order_id, key, key_value, user)
+            elif key == 'landmark':
+                key_value = str(get_cell_data(row_idx, value, reader, file_type))
+                create_order_fields_entry(interm_order_id, key, key_value, user)
+            elif key == 'village':
+                key_value = str(get_cell_data(row_idx, value, reader, file_type))
+                create_order_fields_entry(interm_order_id, key, key_value, user)
+            elif key == 'district':
+                key_value = str(get_cell_data(row_idx, value, reader, file_type))
+                create_order_fields_entry(interm_order_id, key, key_value, user)
+            elif key == 'state':
+                key_value = str(get_cell_data(row_idx, value, reader, file_type))
+                create_order_fields_entry(interm_order_id, key, key_value, user)
+            elif key == 'pincode':
+                key_value = str(get_cell_data(row_idx, value, reader, file_type))
+                create_order_fields_entry(interm_order_id, key, key_value, user)
+            elif key == 'mobile_number':
+                key_value = str(get_cell_data(row_idx, value, reader, file_type))
+                create_order_fields_entry(interm_order_id, key, key_value, user)
+            elif key == 'alternative_mobile_number':
+                key_value = str(get_cell_data(row_idx, value, reader, file_type))
+                create_order_fields_entry(interm_order_id, key, key_value, user)
+            elif key == 'sku_code':
+                try:
+                    value = str(int(get_cell_data(row_idx, value, reader, file_type)))
+                except:
+                    value = str(get_cell_data(row_idx, value, reader, file_type))
+                sku_data = SKUMaster.objects.filter(wms_code=value, user=user.id)
+                if sku_data:
+                    order_data['sku'] = sku_data[0]
+            elif key == 'model':
+                key_value = str(get_cell_data(row_idx, value, reader, file_type))
+                create_order_fields_entry(interm_order_id, key, key_value, user)
+            elif key == 'unit_price':
+                order_data['unit_price'] = float(get_cell_data(row_idx, value, reader, file_type))
+            elif key == 'cgst':
+                order_data['cgst_tax'] = float(get_cell_data(row_idx, value, reader, file_type))
+            elif key == 'sgst':
+                order_data['sgst_tax'] = float(get_cell_data(row_idx, value, reader, file_type))
+            elif key == 'igst':
+                order_data['igst_tax'] = float(get_cell_data(row_idx, value, reader, file_type))
+            elif key == 'total_price':
+                key_value = float(get_cell_data(row_idx, value, reader, file_type))
+                create_order_fields_entry(interm_order_id, key, key_value, user)
+            elif key == 'location':
+                value = str(get_cell_data(row_idx, value, reader, file_type))
+                sister_wh = get_sister_warehouse(user)
+                user_obj = sister_wh.objects.filter(user=value)
+                if user_obj:
+                    order_data['order_assigned_wh'] = user_obj[0].user
+        try:
+            IntermediateOrders.objects.create(**order_data)
+        except:
+            pass
+    return 'success'
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def central_order_upload(request, user=''):
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+        upload_status = central_order_xls_upload(request, reader, user, no_of_rows, fname, 
+            file_type=file_type, no_of_cols=no_of_cols)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Order Upload failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse("Order Upload Failed")
+    if not upload_status == 'success':
+        return HttpResponse(upload_status)
+
+    return HttpResponse('Success')
+

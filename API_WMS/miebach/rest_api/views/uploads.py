@@ -1302,6 +1302,8 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                 data_set = wms_data
                 data_type = 'WMS'
                 sku_code = cell_data
+                if isinstance(cell_data, float):
+                    sku_code = str(int(cell_data))
                 # index_status = check_duplicates(data_set, data_type, cell_data, index_status, row_idx)
                 if not cell_data:
                     index_status.setdefault(row_idx, set()).add('WMS Code missing')
@@ -1322,19 +1324,22 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                         #    index_status.setdefault(row_idx, set()).add('Zone should not be empty')
             elif key == 'ean_number':
                 if cell_data:
-                    ean_numbers = str(cell_data).split(',')
-                    error_eans = []
-                    for ean in ean_numbers:
-                        try:
+                    try:
+                        if ',' in str(cell_data):
+                            ean_numbers = str(cell_data).split(',')
+                        else:
+                            ean_numbers = [int(cell_data)]
+                        error_eans = []
+                        for ean in ean_numbers:
                             ean = int(float(ean))
                             ean_status, mapping_check = check_ean_number(sku_code, ean, user)
                             if ean_status:
                                 error_eans.append(str(ean))
-                        except:
-                            index_status.setdefault(row_idx, set()).add('EAN must be integer')
-                    if error_eans:
-                        ean_error_msg = '%s EAN Numbers already mapped to Other SKUS' % ','.join(error_eans)
-                        index_status.setdefault(row_idx, set()).add(ean_error_msg)
+                        if error_eans:
+                            ean_error_msg = '%s EAN Numbers already mapped to Other SKUS' % ','.join(error_eans)
+                            index_status.setdefault(row_idx, set()).add(ean_error_msg)
+                    except:
+                        index_status.setdefault(row_idx, set()).add('EAN must be integer')
 
             elif key == 'hsn_code':
                 if cell_data:
@@ -1570,7 +1575,10 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                 data_dict[key] = cell_data
             elif key == 'ean_number':
                 if cell_data:
-                    ean_numbers = str(cell_data).split(',')
+                    if ',' in str(cell_data):
+                        ean_numbers = str(cell_data).split(',')
+                    else:
+                        ean_numbers = [str(int(cell_data))]
             elif cell_data:
                 data_dict[key] = cell_data
                 if sku_data:
@@ -1596,7 +1604,7 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
             update_sku_attributes_data(sku_data, attr_key, attr_val)
 
         if ean_numbers:
-            update_ean_sku_mapping(user, ean_numbers, sku_data)
+            update_ean_sku_mapping(user, ean_numbers, sku_data, remove_existing=True)
     # get_user_sku_data(user)
     insert_update_brands(user)
 

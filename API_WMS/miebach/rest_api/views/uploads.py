@@ -4407,7 +4407,7 @@ def create_po_serial_mapping(final_data_dict, user):
         open_po_obj.save()
         order_id = order_id_dict.get(po_details['supplier_id'], '')
         if not order_id:
-            order_id = get_purchase_order_id(user)
+            order_id = get_purchase_order_id(user) + 1
             order_id_dict[po_details['supplier_id']] = order_id
         purchase_order_dict = {'open_po_id': open_po_obj.id, 'received_quantity': quantity, 'saved_quantity': 0,
                                'po_date': NOW, 'status': po_details['status'], 'prefix': user_profile.prefix,

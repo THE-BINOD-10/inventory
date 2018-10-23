@@ -4219,7 +4219,7 @@ def insert_order_data(request, user=''):
     courier_name = request.POST.get('courier_name', '')
     order_discount = request.POST.get('order_discount', 0)
     dist_shipment_address = request.POST.get('manual_shipment_addr', '')
-    vechile_number = request.POST.get('vechile_num', '')
+    vehicle_number = request.POST.get('vehicle_num', '')
     is_central_order = request.POST.get('is_central_order', '')
     if dist_shipment_address:
         ship_to = dist_shipment_address
@@ -4286,7 +4286,7 @@ def insert_order_data(request, user=''):
             order_summary_dict['client_name'] = sample_client_name
             order_summary_dict['mode_of_transport'] = mode_of_transport
             order_summary_dict['payment_status'] = payment_status
-            order_summary_dict['vechile_number'] = vechile_number
+            order_summary_dict['vehicle_number'] = vehicle_number
             if order_discount:
                 order_summary_dict.setdefault('discount', 0)
                 order_summary_dict['discount'] = order_summary_dict['discount'] + \
@@ -4320,8 +4320,8 @@ def insert_order_data(request, user=''):
                             order_data.pop('el_price')
                         if 'del_date' in order_data:
                             order_data.pop('del_date')
-                        if 'vechile_num' in order_data:
-                            order_data.pop('vechile_num')
+                        if 'vehicle_num' in order_data:
+                            order_data.pop('vehicle_num')
                         order_data['sku_id'] = mapped_sku_id
                         order_obj = OrderDetail(**order_data)
                         order_obj.save()
@@ -4442,8 +4442,8 @@ def insert_order_data(request, user=''):
                         order_data.pop('el_price')
                     if 'del_date' in order_data:
                         order_data.pop('del_date')
-                    if 'vechile_num' in order_data:
-                        order_data.pop('vechile_num')
+                    if 'vehicle_num' in order_data:
+                        order_data.pop('vehicle_num')
                     order_detail = OrderDetail(**order_data)
                     order_detail.save()
                     created_order_objs.append(order_detail)

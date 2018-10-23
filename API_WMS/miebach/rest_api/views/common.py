@@ -2827,7 +2827,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 cess_tax = order_summary[0].cess_tax
                 invoice_header = order_summary[0].invoice_type
                 mode_of_transport = order_summary[0].mode_of_transport
-                vechile_number = order_summary[0].vechile_number
+                vehicle_number = order_summary[0].vehicle_number
                 if order_summary[0].invoice_date:
                     invoice_date = order_summary[0].invoice_date
             total_tax += float(tax)
@@ -3001,7 +3001,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'order_reference_date_field': order_reference_date_field,
                     'order_reference_date': order_reference_date, 'invoice_header': invoice_header,
                     'cin_no': cin_no, 'challan_no': challan_no, 'customer_id': customer_id,
-                    'show_mrp': show_mrp, 'mode_of_transport' : mode_of_transport, 'vechile_number' : vechile_number}
+                    'show_mrp': show_mrp, 'mode_of_transport' : mode_of_transport, 'vehicle_number' : vehicle_number}
     return invoice_data
 
 

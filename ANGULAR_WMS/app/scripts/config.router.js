@@ -888,6 +888,20 @@ var app = angular.module('urbanApp')
             title: 'Supplier Invoice',
           }
         })
+        .state('app.inbound.GrnEdit', {
+          url: '/GrnEdit',
+          templateUrl: 'views/inbound/grn_edit.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                    'scripts/controllers/inbound/grn_edit.js'
+                ])
+            }]
+          },
+          data: {
+            title: 'GRN Edit',
+          }
+        })
         .state('app.inbound.SupplierInvoice.InvoiceM', {
             url: '/InvoiceM',
             templateUrl: 'views/inbound/print/supplier_inv.html'
@@ -924,21 +938,6 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'Auto Back Orders',
-          }
-        })
-
-        .state('app.inbound.GrnEdit', {
-          url: '/GrnEdit',
-          templateUrl: 'views/inbound/grn_edit.html',
-          resolve: {
-            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load([
-                    'scripts/controllers/inbound/grn_edit.js'
-                ])
-            }]
-          },
-          data: {
-            title: 'GRN Edit',
           }
         })
         .state('app.inbound.GrnEdit.GrnEditPopup', {
@@ -1333,15 +1332,17 @@ var app = angular.module('urbanApp')
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
               return $ocLazyLoad.load([
-                       'scripts/controllers/outbound/view_orders/custom_orders.js',
+                       // 'scripts/controllers/outbound/view_orders/custom_orders.js',
                        'scripts/controllers/outbound/view_orders/central_orders.js',
                        'scripts/controllers/outbound/view_orders/create_central_orders.js',
-                        ]).then( function() {
-                  return $ocLazyLoad.load([
+              ]).then( function() {
+                return $ocLazyLoad.load([
                     'scripts/controllers/outbound/view_orders/stock_transfer_orders.js'
                   ])
-                }).then(function () {
+              }).then(function () {
                 return $ocLazyLoad.load('scripts/controllers/outbound/view_orders/orders.js');
+              }).then(function () {
+                return $ocLazyLoad.load('scripts/controllers/outbound/view_orders/custom_orders.js');
               });
             }]
           },

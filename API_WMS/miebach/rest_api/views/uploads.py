@@ -5248,13 +5248,17 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
         for key, value in order_mapping.iteritems():
             order_fields_data = {}
             if key == 'original_order_id':
-                order_id = get_cell_data(row_idx, value, reader, file_type)
+                try:
+                    order_id = str(int(get_cell_data(row_idx, value, reader, file_type)))
+                except:
+                    order_id = str(get_cell_data(row_idx, value, reader, file_type))
                 get_interm_order_id = IntermediateOrders.objects.all().aggregate(Max('interm_order_id'))
                 if get_interm_order_id:
                     interm_order_id = get_interm_order_id['interm_order_id__max'] + 1
                 else:
                     interm_order_id = 10000
                 order_data['interm_order_id'] = interm_order_id
+                create_order_fields_entry(interm_order_id, key, order_id, user)
             elif key == 'batch_number':
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
                 create_order_fields_entry(interm_order_id, key, key_value, user)

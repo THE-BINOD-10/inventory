@@ -241,7 +241,6 @@ def get_order_mapping1(reader, file_type, no_of_rows, no_of_cols):
 
 def get_order_mapping(reader, file_type):
     order_mapping = {}
-    import pdb;pdb.set_trace()
     if get_cell_data(0, 0, reader, file_type) == 'Central Order ID':
         order_mapping = copy.deepcopy(CENTRAL_ORDER_EXCEL)
     elif get_cell_data(0, 2, reader, file_type) == 'Channel' and get_cell_data(0, 6, reader,
@@ -5192,15 +5191,44 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
     order_data = {}
     log.info("Validation Started %s" % datetime.datetime.now())
     log.info("Order data Processing Started %s" % (datetime.datetime.now()))
+    for row_idx in range(1, no_of_rows):
+        if not order_mapping:
+            break
+        count += 1
+        if order_mapping.has_key('sku_code'):
+            try:
+                sku_id = str(int(get_cell_data(row_idx, order_mapping['sku_code'], reader, file_type)))
+            except:
+                sku_id = str(get_cell_data(row_idx, order_mapping['sku_code'], reader, file_type))
+            sku_master = SKUMaster.objects.filter(user=user.id, sku_code=sku_id)
+            if not sku_master:
+                index_status.setdefault(count, set()).add('Invalid SKU Code')
+        if order_mapping.has_key('location'):
+            location = get_cell_data(row_idx, order_mapping['location'], reader, file_type)
+            if not location:
+                index_status.setdefault(count, set()).add('Invalid Location')
+            else:
+                try:
+                    user_obj = UserProfile.objects.get(user__username=location)
+                except:
+                    index_status.setdefault(count, set()).add('Invalid Warehouse Location')
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name
     order_amount = 0
     interm_order_id = ''
-    CENTRAL_ORDER_XLS_UPLOAD = {'user': user, 
-    'interm_order_id': '', 'sku': '', 'quantity': 1, 'unit_price': 0, 
-    'tax': 0, 'inter_state': 0, 'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0,
-    'status': 0, 'project_name': '', 'remarks': '', 'customer_id': 0, 
-    'customer_name': '', 'shipment_date': datetime.datetime.now()}
     for row_idx in range(1, no_of_rows):
         order_data = copy.deepcopy(CENTRAL_ORDER_XLS_UPLOAD)
+        order_data['user'] = user
         for key, value in order_mapping.iteritems():
             order_fields_data = {}
             if key == 'original_order_id':
@@ -5214,35 +5242,32 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
             elif key == 'batch_number':
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
                 create_order_fields_entry(interm_order_id, key, key_value, user)
-                #order_fields[key] = get_cell_data(row_idx, value, reader, file_type)
             elif key == 'batch_date':
-                key_value = str(get_cell_data(row_idx, value, reader, file_type))
-                create_order_fields_entry(interm_order_id, key, key_value, user)
-                #order_data[key] = get_cell_data(row_idx, value, reader, file_type)
+                try:
+                    cell_data = str(get_cell_data(row_idx, value, reader, file_type))
+                    year, month, day, hour, minute, second = xldate_as_tuple(float(cell_data), 0)
+                    batch_date = datetime.datetime(year, month, day, hour, minute, second)
+                except:
+                    batch_date = datetime.datetime.now()
+                order_data['batch_date'] = batch_date
             elif key == 'branch_id':
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
                 create_order_fields_entry(interm_order_id, key, key_value, user)
-                #order_data[key] = get_cell_data(row_idx, value, reader, file_type)
             elif key == 'branch_name':
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
                 create_order_fields_entry(interm_order_id, key, key_value, user)
-                #order_data[key] = get_cell_data(row_idx, value, reader, file_type)
             elif key == 'loan_proposal_id':
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
                 create_order_fields_entry(interm_order_id, key, key_value, user)
-                #order_data[key] = get_cell_data(row_idx, value, reader, file_type)
             elif key == 'loan_proposal_code':
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
                 create_order_fields_entry(interm_order_id, key, key_value, user)
-                #order_data[key] = get_cell_data(row_idx, value, reader, file_type)
             elif key == 'client_code':
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
                 create_order_fields_entry(interm_order_id, key, key_value, user)
-                #order_data[key] = get_cell_data(row_idx, value, reader, file_type)
             elif key == 'client_id':
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
                 create_order_fields_entry(interm_order_id, key, key_value, user)
-                #order_data[key] = get_cell_data(row_idx, value, reader, file_type)
             elif key == 'customer_name':
                 order_data['customer_name'] = get_cell_data(row_idx, value, reader, file_type)
                 order_data['customer_id'] = 0
@@ -5296,8 +5321,11 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                 value = str(get_cell_data(row_idx, value, reader, file_type))
                 user_obj = UserProfile.objects.filter(user__username=value)
                 if user_obj:
-                    order_data['order_assigned_wh'] = user_obj
-        IntermediateOrders.objects.create(**order_data)
+                    order_data['order_assigned_wh'] = user_obj[0].user
+        try:
+            IntermediateOrders.objects.create(**order_data)
+        except:
+            pass
     return 'success'
 
 

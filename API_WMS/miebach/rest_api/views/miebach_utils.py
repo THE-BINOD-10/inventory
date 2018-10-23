@@ -1270,6 +1270,11 @@ CENTRAL_ORDER_EXCEL = OrderedDict((
                              ('total_price', 25), ('location', 26)
                            ))
 
+CENTRAL_ORDER_XLS_UPLOAD = {'interm_order_id': '', 'sku': '', 'quantity': 1, 
+              'unit_price': 0, 'tax': 0, 'inter_state': 0, 'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 
+              'utgst_tax': 0, 'status': 0, 'project_name': '', 'remarks': '', 'customer_id': 0, 
+              'customer_name': '', 'shipment_date': datetime.datetime.now()}
+
 # End of Order File Upload Templates
 
 # Download Excel Report Mapping

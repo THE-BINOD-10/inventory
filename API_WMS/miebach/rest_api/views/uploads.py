@@ -5210,7 +5210,7 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
             else:
                 try:
                     sister_wh = get_sister_warehouse(user)
-                    user_obj = sister_wh.objects.filter(user=location)
+                    user_obj = sister_wh.filter(user__username=location)
                     if not user_obj:
                         index_status.setdefault(count, set()).add('Invalid Warehouse Location')
                 except:
@@ -5326,7 +5326,7 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
             elif key == 'location':
                 value = str(get_cell_data(row_idx, value, reader, file_type))
                 sister_wh = get_sister_warehouse(user)
-                user_obj = sister_wh.objects.filter(user=value)
+                user_obj = sister_wh.filter(user__username=value)
                 if user_obj:
                     order_data['order_assigned_wh'] = user_obj[0].user
         try:

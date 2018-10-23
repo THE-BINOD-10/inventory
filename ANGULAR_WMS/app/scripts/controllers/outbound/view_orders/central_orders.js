@@ -285,10 +285,10 @@ var vm = this;
       // vm.warehouse_list_len = vm.model_data.data.length
       if (index==vm.model_data.data.length-1 && !flag || !index && flag) {
         if (flag) {
-          vm.model_data.data.push([{"sel_warehouse":"", "wh_available":"", "wh_quantity":""}]);
+          vm.model_data.data.push({"sel_warehouse":"", "wh_available":"", "wh_quantity":""});
         } else {
           $scope.$apply(function() {
-            vm.model_data.data.push([{"sel_warehouse":"", "wh_available":"", "wh_quantity":""}]);
+            vm.model_data.data.push({"sel_warehouse":"", "wh_available":"", "wh_quantity":""});
           });
         }
         if (vm.model_data.data.length-1) {

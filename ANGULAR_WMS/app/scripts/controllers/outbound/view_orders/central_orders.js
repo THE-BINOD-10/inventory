@@ -12,7 +12,6 @@ var vm = this;
     vm.bt_disable = true;
     vm.display_style_stock_table = false;
     vm.sku_level_qtys = [];
-    vm.sel_warehouse_flag = false;
 
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -106,6 +105,7 @@ var vm = this;
                 });
                 vm.sel_warehouse_obj = {};
                 vm.temp_warehouse_obj = {};
+                vm.sel_warehouse_flag = false;
             });
         });
         return nRow;
@@ -134,11 +134,6 @@ var vm = this;
     function submit(wh, status, data_id, shipment_date, alt_sku_code){
 
       var sum = 0;
-      // for( var item in vm.model_data.wh_level_stock_map){
-      //     if(vm.model_data.wh_level_stock_map[item]['quantity']){
-      //         sum += parseInt(vm.model_data.wh_level_stock_map[item]['quantity']);
-      //     }
-      // }
       angular.forEach(vm.model_data.data, function(row){
         if(row.wh_quantity){
           sum += parseInt(row.wh_quantity);
@@ -179,18 +174,20 @@ var vm = this;
         var resp_data = data.data;
         vm.model_data.warehouses = resp_data.warehouses;
         vm.model_data.wh_level_stock_map = resp_data.wh_level_stock_map;
-        // vm.model_data.data = [{"warehouse":vm.model_data.wh_level_stock_map, "wh_available":"", "wh_quantity":""}];
-        vm.model_data.data = [{"sel_warehouse":"", "wh_available":"", "wh_quantity":""}];
-        //vm.model_data.warehouse = resp_data.warehouse;
+        if (vm.model_data.data.length) {
+          angular.forEach(vm.model_data.data, function(record){
+            if (vm.model_data.wh_level_stock_map[record.sel_warehouse]) {
+              record.wh_available = vm.model_data.wh_level_stock_map[record.sel_warehouse].available;
+              record.wh_quantity = 0;
+            }
+          })
+        }
       });
     }
 
     vm.change_wh_quantity = function(key, quantity, actual_quantity, index) {
       var tot_filled = 0;
       vm.model_data.wh_level_stock_map[key].quantity = quantity;
-      // for(var dat in vm.model_data.wh_level_stock_map) {
-      //   tot_filled += parseInt(vm.model_data.wh_level_stock_map[dat].quantity);
-      // }
       angular.forEach(vm.model_data.data, function(row){
         tot_filled += parseInt(row.wh_quantity);
       })
@@ -280,9 +277,7 @@ var vm = this;
       }
     }
 
-    vm.warehouse_list_len = 1;
     vm.add_warehouse = function(index=0, flag=true) {
-      // vm.warehouse_list_len = vm.model_data.data.length
       if (index==vm.model_data.data.length-1 && !flag || !index && flag) {
         if (flag) {
           vm.model_data.data.push({"sel_warehouse":"", "wh_available":"", "wh_quantity":""});

@@ -539,13 +539,14 @@ def generate_picklist(request, user=''):
                         sku_stocks = sku_stocks.filter(id__in=sell_stock_ids)
                     else:
                         sku_stocks = sku_stocks.filter(id=0)
-                    stock_status, picklist_number = picklist_generation([seller_order], request, picklist_number, user,
-                                                                        sku_combos, sku_stocks, switch_vals, status='open',
+                    stock_status, picklist_number = picklist_generation([seller_order], enable_damaged_stock,
+                                                                        picklist_number, user, sku_combos, sku_stocks,
+                                                                        switch_vals, status='open',
                                                                         remarks=remarks, is_seller_order=True)
             else:
-                stock_status, picklist_number = picklist_generation([order_data], request, picklist_number, user,
-                                                                    sku_combos, sku_stocks, switch_vals,status='open',
-                                                                    remarks=remarks)
+                stock_status, picklist_number = picklist_generation([order_data], enable_damaged_stock, picklist_number,
+                                                                    user, sku_combos, sku_stocks, switch_vals,
+                                                                    status='open', remarks=remarks)
         except Exception as e:
             import traceback
             log.debug(traceback.format_exc())
@@ -647,7 +648,7 @@ def batch_generate_picklist(request, user=''):
 
             order_detail = all_orders.filter(**order_filter).order_by('shipment_date')
 
-            stock_status, picklist_number = picklist_generation(order_detail, request, picklist_number, user,
+            stock_status, picklist_number = picklist_generation(order_detail, enable_damaged_stock, picklist_number, user,
                                                                 sku_combos, sku_stocks, switch_vals, remarks=remarks)
 
             if stock_status:
@@ -3041,6 +3042,7 @@ def confirm_transfer(request, user=''):
 @login_required
 @get_admin_user
 def st_generate_picklist(request, user=''):
+    enable_damaged_stock = request.POST.get('enable_damaged_stock', 'false')
     out_of_stock = []
     picklist_number = get_picklist_number(user)
 
@@ -3065,8 +3067,8 @@ def st_generate_picklist(request, user=''):
     sku_stocks = stock_detail1 | stock_detail2
     for key, value in request.POST.iteritems():
         order_data = StockTransfer.objects.filter(id=value)
-        stock_status, picklist_number = picklist_generation(order_data, request, picklist_number, user, sku_combos,
-                                                            sku_stocks, switch_vals)
+        stock_status, picklist_number = picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
+                                                            sku_combos, sku_stocks, switch_vals)
 
         if stock_status:
             out_of_stock = out_of_stock + stock_status
@@ -4234,6 +4236,7 @@ def insert_order_data(request, user=''):
 
 
     log.info('Request params for ' + user.username + ' is ' + str(myDict))
+    enable_damaged_stock = request.POST.get('enable_damaged_stock', 'false')
 
     # Using the display_sku_cust_mapping flag for ANT Stationers
     # orders_for_approval_flag = get_misc_value('display_sku_cust_mapping', user.id)
@@ -4524,7 +4527,7 @@ def insert_order_data(request, user=''):
         if direct_dispatch == 'true':
             message = direct_dispatch_orders(user, dispatch_orders)
         elif auto_picklist_signal == 'true':
-            message = check_stocks(order_sku, user, request, order_objs)
+            message = check_stocks(order_sku, user, enable_damaged_stock, order_objs)
         if is_sample == 'true' and created_order_objs:
             create_order_pos(user, created_order_objs)
     else:
@@ -4533,7 +4536,7 @@ def insert_order_data(request, user=''):
             order_objs = order_user_objs.get(user_id, [])
             log.info("Picklist checking for user %s and order id is %s" % (str(user_id), str(order_user_data)))
             if auto_picklist_signal == 'true':
-                message = check_stocks(order_user_data, User.objects.get(id=user_id), request, order_objs)
+                message = check_stocks(order_user_data, User.objects.get(id=user_id), enable_damaged_stock, order_objs)
         #qssi push order api call
         is_emiza_order_failed = False
         generic_orders = GenericOrderDetailMapping.objects.filter(generic_order_id=generic_order_id,
@@ -4634,7 +4637,7 @@ def direct_dispatch_orders(user, dispatch_orders, creation_date=datetime.datetim
     return 'Order Created and Dispatched Successfully'
 
 
-def check_stocks(order_sku, user, request, order_objs):
+def check_stocks(order_sku, user, enable_damaged_stock, order_objs):
     picklist_exclude_zones = get_exclude_zones(user)
     switch_vals = {'marketplace_model': get_misc_value('marketplace_model', user.id),
                    'fifo_switch': get_misc_value('fifo_switch', user.id),
@@ -4671,12 +4674,12 @@ def check_stocks(order_sku, user, request, order_objs):
         if sku.relation_type == 'combo':
             combo_data = sku_combos.filter(parent_sku_id=sku.id)
             for combo in combo_data:
-                stock_detail, stock_count, sku.wms_code = get_sku_stock(request, combo.member_sku, sku_stocks, user,
+                stock_detail, stock_count, sku.wms_code = get_sku_stock(combo.member_sku, sku_stocks, user,
                                                                         val_dict, sku_id_stocks)
                 if stock_count < order_sku[sku]:
                     return "Order created Successfully"
         else:
-            stock_detail, stock_count, sku.wms_code = get_sku_stock(request, sku, sku_stocks, user, val_dict,
+            stock_detail, stock_count, sku.wms_code = get_sku_stock(sku, sku_stocks, user, val_dict,
                                                                     sku_id_stocks)
             if stock_count < order_sku[sku]:
                 return "Order created Successfully"
@@ -4688,8 +4691,8 @@ def check_stocks(order_sku, user, request, order_objs):
                                                        asnstock__arriving_date__gte=todays_date)
         if is_asn_order: # We cant create Picklist for ASN Order as stock is not yet dispatched.
             continue
-        picklist_generation([order_obj], request, picklist_number, user, sku_combos, sku_stocks, switch_vals, status='open',
-                            remarks='Auto-generated Picklist')
+        picklist_generation([order_obj], enable_damaged_stock, picklist_number, user, sku_combos, sku_stocks,
+                            switch_vals, status='open', remarks='Auto-generated Picklist')
     check_picklist_number_created(user, picklist_number + 1)
 
     return "Order created, Picklist generated Successfully"
@@ -5448,7 +5451,8 @@ def get_stock_qty_leadtime(item, wh_code):
         aggregate(Sum('reserved'))['reserved__sum']
     log.info("Reserved Qtys for SKU Code (%s)::%s::%s" % (wms_code, wh_code, repr(reserved_quantities)))
     enquiry_res_quantities = EnquiredSku.objects.filter(sku__user__in=wh_code, sku_code=wms_code).\
-    filter(~Q(enquiry__extend_status='rejected')).values_list('sku_code').aggregate(Sum('quantity'))['quantity__sum']
+    exclude(warehouse_level=3).filter(~Q(enquiry__extend_status='rejected')).values_list('sku_code').\
+        aggregate(Sum('quantity'))['quantity__sum']
     log.info("EnquiryOrders for SKU Code (%s)::%s::%s" % (wms_code, wh_code, repr(enquiry_res_quantities)))
     if not reserved_quantities:
         reserved_quantities = 0
@@ -5744,7 +5748,8 @@ def get_sku_variants(request, user=''):
                                            only('stock__sku__sku_code', 'reserved').\
                                     values_list('stock__sku__sku_code').distinct().annotate(in_reserved=Sum('reserved')))
     needed_stock_data['enquiry_res_quantities'] = dict(EnquiredSku.objects.filter(sku__user__in=gen_whs,
-                                                                                  sku__sku_code__in=needed_skus).\
+                                                                                  sku__sku_code__in=needed_skus
+                                                                                  ).exclude(warehouse_level=3).
                                                 filter(~Q(enquiry__extend_status='rejected')).\
                                 only('sku__sku_code', 'quantity').values_list('sku__sku_code').\
                                 annotate(tot_qty=Sum('quantity')))
@@ -5854,7 +5859,7 @@ def get_sku_variants(request, user=''):
                                         po = asn_stock['PO']
                                         arriving_date = datetime.datetime.strptime(asn_stock['By'], '%d-%b-%Y')
                                         quantity = int(asn_stock['Qty'])
-                                        qc_quantity = int(math.floor(quantity*90/100))
+                                        qc_quantity = int(math.floor(quantity*95/100))
                                         asn_stock_detail = ASNStockDetail.objects.filter(sku_id=sku[0].id, asn_po_num=po)
                                         if asn_stock_detail:
                                             asn_stock_detail = asn_stock_detail[0]
@@ -7690,13 +7695,15 @@ def order_category_generate_picklist(request, user=''):
                         sku_stocks = sku_stocks.filter(id__in=sell_stock_ids)
                     else:
                         sku_stocks = sku_stocks.filter(id=0)
-                    stock_status, picklist_number = picklist_generation([seller_order], request, picklist_number, user,
-                                                                        sku_combos, sku_stocks, switch_vals, status='open',
+                    stock_status, picklist_number = picklist_generation([seller_order], enable_damaged_stock,
+                                                                        picklist_number, user, sku_combos, sku_stocks,
+                                                                        switch_vals, status='open',
                                                                         remarks='', is_seller_order=True)
                     if stock_status:
                         out_of_stock = out_of_stock + stock_status
             else:
-                stock_status, picklist_number = picklist_generation(order_detail, request, picklist_number, user,
+                stock_status, picklist_number = picklist_generation(order_detail, enable_damaged_stock,
+                                                                    picklist_number, user,
                                                                     sku_combos, sku_stocks, switch_vals, \
                                                                     status='open', remarks='')
                 if stock_status:
@@ -10463,6 +10470,7 @@ def get_seller_order_view(start_index, stop_index, temp_data, search_term, order
 @get_admin_user
 def seller_generate_picklist(request, user=''):
     filters = request.POST.get('filters', '')
+    enable_damaged_stock = request.POST.get('enable_damaged_stock', 'false')
     order_filter = {'order__status': 1, 'order__user': user.id, 'order__quantity__gt': 0}
     if filters:
         filters = eval(filters)
@@ -10529,8 +10537,8 @@ def seller_generate_picklist(request, user=''):
 
             seller_orders = all_seller_orders.filter(**order_filter).order_by('order__shipment_date')
 
-            stock_status, picklist_number = picklist_generation(seller_orders, request, picklist_number, user,
-                                                                sku_combos, sku_stocks, switch_vals,\
+            stock_status, picklist_number = picklist_generation(seller_orders, enable_damaged_stock, picklist_number,
+                                                                user, sku_combos, sku_stocks, switch_vals,
                                                                 status='open', remarks='', is_seller_order=True)
 
             if stock_status:
@@ -10757,7 +10765,8 @@ def get_custom_template_styles(request, user=''):
                                            only('stock__sku__sku_code', 'reserved').\
                                     values_list('stock__sku__sku_code').distinct().annotate(in_reserved=Sum('reserved')))
     needed_stock_data['enquiry_res_quantities'] = dict(EnquiredSku.objects.filter(sku__user__in=gen_whs,
-                                                                                  sku__sku_code__in=needed_skus).\
+                                                                                  sku__sku_code__in=needed_skus
+                                                                                  ).exclude(warehouse_level=3).\
                                                 filter(~Q(enquiry__extend_status='rejected')).\
                                 only('sku__sku_code', 'quantity').values_list('sku__sku_code').\
                                 annotate(tot_qty=Sum('quantity')))
@@ -12464,6 +12473,7 @@ def update_stock_transfer_data(request, user=""):
 @login_required
 @get_admin_user
 def stock_transfer_generate_picklist(request, user=''):
+    enable_damaged_stock = request.POST.get('enable_damaged_stock', 'false')
     out_of_stock = []
     picklist_number = get_picklist_number(user)
     picklist_exclude_zones = get_exclude_zones(user)
@@ -12485,8 +12495,8 @@ def stock_transfer_generate_picklist(request, user=''):
     sku_stocks = stock_detail1 | stock_detail2
     for key, value in request.POST.iteritems():
         orders_data = StockTransfer.objects.filter(order_id=value, status=1, sku__user=user.id)
-        stock_status, picklist_number = picklist_generation(orders_data, request, picklist_number, user, sku_combos,
-                                                            sku_stocks, switch_vals)
+        stock_status, picklist_number = picklist_generation(orders_data, enable_damaged_stock, picklist_number, user,
+                                                            sku_combos, sku_stocks, switch_vals)
 
         if stock_status:
             out_of_stock = out_of_stock + stock_status

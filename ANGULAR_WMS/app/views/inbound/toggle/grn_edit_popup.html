@@ -114,6 +114,21 @@
                 <!-- <input name="invoice_date" ui-jq="datepicker" ng-model="showCase.model_data.invoice_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" ng-if="showCase.user_type!='marketplace_user'" readonly> -->
               </div>
             </div>
+
+            <div class="col-md-3 col-sm-3 col-xs-6">
+              <div class="form-group">
+                <label for="dc_number" class="control-label"> Challan Number <span ng-if="showCase.user_type=='marketplace_user'">*</span></label>
+                <input class="form-control notallowspace" ng-model="showCase.model_data.dc_number" type="text" name="dc_number">
+              </div>
+            </div>
+            <!-- <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.model_data.dc_level_grn==false"> -->
+            <div class="col-md-3 col-sm-3 col-xs-6">
+              <div class="form-group">
+                <label for="dc_date" class="control-label">Challan Date <span ng-if="showCase.user_type=='marketplace_user'">*</span></label>
+                <input name="dc_date" ui-jq="datepicker" ng-model="showCase.model_data.dc_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true">
+                <!-- <input name="invoice_date" ui-jq="datepicker" ng-model="showCase.model_data.invoice_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" ng-if="showCase.user_type!='marketplace_user'" readonly> -->
+              </div>
+            </div>
             <!-- <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.permissions.receive_po_invoice_check">
               <div class="form-group">
                 <label for="invoice_number" class="control-label"> Invoice Value *</label>

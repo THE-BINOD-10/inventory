@@ -2,11 +2,12 @@
   <div class='layout-header'>
     <div class="row">
       <div class="col-md-6 col-sm-12 col-xs-12">
-        <div ng-include="'views/common/title.html'"></div>
+        <h4 class="pull-left">{{ showCase.main_title }}</h4>
       </div>
       <div class="col-md-6 col-sm-12 col-xs-12">
         <div class="row">
-          <button type="button" class="btn btn-success col-md-3 col-sm-3 col-xs-4" ng-click="showCase.add()">New Corporate</button>
+          <button type="button" class="btn btn-success col-md-3 col-sm-3 col-xs-4" ng-click="showCase.add()" ng-if="showCase.user_type != 'central_admin'">New Project</button>
+          <button type="button" class="btn btn-success col-md-3 col-sm-3 col-xs-4" ng-click="showCase.add()" ng-if="showCase.user_type == 'central_admin'">New Corporate</button>
           <div ng-include="'views/common/excel_button.html'"></div>
         </div>
       </div>

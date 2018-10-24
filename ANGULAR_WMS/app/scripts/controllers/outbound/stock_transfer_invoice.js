@@ -95,7 +95,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       angular.forEach(vm.checked_items, function(row){
         data.push(row['id']);
       });
-      var ids = data.join(",");
+      var ids = data.join("<<>>");
       var send = {seller_summary_id: ids};
       vm.service.apiCall("generate_customer_invoice/", "GET", send).then(function(data){
 
@@ -181,7 +181,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           data.push(temp['id']);
         }
       });
-      var ids = data.join(",");
+      var ids = data.join("<<>>");
       var send = {seller_summary_id: ids, data: true};
       vm.service.apiCall("generate_customer_invoice/", "GET", send).then(function(data){
 

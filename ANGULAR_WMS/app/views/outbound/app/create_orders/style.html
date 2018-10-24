@@ -50,6 +50,7 @@
         <div class="col-md-3 col-sm-3 col-xs-12" ng-if="showCase.service.check_image_url(Style.style_details.image_url) && Style.includeDesktopTemplate">
           <img ng-src="{{ showCase.service.check_image_url(Style.style_details.image_url) }}" style="border:0px !important;padding: 0px;" class="img-thumbnail" ez-plus ezp-model="{thumb: showCase.service.check_image_url(Style.style_details.image_url) , small: showCase.service.check_image_url(Style.style_details.image_url), large:showCase.service.check_image_url(Style.style_details.image_url)}" ezp-options="{scrollZoom: true, easing: true, zoomWindowWidth: 600, zoomWindowHeight: 600}" id="zoom_01">
           <h5 align="center"><b>{{Style.style_data.data[0].sku_class}}</b></h5>
+          <p align="center" ng-if="Style.sku_spl_attrs&&Style.central_order_mgmt">Dimensions(in) : {{Style.sku_spl_attrs.length}} X {{Style.sku_spl_attrs.breadth}} X {{Style.sku_spl_attrs.height}}</p>
           <div ng-if="permissions.user_type=='customer'">
             <h5 align="center" ng-if="Style.style_data.data[0].pricing_price"><b>{{showCase.service.price_format(Style.style_data.data[0].pricing_price)}}</b></h5>
             <h5 align="center" ng-if="!(Style.style_data.data[0].pricing_price) && Style.style_data.data[0].price"><b>{{showCase.service.price_format(Style.style_data.data[0].price)}}</b></h5>
@@ -60,7 +61,7 @@
           <img ng-src="{{ showCase.service.check_image_url(Style.style_details.image_url) }}" style="border:0px !important;padding: 0px;width:100%" class="img-thumbnail">
           <h5 align="center"><b>{{Style.style_data.data[0].sku_class}}</b></h5>
           <h5 align="center" ng-if="Style.style_data.data[0].pricing_price"><b>{{showCase.service.price_format(Style.style_data.data[0].pricing_price)}}</b></h5>
-          <h5 align="center" ng-if="!(Style.style_data.data[0].pricing_price) && Style.style_data.data[0].price"><b>{{showCase.service.price_format(Style.style_data.data[0].price)}}</b></h5> 
+          <h5 align="center" ng-if="!(Style.style_data.data[0].pricing_price) && Style.style_data.data[0].price"><b>{{showCase.service.price_format(Style.style_data.data[0].price)}}</b></h5>
         </div>
 
         <!-- <div class="col-md-3">
@@ -85,8 +86,11 @@
               <table class="table table-bordered" ng-if="Style.def_lead_tm">
                 <thead>
                   <tr>
-                    <th ng-repeat="hd in Style.style_detail_hd" ng-if="Style.en_style_headers.indexOf(Style.style_headers[hd]) != -1">{{hd}}</th>
+                    <th ng-repeat="hd in Style.style_detail_hd" ng-if="Style.user_type == 'customer' && Style.central_order_mgmt && (Style.en_style_headers.indexOf(Style.style_headers[hd]) != -1) && (hd != '3-Day Stock')">{{hd}}</th>
+                    <th ng-repeat="hd in Style.style_detail_hd" ng-if="!Style.central_order_mgmt && (Style.en_style_headers.indexOf(Style.style_headers[hd]) != -1)">{{hd}}</th>
+                    <th ng-repeat="hd in Style.style_detail_hd" ng-if="Style.user_type == 'customer' && Style.central_order_mgmt && Style.en_style_headers.indexOf(Style.style_headers[hd]) != -1 && (hd == '1-Day Stock' || hd == '3-Day Stock')">Stock Available</th>
                     <!-- <th ng-repeat="hd in Style.style_detail_hd" ng-if="Style.en_style_headers.indexOf(Style.style_headers[hd]) != -1">{{hd}}</th> -->
+                    <th ng-if="Style.order_exceed_stock"> Blocked Stock </th>
                     <th>Quantity</th>
                     <!-- <th>Unit Rate</th>
                     <th>Total Price</th> -->
@@ -94,7 +98,8 @@
                 </thead>
                 <tbody>
                   <tr ng-repeat="style in Style.style_data.data">
-                    <td ng-repeat="hd in Style.style_detail_hd" ng-if="Style.en_style_headers.indexOf(Style.style_headers[hd]) != -1">{{style[Style.style_headers[hd]]}}</td> 
+                    <td ng-repeat="hd in Style.style_detail_hd" ng-if="Style.en_style_headers.indexOf(Style.style_headers[hd]) != -1">{{style[Style.style_headers[hd]]}}</td>
+                    <td ng-if="Style.order_exceed_stock"> {{style['blocked_quantity']}}</td>
                     <td>
                       <input ng-if="style.quantity_status" class="form-control" size="5" ng-model="style.quantity" ng-change="Style.change_style_quantity(Style.style_data.data, style, $index);" ng-class="service.get_decimal_perm()">
                       <input ng-if="!style.quantity_status && Style.generic_wharehouse_level == 'false'" class="form-control" size="5" value="{{style.no_items}}" ng-model="style.quantity" ng-change="Style.change_style_quantity(Style.style_data.data, style, $index)" ng-class="service.get_decimal_perm()" readonly>
@@ -104,6 +109,7 @@
                   </tr>
                   <tr>
                     <td ng-repeat="hd in Style.style_detail_hd" ng-if="Style.en_style_headers.indexOf(Style.style_headers[hd]) != -1" style="font-size: 16px;"><b>{{Style.style_total_counts[Style.style_headers[hd]]}}</b></td>
+                    <td ng-if="Style.order_exceed_stock"></td>
                     <td><b style="font-size:16px">{{Style.style_data.quantity}}</b></td>
                     <!-- <td></td>
                     <td><b style="font-size:16px">Total: {{Style.sel_items_total_price | number}}</b></td> -->
@@ -153,7 +159,7 @@
             </div>
           </div>
           <hr>
-          <div class="row">
+          <div class="row hidden-xs">
             <button style="display:block;margin:auto" type="button" class="btn btn-warning btn-round" ng-click="Style.add_to_cart(Style.level_data)">ADD TO CART</button>
           </div>
         </div>
@@ -163,7 +169,7 @@
             <h5><b>WISH LIST</b></h5><hr>
           </div>
           <span ng-if="Style.sel_items_total_price == 0"><b>No items selected</b></span>
-          
+
           <div class="row" ng-repeat="data in Style.sel_cart_info">
             <div ng-if="data.quantity">
               <div class="col-md-5 col-xs-5 no-padding">
@@ -175,9 +181,9 @@
               </div>
             </div>
           </div>
-          
+
           <hr>
-          
+
           <div class="row">
             <div class="col-md-6 col-xs-6 no-padding">
               <span class="pull-left">Tax Amount</span>
@@ -186,9 +192,9 @@
               <span class="pull-right"><i class="fa fa-inr" aria-hidden="true"></i> 0</span>
             </div>
           </div>
-          
+
           <hr>
-          
+
           <div class="row">
             <div class="col-md-6 col-xs-6 no-padding">
               <span class="pull-left">Total Amount</span>
@@ -197,9 +203,9 @@
               <span class="pull-right"><i class="fa fa-inr" aria-hidden="true"></i> <b>{{Style.sel_items_total_price | number}}</b></span>
             </div>
           </div>
-          
+
           <hr>
-          
+
           <div class="row">
             <button style="display:block;margin:auto" type="button" class="btn btn-warning btn-round" ng-click="Style.add_to_cart(Style.style_data.data);Style.make_empty();">ADD TO CART</button>
           </div>
@@ -207,7 +213,7 @@
  -->
         <div class="col-md-6 col-sm-6 col-xs-12" ng-if="Style.gen_wh_lead_tm">
           <div class="row">
-            
+
             <div class="col-md-9">
               <div class="form-group">
                   <label class="control-label" style="margin-top:10px"> {{Style.charge_remarks}} </label>
@@ -226,7 +232,7 @@
           <div class="row col-md-12 col-sm-12 col-xs-12" ng-if="Style.data_loading">
             <img ng-src="images/sagar_fab_loading.gif" style="margin: auto;display: block;width: 290px;">
           </div>
-          
+
           <div class="row" ng-if="!Style.data_loading">
             <div>
               <table class="table table-bordered" ng-if="Style.gen_wh_lead_tm">
@@ -246,7 +252,7 @@
 
                       <span ng-if="style[hd]">{{style[hd]}}</span>
                       <span ng-if="!style[hd]">No stock</span>
-                    </td> 
+                    </td>
                     <td>
                       <input class="form-control" size="5" ng-model="style.quantity" ng-change="Style.change_style_quantity(Style.style_data.data, style, $index)" ng-class="service.get_decimal_perm()" ng-readonly="!style.overall_sku_total_quantity">
 
@@ -322,12 +328,17 @@
               </div>
             </div>
             <hr>
-            <div class="row">
+            <div class="row hidden-xs">
               <button style="display:block;margin:auto" type="button" class="btn btn-warning btn-round" ng-click="Style.add_to_cart(Style.level_data)">ADD TO CART</button>
             </div>
           </div>
         </div>
 
+      </div>
+      <div class="row hidden-lg hidden-md hidden-sm visible-xs" style="margin-left:-20px">
+        <div style="position: fixed; bottom: 0;z-index: 2000;width:100%;">
+          <button style="display:block;margin:auto" type="button" class="btn btn-warning btn-lg col-xs-12" ng-click="Style.add_to_cart(Style.level_data)">ADD TO CART</button>
+        </div>
       </div>
     </div>
   </div>

@@ -6190,11 +6190,22 @@ def confirm_primary_segregation(request, user=''):
     log.info('Request params for ' + user.username + ' is ' + str(data_dict))
     try:
         for ind in range(0, len(data_dict['segregation_id'])):
+            sellable = data_dict['sellable'][ind]
+            non_sellable = data_dict['non_sellable'][ind]
+            if not sellable:
+                sellable = 0
+            if not non_sellable:
+                non_sellable = 0
+            sellable = float(sellable)
+            non_sellable = float(non_sellable)
             segregation_obj = PrimarySegregation.objects.select_related('batch_detail', 'purchase_order').\
-                                                            filter(id=data_dict['segregation_id'][ind])
+                                                            filter(id=data_dict['segregation_id'][ind],
+                                                                   status=1)
             if not segregation_obj:
                 continue
             segregation_obj = segregation_obj[0]
+            segregation_obj.status = 0
+            segregation_obj.save()
             batch_dict = {}
             if segregation_obj.batch_detail:
                 batch_detail = segregation_obj.batch_detail
@@ -6210,14 +6221,6 @@ def confirm_primary_segregation(request, user=''):
                               'tax_percent': batch_detail.tax_percent,
                               'mrp': batch_detail.mrp, 'buy_price': batch_detail.buy_price
                               }
-            sellable = data_dict['sellable'][ind]
-            non_sellable = data_dict['non_sellable'][ind]
-            if not sellable:
-                sellable = 0
-            if not non_sellable:
-                non_sellable = 0
-            sellable = float(sellable)
-            non_sellable = float(non_sellable)
             purchase_data = get_purchase_order_data(segregation_obj.purchase_order)
             seller_received_dict = get_seller_received_list(segregation_obj.purchase_order, user)
             if sellable:
@@ -6256,8 +6259,8 @@ def confirm_primary_segregation(request, user=''):
                                  batch_dict=batch_dict)
             non_sellable_qty = get_decimal_limit(user.id, (float(segregation_obj.non_sellable) + non_sellable))
             segregation_obj.non_sellable = non_sellable_qty
-            if (sellable_qty + non_sellable_qty) >= float(segregation_obj.quantity):
-                segregation_obj.status = 0
+            #if (sellable_qty + non_sellable_qty) >= float(segregation_obj.quantity):
+            #    segregation_obj.status = 0
             segregation_obj.save()
         return HttpResponse("Updated Successfully")
     except Exception as e:
@@ -8236,7 +8239,8 @@ def update_existing_grn(request, user=''):
         field_mapping = {'exp_date': 'expiry_date', 'mfg_date': 'manufactured_date', 'quantity': 'quantity',
                          'discount_percentage': 'discount_percent', 'batch_no': 'batch_no',
                          'mrp': 'mrp', 'buy_price': 'buy_price', 'invoice_number': 'invoice_number',
-                         'invoice_date': 'invoice_date', 'dc_date': 'challan_date', 'dc_number': 'challan_number'}
+                         'invoice_date': 'invoice_date', 'dc_date': 'challan_date', 'dc_number': 'challan_number',
+                         'tax_percent': 'tax_percent'}
         zero_index_keys = ['invoice_number', 'invoice_date', 'dc_number', 'dc_date']
         for ind in range(0, len(myDict['confirm_key'])):
             model_name = myDict['confirm_key'][ind].strip('_id')
@@ -8276,7 +8280,7 @@ def update_existing_grn(request, user=''):
                                                         '', value)
                     else:
                         batch_dict[field_mapping[key]] = value
-                elif key in ['mrp', 'buy_price', 'tax_percnet']:
+                elif key in ['mrp', 'buy_price', 'tax_percent']:
                     try:
                         value = float(value)
                     except:

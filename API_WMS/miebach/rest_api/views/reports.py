@@ -737,7 +737,7 @@ def print_po_reports(request, user=''):
                     grouping_key = '%s:%s' % (str(open_data.sku.sku_code), str(price))
                     amount = float(quantity) * float(price)
                     if discount:
-                        amount = amount * float(discount)/100
+                        amount = amount - (amount * float(discount)/100)
                     if gst_tax:
                         amount += (amount / 100) * gst_tax
                     grouped_data.setdefault(grouping_key, [open_data.sku.wms_code, open_data.order_quantity, 0,

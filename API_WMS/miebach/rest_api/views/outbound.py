@@ -2002,16 +2002,21 @@ def update_invoice(request, user=''):
             invoice_date = datetime.datetime.strptime(invoice_date, "%m/%d/%Y").date()
         # order_id_val = ''.join(re.findall('\d+', order_ids))
         # order_code = ''.join(re.findall('\D+', order_ids))
-        cm_obj = CustomerMaster.objects.filter(id=cm_id)
-        if not cm_obj:
-            log.info('No Proper Customer Object')
-            return HttpResponse(json.dumps({'message': 'failed'}))
-        else:
-            cm_obj = cm_obj[0]
-        customer_id = cm_obj.customer_id
-        customer_name = cm_obj.name
-        price_type = cm_obj.price_type
-        tax_type = cm_obj.tax_type
+        customer_id = ''
+        customer_name = ''
+        price_type = ''
+        tax_type = ''
+        if cm_id:
+            cm_obj = CustomerMaster.objects.filter(id=cm_id)
+            if not cm_obj:
+                log.info('No Proper Customer Object')
+                return HttpResponse(json.dumps({'message': 'failed'}))
+            else:
+                cm_obj = cm_obj[0]
+            customer_id = cm_obj.customer_id
+            customer_name = cm_obj.name
+            price_type = cm_obj.price_type
+            tax_type = cm_obj.tax_type
         # SellerOrderSummary.objects.filter(invoice_number=invoice_number).values_list('order__original_order_id', flat=True).distinct()
         for index, ord_id in enumerate(myDict['id']):
             if ord_id:
@@ -8234,6 +8239,7 @@ def get_customer_orders(request, user=""):
         users_list = UserGroups.objects.filter(admin_user=user.id).values_list('user').distinct()
         customer = CustomerUserMapping.objects.filter(user=request.user.id)
 
+        intermediate_orders = []
         if customer:
             customer_id = customer[0].customer.customer_id
             if central_order_mgmt == 'true':
@@ -8247,7 +8253,7 @@ def get_customer_orders(request, user=""):
                                                              intermediate_order=Value(True, output_field=BooleanField()))\
                                                              .order_by('-date_only'))
             else:
-                orders_dict = {'custmer_id': customer_id, 'user': user.id}
+                orders_dict = {'customer_id': customer_id, 'user': user.id}
                 pick_dict = {'order__customer_id': customer_id, 'order__user': user.id}
             orders = OrderDetail.objects.filter(**orders_dict).exclude(status=3).order_by('-creation_date')
             picklist = Picklist.objects.filter(**pick_dict)

@@ -2432,7 +2432,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                'purchase_order__open_po__cess_tax','id', 'seller_po__margin_percent', 'id', 'id', 'id',
                'invoice_number', 'invoice_date', 'challan_number', 'challan_date']
         model_name = SellerPOSummary
-        field_mapping = {'from_date': 'purchase_order__creation_date', 'to_date': 'purchase_order__creation_date',
+        field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date',
                          'order_id': 'purchase_order__order_id',
                          'wms_code': 'purchase_order__open_po__sku__wms_code__iexact',
                          'user': 'purchase_order__open_po__sku__user',
@@ -2473,7 +2473,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                'purchase_order__open_po__cess_tax',
                'id', 'seller_po__margin_percent', 'id', 'id', 'id',
                'invoice_number', 'invoice_date', 'challan_number', 'challan_date']
-        field_mapping = {'from_date': 'purchase_order__creation_date', 'to_date': 'purchase_order__creation_date',
+        field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date',
                          'order_id': 'purchase_order__order_id',
                          'wms_code': 'purchase_order__open_po__sku__wms_code__iexact',
                          'user': 'purchase_order__open_po__sku__user',

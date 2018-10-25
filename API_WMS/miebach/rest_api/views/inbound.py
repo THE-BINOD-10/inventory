@@ -2305,6 +2305,9 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
     discount_percent = 0
     if 'discount_percentage' in myDict.keys() and myDict['discount_percentage'][i]:
         discount_percent = myDict['discount_percentage'][i]
+    cess_tax = 0
+    if 'cess_percent' in myDict.keys() and myDict['cess_percent'][i]:
+        cess_tax = myDict['cess_percent'][i]
     if user.userprofile.user_type == 'warehouse_user':
         seller_po_summary, created = SellerPOSummary.objects.get_or_create(receipt_number=receipt_id,
                                                                            invoice_number=invoice_number,
@@ -2317,7 +2320,8 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
                                                                            challan_date=challan_date,
                                                                            order_status_flag=order_status_flag,
                                                                            discount_percent=discount_percent,
-                                                                           round_off_total=round_off_total)
+                                                                           round_off_total=round_off_total,
+                                                                           cess_tax=cess_tax)
         seller_received_list.append(
             {'seller_id': '', 'sku_id': data.open_po.sku_id, 'quantity': value,
              'id': seller_po_summary.id})
@@ -2371,7 +2375,8 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
                                                                                invoice_number=invoice_number,
                                                                                order_status_flag=order_status_flag,
                                                                                invoice_date=invoice_date,
-                                                                               round_off_total=round_off_total)
+                                                                               round_off_total=round_off_total,
+                                                                               cess_tax=cess_tax)
             seller_received_list.append(
                 {'seller_id': sell_po.seller_id, 'sku_id': data.open_po.sku_id, 'quantity': value,
                  'id': seller_po_summary.id})

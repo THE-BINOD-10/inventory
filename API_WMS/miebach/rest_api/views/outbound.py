@@ -12777,6 +12777,7 @@ def delete_notification(request):
 @login_required
 @get_admin_user
 def do_delegate_orders(request, user=''):
+    message = ''
     delegate_order = eval(request.POST.get('delegate_order_data', ''))
     for obj_data in delegate_order:
         mail_ids, user_mail_id, items = [], [], []
@@ -12896,17 +12897,87 @@ def do_delegate_orders(request, user=''):
                             order_dict['address'] = customer_user[0].customer.address
                         else:
                             return HttpResponse('Failed')
+                    '''
+                    order_dict['customer_id'] = 0
+                    order_dict['customer_name'] = ''
+                    order_dict['email_id'] = ''
+                    order_dict['address'] = address1 + address2 + client_id
+                    order_dict['telephone'] = ''
+                    order_dict['title'] = interm_obj.alt_sku.sku_desc
+                    order_dict['invoice_amount'] = ''
+                    order_dict['shipment_date'] = ''
+                    order_dict['marketplace'] = ''
+                    order_dict['vat_percentage'] = ''
+                    order_dict['status'] = ''
+                    order_dict['city'] = ''
+                    order_dict['state'] = ''
+                    order_dict['pin_code'] = ''
+                    order_dict['remarks'] = ''
+                    order_dict['payment_mode'] = 
+                    order_dict['payment_received'] = 
+                    order_dict['unit_price'] = ''
+                    order_dict['nw_status'] = ''
+                    order_dict['order_type'] = ''
+                    order_dict['order_reference'] = ''
+                    order_dict['order_reference_date'] = ''
+                    '''
+                    '''
+                    id = BigAutoField(primary_key=True)
+                    user = models.PositiveIntegerField()
+                    order_id = models.DecimalField(max_digits=50, decimal_places=0, primary_key=True)
+                    original_order_id = models.CharField(max_length=128, default='')
+                    customer_id = models.PositiveIntegerField(default=0)
+                    customer_name = models.CharField(max_length=256, default='')
+                    email_id = models.EmailField(max_length=64, default='')
+                    address = models.CharField(max_length=256, default='')
+                    telephone = models.CharField(max_length=128, default='', blank=True, null=True)
+                    sku = models.ForeignKey(SKUMaster)
+                    title = models.CharField(max_length=256, default='')
+                    quantity = models.FloatField(default=0)
+                    invoice_amount = models.FloatField(default=0)
+                    shipment_date = models.DateTimeField()
+                    marketplace = models.CharField(max_length=256, default='')
+                    order_code = models.CharField(max_length=128, default='')
+                    vat_percentage = models.FloatField(default=0)
+                    status = models.CharField(max_length=32)
+                    sku_code = models.CharField(max_length=256, default='')
+                    city = models.CharField(max_length=60, default='')
+                    state = models.CharField(max_length=60, default='')
+                    pin_code = models.PositiveIntegerField(default=0)#
+                    remarks = models.CharField(max_length=128, default='')
+                    payment_mode = models.CharField(max_length=64, default='')
+                    payment_received = models.FloatField(default=0)
+                    creation_date = models.DateTimeField(auto_now_add=True)
+                    updation_date = models.DateTimeField(auto_now=True)
+                    unit_price = models.FloatField(default=0)
+                    nw_status = models.CharField(max_length=32, blank=True, null=True)
+                    order_type = models.CharField(max_length=64, default='Normal')
+                    order_reference = models.CharField(max_length=128, default='')
+                    order_reference_date = models.DateField(null=True, blank=True)
+                    '''
+
                     order_dict['quantity'] = 1
                     #order_dict['order_code'] = 'MN'
                     order_dict['shipment_date'] = interm_obj.shipment_date
-                    order_fields = OrderFields.objects.filter(user=3, original_order_id=interm_obj.interm_order_id, name='original_order_id')
+                    order_fields = OrderFields.objects.filter(user=user.id, original_order_id=interm_obj.interm_order_id, name='original_order_id')
                     if order_fields:
                         original_order_id = order_fields[0].value
                     order_dict['original_order_id'] = original_order_id
                     order_dict['status'] = 1
                     order_dict['remarks'] = interm_obj.remarks
-                    ord_obj = OrderDetail(**order_dict)
-                    ord_obj.save()
+                    order_id_value = ''.join(re.findall('\d+', original_order_id))
+                    order_code_value = ''.join(re.findall('\D+', original_order_id))
+                    order_dict['order_id'] = order_id_value
+                    order_dict['order_code'] = order_code_value
+                    get_existing_order = OrderDetail.objects.filter(**{'status': 1, 'sku_id': sku_id, 
+                        'sku_code': interm_obj.sku.sku_code, 'original_order_id': original_order_id, 
+                        'user': user.id})
+                    if get_existing_order:
+                        get_existing_order.quantity = get_existing_order.quantity + 1
+                        get_existing_order.save()
+                    else:
+                        ord_obj = OrderDetail(**order_dict)
+                        ord_obj.save()
                     order_objs.append(ord_obj)
                     order_sku.update({ord_obj.sku: order_dict['quantity']})
                     # Collecting needed data for Picklist generation

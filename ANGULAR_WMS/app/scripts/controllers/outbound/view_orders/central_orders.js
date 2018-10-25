@@ -314,8 +314,9 @@ var vm = this;
           vm.delegate_order_data.push(elem);
         }
       }
-      vm.service.apiCall('do_delegate_orders/', 'POST', {'delegate_order_data': JSON.stringify(vm.delegate_order_data)}).then(function(data) {
-        console.log(data);
+      vm.service.apiCall('do_delegate_orders/', 'POST', {'delegate_order_data': JSON.stringify(vm.delegate_order_data)}).then(function(resp) {
+        Service.showNoty("Orders Delegated");
+        vm.reloadData();
       })
     }
 }

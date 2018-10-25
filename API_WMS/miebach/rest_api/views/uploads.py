@@ -18,6 +18,7 @@ from miebach_utils import *
 from django.core import serializers
 import csv
 from sync_sku import *
+from outbound import get_syncedusers_mapped_sku
 
 log = init_logger('logs/uploads.log')
 
@@ -5192,9 +5193,25 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
     log.info("Validation Started %s" % datetime.datetime.now())
     log.info("Order data Processing Started %s" % (datetime.datetime.now()))
     for row_idx in range(1, no_of_rows):
+        user_obj = ''
         if not order_mapping:
             break
         count += 1
+        if order_mapping.has_key('location'):
+            try:
+                location = str(int(get_cell_data(row_idx, order_mapping['location'], reader, file_type)))
+            except:
+                location = str(get_cell_data(row_idx, order_mapping['location'], reader, file_type))
+            if not location:
+                index_status.setdefault(count, set()).add('Invalid Location')
+            else:
+                try:
+                    sister_wh = get_sister_warehouse(user)
+                    user_obj = sister_wh.filter(user__username=location)
+                    if not user_obj:
+                        index_status.setdefault(count, set()).add('Invalid Warehouse Location')
+                except:
+                    index_status.setdefault(count, set()).add('Invalid Warehouse Location')
         if order_mapping.has_key('sku_code'):
             try:
                 sku_id = str(int(get_cell_data(row_idx, order_mapping['sku_code'], reader, file_type)))
@@ -5203,6 +5220,14 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
             sku_master = SKUMaster.objects.filter(user=user.id, sku_code=sku_id)
             if not sku_master:
                 index_status.setdefault(count, set()).add('Invalid SKU Code')
+            else:
+                if user_obj:
+                    wh_id = user_obj[0].user.id
+                    sku_master_id = sku_master[0].id
+                    sku_id = get_syncedusers_mapped_sku(wh=wh_id, sku_id=sku_master_id)
+                    if not sku_id:
+                        index_status.setdefault(count, set()).add('SKU Code Not found in mentioned Location')
+        """
         if order_mapping.has_key('original_order_id'):
             try:
                 original_order_id = str(int(get_cell_data(row_idx, order_mapping['original_order_id'], reader, file_type)))
@@ -5216,18 +5241,7 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                 order_detail_obj = OrderDetail.objects.filter(user=user.id, original_order_id=original_order_id)
                 if order_detail_obj:
                     index_status.setdefault(count, set()).add('Order ID already present')
-        if order_mapping.has_key('location'):
-            location = get_cell_data(row_idx, order_mapping['location'], reader, file_type)
-            if not location:
-                index_status.setdefault(count, set()).add('Invalid Location')
-            else:
-                try:
-                    sister_wh = get_sister_warehouse(user)
-                    user_obj = sister_wh.filter(user__username=location)
-                    if not user_obj:
-                        index_status.setdefault(count, set()).add('Invalid Warehouse Location')
-                except:
-                    index_status.setdefault(count, set()).add('Invalid Warehouse Location')
+        """
     if index_status and file_type == 'csv':
         f_name = fname.name.replace(' ', '_')
         file_path = rewrite_csv_file(f_name, index_status, reader)
@@ -5341,11 +5355,15 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                 key_value = float(get_cell_data(row_idx, value, reader, file_type))
                 create_order_fields_entry(interm_order_id, key, key_value, user)
             elif key == 'location':
-                value = str(get_cell_data(row_idx, value, reader, file_type))
+                try:
+                    value = str(int(get_cell_data(row_idx, value, reader, file_type)))
+                except:
+                    value = str(get_cell_data(row_idx, value, reader, file_type))
                 sister_wh = get_sister_warehouse(user)
                 user_obj = sister_wh.filter(user__username=value)
                 if user_obj:
                     order_data['order_assigned_wh'] = user_obj[0].user
+                    order_data['status'] = ''
         try:
             IntermediateOrders.objects.create(**order_data)
         except:

@@ -13,6 +13,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
   vm.order_exceed_stock = Boolean(Session.roles.permissions.order_exceed_stock);
   vm.user_type = Session.roles.permissions.user_type;
   vm.service = Service;
+  vm.dis_video = false;
   if($stateParams.styleId){
     vm.styleId = $stateParams.styleId;
   }
@@ -27,15 +28,15 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
   vm.style_detail_hd = [];
   vm.client_logo = Session.parent.logo;
   vm.api_url = Session.host;
-  
+
   if (Session.roles.permissions["style_headers"]) {
-  
+
     vm.en_style_headers = Session.roles.permissions["style_headers"].split(",");
   } else {
-  
+
     vm.en_style_headers = [];
   }
-  
+
   if(vm.en_style_headers.length == 0) {
 
     vm.en_style_headers = ["wms_code", "sku_desc"]
@@ -57,11 +58,11 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
       console.log(vm.old_selLevel);
     } else if(Number(vm.old_selLevel) >= 0 && Number(vm.old_selLevel) != Number(vm.selLevel)){
 
-      vm.levels_data[vm.old_selLevel] = vm.style_data;          
+      vm.levels_data[vm.old_selLevel] = vm.style_data;
     }
 
     if(vm.levels_data[vm.selLevel]){
-      
+
       vm.style_data = vm.levels_data[vm.selLevel];
       vm.old_selLevel = vm.selLevel;
       return false;
@@ -81,18 +82,18 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
         var total_stocks = {};
         vm.charge_remarks = data.data.charge_remarks;
         vm.generic_wharehouse_level = data.data.gen_wh_level_status;
-        
+
         if (data.data.freight_charges == 'true') {
           vm.freight_charges = data.data.freight_charges;
         }
-        
+
         if (Object.keys(vm.style_details).length === 0) {
           vm.style_details = style_data[0];
         }
         vm.style_total_counts = data.data.total_qty;
         var wish_status = false;
         if(style_data.length > 0) {
- 
+
           angular.forEach(style_data, function(record, index){
 
             var stock = 0;
@@ -111,11 +112,11 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
             record['row_total_price'] = record.price * 0;
             record['level'] = vm.selLevel;
             record['overall_sku_total_quantity'] = stock;
-            
+
             record['org_price'] = record.price;
 
             if (vm.total_quantity > 0 || Session.roles.permissions.user_type == 'customer') {
-            
+
               record['quantity_status'] = true;
             }
 
@@ -139,16 +140,16 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
 
           vm.page_loading = false;
         }
-        
+
         // vm.freight_charges = data.data.freight_charges;
         vm.style_headers = data.data.style_headers;
-        
+
         if (data.data.gen_wh_level_status == 'true') {
-          
+
           vm.gen_wh_lead_tm = true;
           vm.style_detail_hd = data.data.lead_times;
         } else{
-          
+
           vm.def_lead_tm = true;
           wish_status = false;
           vm.style_detail_hd = Object.keys(vm.style_headers);
@@ -167,9 +168,9 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
 
   vm.old_selLevel = '';
   vm.getLevelData = function(){
-    
+
     vm.service.apiCall('get_levels/', 'GET', {sku_class:vm.styleId, customer_id: Session.userId}).then(function(data){
-    
+
       vm.levels = data.data;
       vm.selLevel = Number(data.data[0].warehouse_level);
       vm.open_style();
@@ -183,7 +184,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
     var total_quantity = 0;
 
     angular.forEach(vm.levels_data, function(record, key){
-      
+
       angular.forEach(record.data,function(sku){
         if (sku.quantity) {
           total_quantity += Number(sku.quantity);
@@ -191,7 +192,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
       });
 
       // if (record.data[index].quantity) {
-        
+
       //   total_quantity += Number(record.data[index].quantity);
       // }
     });
@@ -209,7 +210,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
     var total_quantity = vm.get_total_level_quantity(index);
     angular.forEach(vm.levels_data, function(level_data, level_name) {
       if (level_data.data[index].quantity) {
-        
+
         if (Session.roles.permissions.user_type == 'reseller' && vm.selLevel==0 && level_name!=vm.selLevel) {
           level_data.data[index].quantity = 0;
           Service.showNoty('Level-'+level_name+' quantity removed', 'warning');
@@ -228,7 +229,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
       level_data.quantity = 0;
       level_data.total_price = 0;
       angular.forEach(level_data.data, function(data){
-        
+
         var quantity = (data.quantity) ? data.quantity : 0;
         level_data.quantity += Number(quantity);
         level_data.total_price += data.row_total_price;
@@ -246,7 +247,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
     vm.sel_items_total_price += vm.sel_items_tax;
     vm.cal_wish_list()
   }
-  
+
   vm.wish_data = {total_tax: 0, total_amount: 0};
   vm.cal_wish_list = function() {
 
@@ -303,7 +304,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
             var available_qty = 0;
             if (vm.levels_data[0].data[index].quantity) {
 
-              available_qty = Number(vm.levels_data[0].data[index].overall_sku_total_quantity) - 
+              available_qty = Number(vm.levels_data[0].data[index].overall_sku_total_quantity) -
               Number(vm.levels_data[0].data[index].quantity);
             } else {
 
@@ -384,7 +385,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
 
     // if(vm.sel_items_total_price > 0) {
     if(vm.wish_data.total_qty > 0) {
-      
+
       var send = [];
 
       //angular.forEach(vm.levels_data, function(level_data, level_name) {
@@ -402,7 +403,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
 
       vm.insert_customer_cart_data(send);
     } else {
-     
+
       vm.service.showNoty("Please Enter Quantity", "success", "bottomRight");
     }
   }
@@ -411,11 +412,11 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
 
     var send = JSON.stringify(data);
     vm.place_order_loading = true;
-    
+
     vm.service.apiCall('insert_customer_cart_data/?data='+send).then(function(data){
-       
+
        if (data.message) {
-       
+
         Data.styles_data = {};
         vm.service.showNoty("Succesfully Added to Cart", "success", "bottomRight");
         $state.go('user.App.Cart');

@@ -49,8 +49,11 @@ init_log = init_logger('logs/integrations.log')
 log_qssi = init_logger('logs/qssi_order_status_update.log')
 log_sellable = init_logger('logs/auto_sellable_suggestions.log')
 
-
 # Create your views here.
+
+def create_log_message(log_obj, request_user, user, message, request_data):
+    log_obj.info('Request params for %s for request user %s user %s is %s' %
+                 (str(message), str(request_user.username), str(user.username), str(request_data)))
 
 def process_date(value):
     value = value.split('/')
@@ -222,7 +225,8 @@ def add_user_permissions(request, response_data, user=''):
                                              'company_name': user_profile.company_name,
                                              'industry_type': user_profile.industry_type,
                                              'user_type': user_profile.user_type,
-                                             'request_user_type': request_user_profile.user_type}
+                                             'request_user_type': request_user_profile.user_type,
+                                             'warehouse_type': user_profile.warehouse_type}
 
     setup_status = 'false'
     if 'completed' not in user_profile.setup_status:
@@ -3662,7 +3666,27 @@ def build_search_data(to_data, from_data, limit):
                 if status:
                     to_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc,
                                     'measurement_unit': data.measurement_type,
-                                    'mrp': data.mrp})
+                                    'mrp': data.mrp, 'sku_class': data.sku_class,
+                                    'style_name': data.style_name})
+        return to_data
+
+
+def build_style_search_data(to_data, from_data, limit):
+    if (len(to_data) >= limit):
+        return to_data
+    else:
+        for data in from_data:
+            if (len(to_data) >= limit):
+                break
+            else:
+                status = True
+                for item in to_data:
+                    if (item['sku_class'] == data['sku_class']):
+                        status = False
+                        break
+                if status:
+                    to_data.append({'sku_class': data['sku_class'],
+                                    'style_name': data['style_name']})
         return to_data
 
 
@@ -3972,8 +3996,9 @@ def get_sellers_list(request, user=''):
         seller_list.append({'id': seller.seller_id, 'name': seller.name})
         if seller.supplier:
             seller_supplier[seller.seller_id] = seller.supplier.id
+    user_list = get_all_warehouses(user)
     return HttpResponse(json.dumps({'sellers': seller_list, 'tax': 5.5, 'receipt_types': PO_RECEIPT_TYPES, \
-                                    'seller_supplier_map': seller_supplier}))
+                                    'seller_supplier_map': seller_supplier, 'warehouse' : user_list}))
 
 
 def update_filled_capacity(locations, user_id):
@@ -8024,7 +8049,6 @@ def po_invoice_number_check(user, invoice_num, supplier_id):
     return status
 
 
-
 def get_sister_warehouse(user):
     warehouses = UserGroups.objects.filter(Q(admin_user=user) | Q(user=user))
     return warehouses
@@ -8211,3 +8235,84 @@ def create_update_table_history(user, model_id, model_name, model_field, prev_va
         TableUpdateHistory.objects.create(user_id=user.id, model_id=model_id,
                                          model_name=model_name, model_field=model_field,
                                          previous_val=prev_val, updated_val=new_val)
+
+
+def get_all_warehouses(user):
+    user_list = []
+    admin_user = UserGroups.objects.filter(
+        Q(admin_user__username__iexact=user.username) | Q(user__username__iexact=user.username)). \
+        values_list('admin_user_id', flat=True)
+    user_groups = UserGroups.objects.filter(admin_user_id__in=admin_user).values('user__username',
+                                                                                 'admin_user__username')
+    for users in user_groups:
+        for key, value in users.iteritems():
+            if user.username != value and value not in user_list:
+                user_list.append(value)
+    return user_list
+
+
+def check_and_create_supplier_wh_mapping(user, warehouse, supplier_id):
+    master_mapping = MastersMapping.objects.filter(user=user.id, master_id=supplier_id,
+                                               mapping_type='central_supplier_mapping')
+    supplier_master = SupplierMaster.objects.get(id=supplier_id, user=user.id)
+    if master_mapping:
+        new_supplier_id = master_mapping[0].mapping_id
+    else:
+        new_supplier_id = create_new_supplier(warehouse, supplier_master.name, supplier_master.email_id,
+                                          supplier_master.phone_number,
+                                        supplier_master.address, supplier_master.tin_number)
+        if new_supplier_id:
+            MastersMapping.objects.create(user=user.id, master_id=supplier_id, mapping_id=new_supplier_id,
+                                         mapping_type='central_supplier_mapping')
+    return new_supplier_id
+
+
+@get_admin_user
+def search_style_data(request, user=''):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    search_key = request.GET.get('q', '')
+    total_data = []
+    limit = 10
+
+    if not search_key:
+        return HttpResponse(json.dumps(total_data))
+
+    lis = ['sku_class', 'style_name']
+    query_objects = sku_master.filter(Q(sku_class__icontains=search_key) | Q(style_name__icontains=search_key),
+                                      user=user.id).values(*lis).distinct()
+
+    master_data = query_objects.filter(Q(sku_class__exact=search_key) | Q(style_name__exact=search_key),
+                                       user=user.id).values(*lis).distinct()
+    if master_data:
+        master_data = master_data[0]
+        total_data.append(master_data)
+
+    master_data = query_objects.filter(Q(sku_class__istartswith=search_key) | Q(style_name__istartswith=search_key),
+                                       user=user.id).values(*lis).distinct()
+    total_data = build_style_search_data(total_data, master_data, limit)
+
+    if len(total_data) < limit:
+        total_data = build_style_search_data(total_data, query_objects, limit)
+    return HttpResponse(json.dumps(total_data))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_style_level_stock(request, user=''):
+    sku_wise_list = []
+    sku_class = request.GET.get('sku_class', '')
+    sel_warehouse = request.GET.get('warehouse', '')
+    if sel_warehouse:
+        user = User.objects.get(username=sel_warehouse)
+    if not sku_class:
+        return HttpResponse(json.dumps({}))
+    sku_codes = SKUMaster.objects.filter(sku_class=sku_class, user=user.id)
+    for sku in sku_codes[0:3]:
+        stock_data = StockDetail.objects.exclude(Q(receipt_number=0) |
+                                                 Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])).\
+                                            filter(sku__user=user.id, sku__sku_code=sku.sku_code)
+        zones_data, available_quantity = get_sku_stock_summary(stock_data, '', user)
+        avail_qty = sum(map(lambda d: available_quantity[d] if available_quantity[d] > 0 else 0, available_quantity))
+        sku_wise_list.append({'sku_code': sku.sku_code, 'sku_desc': sku.sku_desc, 'avail_qty': avail_qty})
+    return HttpResponse(json.dumps(sku_wise_list))

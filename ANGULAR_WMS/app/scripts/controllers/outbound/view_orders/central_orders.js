@@ -10,6 +10,8 @@ var vm = this;
     vm.selected = {};
     vm.selectAll = false;
     vm.bt_disable = true;
+    vm.display_style_stock_table = false;
+    vm.sku_level_qtys = [];
 
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
@@ -57,6 +59,15 @@ var vm = this;
         DTColumnBuilder.newColumn('Status').withTitle('Status')
     ];
 
+    vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
+      .renderWith(function(data, type, full, meta) {
+      if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
+        vm.selected = {};
+      }
+      vm.selected[meta.row] = vm.selectAll;
+      return vm.service.frontHtml + meta.row + vm.service.endHtml;
+    }))
+
     vm.dtInstance = {};
     vm.reloadData = reloadData;
 
@@ -64,7 +75,7 @@ var vm = this;
         vm.dtInstance.reloadData();
     };
 
-    var empty_data = {"order_id": ""}
+    var empty_data = {"order_id": "", "sku_class": ""}
     vm.model_data = {};
     angular.copy(empty_data, vm.model_data);
 
@@ -76,8 +87,8 @@ var vm = this;
     }
 
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-        $('td', nRow).unbind('click');
-        $('td', nRow).bind('click', function() {
+        $('td:not(td:first)', nRow).unbind('click');
+        $('td:not(td:first)', nRow).bind('click', function() {
             $scope.$apply(function() {
                 vm.service.apiCall('get_central_order_detail/', 'GET', {central_order_id: aData.data_id}).then(function(data){
                   var resp_data = data.data;
@@ -96,8 +107,12 @@ var vm = this;
                   vm.model_data.warehouse = resp_data.warehouse;
                   vm.model_data.shipment_date = resp_data.shipment_date;
                   vm.model_data.project_name = resp_data.project_name;
+                  vm.model_data.data = [{"sel_warehouse":"", "wh_available":"", "wh_quantity":""}];
                   $state.go('app.outbound.ViewOrders.CentralOrderDetails');
                 });
+                vm.sel_warehouse_obj = {};
+                vm.temp_warehouse_obj = {};
+                vm.sel_warehouse_flag = false;
             });
         });
         return nRow;
@@ -108,6 +123,9 @@ var vm = this;
 
     vm.close = close;
     function close() {
+      vm.model_data = {};
+      vm.display_style_stock_table = false;
+      vm.sku_level_qtys = [];
       $state.go('app.outbound.ViewOrders');
     }
 
@@ -123,11 +141,11 @@ var vm = this;
     function submit(wh, status, data_id, shipment_date, alt_sku_code){
 
       var sum = 0;
-      for( var item in vm.model_data.wh_level_stock_map){
-          if(vm.model_data.wh_level_stock_map[item]['quantity']){
-              sum += parseInt(vm.model_data.wh_level_stock_map[item]['quantity']);
-          }
-      }
+      angular.forEach(vm.model_data.data, function(row){
+        if(row.wh_quantity){
+          sum += parseInt(row.wh_quantity);
+        }
+      })
       if(vm.model_data.quantity != sum){
           Service.showNoty('Filled quantity is not matching actual quantity');
           return
@@ -163,31 +181,142 @@ var vm = this;
         var resp_data = data.data;
         vm.model_data.warehouses = resp_data.warehouses;
         vm.model_data.wh_level_stock_map = resp_data.wh_level_stock_map;
-        vm.model_data.warehouse = resp_data.warehouse;
+        if (vm.model_data.data.length) {
+          angular.forEach(vm.model_data.data, function(record){
+            if (vm.model_data.wh_level_stock_map[record.sel_warehouse]) {
+              record.wh_available = vm.model_data.wh_level_stock_map[record.sel_warehouse].available;
+              record.wh_quantity = 0;
+            }
+          })
+        }
       });
     }
 
-    vm.change_wh_quantity = function(key, quantity, actual_quantity) {
+    vm.change_wh_quantity = function(key, quantity, actual_quantity, index) {
       var tot_filled = 0;
-      for(var dat in vm.model_data.wh_level_stock_map) {
-        tot_filled += parseInt(vm.model_data.wh_level_stock_map[dat].quantity);
-      }
+      vm.model_data.wh_level_stock_map[key].quantity = quantity;
+      angular.forEach(vm.model_data.data, function(row){
+        tot_filled += parseInt(row.wh_quantity);
+      })
       if(tot_filled > actual_quantity){
         var remain = actual_quantity - (tot_filled - parseInt(quantity));
         vm.model_data.wh_level_stock_map[key].quantity = Math.min(remain, parseInt(vm.model_data.wh_level_stock_map[key].available));
+        vm.model_data.data[index].wh_quantity = Math.min(remain, parseInt(vm.model_data.wh_level_stock_map[key].available));
         return
       }
       if(actual_quantity >= parseInt(vm.model_data.wh_level_stock_map[key].available)) {
         if(parseInt(vm.model_data.wh_level_stock_map[key].available) <= parseInt(quantity)){
           vm.model_data.wh_level_stock_map[key].quantity = vm.model_data.wh_level_stock_map[key].available;
+          vm.model_data.data[index].wh_quantity = vm.model_data.wh_level_stock_map[key].available;
         }
       } else {
         if(parseInt(vm.model_data.wh_level_stock_map[key].available) <= parseInt(quantity)){
           vm.model_data.wh_level_stock_map[key].quantity = actual_quantity;
+          vm.model_data.data[index].wh_quantity = actual_quantity;
         }
       }
     }
 
+    vm.get_sku_qty_details = function(product, item, index) {
+      console.log(item);
 
+      vm.service.apiCall('get_style_level_stock/', 'GET', {sku_class: item['sku_class'], warehouse: vm.model_data.warehouse}).then(function(data){
+        var resp_data = data.data;
+        vm.display_style_stock_table = true;
+        angular.copy(resp_data, vm.sku_level_qtys);
+      });
+    }
 
+    vm.update_data = update_data;
+    function update_data(data, index) {
+      vm.model_data.data.splice(index,1);
+      if (Object.keys(vm.sel_warehouse_obj).length) {
+        delete vm.sel_warehouse_obj[index];
+        delete vm.temp_warehouse_obj[data.sel_warehouse];
+        if (vm.model_data.data.length) {
+          vm.model_data.warehouse = vm.model_data.data[vm.model_data.data.length-1].sel_warehouse;
+        } else {
+          vm.model_data.warehouse = "";
+        }
+      }
+      if (!Object.keys(vm.sel_warehouse_obj).length) {
+        vm.sel_warehouse_flag = false;
+      }
+    }
+
+    vm.sel_warehouse_obj = {};
+    vm.temp_warehouse_obj = {};
+    vm.change_warehouse = function(data, index) {
+      var flag = false;
+      if (Object.keys(vm.sel_warehouse_obj).length) {
+        if (vm.sel_warehouse_obj[index]) {
+          data.wh_available = vm.model_data.wh_level_stock_map[data.sel_warehouse].available;
+          delete vm.temp_warehouse_obj[vm.sel_warehouse_obj[index]]
+          angular.forEach(vm.sel_warehouse_obj, function(value){
+            if (data.sel_warehouse == value) {
+              vm.service.showNoty("<b>"+data.sel_warehouse+"</b> warehouse already selected plese try with another");
+              data.sel_warehouse = "";
+              data.wh_available = "";
+            }
+          })
+          vm.sel_warehouse_obj[index] = data.sel_warehouse;
+          vm.temp_warehouse_obj[data.sel_warehouse] = data.sel_warehouse;
+        } else {
+          if (vm.temp_warehouse_obj[data.sel_warehouse]) {
+            vm.service.showNoty("<b>"+data.sel_warehouse+"</b> warehouse already selected plese try with another");
+            data.sel_warehouse = "";
+            data.wh_available = "";
+            delete vm.sel_warehouse_obj[index];
+            delete vm.temp_warehouse_obj[data.sel_warehouse];
+          } else if (!vm.temp_warehouse_obj[data.sel_warehouse]) {
+            vm.sel_warehouse_obj[index] = data.sel_warehouse;
+            vm.temp_warehouse_obj[data.sel_warehouse] = data.sel_warehouse;;
+            data.wh_available = vm.model_data.wh_level_stock_map[data.sel_warehouse].available;
+            vm.model_data.warehouse = vm.model_data.data[vm.model_data.data.length-1].sel_warehouse;
+          }
+        }
+      } else {
+        vm.sel_warehouse_obj[index] = data.sel_warehouse;
+        vm.temp_warehouse_obj[data.sel_warehouse] = data.sel_warehouse;
+        data.wh_available = vm.model_data.wh_level_stock_map[data.sel_warehouse].available;
+        vm.model_data.warehouse = data.sel_warehouse;
+        vm.sel_warehouse_flag = true;
+      }
+    }
+
+    vm.add_warehouse = function(index=0, flag=true) {
+      if (index==vm.model_data.data.length-1 && !flag || !index && flag) {
+        if (flag) {
+          vm.model_data.data.push({"sel_warehouse":"", "wh_available":"", "wh_quantity":""});
+        } else {
+          $scope.$apply(function() {
+            vm.model_data.data.push({"sel_warehouse":"", "wh_available":"", "wh_quantity":""});
+          });
+        }
+        if (vm.model_data.data.length-1) {
+          vm.model_data.warehouse = vm.model_data.data[vm.model_data.data.length-1].sel_warehouse;
+        }
+      }
+    }
+
+    vm.delegate_order = function() {
+      vm.delegate_order_data = []
+      for (var key in vm.selected) {
+        if (vm.selected[key]) {
+          var delegate_row = vm.dtInstance.DataTable.context[0].aoData[key]._aData
+          //var elem = {'warehouse': JSON.stringify(vm.model_data.wh_level_stock_map), 
+          //'status': status,'interm_det_id': data_id, 'shipment_date': shipment_date, 
+          //'alt_sku_code': alt_sku_code};
+          var elem = {
+            'status': delegate_row['Status'], 'interm_det_id': delegate_row['data_id'],
+            'shipment_date': delegate_row['Shipment Date'], 'alt_sku_code': delegate_row['SKU Code']
+          }
+          vm.delegate_order_data.push(elem);
+        }
+      }
+      vm.service.apiCall('do_delegate_orders/', 'POST', {'delegate_order_data': JSON.stringify(vm.delegate_order_data)}).then(function(resp) {
+        Service.showNoty("Orders Delegated");
+        vm.reloadData();
+      })
+    }
 }

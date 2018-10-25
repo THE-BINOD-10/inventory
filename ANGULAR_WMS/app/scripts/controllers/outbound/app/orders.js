@@ -12,6 +12,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.permissions = Session.roles.permissions;
     vm.apply_filters = colFilters;
     vm.service = Service;
+    vm.display = true;
 
     //default values
     if(!vm.permissions.grn_scan_option) {

@@ -3554,9 +3554,9 @@ def check_and_raise_po(generic_order_id, cm_id):
 def fetch_asn_stock(dist_user_id, sku_code, req_stock):
     segregate_stock_wh_map = OrderedDict()
     today_filter = datetime.datetime.today()
-    threeday_filter = today_filter + datetime.timedelta(days=3)
-    thirtyday_filter = today_filter + datetime.timedelta(days=30)
-    hundred_day_filter = today_filter + datetime.timedelta(days=100)
+    threeday_filter = today_filter + datetime.timedelta(days=10) #Client asked to change days. So changing date values only.
+    thirtyday_filter = today_filter + datetime.timedelta(days=45)
+    hundred_day_filter = today_filter + datetime.timedelta(days=90)
     source_whs = list(NetworkMaster.objects.filter(dest_location_code_id=dist_user_id).filter(
         source_location_code__userprofile__warehouse_level=1).values_list('source_location_code_id',
                                                                           flat=True).order_by('lead_time',
@@ -3593,11 +3593,11 @@ def fetch_asn_stock(dist_user_id, sku_code, req_stock):
         if k in asn_res_100days_qty:
             intr_100d_st[k] = intr_100d_st[k] - asn_res_100days_qty[k]
 
-    segregate_stock_wh_map.setdefault(3, {}).update(intr_3d_st)
-    segregate_stock_wh_map.setdefault(30, {}).update(intr_30d_st)
-    segregate_stock_wh_map.setdefault(100, {}).update(intr_100d_st)
+    segregate_stock_wh_map.setdefault(10, {}).update(intr_3d_st)
+    segregate_stock_wh_map.setdefault(45, {}).update(intr_30d_st)
+    segregate_stock_wh_map.setdefault(90, {}).update(intr_100d_st)
     stock_wh_map = OrderedDict()
-    for lt in [3, 30, 100]:
+    for lt in [10, 45, 90]:
         stock_wh_map[lt] = OrderedDict()
     for lt, st_wh_map in segregate_stock_wh_map.items():
         break_flag = False
@@ -5512,9 +5512,9 @@ def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_
                                                      product_code__sku_class=sku_master[0]['sku_class']).values_list(
         'product_code__wms_code').distinct().annotate(Sum('received_quantity')))
     today_filter = datetime.datetime.today()
-    threeday_filter = today_filter + datetime.timedelta(days=3)
-    thirtyday_filter = today_filter + datetime.timedelta(days=30)
-    hundred_day_filter = today_filter + datetime.timedelta(days=100)
+    threeday_filter = today_filter + datetime.timedelta(days=10)
+    thirtyday_filter = today_filter + datetime.timedelta(days=45)
+    hundred_day_filter = today_filter + datetime.timedelta(days=90)
     sku_filter = [sku_master[0]['sku_class']]
 
     asn_filters = {'quantity__gt': 0, 'sku__sku_class__in': sku_filter, 'sku__user__in': stock_display_warehouse}
@@ -5581,9 +5581,9 @@ def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_
             all_quantity -= item['physical_stock']
         item['all_quantity'] = all_quantity
         if level == 3:
-            item[3] = intr_3d_st.get(item["wms_code"], 0)
-            item[30] = intr_30d_st.get(item["wms_code"], 0)
-            item[100] = intr_100d_st.get(item["wms_code"], 0)
+            item[10] = intr_3d_st.get(item["wms_code"], 0)
+            item[45] = intr_30d_st.get(item["wms_code"], 0)
+            item[90] = intr_100d_st.get(item["wms_code"], 0)
         if lead_times and level != 3:
             for lead_time, wh_code in lead_times.items():
                 output = get_stock_qty_leadtime(item, wh_code)
@@ -5725,11 +5725,11 @@ def get_sku_variants(request, user=''):
                 dist_userid = dist_mapping[0].warehouse_id
                 lead_times = get_leadtimes(dist_userid, level)
                 if level == 3:
-                    lead_times = OrderedDict(((3, None), (30, None), (100, None)))
+                    lead_times = OrderedDict(((10, None), (45, None), (90, None)))
         else:
             if level:
                 if level == 3:
-                    reseller_leadtimes = [3, 30, 100]
+                    reseller_leadtimes = [10, 45, 90]
                 else:
                     lead_times = get_leadtimes(user.id, level)
                     reseller_leadtimes = map(lambda x: x + dist_reseller_leadtime, lead_times)
@@ -5767,7 +5767,7 @@ def get_sku_variants(request, user=''):
     #         'sku__sku_code', 'quantity').values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
 
     today_filter = datetime.datetime.today()
-    hundred_day_filter = today_filter + datetime.timedelta(days=100)
+    hundred_day_filter = today_filter + datetime.timedelta(days=90)
     ints_filters = {'quantity__gt': 0, 'sku__sku_code__in': needed_skus, 'sku__user__in': gen_whs}
     asn_qs = ASNStockDetail.objects.filter(**ints_filters)
     intr_obj_100days_qs = asn_qs.exclude(arriving_date__lte=today_filter).filter(arriving_date__lte=hundred_day_filter)

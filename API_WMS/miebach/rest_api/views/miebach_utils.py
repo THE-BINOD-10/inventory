@@ -2453,7 +2453,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price', 'id',
                          'seller_po__receipt_type', 'receipt_number', 'batch_detail__buy_price',
                          'batch_detail__tax_percent', 'invoice_number', 'invoice_date', 'challan_number',
-                         'challan_date', 'discount_percent']
+                         'challan_date', 'discount_percent', 'cess_tax']
     else:
         unsorted_dict = {15: 'Pre-Tax Received Value', 26: 'Post-Tax Received Value',
                          27: 'Invoiced Unit Rate',
@@ -2494,7 +2494,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price', 'id',
                          'seller_po__receipt_type', 'receipt_number', 'batch_detail__buy_price',
                          'batch_detail__tax_percent', 'invoice_number', 'invoice_date', 'challan_number',
-                         'challan_date', 'discount_percent'
+                         'challan_date', 'discount_percent', 'cess_tax'
                          ]
     excl_status = {'purchase_order__status': ''}
     ord_quan = 'quantity'
@@ -2575,6 +2575,8 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
             data['purchase_order__open_po__utgst_tax'] = 0
         if not data['purchase_order__open_po__cess_tax']:
             data['purchase_order__open_po__cess_tax'] = 0
+        if data['cess_tax']:
+            data['purchase_order__open_po__cess_tax'] = data['cess_tax']
         amount = float(data['total_received'] * price)
         if data['discount_percent']:
             amount = amount - (amount * float(data['discount_percent'])/100)

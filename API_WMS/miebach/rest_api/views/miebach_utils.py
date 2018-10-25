@@ -2607,7 +2607,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
             invoice_date = data['invoice_date'].strftime("%d %b, %Y")
         if data['challan_date']:
             challan_date = data['challan_date'].strftime("%d %b, %Y")
-        temp_data['aaData'].append(OrderedDict((('Received Date', get_local_date(user, result.updation_date)),
+        temp_data['aaData'].append(OrderedDict((('Received Date', get_local_date(user, result.creation_date)),
                             ('PO Date', get_local_date(user, result.creation_date)),
                             ('PO Number', po_number),
                             ('Supplier ID', data[field_mapping['supplier_id']]),

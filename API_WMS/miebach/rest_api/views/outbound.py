@@ -12789,9 +12789,10 @@ def do_delegate_orders(request, user=''):
         message = 'Success'
         first = True
         inter_obj_data = {}
+        output_list = []
         reserved_obj_dict, raw_reserved_dict = {}, {}
-        interm_obj = IntermediateOrders.objects.filter(id=obj_data['interm_det_id'], user=user.id)
-        interm_obj = interm_obj[0]
+        interm_obj_filter = IntermediateOrders.objects.filter(id=obj_data['interm_det_id'], user=user.id)
+        interm_obj = interm_obj_filter[0]
         warehouses = UserGroups.objects.filter(admin_user_id=interm_obj.user, user__username=interm_obj.order_assigned_wh.username)
         wh_users = warehouses.values_list('user_id', flat=True)
         warehouse_names = warehouses.values_list('user__username', flat=True)
@@ -12819,7 +12820,10 @@ def do_delegate_orders(request, user=''):
             alt_sku_code = obj_data['alt_sku_code']
             sku_master = SKUMaster.objects.filter(user=user.id, sku_code=alt_sku_code)
             if not sku_master.exists():
-                resp_dict[str(interm_obj.interm_order_id)] = 'Invalid Alt SKU code'
+                resp_dict[str(interm_obj.interm_order_id)] = ' Invalid Alt SKU code'
+                resp_str = str(interm_obj.interm_order_id) + ' - Invalid Alt SKU code'
+                output_list.append(resp_str)
+                created_order_objs.append(resp_dict)
                 continue
             wh_usr_obj = User.objects.filter(username=wh_name)
             status = status_map.get(obj_data['status'])
@@ -12829,6 +12833,9 @@ def do_delegate_orders(request, user=''):
                     wh_usr_obj = wh_usr_obj[0]
                 else:
                     resp_dict[str(interm_obj.interm_order_id)] = 'User Missing'
+                    resp_str = str(interm_obj.interm_order_id) + ' - User Missing'
+                    created_order_objs.append(resp_dict)
+                    output_list.append(resp_str)
                     continue
             interm_det_id = obj_data['interm_det_id']
             shipment_date = obj_data['shipment_date']
@@ -12836,10 +12843,16 @@ def do_delegate_orders(request, user=''):
                 shipment_date = datetime.datetime.strptime(shipment_date, "%d/%m/%Y")
             if not status:
                 resp_dict[str(interm_obj.interm_order_id)] = 'Status Missing'
+                resp_str = str(interm_obj.interm_order_id) + ' - Status Missing'
+                created_order_objs.append(resp_dict)
+                output_list.append(resp_str)
                 continue
             interm_qs = IntermediateOrders.objects.filter(id=interm_det_id)
             if not interm_qs:
                 resp_dict[str(interm_obj.interm_order_id)] = 'Failed, Intermediate Order Not Found'
+                resp_str = str(interm_obj.interm_order_id) + ' - Failed, Intermediate Order Not Found'
+                created_order_objs.append(resp_dict)
+                output_list.append(resp_str)
                 continue
             sel_sku_id = interm_qs[0].sku.id
             update_alt_sku = False
@@ -12861,6 +12874,7 @@ def do_delegate_orders(request, user=''):
                                   'alt_sku_id': interm_obj.alt_sku_id
                                  }
                 inv_amt = (interm_obj.unit_price * interm_obj.quantity) + interm_obj.tax
+                """
                 if first:
                     if interm_obj.order_id:
                         if status:
@@ -12881,11 +12895,15 @@ def do_delegate_orders(request, user=''):
                     interm_obj = IntermediateOrders.objects.create(**inter_obj_data)
                     inv_amt = (interm_obj.unit_price * interm_obj.quantity) + interm_obj.tax
                     items.append([interm_obj.sku.sku_desc, interm_obj.quantity, inv_amt])
+                """
                 if status != '0':
                     order_dict['user'] = wh_id
                     sku_id = get_syncedusers_mapped_sku(wh=wh_id, sku_id=sel_sku_id)
                     if not sku_id:
                         resp_dict[str(interm_obj.interm_order_id)] = 'SKU Not found in Selected Warehouse'
+                        created_order_objs.append(resp_dict)
+                        resp_str = str(interm_obj.interm_order_id) + ' - SKU Not found in Selected Warehouse'
+                        output_list.append(resp_str)
                         continue
                     order_dict['sku_id'] = sku_id
                     order_dict['title'] = interm_obj.sku.sku_desc
@@ -12906,8 +12924,9 @@ def do_delegate_orders(request, user=''):
 
                     #Order Detail Save Block
                     original_order_id, address1, address2, client_code, village, state, pincode = '', '', '', '', '', '', ''
-                    order_fields = OrderFields.objects.filter(user=user.id, original_order_id=interm_obj.interm_order_id).values('name', 'value')
-                    for obj in list(order_fields):
+                    order_fields = OrderFields.objects.filter(user=user.id, original_order_id=interm_obj.interm_order_id)
+                    order_field_name_values = order_fields.values('name', 'value')
+                    for obj in list(order_field_name_values):
                         if obj['name'] == "original_order_id":
                             original_order_id = obj['value']
                         if obj['name'] == "address1":
@@ -12956,7 +12975,7 @@ def do_delegate_orders(request, user=''):
                     order_dict['order_code'] = order_code_value
                     get_existing_order = OrderDetail.objects.filter(**{'status': 1, 'sku_id': sku_id, 
                         'sku_code': interm_obj.sku.sku_code, 'original_order_id': original_order_id, 
-                        'user': user.id})
+                        'user': wh_id})
                     if get_existing_order:
                         get_existing_order.quantity = get_existing_order.quantity + 1
                         get_existing_order.save()
@@ -12964,8 +12983,13 @@ def do_delegate_orders(request, user=''):
                         try:
                             ord_obj = OrderDetail(**order_dict)
                             ord_obj.save()
+                            order_fields.update(original_order_id=original_order_id)
+                            interm_obj_filter.update(status=1)
                         except:
                             resp_dict[str(interm_obj.interm_order_id)] = 'Error in Saving Order ID'
+                            created_order_objs.append(resp_dict)
+                            resp_str = str(interm_obj.interm_order_id) + ' - Error in Saving Order ID'
+                            output_list.append(resp_str)
                             continue
                     order_objs.append(ord_obj)
                     #Picklist Block
@@ -12985,10 +13009,10 @@ def do_delegate_orders(request, user=''):
                     """
 
                     #Customer Order Summary Create
+                    """
                     if first:
                         inv_amt = (interm_obj.unit_price * interm_obj.quantity) + interm_obj.tax
                         items.append([interm_obj.sku.sku_desc, interm_obj.quantity, inv_amt])
-                        """ Why this line """
                         inter_obj_data = {'interm_order_id': interm_obj.interm_order_id,
                                           'unit_price': interm_obj.unit_price,
                                           'tax': interm_obj.tax,
@@ -13002,15 +13026,16 @@ def do_delegate_orders(request, user=''):
                                           'alt_sku_id': interm_obj.alt_sku_id
                                          }
                         first = False
-                    interm_obj.order_id = ord_obj.id
-                    interm_obj.quantity = int(wh_data['quantity'])
-                    interm_obj.order_assigned_wh_id = wh_id
-                    interm_obj.shipment_date = shipment_date
-                    interm_obj.status = 1
-                    interm_obj.save()
+                        interm_obj.order_id = ord_obj.id
+                        interm_obj.quantity = int(wh_data['quantity'])
+                        interm_obj.order_assigned_wh_id = wh_id
+                        interm_obj.shipment_date = shipment_date
+                        interm_obj.status = 1
+                        interm_obj.save()
+                    """
                     cust_ord_dict = {'order_id': ord_obj.id, 'sgst_tax': interm_obj.sgst_tax, 
                                     'cgst_tax': interm_obj.cgst_tax, 'igst_tax': interm_obj.igst_tax,
-                                    'vehicle_number': ''}
+                                    'vechile_number': ''}
                     CustomerOrderSummary.objects.create(**cust_ord_dict)
                     #mail to Admin and normal user
                     central_orders_mail = MiscDetail.objects.filter(user=request.user.id, 
@@ -13039,19 +13064,24 @@ def do_delegate_orders(request, user=''):
                             send_mail(mail_ids, 'Order Approved, Customer: %s' % interm_qs.customer_user.username, rendered)
                         if user_mail_id:
                             send_mail(user_mail_id, 'Order Approved Successfully', rendered_user)
-                    created_order_objs.append(resp_dict)
                 #admin_user = get_admin(user)
                 #if admin_user.username in ['one_assist']:
                     #create_order_pos(user, created_order_objs)
-                result_data['status'] = True
-                message = 'Orders Delegated'
-                if len(created_order_objs):
-                    message = 'Orders Delegated Partially'
-                    result_data['resp_data'] = created_order_objs
-                result_data['message'] = message
             except:
                 import traceback
                 log.debug(traceback.format_exc())
                 message = 'Failed'
         #return HttpResponse('Orders Delegated')
-    return HttpResponse(json.dumps(message), content_type='application/json')
+        message = 'Orders Delegated'
+        output_msg = ''
+        if len(output_list):
+            output_msg = (', ').join(output_list)
+        else:
+            output_msg = "Well Done ! Successfully Delegated"
+        if len(created_order_objs):
+            message = 'Orders Delegated Partially'
+            result_data['resp_data'] = created_order_objs
+        result_data['message'] = message
+        result_data['output_msg'] = output_msg
+        result_data['status'] = True
+    return HttpResponse(json.dumps(result_data), content_type='application/json')

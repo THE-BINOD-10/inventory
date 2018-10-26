@@ -91,17 +91,22 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
     }
   }
 
-  vm.getStatus = function(order_qty, pick_qty) {
+  vm.getStatus = function(order_qty, pick_qty, status_) {
 
-    if(pick_qty == 0) {
-
-      return "Open";
-    } else if ((order_qty - pick_qty) == 0) {
-
-      return "Dispatched";
+    status_ = status_ || ''
+    if(status_ == 'Waiting For Approval') {
+      return status_
     } else {
+        if(pick_qty == 0) {
 
-      return "Partially Dispatched";
+          return "Open";
+        } else if ((order_qty - pick_qty) == 0) {
+
+          return "Dispatched";
+        } else {
+
+          return "Partially Dispatched";
+        }
     }
   }
 
@@ -160,19 +165,33 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
 
   vm.order_cancel = function(order, index, event) {
     event.stopPropagation();
-    Service.apiCall("order_cancel/?order_id="+order.order_id).then(function(data) {
-      if(data.message) {
-        console.log(data.data);
-        if(data.data == 'Success') {
-          vm.order_data.data.splice(index, 1);
-          Service.showNoty('Successfully Cancelled the Order');
-        } else {
-          Service.showNoty(data.data, 'warning');
-        }
-      } else {
-        Service.showNoty('Something Went Wrong', 'warning');
-      }
-    });
+    if(order.intermediate_order) {
+        Service.apiCall("intermediate_order_cancel/?order_id="+order.interm_order_id).then(function(data) {
+          if(data.message) {
+            console.log(data.data);
+            if(data.data == 'Success') {
+              vm.order_data.data.splice(index, 1);
+              Service.showNoty('Successfully Cancelled the Order');
+            } else {
+              Service.showNoty(data.data, 'warning');
+            }
+          }
+        });
+    } else {
+        Service.apiCall("order_cancel/?order_id="+order.order_id).then(function(data) {
+          if(data.message) {
+            console.log(data.data);
+            if(data.data == 'Success') {
+              vm.order_data.data.splice(index, 1);
+              Service.showNoty('Successfully Cancelled the Order');
+            } else {
+              Service.showNoty(data.data, 'warning');
+            }
+          } else {
+            Service.showNoty('Something Went Wrong', 'warning');
+          }
+        });
+    }
   }
 
   vm.open_details = function(data) {

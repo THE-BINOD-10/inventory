@@ -279,6 +279,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
   vm.close = close;
   function close() {
     vm.title = "GRN Edit";
+    vm.model_data.invoice_number = '';
     $state.go('app.inbound.GrnEdit');
   }
 }

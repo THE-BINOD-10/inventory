@@ -15,7 +15,7 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
   } else if (vm.your_orders == 'manual_enquiry') {
     url = "get_manual_enquiry_data/";
   } else {
-    url = "get_customer_orders/";
+    //url = "get_customer_orders/";
   }
 
   //you orders
@@ -103,7 +103,7 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
   }
 
   vm.confirm_to_extend = function(order, form){
-    
+
     if (form.$valid) {
       var send = angular.element($('form'));
           send = send[0];
@@ -197,7 +197,7 @@ function AppMyOrders($scope, $http, $q, Session, colFilters, Service, $state, $w
     //   $state.go('user.App.OrderDetails', data);
     }
   }
-  
+
 }
 
 angular

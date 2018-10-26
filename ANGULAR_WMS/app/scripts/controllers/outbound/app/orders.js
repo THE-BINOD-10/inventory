@@ -61,7 +61,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = ['Order ID', 'Order On', 'Ordered Qty', 'Delivered Qty', 'Pending Qty', 'Order Value', 'Order Date', 'Receive Status'];
+    var columns = ['Order ID','Ordered Qty', 'Delivered Qty', 'Pending Qty', 'Order Value', 'Order Date', 'Receive Status'];
     vm.dtColumns = vm.service.build_colums(columns);
 
     var row_click_bind = 'td';

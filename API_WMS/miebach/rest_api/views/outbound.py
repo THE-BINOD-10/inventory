@@ -1012,7 +1012,7 @@ def get_picklist_data(data_id, user_id):
                  'title': order.order.title, 'stock_left': stock_left, 'last_picked_locs': last_picked_locs,
                  'customer_name': customer_name, 'remarks': remarks, 'load_unit_handle': load_unit_handle,
                  'category': category,
-                 'marketplace': marketplace, 'original_order_id' : original_order_id, 
+                 'marketplace': marketplace, 'original_order_id' : original_order_id,
                  'mrp':mrp, 'batchno':batch_no})
 
             if wms_code in sku_total_quantities.keys():
@@ -6660,13 +6660,15 @@ def get_only_date(request, date):
     return date
 
 
-def get_level_based_customer_orders(request, response_data, user):
-    index = request.GET.get('index', '')
-    start_index, stop_index = 0, 20
+def get_level_based_customer_orders(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    #index = request.GET.get('index', '')
+    # start_index, stop_index = 0, 20
+    #import pdb;pdb.set_trace()
+    response_data = {'data': []}
     is_autobackorder = request.GET.get('autobackorder', 'false')
-    if index:
-        start_index = int(index.split(':')[0])
-        stop_index = int(index.split(':')[1])
+    # if index:
+    #     start_index = int(index.split(':')[0])
+    #     stop_index = int(index.split(':')[1])
     user_profile = UserProfile.objects.get(user=user.id)
     admin_user = get_priceband_admin_user(user)
     if is_autobackorder == 'true':
@@ -6759,25 +6761,21 @@ def get_level_based_customer_orders(request, response_data, user):
                         other_charges = order_charges_obj_for_orderid(order_detail_order_id, request.user.id)
                         if other_charges:
                             record['total_inv_amt'] += round(other_charges, 2)
-    return response_data
+        temp_data['aaData'].append(OrderedDict(
+            (('Order ID', record['order_id']), ('Order On', record['date']), ('Ordered Qty', record['total_quantity']),
+             ('Delivered Qty',record['picked_quantity']), ('Pending Qty',record['total_quantity']-record['picked_quantity']), ('Order Value', 'results'),('Order Date', record['date']),('Receive Status',record['status']))))
+    """return response_data"""
 
 
-@login_required
-@get_admin_user
-def get_customer_orders(request, user=""):
-    """ Return customer orders  """
-    index = request.GET.get('index', '')
-    start_index, stop_index = 0, 20
-    if index:
-        start_index = int(index.split(':')[0])
-        stop_index = int(index.split(':')[1])
+@csrf_exempt
+def get_customer_orders(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    """ Return customer orders"""
     response_data = {'data': []}
     admin_user = get_priceband_admin_user(user)
     if admin_user:
-        get_level_based_customer_orders(request, response_data, user)
+       get_level_based_customer_orders(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters)
     else:
         customer = CustomerUserMapping.objects.filter(user=request.user.id)
-
         if customer:
             customer_id = customer[0].customer.customer_id
             orders = OrderDetail.objects.filter(customer_id=customer_id, user=user.id).order_by('-creation_date')
@@ -6811,9 +6809,13 @@ def get_customer_orders(request, user=""):
             other_charges = order_charges_obj_for_orderid(record['order_id'], request.user.id)
             if not other_charges:
                 other_charges = 0
-            record['total_inv_amt'] = round(record['total_inv_amt'] + other_charges, 2) 
+            record['total_inv_amt'] = round(record['total_inv_amt'] + other_charges, 2)
             record['picked_quantity'] = picked_quantity
-    return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
+            temp_data['aaData'].append(OrderedDict(
+                (('Order ID', record['order_id']),('Ordered Qty', record['total_quantity']),
+                 ('Delivered Qty',record['picked_quantity']), ('Pending Qty',record['total_quantity']-record['picked_quantity']), ('Order Value', record['total_inv_amt']),('Order Date', record['date']),('Receive Status', 'results'))))
+
+    """return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))"""
 
 
 def construct_order_customer_order_detail(request, order, user):
@@ -8697,7 +8699,7 @@ def generate_customer_invoice(request, user=''):
         str(user.username), str(request.GET.dict()), str(e)))
         return HttpResponse(json.dumps({'message': 'failed'}))
     return HttpResponse(invoice_data)
-    
+
 
 def pagination(sku_list):
     # header 220
@@ -8717,7 +8719,7 @@ def pagination(sku_list):
         sku['index'] = index
         index = index + 1
     temp = {"sku_code": "", "title": "", "quantity": ""}
-    sku_slices = [sku_list[i: i+mx] for i in range(0, len(sku_list), mx)] 
+    sku_slices = [sku_list[i: i+mx] for i in range(0, len(sku_list), mx)]
     #extra_tuple = ('', '', '', '', '', '', '', '', '', '', '', '')
     if len(sku_slices[-1]) == mx:
         temp = sku_slices[-1]
@@ -10241,7 +10243,7 @@ def create_mail_attachments(f_name, html_data):
 def render_st_html_data(request, user, warehouse, all_data):
     user_profile = UserProfile.objects.filter(user = user).values('phone_number', 'company_name', 'location',
         'city', 'state', 'country', 'pin_code', 'address', 'wh_address', 'wh_phone_number', 'gst_number')
-    destination_user_profile = UserProfile.objects.filter(user = warehouse).values('phone_number', 
+    destination_user_profile = UserProfile.objects.filter(user = warehouse).values('phone_number',
         'company_name', 'location', 'city', 'state', 'country', 'pin_code', 'address', 'wh_address', 'wh_phone_number', 'gst_number')
     po_skus_list = []
     po_skus_dict = OrderedDict()
@@ -10253,10 +10255,10 @@ def render_st_html_data(request, user, warehouse, all_data):
             po_skus_dict = {}
             st_id = obj[3]
             stock_transfer_obj = OpenST.objects.get(id=st_id)
-            po_skus_list.append( OrderedDict( ( ('sku', stock_transfer_obj.sku), 
-                ('sku_desc', stock_transfer_obj.sku.sku_desc), ( 'order_qty', int(stock_transfer_obj.order_quantity)), 
+            po_skus_list.append( OrderedDict( ( ('sku', stock_transfer_obj.sku),
+                ('sku_desc', stock_transfer_obj.sku.sku_desc), ( 'order_qty', int(stock_transfer_obj.order_quantity)),
                 ('measurement_type', stock_transfer_obj.sku.measurement_type), ('price', float(stock_transfer_obj.price)),
-                ('amount', stock_transfer_obj.price * stock_transfer_obj.order_quantity), ('sgst', 0), ('cgst', 0), 
+                ('amount', stock_transfer_obj.price * stock_transfer_obj.order_quantity), ('sgst', 0), ('cgst', 0),
                 ('igst', 0), ('utgst', 0) )) )
             total_order_qty += int(stock_transfer_obj.order_quantity)
             total_amount += float(stock_transfer_obj.price) * int(stock_transfer_obj.order_quantity)

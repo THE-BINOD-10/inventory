@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('CentralOrders',['$scope', '$http', '$state', '$compile', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', 'Data', '$modal', '$log', ServerSideProcessingCtrl]);
+  .controller('CentralOrders',['$scope', '$http', '$state', '$compile', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'SweetAlert', 'colFilters', 'Service', 'Data', '$modal', '$log', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, Data, $modal, $log) {
+function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, SweetAlert, colFilters, Service, Data, $modal, $log) {
 var vm = this;
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
@@ -311,12 +311,26 @@ var vm = this;
             'status': delegate_row['Status'], 'interm_det_id': delegate_row['data_id'],
             'shipment_date': delegate_row['Shipment Date'], 'alt_sku_code': delegate_row['SKU Code']
           }
-          vm.delegate_order_data.push(elem);
+          if (delegate_row['Status'] != 'Accept') {
+            vm.delegate_order_data.push(elem);
+          }
         }
       }
-      vm.service.apiCall('do_delegate_orders/', 'POST', {'delegate_order_data': JSON.stringify(vm.delegate_order_data)}).then(function(resp) {
-        Service.showNoty("Orders Delegated");
-        vm.reloadData();
-      })
+      if (vm.delegate_order_data.length) {
+        vm.service.apiCall('do_delegate_orders/', 'POST', {'delegate_order_data': JSON.stringify(vm.delegate_order_data)}).then(function(resp) {
+          if (resp.message) {
+            console.log(resp)
+            vm.reloadData()
+            SweetAlert.swal({
+              title: 'Delegated Orders',
+              text: resp.data.output_msg,
+              type: 'success',
+              confirmButtonColor: '#33cc66',
+              confirmButtonText: 'Ok',
+              closeOnConfirm: true,
+            })
+          }
+        })
+      }
     }
 }

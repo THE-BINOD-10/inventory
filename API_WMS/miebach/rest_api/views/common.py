@@ -286,7 +286,7 @@ def add_user_type_permissions(user_profile):
                      'corporatemaster', 'corpresellermapping', 'staffmaster']
         update_perm = True
     elif user_profile.user_type == 'marketplace_user':
-        exc_perms = ['productproperties', 'sizemaster', 'pricemaster', 'networkmaster', 'tandcmaster', 'enquirymaster', 
+        exc_perms = ['productproperties', 'sizemaster', 'pricemaster', 'networkmaster', 'tandcmaster', 'enquirymaster',
                     'corporatemaster', 'corpresellermapping', 'staffmaster']
         update_perm = True
     if update_perm:
@@ -1718,7 +1718,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
     if pallet:
         pallet_present = PalletDetail.objects.filter(user = user.id, status = 1, pallet_code = pallet)
         if not pallet_present:
-            pallet_present = PalletDetail.objects.create(user = user.id, status = 1, pallet_code = pallet, 
+            pallet_present = PalletDetail.objects.create(user = user.id, status = 1, pallet_code = pallet,
                 quantity = quantity, creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
         else:
             pallet_present.update(quantity = quantity)
@@ -1826,7 +1826,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
     data['adjusted_location'] = location[0].id
     data['creation_date'] = now
     data['updation_date'] = now
-    inv_obj = InventoryAdjustment.objects.filter(cycle__cycle=dat.cycle, adjusted_location=location[0].id, 
+    inv_obj = InventoryAdjustment.objects.filter(cycle__cycle=dat.cycle, adjusted_location=location[0].id,
         cycle__sku__user=user.id)
     if pallet:
         data['pallet_detail_id'] = pallet_present.id
@@ -6934,7 +6934,7 @@ def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_obj
         for exc_key in order_data_excluding_keys:
             if exc_key in dist_order_copy:
                 dist_order_copy.pop(exc_key)
-            
+
         if not order_obj:
             order_detail = OrderDetail(**dist_order_copy)
             order_detail.save()
@@ -7064,9 +7064,9 @@ def get_level_name_with_level(user, warehouse_level, users_list=[]):
     return level_name
 
 def get_supplier_info(request):
-    supplier_user = '' 
-    supplier = '' 
-    supplier_parent = '' 
+    supplier_user = ''
+    supplier = ''
+    supplier_parent = ''
     profile = UserProfile.objects.get(user=request.user)
     if profile.user_type == 'supplier':
         supplier_data = UserRoleMapping.objects.get(user=request.user, role_type='supplier')

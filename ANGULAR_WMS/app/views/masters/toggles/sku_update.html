@@ -25,7 +25,7 @@
               <div class="form-group">
                 <label class="control-label"> SKU Type </label>
                 <select class="form-control zone" name="sku_type" ng-model="showCase.model_data.sku_data.sku_type" ng-init="showCase.model_data.sku_data.sku_type" ng-disabled="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" ng-options="type for type in showCase.sku_types" ng-selected="type == showCase.model_data.sku_data.sku_type"></select>
-                
+
                 <input ng-if="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'" type="hidden" name="sku_type" class="form-control" value="{{showCase.model_data.sku_data.sku_type}}" readonly>
               </div>
             </div>
@@ -41,7 +41,7 @@
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> SKU Class </label>
-                <input type="text" name="sku_class" class="form-control" ng-model="showCase.model_data.sku_data.sku_class" maxlength="60" ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'"> 
+                <input type="text" name="sku_class" class="form-control" ng-model="showCase.model_data.sku_data.sku_class" maxlength="60" ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'">
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
@@ -225,16 +225,6 @@
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
-                <label class="control-label"> EAN Number </label>
-                <!-- <input type="text" name="ean_number" class="form-control" ng-model="showCase.model_data.sku_data.ean_number" decimal-number ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'"> -->
-                <div class="bootstrap-tagsinput" ng-mouseover="showCase.addValidation()">
-                  <input id="ean_numbers" class="ean_numbers" type="text" value="{{showCase.model_data.sku_data.ean_numbers}}" ui-jq="tagsInput"/>
-                </div>
-              </div>
-            </div>
-
-            <div class="col-md-4 col-sm-6 col-xs-6">
-              <div class="form-group">
                 <label class="control-label"> Measurement Type </label>
                 <select name="measurement_type" class="form-control" ng-model="showCase.model_data.measurement_type">
                   <option ng-repeat="type in showCase.sku_measurement_types" value="{{type}}" ng-selected="showCase.model_data.measurement_type == type">{{type}}</option>
@@ -244,11 +234,18 @@
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> YouTube URL </label>
-                <input type="text" name="youtube_url" class="form-control" ng-model="
-                showCase.model_data.sku_data.youtube_url">
+                <input type="text" name="youtube_url" class="form-control" ng-model="showCase.model_data.sku_data.youtube_url">
               </div>
             </div>
-
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> EAN Number </label>
+                <!-- <input type="text" name="ean_number" class="form-control" ng-model="showCase.model_data.sku_data.ean_number" decimal-number ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'"> -->
+                <div class="bootstrap-tagsinput" ng-mouseover="showCase.addValidation()">
+                  <input id="ean_numbers" class="ean_numbers" type="text" value="{{showCase.model_data.sku_data.ean_numbers}}" ui-jq="tagsInput"/>
+                </div>
+              </div>
+            </div>
           </div>
           <div class="row">
             <div class="col-md-12"><hr></div>

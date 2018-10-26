@@ -11504,10 +11504,10 @@ def place_manual_order(request, user=''):
     manual_enq_data = ManualEnquiryDetails(**manual_enquiry_details)
     manual_enq_data.save()
     admin_user = get_priceband_admin_user(user)
-    market_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
-        Q(userprofile__warehouse_type='SM_MARKET_ADMIN')).values_list('id', flat=True)
-    if market_admin_user_id:
-        market_admin_user_id = market_admin_user_id[0]
+    # market_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
+    #     Q(userprofile__warehouse_type='SM_MARKET_ADMIN')).values_list('id', flat=True)
+    # if market_admin_user_id:
+    #     market_admin_user_id = market_admin_user_id[0]
     purchase_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
         Q(userprofile__warehouse_type='SM_PURCHASE_ADMIN')).values_list('id', flat=True)
     if purchase_admin_user_id:
@@ -11568,11 +11568,11 @@ def save_manual_enquiry_data(request, user=''):
         admin_user = get_priceband_admin_user(user)
         if not admin_user:
             admin_user = request.user
-        market_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
-            Q(userprofile__warehouse_type='SM_MARKET_ADMIN')).values_list('id', flat=True)
-        if market_admin_user_id:
-            market_admin_user_id = market_admin_user_id[0]
-            users_list.append(market_admin_user_id)
+        # market_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
+        #     Q(userprofile__warehouse_type='SM_MARKET_ADMIN')).values_list('id', flat=True)
+        # if market_admin_user_id:
+        #     market_admin_user_id = market_admin_user_id[0]
+        #     users_list.append(market_admin_user_id)
         users_list.append(admin_user.id)
     contents = {"en": "%s added remarks in custom order %s" % (request.user.username, manual_enq_data.enquiry.enquiry_id)}
     send_push_notification(contents, users_list)
@@ -11591,6 +11591,14 @@ def get_manual_enquiry_orders(start_index, stop_index, temp_data, search_term, o
         data_filters['user'] = user.id
     elif request.user.userprofile.warehouse_type in ('SM_PURCHASE_ADMIN', 'SM_DESIGN_ADMIN'):
         data_filters['customization_type'] = 'price_product_custom'
+    elif request.user.userprofile.warehouse_type == 'CENTRAL_ADMIN' and request.user.userprofile.zone != '': # Sub Admins
+        distributors = get_same_level_warehouses(2, user)
+        zone_code = request.user.userprofile.zone
+        distributors = UserProfile.objects.filter(user__in=distributors, zone=zone_code).values_list('user_id',
+                                                                                                     flat=True)
+        resellers_qs = CustomerUserMapping.objects.filter(customer__user__in=distributors)
+        resellers = resellers_qs.values_list('user_id', flat=True)
+        data_filters['user__in'] = resellers
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -11735,11 +11743,11 @@ def notify_designer(request, user=''):
         admin_user = get_priceband_admin_user(user)
         if not admin_user:
             admin_user = request.user
-        market_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
-            Q(userprofile__warehouse_type='SM_MARKET_ADMIN')).values_list('id', flat=True)
-        if market_admin_user_id:
-            market_admin_user_id = market_admin_user_id[0]
-            users_list.append(market_admin_user_id)
+        # market_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
+        #     Q(userprofile__warehouse_type='SM_MARKET_ADMIN')).values_list('id', flat=True)
+        # if market_admin_user_id:
+        #     market_admin_user_id = market_admin_user_id[0]
+        #     users_list.append(market_admin_user_id)
         purchase_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
             Q(userprofile__warehouse_type='SM_PURCHASE_ADMIN')).values_list('id', flat=True)
         if purchase_admin_user_id:
@@ -11783,11 +11791,11 @@ def request_manual_enquiry_approval(request, user=''):
         admin_user = get_priceband_admin_user(user)
         if not admin_user:
             admin_user = request.user
-        market_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
-            Q(userprofile__warehouse_type='SM_MARKET_ADMIN')).values_list('id', flat=True)
-        if market_admin_user_id:
-            market_admin_user_id = market_admin_user_id[0]
-            users_list.append(market_admin_user_id)
+        # market_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
+        #     Q(userprofile__warehouse_type='SM_MARKET_ADMIN')).values_list('id', flat=True)
+        # if market_admin_user_id:
+        #     market_admin_user_id = market_admin_user_id[0]
+        #     users_list.append(market_admin_user_id)
         purchase_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
             Q(userprofile__warehouse_type='SM_PURCHASE_ADMIN')).values_list('id', flat=True)
         if purchase_admin_user_id:
@@ -11830,11 +11838,11 @@ def confirm_or_hold_custom_order(request, user=''):
             cust_ord_obj.save()
             users_list = []
             admin_user = get_priceband_admin_user(user)
-            market_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
-                Q(userprofile__warehouse_type='SM_MARKET_ADMIN')).values_list('id', flat=True)
-            if market_admin_user_id:
-                market_admin_user_id = market_admin_user_id[0]
-                users_list.append(market_admin_user_id)
+            # market_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
+            #     Q(userprofile__warehouse_type='SM_MARKET_ADMIN')).values_list('id', flat=True)
+            # if market_admin_user_id:
+            #     market_admin_user_id = market_admin_user_id[0]
+            #     users_list.append(market_admin_user_id)
             users_list.append(admin_user.id)
             contents = {"en": "%s  %s  for custom order %s" % ( request.user.username, ch_map[cust_order_status],
                                                                 cust_ord_obj.enquiry_id)}

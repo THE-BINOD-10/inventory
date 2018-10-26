@@ -5749,6 +5749,7 @@ def check_and_add_dict(grouping_key, key_name, adding_dat, final_data_dict={}, i
 
 
 def update_order_dicts(orders, user='', company_name=''):
+    from outbound import check_stocks
     trans_mapping = {}
     status = {'status': 0, 'messages': ['Something went wrong']}
     for order_key, order in orders.iteritems():
@@ -5776,6 +5777,16 @@ def update_order_dicts(orders, user='', company_name=''):
         if order.get('seller_order_dict', {}):
             trans_mapping = check_create_seller_order(order['seller_order_dict'], order_detail, user,
                                                       order.get('swx_mappings', []), trans_mapping=trans_mapping)
+        order_sku = {}
+        sku_obj = SKUMaster.objects.filter(id=order_det_dict['sku_id'])
+        if sku_obj:
+            sku_obj = sku_obj[0]
+        else:
+            continue
+        order_sku.update({sku_obj: order_det_dict['quantity']})
+        auto_picklist_signal = get_misc_value('auto_generate_picklist', order_det_dict['user'])
+        if auto_picklist_signal == 'true':
+            message = check_stocks(order_sku, user, 'false', [order_detail])
         status = {'status': 1, 'messages': ['Success']}
     return status
 

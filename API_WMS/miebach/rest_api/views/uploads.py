@@ -5302,9 +5302,10 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
             elif key == 'client_id':
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
                 create_order_fields_entry(interm_order_id, key, key_value, user)
+            elif key == 'customer_id':
+                order_data['customer_id'] = 0
             elif key == 'customer_name':
                 order_data['customer_name'] = get_cell_data(row_idx, value, reader, file_type)
-                order_data['customer_id'] = 0
             elif key == 'address1':
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
                 create_order_fields_entry(interm_order_id, key, key_value, user)

@@ -319,7 +319,6 @@ var vm = this;
       if (vm.delegate_order_data.length) {
         vm.service.apiCall('do_delegate_orders/', 'POST', {'delegate_order_data': JSON.stringify(vm.delegate_order_data)}).then(function(resp) {
           if (resp.message) {
-            console.log(resp)
             vm.reloadData()
             SweetAlert.swal({
               title: 'Delegated Orders',

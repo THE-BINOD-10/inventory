@@ -4796,6 +4796,131 @@ def create_shipment(request, user):
 
 @csrf_exempt
 @get_admin_user
+def insert_shipment_info(request, user=''):
+    ''' Create Shipment Code '''
+    myDict = dict(request.POST.iterlists())
+    log.info('Request params are ' + str(request.POST.dict()))
+    user_profile = UserProfile.objects.filter(user_id=user.id)
+    try:
+        order_shipment = create_shipment(request, user)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Create shipment failed for params ' + str(request.POST.dict()) + ' error statement is ' + str(e))
+        return HttpResponse('Create shipment Failed')
+    try:
+        shipped_orders_dict = {}
+        for i in range(0, len(myDict['sku_code'])):
+            if not myDict['shipping_quantity'][i]:
+                continue
+            order_ids = eval(myDict['id'][i])
+            if not isinstance(order_ids, list):
+                order_ids = [order_ids]
+            received_quantity = int(myDict['shipping_quantity'][i])
+            for order_id in order_ids:
+                if received_quantity <= 0:
+                    break
+                invoice_number = ''
+                data_dict = copy.deepcopy(ORDER_PACKAGING_FIELDS)
+                shipment_data = copy.deepcopy(SHIPMENT_INFO_FIELDS)
+                order_detail = OrderDetail.objects.get(id=order_id, user=user.id)
+
+                for key, value in myDict.iteritems():
+                    if key in data_dict:
+                        data_dict[key] = value[i]
+                    if key in shipment_data and key != 'id':
+                        shipment_data[key] = value[i]
+
+                # Need to comment below 3 lines if shipment scan is ready
+                if 'imei_number' in myDict.keys() and myDict['imei_number'][i]:
+                    shipped_orders_dict = insert_order_serial([], {'wms_code': order_detail.sku.wms_code,
+                                                                   'imei': myDict['imei_number'][i]},
+                                                              order=order_detail,
+                                                              shipped_orders_dict=shipped_orders_dict)
+                # Until Here
+                order_pack_instance = OrderPackaging.objects.filter(order_shipment_id=order_shipment.id,
+                                                                    package_reference=myDict['package_reference'][i],
+                                                                    order_shipment__user=user.id)
+                if not order_pack_instance:
+                    data_dict['order_shipment_id'] = order_shipment.id
+                    data = OrderPackaging(**data_dict)
+                    data.save()
+                else:
+                    data = order_pack_instance[0]
+                picked_orders = Picklist.objects.filter(order_id=order_id, status__icontains='picked',
+                                                        order__user=user.id)
+                order_quantity = int(order_detail.quantity)
+                customers_name = order_detail.customer_name
+                if order_quantity == 0:
+                    continue
+                elif order_quantity < received_quantity:
+                    shipped_quantity = order_quantity
+                    received_quantity -= order_quantity
+                elif order_quantity >= received_quantity:
+                    shipped_quantity = received_quantity
+                    received_quantity = 0
+
+                shipment_data['order_shipment_id'] = order_shipment.id
+                shipment_data['order_packaging_id'] = data.id
+                shipment_data['order_id'] = order_id
+                shipment_data['shipping_quantity'] = shipped_quantity
+                shipment_data['invoice_number'] = invoice_number
+                ship_data = ShipmentInfo(**shipment_data)
+                ship_data.save()
+
+                default_ship_track_status = 'Dispatched'
+                tracking = ShipmentTracking.objects.filter(shipment_id=ship_data.id, shipment__order__user=user.id,
+                                                           ship_status=default_ship_track_status)
+                if not tracking:
+                    ShipmentTracking.objects.create(shipment_id=ship_data.id, ship_status=default_ship_track_status,
+                                                    creation_date=datetime.datetime.now())
+                order_awb_map = OrderAwbMap.objects.filter(original_order_id=order_detail.original_order_id, user=user)
+                if order_awb_map.count():
+                    order_awb_map.update(status=2)
+                else:
+                    original_order_id = str(order_detail.order_code) + str(order_detail.order_id)
+                    order_awb_map = OrderAwbMap.objects.filter(original_order_id=original_order_id, user=user)
+                    if order_awb_map.count():
+                        order_awb_map.update(status=2)
+
+                # Need to comment below lines if shipment scan is ready
+                if shipped_orders_dict.has_key(int(order_id)):
+                    shipped_orders_dict[int(order_id)].setdefault('quantity', 0)
+                    shipped_orders_dict[int(order_id)]['quantity'] += float(shipped_quantity)
+                else:
+                    shipped_orders_dict[int(order_id)] = {}
+                    shipped_orders_dict[int(order_id)]['quantity'] = float(shipped_quantity)
+                # Until Here
+
+                log.info('Shipemnt Info dict is ' + str(shipment_data))
+                ship_quantity = ShipmentInfo.objects.filter(order_id=order_id). \
+                    aggregate(Sum('shipping_quantity'))['shipping_quantity__sum']
+                if ship_quantity >= int(order_detail.quantity):
+                    order_detail.status = 2
+                    order_detail.save()
+                    for pick_order in picked_orders:
+                        setattr(pick_order, 'status', 'dispatched')
+                        pick_order.save()
+        # Need to comment below lines if shipment scan is ready
+        if shipped_orders_dict:
+            log.info('Order Status update call for user ' + str(user.username) + ' is ' + str(shipped_orders_dict))
+            check_and_update_order_status(shipped_orders_dict, user)
+            # Until Here
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info(
+            'Shipment info saving is failed for params ' + str(request.POST.dict()) + ' error statement is ' + str(e))
+    if user.username == "one_assist":
+        final_data = {'customer_name': customers_name, 'product_make': ' ', 
+                     'product_model': ' ', 'imei': ' ', 'date': ' '}
+        if final_data:
+            return render(request, 'templates/toggle/order_shipment_confirmation_form.html', final_data)
+    return HttpResponse(json.dumps({'status': True, 'message': 'Shipment Created Successfully'}))
+
+
+@csrf_exempt
+@get_admin_user
 def insert_st_shipment_info(request, user=''):
     ''' Create Shipment Code '''
     myDict = dict(request.POST.iterlists())
@@ -11915,126 +12040,4 @@ def get_stock_transfer_shipment_popup_data(request, user=''):
     return HttpResponse(json.dumps({'status': 'No Orders found'}))
 
 
-@csrf_exempt
-@get_admin_user
-def insert_shipment_info(request, user=''):
-    ''' Create Shipment Code '''
-    myDict = dict(request.POST.iterlists())
-    log.info('Request params are ' + str(request.POST.dict()))
-    user_profile = UserProfile.objects.filter(user_id=user.id)
-    try:
-        order_shipment = create_shipment(request, user)
-    except Exception as e:
-        import traceback
-        log.debug(traceback.format_exc())
-        log.info('Create shipment failed for params ' + str(request.POST.dict()) + ' error statement is ' + str(e))
-        return HttpResponse('Create shipment Failed')
-    try:
-        shipped_orders_dict = {}
-        for i in range(0, len(myDict['sku_code'])):
-            if not myDict['shipping_quantity'][i]:
-                continue
-            order_ids = eval(myDict['id'][i])
-            if not isinstance(order_ids, list):
-                order_ids = [order_ids]
-            received_quantity = int(myDict['shipping_quantity'][i])
-            for order_id in order_ids:
-                if received_quantity <= 0:
-                    break
-                invoice_number = ''
-                data_dict = copy.deepcopy(ORDER_PACKAGING_FIELDS)
-                shipment_data = copy.deepcopy(SHIPMENT_INFO_FIELDS)
-                order_detail = OrderDetail.objects.get(id=order_id, user=user.id)
 
-                for key, value in myDict.iteritems():
-                    if key in data_dict:
-                        data_dict[key] = value[i]
-                    if key in shipment_data and key != 'id':
-                        shipment_data[key] = value[i]
-
-                # Need to comment below 3 lines if shipment scan is ready
-                if 'imei_number' in myDict.keys() and myDict['imei_number'][i]:
-                    shipped_orders_dict = insert_order_serial([], {'wms_code': order_detail.sku.wms_code,
-                                                                   'imei': myDict['imei_number'][i]},
-                                                              order=order_detail,
-                                                              shipped_orders_dict=shipped_orders_dict)
-                # Until Here
-                order_pack_instance = OrderPackaging.objects.filter(order_shipment_id=order_shipment.id,
-                                                                    package_reference=myDict['package_reference'][i],
-                                                                    order_shipment__user=user.id)
-                if not order_pack_instance:
-                    data_dict['order_shipment_id'] = order_shipment.id
-                    data = OrderPackaging(**data_dict)
-                    data.save()
-                else:
-                    data = order_pack_instance[0]
-                picked_orders = Picklist.objects.filter(order_id=order_id, status__icontains='picked',
-                                                        order__user=user.id)
-                order_quantity = int(order_detail.quantity)
-                customers_name = order_detail.customer_name
-                if order_quantity == 0:
-                    continue
-                elif order_quantity < received_quantity:
-                    shipped_quantity = order_quantity
-                    received_quantity -= order_quantity
-                elif order_quantity >= received_quantity:
-                    shipped_quantity = received_quantity
-                    received_quantity = 0
-
-                shipment_data['order_shipment_id'] = order_shipment.id
-                shipment_data['order_packaging_id'] = data.id
-                shipment_data['order_id'] = order_id
-                shipment_data['shipping_quantity'] = shipped_quantity
-                shipment_data['invoice_number'] = invoice_number
-                ship_data = ShipmentInfo(**shipment_data)
-                ship_data.save()
-
-                default_ship_track_status = 'Dispatched'
-                tracking = ShipmentTracking.objects.filter(shipment_id=ship_data.id, shipment__order__user=user.id,
-                                                           ship_status=default_ship_track_status)
-                if not tracking:
-                    ShipmentTracking.objects.create(shipment_id=ship_data.id, ship_status=default_ship_track_status,
-                                                    creation_date=datetime.datetime.now())
-                order_awb_map = OrderAwbMap.objects.filter(original_order_id=order_detail.original_order_id, user=user)
-                if order_awb_map.count():
-                    order_awb_map.update(status=2)
-                else:
-                    original_order_id = str(order_detail.order_code) + str(order_detail.order_id)
-                    order_awb_map = OrderAwbMap.objects.filter(original_order_id=original_order_id, user=user)
-                    if order_awb_map.count():
-                        order_awb_map.update(status=2)
-
-                # Need to comment below lines if shipment scan is ready
-                if shipped_orders_dict.has_key(int(order_id)):
-                    shipped_orders_dict[int(order_id)].setdefault('quantity', 0)
-                    shipped_orders_dict[int(order_id)]['quantity'] += float(shipped_quantity)
-                else:
-                    shipped_orders_dict[int(order_id)] = {}
-                    shipped_orders_dict[int(order_id)]['quantity'] = float(shipped_quantity)
-                # Until Here
-
-                log.info('Shipemnt Info dict is ' + str(shipment_data))
-                ship_quantity = ShipmentInfo.objects.filter(order_id=order_id). \
-                    aggregate(Sum('shipping_quantity'))['shipping_quantity__sum']
-                if ship_quantity >= int(order_detail.quantity):
-                    order_detail.status = 2
-                    order_detail.save()
-                    for pick_order in picked_orders:
-                        setattr(pick_order, 'status', 'dispatched')
-                        pick_order.save()
-        # Need to comment below lines if shipment scan is ready
-        if shipped_orders_dict:
-            log.info('Order Status update call for user ' + str(user.username) + ' is ' + str(shipped_orders_dict))
-            check_and_update_order_status(shipped_orders_dict, user)
-            # Until Here
-    except Exception as e:
-        import traceback
-        log.debug(traceback.format_exc())
-        log.info(
-            'Shipment info saving is failed for params ' + str(request.POST.dict()) + ' error statement is ' + str(e))
-    if user.username == "one_assist":
-        final_data = {'customer_name': customers_name, 'product_make': ' ', 
-                     'product_model': ' ', 'imei': ' ', 'date': ' '}
-        if final_data:
-            return render(request, 'templates/toggle/order_shipment_confirmation_form.html', final_data)
-    return HttpResponse(json.dumps({'status': True, 'message': 'Shipment Created Successfully'}))

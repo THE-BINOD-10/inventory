@@ -1591,7 +1591,6 @@ def validate_picklist_combos(data, all_picklists, picks_all):
 @login_required
 @get_admin_user
 def picklist_confirmation(request, user=''):
-
     st_time = datetime.datetime.now()
     data = {}
     all_data = {}

@@ -920,29 +920,34 @@ def get_raw_picklist_data(data_id, user):
                 sequence = location.stock.location.pick_sequence
                 stock_id = location.stock_id
 
-            match_condition = (location_name, pallet_detail, picklist.jo_material.material_code.sku_code)
+                match_condition = (location_name, pallet_detail, picklist.jo_material.material_code.sku_code)
+            location_reserved = location.reserved
+            temp_loc_reserved = get_decimal_limit(user.id, location.reserved)
+            if temp_loc_reserved > 0:
+                location_reserved = temp_loc_reserved
             if match_condition not in batch_data:
                 if pallet_detail:
                     pallet_code = location.stock.pallet_detail.pallet_code
                 else:
                     pallet_code = ''
                 if picklist.reserved_quantity == 0:
+                    RMLocation.objects.filter(material_picklist_id=picklist.id).update(reserved=0, status=0)
                     continue
                 batch_data[match_condition] = {
                     'wms_code': location.material_picklist.jo_material.material_code.sku_code,
                     'zone': zone, 'sequence': sequence, 'location': location_name,
-                    'reserved_quantity': get_decimal_limit(user.id, location.reserved),
+                    'reserved_quantity': location_reserved,
                     'job_code': picklist.jo_material.job_order.job_code,
-                    'stock_id': stock_id, 'picked_quantity': get_decimal_limit(user.id, location.reserved),
+                    'stock_id': stock_id, 'picked_quantity': location_reserved,
                     'pallet_code': pallet_code, 'id': location.id,
                     'title': location.material_picklist.jo_material.material_code.sku_desc,
                     'image': picklist.jo_material.material_code.image_url,
                     'measurement_type': picklist.jo_material.unit_measurement_type}
             else:
                 batch_data[match_condition]['reserved_quantity'] = get_decimal_limit(user.id, float(
-                    float(batch_data[match_condition]['reserved_quantity']) + float(location.reserved)))
+                    float(batch_data[match_condition]['reserved_quantity']) + float(location_reserved)))
                 batch_data[match_condition]['picked_quantity'] = get_decimal_limit(user.id, float(
-                    float(batch_data[match_condition]['picked_quantity']) + float(location.reserved)))
+                    float(batch_data[match_condition]['picked_quantity']) + float(location_reserved)))
 
     data = batch_data.values()
 
@@ -1243,6 +1248,7 @@ def rm_picklist_confirmation(request, user=''):
                         picklist.reserved_quantity = 0
                     if picklist.reserved_quantity == 0:
                         picklist.status = 'picked'
+                        RMLocation.objects.filter(material_picklist_id=picklist.id).update(reserved=0, status=0)
                     if picklist.picked_quantity > 0 and picklist.jo_material.job_order.status in ['order-confirmed',
                                                                                                   'picklist_gen']:
                         if stages:

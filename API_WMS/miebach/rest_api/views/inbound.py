@@ -24,6 +24,7 @@ from sync_sku import insert_skus
 from utils import *
 
 log = init_logger('logs/inbound.log')
+log_mail_info = init_logger('logs/inbound_mail_info.log')
 
 NOW = datetime.datetime.now()
 
@@ -4589,20 +4590,25 @@ def confirm_add_po(request, sales_data='', user=''):
 def create_mail_attachments(f_name, html_data):
     from random import randint
     attachments = []
-    if not isinstance(html_data, list):
-        html_data = [html_data]
-    for data in html_data:
-        temp_name = f_name + str(randint(100, 9999))
-        file_name = '%s.html' % temp_name
-        pdf_file = '%s.pdf' % temp_name
-        path = 'static/temp_files/'
-        folder_check(path)
-        file = open(path + file_name, "w+b")
-        file.write(data)
-        file.close()
-        os.system(
-            "./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (path + file_name, path + pdf_file))
-        attachments.append({'path': path + pdf_file, 'name': pdf_file})
+    try:
+        if not isinstance(html_data, list):
+            html_data = [html_data]
+        for data in html_data:
+            temp_name = f_name + str(randint(100, 9999))
+            file_name = '%s.html' % temp_name
+            pdf_file = '%s.pdf' % temp_name
+            path = 'static/temp_files/'
+            folder_check(path)
+            file = open(path + file_name, "w+b")
+            file.write(data)
+            file.close()
+            os.system(
+                "./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (path + file_name, path + pdf_file))
+            attachments.append({'path': path + pdf_file, 'name': pdf_file})
+    except Exception as e:
+        import traceback
+        log_mail_info.debug(traceback.format_exc())
+        log_mail_info.info('Create Mail attachment failed for ' + str(xcode(html_data)) + ' error statement is ' + str(e))
     return attachments
 
 

@@ -879,6 +879,8 @@ def sku_form(request, user=''):
         headers = copy.deepcopy(USER_SKU_EXCEL[user_profile.user_type])
     attributes = get_user_attributes(user, 'sku')
     attr_headers = list(attributes.values_list('attribute_name', flat=True))
+    if get_misc_value('use_imei', user.id)  == 'true':
+        headers.append("Enable Serial Number")
     if attr_headers:
         headers += attr_headers
     if user_profile.industry_type == "FMCG":
@@ -1403,6 +1405,14 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                 if cell_data:
                     if not str(cell_data).lower() in ['enable', 'disable']:
                         index_status.setdefault(row_idx, set()).add('Hot Release Should be Enable or Disable')
+            elif key == 'enable_serial_based':
+                if cell_data:
+                    if not str(cell_data).lower() in ['enable', 'disable']:
+                        index_status.setdefault(row_idx, set()).add('Enable Serial Number Should be Enable or Disable')
+            elif key == 'sequence':
+                if cell_data:
+                    if not isinstance(cell_data, (int, float)):
+                        index_status.setdefault(row_idx, set()).add('Sequence should be in number')
 
     master_sku = SKUMaster.objects.filter(user=user.id)
     master_sku = [data.sku_code for data in master_sku]
@@ -1435,7 +1445,6 @@ def get_sku_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
                                                  sku_mapping)
     if get_cell_data(0, 1, reader, file_type) == 'Product Code' and get_cell_data(0, 2, reader, file_type) == 'Name':
         sku_file_mapping = copy.deepcopy(ITEM_MASTER_EXCEL)
-
     return sku_file_mapping
 
 
@@ -1579,6 +1588,14 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                         ean_numbers = str(cell_data).split(',')
                     else:
                         ean_numbers = [str(int(cell_data))]
+            elif key == 'enable_serial_based':
+                toggle_value = str(cell_data).lower()
+                if toggle_value == "enable":
+                    cell_data = 1
+                if toggle_value == "disable":
+                    cell_data = 0
+                setattr(sku_data, key, cell_data)
+                data_dict[key] = cell_data
             elif cell_data:
                 data_dict[key] = cell_data
                 if sku_data:
@@ -2653,7 +2670,8 @@ def purchase_upload_mail(request, data_to_send, user):
             total_qty += one_stat['quantity']
             po_data.append((one_stat['sku_code'], '', '', one_stat['quantity'], one_stat['price'],
                             one_stat['quantity'] * one_stat['price']))
-
+        company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
+        iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
         profile = UserProfile.objects.get(user=request.user.id)
         t = loader.get_template('templates/toggle/po_download.html')
         w_address, company_address = get_purchase_company_address(profile)
@@ -2664,7 +2682,8 @@ def purchase_upload_mail(request, data_to_send, user):
                            'w_address': w_address, 'vendor_name': vendor_name,
                            'vendor_address': vendor_address, 'vendor_telephone': vendor_telephone,
                            'customization': customization, 'ship_to_address': ship_to_address,
-                           'company_address': company_address, 'wh_gstin': profile.gst_number}
+                           'company_address': company_address, 'wh_gstin': profile.gst_number,
+                           'company_logo': company_logo, 'iso_company_logo': iso_company_logo}
         rendered = t.render(data_dictionary)
         write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
                            str(order_date).split(' ')[0])

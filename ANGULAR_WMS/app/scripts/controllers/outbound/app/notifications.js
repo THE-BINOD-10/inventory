@@ -28,6 +28,15 @@ function AppNotifications($scope, $http, $q, Session, colFilters, Service, $stat
       }
     });
   }
+  vm.delete_notification = function(notification_id){
+    var req_data = {'notification_id': notification_id};
+    Service.apiCall("delete_notification/", "POST", req_data).then(function(resp){
+      if(resp.message){
+        Service.showNoty(resp.data.msg);
+        vm.load_notifications();
+      }
+    });
+  }
 
 }
 angular

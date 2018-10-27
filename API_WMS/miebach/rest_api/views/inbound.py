@@ -1246,19 +1246,23 @@ def confirm_po(request, user=''):
         table_headers.append('Remarks')
     if show_cess_tax:
         table_headers.insert(10, 'CESS (%)')
+    company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
+    iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
     total_amt_in_words = number_in_words(round(total)) + ' ONLY'
     round_value = float(round(total) - float(total))
-    data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
-                 'telephone': str(telephone),
-                 'name': name, 'order_date': order_date, 'total': round(total), 'po_reference': po_reference,
-                 'company_name': company_name,
-                 'location': profile.location, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
-                 'vendor_telephone': vendor_telephone, 'total_qty': total_qty, 'receipt_type': receipt_type,
+    data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 
+                 'order_id': order_id, 'telephone': str(telephone),
+                 'name': name, 'order_date': order_date, 'total': round(total), 
+                 'po_reference': po_reference, 'company_name': company_name,
+                 'location': profile.location, 'vendor_name': vendor_name, 
+                 'vendor_address': vendor_address, 'vendor_telephone': vendor_telephone, 
+                 'total_qty': total_qty, 'receipt_type': receipt_type,
                  'title': title, 'ship_to_address': ship_to_address,
                  'gstin_no': gstin_no, 'w_address': ship_to_address, 
                  'wh_telephone': wh_telephone, 'terms_condition' : terms_condition, 
                  'total_amt_in_words' : total_amt_in_words, 'show_cess_tax': show_cess_tax,
-                 'company_address': company_address, 'wh_gstin': profile.gst_number}
+                 'company_address': company_address, 'wh_gstin': profile.gst_number,
+                 'company_logo': company_logo, 'iso_company_logo': iso_company_logo}
     if round_value:
         data_dict['round_total'] = "%.2f" % round_value
     t = loader.get_template('templates/toggle/po_download.html')
@@ -1646,7 +1650,7 @@ def get_supplier_data(request, user=''):
                 weight = skuattributes[0].attribute_value
             tax_percent = order_data['cgst_tax'] + order_data['sgst_tax'] + order_data['igst_tax'] +\
                           order_data['utgst_tax']
-            orders.append([{'order_id': order.id, 'wms_code': order_data['wms_code'],
+            orders.append([{ 'order_id': order.id, 'wms_code': order_data['wms_code'],
                             'sku_desc': order_data['sku_desc'], 'weight': weight,
                             'po_quantity': float(order_data['order_quantity']) - float(order.received_quantity),
                             'name': str(order.order_id) + '-' + str(
@@ -1660,7 +1664,8 @@ def get_supplier_data(request, user=''):
                             'dis': True,
                             'sku_extra_data': sku_extra_data, 'product_images': product_images,
                             'sku_details': sku_details, 'shelf_life': order_data['shelf_life'],
-                            'tax_percent': tax_percent, 'cess_percent': order_data['cess_tax'], 'total_amt': 0}])
+                            'tax_percent': tax_percent, 'cess_percent': order_data['cess_tax'], 
+                            'total_amt': 0, 'show_imei': order_data['sku'].enable_serial_based }])
     supplier_name, order_date, expected_date, remarks = '', '', '', ''
     if purchase_orders:
         purchase_order = purchase_orders[0]
@@ -4564,6 +4569,8 @@ def confirm_add_po(request, sales_data='', user=''):
         title = 'Purchase Order'
     total_amt_in_words = number_in_words(round(total)) + ' ONLY'
     round_value = float(round(total) - float(total))
+    company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
+    iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
                  'telephone': str(telephone), 'ship_to_address': ship_to_address,
                  'name': name, 'order_date': order_date, 'total': round(total), 'po_reference': po_reference,
@@ -4575,7 +4582,8 @@ def confirm_add_po(request, sales_data='', user=''):
                  'gstin_no': gstin_no, 'industry_type': industry_type, 'expiry_date': expiry_date,
                  'wh_telephone': wh_telephone, 'wh_gstin': profile.gst_number, 'wh_pan': profile.pan_number,
                  'terms_condition': terms_condition, 'show_cess_tax' : show_cess_tax,
-                 'company_address': company_address}
+                 'company_address': company_address, 
+                 'company_logo': company_logo, 'iso_company_logo': iso_company_logo}
     if round_value:
         data_dict['round_total'] = "%.2f" % round_value
     t = loader.get_template('templates/toggle/po_download.html')
@@ -4776,6 +4784,8 @@ def confirm_po1(request, user=''):
                 table_headers.insert(10, 'CESS (%)')
             total_amt_in_words = number_in_words(round(total)) + ' ONLY'
             round_value = float(round(total) - float(total))
+            company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
+            iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
             data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
                          'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': round(total),             
                          'company_name': profile.company_name, 'location': profile.location,
@@ -4785,7 +4795,8 @@ def confirm_po1(request, user=''):
                          'w_address': ship_to_address, 'ship_to_address': ship_to_address,
                          'wh_telephone': wh_telephone, 'wh_gstin': profile.gst_number,
                          'terms_condition' : terms_condition, 'total_amt_in_words' : total_amt_in_words,
-                         'show_cess_tax': show_cess_tax, 'company_address': company_address}
+                         'show_cess_tax': show_cess_tax, 'company_address': company_address,
+                         'company_logo': company_logo, 'iso_company_logo': iso_company_logo}
             if round_value:
                 data_dict['round_total'] = "%.2f" % round_value
             t = loader.get_template('templates/toggle/po_download.html')

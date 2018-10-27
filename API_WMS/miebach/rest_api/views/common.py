@@ -63,6 +63,7 @@ def get_company_logo(user, IMAGE_PATH_DICT):
     try:
         logo_name = IMAGE_PATH_DICT.get(user.username, '')
         logo_path = 'static/company_logos/' + logo_name
+        image = logo_path
         with open(logo_path, "rb") as image_file:
             image = base64.b64encode(image_file.read())
     except:
@@ -4701,16 +4702,34 @@ def get_imei_data(request, user=''):
     try:
         for index, po_mapping in enumerate(po_imei_mapping):
             imei_data = {}
-            sku = po_mapping.purchase_order.open_po.sku
-            purchase_order = po_mapping.purchase_order
-            if not sku_details:
-                sku_details = {'sku_code': sku.sku_code, 'sku_desc': sku.sku_desc, 'sku_category': sku.sku_category,
-                               'image_url': sku.image_url}
-            imei_data['po_details'] = {'po_number': get_po_reference(purchase_order),
-                                       'supplier_id': purchase_order.open_po.supplier_id,
-                                       'supplier_name': purchase_order.open_po.supplier.name,
-                                       'received_date': get_local_date(user, po_mapping.creation_date),
-                                       'supplier_address': purchase_order.open_po.supplier.address}
+            sku = po_mapping.sku
+            if po_mapping.purchase_order:
+                purchase_order = po_mapping.purchase_order
+                if not sku_details:
+                    sku_details = {'sku_code': sku.sku_code, 'sku_desc': sku.sku_desc, 'sku_category': sku.sku_category,
+                                   'image_url': sku.image_url}
+                imei_data['po_details'] = {'po_number': get_po_reference(purchase_order),
+                                           'supplier_id': purchase_order.open_po.supplier_id,
+                                           'supplier_name': purchase_order.open_po.supplier.name,
+                                           'received_date': get_local_date(user, po_mapping.creation_date),
+                                           'supplier_address': purchase_order.open_po.supplier.address}
+            elif po_mapping.job_order:
+                job_order = po_mapping.job_order
+                if not sku_details:
+                    sku_details = {'sku_code': sku.sku_code, 'sku_desc': sku.sku_desc, 'sku_category': sku.sku_category,
+                                   'image_url': sku.image_url}
+                imei_data['jo_details'] = {'jo_number': job_order.job_code,
+                                           'jo_creation_date': get_local_date(user, job_order.creation_date),
+                                           'received_date': get_local_date(user, po_mapping.creation_date)}
+                jo_materials = job_order.jomaterial_set.filter()
+                imei_data['rm_picklist_data'] = []
+                for jo_material in jo_materials:
+                    jo_imeis = list(jo_material.orderimeimapping_set.filter().values_list('po_imei__imei_number', flat=True))
+                    imei_data['rm_picklist_data'].append({'sku_code': jo_material.material_code.sku_code,
+                                                          'sku_desc': jo_material.material_code.sku_desc,
+                                                          'required_quantity': jo_material.material_quantity,
+                                                          'imeis': jo_imeis})
+
             order_mappings = OrderIMEIMapping.objects.filter(po_imei_id=po_mapping.id, sku__user=user.id).order_by(
                 '-creation_date')
             if not order_mappings:
@@ -4814,6 +4833,8 @@ def generate_barcode_dict(pdf_format, myDicts, user):
                     if barcode_opt == 'sku_ean' and sku_data.ean_number:
                         single['Label'] = str(sku_data.ean_number)
                     single['SKUPrintQty'] = quant
+                    if myDict.get('mfg_date', ''):
+                        single['mfg_date'] = myDict['mfg_date'][ind]
                     for show_keys1 in show_fields:
                         show_keys2 = [show_keys1]
                         if isinstance(show_keys1, list):
@@ -5039,7 +5060,8 @@ def get_purchase_order_data(order):
                       'supplier_code': '', 'load_unit_handle': order.product_code.load_unit_handle,
                       'sku_desc': order.product_code.sku_desc,
                       'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0, 'tin_number': '',
-                      'intransit_quantity': intransit_quantity, 'shelf_life': order.product_code.shelf_life}
+                      'intransit_quantity': intransit_quantity, 'shelf_life': order.product_code.shelf_life,
+                      'show_imei': order.product_code.enable_serial_based}
         return order_data
     elif rw_purchase and not order.open_po:
         rw_purchase = rw_purchase[0]
@@ -5102,7 +5124,6 @@ def get_purchase_order_data(order):
         utgst_tax = 0
         cess_tax = 0
         tin_number = ''
-
     order_data = {'order_quantity': order_quantity, 'price': price, 'mrp': mrp, 'wms_code': sku.wms_code,
                   'sku_code': sku.sku_code, 'supplier_id': user_data.id, 'zone': sku.zone,
                   'qc_check': sku.qc_check, 'supplier_name': username, 'gstin_number': gstin_number,
@@ -5112,7 +5133,7 @@ def get_purchase_order_data(order):
                   'order_type': order_type,
                   'supplier_code': supplier_code, 'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax,
                   'utgst_tax': utgst_tax, 'cess_tax':cess_tax, 'intransit_quantity': intransit_quantity,
-                  'tin_number': tin_number, 'shelf_life': sku.shelf_life}
+                  'tin_number': tin_number, 'shelf_life': sku.shelf_life, 'show_imei': sku.enable_serial_based }
 
     return order_data
 
@@ -8211,3 +8232,14 @@ def create_update_table_history(user, model_id, model_name, model_field, prev_va
         TableUpdateHistory.objects.create(user_id=user.id, model_id=model_id,
                                          model_name=model_name, model_field=model_field,
                                          previous_val=prev_val, updated_val=new_val)
+
+def get_po_company_logo(user, IMAGE_PATH_DICT, request):
+    import base64
+    logo_path = ""
+    try:
+        logo_name = IMAGE_PATH_DICT.get(user.username, '')
+        if logo_name:
+            logo_path = 'http://' + request.get_host() + '/static/company_logos/' + logo_name
+    except:
+        pass
+    return logo_path

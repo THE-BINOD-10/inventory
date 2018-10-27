@@ -893,7 +893,6 @@ def view_rm_picklist(request, user=''):
         headers.insert(0, 'Image')
     if get_misc_value('pallet_switch', user.id) == 'true' and 'Pallet Code' not in headers:
         headers.insert(headers.index('Location') + 1, 'Pallet Code')
-
     return HttpResponse(
         json.dumps({'data': data, 'job_code': data_id, 'show_image': show_image, 'user': request.user.id,
                     'display_update': display_update}))
@@ -919,7 +918,6 @@ def get_raw_picklist_data(data_id, user):
                 zone = location.stock.location.zone.zone
                 sequence = location.stock.location.pick_sequence
                 stock_id = location.stock_id
-
                 match_condition = (location_name, pallet_detail, picklist.jo_material.material_code.sku_code)
             location_reserved = location.reserved
             temp_loc_reserved = get_decimal_limit(user.id, location.reserved)
@@ -942,15 +940,16 @@ def get_raw_picklist_data(data_id, user):
                     'pallet_code': pallet_code, 'id': location.id,
                     'title': location.material_picklist.jo_material.material_code.sku_desc,
                     'image': picklist.jo_material.material_code.image_url,
-                    'measurement_type': picklist.jo_material.unit_measurement_type}
+                    'measurement_type': picklist.jo_material.unit_measurement_type,
+                    'show_imei': location.material_picklist.jo_material.material_code.enable_serial_based
+                }
             else:
                 batch_data[match_condition]['reserved_quantity'] = get_decimal_limit(user.id, float(
                     float(batch_data[match_condition]['reserved_quantity']) + float(location_reserved)))
                 batch_data[match_condition]['picked_quantity'] = get_decimal_limit(user.id, float(
-                    float(batch_data[match_condition]['picked_quantity']) + float(location_reserved)))
-
+                    float(batch_data[match_condition]['picked_quantity']) + float(location.reserved)))
+                batch_data[match_condition]['show_imei'] = location.material_picklist.jo_material.material_code.enable_serial_based
     data = batch_data.values()
-
     data = sorted(data, key=itemgetter('sequence'))
     return data
 
@@ -984,6 +983,8 @@ def insert_rwo_po(rw_order, request, user):
 
     profile = UserProfile.objects.get(user=user.id)
     phone_no = str(rw_order.vendor.phone_number)
+    company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
+    iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
     po_reference = '%s%s_%s' % (prefix, str(po_order.creation_date).split(' ')[0].replace('-', ''), po_order.order_id)
     w_address, company_address = get_purchase_company_address(profile)
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': rw_order.vendor.address,
@@ -991,8 +992,8 @@ def insert_rwo_po(rw_order, request, user):
                  'telephone': phone_no, 'name': rw_order.vendor.name, 'order_date': order_date,
                  'total': total, 'user_name': user.username, 'total_qty': total_qty,
                  'location': profile.location, 'w_address': w_address,
-                 'company_name': profile.company_name, 'company_address': company_address}
-
+                 'company_name': profile.company_name, 'company_address': company_address,
+                 'company_logo': company_logo, 'iso_company_logo': iso_company_logo}
     check_purchase_order_created(user, po_id)
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
@@ -3332,10 +3333,12 @@ def generate_jo_labels(request, user=''):
             data.setdefault('label', [])
             data.setdefault('wms_code', [])
             data.setdefault('quantity', [])
+            data.setdefault('mfg_date', [])
             for labels in po_labels:
                 data['label'].append(labels.label)
                 data['quantity'].append(1)
                 data['wms_code'].append(labels.sku.wms_code)
+                data['mfg_date'].append(labels.creation_date.strftime("%d %B %Y"))
                 needed_quantity -= 1
             for quantity in range(0, needed_quantity):
                 imei_numbers = data_dict.get('imei_numbers', '')
@@ -3353,7 +3356,7 @@ def generate_jo_labels(request, user=''):
                 label_dict['sku_id'] = sku.id
                 data['wms_code'].append(sku.wms_code)
                 POLabels.objects.create(**label_dict)
-
+                data['mfg_date'].append(creation_date.strftime("%d %B %Y"))
                 serial_number += 1
 
         barcodes_list = generate_barcode_dict(pdf_format, data, user)

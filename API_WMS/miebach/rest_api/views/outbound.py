@@ -11514,7 +11514,7 @@ def place_manual_order(request, user=''):
         purchase_admin_user_id = purchase_admin_user_id[0]
     cont_vals = (request.user.first_name, enq_data.enquiry_id, enq_data.sku.sku_code)
     contents = {"en": "%s placed a custom order %s for SKU %s" % cont_vals}
-    users_list = [user.id, admin_user.id, market_admin_user_id, purchase_admin_user_id]
+    users_list = [user.id, admin_user.id, purchase_admin_user_id]
     send_push_notification(contents, users_list)
     if request.FILES.get('po_file', ''):
         save_manual_enquiry_images(request, enq_data)

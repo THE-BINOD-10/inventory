@@ -12960,6 +12960,10 @@ def do_delegate_orders(request, user=''):
                     order_dict['status'] = 0
                     order_dict['city'] = village
                     order_dict['state'] = state
+                    try:
+                        order_dict['pin_code'] = str(int(pincode))
+                    except:
+                        order_dict['pin_code'] = str(pincode)
                     order_dict['pin_code'] = pincode
                     order_dict['remarks'] = ''
                     order_dict['payment_mode'] = ''

@@ -24,6 +24,7 @@ from sync_sku import insert_skus
 from utils import *
 
 log = init_logger('logs/inbound.log')
+log_mail_info = init_logger('logs/inbound_mail_info.log')
 
 NOW = datetime.datetime.now()
 
@@ -4589,20 +4590,25 @@ def confirm_add_po(request, sales_data='', user=''):
 def create_mail_attachments(f_name, html_data):
     from random import randint
     attachments = []
-    if not isinstance(html_data, list):
-        html_data = [html_data]
-    for data in html_data:
-        temp_name = f_name + str(randint(100, 9999))
-        file_name = '%s.html' % temp_name
-        pdf_file = '%s.pdf' % temp_name
-        path = 'static/temp_files/'
-        folder_check(path)
-        file = open(path + file_name, "w+b")
-        file.write(data)
-        file.close()
-        os.system(
-            "./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (path + file_name, path + pdf_file))
-        attachments.append({'path': path + pdf_file, 'name': pdf_file})
+    try:
+        if not isinstance(html_data, list):
+            html_data = [html_data]
+        for data in html_data:
+            temp_name = f_name + str(randint(100, 9999))
+            file_name = '%s.html' % temp_name
+            pdf_file = '%s.pdf' % temp_name
+            path = 'static/temp_files/'
+            folder_check(path)
+            file = open(path + file_name, "w+b")
+            file.write(data)
+            file.close()
+            os.system(
+                "./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (path + file_name, path + pdf_file))
+            attachments.append({'path': path + pdf_file, 'name': pdf_file})
+    except Exception as e:
+        import traceback
+        log_mail_info.debug(traceback.format_exc())
+        log_mail_info.info('Create Mail attachment failed for ' + str(xcode(html_data)) + ' error statement is ' + str(e))
     return attachments
 
 
@@ -8109,7 +8115,9 @@ def get_grn_level_data(request, user=''):
                     po_data_dict['sgst_tax'] = open_data.sgst_tax
                     po_data_dict['igst_tax'] = open_data.igst_tax
                     po_data_dict['utgst_tax'] = open_data.utgst_tax
-                    po_data_dict['cess_tax'] = open_data.cess_tax
+                    po_data_dict['cess_percent'] = open_data.cess_tax
+                    if seller_summary_obj.cess_tax:
+                        po_data_dict['cess_percent'] = seller_summary_obj.cess_tax
                     po_data_dict['tax_percent'] = open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + \
                                                     open_data.utgst_tax
                     po_data_dict['confirm_key'] = 'seller_po_summary_id'
@@ -8157,7 +8165,7 @@ def get_grn_level_data(request, user=''):
                 po_data_dict['sgst_tax'] = open_data.sgst_tax
                 po_data_dict['igst_tax'] = open_data.igst_tax
                 po_data_dict['utgst_tax'] = open_data.utgst_tax
-                po_data_dict['cess_tax'] = open_data.cess_tax
+                po_data_dict['cess_percent'] = open_data.cess_tax
                 po_data_dict['tax_percent'] = open_data.cgst_tax + open_data.sgst_tax + open_data.igst_tax + \
                                               open_data.utgst_tax
                 po_data_dict['confirm_key'] = 'purchase_order_id'
@@ -8245,7 +8253,7 @@ def update_existing_grn(request, user=''):
                          'discount_percentage': 'discount_percent', 'batch_no': 'batch_no',
                          'mrp': 'mrp', 'buy_price': 'buy_price', 'invoice_number': 'invoice_number',
                          'invoice_date': 'invoice_date', 'dc_date': 'challan_date', 'dc_number': 'challan_number',
-                         'tax_percent': 'tax_percent'}
+                         'tax_percent': 'tax_percent', 'cess_percent': 'cess_tax'}
         zero_index_keys = ['invoice_number', 'invoice_date', 'dc_number', 'dc_date']
         for ind in range(0, len(myDict['confirm_key'])):
             model_name = myDict['confirm_key'][ind].strip('_id')
@@ -8298,7 +8306,7 @@ def update_existing_grn(request, user=''):
                             create_update_table_history(user, model_obj.id, model_name, field_mapping[key], prev_val, value)
                     else:
                         batch_dict[field_mapping[key]] = value
-                elif key in ['quantity', 'discount_percentage']:
+                elif key in ['quantity', 'discount_percentage', 'cess_percent']:
                     try:
                         value = float(value)
                     except:
@@ -8309,6 +8317,11 @@ def update_existing_grn(request, user=''):
                         model_obj.save()
                         create_update_table_history(user, model_obj.id, model_name, field_mapping[key],
                                                     prev_val, value)
+                    if key == 'cess_percent' and value == 0:
+                        if model_obj.purchase_order.open_po:
+                            model_obj.purchase_order.open_po.cess_tax = 0
+                            model_obj.purchase_order.open_po.save()
+
                 elif key == 'batch_no':
                     if model_obj.batch_detail:
                         prev_val = getattr(model_obj.batch_detail, field_mapping[key])
@@ -8347,8 +8360,9 @@ def update_existing_grn(request, user=''):
                 batch_dict['transact_id'] = model_obj.id
                 batch_dict['transact_type'] = 'seller_po_summary'
                 batch_obj = create_update_batch_data(batch_dict)
-                model_obj.batch_detail_id = batch_obj.id
-                model_obj.save()
+                if batch_obj:
+                    model_obj.batch_detail_id = batch_obj.id
+                    model_obj.save()
         return HttpResponse("Success")
     except Exception as e:
         import traceback

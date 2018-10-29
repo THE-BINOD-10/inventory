@@ -2764,6 +2764,8 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             dat = order_data[0]
             customer_address = dat.customer_name + '\n' + dat.address + "\nCall: " \
                                + dat.telephone + "\nEmail: " + dat.email_id
+        if not customer_details and dat.address:
+            customer_details.append({'id' : dat.customer_id, 'name' : dat.customer_name, 'address' : dat.address})
 
         picklist = Picklist.objects.filter(order_id__in=order_ids).order_by('-updation_date')
         if picklist:
@@ -2809,6 +2811,8 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     purchase_type = 'SMART_JIT'
 
                 marketplace = USER_CHANNEL_ADDRESS.get(username, marketplace)
+            if not marketplace:
+                marketplace = 'offline'
             tax = 0
             vat = 0
             discount = 0

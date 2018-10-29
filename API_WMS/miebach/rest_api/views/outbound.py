@@ -7495,7 +7495,7 @@ def get_ratings_details(request, user=''):
 def get_central_orders_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                           filters={}, user_dict={}):
     un_sort_dict = {7: 'Status'}
-    lis = ['interm_order_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'shipment_date', 'project_name', 'remarks',
+    lis = ['', 'interm_order_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'shipment_date', 'project_name', 'remarks',
            'order_assigned_wh__username', 'id']
     data_dict = {'user': user.id, 'quantity__gt': 0}
     status_map = {'1': 'Accept', '0': 'Reject'}
@@ -7518,7 +7518,7 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
         custom_sort = True
         if stop_index:
             all_orders = all_orders[start_index:stop_index]
-    for dat in all_orders:
+    for dat in all_orders[start_index:stop_index]:
         order_id = int(dat.interm_order_id)
         if dat.order_assigned_wh:
             wh_name = dat.order_assigned_wh.username

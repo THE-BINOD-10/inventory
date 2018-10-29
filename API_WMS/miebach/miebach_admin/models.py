@@ -120,6 +120,7 @@ class SKUMaster(models.Model):
     sub_category = models.CharField(max_length=64, default='')
     primary_category = models.CharField(max_length=64, default='')
     shelf_life = models.IntegerField(default=0)
+    youtube_url = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -2287,7 +2288,7 @@ class ApprovingOrders(models.Model):
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
     shipment_date = models.DateTimeField(blank=True, null=True)
-    
+
     class Meta:
         db_table = "APPROVING_ORDERS"
         unique_together = ('user', 'customer_user', 'approve_id', 'approval_status', 'approving_user_role', 'sku')
@@ -2993,7 +2994,7 @@ class PushNotifications(models.Model):
     is_read = models.BooleanField(default=False)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         db_table = 'PUSH_NOTIFICATIONS'
 

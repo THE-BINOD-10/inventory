@@ -465,9 +465,9 @@ def get_corporate_master(start_index, stop_index, temp_data, search_term, order_
             OrderedDict((('corporate_id', data.corporate_id), ('name', data.name), ('address', data.address),
                          ('phone_number', phone_number), ('email_id', data.email_id), ('status', status),
                          ('tin_number', data.tin_number), ('cst_number', data.cst_number),
-                         ('pan_number', data.pan_number), ('pincode', data.pincode), ('city', data.city), 
-                         ('state', data.state), ('country', data.country), 
-                         ('tax_type', TAX_TYPE_ATTRIBUTES.get(data.tax_type, '')), ('DT_RowId', data.corporate_id), 
+                         ('pan_number', data.pan_number), ('pincode', data.pincode), ('city', data.city),
+                         ('state', data.state), ('country', data.country),
+                         ('tax_type', TAX_TYPE_ATTRIBUTES.get(data.tax_type, '')), ('DT_RowId', data.corporate_id),
                          ('DT_RowClass', 'results'))))
 
 
@@ -739,6 +739,7 @@ def get_sku_data(request, user=''):
     sku_data['hot_release'] = 0
     sku_data['shelf_life'] = data.shelf_life
     sku_data['measurement_type'] = data.measurement_type;
+    sku_data['youtube_url'] = data.youtube_url;
     sku_fields = SKUFields.objects.filter(field_type='size_type', sku_id=data.id)
     if sku_fields:
         sku_data['size_type'] = sku_fields[0].field_value
@@ -985,7 +986,6 @@ def update_sku(request, user=''):
             if key in number_fields and not value:
                 value = 0
             setattr(data, key, value)
-
         data.save()
         update_sku_attributes(data, request)
 
@@ -1409,7 +1409,7 @@ def update_corporate_values(request, user=''):
         name_ch = False
         if _name != data.name:
             name_ch = True
-        
+
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -1459,13 +1459,13 @@ def insert_corporate(request, user=''):
             data_dict['user'] = user.id
             corporate_master = CorporateMaster(**data_dict)
             corporate_master.save()
-            status_msg = 'New Corporate Added' 
+            status_msg = 'New Corporate Added'
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info('Add New Corporate failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(request.POST.dict()), str(e)))
-    
+
     return HttpResponse(status_msg)
 
 
@@ -3278,7 +3278,7 @@ def get_tax_data(request, user=''):
     if not taxes:
         response['msg'] = 'Product Type Not Found'
         return HttpResponse(response)
-        
+
     resp = {'data': []}
     resp['product_type'] = taxes[0].product_type
     for tax in taxes:
@@ -3850,8 +3850,8 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
         os.makedirs('static/excel_files/')
     path_to_file = '../' + path
     headers = ['Supplier ID', 'Name', 'Address', 'Phone Number', 'Email ID', 'CST Number', 'TIN Number', 'PAN Number',
-    'City', 'State', 'Days To Supply', 'Fulfillment Amount', 'Credibility', 'Country', 'Pincode', 
-    'Status', 'Supplier Type', 'Tax Type', 'PO Exp Duration', 'Owner Name', 
+    'City', 'State', 'Days To Supply', 'Fulfillment Amount', 'Credibility', 'Country', 'Pincode',
+    'Status', 'Supplier Type', 'Tax Type', 'PO Exp Duration', 'Owner Name',
     'Owner Number', 'Owner Email Id', 'Spoc Name', 'Spoc Number', 'Lead Time', 'Spoc Email ID', 'Credit Period',
     'Bank Name', 'IFSC', 'Branch Name', 'Account Number', 'Account Holder Name']
     try:

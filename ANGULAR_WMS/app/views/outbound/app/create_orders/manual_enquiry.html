@@ -1,5 +1,5 @@
 <div class="order_details" ng-controller="AppManualEnquiry as Enquiry">
-  <div class="row style-menu" style="line-height: 40px;">
+  <div class="row style-menu" style="line-height: 40px;" >
     <div class="col-md-4 col-sm-4 col-xs-6">
     </div>
     <div class="col-md-4 col-sm-4 hidden-xs" align="center">
@@ -43,7 +43,7 @@
             </div>
             <i ng-if="$ctrl.categories_loading" class="fa fa-spinner fa-spin fa-2x fa-fw mt5"></i>
           </div>
-          <div class="form-group">
+          <!-- <div class="form-group">
             <label class="col-sm-5 col-xs-5 control-label">Choose Categories *</label>
             <div class="col-sm-3 col-xs-5">
               <select class="form-control" name="choose_category" ng-disabled="Enquiry.categories_loading" ng-model="Enquiry.category" ng-change="Enquiry.get_styles(Enquiry.category)" ng-required="true">
@@ -53,13 +53,12 @@
               </select>
             </div>
             <i ng-if="Enquiry.categories_loading" class="fa fa-spinner fa-spin fa-2x fa-fw mt5"></i>
-          </div>
+          </div> -->
           <div class="form-group">
             <label class="col-sm-5 col-xs-5 control-label">Choose Style *</label>
             <div class="col-sm-3 col-xs-5">
               <select ui-select2 class="form-control sku-id-select"
                        name="choose_stype"
-                       ng-disabled="Enquiry.styles_loading || Enquiry.styles.length == 0"
                        ng-model="Enquiry.model_data.sku_id"
                        ng-change="Enquiry.select_style(Enquiry.model_data.sku_id, Enquiry.styles)"
                        ng-required="false">

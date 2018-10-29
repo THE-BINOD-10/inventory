@@ -1752,13 +1752,11 @@ def picklist_confirmation(request, user=''):
                         pick_loc = all_pick_locations.filter(picklist_id=picklist.id,
                                                              stock__location_id=stock.location_id, status=1)
                         # update_picked = picking_count1
-                        try:
-                            st_order = STOrder.objects.get(picklist = picklist, stock_transfer__sku__user=user.id)
-                            if st_order:
-                                st_order.stock_transfer.status = 2
-                                st_order.save()
-                        except:
-                            pass
+                        st_order = picklist.storder_set.filter()
+                        if st_order:
+                            stock_transfer = st_order[0].stock_transfer
+                            stock_transfer.status = 2
+                            stock_transfer.save()
                         if pick_loc:
                             update_picklist_locations(pick_loc, picklist, update_picked)
                         else:
@@ -12922,93 +12920,39 @@ def delete_notification(request):
 
 @csrf_exempt
 def get_stock_transfer_shipment_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
-    data_dict = {}
-    user_profile = UserProfile.objects.get(user_id=user.id)
-    
-    stock_transfer_id = ''
-    ordered_quantity = ''
-    st_order_dict = {}
-    st_filter_dict = {}
-    sort_column_list = ['stock_transfer__order_id', 'stock_transfer__order_id', 'st_po__open_st__warehouse__username', 'quantity', 'quantity', 'creation_date']
-    st_order_dict['picklist__stock__sku__user'] = user.id
-    st_order_dict['stock_transfer__status'] = 2
+    stock_transfer_dict = {}
+    sort_column_list = ['order_id', 'order_id', 'st_po__open_st__warehouse__username', 'ordered', 'ordered',
+                        'date_only']
+    stock_transfer_dict['sku__user'] = user.id
+    stock_transfer_dict['status'] = 2
     filter_dict = eval(filters)
     if filter_dict['stock_transfer_id']:
-        st_order_dict['stock_transfer__order_id'] = filter_dict['stock_transfer_id']
+        stock_transfer_dict['order_id'] = filter_dict['stock_transfer_id']
     if filter_dict['from_date']:
         from_date = datetime.datetime.strptime(filter_dict['from_date'], '%m/%d/%Y')
-        st_order_dict['creation_date__gte'] = from_date
+        stock_transfer_dict['creation_date__gte'] = from_date
     if filter_dict['to_date']:
         to_date = datetime.datetime.strptime(filter_dict['to_date'], '%m/%d/%Y')
-        st_order_dict['creation_date__lte'] = to_date
-    sort_data = 'stock_transfer__order_id'
-    if sort_column_list[col_num] in ['stock_transfer__order_id']:
-        sort_data = sort_column_list[col_num]
-        if order_term == 'desc':
-            sort_data = '-%s' % sort_data
-    st_sort_data = 'creation_date'
-    if sort_column_list[col_num] in ['st_po__open_st__warehouse__username', 'quantity', 'creation_date']:
-        st_sort_data = sort_column_list[col_num]
-        if order_term == 'desc':
-            st_sort_data = '-%s' % st_sort_data
-    if search_term:
-        st_order_obj = STOrder.objects.filter(Q(stock_transfer__order_id__icontains=search_term))
-    else:
-        st_order_obj = STOrder.objects.all()
-    st_orders_id = st_order_obj.filter(**st_order_dict).distinct().values_list('picklist__picklist_number', flat=True).order_by(sort_data)
-    for picklist_num in st_orders_id:
-        data = get_picked_data(picklist_num, user.id, marketplace='')
-        for obj in data:
-            try:
-                ord_id = str(int(obj['order_id']))
-            except:
-                ord_id = str(obj['order_id'])
-            sku = obj['wms_code']
-            if filter_dict['destination_warehouse']:
-                st_filter_dict['st_po__open_st__warehouse__username'] = filter_dict['destination_warehouse']
-            st_filter_dict['sku__sku_code'] = obj['wms_code']
-            st_filter_dict['order_id'] = ord_id
-            get_stock_transfer = StockTransfer.objects.filter(**st_filter_dict).order_by(st_sort_data).distinct()
-            for obj in get_stock_transfer[start_index:stop_index]:
-                try:
-                    shipment_date = str(obj.creation_date)
-                    warehouse = obj.st_po.open_st.warehouse.username
-                    sku_price = obj.st_po.open_st.price
-                    total_picked_quantity = obj.quantity
-                    total_price = obj.st_po.open_st.price * total_picked_quantity
-                except:
-                    continue
-                search_val = ''
-                for idx,item in enumerate(temp_data['aaData']):
-                    if item["Stock Transfer ID"] == ord_id and item["Destination Warehouse"] == warehouse:
-                        search_val = item
-                        exist_qty = int(float(search_val['Picked Quantity']))
-                        new_qty = int(float(total_picked_quantity))
-                        exist_amt = int(float(search_val['Total Amount']))
-                        new_amt = int(float(total_price))
-                        temp_data['aaData'][idx].update({'Picked Quantity' : str(total_picked_quantity), 
-                            'Total Amount' : str(exist_amt + new_amt),
-                            'Total Quantity' : str(total_picked_quantity)
-                        })
-                        break
-                    if idx+1 == len(temp_data['aaData']) and not(item["Stock Transfer ID"] == ord_id and item["Destination Warehouse"] == warehouse):
-                        temp_data['aaData'].append({'Stock Transfer ID' : ord_id, 
-                            'Picked Quantity' : str(total_picked_quantity), 
-                            'Total Amount' : total_price, 
-                            'Stock Transfer Date&Time' : shipment_date, 
-                            'Destination Warehouse': warehouse, 
-                            'Picklist Number' : picklist_num, 
-                            'Total Quantity' : str(total_picked_quantity)
-                        })
-                else:
-                    temp_data['aaData'].append({'Stock Transfer ID' : ord_id, 
-                        'Picked Quantity' : str(total_picked_quantity), 
-                        'Total Amount' : total_price, 'Stock Transfer Date&Time' : shipment_date, 
-                        'Destination Warehouse': warehouse, 'Picklist Number' : picklist_num, 
-                        'Total Quantity' : str(total_picked_quantity)
-                    })
-    temp_data['recordsTotal'] = len(temp_data['aaData'])
+        stock_transfer_dict['creation_date__lte'] = to_date
+    sort_data = sort_column_list[col_num]
+    if order_term == 'desc':
+        sort_data = '-%s' % sort_data
+    stock_transfer_objs = StockTransfer.objects.filter(**stock_transfer_dict)
+    stock_transfers = stock_transfer_objs.values('order_id', 'st_po__open_st__warehouse__username').distinct().\
+                                annotate(ordered=Sum('quantity'), date_only=Cast('creation_date', DateField())).\
+                                    order_by(sort_data)
+    temp_data['recordsTotal'] = stock_transfers.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    picklist_qtys = dict(STOrder.objects.filter(stock_transfer_id__in=stock_transfers.values_list('id', flat=True)).\
+                         values_list('stock_transfer__order_id').annotate(picked_qty=Sum('picklist__picked_quantity',
+                                                                                         distinct=True)))
+    for stock_transfer in stock_transfers:
+        order_id = stock_transfer['order_id']
+        temp_data['aaData'].append(OrderedDict(( ('Stock Transfer ID', order_id),
+                                            ('Picked Quantity', picklist_qtys.get(order_id, 0)),
+                                            ('Stock Transfer Date&Time', str(stock_transfer['date_only'])),
+                                            ('Destination Warehouse', stock_transfer['st_po__open_st__warehouse__username']),
+                                            ('Total Quantity', stock_transfer['ordered']))))
 
 
 @csrf_exempt

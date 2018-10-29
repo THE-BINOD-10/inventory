@@ -576,16 +576,16 @@ vm.add_shipment = function(valid) {
         var is_updated = false;
         scanned_sku = api_data.data.sku;
         for(var i=0;i<vm.model_data.data.length;i++) {
-          var data_sku = String(vm.model_data.data[i].sku__sku_code).toLocaleLowerCase();
+          var data_sku = String(vm.model_data.data[i].sku_code).toLocaleLowerCase();
           if(data_sku==String(scanned_sku).toLocaleLowerCase()) {
             found_sku = true;
             var tot_ship = 0
-            angular.forEach(vm.model_data.data[i].sub_data, function(sb_data){
+            angular.forEach(vm.model_data.data, function(sb_data){
               var sb_shipped = isNaN(sb_data.shipping_quantity)? 0: sb_data.shipping_quantity;
               tot_ship = Number(tot_ship) + Number(sb_shipped);
             });
 
-            if(vm.model_data.data[i].picked > tot_ship)
+            if(vm.model_data.data[i].quantity > tot_ship)
             {
               var last_index = vm.model_data.data[i].sub_data.length - 1;
               var exist_quan = vm.model_data.data[i].sub_data[last_index].shipping_quantity;

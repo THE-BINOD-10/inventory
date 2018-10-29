@@ -164,7 +164,9 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
     all_seller_orders = SellerOrder.objects.filter(order__user=user.id, status=0)
     for data in master_data:
         sku_code = data.sku.sku_code
-        order_id = data.order_code + str(int(data.order_id))
+        order_id = ''
+        if data.order_id:
+            order_id = data.order_code + str(int(data.order_id))
         if data.original_order_id:
             order_id = data.original_order_id
         cust_status_obj = order_summary_objs.filter(order_id=data.id, order__user=user.id)
@@ -196,7 +198,9 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
         temp_data['aaData'].append(OrderedDict((('', checkbox), ('Order ID', order_id), ('SKU Code', sku_code),
                                                 ('Title', data.title), ('id', count), ('Product Quantity', quantity),
                                                 ('Shipment Date', shipment_data),
-                                                ('Marketplace', data.marketplace), ('DT_RowClass', 'results'),
+                                                ('Marketplace', data.marketplace),
+                                                ('Address', data.address),
+                                                ('DT_RowClass', 'results'),
                                                 ('DT_RowAttr', {'data-id': str(data.order_id)}),
                                                 ('Order Taken By', order_taken_val), ('Status', cust_status))))
         count = count + 1
@@ -7148,7 +7152,7 @@ def get_order_category_view_data(start_index, stop_index, temp_data, search_term
     if search_term:
         mapping_results = OrderDetail.objects.filter(**data_dict).values('customer_name', 'order_id',
                                                                          'sku__sku_category',
-                                                                         'order_code', 'original_order_id').distinct(). \
+                                                                         'order_code', 'original_order_id', 'address').distinct(). \
             annotate(total=Sum('quantity')).filter(Q(customer_name__icontains=search_term) |
                                                    Q(order_id__icontains=search_term) |
                                                    Q(sku__sku_category__icontains=search_term)|
@@ -7159,7 +7163,7 @@ def get_order_category_view_data(start_index, stop_index, temp_data, search_term
                                                                                                   'order_id',
                                                                                                   'sku__sku_category',
                                                                                                   'order_code',
-                                                                                                  'original_order_id').distinct(). \
+                                                                                                  'original_order_id', 'address').distinct(). \
             annotate(total=Sum('quantity')).filter(**search_params).order_by(order_data)
 
     temp_data['recordsTotal'] = mapping_results.count()
@@ -7189,7 +7193,7 @@ def get_order_category_view_data(start_index, stop_index, temp_data, search_term
         temp_data['aaData'].append(OrderedDict((('data_value', check_values), ('Customer Name', dat['customer_name']),
                                                 ('Order ID', order_id), ('Category', dat['sku__sku_category']),
                                                 ('Total Quantity', dat['total']), ('Order Taken By', order_taken_val),
-                                                ('Status', cust_status),
+                                                ('Address', dat['address']), ('Status', cust_status),
                                                 ('id', index), ('DT_RowClass', 'results'))))
         index += 1
     col_val = ['Customer Name', 'Customer Name', 'Order ID', 'Category', 'Total Quantity', 'Order Taken By', 'Status']
@@ -7258,7 +7262,7 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
     all_orders = OrderDetail.objects.filter(**data_dict).exclude(order_code="CO")
     if search_term:
         mapping_results = all_orders.values('customer_name', 'order_id', 'order_code', 'original_order_id',
-                                            'marketplace'). \
+                                            'marketplace', 'address'). \
             distinct().annotate(total=Sum('quantity'), date_only=Cast('creation_date', DateField())).filter(Q(customer_name__icontains=search_term) |
                                                               Q(order_id__icontains=search_term) |
                                                               Q(sku__sku_category__icontains=search_term) |
@@ -7266,7 +7270,7 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
                                                               **search_params).order_by(order_data)
     else:
         mapping_results = all_orders.values('customer_name', 'order_id', 'order_code', 'original_order_id',
-                                            'marketplace'). \
+                                            'marketplace', 'address'). \
             distinct().annotate(total=Sum('quantity'), date_only=Cast('creation_date', DateField())).\
             filter(**search_params).order_by(order_data)
 
@@ -7321,7 +7325,8 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
 
         temp_data['aaData'].append(OrderedDict((('', checkbox), ('Customer Name', dat['customer_name']),
                                                 ('Order ID', order_id), ('Market Place', dat['marketplace']),
-                                                ('Total Quantity', tot_quantity), ('Creation Date', creation_data),
+                                                ('Total Quantity', tot_quantity), ('Address', dat['address']), 
+                                                ('Creation Date', creation_data),
                                                 ('Shipment Date', shipment_data), ('Order Taken By', order_taken_val),
                                                 ('Status', cust_status), ('id', index), ('DT_RowClass', 'results'),
                                                 ('data_value', check_values))))

@@ -18,24 +18,11 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
   $ctrl.customization_types = {};
   $ctrl.client_logo = Session.parent.logo;
   $ctrl.api_url = Session.host;
-  $ctrl.get_categories = function() {
 
-    var data = {brand: ''};
-    Service.apiCall("get_sku_categories/", "GET",data).then(function(data){
-      if(data.message) {
-        $ctrl.categories = data.data.categories;
-        $ctrl.category = "";
-        $ctrl.customization_types= data.data.customization_types;
-        $ctrl.corporates = data.data.reseller_corporates;
-      }
-      $ctrl.categories_loading = false;
-    });
-  }
-  $ctrl.get_categories();
 
   $ctrl.style = '';
   $ctrl.styles = [];
-  $ctrl.get_styles = function(category){
+  function get_styles(category){
 
     if(!category) {
       $ctrl.style = "";
@@ -62,6 +49,22 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
       $ctrl.styles_loading = false;
     });
   }
+
+  $ctrl.get_categories = function() {
+
+    var data = {brand: ''};
+    Service.apiCall("get_sku_categories/", "GET",data).then(function(data){
+      if(data.message) {
+        $ctrl.categories = data.data.categories;
+        $ctrl.category = "";
+        $ctrl.customization_types= data.data.customization_types;
+        $ctrl.corporates = data.data.reseller_corporates;
+      }
+      $ctrl.categories_loading = false;
+    });
+    get_styles('ALL');
+  }
+  $ctrl.get_categories();
 
   $ctrl.selected_style = {};
   $ctrl.select_style = function(style, styles) {

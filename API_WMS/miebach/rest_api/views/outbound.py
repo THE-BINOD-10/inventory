@@ -164,7 +164,9 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
     all_seller_orders = SellerOrder.objects.filter(order__user=user.id, status=0)
     for data in master_data:
         sku_code = data.sku.sku_code
-        order_id = data.order_code + str(int(data.order_id))
+        order_id = ''
+        if data.order_id:
+            order_id = data.order_code + str(int(data.order_id))
         if data.original_order_id:
             order_id = data.original_order_id
         cust_status_obj = order_summary_objs.filter(order_id=data.id, order__user=user.id)

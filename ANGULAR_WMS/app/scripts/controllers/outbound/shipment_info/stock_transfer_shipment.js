@@ -16,7 +16,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
   //table start
   vm.selected = {};
   vm.selectAll = false;
-  vm.special_key = {destination_warehouse: '', stock_transfer_id:'',from_date: '', 
+  vm.special_key = {destination_warehouse: '', stock_transfer_id:'',from_date: '',
                     to_date: '', imei_number: '', customer: ''}
   vm.filters = {'datatable': vm.g_data.view, 'special_key': JSON.stringify(vm.special_key)}
   vm.dtOptions = DTOptionsBuilder.newOptions()
@@ -174,6 +174,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
         //cust_details['marketplace'] = temp2
         data.push({ name: "st_order_id", value: temp})
         data.push({ name: "total_qty", value: total_qty})
+        data.push({ name: "picked_qty", value: picked_qty})
         data.push({ name: "picklist_num", value: picklist_num})
         data.push({ name: "stock_transfer_date", value: stock_transfer_date_time})
         data.push({ name: "total_amount", value: total_amount})
@@ -581,13 +582,15 @@ vm.add_shipment = function(valid) {
             found_sku = true;
             var tot_ship = 0
             angular.forEach(vm.model_data.data, function(sb_data){
-              var sb_shipped = isNaN(sb_data.shipping_quantity)? 0: sb_data.shipping_quantity;
+              // var sb_shipped = isNaN(sb_data.shipping_quantity)? 0: sb_data.shipping_quantity;
+              var sb_shipped = isNaN(sb_data.shipping_quantity)?(sb_data['shipping_quantity']=0) : sb_data.shipping_quantity;
               tot_ship = Number(tot_ship) + Number(sb_shipped);
             });
 
-            if(vm.model_data.data[i].quantity > tot_ship)
-            {
-              var last_index = vm.model_data.data[i].sub_data.length - 1;
+            if(vm.model_data.data[i].quantity > tot_ship){
+              // vm.model_data.data[i]['shipping_quantity'] = 0;
+              vm.model_data.data[i].shipping_quantity = Number(vm.model_data.data[i].shipping_quantity)+1;
+              /* var last_index = vm.model_data.data[i].sub_data.length - 1;
               var exist_quan = vm.model_data.data[i].sub_data[last_index].shipping_quantity;
               exist_quan = (!isNaN(exist_quan)) ? exist_quan: 0;
 
@@ -595,7 +598,7 @@ vm.add_shipment = function(valid) {
                 if (vm.carton_code == vm.model_data.data[i].sub_data[p_ref].pack_reference) {
                   last_index = p_ref;
                }
-              }
+             }
 
               if (vm.carton_code == vm.model_data.data[i].sub_data[last_index].pack_reference ||
                 !vm.model_data.data[i].sub_data[last_index].pack_reference ||
@@ -623,7 +626,7 @@ vm.add_shipment = function(valid) {
                   vm.model_data.data[i].sub_data[last_index+1].pack_reference = '';
                 }
                 vm.update_sku_quan(event, scanned_sku);
-              }
+              } */
 
               is_updated = true;
               break;

@@ -11787,6 +11787,8 @@ def request_manual_enquiry_approval(request, user=''):
         users_list.append(request.user.id)
         admin_user = user
         users_list.append(admin_user.id)
+    elif request.user.userprofile.warehouse_type == 'CENTRAL_ADMIN' and request.user.userprofile.zone != '':
+        admin_user = user
     else:
         admin_user = get_priceband_admin_user(user)
         if not admin_user:

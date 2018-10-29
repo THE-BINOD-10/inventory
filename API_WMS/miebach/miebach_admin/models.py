@@ -1453,7 +1453,7 @@ class CustomerOrderSummary(models.Model):
     mode_of_transport = models.CharField(max_length=24, default='')
     payment_status = models.CharField(max_length=64, default='')
     courier_name = models.CharField(max_length=64, default='')
-    
+    vehicle_number = models.CharField(max_length=64, default='')
 
     class Meta:
         db_table = 'CUSTOMER_ORDER_SUMMARY'
@@ -1940,6 +1940,7 @@ class SellerPOSummary(models.Model):
     challan_date = models.DateField(blank=True, null=True)
     discount_percent = models.FloatField(default=0)
     round_off_total = models.FloatField(default=0)
+    cess_tax = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

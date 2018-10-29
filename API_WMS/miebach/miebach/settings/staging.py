@@ -13,3 +13,5 @@ DATABASES = {
 
 
 INTEGRATIONS_CFG_FILE = 'rest_api/views/configuration_staging.cfg'
+
+SERVICE_WORKER_VERSION = '0.0.1-build03.0.99'

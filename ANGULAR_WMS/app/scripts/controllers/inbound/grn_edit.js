@@ -158,6 +158,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }
       });
     // }
+    vm.close();
   }
 
   vm.sku_total_amt = function (sku_row_data) {

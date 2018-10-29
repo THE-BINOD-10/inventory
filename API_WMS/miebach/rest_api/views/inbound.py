@@ -8311,6 +8311,11 @@ def update_existing_grn(request, user=''):
                         model_obj.save()
                         create_update_table_history(user, model_obj.id, model_name, field_mapping[key],
                                                     prev_val, value)
+                    if key == 'cess_percent' and value == 0:
+                        if model_obj.purchase_order.open_po:
+                            model_obj.purchase_order.open_po.cess_tax = 0
+                            model_obj.purchase_order.open_po.save()
+
                 elif key == 'batch_no':
                     if model_obj.batch_detail:
                         prev_val = getattr(model_obj.batch_detail, field_mapping[key])

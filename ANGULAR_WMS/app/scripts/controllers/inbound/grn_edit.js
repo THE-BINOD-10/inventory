@@ -141,7 +141,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       // }
       vm.service.apiCall(url, 'POST', elem, true).then(function(data){
         if(data.message) {
-          if(data.data.message == 'Success') {
+          if(data.data == 'Success') {
           // if(data.data.search("<div") != -1) {
             // vm.extra_width = {}
             // vm.html = $(data.data);
@@ -158,7 +158,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }
       });
     // }
-    vm.close();
   }
 
   vm.sku_total_amt = function (sku_row_data) {

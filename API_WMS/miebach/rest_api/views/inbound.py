@@ -8354,8 +8354,9 @@ def update_existing_grn(request, user=''):
                 batch_dict['transact_id'] = model_obj.id
                 batch_dict['transact_type'] = 'seller_po_summary'
                 batch_obj = create_update_batch_data(batch_dict)
-                model_obj.batch_detail_id = batch_obj.id
-                model_obj.save()
+                if batch_obj:
+                    model_obj.batch_detail_id = batch_obj.id
+                    model_obj.save()
         return HttpResponse("Success")
     except Exception as e:
         import traceback

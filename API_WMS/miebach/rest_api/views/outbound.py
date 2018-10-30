@@ -13038,8 +13038,6 @@ def get_stock_transfer_shipment_popup_data(request, user=''):
     return HttpResponse(json.dumps({'status': 'No Orders found'}))
 
 
-
-=======
 @login_required
 @get_admin_user
 def do_delegate_orders(request, user=''):

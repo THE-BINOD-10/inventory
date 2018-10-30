@@ -39,14 +39,24 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
                          size_type: 'DEFAULT'
                        }
   //WareHouse stock
-  self.stock_view = {
 
-                      views: ['Available', 'Available+Intransit', 'Total'],
+  self.stock_view = {
+                      views: ['Available', 'Available+Intransit', 'Available+ASN', 'Total'],
                       view: 'Available',
                       levels: [1,2],
                       level: 1
                     }
 
+  self.warehouse_alternative_stock_view = {
+                        views: ['Available', 'Reserved', 'Total'],
+                        view: 'Available',
+                        levels: [1,2],
+                        level: 1
+                      }
+
+  self.warehouse_toggle_value = false;
+
+  self.warehouse_view = self.stock_view;
 
   /*** Outbound **/
 
@@ -134,9 +144,12 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
 
                             alternate_view: false,
                             view: 'normalView',
-                            tb_headers: {'normalView': ['Order ID', 'WMS Code', 'Description', 'Location', 'Quantity', 'Picked Quantity', 'Date', 'Time'],
-                                         'serialView': ['Order ID', 'WMS Code', 'Description', 'Customer Name', 'Serial Number', 'Date', 'Time']}
+                            tb_headers: {'normalView': ['Order ID', 'WMS Code', 'Child SKU', 'Description', 'Location', 'Quantity', 'Picked Quantity', 'Date', 'Time'],
+                                         'serialView': ['Order ID', 'WMS Code', 'Description', 'Customer Name', 'Serial Number', 'Date', 'Time'],
+                                         'customerView': ['Customer ID', 'Customer Name', 'WMS Code', 'Description', 'Quantity', 'Picked Quantity']}
                          }
+
+    self.dispatch_summary_view_types = [{ 'name' : 'Order View', 'value' : 'normalView'}, { 'name' : 'Serial Number View', 'value' : 'serialView'}, { 'name' : 'Customer View', 'value' : 'customerView'}]
 
     if(Session.roles.permissions['batch_switch']) {
 
@@ -155,10 +168,13 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
     self.styles_data = {};
     self.tot_corporates = [];
     self.shipment_number = '';
+    self.categories = [];
+    self.sub_categories = [];
     self.invoice_data = {};
     self.datatable = 'ReturnToVendor';
     self.seller_types = [];
     self.rtv_filters = {};
+    self.receive_jo_barcodes = false;
 
     /** login page maintainance **/
     self.login_data = {
@@ -169,4 +185,3 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
       default: 'user.signin'
     }
 }
-

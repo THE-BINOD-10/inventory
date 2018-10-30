@@ -28,7 +28,7 @@ def update_order_status(company_name):
             picked_orders = resp["Result"].get("Picked", [])
             cancelled_orders = resp["Result"].get("Cancelled", [])
             order_update(dispatched_orders, user, '2')
-            #order_update(cancelled_orders, user, '3')
+            order_update(cancelled_orders, user, '3')
     return "Success"
 
 def order_update(orders, user, status):
@@ -77,6 +77,23 @@ def order_update(orders, user, status):
                     log.info("Seller Order Summary created: id = %s, order_id = %s, picklist_id = %s,\
                              quantity = %s" % (str(seller_order_summary.id), str(item.id),\
                              str(picklist_obj.id), str(item.quantity)))
+            elif status == '3':
+                picklists = Picklist.objects.filter(order_id=item.id)
+                for picklist in picklists:
+                    if picklist.picked_quantity <= 0:
+                        picklist.delete()
+                    elif picklist.stock:
+                        cancel_location = CancelledLocation.objects.filter(picklist_id=picklist.id)
+                        if not cancel_location:
+                            CancelledLocation.objects.create(picklist_id=picklist.id,
+                                                             quantity=picklist.picked_quantity,
+                                                             location_id=picklist.stock.location_id,
+                                                             creation_date=datetime.datetime.now(), status=1)
+                            picklist.status = 'cancelled'
+                            picklist.save()
+                    else:
+                        picklist.status = 'cancelled'
+                        picklist.save()
             item.save()
     return "Status Updated"
 

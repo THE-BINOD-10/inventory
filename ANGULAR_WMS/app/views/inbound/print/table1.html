@@ -34,7 +34,7 @@
        <td></td>
        <td></td>
        <td>{{showCase.pdf_data.total_tax | number:2}}</td>
-       <td>{{showCase.pdf_data.total_invoice | number:2}}</td>
+       <td>{{showCase.pdf_data.total_invoice_amount | number:2}}</td>
       </tr>
       <tr class="rm-padding" ng-if="showCase.pdf_data.order_charges">
         <td colspan='{{(permissions.show_mrp)?8: 7;}}' style="text-align:left;">

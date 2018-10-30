@@ -1,0 +1,99 @@
+<style type="text/css">
+  .glyphicon {
+    color: gold;
+    cursor: pointer;
+    font-size: 2em;
+  }
+  .btn {
+    padding-right: 15px;
+    padding-left: 15px;
+    white-space: nowrap;
+    width: 100%;
+    overflow: hidden;
+    text-overflow:ellipsis;
+  }
+  .btn-outline {
+    color: #563d7c;
+    background-color: transparent;
+    border-color: #563d7c;
+    min-width: 100%;
+  }
+  .btn-outline:hover {
+    color: #fff;
+    background-color: #563d7c;
+  }
+  .btn-selected {
+    color: #fff;
+    background-color: #563d7c;
+    border-color: #563d7c;
+    min-width: 100%;
+  }
+  .btn-selected:hover {
+    color: #fff;
+  }
+  .transition {
+    transition: all 500ms linear
+  }
+  p {
+    line-height: 0.9;
+  }
+  /*.modal-dialog {
+    width: 650px;
+  }*/
+</style>
+
+<form name="form" role="form" ui-jq="validate" ui-options="validationOpt" class="ng-pristine ng-valid" novalidate="novalidate">
+<div class="modal-header">
+  <h4 class="modal-title pull-right" id="modal-title">{{$ctrl.title}}</h4>
+  <h4 class="modal-title" id="modal-title">Hi {{$ctrl.model_data.profile_name}},</h4>
+</div>
+<div class="modal-body" id="modal-body">
+
+  <div class="row">
+    <div class="text-center mb10" ng-if="!$ctrl.selStars && !$ctrl.sel_reasons.order_rate">Thanks for using Stockone Application to order. Your order details are...!</div>
+    <p><strong>Order Id: </strong>{{ $ctrl.model_data.order_ratings.order_id }}</p>
+    <p><strong>Order Date: </strong>{{ $ctrl.model_data.order_ratings.order_creation_date }}</p>
+  </div>
+
+  <div class="row text-center">
+    <div class="alert alert-info mb10 transition" ng-if="!$ctrl.selStars"><b>Give Your Valuable Rating Of {{$ctrl.rate_type}}</b>&nbsp;&nbsp;<i style="font-size: 22px" class="fa fa-hand-o-down"></i></div>
+
+    <div class="alert {{$ctrl.rate_cls}} mb10 transition" ng-if="$ctrl.selStars"><b>{{$ctrl.sel_rate}}</b></div>
+    <div ng-repeat="n in $ctrl.getStarArray()" ng-class="$ctrl.getClass(n)" ng-click="$ctrl.setClass($event,n)"></div>
+    <hr ng-if="$ctrl.selStars && $ctrl.reasons[$ctrl.reason_type][$ctrl.selStars].length">
+
+    <div ng-if="!$ctrl.selStars" style="font-size:15px;font-weight:600">Please, Provide both(order and product) related ratings</div>
+    <div ng-if="$ctrl.selStars && $ctrl.reasons[$ctrl.reason_type][$ctrl.selStars].length" style="font-size:15px;font-weight:600">{{$ctrl.rate_query}}</div>
+  </div>
+
+  <div class="row mt15 text-center" ng-if="$ctrl.selStars">
+    <div class="col-md-4 mt5 mb5" ng-repeat="reason in $ctrl.reasons[$ctrl.reason_type][$ctrl.selStars]" ng-click="$ctrl.selected_reason = reason; $ctrl.selected_reason == reason;$ctrl.resReason(reason)">
+      <span class="btn" ng-class="$ctrl.setStyle(reason)" title="{{reason}}">{{reason}}</span></div>
+  </div>
+  <!-- ordered_skus -->
+  <div  ng-if="$ctrl.selStars && $ctrl.reason_type == 'product_reasons'">
+    <div ng-if="$ctrl.selStars" class="alert alert-info mb10 mt10 transition text-center" style="font-size:15px;font-weight:600">Give Your Valuable Product Wise Feedback&nbsp;&nbsp;<i style="font-size: 22px" class="fa fa-hand-o-down"></i></div>
+    <div class="row mt15">
+      <table class="table">
+        <thead>
+          <th>SKU Code</th>
+          <th>SKU Description</th>
+          <th>Remarks</th>
+        </thead>
+        <tbody>
+          <tr ng-repeat="sku in $ctrl.model_data.order_ratings.items">
+            <td>{{sku.sku_code}}</td>
+            <td>{{sku.sku_desc}}</td>
+            <td>
+              <textarea rows="1" name="{{sku.sku_code}}" placeholder="{{sku.sku_code}} Product Remarks" class="form-control" ng-model="sku.remarks"></textarea>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<div class="modal-footer">
+  <button class="btn btn-primary" type="submit" ng-click="$ctrl.submit(form)">{{$ctrl.btn_text}}</button>
+</div>
+</form>

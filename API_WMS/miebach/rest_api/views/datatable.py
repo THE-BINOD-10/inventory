@@ -18,7 +18,7 @@ from miebach_utils import *
 from retailone import *
 from uploaded_pos import *
 from targets import *
-
+from myntra_generate_barcode import *
 
 @fn_timer
 def sku_excel_download(search_params, temp_data, headers, user, request):
@@ -127,9 +127,14 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
         ws = write_excel(ws, data_count, excel_mapping['measurement_type'], data.measurement_type, file_type)
         ws = write_excel(ws, data_count, excel_mapping['sale_through'], data.sale_through, file_type)
         ws = write_excel(ws, data_count, excel_mapping['color'], data.color, file_type)
-        ean_number = ''
+        ean_list = []
+        ean_objs = data.eannumbers_set.filter()
         if data.ean_number:
-            ean_number = data.ean_number
+            ean_list.append(str(data.ean_number))
+        if ean_objs.exists():
+            ean_list = ean_list + list(ean_objs.annotate(str_eans=Cast('ean_number', CharField())).
+                          values_list('str_eans', flat=True))
+        ean_number = ','.join(ean_list)
         ws = write_excel(ws, data_count, excel_mapping['ean_number'], ean_number, file_type)
         if excel_mapping.has_key('load_unit_handle'):
             ws = write_excel(ws, data_count, excel_mapping['load_unit_handle'],
@@ -148,8 +153,9 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
                              file_type)'''
         att_data = data.skuattributes_set.filter(attribute_name__in=sku_attr_list).values('attribute_name', 'attribute_value')
         for attr in att_data:
-            ws = write_excel(ws, data_count, excel_mapping[attr['attribute_name']], attr['attribute_value'],
-                             file_type)
+            if excel_mapping.get(attr['attribute_name'], ''):
+                ws = write_excel(ws, data_count, excel_mapping[attr['attribute_name']], attr['attribute_value'],
+                                 file_type)
         sku_types = data.marketplacemapping_set.exclude(sku_type='').filter().\
                                                 values_list('sku_type', flat=True).distinct()
         for sku_type in sku_types:

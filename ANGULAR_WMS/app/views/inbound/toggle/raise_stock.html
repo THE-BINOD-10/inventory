@@ -42,7 +42,7 @@
                     <!--<input id="wms1" ng-model="product.wms_code" type="text" name="wms_code" class="form-control mapping-check" ng-required ="$first">-->
                   </td>
                   <td><input id="quant1" ng-model="product.order_quantity" type="text" name="order_quantity" class="form-control" ng-class="service.get_decimal_perm()" ng-required ="$first"> </td>
-                  <td><input type="text" ng-model="product.price" name="price" class="form-control" decimal-number ng-required ="$first"> </td>
+                  <td><input type="text" ng-model="product.price" name="price" class="form-control" decimal-number > </td>
                   <td> <i ng-click="showCase.update_data($index)" ng-class="showCase.isLast($last)"></i> </td>
                 </tr>
               </tbody>

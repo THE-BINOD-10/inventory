@@ -123,7 +123,8 @@ def search_product_data(request, user=''):
         try:
             master_data = SKUMaster.objects.exclude(sku_type='RM').filter(Q(wms_code__icontains=search_key) |
                                                                           Q(sku_desc__icontains=search_key) |
-                                                                          Q(ean_number=int(search_key)),
+                                                                          Q(ean_number=int(search_key)) |
+                                                                          Q(eannumbers__ean_number=int(search_key)),
                                                                           user=user.id)
         except:
             master_data = SKUMaster.objects.exclude(sku_type='RM').filter(Q(wms_code__icontains=search_key) |
@@ -163,8 +164,10 @@ def search_product_data(request, user=''):
         stock_quantity = stock_quantity['quantity__sum']
         if not stock_quantity:
             stock_quantity = 0
+        ean_numbers = get_sku_ean_list(data)
+        ean_numbers = ','.join(ean_numbers)
         total_data.append({'search': str(data.wms_code) + " " + data.sku_desc + " " +\
-                                     str(data.ean_number) + " " + str(data.style_name),
+                                     str(ean_numbers) + " " + str(data.style_name),
                            'SKUCode': data.wms_code,
                            'style_name': data.style_name,
                            'sku_size' : data.sku_size,

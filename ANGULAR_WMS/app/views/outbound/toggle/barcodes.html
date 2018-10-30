@@ -16,6 +16,20 @@
             </select>
             <input type="hidden" name="order_id" value="{{pop.model_data.po_id}}">
           </div>
+          <div class="form-group col-md-5"></div>
+          <div class="form-group col-md-3" ng-if="pop.model_data.custom_confg_flag">
+            <div>
+              <label class="control-label"> Custom Labels</label>
+            </div>
+            <label class="switch switch-sm square mt5">
+              <div>
+                <input type="checkbox" ng-model="pop.model_data.custom_config" ng-change="pop.changeQty(pop.model_data.barcodes,pop.model_data.custom_config)">
+                <span>
+                  <i class="handle"></i>
+                </span>
+              </div>
+            </label>
+          </div>
           <div class="row">
             <div class="col-md-12">
               <table class="table">
@@ -24,6 +38,7 @@
                     <th ng-if="pop.model_data.barcodes[0].label">Label Code</th>
                     <th ng-if="!pop.model_data.barcodes[0].label">SKU Code</th>
                     <th>Quantity </th>
+                    <th ng-if="pop.model_data.custom_config">Serial Number</th>
                     <th class="plus"></th>
                   </tr>
                 </thead>
@@ -34,10 +49,24 @@
                       <input type="text" name="label" class="form-control" ng-model="barcode.label" ng-required="true">
                     </td>
                     <td ng-if="!barcode.label">
-                      <input type="text" name="wms_code" class="form-control" ng-model="barcode.sku_code">
+                      <input type="text" name="wms_code" class="form-control" ng-model="barcode.wms_code">
                     </td>
                     <td>
-                      <input type="text" name="quantity" class="form-control" ng-model="barcode.quantity">
+                      <input type="text" name="quantity" class="form-control" ng-init="barcode.quantity = (pop.model_data.custom_config) ? '0' : barcode.quantity" ng-model="barcode.quantity">
+                      <input type="hidden" name="mrp" value="{{barcode.mrp}}">
+                      <input type="hidden" name="price" value="{{barcode.price}}">
+                      <input type="hidden" name="tax_percent" value="{{barcode.tax_percent}}">
+                      <input type="hidden" name="unit" value="{{barcode.unit}}">
+                      <input type="hidden" name="weight" value="{{barcode.weight}}">
+                      <input type="hidden" name="cess_percent" value="{{barcode.cess_percent}}">
+                      <input type="hidden" name="exp_date" value="{{barcode.exp_date}}">
+                      <input type="hidden" name="buy_price" value="{{barcode.buy_price}}">
+                      <input type="hidden" name="batch_no" value="{{barcode.batch_no}}">
+                      <input type="hidden" name="mfg_date" value="{{barcode.mfg_date}}">
+                      <input type="hidden" value="{{pop.accept_imei.join(',')}}" name="imei_numbers">
+                    </td>
+                    <td ng-if="pop.model_data.custom_config">
+                      <input type="text" name="imei" id="imei" attr-name="{{'imei_'+barcode.wms_code}}" ng-model="barcode.imei_number" class="form-control detectTab" ng-keydown="pop.check_imei_exists($event, barcode)">
                     </td>
                     <td>
                       <i title="Remove Field" class="fa fa-minus-square-o" style="padding-left: 15px;"
@@ -57,7 +86,7 @@
         </div>
         <div class="modal-footer">
           <div class="form-group" style="margin-bottom:0px;">
-            <button type="submit" class="btn pop pop-green" ng-disabled="pop.model_data.barcodes.length == 0" ng-click="pop.generate_barcodes(barcodes)">Generate Barcodes
+            <button type="button" class="btn pop pop-green" ng-disabled="pop.model_data.barcodes.length == 0" ng-click="pop.generate_barcodes(barcodes)">Generate Barcodes
             </button>
           </div>
         </div>

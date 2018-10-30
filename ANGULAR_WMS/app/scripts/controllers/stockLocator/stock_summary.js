@@ -14,9 +14,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
     vm.selected_size = vm.g_data.size_type;
     vm.industry_type = Session.user_profile.industry_type;
 
-  vm.dt_display = false;
-  vm.build_dt = function() {
-    vm.dtOptions = DTOptionsBuilder.newOptions()
+    vm.dt_display = false;
+    vm.build_dt = function() {
+      vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
               type: 'POST',
@@ -40,23 +40,23 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
       var columns = vm.g_data.tb_headers[vm.g_data.view].concat(vm.extra_c);
       vm.dtColumns = vm.service.build_colums(columns);
       vm.dt_display = true;
-  }
+    }
 
-  vm.extra_c = [];
-  if(vm.g_data.view == 'StockSummary') {
-    vm.build_dt();
-  } else {
-    vm.service.apiCall('get_size_names', 'GET').then(function(data){
-      if (data.message){
-        vm.drop_data = data.data['size_names'];
-        vm.selected_default = vm.drop_data[vm.drop_data.length - 1];
-        if(vm.g_data.size_type) {
-          vm.extra_c = data.data[vm.g_data.size_type];
-          vm.build_dt();
+    vm.extra_c = [];
+    if(vm.g_data.view == 'StockSummary') {
+      vm.build_dt();
+    } else {
+      vm.service.apiCall('get_size_names', 'GET').then(function(data){
+        if (data.message){
+          vm.drop_data = data.data['size_names'];
+          vm.selected_default = vm.drop_data[vm.drop_data.length - 1];
+          if(vm.g_data.size_type) {
+            vm.extra_c = data.data[vm.g_data.size_type];
+            vm.build_dt();
+          }
         }
-      }
-    });
-  }
+      });
+    }
 
     vm.dtInstance = {};
 
@@ -138,21 +138,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
     }
     vm.data_display = true;
 
-  vm.open = function (size) {
-
-    var mod_data = {columns: vm.dtColumns, instance: vm.dtInstance};
-    var modalInstance = $modal.open({
-      templateUrl: 'views/stockLocator/toggles/seller_stock_download.html',
-      controller: 'SellerStockDownload',
-      controllerAs: 'pop',
-      size: size,
-      backdrop: 'static',
-      keyboard: false,
-      resolve: {
-        items: function () {
-          return mod_data;
+    vm.open = function (size) {
+      var mod_data = {columns: vm.dtColumns, instance: vm.dtInstance};
+      var modalInstance = $modal.open({
+        templateUrl: 'views/stockLocator/toggles/seller_stock_download.html',
+        controller: 'SellerStockDownload',
+        controllerAs: 'pop',
+        size: size,
+        backdrop: 'static',
+        keyboard: false,
+        resolve: {
+          items: function () {
+            return mod_data;
+          }
         }
-      }
     });
 
     modalInstance.result.then(function (selectedItem) {
@@ -164,36 +163,26 @@ function ServerSideProcessingCtrl($scope, $http, $state, Session, DTOptionsBuild
     });
   };
   //$scope.open('sm');
-
-
   }
 
-
 function SellerStockDownload($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items) {
-
   var vm = this;
   vm.state_data = items;
   vm.service = Service;
   vm.permissions = Session.roles.permissions;
-
   vm.ok = function () {
     $modalInstance.close("close");
   };
-
   vm.seller_data = {};
   vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
     if (data.message) {
       vm.seller_data = data.data.sellers;
     }
   })
-
   vm.download_excel = function() {
-
     vm.service.print_excel({seller_id: vm.seller_id}, vm.state_data.instance, vm.state_data.columns, 'seller_stock_summary_replace', true)
   }
-
   }
-
 angular
   .module('urbanApp')
   .controller('SellerStockDownload', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', SellerStockDownload]);

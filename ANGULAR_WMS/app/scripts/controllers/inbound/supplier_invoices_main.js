@@ -40,6 +40,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             .withOption('processing', true)
             .withOption('serverSide', true)
             .withOption('order', [5, 'desc'])
+            .withOption('lengthMenu', [10, 100, 200, 300, 400, 500, 1000, 2000])
             .withOption('createdRow', function(row, data, dataIndex) {
                $compile(angular.element(row).contents())($scope);
             })
@@ -191,7 +192,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.service.apiCall(url, "GET", send).then(function(data){
       if(data.message) {
         console.log(data.message);
-        vm.reloadData();
+        if(data.data.message == 'success'){
+          vm.service.showNoty("Updated Successfully");
+          vm.reloadData();
+        }
+        else {
+          vm.service.showNoty(data.data.message);
+        }
       } else {
         vm.service.showNoty("Something went wrong while moving to po challan !!!");
       }

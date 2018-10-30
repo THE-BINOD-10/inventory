@@ -22,8 +22,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'increment_invoice': false, 'create_shipment_type': false, 'auto_allocate_stock': false,
                     'generic_wh_level': false, 'auto_confirm_po': false, 'create_order_po': false, 'shipment_sku_scan': false,
                     'disable_brands_view': false, 'sellable_segregation': false, 'display_styles_price': false,
-                    'invoice_based_payment_tracker': false,
+                    'display_sku_cust_mapping': false, 'disable_categories_view': false, 'is_portal_lite': false,
+                    'invoice_based_payment_tracker': false, 'receive_po_invoice_check': false,
                     'auto_raise_stock_transfer': false, 'inbound_supplier_invoice': false, 'customer_dc': false,
+                    'mark_as_delivered': false, 'order_exceed_stock': false, 'receive_po_mandatory_fields': false
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -40,8 +42,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      48: 'priceband_sync', 49: 'generic_wh_level', 50: 'auto_confirm_po', 51: 'create_order_po',
                      52: 'calculate_customer_price', 53: 'shipment_sku_scan', 54: 'disable_brands_view',
                      55: 'sellable_segregation', 56: 'display_styles_price', 57: 'show_purchase_history',
-                     58: 'shelf_life_ratio', 59: 'auto_raise_stock_transfer', 60: 'inbound_supplier_invoice',
-                     61: 'customer_dc', 62: 'auto_expire_enq_limit', 63: 'invoice_based_payment_tracker'}
+                     58: 'shelf_life_ratio', 59: 'display_sku_cust_mapping',  60: 'disable_categories_view', 61: 'is_portal_lite',
+                     62: 'auto_raise_stock_transfer', 63: 'inbound_supplier_invoice', 64: 'customer_dc',
+                     65: 'auto_expire_enq_limit', 66: 'invoice_based_payment_tracker', 67: 'receive_po_invoice_check',
+                     68: 'mark_as_delivered', 69: 'receive_po_mandatory_fields', 70: 'central_order_mgmt',
+                     71: 'order_exceed_stock'}
 
   vm.check_box_data = [
     {
@@ -304,7 +309,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       display: true
     },
     {
-      name: "Display Price in Styles page",
+      name: "Display Price in Customer Portal",
       model_name: "display_styles_price",
       param_no: 56,
       class_name: "fa fa-rupee",
@@ -318,30 +323,79 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       display: true
     },
     {
+      name: "Display Styles from Customer Mapping",
+      model_name: "display_sku_cust_mapping",
+      param_no: 59,
+      class_name: "fa fa-rupee",
+      display: true
+    },
+    {
+      name: "Disable Categories View",
+      model_name: "disable_categories_view",
+      param_no: 60,
+      class_name: "glyphicon glyphicon-sort",
+      display: true
+    },
+    {
+      name: "Portal Lite",
+      model_name: "is_portal_lite",
+      param_no: 61,
+      class_name: "glyphicon glyphicon-sort",
+      display: true
+    },
+    {
       name: "Auto Raise Stock Transfer Enable/Disable",
       model_name: "auto_raise_stock_transfer",
-      param_no: 59,
+      param_no: 62,
       class_name: "fa fa-server",
       display: true
     },
     {
       name: "Supplier Invoice Enable/Disable",
       model_name: "inbound_supplier_invoice",
-      param_no: 60,
+      param_no: 63,
       class_name: "fa fa-server",
       display: true
     },
     {
       name: "Customer DC Enable/Disable",
       model_name: "customer_dc",
-      param_no: 61,
+      param_no: 64,
+      class_name: "fa fa-server",
+      display: true
+    },
+    {
+      name: "Central Order Management",
+      model_name: "central_order_mgmt",
+      param_no: 70,
       class_name: "fa fa-server",
       display: true
     },
     {
      name: "Invoice Based Payment Tracker Enable/Disable",
      model_name: "invoice_based_payment_tracker",
-     param_no: 63,
+     param_no: 66,
+     class_name: "fa fa-server",
+     display: true
+    },
+    {
+     name: "Check Invoice Value In Receive PO",
+     model_name: "receive_po_invoice_check",
+     param_no: 67,
+     class_name: "fa fa-server",
+     display: true
+    },
+    {
+     name: "Enable Ratings",
+     model_name: "mark_as_delivered",
+     param_no: 68,
+     class_name: "fa fa-server",
+     display: true
+    },
+    {
+     name: "Restrict order to stock availability in customer portal",
+     model_name: "order_exceed_stock",
+     param_no: 71,
      class_name: "fa fa-server",
      display: true
     }

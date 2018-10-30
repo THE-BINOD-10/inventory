@@ -32,7 +32,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     var sort_no = (vm.g_data.style_view)? 1: 0;
     vm.filters = {'datatable': 'MyOrdersTbl', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': '', 'search5': '',
-                  'search6': '', 'search7': '', 'search8': '', 'search9': '', 'search10': '', 'style_view': vm.g_data.style_view};
+                  'search6': '', 'style_view': vm.g_data.style_vie};
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -61,9 +61,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = ['Order ID','Ordered Qty', 'Delivered Qty', 'Pending Qty', 'Order Value', 'Order Date', 'Receive Status'];
-    vm.dtColumns = vm.service.build_colums(columns);
-
+    //var columns = ['Order ID',, ];
+    //vm.dtColumns = vm.service.build_colums(columns);
+    vm.dtColumns = [
+      DTColumnBuilder.newColumn('Order ID').withTitle('Order ID'),
+      DTColumnBuilder.newColumn('Ordered Qty').withTitle('Ordered Qty'),
+      DTColumnBuilder.newColumn('Delivered Qty').withTitle('Delivered Qty'),
+      DTColumnBuilder.newColumn('Pending Qty').withTitle('Pending Qty'),
+      DTColumnBuilder.newColumn('Order Value').withTitle('Order Value'),
+      DTColumnBuilder.newColumn('Order Date').withTitle('Order Date'),
+      DTColumnBuilder.newColumn('Receive Status').withTitle('Receive Status'),
+    ];
+    //var empty_data = {Order ID:"",Ordered Qty :"", Delivered Qty:"", Pending Qty:"", Order Value:"", Order Date:"", Receive Status:""};
+     vm.model_data = {};
     var row_click_bind = 'td';
     /*if(vm.g_data.style_view) {
       var toggle = DTColumnBuilder.newColumn('PO No').withTitle(' ').notSortable()
@@ -77,7 +87,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
     vm.dtColumns.unshift(toggle);*/
     vm.dtInstance = {};
-
     $scope.$on('change_filters_data', function(){
       vm.dtInstance.DataTable.context[0].ajax.data[colFilters.label] = colFilters.value;
       vm.service.refresh(vm.dtInstance);
@@ -87,9 +96,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         $(row_click_bind, nRow).unbind('click');
         $(row_click_bind, nRow).bind('click', function() {
             $scope.$apply(function() {
-                vm.service.apiCall('get_customer_order_detail/', 'GET', {order_id: aData['DT_RowId']}).then(function(data){
+                vm.service.apiCall('get_customer_order_detail/', 'GET', {order_id: aData['Order ID']}).then(function(data){
                   if(data.message) {
                     angular.copy(data.data, vm.model_data);
+                    //console.log(data.data)
                     vm.title = "My Orders";
                     $state.go('user.App.MyOrders.OrderDetails');
                   }
@@ -98,7 +108,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         });
         return nRow;
     }
+    vm.close = function() {
 
+    //  angular.copy(empty_data, vm.model_data);
+      $state.go('user.App.MyOrders')
+    }
     vm.submit = submit;
     function submit(form) {
       var data = [];
@@ -123,6 +137,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }
       });
     }
+
 
     vm.html = "";
     vm.confirm_grn = function(form) {

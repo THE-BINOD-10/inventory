@@ -8,8 +8,28 @@
          <h4 class="modal-title">Invoice</h4>
         </div>
         <div class="modal-body print print-invoice" style="overflow: hidden">
+
+	<div class="row" ng-if="showCase.pdf_data.move_to_inv=='true'">
+          <div class="col-md-4 col-sm-4 col-xs-6">
+            <div class="form-group">
+              <label class="control-label"><strong>Invoice Number *</strong></label>
+              <input name="invoice_number" class="form-control" type="text" ng-model="showCase.inv_number"
+		     ng-init="showCase.inv_number=''" required>
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-4 col-xs-6">
+            <div class="form-group">
+              <label class="control-label"><strong>Invoice Date *</strong></label>
+              <input name="inv_date" ui-jq="datepicker" ng-model="showCase.inv_date"
+	    	 class="form-control stk-readonly" type="text" id="inv_date" ng-init="showCase.inv_date=''"
+	    	 data-date-today-highlight="true" data-date-autoclose="true" required>
+            </div>
+	  </div>
+
+	</div>
+
           <div class="row col-md-12">
-            <h4 style="margin-bottom:2px" align="center">Tax Invoice</h4>
+            <h4 style="margin-bottom:2px" align="center">{{showCase.pdf_data.invoice_header}}</h4>
           </div>
           <div class="row col-md-12" style="margin-top: 0px;">
             <table class="table table-bordered bl br mb0" style="margin-bottom:0px">
@@ -31,7 +51,7 @@
                   </td>
                   <td rowspan="2" style="text-align:left">
                     <strong>Invoice Number:</strong>{{showCase.pdf_data.invoice_no}}<br>
-                    <strong>Invoice Date:</strong>{{showCase.pdf_data.invoice_date}}<br>
+                    <strong>Invoice Date:</strong>{{showCase.pdf_data.inv_date}}<br>
                     <strong>Order Number:</strong>{{showCase.pdf_data.order_id}}<br>
                     <strong>Order Date:</strong>{{showCase.pdf_data.order_date}}<br>
                     <strong>Challan No.:</strong>{{showCase.pdf_data.challan_no}}<br>
@@ -45,21 +65,11 @@
                         <span ng-if="user.userName != 'campus_sutra'">To,</span>
                         <span ng-if="user.userName == 'campus_sutra'">CONSIGNEE,</span>
                       </strong><br>
-                      <div ng-if = "showCase.pdf_data.marketplace == 'Offline'">
-                        <p style="margin-bottom:0px" ng-if= "showCase.pdf_data.customer_details[0].name == ''">{{showCase.pdf_data.marketplace}}</p>
-                        <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].name">
-                           &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].name}}</p>
-                        <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].address">
-                           &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].address}}</p>
-                        <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].tin_number">
-                           &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].tin_number}}</p>
-                        <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].customer_id">
-                           &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].customer_id}}</p>
-                        <p style="margin-bottom:0px" class="cust_details" ng-if="showCase.pdf_data.customer_details[0].email_id">
-                          &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.customer_details[0].email_id}}</p>
-                      </div>
-                      <div ng-if = "showCase.pdf_data.marketplace != 'Offline'">
-                        {{showCase.pdf_data.marketplace}}<br>
+                      <div>
+                        <p style="margin-bottom:0px" class="cust_details">
+                           &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.company_details.name}}</p>
+                        <p style="margin-bottom:0px" class="cust_details">
+                          &nbsp;&nbsp;&nbsp;&nbsp;{{showCase.pdf_data.company_details.address}}</p>
                       </div>
                     </address>
                   </td>
@@ -71,9 +81,18 @@
           </div>
         </div>
         <div class="row">
-          <button type="button" class="btn btn-danger btn-block" style="width:100px;margin: auto;margin-bottom: 10px;" ng-click="showCase.service.generate_pdf_file(showCase.pdf_data)">
-            <i class="ti-printer mr5"></i>Print
-          </button>
+	  <div ng-class="(showCase.pdf_data.move_to_inv=='true')? 'col-md-offset-4 col-md-2' : 'col-md-12'">
+            <button type="button" class="btn btn-danger btn-block" style="width:100px;margin: auto;margin-bottom: 10px;"
+		ng-click="showCase.service.generate_pdf_file(showCase.pdf_data)">
+            	<i class="ti-printer mr5"></i>Print
+            </button>
+	  </div>
+	  <div class="col-md-2" ng-if="showCase.pdf_data.move_to_inv=='true'">
+            <button type="button" class="btn btn-success btn-block"
+	    	style="width:100px;margin: auto;margin-bottom: 10px;" ng-click="showCase.confirm_move_to_inv()">
+            	<i class="ti-printer mr5"></i>Confirm
+            </button>
+	  </div>
         </div>
       </div>
     </div>

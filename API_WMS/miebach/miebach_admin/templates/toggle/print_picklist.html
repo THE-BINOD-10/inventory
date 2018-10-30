@@ -102,6 +102,9 @@ $(document).ready(function(){
           {{ record.original_order_id }}
         </td>
         {% endif %}
+        {% if combo_picklist %}
+          <td>{{ record.parent_sku_code }}</td>
+        {% endif %}
         <td>
           {% if record.wms_code == 'TEMP' %}
           <input type="" name="wmscode_{{ record.id }}" value="{{ record.sku_code }}">
@@ -113,6 +116,10 @@ $(document).ready(function(){
         <td>{{ record.category }}</td>
         <td>{{ record.zone }}</td>
         <td>{{ record.location }}</td>
+        {% if fmcg_industry_type %}
+          <td>{{ record.batchno }}</td>
+          <td>{{ record.mrp }}</td>
+        {% endif %}
         <td>{{ record.reserved_quantity }}</td>
         <td></td>
       </tr>

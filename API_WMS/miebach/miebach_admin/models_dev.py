@@ -448,6 +448,7 @@ class CustomerMaster(models.Model):
     status = models.IntegerField(max_length=1, default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
+    role = models.CharField(max_length=64) 
 
     class Meta:
         db_table = 'CUSTOMER_MASTER'

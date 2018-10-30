@@ -11,6 +11,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
     vm.searched_wms_code = "";
     vm.searched_sup_code = '';
     vm.is_came_from_raise_po = false;
+    vm.totals_tb_data = {};
 
     DTDefaultOptions.setLanguage({
     // ...
@@ -98,7 +99,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       }
     }
 
-    vm.units = ["KGS", "UNITS", "METERS", "INCHES", "CMS", "REAMS", "GRAMS", "GROSS", "ML"];
+    vm.units = ["KGS", "UNITS", "METERS", "INCHES", "CMS", "REAMS", "GRAMS", "GROSS", "ML", "LITRE","FEET"];
 
     vm.get_report_data = function(name){
       var send = {};
@@ -134,6 +135,13 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
               data: send.empty_data,
               xhrFields: {
                 withCredentials: true
+              },
+              complete: function(jqXHR, textStatus) {
+                vm.totals_tb_data = {};
+                $rootScope.$apply(function(){
+                  vm.tb_data = JSON.parse(jqXHR.responseText);
+                  vm.totals_tb_data = vm.tb_data.totals;
+                })
               }
            })
        .withDataProp('data')
@@ -218,6 +226,12 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
 
       return Number(a)*Number(b);
     }
+
+    $("body").on("keypress",".notallowspace",function (e) {
+        if (e.which === 32) {
+          return false;
+        }
+    });
 
     $("body").on("keypress",".number",function (e) {
     if (e.which != 8 && e.which != 0 && (e.which < 48 || e.which > 57)) {
@@ -478,6 +492,30 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       });
     };
 
+    vm.showNotyNotHide = function (msg,type,$layout) {
+      if (!type) {
+        type = 'success';
+      }
+      if (!msg) {
+        msg = 'Success';
+      }
+      if (!$layout) {
+        $layout = 'topRight';
+      }
+      noty({
+        theme: 'urban-noty',
+        text: msg,
+        type: type,
+        layout: $layout,
+        closeWith: ['button', 'click'],
+        animation: {
+          open: 'in',
+          close: 'out',
+          easing: 'swing'
+        },
+      });
+    };
+
     /* State Refresh */
     vm.state_refresh = function() {
       $state.go($state.current, {}, {reload: true});
@@ -548,6 +586,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
         if (results.length > 7) {
           results = results.slice(0,7);
         }
+        vm.popup_dyn_style = {height: (175 + (25 * results.length))}; // It is for scaning sku alert popup height
         return results.map(function(item){
           vm.search_res.push(item);
           return item;
@@ -1443,3 +1482,6 @@ app.directive('discountNumber', function () {
       }
     });
   }])
+
+  
+

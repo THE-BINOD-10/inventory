@@ -41,7 +41,7 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'corsheaders',
     'miebach_admin',
-    'maintenancemode',
+    #'maintenancemode',
     'api_calls',
     'rest_api',
     'oauth2_provider',

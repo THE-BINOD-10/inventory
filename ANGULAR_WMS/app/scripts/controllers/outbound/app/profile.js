@@ -11,6 +11,7 @@ function ProfileUpload($scope, $http, $q, Session, colFilters, Service, $state, 
   vm.first_name = vm.session.user_profile.first_name;
   vm.email = vm.session.user_profile.email;
   vm.user_id = vm.session.userId;
+  vm.is_portal_lite = Session.roles.permissions.is_portal_lite;
 
   vm.upload_file_name = "";
   $scope.$on("fileSelected", function (event, args) {

@@ -67,7 +67,7 @@
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.permissions.shipment_sku_scan">
               <div class="form-group">
-                <label class="control-label"> Scan SKU</label>
+                <label class="control-label"> Scan SKU/EAN</label>
                 <input type="text" id="scan_sku" name="scan_sku" ng-model="showCase.scan_sku" class="form-control" ng-keydown="showCase.update_sku_quan($event, showCase.scan_sku)" auto-focus>
               </div>
             </div>
@@ -116,7 +116,13 @@
                   <input type="hidden" name="sku_code" value="{{data.sku__sku_code}}">
                   <input type="hidden" name="order_quantity" value="{{data.picked}}">
                   <input type="hidden" name="imei_number" class="form-control" ng-init="record.imei_list=[]" value="{{record.imei_list.join(',')}}">
-                  <td ng-if="(!(showCase.sku_group))">{{data.order_id}}</td>
+                  <input ng-if="data.original_order_id" type="hidden" name="label" value="{{data.original_order_id}}">
+                  <input ng-if="!data.original_order_id" type="hidden" name="label" value="{{showCase.model_data.cust_details.order_id}}">
+                  <input type="hidden" name="customer_name" value="{{showCase.model_data.cust_details.cust_name}}">
+                  <input type="hidden" name="customer_id" value="{{showCase.model_data.cust_details.cust_id}}">
+                  <!--<td ng-if="(!(showCase.sku_group))">{{data.original_order_id}}</td>-->
+                  <td ng-if="data.original_order_id"><input type="text" value="{{data.original_order_id}}" readonly></td>
+                  <td ng-if="!data.original_order_id">{{showCase.model_data.cust_details.order_id}}</td>
                   <td>{{data.sku__sku_code}}</td>
                   <td>{{data.sku__sku_desc}}</td>
                   <td> {{data.ordered}} </td>
@@ -161,6 +167,7 @@
           <button type="button" class="btn pop pop-green col-md-3 col-sm-3 col-xs-12" style="margin-left:0px;" ng-click="pop.picklist_confirmation()">Confirm</button> -->
 
           <button type="button" class="btn pop pop-normal" data-dismiss="modal" ng-click="showCase.close()">Close</button>
+          <button class="btn pop pop-green" value="Print Barcodes" type="button" ng-disabled="showCase.bt_disable" ng-click="showCase.print_barcodes(form)">Print Barcodes</button>
           <button class="btn pop pop-green" value="Add Shippment" type="button" ng-disabled="showCase.bt_disable" ng-click="showCase.add_shipment(form)">Add Shippment</button>
         </div>
       </div>

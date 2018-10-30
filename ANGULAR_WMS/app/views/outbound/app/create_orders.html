@@ -9,15 +9,23 @@
       <div class="layout-header" ng-if="$state.current.name != 'user.App.Products'" style="min-height: 19px;padding: 0px;position:relative">
         <div class="row">
         <div class="col-md-4 col-sm-4" style="margin-top:5px; color: #ed1c24">
-          <span style="margin-top: 10px" ng-if="$state.current.name != 'user.App.Brands'">
-            <a href="" ng-if="!(showCase.disable_brands)" ng-click="$state.go('user.App.Brands')"><i class="fa fa-home fa-2x" aria-hidden="true"></i></a>
-            <a href="" ng-if="showCase.disable_brands" ng-click="$state.go('user.App.Categories')"><i class="fa fa-home fa-2x" aria-hidden="true"></i></a>
-          </span>
+          <div ng-if="!showCase.is_portal_lite">
+            <span style="margin-top: 10px" ng-if="($state.current.name != 'user.App.Brands')">
+              <a href="" ng-if="!(showCase.disable_brands)" ng-click="$state.go('user.App.Brands')"><i class="fa fa-home fa-2x" aria-hidden="true"></i></a>
+              <a href="" ng-if="!showCase.disable_categories && showCase.disable_brands" ng-click="$state.go('user.App.Categories')"><i class="fa fa-home fa-2x" aria-hidden="true"></i></a>
+            </span>
+          </div>
+          <div ng-if="showCase.is_portal_lite">
+            <span style="margin-top: 10px" ng-if="($state.current.name != 'user.App.newStyle')">
+              <a href="" ng-if="!(showCase.disable_brands)" ng-click="$state.go('user.App.newStyle')"><i class="fa fa-home fa-2x" aria-hidden="true"></i></a>
+              <a href="" ng-if="!showCase.disable_categories && showCase.disable_brands" ng-click="$state.go('user.App.newStyle')"><i class="fa fa-home fa-2x" aria-hidden="true"></i></a>
+            </span>
+          </div>
         </div>
         <div class="col-md-4 col-sm-4 col-xs-6">
           <div ng-include="'views/App/create_orders/company_name.html'"></div>
         </div>
-        <div class="col-md-4 col-sm-4 col-xs-6">
+        <div class="col-md-4 col-sm-4 col-xs-6" ng-if="!(showCase.is_portal_lite)">
           <a href="" class="pull-right" ng-click="$state.go('user.App.Cart')" style="padding-top:5px;" ng-if="$state.current.name != 'user.App.Cart'">
             <i class="fa fa-cart-plus fa-2x" style="color:#ed1c24;padding-right: 10px;" title="Go To Cart Page"></i>
           </a>

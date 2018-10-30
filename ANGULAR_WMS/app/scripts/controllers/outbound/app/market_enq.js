@@ -60,9 +60,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = ['Enquiry ID', 'Date', 'Quantity', 'Amount', 'Days Left'];
+    var columns = ['Enquiry ID', 'Date', 'Quantity', 'Amount', 'Days Left','Corporate Name'];
     vm.dtColumns = vm.service.build_colums(columns);
-
+    vm.model_data = {};
     var row_click_bind = 'td';
     /*if(vm.g_data.style_view) {
       var toggle = DTColumnBuilder.newColumn('PO No').withTitle(' ').notSortable()
@@ -86,11 +86,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         $(row_click_bind, nRow).unbind('click');
         $(row_click_bind, nRow).bind('click', function() {
             $scope.$apply(function() {
-                vm.service.apiCall('get_customer_enquiry_detail/', 'GET', {order_id: aData['DT_RowId']}).then(function(data){
+              console.log("markets")
+                vm.service.apiCall('get_customer_enquiry_detail/', 'GET', {enquiry_id: aData['Enquiry ID']}).then(function(data){
                   if(data.message) {
                     angular.copy(data.data, vm.model_data);
                     vm.title = "Market Enquiry";
-                    $state.go('app.inbound.RevceivePo.GRN');
+                    $state.go('user.App.MyOrders.OrderDetails');
                   }
                 });
             });
@@ -121,6 +122,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           }
         }
       });
+    }
+    vm.close = function() {
+
+    //  angular.copy(empty_data, vm.model_data);
+      $state.go('user.App.MyOrders')
     }
 
     vm.html = "";

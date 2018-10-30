@@ -194,14 +194,14 @@ class TallyBridgeApp(object):
 
             # import pdb;pdb.set_trace()
             # Testing Ledger
-            party_tax_ledger = Tally.LedgerEntry()
-            party_tax_ledger.ledgerName = 'Bill of Supply'
-            party_tax_ledger.ledgerAmount = System.Decimal(0)  # always positive
-            if 'entry_rate' in tax_obj.keys():
-                party_tax_ledger.ledEntryRate = System.Decimal(0)
-            if 'is_deemed_positive' in tax_obj.keys():
-                party_tax_ledger.isDeemedPositive = tax_obj.get('is_deemed_positive') or True  # always True
-            invoice.arlLedgerEntries.Add(party_tax_ledger)
+            # party_tax_ledger = Tally.LedgerEntry()
+            # party_tax_ledger.ledgerName = 'Bill of Supply'
+            # party_tax_ledger.ledgerAmount = System.Decimal(0)  # always positive
+            # if 'entry_rate' in tax_obj.keys():
+            #     party_tax_ledger.ledEntryRate = System.Decimal(0)
+            # if 'is_deemed_positive' in tax_obj.keys():
+            #     party_tax_ledger.isDeemedPositive = tax_obj.get('is_deemed_positive') or True  # always True
+            # invoice.arlLedgerEntries.Add(party_tax_ledger)
 
         if voucher_no:
             invoice.voucherNo = voucher_no

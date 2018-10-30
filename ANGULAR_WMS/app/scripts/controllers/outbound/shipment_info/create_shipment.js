@@ -159,10 +159,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
         var data = []
         var order_ids = [];
         var mk_places = [];
+        var cust_details = {}
       	angular.forEach(vm.selected, function(key,value){
           if(key) {
             var temp = table[Number(value)]['order_id']
             var temp2 = table[Number(value)]['Marketplace']
+            cust_details['cust_name'] = table[Number(value)]['Customer Name']
+            cust_details['cust_id'] = table[Number(value)]['Customer ID']
+            cust_details['order_id'] = temp
+            cust_details['marketplace'] = temp2
 	        data.push({ name: "order_id", value: temp})
 	        if(order_ids.indexOf(temp) == -1) {
               order_ids.push(temp);
@@ -172,7 +177,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
 	        }
           }
       	});
-
+        vm.model_data['cust_details'] = cust_details;
         if(order_ids.length == 0) {
           vm.service.showNoty("Please Select Orders First");
           vm.bt_disable = false;
@@ -199,7 +204,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
               vm.service.showNoty(data.data.status);
             } else {
               vm.customer_details = (vm.model_data.customer_id) ? true: false;
-              angular.copy(data.data, vm.model_data);
+              angular.extend(vm.model_data, data.data);
               angular.forEach(vm.model_data.data, function(temp) {
 
                 var shipping_quantity = (vm.mk_user || vm.permissions.shipment_sku_scan)? 0 : temp.picked;
@@ -320,6 +325,67 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
       }
     }
   }
+
+  vm.print_barcodes  = function() {
+      vm.barcode_title = 'Barcode Generation';
+      vm.model_data['barcodes'] = [];
+
+	  vm.model_data['format_types'] = [];
+      var key_obj = {};//{'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details', 'Bulk Barcode': 'Details'};
+      vm.service.apiCall('get_format_types/').then(function(data){
+        $.each(data['data']['data'], function(ke, val){
+          vm.model_data['format_types'].push(ke);
+          });
+          key_obj = data['data']['data'];
+      });
+	  var elem = angular.element($('#add-customer'));
+      elem = elem[0];
+      elem = $(elem).serializeArray();
+      var list = [];
+      var dict = {};
+      var onetime_data = {};
+      var masters = ['courier_name', 'invoice_number', 'scan_sku', 'shipment_date', 'shipment_number',
+                    'shipment_reference', 'truck_number', 'view_name', 'cust_name', 'customer_name',
+                    'customer_id', 'package_reference'];
+      $.each(elem, function(num, key){
+        if(masters.indexOf(key['name']) != -1){
+            onetime_data[key['name']] = key['value'];
+        }
+      	if(!dict.hasOwnProperty(key['name'])){
+        	dict[key['name']] = key['value'];
+      	}else{
+            angular.extend(dict, onetime_data)
+        	list.push(dict);
+         	dict = {}
+            dict[key['name']] = key['value'];
+      	}
+      });
+      if(dict.hasOwnProperty('sku_code')){
+          angular.extend(dict, onetime_data)
+	      list.push(dict);
+      }
+	  vm.model_data['barcodes'] = list;
+      vm.model_data.have_data = true;
+      //$state.go('app.inbound.RevceivePo.barcode');
+      var modalInstance = $modal.open({
+        templateUrl: 'views/outbound/toggle/shipment_barcodes.html',
+        controller: 'Barcodes',
+        controllerAs: 'pop',
+        size: 'lg',
+        backdrop: 'static',
+        keyboard: false,
+        windowClass: 'z-2021',
+        resolve: {
+          items: function () {
+            return vm.model_data;
+          }
+        }
+      });
+
+      modalInstance.result.then(function (selectedItem) {
+        console.log(selectedItem);
+      }); 
+    }
 
   vm.add_shipment = function(valid) {
     if(valid.$valid) {
@@ -496,8 +562,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
       event.stopPropagation();
       if (event.keyCode == 13 && scanned_sku.length > 0) {
           console.log(vm);
+        vm.service.apiCall("create_orders_check_ean", "GET", {ean: scanned_sku}).then(function(api_data){
+        if(api_data.message) {
           var found_sku = false;
           var is_updated = false;
+          scanned_sku = api_data.data.sku;
           for(var i=0;i<vm.model_data.data.length;i++) {
             var data_sku = String(vm.model_data.data[i].sku__sku_code).toLocaleLowerCase();
             if(data_sku==String(scanned_sku).toLocaleLowerCase()) {
@@ -514,14 +583,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
                 var exist_quan = vm.model_data.data[i].sub_data[last_index].shipping_quantity;
                 exist_quan = (!isNaN(exist_quan)) ? exist_quan: 0;
 
-                for(var p_ref=0; p_ref<vm.model_data.data[i].sub_data.length; p_ref++){
+               for(var p_ref=0; p_ref<vm.model_data.data[i].sub_data.length; p_ref++){
                   if (vm.carton_code == vm.model_data.data[i].sub_data[p_ref].pack_reference) {
                     last_index = p_ref;
-                  }
+                 }
                 }
 
-                if (vm.carton_code == vm.model_data.data[i].sub_data[last_index].pack_reference || 
-                  !vm.model_data.data[i].sub_data[last_index].pack_reference || 
+                if (vm.carton_code == vm.model_data.data[i].sub_data[last_index].pack_reference ||
+                  !vm.model_data.data[i].sub_data[last_index].pack_reference ||
                   (!vm.model_data.data[i].sub_data[last_index].shipping_quantity && vm.model_data.data[i].sub_data[last_index].pack_reference)) {
                   
                   vm.model_data.data[i].sub_data[last_index].shipping_quantity = Number(exist_quan) + 1;
@@ -554,8 +623,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
             }
           }
           if(!found_sku){ vm.service.showNoty("Scanned SKU Code not found");}
-          else if(!is_updated){ vm.service.showNoty("Scanned SKU Code exceeded the quantity");}
-          vm.scan_sku = '';
+            else if(!is_updated){ vm.service.showNoty("Scanned SKU Code exceeded the quantity");}
+            vm.scan_sku = '';
+          }
+        });
       }
     }
 

@@ -2,6 +2,7 @@ activate_this = 'setup/MIEBACH/bin/activate_this.py'
 execfile(activate_this, dict(__file__ = activate_this))
 import os
 import sys
+from math import floor
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "miebach.settings")
 import django
@@ -27,26 +28,28 @@ def update_inventory(company_name):
                         continue
                     location_id = location_master[0].id
                     stock_dict = {}
+                    asn_stock_map = {}
                     for item in warehouse["Result"]["InventoryStatus"]:
                         sku_id = item["SKUId"]
                         actual_sku_id = sku_id
                         if sku_id[-3:]=="-TU":
                             sku_id = sku_id[:-3]
+                            expected_items = item['Expected']
+                            if isinstance(expected_items, list) and expected_items:
+                                asn_stock_map.setdefault(sku_id, []).extend(expected_items)
+                            wait_on_qc = [v for d in item['OnHoldDetails'] for k, v in d.items() if k == 'WAITONQC']
+                            if wait_on_qc:
+                                if int(wait_on_qc[0]):
+                                    log.info("Wait ON QC Value %s for SKU %s" % (actual_sku_id, wait_on_qc))
+                                if sku_id in stock_dict:
+                                    stock_dict[sku_id] += int(wait_on_qc[0])
+                                else:
+                                    stock_dict[sku_id] = int(wait_on_qc[0])
+                        else:
                             if sku_id in stock_dict:
                                 stock_dict[sku_id] += int(item['Inventory'])
                             else:
                                 stock_dict[sku_id] = int(item['Inventory'])
-                        else:
-                            if sku_id in stock_dict:
-                                stock_dict[sku_id] += int(item['FG'])
-                            else:
-                                stock_dict[sku_id] = int(item['FG'])
-                        wait_on_qc = [v for d in item['OnHoldDetails'] for k, v in d.items()
-                                      if k == 'WAITONQC']
-                        if wait_on_qc:
-                            if int(wait_on_qc[0]):
-                                log.info("Wait ON QC Value %s for SKU %s" % (actual_sku_id, wait_on_qc))
-                            stock_dict[sku_id] += int(wait_on_qc[0])
 
                     for sku_id, inventory in stock_dict.iteritems():
                         sku = SKUMaster.objects.filter(user = user_id, sku_code = sku_id)
@@ -67,6 +70,30 @@ def update_inventory(company_name):
                                 StockDetail.objects.create(**new_stock_dict)
                                 log.info("New stock created for user %s for sku %s" %
                                          (user.username, str(sku.sku_code)))
+                    for sku_id, asn_inv in asn_stock_map.iteritems():
+                        sku = SKUMaster.objects.filter(user=user_id, sku_code=sku_id)
+                        if sku:
+                            sku = sku[0]
+                            for asn_stock in asn_inv:
+                                po = asn_stock['PO']
+                                expected_time = asn_stock['By']
+                                if expected_time == 'Unknown':
+                                    continue
+                                arriving_date = datetime.datetime.strptime(asn_stock['By'], '%d-%b-%Y')
+                                quantity = int(asn_stock['Qty'])
+                                qc_quantity = int(floor(quantity*95/100))
+                                asn_stock_detail = ASNStockDetail.objects.filter(sku_id=sku.id, asn_po_num=po)
+                                if asn_stock_detail:
+                                    asn_stock_detail = asn_stock_detail[0]
+                                    asn_stock_detail.quantity = qc_quantity
+                                    asn_stock_detail.arriving_date = arriving_date
+                                    asn_stock_detail.save()
+                                else:
+                                    ASNStockDetail.objects.create(asn_po_num=po, sku_id=sku.id,
+                                                                  quantity=qc_quantity,
+                                                                  arriving_date=arriving_date)
+                                    log.info('New ASN Stock Created for User %s and SKU %s' %
+                                             (user.username, str(sku.sku_code)))
     print "Inventory Updated"
     return "Success"
 

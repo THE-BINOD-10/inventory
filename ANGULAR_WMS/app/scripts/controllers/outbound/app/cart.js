@@ -10,7 +10,10 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
   vm.model_data = {};
   angular.copy(empty_data, vm.model_data);
   vm.date = new Date();
-  vm.user_type = Session.roles.permissions.user_type;
+  vm.permissions = Session.roles.permissions;
+  vm.user_type = vm.permissions.user_type;
+  vm.central_order_mgmt = vm.permissions.central_order_mgmt;
+  vm.order_exceed_stock = vm.permissions.order_exceed_stock;
   vm.deliver_address = ['Distributor Address'];
   vm.checked_address = vm.deliver_address[0];
   vm.shipment_addr = 'default';
@@ -18,6 +21,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
   vm.default_shipment_addr = true;
   vm.client_logo = Session.parent.logo;
   vm.api_url = Session.host;
+  vm.is_portal_lite = Session.roles.permissions.is_portal_lite;
 
   vm.sel_styles = {};
   vm.get_customer_cart_data = function() {
@@ -34,6 +38,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
           angular.forEach(vm.model_data.data, function(sku){
 
             sku['org_price'] = sku.price;
+            sku['sku_remarks'] = sku.remarks;
             sku.quantity = Number(sku.quantity);
             sku.invoice_amount = Number(sku.price) * sku.quantity;
             sku.total_amount = ((sku.invoice_amount*sku.tax) / 100) + sku.invoice_amount;
@@ -85,8 +90,16 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
   vm.change_remarks = function(remark) {
 
     angular.forEach(vm.model_data.data, function(data){
-      data['remarks'] = vm.model_data.remarks;
+      if(!data['sku_remarks']){
+        data['remarks'] = vm.model_data.remarks;
+      } else {
+        data['remarks'] = data['sku_remarks'];
+      }
     })
+  }
+  vm.change_sku_remarks = function(data) {
+
+    data['remarks'] = data['sku_remarks'];
   }
 
   vm.date_changed = function(){
@@ -96,9 +109,43 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
     //vm.model_data.shipment_date = (date.getMonth() + 1) + '/' + date.getDate() + '/' +  date.getFullYear();
   }
 
+vm.update_cartdata_for_approval = function() {
+    var send = {}
+    vm.service.apiCall("update_orders_for_approval/", "POST", send).then(function(response){
+        if(response.message) {
+          if(response.data.message == "success") {
+            Data.my_orders = [];
+            swal({
+              title: "Success!",
+              text: "Your Order Has Been Sent for Approval",
+              type: "success",
+              showCancelButton: false,
+              confirmButtonText: "OK",
+              closeOnConfirm: true
+              },
+              function(isConfirm){
+                $state.go("user.App.Brands");
+              }
+            )
+          } else {
+            vm.insert_cool = true;
+            vm.data_status = true;
+            vm.service.showNoty(response.data, "danger", "bottomRight");
+          }
+        }
+    });
+  }
+
   vm.update_customer_cart_data = function(data) {
 
-    var send = {'sku_code': data.sku_id, 'quantity': data.quantity, 'level': data.warehouse_level, 'price': data.price}
+    if (vm.order_exceed_stock){
+      if (data.available_stock <= data.quantity){
+        data.quantity = 1;//data.available_stock;
+        vm.service.showNoty("Order quantity can't exceed available stock.");
+      }
+    }
+    var send = {'sku_code': data.sku_id, 'quantity': data.quantity, 'level': data.warehouse_level,
+                'price': data.price, 'remarks': data.remarks}
     vm.service.apiCall("update_customer_cart_data/", "POST", send).then(function(response){
 
     });
@@ -164,7 +211,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
     } else {
       if (!(vm.model_data.shipment_date)) {
 
-        vm.service.showNoty("The Shipment Date is Required Please Select", "success", "bottomRight");
+        vm.service.showNoty("The Shipment Date is Required. Please Select", "success", "bottomRight");
       } else {
         vm.order_data_insertion(data_dict);
       }
@@ -193,6 +240,9 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
           elem = $(elem).serializeArray();
           if(data_dict && data_dict.is_sample){
             elem.push({'name': 'is_sample', 'value': true})
+          }
+          if(data_dict && data_dict.is_central_order){
+            elem.push({'name': 'is_central_order', 'value': true})
           }
           vm.place_order_loading = true;
           vm.service.apiCall('insert_order_data/', 'POST', elem).then(function(data){
@@ -362,6 +412,12 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
 
     vm.update_customer_cart_data(data);
     vm.cal_total();
+  }
+
+  vm.change_remarks = function(data) {
+    if(data){
+      vm.update_customer_cart_data(data);
+    }
   }
 
   var empty_final_data = {total_quantity: 0, amount: 0, tax_amount: 0, total_amount: 0}

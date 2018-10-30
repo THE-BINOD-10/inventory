@@ -11,6 +11,10 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
 
   vm.order_id = "";
   vm.status = "";
+  vm.intermediate_order = false;
+  if($stateParams.intermediate_order) {
+    vm.intermediate_order = $stateParams.intermediate_order;
+  }
   if($stateParams.orderId && $stateParams.state) {
     vm.order_id = $stateParams.orderId;
     vm.status = $stateParams.state;
@@ -19,6 +23,9 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
   }
 
   var url = "get_customer_order_detail/?order_id=";
+  if (vm.intermediate_order == 'true') {
+    url = "get_intermediate_order_detail/?order_id=";
+  }
   if(vm.status == "enquiry") {
     url = "get_customer_enquiry_detail/?enquiry_id=";
   } else if (vm.status == "manual_enquiry") {
@@ -26,19 +33,20 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
   }
   vm.loading = true;
   vm.order_details = {}
-  vm.open_order_detail = function(){
-
-    vm.order_details = {}
-    Service.apiCall(url+vm.order_id).then(function(data){
-      if(data.message) {
-
-        console.log(data.data);
-        vm.order_details = {}
-        vm.order_details = data.data;
-      }
-      vm.loading = false;
-    })
-  }
+  // vm.open_order_detail = function(){
+  //   console.log("hello")
+  //
+  //   vm.order_details = {}
+  //   Service.apiCall(url+vm.order_id).then(function(data){
+  //     if(data.message) {
+  //
+  //       console.log(data.data);
+  //       vm.order_details = {}
+  //       vm.order_details = data.data;
+  //     }
+  //     vm.loading = false;
+  //   })
+  // }
   vm.open_order_detail();
 
   vm.getStatus = function(order_qty, pick_qty) {
@@ -87,6 +95,43 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
       vm.disable_btn = false;
     });
   }
+  vm.clear_flag = false;
+  vm.clear = function(){
+    vm.clear_flag = true;
+    vm.edit_enable = false;
+  }
+
+  vm.accept_or_hold = function(){
+    swal({
+        title: "Confirm the Order or Hold the Stock!",
+        text: "Custom Order Text",
+        type: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Confirm Order",
+        cancelButtonText: "Block Stock",
+        closeOnConfirm: true
+        },
+        function(isConfirm){
+          var elem = {'order_id': vm.order_id};
+          if(isConfirm){
+              elem['status'] = 'confirm_order'
+          }else{
+              elem['status'] = 'hold_order'
+          }
+          vm.service.apiCall('confirm_or_hold_custom_order/', 'POST', elem).then(function(data){
+                if(data.data.msg == 'Success') {
+                   if(isConfirm){
+                     Service.showNoty('Order Confirmed Successfully');
+                   }else{
+                     Service.showNoty('Placed Enquiry Order Successfully');
+                   }
+                }else{
+                    Service.showNoty(data.data, 'warning');
+                }
+          })
+        }
+      );
+    }
 
   vm.image_loding = {};
   vm.remove_image = function(index) {
@@ -112,7 +157,7 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
   vm.upload_name = [];
   $scope.$on("fileSelected", function (event, args) {
     $scope.$apply(function () {
-      vm.upload_name = []; 
+      vm.upload_name = [];
       if (args.msg == 'success') {
         angular.forEach(args.file, function(data){vm.upload_name.push(data.name)});
         vm.upload_image();

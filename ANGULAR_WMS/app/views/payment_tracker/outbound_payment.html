@@ -1,0 +1,104 @@
+<div class="page-layout-" ng-controller="OutboundPaymentCtrl as showCase" style="height: none">
+  <div class="layout-body" style="background-color: white; padding: 0px">
+
+    <div class="mr30 ml30 mt15">
+      <form name="form" role="form" ui-jq="validate">
+        <div class="clearfix">
+          <div class="row">
+            <div class="col-md-4 col-sm-4 col-xs-12">
+              <div class="form-group">
+                <label class="control-label">Customers </label>
+                  <select id="style_headers" class="selectpicker show-menu-arrow form-control" ng-model="showCase.customers" multiple ng-change="showCase.multi_select_switch('#style_headers')">
+                    <option ng-selected="showCase.check_selected(value, 'style_headers')" ng-repeat="data in showCase.model_data.customers_info" value="{{data}}"> {{data.customer_name}}</option>
+                  </select>
+              </div>
+            </div>
+            <div class="col-md-2 col-sm-2 col-xs-12"></div>
+            <div class="col-md-6 col-sm-6 col-xs-12">
+              <table class="table" ng-if="showCase.model_data.sel_customers">
+                <thead>
+                  <th>S.No</th>
+                  <th>Name</th>
+                  <th>Receivable Amount</th>
+                </thead>
+                <tbody>
+                  <tr ng-repeat="row in showCase.model_data.sel_customers">
+                    <td>{{$index+1}}</td>
+                    <td>{{row.customer_name}}</td>
+                    <td style="text-align: right;">{{row.payment_receivable}}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <hr ng-if="showCase.model_data.sel_customers">
+          <div class="row mb15" ng-if="showCase.model_data.sel_customers">
+            <div class="col-md-4 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Payment </label>
+                  <input type="text" name="payment" class="form-control" ng-model="showCase.model_data.payment" ng-class="service.get_decimal_perm()" ng-change="showCase.change_payment(showCase.model_data.payment)">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Balance </label>
+                  <input type="text" name="balance" class="form-control" ng-model="showCase.model_data.balance" ng-class="service.get_decimal_perm()" readonly>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Date </label>
+                  <input name="date" ui-jq="datepicker" ng-model="showCase.model_data.date" class="form-control stk-readonly" type="text" id="date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Update TDS </label>
+                  <input type="text" name="update_tds" class="form-control" ng-model="showCase.model_data.update_tds" ng-class="service.get_decimal_perm()" ng-change="showCase.tdsValidation(showCase.model_data.update_tds, showCase.model_data.balance)" ng-readonly="!showCase.model_data.balance && !showCase.model_data.update_tds">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Bank Name </label>
+                <select class="form-control" name="bank_name" ng-model="showCase.model_data.bank_name">
+                  <option value="">Select Bank</option>
+                  <option value="{{bank}}" ng-repeat="bank in showCase.bank_names">{{bank}}</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Mode of Pay </label>
+                <select class="form-control" name="mode_of_pay" ng-model="showCase.model_data.mode_of_pay">
+                  <option value="">Select Payment Type</option>
+                  <option value="{{type}}" ng-repeat="type in showCase.mode_of_pay">{{type}}</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">NEFT / CHEQUE</label>
+                  <input type="text" class="form-control" ng-model="showCase.model_data.neft_cheque" name="neft_cheque">
+              </div>
+            </div>
+          </dir>
+          <div class="row mb10">
+            <div class="col-md-12 col-sm-12 col-xs-12 text-center">
+                <button type="submit" class="btn btn-primary" style="margin: auto;display: block;" ng-disabled="!showCase.model_data.payment" ng-click="showCase.sendChangedData(showCase.model_data.balance)">Confirm All Payments </button>
+            </div>
+          </div>
+          <hr>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <div class="layout-body">
+    <div class="panel">
+      <!-- <div class="panel-header">
+        <div ng-include="'views/common/excel.html'"></div>
+      </div> -->
+      <div ng-include="'views/common/datatable.html'"></div>
+    </div>
+  </div>
+</div>

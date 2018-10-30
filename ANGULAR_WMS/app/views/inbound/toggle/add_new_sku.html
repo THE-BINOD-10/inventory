@@ -1,0 +1,41 @@
+<style type="text/css">
+  .modal-dialog{
+    width: 450px;
+  }
+  .dyn_height {
+    max-height: 330px;
+  }
+  .popup-style{
+    overflow: hidden;
+    height: auto;
+  }
+  .sidebar-panel{
+    z-index: 1000;
+  }
+</style>
+<div id="page-pop" class="popup-style" ng-style="$ctrl.service.popup_dyn_style">
+  <form name="form" role="form" ui-jq="validate" ui-options="validationOpt">
+    <div class="model-custom">
+      <div class="mw60-">
+        <div ng-include="'views/common/loader.html'"></div>
+        <!-- body-->
+        <div class="modal-body">
+          <div class="row">
+            <h3 class="modal-title text-center"><strong>Scanned SKU Does Not Exist</strong></h3>
+            <h5 class="text-center">Do you want to map with existing SKUS</h5>
+          </div>
+
+          <div class="row m15" id="newSkuAdd">
+            <input type='hidden' id='scanned_val' ng-model="$ctrl.model_data.scanned_val" class='form-control' style='margin-bottom:0px' value='{{$ctrl.model_data.scanned_val}}'>
+            <input type='hidden' ng-model="$ctrl.model_data.map_sku_code" class='form-control' value="{{$ctrl.model_data.map_sku_code}}">
+            <input type="text" autocomplete="off" id="map_sku_code" class="form-control" placeholder="Search WMS Code / Description" typeahead="address.wms_code+' : '+address.sku_desc for address in $ctrl.service.getSearchValues($viewValue, 'search_wms_data?')" ng-model="$ctrl.model_data.sku_details" title="{{ $ctrl.model_data.map_sku_code }}" typeahead-on-select="$ctrl.model_data.map_sku_code=$item.wms_code;$ctrl.service.popup_dyn_style=155">
+          </div>
+          <div class="row text-center">
+            <button type="button" class="btn btn-success mr5" ng-click="$ctrl.ok(form)" ng-disabled="$ctrl.processing">Map SKU<span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right" ng-if="$ctrl.processing"></button>
+            <button type="button" class="btn btn-default" ng-click="$ctrl.close()">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

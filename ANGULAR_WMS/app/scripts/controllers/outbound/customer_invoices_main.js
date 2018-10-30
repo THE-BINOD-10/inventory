@@ -155,7 +155,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       angular.forEach(vm.checked_items, function(row){
         data.push(row['id']);
       });
-      var ids = data.join(",");
+      var ids = data.join("<<>>");
       var send = {seller_summary_id: ids};
       vm.service.apiCall("generate_customer_invoice/", "GET", send).then(function(data){
 
@@ -242,7 +242,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           data.push(temp['id']);
         }
       });
-      var ids = data.join(",");
+      var ids = data.join("<<>>");
       var send = {seller_summary_id: ids, data: true};
       vm.service.apiCall("generate_customer_invoice/", "GET", send).then(function(data){
 
@@ -299,7 +299,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         vm.service.showNoty("Please select same "+field_name+"'s");
       } else {
 
-        var ids = data.join(",");
+        var ids = data.join("<<>>");
         var send = {seller_summary_id: ids};
         if(po_number && field_name == 'SOR ID') {
           send['sor_id'] = po_number;
@@ -352,6 +352,28 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           vm.bt_disable = false;
         });
       }
+    }
+
+    vm.mark_delivered = function() {
+      var data = {};
+      data['delivered_flag'] = true;
+      var selected_invoice = [];
+      angular.forEach(vm.selected, function(value, key) {
+        if (value) {
+          var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]['_aData'];
+          selected_invoice.push({ 'invoice_number':temp['Invoice Number'], 'order_id':temp['Order ID'], 
+            'invoice_id':temp['Invoice ID'], 'id':temp['id'], 'order_qty':temp['Order Quantity'],
+            'picked_qty':temp['Picked Quantity'] })
+        }
+      })
+      data['selected_invoice'] = JSON.stringify(selected_invoice);
+      Service.apiCall("invoice_mark_delivered/", "POST", data).then(function(resp_data) {
+        if(resp_data.data.status) {
+          Service.showNoty(resp_data.data.message, 'success', 'topRight');
+        } else {
+          Service.showNoty(resp_data.data.message, 'error', 'topRight');
+        }
+      })
     }
 
     vm.inv_height = 1358; //total invoice height

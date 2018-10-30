@@ -10,17 +10,22 @@
           <h4 class="modal-title" id="myLargeModalLabel">Receive Job Order</h4> </div>
         <div class="modal-body" style="border:none;">
           <div class="row">
-            <div class="col-md-4 col-sm-4 col-xs-6">
+            <div class="col-md-4 col-sm-4 col-xs-12">
               <div class="form-group">
                 <label class="control-label"> Job Order </label>
                 <input type="text" value="{{showCase.model_data.job_code}}" class="form-control" name="job_code" disabled>
               </div>
             </div>
-            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.order_ids_list">
+            <div class="col-md-4 col-sm-4 col-xs-12" ng-if="showCase.order_ids_list">
               <div class="form-group">
                 <label class="control-label"> Order ID </label>
                 <input type="text" value="{{showCase.order_ids_list}}" class="form-control" name="order_ids" disabled>
               </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-12" ng-if="!showCase.order_ids_list"></div>
+            <div class="col-md-4 col-sm-4 col-xs-12">
+              <button ng-if="(!(showCase.print_enable))" type="button" class="btn btn-success pull-right"
+                ng-click="showCase.gen_barcode()">Generate Barcodes</button>
             </div>
           </div>
           <div class="row">
@@ -34,24 +39,35 @@
                   <th> JO Quantity </th>
                   <th ng-if="showCase.permissions.pallet_switch"> Pallet Code </th>
                   <th> Received Quantity </th>
+                  <th ng-if="showCase.permissions.use_imei">Serial Number</th>
                   <th> Stage </th>
                   <th class="detail"></th>
                   <th class="plus"></th>
                 </tr>
               </thead>
-              <tbody ng-repeat="data in showCase.model_data.data">
-                <tr ng-repeat="record in data.sub_data" class="field">
+              <tbody ng-repeat="data in showCase.model_data.data" ng-init="outerIndex=$index">
+                <tr ng-repeat="record in data.sub_data" class="field" ng-init="innerIndex=$index" id="tab_count">
                   <input type="hidden" name="id" value="{{data.id}}">
                   <input type="hidden" name="status_track_id" value="{{record.status_track_id}}">
                   <input type="hidden" name="pallet_id" value="{{record.pallet_id}}">
+                  <input type="hidden" name="wms_code" value="{{data.wms_code}}">
+                  <input type="hidden" name="job_code" value="{{showCase.model_data.job_code}}">
+                  <input type="hidden" value="{{record.accept_imei.join(',')}}" name="imei_numbers">
+                  <input type="hidden" value="{{data.product_quantity}}" name="jo_quantity">
                   <td><input type="text" name="wms_code" class="form-control" ng-model="data.wms_code" disabled></td>
                   <td><input type="text" name="jo_quantity" class="form-control" ng-model="data.product_quantity" disabled></td>
                   <td ng-if="showCase.permissions.pallet_switch"><input ng-if="data.load_unit_handle == 'pallet'" type="text" name="pallet_number" class="form-control" ng-model="record.pallet_number"></td>
-                  <td><input type="text" name="received_quantity" class="form-control" ng-model="record.received_quantity" ng-change="showCase.cal_quantity(record, data)" ng-class="service.get_decimal_perm()"></td>
-                  <td><select class="form-control" name="stage" ng-init="record.stages_list[0]" >
-                        <option value="" ng-selected="record.stages_list.length == 0" ng-if="record.stages_list.length == 0"> </option>
-                        <option ng-repeat="stage in record.stages_list" value="{{stage}}" ng-selected="$first && record.stages_list.length">{{stage}}</option>
-                      </select>
+                  <td><input type="text" name="received_quantity" ng-init="showCase.checkRecQty(record)" class="form-control" ng-model="record.received_quantity" ng-readonly="record.stageStatus" ng-change="showCase.cal_quantity(record, data)" ng-class="service.get_decimal_perm()"></td>
+                  <td ng-if="showCase.permissions.use_imei">
+                    <input type="text" name="imei" id="{{outerIndex}}_{{innerIndex}}_imei" ng-if="record.stageStatus" attr-name="{{'imei_'+data.wms_code}}" ng-model="data.imei_number" class="form-control detectTab" ng-readonly="data.disable" ng-keydown="showCase.check_imei_exists($event, data, outerIndex, innerIndex)">
+                    <!-- <input type="text" name="imei" attr-name="{{'imei_'+data.wms_code}}" ng-model="data.imei_number" class="form-control detectTab" ng-readonly="data.po_quantity == data.value || data.disable" ng-keydown="showCase.check_imei_exists($event, data, outerIndex)"> -->
+                    <!-- <input ng-if="!showCase.po_qc" type="hidden" name="imei_number" class="form-control detectTab" value="{{data.imei_list.join(',')}}"> -->
+                  </td>
+                  <td>
+                    <select class="form-control" name="stage" ng-model="record.stage" ng-init="record.stageStatus = (record.stages_list.length > 0) ? false : true" ng-change="showCase.changeStage(record, outerIndex, innerIndex)" ng-init="record.stages_list[0]" >
+                      <option value="" ng-selected="record.stages_list.length == 0" ng-if="record.stages_list.length == 0"> </option>
+                      <option ng-repeat="stage in record.stages_list" value="{{stage}}" ng-selected="$first && record.stages_list.length">{{stage}}</option>
+                    </select>
                   </td>
                   <td ng-include="'views/production/toggle/common/custom_sku_details.html'">
                   </td>
@@ -63,9 +79,10 @@
           <div class="row insert-status"><h4 align="center">{{showCase.message}}</h4></div>
         </div>
         <div class="modal-footer">
-          <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-normal" ng-click="showCase.save()">Save</button>
+          <button ng-if="(!(showCase.print_enable))" type="button" class="btn pop pop-normal" ng-click="showCase.save()">Save</button>
           <button ng-if="(!(showCase.print_enable))" type="button" class="btn pop pop-green" ng-click="showCase.submit()">Generate GRN</button>
           <button type="button" class="btn pop pop-green pull-left" style="margin-left:0px;" ng-click="$state.go('app.production.ReveiveJO.Print')">Print</button>
+          <button ng-if="showCase.print_enable" type="button" class="btn pop pop-normal" ng-click="showCase.barcode()">Print Barcodes</button>
         </div>
       </div>
     </div>

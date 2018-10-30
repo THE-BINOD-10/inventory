@@ -9,9 +9,8 @@
       <div class="panel">
 
         <div class="panel-header panel-heading border">
-
-          <div class="row">
-            <div class="col-md-2 col-sm-3 col-xs-4" ng-repeat="(key, value) in showCase.tb_data['ware_list']" ng-if="showCase.headers.indexOf(key) != -1">
+          <div class="row" ng-if="!showCase.alternate_view_value">
+            <div class="col-md-2 col-sm-3 col-xs-4" ng-repeat="(key, value) in showCase.tb_data['ware_list']" ng-if="showCase.headers.indexOf(key) != -1&&showCase.permissions.user_type!='central_admin'">
               <div class="widget bg-white" style="margin-bottom: 0;text-align: center;">
                 <div class="overflow-hidden">
                   <span class="widget-subtitle">{{key}}</span>
@@ -32,10 +31,66 @@
             </div>
           </div>-->
         </div>
+    
+        <div class="panel-body" style="padding-left: 0px; padding-right: 0px">
+          
+          <div class="col-sm-3 col-md-3 col-xs-3 mt25" style="float: right;">
+            <label class="switch switch-sm square pull-right mt5">
+            <div>
+              <input type="checkbox" class="ng-pristine ng-valid" ng-change="showCase.alternate_view()" ng-model="showCase.alternate_view_value">
+              <span>
+                <i class="handle"></i>
+              </span>
+            </div>
+            </label>
+            <label style="padding: 5px;" class="control-label pull-right"><b> Alternative View: </b></label>
+          </div>
 
+          <div class="col-md-3 col-sm-3 col-xs-3" ng-if="showCase.alternate_view_value" ng-hide="true">
+            <div class="form-group">
+              <label class="control-label"> Select View *</label>
+              <select class="form-control pull-right" ng-model="showCase.g_data.view">
+                <option ng-repeat="view in showCase.g_data.views" value="{{view}}" ng-selected="view == showCase.g_data.view"> {{view}}</option>
+              </select>
+            </div>
+          </div>
+          <div class="hide" ng-if="showCase.permissions.user_type=='central_admin'">
+              <select class="form-control pull-right" ng-init="showCase.g_data.view='Available+ASN'" ng-model="showCase.g_data.view" ng-change="showCase.change_datatable()">
+                <option ng-repeat="view in showCase.g_data.views" value="{{view}}" ng-selected="view == Available+ASN"> {{view}}</option>
+              </select>
+          </div>
+          <div class="col-md-3 col-sm-3 col-xs-3" ng-if="!showCase.alternate_view_value&&!showCase.permissions.user_type=='central_admin'">
+            <div class="form-group">
+              <label class="control-label"> Select View *</label>
+              <select class="form-control pull-right" ng-model="showCase.g_data.view" ng-change="showCase.change_datatable()">
+                <option ng-repeat="view in showCase.g_data.views" value="{{view}}" ng-selected="view == showCase.g_data.view"> {{view}}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="col-md-3 col-sm-3 col-xs-3" ng-if="showCase.alternate_view_value&&!showCase.permissions.user_type=='central_admin'">
+            <div class="form-group">
+              <label class="control-label"> Warehouse Name *</label>
+              <select class="form-control" name="warehouse_name" ng-model="showCase.warehouse_value" ng-change="showCase.get_sizetypes_for_warehouses()" required>
+                <option ng-repeat="option in showCase.warehouse_names" value="{{option}}">{{option}}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="col-md-3 col-sm-3 col-xs-3" ng-if="showCase.alternate_view_value">
+            <div class="form-group">
+              <label class="control-label"> Size Types *</label>
+              <select class="form-control" name="size_types" required ng-model="showCase.size_type_value">
+                <option ng-repeat="option in showCase.size_types" value="{{option}}">{{option}}</option>
+              </select>
+            </div>
+          </div>
+
+        </div>
 
         <div class="panel-body" style="padding-left: 0px; padding-right: 0px">
-          <div class="mr10">
+          <div class="mr10" style="padding-left: 0px;">
+            <!--
             <div class="col-md-2 col-sm-3 col-xs-6 mb10 pull-right" style="height: 34px;padding-left: 0px;">
               <select class="form-control pull-right" ng-model="showCase.g_data.view" ng-change="showCase.change_datatable()">
                 <option ng-repeat="view in showCase.g_data.views" value="{{view}}" ng-selected="view == showCase.g_data.view"> {{view}}</option>
@@ -44,7 +99,38 @@
             <div class="col-md-2 col-sm-3 col-xs-6 pull-right" style="line-height: 34px;">
                 <span style="float:right">Select View: </span>
             </div>
-            <div class="col-md-2 col-sm-3 col-xs-6 mb10 pull-right" style="height: 34px;padding-left: 0px;" ng-if="permissions.add_networkmaster || permissions.priceband_sync">
+            -->
+
+          <div class="col-md-3 col-sm-3 col-xs-3" ng-if="showCase.alternate_view_value">
+            <div class="form-group">
+              <label class="control-label"> Market Place *</label>
+              <select class="form-control" name="marketplace_name" ng-model="showCase.marketplace_value" ng-change="" required>
+                <option ng-repeat="option in showCase.marketplaces" value="{{option}}">{{option}}</option>
+              </select>
+            </div>
+          </div>
+
+            <div class="col-md-3 col-sm-3 col-xs-3" ng-if="showCase.alternate_view_value">
+              <div class="form-group">
+                <label class="control-label">From Date</label>
+                <input name="from_date" ui-jq="datepicker" ng-model="showCase.from_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" readonly>
+              </div>
+            </div>
+
+            <div class="col-md-3 col-sm-3 col-xs-3" ng-if="showCase.alternate_view_value">
+              <div class="form-group">
+                <label class="control-label">To Date</label>
+                <input name="to_date" ui-jq="datepicker" ng-model="showCase.to_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" readonly>
+              </div>
+            </div>
+
+            <div class="col-md-12 col-sm-12 col-xs-12" ng-if="showCase.alternate_view_value" id="warehouse_stock_alternate_view">
+              <button type="button" class="btn btn-success" data-toggle="modal" data-target="#myModal"
+                      ng-click="showCase.generate_warehouse_stock()" style="margin-bottom: 10px"> Generate
+              </button>
+            </div>
+
+            <!--<div class="col-md-2 col-sm-3 col-xs-6 mb10 pull-right" style="height: 34px;padding-left: 0px;" ng-if="permissions.add_networkmaster || permissions.priceband_sync">
               <select class="form-control pull-right" ng-model="showCase.g_data.level" ng-change="showCase.change_datatable()">
                 <option value="" ng-selected="''== showCase.g_data.level">None</option>
                 <option ng-repeat="view in showCase.g_data.levels" value="{{view}}" ng-selected="view == showCase.g_data.level"> Level-{{view}}</option>
@@ -52,7 +138,7 @@
             </div>
             <div class="col-md-2 col-sm-3 col-xs-6 pull-right" style="line-height: 34px;" ng-if="permissions.add_networkmaster || permissions.priceband_sync">
                 <span style="float:right">Select Level: </span>
-            </div>
+            </div>-->
           </div>
           <table ng-if="showCase.data_display" datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" 
           dt-instance="showCase.dtInstance" class="table custom-table table-condensed datatable"></table>

@@ -249,6 +249,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
                   record.igst = data.data[0].taxes[i].igst_tax;
                   record.cgst = data.data[0].taxes[i].cgst_tax;
                   record.sgst = data.data[0].taxes[i].sgst_tax;
+                  record.cess = data.data[0].taxes[i].cess_tax;
                   break;
                 }
               }
@@ -256,6 +257,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               record.igst = 0;
               record.cgst = 0;
               record.sgst = 0;
+              record.cess = 0;
             }
           }
         }
@@ -340,6 +342,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             vm.sgst = value.sgst_tax;
             vm.cgst = value.cgst_tax;
             vm.igst = value.igst_tax;
+            vm.cess = value.cess_tax;
             vm.taxes = value.taxes;
             vm.order_charges = value.order_charges;
             vm.client_name = value.client_name;
@@ -366,7 +369,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               
               var record = vm.model_data.data.push({item_code: vm.item_code, product_title: vm.product_title, quantity: vm.quantity,
               image_url: vm.img_url, remarks: vm.remarks, unit_price: vm.unit_price, taxes: vm.taxes,
-              discount_per: vm.discount_per, sgst:vm.sgst, cgst:vm.cgst, igst:vm.igst, default_status: true, sku_status: value.sku_status})
+              discount_per: vm.discount_per, sgst:vm.sgst, cgst:vm.cgst, igst:vm.igst, cess:vm.cess,default_status: true, sku_status: value.sku_status})
               var record = vm.model_data.data[index]
               vm.changeInvoiceAmt(record);
               index++;
@@ -403,6 +406,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               data.igst = data.taxes[i].igst_tax;
               data.cgst = data.taxes[i].cgst_tax;
               data.sgst = data.taxes[i].sgst_tax;
+              data.cess = data.taxes[i].cess_tax;
               break;
             }
           }
@@ -410,10 +414,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           data.igst = 0;
           data.cgst = 0;
           data.sgst = 0;
+          data.cess = 0;
         }
       }
       
-      var tax = Number(data.sgst)+Number(data.cgst)+Number(data.igst);
+      var tax = Number(data.sgst)+Number(data.cgst)+Number(data.igst) + Number(data.cess);
 
       data.discount = discount_amt;
       data.invoice_amount = (invoice_amount_dis + (invoice_amount_dis*tax)/100);
@@ -463,6 +468,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           }
         }
         data['filters'] = vm.dtInstance.DataTable.context[0].ajax.data['special_key'];
+        data['enable_damaged_stock'] = vm.enable_damaged_stock;
 
         var mod_data = {data: data};
         mod_data['url'] = vm.g_data.generate_picklist_urls[vm.g_data.view];
@@ -585,6 +591,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           data[$(vm.generate_data[i][""]).attr("name")]= vm.generate_data[i]['SKU Code'];
         }
         data["ship_reference"] = vm.ship_reference;
+        data["enable_damaged_stock"] = vm.enable_damaged_stock;
         vm.service.apiCall('generate_picklist/', 'POST', data).then(function(data){
           if(data.message) {
             angular.copy(data.data, vm.model_data);
@@ -856,12 +863,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             Service.showNoty(data.data);
         }
     });
-    vm.picklist_display_address = switch_value
+    vm.picklist_display_address = switch_value;
     Session.roles.permissions['picklist_display_address'] = switch_value;
   }
 
-  vm.add_order = function() {
+  /*vm.change_enable_damaged_stock = function(switch_value) {
+    vm.service.apiCall("switches/?enable_damaged_stock="+String(switch_value)).then(function(data) {
+      if(data.message) {
+        Service.showNoty(data.data);
+      }
+    });
+    vm.enable_damaged_stock = switch_value;
+    Session.roles.permissions['enable_damaged_stock'] = switch_value;
+  }*/
 
+  vm.add_order = function() {
     $state.go("app.outbound.ViewOrders.CreateOrder");
   }
 

@@ -101,11 +101,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
 
               vm.model_data['supplier_id_name'] = vm.model_data.supplier_id + ":" + vm.model_data.supplier_name;
 
-              // if(vm.model_data.receipt_type == 'Hosted Warehouse') {
-
-                vm.model_data.seller_type = vm.model_data.data[0].fields.dedicated_seller;
-                vm.dedicated_seller = vm.model_data.data[0].fields.dedicated_seller;
-              // }
+              vm.model_data.seller_type = vm.model_data.data[0].fields.dedicated_seller;
+              vm.dedicated_seller = vm.model_data.data[0].fields.dedicated_seller;
 
               angular.forEach(vm.model_data.data, function(data){
                 if (!data.fields.cess_tax) {
@@ -113,11 +110,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
                 }
               });
 
-              /*angular.forEach(vm.model_data.data, function(one_row){
-               vm.model_data.total_price = vm.model_data.total_price + (one_row.fields.order_quantity * one_row.fields.price);
-              });
-
-              vm.model_data.sub_total = ((vm.model_data.total_price / 100) * vm.model_data.tax) + vm.model_data.total_price;*/
               vm.getTotals();
 
               vm.service.apiCall('get_sellers_list/', 'GET').then(function(data){
@@ -173,9 +165,14 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
   $(document).on('keydown', 'input.detectTab', function(e) { 
     var keyCode = e.keyCode || e.which; 
 
-    if (keyCode == 9) { 
-      e.preventDefault(); 
-      vm.update_data(Number(this.parentNode.children[1].value), false);
+    var fields_count = (this.closest('#tab_count').childElementCount-1);
+    var cur_td_index = (this.parentElement.nextElementSibling.cellIndex);
+    var sku_index = (this.parentNode.nextElementSibling.children[0].value);
+
+
+    if ((keyCode == 9) && (fields_count === cur_td_index)) {
+      e.preventDefault();
+      vm.update_data(Number(sku_index), false);
     }
   });
 
@@ -213,12 +210,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     }
 
     vm.b_close = vm.close;
-    /*vm.b_close = function () {
-      $state.go('app.inbound.RaisePo.PurchaseOrder');
-    }*/
 
     vm.base = function() {
-
       vm.title = "Raise PO";
       vm.vendor_produce = false;
       vm.confirm_print = false;
@@ -227,10 +220,10 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       vm.vendor_receipt = false;
       angular.copy(empty_data, vm.model_data);
       vm.model_data.seller_types = Data.seller_types;
-
       if (vm.service.is_came_from_raise_po) {
-        vm.model_data.supplier_id = vm.service.searched_sup_code;
-        vm.model_data.data[0].fields.sku.wms_code = vm.service.searched_wms_code;
+        vm.model_data.supplier_id_name = vm.service.searched_sup_code;
+        vm.model_data = vm.service.raise_po_data;
+        vm.vendor_receipt = Service.raise_po_vendor_receipt;
         Service.is_came_from_raise_po = false;
         vm.service.searched_sup_code = '';
         vm.service.searched_wms_code = '';
@@ -266,7 +259,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     }
 
     vm.seller_change = function(type) {
-
       vm.selected_seller = type;
       vm.default_status = false;
       vm.model_data.data[vm.model_data.data.length - 1].fields.dedicated_seller = vm.selected_seller;
@@ -462,13 +454,9 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
               vm.service.refresh(vm.dtInstance);
               if(data.data.search("<div") != -1) {
                 if (vm.model_data.receipt_type == 'Hosted Warehouse') {
-                  //vm.title = "Stock transfer Note";
                   vm.title = $(data.data).find('.modal-header h4').text().trim();
 
                 }
-                //vm.html = $(data.data)[0];
-                //var html = $(vm.html).closest("form").clone();
-                //angular.element(".modal-body").html($(html).find(".modal-body > .form-group"));
                 vm.extra_width = {'width': '990px'};
                 vm.html = $(data.data);
                 angular.element(".modal-body").html($(data.data));
@@ -484,7 +472,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
 
     vm.confirm_print = false;
     vm.confirm_po1 = function() {
-
       vm.bt_disable = true;
       var that = vm;
       var data = [];
@@ -498,23 +485,28 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
         if (msg == "true") {
           vm.service.apiCall('confirm_po1/', 'POST', data, true).then(function(data){
             if(data.message) {
-              vm.confirm_print = true;
+              vm.confirm_print = false;
               vm.print_enable = true;
+              angular.element(".modal-body").html('');
               $state.go('app.inbound.RaisePo.PurchaseOrder');
-              vm.bt_disable = true;
+              vm.service.pop_msg(data.data);
               vm.service.refresh(vm.dtInstance);
               if(data.data.search("<div") != -1) {
+                if (vm.model_data.receipt_type == 'Hosted Warehouse') {
+                  vm.title = $(data.data).find('.modal-header h4').text().trim();
+                }
                 vm.html = $(data.data)[0];
+                vm.extra_width = {'width': '990px'};
                 $timeout(function() {
-                  var html = $(vm.html).closest("form").clone();
-                  angular.element(".modal-body").html($(html).find(".modal-body > .form-group"));
+                  $("#page-pop .modal-body.show").html(vm.html)
                   vm.confirm_print = false;
-                }, 1000);
+                }, 2000);
+              } else {
+                vm.service.pop_msg(data.data);
               }
             }
           });
         } else {
-
           vm.bt_disable = false;
         }
       });
@@ -592,6 +584,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
 	        vm.populate_last_transaction('')
         }, 2000 );
       }
+
       product.fields.sku.wms_code = item.wms_code;
       product.fields.measurement_unit = item.measurement_unit;
       product.fields.description = item.sku_desc;
@@ -605,6 +598,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       product.fields.cess_tax = "";
       product.fields.utgst_tax = "";
       product.fields.tax = "";
+      product.taxes = [];
       vm.getTotals();
 
       if(vm.model_data.receipt_type == 'Hosted Warehouse') {
@@ -636,25 +630,25 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       }
     }
 
-    vm.key_event = function(product, item) {
-       if (typeof(vm.model_data.supplier_id) == "undefined" || vm.model_data.supplier_id.length == 0){
-         return false;
-       } else {
-         var supplier = vm.model_data.supplier_id;
-         $http.get(Session.url+'get_mapping_values/?wms_code='+product.fields.sku.wms_code+'&supplier_id='+supplier, {withCredentials : true}).success(function(data, status, headers, config) {
-           if(Object.keys(data).length){
-             product.fields.price = data.price;
-             product.fields.supplier_code = data.supplier_code;
-             product.fields.sku.wms_code = data.sku;
-             product.fields.ean_number = data.ean_number;
-           } else {
-             Service.searched_sup_code = supplier;
-             Service.searched_wms_code = product.fields.sku.wms_code;
-             Service.is_came_from_raise_po = true;
-             $state.go('app.masters.SKUMaster');
-           }
-         });
-       }
+    vm.key_event = function(product, item, index) {
+      if (typeof(vm.model_data.supplier_id) == "undefined" || vm.model_data.supplier_id.length == 0) {
+       return false;
+      } else {
+        var supplier = vm.model_data.supplier_id;
+        $http.get(Session.url+'get_create_order_mapping_values/?wms_code='+product.fields.sku.wms_code, {withCredentials : true}).success(function(data, status, headers, config) {
+          if(Object.keys(data).length){
+            console.log(data);
+          } else {
+            Service.searched_sup_code = supplier;
+            Service.searched_wms_code = product.fields.sku.wms_code;
+            Service.is_came_from_raise_po = true;
+            Service.raise_po_data = vm.model_data;
+            Service.raise_po_vendor_receipt = vm.vendor_receipt;
+            Service.sku_id_index = index;
+            $state.go('app.masters.SKUMaster');
+          }
+        });
+      }
     }
 
     vm.add_raise_po = function() {

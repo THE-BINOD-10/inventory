@@ -23,6 +23,20 @@
           </div>
         </form>
     </div>
+
+    <div class="row" ng-if="showCase.service.totals_tb_data">
+      <div class = "col-md-12">
+        <div class="col-md-2" ng-repeat="(key,value) in showCase.service.totals_tb_data">
+          <div class="widget bg-white" style="margin-bottom: 0;text-align: center;">
+            <div class="overflow-hidden">
+            <span class="widget-subtitle">{{key}}: </span>
+            <span class="widget-title bold">{{value}}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="layout-body">
 	  <div class="col-md-12 col-sm-12 col-xs-12">
       <div class="panel" ng-if="showCase.datatable">
@@ -34,6 +48,19 @@
 			<label class="switch switch-sm square mt5">
 			  <div>
 				<input type="checkbox" ng-model="showCase.toggle_sku_wise" ng-change="showCase.toggle_grn()" class="ng-valid ng-dirty">
+				<span><i class="handle"></i></span>
+			  </div>
+			</label>
+		  </div>
+		</div>
+        <div class="col-md-12 col-sm-12 col-xs-12" ng-if="($state.current.data.title | lowercase) == 'rtv report'">
+		  <div class="col-md-11 col-sm-11 col-xs-11" style="padding: 7px;text-align: right;">
+			<span>SKU Level View</span>
+		  </div>
+		  <div class="col-md-1 col-sm-1 col-xs-1">
+			<label class="switch switch-sm square mt5">
+			  <div>
+				<input type="checkbox" ng-model="showCase.toggle_sku_wise" ng-change="showCase.toggle_rtv_sku_wise()" class="ng-valid ng-dirty">
 				<span><i class="handle"></i></span>
 			  </div>
 			</label>

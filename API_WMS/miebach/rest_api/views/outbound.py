@@ -12991,8 +12991,11 @@ def do_delegate_orders(request, user=''):
                         'sku_code': interm_obj.sku.sku_code, 'original_order_id': original_order_id, 
                         'user': wh_id})
                     if get_existing_order:
+                        get_existing_order = get_existing_order[0]
                         get_existing_order.quantity = get_existing_order.quantity + 1
                         get_existing_order.save()
+                        order_fields.update(original_order_id=original_order_id)
+                        interm_obj_filter.update(status=1)
                     else:
                         try:
                             ord_obj = OrderDetail(**order_dict)

@@ -50,8 +50,7 @@
         <h5 class="pull-left"><b>Uploaded mages</b></h5>
 
         <span ng-hide="order.save" class="btn btn-primary up-btn pull-right" style="position: relative;overflow: hidden;width: 150px;">{{(order.uploading)?'Uploading Images':'Choose File';}}
-          <input style="position: absolute;top: 0;right: 0; min-width: 100%; min-height: 100%; font-size: 100px; text-align: right; filter: alpha(opacity=0); opacity: 0;
-                        outline: none; background: white; cursor: inherit; display: block;" class="btn btn-primary" type = "file" name="files" id="image-upload" multi-image-upload multiple/>
+          <input style="position: absolute;top: 0;right: 0; min-width: 100%; min-height: 100%; font-size: 100px; text-align: right; filter: alpha(opacity=0); opacity: 0; outline: none; background: white; cursor: inherit; display: block;" class="btn btn-primary" type = "file" name="files" id="image-upload" multi-image-upload multiple/>
         </span>
       </div>
     </div>
@@ -95,8 +94,7 @@
       <form name="form" role="form">
         <div class="col-md-4 col-sm-4 col-xs-12" ng-if="order.permissions.user_type == 'sm_design_admin'">
           <span class="btn btn-primary up-btn pull-left" style="position: relative;overflow: hidden;width: 150px;">{{(order.uploading)?'Uploading Images':'Choose File';}}
-            <input style="position: absolute;top: 0;right: 0; min-width: 100%; min-height: 100%; font-size: 100px; text-align: right; filter: alpha(opacity=0); opacity: 0;
-                          outline: none; background: white; cursor: inherit; display: block;" class="btn btn-primary" type = "file" name="files" id="image-upload1" multi-image-upload multiple/>
+            <input style="position: absolute;top: 0;right: 0; min-width: 100%; min-height: 100%; font-size: 100px; text-align: right; filter: alpha(opacity=0); opacity: 0; outline: none; background: white; cursor: inherit; display: block;" class="btn btn-primary" type = "file" name="files" id="image-upload1" multi-image-upload multiple/>
           </span>
         </div>
         <div ng-if="order.edit_enable && (order.order_details.order.status!='confirm_order' && order.order_details.order.status!='hold_order')">
@@ -145,6 +143,21 @@
               <input type="text" name="r_c_price" ng-model="order.model_data.r_c_price" class="form-control ng-pristine" placeholder="R-C Price *" decimal-number required>
             </div>
           </div>
+        </div>
+        <div class="col-md-12 col-sm-12 col-xs-12">
+          <div class="row_ detail-item border-grey- detail-bg-grey mb5" ng-repeat="(key, data) in order.warehouse_data" style="padding: 1px 10px">
+            <h4><b>{{key}}-SM Warehouses</b></h4>
+            <table class="table">
+              <tr ng-repeat="row in data">
+                <td><span>Warehouse:</span> {{row.warehouse}}</td>
+                <td><span>Stock:</span> {{row.stock}}</td>
+                <td width="30%">
+                  <input type="text" name="quantity" ng-model="row.quantity" class="form-control ng-pristine" placeholder="Quantity">
+                </td>
+              </tr>
+            </table>
+          </div>
+        <!-- <div class="row detail-item border-grey detail-bg-grey mb5" ng-if="order.model_data.from == 'custom_order' && (order.order_details.order.status=='confirm_order' || order.order_details.order.status=='hold_order')"> -->
         </div>
         <div class="col-md-12 text-center mb10" ng-if="order.model_data.from == 'custom_order' && order.order_details.order.status!='confirm_order' && order.order_details.order.status!='hold_order' && order.order_details.order.customization_type!='Price and Product Customization'">
           <button type='submit' class="btn btn-primary" ng-click="order.notify_to_sub_dist(form)" ng-disabled="order.disable_btn">Notify to Sub Distributor</button>

@@ -111,13 +111,27 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
         closeOnConfirm: true
         },
         function(isConfirm){
+          // var elem = {'order_id': vm.order_id, 'uploaded_po': vm.upload_file_name};
+          var test = JSON.stringify(vm.upload_file_name[0]);
           var elem = {'order_id': vm.order_id};
           if(isConfirm){
               elem['status'] = 'confirm_order'
           }else{
               elem['status'] = 'hold_order'
           }
-          vm.service.apiCall('confirm_or_hold_custom_order/', 'POST', elem).then(function(data){
+          // var formData = new FormData();
+          // var el = $("#file");
+          // var files = el[0].files;
+          //
+          // $.each(files, function(i, file) {
+          //   formData.append('po_file', file);
+          // });
+
+          // var data = {'user_id': Session.userId, 'enquiry_id': vm.order_details.order.enquiry_id}
+          // $.each(elem, function(key, value) {
+          //   formData.append(key, value);
+          // });
+          vm.service.apiCall('confirm_or_hold_custom_order/', 'POST', elem  ).then(function(data){
                 if(data.data.msg == 'Success') {
                    if(isConfirm){
                      Service.showNoty('Order Confirmed Successfully');
@@ -156,7 +170,7 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
   vm.upload_name = [];
   $scope.$on("fileSelected", function (event, args) {
     $scope.$apply(function () {
-      vm.upload_name = []; 
+      vm.upload_name = [];
       if (args.msg == 'success') {
         angular.forEach(args.file, function(data){vm.upload_name.push(data.name)});
         vm.upload_image();
@@ -165,6 +179,15 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
       }
     });
   });
+
+  vm.uploaded_po = '';
+  $scope.uploadPo = function(args){
+    vm.upload_file_name = "";
+    $scope.$apply(function () {
+      vm.upload_file_name = args.files;
+      vm.uploaded_po = args.files[0].name;
+    });
+  }
 
   vm.uploading = false;
   vm.upload_image = function() {

@@ -359,6 +359,7 @@ urlpatterns = [
     url(r'^get_grn_edit_filter/$', get_grn_edit_filter),
     url(r'^get_stock_transfer_shipment_popup_data/$', get_stock_transfer_shipment_popup_data),
     url(r'^insert_st_shipment_info/$', insert_st_shipment_info),
+    url(r'^do_delegate_orders/$', do_delegate_orders),
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),
@@ -498,6 +499,8 @@ urlpatterns += [
     url(r'^sku_substitution_upload/$', sku_substitution_upload),
     url(r'^targets_form/$', targets_form),  
     url(r'^targets_upload/$', targets_upload),
+    url(r'^central_order_form/$', central_order_form),
+    url(r'^central_order_upload/$', central_order_upload),
 
     # configurations
     url(r'^configurations/$', configurations),

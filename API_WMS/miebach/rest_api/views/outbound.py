@@ -11619,6 +11619,7 @@ def get_manual_enquiry_orders(start_index, stop_index, temp_data, search_term, o
 @get_admin_user
 def get_manual_enquiry_detail(request, user=''):
     enquiry_id = request.GET.get('enquiry_id', '')
+    main_user = user
     user_id = request.GET.get('user_id', '')
     if not enquiry_id or not user_id:
         return HttpResponse("Give information insufficient")
@@ -11669,6 +11670,14 @@ def get_manual_enquiry_detail(request, user=''):
         if not far_wh_lt:
             far_wh_lt = 0
         far_wh_lt += res_lt
+    #Get L1, L3 level stocks data
+    # wh_lists = get_sister_warehouse(main_user)
+    # wh_users = User.objects.filter(id__in=wh_lists.values_list('user_id', flat=True))
+    # wh_stock_dict = OrderedDict()
+    # l1_users = wh_users.filter(userprofile__warehouse_level=1)
+    # for l1_user in l1_users:
+    #     print l1_user
+
     return HttpResponse(json.dumps({'data': enquiry_dict, 'style': style_dict, 'order': manual_eq_dict,\
                                     'enq_details': enq_details, 'far_wh_leadtime': far_wh_lt}))
 

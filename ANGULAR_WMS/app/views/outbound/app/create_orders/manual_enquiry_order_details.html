@@ -144,7 +144,7 @@
             </div>
           </div>
         </div>
-        <div class="col-md-12 col-sm-12 col-xs-12">
+        <!-- <div class="col-md-12 col-sm-12 col-xs-12">
           <div class="row_ detail-item border-grey- detail-bg-grey mb5" ng-repeat="(key, data) in order.warehouse_data" style="padding: 1px 10px">
             <h4><b>{{key}}-SM Warehouses</b></h4>
             <table class="table">
@@ -157,8 +157,7 @@
               </tr>
             </table>
           </div>
-        <!-- <div class="row detail-item border-grey detail-bg-grey mb5" ng-if="order.model_data.from == 'custom_order' && (order.order_details.order.status=='confirm_order' || order.order_details.order.status=='hold_order')"> -->
-        </div>
+        </div> -->
         <div class="col-md-12 text-center mb10" ng-if="order.model_data.from == 'custom_order' && order.order_details.order.status!='confirm_order' && order.order_details.order.status!='hold_order' && order.order_details.order.customization_type!='Price and Product Customization'">
           <button type='submit' class="btn btn-primary" ng-click="order.notify_to_sub_dist(form)" ng-disabled="order.disable_btn">Notify to Sub Distributor</button>
           <button type='button' class="btn btn-primary" ng-click="order.send_for_approval(form)" ng-disabled="order.disable_btn">Send For Approval</button>

@@ -1943,6 +1943,7 @@ class SellerPOSummary(models.Model):
     challan_date = models.DateField(blank=True, null=True)
     discount_percent = models.FloatField(default=0)
     round_off_total = models.FloatField(default=0)
+    cess_tax = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

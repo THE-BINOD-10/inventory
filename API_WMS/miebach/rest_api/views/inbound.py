@@ -2641,7 +2641,6 @@ def confirm_grn(request, confirm_returns='', user=''):
         myDict = dict(request_data.iterlists())
     else:
         myDict = confirm_returns
-
     log.info('Request params for ' + user.username + ' is ' + str(myDict))
     try:
         po_data, status_msg, all_data, order_quantity_dict, \
@@ -3954,6 +3953,9 @@ def update_quality_check(myDict, request, user):
 @get_admin_user
 def confirm_quality_check(request, user=''):
     myDict = dict(request.POST.iterlists())
+    if len(myDict['rejected_quantity']):
+        if not myDict['rejected_quantity'][0]:
+            myDict['rejected_quantity'] = [0]
     total_sum = sum(float(i) for i in myDict['accepted_quantity'] + myDict['rejected_quantity'])
     if total_sum < 1:
         return HttpResponse('Update Quantities')

@@ -430,7 +430,7 @@ vm.add_shipment = function(valid) {
         var imei_order_id = ''
         if(vm.model_data.data.length > 0 && vm.model_data.data[0].order_id)
         {
-            if(vm.model_data.data[0].original_order_id != '')
+            if(vm.model_data.data[0].original_order_id != '' && vm.model_data.data[0].original_order_id != undefined)
             {
               imei_order_id = vm.model_data.data[0].original_order_id;
             }
@@ -441,6 +441,7 @@ vm.add_shipment = function(valid) {
         var check_imei_dict = {is_shipment: true, imei: imei, order_id: imei_order_id, groupby: vm.group_by}
         vm.service.apiCall('check_imei/', 'GET', check_imei_dict).then(function(data){
           if(data.message) {
+            debugger;
             if (data.data.status == "Success") {
               vm.update_imei_data(data.data, imei);
               //vm.check_equal(data2);

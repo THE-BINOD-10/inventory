@@ -2765,6 +2765,8 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             dat = order_data[0]
             customer_address = dat.customer_name + '\n' + dat.address + "\nCall: " \
                                + dat.telephone + "\nEmail: " + dat.email_id
+        if not customer_details and dat.address:
+            customer_details.append({'id' : dat.customer_id, 'name' : dat.customer_name, 'address' : dat.address})
 
         picklist = Picklist.objects.filter(order_id__in=order_ids).order_by('-updation_date')
         if picklist:
@@ -2810,6 +2812,8 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     purchase_type = 'SMART_JIT'
 
                 marketplace = USER_CHANNEL_ADDRESS.get(username, marketplace)
+            if not marketplace:
+                marketplace = 'offline'
             tax = 0
             vat = 0
             discount = 0
@@ -2817,8 +2821,8 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             cgst_tax, sgst_tax, igst_tax, utgst_tax, cess_tax = 0, 0, 0, 0, 0
             mrp_price = dat.sku.mrp
             taxes_dict = {}
+            tax_type, invoice_header, vehicle_number, mode_of_transport = '', '', 0, ''
             order_summary = CustomerOrderSummary.objects.filter(order_id=dat.id)
-            tax_type = ''
             if order_summary:
                 tax = order_summary[0].tax_value
                 vat = order_summary[0].vat

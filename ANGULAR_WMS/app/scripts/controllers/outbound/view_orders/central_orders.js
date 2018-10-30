@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('CentralOrders',['$scope', '$http', '$state', '$compile', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', 'Data', '$modal', '$log', ServerSideProcessingCtrl]);
+  .controller('CentralOrders',['$scope', '$http', '$state', '$compile', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'SweetAlert', 'colFilters', 'Service', 'Data', '$modal', '$log', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service, Data, $modal, $log) {
+function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Session, DTOptionsBuilder, DTColumnBuilder, SweetAlert, colFilters, Service, Data, $modal, $log) {
 var vm = this;
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
@@ -59,6 +59,15 @@ var vm = this;
         DTColumnBuilder.newColumn('Status').withTitle('Status')
     ];
 
+    vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
+      .renderWith(function(data, type, full, meta) {
+      if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
+        vm.selected = {};
+      }
+      vm.selected[meta.row] = vm.selectAll;
+      return vm.service.frontHtml + meta.row + vm.service.endHtml;
+    }))
+
     vm.dtInstance = {};
     vm.reloadData = reloadData;
 
@@ -78,8 +87,8 @@ var vm = this;
     }
 
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-        $('td', nRow).unbind('click');
-        $('td', nRow).bind('click', function() {
+        $('td:not(td:first)', nRow).unbind('click');
+        $('td:not(td:first)', nRow).bind('click', function() {
             $scope.$apply(function() {
                 vm.service.apiCall('get_central_order_detail/', 'GET', {central_order_id: aData.data_id}).then(function(data){
                   var resp_data = data.data;
@@ -98,9 +107,7 @@ var vm = this;
                   vm.model_data.warehouse = resp_data.warehouse;
                   vm.model_data.shipment_date = resp_data.shipment_date;
                   vm.model_data.project_name = resp_data.project_name;
-
                   vm.model_data.data = [{"sel_warehouse":"", "wh_available":"", "wh_quantity":""}];
-
                   $state.go('app.outbound.ViewOrders.CentralOrderDetails');
                 });
                 vm.sel_warehouse_obj = {};
@@ -289,6 +296,40 @@ var vm = this;
         if (vm.model_data.data.length-1) {
           vm.model_data.warehouse = vm.model_data.data[vm.model_data.data.length-1].sel_warehouse;
         }
+      }
+    }
+
+    vm.delegate_order = function() {
+      vm.delegate_order_data = []
+      for (var key in vm.selected) {
+        if (vm.selected[key]) {
+          var delegate_row = vm.dtInstance.DataTable.context[0].aoData[key]._aData
+          //var elem = {'warehouse': JSON.stringify(vm.model_data.wh_level_stock_map), 
+          //'status': status,'interm_det_id': data_id, 'shipment_date': shipment_date, 
+          //'alt_sku_code': alt_sku_code};
+          var elem = {
+            'status': delegate_row['Status'], 'interm_det_id': delegate_row['data_id'],
+            'shipment_date': delegate_row['Shipment Date'], 'alt_sku_code': delegate_row['SKU Code']
+          }
+          if (delegate_row['Status'] != 'Accept') {
+            vm.delegate_order_data.push(elem);
+          }
+        }
+      }
+      if (vm.delegate_order_data.length) {
+        vm.service.apiCall('do_delegate_orders/', 'POST', {'delegate_order_data': JSON.stringify(vm.delegate_order_data)}).then(function(resp) {
+          if (resp.message) {
+            vm.reloadData()
+            SweetAlert.swal({
+              title: 'Delegated Orders',
+              text: resp.data.output_msg,
+              type: 'success',
+              confirmButtonColor: '#33cc66',
+              confirmButtonText: 'Ok',
+              closeOnConfirm: true,
+            })
+          }
+        })
       }
     }
 }

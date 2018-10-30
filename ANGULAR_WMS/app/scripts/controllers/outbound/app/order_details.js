@@ -112,7 +112,6 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
         },
         function(isConfirm){
           // var elem = {'order_id': vm.order_id, 'uploaded_po': vm.upload_file_name};
-          var test = JSON.stringify(vm.upload_file_name[0]);
           var elem = {'order_id': vm.order_id};
           if(isConfirm){
               elem['status'] = 'confirm_order'
@@ -134,6 +133,7 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
           vm.service.apiCall('confirm_or_hold_custom_order/', 'POST', elem  ).then(function(data){
                 if(data.data.msg == 'Success') {
                    if(isConfirm){
+                     vm.uploadPo();
                      Service.showNoty('Order Confirmed Successfully');
                    }else{
                      Service.showNoty('Placed Enquiry Order Successfully');
@@ -144,6 +144,50 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
           })
         }
       );
+    }
+
+    vm.uploadPO = function() {
+
+      var formData = new FormData();
+      var el = $("#file");
+      var files = el[0].files;
+
+      if(files.length == 0){
+
+        return false;
+      }
+
+      $.each(files, function(i, file) {
+        formData.append('po_file', file);
+      });
+
+      // formData.append('po_number', po);
+      // formData.append('customer_name', name);
+
+      vm.uploading = true;
+      $.ajax({url: Session.url+'upload_po/',
+              data: formData,
+              method: 'POST',
+              processData : false,
+              contentType : false,
+              xhrFields: {
+                  withCredentials: true
+              },
+              'success': function(response) {
+                if(response == 'Uploaded Successfully') {
+
+                  Service.showNoty(response);
+                } else {
+                  Service.showNoty(response, 'warning');
+                }
+                vm.uploading = false;
+              },
+              'error': function(response) {
+                console.log('fail');
+                Service.showNoty('Something Went Wrong', 'warning');
+                vm.uploading = false;
+              }
+      });
     }
 
   vm.image_loding = {};

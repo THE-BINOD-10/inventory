@@ -90,12 +90,10 @@
     </accordion-group>
     </accordion>
 
-    <div class="row no-margin">
+    <div class="row no-margin" ng-if="order.order_details.order.status=='approved'">
       <form name="form" role="form">
         <div class="row no-margin">
           <div class="col-md-12 col-sm-12 col-xs-12">
-            <!-- <h5 class="pull-left"><b>Uploaded mages</b></h5> -->
-
             <span ng-hide="order.save" class="btn btn-primary up-btn pull-right"  style="position: relative;overflow: hidden;height: 34px;padding: 6px;width: 150px;text-overflow: ellipsis;">{{(order.uploaded_po)?order.uploaded_po:'Upload PO';}}
                <input type="file" class="btn btn-primary upload-button" ng-model="order.upload_file_name" id="file" name='file' onchange="angular.element(this).scope().uploadPo(this)" />
               <i class="fa fa-cloud-upload fa-1g" aria-hidden="true"></i>
@@ -192,8 +190,8 @@
           <button type='submit' class="btn btn-success" ng-if="!order.edit_enable" ng-click="order.edit_enable = true; order.clear_flag=false;">Edit</button>
           <button type='submit' class="btn btn-success" ng-if="order.edit_enable" ng-click="order.clear()">clear</button>
           <button type='submit' class="btn btn-success" ng-if="order.edit_enable" ng-click="order.edit(form)">Notify HO</button>
-          <!-- <button type='submit' class="btn btn-primary" ng-if="order.order_details.order.status=='approved'" ng-click="order.accept_or_hold()">Accept</button> -->
-          <button type='submit' class="btn btn-primary" ng-click="order.accept_or_hold()">Accept</button>
+          <button type='submit' class="btn btn-primary" ng-if="order.order_details.order.status=='approved'" ng-click="order.accept_or_hold()">Accept</button>
+          <!-- <button type='submit' class="btn btn-primary" ng-click="order.accept_or_hold()">Accept</button> -->
           <button type='submit' class="btn btn-danger" ng-click="">Reject</button>
         </div>
       </form>

@@ -1270,6 +1270,12 @@ CENTRAL_ORDER_EXCEL = OrderedDict((
                              ('total_price', 25), ('location', 26)
                            ))
 
+CENTRAL_ORDER_EXCEL_ONE_ASSIST = OrderedDict((
+                            ('original_order_id', 0), ('customer_name', 1), ('address', 2),
+                            ('city', 3), ('pincode', 4), ('mobile_no', 5), ('email_id', 6),
+                            ('sku_code', 7)
+                          ))
+
 CENTRAL_ORDER_XLS_UPLOAD = {'interm_order_id': '', 'sku': '', 'quantity': 1, 
               'unit_price': 0, 'tax': 0, 'inter_state': 0, 'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 
               'utgst_tax': 0, 'status': 0, 'project_name': '', 'remarks': '', 'customer_id': 0, 
@@ -1870,6 +1876,13 @@ CENTRAL_ORDER_MAPPING = OrderedDict((
                                       ('IGST', 'igst'), ('Total Price', 'total_price'),
                                       ('Location', 'location')
                                    ))
+
+CENTRAL_ORDER_ONE_ASSIST_MAPPING = OrderedDict((
+                                      ('Courtesy SR Number', 'original_order_id'), ('Customer handset Model', 'sku_code'),
+                                      ('Customer Name', 'customer_name'), ('Address', 'address'),
+                                      ('City', 'city'), ('Pincode', 'pincode'),
+                                      ('Customer primary contact', 'mobile_no'), ('Customer emailId', 'email_id')
+                                  ))
 
 #PICKLIST_EXCLUDE_ZONES = ['DAMAGED_ZONE', 'QC_ZONE', 'Non Sellable Zone']
 

@@ -4053,15 +4053,33 @@ def create_order_from_intermediate_order(request, user):
                         interm_obj.save()
                         order_dict['title'] = interm_obj.alt_sku.sku_desc
                         order_dict['sku_code'] = interm_obj.alt_sku.sku_code
-                    customer_user = CustomerUserMapping.objects.filter(user_id=interm_obj.customer_user.id)
-                    if customer_user:
-                        order_dict['customer_id'] = customer_user[0].customer.customer_id
-                        order_dict['customer_name'] = customer_user[0].customer.name
-                        order_dict['telephone'] = customer_user[0].customer.phone_number
-                        order_dict['email_id'] = customer_user[0].customer.email_id
-                        order_dict['address'] = customer_user[0].customer.address
+                    if interm_obj.customer_user:
+                        customer_user = CustomerUserMapping.objects.filter(user_id=interm_obj.customer_user.id)
+                        if customer_user:
+                            order_dict['customer_id'] = customer_user[0].customer.customer_id
+                            order_dict['customer_name'] = customer_user[0].customer.name
+                            order_dict['telephone'] = customer_user[0].customer.phone_number
+                            order_dict['email_id'] = customer_user[0].customer.email_id
+                            order_dict['address'] = customer_user[0].customer.address
+                        else:
+                            return HttpResponse('Failed')
                     else:
-                        return HttpResponse('Failed')
+                        order_dict['customer_id'] = 0
+                        mail_obj = OrderFields.objects.filter(original_order_id=str(interm_obj.interm_order_id), order_type='intermediate_order', user=user.id, name='email_id')
+                        if mail_obj:
+                            order_dict['email_id'] = mail_obj[0].value
+
+                        mobile_no_obj = OrderFields.objects.filter(original_order_id=str(interm_obj.interm_order_id), order_type='intermediate_order', user=user.id, name='mobile_no')
+                        if mobile_no_obj:
+                            order_dict['telephone'] = mobile_no_obj[0].value
+
+                        address_obj = OrderFields.objects.filter(original_order_id=str(interm_obj.interm_order_id), order_type='intermediate_order', user=user.id, name='address')
+                        if address_obj:
+                            order_dict['address'] = address_obj[0].value
+
+                        intermediate_obj = IntermediateOrders.objects.filter(user=user.id, interm_order_id=str(interm_obj.interm_order_id))
+                        if intermediate_obj:
+                            order_dict['customer_name'] = intermediate_obj[0].customer_name
                     order_dict['quantity'] = int(wh_data['quantity'])
                     order_dict['order_code'] = 'MN'
                     order_dict['shipment_date'] = interm_obj.shipment_date
@@ -4136,9 +4154,6 @@ def create_order_from_intermediate_order(request, user):
                             send_mail(mail_ids, 'Order Approved, Customer: %s' % interm_qs.customer_user.username, rendered)
                         if user_mail_id:
                             send_mail(user_mail_id, 'Order Approved Successfully', rendered_user)
-
-
-
                     created_order_objs.append(ord_obj)
                 admin_user = get_admin(user)
                 if admin_user.username in ['one_assist']:

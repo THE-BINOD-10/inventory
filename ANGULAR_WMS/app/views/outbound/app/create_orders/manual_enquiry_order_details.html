@@ -90,9 +90,9 @@
     </accordion-group>
     </accordion>
 
-    <div class="row no-margin" ng-if="order.order_details.order.status=='approved'">
+    <div class="row no-margin">
       <form name="form" role="form">
-        <div class="row no-margin">
+        <div class="row no-margin" ng-if="order.order_details.order.status=='approved'">
           <div class="col-md-12 col-sm-12 col-xs-12">
             <span ng-hide="order.save" class="btn btn-primary up-btn pull-right"  style="position: relative;overflow: hidden;height: 34px;padding: 6px;width: 150px;text-overflow: ellipsis;">{{(order.uploaded_po)?order.uploaded_po:'Upload PO';}}
                <input type="file" class="btn btn-primary upload-button" ng-model="order.upload_file_name" id="file" name='file' onchange="angular.element(this).scope().uploadPo(this)" />

@@ -113,6 +113,7 @@
                   <td>{{record.quantity}}</td>
                   <td>
                     <input class="form-control" name="shipping_quantity" ng-model="record.shipping_quantity" type="text" ng-class="service.get_decimal_perm()" ng-change="showCase.cal_quantity(record, data)">
+                    <input type="text" ng-model="record.imei_list" class="form-control" ng-init="record.imei_list = []" style="visibility : hidden">
                   </td>
                   <td>
                     <input class="form-control" name="package_reference" ng-model="record.pack_reference" ng-blur="showCase.add_carton_code(record)" type="text">

@@ -1119,7 +1119,7 @@ def validate_location_stock(val, all_locations, all_skus, user, picklist):
 
 
 def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
-    import pdb;pdb.set_trace()
+    #import pdb;pdb.set_trace()
     if ',' in val['imei']:
         imei_nos = list(set(val['imei'].split(',')))
     else:
@@ -1716,7 +1716,7 @@ def picklist_confirmation(request, user=''):
                     wms_id = all_skus.exclude(sku_code='').get(wms_code=val['wms_code'], user=user.id)
                     total_stock = StockDetail.objects.filter(**pic_check_data)
 
-                    import pdb;pdb.set_trace()
+                    #import pdb;pdb.set_trace()
                     if 'imei' in val.keys() and val['imei'] and picklist.order:
                         insert_order_serial(picklist, val)
                     if 'labels' in val.keys() and val['labels'] and picklist.order:
@@ -2704,7 +2704,7 @@ def check_imei(request, user=''):
     groupby = request.GET.get('groupby', '')
     log.info('Request params for Check IMEI ' + user.username + ' is ' + str(request.GET.dict()))
     shipping_quantity = 0
-    import pdb;pdb.set_trace()
+    #import pdb;pdb.set_trace()
     try:
         for key, value in request.GET.iteritems():
             if key in ['is_shipment', 'order_id', 'groupby', 'is_rm_picklist']:
@@ -2744,7 +2744,7 @@ def check_imei(request, user=''):
                 elif order_mapping[0].jo_material:
                     status = str(value) + ' is already mapped with this job order ' + \
                             str(order_mapping[0].jo_material.job_order.job_code)
-            import pdb;pdb.set_trace()
+            #import pdb;pdb.set_trace()
             if is_shipment and po_mapping:
                 seller_id = ''
                 if po_mapping[0].seller:
@@ -2758,7 +2758,7 @@ def check_imei(request, user=''):
                         seller_order = SellerOrder.objects.filter(seller__user=user.id,
                                                                   order_id__in=order_detail_objs.values_list('id'),
                                                                   seller_id=seller_id)
-                    if not seller_order:
+                    if seller_id and not seller_order:
                         status = 'IMEI Mapped to another Seller'
                 if order_details:
                     # qty_data = get_shipment_quantity(user, order_details, False)
@@ -4197,7 +4197,7 @@ def insert_order_data(request, user=''):
     myDict = dict(request.POST.iterlists())
     order_id = ''
     # Sending mail and message
-    import pdb;pdb.set_trace()
+    #import pdb;pdb.set_trace()
     items = []
 
     other_charge_amounts = 0
@@ -5148,7 +5148,7 @@ def insert_shipment_info(request, user=''):
 
                 # Need to comment below 3 lines if shipment scan is ready
                 if 'imei_number' in myDict.keys() and myDict['imei_number'][i]:
-                    import pdb;pdb.set_trace()
+                    #import pdb;pdb.set_trace()
                     shipped_orders_dict = insert_order_serial([], {'wms_code': order_detail.sku.wms_code,
                                                                    'imei': myDict['imei_number'][i]},
                                                               order=order_detail,
@@ -5273,7 +5273,7 @@ def insert_st_shipment_info(request, user=''):
                         data_dict[key] = value[i]
                     if key in shipment_data and key != 'id':
                         shipment_data[key] = value[i]
-                import pdb;pdb.set_trace()
+                #import pdb;pdb.set_trace()
                 # Need to comment below 3 lines if shipment scan is ready
 
                 if 'imei_number' in myDict.keys():

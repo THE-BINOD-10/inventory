@@ -1068,6 +1068,7 @@ def delete_tax(request, user=''):
 @login_required
 @get_admin_user
 def confirm_po(request, user=''):
+    #import pdb;pdb.set_trace()
     sku_id = ''
     ean_flag = False
     data = copy.deepcopy(PO_DATA)
@@ -4357,6 +4358,7 @@ def confirm_add_po(request, sales_data='', user=''):
     status = ''
     suggestion = ''
     show_cess_tax = False
+    #import pdb;pdb.set_trace()
     terms_condition = request.POST.get('terms_condition', '')
     if not request.POST:
         return HttpResponse('Updated Successfully')

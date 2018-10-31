@@ -5166,7 +5166,7 @@ def check_get_imei_details(imei, wms_code, user_id, check_type='', order='', job
         #mapping = POIMEIMapping.objects.filter(**check_params1)
         #po_mapping = po_mapping | mapping
         po_mapping = po_mapping.order_by('-creation_date')
-        import pdb;pdb.set_trace()
+        #import pdb;pdb.set_trace()
         if po_mapping:
             #order_data = get_purchase_order_data(po_mapping[0].purchase_order)
             order_wms_code = po_mapping[0].sku.wms_code
@@ -5943,6 +5943,7 @@ def insert_po_mapping(imei_nos, data, user_id):
     all_po_labels = []
     all_st_purchases = STPurchaseOrder.objects.filter(open_st__sku__user=user_id)
     all_po_labels = POLabels.objects.filter(sku__user=user_id, status=1)
+    #import pdb;pdb.set_trace()
     for imei in imei_nos:
         if not imei:
             continue
@@ -5957,7 +5958,9 @@ def insert_po_mapping(imei_nos, data, user_id):
             imei_mapping = {'purchase_order_id': data.id, 'imei_number': imei, 'status': 1,
                             'sku_id': order_data['sku'].id,
                             'creation_date': datetime.datetime.now(),
-                            'updation_date': datetime.datetime.now(), 'seller': seller}
+                            'updation_date': datetime.datetime.now()}
+            if data.open_po and data.open_po.sellerpo_set.filter():
+                imei_mapping['seller_id'] = data.open_po.sellerpo_set.filter()[0].seller_id
             po_imei = POIMEIMapping(**imei_mapping)
             po_imei.save()
             all_po_labels.filter(purchase_order_id=data.id, label=imei, status=1).update(status=0)

@@ -162,7 +162,7 @@
             </div>
           </div>
         </div>
-        <div class="col-md-7 col-sm-7 col-xs-7">
+        <div class="col-md-7 col-sm-7 col-xs-7" ng-if="order.model_data.from == 'custom_order' && order.order_details.order.status=='confirm_order'">
           <div class="row_ detail-item mb5" ng-repeat="(key, data) in order.warehouse_data" style="padding: 1px 10px">
             <!--<h4><b>{{key}}-SM Warehouses</b></h4>-->
             <table class="table">

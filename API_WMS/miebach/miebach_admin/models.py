@@ -1,3 +1,4 @@
+
 from django.db import models
 from django.contrib.auth.models import User, Group
 from miebach_utils import BigAutoField
@@ -2745,6 +2746,7 @@ class ManualEnquiry(models.Model):
     quantity = models.PositiveIntegerField()
     customization_type =  models.CharField(max_length=64, default='',  choices=CUSTOMIZATION_TYPES)
     custom_remarks = models.TextField(default='')
+    po_number = models.CharField(max_length=128, default='')
     status = models.CharField(max_length=32)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)

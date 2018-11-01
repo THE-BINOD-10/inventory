@@ -120,6 +120,7 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
               }else{
                   elem['status'] = 'hold_order'
               }
+              elem['po_number'] = vm.po_number_header;
               // var formData = new FormData();
               // var el = $("#file");
               // var files = el[0].files;

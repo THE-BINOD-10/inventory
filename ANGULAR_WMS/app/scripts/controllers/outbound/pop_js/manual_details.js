@@ -9,6 +9,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
   vm.date = new Date();
   vm.edit_enable = true;
 
+  vm.warehouse_data = {};
   // vm.warehouse_data = {'L1': [{'warehouse': 'DL01', 'stock': 500, 'quantity': 0},{'warehouse': 'DL02', 'stock': 600, 'quantity': 0}], 'L3': [{'warehouse': 'DL01', 'stock': 500, 'quantity': 0},{'warehouse': 'DL02', 'stock': 600, 'quantity': 0}]};
 
   vm.loading = false;
@@ -269,9 +270,9 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
       }
     }
     angular.copy(vm.model_data, data);
-    data['status'] = "approved";
+    data['admin_remarks'] = "true";
     vm.disable_btn = true;
-    Service.apiCall('request_manual_enquiry_send_remarks/', 'POST', data).then(function(data) {
+    Service.apiCall('save_manual_enquiry_data/', 'POST', data).then(function(data) {
       if (data.message) {
         if (data.data.msg == 'Success') {
           $modalInstance.close();
@@ -293,6 +294,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
 
         console.log(data.data);
         vm.order_details = data.data;
+        vm.warehouse_data = vm.order_details.wh_stock_dict;
         if(vm.order_details.order.status == "confirm_order" || vm.order_details.order.status == 'hold_order'){
             vm.model_data.confirmed_price = vm.order_details.data[vm.order_details.data.length - 1].ask_price;
         }

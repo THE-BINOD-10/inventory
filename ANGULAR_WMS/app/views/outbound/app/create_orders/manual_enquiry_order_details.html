@@ -50,8 +50,7 @@
         <h5 class="pull-left"><b>Uploaded mages</b></h5>
 
         <span ng-hide="order.save" class="btn btn-primary up-btn pull-right" style="position: relative;overflow: hidden;width: 150px;">{{(order.uploading)?'Uploading Images':'Choose File';}}
-          <input style="position: absolute;top: 0;right: 0; min-width: 100%; min-height: 100%; font-size: 100px; text-align: right; filter: alpha(opacity=0); opacity: 0;
-                        outline: none; background: white; cursor: inherit; display: block;" class="btn btn-primary" type = "file" name="files" id="image-upload" multi-image-upload multiple/>
+          <input style="position: absolute;top: 0;right: 0; min-width: 100%; min-height: 100%; font-size: 100px; text-align: right; filter: alpha(opacity=0); opacity: 0; outline: none; background: white; cursor: inherit; display: block;" class="btn btn-primary" type = "file" name="files" id="image-upload" multi-image-upload multiple/>
         </span>
       </div>
     </div>
@@ -93,10 +92,27 @@
 
     <div class="row no-margin">
       <form name="form" role="form">
+        <div class="row no-margin mb15" ng-if="order.order_details.order.status=='approved'">
+        <!-- <div class="row no-margin mb15"> -->
+          <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.user_type=='reseller'">
+          <!-- <div class="col-md-4 col-sm-4 col-xs-6"> -->
+            <div class="form-group">
+              <!-- <label class="control-label">PO Number *</label> -->
+              <input type="text" class="form-control stk-readonly pull-left" ng-model="order.po_number_header" name="po_number_header" required placeholder="PO Number">
+              <input type="hidden" class="form-control stk-readonly pull-left" ng-model="order.client_name_header" value="{{order.client_name_header}}" name="client_name_header">
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.user_type=='reseller'"></div>
+          <div class="col-md-4 col-sm-4 col-xs-6">
+            <span ng-hide="order.save" class="btn btn-primary up-btn pull-right"  style="position: relative;overflow: hidden;height: 34px;padding: 6px;width: 150px;text-overflow: ellipsis;">{{(order.uploaded_po)?order.uploaded_po:'Upload PO';}}
+               <input type="file" class="btn btn-primary upload-button" ng-model="order.upload_file_name" id="file" name='file' onchange="angular.element(this).scope().uploadPo(this)" />
+              <i class="fa fa-cloud-upload fa-1g" aria-hidden="true"></i>
+            </span>
+          </div>
+        </div>
         <div class="col-md-4 col-sm-4 col-xs-12" ng-if="order.permissions.user_type == 'sm_design_admin'">
           <span class="btn btn-primary up-btn pull-left" style="position: relative;overflow: hidden;width: 150px;">{{(order.uploading)?'Uploading Images':'Choose File';}}
-            <input style="position: absolute;top: 0;right: 0; min-width: 100%; min-height: 100%; font-size: 100px; text-align: right; filter: alpha(opacity=0); opacity: 0;
-                          outline: none; background: white; cursor: inherit; display: block;" class="btn btn-primary" type = "file" name="files" id="image-upload1" multi-image-upload multiple/>
+            <input style="position: absolute;top: 0;right: 0; min-width: 100%; min-height: 100%; font-size: 100px; text-align: right; filter: alpha(opacity=0); opacity: 0; outline: none; background: white; cursor: inherit; display: block;" class="btn btn-primary" type = "file" name="files" id="image-upload1" multi-image-upload multiple/>
           </span>
         </div>
         <div ng-if="order.edit_enable && (order.order_details.order.status!='confirm_order' && order.order_details.order.status!='hold_order')">
@@ -146,6 +162,20 @@
             </div>
           </div>
         </div>
+        <!-- <div class="col-md-12 col-sm-12 col-xs-12">
+          <div class="row_ detail-item border-grey- detail-bg-grey mb5" ng-repeat="(key, data) in order.warehouse_data" style="padding: 1px 10px">
+            <h4><b>{{key}}-SM Warehouses</b></h4>
+            <table class="table">
+              <tr ng-repeat="row in data">
+                <td><span>Warehouse:</span> {{row.warehouse}}</td>
+                <td><span>Stock:</span> {{row.stock}}</td>
+                <td width="30%">
+                  <input type="text" name="quantity" ng-model="row.quantity" class="form-control ng-pristine" placeholder="Quantity">
+                </td>
+              </tr>
+            </table>
+          </div>
+        </div> -->
         <div class="col-md-12 text-center mb10" ng-if="order.model_data.from == 'custom_order' && order.order_details.order.status!='confirm_order' && order.order_details.order.status!='hold_order' && order.order_details.order.customization_type!='Price and Product Customization'">
           <button type='submit' class="btn btn-primary" ng-click="order.notify_to_sub_dist(form)" ng-disabled="order.disable_btn">Notify to Sub Distributor</button>
           <button type='button' class="btn btn-primary" ng-click="order.send_for_approval(form)" ng-disabled="order.disable_btn">Send For Approval</button>
@@ -165,10 +195,11 @@
           <button type='submit' class="btn btn-primary" ng-click="order.convert_customorder_to_enquiryorder(form)" ng-disabled="order.disable_btn">Place Enquiry Order</button>
         </div>
         <div class="col-md-12 text-center mb10" ng-hide="order.save">
-          <button type='submit' class="btn btn-success" ng-if="!order.edit_enable" ng-click="order.edit_enable = true; order.clear_flag=false;">edit</button>
+          <button type='submit' class="btn btn-success" ng-if="!order.edit_enable" ng-click="order.edit_enable = true; order.clear_flag=false;">Edit</button>
           <button type='submit' class="btn btn-success" ng-if="order.edit_enable" ng-click="order.clear()">clear</button>
           <button type='submit' class="btn btn-success" ng-if="order.edit_enable" ng-click="order.edit(form)">Notify HO</button>
           <button type='submit' class="btn btn-primary" ng-if="order.order_details.order.status=='approved'" ng-click="order.accept_or_hold()">Accept</button>
+          <!-- <button type='submit' class="btn btn-primary" ng-click="order.accept_or_hold()">Accept</button> -->
           <button type='submit' class="btn btn-danger" ng-click="">Reject</button>
         </div>
       </form>

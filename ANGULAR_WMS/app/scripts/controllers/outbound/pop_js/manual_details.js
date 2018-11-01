@@ -9,6 +9,8 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
   vm.date = new Date();
   vm.edit_enable = true;
 
+  // vm.warehouse_data = {'L1': [{'warehouse': 'DL01', 'stock': 500, 'quantity': 0},{'warehouse': 'DL02', 'stock': 600, 'quantity': 0}], 'L3': [{'warehouse': 'DL01', 'stock': 500, 'quantity': 0},{'warehouse': 'DL02', 'stock': 600, 'quantity': 0}]};
+
   vm.loading = false;
   var url = "get_manual_enquiry_detail/";
   if (vm.model_data.url) {
@@ -238,6 +240,38 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
     data['status'] = "approved";
     vm.disable_btn = true;
     Service.apiCall('request_manual_enquiry_approval/', 'POST', data).then(function(data) {
+      if (data.message) {
+        if (data.data.msg == 'Success') {
+          $modalInstance.close();
+        }
+        Service.showNoty(data.data.msg);
+      } else {
+        Service.showNoty('Something went wrong');
+      }
+      vm.disable_btn = false;
+    });
+  }
+
+  vm.sendRemarks = function(form) {
+
+    var data = {};
+    if(vm.model_data.ask_price || vm.model_data.expected_date || vm.model_data.remarks) {
+
+      if(!vm.model_data.ask_price && vm.order_details.order.customization_type != 'Product Customization') {
+        Service.showNoty('Please Fill Ask Price', 'warning');
+        return false;
+      } else if (!vm.model_data.expected_date) {
+        Service.showNoty('Please Fill Expected Date', 'warning');
+        return false;
+      } else if (!vm.model_data.remarks) {
+        Service.showNoty('Please Fill Remarks', 'warning');
+        return false;
+      }
+    }
+    angular.copy(vm.model_data, data);
+    data['status'] = "approved";
+    vm.disable_btn = true;
+    Service.apiCall('request_manual_enquiry_send_remarks/', 'POST', data).then(function(data) {
       if (data.message) {
         if (data.data.msg == 'Success') {
           $modalInstance.close();

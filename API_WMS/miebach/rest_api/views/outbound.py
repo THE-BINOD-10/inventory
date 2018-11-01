@@ -8754,7 +8754,8 @@ def get_customer_cart_data(request, user=""):
                             reserved_qty = reserved_obj[0]['in_reserved']
                         else:
                             reserved_qty = 0
-                        enq_qty = EnquiredSku.objects.filter(sku__user=wh, sku_code=record.sku.sku_code).filter(
+                        enq_qty = EnquiredSku.objects.filter(sku__user=wh, sku_code=record.sku.sku_code,
+                                                             warehouse_level=record.warehouse_level).filter(
                             ~Q(enquiry__extend_status='rejected')).values_list('sku_code').aggregate(Sum('quantity'))[
                             'quantity__sum']
                         if not enq_qty:

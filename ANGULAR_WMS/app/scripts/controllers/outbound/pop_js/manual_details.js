@@ -252,6 +252,38 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
     });
   }
 
+  vm.sendRemarks = function(form) {
+
+    var data = {};
+    if(vm.model_data.ask_price || vm.model_data.expected_date || vm.model_data.remarks) {
+
+      if(!vm.model_data.ask_price && vm.order_details.order.customization_type != 'Product Customization') {
+        Service.showNoty('Please Fill Ask Price', 'warning');
+        return false;
+      } else if (!vm.model_data.expected_date) {
+        Service.showNoty('Please Fill Expected Date', 'warning');
+        return false;
+      } else if (!vm.model_data.remarks) {
+        Service.showNoty('Please Fill Remarks', 'warning');
+        return false;
+      }
+    }
+    angular.copy(vm.model_data, data);
+    data['status'] = "approved";
+    vm.disable_btn = true;
+    Service.apiCall('request_manual_enquiry_send_remarks/', 'POST', data).then(function(data) {
+      if (data.message) {
+        if (data.data.msg == 'Success') {
+          $modalInstance.close();
+        }
+        Service.showNoty(data.data.msg);
+      } else {
+        Service.showNoty('Something went wrong');
+      }
+      vm.disable_btn = false;
+    });
+  }
+
   vm.getDetails = function() {
 
     vm.loading = true;

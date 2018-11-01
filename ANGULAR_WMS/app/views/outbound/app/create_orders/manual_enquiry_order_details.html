@@ -99,7 +99,7 @@
             <div class="form-group">
               <!-- <label class="control-label">PO Number *</label> -->
               <input type="text" class="form-control stk-readonly pull-left" ng-model="order.po_number_header" name="po_number_header" required placeholder="PO Number">
-              <input type="text" class="form-control stk-readonly pull-left" ng-model="order.client_name_header" value="{{order.client_name_header}}" name="client_name_header">
+              <input type="hidden" class="form-control stk-readonly pull-left" ng-model="order.client_name_header" value="{{order.client_name_header}}" name="client_name_header">
             </div>
           </div>
           <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.user_type=='reseller'"></div>

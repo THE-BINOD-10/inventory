@@ -231,6 +231,7 @@ def get_stock_transfer_orders(start_index, stop_index, temp_data, search_term, o
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     count = 0
+    import pdb;pdb.set_trace()
     for data in master_data[start_index:stop_index]:
         checkbox = '<input type="checkbox" name="id" value="%s">' % data.id
         w_user = User.objects.get(id=data.st_po.open_st.sku.user)
@@ -1119,6 +1120,7 @@ def validate_location_stock(val, all_locations, all_skus, user, picklist):
 
 
 def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
+    import pdb;pdb.set_trace()
     if ',' in val['imei']:
         imei_nos = list(set(val['imei'].split(',')))
     else:
@@ -4883,6 +4885,7 @@ def create_stock_transfer(request, user=''):
     warehouse = User.objects.get(username=warehouse_name)
     f_name = 'stock_transfer_' + warehouse_name + '_'
     status = validate_st(all_data, warehouse)
+    import pdb;pdb.set_trace()
     if not status:
         all_data = insert_st(all_data, warehouse)
         status = confirm_stock_transfer(all_data, warehouse, user.username)
@@ -5263,6 +5266,7 @@ def insert_st_shipment_info(request, user=''):
         log.info('Create shipment failed for params ' + str(request.POST.dict()) + ' error statement is ' + str(e))
         return HttpResponse('Create shipment Failed')
     try:
+        import pdb;pdb.set_trace()
         all_sku_data = eval(myDict['sku_data'][0])
         shipped_orders_dict = {}
         for i in range(0, len(all_sku_data)):
@@ -12487,12 +12491,13 @@ def create_orders_check_ean(request, user=''):
     data = {}
     sku_code = ''
     ean = request.GET.get('ean')
+    import pdb;pdb.set_trace()
     try:
-        sku_obj = SKUMaster.objects.filter(Q(ean_number=ean) | Q(eannumbers__ean_number=ean), user=user.id)
+        sku_obj = SKUMaster.objects.filter(Q(ean_number=ean) | Q(eannumbers__ean_number=ean) | Q(sku_code=ean), user=user.id)
         if sku_obj:
             sku_code = sku_obj[0].sku_code
     except:
-	sku_obj = SKUMaster.objects.filter(sku_code=ean, user=user.id)
+        sku_obj = SKUMaster.objects.filter(sku_code=ean, user=user.id)
         if sku_obj:
             sku_code = sku_obj[0].sku_code
     return HttpResponse(json.dumps({ 'sku' : sku_code }))

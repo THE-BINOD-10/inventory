@@ -319,17 +319,18 @@ vm.update_data = function(index, data, last) {
 vm.cal_quantity = function (record, data) {
   console.log(record);
   var total = 0;
-  for(var i=0; i < data.sub_data.length; i++) {
-      total = total + parseInt(data.sub_data[i].shipping_quantity);
+  var picked = 0;
+  picked = parseInt(record['quantity'])
+  total = parseInt(record['shipping_quantity'])
+  if (!total) {
+    total = 0
   }
-  if(data.picked >= total){
+  if (picked >= total) {
     console.log(record.shipping_quantity)
   } else {
-    var quantity = data.picked-total;
+    var quantity = picked - total;
     if(quantity < 0) {
-      quantity = total - parseInt(record.shipping_quantity);
-      quantity = data.picked - quantity;
-      record.shipping_quantity = quantity;
+      record.shipping_quantity = picked;
     } else {
       record.shipping_quantity = quantity;
     }
@@ -473,9 +474,9 @@ vm.add_shipment = function(valid) {
       }
     }
     if(sku_status && (!status)) {
-      service.showNoty(data.data.sku_code+" SKU picked quantity equal shipped quantity");
+      vm.service.showNoty(data.data.sku_code+" SKU picked quantity equal shipped quantity");
     } else if(!status) {
-      service.showNoty("Entered Imei Number Not Matched With Any SKU's");
+      vm.service.showNoty("Entered Imei Number Not Matched With Any SKU's");
     }
   }
 
@@ -526,7 +527,7 @@ vm.add_shipment = function(valid) {
         data.push({ name: 'awb_no', value: vm.awb_no });
       } else {
         vm.bt_disable = false;
-        service.showNoty("Fill Mandatory Fields", 'error', 'topRight');
+        vm.service.showNoty("Fill Mandatory Fields", 'error', 'topRight');
         return;
       }
       data.push({ name:'view', value:vm.g_data.view })
@@ -555,7 +556,7 @@ vm.add_shipment = function(valid) {
   }
 
   vm.get_courier_for_marketplace = function() {
-    service.apiCall("get_courier_name_for_marketplaces/?status=1&marketplace="+vm.special_key.market_place).then(function(data) {
+    vm.service.apiCall("get_courier_name_for_marketplaces/?status=1&marketplace="+vm.special_key.market_place).then(function(data) {
       vm.model_data.courier_name = [];
       if(data.data.status) {
         vm.model_data.courier_name = data.data.courier_name;
@@ -704,6 +705,7 @@ vm.add_shipment = function(valid) {
   }
 
   vm.confirm_st_shipment = function(valid) {
+    debugger;
     if(valid.$valid) {
       if(vm.check_st_quantity(vm.model_data.data, 'shipping_quantity')) {
         vm.bt_disable = true
@@ -725,6 +727,5 @@ vm.add_shipment = function(valid) {
       vm.service.showNoty("Please Fill Required Fields");
     }
   }
-
-
+  
 }

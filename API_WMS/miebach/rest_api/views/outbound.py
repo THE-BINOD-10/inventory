@@ -11882,6 +11882,16 @@ def confirm_or_hold_custom_order(request, user=''):
 @login_required
 @get_admin_user
 def convert_customorder_to_actualorder(request, user=''):
+    stock_wh_map = {}
+    try:
+        warehouse_data = json.loads(request.POST['warehouse_data'])
+        for level, warehouse_list in warehouse_data.items():
+            for warehouse in warehouse_list:
+                if warehouse['quantity']:
+                    wh_user_obj = User.objects.get(username=warehouse['warehouse'])
+                    stock_wh_map[wh_user_obj.id] = float(warehouse['quantity'])
+    except:
+        return HttpResponse('Something Went Wrong')
     resp = {'msg': 'Success', 'data': []}
     smd_price = request.POST.get('sm_d_price', '')
     if smd_price:
@@ -11919,7 +11929,7 @@ def convert_customorder_to_actualorder(request, user=''):
     customer_name = cust_obj.customer.name
     dist_user_id = cust_obj.customer.user
     admin_user = get_priceband_admin_user(dist_user_id)
-    stock_wh_map = {}
+
     # source_whs = list(NetworkMaster.objects.filter(dest_location_code_id=dist_user_id).filter(
     #     source_location_code__username__in=['DL01', 'MH01', 'KA02']).values_list(
     #     'source_location_code_id', flat=True).order_by('lead_time', 'priority'))
@@ -11964,7 +11974,8 @@ def convert_customorder_to_actualorder(request, user=''):
                              'original_order_id': org_ord_id, 'user': usr, 'customer_id': customer_id,
                              'customer_name': customer_name, 'shipment_date': exp_date,
                              'address': '', 'unit_price': smd_price, 'invoice_amount': invoice_amount,
-                             'creation_date': None, 'status': 1}
+                             'creation_date': datetime.datetime.now(), 'status': 1,
+                             'order_code': 'MN'}
         ord_qs = OrderDetail.objects.filter(sku_id=mapped_sku_id, order_id=order_id, user=usr)
         if not ord_qs:
             ord_obj = OrderDetail(**order_detail_dict)
@@ -11975,7 +11986,7 @@ def convert_customorder_to_actualorder(request, user=''):
             ord_obj.save()
 
         generic_order_id = get_generic_order_id(cm_id)
-        corporate_po_number = 0  # No PO Number
+        corporate_po_number = enq_obj.po_number
         create_grouping_order_for_generic(generic_order_id, ord_obj, cm_id, usr, quantity, corporate_po_number,
                                           corp_name, ask_price, ask_price, exp_date)
         usr_sku_master = SKUMaster.objects.filter(user=usr, sku_code=sku_code)

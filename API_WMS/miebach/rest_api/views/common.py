@@ -2868,7 +2868,6 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 unit_price = ((float(dat.invoice_amount) / float(dat.quantity))) - (tax / float(dat.quantity))
             if el_price:
                 unit_price = el_price
-
             amt = (unit_price * quantity) - discount
             base_price = "%.2f" % (unit_price * quantity)
 

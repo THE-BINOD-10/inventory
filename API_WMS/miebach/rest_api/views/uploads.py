@@ -5198,6 +5198,7 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
     order_mapping = get_order_mapping(reader, file_type)
     if not order_mapping:
         return "Headers not matching"
+    import pdb;pdb.set_trace()
     count = 0
     exclude_rows = []
     sku_masters_dict = {}
@@ -5241,6 +5242,16 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                     if not sku_id:
                         index_status.setdefault(count, set()).add('SKU Code Not found in mentioned Location')
         """
+        if order_mapping.has_key('location'):
+            try:
+                location = str(int(get_cell_data(row_idx, order_mapping['location'], reader, file_type)))
+            except:
+                location = str(get_cell_data(row_idx, order_mapping['location'], reader, file_type))
+            warehouse_admin = get_warehouse_admin(user)
+            all_user_groups = UserGroups.objects.filter(admin_user_id=warehouse_admin.id)
+            if not all_user_groups:
+                index_status.setdefault(count, set()).add('Invalid Location')
+        
         if order_mapping.has_key('original_order_id'):
             try:
                 original_order_id = str(int(get_cell_data(row_idx, order_mapping['original_order_id'], reader, file_type)))
@@ -5369,10 +5380,12 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                 key_value = float(get_cell_data(row_idx, value, reader, file_type))
                 create_order_fields_entry(interm_order_id, key, key_value, user)
             elif key == 'location':
+                import pdb;pdb.set_trace()
                 try:
                     value = str(int(get_cell_data(row_idx, value, reader, file_type)))
                 except:
                     value = str(get_cell_data(row_idx, value, reader, file_type))
+
                 sister_wh = get_sister_warehouse(user)
                 user_obj = sister_wh.filter(user__username=value)
                 if user_obj:
@@ -5392,13 +5405,14 @@ def central_order_upload(request, user=''):
     try:
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        import pdb;pdb.set_trace()
         if ex_status:
             return HttpResponse(ex_status)
         if user.username == 'one_assist':
-            upload_status = central_order_xls_upload(request, reader, user, no_of_rows, fname, 
+            upload_status = central_order_one_assist_upload(request, reader, user, no_of_rows, fname, 
                 file_type=file_type, no_of_cols=no_of_cols)
         else:
-            upload_status = central_order_one_assist_upload(request, reader, user, no_of_rows, fname,
+            upload_status = central_order_xls_upload(request, reader, user, no_of_rows, fname,
                 file_type=file_type, no_of_cols=no_of_cols)
     except Exception as e:
         import traceback

@@ -1061,6 +1061,7 @@ class OrderIMEIMapping(models.Model):
     sku = models.ForeignKey(SKUMaster)
     seller = models.ForeignKey(SellerMaster, blank=True, null=True)
     po_imei = models.ForeignKey(POIMEIMapping, blank=True, null=True)
+    #stock_transfer = models.ForeignKey(StockTransfer, blank=True, null=True)
     imei_number = models.CharField(max_length=64, default='')
     sor_id = models.CharField(max_length=128, default='')
     order_reference = models.CharField(max_length=128, default='')

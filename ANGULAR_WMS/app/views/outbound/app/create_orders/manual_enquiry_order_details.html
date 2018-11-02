@@ -170,7 +170,7 @@
                 <td><span>Warehouse:</span> {{row.warehouse}}</td>
                 <!--<td><span>Stock:</span> {{row.stock}}</td>-->
                 <td width="30%">
-                  <input type="text" name="quantity" ng-model="row.quantity" class="form-control ng-pristine" placeholder="Quantity" decimal-number>
+                  <input type="text" name="quantity" ng-model="row.quantity" ng-change="order.cal_wh_qty(row, data)" class="form-control ng-pristine" placeholder="Quantity" decimal-number>
                 </td>
               </tr>
             </table>

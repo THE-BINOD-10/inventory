@@ -8,6 +8,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
   vm.save = true;
   vm.date = new Date();
   vm.edit_enable = true;
+  vm.tot_quantity = 0;
 
   vm.warehouse_data = {};
   // vm.warehouse_data = {'L1': [{'warehouse': 'DL01', 'stock': 500, 'quantity': 0},{'warehouse': 'DL02', 'stock': 600, 'quantity': 0}], 'L3': [{'warehouse': 'DL01', 'stock': 500, 'quantity': 0},{'warehouse': 'DL02', 'stock': 600, 'quantity': 0}]};
@@ -125,23 +126,25 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
     });
   }
 
-  vm.convert_customorder_to_actualorder = function() {
-    elem = {};
-    angular.copy(vm.model_data, elem);
-    elem['warehouse_data'] = JSON.stringify(vm.warehouse_data);
-    vm.service.apiCall('convert_customorder_to_actualorder/', 'POST', elem).then(function(data){
-      if(data.data.msg == 'Success'){
-        $modalInstance.close();
-        Service.showNoty('Order Placed Successfully');
-      }else{
-        Service.showNoty(data.data, 'warning');
-      }
-    })
+  vm.convert_customorder_to_actualorder = function(form) {
+    if(form.valid) {
+      elem = {};
+      angular.copy(vm.model_data, elem);
+      elem['warehouse_data'] = JSON.stringify(vm.warehouse_data);
+      vm.service.apiCall('convert_customorder_to_actualorder/', 'POST', elem).then(function(data){
+        if(data.data.msg == 'Success'){
+          $modalInstance.close();
+          Service.showNoty('Order Placed Successfully');
+        }else{
+          Service.showNoty(data.data, 'warning');
+        }
+      })
+    }
   }
 
   vm.convert_customorder_to_enquiryorder = function() {
-  elem = {};
-  angular.copy(vm.model_data, elem);
+    elem = {};
+    angular.copy(vm.model_data, elem);
     vm.service.apiCall('convert_customorder_to_enquiryorder/', 'POST', elem).then(function(data){
         if(data.data.msg == 'Success'){
           $modalInstance.close();
@@ -286,8 +289,8 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
     });
   }
 
+  vm.tot_quantity = 0;
   vm.getDetails = function() {
-
     vm.loading = true;
     console.log(Session);
     Service.apiCall(url, "GET", vm.model_data).then(function(data){
@@ -296,6 +299,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
         console.log(data.data);
         vm.order_details = data.data;
         vm.warehouse_data = vm.order_details.wh_stock_dict;
+        vm.tot_quantity = vm.order_details.order.quantity;
         if(vm.order_details.order.status == "confirm_order" || vm.order_details.order.status == 'hold_order'){
             vm.model_data.confirmed_price = vm.order_details.data[vm.order_details.data.length - 1].ask_price;
         }
@@ -314,6 +318,21 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
   vm.ok = function() {
 
     $modalInstance.close();
+  }
+
+  vm.cal_wh_qty = function(wh_data, data){
+    if (vm.tot_quantity) {
+      var tem_total_qty = 0;
+      angular.forEach(data, function(level_data){
+        tem_total_qty += Number(level_data.quantity);
+      });
+      if (tem_total_qty > vm.tot_quantity) {
+        wh_data.quantity = 0;
+        Service.showNoty("You are already reached available(<b>"+vm.tot_quantity+"</b>) quantity");
+      }
+    } else {
+      Service.showNoty("You don't have quantity to place order");
+    }
   }
 };
 

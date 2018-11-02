@@ -196,7 +196,7 @@
         </div>
         <div class="col-md-12 text-center mb10" ng-hide="order.save">
           <button type='submit' class="btn btn-success" ng-if="!order.edit_enable" ng-click="order.edit_enable = true; order.clear_flag=false;">Edit</button>
-          <button type='submit' class="btn btn-success" ng-if="order.edit_enable" ng-click="order.clear()">clear</button>
+          <button type='submit' class="btn btn-success" ng-if="order.edit_enable" ng-click="order.clear()">Clear</button>
           <button type='submit' class="btn btn-success" ng-if="order.edit_enable" ng-click="order.edit(form)">Notify HO</button>
           <button type='submit' class="btn btn-primary" ng-if="order.order_details.order.status=='approved'" ng-click="order.accept_or_hold()">Accept</button>
           <!-- <button type='submit' class="btn btn-primary" ng-click="order.accept_or_hold()">Accept</button> -->

@@ -76,6 +76,7 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
     vm.disable_btn = true;
     vm.model_data['user_id'] = Session.userId;
     vm.model_data['enquiry_id'] = vm.order_details.order.enquiry_id;
+    vm.model_data['status'] = 'marketing_pending';
     Service.apiCall('save_manual_enquiry_data/', 'POST', vm.model_data).then(function(data) {
       if (data.message) {
         if (data.data == 'Success') {

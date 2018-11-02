@@ -11891,7 +11891,7 @@ def convert_customorder_to_actualorder(request, user=''):
                     wh_user_obj = User.objects.get(username=warehouse['warehouse'])
                     stock_wh_map[wh_user_obj.id] = float(warehouse['quantity'])
     except:
-        pass
+        return HttpResponse('Something Went Wrong')
     resp = {'msg': 'Success', 'data': []}
     smd_price = request.POST.get('sm_d_price', '')
     if smd_price:

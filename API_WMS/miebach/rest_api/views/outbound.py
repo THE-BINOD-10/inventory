@@ -1189,7 +1189,6 @@ def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
 
 
 def insert_st_order_serial(picklist, val, order='', shipped_orders_dict={}):
-    import pdb;pdb.set_trace()
     imei_nos = val['imei']
     user_id = None
     for imei in imei_nos:
@@ -1213,8 +1212,8 @@ def insert_st_order_serial(picklist, val, order='', shipped_orders_dict={}):
         sor_id = ''
         seller_id = ''
         if imei and po_mapping:
-            order_mapping = {'stockorder_id': order_id.stock_transfer, 'po_imei_id': po_mapping[0].id, 'imei_number': '',
-                             'sku_id': sku_id}
+            order_mapping = {'po_imei_id': po_mapping[0].id, 'imei_number': '',
+                             'sku_id': sku_id, 'stock_transfer': order.stock_transfer}
             if po_mapping[0].seller_id:
                 seller_id = po_mapping[0].seller_id
                 seller_order_obj = all_seller_orders.filter(order_id=order_id, seller_id=seller_id)
@@ -1229,6 +1228,7 @@ def insert_st_order_serial(picklist, val, order='', shipped_orders_dict={}):
                 po_imei = order_mapping_ins[0].po_imei
             else:
                 order_mapping['sor_id'] = sor_id
+                order_mapping['stock_transfer'] = order.stock_transfer
                 if seller_id:
                     order_mapping['seller_id'] = seller_id
                 imei_mapping = OrderIMEIMapping(**order_mapping)
@@ -1239,7 +1239,8 @@ def insert_st_order_serial(picklist, val, order='', shipped_orders_dict={}):
                 po_imei.status = 0
                 po_imei.save()
         elif imei and not po_mapping:
-            order_mapping = {'order_id': order_id.stock_transfer, 'po_imei_id': None, 'imei_number': imei, 'sor_id': sor_id}
+            order_mapping = {'order_id': order_id.stock_transfer, 'po_imei_id': None, 'imei_number': imei, 
+            'sor_id': sor_id, 'stock_transfer': order.stock_transfer}
             if seller_id:
                 order_mapping['seller_id'] = seller_id
             imei_mapping = OrderIMEIMapping(**order_mapping)
@@ -2771,7 +2772,6 @@ def check_imei(request, user=''):
     groupby = request.GET.get('groupby', '')
     log.info('Request params for Check IMEI ' + user.username + ' is ' + str(request.GET.dict()))
     shipping_quantity = 0
-
     try:
         for key, value in request.GET.iteritems():
             if key in ['is_shipment', 'order_id', 'groupby', 'is_rm_picklist']:
@@ -2801,6 +2801,7 @@ def check_imei(request, user=''):
                 sku_code = po_mapping[0].sku.sku_code
             if not po_mapping:
                 status = str(value) + ' is invalid Imei number'
+
             order_mapping = OrderIMEIMapping.objects.filter(po_imei__imei_number=value, sku__user=user.id, status=1)
             if order_mapping:
                 if order_mapping[0].order:
@@ -5331,7 +5332,6 @@ def insert_st_shipment_info(request, user=''):
         log.info('Create shipment failed for params ' + str(request.POST.dict()) + ' error statement is ' + str(e))
         return HttpResponse('Create shipment Failed')
     try:
-        #import pdb;pdb.set_trace()
         sku_data_eval = len(myDict['sku_data'])
         if sku_data_eval:
             all_sku_data = eval(myDict['sku_data'][0])
@@ -12558,7 +12558,6 @@ def create_orders_check_ean(request, user=''):
     data = {}
     sku_code = ''
     ean = request.GET.get('ean')
-    import pdb;pdb.set_trace()
     try:
         sku_obj = SKUMaster.objects.filter(Q(ean_number=ean) | Q(eannumbers__ean_number=ean) | Q(sku_code=ean), user=user.id)
         if sku_obj:
@@ -13151,7 +13150,6 @@ def do_delegate_orders(request, user=''):
         reserved_obj_dict, raw_reserved_dict = {}, {}
         interm_obj_filter = IntermediateOrders.objects.filter(id=obj_data['interm_det_id'], user=user.id)
         interm_obj = interm_obj_filter[0]
-        import pdb;pdb.set_trace()
         warehouses = UserGroups.objects.filter(admin_user_id=interm_obj.user, user__username=interm_obj.order_assigned_wh.username)
         wh_users = warehouses.values_list('user_id', flat=True)
         warehouse_names = warehouses.values_list('user__username', flat=True)
@@ -13398,7 +13396,6 @@ def do_delegate_orders(request, user=''):
                         interm_obj.status = 1
                         interm_obj.save()
                     """
-                    import pdb;pdb.set_trace()
                     tax_percentage = float(interm_obj.sgst_tax) + float(interm_obj.igst_tax) + float(interm_obj.cgst_tax)
                     tax_value = (inv_amt / 100) * tax_percentage
                     cust_ord_dict = {'order_id': ord_obj.id, 'sgst_tax': interm_obj.sgst_tax,

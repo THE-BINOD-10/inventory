@@ -129,7 +129,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
   }
 
   vm.convert_customorder_to_actualorder = function(form) {
-    if(form.valid) {
+    if(form.$valid) {
       elem = {};
       angular.copy(vm.model_data, elem);
       elem['enq_status'] = 'order_placed';

@@ -7678,7 +7678,7 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
                           filters={}, user_dict={}):
     un_sort_dict = {7: 'Status'}
     lis = ['', 'interm_order_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'shipment_date', 'project_name', 'remarks',
-           'order_assigned_wh__username', 'id']
+           'order_assigned_wh__username', 'id','creation_date']
     data_dict = {'user': user.id, 'quantity__gt': 0}
     status_map = {'1': 'Accept', '0': 'Reject'}
     order_data = lis[col_num]
@@ -7689,7 +7689,7 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
         all_orders = interm_orders.filter(Q(sku__sku_code__icontains=search_term) | Q(sku__sku_desc__icontains=search_term)|
                                             Q(quantity__icontains=search_term) | Q(shipment_date__regex=search_term)|
                                             Q(project_name__icontains=search_term) | Q(order_assigned_wh__username__icontains=search_term)|
-                                            Q(interm_order_id__icontains=search_term)).order_by(order_data)
+                                            Q(interm_order_id__icontains=search_term)|Q(creation_date__regex=search_term)).order_by(order_data)
     else:
         all_orders = interm_orders.order_by(order_data)
     temp_data['recordsTotal'] = all_orders.count()
@@ -7701,6 +7701,7 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
         if stop_index:
             all_orders = all_orders[start_index:stop_index]
     for dat in all_orders[start_index:stop_index]:
+        order_date = get_local_date(user, dat.creation_date)
         order_id = int(dat.interm_order_id)
         if dat.order_assigned_wh:
             wh_name = dat.order_assigned_wh.username
@@ -7715,12 +7716,12 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
             OrderedDict((('Order ID', order_id), ('SKU Code', dat.sku.sku_code), ('SKU Desc', dat.sku.sku_desc),
                          ('Product Quantity', dat.quantity), ('Shipment Date', shipment_date), ('data_id', dat.id),
                          ('Project Name', dat.project_name), ('Remarks', dat.remarks),
-                         ('Warehouse', wh_name), ('Status', status),
+                         ('Warehouse', wh_name), ('Status', status),('Order Date',order_date),
                          ('id', index), ('DT_RowClass', 'results'))))
         index += 1
 
     col_headers = ['Order ID', 'SKU Code', 'SKU Desc', 'Product Quantity', 'Shipment Date', 'Project Name', 'Remarks',
-                   'Warehouse', 'Status']
+                   'Warehouse', 'Status','Order Date']
 
     if custom_sort:
         temp_data['aaData'] = apply_search_sort(col_headers, temp_data['aaData'], order_term, search_term, col_num)[start_index:stop_index]

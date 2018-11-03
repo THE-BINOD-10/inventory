@@ -11838,7 +11838,12 @@ def request_manual_enquiry_approval(request, user=''):
 
     contents = {"en": contents_msg}
     users_list.append(enq_data[0].user_id)
-    send_push_notification(contents, list(set(users_list)))
+    try:
+        send_push_notification(contents, list(set(users_list)))
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Send Push Notification failed and error message is %s" % str(e))
     return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
 
 

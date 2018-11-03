@@ -5198,7 +5198,6 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
     order_mapping = get_order_mapping(reader, file_type)
     if not order_mapping:
         return "Headers not matching"
-    import pdb;pdb.set_trace()
     count = 0
     exclude_rows = []
     sku_masters_dict = {}
@@ -5380,7 +5379,6 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                 key_value = float(get_cell_data(row_idx, value, reader, file_type))
                 create_order_fields_entry(interm_order_id, key, key_value, user)
             elif key == 'location':
-                import pdb;pdb.set_trace()
                 try:
                     value = str(int(get_cell_data(row_idx, value, reader, file_type)))
                 except:
@@ -5405,7 +5403,6 @@ def central_order_upload(request, user=''):
     try:
         fname = request.FILES['files']
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
-        import pdb;pdb.set_trace()
         if ex_status:
             return HttpResponse(ex_status)
         if user.username == 'one_assist':

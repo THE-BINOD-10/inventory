@@ -76,7 +76,7 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
     vm.disable_btn = true;
     vm.model_data['user_id'] = Session.userId;
     vm.model_data['enquiry_id'] = vm.order_details.order.enquiry_id;
-    vm.model_data['status'] = 'marketing_pending';
+    vm.model_data['enq_status'] = 'marketing_pending';
     Service.apiCall('save_manual_enquiry_data/', 'POST', vm.model_data).then(function(data) {
       if (data.message) {
         if (data.data == 'Success') {
@@ -117,10 +117,10 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
               // var elem = {'order_id': vm.order_id, 'uploaded_po': vm.upload_file_name};
               var elem = {'order_id': vm.order_id};
               if(isConfirm){
-                  elem['status'] = 'confirm_order'
+                  elem['enq_status'] = 'confirm_order'
               }else{
-                  // elem['status'] = 'hold_order'
-                  elem['status'] = 'stock_blocked'
+                  elem['enq_status'] = 'hold_order'
+                  // elem['status'] = 'stock_blocked'
               }
               elem['po_number'] = vm.po_number_header;
               // var formData = new FormData();

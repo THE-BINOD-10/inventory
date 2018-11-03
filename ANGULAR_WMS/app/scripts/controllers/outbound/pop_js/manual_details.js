@@ -27,7 +27,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
       return false;
     }
     vm.disable_btn = true;
-    vm.model_data['status'] = 'reseller_pending';
+    vm.model_data['enq_status'] = 'reseller_pending';
     Service.apiCall('save_manual_enquiry_data/', 'POST', vm.model_data).then(function(data) {
       if (data.message) {
         if (data.data == 'Success') {
@@ -113,8 +113,8 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
     vm.disable_btn = true;
     var designer_elems = {};
     angular.copy(vm.model_data, designer_elems);
-    designer_elems['enq_status'] = 'pending_artwork';
-    designer_elems['status'] = 'design_pending';
+    // designer_elems['enq_status'] = 'pending_artwork';
+    designer_elems['enq_status'] = 'design_pending';
     vm.service.apiCall('notify_designer/', 'POST', designer_elems).then(function(data) {
       if (data.message) {
         if (data.data == 'Success') {
@@ -132,7 +132,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
     if(form.valid) {
       elem = {};
       angular.copy(vm.model_data, elem);
-      elem['status'] = 'order_placed';
+      elem['enq_status'] = 'order_placed';
       elem['warehouse_data'] = JSON.stringify(vm.warehouse_data);
       vm.service.apiCall('convert_customorder_to_actualorder/', 'POST', elem).then(function(data){
         if(data.data.msg == 'Success'){
@@ -148,7 +148,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
   vm.convert_customorder_to_enquiryorder = function() {
     elem = {};
     angular.copy(vm.model_data, elem);
-    elem['status'] = 'new_order';
+    // elem['status'] = 'new_order';
     vm.service.apiCall('convert_customorder_to_enquiryorder/', 'POST', elem).then(function(data){
         if(data.data.msg == 'Success'){
           $modalInstance.close();
@@ -166,7 +166,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
     }
     var data = {};
     angular.copy(vm.model_data, data);
-    data['status'] = "artwork_submitted";
+    data['enq_status'] = "artwork_submitted";
     vm.disable_btn = true;
     Service.apiCall('request_manual_enquiry_approval/', 'POST', data).then(function(data) {
       if (data.message) {
@@ -215,7 +215,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
     vm.disable_btn = true;
     var data = {};
     angular.copy(vm.model_data, data);
-    data['status'] = "pending_approval";
+    data['enq_status'] = "pending_approval";
     Service.apiCall('request_manual_enquiry_approval/', 'POST', data).then(function(data) {
       if (data.message) {
         if (data.data.msg == 'Success') {
@@ -246,7 +246,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
       }
     }
     angular.copy(vm.model_data, data);
-    data['status'] = "approved";
+    data['enq_status'] = "approved";
     vm.disable_btn = true;
     Service.apiCall('request_manual_enquiry_approval/', 'POST', data).then(function(data) {
       if (data.message) {
@@ -304,7 +304,8 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
         vm.order_details = data.data;
         vm.warehouse_data = vm.order_details.wh_stock_dict;
         vm.tot_quantity = vm.order_details.order.quantity;
-        if(vm.order_details.order.status == "confirm_order" || vm.order_details.order.status == 'hold_order'){
+        // if(vm.order_details.order.status == "confirm_order" || vm.order_details.order.status == 'hold_order'){
+        if(vm.order_details.order.enq_status == "confirm_order" || vm.order_details.order.enq_status == 'hold_order'){
             vm.model_data.confirmed_price = vm.order_details.data[vm.order_details.data.length - 1].ask_price;
         }
         if(vm.order_details.enq_details.expected_date && vm.model_data.from == 'pending_approval') {

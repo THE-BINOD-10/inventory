@@ -119,7 +119,8 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
               if(isConfirm){
                   elem['status'] = 'confirm_order'
               }else{
-                  elem['status'] = 'hold_order'
+                  // elem['status'] = 'hold_order'
+                  elem['status'] = 'stock_blocked'
               }
               elem['po_number'] = vm.po_number_header;
               // var formData = new FormData();

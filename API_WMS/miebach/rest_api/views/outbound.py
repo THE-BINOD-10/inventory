@@ -231,7 +231,7 @@ def get_stock_transfer_orders(start_index, stop_index, temp_data, search_term, o
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     count = 0
-    import pdb;pdb.set_trace()
+    #import pdb;pdb.set_trace()
     for data in master_data[start_index:stop_index]:
         checkbox = '<input type="checkbox" name="id" value="%s">' % data.id
         w_user = User.objects.get(id=data.st_po.open_st.sku.user)
@@ -1120,7 +1120,7 @@ def validate_location_stock(val, all_locations, all_skus, user, picklist):
 
 
 def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
-    import pdb;pdb.set_trace()
+    #import pdb;pdb.set_trace()
     if ',' in val['imei']:
         imei_nos = list(set(val['imei'].split(',')))
     else:
@@ -2685,8 +2685,8 @@ def get_customer_sku(request, user=''):
         return HttpResponse(json.dumps({'data': data,
                                         'shipment_id': '',
                                         'display_fields': '',
-                                        'marketplace': '', 
-                                        'shipment_number': ship_no, 
+                                        'marketplace': '',
+                                        'shipment_number': ship_no,
                                         'courier_name': courier_name}, cls=DjangoJSONEncoder))
     return HttpResponse(json.dumps({'status': 'No Orders found'}))
 
@@ -4885,7 +4885,7 @@ def create_stock_transfer(request, user=''):
     warehouse = User.objects.get(username=warehouse_name)
     f_name = 'stock_transfer_' + warehouse_name + '_'
     status = validate_st(all_data, warehouse)
-    import pdb;pdb.set_trace()
+     #import pdb;pdb.set_trace()
     if not status:
         all_data = insert_st(all_data, warehouse)
         status = confirm_stock_transfer(all_data, warehouse, user.username)
@@ -5244,7 +5244,7 @@ def insert_shipment_info(request, user=''):
         log.info(
             'Shipment info saving is failed for params ' + str(request.POST.dict()) + ' error statement is ' + str(e))
     if user.username == "one_assist":
-        final_data = {'customer_name': customers_name, 'product_make': ' ', 
+        final_data = {'customer_name': customers_name, 'product_make': ' ',
                      'product_model': ' ', 'imei': ' ', 'date': ' '}
         if final_data:
             return render(request, 'templates/toggle/order_shipment_confirmation_form.html', final_data)
@@ -5266,7 +5266,7 @@ def insert_st_shipment_info(request, user=''):
         log.info('Create shipment failed for params ' + str(request.POST.dict()) + ' error statement is ' + str(e))
         return HttpResponse('Create shipment Failed')
     try:
-        import pdb;pdb.set_trace()
+        #import pdb;pdb.set_trace()
         all_sku_data = eval(myDict['sku_data'][0])
         shipped_orders_dict = {}
         for i in range(0, len(all_sku_data)):
@@ -6548,10 +6548,15 @@ def get_seller_order_details(request, user=''):
 @get_admin_user
 def get_view_order_details(request, user=''):
     view_order_status, check_ord_status = get_view_order_statuses(request, user)
-
     data_dict = []
     main_id = request.GET.get('order_id', '')
+
     row_id = request.GET.get('id', '')
+    try :
+        intermediate_object  = IntermediateOrders.objects.get(order_id=row_id)
+        project_name = intermediate_object.project_name
+    except:
+        project_name = "empty"
     sor_id = request.GET.get('sor_id', '')
 
     supplier_status, supplier_user, supplier, supplier_parent = get_supplier_info(request)
@@ -6701,6 +6706,7 @@ def get_view_order_details(request, user=''):
              'state': state, 'pin': pin, 'shipment_date': str(shipment_date), 'item_code': sku_code,
              'order_id': order_id,
              'image_url': one_order.sku.image_url, 'market_place': one_order.marketplace,
+             'project_name':project_name,
              'order_id_code': one_order.order_code + str(one_order.order_id),
              'print_vendor': vend_dict['printing_vendor'],
              'embroidery_vendor': vend_dict['embroidery_vendor'], 'production_unit': vend_dict['production_unit'],
@@ -7491,7 +7497,7 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
 
         temp_data['aaData'].append(OrderedDict((('', checkbox), ('Customer Name', dat['customer_name']),
                                                 ('Order ID', order_id), ('Market Place', dat['marketplace']),
-                                                ('Total Quantity', tot_quantity), ('Address', dat['address']), 
+                                                ('Total Quantity', tot_quantity), ('Address', dat['address']),
                                                 ('Creation Date', creation_data),
                                                 ('Shipment Date', shipment_data), ('Order Taken By', order_taken_val),
                                                 ('Status', cust_status), ('id', index), ('DT_RowClass', 'results'),
@@ -12491,7 +12497,7 @@ def create_orders_check_ean(request, user=''):
     data = {}
     sku_code = ''
     ean = request.GET.get('ean')
-    import pdb;pdb.set_trace()
+    #import pdb;pdb.set_trace()
     try:
         sku_obj = SKUMaster.objects.filter(Q(ean_number=ean) | Q(eannumbers__ean_number=ean) | Q(sku_code=ean), user=user.id)
         if sku_obj:
@@ -13024,8 +13030,8 @@ def get_stock_transfer_shipment_popup_data(request, user=''):
             stock_transfer_obj = stock_transfer_obj.values()
         '''
         {'status': 2L, u'sku_id': 149723L, 'updation_date': datetime.datetime(2017, 2, 27, 11, 5, 22, tzinfo=<UTC>),
-        'order_id': 1008L, u'st_po_id': 24L, 'creation_date': datetime.datetime(2017, 2, 27, 9, 38, 44, tzinfo=<UTC>), 
-        'shipment_date': datetime.datetime(2017, 2, 27, 9, 38, 44, tzinfo=<UTC>), 'invoice_amount': 0.0, 
+        'order_id': 1008L, u'st_po_id': 24L, 'creation_date': datetime.datetime(2017, 2, 27, 9, 38, 44, tzinfo=<UTC>),
+        'shipment_date': datetime.datetime(2017, 2, 27, 9, 38, 44, tzinfo=<UTC>), 'invoice_amount': 0.0,
         'id': 24L, 'quantity': 1.0}
         '''
         for obj in stock_transfer_obj:
@@ -13042,7 +13048,7 @@ def get_stock_transfer_shipment_popup_data(request, user=''):
             order_id_val = order_ids
             order_id_search = ''.join(re.findall('\d+', order_id_val))
             order_code_search = ''.join(re.findall('\D+', order_id_val))
-            fil_ids = list(OrderDetail.objects.filter(Q(order_id=order_id_search, 
+            fil_ids = list(OrderDetail.objects.filter(Q(order_id=order_id_search,
                 order_code=order_code_search) | Q(original_order_id=order_id_val),
                 user=user.id).values_list('id', flat=True))
             filter_order_ids = list(chain(filter_order_ids, fil_ids))
@@ -13059,8 +13065,8 @@ def get_stock_transfer_shipment_popup_data(request, user=''):
         return HttpResponse(json.dumps({'data': data,
                                         'shipment_id': '',
                                         'display_fields': '',
-                                        'marketplace': '', 
-                                        'shipment_number': ship_no, 
+                                        'marketplace': '',
+                                        'shipment_number': ship_no,
                                         'courier_name': ''}, cls=DjangoJSONEncoder))
     return HttpResponse(json.dumps({'status': 'No Orders found'}))
 
@@ -13267,8 +13273,8 @@ def do_delegate_orders(request, user=''):
                     order_code_value = ''.join(re.findall('\D+', original_order_id))
                     order_dict['order_id'] = order_id_value
                     order_dict['order_code'] = order_code_value
-                    get_existing_order = OrderDetail.objects.filter(**{'status': 1, 'sku_id': sku_id, 
-                        'sku_code': interm_obj.sku.sku_code, 'original_order_id': original_order_id, 
+                    get_existing_order = OrderDetail.objects.filter(**{'status': 1, 'sku_id': sku_id,
+                        'sku_code': interm_obj.sku.sku_code, 'original_order_id': original_order_id,
                         'user': wh_id})
                     if get_existing_order:
                         get_existing_order = get_existing_order[0]
@@ -13330,12 +13336,12 @@ def do_delegate_orders(request, user=''):
                         interm_obj.status = 1
                         interm_obj.save()
                     """
-                    cust_ord_dict = {'order_id': ord_obj.id, 'sgst_tax': interm_obj.sgst_tax, 
+                    cust_ord_dict = {'order_id': ord_obj.id, 'sgst_tax': interm_obj.sgst_tax,
                                     'cgst_tax': interm_obj.cgst_tax, 'igst_tax': interm_obj.igst_tax,
                                     'vechile_number': ''}
                     CustomerOrderSummary.objects.create(**cust_ord_dict)
                     #mail to Admin and normal user
-                    central_orders_mail = MiscDetail.objects.filter(user=request.user.id, 
+                    central_orders_mail = MiscDetail.objects.filter(user=request.user.id,
                         misc_type='central_orders', misc_value='true')
                     if central_orders_mail:
                         if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':

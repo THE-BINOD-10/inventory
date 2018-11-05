@@ -42,7 +42,9 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
         console.log(data.data);
         vm.order_details = {}
         vm.order_details = data.data;
-        vm.client_name_header = data.data.order.customer_name
+        if (data.data.order) {
+          vm.client_name_header = data.data.order.customer_name
+        }
       }
       vm.loading = false;
     })

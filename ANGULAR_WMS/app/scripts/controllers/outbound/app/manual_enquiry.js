@@ -82,12 +82,12 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
   $ctrl.place = function(form) {
 
     if(form.$valid) {
-
-      console.log($ctrl);
-
       var formData = new FormData();
       var el = $("#image-upload");
-      var files = el[0].files;
+      debugger
+      if (el.length) {
+        var files = el[0].files;
+      }
 
       $.each(files, function(i, file) {
         formData.append('po_file', file);

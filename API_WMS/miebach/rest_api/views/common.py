@@ -8222,3 +8222,11 @@ def create_update_table_history(user, model_id, model_name, model_field, prev_va
         TableUpdateHistory.objects.create(user_id=user.id, model_id=model_id,
                                          model_name=model_name, model_field=model_field,
                                          previous_val=prev_val, updated_val=new_val)
+
+def get_customer_parent_user(user):
+    parent_user = None
+    cus_user_mapping = CustomerUserMapping.objects.filter(user_id=user.id)
+    if cus_user_mapping.exists():
+        parent_user_id = cus_user_mapping[0].customer.user
+        parent_user = User.objects.get(id=parent_user_id)
+    return parent_user

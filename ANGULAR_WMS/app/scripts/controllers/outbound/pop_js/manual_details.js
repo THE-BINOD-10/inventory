@@ -8,7 +8,9 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
   vm.save = true;
   vm.date = new Date();
   vm.edit_enable = true;
+  vm.tot_quantity = 0;
 
+  vm.warehouse_data = {};
   // vm.warehouse_data = {'L1': [{'warehouse': 'DL01', 'stock': 500, 'quantity': 0},{'warehouse': 'DL02', 'stock': 600, 'quantity': 0}], 'L3': [{'warehouse': 'DL01', 'stock': 500, 'quantity': 0},{'warehouse': 'DL02', 'stock': 600, 'quantity': 0}]};
 
   vm.loading = false;
@@ -25,6 +27,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
       return false;
     }
     vm.disable_btn = true;
+    vm.model_data['enq_status'] = 'reseller_pending';
     Service.apiCall('save_manual_enquiry_data/', 'POST', vm.model_data).then(function(data) {
       if (data.message) {
         if (data.data == 'Success') {
@@ -110,7 +113,8 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
     vm.disable_btn = true;
     var designer_elems = {};
     angular.copy(vm.model_data, designer_elems);
-    designer_elems['enq_status'] = 'pending_artwork';
+    // designer_elems['enq_status'] = 'pending_artwork';
+    designer_elems['enq_status'] = 'design_pending';
     vm.service.apiCall('notify_designer/', 'POST', designer_elems).then(function(data) {
       if (data.message) {
         if (data.data == 'Success') {
@@ -124,22 +128,27 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
     });
   }
 
-  vm.convert_customorder_to_actualorder = function() {
-  elem = {};
-  angular.copy(vm.model_data, elem);
-    vm.service.apiCall('convert_customorder_to_actualorder/', 'POST', elem).then(function(data){
+  vm.convert_customorder_to_actualorder = function(form) {
+    if(form.$valid) {
+      elem = {};
+      angular.copy(vm.model_data, elem);
+      elem['enq_status'] = 'order_placed';
+      elem['warehouse_data'] = JSON.stringify(vm.warehouse_data);
+      vm.service.apiCall('convert_customorder_to_actualorder/', 'POST', elem).then(function(data){
         if(data.data.msg == 'Success'){
           $modalInstance.close();
           Service.showNoty('Order Placed Successfully');
         }else{
           Service.showNoty(data.data, 'warning');
         }
-    })
+      })
+    }
   }
 
   vm.convert_customorder_to_enquiryorder = function() {
-  elem = {};
-  angular.copy(vm.model_data, elem);
+    elem = {};
+    angular.copy(vm.model_data, elem);
+    // elem['status'] = 'new_order';
     vm.service.apiCall('convert_customorder_to_enquiryorder/', 'POST', elem).then(function(data){
         if(data.data.msg == 'Success'){
           $modalInstance.close();
@@ -157,7 +166,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
     }
     var data = {};
     angular.copy(vm.model_data, data);
-    data['status'] = "artwork_submitted";
+    data['enq_status'] = "artwork_submitted";
     vm.disable_btn = true;
     Service.apiCall('request_manual_enquiry_approval/', 'POST', data).then(function(data) {
       if (data.message) {
@@ -206,7 +215,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
     vm.disable_btn = true;
     var data = {};
     angular.copy(vm.model_data, data);
-    data['status'] = "pending_approval";
+    data['enq_status'] = "pending_approval";
     Service.apiCall('request_manual_enquiry_approval/', 'POST', data).then(function(data) {
       if (data.message) {
         if (data.data.msg == 'Success') {
@@ -237,7 +246,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
       }
     }
     angular.copy(vm.model_data, data);
-    data['status'] = "approved";
+    data['enq_status'] = "approved";
     vm.disable_btn = true;
     Service.apiCall('request_manual_enquiry_approval/', 'POST', data).then(function(data) {
       if (data.message) {
@@ -269,9 +278,9 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
       }
     }
     angular.copy(vm.model_data, data);
-    data['status'] = "approved";
+    data['admin_remarks'] = "true";
     vm.disable_btn = true;
-    Service.apiCall('request_manual_enquiry_send_remarks/', 'POST', data).then(function(data) {
+    Service.apiCall('save_manual_enquiry_data/', 'POST', data).then(function(data) {
       if (data.message) {
         if (data.data.msg == 'Success') {
           $modalInstance.close();
@@ -284,8 +293,8 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
     });
   }
 
+  vm.tot_quantity = 0;
   vm.getDetails = function() {
-
     vm.loading = true;
     console.log(Session);
     Service.apiCall(url, "GET", vm.model_data).then(function(data){
@@ -293,7 +302,10 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
 
         console.log(data.data);
         vm.order_details = data.data;
-        if(vm.order_details.order.status == "confirm_order" || vm.order_details.order.status == 'hold_order'){
+        vm.warehouse_data = vm.order_details.wh_stock_dict;
+        vm.tot_quantity = vm.order_details.order.quantity;
+        // if(vm.order_details.order.status == "confirm_order" || vm.order_details.order.status == 'hold_order'){
+        if(vm.order_details.order.enq_status == "confirm_order" || vm.order_details.order.enq_status == 'hold_order'){
             vm.model_data.confirmed_price = vm.order_details.data[vm.order_details.data.length - 1].ask_price;
         }
         if(vm.order_details.enq_details.expected_date && vm.model_data.from == 'pending_approval') {
@@ -311,6 +323,21 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
   vm.ok = function() {
 
     $modalInstance.close();
+  }
+
+  vm.cal_wh_qty = function(wh_data, data){
+    if (vm.tot_quantity) {
+      var tem_total_qty = 0;
+      angular.forEach(data, function(level_data){
+        tem_total_qty += Number(level_data.quantity);
+      });
+      if (tem_total_qty > vm.tot_quantity) {
+        wh_data.quantity = 0;
+        Service.showNoty("You are already reached available(<b>"+vm.tot_quantity+"</b>) quantity");
+      }
+    } else {
+      Service.showNoty("You don't have quantity to place order");
+    }
   }
 };
 

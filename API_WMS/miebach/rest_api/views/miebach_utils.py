@@ -51,7 +51,8 @@ MANUAL_ENQUIRY_STATUS = {'new_order': 'New Order', 'marketing_pending': 'Marketi
                          'pending_approval': 'Admin Pending', 'reseller_pending': 'Reseller Pending',
                          'approved': 'Approved', 'confirm_order': 'Confirm Order', 'order_placed': 'Order Placed',
                          'confirmed_order': 'Confirmed Order', 'stock_blocked': 'Stock Blocked',
-                         'order_cancelled': 'Order Cancelled', 'order_closed': 'Order Closed'}
+                         'order_cancelled': 'Order Cancelled', 'order_closed': 'Order Closed',
+                         'artwork_submitted': 'ArtWork Submitted'}
 
 DECLARATIONS = {
     'default': 'We declare that this invoice shows actual price of the goods described inclusive of taxes and that all particulars are true and correct.',

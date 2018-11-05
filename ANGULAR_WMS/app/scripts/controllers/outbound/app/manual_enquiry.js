@@ -101,7 +101,8 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
       $.each($ctrl.model_data, function(key, value) {
         formData.append(key, value);
       });
-
+      formData.append('enq_status', 'new_order');
+      // formData['status'] = 'new_order';
       var remarks = "";
       angular.forEach($ctrl.custom_remarks, function(remark) {
 

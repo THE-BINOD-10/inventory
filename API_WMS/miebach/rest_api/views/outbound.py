@@ -11530,6 +11530,7 @@ def save_manual_enquiry_data(request, user=''):
     enquiry_id = request.POST.get('enquiry_id', '')
     user_id = request.POST.get('user_id', '')
     enq_status = request.POST.get('enq_status', '')
+    admin_remarks = request.POST.get('admin_remarks', '')
     if not enquiry_id or not user_id:
         return HttpResponse("Give information insufficient")
     filters = {'enquiry_id': float(enquiry_id), 'user': user_id}
@@ -11576,6 +11577,14 @@ def save_manual_enquiry_data(request, user=''):
         #     market_admin_user_id = market_admin_user_id[0]
         #     users_list.append(market_admin_user_id)
         users_list.append(admin_user.id)
+        if admin_remarks == 'true':
+            enq_user = manual_enq_data.enquiry.user
+            customer_user = get_customer_parent_user(enq_user)
+            temp_group = Group.objects.filter(name=user.username)
+            if temp_group and customer_user:
+                zone_user = temp_group[0].user_set.filter(userprofile__zone=customer_user.userprofile.zone)
+                if zone_user:
+                    users_list.append(zone_user[0].id)
     contents = {"en": "%s added remarks in custom order %s" % (request.user.username, manual_enq_data.enquiry.enquiry_id)}
     send_push_notification(contents, users_list)
     return HttpResponse("Success")
@@ -11621,6 +11630,7 @@ def get_manual_enquiry_orders(start_index, stop_index, temp_data, search_term, o
 @get_admin_user
 def get_manual_enquiry_detail(request, user=''):
     enquiry_id = request.GET.get('enquiry_id', '')
+    main_user = user
     user_id = request.GET.get('user_id', '')
     if not enquiry_id or not user_id:
         return HttpResponse("Give information insufficient")
@@ -11671,8 +11681,19 @@ def get_manual_enquiry_detail(request, user=''):
         if not far_wh_lt:
             far_wh_lt = 0
         far_wh_lt += res_lt
+    #Get L1, L3 level stocks data
+    wh_lists = get_sister_warehouse(main_user)
+    wh_users = User.objects.filter(id__in=wh_lists.values_list('user_id', flat=True))
+    wh_stock_list = []
+    l1_users = wh_users.filter(userprofile__warehouse_level=1)
+    for l1_user in l1_users:
+        wh_stock_list.append({'warehouse': l1_user.username, 'quantity': 0})
+    wh_stock_dict = {'L1': wh_stock_list}
+
     return HttpResponse(json.dumps({'data': enquiry_dict, 'style': style_dict, 'order': manual_eq_dict,\
-                                    'enq_details': enq_details, 'far_wh_leadtime': far_wh_lt}))
+                                    'enq_details': enq_details, 'far_wh_leadtime': far_wh_lt,
+                                    'wh_stock_dict': wh_stock_dict}))
+
 
 @csrf_exempt
 @login_required
@@ -11818,7 +11839,12 @@ def request_manual_enquiry_approval(request, user=''):
 
     contents = {"en": contents_msg}
     users_list.append(enq_data[0].user_id)
-    send_push_notification(contents, list(set(users_list)))
+    try:
+        send_push_notification(contents, list(set(users_list)))
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Send Push Notification failed and error message is %s" % str(e))
     return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
 
 
@@ -11829,6 +11855,7 @@ def confirm_or_hold_custom_order(request, user=''):
     resp = {'msg': 'Success', 'data': []}
     cust_order_id = request.POST.get('order_id')
     cust_order_status = request.POST.get('status')
+    cust_po_number = request.POST.get('po_number', '')
     ch_map = {'confirm_order': 'Confirmed the Order', 'hold_order': 'Requesting to Block the Stock'}
     try:
         cust_ord_qs = ManualEnquiry.objects.filter(user=request.user.id, enquiry_id=cust_order_id)
@@ -11839,6 +11866,7 @@ def confirm_or_hold_custom_order(request, user=''):
             if cust_ord_obj.status != 'approved':
                 return HttpResponse('Yet to be approved by Admin')
             cust_ord_obj.status = cust_order_status
+            cust_ord_obj.po_number = cust_po_number
             cust_ord_obj.save()
             users_list = []
             admin_user = get_priceband_admin_user(user)
@@ -11860,6 +11888,16 @@ def confirm_or_hold_custom_order(request, user=''):
 @login_required
 @get_admin_user
 def convert_customorder_to_actualorder(request, user=''):
+    stock_wh_map = {}
+    try:
+        warehouse_data = json.loads(request.POST['warehouse_data'])
+        for level, warehouse_list in warehouse_data.items():
+            for warehouse in warehouse_list:
+                if warehouse['quantity']:
+                    wh_user_obj = User.objects.get(username=warehouse['warehouse'])
+                    stock_wh_map[wh_user_obj.id] = float(warehouse['quantity'])
+    except:
+        return HttpResponse('Something Went Wrong')
     resp = {'msg': 'Success', 'data': []}
     smd_price = request.POST.get('sm_d_price', '')
     if smd_price:
@@ -11897,38 +11935,38 @@ def convert_customorder_to_actualorder(request, user=''):
     customer_name = cust_obj.customer.name
     dist_user_id = cust_obj.customer.user
     admin_user = get_priceband_admin_user(dist_user_id)
-    stock_wh_map = {}
-    source_whs = list(NetworkMaster.objects.filter(dest_location_code_id=dist_user_id).filter(
-        source_location_code__username__in=['DL01', 'MH01']).values_list(
-        'source_location_code_id', flat=True).order_by('lead_time', 'priority'))
-    pick_filter_map = {'picklist__order__user__in': source_whs, 'picklist__order__sku__wms_code': sku_code}
-    res_qtys = dict(PicklistLocation.objects.prefetch_related('picklist', 'stock').filter(status=1).filter(
-        **pick_filter_map).values_list('stock__sku__user').annotate(total=Sum('reserved')))
-    blocked_qtys = dict(EnquiredSku.objects.filter(sku__user__in=source_whs, sku_code=sku_code).filter(
-        ~Q(enquiry__extend_status='rejected')).values_list('sku__user', 'quantity'))
-    stk_dtl_obj = dict(StockDetail.objects.filter(
-        sku__user__in=source_whs, sku__wms_code=sku_code, quantity__gt=0).values_list(
-        'sku__user').distinct().annotate(in_stock=Sum('quantity')))
-    for source_wh in source_whs:
-        avail_stock = stk_dtl_obj.get(source_wh, 0)
-        res_stock = res_qtys.get(source_wh, 0)
-        blocked_stock = blocked_qtys.get(source_wh, 0)
-        if not res_stock:
-            res_stock = 0
-        if not blocked_stock:
-            blocked_stock = 0
-        avail_stock = avail_stock - res_stock - blocked_stock
-        if avail_stock <= 0:
-            continue
-        req_qty = req_stock - avail_stock
-        if req_qty < avail_stock and req_qty < 0:
-            stock_wh_map[source_wh] = avail_stock - abs(req_qty)
-            break
-        if req_qty >= 0:
-            stock_wh_map[source_wh] = avail_stock
-        else:
-            break
-        req_stock = req_qty
+
+    # source_whs = list(NetworkMaster.objects.filter(dest_location_code_id=dist_user_id).filter(
+    #     source_location_code__username__in=['DL01', 'MH01', 'KA02']).values_list(
+    #     'source_location_code_id', flat=True).order_by('lead_time', 'priority'))
+    # pick_filter_map = {'picklist__order__user__in': source_whs, 'picklist__order__sku__wms_code': sku_code}
+    # res_qtys = dict(PicklistLocation.objects.prefetch_related('picklist', 'stock').filter(status=1).filter(
+    #     **pick_filter_map).values_list('stock__sku__user').annotate(total=Sum('reserved')))
+    # blocked_qtys = dict(EnquiredSku.objects.filter(sku__user__in=source_whs, sku_code=sku_code).filter(
+    #     ~Q(enquiry__extend_status='rejected')).values_list('sku__user', 'quantity'))
+    # stk_dtl_obj = dict(StockDetail.objects.filter(
+    #     sku__user__in=source_whs, sku__wms_code=sku_code, quantity__gt=0).values_list(
+    #     'sku__user').distinct().annotate(in_stock=Sum('quantity')))
+    # for source_wh in source_whs:
+    #     avail_stock = stk_dtl_obj.get(source_wh, 0)
+    #     res_stock = res_qtys.get(source_wh, 0)
+    #     blocked_stock = blocked_qtys.get(source_wh, 0)
+    #     if not res_stock:
+    #         res_stock = 0
+    #     if not blocked_stock:
+    #         blocked_stock = 0
+    #     avail_stock = avail_stock - res_stock - blocked_stock
+    #     if avail_stock <= 0:
+    #         continue
+    #     req_qty = req_stock - avail_stock
+    #     if req_qty < avail_stock and req_qty < 0:
+    #         stock_wh_map[source_wh] = avail_stock - abs(req_qty)
+    #         break
+    #     if req_qty >= 0:
+    #         stock_wh_map[source_wh] = avail_stock
+    #     else:
+    #         break
+    #     req_stock = req_qty
 
     for usr, qty in stock_wh_map.items():
         if qty <= 0:
@@ -11942,7 +11980,8 @@ def convert_customorder_to_actualorder(request, user=''):
                              'original_order_id': org_ord_id, 'user': usr, 'customer_id': customer_id,
                              'customer_name': customer_name, 'shipment_date': exp_date,
                              'address': '', 'unit_price': smd_price, 'invoice_amount': invoice_amount,
-                             'creation_date': None, 'status': 1}
+                             'creation_date': datetime.datetime.now(), 'status': 1,
+                             'order_code': 'MN'}
         ord_qs = OrderDetail.objects.filter(sku_id=mapped_sku_id, order_id=order_id, user=usr)
         if not ord_qs:
             ord_obj = OrderDetail(**order_detail_dict)
@@ -11953,7 +11992,7 @@ def convert_customorder_to_actualorder(request, user=''):
             ord_obj.save()
 
         generic_order_id = get_generic_order_id(cm_id)
-        corporate_po_number = 0  # No PO Number
+        corporate_po_number = enq_obj.po_number
         create_grouping_order_for_generic(generic_order_id, ord_obj, cm_id, usr, quantity, corporate_po_number,
                                           corp_name, ask_price, ask_price, exp_date)
         usr_sku_master = SKUMaster.objects.filter(user=usr, sku_code=sku_code)

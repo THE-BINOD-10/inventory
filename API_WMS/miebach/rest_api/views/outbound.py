@@ -11477,6 +11477,7 @@ def place_manual_order(request, user=''):
         elif key == 'quantity':
             value = int(value)
         manual_enquiry[key] = value
+    manual_enquiry['status'] = 'new_order'
     for key, value in MANUAL_ENQUIRY_DETAILS_DICT.iteritems():
         value = request.POST.get(key, '')
         if key == 'ask_price' and manual_enquiry['customization_type'] == 'product_custom':
@@ -11513,9 +11514,14 @@ def place_manual_order(request, user=''):
         Q(userprofile__warehouse_type='SM_PURCHASE_ADMIN')).values_list('id', flat=True)
     if purchase_admin_user_id:
         purchase_admin_user_id = purchase_admin_user_id[0]
-    cont_vals = (request.user.first_name, enq_data.enquiry_id, enq_data.sku.sku_code)
-    contents = {"en": "%s placed a custom order %s for SKU %s" % cont_vals}
+    cont_vals = (request.user.username, request.user.first_name, str(enq_data.enquiry_id), str(enq_data.quantity),
+                 str(enq_data.sku.sku_code), enq_data.customer_name)
+    contents = {"en": "%s-%s placed a custom order %s of %s Pcs %s for %s" % cont_vals}
     users_list = [user.id, admin_user.id, purchase_admin_user_id]
+    marketing_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
+        Q(userprofile__zone=user.userprofile.zone)).values_list('id', flat=True)
+    if marketing_admin_user_id:
+        users_list.append(marketing_admin_user_id[0])
     send_push_notification(contents, users_list)
     if request.FILES.get('po_file', ''):
         save_manual_enquiry_images(request, enq_data)
@@ -11584,9 +11590,20 @@ def save_manual_enquiry_data(request, user=''):
                 zone_user = temp_group[0].user_set.filter(userprofile__zone=customer_user.userprofile.zone)
                 if zone_user:
                     users_list.append(zone_user[0].id)
-    contents = {"en": "%s added remarks in custom order %s" % (request.user.username, manual_enq_data.enquiry.enquiry_id)}
-    send_push_notification(contents, users_list)
+    if enq_status == 'reseller_pending':
+        users_list.append(manual_enq_data.enquiry.user.id)
+    else:
+        # Adding Zonal Admin for every status update
+        marketing_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
+            Q(userprofile__zone=user.userprofile.zone)).values_list('id', flat=True)
+        if marketing_admin_user_id:
+            users_list.append(marketing_admin_user_id[0])
+    custom_message = "%s updated status" % (request.user.first_name)
+    message_content = prepare_notification_message(manual_enq_data.enquiry, custom_message)
+    contents = {"en": message_content}
+    send_push_notification(contents, list(set(users_list)))
     return HttpResponse("Success")
+
 
 @csrf_exempt
 def get_manual_enquiry_orders(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,

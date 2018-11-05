@@ -27,7 +27,7 @@ input[type="date"]:valid::before {
               </div>
               <div class="col-md-6 col-sm-6 col-xs-6">
                 <span class="label pull-right text-uppercase"
-                ng-class="(orders.getStatus(order.total_quantity, order.picked_quantity, order.status) == 'Open')? 'label-danger': 
+                ng-class="(orders.getStatus(order.total_quantity, order.picked_quantity, order.status) == 'Open')? 'label-danger':
                           (orders.getStatus(order.total_quantity, order.picked_quantity, order.status) == 'Dispatched')? 'label-success':
                           'label-danger';" style="font-size: 12px;">
                 {{orders.getStatus(order.total_quantity, order.picked_quantity, order.status)}}</span>
@@ -116,7 +116,7 @@ input[type="date"]:valid::before {
                   <input name="extended_date" ui-jq="datepicker" ng-click="$event.stopPropagation()" ng-model="order.extended_date" placeholder="Select Date" class="form-control stk-readonly" type="text" id="extended_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{orders.date}}" readonly="true" style="height: 26px">
                   <input type="hidden" name="order_id" value="{{order.order_id}}">
                 </div>
-                
+
                 <div class="widget-details col-xs-2">
                   <button type='button' class="btn btn-primary" style="min-width: 75px;height: 26px;padding: 2px 5px;" ng-click="orders.confirm_to_extend(order, form); $event.stopPropagation()">Save</button>
                 </div>
@@ -135,13 +135,17 @@ input[type="date"]:valid::before {
                 <div class="widget-details col-xs-2 text-left">
                   <small class="order-label">Enquiry Date</small>
                   <h2 class="no-margin order-bold">{{order.date}}</h2></div>
-                <div class="widget-details col-xs-4 text-center">
+                <div class="widget-details col-xs-3 text-center">
                   <small class="order-label">Customer Name</small>
                   <h2 class="no-margin order-bold">{{order.customer_name}}</h2>
                 </div>
-                <div class="widget-details col-xs-4 text-right">
+                <div class="widget-details col-xs-3 text-right">
                   <small class="order-label">Style Name</small>
                   <h2 class="no-margin order-bold">{{order.style_name}}</h2>
+                </div>
+                <div class="widget-details col-xs-2 text-right">
+                  <small class="order-label">Status</small>
+                  <h2 class="no-margin order-bold">Pending from sm</h2>
                 </div>
               </section>
             </div>

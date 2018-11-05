@@ -8122,7 +8122,7 @@ def get_only_date(request, date):
 def get_level_based_customer_orders(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     #index = request.GET.get('index', '')
     #import pdb;pdb.set_trace()
-    lis = ['generic_order_id','quantity', 'Delivered Qty', 'Pending Qty', 'Order Value', 'Order Date', 'Receive Status']
+    lis = ['generic_order_id','quantity', 'Delivered Qty', 'Pending Qty', 'Order Value', 'creation_date', 'Receive Status']
     search_params = get_filtered_params(filters, lis)
     order_data = lis[col_num]
     if order_term == 'desc':
@@ -8149,12 +8149,13 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
         cm_ids = cum_obj.values_list('customer_id', flat=True)
         filter_dict = {'customer_id__in': cm_ids}
 
-    generic_orders = GenericOrderDetailMapping.objects.filter(**filter_dict)
+    generic_orders = GenericOrderDetailMapping.objects.filter(**filter_dict).order_by(order_data)
+    #status_dict = {'open': 1, 'closed': 0}
+
     if order_data:
         generic_orders = GenericOrderDetailMapping.objects.filter(**filter_dict).order_by(order_data)
     if search_term:
-            generic_orders = GenericOrderDetailMapping.objects.filter(
-                Q(generic_order_id__icontains=search_term) ,**filter_dict).order_by(order_data)
+        generic_orders = GenericOrderDetailMapping.objects.filter(Q(generic_order_id__icontains=search_term) ,**filter_dict).order_by(order_data)
     temp_data['recordsTotal'] = len(generic_orders)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     generic_details_ids = generic_orders.values_list('orderdetail_id', flat=True)
@@ -8244,7 +8245,7 @@ def get_customer_orders(start_index, stop_index, temp_data, search_term, order_t
     if admin_user:
        get_level_based_customer_orders(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters)
     else:
-        lis = ['order_id','quantity', 'Delivered Qty', 'Pending Qty', 'Order Value', 'Order Date', 'Receive Status']
+        lis = ['order_id','quantity', 'Delivered Qty', 'Pending Qty', 'Order Value', 'creation_date', 'Receive Status']
         search_params = get_filtered_params(filters, lis)
         order_data = lis[col_num]
         if order_term == 'desc':
@@ -11101,7 +11102,7 @@ def get_enquiry_data(start_index, stop_index, temp_data, search_term, order_term
     # if index:
     #     start_index = int(index.split(':')[0])
     #     stop_index = int(index.split(':')[1])
-    lis = ['enquiry_id','Date','Quantity','Amount','Days Left','corporate_name']
+    lis = ['enquiry_id','creation_date','Quantity','Amount','Days Left','corporate_name']
     search_params = get_filtered_params(filters, lis)
     order_data = lis[col_num]
     if order_term == 'desc':
@@ -11111,11 +11112,12 @@ def get_enquiry_data(start_index, stop_index, temp_data, search_term, order_term
     if not cum_obj:
         return HttpResponse("No Customer User Mapping Object")
     cm_id = cum_obj[0].customer_id
+    em_qs = EnquiryMaster.objects.filter(customer_id=cm_id,**search_params)
     if order_data:
         em_qs = EnquiryMaster.objects.filter(customer_id=cm_id).order_by(order_data)
     if search_term:
         em_qs = EnquiryMaster.objects.filter(customer_id=cm_id).filter(
-                Q(enquiry_id__icontains=search_term) | Q(creation_date__icontains=search_term)
+                Q(enquiry_id__icontains=search_term) | Q(creation_date__regex=search_term)
                 | Q(corporate_name__icontains=search_term),
                  customer_id=cm_id, **search_params).order_by(order_data)
     #else:

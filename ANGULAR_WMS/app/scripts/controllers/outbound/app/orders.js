@@ -32,7 +32,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     var sort_no = (vm.g_data.style_view)? 1: 0;
     vm.filters = {'datatable': 'MyOrdersTbl', 'search0':'', 'search1':'', 'search2': '', 'search3': '', 'search4': '', 'search5': '',
-                  'search6': '', 'style_view': vm.g_data.style_vie};
+                  'search6': ''};
     vm.dtOptions = DTOptionsBuilder.newOptions()
        .withOption('ajax', {
               url: Session.url+'results_data/',
@@ -65,9 +65,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     //vm.dtColumns = vm.service.build_colums(columns);
     vm.dtColumns = [
       DTColumnBuilder.newColumn('Order ID').withTitle('Order ID'),
-      DTColumnBuilder.newColumn('Ordered Qty').withTitle('Ordered Qty'),
-      DTColumnBuilder.newColumn('Delivered Qty').withTitle('Delivered Qty'),
-      DTColumnBuilder.newColumn('Pending Qty').withTitle('Pending Qty'),
+      DTColumnBuilder.newColumn('Ordered Qty').withTitle('Ordered Qty').notSortable(),
+      DTColumnBuilder.newColumn('Delivered Qty').withTitle('Delivered Qty').notSortable(),
+      DTColumnBuilder.newColumn('Pending Qty').withTitle('Pending Qty').notSortable(),
       DTColumnBuilder.newColumn('Order Value').withTitle('Order Value'),
       DTColumnBuilder.newColumn('Order Date').withTitle('Order Date'),
       DTColumnBuilder.newColumn('Receive Status').withTitle('Receive Status'),
@@ -136,6 +136,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           }
         }
       });
+    }
+    vm.excel = excel;
+    function excel() {
+      angular.copy(vm.dtColumns,colFilters.headers);
+      angular.copy(vm.dtInstance.DataTable.context[0].ajax.data, colFilters.search);
+      colFilters.download_excel()
     }
 
 

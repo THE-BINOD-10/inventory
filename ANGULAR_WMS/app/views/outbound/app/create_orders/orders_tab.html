@@ -1,6 +1,7 @@
 <div class="panel" ng-controller="MyOrdersTbl as showCase">
     <div class="panel-body">
         <div ng-if="showCase.display">
+          <button type="button" class="btn btn-primary pull-right" style ="padding-bottom:20px;" ng-click="showCase.excel()">Download Excel</button>
         <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns"
                class="table custom-table table-condensed datatable no_click_tb" dt-instance="showCase.dtInstance"></table>
         <div ui-view></div>

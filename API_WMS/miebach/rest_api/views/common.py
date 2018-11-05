@@ -8230,3 +8230,11 @@ def get_customer_parent_user(user):
         parent_user_id = cus_user_mapping[0].customer.user
         parent_user = User.objects.get(id=parent_user_id)
     return parent_user
+
+
+def prepare_notification_message(enq_data, message):
+    def_const = (str(enq_data.enquiry_id), str(enq_data.quantity),
+                 str(enq_data.sku.sku_code), enq_data.customer_name)
+    def_message = "for custom order %s of %s Pcs %s for %s" % def_const
+    final_message = "%s %s" % (message, def_message)
+    return final_message

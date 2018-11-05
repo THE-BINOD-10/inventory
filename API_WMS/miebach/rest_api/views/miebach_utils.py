@@ -50,7 +50,7 @@ MANUAL_ENQUIRY_STATUS = {'new_order': 'New Order', 'marketing_pending': 'Marketi
                          'design_pending': 'Design Pending', 'purchase_pending': 'Purchase Pending',
                          'pending_approval': 'Admin Pending', 'reseller_pending': 'Reseller Pending',
                          'approved': 'Approved', 'confirm_order': 'Confirm Order', 'order_placed': 'Order Placed',
-                         'confirmed_order': 'Confirmed Order', 'stock_blocked': 'Stock Blocked',
+                         'confirmed_order': 'Confirmed Order', 'hold_order': 'Stock Blocked',
                          'order_cancelled': 'Order Cancelled', 'order_closed': 'Order Closed',
                          'artwork_submitted': 'ArtWork Submitted'}
 

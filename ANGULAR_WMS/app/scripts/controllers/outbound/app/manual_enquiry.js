@@ -84,7 +84,6 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
     if(form.$valid) {
       var formData = new FormData();
       var el = $("#image-upload");
-      debugger
       if (el.length) {
         var files = el[0].files;
       }

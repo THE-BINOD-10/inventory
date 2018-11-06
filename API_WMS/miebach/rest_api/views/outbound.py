@@ -11595,10 +11595,13 @@ def save_manual_enquiry_data(request, user=''):
         users_list.append(manual_enq_data.enquiry.user.id)
     else:
         # Adding Zonal Admin for every status update
-        marketing_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
-            Q(userprofile__zone=user.userprofile.zone)).values_list('id', flat=True)
-        if marketing_admin_user_id:
-            users_list.append(marketing_admin_user_id[0])
+        try:
+            marketing_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
+                Q(userprofile__zone=user.userprofile.zone)).values_list('id', flat=True)
+            if marketing_admin_user_id:
+                users_list.append(marketing_admin_user_id[0])
+        except:
+            pass
     custom_message = "%s updated status" % (request.user.first_name)
     message_content = prepare_notification_message(manual_enq_data.enquiry, custom_message)
     contents = {"en": message_content}
@@ -11660,7 +11663,7 @@ def get_manual_enquiry_detail(request, user=''):
     manual_eq_dict = {'enquiry_id': int(manual_enq[0].enquiry_id), 'customer_name': manual_enq[0].customer_name,
                       'date': manual_enq[0].creation_date.strftime('%Y-%m-%d'), 'customization_type': customization_type,
                       'quantity': manual_enq[0].quantity, 'custom_remarks': manual_enq[0].custom_remarks.split("<<>>"),
-                      'status': manual_enq[0].status, 'enq_det_id': int(manual_enq[0].id)}
+                      'enq_status': manual_enq[0].status, 'enq_det_id': int(manual_enq[0].id)}
     enquiry_images = list(ManualEnquiryImages.objects.filter(enquiry=manual_enq[0].id, image_type='res_images').values_list('image', flat=True))
     art_images = list(ManualEnquiryImages.objects.filter(enquiry=manual_enq[0].id, image_type='art_work').values_list('image', flat=True))
     style_dict = {'sku_code': manual_enq[0].sku.sku_code, 'style_name':  manual_enq[0].sku.sku_class,
@@ -11779,6 +11782,8 @@ def notify_designer(request, user=''):
     if request.user.userprofile.warehouse_type in ('SM_MARKET_ADMIN', 'SM_PURCHASE_ADMIN'):
         users_list.append(request.user.id)
         users_list.append(user.id)
+    elif request.user.userprofile.warehouse_type == 'CENTRAL_ADMIN' and request.user.userprofile.zone != '':
+        admin_user = user
     else:
         admin_user = get_priceband_admin_user(user)
         if not admin_user:
@@ -11805,7 +11810,7 @@ def notify_designer(request, user=''):
 def request_manual_enquiry_approval(request, user=''):
     enquiry_id = request.POST.get('enquiry_id', '')
     user_id = request.POST.get('user_id', '')
-    status = request.POST.get('status', '')
+    status = request.POST.get('enq_status', '')
     resp = {'msg': 'Success', 'data': []}
     if not enquiry_id or not user_id or not status:
         resp['msg'] = "Give information insufficient"
@@ -11871,7 +11876,7 @@ def request_manual_enquiry_approval(request, user=''):
 def confirm_or_hold_custom_order(request, user=''):
     resp = {'msg': 'Success', 'data': []}
     cust_order_id = request.POST.get('order_id')
-    cust_order_status = request.POST.get('status')
+    cust_order_status = request.POST.get('enq_status')
     cust_po_number = request.POST.get('po_number', '')
     ch_map = {'confirm_order': 'Confirmed the Order', 'hold_order': 'Requesting to Block the Stock'}
     try:

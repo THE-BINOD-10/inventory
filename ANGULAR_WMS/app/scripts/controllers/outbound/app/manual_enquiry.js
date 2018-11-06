@@ -170,6 +170,11 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
     imagesPreview(this, 'div.multi_imgs_display');
   });
 
+  $ctrl.clearFiles = function(){
+    $('#image-upload').val('');
+    $("div.multi_imgs_display").empty();
+  }
+
   $ctrl.upload_name = [];
   $scope.$on("fileSelected", function (event, args) {
     $scope.$apply(function () {

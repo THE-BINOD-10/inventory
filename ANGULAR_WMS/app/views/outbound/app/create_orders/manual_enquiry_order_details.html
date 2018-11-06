@@ -133,7 +133,7 @@
           </div>
           <div class="col-md-4 col-sm-4 col-xs-12" ng-if="order.permissions.user_type != 'sm_design_admin' && order.permissions.user_type != 'sm_purchase_admin'">
             <div class="form-group">
-              <input name="extended_date" ng-if="!order.clear_flag" ui-jq="datepicker" ng-model="order.model_data.expected_date" placeholder="Select Expected Date *" class="form-control stk-readonly" type="text" id="extended_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{order.date}}" readonly="true" required>
+              <input name="extended_date" ng-if="!order.clear_flag" ui-jq="datepicker" ng-model="order.model_data.expected_date" placeholder="Select Expected Date *" class="form-control stk-readonly" type="text" id="extended_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{order.date}}" data-date-format="dd/mm/yyyy" readonly="true" required>
             </div>
           </div>
           <div class="col-md-4 col-sm-4 col-xs-12">

@@ -225,7 +225,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         var expiry = new Date(mfg_date.getFullYear(),mfg_date.getMonth(),mfg_date.getDate()+vm.shelf_life);
         //vm.model_data.data[parent_index][index].exp_date = (expiry.getMonth() + 1) + "/" + expiry.getDate() + "/" + expiry.getFullYear();
         var row_data = vm.model_data.data[parent_index][index]
-        if (row_data.exp_date == ''){
+        if (!row_data.exp_date || row_data.exp_date == ''){
             row_data.exp_date = (expiry.getMonth() + 1) + "/" + expiry.getDate() + "/" + expiry.getFullYear();
         }
         //$('.mfgDate').each(function(){

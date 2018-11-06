@@ -154,11 +154,10 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
 
   var imagesPreview = function(input, placeToInsertImagePreview) {
     if (input.files) {
-        var filesAmount = input.files.length;
-        for (var i = 0; i < filesAmount; i++) {
-          var reader = new FileReader();
-          reader.onload = function(event) {
-          // $($.parseHTML('<div class="col-md-3" ng-mouseover="Enquiry.show_remove[$index]=true" ng-mouseleave="Enquiry.show_remove[$index]=false"><img src="'+event.target.result+'" width="100%"><button class="btn btn-danger mr10" ng-hide="Enquiry.show_remove[$index]"  ng-if="Enquiry.show_remove[$index]" style="position:absolute;top:0px;right:0px;" ng-click="Enquiry.remove_image($index)">X</button></div>')).appendTo(placeToInsertImagePreview);
+      var filesAmount = input.files.length;
+      for (var i = 0; i < filesAmount; i++) {
+        var reader = new FileReader();
+        reader.onload = function(event) {
           $($.parseHTML('<div class="col-md-3 dyn_imgs no-padding m5"><img src="'+event.target.result+'" width="100%"></div>')).appendTo(placeToInsertImagePreview);
         }
         reader.readAsDataURL(input.files[i]);

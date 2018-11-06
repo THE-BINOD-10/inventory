@@ -11109,7 +11109,8 @@ def get_manual_enquiry_data(request, user=''):
     for enquiry in em_qs[start_index:stop_index]:
         res_map = {'order_id': enquiry.enquiry_id, 'customer_name': enquiry.customer_name,
                    'date': get_only_date(request, enquiry.creation_date),
-                   'sku_code': enquiry.sku.sku_code, 'style_name': enquiry.sku.sku_class}
+                   'sku_code': enquiry.sku.sku_code, 'style_name': enquiry.sku.sku_class,
+                   'status': MANUAL_ENQUIRY_STATUS.get(enquiry.status, '')}
         response_data['data'].append(res_map)
     return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
 

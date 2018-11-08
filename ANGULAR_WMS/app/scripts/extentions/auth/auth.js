@@ -72,13 +72,14 @@
         }
 
         $http.get(Session.url + "status/", {withCredentials: true}).then(function (resp) {
+          if (window.current_version) {
+            $http.get(Session.url + "service_worker_check/?current_version="+window.current_version).then(function (data) {
 
-          $http.get(Session.url + "service_worker_check/?current_version="+window.current_version).then(function (data) {
-
-            if (data.data.reload) {
-              location.reload();
-            }
-          })
+              if (data.data.reload) {
+                location.reload();
+              }
+            })
+          }
           resp = resp.data;
 
           if ((resp.message != "Fail") && resp.data.userId) {

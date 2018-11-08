@@ -3920,9 +3920,15 @@ def create_central_order(request, user):
             interm_order_map['unit_price'] = cart_item.levelbase_price
             interm_order_map['sku_id'] = cart_item.sku_id
             interm_order_map['remarks'] = remarks_dict[cart_item.sku.sku_code]
-            IntermediateOrders.objects.create(**interm_order_map)
+            intermediate_obj =  IntermediateOrders.objects.create(**interm_order_map)
+             #import pdb; pdb.set_trace()
+            #x = intermediate_obj.shipment_date
+            order_date = intermediate_obj.shipment_date.strftime("%d, %b, %Y")
+            #import pdb; pdb.set_trace()
+
+            #order_date =  intermediate_obj.shipment_date.day + "/"+intermediate_obj.shipment_date.month+"/"+intermediate_obj.shipment_date.year
             inv_amt = (cart_item.levelbase_price * cart_item.quantity) + cart_item.tax
-            items.append([cart_item.sku.sku_desc, cart_item.quantity, inv_amt])
+            items.append([intermediate_obj.interm_order_id,cart_item.sku.sku_code,cart_item.sku.sku_desc,cart_item.quantity, inv_amt,intermediate_obj.project_name,order_date])
 
 
         #mail to Admin and normal user
@@ -3935,8 +3941,9 @@ def create_central_order(request, user):
                 if admin_users:
                     mail_ids = [admin_users[0].admin_user.userprofile.email]"""
             mail_ids = [user.email]
+            import pdb; pdb.set_trace()
             user_mail_id = [request.user.email]
-            headers = ['Product Details', 'Ordered Quantity', 'Total']
+            headers = ['Order number','isprava code','Product Details', 'Ordered Quantity', 'Total','Project name','Order Date']
             data_dict = {'customer_name': request.user.username, 'items': items,
                          'headers': headers, 'role': 'Admin', 'order_id': interm_order_id}
             t = loader.get_template('templates/central_order/order_for_approval.html')
@@ -4268,7 +4275,7 @@ def insert_order_data(request, user=''):
     po_data = []
     if valid_status:
         return HttpResponse(valid_status)
-
+    #import pdb; pdb.set_trace()
     if is_central_order:
         message = create_central_order(request, user)
         return HttpResponse(message)

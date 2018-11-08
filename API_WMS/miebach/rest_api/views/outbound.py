@@ -9230,7 +9230,7 @@ def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_t
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     stock_transfer_id = ''
     ordered_quantity = ''
-    st_orders_id = STOrder.objects.filter(picklist__stock__sku__user = user.id).distinct().values_list('picklist__picklist_number', flat=True)
+    st_orders_id = STOrder.objects.filter(picklist__stock__sku__user = user.id, picklist__status__in = ['picked','batch_picked']).distinct().values_list('picklist__picklist_number', flat=True)
     for picklist_num in st_orders_id:
         data = get_picked_data(picklist_num, user.id, marketplace='')
         for obj in data:
@@ -10168,28 +10168,28 @@ def generate_stock_transfer_invoice(request, user=''):
     stock_transfer_id = ''
     ordered_quantity = ''
     data = get_picked_data(picklist_number[0], user.id, marketplace='')
-    picklist_obj = Picklist.objects.filter(picklist_number = picklist_number[0]).order_by('-creation_date').values('creation_date')
-    invoice_date = picklist_obj[0]['creation_date']
     invoice_amt = 0
     total_picked_quantity = picked_qty[0]
-    get_stock_transfer = StockTransfer.objects.filter(order_id = order_id[0]).distinct()
+    #get_stock_transfer = StockTransfer.objects.filter(order_id = order_id[0]).distinct()
+    get_stock_transfer = STOrder.objects.filter(picklist__stock__sku__user = user.id, stock_transfer__order_id = order_id[0], picklist__status__in = ['picked','batch_picked']).distinct()
     for obj in get_stock_transfer:
         try:
-            shipment_date = str(obj.updation_date)
-            warehouse_user_id = obj.st_po.open_st.warehouse.id
+            shipment_date = str(obj.stock_transfer.updation_date)
+            invoice_date = str(obj.stock_transfer.creation_date)
+            warehouse_user_id = obj.stock_transfer.st_po.open_st.warehouse.id
             to_warehouse_details = UserProfile.objects.filter(user_id = warehouse_user_id).values('city', 'company_name', 'state', 'location', 'phone_number', 'pin_code', 'country', 'address', 'cin_number')
             to_warehouse = { 'city' : to_warehouse_details[0]['city'], 'company_name' : to_warehouse_details[0]['company_name'], 
                 'state' : to_warehouse_details[0]['state'], 'location' : to_warehouse_details[0]['location'], 
                 'phone_number' : to_warehouse_details[0]['phone_number'], 'cin_number' : to_warehouse_details[0]['cin_number'], 
                 'pin_code' : to_warehouse_details[0]['pin_code'], 'country' : to_warehouse_details[0]['country'] }
-            warehouse = obj.st_po.open_st.warehouse.username
-            sku_price = obj.st_po.open_st.price
-            rate = obj.st_po.open_st.price
-            total_picked_quantity = obj.quantity
-            total_price = rate * obj.quantity
+            warehouse = obj.stock_transfer.st_po.open_st.warehouse.username
+            sku_price = obj.stock_transfer.st_po.open_st.price
+            rate = obj.stock_transfer.st_po.open_st.price
+            total_picked_quantity = obj.stock_transfer.quantity
+            total_price = rate * obj.stock_transfer.quantity
             invoice_amt = total_price + invoice_amt
-            sku_description = obj.sku.sku_desc
-            sku = obj.sku.wms_code
+            sku_description = obj.stock_transfer.sku.sku_desc
+            sku = obj.stock_transfer.sku.wms_code
             try:
                 resp_list['resp'][0].update({'invoice_amount':invoice_amt})
             except:

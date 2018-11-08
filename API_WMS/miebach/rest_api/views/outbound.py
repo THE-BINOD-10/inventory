@@ -11566,7 +11566,7 @@ def save_manual_enquiry_data(request, user=''):
     enquiry_data['remarks'] = remarks
     enquiry_data['status'] = status
     expected_date = expected_date.split('/')
-    expected_date = datetime.date(int(expected_date[2]), int(expected_date[0]), int(expected_date[1]))
+    expected_date = datetime.date(int(expected_date[2]), int(expected_date[1]), int(expected_date[0]))
     enquiry_data['expected_date'] = expected_date
     manual_enq_data = ManualEnquiryDetails(**enquiry_data)
     manual_enq_data.save()
@@ -11671,7 +11671,8 @@ def get_manual_enquiry_detail(request, user=''):
                   'description': manual_enq[0].sku.sku_desc, 'images': enquiry_images,
                   'category': manual_enq[0].sku.sku_category, 'art_images': art_images}
     if request.user.id == long(user_id):
-        enquiry_data = ManualEnquiryDetails.objects.filter(enquiry=manual_enq[0].id, status="")
+        enquiry_data = ManualEnquiryDetails.objects.filter(enquiry=manual_enq[0].id).filter(
+                                                           Q(enquiry__status__in=["reseller_pending"]) | Q(status=''))
     else:
         enquiry_data = ManualEnquiryDetails.objects.filter(enquiry=manual_enq[0].id)
     enquiry_dict = []
@@ -11689,7 +11690,7 @@ def get_manual_enquiry_detail(request, user=''):
                              'expected_date': expected_date, 'username': user.user.username,
                              'status': enquiry.status})
     if enq_details:
-        expected_date = enq_details.expected_date.strftime('%m/%d/%Y')
+        expected_date = enq_details.expected_date.strftime('%d/%m/%Y')
         enq_details = {'ask_price': enq_details.ask_price, 'remarks': enq_details.remarks,\
                        'expected_date': expected_date}
     cust_obj = CustomerUserMapping.objects.filter(user_id=user_id)

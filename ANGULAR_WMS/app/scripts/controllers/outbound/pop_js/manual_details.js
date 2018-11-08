@@ -279,6 +279,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
     }
     angular.copy(vm.model_data, data);
     data['admin_remarks'] = "true";
+    data['status'] = 'marketing_pending';
     vm.disable_btn = true;
     Service.apiCall('save_manual_enquiry_data/', 'POST', data).then(function(data) {
       if (data.message) {

@@ -3050,7 +3050,6 @@ def st_generate_picklist(request, user=''):
     enable_damaged_stock = request.POST.get('enable_damaged_stock', 'false')
     out_of_stock = []
     picklist_number = get_picklist_number(user)
-
     picklist_exclude_zones = get_exclude_zones(user)
     sku_combos = SKURelation.objects.prefetch_related('parent_sku', 'member_sku').filter(parent_sku__user=user.id)
     sku_stocks = StockDetail.objects.prefetch_related('sku', 'location').exclude(
@@ -3071,10 +3070,9 @@ def st_generate_picklist(request, user=''):
         stock_detail2 = sku_stocks.filter(location_id__pick_sequence=0).filter(quantity__gt=0).order_by('receipt_date')
     sku_stocks = stock_detail1 | stock_detail2
     for key, value in request.POST.iteritems():
-        order_data = StockTransfer.objects.filter(id=value)
+        order_data = StockTransfer.objects.filter(id=key)
         stock_status, picklist_number = picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
                                                             sku_combos, sku_stocks, switch_vals)
-
         if stock_status:
             out_of_stock = out_of_stock + stock_status
 
@@ -12495,7 +12493,7 @@ def stock_transfer_generate_picklist(request, user=''):
         stock_detail2 = sku_stocks.filter(location_id__pick_sequence=0).filter(quantity__gt=0).order_by('receipt_date')
     sku_stocks = stock_detail1 | stock_detail2
     for key, value in request.POST.iteritems():
-        orders_data = StockTransfer.objects.filter(order_id=value, status=1, sku__user=user.id)
+        orders_data = StockTransfer.objects.filter(order_id=key, status=1, sku__user=user.id)
         stock_status, picklist_number = picklist_generation(orders_data, enable_damaged_stock, picklist_number, user,
                                                             sku_combos, sku_stocks, switch_vals)
 

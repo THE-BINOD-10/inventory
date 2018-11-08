@@ -2,6 +2,7 @@ import xlsxwriter
 
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.cache import never_cache
 from django.http import HttpResponse
 import json
 from django.contrib.auth import authenticate, login, logout as wms_logout
@@ -8322,23 +8323,3 @@ def get_style_level_stock(request, user=''):
         avail_qty = sum(map(lambda d: available_quantity[d] if available_quantity[d] > 0 else 0, available_quantity))
         sku_wise_list.append({'sku_code': sku.sku_code, 'sku_desc': sku.sku_desc, 'avail_qty': avail_qty})
     return HttpResponse(json.dumps(sku_wise_list))
-
-
-@csrf_exempt
-def get_manifest_json(request):
-    json_data = {"name": "STOCKONE", "short_name": "STOCKONE",
-                 "icons": [{"src": "manifest_images/stockone_logo.png", "sizes": "192x192",
-                            "type": "image\/png"},
-                           {"src": "manifest_images/stockone_logo.png", "sizes": "512x512",
-                            "type": "image\/png"}
-                           ]}
-    if request.user.is_authenticated():
-        user = get_admin(request.user)
-        if user.username in ['demo']:
-            json_data['name'] = 'demo'
-            json_data['short_name'] = 'demo'
-    test_file = open('/home/headrun/central_orders_sub/WMS_ANGULAR/API_WMS/miebach/static/manifest.json', 'rb')
-    response = HttpResponse(content=test_file)
-    response['Content-Type'] = 'application/json'
-    response['Content-Disposition'] = 'attachment; filename="%s.json"' % 'manifest'
-    return response

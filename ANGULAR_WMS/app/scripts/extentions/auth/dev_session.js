@@ -4,8 +4,10 @@
   angular.module("auth").service("Session", function ($rootScope, $q, $http) {
 
     var that = this;
-    that.host = 'http://localhost:7654/';
+    that.host = 'http://127.0.0.1:8099/';
+    // that.host = 'https://api.stockone.in/';
     that.url = that.host+'rest_api/';
+    window['manifest_api_url'] = that.url+'get_manifest_json/';
 
     that.pos_host = 'http://pos.mieone.com/';
 

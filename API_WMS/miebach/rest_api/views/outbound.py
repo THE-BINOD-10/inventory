@@ -10163,61 +10163,56 @@ def generate_stock_transfer_invoice(request, user=''):
     country = user_profile[0]['country']
     address = user_profile[0]['address']
     cin_number = user_profile[0]['cin_number']
-
     increment_invoice = get_misc_value('increment_invoice', user.id)
     from_warehouse = {}
     from_warehouse = { 'city' : city, 'company_name' : company_name, 'state' : state, 'location' : location, 'phone_number' : phone_number, 'cin_number' : cin_number, 'pin_code' : pin_code, 'country' : country }
-
     user_profile = UserProfile.objects.filter(user_id=user.id).values('city', 'company_name', 'state', 'location', 'phone_number', 'pin_code', 'country', 'address', 'cin_number')
-
     stock_transfer_id = ''
     ordered_quantity = ''
     data = get_picked_data(picklist_number[0], user.id, marketplace='')
     picklist_obj = Picklist.objects.filter(picklist_number = picklist_number[0]).order_by('-creation_date').values('creation_date')
     invoice_date = picklist_obj[0]['creation_date']
     invoice_amt = 0
-    for obj in data:
-	try:
-	    ord_id = str(int(obj['order_id']))
-	except:
-	    ord_id = str(obj['order_id'])
-	total_picked_quantity = obj['picked_quantity']
-	sku = obj['wms_code']
-	get_stock_transfer = StockTransfer.objects.filter(sku__sku_code=obj['wms_code'], order_id = ord_id).distinct()
-	for obj in get_stock_transfer:
-	    try:
-		shipment_date = str(obj.updation_date)
-		warehouse_user_id = obj.st_po.open_st.warehouse.id
-		to_warehouse_details = UserProfile.objects.filter(user_id = warehouse_user_id).values('city', 'company_name', 'state', 'location', 'phone_number', 'pin_code', 'country', 'address', 'cin_number')
-		to_warehouse = {}
-    		to_warehouse = { 'city' : to_warehouse_details[0]['city'], 'company_name' : to_warehouse_details[0]['company_name'], 'state' : to_warehouse_details[0]['state'], 'location' : to_warehouse_details[0]['location'], 'phone_number' : to_warehouse_details[0]['phone_number'], 'cin_number' : to_warehouse_details[0]['cin_number'], 'pin_code' : to_warehouse_details[0]['pin_code'], 'country' : to_warehouse_details[0]['country'] }
-		warehouse = obj.st_po.open_st.warehouse.username
-		sku_price = obj.st_po.open_st.price
-		rate = obj.st_po.open_st.price
-		total_price = rate * total_picked_quantity
-		invoice_amt = total_price + invoice_amt
-                sku_description = obj.sku.sku_desc
-		try:
-		    resp_list['resp'][0].update({'invoice_amount':invoice_amt})
-		except:
-		    pass
-	    except:
-		continue
+    total_picked_quantity = picked_qty[0]
+    get_stock_transfer = StockTransfer.objects.filter(order_id = order_id[0]).distinct()
+    for obj in get_stock_transfer:
+        try:
+            shipment_date = str(obj.updation_date)
+            warehouse_user_id = obj.st_po.open_st.warehouse.id
+            to_warehouse_details = UserProfile.objects.filter(user_id = warehouse_user_id).values('city', 'company_name', 'state', 'location', 'phone_number', 'pin_code', 'country', 'address', 'cin_number')
+            to_warehouse = { 'city' : to_warehouse_details[0]['city'], 'company_name' : to_warehouse_details[0]['company_name'], 
+                'state' : to_warehouse_details[0]['state'], 'location' : to_warehouse_details[0]['location'], 
+                'phone_number' : to_warehouse_details[0]['phone_number'], 'cin_number' : to_warehouse_details[0]['cin_number'], 
+                'pin_code' : to_warehouse_details[0]['pin_code'], 'country' : to_warehouse_details[0]['country'] }
+            warehouse = obj.st_po.open_st.warehouse.username
+            sku_price = obj.st_po.open_st.price
+            rate = obj.st_po.open_st.price
+            total_picked_quantity = obj.quantity
+            total_price = rate * obj.quantity
+            invoice_amt = total_price + invoice_amt
+            sku_description = obj.sku.sku_desc
+            sku = obj.sku.wms_code
+            try:
+                resp_list['resp'][0].update({'invoice_amount':invoice_amt})
+            except:
+                pass
+        except:
+            continue
 	    search_val = ''
-	    try:
-		search_val = (item for idx,item in enumerate(resp_list['resp']) if item["order_id"] == ord_id and item["warehouse_name"] == warehouse and item['sku_code'] == sku).next()
-		if search_val:
-		    exist_qty = search_val['picked_quantity']
-		    new_qty = total_picked_quantity
-		    exist_amt = search_val['amount']
-		    new_amt = total_price
-		    search_val.update({'picked_quantity' : exist_qty + new_qty, 'amount' : exist_amt + new_amt})
-	    except:
-                if increment_invoice == 'false':
-                    invoice_number = ord_id
-                else:
-                    invoice_number = ''
-		resp_list['resp'].append({'order_id' : ord_id, 'picked_quantity' : total_picked_quantity, 'rate' : rate, 'amount' : total_price, 'stock_transfer_date_time' : str(shipment_date), 'warehouse_name': warehouse, 'sku_code' : sku, 'invoice_date' : str(invoice_date), 'from_warehouse' : from_warehouse, 'to_warehouse' : to_warehouse, 'invoice_amount' : invoice_amt, 'sku_description' : sku_description, 'invoice_number' : invoice_number })
+        try:
+            search_val = (item for idx,item in enumerate(resp_list['resp']) if item["order_id"] == order_id[0] and item["warehouse_name"] == warehouse and item['sku_code'] == sku).next()
+            if search_val:
+                exist_qty = search_val['picked_quantity']
+                new_qty = total_picked_quantity
+                exist_amt = search_val['amount']
+                new_amt = total_price
+                search_val.update({'picked_quantity' : exist_qty + new_qty, 'amount' : exist_amt + new_amt})
+        except:
+            if increment_invoice == 'false':
+                invoice_number = order_id[0]
+            else:
+                invoice_number = ''
+		resp_list['resp'].append({'order_id' : order_id[0], 'picked_quantity' : total_picked_quantity, 'rate' : rate, 'amount' : total_price, 'stock_transfer_date_time' : str(shipment_date), 'warehouse_name': warehouse, 'sku_code' : sku, 'invoice_date' : str(invoice_date), 'from_warehouse' : from_warehouse, 'to_warehouse' : to_warehouse, 'invoice_amount' : invoice_amt, 'sku_description' : sku_description, 'invoice_number' : invoice_number })
     return HttpResponse(json.dumps(resp_list))
 
 @csrf_exempt

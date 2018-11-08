@@ -11690,7 +11690,7 @@ def get_manual_enquiry_detail(request, user=''):
                              'expected_date': expected_date, 'username': user.user.username,
                              'status': enquiry.status})
     if enq_details:
-        expected_date = enq_details.expected_date.strftime('%m/%d/%Y')
+        expected_date = enq_details.expected_date.strftime('%d/%m/%Y')
         enq_details = {'ask_price': enq_details.ask_price, 'remarks': enq_details.remarks,\
                        'expected_date': expected_date}
     cust_obj = CustomerUserMapping.objects.filter(user_id=user_id)

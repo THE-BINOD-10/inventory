@@ -732,10 +732,11 @@ ENQUIRY_STATUS_REPORT = {
         {'label': 'Enquiry No', 'name': 'enquiry_number', 'type': 'input'},
         {'label': 'Aging Period', 'name': 'aging_period', 'type': 'input'},
         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+        {'label': 'Warehouse Level', 'name': 'warehouse_level', 'type': 'input'},
         {'label': 'Enquiry Status', 'name': 'enquiry_status', 'type': 'select'},
     ],
     'dt_headers': ['Zone Code', 'Distributor Code', 'Reseller Code', 'Product Category', 'SKU Code', 'SKU Quantity',
-                   'Enquiry No', 'Enquiry Aging', 'Enquiry Status'],
+                   'Warehouse Level','Enquiry No', 'Enquiry Aging', 'Enquiry Status'],
     'dt_url': 'get_enquiry_status_report', 'excel_name': 'get_enquiry_status_report',
     'dt_unsort': ['Zone Code', 'Distributor Code', 'Reseller Code', 'Product Category', 'SKU Code', 'SKU Quantity',
                    'Enquiry No', 'Enquiry Aging', 'Enquiry Status'],
@@ -1041,7 +1042,7 @@ PICKLIST_EXCEL = OrderedDict((
 PICKLIST_EXCEL_FMCG = OrderedDict((
                               ('Order ID', 'original_order_id'), ('Combo SKU', 'parent_sku_code'),
                               ('WMS Code', 'wms_code'), ('Title', 'title'), ('Category', 'category'),
-                              ('Zone', 'zone'), ('Location', 'location'), ('Batch No', 'batchno'), ('MRP', 'mrp'), 
+                              ('Zone', 'zone'), ('Location', 'location'), ('Batch No', 'batchno'), ('MRP', 'mrp'),
                               ('Reserved Quantity', 'reserved_quantity'),
                               ('Stock Left', 'stock_left'),('Last Picked Location', 'last_picked_locs')
                             ))
@@ -5282,6 +5283,8 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
         search_parameters['enquiry__enquiry_id__contains'] = search_params['enquiry_number']
     if 'sku_code' in search_params:
         search_parameters['sku__sku_code'] = search_params['sku_code']
+    if 'warehouse_level' in search_params:
+        search_parameters['warehouse_level'] = search_params['warehouse_level']    
     if 'aging_period' in search_params:
         try:
             aging_period = int(search_params['aging_period'])
@@ -5315,6 +5318,7 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
         zone = dist_obj.userprofile.zone
         sku_code = en_obj.sku.sku_code
         quantity = en_obj.quantity
+        warehouse_level = en_obj.warehouse_level
         prod_catg = en_obj.sku.sku_category
         ord_dict = OrderedDict((('Zone Code', zone),
                                 ('Distributor Code', distributor_name),
@@ -5322,6 +5326,7 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
                                 ('Product Category', prod_catg),
                                 ('SKU Code', sku_code),
                                 ('SKU Quantity', quantity),
+                                ('Warehouse Level',warehouse_level),
                                 ('Enquiry No', enq_id),
                                 ('Enquiry Aging', days_left),
                                 ('Enquiry Status', extend_status)))
@@ -5518,7 +5523,7 @@ def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
         if open_po.sku.hsn_code:
             hsn_code = str(open_po.sku.hsn_code)
         invoice_date = ''
-        data['invoice_date'] = seller_po_summary.invoice_date   
+        data['invoice_date'] = seller_po_summary.invoice_date
         if data['invoice_date']:
             invoice_date = data['invoice_date'].strftime("%d %b, %Y")
         ean_numbers = get_sku_ean_list(open_po.sku)

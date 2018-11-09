@@ -9225,7 +9225,7 @@ def get_levelbased_invoice_data(start_index, stop_index, temp_data, user, search
 @csrf_exempt
 def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     data_dict = {}
-    user_profile = UserProfile.objects.get(user_id=user.id)
+    
     temp_data['recordsTotal'] = 0
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     stock_transfer_id = ''
@@ -9243,8 +9243,12 @@ def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_t
             get_stock_transfer = StockTransfer.objects.filter(sku__sku_code=obj['wms_code'], order_id = ord_id).distinct()
             for obj in get_stock_transfer:
                 try:
+                    warehouse = ''
                     shipment_date = str(obj.updation_date)
-                    warehouse = obj.st_po.open_st.warehouse.username
+                    warehouse_id = obj.st_po.open_st.sku.user
+                    user_profile = User.objects.get(id=warehouse_id)
+                    if user_profile:
+                        warehouse = user_profile.username
                     sku_price = obj.st_po.open_st.price
                     total_price = obj.st_po.open_st.price * total_picked_quantity
                 except:
@@ -9259,7 +9263,9 @@ def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_t
                     new_amt = total_price
                     search_val.update({'Picked Quantity' : exist_qty + new_qty, 'Total Amount' : exist_amt + new_amt})
             except:
-                temp_data['aaData'].append({'Stock Transfer ID' : ord_id, 'Picked Quantity' : total_picked_quantity, 'Total Amount' : total_price, 'Stock Transfer Date&Time' : shipment_date, 'Warehouse Name': warehouse, 'Picklist Number' : picklist_num})
+                temp_data['aaData'].append({'Stock Transfer ID' : ord_id, 'Picked Quantity' : total_picked_quantity, 
+                    'Total Amount' : total_price, 'Stock Transfer Date&Time' : shipment_date, 'Warehouse Name': warehouse, 
+                    'Picklist Number' : picklist_num})
 
 
 @csrf_exempt
@@ -10174,15 +10180,19 @@ def generate_stock_transfer_invoice(request, user=''):
     get_stock_transfer = STOrder.objects.filter(picklist__stock__sku__user = user.id, stock_transfer__order_id = order_id[0], picklist__status__in = ['picked','batch_picked']).distinct()
     for obj in get_stock_transfer:
         try:
+            warehouse = ''
             shipment_date = str(obj.stock_transfer.updation_date)
             invoice_date = str(obj.stock_transfer.creation_date)
-            warehouse_user_id = obj.stock_transfer.st_po.open_st.warehouse.id
-            to_warehouse_details = UserProfile.objects.filter(user_id = warehouse_user_id).values('city', 'company_name', 'state', 'location', 'phone_number', 'pin_code', 'country', 'address', 'cin_number')
+            warehouse_id = obj.stock_transfer.st_po.open_st.sku.user
+            warehouse_obj = User.objects.get(id=warehouse_id)
+            if warehouse_obj:
+                warehouse = warehouse_obj.username
+            to_warehouse_details = UserProfile.objects.filter(user_id = warehouse_id).values('city', 'company_name', 'state', 'location', 'phone_number', 'pin_code', 'country', 'address', 'cin_number')
             to_warehouse = { 'city' : to_warehouse_details[0]['city'], 'company_name' : to_warehouse_details[0]['company_name'], 
                 'state' : to_warehouse_details[0]['state'], 'location' : to_warehouse_details[0]['location'], 
                 'phone_number' : to_warehouse_details[0]['phone_number'], 'cin_number' : to_warehouse_details[0]['cin_number'], 
                 'pin_code' : to_warehouse_details[0]['pin_code'], 'country' : to_warehouse_details[0]['country'] }
-            warehouse = obj.stock_transfer.st_po.open_st.warehouse.username
+            #warehouse = obj.stock_transfer.st_po.open_st.warehouse.username
             sku_price = obj.stock_transfer.st_po.open_st.price
             rate = obj.stock_transfer.st_po.open_st.price
             total_picked_quantity = obj.stock_transfer.quantity
@@ -10210,7 +10220,11 @@ def generate_stock_transfer_invoice(request, user=''):
                 invoice_number = order_id[0]
             else:
                 invoice_number = ''
-		resp_list['resp'].append({'order_id' : order_id[0], 'picked_quantity' : total_picked_quantity, 'rate' : rate, 'amount' : total_price, 'stock_transfer_date_time' : str(shipment_date), 'warehouse_name': warehouse, 'sku_code' : sku, 'invoice_date' : str(invoice_date), 'from_warehouse' : from_warehouse, 'to_warehouse' : to_warehouse, 'invoice_amount' : invoice_amt, 'sku_description' : sku_description, 'invoice_number' : invoice_number })
+		resp_list['resp'].append({'order_id' : order_id[0], 'picked_quantity' : total_picked_quantity, 'rate' : rate, 
+            'amount' : total_price, 'stock_transfer_date_time' : str(shipment_date), 'warehouse_name': warehouse, 
+            'sku_code' : sku, 'invoice_date' : str(invoice_date), 'from_warehouse' : from_warehouse, 
+            'to_warehouse' : to_warehouse, 'invoice_amount' : invoice_amt, 'sku_description' : sku_description, 
+            'invoice_number' : invoice_number })
     return HttpResponse(json.dumps(resp_list))
 
 @csrf_exempt

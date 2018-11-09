@@ -182,12 +182,12 @@
         </div>
         <div class="col-md-12 text-center mb10" ng-if="order.model_data.from == 'custom_order' && order.order_details.order.enq_status!='confirm_order' && order.order_details.order.enq_status!='hold_order' && order.order_details.order.customization_type!='Price and Product Customization'">
           <button type='submit' class="btn btn-primary" ng-click="order.notify_to_sub_dist(form)" ng-disabled="order.disable_btn">Notify to Sub Distributor</button>
-          <button type='button' class="btn btn-primary" ng-click="order.send_for_approval(form)" ng-disabled="order.disable_btn">Send For Approval</button>
+          <button type='button' ng-show="(order.permissions.user_type == 'admin_sub_user' || 'central_admin') && order.order_details.order.enq_status!='approved'" class="btn btn-primary" ng-click="order.send_for_approval(form)" ng-disabled="order.disable_btn">Send For Approval</button>
         </div>
         <div class="col-md-12 text-center mb10" ng-if="order.model_data.from == 'custom_order' && order.order_details.order.enq_status!='confirm_order' && order.order_details.order.enq_status!='hold_order' && order.order_details.order.customization_type=='Price and Product Customization' && order.permissions.user_type != 'sm_design_admin'">
           <button type='submit' class="btn btn-primary" ng-click="order.notify_to_sub_dist(form)" ng-disabled="order.disable_btn">Notify to Sub Distributor</button>
           <button type='submit' class="btn btn-primary" ng-click="order.notify_to_designer(form)" ng-disabled="order.disable_btn">Notify to Designer</button>
-          <button type='button' class="btn btn-primary" ng-click="order.send_for_approval(form)" ng-disabled="order.disable_btn">Send For Approval</button>
+          <button type='button' ng-if="order.permissions.user_type != 'sm_purchase_admin'" class="btn btn-primary" ng-click="order.send_for_approval(form)" ng-disabled="order.disable_btn">Send For Approval</button>
         </div>
         <div class="col-md-12 text-center mb10" ng-if="order.model_data.from == 'custom_order' && order.order_details.order.enq_status!='confirm_order' && order.order_details.order.enq_status!='hold_order' && order.order_details.order.customization_type=='Price and Product Customization' && order.permissions.user_type == 'sm_design_admin'">
           <button type='button' class="btn btn-primary" ng-click="order.upload_artwork(form)" ng-disabled="order.disable_btn">Upload ArtWork</button>

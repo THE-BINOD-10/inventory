@@ -60,8 +60,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    var columns = ['Enquiry ID', 'Date', 'Quantity', 'Amount', 'Days Left','Corporate Name'];
-    vm.dtColumns = vm.service.build_colums(columns);
+    // var columns = ['Enquiry ID', 'Date', 'Quantity', 'Amount', 'Days Left','Corporate Name'];
+    // vm.dtColumns = vm.service.build_colums(columns);
+    vm.dtColumns = [
+      DTColumnBuilder.newColumn('Enquiry ID').withTitle('Enquiry ID'),
+      DTColumnBuilder.newColumn('Date').withTitle('Date'),
+      DTColumnBuilder.newColumn('Quantity').withTitle('Quantity').notSortable(),
+      DTColumnBuilder.newColumn('Amount').withTitle('Amount').notSortable(),
+      DTColumnBuilder.newColumn('Days Left').withTitle('Days Left').notSortable(),
+      DTColumnBuilder.newColumn('Corporate Name').withTitle('Corporate Name'),
+    ];
     vm.model_data = {};
     var row_click_bind = 'td';
     /*if(vm.g_data.style_view) {
@@ -127,6 +135,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     //  angular.copy(empty_data, vm.model_data);
       $state.go('user.App.MyOrders')
+    }
+    vm.excel = excel;
+    function excel() {
+      angular.copy(vm.dtColumns,colFilters.headers);
+      angular.copy(vm.dtInstance.DataTable.context[0].ajax.data, colFilters.search);
+      colFilters.download_excel()
     }
 
     vm.html = "";

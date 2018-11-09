@@ -68,9 +68,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       DTColumnBuilder.newColumn('Ordered Qty').withTitle('Ordered Qty').notSortable(),
       DTColumnBuilder.newColumn('Delivered Qty').withTitle('Delivered Qty').notSortable(),
       DTColumnBuilder.newColumn('Pending Qty').withTitle('Pending Qty').notSortable(),
-      DTColumnBuilder.newColumn('Order Value').withTitle('Order Value'),
+      DTColumnBuilder.newColumn('Order Value').withTitle('Order Value').notSortable(),
       DTColumnBuilder.newColumn('Order Date').withTitle('Order Date'),
-      DTColumnBuilder.newColumn('Receive Status').withTitle('Receive Status'),
+      DTColumnBuilder.newColumn('Receive Status').withTitle('Receive Status').notSortable(),
     ];
     //var empty_data = {Order ID:"",Ordered Qty :"", Delivered Qty:"", Pending Qty:"", Order Value:"", Order Date:"", Receive Status:""};
      vm.model_data = {};

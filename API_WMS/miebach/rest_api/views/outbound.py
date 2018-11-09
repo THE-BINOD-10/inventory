@@ -8149,13 +8149,13 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
         cm_ids = cum_obj.values_list('customer_id', flat=True)
         filter_dict = {'customer_id__in': cm_ids}
 
-    generic_orders = GenericOrderDetailMapping.objects.filter(**filter_dict).order_by(order_data)
+    generic_orders = GenericOrderDetailMapping.objects.filter(**filter_dict)
     #status_dict = {'open': 1, 'closed': 0}
 
-    if order_data:
+    if  order_data :
         generic_orders = GenericOrderDetailMapping.objects.filter(**filter_dict).order_by(order_data)
     if search_term:
-        generic_orders = GenericOrderDetailMapping.objects.filter(Q(generic_order_id__icontains=search_term) ,**filter_dict).order_by(order_data)
+        generic_orders = GenericOrderDetailMapping.objects.filter(Q(generic_order_id__icontains=search_term) | Q(creation_date__regex=search_term),**filter_dict).order_by(order_data)
     temp_data['recordsTotal'] = len(generic_orders)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     generic_details_ids = generic_orders.values_list('orderdetail_id', flat=True)
@@ -8169,6 +8169,8 @@ def get_level_based_customer_orders(start_index, stop_index, temp_data, search_t
                                               customer_id=record['customer_id'])
         order_detail_ids = order_details.values_list('orderdetail_id', flat=True)
         data = OrderDetail.objects.filter(id__in=order_detail_ids)
+        if order_data == 'Receive Status':
+            data = OrderDetail.objects.filter(id__in=order_detail_ids).order_by("-status")
         ord_det_qs = data.values('order_id', 'id', 'user', 'original_order_id', 'order_code')
         if ord_det_qs:
             order_detail_order_id = ord_det_qs[0]['original_order_id']

@@ -136,11 +136,57 @@
               <input name="extended_date" ng-if="!order.clear_flag" ui-jq="datepicker" ng-model="order.model_data.expected_date" placeholder="Select Expected Date *" class="form-control stk-readonly" type="text" id="extended_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{order.date}}" data-date-format="dd/mm/yyyy" readonly="true" required>
             </div>
           </div>
-          <div class="col-md-4 col-sm-4 col-xs-12">
+          <div class="col-md-3 col-sm-4 col-xs-12">
             <div class="form-group">
-              <textarea ng-if="!order.clear_flag" rows="4" class="form-control ng-pristine" cols="27" name="remarks" placeholder="Remarks *" ng-model="order.model_data.remarks" required></textarea>
+              <textarea ng-if="!order.clear_flag" rows="1" class="form-control ng-pristine" cols="27" name="remarks" placeholder="Remarks *" ng-model="order.model_data.remarks" required style="width: 250px;"></textarea>
             </div>
           </div>
+          <div class="row" ng-if="order.permissions.user_type != 'sm_design_admin' && order.permissions.user_type != 'sm_purchase_admin'" style="margin: 10px;">
+            <table class="table mb0 mw40" ng-repeat="result in order.order_details.wh_stock_dict">
+              <thead>
+                <tr>
+                  <th class="col-md-3">L1 Open</th>
+                  <th class="col-md-3">L1 Blocked</th>
+                  <th class="col-md-3">L3 Open</th>
+                  <th class="col-md-3">L3 Blocked</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>{{result[0].wh_open}}</td>
+                  <td>{{result[0].wh_blocked}}</td>
+                  <td>{{result[0].intr_open}}</td>
+                  <td>{{result[0].intr_blocked}}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <!-- <div class="row">
+              <div class="col-md-3 col-sm-4 col-xs-12">
+              <div class="form-group">
+                <label class="control-label"> sample1 *</label>
+                <input type="text" name="sample1" class="form-control ng-pristine" readonly>
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> sample1 *</label>
+                <input type="text" name="sample1" class="form-control" readonly>
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> sample2 *</label>
+                <input type="text" name="sample2" class="form-control" readonly>
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> sample3 *</label>
+                <input type="text" name="sample3" class="form-control" readonly>
+              </div>
+            </div>
+          </div> -->
           <div class="row col-md-12 no-margin" ng-init="order.show_remove={};">
           <div class="col-md-2 no-padding" ng-repeat="image in order.order_details.style.art_images" ng-mouseover="order.show_remove[$index]=true" ng-mouseleave="order.show_remove[$index]=false">
             <img ng-if="order.image_loding[$index]" style="z-index: 12;position:absolute;left: 0px;right: 0px;height:100%;opacity:0.6;" class="img-thumbnail" src="images/DYALX.gif" ng-click="$event.stopPropagation();">
@@ -166,6 +212,26 @@
             </div>
           </div>
         </div>
+        <div class="row" ng-if="order.model_data.from == 'custom_order' && (order.order_details.order.enq_status=='confirm_order' || order.order_details.order.enq_status=='hold_order') && (order.permissions.user_type != 'sm_design_admin' && order.permissions.user_type != 'sm_purchase_admin')" style="margin: 10px;">
+            <table class="table mb0 mw40" ng-repeat="result in order.order_details.wh_stock_dict">
+              <thead>
+                <tr>
+                  <th class="col-md-3">L1 Open</th>
+                  <th class="col-md-3">L1 Blocked</th>
+                  <th class="col-md-3">L3 Open</th>
+                  <th class="col-md-3">L3 Blocked</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>{{result[0].wh_open}}</td>
+                  <td>{{result[0].wh_blocked}}</td>
+                  <td>{{result[0].intr_open}}</td>
+                  <td>{{result[0].intr_blocked}}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         <div class="col-md-7 col-sm-7 col-xs-7" ng-if="order.model_data.from == 'custom_order' && order.order_details.order.enq_status=='confirm_order'">
           <div class="row_ detail-item mb5" ng-repeat="(key, data) in order.warehouse_data" style="padding: 1px 10px">
             <!--<h4><b>{{key}}-SM Warehouses</b></h4>-->

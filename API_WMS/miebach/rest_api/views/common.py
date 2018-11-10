@@ -4527,17 +4527,21 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
             res_qty = float(res_qty) + float(raw_reserved)
         location = stock.location.location
         zone = stock.location.zone.zone
-        pallet_number, batch, mrp = ['']*3
+        pallet_number, batch, mrp, ean, weight = ['']*5
         if pallet_switch == 'true' and stock.pallet_detail:
             pallet_number = stock.pallet_detail.pallet_code
         if industry_type == "FMCG" and stock.batch_detail:
             batch_detail = stock.batch_detail
             batch = batch_detail.batch_no
             mrp = batch_detail.mrp
-        cond = str((zone, location, pallet_number, batch, mrp))
+            weight = batch_detail.weight
+            if batch_detail.ean_number:
+                ean = int(batch_detail.ean_number)
+        cond = str((zone, location, pallet_number, batch, mrp, ean, weight))
         zones_data.setdefault(cond,
                               {'zone': zone, 'location': location, 'pallet_number': pallet_number, 'total_quantity': 0,
-                               'reserved_quantity': 0, 'batch': batch, 'mrp': mrp})
+                               'reserved_quantity': 0, 'batch': batch, 'mrp': mrp, 'ean': ean,
+                               'weight': weight})
         zones_data[cond]['total_quantity'] += stock.quantity
         zones_data[cond]['reserved_quantity'] += res_qty
         availabe_quantity.setdefault(location, 0)
@@ -8043,12 +8047,17 @@ def get_linked_warehouse_names(request, user=''):
     return HttpResponse(json.dumps({'wh_names': wh_names}))
 
 
-def get_sku_ean_list(sku):
+def get_sku_ean_list(sku, order_by_val=''):
     eans_list = []
     if sku.ean_number:
         eans_list.append(str(sku.ean_number))
     multi_eans = sku.eannumbers_set.filter().annotate(str_eans=Cast('ean_number', CharField())).\
                     values_list('str_eans', flat=True)
+    if order_by_val and multi_eans:
+        order_by_field = 'creation_date'
+        if order_by_val == 'desc':
+            order_by_field = '-creation_date'
+        multi_eans = multi_eans.order_by(order_by_field)
     if multi_eans:
         eans_list = list(chain(eans_list, multi_eans))
     return eans_list
@@ -8211,3 +8220,13 @@ def create_update_table_history(user, model_id, model_name, model_field, prev_va
         TableUpdateHistory.objects.create(user_id=user.id, model_id=model_id,
                                          model_name=model_name, model_field=model_field,
                                          previous_val=prev_val, updated_val=new_val)
+
+
+def add_ean_weight_to_batch_detail(sku, batch_dict):
+    ean_number = get_sku_ean_list(sku, order_by_val='desc')
+    if ean_number:
+        batch_dict['ean_number'] = ean_number[0]
+    weight_obj = sku.skuattributes_set.filter(attribute_name='weight')
+    if weight_obj and not 'weight' in batch_dict.keys():
+        batch_dict['weight'] = weight_obj[0].attribute_value
+

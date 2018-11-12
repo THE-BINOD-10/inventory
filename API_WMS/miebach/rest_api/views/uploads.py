@@ -5498,6 +5498,7 @@ def central_order_one_assist_upload(request, reader, user, no_of_rows, fname, fi
     for row_idx in range(1, no_of_rows):
         order_data = copy.deepcopy(CENTRAL_ORDER_XLS_UPLOAD)
         order_data['user'] = user
+        customer_info = {}
         for key, value in order_mapping.iteritems():
             order_fields_data = {}
             if key == 'original_order_id':
@@ -5522,27 +5523,48 @@ def central_order_one_assist_upload(request, reader, user, no_of_rows, fname, fi
                     order_data['sku'] = sku_data[0]
             elif key == 'customer_name':
                 order_data['customer_name'] = get_cell_data(row_idx, value, reader, file_type)
+                customer_info['name'] = order_data['customer_name']
             elif key == 'city':
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
+                customer_info['city'] = key_value
                 create_order_fields_entry(interm_order_id, key, key_value, user)
             elif key == 'pincode':
                 try:
                     key_value = str(int(get_cell_data(row_idx, value, reader, file_type)))
                 except:
                     key_value = str(get_cell_data(row_idx, value, reader, file_type))
+                customer_info['pincode'] = key_value
                 create_order_fields_entry(interm_order_id, key, key_value, user)
             elif key == 'mobile_no':
                 try:
                     key_value = str(int(get_cell_data(row_idx, value, reader, file_type)))
                 except:
                     key_value = str(get_cell_data(row_idx, value, reader, file_type))
+                customer_info['phone_number'] = key_value
                 create_order_fields_entry(interm_order_id, key, key_value, user)
             elif key == 'email_id':
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
+                customer_info['email_id'] = key_value
                 create_order_fields_entry(interm_order_id, key, key_value, user)
             elif key == 'address':
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
+                customer_info['address'] = key_value
                 create_order_fields_entry(interm_order_id, key, key_value, user)
+        if user.username == 'one_assist':
+            customer_master = CustomerMaster.objects.filter(user=user.id, email_id=customer_info['email_id'], name=customer_info['name'])
+            if customer_master.exists():
+                order_data['customer_id'] = customer_master[0].customer_id
+            else:
+                customer_info['user'] = user.id
+                customer_master_ins = CustomerMaster.objects.filter(user=user.id).values_list('customer_id', flat=True).order_by(
+                                           '-customer_id')
+                if customer_master_ins:
+                    customer_id = customer_master_ins[0] + 1
+                else:
+                    customer_id = 1
+                customer_info['customer_id'] = customer_id
+                customer_master = CustomerMaster.objects.create(**customer_info)
+                order_data['customer_id'] = customer_master.customer_id
         try:
             IntermediateOrders.objects.create(**order_data)
         except:

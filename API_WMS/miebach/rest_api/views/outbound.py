@@ -4132,6 +4132,13 @@ def create_order_from_intermediate_order(request, user):
                             order_dict['address'] = customer_user[0].customer.address
                         else:
                             return HttpResponse('Failed')
+                    elif interm_obj.customer_id:
+                        customer_master = CustomerMaster.objects.filter(user=user.id, customer_id=interm_obj.customer_id)
+                        if customer_master:
+                            order_dict['customer_id'] = customer_master[0].customer_id
+                            order_dict['email_id'] = customer_master[0].email_id
+                            order_dict['telephone'] = customer_master[0].phone_number
+                            order_dict['address'] = customer_master[0].address
                     else:
                         order_dict['customer_id'] = 0
                         mail_obj = OrderFields.objects.filter(original_order_id=str(interm_obj.interm_order_id), order_type='intermediate_order', user=user.id, name='email_id')
@@ -4224,9 +4231,9 @@ def create_order_from_intermediate_order(request, user):
                         if user_mail_id:
                             send_mail(user_mail_id, 'Order Approved Successfully', rendered_user)
                     created_order_objs.append(ord_obj)
-                admin_user = get_admin(user)
-                if admin_user.username in ['one_assist']:
-                    create_order_pos(user, created_order_objs)
+                #admin_user = get_admin(user)
+                #if admin_user.username in ['one_assist']:
+                #    create_order_pos(user, created_order_objs)
             except:
                 import traceback
                 log.debug(traceback.format_exc())
@@ -5199,6 +5206,7 @@ def insert_shipment_info(request, user=''):
     myDict = dict(request.POST.iterlists())
     log.info('Request params are ' + str(request.POST.dict()))
     user_profile = UserProfile.objects.filter(user_id=user.id)
+    created_order_objs = []
     try:
         order_shipment = create_shipment(request, user)
     except Exception as e:
@@ -5223,6 +5231,7 @@ def insert_shipment_info(request, user=''):
                 shipment_data = copy.deepcopy(SHIPMENT_INFO_FIELDS)
                 order_detail = OrderDetail.objects.get(id=order_id, user=user.id)
 
+                created_order_objs.append(order_detail)
                 for key, value in myDict.iteritems():
                     if key in data_dict:
                         data_dict[key] = value[i]
@@ -5309,7 +5318,9 @@ def insert_shipment_info(request, user=''):
         log.debug(traceback.format_exc())
         log.info(
             'Shipment info saving is failed for params ' + str(request.POST.dict()) + ' error statement is ' + str(e))
-    if user.username == "one_assist":
+    admin_user = get_admin(user)
+    if admin_user.username in ['one_assist']:
+        create_order_pos(user, created_order_objs, admin_user=admin_user)
         final_data = {'customer_name': customers_name, 'product_make': ' ', 
                      'product_model': ' ', 'imei': ' ', 'date': ' '}
         if final_data:

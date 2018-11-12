@@ -7129,7 +7129,7 @@ def create_new_supplier(user, supp_name, supp_email, supp_phone, supp_address, s
     return supplier_id
 
 
-def create_order_pos(user, order_objs):
+def create_order_pos(user, order_objs, admin_user=None):
     ''' Creating Sampling PO for orders'''
     po_id = ''
     customer_id = ''
@@ -7140,8 +7140,14 @@ def create_order_pos(user, order_objs):
         for order_obj in order_objs:
             if order_obj.customer_id:
                 customer_id = str(int(order_obj.customer_id))
+            order_map_check = OrderMapping.objects.filter(mapping_type='PO', order_id=order_obj.id)
+            if order_map_check.exists():
+                continue
             if customer_id not in cust_supp_mapping.keys():
-                cust_master = CustomerMaster.objects.filter(customer_id=customer_id, user=user.id)
+                if admin_user:
+                    cust_master = CustomerMaster.objects.filter(customer_id=customer_id, user=admin_user.id)
+                else:
+                    cust_master = CustomerMaster.objects.filter(customer_id=customer_id, user=user.id)
                 if cust_master:
                     cust_master = cust_master[0]
                     master_mapping = MastersMapping.objects.filter(master_id=cust_master.id,

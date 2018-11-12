@@ -165,7 +165,7 @@
           "orientation":"potrait",
           "gcm_sender_id": "21194035295"
         };
-        if(temp_user_list.indexOf(resp_data.parent.userName.toLowerCase()) != -1) {
+        if(resp_data.parent && 'userName' in resp_data.parent && temp_user_list.indexOf(resp_data.parent.userName.toLowerCase()) != -1) {
           manifest_json["name"] = "SAGARFAB";
           manifest_json["short_name"] = "SAGARFAB";
           manifest_json["icons"] =  [

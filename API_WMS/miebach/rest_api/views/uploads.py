@@ -5505,9 +5505,9 @@ def central_order_one_assist_upload(request, reader, user, no_of_rows, fname, fi
                     order_id = str(int(get_cell_data(row_idx, value, reader, file_type)))
                 except:
                     order_id = str(get_cell_data(row_idx, value, reader, file_type))
-                get_interm_order_id = IntermediateOrders.objects.all().aggregate(Max('interm_order_id'))
+                get_interm_order_id = IntermediateOrders.objects.filter(sku__user=user.id).aggregate(Max('interm_order_id'))['interm_order_id__max']
                 if get_interm_order_id:
-                    interm_order_id = get_interm_order_id['interm_order_id__max'] + 1
+                    interm_order_id = int(get_interm_order_id) + 1
                 else:
                     interm_order_id = 10000
                 order_data['interm_order_id'] = interm_order_id

@@ -5241,6 +5241,16 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                     if not sku_id:
                         index_status.setdefault(count, set()).add('SKU Code Not found in mentioned Location')
         """
+        if order_mapping.has_key('location'):
+            try:
+                location = str(int(get_cell_data(row_idx, order_mapping['location'], reader, file_type)))
+            except:
+                location = str(get_cell_data(row_idx, order_mapping['location'], reader, file_type))
+            warehouse_admin = get_warehouse_admin(user)
+            all_user_groups = UserGroups.objects.filter(admin_user_id=warehouse_admin.id)
+            if not all_user_groups:
+                index_status.setdefault(count, set()).add('Invalid Location')
+        
         if order_mapping.has_key('original_order_id'):
             try:
                 original_order_id = str(int(get_cell_data(row_idx, order_mapping['original_order_id'], reader, file_type)))
@@ -5373,6 +5383,7 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                     value = str(int(get_cell_data(row_idx, value, reader, file_type)))
                 except:
                     value = str(get_cell_data(row_idx, value, reader, file_type))
+
                 sister_wh = get_sister_warehouse(user)
                 user_obj = sister_wh.filter(user__username=value)
                 if user_obj:
@@ -5395,10 +5406,10 @@ def central_order_upload(request, user=''):
         if ex_status:
             return HttpResponse(ex_status)
         if user.username == 'one_assist':
-            upload_status = central_order_xls_upload(request, reader, user, no_of_rows, fname, 
+            upload_status = central_order_one_assist_upload(request, reader, user, no_of_rows, fname, 
                 file_type=file_type, no_of_cols=no_of_cols)
         else:
-            upload_status = central_order_one_assist_upload(request, reader, user, no_of_rows, fname,
+            upload_status = central_order_xls_upload(request, reader, user, no_of_rows, fname,
                 file_type=file_type, no_of_cols=no_of_cols)
     except Exception as e:
         import traceback
@@ -5487,6 +5498,7 @@ def central_order_one_assist_upload(request, reader, user, no_of_rows, fname, fi
     for row_idx in range(1, no_of_rows):
         order_data = copy.deepcopy(CENTRAL_ORDER_XLS_UPLOAD)
         order_data['user'] = user
+        customer_info = {}
         for key, value in order_mapping.iteritems():
             order_fields_data = {}
             if key == 'original_order_id':
@@ -5494,9 +5506,9 @@ def central_order_one_assist_upload(request, reader, user, no_of_rows, fname, fi
                     order_id = str(int(get_cell_data(row_idx, value, reader, file_type)))
                 except:
                     order_id = str(get_cell_data(row_idx, value, reader, file_type))
-                get_interm_order_id = IntermediateOrders.objects.all().aggregate(Max('interm_order_id'))
+                get_interm_order_id = IntermediateOrders.objects.filter(sku__user=user.id).aggregate(Max('interm_order_id'))['interm_order_id__max']
                 if get_interm_order_id:
-                    interm_order_id = get_interm_order_id['interm_order_id__max'] + 1
+                    interm_order_id = int(get_interm_order_id) + 1
                 else:
                     interm_order_id = 10000
                 order_data['interm_order_id'] = interm_order_id
@@ -5511,27 +5523,48 @@ def central_order_one_assist_upload(request, reader, user, no_of_rows, fname, fi
                     order_data['sku'] = sku_data[0]
             elif key == 'customer_name':
                 order_data['customer_name'] = get_cell_data(row_idx, value, reader, file_type)
+                customer_info['name'] = order_data['customer_name']
             elif key == 'city':
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
+                customer_info['city'] = key_value
                 create_order_fields_entry(interm_order_id, key, key_value, user)
             elif key == 'pincode':
                 try:
                     key_value = str(int(get_cell_data(row_idx, value, reader, file_type)))
                 except:
                     key_value = str(get_cell_data(row_idx, value, reader, file_type))
+                customer_info['pincode'] = key_value
                 create_order_fields_entry(interm_order_id, key, key_value, user)
             elif key == 'mobile_no':
                 try:
                     key_value = str(int(get_cell_data(row_idx, value, reader, file_type)))
                 except:
                     key_value = str(get_cell_data(row_idx, value, reader, file_type))
+                customer_info['phone_number'] = key_value
                 create_order_fields_entry(interm_order_id, key, key_value, user)
             elif key == 'email_id':
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
+                customer_info['email_id'] = key_value
                 create_order_fields_entry(interm_order_id, key, key_value, user)
             elif key == 'address':
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
+                customer_info['address'] = key_value
                 create_order_fields_entry(interm_order_id, key, key_value, user)
+        if user.username == 'one_assist':
+            customer_master = CustomerMaster.objects.filter(user=user.id, email_id=customer_info['email_id'], name=customer_info['name'])
+            if customer_master.exists():
+                order_data['customer_id'] = customer_master[0].customer_id
+            else:
+                customer_info['user'] = user.id
+                customer_master_ins = CustomerMaster.objects.filter(user=user.id).values_list('customer_id', flat=True).order_by(
+                                           '-customer_id')
+                if customer_master_ins:
+                    customer_id = customer_master_ins[0] + 1
+                else:
+                    customer_id = 1
+                customer_info['customer_id'] = customer_id
+                customer_master = CustomerMaster.objects.create(**customer_info)
+                order_data['customer_id'] = customer_master.customer_id
         try:
             IntermediateOrders.objects.create(**order_data)
         except:

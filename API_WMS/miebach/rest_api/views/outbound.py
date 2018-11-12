@@ -231,7 +231,6 @@ def get_stock_transfer_orders(start_index, stop_index, temp_data, search_term, o
     temp_data['recordsTotal'] = len(master_data)
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     count = 0
-    #import pdb;pdb.set_trace()
     for data in master_data[start_index:stop_index]:
         checkbox = '<input type="checkbox" name="id" value="%s">' % data.id
         w_user = User.objects.get(id=data.st_po.open_st.sku.user)
@@ -1120,7 +1119,6 @@ def validate_location_stock(val, all_locations, all_skus, user, picklist):
 
 
 def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
-    #import pdb;pdb.set_trace()
     if ',' in val['imei']:
         imei_nos = list(set(val['imei'].split(',')))
     else:
@@ -1174,6 +1172,75 @@ def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
                 po_imei.save()
         elif imei and not po_mapping:
             order_mapping = {'order_id': order_id, 'po_imei_id': None, 'imei_number': imei, 'sor_id': sor_id}
+            if seller_id:
+                order_mapping['seller_id'] = seller_id
+            imei_mapping = OrderIMEIMapping(**order_mapping)
+            imei_mapping.save()
+            log.info('%s imei code is mapped for %s and for id %s' % (str(imei), val['wms_code'], str(order_id)))
+        if imei_mapping:
+            if shipped_orders_dict.has_key(int(order_id)):
+                shipped_orders_dict[int(order_id)]['imeis'].append(imei_mapping)
+            else:
+                shipped_orders_dict[int(order_id)] = {}
+                shipped_orders_dict[int(order_id)]['imeis'] = [imei_mapping]
+        ReturnsIMEIMapping.objects.filter(order_return__sku__user=user_id, order_imei__po_imei__imei_number=imei,
+                                          imei_status=1).update(imei_status=0)
+    return shipped_orders_dict
+
+
+def insert_st_order_serial(picklist, val, order='', shipped_orders_dict={}):
+    imei_nos = val['imei']
+    user_id = None
+    for imei in imei_nos:
+        imei_filter = {}
+        if order:
+            order_id = order.id
+            sku_id = order.stock_transfer.sku.id
+        else:
+            order_id = picklist.order.id
+            order = picklist.order
+            sku_id = picklist.order.sku_id
+        if order:
+            user_id = order.stock_transfer.sku.user
+        po_mapping, status, imei_data = check_get_imei_details(imei, val['wms_code'], user_id,
+                                                               check_type='order_mapping', order=order)
+        # po_mapping = POIMEIMapping.objects.filter(purchase_order__open_po__sku__sku_code=val['wms_code'], imei_number=imei, status=1,
+        #                                          purchase_order__open_po__sku__user=user_id)
+        imei_mapping = None
+        all_seller_pos = SellerPO.objects.filter(seller__user=user_id)
+        all_seller_orders = SellerOrder.objects.filter(seller__user=user_id)
+        sor_id = ''
+        seller_id = ''
+        if imei and po_mapping:
+            order_mapping = {'po_imei_id': po_mapping[0].id, 'imei_number': '',
+                             'sku_id': sku_id, 'stock_transfer': order.stock_transfer}
+            if po_mapping[0].seller_id:
+                seller_id = po_mapping[0].seller_id
+                seller_order_obj = all_seller_orders.filter(order_id=order_id, seller_id=seller_id)
+                if seller_order_obj:
+                    sor_id = seller_order_obj[0].sor_id
+            order_mapping_ins = OrderIMEIMapping.objects.filter(po_imei_id=po_mapping[0].id, order_id=order_id)
+            if order_mapping_ins:
+                imei_mapping = order_mapping_ins[0]
+                imei_mapping.sor_id = sor_id
+                imei_mapping.status = 1
+                imei_mapping.save()
+                po_imei = order_mapping_ins[0].po_imei
+            else:
+                order_mapping['sor_id'] = sor_id
+                order_mapping['stock_transfer'] = order.stock_transfer
+                if seller_id:
+                    order_mapping['seller_id'] = seller_id
+                imei_mapping = OrderIMEIMapping(**order_mapping)
+                imei_mapping.save()
+                po_imei = po_mapping[0]
+                log.info('%s imei code is mapped for %s and for id %s' % (str(imei), val['wms_code'], str(order_id)))
+            if po_imei:
+                po_imei.status = 0
+                po_imei.save()
+        elif imei and not po_mapping:
+            order_mapping = {'order_id': order_id.stock_transfer, 'po_imei_id': None, 'imei_number': imei,
+            'sor_id': sor_id, 'stock_transfer': order.stock_transfer}
             if seller_id:
                 order_mapping['seller_id'] = seller_id
             imei_mapping = OrderIMEIMapping(**order_mapping)
@@ -2705,7 +2772,6 @@ def check_imei(request, user=''):
     groupby = request.GET.get('groupby', '')
     log.info('Request params for Check IMEI ' + user.username + ' is ' + str(request.GET.dict()))
     shipping_quantity = 0
-
     try:
         for key, value in request.GET.iteritems():
             if key in ['is_shipment', 'order_id', 'groupby', 'is_rm_picklist']:
@@ -2735,6 +2801,7 @@ def check_imei(request, user=''):
                 sku_code = po_mapping[0].sku.sku_code
             if not po_mapping:
                 status = str(value) + ' is invalid Imei number'
+
             order_mapping = OrderIMEIMapping.objects.filter(po_imei__imei_number=value, sku__user=user.id, status=1)
             if order_mapping:
                 if order_mapping[0].order:
@@ -4072,6 +4139,13 @@ def create_order_from_intermediate_order(request, user):
                             order_dict['address'] = customer_user[0].customer.address
                         else:
                             return HttpResponse('Failed')
+                    elif interm_obj.customer_id:
+                        customer_master = CustomerMaster.objects.filter(user=user.id, customer_id=interm_obj.customer_id)
+                        if customer_master:
+                            order_dict['customer_id'] = customer_master[0].customer_id
+                            order_dict['email_id'] = customer_master[0].email_id
+                            order_dict['telephone'] = customer_master[0].phone_number
+                            order_dict['address'] = customer_master[0].address
                     else:
                         order_dict['customer_id'] = 0
                         mail_obj = OrderFields.objects.filter(original_order_id=str(interm_obj.interm_order_id), order_type='intermediate_order', user=user.id, name='email_id')
@@ -4164,9 +4238,9 @@ def create_order_from_intermediate_order(request, user):
                         if user_mail_id:
                             send_mail(user_mail_id, 'Order Approved Successfully', rendered_user)
                     created_order_objs.append(ord_obj)
-                admin_user = get_admin(user)
-                if admin_user.username in ['one_assist']:
-                    create_order_pos(user, created_order_objs)
+                #admin_user = get_admin(user)
+                #if admin_user.username in ['one_assist']:
+                #    create_order_pos(user, created_order_objs)
             except:
                 import traceback
                 log.debug(traceback.format_exc())
@@ -4892,7 +4966,6 @@ def create_stock_transfer(request, user=''):
     warehouse = User.objects.get(username=warehouse_name)
     f_name = 'stock_transfer_' + warehouse_name + '_'
     status = validate_st(all_data, warehouse)
-     #import pdb;pdb.set_trace()
     if not status:
         all_data = insert_st(all_data, warehouse)
         status = confirm_stock_transfer(all_data, warehouse, user.username)
@@ -5140,6 +5213,7 @@ def insert_shipment_info(request, user=''):
     myDict = dict(request.POST.iterlists())
     log.info('Request params are ' + str(request.POST.dict()))
     user_profile = UserProfile.objects.filter(user_id=user.id)
+    created_order_objs = []
     try:
         order_shipment = create_shipment(request, user)
     except Exception as e:
@@ -5164,6 +5238,7 @@ def insert_shipment_info(request, user=''):
                 shipment_data = copy.deepcopy(SHIPMENT_INFO_FIELDS)
                 order_detail = OrderDetail.objects.get(id=order_id, user=user.id)
 
+                created_order_objs.append(order_detail)
                 for key, value in myDict.iteritems():
                     if key in data_dict:
                         data_dict[key] = value[i]
@@ -5250,7 +5325,9 @@ def insert_shipment_info(request, user=''):
         log.debug(traceback.format_exc())
         log.info(
             'Shipment info saving is failed for params ' + str(request.POST.dict()) + ' error statement is ' + str(e))
-    if user.username == "one_assist":
+    admin_user = get_admin(user)
+    if admin_user.username in ['one_assist']:
+        create_order_pos(user, created_order_objs, admin_user=admin_user)
         final_data = {'customer_name': customers_name, 'product_make': ' ',
                      'product_model': ' ', 'imei': ' ', 'date': ' '}
         if final_data:
@@ -5273,8 +5350,11 @@ def insert_st_shipment_info(request, user=''):
         log.info('Create shipment failed for params ' + str(request.POST.dict()) + ' error statement is ' + str(e))
         return HttpResponse('Create shipment Failed')
     try:
-        #import pdb;pdb.set_trace()
-        all_sku_data = eval(myDict['sku_data'][0])
+        sku_data_eval = len(myDict['sku_data'])
+        if sku_data_eval:
+            all_sku_data = eval(myDict['sku_data'][0])
+        else:
+            return HttpResponse('Data not found')
         shipped_orders_dict = {}
         for i in range(0, len(all_sku_data)):
             if not all_sku_data[i]['shipping_quantity']:
@@ -5298,12 +5378,10 @@ def insert_st_shipment_info(request, user=''):
                     if key in shipment_data and key != 'id':
                         shipment_data[key] = value[i]
                 # Need to comment below 3 lines if shipment scan is ready
-
-                if 'imei_number' in myDict.keys():
-                    shipped_orders_dict = insert_order_serial([], {'wms_code': order_detail.stock_transfer.sku.wms_code,
-                                                                   'imei': all_sku_data[i]['imei_number']},
-                                                              order=order_detail,
-                                                              shipped_orders_dict=shipped_orders_dict)
+                if 'imei_number' in myDict.keys() or 'imei_list' in all_sku_data[0].keys():
+                    shipped_orders_dict = insert_st_order_serial([], {'wms_code': order_detail.stock_transfer.sku.wms_code,
+                                            'imei': all_sku_data[i]['imei_list']}, order=order_detail,
+                                            shipped_orders_dict=shipped_orders_dict)
                 # Until Here
                 order_pack_instance = OrderPackaging.objects.filter(order_shipment_id=order_shipment.id,
                                                                     package_reference=all_sku_data[i]['pack_reference'],
@@ -12505,7 +12583,6 @@ def create_orders_check_ean(request, user=''):
     data = {}
     sku_code = ''
     ean = request.GET.get('ean')
-    #import pdb;pdb.set_trace()
     try:
         sku_obj = SKUMaster.objects.filter(Q(ean_number=ean) | Q(eannumbers__ean_number=ean) | Q(sku_code=ean), user=user.id)
         if sku_obj:
@@ -13344,9 +13421,12 @@ def do_delegate_orders(request, user=''):
                         interm_obj.status = 1
                         interm_obj.save()
                     """
+                    tax_percentage = float(interm_obj.sgst_tax) + float(interm_obj.igst_tax) + float(interm_obj.cgst_tax)
+                    tax_value = (inv_amt / 100) * tax_percentage
                     cust_ord_dict = {'order_id': ord_obj.id, 'sgst_tax': interm_obj.sgst_tax,
                                     'cgst_tax': interm_obj.cgst_tax, 'igst_tax': interm_obj.igst_tax,
-                                    'vechile_number': ''}
+                                    'vehicle_number': '', 'tax_value': tax_value,
+                                    'invoice_date': datetime.datetime.now()}
                     CustomerOrderSummary.objects.create(**cust_ord_dict)
                     #mail to Admin and normal user
                     central_orders_mail = MiscDetail.objects.filter(user=request.user.id,

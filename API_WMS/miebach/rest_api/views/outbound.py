@@ -11614,7 +11614,8 @@ def save_manual_enquiry_data(request, user=''):
 def get_manual_enquiry_orders(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                        filters={}, user_dict={}):
     data_filters = {}
-    lis = ['enquiry_id', 'customer_name', 'user__username', 'sku__sku_class', 'customization_type', 'status', 'creation_date']
+    lis = ['enquiry_id', 'customer_name', 'user__username', 'sku__sku_class',
+           'customization_type', 'status', 'creation_date']
     special_key = request.POST.get('special_key', '')
     if special_key:
         data_filters['status'] = special_key
@@ -11634,7 +11635,16 @@ def get_manual_enquiry_orders(start_index, stop_index, temp_data, search_term, o
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
-    em_qs = ManualEnquiry.objects.filter(**data_filters).order_by(order_data)
+    if search_term:
+        em_qs = ManualEnquiry.objects.filter(Q(customer_name__icontains=search_term) |
+                                             Q(enquiry_id__icontains=search_term) |
+                                             Q(user__username__icontains=search_term) |
+                                             Q(sku__sku_code__icontains=search_term) |
+                                             Q(sku__sku_class__icontains=search_term) |
+                                             Q(customization_type__icontains=search_term),
+                                             **data_filters).order_by(order_data)
+    else:
+        em_qs = ManualEnquiry.objects.filter(**data_filters).order_by(order_data)
     for em_obj in em_qs:
         date = em_obj.creation_date.strftime('%Y-%m-%d')
         customization_types = dict(CUSTOMIZATION_TYPES)
@@ -11671,8 +11681,8 @@ def get_manual_enquiry_detail(request, user=''):
                   'description': manual_enq[0].sku.sku_desc, 'images': enquiry_images,
                   'category': manual_enq[0].sku.sku_category, 'art_images': art_images}
     if request.user.id == long(user_id):
-        enquiry_data = ManualEnquiryDetails.objects.filter(enquiry=manual_enq[0].id).filter(
-                                                           Q(enquiry__status__in=["reseller_pending"]) | Q(status=''))
+        enquiry_data = ManualEnquiryDetails.objects.filter(enquiry=manual_enq[0].id,
+                                                           status__in=["", "reseller_pending"])
     else:
         enquiry_data = ManualEnquiryDetails.objects.filter(enquiry=manual_enq[0].id)
     enquiry_dict = []
@@ -11693,6 +11703,7 @@ def get_manual_enquiry_detail(request, user=''):
         expected_date = enq_details.expected_date.strftime('%d/%m/%Y')
         enq_details = {'ask_price': enq_details.ask_price, 'remarks': enq_details.remarks,\
                        'expected_date': expected_date}
+    far_wh_lt = 0
     cust_obj = CustomerUserMapping.objects.filter(user_id=user_id)
     if cust_obj:
         dest_user = cust_obj[0].customer.user
@@ -11785,7 +11796,7 @@ def notify_designer(request, user=''):
         users_list.append(request.user.id)
         users_list.append(user.id)
     elif request.user.userprofile.warehouse_type == 'CENTRAL_ADMIN' and request.user.userprofile.zone != '':
-        admin_user = user
+        users_list.append(user.id)
     else:
         admin_user = get_priceband_admin_user(user)
         if not admin_user:

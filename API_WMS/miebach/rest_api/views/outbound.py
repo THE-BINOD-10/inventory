@@ -11723,7 +11723,9 @@ def get_manual_enquiry_detail(request, user=''):
     for l1_user in l1_users:
         wh_stock = get_quantity_data([l1_user.id], [manual_enq[0].sku.sku_code], True)
         if wh_stock:
-            wh_open = wh_stock[0]['available']
+            wh_total = wh_stock[0]['available']
+            wh_res = wh_stock[0]['reserved']
+            wh_open = wh_total - wh_res
             wh_blocked = wh_stock[0]['blocked']
             intr_open = wh_stock[0]['asn']
             intr_blocked = wh_stock[0]['asn_blocked']

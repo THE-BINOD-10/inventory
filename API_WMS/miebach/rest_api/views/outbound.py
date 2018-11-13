@@ -11660,6 +11660,7 @@ def get_manual_enquiry_orders(start_index, stop_index, temp_data, search_term, o
 
 @get_admin_user
 def get_manual_enquiry_detail(request, user=''):
+    from stock_locator import get_quantity_data
     enquiry_id = request.GET.get('enquiry_id', '')
     main_user = user
     user_id = request.GET.get('user_id', '')
@@ -11720,7 +11721,19 @@ def get_manual_enquiry_detail(request, user=''):
     wh_stock_list = []
     l1_users = wh_users.filter(userprofile__warehouse_level=1)
     for l1_user in l1_users:
-        wh_stock_list.append({'warehouse': l1_user.username, 'quantity': 0})
+        wh_stock = get_quantity_data([l1_user.id], [manual_enq[0].sku.sku_code], True)
+        if wh_stock:
+            wh_open = wh_stock[0]['available']
+            wh_blocked = wh_stock[0]['blocked']
+            intr_open = wh_stock[0]['asn']
+            intr_blocked = wh_stock[0]['asn_blocked']
+            wh_stock_list.append({'warehouse': l1_user.username, 'quantity': 0,
+                                  'wh_open': wh_open, 'wh_blocked': wh_blocked,
+                                  'intr_open': intr_open, 'intr_blocked': intr_blocked})
+        else:
+            wh_stock_list.append({'warehouse': l1_user.username, 'quantity': 0,
+                                  'wh_open': 0, 'wh_blocked': 0,
+                                  'intr_open': 0, 'intr_blocked': 0})
     wh_stock_dict = {'L1': wh_stock_list}
 
     return HttpResponse(json.dumps({'data': enquiry_dict, 'style': style_dict, 'order': manual_eq_dict,\

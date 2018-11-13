@@ -154,6 +154,10 @@
         <b>EXPECTED DELIVERY DATE:</b>
         <P><span style="color: rgb(0, 86, 255);">{{showCase.shipment_date}}</span></P>
       </div>
+      <div class="col-md-4 col-sm-6 col-xs-12" ng-if="showCase.project_name !=='empty'">
+        <b>Project Name:<P>{{showCase.project_name}}</P></b>
+        <!-- <P>{{showCase.project_name}}</P> -->
+      </div>
       <div class="col-md-4 col-sm-6 col-xs-12">
         <div class="form-group">
           <b>PAYMENT STATUS:</b>
@@ -238,9 +242,9 @@
         <tbody>
           <tr ng-repeat="data in showCase.model_data.data" ng-if="data.sku_status">
             <td>
-	          <input type="text" autocomplete="off" placeholder="Search WMS Code" 
+	          <input type="text" autocomplete="off" placeholder="Search WMS Code"
 	          typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')"
-	          typeahead-loading="loadingLocations" class="form-control" name="item_code" ng-model="data.item_code" 
+	          typeahead-loading="loadingLocations" class="form-control" name="item_code" ng-model="data.item_code"
 	          typeahead-on-select="showCase.get_sku_data(data, $item)" ng-readonly="data.default_status">
               <img ng-src="{{data.image_url}}" style="padding-top: 10px;width: 120px;"></img>
 	        </td>
@@ -354,7 +358,7 @@
     <div class="row" style="padding-bottom:2%;">
       <div class="col-md-6">
         <input type="hidden" class="form-control" name="tax_type" value="{{showCase.model_data.tax_type}}" disabled>
-        <button type="button" class="btn btn-primary" ng-if="!showCase.input_status" style="margin: auto;display: block;" 
+        <button type="button" class="btn btn-primary" ng-if="!showCase.input_status" style="margin: auto;display: block;"
         ng-click="showCase.send_order_data(form)">Update </button>
       </div>
       <div class="col-md-6">

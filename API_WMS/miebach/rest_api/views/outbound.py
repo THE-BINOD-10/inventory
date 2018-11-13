@@ -4162,6 +4162,7 @@ def create_order_from_intermediate_order(request, user):
                     order_dict['order_code'] = 'MN'
                     order_dict['shipment_date'] = interm_obj.shipment_date
                     order_dict['order_id'] = get_order_id(wh_id)
+                    order_dict['original_order_id'] = order_dict['order_code'] + str(order_dict['order_id'])
                     order_dict['status'] = 1
                     order_dict['remarks'] = interm_obj.remarks
                     ord_obj = OrderDetail(**order_dict)

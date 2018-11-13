@@ -185,6 +185,7 @@ urlpatterns = [
     url(r'^map_ean_sku_code/$', map_ean_sku_code),
     url(r'^get_grn_level_data/$', get_grn_level_data),
     url(r'^update_existing_grn/$', update_existing_grn),
+    url(r'^confirm_central_po/$', confirm_central_po),
 
     # Production
     url(r'^generated_jo_data/$', generated_jo_data),
@@ -237,6 +238,7 @@ urlpatterns = [
     url(r'^inventory_adj_reasons/$', inventory_adj_reasons),
     url(r'^auto_sellable_confirm/$', auto_sellable_confirm),
     url(r'^update_sellable_suggestions/$', update_sellable_suggestions),
+    url(r'^get_style_level_stock/$', get_style_level_stock),
 
     # OutBound
     url(r'^batch_generate_picklist/$', batch_generate_picklist),
@@ -282,6 +284,7 @@ urlpatterns = [
     url(r'^get_customer_master_id/$', get_customer_master_id),
     url(r'^get_corporate_master_id/$', get_corporate_master_id),
     url(r'^search_wms_data/$', search_wms_data),
+    url(r'^search_style_data/$', search_style_data),
     url(r'^update_payment_status/$', update_payment_status),
     url(r'^update_inv_payment_status/$', update_inv_payment_status),
     url(r'^get_customer_list/$', get_customer_list),
@@ -354,6 +357,9 @@ urlpatterns = [
     url(r'^make_notifications_read/$', make_notifications_read),
     url(r'^delete_notification/$', delete_notification),
     url(r'^get_grn_edit_filter/$', get_grn_edit_filter),
+    url(r'^get_stock_transfer_shipment_popup_data/$', get_stock_transfer_shipment_popup_data),
+    url(r'^insert_st_shipment_info/$', insert_st_shipment_info),
+    url(r'^do_delegate_orders/$', do_delegate_orders),
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),
@@ -491,8 +497,10 @@ urlpatterns += [
     url(r'^network_master_upload/$', network_master_upload),
     url(r'^sku_substitution_form/$', sku_substitution_form),
     url(r'^sku_substitution_upload/$', sku_substitution_upload),
-    url(r'^targets_form/$', targets_form),
+    url(r'^targets_form/$', targets_form),  
     url(r'^targets_upload/$', targets_upload),
+    url(r'^central_order_form/$', central_order_form),
+    url(r'^central_order_upload/$', central_order_upload),
 
     # configurations
     url(r'^configurations/$', configurations),

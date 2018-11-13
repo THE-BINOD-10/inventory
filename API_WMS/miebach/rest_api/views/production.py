@@ -918,7 +918,7 @@ def get_raw_picklist_data(data_id, user):
                 zone = location.stock.location.zone.zone
                 sequence = location.stock.location.pick_sequence
                 stock_id = location.stock_id
-                match_condition = (location_name, pallet_detail, picklist.jo_material.material_code.sku_code)
+            match_condition = (location_name, pallet_detail, picklist.jo_material.material_code.sku_code)
             location_reserved = location.reserved
             temp_loc_reserved = get_decimal_limit(user.id, location.reserved)
             if temp_loc_reserved > 0:
@@ -929,7 +929,7 @@ def get_raw_picklist_data(data_id, user):
                 else:
                     pallet_code = ''
                 if picklist.reserved_quantity == 0:
-                    RMLocation.objects.filter(material_picklist_id=picklist.id).update(reserved=0, status=0)
+                    #RMLocation.objects.filter(material_picklist_id=picklist.id).update(reserved=0, status=0)
                     continue
                 batch_data[match_condition] = {
                     'wms_code': location.material_picklist.jo_material.material_code.sku_code,

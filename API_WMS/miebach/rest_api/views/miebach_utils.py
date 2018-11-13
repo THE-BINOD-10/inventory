@@ -1259,6 +1259,29 @@ SHOTANG_ORDER_FILE_EXCEL = {'order_id': 1, 'customer_name': 6, 'customer_id': 5,
                             'seller': 9,
                             'marketplace': 'Shotang', 'vat': {'tax': 14, 'quantity': 4, 'tot_tax': 15}}
 
+CENTRAL_ORDER_EXCEL = OrderedDict((
+                             ('original_order_id', 0), ('batch_number', 1), ('batch_date', 2),
+                             ('branch_id', 3), ('branch_name', 4), ('loan_proposal_id', 5),
+                             ('loan_proposal_code', 6), ('client_code', 7), ('client_id', 8),
+                             ('customer_name', 9), ('address1', 10),
+                             ('address2', 11), ('landmark', 12), ('village', 13), ('district', 14),
+                             ('state', 15), ('pincode', 16), ('mobile_no', 17), ('alternative_mobile_no', 18),
+                             ('sku_code', 19), ('model', 20), ('unit_price', 21),
+                             ('cgst', 22), ('sgst', 23), ('igst', 24),
+                             ('total_price', 25), ('location', 26)
+                           ))
+
+CENTRAL_ORDER_EXCEL_ONE_ASSIST = OrderedDict((
+                            ('original_order_id', 0), ('customer_name', 1), ('address', 2),
+                            ('city', 3), ('pincode', 4), ('mobile_no', 5), ('email_id', 6),
+                            ('sku_code', 7)
+                          ))
+
+CENTRAL_ORDER_XLS_UPLOAD = {'interm_order_id': '', 'sku': '', 'quantity': 1, 
+              'unit_price': 0, 'tax': 0, 'inter_state': 0, 'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 
+              'utgst_tax': 0, 'status': 0, 'project_name': '', 'remarks': '', 'customer_id': 0, 
+              'customer_name': '', 'shipment_date': datetime.datetime.now()}
+
 # End of Order File Upload Templates
 
 # Download Excel Report Mapping
@@ -1841,6 +1864,30 @@ SELLER_TRANSFER_MAPPING = OrderedDict((('SKU Code', 'wms_code'), ('Source Seller
                                        ('Destination Location', 'dest_location'), ('MRP', 'mrp'),
                                        ('Quantity', 'quantity'),
                                     ))
+
+CENTRAL_ORDER_MAPPING = OrderedDict((
+                                      ('Central Order ID', 'original_order_id'), ('Batch Number', 'batch_number'),
+                                      ('Batch Date', 'batch_date'), ('Branch ID', 'branch_id'),
+                                      ('Branch Name', 'branch_name'), ('Loan Proposal ID', 'loan_proposal_id'),
+                                      ('Loan Proposal Code', 'loan_proposal_code'), ('Client Code', 'client_code'),
+                                      ('Client ID', 'client_id'), ('Customer Name', 'customer_name'), 
+                                      ('Address1', 'address1'), ('Address2', 'address2'),
+                                      ('Landmark', 'landmark'), ('Village', 'village'),
+                                      ('District', 'district'), ('State1', 'state'),
+                                      ('Pincode', 'pincode'), ('Mobile Number', 'mobile_no'),
+                                      ('Alternative Mobile Number', 'alternative_mobile_no'), ('SKU Code', 'sku_code'),
+                                      ('Model', 'model'), ('Unit Price', 'unit_price'),
+                                      ('CGST', 'cgst'), ('SGST', 'sgst'),
+                                      ('IGST', 'igst'), ('Total Price', 'total_price'),
+                                      ('Location', 'location')
+                                   ))
+
+CENTRAL_ORDER_ONE_ASSIST_MAPPING = OrderedDict((
+                                      ('Courtesy SR Number', 'original_order_id'), ('Customer handset Model', 'sku_code'),
+                                      ('Customer Name', 'customer_name'), ('Address', 'address'),
+                                      ('City', 'city'), ('Pincode', 'pincode'),
+                                      ('Customer primary contact', 'mobile_no'), ('Customer emailId', 'email_id')
+                                  ))
 
 #PICKLIST_EXCLUDE_ZONES = ['DAMAGED_ZONE', 'QC_ZONE', 'Non Sellable Zone']
 

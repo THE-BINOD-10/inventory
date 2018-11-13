@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+<form id="toggle-po">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="row">
+          <div class="col-md-12 col-sm-12 col-xs-12" align="center">
+            <h3 align="center" style="margin: 2px"><b>OneAssist Consumer Solutions Courtesy handset</b></h3>
+            <p style="margin-top: 15px">{{company_address}}</p>
+          </div>
+        </div>
+      </div>
+      <!-- <hr> -->
+      <div class="modal-body">
+        <div class="container">
+		<div class="row" align="center" style="padding-top: 30px;">
+		<h2><b><u>Undertaking Form</u></b></h2>
+		</div>
+		<div class="row" style="padding-top: 80px;">
+		<div class="col-md-2 col-lg-2"></div>
+
+		<div class="col-md-8 col-lg-8 col-sm-12 col-xs-12">
+			<form action="">
+				<p>I the undersigned <b>{{ customer_name }}</b> am accepting receipt of the courtesy handset
+			of Make : <b>{{ product_make }}</b> Model : <b>{{ product_model }}</b> IMEI Number : <b>{{ imei }}</b>
+			given by OneAssist in working condition. I understand that I am responsible for ensuring that
+			the courtesy handset is delivered back to OneAssist in the same condition that it was handed
+			over. In case of damages (screen breakage, back panel breakage, button/camera breakage) to
+			the courtesy handset, OneAssist or it authorized partners reserve the right to hold back delivery
+			of the repaired handset (for which a claim has been raised with OneAssist) or collect from me
+			the cost of repairing the courtesy handset (Apple: upto 5000, Android:upto 3000)</p>
+			<div class="row" style="padding-top: 40px;padding-left: 10px;">
+				<p>Date:</p>
+				<p>Signature of customer:</p>
+				<p>Signature of Field Engineer:</p>
+			</div>
+			</form>
+		</div>
+		<div class="col-md-2 col-lg-2"></div>
+		</div>
+		</div>
+      </div>
+    </div>
+  </div>
+</form>
+<style>
+	h2 {
+		font-family: 'Open Sans',sans-serif !important;
+		font-size: 20px;
+	}
+	p {
+	    word-spacing: 4px;
+	    line-height: 1.6;
+	}
+	input {
+		background-color: transparent;
+		color: #000000;
+		outline: none;
+		outline-style: none;
+		border-top: none;
+		border-left: none;
+		border-right: none;
+		border-bottom: solid #000000 1px;
+		padding: 3px 10px;
+	}
+</style>
+
+</html>

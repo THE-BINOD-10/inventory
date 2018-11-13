@@ -888,6 +888,20 @@ var app = angular.module('urbanApp')
             title: 'Supplier Invoice',
           }
         })
+        .state('app.inbound.GrnEdit', {
+          url: '/GrnEdit',
+          templateUrl: 'views/inbound/grn_edit.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                    'scripts/controllers/inbound/grn_edit.js'
+                ])
+            }]
+          },
+          data: {
+            title: 'GRN Edit',
+          }
+        })
         .state('app.inbound.SupplierInvoice.InvoiceM', {
             url: '/InvoiceM',
             templateUrl: 'views/inbound/print/supplier_inv.html'
@@ -924,21 +938,6 @@ var app = angular.module('urbanApp')
           },
           data: {
             title: 'Auto Back Orders',
-          }
-        })
-
-        .state('app.inbound.GrnEdit', {
-          url: '/GrnEdit',
-          templateUrl: 'views/inbound/grn_edit.html',
-          resolve: {
-            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load([
-                    'scripts/controllers/inbound/grn_edit.js'
-                ])
-            }]
-          },
-          data: {
-            title: 'GRN Edit',
           }
         })
         .state('app.inbound.GrnEdit.GrnEditPopup', {
@@ -1333,15 +1332,17 @@ var app = angular.module('urbanApp')
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
               return $ocLazyLoad.load([
-                       'scripts/controllers/outbound/view_orders/custom_orders.js',
+                       // 'scripts/controllers/outbound/view_orders/custom_orders.js',
                        'scripts/controllers/outbound/view_orders/central_orders.js',
                        'scripts/controllers/outbound/view_orders/create_central_orders.js',
-                        ]).then( function() {
-                  return $ocLazyLoad.load([
+              ]).then( function() {
+                return $ocLazyLoad.load([
                     'scripts/controllers/outbound/view_orders/stock_transfer_orders.js'
                   ])
-                }).then(function () {
+              }).then(function () {
                 return $ocLazyLoad.load('scripts/controllers/outbound/view_orders/orders.js');
+              }).then(function () {
+                return $ocLazyLoad.load('scripts/controllers/outbound/view_orders/custom_orders.js');
               });
             }]
           },
@@ -1500,6 +1501,10 @@ var app = angular.module('urbanApp')
                 return $ocLazyLoad.load([
                   'scripts/controllers/outbound/shipment_info/gateout.js'
                 ])
+              }).then( function() {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/outbound/shipment_info/stock_transfer_shipment.js'
+                ])
               });
             }]
           },
@@ -1507,14 +1512,18 @@ var app = angular.module('urbanApp')
             title: 'Shipment Info',
           }
         })
-          .state('app.outbound.ShipmentInfo.Shipment', {
-            url: '/Shipment',
-            templateUrl: 'views/outbound/toggle/ship_tg.html'
-          })
-          .state('app.outbound.ShipmentInfo.ConfirmShipment', {
-            url: '/ConfirmShipment',
-            templateUrl: 'views/outbound/toggle/confirm_ship_tg.html'
-          })
+        .state('app.outbound.ShipmentInfo.Shipment', {
+          url: '/Shipment',
+          templateUrl: 'views/outbound/toggle/ship_tg.html'
+        })
+        .state('app.outbound.ShipmentInfo.ConfirmShipment', {
+          url: '/ConfirmShipment',
+          templateUrl: 'views/outbound/toggle/confirm_ship_tg.html'
+        })
+        .state('app.outbound.ShipmentInfo.ST_Shipment', {
+          url: '/STShipment',
+          templateUrl: 'views/outbound/toggle/st_ship_tg.html'
+        })
         .state('app.outbound.BackOrders', {
           url: '/BackOrders',
           templateUrl: 'views/outbound/back_orders.html',

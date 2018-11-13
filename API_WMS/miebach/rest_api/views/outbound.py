@@ -1239,7 +1239,7 @@ def insert_st_order_serial(picklist, val, order='', shipped_orders_dict={}):
                 po_imei.status = 0
                 po_imei.save()
         elif imei and not po_mapping:
-            order_mapping = {'order_id': order_id.stock_transfer, 'po_imei_id': None, 'imei_number': imei, 
+            order_mapping = {'order_id': order_id.stock_transfer, 'po_imei_id': None, 'imei_number': imei,
             'sor_id': sor_id, 'stock_transfer': order.stock_transfer}
             if seller_id:
                 order_mapping['seller_id'] = seller_id
@@ -2752,8 +2752,8 @@ def get_customer_sku(request, user=''):
         return HttpResponse(json.dumps({'data': data,
                                         'shipment_id': '',
                                         'display_fields': '',
-                                        'marketplace': '', 
-                                        'shipment_number': ship_no, 
+                                        'marketplace': '',
+                                        'shipment_number': ship_no,
                                         'courier_name': courier_name}, cls=DjangoJSONEncoder))
     return HttpResponse(json.dumps({'status': 'No Orders found'}))
 
@@ -3987,9 +3987,15 @@ def create_central_order(request, user):
             interm_order_map['unit_price'] = cart_item.levelbase_price
             interm_order_map['sku_id'] = cart_item.sku_id
             interm_order_map['remarks'] = remarks_dict[cart_item.sku.sku_code]
-            IntermediateOrders.objects.create(**interm_order_map)
+            intermediate_obj =  IntermediateOrders.objects.create(**interm_order_map)
+             #import pdb; pdb.set_trace()
+            #x = intermediate_obj.shipment_date
+            order_date = intermediate_obj.shipment_date.strftime("%d, %b, %Y")
+            #import pdb; pdb.set_trace()
+
+            #order_date =  intermediate_obj.shipment_date.day + "/"+intermediate_obj.shipment_date.month+"/"+intermediate_obj.shipment_date.year
             inv_amt = (cart_item.levelbase_price * cart_item.quantity) + cart_item.tax
-            items.append([cart_item.sku.sku_desc, cart_item.quantity, inv_amt])
+            items.append([intermediate_obj.interm_order_id,cart_item.sku.sku_code,cart_item.sku.sku_desc,cart_item.quantity, inv_amt,intermediate_obj.project_name,order_date])
 
 
         #mail to Admin and normal user
@@ -4002,8 +4008,9 @@ def create_central_order(request, user):
                 if admin_users:
                     mail_ids = [admin_users[0].admin_user.userprofile.email]"""
             mail_ids = [user.email]
+            import pdb; pdb.set_trace()
             user_mail_id = [request.user.email]
-            headers = ['Product Details', 'Ordered Quantity', 'Total']
+            headers = ['Order number','isprava code','Product Details', 'Ordered Quantity', 'Total','Project name','Order Date']
             data_dict = {'customer_name': request.user.username, 'items': items,
                          'headers': headers, 'role': 'Admin', 'order_id': interm_order_id}
             t = loader.get_template('templates/central_order/order_for_approval.html')
@@ -4342,7 +4349,7 @@ def insert_order_data(request, user=''):
     po_data = []
     if valid_status:
         return HttpResponse(valid_status)
-
+    #import pdb; pdb.set_trace()
     if is_central_order:
         message = create_central_order(request, user)
         return HttpResponse(message)
@@ -5321,7 +5328,7 @@ def insert_shipment_info(request, user=''):
     admin_user = get_admin(user)
     if admin_user.username in ['one_assist']:
         create_order_pos(user, created_order_objs, admin_user=admin_user)
-        final_data = {'customer_name': customers_name, 'product_make': ' ', 
+        final_data = {'customer_name': customers_name, 'product_make': ' ',
                      'product_model': ' ', 'imei': ' ', 'date': ' '}
         if final_data:
             return render(request, 'templates/toggle/order_shipment_confirmation_form.html', final_data)
@@ -6626,10 +6633,15 @@ def get_seller_order_details(request, user=''):
 @get_admin_user
 def get_view_order_details(request, user=''):
     view_order_status, check_ord_status = get_view_order_statuses(request, user)
-
     data_dict = []
     main_id = request.GET.get('order_id', '')
+
     row_id = request.GET.get('id', '')
+    try :
+        intermediate_object  = IntermediateOrders.objects.get(order_id=row_id)
+        project_name = intermediate_object.project_name
+    except:
+        project_name = "empty"
     sor_id = request.GET.get('sor_id', '')
 
     supplier_status, supplier_user, supplier, supplier_parent = get_supplier_info(request)
@@ -6779,6 +6791,7 @@ def get_view_order_details(request, user=''):
              'state': state, 'pin': pin, 'shipment_date': str(shipment_date), 'item_code': sku_code,
              'order_id': order_id,
              'image_url': one_order.sku.image_url, 'market_place': one_order.marketplace,
+             'project_name':project_name,
              'order_id_code': one_order.order_code + str(one_order.order_id),
              'print_vendor': vend_dict['printing_vendor'],
              'embroidery_vendor': vend_dict['embroidery_vendor'], 'production_unit': vend_dict['production_unit'],
@@ -7569,7 +7582,7 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
 
         temp_data['aaData'].append(OrderedDict((('', checkbox), ('Customer Name', dat['customer_name']),
                                                 ('Order ID', order_id), ('Market Place', dat['marketplace']),
-                                                ('Total Quantity', tot_quantity), ('Address', dat['address']), 
+                                                ('Total Quantity', tot_quantity), ('Address', dat['address']),
                                                 ('Creation Date', creation_data),
                                                 ('Shipment Date', shipment_data), ('Order Taken By', order_taken_val),
                                                 ('Status', cust_status), ('id', index), ('DT_RowClass', 'results'),
@@ -7750,7 +7763,7 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
                           filters={}, user_dict={}):
     un_sort_dict = {7: 'Status'}
     lis = ['', 'interm_order_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'shipment_date', 'project_name', 'remarks',
-           'order_assigned_wh__username', 'id']
+           'order_assigned_wh__username', 'id','creation_date']
     data_dict = {'user': user.id, 'quantity__gt': 0}
     status_map = {'1': 'Accept', '0': 'Reject'}
     order_data = lis[col_num]
@@ -7761,7 +7774,7 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
         all_orders = interm_orders.filter(Q(sku__sku_code__icontains=search_term) | Q(sku__sku_desc__icontains=search_term)|
                                             Q(quantity__icontains=search_term) | Q(shipment_date__regex=search_term)|
                                             Q(project_name__icontains=search_term) | Q(order_assigned_wh__username__icontains=search_term)|
-                                            Q(interm_order_id__icontains=search_term)).order_by(order_data)
+                                            Q(interm_order_id__icontains=search_term)|Q(creation_date__regex=search_term)).order_by(order_data)
     else:
         all_orders = interm_orders.order_by(order_data)
     temp_data['recordsTotal'] = all_orders.count()
@@ -7773,6 +7786,7 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
         if stop_index:
             all_orders = all_orders[start_index:stop_index]
     for dat in all_orders[start_index:stop_index]:
+        order_date = get_local_date(user, dat.creation_date)
         order_id = int(dat.interm_order_id)
         if dat.order_assigned_wh:
             wh_name = dat.order_assigned_wh.username
@@ -7787,12 +7801,12 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
             OrderedDict((('Order ID', order_id), ('SKU Code', dat.sku.sku_code), ('SKU Desc', dat.sku.sku_desc),
                          ('Product Quantity', dat.quantity), ('Shipment Date', shipment_date), ('data_id', dat.id),
                          ('Project Name', dat.project_name), ('Remarks', dat.remarks),
-                         ('Warehouse', wh_name), ('Status', status),
+                         ('Warehouse', wh_name), ('Status', status),('Order Date',order_date),
                          ('id', index), ('DT_RowClass', 'results'))))
         index += 1
 
     col_headers = ['Order ID', 'SKU Code', 'SKU Desc', 'Product Quantity', 'Shipment Date', 'Project Name', 'Remarks',
-                   'Warehouse', 'Status']
+                   'Warehouse', 'Status','Order Date']
 
     if custom_sort:
         temp_data['aaData'] = apply_search_sort(col_headers, temp_data['aaData'], order_term, search_term, col_num)[start_index:stop_index]
@@ -13101,8 +13115,8 @@ def get_stock_transfer_shipment_popup_data(request, user=''):
             stock_transfer_obj = stock_transfer_obj.values()
         '''
         {'status': 2L, u'sku_id': 149723L, 'updation_date': datetime.datetime(2017, 2, 27, 11, 5, 22, tzinfo=<UTC>),
-        'order_id': 1008L, u'st_po_id': 24L, 'creation_date': datetime.datetime(2017, 2, 27, 9, 38, 44, tzinfo=<UTC>), 
-        'shipment_date': datetime.datetime(2017, 2, 27, 9, 38, 44, tzinfo=<UTC>), 'invoice_amount': 0.0, 
+        'order_id': 1008L, u'st_po_id': 24L, 'creation_date': datetime.datetime(2017, 2, 27, 9, 38, 44, tzinfo=<UTC>),
+        'shipment_date': datetime.datetime(2017, 2, 27, 9, 38, 44, tzinfo=<UTC>), 'invoice_amount': 0.0,
         'id': 24L, 'quantity': 1.0}
         '''
         for obj in stock_transfer_obj:
@@ -13119,7 +13133,7 @@ def get_stock_transfer_shipment_popup_data(request, user=''):
             order_id_val = order_ids
             order_id_search = ''.join(re.findall('\d+', order_id_val))
             order_code_search = ''.join(re.findall('\D+', order_id_val))
-            fil_ids = list(OrderDetail.objects.filter(Q(order_id=order_id_search, 
+            fil_ids = list(OrderDetail.objects.filter(Q(order_id=order_id_search,
                 order_code=order_code_search) | Q(original_order_id=order_id_val),
                 user=user.id).values_list('id', flat=True))
             filter_order_ids = list(chain(filter_order_ids, fil_ids))
@@ -13136,8 +13150,8 @@ def get_stock_transfer_shipment_popup_data(request, user=''):
         return HttpResponse(json.dumps({'data': data,
                                         'shipment_id': '',
                                         'display_fields': '',
-                                        'marketplace': '', 
-                                        'shipment_number': ship_no, 
+                                        'marketplace': '',
+                                        'shipment_number': ship_no,
                                         'courier_name': ''}, cls=DjangoJSONEncoder))
     return HttpResponse(json.dumps({'status': 'No Orders found'}))
 
@@ -13344,8 +13358,8 @@ def do_delegate_orders(request, user=''):
                     order_code_value = ''.join(re.findall('\D+', original_order_id))
                     order_dict['order_id'] = order_id_value
                     order_dict['order_code'] = order_code_value
-                    get_existing_order = OrderDetail.objects.filter(**{'status': 1, 'sku_id': sku_id, 
-                        'sku_code': interm_obj.sku.sku_code, 'original_order_id': original_order_id, 
+                    get_existing_order = OrderDetail.objects.filter(**{'status': 1, 'sku_id': sku_id,
+                        'sku_code': interm_obj.sku.sku_code, 'original_order_id': original_order_id,
                         'user': wh_id})
                     if get_existing_order:
                         get_existing_order = get_existing_order[0]
@@ -13415,7 +13429,7 @@ def do_delegate_orders(request, user=''):
                                     'invoice_date': datetime.datetime.now()}
                     CustomerOrderSummary.objects.create(**cust_ord_dict)
                     #mail to Admin and normal user
-                    central_orders_mail = MiscDetail.objects.filter(user=request.user.id, 
+                    central_orders_mail = MiscDetail.objects.filter(user=request.user.id,
                         misc_type='central_orders', misc_value='true')
                     if central_orders_mail:
                         if user.userprofile.warehouse_type == 'CENTRAL_ADMIN':

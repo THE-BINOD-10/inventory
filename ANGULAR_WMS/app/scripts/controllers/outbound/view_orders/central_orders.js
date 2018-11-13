@@ -56,7 +56,8 @@ var vm = this;
         DTColumnBuilder.newColumn('Project Name').withTitle('Project Name'),
         DTColumnBuilder.newColumn('Remarks').withTitle('Remarks'),
         DTColumnBuilder.newColumn('Warehouse').withTitle('Warehouse'),
-        DTColumnBuilder.newColumn('Status').withTitle('Status')
+        DTColumnBuilder.newColumn('Status').withTitle('Status'),
+        DTColumnBuilder.newColumn('Order Date').withTitle('Order Date')
     ];
 
     vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
@@ -304,8 +305,8 @@ var vm = this;
       for (var key in vm.selected) {
         if (vm.selected[key]) {
           var delegate_row = vm.dtInstance.DataTable.context[0].aoData[key]._aData
-          //var elem = {'warehouse': JSON.stringify(vm.model_data.wh_level_stock_map), 
-          //'status': status,'interm_det_id': data_id, 'shipment_date': shipment_date, 
+          //var elem = {'warehouse': JSON.stringify(vm.model_data.wh_level_stock_map),
+          //'status': status,'interm_det_id': data_id, 'shipment_date': shipment_date,
           //'alt_sku_code': alt_sku_code};
           var elem = {
             'status': delegate_row['Status'], 'interm_det_id': delegate_row['data_id'],

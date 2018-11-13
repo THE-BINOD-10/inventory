@@ -28,6 +28,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
     }
     vm.disable_btn = true;
     vm.model_data['enq_status'] = 'reseller_pending';
+    vm.model_data['status'] = 'reseller_pending';
     Service.apiCall('save_manual_enquiry_data/', 'POST', vm.model_data).then(function(data) {
       if (data.message) {
         if (data.data == 'Success') {
@@ -216,6 +217,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
     var data = {};
     angular.copy(vm.model_data, data);
     data['enq_status'] = "pending_approval";
+    data['status'] = "pending_approval";
     Service.apiCall('request_manual_enquiry_approval/', 'POST', data).then(function(data) {
       if (data.message) {
         if (data.data.msg == 'Success') {
@@ -247,6 +249,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
     }
     angular.copy(vm.model_data, data);
     data['enq_status'] = "approved";
+    data['status'] = "approved";
     vm.disable_btn = true;
     Service.apiCall('request_manual_enquiry_approval/', 'POST', data).then(function(data) {
       if (data.message) {

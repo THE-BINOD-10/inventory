@@ -5182,6 +5182,7 @@ def central_order_form(request, user=''):
     return xls_to_response(wb, '%s.central_order_form.xls' % str(user.id))
 
 def create_order_fields_entry(interm_order_id, name, value, user):
+    #import pdb; pdb.set_trace()
     order_fields_data = {}
     order_fields_data['original_order_id'] = interm_order_id
     order_fields_data['name'] = name
@@ -5192,6 +5193,7 @@ def create_order_fields_entry(interm_order_id, name, value, user):
 
 
 def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
+    #import pdb; pdb.set_trace()
     log.info("order upload started")
     st_time = datetime.datetime.now()
     index_status = {}
@@ -5250,7 +5252,7 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
             all_user_groups = UserGroups.objects.filter(admin_user_id=warehouse_admin.id)
             if not all_user_groups:
                 index_status.setdefault(count, set()).add('Invalid Location')
-        
+
         if order_mapping.has_key('original_order_id'):
             try:
                 original_order_id = str(int(get_cell_data(row_idx, order_mapping['original_order_id'], reader, file_type)))
@@ -5368,29 +5370,100 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
                 create_order_fields_entry(interm_order_id, key, key_value, user)
             elif key == 'unit_price':
-                order_data['unit_price'] = float(get_cell_data(row_idx, value, reader, file_type))
+                try:
+                    order_data['unit_price'] = float(get_cell_data(row_idx, value, reader, file_type))
+                except:
+                    order_data['unit_price'] = 0
             elif key == 'cgst':
-                order_data['cgst_tax'] = float(get_cell_data(row_idx, value, reader, file_type))
+                try:
+                    order_data['cgst_tax'] = float(get_cell_data(row_idx, value, reader, file_type))
+                except:
+                    order_data['cgst_tax'] = 0
+
             elif key == 'sgst':
-                order_data['sgst_tax'] = float(get_cell_data(row_idx, value, reader, file_type))
+                try:
+                    order_data['sgst_tax'] = float(get_cell_data(row_idx, value, reader, file_type))
+                except:
+                    order_data['sgst_tax'] = 0
             elif key == 'igst':
-                order_data['igst_tax'] = float(get_cell_data(row_idx, value, reader, file_type))
+                try:
+                    order_data['igst_tax'] = float(get_cell_data(row_idx, value, reader, file_type))
+                except:
+                    order_data['igst_tax'] = 0
             elif key == 'total_price':
-                key_value = float(get_cell_data(row_idx, value, reader, file_type))
+                try:
+                    key_value = float(get_cell_data(row_idx, value, reader, file_type))
+                except:
+                    key_value = 0
                 create_order_fields_entry(interm_order_id, key, key_value, user)
             elif key == 'location':
                 try:
                     value = str(int(get_cell_data(row_idx, value, reader, file_type)))
                 except:
                     value = str(get_cell_data(row_idx, value, reader, file_type))
-
                 sister_wh = get_sister_warehouse(user)
                 user_obj = sister_wh.filter(user__username=value)
                 if user_obj:
                     order_data['order_assigned_wh'] = user_obj[0].user
                     order_data['status'] = ''
         try:
-            IntermediateOrders.objects.create(**order_data)
+            interm_obj = IntermediateOrders.objects.create(**order_data)
+            order_dict['user'] = interm_obj.order_assigned_wh_id
+            sel_sku_id = interm_obj.sku.id
+            sku_id = get_syncedusers_mapped_sku(wh=interm_obj.order_assigned_wh_id, sku_id=sel_sku_id)
+            if not sku_id:
+                return HttpResponse("SKU Not found in Selected Warehouse")
+            order_dict['sku_id'] = sku_id
+            order_dict['title'] = interm_obj.sku.sku_desc
+            #order_dict['sku_code'] = interm_obj.sku.sku_code
+            order_dict['title'] = interm_obj.sku.sku_desc
+
+            if interm_obj.customer_user:
+               customer_user = CustomerUserMapping.objects.filter(user_id=interm_obj.customer_user.id)
+               if customer_user:
+                   order_dict['customer_id'] = customer_user[0].customer.customer_id
+                   order_dict['customer_name'] = customer_user[0].customer.name
+                   order_dict['telephone'] = customer_user[0].customer.phone_number
+                   order_dict['email_id'] = customer_user[0].customer.email_id
+                   order_dict['address'] = customer_user[0].customer.address
+               else:
+                   return HttpResponse('Failed')
+            elif interm_obj.customer_id:
+               customer_master = CustomerMaster.objects.filter(user=user.id, customer_id=interm_obj.customer_id)
+               if customer_master:
+                   order_dict['customer_id'] = customer_master[0].customer_id
+                   order_dict['email_id'] = customer_master[0].email_id
+                   order_dict['telephone'] = customer_master[0].phone_number
+                   order_dict['address'] = customer_master[0].address
+            else:
+               order_dict['customer_id'] = 0
+               mail_obj = OrderFields.objects.filter(original_order_id=str(interm_obj.interm_order_id), order_type='intermediate_order', user=user.id, name='email_id')
+               if mail_obj:
+                   order_dict['email_id'] = mail_obj[0].value
+               mobile_no_obj = OrderFields.objects.filter(original_order_id=str(interm_obj.interm_order_id), order_type='intermediate_order', user=user.id, name='mobile_no')
+               if mobile_no_obj:
+                   order_dict['telephone'] = mobile_no_obj[0].value
+               address_obj = OrderFields.objects.filter(original_order_id=str(interm_obj.interm_order_id), order_type='intermediate_order', user=user.id, name='address')
+               if address_obj:
+                   order_dict['address'] = address_obj[0].value
+               intermediate_obj = IntermediateOrders.objects.filter(user=user.id, interm_order_id=str(interm_obj.interm_order_id))
+               if intermediate_obj:
+                   order_dict['customer_name'] = intermediate_obj[0].customer_name
+            order_dict['original_order_id'] = order_id
+            order_code = ''.join(re.findall('\D+', order_id))
+            order_id = ''.join(re.findall('\d+', order_id))
+            order_dict['order_code'] = order_code
+            order_dict['order_id'] = order_id
+            order_dict['shipment_date'] = interm_obj.shipment_date
+            order_dict['remarks'] = interm_obj.remarks
+            ord_obj = OrderDetail(**order_dict)
+            ord_obj.save()
+            cust_ord_dict = {'order_id': ord_obj.id, 'sgst_tax': interm_obj.sgst_tax, 'cgst_tax': interm_obj.cgst_tax,
+                             'igst_tax': interm_obj.igst_tax}
+            CustomerOrderSummary.objects.create(**cust_ord_dict)
+            interm_obj.order_id = ord_obj.id
+            #interm_obj.status =
+            interm_obj.save()
         except:
             pass
     return 'success'
@@ -5406,7 +5479,7 @@ def central_order_upload(request, user=''):
         if ex_status:
             return HttpResponse(ex_status)
         if user.username == 'one_assist':
-            upload_status = central_order_one_assist_upload(request, reader, user, no_of_rows, fname, 
+            upload_status = central_order_one_assist_upload(request, reader, user, no_of_rows, fname,
                 file_type=file_type, no_of_cols=no_of_cols)
         else:
             upload_status = central_order_xls_upload(request, reader, user, no_of_rows, fname,

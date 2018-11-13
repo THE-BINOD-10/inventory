@@ -103,7 +103,7 @@
                     <td ng-repeat="hd in Style.style_detail_hd" ng-if="Style.en_style_headers.indexOf(Style.style_headers[hd]) != -1">{{style[Style.style_headers[hd]]}}</td>
                     <td ng-if="Style.order_exceed_stock"> {{style['blocked_quantity']}}</td>
                     <td>
-                      <input ng-if="style.quantity_status" class="form-control" size="5" ng-model="style.quantity" ng-change="Style.change_style_quantity(Style.style_data.data, style, $index);" ng-class="service.get_decimal_perm()" readonly>
+                      <input ng-if="style.quantity_status" class="form-control" size="5" ng-model="style.quantity" ng-change="Style.change_style_quantity(Style.style_data.data, style, $index);" ng-class="service.get_decimal_perm()">
                       <input ng-if="!style.quantity_status && Style.generic_wharehouse_level == 'false'" class="form-control" size="5" value="{{style.no_items}}" ng-model="style.quantity" ng-change="Style.change_style_quantity(Style.style_data.data, style, $index)" ng-class="service.get_decimal_perm()" readonly>
                     </td>
                     <!-- <td>{{style.unit_rate | number}}</td>

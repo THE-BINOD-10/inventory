@@ -167,16 +167,16 @@
           "gcm_sender_id": "21194035295"
         };
         if(resp_data.parent && 'userName' in resp_data.parent && temp_user_list.indexOf(resp_data.parent.userName.toLowerCase()) != -1) {
-          manifest_json["name"] = "SAGARFAB";
-          manifest_json["short_name"] = "SAGARFAB";
+          manifest_json["name"] = "STOCKONE";
+          manifest_json["short_name"] = "STOCKONE";
           manifest_json["icons"] =  [
             {
-              "src": "images/sagar_fab.png",
+              "src": "images/stockone_logo.png",
               "sizes": "192x192",
               "type": "image/png"
             },
             {
-              "src": "images/sagar_fab.png",
+              "src": "images/stockone_logo.png",
               "sizes": "512x512",
               "type": "image/png"
             }

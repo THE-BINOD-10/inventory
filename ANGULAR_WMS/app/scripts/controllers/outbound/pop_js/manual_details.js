@@ -168,6 +168,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
     var data = {};
     angular.copy(vm.model_data, data);
     data['enq_status'] = "artwork_submitted";
+    data['status'] = "artwork_submitted";
     vm.disable_btn = true;
     Service.apiCall('request_manual_enquiry_approval/', 'POST', data).then(function(data) {
       if (data.message) {
@@ -190,7 +191,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
     var dd = currentDate.getDate();
     var mm = currentDate.getMonth() + 1;
     var y = currentDate.getFullYear();
-    vm.model_data.expected_date = mm + '/'+ dd + '/'+ y;
+    vm.model_data.expected_date = dd + '/'+ mm + '/'+ y;
   }
 
 
@@ -342,6 +343,60 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
     } else {
       Service.showNoty("You don't have quantity to place order");
     }
+  }
+
+  vm.moment = moment();
+  vm.disable_btn = false;
+  vm.edit = function(form){
+    if(form.$invalid) {
+      Service.showNoty('Please fill required fields');
+      return false;
+    }
+    vm.disable_btn = true;
+    vm.model_data['enquiry_id'] = vm.order_details.order.enquiry_id;
+    vm.model_data['enq_status'] = 'marketing_pending';
+    vm.model_data['status'] = "marketing_pending";
+    Service.apiCall('save_manual_enquiry_data/', 'POST', vm.model_data).then(function(data) {
+      if (data.message) {
+        if (data.data == 'Success') {
+          var temp = {};
+          angular.copy(vm.model_data, temp);
+          temp['username'] = Session.userName;
+          temp['date'] =  vm.moment.format("YYYY-MM-DD");
+          vm.order_details.data.push(temp)
+          vm.model_data.ask_price = '';
+          vm.model_data.extended_date = '';
+          vm.model_data.remarks = '';
+          $modalInstance.close();
+        }
+        Service.showNoty(data.data);
+      } else {
+        Service.showNoty('Something went wrong');
+      }
+      vm.disable_btn = false;
+    });
+  }
+
+  vm.disable_btn = false;
+  vm.notify_to_purchase_admin = function(form){
+    if(form.$invalid) {
+      Service.showNoty('Please fill required fields');
+      return false;
+    }
+    vm.disable_btn = true;
+    vm.model_data['enq_status'] = 'purchase_pending';
+    vm.model_data['status'] = 'purchase_pending';
+    Service.apiCall('save_manual_enquiry_data/', 'POST', vm.model_data).then(function(data) {
+      if (data.message) {
+        if (data.data == 'Success') {
+          $modalInstance.close();
+        }
+        Service.showNoty(data.data);
+      } else {
+        Service.showNoty('Something went wrong');
+      }
+      vm.disable_btn = false;
+    });
   }
 };
 

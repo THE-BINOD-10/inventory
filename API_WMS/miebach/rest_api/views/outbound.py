@@ -11553,11 +11553,14 @@ def save_manual_enquiry_data(request, user=''):
     expected_date = request.POST.get('expected_date', '')
     remarks = request.POST.get('remarks', '')
     status = request.POST.get('status', '')
-    if not expected_date:
+    designer_flag = False
+    if request.user.userprofile.warehouse_type == "SM_DESIGN_ADMIN":
+        designer_flag = True
+    if not expected_date and not designer_flag:
         return HttpResponse("Please Fill Expected Date")
     if not remarks:
         return HttpResponse("Please Fill Remarks")
-    if manual_enq.customization_type != 'product_custom' and not ask_price:
+    if manual_enq.customization_type != 'product_custom' and not ask_price and not designer_flag:
         return HttpResponse("Please Fill Price")
     else:
         ask_price = float(ask_price)
@@ -11565,9 +11568,10 @@ def save_manual_enquiry_data(request, user=''):
     enquiry_data['ask_price'] = float(ask_price)
     enquiry_data['remarks'] = remarks
     enquiry_data['status'] = status
-    expected_date = expected_date.split('/')
-    expected_date = datetime.date(int(expected_date[2]), int(expected_date[1]), int(expected_date[0]))
-    enquiry_data['expected_date'] = expected_date
+    if expected_date:
+        expected_date = expected_date.split('/')
+        expected_date = datetime.date(int(expected_date[2]), int(expected_date[1]), int(expected_date[0]))
+        enquiry_data['expected_date'] = expected_date
     manual_enq_data = ManualEnquiryDetails(**enquiry_data)
     manual_enq_data.save()
     users_list = []
@@ -11701,7 +11705,11 @@ def get_manual_enquiry_detail(request, user=''):
                              'expected_date': expected_date, 'username': user.user.username,
                              'status': enquiry.status})
     if enq_details:
-        expected_date = enq_details.expected_date.strftime('%d/%m/%Y')
+        exp_date = enq_details.expected_date
+        if exp_date:
+            expected_date = exp_date.strftime('%d/%m/%Y')
+        else:
+            expected_date = ''
         enq_details = {'ask_price': enq_details.ask_price, 'remarks': enq_details.remarks,\
                        'expected_date': expected_date}
     far_wh_lt = 0
@@ -11851,7 +11859,7 @@ def request_manual_enquiry_approval(request, user=''):
         resp['msg'] = "No Enquiry Data for Id"
         return HttpResponse(json.dumps(resp))
     expected_date = request.POST.get('expected_date', '')
-    if expected_date:
+    if expected_date or request.user.userprofile.warehouse_type == 'SM_DESIGN_ADMIN':
         save_manual_enquiry_data(request)
     enq_data[0].status = status
     enq_data[0].save()

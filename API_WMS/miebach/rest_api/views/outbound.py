@@ -11680,7 +11680,11 @@ def get_manual_enquiry_detail(request, user=''):
                       'date': manual_enq[0].creation_date.strftime('%Y-%m-%d'), 'customization_type': customization_type,
                       'quantity': manual_enq[0].quantity, 'custom_remarks': manual_enq[0].custom_remarks.split("<<>>"),
                       'enq_status': manual_enq[0].status, 'enq_det_id': int(manual_enq[0].id)}
-    dr_price = PriceMaster.objects.filter(sku__user=user.id, sku__sku_code=manual_enq[0].sku.sku_code,
+    if request.user.userprofile.warehouse_type == 'CENTRAL_ADMIN' and request.user.userprofile.zone != '':
+        admin_user = user
+    else:
+        admin_user = get_priceband_admin_user(user)
+    dr_price = PriceMaster.objects.filter(sku__user=admin_user.id, sku__sku_code=manual_enq[0].sku.sku_code,
                                           price_type='D-R').filter(min_unit_range__lte=manual_enq[0].quantity,
                                                                    max_unit_range__gte=manual_enq[0].quantity)
     if dr_price:

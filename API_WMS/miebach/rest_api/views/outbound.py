@@ -11680,6 +11680,14 @@ def get_manual_enquiry_detail(request, user=''):
                       'date': manual_enq[0].creation_date.strftime('%Y-%m-%d'), 'customization_type': customization_type,
                       'quantity': manual_enq[0].quantity, 'custom_remarks': manual_enq[0].custom_remarks.split("<<>>"),
                       'enq_status': manual_enq[0].status, 'enq_det_id': int(manual_enq[0].id)}
+    dr_price = PriceMaster.objects.filter(sku__user=user.id, sku__sku_code=manual_enq[0].sku.sku_code,
+                                          price_type='D-R').filter(min_unit_range__lte=manual_enq[0].quantity,
+                                                                   max_unit_range__gte=manual_enq[0].quantity)
+    if dr_price:
+        dr_price = dr_price[0].price
+    else:
+        dr_price = ''
+    manual_eq_dict['dr_price'] = dr_price
     enquiry_images = list(ManualEnquiryImages.objects.filter(enquiry=manual_enq[0].id, image_type='res_images').values_list('image', flat=True))
     art_images = list(ManualEnquiryImages.objects.filter(enquiry=manual_enq[0].id, image_type='art_work').values_list('image', flat=True))
     style_dict = {'sku_code': manual_enq[0].sku.sku_code, 'style_name':  manual_enq[0].sku.sku_class,

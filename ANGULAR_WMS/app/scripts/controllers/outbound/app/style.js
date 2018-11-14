@@ -111,11 +111,9 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
             record['row_total_price'] = record.price * 0;
             record['level'] = vm.selLevel;
             record['overall_sku_total_quantity'] = stock;
-            
             record['org_price'] = record.price;
 
             if (vm.total_quantity > 0 || Session.roles.permissions.user_type == 'customer') {
-            
               record['quantity_status'] = true;
             }
 

@@ -1433,6 +1433,24 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     "V Neck":"V_NECK.png",
   }
 
+  vm.isprava_imgs = {
+                  'Bed':"Bed.jpg",
+                  'chair':"chair.jpg",
+                  'cushion':"cushion.jpg",
+                  'Door':"Door.jpg",
+                  'light':"light.jpg",
+                  "mirror":"mirror.jpg",
+                  "painting":"painting.jpg",
+                  "seating":"seating.jpg",
+                  "Stone-decor":"Stone-decor.jpg",
+                  "storage":"storage.jpg",
+                  "table":"table.jpg",
+                  "Trelis-partision":"Trelis-partision.jpg",
+                  "vase":"vase.jpg",
+                  "window":"window.jpg",
+                  "Wooden box":"Wooden box.jpg"
+               };
+
   vm.get_category_image = function(category) {
 
     if (Session.parent.userName == 'shailesh_mehta') {
@@ -1445,6 +1463,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       return '/images/categories/'+vm.sagar_fab_imgs[category];
     } else if(Session.parent.userName != 'sagar_fab' && vm.category_image_map[category]) {
       return '/images/categories/'+vm.category_image_map[category];
+    } else if(Session.parent.userName == 'isprava_admin' && vm.isprava_imgs[category]) {
+      return '/images/categories/'+vm.isprava_imgs[category];
     } else {
       return '/images/categories/default.png';
     }

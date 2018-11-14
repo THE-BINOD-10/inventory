@@ -69,13 +69,24 @@
                 <input ng-if="showCase.model_data.already_assigned" type="text" name="status" class="form-control" ng-model="showCase.status_dropdown[showCase.model_data.status]" maxlength="256" disabled>
               </div>
             </div>
-            <div class="col-md-4 col-sm-6 col-xs-6">
+            <div class="col-md-4 col-sm-6 col-xs-6" ng-if="showCase.model_data.already_assigned">
               <div class="form-group">
-                <label class="control-label" ng-if="showCase.model_data.already_assigned"> Warehouse </label>
+                <label class="control-label"> Warehouse </label>
                 <!--<select ng-if="!showCase.model_data.already_assigned && showCase.model_data.status!='0'" class="form-control" name="warehouse" ng-model="showCase.model_data.warehouse"
                         ng-options="wh_id as wh_id + '(' + wh_stock + ')' for (wh_id, wh_stock) in showCase.model_data.wh_level_stock_map"
                         ng-selected="type == showCase.model_data.warehouse"></select>-->
                 <input ng-if="showCase.model_data.already_assigned" type="text" name="status" class="form-control" ng-model="showCase.model_data.warehouse" maxlength="256" disabled>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6" ng-if="!showCase.model_data.already_assigned">
+              <div class="form-group">
+                <label class="control-label" ng-if="showCase.model_data.status!='0'"> Style Search</label>
+                <input type="text" autocomplete="off" name="sku_class" class="form-control detectTab"
+                       placeholder="Search SKU Class/Style Name" typeahead="address.sku_class+' : '+address.style_name for address in showCase.service.getSearchValues($viewValue, 'search_style_data?')"
+                       typeahead-loading="loadingLocations" ng-model="showCase.model_data.sku_class"
+                       typeahead-on-select="showCase.get_sku_qty_details(product, $item, $index)"
+                       ng-keyup="$event.keyCode == 13 ? showCase.key_event(product, $item, $index) : null"
+                       ng-readonly="!showCase.sel_warehouse_flag">
               </div>
             </div>
 
@@ -84,30 +95,63 @@
                 <table class="table mw85">
                   <thead>
                     <tr>
-                      <th> Warehouse </th>
+                      <th>Warehouse</th>
                       <th>Available Stock</th>
                       <th>Quantity</th>
+                      <th class="plus"></th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr class="field" ng-repeat="(key, data) in showCase.model_data.wh_level_stock_map">
+                    <tr class="field" ng-repeat="records in showCase.model_data.data">
                       <td>
-                        <input type="text" name="status" class="form-control"
-                               ng-model="key" maxlength="256" disabled>
+                        <!-- <input type="text" name="status" class="form-control" ng-model="key" maxlength="256" disabled> -->
+                        <select class="form-control" name="warehouse" ng-model="records.sel_warehouse" ng-change="showCase.change_warehouse(records,$index)">
+                          <option value="">Select Warehouse</option>
+                          <option ng-repeat="(key, data) in showCase.model_data.wh_level_stock_map" value="{{key}}">{{key}}</option>
+                        </select>
                       </td>
-                      <td><input type="text" name="available" class="form-control" ng-model="data.available" disabled></td>
-                      <td><input type="text" name="quantity" class="form-control" ng-model="data.quantity"
-                           ng-change="showCase.change_wh_quantity(key, data.quantity, showCase.model_data.quantity)"</td>
+                      <td><input type="text" name="available" class="form-control" ng-init="records.wh_available = showCase.model_data.wh_level_stock_map[records.warehouse].available" ng-model="records.wh_available" disabled></td>
+                      <td>
+                        <input type="text" name="quantity" class="form-control" ng-init="records.wh_quantity = showCase.model_data.wh_level_stock_map[records.warehouse].quantity" ng-model="records.wh_quantity"
+                           ng-change="showCase.change_wh_quantity(records.sel_warehouse, records.wh_quantity, showCase.model_data.quantity, $index)" ng-readonly="!records.sel_warehouse">
+                      </td>
+                      <td>
+                        <i ng-click="showCase.update_data(records,$index)" class="fa fa-minus-square-o"></i>
+                      </td>
                     </tr>
                   </tbody>
                 </table>
-
               </div>
-
-
+              <div class="row">
+                <center>
+                  <button type="button" class="btn btn-default" style="margin-top:10px" ng-click="showCase.add_warehouse()">Add New Warehouse</button>
+                </center>
+              </div>
             </div>
+            <div class="col-md-12 col-sm-12 col-xs-12" ng-if="(showCase.display_style_stock_table)">
+        		  <div class="col-md-12 col-sm-12 col-xs-12">
+                      <div style="margin-bottom: 10px;"><strong>SKU Level Available Quantity :</strong></div>
+        		  </div>
 
-
+        		  <div class="col-md-12 col-sm-12 col-xs-12 mb10">
+                  <table class="table table-bordered">
+                    <thead>
+                      <tr>
+                        <th>SKU Code</th>
+                        <th>SKU Description</th>
+                        <th>Available Quantity</th>
+                      </tr>
+                    </thead>
+                    <tbody ng-repeat="data in showCase.sku_level_qtys">
+                        <tr class="field">
+        				  <td>{{data.sku_code}}</td>
+                          <td>{{data.sku_desc}}</td>
+                          <td>{{data.avail_qty}}</td>
+                        </tr>
+                    </tbody>
+                  </table>
+        		  </div>
+        		</div>
         </div>
       </div>
       <div class="modal-footer">

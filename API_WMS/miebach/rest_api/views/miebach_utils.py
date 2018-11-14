@@ -65,7 +65,7 @@ SKU_DATA = {'user': '', 'sku_code': '', 'wms_code': '',
             'price': 0,
             'ean_number': 0, 'load_unit_handle': 'unit', 'zone_id': None, 'hsn_code': 0, 'product_type': '',
             'sub_category': '', 'primary_category': '', 'cost_price': 0, 'sequence': 0, 'image_url': '',
-            'measurement_type': '', 'sale_through': '', 'shelf_life': 0}
+            'measurement_type': '', 'sale_through': '', 'shelf_life': 0, 'enable_serial_based': 0}
 
 STOCK_TRANSFER_FIELDS = {'order_id': '', 'invoice_amount': 0, 'quantity': 0, 'shipment_date': datetime.datetime.now(),
                          'st_po_id': '', 'sku_id': '', 'status': 1}
@@ -1041,7 +1041,7 @@ PICKLIST_EXCEL = OrderedDict((
 PICKLIST_EXCEL_FMCG = OrderedDict((
                               ('Order ID', 'original_order_id'), ('Combo SKU', 'parent_sku_code'),
                               ('WMS Code', 'wms_code'), ('Title', 'title'), ('Category', 'category'),
-                              ('Zone', 'zone'), ('Location', 'location'), ('Batch No', 'batchno'), ('MRP', 'mrp'), 
+                              ('Zone', 'zone'), ('Location', 'location'), ('Batch No', 'batchno'), ('MRP', 'mrp'),
                               ('Reserved Quantity', 'reserved_quantity'),
                               ('Stock Left', 'stock_left'),('Last Picked Location', 'last_picked_locs')
                             ))
@@ -1124,6 +1124,7 @@ SKU_COMMON_MAPPING = OrderedDict((('WMS Code', 'wms_code'), ('SKU Description', 
                                   ('Hot Release', 'hot_release'),
                                   ('Mix SKU Attribute(Options: No Mix, Mix within Group)', 'mix_sku'),
                                   ('Status', 'status'), ('Shelf life', 'shelf_life'),
+                                  ('Enable Serial Number', 'enable_serial_based')
                                 ))
 
 SKU_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('product_type', 2), ('sku_group', 3), ('sku_type', 4),
@@ -1257,6 +1258,29 @@ SHOTANG_ORDER_FILE_EXCEL = {'order_id': 1, 'customer_name': 6, 'customer_id': 5,
                             'invoice_amount': 16, 'sor_id': 0, 'order_date': 3, 'quantity': 4, 'order_status': 11,
                             'seller': 9,
                             'marketplace': 'Shotang', 'vat': {'tax': 14, 'quantity': 4, 'tot_tax': 15}}
+
+CENTRAL_ORDER_EXCEL = OrderedDict((
+                             ('original_order_id', 0), ('batch_number', 1), ('batch_date', 2),
+                             ('branch_id', 3), ('branch_name', 4), ('loan_proposal_id', 5),
+                             ('loan_proposal_code', 6), ('client_code', 7), ('client_id', 8),
+                             ('customer_name', 9), ('address1', 10),
+                             ('address2', 11), ('landmark', 12), ('village', 13), ('district', 14),
+                             ('state', 15), ('pincode', 16), ('mobile_no', 17), ('alternative_mobile_no', 18),
+                             ('sku_code', 19), ('model', 20), ('unit_price', 21),
+                             ('cgst', 22), ('sgst', 23), ('igst', 24),
+                             ('total_price', 25), ('location', 26)
+                           ))
+
+CENTRAL_ORDER_EXCEL_ONE_ASSIST = OrderedDict((
+                            ('original_order_id', 0), ('customer_name', 1), ('address', 2),
+                            ('city', 3), ('pincode', 4), ('mobile_no', 5), ('email_id', 6),
+                            ('sku_code', 7)
+                          ))
+
+CENTRAL_ORDER_XLS_UPLOAD = {'interm_order_id': '', 'sku': '', 'quantity': 1, 
+              'unit_price': 0, 'tax': 0, 'inter_state': 0, 'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 
+              'utgst_tax': 0, 'status': 0, 'project_name': '', 'remarks': '', 'customer_id': 0, 
+              'customer_name': '', 'shipment_date': datetime.datetime.now()}
 
 # End of Order File Upload Templates
 
@@ -1759,9 +1783,13 @@ ORDER_ID_AWB_MAP_EXCEL_HEADERS = ['Order ID', 'AWB No', 'Courier Name', 'Marketp
 ORDER_ID_AWB_EXCEL_MAPPING = OrderedDict((('order_id', 0), ('awb_no', 1), ('courier_name', 2), ('marketplace', 3)))
 
 # Company logo names
-COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg', 'Subhas_Publishing': 'book_publications.png', 'sm_admin': 'sm-brand.jpg',
-                        'corp_attire': 'corp_attire.jpg'}
+COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg', 'Subhas_Publishing': 'book_publications.png', 
+                      'sm_admin': 'sm-brand.jpg', 'corp_attire': 'corp_attire.jpg', 
+                      'aidin_technologies': 'aidin_tech.jpg', 'nutricane': 'nutricane.jpg'}
+
 TOP_COMPANY_LOGO_PATHS = {'Konda_foundation': 'dr_reddy_logo.png'}
+
+ISO_COMPANY_LOGO_PATHS = {'aidin_technologies': 'iso_aidin_tech.jpg'}
 
 # Configurtions Mapping
 REMAINDER_MAIL_ALERTS = OrderedDict((('po_remainder', 'PO Remainder'),))
@@ -1840,6 +1868,30 @@ SELLER_TRANSFER_MAPPING = OrderedDict((('SKU Code', 'wms_code'), ('Source Seller
                                        ('Destination Location', 'dest_location'), ('MRP', 'mrp'),
                                        ('Quantity', 'quantity'),
                                     ))
+
+CENTRAL_ORDER_MAPPING = OrderedDict((
+                                      ('Central Order ID', 'original_order_id'), ('Batch Number', 'batch_number'),
+                                      ('Batch Date', 'batch_date'), ('Branch ID', 'branch_id'),
+                                      ('Branch Name', 'branch_name'), ('Loan Proposal ID', 'loan_proposal_id'),
+                                      ('Loan Proposal Code', 'loan_proposal_code'), ('Client Code', 'client_code'),
+                                      ('Client ID', 'client_id'), ('Customer Name', 'customer_name'), 
+                                      ('Address1', 'address1'), ('Address2', 'address2'),
+                                      ('Landmark', 'landmark'), ('Village', 'village'),
+                                      ('District', 'district'), ('State1', 'state'),
+                                      ('Pincode', 'pincode'), ('Mobile Number', 'mobile_no'),
+                                      ('Alternative Mobile Number', 'alternative_mobile_no'), ('SKU Code', 'sku_code'),
+                                      ('Model', 'model'), ('Unit Price', 'unit_price'),
+                                      ('CGST', 'cgst'), ('SGST', 'sgst'),
+                                      ('IGST', 'igst'), ('Total Price', 'total_price'),
+                                      ('Location', 'location')
+                                   ))
+
+CENTRAL_ORDER_ONE_ASSIST_MAPPING = OrderedDict((
+                                      ('Courtesy SR Number', 'original_order_id'), ('Customer handset Model', 'sku_code'),
+                                      ('Customer Name', 'customer_name'), ('Address', 'address'),
+                                      ('City', 'city'), ('Pincode', 'pincode'),
+                                      ('Customer primary contact', 'mobile_no'), ('Customer emailId', 'email_id')
+                                  ))
 
 #PICKLIST_EXCLUDE_ZONES = ['DAMAGED_ZONE', 'QC_ZONE', 'Non Sellable Zone']
 
@@ -5522,7 +5574,7 @@ def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
         if open_po.sku.hsn_code:
             hsn_code = str(open_po.sku.hsn_code)
         invoice_date = ''
-        data['invoice_date'] = seller_po_summary.invoice_date   
+        data['invoice_date'] = seller_po_summary.invoice_date
         if data['invoice_date']:
             invoice_date = data['invoice_date'].strftime("%d %b, %Y")
         ean_numbers = get_sku_ean_list(open_po.sku)

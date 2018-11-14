@@ -167,12 +167,13 @@ class EasyopsAPI:
         json_response = self.get_response(url)
         return json_response
 
-    def update_sku_count(self, data={}, token='', user='', method_put=True, individual_update=False):
+    def update_sku_count(self, data={}, token='', user='', individual_update=False):
         """ Updating SKU count for a particular User """
         if user:
             self.user = user
             self.get_user_token(user)
         run_iterator = 1
+        stock_method_name = LOAD_CONFIG.get(self.company_name, 'update_stock_method', '')
         url = urljoin(self.host, LOAD_CONFIG.get(self.company_name, 'update_stock', ''))
         # data = eval(LOAD_CONFIG.get(self.company_name, 'update_stock_dict', '') % stock_count)
         run_limit = len(data)
@@ -183,7 +184,10 @@ class EasyopsAPI:
             slice_data = data[offset:(offset + run_limit)]
             if individual_update:
                 slice_data = slice_data[0]
-            json_response = self.get_response(url, slice_data, put=method_put)
+            if stock_method_name == 'POST':
+                json_response = self.get_response(url, slice_data, put=False)
+            else:
+                json_response = self.get_response(url, slice_data, put=True)
             offset += run_limit
             if offset >= len(data):
                 run_iterator = 0

@@ -637,6 +637,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     }
 
+    vm.sort_items = [];
+    vm.sort_flag = false;
     vm.scan_sku = function(event, field) {
       if (event.keyCode == 13 && field.length > 0) {
         console.log(field);
@@ -683,7 +685,23 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           vm.service.apiCall('check_sku/', 'GET',{'sku_code': field}).then(function(data){
             if(data.message) {
               vm.field = data.data.sku_code;
+              vm.sort_flag = false;
+              for(var i=0; i<vm.model_data.data.length; i++) {
 
+                angular.forEach(vm.model_data.data[i], function(sku){
+
+                  // vm.sku_list_1.push(sku.wms_code);
+                  if(vm.field == sku.wms_code){
+                    // $timeout(function() {
+                      vm.sort_items = [];
+                      vm.sort_items.push(vm.model_data.data[i]);
+                      vm.show_sel_item_top(vm.model_data.data[i]);
+                    // }, 500);
+                      $("input[attr-name='imei_"+vm.field+"']").trigger('focus');
+                    vm.sort_flag = true;
+                  }
+                });
+              }
               if (vm.permissions.use_imei) {
                 vm.sku_list_1 = [];
                 for(var i=0; i<vm.model_data.data.length; i++) {
@@ -691,9 +709,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   angular.forEach(vm.model_data.data[i], function(sku){
 
                     vm.sku_list_1.push(sku.wms_code);
-                    if(vm.field == sku.wms_code){
-                      $("input[attr-name='imei_"+vm.field+"']").trigger('focus');
-                    }
                   });
                 }
 
@@ -741,6 +756,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             vm.scan_sku_disable = false;
           });
         }
+      }
+    }
+
+    vm.show_sel_item_top = function(record){
+      for(var i=0; i<vm.model_data.data.length; i++) {
+        angular.forEach(vm.model_data.data[i], function(sku){
+          if (record[0].wms_code != sku.wms_code) {
+            vm.sort_items.push(vm.model_data.data[i]);
+          } else {
+            $("input[attr-name='imei_"+record[0].wms_code+"']").trigger('focus');
+          }
+        })
       }
     }
 

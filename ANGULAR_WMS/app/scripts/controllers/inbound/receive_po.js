@@ -697,11 +697,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                       vm.sort_items.push(vm.model_data.data[i]);
                       vm.show_sel_item_top(vm.model_data.data[i]);
                     // }, 500);
-                    $scope.$apply(function () {
                       $("input[attr-name='imei_"+vm.field+"']").trigger('focus');
-                      // vm.sort_items.push(vm.model_data.data[i]);
-                      // vm.show_sel_item_top(vm.model_data.data[i]);
-                    });
                     vm.sort_flag = true;
                   }
                 });

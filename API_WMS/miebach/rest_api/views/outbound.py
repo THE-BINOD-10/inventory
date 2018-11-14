@@ -11680,8 +11680,7 @@ def get_manual_enquiry_detail(request, user=''):
                       'date': manual_enq[0].creation_date.strftime('%Y-%m-%d'), 'customization_type': customization_type,
                       'quantity': manual_enq[0].quantity, 'custom_remarks': manual_enq[0].custom_remarks.split("<<>>"),
                       'enq_status': manual_enq[0].status, 'enq_det_id': int(manual_enq[0].id)}
-    if (request.user.userprofile.warehouse_type == 'CENTRAL_ADMIN' and request.user.userprofile.zone != '') or \
-                    request.user.userprofile.warehouse_type in ('SM_DESIGN_ADMIN', 'SM_PURCHASE_ADMIN'):
+    if request.user.userprofile.warehouse_type in ('CENTRAL_ADMIN', 'SM_DESIGN_ADMIN', 'SM_PURCHASE_ADMIN'):
         admin_user = user
     else:
         admin_user = get_priceband_admin_user(user)

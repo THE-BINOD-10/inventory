@@ -65,7 +65,7 @@ SKU_DATA = {'user': '', 'sku_code': '', 'wms_code': '',
             'price': 0,
             'ean_number': 0, 'load_unit_handle': 'unit', 'zone_id': None, 'hsn_code': 0, 'product_type': '',
             'sub_category': '', 'primary_category': '', 'cost_price': 0, 'sequence': 0, 'image_url': '',
-            'measurement_type': '', 'sale_through': '', 'shelf_life': 0}
+            'measurement_type': '', 'sale_through': '', 'shelf_life': 0, 'enable_serial_based': 0}
 
 STOCK_TRANSFER_FIELDS = {'order_id': '', 'invoice_amount': 0, 'quantity': 0, 'shipment_date': datetime.datetime.now(),
                          'st_po_id': '', 'sku_id': '', 'status': 1}
@@ -1041,7 +1041,7 @@ PICKLIST_EXCEL = OrderedDict((
 PICKLIST_EXCEL_FMCG = OrderedDict((
                               ('Order ID', 'original_order_id'), ('Combo SKU', 'parent_sku_code'),
                               ('WMS Code', 'wms_code'), ('Title', 'title'), ('Category', 'category'),
-                              ('Zone', 'zone'), ('Location', 'location'), ('Batch No', 'batchno'), ('MRP', 'mrp'), 
+                              ('Zone', 'zone'), ('Location', 'location'), ('Batch No', 'batchno'), ('MRP', 'mrp'),
                               ('Reserved Quantity', 'reserved_quantity'),
                               ('Stock Left', 'stock_left'),('Last Picked Location', 'last_picked_locs')
                             ))
@@ -1124,6 +1124,7 @@ SKU_COMMON_MAPPING = OrderedDict((('WMS Code', 'wms_code'), ('SKU Description', 
                                   ('Hot Release', 'hot_release'),
                                   ('Mix SKU Attribute(Options: No Mix, Mix within Group)', 'mix_sku'),
                                   ('Status', 'status'), ('Shelf life', 'shelf_life'),
+                                  ('Enable Serial Number', 'enable_serial_based')
                                 ))
 
 SKU_DEF_EXCEL = OrderedDict((('wms_code', 0), ('sku_desc', 1), ('product_type', 2), ('sku_group', 3), ('sku_type', 4),
@@ -1778,9 +1779,13 @@ ORDER_ID_AWB_MAP_EXCEL_HEADERS = ['Order ID', 'AWB No', 'Courier Name', 'Marketp
 ORDER_ID_AWB_EXCEL_MAPPING = OrderedDict((('order_id', 0), ('awb_no', 1), ('courier_name', 2), ('marketplace', 3)))
 
 # Company logo names
-COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg', 'Subhas_Publishing': 'book_publications.png', 'sm_admin': 'sm-brand.jpg',
-                        'corp_attire': 'corp_attire.jpg'}
+COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg', 'Subhas_Publishing': 'book_publications.png', 
+                      'sm_admin': 'sm-brand.jpg', 'corp_attire': 'corp_attire.jpg', 
+                      'aidin_technologies': 'aidin_tech.jpg', 'nutricane': 'nutricane.jpg'}
+
 TOP_COMPANY_LOGO_PATHS = {'Konda_foundation': 'dr_reddy_logo.png'}
+
+ISO_COMPANY_LOGO_PATHS = {'aidin_technologies': 'iso_aidin_tech.jpg'}
 
 # Configurtions Mapping
 REMAINDER_MAIL_ALERTS = OrderedDict((('po_remainder', 'PO Remainder'),))
@@ -5565,7 +5570,7 @@ def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
         if open_po.sku.hsn_code:
             hsn_code = str(open_po.sku.hsn_code)
         invoice_date = ''
-        data['invoice_date'] = seller_po_summary.invoice_date   
+        data['invoice_date'] = seller_po_summary.invoice_date
         if data['invoice_date']:
             invoice_date = data['invoice_date'].strftime("%d %b, %Y")
         ean_numbers = get_sku_ean_list(open_po.sku)

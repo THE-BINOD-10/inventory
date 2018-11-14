@@ -5,6 +5,33 @@
     {% include 'toggle/page1.css' %}
   </style>
   <div class="print-invoice2 mb20">
+    {% if company_logo and iso_company_logo %}
+    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12" style="margin-bottom:15px">
+      {% if company_logo %}
+      <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
+        <img id="image1" alt="Image1" src="{{ company_logo }}" style="width:230px;height:70px"/>
+      </div>
+      {% endif %}
+      <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4"></div>
+      {% if iso_company_logo %}
+      <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
+        <img id="image2" alt="Image2" src="{{ iso_company_logo }}" style="width:150px;height:75px;float: right;"/>
+      </div>
+      {% endif %}
+    </div>
+    {% elif company_logo %}
+    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12" style="margin-bottom:15px">
+      <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
+      </div>
+      {% if company_logo %}
+      <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
+        <img id="image1" alt="Image1" src="{{ company_logo }}" style="width:230px;height:70px"/>
+      </div>
+      {% endif %}
+      <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
+      </div>
+    </div>
+    {% endif %}
     <div class="invoice-body">
       <table class="table table-bordered m0">
         <tbody>
@@ -152,6 +179,5 @@
         </div>
     </div>
     {% endif %}
-
   </div>
 </div>

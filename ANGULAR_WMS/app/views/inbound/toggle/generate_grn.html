@@ -182,14 +182,16 @@
                     <td>
                       <input type="text" ng-model="data.sku_desc" size="70" title="{{ data.sku_desc }}" class="form-control detectTab" readonly>
                     </td>
-                    <td><input type="text" ng-model="data.po_quantity" size="10" ng-if="!data.is_new" title="{{ data.po_quantity }}" name="po_quantity" class="form-control detectTab" ng-readonly="records[0].dis" ng-class="service.get_decimal_perm()">
-                      <input type="text" ng-model="data.po_quantity" size="10" ng-if="data.is_new" title="{{ data.po_quantity }}" name="po_quantity" class="form-control detectTab" ng-readonly="data.is_new" ng-class="service.get_decimal_perm()"></td>
+                    <td>
+                      <input type="text" ng-model="data.po_quantity" size="10" ng-if="!data.is_new" title="{{ data.po_quantity }}" name="po_quantity" class="form-control detectTab" ng-readonly="records[0].dis" ng-class="service.get_decimal_perm()">
+                      <input type="text" ng-model="data.po_quantity" size="10" ng-if="data.is_new" title="{{ data.po_quantity }}" name="po_quantity" class="form-control detectTab" ng-readonly="data.is_new" ng-class="service.get_decimal_perm()">
+                    </td>
                     <td ng-if="showCase.permissions.pallet_switch"><input type="text" ng-show=" data.sku_details[0].fields.load_unit_handle == 'pallet'" ng-model="data.pallet_number" name="pallet_number" class="form-control detectTab"></td>
                     <td><input ng-if="showCase.model_data.use_imei=='false'" type="text" size="20" ng-model="data.value" name="quantity" class="form-control detectTab" ng-class="service.get_decimal_perm()" required ng-keyup="showCase.calc_total_amt($event, showCase.model_data, innerIndex, outerIndex)" ng-readonly="showCase.permissions.use_imei">
-                    <input ng-if="showCase.model_data.use_imei=='true'" type="text" size="20" ng-model="data.value" ng-init="data.value = !showCase.showOldQty ? 0 : data.value" name="quantity" class="form-control detectTab" ng-class="service.get_decimal_perm()" required ng-keyup="showCase.calc_total_amt($event, showCase.model_data, innerIndex, outerIndex)" ng-readonly="showCase.permissions.use_imei"> </div></td>
+                    <input ng-if="showCase.model_data.use_imei=='true'" type="text" size="20" ng-model="data.value" ng-init="data.value = !showCase.showOldQty ? 0 : data.value" name="quantity" class="form-control detectTab" ng-class="service.get_decimal_perm()" required ng-keyup="showCase.calc_total_amt($event, showCase.model_data, innerIndex, outerIndex)" ng-readonly="showCase.permissions.use_imei && data.show_imei"> </div></td>
                     <td><input type="text" ng-model="data.unit" size="12" title="{{ data.unit }}" name="unit" class="form-control detectTab" readonly></td>
                     <td ng-if="showCase.permissions.use_imei">
-                      <input type="text" name="imei" attr-name="{{'imei_'+data.wms_code}}" ng-model="data.imei_number" class="form-control detectTab" ng-readonly="data.po_quantity == data.value || data.disable" ng-keydown="showCase.check_imei_exists($event, data, outerIndex)">
+                      <input type="text" name="imei" attr-name="{{'imei_'+data.wms_code}}" ng-model="data.imei_number" class="form-control detectTab" ng-readonly="data.po_quantity == data.value || data.disable" ng-keydown="showCase.check_imei_exists($event, data, outerIndex)" ng-disabled="!data.show_imei">
                       <input ng-if="!showCase.po_qc" type="hidden" name="imei_number" class="form-control detectTab" value="{{data.imei_list.join(',')}}">
                     </td>
                     <td><input type="text" ng-model="data.price" title="{{ data.price }}" size="13" name="price" class="form-control detectTab" value="" ng-readonly="records[0].dis" ng-class="service.get_decimal_perm()" ng-keyup="showCase.calc_total_amt($event, showCase.model_data, innerIndex, outerIndex)"></td>

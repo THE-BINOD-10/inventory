@@ -15,6 +15,9 @@ function IMEITrackerCtrl($scope, $http, Service) {
               if (data.data.data[0]["jo_details"]) {
                 vm.scan_item_type = 'JO';
               }
+              else {
+                vm.scan_item_type = 'PO';
+              }
             }
             vm.model_data = data.data;
           } else {

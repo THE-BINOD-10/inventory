@@ -171,6 +171,42 @@
             </div>
           </div>
         </div>
+        <div class="row mb20" ng-if="history.jo_rm_details && showCase.scan_item_type=='PO'">
+          <div class="col-md-2 col-sm-2 col-xs-4 hidden-xs">
+            <h4 align="right">JO Consumption</h4>
+          </div>
+          <div class="col-xs-12 visible-xs">
+            <h4>JO Consumption</h4>
+          </div>
+          <div class="col-md-8 col-sm-10 col-xs-12">
+            <div class="panel">
+              <div class="panel-body" style="border: 1px solid #f0f0f0;padding: 10px !important;">
+                <div class="row">
+                  <div class="col-md-2 col-sm-2 col-xs-4">
+                    <b>Job Order ID</b></br></br>
+                    {{history.jo_rm_details.job_code}}
+                  </div>
+                  <div class="col-md-2 col-sm-2 col-xs-4">
+                    <b>Order Date</b></br></br>
+                    {{history.jo_rm_details.order_date}}
+                  </div>
+                  <div class="col-md-2 col-sm-2 col-xs-4">
+                    <b>Product SKU</b></br></br>
+                    {{history.jo_rm_details.product_sku_code}}
+                  </div>
+                  <div class="col-md-2 col-sm-2 col-xs-4">
+                    <b>Product SKU Desc</b></br></br>
+                    {{history.jo_rm_details.product_sku_desc}}
+                  </div>
+                  <div class="col-md-2 col-sm-2 col-xs-4">
+                    <b>Consumption Date</b></br></br>
+                    {{history.jo_rm_details.dispatch_date}}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
         <div class="row mb20" ng-if="history.return_details && showCase.scan_item_type=='PO'">
           <div class="col-md-2 col-sm-2 col-xs-4 hidden-xs">
             <h4 align="right">RETURN</h4>

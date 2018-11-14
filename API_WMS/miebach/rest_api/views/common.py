@@ -4769,44 +4769,55 @@ def get_imei_data(request, user=''):
                 continue
             if order_mappings:
                 order_mapping = order_mappings[0]
-                order_id = order_mapping.order.original_order_id
-                if not order_id:
-                    order_id = str(order_mapping.order.order_code) + str(order_mapping.order.order_id)
-                if order_mapping.order_reference:
-                    order_id = order_mapping.order_reference
+                if order_mapping.order:
+                    order_id = order_mapping.order.original_order_id
+                    if not order_id:
+                        order_id = str(order_mapping.order.order_code) + str(order_mapping.order.order_id)
+                    if order_mapping.order_reference:
+                        order_id = order_mapping.order_reference
 
-                customer_id = order_mapping.order.customer_id
-                customer_name = order_mapping.order.customer_name
-                customer_address = order_mapping.order.address
-                if customer_id:
-                    customer_master = CustomerMaster.objects.filter(customer_id=order_mapping.order.customer_id,
-                                                                    user=user.id)
-                    if customer_master:
-                        customer_name = customer_master[0].name
-                        customer_address = customer_master[0].address
-                imei_data['order_details'] = {'order_id': order_id,
-                                              'order_date': get_local_date(user, order_mapping.order.creation_date),
-                                              'customer_id': str(customer_id), 'customer_name': customer_name,
-                                              'customer_address': customer_address,
-                                              'dispatch_date': get_local_date(user, order_mapping.creation_date),
-                                              'order_reference': order_mapping.order_reference,
-                                              'order_marketplace': order_mapping.marketplace
-                                              }
-                return_mapping = ReturnsIMEIMapping.objects.filter(order_imei_id=order_mapping.id,
-                                                                   order_imei__order__user=user.id)
-                if not return_mapping:
+                    customer_id = order_mapping.order.customer_id
+                    customer_name = order_mapping.order.customer_name
+                    customer_address = order_mapping.order.address
+                    if customer_id:
+                        customer_master = CustomerMaster.objects.filter(customer_id=order_mapping.order.customer_id,
+                                                                        user=user.id)
+                        if customer_master:
+                            customer_name = customer_master[0].name
+                            customer_address = customer_master[0].address
+                    imei_data['order_details'] = {'order_id': order_id,
+                                                  'order_date': get_local_date(user, order_mapping.order.creation_date),
+                                                  'customer_id': str(customer_id), 'customer_name': customer_name,
+                                                  'customer_address': customer_address,
+                                                  'dispatch_date': get_local_date(user, order_mapping.creation_date),
+                                                  'order_reference': order_mapping.order_reference,
+                                                  'order_marketplace': order_mapping.marketplace
+                                                  }
+                    return_mapping = ReturnsIMEIMapping.objects.filter(order_imei_id=order_mapping.id,
+                                                                       order_imei__order__user=user.id)
+                    if not return_mapping:
+                        data.append(imei_data)
+                        imei_status = 'Dispatched'
+                        continue
+                    return_mapping = return_mapping[0]
+                    imei_data['return_details'] = {'return_id': return_mapping.order_return.return_id,
+                                                   'return_date': get_local_date(user,
+                                                                                 return_mapping.order_return.creation_date),
+                                                   'customer_id': str(customer_id), 'customer_name': customer_name,
+                                                   'customer_address': customer_address,
+                                                   'reason': return_mapping.order_return.reason}
+                    imei_status = 'Returned'
                     data.append(imei_data)
-                    imei_status = 'Dispatched'
-                    continue
-                return_mapping = return_mapping[0]
-                imei_data['return_details'] = {'return_id': return_mapping.order_return.return_id,
-                                               'return_date': get_local_date(user,
-                                                                             return_mapping.order_return.creation_date),
-                                               'customer_id': str(customer_id), 'customer_name': customer_name,
-                                               'customer_address': customer_address,
-                                               'reason': return_mapping.order_return.reason}
-                imei_status = 'Returned'
-                data.append(imei_data)
+                elif order_mapping.jo_material:
+                    jo_material = order_mapping.jo_material
+                    imei_data['jo_rm_details'] = {'job_code': jo_material.job_order.job_code,
+                                                  'product_sku_code': jo_material.job_order.product_code.sku_code,
+                                                  'product_sku_desc': jo_material.job_order.product_code.sku_desc,
+                                                  'order_date': get_local_date(user, jo_material.job_order.creation_date),
+                                                  'dispatch_date': get_local_date(user, order_mapping.creation_date),
+                                                  }
+                    data.append(imei_data)
+                    imei_status = 'Consumed'
 
     except Exception as e:
         import traceback

@@ -2704,7 +2704,8 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     order_reference_date_field = ''
     order_charges = ''
     customer_id = ''
-
+    mode_of_transport = ''
+    vehicle_number = ''
     # Getting the values from database
     user_profile = UserProfile.objects.get(user_id=user.id)
     gstin_no = user_profile.gst_number

@@ -3737,7 +3737,7 @@ def split_orders(**order_data):
         pick_filter_map = {'picklist__order__user__in': source_whs, 'picklist__order__sku__wms_code': sku_code}
         res_qtys = dict(PicklistLocation.objects.prefetch_related('picklist', 'stock').filter(status=1).filter(
             **pick_filter_map).values_list('stock__sku__user').annotate(total=Sum('reserved')))
-        blocked_qtys = dict(EnquiredSku.objects.filter(sku__user__in=source_whs, sku_code=sku_code).filter(
+        blocked_qtys = dict(EnquiredSku.objects.filter(sku__user__in=source_whs, sku_code=sku_code, warehouse_level=warehouse_level).filter(
             ~Q(enquiry__extend_status='rejected')).values_list('sku__user', 'quantity'))
         if warehouse_level == 0 and user_id not in source_whs:  # Resellers wont have NETWORK MASTER
             source_whs.insert(0, user_id)
@@ -9036,7 +9036,7 @@ def get_customer_cart_data(request, user=""):
                             reserved_qty = reserved_obj[0]['in_reserved']
                         else:
                             reserved_qty = 0
-                        enq_qty = EnquiredSku.objects.filter(sku__user=wh, sku_code=record.sku.sku_code).filter(
+                        enq_qty = EnquiredSku.objects.filter(sku__user=wh, sku_code=record.sku.sku_code, warehouse_level=record.warehouse_level).filter(
                             ~Q(enquiry__extend_status='rejected')).values_list('sku_code').aggregate(Sum('quantity'))[
                             'quantity__sum']
                         if not enq_qty:

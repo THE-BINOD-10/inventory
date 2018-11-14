@@ -42,7 +42,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, prin
               var elem = {'data_id': aData.DT_RowAttr['data-id']};
               vm.service.apiCall('view_rm_picklist/', 'POST', elem).then(function(data){
                 if(data.message) {
-                  debugger;
                   angular.copy(data.data, vm.model_data);
                   change_model_data();
                   $state.go('app.production.RMPicklist.RawMaterialPicklist');

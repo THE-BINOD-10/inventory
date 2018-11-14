@@ -5407,6 +5407,7 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                     order_data['order_assigned_wh'] = user_obj[0].user
                     order_data['status'] = ''
         try:
+            order_dict = {}
             interm_obj = IntermediateOrders.objects.create(**order_data)
             order_dict['user'] = interm_obj.order_assigned_wh_id
             sel_sku_id = interm_obj.sku.id

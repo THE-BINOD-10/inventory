@@ -685,33 +685,31 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           vm.service.apiCall('check_sku/', 'GET',{'sku_code': field}).then(function(data){
             if(data.message) {
               vm.field = data.data.sku_code;
+              vm.sort_flag = false;
+              for(var i=0; i<vm.model_data.data.length; i++) {
 
+                angular.forEach(vm.model_data.data[i], function(sku){
+
+                  // vm.sku_list_1.push(sku.wms_code);
+                  if(vm.field == sku.wms_code){
+                    // $timeout(function() {
+                      vm.sort_items = [];
+                      vm.sort_items.push(vm.model_data.data[i]);
+                      vm.show_sel_item_top(vm.model_data.data[i]);
+                    // }, 500);
+                      $("input[attr-name='imei_"+vm.field+"']").trigger('focus');
+                    vm.sort_flag = true;
+                  }
+                });
+              }
               if (vm.permissions.use_imei) {
                 vm.sku_list_1 = [];
-                vm.sort_flag = false;
                 for(var i=0; i<vm.model_data.data.length; i++) {
 
                   angular.forEach(vm.model_data.data[i], function(sku){
 
                     vm.sku_list_1.push(sku.wms_code);
-                    if(vm.field == sku.wms_code){
-                      // $timeout(function() {
-                        vm.sort_items = [];
-                        vm.sort_items.push(vm.model_data.data[i]);
-                        vm.show_sel_item_top(vm.model_data.data[i]);
-                      // }, 500);
-                      $scope.$apply(function () {
-                        $("input[attr-name='imei_"+vm.field+"']").trigger('focus');
-                        // vm.sort_items.push(vm.model_data.data[i]);
-                        // vm.show_sel_item_top(vm.model_data.data[i]);
-                      });
-                      vm.sort_flag = true;
-                    }
                   });
-                  if (vm.sort_flag) {
-                    // vm.model_data.data = vm.temp_items;
-                    break;
-                  }
                 }
 
                 if (vm.sku_list_1.indexOf(vm.field) == -1){

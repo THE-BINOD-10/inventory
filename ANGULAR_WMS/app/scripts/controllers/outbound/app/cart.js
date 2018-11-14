@@ -87,7 +87,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
     }
   }
 
-  vm.change_remarks = function(remark) {
+  /*vm.change_remarks = function(remark) {
 
     angular.forEach(vm.model_data.data, function(data){
       if(!data['sku_remarks']){
@@ -96,7 +96,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
         data['remarks'] = data['sku_remarks'];
       }
     })
-  }
+  }*/
   vm.change_sku_remarks = function(data) {
 
     data['remarks'] = data['sku_remarks'];
@@ -416,6 +416,13 @@ vm.update_cartdata_for_approval = function() {
 
   vm.change_remarks = function(data) {
     if(data){
+      angular.forEach(vm.model_data.data, function(data){
+        if(!data['sku_remarks']){
+          data['remarks'] = vm.model_data.remarks;
+        } else {
+          data['remarks'] = data['sku_remarks'];
+      }
+    })
       vm.update_customer_cart_data(data);
     }
   }

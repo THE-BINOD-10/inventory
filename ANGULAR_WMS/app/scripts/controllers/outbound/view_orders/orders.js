@@ -19,6 +19,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.special_key = {market_places: "", customer_id: ""}
     vm.picklist_display_address = vm.permissions.picklist_display_address;
     vm.payment_status = ['To Pay', 'VPP', 'Paid'];
+    vm.project_name = "";
 
     vm.update_order_details = update_order_details;
     function update_order_details(index, data, last) {
@@ -136,7 +137,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    vm.dtColumns = vm.service.build_colums2(vm.g_data.tb_headers[vm.g_data.view]);
+    var table_headers_dict = vm.g_data.tb_headers[vm.g_data.view]
+    if (Session.userName != "72networks") {
+      delete(table_headers_dict['Address'])
+    }
+    vm.dtColumns = vm.service.build_colums2(table_headers_dict)
     vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
       .renderWith(function(data, type, full, meta) {
         if( 1 == vm.dtInstance.DataTable.context[0].aoData.length) {
@@ -144,8 +149,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         }
         vm.selected[meta.row] = vm.selectAll;
         return vm.service.frontHtml + meta.row + vm.service.endHtml;
-      }))
-
+    }))
 
    vm.dtInstance = {};
     vm.reloadData = reloadData;
@@ -171,7 +175,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     if (elem[0].value == '? string: ?'){
         elem[0].value = '';
     }
-    elem.push({name: 'order_id', value: vm.order_id}, {name: 'customer_id', value: vm.customer_id}, 
+    elem.push({name: 'order_id', value: vm.order_id}, {name: 'customer_id', value: vm.customer_id},
               {name: 'customer_name', value: vm.customer_name},
               {name: 'phone', value: vm.phone}, {name: 'email', value: vm.email}, {name: 'address', value: vm.address},
               {name: 'shipment_date', value: vm.shipment_date}, {name: 'market_place', value: vm.market_place})
@@ -225,7 +229,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     } else {
       record.item_code = sku;
       record.product_title = item.sku_desc;
-      
+
       var data = {sku_codes: sku, cust_id: vm.model_data.customer_id, tax_type: vm.model_data.tax_type}
 
       vm.service.apiCall("get_customer_sku_prices/", "POST", data).then(function(data) {
@@ -337,6 +341,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 	          vm.cust_data = value.cus_data;
 	          vm.item_code = value.item_code;
 	          vm.order_id = value.order_id;
+            vm.project_name = value.project_name
 	          vm.market_place = value.market_place;
             vm.unit_price = value.unit_price;
             vm.sgst = value.sgst_tax;
@@ -366,7 +371,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 	            var img_url = custom_data[0][3];
 	            vm.img_url = vm.service.check_image_url(img_url)
 	          }*/
-              
+
               var record = vm.model_data.data.push({item_code: vm.item_code, product_title: vm.product_title, quantity: vm.quantity,
               image_url: vm.img_url, remarks: vm.remarks, unit_price: vm.unit_price, taxes: vm.taxes,
               discount_per: vm.discount_per, sgst:vm.sgst, cgst:vm.cgst, igst:vm.igst, cess:vm.cess,default_status: true, sku_status: value.sku_status})
@@ -397,8 +402,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       var total = (data.quantity * data.unit_price);
       var discount_amt = (total*data.discount_per)/100;
       var invoice_amount_dis = Number(total - discount_amt);
-      
-      if (flag) { // Used to execute taxes for unitprice change only 
+
+      if (flag) { // Used to execute taxes for unitprice change only
         if (data.taxes.length) {
           for (var i = 0; i < data.taxes.length; i++) {
 
@@ -417,7 +422,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           data.cess = 0;
         }
       }
-      
+
       var tax = Number(data.sgst)+Number(data.cgst)+Number(data.igst) + Number(data.cess);
 
       data.discount = discount_amt;
@@ -645,8 +650,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         if(key) {
           console.log(value);
           var row = rows[parseInt(value)];
-          data[$(row[""]).attr("name")] = row["Marketplace"]; 
-        } 
+          data[$(row[""]).attr("name")] = row["Marketplace"];
+        }
       })
       vm.service.apiCall('transfer_order/', 'POST', data).then(function(data){
         if(data.message) {
@@ -712,7 +717,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         var total = 0;
         for(var i=0; i < data.sub_data.length; i++) {
           total = total + parseInt(data.sub_data[i].picked_quantity);
-        } 
+        }
         var scan_data = scan.split("\n");
         var length = scan_data.length;
         var elem = {};
@@ -1156,4 +1161,3 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
   }
 
   }
-

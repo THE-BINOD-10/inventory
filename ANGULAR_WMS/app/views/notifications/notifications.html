@@ -6,25 +6,35 @@
 
   <div class="container notif_container">
     <div class="row mark_all">
-      <div class="col-md-8">
-        <div type="button" class="btn btn-default" ng-click="notify.mark_as_read('', true)">Mark All As Read</div>
+      <div class="col-md-12">
+        <div type="button" class="btn btn-success" ng-click="notify.mark_as_read('', true)">Mark All As Read</div>
       </div>
     </div>
     <div class="row" ng-repeat="notification in notify.notifications">
-      <div class="col-md-8">
+      <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
         <div ng-class="{'alert-common alert-unread': notification.is_read==0, 'alert-common alert-read': notification.is_read!=0,
                         'first_alert': $index==0}">
-          <div class="col-md-10">
+          <div class= "row">
+          <div class="col-lg-10 col-md-10 col-sm-10 col-xs-10">
+            <div class ="pull-left">
             <span class="nt-head">{{notification.message}}</span>
             <p>{{notification.creation_date}}</p>
           </div>
-          <div class="col-md-2">
-            <div type="button" class="btn btn-success"
-                 ng-if="notification.is_read==0"
-                 ng-click="notify.mark_as_read(notification.id, '')">Mark As Read</div>
-            <div type="button" class="btn btn-warning"
-                 ng-click="notify.delete_notification(notification.id)">Delete</div>
+          </div>
+          <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+            <div class ="pull-right">
+                 <div  class="fa fa-check fa-2x"
+                   ng-if="notification.is_read==0"
+                   title="Mark As Read"
+                   ng-click="notify.mark_as_read(notification.id, '')">
+                 </div>
+                 <div  class="fa fa-trash fa-2x"
+                    ng-click="notify.delete_notification(notification.id)"
+                    title="Delete">
+                </div>
+             </div>
           </div><!--col-->
+        </div>
         </div>
       </div><!--col-->
     </div>
@@ -41,8 +51,22 @@
   }
   .alert-read {
   }
+  .btn{
+    height:22px;
+  	width:110px;
+    padding-bottom: 20px;
+  }
+  .btn-success
+  {
+    height:22px;
+    width:130px;
+    padding-bottom: 25px;
+  }
+  .fa-check{
+    padding-right: 10px;
+  }
   .alert-common {
-    min-height: 100px;
+    min-height: 75px;
     padding: 16px 16px 16px 12px;
     border-bottom: 1px solid #cfcfcf;
     border-left: 1px solid #cfcfcf;
@@ -56,7 +80,7 @@
   }
   .nt-head {
     color: #1d2129;
-    font-size: 20px;
+    font-size: 15px;
   }
   .mark_all {
     margin: 20px 10px;

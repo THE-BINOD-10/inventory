@@ -144,6 +144,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               vm.state = value.state;
               vm.order_id_code = value.order_id_code;
               vm.pin = value.pin;
+              vm.project_name = value.project_name
               vm.product_title = value.product_title;
               vm.quantity = value.quantity;
               vm.invoice_amount = value.invoice_amount;
@@ -157,11 +158,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
               var image_url = value.image_url;
               vm.img_url = vm.service.check_image_url(image_url);
               console.log(vm.model_data);
-              vm.model_data.data.push({item_code: vm.item_code, product_title: vm.product_title, quantity: vm.quantity, 
+              vm.model_data.data.push({item_code: vm.item_code, product_title: vm.product_title, quantity: vm.quantity,
               invoice_amount: vm.invoice_amount, image_url: vm.img_url, remarks: vm.remarks, default_status: true,
               sku_extra_data: value.sku_extra_data, display: true})
             });
-                $state.go('app.outbound.ViewOrders.CustomOrderDetails'); 
+                $state.go('app.outbound.ViewOrders.CustomOrderDetails');
                 //$state.go('app.outbound.ViewOrders.OrderDetails');
                 })
             });
@@ -320,9 +321,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     //elem = $(elem).serializeArray();
     elem = $("form:visible").serializeArray();
     if (elem[0].value == '? string: ?'){
-        elem[0].value = ''; 
-    }   
-    elem.push({name: 'order_id', value: vm.order_id}, {name: 'customer_id', value: vm.customer_id}, 
+        elem[0].value = '';
+    }
+    elem.push({name: 'order_id', value: vm.order_id}, {name: 'customer_id', value: vm.customer_id},
               {name: 'customer_name', value: vm.customer_name},
               {name: 'phone', value: vm.phone}, {name: 'email', value: vm.email}, {name: 'address', value: vm.address},
               {name: 'shipment_date', value: vm.shipment_date}, {name: 'market_place', value: vm.market_place})
@@ -330,7 +331,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         console.log(data);
         vm.reloadData();
         colFilters.showNoty('Saved sucessfully');
-    })  
+    })
   }
 
   vm.delete_order_data = function(ord_id) {

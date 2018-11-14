@@ -1,0 +1,87 @@
+<style type="text/css">
+  .modal-lg{
+    width: 1200px
+  }
+  .rotate{
+    -webkit-transform: rotate(-90deg);
+    -moz-transform: rotate(-90deg);
+    -ms-transform: rotate(-90deg);
+    -o-transform: rotate(-90deg);
+  }
+</style>
+<div id="page-pop"  class="modal fade in" tabindex="-1" role="dialog" style="overflow-y: visible;">
+  <div class="modal-dialog model-custom modal-lg">
+    <form name="form" class="ng-pristine ng-valid" role="form" ui-jq="validate" ui-options="validationOpt">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">Print Bar Code</h4>
+      </div>
+      <div class="modal-body">
+        <div class="form-group col-md-4">
+          <label class="control-label"> PDF Format</label>
+          <select class="form-control col-md-3" name="pdf_format">
+            <option ng-repeat="format in showCase.model_data.format_types" value="{{format}}">{{format}}</option>
+          </select>
+        </div>
+        <div class="row">
+          <div class="col-md-12">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>SKU Code</th>
+                  <th>Batch Number</th>
+                  <th>MRP</th>
+                  <th>Destination Location</th>
+                  <th>Quantity</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr ng-repeat="barcode in showCase.model_data.barcodes">
+                  <td>
+                    <input type="text" autocomplete="off" name="wms_code" class="form-control ng-required" placeholder="Search WMS Code"
+                    typeahead="address.wms_code for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')"
+                    typeahead-loading="loadingLocations" ng-model="barcode.sku_code"
+                    typeahead-on-select="showCase.get_sku_details(product, $item)" ng-required="$first">
+                  </td>
+                  <td>
+                    <input type="text" name="batch_no" class="form-control ng-required" ng-model="barcode.batch_number">
+                  </td>
+                  <td>
+                    <input type="text" ng-required="$first" name="quantity" class="form-control ng-required" ng-model="barcode.mrp">
+                  </td>
+                  <td>
+                    <input type="text" ng-required="$first" name="quantity" class="form-control ng-required" ng-model="barcode.dest_location">
+                  </td>
+                  <td>
+                    <input type="text" ng-required="$first" name="quantity" class="form-control ng-required" ng-model="barcode.quantity">
+                  </td>
+                  <td>
+                    <i title="Remove Field" class="fa fa-minus-square-o" style="padding-left: 15px;"
+                       ng-click="showCase.model_data.barcodes.splice($index,1)"></i>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="col-md-12 col-sm-6 col-xs-4">
+              <span class="plus pull-right">
+                <i class="fa fa-plus-circle" style="font-size: 45px;margin-top: -10px;" title="Add New Size Input Field"
+                   ng-click="showCase.model_data.barcodes.push({'sku_code':'', 'batch_number':'', 'mrp':'', 'dest_location':'', 'quantity':''})"></i>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div class="form-group" style="margin-bottom:0px;">
+          <button type="button" class="btn pop pop-normal" ng-click="showCase.close()">Close</button>
+          <button type="submit" class="btn pop pop-green" ng-click="showCase.generate_sku_substitute_barcodes(form)" ng-disabled="process">
+            <span>Generate Barcodes</span>
+            <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+          </button>
+        </div>
+      </div>
+    </div><!-- /.modal-content -->
+    </form>
+  </div><!-- /.modal-dialog -->
+</div>

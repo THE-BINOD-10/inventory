@@ -120,6 +120,7 @@ class SKUMaster(models.Model):
     sub_category = models.CharField(max_length=64, default='')
     primary_category = models.CharField(max_length=64, default='')
     shelf_life = models.IntegerField(default=0)
+    enable_serial_based = models.IntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -3018,7 +3019,7 @@ class SellableSuggestions(models.Model):
         db_table = 'SELLABLE_SUGGESTIONS'
         index_together = (('seller', 'stock', 'status'), ('stock', 'status'))
 
-
+#
 class TableUpdateHistory(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User, blank=True, null=True)

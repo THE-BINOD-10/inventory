@@ -5193,7 +5193,6 @@ def create_order_fields_entry(interm_order_id, name, value, user):
 
 
 def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
-    #import pdb; pdb.set_trace()
     log.info("order upload started")
     st_time = datetime.datetime.now()
     index_status = {}
@@ -5408,7 +5407,9 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                     order_data['status'] = ''
         try:
             order_dict = {}
+            #import pdb; pdb.set_trace()
             interm_obj = IntermediateOrders.objects.create(**order_data)
+            order_fields = OrderFields.objects.filter(user = user.id, original_order_id=interm_obj.interm_order_id)
             order_dict['user'] = interm_obj.order_assigned_wh_id
             sel_sku_id = interm_obj.sku.id
             sku_id = get_syncedusers_mapped_sku(wh=interm_obj.order_assigned_wh_id, sku_id=sel_sku_id)
@@ -5418,6 +5419,7 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
             order_dict['title'] = interm_obj.sku.sku_desc
             #order_dict['sku_code'] = interm_obj.sku.sku_code
             order_dict['title'] = interm_obj.sku.sku_desc
+            order_dict['status'] = 1
 
             if interm_obj.customer_user:
                customer_user = CustomerUserMapping.objects.filter(user_id=interm_obj.customer_user.id)
@@ -5457,13 +5459,34 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
             order_dict['order_id'] = order_id
             order_dict['shipment_date'] = interm_obj.shipment_date
             order_dict['remarks'] = interm_obj.remarks
-            ord_obj = OrderDetail(**order_dict)
-            ord_obj.save()
+            get_existing_order = OrderDetail.objects.filter(**{'sku_id': sku_id,
+                'original_order_id': order_id, 'user':interm_obj.order_assigned_wh_id })
+            if get_existing_order:
+                get_existing_order = get_existing_order[0]
+                get_existing_order.quantity = get_existing_order.quantity + 1
+                get_existing_order.save()
+                ord_obj = get_existing_order
+                order_fields.update(original_order_id=order_id)
+                #interm_obj.update(status=1)
+            else:
+                try:
+                    ord_obj = OrderDetail(**order_dict)
+                    ord_obj.save()
+                    order_fields.update(original_order_id=order_id)
+                    #interm_obj.update(status=1)
+                except:
+                    resp_dict[str(interm_obj.interm_order_id)] = 'Error in Saving Order ID'
+                    created_order_objs.append(resp_dict)
+                    resp_str = str(interm_obj.interm_order_id) + ' - Error in Saving Order ID'
+                    output_list.append(resp_str)
+                    continue
+            #ord_obj = OrderDetail(**order_dict)
+            #ord_obj.save()
             cust_ord_dict = {'order_id': ord_obj.id, 'sgst_tax': interm_obj.sgst_tax, 'cgst_tax': interm_obj.cgst_tax,
                              'igst_tax': interm_obj.igst_tax}
             CustomerOrderSummary.objects.create(**cust_ord_dict)
             interm_obj.order_id = ord_obj.id
-            #interm_obj.status =
+            interm_obj.status = 1
             interm_obj.save()
         except:
             pass

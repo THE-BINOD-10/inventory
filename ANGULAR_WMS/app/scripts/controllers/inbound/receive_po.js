@@ -291,6 +291,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         fb.stop_fb();
         vm.imei_list = [];
       }
+      vm.sort_items = [];
+      vm.sort_flag = false;
       $state.go('app.inbound.RevceivePo');
     }
 
@@ -693,12 +695,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   // vm.sku_list_1.push(sku.wms_code);
                   if(vm.field == sku.wms_code){
                     // $timeout(function() {
-                      vm.sort_items = [];
-                      vm.sort_items.push(vm.model_data.data[i]);
-                      vm.show_sel_item_top(vm.model_data.data[i]);
+                      //vm.sort_items = [];
+                      //vm.sort_items.push(vm.model_data.data[i]);
+                      if(i != 0) {
+                        var temp_dict = [];
+                        angular.copy(vm.model_data.data[0], temp_dict);
+                        angular.copy(vm.model_data.data[i], vm.model_data.data[0]);
+                        angular.copy(temp_dict, vm.model_data.data[i]);
+                      }
+                      //vm.show_sel_item_top(vm.model_data.data[i]);
                     // }, 500);
                       $("input[attr-name='imei_"+vm.field+"']").trigger('focus');
-                    vm.sort_flag = true;
+                    //vm.sort_flag = true;
                   }
                 });
               }
@@ -726,12 +734,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 vm.sku_list_1 = [];
                 for(var i=0; i<vm.model_data.data.length; i++) {
 
-                  angular.forEach(vm.model_data.data[i], function(sku){
+                  angular.forEach(vm.model_data.data[i], function(sku, temp_sku_ind){
 
                     vm.sku_list_1.push(sku.wms_code);
                     if(vm.field == sku.wms_code){
                       if(sku.value < sku.po_quantity) {
                         sku["value"] = Number(sku["value"]) + 1;
+                        vm.calc_total_amt(event, vm.model_data, Number(i), temp_sku_ind);
                       } else {
                          Service.showNoty("Received Quantity Equal To PO Quantity");
                       }

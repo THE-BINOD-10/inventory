@@ -83,3 +83,28 @@
 .no-padding {
   padding: 0px !important;
 }
+@media screen and (max-width: 1440px) {
+  .image_display1 {
+    padding-left: 315px;
+    border-radius: 4px;
+  }
+  .image_display1 img {
+    cursor: pointer;
+    min-height: 100%;
+  }
+  .image_display1 img:hover {
+    height: 100%;
+  }
+}
+@media screen and (max-width: 992px) {
+  .image_display1 {
+    padding-left: 315px;
+    width: 80%;
+  }
+}
+@media screen and (max-width: 600px) {
+  .image_display1 {
+    padding-left: 20px;
+    width: 100%;
+  }
+}

@@ -175,14 +175,14 @@
             <label class="col-sm-5 col-xs-5 control-label">Choose Images </label>
             <div class="col-sm-3 col-xs-5">
               <span class="btn btn-primary up-btn" style="position: relative;overflow: hidden;width: 250px;">Choose File
-                <input type="file" style="position: absolute; top: 0; right: 0; min-width: 100%; min-height: 100%; font-size: 100px; text-align: right; filter: alpha(opacity=0); opacity: 0; outline: none; background: white; cursor: inherit; display: block" class="btn btn-primary" name="files" id="image-upload" multi-image-upload multiple/>
+                <input type="file" style="position: absolute; top: 0; right: 0; min-width: 100%; min-height: 100%; font-size: 100px; text-align: right; filter: alpha(opacity=0); opacity: 0; outline: none; background: white; cursor: inherit; display: block" class="btn btn-primary" type = "file" name="files" id="image-upload" multi-image-upload multiple/>
               </span>
             </div>
           </div>
-          <div class="form-group" ng-show="Enquiry.model_data.customization_type != 'price_custom'">
-            <div class="col-md-2"></div>
-            <div class="col-sm-12 col-xs-12 col-md-8 multi_imgs_display"></div>
-            <div class="col-md-2"></div>
+          <div class="row form-group" ng-show="Enquiry.model_data.customization_type != 'price_custom'">
+            <div class="col-lg-2 col-md-2"></div>
+            <div class="col-lg-8 col-md-8 col-sm-12 col-xs-12 multi_imgs_display"></div>
+            <div class="col-lg-2 col-md-2"></div>
           </div>
           <div class="row mt10">
             <button style="display:block;margin:auto;margin-top:40px;" type="submit" class="btn btn-warning btn-round" ng-disabled="Enquiry.uploading" ng-click="Enquiry.place(form)">{{(Enquiry.uploading)?'Placing Enquiry':'Place Enquiry';}}</button>

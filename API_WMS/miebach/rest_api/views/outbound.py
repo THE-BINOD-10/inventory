@@ -89,7 +89,7 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     if user_dict:
         user_dict = eval(user_dict)
-    
+
     if user.username == "72networks":
         lis = ['id', 'order_id', 'address', 'sku__sku_code', 'title', 'quantity', 'shipment_date', 'city', 'status']
     else:
@@ -134,7 +134,7 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
         perm_status_list, check_ord_status = get_view_order_statuses(request, user)
         if check_ord_status:
             search_params['customerordersummary__status__in'] = perm_status_list
-
+   # import pdb; pdb.set_trace()
     if search_term:
         master_data = OrderDetail.objects.filter(
             Q(sku__sku_code__icontains=search_term, status=1) | Q(order_id__icontains=search_term,
@@ -4013,7 +4013,7 @@ def create_central_order(request, user):
                 if admin_users:
                     mail_ids = [admin_users[0].admin_user.userprofile.email]"""
             mail_ids = [user.email]
-            import pdb; pdb.set_trace()
+            #import pdb; pdb.set_trace()
             user_mail_id = [request.user.email]
             headers = ['Order number','isprava code','Product Details', 'Ordered Quantity', 'Total','Project name','Order Date']
             data_dict = {'customer_name': request.user.username, 'items': items,
@@ -7482,10 +7482,10 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
     user_dict = eval(user_dict)
 
     if user.username != '72networks':
-        lis = ['order_id', 'customer_name', 'order_id', 'marketplace', 'total', 'shipment_date', 'date_only', 
+        lis = ['order_id', 'customer_name', 'order_id', 'marketplace', 'total', 'shipment_date', 'date_only',
         'city', 'status']
     else:
-        lis = ['order_id', 'customer_name', 'order_id', 'address', 'marketplace', 'total', 'shipment_date', 'date_only', 
+        lis = ['order_id', 'customer_name', 'order_id', 'address', 'marketplace', 'total', 'shipment_date', 'date_only',
         'city', 'status']
     # unsort_lis = ['Customer Name', 'Order ID', 'Market Place ', 'Total Quantity']
     unsorted_dict = {7: 'Order Taken By', 8: 'Status'}

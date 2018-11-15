@@ -5459,6 +5459,7 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
             order_dict['order_id'] = order_id
             order_dict['shipment_date'] = interm_obj.shipment_date
             order_dict['remarks'] = interm_obj.remarks
+            order_dict['quantity'] = 1
             get_existing_order = OrderDetail.objects.filter(**{'sku_id': sku_id,
                 'original_order_id': order_id, 'user':interm_obj.order_assigned_wh_id })
             if get_existing_order:

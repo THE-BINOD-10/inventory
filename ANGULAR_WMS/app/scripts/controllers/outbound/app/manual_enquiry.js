@@ -80,7 +80,7 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
   }
 
   $ctrl.place = function(form) {
-
+    $ctrl.loading = true;
     if(form.$valid) {
       var formData = new FormData();
       var el = $("#image-upload");
@@ -130,10 +130,13 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
               if(response == 'Success') {
 
                 Service.showNoty(response);
+                $ctrl.loading =false;
                 $scope.$apply(function() {
                   angular.copy(empty_data, $ctrl.model_data);
+                  // $ctrl.custom_remarks = ['remarks':''];
                   $ctrl.upload_name = [];
                   $ctrl.uploading = false;
+                  $ctrl.clearFiles();
                 });
                 $("input[type='file']").val('');
               } else {
@@ -150,6 +153,7 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
             }
       });
     }
+    $ctrl.loading =true;
   }
 
   var imagesPreview = function(input, placeToInsertImagePreview) {
@@ -158,7 +162,11 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
       for (var i = 0; i < filesAmount; i++) {
         var reader = new FileReader();
         reader.onload = function(event) {
-          $($.parseHTML('<div class="col-md-3 dyn_imgs no-padding m5"><img src="'+event.target.result+'" width="100%"></div>')).appendTo(placeToInsertImagePreview);
+          if(filesAmount == 1) {
+            $($.parseHTML('<div class="col-lg-8 col-md-8 col-sm-12 col-xs-12 image_display1" align="center"><img src="'+event.target.result+'" width="100%"></div>')).appendTo(placeToInsertImagePreview);
+          } else {
+            $($.parseHTML('<div class="col-md-3 dyn_imgs no-padding m5"><img src="'+event.target.result+'" width="100%"></div>')).appendTo(placeToInsertImagePreview);
+          }
         }
         reader.readAsDataURL(input.files[i]);
       }

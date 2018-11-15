@@ -5429,8 +5429,7 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                    order_dict['telephone'] = customer_user[0].customer.phone_number
                    order_dict['email_id'] = customer_user[0].customer.email_id
                    order_dict['address'] = customer_user[0].customer.address
-               else:
-                   return HttpResponse('Failed')
+
             elif interm_obj.customer_id:
                customer_master = CustomerMaster.objects.filter(user=user.id, customer_id=interm_obj.customer_id)
                if customer_master:
@@ -5452,6 +5451,10 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                intermediate_obj = IntermediateOrders.objects.filter(user=user.id, interm_order_id=str(interm_obj.interm_order_id))
                if intermediate_obj:
                    order_dict['customer_name'] = intermediate_obj[0].customer_name
+
+            #loan_proposal_id_obj = OrderFields.objects.filter(original_order_id=str(interm_obj.interm_order_id), order_type='intermediate_order', user=user.id, name='loan_proposal_id')
+            #if loan_proposal_id_obj :
+            #    print loan_proposal_id_obj[0].value
             order_dict['original_order_id'] = order_id
             order_code = ''.join(re.findall('\D+', order_id))
             order_id = ''.join(re.findall('\d+', order_id))

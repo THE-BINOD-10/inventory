@@ -1041,7 +1041,7 @@ PICKLIST_EXCEL = OrderedDict((
 PICKLIST_EXCEL_FMCG = OrderedDict((
                               ('Order ID', 'original_order_id'), ('Combo SKU', 'parent_sku_code'),
                               ('WMS Code', 'wms_code'), ('Title', 'title'), ('Category', 'category'),
-                              ('Zone', 'zone'), ('Location', 'location'), ('Batch No', 'batchno'), ('MRP', 'mrp'), 
+                              ('Zone', 'zone'), ('Location', 'location'), ('Batch No', 'batchno'), ('MRP', 'mrp'),
                               ('Reserved Quantity', 'reserved_quantity'),
                               ('Stock Left', 'stock_left'),('Last Picked Location', 'last_picked_locs')
                             ))
@@ -1276,9 +1276,9 @@ CENTRAL_ORDER_EXCEL_ONE_ASSIST = OrderedDict((
                             ('sku_code', 7)
                           ))
 
-CENTRAL_ORDER_XLS_UPLOAD = {'interm_order_id': '', 'sku': '', 'quantity': 1, 
-              'unit_price': 0, 'tax': 0, 'inter_state': 0, 'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 
-              'utgst_tax': 0, 'status': 0, 'project_name': '', 'remarks': '', 'customer_id': 0, 
+CENTRAL_ORDER_XLS_UPLOAD = {'interm_order_id': '', 'sku': '', 'quantity': 1,
+              'unit_price': 0, 'tax': 0, 'inter_state': 0, 'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0,
+              'utgst_tax': 0, 'status': 0, 'project_name': '', 'remarks': '', 'customer_id': 0,
               'customer_name': '', 'shipment_date': datetime.datetime.now()}
 
 # End of Order File Upload Templates
@@ -1779,7 +1779,7 @@ ORDER_ID_AWB_EXCEL_MAPPING = OrderedDict((('order_id', 0), ('awb_no', 1), ('cour
 
 # Company logo names
 COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg', 'Subhas_Publishing': 'book_publications.png', 'sm_admin': 'sm-brand.jpg',
-                        'corp_attire': 'corp_attire.jpg'}
+                        'corp_attire': 'corp_attire.jpg','72networks':'72networks.png'}
 TOP_COMPANY_LOGO_PATHS = {'Konda_foundation': 'dr_reddy_logo.png'}
 
 # Configurtions Mapping
@@ -1865,7 +1865,7 @@ CENTRAL_ORDER_MAPPING = OrderedDict((
                                       ('Batch Date', 'batch_date'), ('Branch ID', 'branch_id'),
                                       ('Branch Name', 'branch_name'), ('Loan Proposal ID', 'loan_proposal_id'),
                                       ('Loan Proposal Code', 'loan_proposal_code'), ('Client Code', 'client_code'),
-                                      ('Client ID', 'client_id'), ('Customer Name', 'customer_name'), 
+                                      ('Client ID', 'client_id'), ('Customer Name', 'customer_name'),
                                       ('Address1', 'address1'), ('Address2', 'address2'),
                                       ('Landmark', 'landmark'), ('Village', 'village'),
                                       ('District', 'district'), ('State1', 'state'),
@@ -5565,7 +5565,7 @@ def get_sku_wise_rtv_filter_data(search_params, user, sub_user):
         if open_po.sku.hsn_code:
             hsn_code = str(open_po.sku.hsn_code)
         invoice_date = ''
-        data['invoice_date'] = seller_po_summary.invoice_date   
+        data['invoice_date'] = seller_po_summary.invoice_date
         if data['invoice_date']:
             invoice_date = data['invoice_date'].strftime("%d %b, %Y")
         ean_numbers = get_sku_ean_list(open_po.sku)

@@ -85,14 +85,14 @@
         <table class="table mb0 mw40">
           <thead>
             <tr>
-              <th class="col-md-4" ng-hide="order.order_details.order.customization_type=='Product Customization'">Price</th>
+              <th class="col-md-4">Price</th>
               <th class="col-md-4">Approximate Delivery Date</th>
               <th class="col-md-4">Remarks</th>
             </tr>
           </thead>
           <tbody>
             <tr style="cursor:pointer">
-              <td ng-hide="order.order_details.order.customization_type=='Product Customization'">{{hist.ask_price}}</td>
+              <td>{{hist.ask_price}}</td>
               <td>{{hist.expected_date | date:"dd/MM/yyyy"}}</td>
               <td>{{hist.remarks}}</td>
             </tr>
@@ -128,7 +128,7 @@
           </span>
         </div>
         <div ng-if="order.edit_enable && (order.order_details.order.enq_status!='confirm_order' && order.order_details.order.enq_status!='hold_order' &&order.order_details.order.enq_status!='order_placed')">
-          <div class="col-md-4 col-sm-4 col-xs-12" ng-if="order.order_details.order.customization_type!='Product Customization' && order.permissions.user_type != 'sm_design_admin'">
+          <div class="col-md-4 col-sm-4 col-xs-12" ng-if="order.permissions.user_type != 'sm_design_admin'">
             <div class="form-group">
               <input type="text" ng-if="!order.clear_flag" name="ask_price" ng-model="order.model_data.ask_price" class="form-control ng-pristine" placeholder="Modify Price *" decimal-number required>
             </div>

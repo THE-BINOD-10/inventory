@@ -22,12 +22,20 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
 
   vm.disable_btn = false;
   vm.notify_to_sub_dist = function(form){
-    if(form.$invalid) {
-      Service.showNoty('Please fill required fields');
-      return false;
+      var order_status = vm.order_details.order.enq_status;
+      if(order_status == 'approved'){
+        vm.model_data['enq_status'] = 'approved';
+      }else{
+        vm.model_data['enq_status'] = 'reseller_pending';
+      }
+
+    if(order_status != 'approved'){
+      if(form.$invalid) {
+        Service.showNoty('Please fill required fields');
+        return false;
+      }
     }
     vm.disable_btn = true;
-    vm.model_data['enq_status'] = 'reseller_pending';
     vm.model_data['status'] = 'reseller_pending';
     Service.apiCall('save_manual_enquiry_data/', 'POST', vm.model_data).then(function(data) {
       if (data.message) {
@@ -199,7 +207,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
 
     if(vm.model_data.ask_price || vm.model_data.expected_date || vm.model_data.remarks) {
 
-      if(!vm.model_data.ask_price && vm.order_details.order.customization_type != 'Product Customization') {
+      if(!vm.model_data.ask_price) {
         Service.showNoty('Please Fill Ask Price', 'warning');
         return false;
       } else if (!vm.model_data.expected_date && vm.permissions.user_type != 'sm_purchase_admin') {
@@ -237,7 +245,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
     var data = {};
     if(vm.model_data.ask_price || vm.model_data.expected_date || vm.model_data.remarks) {
 
-      if(!vm.model_data.ask_price && vm.order_details.order.customization_type != 'Product Customization') {
+      if(!vm.model_data.ask_price) {
         Service.showNoty('Please Fill Ask Price', 'warning');
         return false;
       } else if (!vm.model_data.expected_date) {
@@ -246,7 +254,14 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
       } else if (!vm.model_data.remarks) {
         Service.showNoty('Please Fill Remarks', 'warning');
         return false;
+      } else if (!vm.model_data.sm_d_price) {
+        Service.showNoty('Please Fill SM-D Price', 'warning');
+        return false;
+      } else if (!vm.model_data.r_c_price) {
+        Service.showNoty('Please Fill R-C Price', 'warning');
+        return false;
       }
+
     }
     angular.copy(vm.model_data, data);
     data['enq_status'] = "approved";
@@ -305,7 +320,7 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
     Service.apiCall(url, "GET", vm.model_data).then(function(data){
       if(data.message) {
 
-        console.log(data.data);
+//        console.log(data.data);
         vm.order_details = data.data;
         vm.warehouse_data = vm.order_details.wh_stock_dict;
         vm.tot_quantity = vm.order_details.order.quantity;
@@ -318,6 +333,11 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
           vm.model_data.expected_date = vm.order_details.enq_details.expected_date;
           vm.model_data.ask_price = vm.order_details.enq_details.ask_price;
           vm.model_data.remarks = vm.order_details.enq_details.remarks;
+        }
+        if(vm.order_details.md_approved_details.expected_date && vm.order_details.order.enq_status == 'approved') {
+          vm.model_data.expected_date = vm.order_details.md_approved_details.expected_date;
+          vm.model_data.ask_price = vm.order_details.md_approved_details.ask_price;
+          vm.model_data.remarks = vm.order_details.md_approved_details.remarks;
         }
       }
       vm.loading = false;

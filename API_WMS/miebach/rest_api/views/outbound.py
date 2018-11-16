@@ -11704,6 +11704,7 @@ def get_manual_enquiry_detail(request, user=''):
         enquiry_data = ManualEnquiryDetails.objects.filter(enquiry=manual_enq[0].id)
     enquiry_dict = []
     enq_details = {}
+    md_approved_details = {}
     for enquiry in enquiry_data:
         date = enquiry.creation_date.strftime('%Y-%m-%d')
         if enquiry.expected_date:
@@ -11711,8 +11712,12 @@ def get_manual_enquiry_detail(request, user=''):
         else:
             expected_date = ''
         user = UserProfile.objects.get(user=enquiry.user_id)
-        if user.user_type != 'customer' and enquiry.status != 'approved':
-            enq_details = enquiry
+        if user.user_type != 'customer':
+            if enquiry.status != 'approved':
+                enq_details = enquiry
+            else:
+                md_approved_details = enquiry
+
         enquiry_dict.append({'ask_price': enquiry.ask_price, 'remarks': enquiry.remarks, 'date': date,\
                              'expected_date': expected_date, 'username': user.user.username,
                              'status': enquiry.status})
@@ -11724,6 +11729,14 @@ def get_manual_enquiry_detail(request, user=''):
             expected_date = ''
         enq_details = {'ask_price': enq_details.ask_price, 'remarks': enq_details.remarks,\
                        'expected_date': expected_date}
+    if md_approved_details:
+        exp_date = md_approved_details.expected_date
+        if exp_date:
+            expected_date = exp_date.strftime('%d/%m/%Y')
+        else:
+            expected_date = ''
+        md_approved_details = {'ask_price': md_approved_details.ask_price, 'remarks': md_approved_details.remarks,
+                               'expected_date': expected_date}
     far_wh_lt = 0
     cust_obj = CustomerUserMapping.objects.filter(user_id=user_id)
     if cust_obj:
@@ -11758,9 +11771,9 @@ def get_manual_enquiry_detail(request, user=''):
                                   'intr_open': 0, 'intr_blocked': 0})
     wh_stock_dict = {'L1': wh_stock_list}
 
-    return HttpResponse(json.dumps({'data': enquiry_dict, 'style': style_dict, 'order': manual_eq_dict,\
+    return HttpResponse(json.dumps({'data': enquiry_dict, 'style': style_dict, 'order': manual_eq_dict,
                                     'enq_details': enq_details, 'far_wh_leadtime': far_wh_lt,
-                                    'wh_stock_dict': wh_stock_dict}))
+                                    'wh_stock_dict': wh_stock_dict, 'md_approved_details': md_approved_details}))
 
 
 @csrf_exempt
@@ -11863,6 +11876,14 @@ def request_manual_enquiry_approval(request, user=''):
     if not enquiry_id or not user_id or not status:
         resp['msg'] = "Give information insufficient"
         return HttpResponse(json.dumps(resp))
+    smd_price = request.POST.get('sm_d_price', '')
+    rc_price = request.POST.get('r_c_price', '')
+    if request.user.userprofile.warehouse_type == 'CENTRAL_ADMIN' and status != 'pending_approval':
+        if not smd_price and not rc_price:
+            return HttpResponse('SM-D and R-C prices are missing')
+        smd_price = float(smd_price)
+        rc_price = float(rc_price)
+
     if not MANUAL_ENQUIRY_STATUS.get(status, ''):
         resp['msg'] = "status incorrect"
     filters = {'enquiry_id': float(enquiry_id), 'user': user_id}
@@ -11874,6 +11895,9 @@ def request_manual_enquiry_approval(request, user=''):
     if expected_date or request.user.userprofile.warehouse_type == 'SM_DESIGN_ADMIN':
         save_manual_enquiry_data(request)
     enq_data[0].status = status
+    if smd_price or rc_price:
+        enq_data[0].smd_price = smd_price
+        enq_data[0].rc_price = rc_price
     enq_data[0].save()
     users_list = []
     if request.user.userprofile.warehouse_type in ('SM_MARKET_ADMIN', 'SM_PURCHASE_ADMIN', 'SM_DESIGN_ADMIN'):
@@ -11969,10 +11993,10 @@ def convert_customorder_to_actualorder(request, user=''):
     except:
         return HttpResponse('Something Went Wrong')
     resp = {'msg': 'Success', 'data': []}
-    smd_price = request.POST.get('sm_d_price', '')
-    if smd_price:
-        smd_price = float(smd_price)
-    rc_price = request.POST.get('r_c_price', '')
+    # smd_price = request.POST.get('sm_d_price', '')
+    # if smd_price:
+    #     smd_price = float(smd_price)
+    # rc_price = request.POST.get('r_c_price', '')
     enq_id = request.POST.get('enquiry_id', '')
     res_user_id = request.POST.get('user_id', '')
     en_qs = ManualEnquiry.objects.filter(enquiry_id=enq_id, user_id=res_user_id)
@@ -11988,6 +12012,10 @@ def convert_customorder_to_actualorder(request, user=''):
     quantity = enq_obj.quantity
     req_stock = quantity
     corp_name = enq_obj.customer_name
+    smd_price = enq_obj.smd_price
+    if not smd_price:
+        resp['msg'] = 'Fail'
+        return HttpResponse(json.dumps(resp, cls=DjangoJSONEncoder))
     ask_price_qs = enq_obj.manualenquirydetails_set.values_list('ask_price', flat=True).order_by('-id')
     if ask_price_qs:
         ask_price = ask_price_qs[0]

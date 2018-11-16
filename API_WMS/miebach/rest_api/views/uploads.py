@@ -3309,6 +3309,7 @@ def validate_customer_form(request, reader, user, no_of_rows, fname, file_type='
         return "Headers not Matching"
     number_fields = {'credit_period': 'Credit Period', 'phone_number': 'Phone Number', 'pincode': 'PIN Code',
                      'phone': 'Phone Number', 'discount_percentage': 'Discount Percentage'}
+    import pdb;pdb.set_trace()
     for row_idx in range(1, no_of_rows):
         if not mapping_dict:
             break
@@ -3351,6 +3352,7 @@ def validate_customer_form(request, reader, user, no_of_rows, fname, file_type='
                     else:
                         price_types = PriceMaster.objects.filter(sku__user=user.id).values_list('price_type',
                                                                                                 flat=True).distinct()
+                    import pdb;pdb.set_trace()
                     if cell_data not in price_types:
                         index_status.setdefault(row_idx, set()).add('Invalid Selling Price Type')
             elif key == 'tax_type':
@@ -3381,12 +3383,12 @@ def customer_excel_upload(request, reader, user, no_of_rows, fname, file_type):
     number_fields = ['credit_period', 'phone_number', 'pincode', 'phone', 'discount_percentage', 'markup']
     float_fields = ['discount_percentage', 'markup']
     rev_tax_types = dict(zip(TAX_TYPE_ATTRIBUTES.values(), TAX_TYPE_ATTRIBUTES.keys()))
+    import pdb;pdb.set_trace()
     for row_idx in range(1, no_of_rows):
         if not mapping_dict:
             break
         customer_data = copy.deepcopy(CUSTOMER_DATA)
         customer_master = None
-
         for key, value in mapping_dict.iteritems():
             cell_data = get_cell_data(row_idx, mapping_dict[key], reader, file_type)
             # cell_data = open_sheet.cell(row_idx, mapping_dict[key]).value

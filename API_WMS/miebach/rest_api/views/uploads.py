@@ -5351,10 +5351,10 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
             elif key == 'pincode':
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
                 create_order_fields_entry(interm_order_id, key, key_value, user)
-            elif key == 'mobile_number':
+            elif key == 'mobile_no':
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
                 create_order_fields_entry(interm_order_id, key, key_value, user)
-            elif key == 'alternative_mobile_number':
+            elif key == 'alternative_mobile_no':
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
                 create_order_fields_entry(interm_order_id, key, key_value, user)
             elif key == 'sku_code':
@@ -5438,6 +5438,7 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                    order_dict['telephone'] = customer_master[0].phone_number
                    order_dict['address'] = customer_master[0].address
             else:
+               #import pdb; pdb.set_trace()
                order_dict['customer_id'] = 0
                mail_obj = OrderFields.objects.filter(original_order_id=str(interm_obj.interm_order_id), order_type='intermediate_order', user=user.id, name='email_id')
                if mail_obj:
@@ -5445,7 +5446,7 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                mobile_no_obj = OrderFields.objects.filter(original_order_id=str(interm_obj.interm_order_id), order_type='intermediate_order', user=user.id, name='mobile_no')
                if mobile_no_obj:
                    order_dict['telephone'] = mobile_no_obj[0].value
-               address_obj = OrderFields.objects.filter(original_order_id=str(interm_obj.interm_order_id), order_type='intermediate_order', user=user.id, name='address')
+               address_obj = OrderFields.objects.filter(original_order_id=str(interm_obj.interm_order_id), order_type='intermediate_order', user=user.id, name='address1')
                if address_obj:
                    order_dict['address'] = address_obj[0].value
                intermediate_obj = IntermediateOrders.objects.filter(user=user.id, interm_order_id=str(interm_obj.interm_order_id))
@@ -5470,13 +5471,13 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                 get_existing_order.quantity = get_existing_order.quantity + 1
                 get_existing_order.save()
                 ord_obj = get_existing_order
-                order_fields.update(original_order_id=order_id)
+                order_fields.update(original_order_id=order_dict['original_order_id'])
                 #interm_obj.update(status=1)
             else:
                 try:
                     ord_obj = OrderDetail(**order_dict)
                     ord_obj.save()
-                    order_fields.update(original_order_id=order_id)
+                    order_fields.update(original_order_id=order_dict['original_order_id'])
                     #interm_obj.update(status=1)
                 except:
                     resp_dict[str(interm_obj.interm_order_id)] = 'Error in Saving Order ID'

@@ -2725,6 +2725,7 @@ def awb_direct_insert_shipment_info(data_params, order_awb_obj, user=''):
 @csrf_exempt
 @get_admin_user
 def get_customer_sku(request, user=''):
+    #import pdb; pdb.set_trace()
     data = []
     courier_name = ''
     sku_grouping = request.GET.get('sku_grouping', 'false')
@@ -2747,6 +2748,7 @@ def get_customer_sku(request, user=''):
         if filter_order_ids:
             search_params['id__in'] = filter_order_ids
     ship_no = get_shipment_number(user)
+    #import pdb; pdb.set_trace()
     all_orders = OrderDetail.objects.filter(**search_params)
     for obj in all_orders:
         customer_order_summary = obj.customerordersummary_set.filter()
@@ -5478,6 +5480,7 @@ def insert_st_shipment_info(request, user=''):
 @login_required
 @get_admin_user
 def shipment_info_data(request, user=''):
+    #import pdb; pdb.set_trace()
     headers = ('Order ID', 'SKU Code', 'Shipping Quantity', 'Shipment Reference', 'Pack Reference', 'Status')
     data = []
     customer_id = request.GET['customer_id']
@@ -5486,12 +5489,16 @@ def shipment_info_data(request, user=''):
     if gateout:
         gateout = int(gateout)
     ship_reference = ''
-    shipment_orders = ShipmentInfo.objects.filter(order__customer_id=customer_id,
-                                                  order_shipment__shipment_number=shipment_number,
+    shipment_orders = ShipmentInfo.objects.filter(order_shipment__shipment_number=shipment_number,
                                                   order_shipment__user=user.id)
     truck_number = ''
+    driver_phone_number = ''
+    driver_name = ''
     if shipment_orders:
         truck_number = shipment_orders[0].order_shipment.truck_number
+        driver_name = shipment_orders[0].order_shipment.driver_name
+        driver_phone_number = shipment_orders[0].order_shipment.driver_phone_number
+
     for orders in shipment_orders:
         ship_status = copy.deepcopy(SHIPMENT_STATUS)
         status = 'Dispatched'
@@ -5506,16 +5513,49 @@ def shipment_info_data(request, user=''):
             else:
                 if not (status != 'Delivered' and status != 'Out for Delivery'):
                     continue
+        #import pdb; pdb.set_trace()
+        interm_obj = IntermediateOrders.objects.filter(order_id=str(orders.order.id))
+        if interm_obj :
+            district = ''
+            district_obj = OrderFields.objects.filter(original_order_id=str(orders.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id),name='district')
+            if district_obj:
+                district = district_obj[0].value
+
+            loan_proposal_id = ''
+            loan_proposal_obj = OrderFields.objects.filter(original_order_id=str(orders.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id),name='loan_proposal_id')
+            if loan_proposal_obj :
+                loan_proposal_id = loan_proposal_obj[0].value
+
+            model =''
+            model_obj = OrderFields.objects.filter(original_order_id=str(orders.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id),name='model')
+            if model_obj :
+                model = model_obj[0].value
+
+            mobile_no =''
+            mobile_no_obj = OrderFields.objects.filter(original_order_id=str(orders.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id),name='mobile_no')
+            if mobile_no_obj :
+                mobile_no = mobile_no_obj[0].value
+
+            alternative_mobile_no = ''
+            alternative_mobile_no_obj = OrderFields.objects.filter(original_order_id=str(orders.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id),name='alternative_mobile_no')
+            if alternative_mobile_no_obj :
+                alternative_mobile_no = alternative_mobile_no_obj[0].value
+
         ship_status = ship_status[ship_status.index(status):]
-        data.append({'id': orders.id, 'order_id': orders.order.order_id, 'sku_code': orders.order.sku.sku_code,
+        data.append({'id': orders.id, 'order_id': orders.order.original_order_id, 'customer_name':orders.order.customer_name,'sku_code': orders.order.sku.sku_code,
                      'ship_quantity': orders.shipping_quantity,
+                     'loan_proposal_id':loan_proposal_id,
+                     'model':model,
+                     'mobile_no':mobile_no,
+                     'alternative_mobile_no':alternative_mobile_no,
+                     'district':district,
                      'pack_reference': orders.order_packaging.package_reference,
                      'ship_status': ship_status, 'status': status})
         if not ship_reference:
             ship_reference = orders.order_packaging.order_shipment.shipment_reference
 
-    return HttpResponse(json.dumps({'data': data, 'customer_id': customer_id, 'ship_status': SHIPMENT_STATUS,
-                                    'ship_reference': ship_reference, 'truck_number': truck_number},
+    return HttpResponse(json.dumps({'data': data, 'customer_id': customer_id, 'ship_status': SHIPMENT_STATUS,'shipment_number':shipment_number,
+                                    'ship_reference': ship_reference, 'truck_number': truck_number, 'driver_phone_number' : driver_phone_number,'driver_name':driver_name,'shipment_number':shipment_number},
                                    cls=DjangoJSONEncoder))
 
 
@@ -8865,6 +8905,7 @@ def get_customer_order_detail(request, user=""):
 @login_required
 @get_admin_user
 def generate_pdf_file(request, user=""):
+    #import pdb; pdb.set_trace()
     nv_data = request.POST['data']
     c = {'name': 'kanna'}
     if request.POST.get('css', '') == 'page':
@@ -9287,10 +9328,11 @@ def get_order_shipment_picked(start_index, stop_index, temp_data, search_term, o
             Q(order__sku_id__in=sku_master_ids) |
             Q(stock__sku_id__in=sku_master_ids), **data_dict). \
             values('order__order_id', 'order__order_code', 'order__original_order_id', 'order__customer_id',
-                   'order__customer_name', 'order__marketplace').distinct(). \
+                   'order__customer_name', 'order__address','order__marketplace').distinct(). \
             annotate(total_picked=Sum('picked_quantity'), total_ordered=Sum('order__quantity')). \
             filter(Q(order__order_id__icontains=order_id_search) |
                    Q(order__sku__sku_code__icontains=search_term) |
+                   Q(order__address__icontains=search_term) |
                    Q(order__title__icontains=search_term) | Q(order__customer_id__icontains=search_term) |
                    Q(order__customer_name__icontains=search_term) | Q(picked_quantity__icontains=search_term) |
                    Q(order__marketplace__icontains=search_term) |
@@ -9304,7 +9346,7 @@ def get_order_shipment_picked(start_index, stop_index, temp_data, search_term, o
             Q(order__sku_id__in=sku_master_ids) | \
             Q(stock__sku_id__in=sku_master_ids), **data_dict). \
             values('order__order_id', 'order__order_code', 'order__original_order_id', 'order__customer_id',
-                   'order__customer_name', 'order__marketplace').distinct(). \
+                   'order__customer_name','order__address', 'order__marketplace').distinct(). \
             annotate(total_picked=Sum('picked_quantity'), total_ordered=Sum('order__quantity')). \
             filter(**search_params).order_by(order_data)
     else:
@@ -9312,7 +9354,7 @@ def get_order_shipment_picked(start_index, stop_index, temp_data, search_term, o
             Q(order__sku_id__in=sku_master_ids) | \
             Q(stock__sku_id__in=sku_master_ids), **data_dict). \
             values('order__order_id', 'order__order_code', 'order__original_order_id', 'order__customer_id',
-                   'order__customer_name', 'order__marketplace').distinct(). \
+                   'order__customer_name', 'order__address','order__marketplace').distinct(). \
             annotate(total_picked=Sum('picked_quantity'), total_ordered=Sum('order__quantity')). \
             filter(**search_params).order_by('updation_date')
 
@@ -9343,6 +9385,8 @@ def get_order_shipment_picked(start_index, stop_index, temp_data, search_term, o
         #    data['total_picked'] = order_pick.aggregate(Sum('picked_quantity'))['picked_quantity__sum']
         creation_date = get_local_date(user, creation_date)
         order_id = data['order__original_order_id']
+        address = ''
+        address = data['order__address']
         if not order_id:
             order_id = data['order__order_code'] + str(data['order__order_id'])
             data['order__original_order_id'] = order_id
@@ -9373,6 +9417,7 @@ def get_order_shipment_picked(start_index, stop_index, temp_data, search_term, o
                                                 ('Customer ID', data['order__customer_id']),
                                                 ('Customer Name', data['order__customer_name']),
                                                 ('Marketplace', data['order__marketplace']),
+                                                ('Address',data['order__address']),
                                                 ('Picked Quantity', data['total_picked']),
                                                 ('Total Quantity', total_quantity), ('Order Date', creation_date),
                                                 ('DT_RowClass', 'results'), ('order_id', order_id))))
@@ -13494,3 +13539,14 @@ def do_delegate_orders(request, user=''):
         result_data['output_msg'] = output_msg
         result_data['status'] = True
     return HttpResponse(json.dumps(result_data), content_type='application/json')
+
+def print_pdf_shipment_info(request, user=''):
+    #import pdb; pdb.set_trace()
+    data = eval(request.POST['data'])['data']
+    driver_name = eval(request.POST['data'])['driver_name']
+    manifest_number = eval(request.POST['data'])['shipment_number']
+    truck_number = eval(request.POST['data'])['truck_number']
+    driver_phone_number = eval(request.POST['data'])['driver_phone_number']
+
+
+    return render(request, 'templates/toggle/shipment_info.html',{'data':data,'driver_name':driver_name,'manifest_number':manifest_number,'truck_number':truck_number,'driver_phone_number':driver_phone_number})

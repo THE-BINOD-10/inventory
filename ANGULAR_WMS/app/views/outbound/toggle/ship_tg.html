@@ -3,7 +3,7 @@
     <div class="modal-dialog modal-lg">
       <!-- Modal content-->
       <div class="modal-content model-custom" id = "add-customer">
-        <div ng-include="'views/common/loader.html'"></div> 
+        <div ng-include="'views/common/loader.html'"></div>
         <div class="modal-header">
           <button ng-click="showCase.close()" type="button" class="close" data-dismiss="modal"> ×</button>
           <h4 class="modal-title">Add Shippment </h4>
@@ -49,8 +49,20 @@
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6">
               <div class="form-group">
-                <label class="control-label">Shipment Reference</label>
+                <label class="control-label">Shipment Referenc</label>
                 <input name="shipment_reference" class="form-control" type="text" ng-model="showCase.model_data.shipment_reference">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Driver Name</label>
+                <input name="driver_name" class="form-control" type="text" ng-model="showCase.model_data.driver_name">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Driver Phone Number</label>
+                <input name="driver_phone_number" class="form-control" type="text" ng-model="showCase.model_data.phone_number">
               </div>
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.g_data.alternate_view">

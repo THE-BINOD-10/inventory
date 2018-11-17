@@ -810,6 +810,8 @@ class OrderShipment(models.Model):
     user = models.PositiveIntegerField()
     shipment_number = models.PositiveIntegerField()
     shipment_date = models.DateTimeField()
+    driver_name = models.CharField(max_length =32 , default ='')
+    driver_phone_number = models.CharField(max_length =32 , default ='')
     truck_number = models.CharField(max_length=64)
     shipment_reference = models.CharField(max_length=64)
     status = models.CharField(max_length=32)

@@ -402,7 +402,7 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
         temp_data['aaData'].append(
             OrderedDict((('customer_id', data.customer_id), ('name', data.name), ('address', data.address),
                          ('shipping_address', data.shipping_address),
-                         ('phone_number', phone_number), ('email_id', data.email_id), ('status', status),
+                         ('phone_number', str(phone_number)), ('email_id', data.email_id), ('status', status),
                          ('tin_number', data.tin_number), ('credit_period', data.credit_period),
                          ('login_created', login_created), ('username', user_name), ('price_type_list', price_types),
                          ('price_type', price_type), ('cst_number', data.cst_number),

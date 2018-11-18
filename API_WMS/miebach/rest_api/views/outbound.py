@@ -413,7 +413,7 @@ def get_customer_results(start_index, stop_index, temp_data, search_term, order_
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     for key, value in all_data.iteritems():
         temp_data['aaData'].append(
-            {'DT_RowId': key[0], 'Shipment Number': key[0], 'Customer ID': key[1], 'Customer Name': key[2],
+            {'DT_RowId': key[0],'Shipment Number': key[0], 'Customer ID': key[1], 'Customer Name': key[2],
              'Total Quantity': value, 'DT_RowClass': 'results'})
     sort_col = lis[col_num]
 
@@ -5520,34 +5520,41 @@ def shipment_info_data(request, user=''):
             district_obj = OrderFields.objects.filter(original_order_id=str(orders.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id),name='district')
             if district_obj:
                 district = district_obj[0].value
-
-            loan_proposal_id = ''
+                if not district :
+                    district = ''
+            loan_proposal_id = 0
             loan_proposal_obj = OrderFields.objects.filter(original_order_id=str(orders.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id),name='loan_proposal_id')
             if loan_proposal_obj :
                 loan_proposal_id = loan_proposal_obj[0].value
-
-            model =''
+                if not loan_proposal_id :
+                    loan_proposal_id = 0
+            model = ''
             model_obj = OrderFields.objects.filter(original_order_id=str(orders.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id),name='model')
             if model_obj :
                 model = model_obj[0].value
-
-            mobile_no =''
+                if not model :
+                    model = ''
+            mobile_no = 0
             mobile_no_obj = OrderFields.objects.filter(original_order_id=str(orders.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id),name='mobile_no')
             if mobile_no_obj :
                 mobile_no = mobile_no_obj[0].value
-
-            alternative_mobile_no = ''
+                if not mobile_no :
+                    mobile_no = 0
+            alternative_mobile_no = 0
             alternative_mobile_no_obj = OrderFields.objects.filter(original_order_id=str(orders.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id),name='alternative_mobile_no')
             if alternative_mobile_no_obj :
                 alternative_mobile_no = alternative_mobile_no_obj[0].value
+                if not alternative_mobile_no :
+                    alternative_mobile_no = 0
+
 
         ship_status = ship_status[ship_status.index(status):]
         data.append({'id': orders.id, 'order_id': orders.order.original_order_id, 'customer_name':orders.order.customer_name,'sku_code': orders.order.sku.sku_code,
                      'ship_quantity': orders.shipping_quantity,
-                     'loan_proposal_id':loan_proposal_id,
+                     'loan_proposal_id':float(loan_proposal_id),
                      'model':model,
-                     'mobile_no':mobile_no,
-                     'alternative_mobile_no':alternative_mobile_no,
+                     'mobile_no':float(mobile_no),
+                     'alternative_mobile_no':float(alternative_mobile_no),
                      'district':district,
                      'pack_reference': orders.order_packaging.package_reference,
                      'ship_status': ship_status, 'status': status})

@@ -38,6 +38,14 @@
       </div>
       <div class="row no-margin">
         <div class="col-md-4 col-sm-4 col-xs-4">
+          <span><b>Apprx Client PO Rate</b></span>
+        </div>
+        <div class="col-md-8 col-sm-8 col-xs-8">
+          <span><b>: {{order.order_details.order.client_po_rate}}</b></span>
+        </div>
+      </div>
+      <div class="row no-margin">
+        <div class="col-md-4 col-sm-4 col-xs-4">
           <span><b>Customization Type</b></span>
         </div>
         <div class="col-md-8 col-sm-8 col-xs-8">
@@ -86,6 +94,8 @@
           <thead>
             <tr>
               <th class="col-md-4">Price</th>
+              <th class="col-md-4" ng-if="hist.smd_price">SM-D Price</th>
+              <th class="col-md-4" ng-if="hist.rc_price">R-C Price</th>
               <th class="col-md-4">Approximate Delivery Date</th>
               <th class="col-md-4">Remarks</th>
             </tr>
@@ -182,7 +192,7 @@
             </div>
           </div>
         </div>
-        <div class="row col-md-12 no-margin" ng-if="order.order_details.order.enq_status=='pending_approval'">
+        <div class="row col-md-12 no-margin" ng-if="order.order_details.order.enq_status=='pending_approval' && order.permissions.user_type != 'admin_sub_user'">
           <div class="col-md-4 col-sm-4 col-xs-12">
             <div class="form-group">
               <input type="text" name="sm_d_price" ng-model="order.model_data.sm_d_price" class="form-control ng-pristine" placeholder="SM-D Price *" decimal-number required>

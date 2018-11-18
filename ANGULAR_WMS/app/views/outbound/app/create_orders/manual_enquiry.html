@@ -145,6 +145,12 @@
             </div>
           </div>
           <div class="form-group" ng-if="Enquiry.model_data.customization_type != 'product_custom'">
+            <label class="col-sm-5 col-xs-5 control-label">Apprx Client PO Rate *</label>
+            <div class="col-sm-3 col-xs-5">
+              <input type="text" name="client_po_rate" decimal-number ng-model="Enquiry.model_data.client_po_rate" class="form-control" ng-required="true">
+            </div>
+          </div>
+          <div class="form-group" ng-if="Enquiry.model_data.customization_type != 'product_custom'">
             <label class="col-sm-5 col-xs-5 control-label">Quantity *</label>
             <div class="col-sm-3 col-xs-5">
               <input type="text" name="quantity" positive-number ng-model="Enquiry.model_data.quantity" class="form-control" ng-required="true">

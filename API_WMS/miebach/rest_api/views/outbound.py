@@ -11463,7 +11463,8 @@ def save_manual_enquiry_images(request, enq_data, art_work=False):
 @login_required
 @get_admin_user
 def place_manual_order(request, user=''):
-    MANUAL_ENQUIRY_DICT = {'customer_name': '', 'sku_id': '', 'customization_type': '', 'quantity': ''}
+    MANUAL_ENQUIRY_DICT = {'customer_name': '', 'sku_id': '', 'customization_type': '', 'quantity': '',
+                           'client_po_rate': ''}
     MANUAL_ENQUIRY_DETAILS_DICT = {'ask_price': '', 'expected_date': '', 'remarks': ''}
     manual_enquiry = copy.deepcopy(MANUAL_ENQUIRY_DICT)
     manual_enquiry_details = copy.deepcopy(MANUAL_ENQUIRY_DETAILS_DICT)
@@ -11540,6 +11541,13 @@ def save_manual_enquiry_data(request, user=''):
     admin_remarks = request.POST.get('admin_remarks', '')
     if not enquiry_id or not user_id:
         return HttpResponse("Give information insufficient")
+    smd_price = request.POST.get('sm_d_price', '')
+    rc_price = request.POST.get('r_c_price', '')
+    if request.user.userprofile.warehouse_type == 'CENTRAL_ADMIN' and enq_status != 'pending_approval':
+        if not smd_price and not rc_price:
+            return HttpResponse('SM-D and R-C prices are missing')
+        smd_price = float(smd_price)
+        rc_price = float(rc_price)
     filters = {'enquiry_id': float(enquiry_id), 'user': user_id}
     manual_enq = ManualEnquiry.objects.filter(**filters)
     if not manual_enq:
@@ -11548,6 +11556,10 @@ def save_manual_enquiry_data(request, user=''):
     manual_enq = manual_enq[0]
     if enq_status:
         manual_enq.status = enq_status
+        manual_enq.save()
+    if smd_price or rc_price:
+        manual_enq.smd_price = smd_price
+        manual_enq.rc_price = rc_price
         manual_enq.save()
     ask_price = request.POST.get('ask_price', 0)
     expected_date = request.POST.get('expected_date', '')
@@ -11679,7 +11691,8 @@ def get_manual_enquiry_detail(request, user=''):
     manual_eq_dict = {'enquiry_id': int(manual_enq[0].enquiry_id), 'customer_name': manual_enq[0].customer_name,
                       'date': manual_enq[0].creation_date.strftime('%Y-%m-%d'), 'customization_type': customization_type,
                       'quantity': manual_enq[0].quantity, 'custom_remarks': manual_enq[0].custom_remarks.split("<<>>"),
-                      'enq_status': manual_enq[0].status, 'enq_det_id': int(manual_enq[0].id)}
+                      'enq_status': manual_enq[0].status, 'enq_det_id': int(manual_enq[0].id),
+                      'client_po_rate': manual_enq[0].client_po_rate}
     if request.user.userprofile.warehouse_type in ('CENTRAL_ADMIN', 'SM_DESIGN_ADMIN', 'SM_PURCHASE_ADMIN'):
         admin_user = user
     else:
@@ -11713,14 +11726,19 @@ def get_manual_enquiry_detail(request, user=''):
             expected_date = ''
         user = UserProfile.objects.get(user=enquiry.user_id)
         if user.user_type != 'customer':
-            if enquiry.status != 'approved':
+            if enquiry.status != 'approved' or enquiry.status == 'pending_approved':
                 enq_details = enquiry
             else:
                 md_approved_details = enquiry
 
-        enquiry_dict.append({'ask_price': enquiry.ask_price, 'remarks': enquiry.remarks, 'date': date,\
-                             'expected_date': expected_date, 'username': user.user.username,
-                             'status': enquiry.status})
+        enq_dict = {'ask_price': enquiry.ask_price, 'remarks': enquiry.remarks, 'date': date,
+                    'expected_date': expected_date, 'username': user.user.username, 'status': enquiry.status}
+
+        if enquiry.status == 'pending_approved':
+            enq_dict['smd_price'] = enquiry.enquiry.smd_price
+            enq_dict['rc_price'] = enquiry.enquiry.rc_price
+            
+        enquiry_dict.append(enq_dict)
     if enq_details:
         exp_date = enq_details.expected_date
         if exp_date:
@@ -11736,7 +11754,8 @@ def get_manual_enquiry_detail(request, user=''):
         else:
             expected_date = ''
         md_approved_details = {'ask_price': md_approved_details.ask_price, 'remarks': md_approved_details.remarks,
-                               'expected_date': expected_date}
+                               'expected_date': expected_date, 'smd_price': md_approved_details.smd_price,
+                               'rc_price': md_approved_details.rc_price}
     far_wh_lt = 0
     cust_obj = CustomerUserMapping.objects.filter(user_id=user_id)
     if cust_obj:

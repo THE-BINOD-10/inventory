@@ -2750,6 +2750,7 @@ class ManualEnquiry(models.Model):
     status = models.CharField(max_length=32)
     smd_price = models.FloatField(default=0)
     rc_price = models.FloatField(default=0)
+    client_po_rate = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

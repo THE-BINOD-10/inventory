@@ -294,6 +294,12 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
       } else if (!vm.model_data.remarks) {
         Service.showNoty('Please Fill Remarks', 'warning');
         return false;
+      } else if (!vm.model_data.sm_d_price) {
+        Service.showNoty('Please Fill SM-D Price', 'warning');
+        return false;
+      } else if (!vm.model_data.r_c_price) {
+        Service.showNoty('Please Fill R-C Price', 'warning');
+        return false;
       }
     }
     angular.copy(vm.model_data, data);

@@ -3298,6 +3298,7 @@ def get_order_summary_data(search_params, user, sub_user):
         remarks = ''
         order_taken_by = ''
         payment_card, payment_cash = 0, 0
+        #import pdb;pdb.set_trace()
         order_summary = data.customerordersummary_set.filter()#CustomerOrderSummary.objects.filter(order__user=user.id, order_id=data.id)
         unit_price, unit_price_inclusive_tax = [data.unit_price] * 2
         if order_summary:
@@ -3306,7 +3307,7 @@ def get_order_summary_data(search_params, user, sub_user):
             order_status = order_summary[0].status
             remarks = order_summary[0].central_remarks
             order_taken_by = order_summary[0].order_taken_by
-            unit_price_inclusive_tax = ((float(data.invoice_amount) / float(data.quantity)))
+            #unit_price_inclusive_tax = ((float(data.invoice_amount) / float(data.quantity)))
             if not is_gst_invoice:
                 tax = order_summary[0].tax_value
                 vat = order_summary[0].vat
@@ -3318,8 +3319,7 @@ def get_order_summary_data(search_params, user, sub_user):
                 igst_amt = float(order_summary[0].igst_tax) * (float(amt) / 100)
                 utgst_amt = float(order_summary[0].utgst_tax) * (float(amt) / 100)
                 tax = cgst_amt + sgst_amt + igst_amt + utgst_amt
-            unit_price = unit_price_inclusive_tax - (tax / float(data.quantity))
-
+            #unit_price = unit_price_inclusive_tax - (tax / float(data.quantity))
         else:
             tax = float(float(data.invoice_amount) / 100) * vat
         if order_status == 'None':
@@ -3327,6 +3327,7 @@ def get_order_summary_data(search_params, user, sub_user):
         invoice_amount = "%.2f" % ((float(unit_price) * float(data.quantity)) + tax - discount)
         taxable_amount = "%.2f" % abs(float(invoice_amount) - float(tax))
         unit_price = "%.2f" % unit_price
+
         #payment mode
         payment_obj = OrderFields.objects.filter(user=user.id, name__icontains="payment_",\
                                       original_order_id=data.original_order_id).values_list('name', 'value')

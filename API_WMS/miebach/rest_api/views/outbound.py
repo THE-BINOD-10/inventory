@@ -11543,7 +11543,8 @@ def save_manual_enquiry_data(request, user=''):
         return HttpResponse("Give information insufficient")
     smd_price = request.POST.get('sm_d_price', '')
     rc_price = request.POST.get('r_c_price', '')
-    if request.user.userprofile.warehouse_type == 'CENTRAL_ADMIN' and enq_status != 'pending_approval':
+    SMD_PRICE_EXCLUDE_STATUSES = ['reseller_pending', 'pending_approval']
+    if request.user.userprofile.warehouse_type == 'CENTRAL_ADMIN' and enq_status not in SMD_PRICE_EXCLUDE_STATUSES:
         if not smd_price and not rc_price:
             return HttpResponse('SM-D and R-C prices are missing')
         smd_price = float(smd_price)
@@ -11754,8 +11755,8 @@ def get_manual_enquiry_detail(request, user=''):
         else:
             expected_date = ''
         md_approved_details = {'ask_price': md_approved_details.ask_price, 'remarks': md_approved_details.remarks,
-                               'expected_date': expected_date, 'smd_price': md_approved_details.smd_price,
-                               'rc_price': md_approved_details.rc_price}
+                               'expected_date': expected_date, 'smd_price': md_approved_details.enquiry.smd_price,
+                               'rc_price': md_approved_details.enquiry.rc_price}
     far_wh_lt = 0
     cust_obj = CustomerUserMapping.objects.filter(user_id=user_id)
     if cust_obj:

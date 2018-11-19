@@ -344,6 +344,8 @@ function ManualOrderDetails ($scope, Service, $modalInstance, items, Session) {
           vm.model_data.expected_date = vm.order_details.md_approved_details.expected_date;
           vm.model_data.ask_price = vm.order_details.md_approved_details.ask_price;
           vm.model_data.remarks = vm.order_details.md_approved_details.remarks;
+          vm.model_data.sm_d_price = vm.order_details.md_approved_details.smd_price;
+          vm.model_data.r_c_price = vm.order_details.md_approved_details.rc_price;
         }
       }
       vm.loading = false;

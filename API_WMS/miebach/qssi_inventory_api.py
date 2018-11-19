@@ -29,11 +29,15 @@ def update_inventory(company_name):
                     location_id = location_master[0].id
                     stock_dict = {}
                     asn_stock_map = {}
+                    inventory_values = {}
                     for item in warehouse["Result"]["InventoryStatus"]:
                         sku_id = item["SKUId"]
                         actual_sku_id = sku_id
                         if sku_id[-3:]=="-TU":
                             sku_id = sku_id[:-3]
+                            if sku_id not in inventory_values:
+                                inventory_values[sku_id] = {}
+                            inventory_values[sku_id]['TU_INVENTORY'] = item['Inventory']
                             expected_items = item['Expected']
                             if isinstance(expected_items, list) and expected_items:
                                 asn_stock_map.setdefault(sku_id, []).extend(expected_items)
@@ -46,10 +50,30 @@ def update_inventory(company_name):
                                 else:
                                     stock_dict[sku_id] = int(wait_on_qc[0])
                         else:
+                            if sku_id not in inventory_values:
+                                inventory_values[sku_id] = {}
+                            inventory_values[sku_id]['NORMAL_INVENTORY'] = item['Inventory']
                             if sku_id in stock_dict:
                                 stock_dict[sku_id] += int(item['Inventory'])
                             else:
                                 stock_dict[sku_id] = int(item['Inventory'])
+                    else:
+                        for sku_id in inventory_values:
+                            tu_inv = inventory_values[sku_id].get('TU_INVENTORY', 0)
+                            nor_inv = inventory_values[sku_id].get('NORMAL_INVENTORY', 0)
+                            inv_stock_diff = int(tu_inv) - int(nor_inv)
+                            non_kitted_stock = max(inv_stock_diff, 0)
+                            if non_kitted_stock:
+                                sku = SKUMaster.objects.filter(user=user_id, sku_code=sku_id)
+                                if sku:
+                                    sku = sku[0]
+                                    asn_obj = ASNStockDetail.objects.filter(sku_id=sku.id, asn_po_num='NON_KITTED_STOCK')
+                                    if asn_obj:
+                                        asn_obj = asn_obj[0]
+                                        asn_obj.quantity = non_kitted_stock
+                                    else:
+                                        ASNStockDetail.objects.create(asn_po_num='NON_KITTED_STOCK', sku_id=sku.id,
+                                                                      quantity=non_kitted_stock)
 
                     for sku_id, inventory in stock_dict.iteritems():
                         sku = SKUMaster.objects.filter(user = user_id, sku_code = sku_id)

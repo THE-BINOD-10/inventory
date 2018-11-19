@@ -150,12 +150,12 @@
             "short_name": "STOCKONE",
             "icons": [
             {
-              "src": "images/stockone_logo.png",
+              "src": "https://go.stockone.in/images/stockone_logo.png",
               "sizes": "192x192",
               "type": "image\/png"
             },
             {
-              "src": "images/stockone_logo.png",
+              "src": "https://go.stockone.in/images/stockone_logo.png",
               "sizes": "512x512",
               "type": "image\/png"
             }
@@ -167,16 +167,16 @@
           "gcm_sender_id": "21194035295"
         };
         if(resp_data.parent && 'userName' in resp_data.parent && temp_user_list.indexOf(resp_data.parent.userName.toLowerCase()) != -1) {
-          manifest_json["name"] = "STOCKONE";
-          manifest_json["short_name"] = "STOCKONE";
+          manifest_json["name"] = "My Tee";
+          manifest_json["short_name"] = "My Tee";
           manifest_json["icons"] =  [
             {
-              "src": "images/stockone_logo.png",
+              "src": "https://go.stockone.in/images/MYTEE.png",
               "sizes": "192x192",
               "type": "image/png"
             },
             {
-              "src": "images/stockone_logo.png",
+              "src": "https://go.stockone.in/images/MYTEE.png",
               "sizes": "512x512",
               "type": "image/png"
             }

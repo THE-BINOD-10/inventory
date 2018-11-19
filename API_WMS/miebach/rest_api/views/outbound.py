@@ -4892,6 +4892,7 @@ def validate_st(all_data, user):
 
 
 def insert_st(all_data, user):
+    #import pdb; pdb.set_trace()
     for key, value in all_data.iteritems():
         for val in value:
             if val[3]:
@@ -4957,6 +4958,7 @@ def confirm_stock_transfer(all_data, user, warehouse_name):
 @login_required
 @get_admin_user
 def create_stock_transfer(request, user=''):
+    #import pdb; pdb.set_trace()
     all_data = {}
     warehouse_name = request.POST.get('warehouse_name', '')
     data_dict = dict(request.POST.iterlists())
@@ -5483,6 +5485,11 @@ def shipment_info_data(request, user=''):
     #import pdb; pdb.set_trace()
     headers = ('Order ID', 'SKU Code', 'Shipping Quantity', 'Shipment Reference', 'Pack Reference', 'Status')
     data = []
+    loan_proposal_id = 0
+    mobile_no = 0
+    model = ''
+    district = ''
+    alternative_mobile_no = 0
     customer_id = request.GET['customer_id']
     shipment_number = request.GET['shipment_number']
     gateout = request.GET.get('gateout', '')
@@ -5516,31 +5523,26 @@ def shipment_info_data(request, user=''):
         #import pdb; pdb.set_trace()
         interm_obj = IntermediateOrders.objects.filter(order_id=str(orders.order.id))
         if interm_obj :
-            district = ''
             district_obj = OrderFields.objects.filter(original_order_id=str(orders.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id),name='district')
             if district_obj:
                 district = district_obj[0].value
                 if not district :
                     district = ''
-            loan_proposal_id = 0
             loan_proposal_obj = OrderFields.objects.filter(original_order_id=str(orders.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id),name='loan_proposal_id')
             if loan_proposal_obj :
                 loan_proposal_id = loan_proposal_obj[0].value
                 if not loan_proposal_id :
                     loan_proposal_id = 0
-            model = ''
             model_obj = OrderFields.objects.filter(original_order_id=str(orders.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id),name='model')
             if model_obj :
                 model = model_obj[0].value
                 if not model :
                     model = ''
-            mobile_no = 0
             mobile_no_obj = OrderFields.objects.filter(original_order_id=str(orders.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id),name='mobile_no')
             if mobile_no_obj :
                 mobile_no = mobile_no_obj[0].value
                 if not mobile_no :
                     mobile_no = 0
-            alternative_mobile_no = 0
             alternative_mobile_no_obj = OrderFields.objects.filter(original_order_id=str(orders.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id),name='alternative_mobile_no')
             if alternative_mobile_no_obj :
                 alternative_mobile_no = alternative_mobile_no_obj[0].value

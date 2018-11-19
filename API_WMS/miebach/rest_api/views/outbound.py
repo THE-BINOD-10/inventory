@@ -11733,7 +11733,8 @@ def get_manual_enquiry_detail(request, user=''):
                 md_approved_details = enquiry
 
         enq_dict = {'ask_price': enquiry.ask_price, 'remarks': enquiry.remarks, 'date': date,
-                    'expected_date': expected_date, 'username': user.user.username, 'status': enquiry.status}
+                    'expected_date': expected_date, 'username': user.user.username, 'status': enquiry.status,
+                    'sm_d_price': enquiry.enquiry.smd_price, 'r_c_price': enquiry.enquiry.rc_price}
 
         if enquiry.status == 'pending_approved':
             enq_dict['smd_price'] = enquiry.enquiry.smd_price

@@ -94,8 +94,8 @@
           <thead>
             <tr>
               <th class="col-md-4">Price</th>
-              <th class="col-md-4" ng-if="hist.smd_price">SM-D Price</th>
-              <th class="col-md-4" ng-if="hist.rc_price">R-C Price</th>
+              <th class="col-md-4" ng-if="hist.sm_d_price">SM-D Price</th>
+              <th class="col-md-4" ng-if="hist.r_c_price">R-C Price</th>
               <th class="col-md-4">Approximate Delivery Date</th>
               <th class="col-md-4">Remarks</th>
             </tr>
@@ -103,6 +103,8 @@
           <tbody>
             <tr style="cursor:pointer">
               <td>{{hist.ask_price}}</td>
+              <td>{{hist.sm_d_price}}</td>
+              <td>{{hist.r_c_price}}</td>
               <td>{{hist.expected_date | date:"dd/MM/yyyy"}}</td>
               <td>{{hist.remarks}}</td>
             </tr>

@@ -2453,7 +2453,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
                           'mrp': myDict['mrp'][i], 'buy_price': myDict['buy_price'][i]
                          }
             try:
-                batch_dict['weight'] = float(myDict['weight'][i])
+                batch_dict['weight'] = float(''.join(re.findall('\d+', str(myDict['weight'][i]))))
             except:
                 batch_dict['weight'] = 0
             add_ean_weight_to_batch_detail(purchase_data['sku'], batch_dict)

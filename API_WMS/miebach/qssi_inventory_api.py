@@ -71,6 +71,7 @@ def update_inventory(company_name):
                                     if asn_obj:
                                         asn_obj = asn_obj[0]
                                         asn_obj.quantity = non_kitted_stock
+                                        asn_obj.save()
                                     else:
                                         ASNStockDetail.objects.create(asn_po_num='NON_KITTED_STOCK', sku_id=sku.id,
                                                                       quantity=non_kitted_stock)

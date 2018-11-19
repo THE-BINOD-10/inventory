@@ -8733,7 +8733,7 @@ def get_customer_cart_data(request, user=""):
                 for wh in whs:
                     sku_id = get_syncedusers_mapped_sku(wh=wh, sku_id=record.sku.id)
                     if record.warehouse_level == 3:
-                        intransit_obj = ASNStockDetail.objects.filter(quantity__gt=0, arriving_date__gte=todays_date,
+                        intransit_obj = ASNStockDetail.objects.filter(quantity__gt=0,
                                                                       sku=sku_id).only('sku__sku_code',
                                                                                        'quantity').values(
                             'sku__sku_code').distinct().annotate(in_asn=Sum('quantity'))

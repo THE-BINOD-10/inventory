@@ -5203,7 +5203,7 @@ def central_order_form(request, user=''):
         return error_file_download(central_order_file)
     if user.username == 'one_assist':
         wb, ws = get_work_sheet('central_order_form', CENTRAL_ORDER_ONE_ASSIST_MAPPING.keys())
-    if user.username == '72Networks':
+    if user.username != 'one_assist':
         wb, ws = get_work_sheet('central_order_form', CENTRAL_ORDER_MAPPING.keys())
     return xls_to_response(wb, '%s.central_order_form.xls' % str(user.id))
 
@@ -5316,7 +5316,7 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                 except:
                     order_id = str(get_cell_data(row_idx, value, reader, file_type))
                 get_interm_order_id = IntermediateOrders.objects.all().aggregate(Max('interm_order_id'))
-                if get_interm_order_id:
+                if get_interm_order_id['interm_order_id__max']:
                     interm_order_id = get_interm_order_id['interm_order_id__max'] + 1
                 else:
                     interm_order_id = 10000

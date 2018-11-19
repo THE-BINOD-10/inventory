@@ -3298,7 +3298,6 @@ def get_order_summary_data(search_params, user, sub_user):
         remarks = ''
         order_taken_by = ''
         payment_card, payment_cash = 0, 0
-        #import pdb;pdb.set_trace()
         order_summary = data.customerordersummary_set.filter()#CustomerOrderSummary.objects.filter(order__user=user.id, order_id=data.id)
         unit_price, unit_price_inclusive_tax = [data.unit_price] * 2
         if order_summary:

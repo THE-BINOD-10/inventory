@@ -335,7 +335,14 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
                 prepare_str = ','.join(list(set(order_customer_name)))
             else:
                 prepare_str = ','.join(list(set(order_marketplace)))
-
+            if not prepare_str:
+                order_id = picklist_obj[0].order.original_order_id
+                order_fields = OrderFields.objects.filter(original_order_id=order_id, name="original_order_id")
+                if order_fields:
+                    user_id = order_fields[0].user
+                    user_profile = UserProfile.objects.get(user_id=user_id)
+                    if user_profile:
+                        prepare_str = user_profile.user.first_name
             create_date_value = ""
             if picklist_obj[0].creation_date:
                 create_date_value = get_local_date(request.user, picklist_obj[0].creation_date)

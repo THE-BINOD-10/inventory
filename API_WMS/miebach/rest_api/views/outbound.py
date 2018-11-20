@@ -25,6 +25,8 @@ import shutil
 from utils import *
 import os, math
 
+
+
 log = init_logger('logs/outbound.log')
 
 
@@ -134,7 +136,6 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
         perm_status_list, check_ord_status = get_view_order_statuses(request, user)
         if check_ord_status:
             search_params['customerordersummary__status__in'] = perm_status_list
-   # import pdb; pdb.set_trace()
     if search_term:
         master_data = OrderDetail.objects.filter(
             Q(sku__sku_code__icontains=search_term, status=1) | Q(order_id__icontains=search_term,
@@ -1124,7 +1125,6 @@ def validate_location_stock(val, all_locations, all_skus, user, picklist):
 
 
 def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
-    #import pdb; pdb.set_trace()
     if ',' in val['imei']:
         imei_nos = list(set(val['imei'].split(',')))
     else:
@@ -1739,7 +1739,6 @@ def picklist_confirmation(request, user=''):
         #         if value[i]['picked_quantity']:
         #             count += float(value[i]['picked_quantity'])
         for picklist_dict in final_data_list:
-            #import pdb; pdb.set_trace()
             picklist = picklist_dict['picklist']
             picklist_batch = picklist_dict['picklist_batch']
             count = picklist_dict['count']
@@ -2725,7 +2724,6 @@ def awb_direct_insert_shipment_info(data_params, order_awb_obj, user=''):
 @csrf_exempt
 @get_admin_user
 def get_customer_sku(request, user=''):
-    #import pdb; pdb.set_trace()
     data = []
     courier_name = ''
     sku_grouping = request.GET.get('sku_grouping', 'false')
@@ -2748,7 +2746,6 @@ def get_customer_sku(request, user=''):
         if filter_order_ids:
             search_params['id__in'] = filter_order_ids
     ship_no = get_shipment_number(user)
-    #import pdb; pdb.set_trace()
     all_orders = OrderDetail.objects.filter(**search_params)
     for obj in all_orders:
         customer_order_summary = obj.customerordersummary_set.filter()
@@ -3995,11 +3992,8 @@ def create_central_order(request, user):
             interm_order_map['sku_id'] = cart_item.sku_id
             interm_order_map['remarks'] = remarks_dict[cart_item.sku.sku_code]
             intermediate_obj =  IntermediateOrders.objects.create(**interm_order_map)
-             #import pdb; pdb.set_trace()
             #x = intermediate_obj.shipment_date
             order_date = intermediate_obj.shipment_date.strftime("%d, %b, %Y")
-            #import pdb; pdb.set_trace()
-
             #order_date =  intermediate_obj.shipment_date.day + "/"+intermediate_obj.shipment_date.month+"/"+intermediate_obj.shipment_date.year
             inv_amt = (cart_item.levelbase_price * cart_item.quantity) + cart_item.tax
             items.append([intermediate_obj.interm_order_id,cart_item.sku.sku_code,cart_item.sku.sku_desc,cart_item.quantity, inv_amt,intermediate_obj.project_name,order_date])
@@ -4015,7 +4009,6 @@ def create_central_order(request, user):
                 if admin_users:
                     mail_ids = [admin_users[0].admin_user.userprofile.email]"""
             mail_ids = [user.email]
-            #import pdb; pdb.set_trace()
             user_mail_id = [request.user.email]
             headers = ['Order number','isprava code','Product Details', 'Ordered Quantity', 'Total','Project name','Order Date']
             data_dict = {'customer_name': request.user.username, 'items': items,
@@ -4356,7 +4349,6 @@ def insert_order_data(request, user=''):
     po_data = []
     if valid_status:
         return HttpResponse(valid_status)
-    #import pdb; pdb.set_trace()
     if is_central_order:
         message = create_central_order(request, user)
         return HttpResponse(message)
@@ -4892,7 +4884,6 @@ def validate_st(all_data, user):
 
 
 def insert_st(all_data, user):
-    #import pdb; pdb.set_trace()
     for key, value in all_data.iteritems():
         for val in value:
             if val[3]:
@@ -4958,7 +4949,6 @@ def confirm_stock_transfer(all_data, user, warehouse_name):
 @login_required
 @get_admin_user
 def create_stock_transfer(request, user=''):
-    #import pdb; pdb.set_trace()
     all_data = {}
     warehouse_name = request.POST.get('warehouse_name', '')
     data_dict = dict(request.POST.iterlists())
@@ -5200,6 +5190,7 @@ def shipment_info(request, user=''):
 
 
 def create_shipment(request, user):
+    from random import randint
     data_dict = copy.deepcopy(ORDER_SHIPMENT_DATA)
     for key, value in request.POST.iteritems():
         if key in ('customer_id', 'marketplace'):
@@ -5210,6 +5201,12 @@ def create_shipment(request, user):
         elif key in ORDER_SHIPMENT_DATA.keys():
             data_dict[key] = value
     data_dict['user'] = user.id
+    manifest_number = str(user.id)+str(randint(100, 9999))
+    if OrderShipment.objects.filter(manifest_number = manifest_number).exists():
+        manifest_number =  str(user_id)+ str(randint(100, 9999))
+    else:
+        manifest_number = manifest_number
+    data_dict['manifest_number'] = manifest_number
     data = OrderShipment(**data_dict)
     data.save()
     return data
@@ -5482,7 +5479,6 @@ def insert_st_shipment_info(request, user=''):
 @login_required
 @get_admin_user
 def shipment_info_data(request, user=''):
-    #import pdb; pdb.set_trace()
     headers = ('Order ID', 'SKU Code', 'Shipping Quantity', 'Shipment Reference', 'Pack Reference', 'Status')
     data = []
     loan_proposal_id = 0
@@ -5501,10 +5497,12 @@ def shipment_info_data(request, user=''):
     truck_number = ''
     driver_phone_number = ''
     driver_name = ''
+    manifest_number = ''
     if shipment_orders:
         truck_number = shipment_orders[0].order_shipment.truck_number
         driver_name = shipment_orders[0].order_shipment.driver_name
         driver_phone_number = shipment_orders[0].order_shipment.driver_phone_number
+        manifest_number = shipment_orders[0].order_shipment.manifest_number
 
     for orders in shipment_orders:
         ship_status = copy.deepcopy(SHIPMENT_STATUS)
@@ -5520,7 +5518,6 @@ def shipment_info_data(request, user=''):
             else:
                 if not (status != 'Delivered' and status != 'Out for Delivery'):
                     continue
-        #import pdb; pdb.set_trace()
         interm_obj = IntermediateOrders.objects.filter(order_id=str(orders.order.id))
         if interm_obj :
             district_obj = OrderFields.objects.filter(original_order_id=str(orders.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id),name='district')
@@ -5563,8 +5560,8 @@ def shipment_info_data(request, user=''):
         if not ship_reference:
             ship_reference = orders.order_packaging.order_shipment.shipment_reference
 
-    return HttpResponse(json.dumps({'data': data, 'customer_id': customer_id, 'ship_status': SHIPMENT_STATUS,'shipment_number':shipment_number,
-                                    'ship_reference': ship_reference, 'truck_number': truck_number, 'driver_phone_number' : driver_phone_number,'driver_name':driver_name,'shipment_number':shipment_number},
+    return HttpResponse(json.dumps({'data': data, 'customer_id': customer_id, 'ship_status': SHIPMENT_STATUS,'shipment_number':shipment_number,'manifest_number':manifest_number,
+                                    'ship_reference': ship_reference, 'truck_number': truck_number, 'driver_phone_number' : driver_phone_number,'driver_name':driver_name},
                                    cls=DjangoJSONEncoder))
 
 
@@ -8914,7 +8911,6 @@ def get_customer_order_detail(request, user=""):
 @login_required
 @get_admin_user
 def generate_pdf_file(request, user=""):
-    #import pdb; pdb.set_trace()
     nv_data = request.POST['data']
     c = {'name': 'kanna'}
     if request.POST.get('css', '') == 'page':
@@ -13550,10 +13546,9 @@ def do_delegate_orders(request, user=''):
     return HttpResponse(json.dumps(result_data), content_type='application/json')
 
 def print_pdf_shipment_info(request, user=''):
-    #import pdb; pdb.set_trace()
     data = eval(request.POST['data'])['data']
     driver_name = eval(request.POST['data'])['driver_name']
-    manifest_number = eval(request.POST['data'])['shipment_number']
+    manifest_number = eval(request.POST['data'])['manifest_number']
     truck_number = eval(request.POST['data'])['truck_number']
     driver_phone_number = eval(request.POST['data'])['driver_phone_number']
 

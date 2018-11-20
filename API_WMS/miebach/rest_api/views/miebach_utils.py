@@ -139,7 +139,7 @@ PO_SUGGESTIONS_DATA = {'supplier_id': '', 'sku_id': '', 'order_quantity': '', 'o
 
 PO_DATA = {'open_po_id': '', 'status': '', 'received_quantity': 0}
 
-ORDER_SHIPMENT_DATA = {'shipment_number': '', 'shipment_date': '', 'truck_number': '', 'shipment_reference': '',
+ORDER_SHIPMENT_DATA = {'shipment_number': '','manifest_number':'','shipment_date': '', 'truck_number': '', 'shipment_reference': '',
                        'status': 1, 'courier_name': '','driver_name':'','driver_phone_number':''}
 
 SKU_FIELDS = ((('WMS SKU Code *', 'wms_code', 60), ('Product Description *', 'sku_desc', 256)),

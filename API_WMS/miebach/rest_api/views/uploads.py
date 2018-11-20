@@ -5198,7 +5198,6 @@ def stock_transfer_order_form(request, user=''):
     return xls_to_response(wb, '%s.stock_transfer_order_form.xls' % str(user.id))
 
 def create_order_fields_entry(interm_order_id, name, value, user):
-    #import pdb; pdb.set_trace()
     order_fields_data = {}
     order_fields_data['original_order_id'] = interm_order_id
     order_fields_data['name'] = name
@@ -5423,7 +5422,6 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                     order_data['status'] = ''
         try:
             order_dict = {}
-            #import pdb; pdb.set_trace()
             interm_obj = IntermediateOrders.objects.create(**order_data)
             order_fields = OrderFields.objects.filter(user = user.id, original_order_id=interm_obj.interm_order_id)
             order_dict['user'] = interm_obj.order_assigned_wh_id
@@ -5454,7 +5452,6 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                    order_dict['telephone'] = customer_master[0].phone_number
                    order_dict['address'] = customer_master[0].address
             else:
-               #import pdb; pdb.set_trace()
                order_dict['customer_id'] = 0
                mail_obj = OrderFields.objects.filter(original_order_id=str(interm_obj.interm_order_id), order_type='intermediate_order', user=user.id, name='email_id')
                if mail_obj:
@@ -5468,10 +5465,6 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                intermediate_obj = IntermediateOrders.objects.filter(user=user.id, interm_order_id=str(interm_obj.interm_order_id))
                if intermediate_obj:
                    order_dict['customer_name'] = intermediate_obj[0].customer_name
-
-            #loan_proposal_id_obj = OrderFields.objects.filter(original_order_id=str(interm_obj.interm_order_id), order_type='intermediate_order', user=user.id, name='loan_proposal_id')
-            #if loan_proposal_id_obj :
-            #    print loan_proposal_id_obj[0].value
             order_dict['original_order_id'] = order_id
             order_code = ''.join(re.findall('\D+', order_id))
             order_id = ''.join(re.findall('\d+', order_id))
@@ -5488,21 +5481,17 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                 get_existing_order.save()
                 ord_obj = get_existing_order
                 order_fields.update(original_order_id=order_dict['original_order_id'])
-                #interm_obj.update(status=1)
             else:
                 try:
                     ord_obj = OrderDetail(**order_dict)
                     ord_obj.save()
                     order_fields.update(original_order_id=order_dict['original_order_id'])
-                    #interm_obj.update(status=1)
                 except:
                     resp_dict[str(interm_obj.interm_order_id)] = 'Error in Saving Order ID'
                     created_order_objs.append(resp_dict)
                     resp_str = str(interm_obj.interm_order_id) + ' - Error in Saving Order ID'
                     output_list.append(resp_str)
                     continue
-            #ord_obj = OrderDetail(**order_dict)
-            #ord_obj.save()
             cust_ord_dict = {'order_id': ord_obj.id, 'sgst_tax': interm_obj.sgst_tax, 'cgst_tax': interm_obj.cgst_tax,
                              'igst_tax': interm_obj.igst_tax}
             CustomerOrderSummary.objects.create(**cust_ord_dict)
@@ -5698,10 +5687,6 @@ def stock_transfer_order_upload(request, user=''):
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
         if ex_status:
             return HttpResponse(ex_status)
-        # if user.username == 'one_assist':
-        #     upload_status = central_order_one_assist_upload(request, reader, user, no_of_rows, fname,
-        #         file_type=file_type, no_of_cols=no_of_cols)
-        # else:
         upload_status = stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname,
             file_type=file_type, no_of_cols=no_of_cols)
     except Exception as e:
@@ -5716,7 +5701,6 @@ def stock_transfer_order_upload(request, user=''):
     return HttpResponse('Success')
 
 def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
-    #import pdb; pdb.set_trace()
     log.info("stock transfer order upload started")
     st_time = datetime.datetime.now()
     index_status = {}
@@ -5765,31 +5749,6 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
                     sku_id = get_syncedusers_mapped_sku(wh=wh_id, sku_id=sku_master_id)
                     if not sku_id:
                         index_status.setdefault(count, set()).add('SKU Code Not found in mentioned Location')
-        """
-        if order_mapping.has_key('location'):
-            try:
-                location = str(int(get_cell_data(row_idx, order_mapping['location'], reader, file_type)))
-            except:
-                location = str(get_cell_data(row_idx, order_mapping['location'], reader, file_type))
-            warehouse_admin = get_warehouse_admin(user)
-            all_user_groups = UserGroups.objects.filter(admin_user_id=warehouse_admin.id)
-            if not all_user_groups:
-                index_status.setdefault(count, set()).add('Invalid Location')
-
-        if order_mapping.has_key('original_order_id'):
-            try:
-                original_order_id = str(int(get_cell_data(row_idx, order_mapping['original_order_id'], reader, file_type)))
-            except:
-                original_order_id = str(get_cell_data(row_idx, order_mapping['original_order_id'], reader, file_type))
-            order_fields_obj = OrderFields.objects.filter(user=user.id, name='original_order_id',
-                value=original_order_id, order_type = 'intermediate_order')
-            if order_fields_obj:
-                index_status.setdefault(count, set()).add('Order ID already present')
-            else:
-                order_detail_obj = OrderDetail.objects.filter(user=user.id, original_order_id=original_order_id)
-                if order_detail_obj:
-                    index_status.setdefault(count, set()).add('Order ID already present')
-        """
     if index_status and file_type == 'csv':
         f_name = fname.name.replace(' ', '_')
         file_path = rewrite_csv_file(f_name, index_status, reader)
@@ -5828,14 +5787,8 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
 
     warehouse = User.objects.get(username=warehouse)
     f_name = 'stock_transfer_' + warehouse_name + '_'
-    #status = validate_st(all_data, warehouse)
-    # #if not status:
-    #     all_data = insert_st(all_data, warehouse)
-    #     status = confirm_stock_transfer(all_data, warehouse, user.username)
-    # if not status:
     all_data = insert_st(all_data, warehouse)
     status = confirm_stock_transfer(all_data, warehouse, user.username)
-    #import pdb; pdb.set_trace()
     if status.status_code == 200:
         return 'Success'
     else:
@@ -5843,7 +5796,6 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
 
 
 def insert_st(all_data, user):
-    #import pdb; pdb.set_trace()
     for key, value in all_data.iteritems():
         for val in value:
             if val[3]:

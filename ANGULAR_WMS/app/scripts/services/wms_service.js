@@ -394,7 +394,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
         })
         send = $.param(send)+"&"+"serialize_data="+data1.slice(0,-2);
       } else {
-        send['serialize_data'] = $.param(data);
+        send['serialize_data'] = $.param(data).replace(/[+]/g, ' ');
         send = $.param(send)
       }
       $http.defaults.headers.post["Content-Type"] = "application/x-www-form-urlencoded";

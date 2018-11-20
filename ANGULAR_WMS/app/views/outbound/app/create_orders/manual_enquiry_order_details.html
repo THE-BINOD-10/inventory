@@ -94,8 +94,8 @@
           <thead>
             <tr>
               <th class="col-md-4">Price</th>
-              <th class="col-md-4" ng-if="hist.sm_d_price">SM-D Price</th>
-              <th class="col-md-4" ng-if="hist.r_c_price">R-C Price</th>
+              <th class="col-md-4" ng-if="hist.sm_d_price &&showCase.user_type!='reseller'">SM-D Price</th>
+              <th class="col-md-4" ng-if="hist.r_c_price &&showCase.user_type!='reseller'">R-C Price</th>
               <th class="col-md-4">Approximate Delivery Date</th>
               <th class="col-md-4">Remarks</th>
             </tr>
@@ -103,8 +103,8 @@
           <tbody>
             <tr style="cursor:pointer">
               <td>{{hist.ask_price}}</td>
-              <td ng-if="hist.sm_d_price">{{hist.sm_d_price}}</td>
-              <td ng-if="hist.r_c_price">{{hist.r_c_price}}</td>
+              <td ng-if="hist.sm_d_price &&showCase.user_type!='reseller'">{{hist.sm_d_price}}</td>
+              <td ng-if="hist.r_c_price &&showCase.user_type!='reseller'">{{hist.r_c_price}}</td>
               <td>{{hist.expected_date | date:"dd/MM/yyyy"}}</td>
               <td>{{hist.remarks}}</td>
             </tr>
@@ -206,7 +206,7 @@
             </div>
           </div>
         </div>
-        <div class="row col-md-12 no-margin" ng-if="order.order_details.order.enq_status=='pending_approval' && order.permissions.user_type != 'admin_sub_user'">
+        <div class="row col-md-12 no-margin" ng-if="order.order_details.order.enq_status=='pending_approval' && order.permissions.user_type != 'admin_sub_user' && showCase.user_type !='reseller'">
           <div class="col-md-4 col-sm-4 col-xs-12">
             <div class="form-group">
               <input type="text" name="sm_d_price" ng-model="order.model_data.sm_d_price" class="form-control ng-pristine" placeholder="SM-D Price *" decimal-number required>

@@ -5711,10 +5711,9 @@ def print_sku_wise_data(search_params, user, sub_user):
     if stop_index:
         sku_master = sku_master[start_index:stop_index]
 
-    stock_dict = dict(StockDetail.objects.exclude(location__zone__zone='DEFAULT').filter(sku__user=user.id).\
+    stock_dict = dict(StockDetail.objects.exclude(receipt_number=0).filter(sku__user=user.id).\
                       values_list('sku_id').distinct().annotate(tsum=Sum('quantity')))
     for data in sku_master:
-        print data.sku_code
         total_quantity = stock_dict.get(data.id, 0)
         # stock_data = StockDetail.objects.exclude(location__zone__zone='DEFAULT').filter(sku_id=data.id)
         # for stock in stock_data:

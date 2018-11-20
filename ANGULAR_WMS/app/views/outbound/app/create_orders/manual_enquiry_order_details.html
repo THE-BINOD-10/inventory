@@ -103,8 +103,8 @@
           <tbody>
             <tr style="cursor:pointer">
               <td>{{hist.ask_price}}</td>
-              <td>{{hist.sm_d_price}}</td>
-              <td>{{hist.r_c_price}}</td>
+              <td ng-if="hist.sm_d_price">{{hist.sm_d_price}}</td>
+              <td ng-if="hist.r_c_price">{{hist.r_c_price}}</td>
               <td>{{hist.expected_date | date:"dd/MM/yyyy"}}</td>
               <td>{{hist.remarks}}</td>
             </tr>

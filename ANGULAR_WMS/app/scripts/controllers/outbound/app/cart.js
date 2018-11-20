@@ -92,7 +92,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
     }
   }
 
-  vm.change_remarks = function(remark) {
+  /*vm.change_remarks = function(remark) {
 
     angular.forEach(vm.model_data.data, function(data){
       if(!data['sku_remarks']){
@@ -101,7 +101,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
         data['remarks'] = data['sku_remarks'];
       }
     })
-  }
+  }*/
   vm.change_sku_remarks = function(data) {
 
     data['remarks'] = data['sku_remarks'];
@@ -214,9 +214,9 @@ vm.update_cartdata_for_approval = function() {
         vm.order_data_insertion(data_dict);
       }
     } else {
-      if (!(vm.model_data.shipment_date) || !(vm.model_data.client_name_header)) {
+      if (!(vm.model_data.shipment_date)) {
 
-        vm.service.showNoty("The Shipment Date and Client Name are Required. Please Select", "success", "bottomRight");
+        vm.service.showNoty("The Shipment Date is Required. Please Select", "success", "bottomRight");
       } else {
         vm.order_data_insertion(data_dict);
       }
@@ -421,6 +421,13 @@ vm.update_cartdata_for_approval = function() {
 
   vm.change_remarks = function(data) {
     if(data){
+      angular.forEach(vm.model_data.data, function(data){
+        if(!data['sku_remarks']){
+          data['remarks'] = vm.model_data.remarks;
+        } else {
+          data['remarks'] = data['sku_remarks'];
+      }
+    })
       vm.update_customer_cart_data(data);
     }
   }

@@ -127,7 +127,6 @@ function CreateCentralOrders($scope, $filter, $http, $q, Session, colFilters, Se
         elem = elem[0];
         elem = $(elem).serializeArray();
         elem.push({name: "sel_warehouse", value: vm.selWarehouse})
-        debugger
         vm.service.apiCall('insert_order_data/', 'POST', elem).then(function(data){
           if(data.message) {
             if(data.data.indexOf("Success") != -1) {

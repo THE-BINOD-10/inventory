@@ -2,6 +2,7 @@ import xlsxwriter
 
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.cache import never_cache
 from django.http import HttpResponse
 import json
 from django.contrib.auth import authenticate, login, logout as wms_logout
@@ -49,8 +50,11 @@ init_log = init_logger('logs/integrations.log')
 log_qssi = init_logger('logs/qssi_order_status_update.log')
 log_sellable = init_logger('logs/auto_sellable_suggestions.log')
 
-
 # Create your views here.
+
+def create_log_message(log_obj, request_user, user, message, request_data):
+    log_obj.info('Request params for %s for request user %s user %s is %s' %
+                 (str(message), str(request_user.username), str(user.username), str(request_data)))
 
 def process_date(value):
     value = value.split('/')
@@ -63,6 +67,7 @@ def get_company_logo(user, IMAGE_PATH_DICT):
     try:
         logo_name = IMAGE_PATH_DICT.get(user.username, '')
         logo_path = 'static/company_logos/' + logo_name
+        image = logo_path
         with open(logo_path, "rb") as image_file:
             image = base64.b64encode(image_file.read())
     except:
@@ -222,7 +227,8 @@ def add_user_permissions(request, response_data, user=''):
                                              'company_name': user_profile.company_name,
                                              'industry_type': user_profile.industry_type,
                                              'user_type': user_profile.user_type,
-                                             'request_user_type': request_user_profile.user_type}
+                                             'request_user_type': request_user_profile.user_type,
+                                             'warehouse_type': user_profile.warehouse_type}
 
     setup_status = 'false'
     if 'completed' not in user_profile.setup_status:
@@ -539,6 +545,7 @@ data_datatable = {  # masters
     'ProcessedOrders': 'get_processed_orders_data', 'DeliveryChallans': 'get_delivery_challans_data',
     'CustomerInvoicesTab': 'get_customer_invoice_tab_data', 'SellerOrderView': 'get_seller_order_view', \
     'StockTransferInvoice' : 'get_stock_transfer_invoice_data',
+    'StockTransferShipment' : 'get_stock_transfer_shipment_data',
     'AltStockTransferOrders': 'get_stock_transfer_order_level_data', 'RatingsTable': 'get_ratings_data',\
     # manage users
     'ManageUsers': 'get_user_results', 'ManageGroups': 'get_user_groups',
@@ -2697,7 +2704,8 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     order_reference_date_field = ''
     order_charges = ''
     customer_id = ''
-
+    mode_of_transport = ''
+    vehicle_number = ''
     # Getting the values from database
     user_profile = UserProfile.objects.get(user_id=user.id)
     gstin_no = user_profile.gst_number
@@ -2760,6 +2768,8 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             dat = order_data[0]
             customer_address = dat.customer_name + '\n' + dat.address + "\nCall: " \
                                + dat.telephone + "\nEmail: " + dat.email_id
+        if not customer_details and dat.address:
+            customer_details.append({'id' : dat.customer_id, 'name' : dat.customer_name, 'address' : dat.address})
 
         picklist = Picklist.objects.filter(order_id__in=order_ids).order_by('-updation_date')
         if picklist:
@@ -2805,6 +2815,8 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     purchase_type = 'SMART_JIT'
 
                 marketplace = USER_CHANNEL_ADDRESS.get(username, marketplace)
+            if not marketplace:
+                marketplace = 'offline'
             tax = 0
             vat = 0
             discount = 0
@@ -2812,8 +2824,8 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             cgst_tax, sgst_tax, igst_tax, utgst_tax, cess_tax = 0, 0, 0, 0, 0
             mrp_price = dat.sku.mrp
             taxes_dict = {}
+            tax_type, invoice_header, vehicle_number, mode_of_transport = '', '', 0, ''
             order_summary = CustomerOrderSummary.objects.filter(order_id=dat.id)
-            tax_type = ''
             if order_summary:
                 tax = order_summary[0].tax_value
                 vat = order_summary[0].vat
@@ -2859,7 +2871,6 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 unit_price = ((float(dat.invoice_amount) / float(dat.quantity))) - (tax / float(dat.quantity))
             if el_price:
                 unit_price = el_price
-
             amt = (unit_price * quantity) - discount
             base_price = "%.2f" % (unit_price * quantity)
 
@@ -3662,7 +3673,27 @@ def build_search_data(to_data, from_data, limit):
                 if status:
                     to_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc,
                                     'measurement_unit': data.measurement_type,
-                                    'mrp': data.mrp})
+                                    'mrp': data.mrp, 'sku_class': data.sku_class,
+                                    'style_name': data.style_name})
+        return to_data
+
+
+def build_style_search_data(to_data, from_data, limit):
+    if (len(to_data) >= limit):
+        return to_data
+    else:
+        for data in from_data:
+            if (len(to_data) >= limit):
+                break
+            else:
+                status = True
+                for item in to_data:
+                    if (item['sku_class'] == data['sku_class']):
+                        status = False
+                        break
+                if status:
+                    to_data.append({'sku_class': data['sku_class'],
+                                    'style_name': data['style_name']})
         return to_data
 
 
@@ -3972,8 +4003,9 @@ def get_sellers_list(request, user=''):
         seller_list.append({'id': seller.seller_id, 'name': seller.name})
         if seller.supplier:
             seller_supplier[seller.seller_id] = seller.supplier.id
+    user_list = get_all_warehouses(user)
     return HttpResponse(json.dumps({'sellers': seller_list, 'tax': 5.5, 'receipt_types': PO_RECEIPT_TYPES, \
-                                    'seller_supplier_map': seller_supplier}))
+                                    'seller_supplier_map': seller_supplier, 'warehouse' : user_list}))
 
 
 def update_filled_capacity(locations, user_id):
@@ -4701,16 +4733,34 @@ def get_imei_data(request, user=''):
     try:
         for index, po_mapping in enumerate(po_imei_mapping):
             imei_data = {}
-            sku = po_mapping.purchase_order.open_po.sku
-            purchase_order = po_mapping.purchase_order
-            if not sku_details:
-                sku_details = {'sku_code': sku.sku_code, 'sku_desc': sku.sku_desc, 'sku_category': sku.sku_category,
-                               'image_url': sku.image_url}
-            imei_data['po_details'] = {'po_number': get_po_reference(purchase_order),
-                                       'supplier_id': purchase_order.open_po.supplier_id,
-                                       'supplier_name': purchase_order.open_po.supplier.name,
-                                       'received_date': get_local_date(user, po_mapping.creation_date),
-                                       'supplier_address': purchase_order.open_po.supplier.address}
+            sku = po_mapping.sku
+            if po_mapping.purchase_order:
+                purchase_order = po_mapping.purchase_order
+                if not sku_details:
+                    sku_details = {'sku_code': sku.sku_code, 'sku_desc': sku.sku_desc, 'sku_category': sku.sku_category,
+                                   'image_url': sku.image_url}
+                imei_data['po_details'] = {'po_number': get_po_reference(purchase_order),
+                                           'supplier_id': purchase_order.open_po.supplier_id,
+                                           'supplier_name': purchase_order.open_po.supplier.name,
+                                           'received_date': get_local_date(user, po_mapping.creation_date),
+                                           'supplier_address': purchase_order.open_po.supplier.address}
+            elif po_mapping.job_order:
+                job_order = po_mapping.job_order
+                if not sku_details:
+                    sku_details = {'sku_code': sku.sku_code, 'sku_desc': sku.sku_desc, 'sku_category': sku.sku_category,
+                                   'image_url': sku.image_url}
+                imei_data['jo_details'] = {'jo_number': job_order.job_code,
+                                           'jo_creation_date': get_local_date(user, job_order.creation_date),
+                                           'received_date': get_local_date(user, po_mapping.creation_date)}
+                jo_materials = job_order.jomaterial_set.filter()
+                imei_data['rm_picklist_data'] = []
+                for jo_material in jo_materials:
+                    jo_imeis = list(jo_material.orderimeimapping_set.filter().values_list('po_imei__imei_number', flat=True))
+                    imei_data['rm_picklist_data'].append({'sku_code': jo_material.material_code.sku_code,
+                                                          'sku_desc': jo_material.material_code.sku_desc,
+                                                          'required_quantity': jo_material.material_quantity,
+                                                          'imeis': jo_imeis})
+
             order_mappings = OrderIMEIMapping.objects.filter(po_imei_id=po_mapping.id, sku__user=user.id).order_by(
                 '-creation_date')
             if not order_mappings:
@@ -4720,44 +4770,55 @@ def get_imei_data(request, user=''):
                 continue
             if order_mappings:
                 order_mapping = order_mappings[0]
-                order_id = order_mapping.order.original_order_id
-                if not order_id:
-                    order_id = str(order_mapping.order.order_code) + str(order_mapping.order.order_id)
-                if order_mapping.order_reference:
-                    order_id = order_mapping.order_reference
+                if order_mapping.order:
+                    order_id = order_mapping.order.original_order_id
+                    if not order_id:
+                        order_id = str(order_mapping.order.order_code) + str(order_mapping.order.order_id)
+                    if order_mapping.order_reference:
+                        order_id = order_mapping.order_reference
 
-                customer_id = order_mapping.order.customer_id
-                customer_name = order_mapping.order.customer_name
-                customer_address = order_mapping.order.address
-                if customer_id:
-                    customer_master = CustomerMaster.objects.filter(customer_id=order_mapping.order.customer_id,
-                                                                    user=user.id)
-                    if customer_master:
-                        customer_name = customer_master[0].name
-                        customer_address = customer_master[0].address
-                imei_data['order_details'] = {'order_id': order_id,
-                                              'order_date': get_local_date(user, order_mapping.order.creation_date),
-                                              'customer_id': str(customer_id), 'customer_name': customer_name,
-                                              'customer_address': customer_address,
-                                              'dispatch_date': get_local_date(user, order_mapping.creation_date),
-                                              'order_reference': order_mapping.order_reference,
-                                              'order_marketplace': order_mapping.marketplace
-                                              }
-                return_mapping = ReturnsIMEIMapping.objects.filter(order_imei_id=order_mapping.id,
-                                                                   order_imei__order__user=user.id)
-                if not return_mapping:
+                    customer_id = order_mapping.order.customer_id
+                    customer_name = order_mapping.order.customer_name
+                    customer_address = order_mapping.order.address
+                    if customer_id:
+                        customer_master = CustomerMaster.objects.filter(customer_id=order_mapping.order.customer_id,
+                                                                        user=user.id)
+                        if customer_master:
+                            customer_name = customer_master[0].name
+                            customer_address = customer_master[0].address
+                    imei_data['order_details'] = {'order_id': order_id,
+                                                  'order_date': get_local_date(user, order_mapping.order.creation_date),
+                                                  'customer_id': str(customer_id), 'customer_name': customer_name,
+                                                  'customer_address': customer_address,
+                                                  'dispatch_date': get_local_date(user, order_mapping.creation_date),
+                                                  'order_reference': order_mapping.order_reference,
+                                                  'order_marketplace': order_mapping.marketplace
+                                                  }
+                    return_mapping = ReturnsIMEIMapping.objects.filter(order_imei_id=order_mapping.id,
+                                                                       order_imei__order__user=user.id)
+                    if not return_mapping:
+                        data.append(imei_data)
+                        imei_status = 'Dispatched'
+                        continue
+                    return_mapping = return_mapping[0]
+                    imei_data['return_details'] = {'return_id': return_mapping.order_return.return_id,
+                                                   'return_date': get_local_date(user,
+                                                                                 return_mapping.order_return.creation_date),
+                                                   'customer_id': str(customer_id), 'customer_name': customer_name,
+                                                   'customer_address': customer_address,
+                                                   'reason': return_mapping.order_return.reason}
+                    imei_status = 'Returned'
                     data.append(imei_data)
-                    imei_status = 'Dispatched'
-                    continue
-                return_mapping = return_mapping[0]
-                imei_data['return_details'] = {'return_id': return_mapping.order_return.return_id,
-                                               'return_date': get_local_date(user,
-                                                                             return_mapping.order_return.creation_date),
-                                               'customer_id': str(customer_id), 'customer_name': customer_name,
-                                               'customer_address': customer_address,
-                                               'reason': return_mapping.order_return.reason}
-                imei_status = 'Returned'
-                data.append(imei_data)
+                elif order_mapping.jo_material:
+                    jo_material = order_mapping.jo_material
+                    imei_data['jo_rm_details'] = {'job_code': jo_material.job_order.job_code,
+                                                  'product_sku_code': jo_material.job_order.product_code.sku_code,
+                                                  'product_sku_desc': jo_material.job_order.product_code.sku_desc,
+                                                  'order_date': get_local_date(user, jo_material.job_order.creation_date),
+                                                  'dispatch_date': get_local_date(user, order_mapping.creation_date),
+                                                  }
+                    data.append(imei_data)
+                    imei_status = 'Consumed'
 
     except Exception as e:
         import traceback
@@ -4814,6 +4875,8 @@ def generate_barcode_dict(pdf_format, myDicts, user):
                     if barcode_opt == 'sku_ean' and sku_data.ean_number:
                         single['Label'] = str(sku_data.ean_number)
                     single['SKUPrintQty'] = quant
+                    if myDict.get('mfg_date', ''):
+                        single['mfg_date'] = myDict['mfg_date'][ind]
                     for show_keys1 in show_fields:
                         show_keys2 = [show_keys1]
                         if isinstance(show_keys1, list):
@@ -5039,7 +5102,8 @@ def get_purchase_order_data(order):
                       'supplier_code': '', 'load_unit_handle': order.product_code.load_unit_handle,
                       'sku_desc': order.product_code.sku_desc,
                       'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0, 'tin_number': '',
-                      'intransit_quantity': intransit_quantity, 'shelf_life': order.product_code.shelf_life}
+                      'intransit_quantity': intransit_quantity, 'shelf_life': order.product_code.shelf_life,
+                      'show_imei': order.product_code.enable_serial_based}
         return order_data
     elif rw_purchase and not order.open_po:
         rw_purchase = rw_purchase[0]
@@ -5102,7 +5166,6 @@ def get_purchase_order_data(order):
         utgst_tax = 0
         cess_tax = 0
         tin_number = ''
-
     order_data = {'order_quantity': order_quantity, 'price': price, 'mrp': mrp, 'wms_code': sku.wms_code,
                   'sku_code': sku.sku_code, 'supplier_id': user_data.id, 'zone': sku.zone,
                   'qc_check': sku.qc_check, 'supplier_name': username, 'gstin_number': gstin_number,
@@ -5112,7 +5175,7 @@ def get_purchase_order_data(order):
                   'order_type': order_type,
                   'supplier_code': supplier_code, 'cgst_tax': cgst_tax, 'sgst_tax': sgst_tax, 'igst_tax': igst_tax,
                   'utgst_tax': utgst_tax, 'cess_tax':cess_tax, 'intransit_quantity': intransit_quantity,
-                  'tin_number': tin_number, 'shelf_life': sku.shelf_life}
+                  'tin_number': tin_number, 'shelf_life': sku.shelf_life, 'show_imei': sku.enable_serial_based }
 
     return order_data
 
@@ -5938,6 +6001,8 @@ def insert_po_mapping(imei_nos, data, user_id):
                             'sku_id': order_data['sku'].id,
                             'creation_date': datetime.datetime.now(),
                             'updation_date': datetime.datetime.now()}
+            if data.open_po and data.open_po.sellerpo_set.filter():
+                imei_mapping['seller_id'] = data.open_po.sellerpo_set.filter()[0].seller_id
             po_imei = POIMEIMapping(**imei_mapping)
             po_imei.save()
             all_po_labels.filter(purchase_order_id=data.id, label=imei, status=1).update(status=0)
@@ -7108,7 +7173,7 @@ def create_new_supplier(user, supp_name, supp_email, supp_phone, supp_address, s
     return supplier_id
 
 
-def create_order_pos(user, order_objs):
+def create_order_pos(user, order_objs, admin_user=None):
     ''' Creating Sampling PO for orders'''
     po_id = ''
     customer_id = ''
@@ -7119,8 +7184,14 @@ def create_order_pos(user, order_objs):
         for order_obj in order_objs:
             if order_obj.customer_id:
                 customer_id = str(int(order_obj.customer_id))
+            order_map_check = OrderMapping.objects.filter(mapping_type='PO', order_id=order_obj.id)
+            if order_map_check.exists():
+                continue
             if customer_id not in cust_supp_mapping.keys():
-                cust_master = CustomerMaster.objects.filter(customer_id=customer_id, user=user.id)
+                if admin_user:
+                    cust_master = CustomerMaster.objects.filter(customer_id=customer_id, user=admin_user.id)
+                else:
+                    cust_master = CustomerMaster.objects.filter(customer_id=customer_id, user=user.id)
                 if cust_master:
                     cust_master = cust_master[0]
                     master_mapping = MastersMapping.objects.filter(master_id=cust_master.id,
@@ -8035,7 +8106,6 @@ def po_invoice_number_check(user, invoice_num, supplier_id):
     return status
 
 
-
 def get_sister_warehouse(user):
     warehouses = UserGroups.objects.filter(Q(admin_user=user) | Q(user=user))
     return warehouses
@@ -8223,6 +8293,7 @@ def create_update_table_history(user, model_id, model_name, model_field, prev_va
                                          model_name=model_name, model_field=model_field,
                                          previous_val=prev_val, updated_val=new_val)
 
+
 def get_customer_parent_user(user):
     parent_user = None
     cus_user_mapping = CustomerUserMapping.objects.filter(user_id=user.id)
@@ -8238,3 +8309,97 @@ def prepare_notification_message(enq_data, message):
     def_message = "for custom order %s of %s Pcs %s for %s" % def_const
     final_message = "%s %s" % (message, def_message)
     return final_message
+
+
+def get_po_company_logo(user, IMAGE_PATH_DICT, request):
+    import base64
+    logo_path = ""
+    try:
+        logo_name = IMAGE_PATH_DICT.get(user.username, '')
+        if logo_name:
+            logo_path = 'http://' + request.get_host() + '/static/company_logos/' + logo_name
+    except:
+        pass
+    return logo_path
+
+def get_all_warehouses(user):
+    user_list = []
+    admin_user = UserGroups.objects.filter(
+        Q(admin_user__username__iexact=user.username) | Q(user__username__iexact=user.username)). \
+        values_list('admin_user_id', flat=True)
+    user_groups = UserGroups.objects.filter(admin_user_id__in=admin_user).values('user__username',
+                                                                                 'admin_user__username')
+    for users in user_groups:
+        for key, value in users.iteritems():
+            if user.username != value and value not in user_list:
+                user_list.append(value)
+    return user_list
+
+
+def check_and_create_supplier_wh_mapping(user, warehouse, supplier_id):
+    master_mapping = MastersMapping.objects.filter(user=user.id, master_id=supplier_id,
+                                               mapping_type='central_supplier_mapping')
+    supplier_master = SupplierMaster.objects.get(id=supplier_id, user=user.id)
+    if master_mapping:
+        new_supplier_id = master_mapping[0].mapping_id
+    else:
+        new_supplier_id = create_new_supplier(warehouse, supplier_master.name, supplier_master.email_id,
+                                          supplier_master.phone_number,
+                                        supplier_master.address, supplier_master.tin_number)
+        if new_supplier_id:
+            MastersMapping.objects.create(user=user.id, master_id=supplier_id, mapping_id=new_supplier_id,
+                                         mapping_type='central_supplier_mapping')
+    return new_supplier_id
+
+
+@get_admin_user
+def search_style_data(request, user=''):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    search_key = request.GET.get('q', '')
+    total_data = []
+    limit = 10
+
+    if not search_key:
+        return HttpResponse(json.dumps(total_data))
+
+    lis = ['sku_class', 'style_name']
+    query_objects = sku_master.filter(Q(sku_class__icontains=search_key) | Q(style_name__icontains=search_key),
+                                      user=user.id).values(*lis).distinct()
+
+    master_data = query_objects.filter(Q(sku_class__exact=search_key) | Q(style_name__exact=search_key),
+                                       user=user.id).values(*lis).distinct()
+    if master_data:
+        master_data = master_data[0]
+        total_data.append(master_data)
+
+    master_data = query_objects.filter(Q(sku_class__istartswith=search_key) | Q(style_name__istartswith=search_key),
+                                       user=user.id).values(*lis).distinct()
+    total_data = build_style_search_data(total_data, master_data, limit)
+
+    if len(total_data) < limit:
+        total_data = build_style_search_data(total_data, query_objects, limit)
+    return HttpResponse(json.dumps(total_data))
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_style_level_stock(request, user=''):
+    sku_wise_list = []
+    sku_class = request.GET.get('sku_class', '')
+    sel_warehouse = request.GET.get('warehouse', '')
+    if sel_warehouse:
+        user = User.objects.get(username=sel_warehouse)
+    if not sku_class:
+        return HttpResponse(json.dumps({}))
+    sku_codes = SKUMaster.objects.filter(sku_class=sku_class, user=user.id)
+    for sku in sku_codes[0:3]:
+        stock_data = StockDetail.objects.exclude(Q(receipt_number=0) |
+                                                 Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])).\
+                                            filter(sku__user=user.id, sku__sku_code=sku.sku_code)
+        zones_data, available_quantity = get_sku_stock_summary(stock_data, '', user)
+        avail_qty = sum(map(lambda d: available_quantity[d] if available_quantity[d] > 0 else 0, available_quantity))
+        sku_wise_list.append({'sku_code': sku.sku_code, 'sku_desc': sku.sku_desc, 'avail_qty': avail_qty})
+    return HttpResponse(json.dumps(sku_wise_list))
+
+

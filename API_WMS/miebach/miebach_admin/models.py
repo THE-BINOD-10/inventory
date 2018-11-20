@@ -122,6 +122,7 @@ class SKUMaster(models.Model):
     primary_category = models.CharField(max_length=64, default='')
     shelf_life = models.IntegerField(default=0)
     youtube_url = models.CharField(max_length=64, default='')
+    enable_serial_based = models.IntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -363,6 +364,8 @@ class IntermediateOrders(models.Model):
     shipment_date = models.DateTimeField()
     project_name = models.CharField(max_length=256, default='')
     remarks = models.CharField(max_length=128, default='')
+    customer_id = models.PositiveIntegerField(default=0)
+    customer_name = models.CharField(max_length=256, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -394,6 +397,7 @@ class OrderFields(models.Model):
     original_order_id = models.CharField(max_length=128, default='')
     name = models.CharField(max_length=256, default='')
     value = models.CharField(max_length=256, default='')
+    order_type = models.CharField(max_length=256, default='order')
 
     class Meta:
         db_table = 'ORDER_FIELDS'
@@ -601,6 +605,7 @@ class StockDetail(models.Model):
     status = models.IntegerField(default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
+    remarks =models.CharField(max_length =128 , default ='')
 
     class Meta:
         db_table = 'STOCK_DETAIL'
@@ -1060,6 +1065,7 @@ class OrderIMEIMapping(models.Model):
     sku = models.ForeignKey(SKUMaster)
     seller = models.ForeignKey(SellerMaster, blank=True, null=True)
     po_imei = models.ForeignKey(POIMEIMapping, blank=True, null=True)
+    #stock_transfer = models.ForeignKey(StockTransfer, blank=True, null=True)
     imei_number = models.CharField(max_length=64, default='')
     sor_id = models.CharField(max_length=128, default='')
     order_reference = models.CharField(max_length=128, default='')
@@ -1942,6 +1948,7 @@ class SellerPOSummary(models.Model):
     challan_date = models.DateField(blank=True, null=True)
     discount_percent = models.FloatField(default=0)
     round_off_total = models.FloatField(default=0)
+    cess_tax = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -2726,8 +2733,8 @@ class StaffMaster(models.Model):
 class MastersMapping(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.PositiveIntegerField()
-    master_id = models.PositiveIntegerField()
-    mapping_id = models.PositiveIntegerField()
+    master_id = models.CharField(max_length=32)
+    mapping_id = models.CharField(max_length=32)
     mapping_type = models.CharField(max_length=32)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)

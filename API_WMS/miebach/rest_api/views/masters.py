@@ -740,6 +740,7 @@ def get_sku_data(request, user=''):
     sku_data['shelf_life'] = data.shelf_life
     sku_data['measurement_type'] = data.measurement_type;
     sku_data['youtube_url'] = data.youtube_url;
+    sku_data['enable_serial_based'] = data.enable_serial_based
     sku_fields = SKUFields.objects.filter(field_type='size_type', sku_id=data.id)
     if sku_fields:
         sku_data['size_type'] = sku_fields[0].field_value
@@ -935,10 +936,10 @@ def update_sku(request, user=''):
         if not wms or not description:
             return HttpResponse('Missing Required Fields')
         data = get_or_none(SKUMaster, {'wms_code': wms, 'user': user.id})
-
         image_file = request.FILES.get('files-0', '')
         if image_file:
             save_image_file(image_file, data, user)
+        setattr(data, 'enable_serial_based', False)
         for key, value in request.POST.iteritems():
 
             if 'attr_' in key:
@@ -983,6 +984,8 @@ def update_sku(request, user=''):
                 value = 1 if (value.lower() == 'enable') else 0;
                 check_update_hot_release(data, value)
                 continue
+            elif key == 'enable_serial_based':
+                value = 1
             if key in number_fields and not value:
                 value = 0
             setattr(data, key, value)
@@ -2206,7 +2209,6 @@ def get_zones_list(request, user=''):
 @get_admin_user
 def insert_sku(request, user=''):
     """ Insert New SKU Details """
-
     log.info('Insert SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))
     load_unit_dict = LOAD_UNIT_HANDLE_DICT
     try:
@@ -2215,6 +2217,7 @@ def insert_sku(request, user=''):
         zone = request.POST['zone_id']
         size_type = request.POST.get('size_type', '')
         hot_release = request.POST.get('hot_release', '')
+        enable_serial_based = request.POST.get('enable_serial_based', 0)
         if not wms or not description:
             return HttpResponse('Missing Required Fields')
         filter_params = {'zone': zone, 'user': user.id}
@@ -2228,7 +2231,6 @@ def insert_sku(request, user=''):
         notified_users.extend(wh_ids)
         notified_users.extend(cust_ids)
         notified_users = list(set(notified_users))
-
         if not data:
             data_dict = copy.deepcopy(SKU_DATA)
             data_dict['user'] = user.id
@@ -2250,6 +2252,11 @@ def insert_sku(request, user=''):
                             value = 0
                     elif key == 'load_unit_handle':
                         value = load_unit_dict.get(value.lower(), 'unit')
+                    elif key == 'enable_serial_based':
+                        if not value:
+                            value = 0
+                        else:
+                            value = 1
                     #elif key == 'ean_number' and value:
                     #    ean_status = check_ean_number(wms, value, user)
                     #    if ean_status:

@@ -1219,7 +1219,6 @@ def get_mp_inventory(request):
                 group_data = stocks.filter(stock__sku__sku_code=sku['sku_code']).values('group_key', 'stock_sum')
                 group_data1 = unsellable_stock.filter(stock__sku__sku_code=sku['sku_code']).\
                                         exclude(group_key__in=group_data.values_list('group_key', flat=True))
-                #mrp_list = []
                 mrp_dict = {}
                 for stock_dat in group_data:
                     splitted_val = stock_dat['group_key'].split('<<>>')
@@ -1227,7 +1226,11 @@ def get_mp_inventory(request):
                     mrp = splitted_val[1]
                     ean = splitted_val[2]
                     weight = splitted_val[3]
-                    sub_group_key = '%s<<>>%s' % (ean, weight)
+                    if not ean:
+                        ean = ''
+                    if not weight:
+                        weight = 0
+                    sub_group_key = '%s<<>>%s<<>>%s' % (mrp, ean, weight)
                     if not mrp:
                         mrp = 0
                     inventory = stock_dat['stock_sum']
@@ -1245,43 +1248,41 @@ def get_mp_inventory(request):
                     if not unsellable:
                         unsellable = 0
                     inventory -= reserved
-                    mrp_dict.setdefault(mrp, OrderedDict((('mrp', mrp),)))
-                    mrp_dict[mrp].setdefault(sub_group_key, OrderedDict(( ('ean', ean), ('weight', weight),
-                                            ('inventory', 0), ('on_hold', 0), ('un_sellable', 0))))
-                    mrp_dict[mrp][sub_group_key]['inventory'] += int(inventory)
-                    mrp_dict[mrp][sub_group_key]['on_hold'] += int(reserved)
-                    mrp_dict[mrp][sub_group_key]['un_sellable'] += int(unsellable)
-                    #mrp_list.append(OrderedDict(( ('mrp', mrp), ('inventory', int(inventory)),
-                    #                      ('on_hold', int(reserved)), ('un_sellable', int(unsellable)))))
+                    mrp_dict.setdefault(sub_group_key, OrderedDict(( ('mrp', mrp), ('ean', ean), ('weight', weight),
+                                                                     ('inventory', OrderedDict((('sellable', 0),
+                                                                                                ('on_hold', 0),
+                                                                                                ('un_sellable', 0)))))))
+                    mrp_dict[sub_group_key]['inventory']['sellable'] += int(inventory)
+                    mrp_dict[sub_group_key]['inventory']['on_hold'] += int(reserved)
+                    mrp_dict[sub_group_key]['inventory']['un_sellable'] += int(unsellable)
                 for stock_dat1 in group_data1:
                     splitted_val = stock_dat['group_key'].split('<<>>')
                     sku_code = splitted_val[0]
                     mrp = splitted_val[1]
                     ean = splitted_val[2]
                     weight = splitted_val[3]
-                    sub_group_key = '%s<<>>%s' % (ean, weight)
+                    if not ean:
+                        ean = ''
+                    if not weight:
+                        weight = 0
+                    sub_group_key = '%s<<>>%s<<>>%s' % (mrp, ean, weight)
                     if not mrp:
                         mrp = 0
                     inventory = stock_dat1['stock_sum']
                     if not inventory:
                         inventory = 0
-                    mrp_dict.setdefault(mrp, OrderedDict((('mrp', mrp),)))
-                    mrp_dict[mrp].setdefault(sub_group_key, OrderedDict(( ('ean', ean), ('weight', weight),
-                                            ('inventory', 0), ('on_hold', 0), ('un_sellable', 0))))
-                    mrp_dict[mrp][sub_group_key]['un_sellable'] += int(inventory)
-                    # mrp_list.append(OrderedDict(( ('mrp', mrp), ('inventory', 0),
-                    #                       ('on_hold', 0), ('un_sellable', int(inventory)))))
+                    mrp_dict.setdefault(sub_group_key, OrderedDict(( ('mrp', mrp), ('ean', ean), ('weight', weight),
+                                                                     ('inventory', OrderedDict((('sellable', 0),
+                                                                                                ('on_hold', 0),
+                                                                                                ('un_sellable', 0)))))))
+                    mrp_dict[sub_group_key]['inventory']['un_sellable'] += int(inventory)
 
-                temp_mrp_list = mrp_dict.values()
-                mrp_list = []
-                for temp_mrp in temp_mrp_list:
-                    temp_mrp_val = temp_mrp['mrp']
-                    temp_mrp.pop('mrp')
-                    mrp_list.append(OrderedDict((('mrp', temp_mrp_val), ('sub_data', temp_mrp.values()))))
-
+                mrp_list = mrp_dict.values()
                 if not mrp_list:
-                    mrp_list = OrderedDict(( ('mrp', 0), ('inventory', 0),
-                                          ('on_hold', 0), ('un_sellable', 0)))
+                    mrp_list = OrderedDict(( ('mrp', 0), ('ean', ''), ('weight', 0),
+                                                                     ('inventory', OrderedDict((('sellable', 0),
+                                                                                                ('on_hold', 0),
+                                                                                                ('un_sellable', 0))))))
                 data.append(OrderedDict(( ('sku', sku['sku_code']), ('data', mrp_list))))
         else:
             stocks = dict(SellerStock.objects.select_related('seller', 'stock', 'stock__location__zone').\
@@ -1308,7 +1309,7 @@ def get_mp_inventory(request):
         page_info['data'] = data
         #data = scroll_data(request, data, limit=limit)
         response_data = {'page_info': page_info.get('page_info', {}), 'status': 'success', 'error_status': error_status,
-                         'inventory_status': page_info['data']}
+                         'products': page_info['data']}
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

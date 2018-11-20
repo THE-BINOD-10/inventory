@@ -4136,8 +4136,7 @@ def create_order_from_intermediate_order(request, user):
 def block_asn_stock(sku_id, qty, lead_time, ord_det_id, is_enquiry=False):
     todays_date = datetime.datetime.today().date()
     lt_date = todays_date + datetime.timedelta(days=lead_time)
-    asn_qs = ASNStockDetail.objects.filter(sku_id=sku_id, arriving_date__gte= todays_date,
-                                           arriving_date__lte=lt_date).order_by('arriving_date')
+    asn_qs = ASNStockDetail.objects.filter(sku_id=sku_id, arriving_date__lte=lt_date).order_by('arriving_date')
     for asn_obj in asn_qs:
         asn_res_map = {'asnstock_id': asn_obj.id}
         if not is_enquiry:

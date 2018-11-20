@@ -292,7 +292,7 @@ def add_user_type_permissions(user_profile):
                      'corporatemaster', 'corpresellermapping', 'staffmaster']
         update_perm = True
     elif user_profile.user_type == 'marketplace_user':
-        exc_perms = ['productproperties', 'sizemaster', 'pricemaster', 'networkmaster', 'tandcmaster', 'enquirymaster', 
+        exc_perms = ['productproperties', 'sizemaster', 'pricemaster', 'networkmaster', 'tandcmaster', 'enquirymaster',
                     'corporatemaster', 'corpresellermapping', 'staffmaster']
         update_perm = True
     if update_perm:
@@ -1725,7 +1725,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
     if pallet:
         pallet_present = PalletDetail.objects.filter(user = user.id, status = 1, pallet_code = pallet)
         if not pallet_present:
-            pallet_present = PalletDetail.objects.create(user = user.id, status = 1, pallet_code = pallet, 
+            pallet_present = PalletDetail.objects.create(user = user.id, status = 1, pallet_code = pallet,
                 quantity = quantity, creation_date=datetime.datetime.now(), updation_date=datetime.datetime.now())
         else:
             pallet_present.update(quantity = quantity)
@@ -1833,7 +1833,7 @@ def adjust_location_stock(cycle_id, wmscode, loc, quantity, reason, user, pallet
     data['adjusted_location'] = location[0].id
     data['creation_date'] = now
     data['updation_date'] = now
-    inv_obj = InventoryAdjustment.objects.filter(cycle__cycle=dat.cycle, adjusted_location=location[0].id, 
+    inv_obj = InventoryAdjustment.objects.filter(cycle__cycle=dat.cycle, adjusted_location=location[0].id,
         cycle__sku__user=user.id)
     if pallet:
         data['pallet_detail_id'] = pallet_present.id
@@ -3419,10 +3419,10 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
                                             values_list('open_po__sku__sku_code', 'tot_rem'))
 
     today_filter = datetime.datetime.today()
-    hundred_day_filter = today_filter + datetime.timedelta(days=100)
+    hundred_day_filter = today_filter + datetime.timedelta(days=90)
     ints_filters = {'quantity__gt': 0, 'sku__sku_code__in': needed_skus, 'sku__user__in': gen_whs}
     asn_qs = ASNStockDetail.objects.filter(**ints_filters)
-    intr_obj_100days_qs = asn_qs.exclude(arriving_date__lte=today_filter).filter(arriving_date__lte=hundred_day_filter)
+    intr_obj_100days_qs = asn_qs.filter(Q(arriving_date__lte=hundred_day_filter)| Q(asn_po_num='NON_KITTED_STOCK'))
     intr_obj_100days_ids = intr_obj_100days_qs.values_list('id', flat=True)
     asnres_det_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
     asn_res_100days_qs = asnres_det_qs.filter(orderdetail__isnull=False)  # Reserved Quantity
@@ -5812,6 +5812,7 @@ def check_and_add_dict(grouping_key, key_name, adding_dat, final_data_dict={}, i
 
 
 def update_order_dicts(orders, user='', company_name=''):
+    from outbound import check_stocks
     trans_mapping = {}
     status = {'status': 0, 'messages': ['Something went wrong']}
     for order_key, order in orders.iteritems():
@@ -5839,6 +5840,16 @@ def update_order_dicts(orders, user='', company_name=''):
         if order.get('seller_order_dict', {}):
             trans_mapping = check_create_seller_order(order['seller_order_dict'], order_detail, user,
                                                       order.get('swx_mappings', []), trans_mapping=trans_mapping)
+        order_sku = {}
+        sku_obj = SKUMaster.objects.filter(id=order_det_dict['sku_id'])
+        if sku_obj:
+            sku_obj = sku_obj[0]
+        else:
+            continue
+        order_sku.update({sku_obj: order_det_dict['quantity']})
+        auto_picklist_signal = get_misc_value('auto_generate_picklist', order_det_dict['user'])
+        if auto_picklist_signal == 'true':
+            message = check_stocks(order_sku, user, 'false', [order_detail])
         status = {'status': 1, 'messages': ['Success']}
     return status
 
@@ -6999,7 +7010,7 @@ def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_obj
         for exc_key in order_data_excluding_keys:
             if exc_key in dist_order_copy:
                 dist_order_copy.pop(exc_key)
-            
+
         if not order_obj:
             order_detail = OrderDetail(**dist_order_copy)
             order_detail.save()
@@ -7129,9 +7140,9 @@ def get_level_name_with_level(user, warehouse_level, users_list=[]):
     return level_name
 
 def get_supplier_info(request):
-    supplier_user = '' 
-    supplier = '' 
-    supplier_parent = '' 
+    supplier_user = ''
+    supplier = ''
+    supplier_parent = ''
     profile = UserProfile.objects.get(user=request.user)
     if profile.user_type == 'supplier':
         supplier_data = UserRoleMapping.objects.get(user=request.user, role_type='supplier')
@@ -8282,6 +8293,24 @@ def create_update_table_history(user, model_id, model_name, model_field, prev_va
                                          model_name=model_name, model_field=model_field,
                                          previous_val=prev_val, updated_val=new_val)
 
+
+def get_customer_parent_user(user):
+    parent_user = None
+    cus_user_mapping = CustomerUserMapping.objects.filter(user_id=user.id)
+    if cus_user_mapping.exists():
+        parent_user_id = cus_user_mapping[0].customer.user
+        parent_user = User.objects.get(id=parent_user_id)
+    return parent_user
+
+
+def prepare_notification_message(enq_data, message):
+    def_const = (str(enq_data.enquiry_id), str(enq_data.quantity),
+                 str(enq_data.sku.sku_code), enq_data.customer_name)
+    def_message = "for custom order %s of %s Pcs %s for %s" % def_const
+    final_message = "%s %s" % (message, def_message)
+    return final_message
+
+
 def get_po_company_logo(user, IMAGE_PATH_DICT, request):
     import base64
     logo_path = ""
@@ -8372,3 +8401,5 @@ def get_style_level_stock(request, user=''):
         avail_qty = sum(map(lambda d: available_quantity[d] if available_quantity[d] > 0 else 0, available_quantity))
         sku_wise_list.append({'sku_code': sku.sku_code, 'sku_desc': sku.sku_desc, 'avail_qty': avail_qty})
     return HttpResponse(json.dumps(sku_wise_list))
+
+

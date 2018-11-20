@@ -1,3 +1,4 @@
+
 from django.db import models
 from django.contrib.auth.models import User, Group
 from miebach_utils import BigAutoField
@@ -120,6 +121,7 @@ class SKUMaster(models.Model):
     sub_category = models.CharField(max_length=64, default='')
     primary_category = models.CharField(max_length=64, default='')
     shelf_life = models.IntegerField(default=0)
+    youtube_url = models.CharField(max_length=64, default='')
     enable_serial_based = models.IntegerField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -2751,7 +2753,11 @@ class ManualEnquiry(models.Model):
     quantity = models.PositiveIntegerField()
     customization_type =  models.CharField(max_length=64, default='',  choices=CUSTOMIZATION_TYPES)
     custom_remarks = models.TextField(default='')
+    po_number = models.CharField(max_length=128, default='')
     status = models.CharField(max_length=32)
+    smd_price = models.FloatField(default=0)
+    rc_price = models.FloatField(default=0)
+    client_po_rate = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

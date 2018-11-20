@@ -141,7 +141,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       // }
       vm.service.apiCall(url, 'POST', elem, true).then(function(data){
         if(data.message) {
-          if(data.data.message == 'Success') {
+          if(data.data == 'Success') {
           // if(data.data.search("<div") != -1) {
             // vm.extra_width = {}
             // vm.html = $(data.data);
@@ -168,8 +168,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     var total_amt_dis = Number(total_amt) * Number(sku_row_data.discount_percentage) / 100;
+    var tot_tax = Number(sku_row_data.tax_percent) + Number(sku_row_data.cess_percent);
     // var tot_tax = Number(sku_row_data.tax_percent) + Number(sku_row_data.cess_percent);
-    var tot_tax = Number(sku_row_data.tax_percent);
     var wo_tax_amt = Number(total_amt)-Number(total_amt_dis);
 
     return wo_tax_amt + (wo_tax_amt * (tot_tax/100));
@@ -188,26 +188,22 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     if(sku_row_data.tax_percent == ''){
       sku_row_data.tax_percent = 0;
     }
-    // if(sku_row_data.cess_percent == ''){
-    //   sku_row_data.cess_percent = 0;
-    // }
+    if(sku_row_data.cess_percent == ''){
+      sku_row_data.cess_percent = 0;
+    }
     if(sku_row_data.discount_percentage == ''){
       sku_row_data.discount_percentage = 0;
     }
-
     if (Number(sku_row_data.tax_percent)) {
 
       sku_row_data.tax_percent = Number(sku_row_data.tax_percent).toFixed(1)
     }
-
     if (Number(sku_row_data.cess_percent)) {
 
       sku_row_data.cess_percent = Number(sku_row_data.cess_percent).toFixed(1)
     }
-
     vm.singleDecimalVal(sku_row_data.tax_percent, 'tax_percent', index, parent_index);
     vm.singleDecimalVal(sku_row_data.cess_percent, 'cess_percent', index, parent_index);
-
     // if (vm.industry_type == 'FMCG') {
     //   var total_amt = Number(sku_row_data.quantity)*Number(sku_row_data.buy_price);
     // } else {
@@ -219,7 +215,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     // var wo_tax_amt = Number(total_amt)-Number(total_amt_dis);
     // data.data[parent_index][index].total_amt = wo_tax_amt + (wo_tax_amt * (tot_tax/100));
     data.data[parent_index][index].total_amt = vm.sku_total_amt(sku_row_data);
-
     var totals = 0;
     for(var index in data.data) {
       var rows = data.data[index];

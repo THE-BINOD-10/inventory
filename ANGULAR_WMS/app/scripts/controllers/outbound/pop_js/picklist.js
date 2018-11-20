@@ -138,10 +138,11 @@ function view_orders() {
         if(total < data.reserved_quantity) {
           vm.service.apiCall('check_imei/', 'GET', elem).then(function(data){
             if(data.message) {
-              if(data.data == "") {
+              if(data.data.data.sku_code == record.parent_sku_code) {
                 record.picked_quantity = parseInt(record.picked_quantity) + 1;
+                record.scan = '';
               } else {
-                Service.pop_msg(data.data);
+                Service.pop_msg(data.data.status);
                 scan_data.splice(length-1,1);
                 record.scan = scan_data.join('\n');
                 record.scan = record.scan+"\n";
@@ -212,7 +213,7 @@ function view_orders() {
               vm.validate_skus = {};
 
               for (var i = 0; i < data.data.sku_codes.length; i++) {
-                
+
                 angular.forEach(data.data.sku_codes[i], function(value, key){
 
                   var temp_combo = {};
@@ -259,18 +260,18 @@ function pull_confirmation() {
             if(vm.check_sku_match(field)) {
               if(vm.model_data.sku_total_quantities[field] <= vm.remain_quantity[field]) {
                 alert("Reservered quantity equal to picked quantity");
-                vm.model_data.scan_sku = ""; 
+                vm.model_data.scan_sku = "";
               } else {
                 vm.incr_qty();
-              }   
+              }
             } else {
               alert("Invalid SKU");
-              vm.model_data.scan_sku = ""; 
-            }   
-          }   
-        })  
-      }   
-    }); 
+              vm.model_data.scan_sku = "";
+            }
+          }
+        })
+      }
+    });
   }
 
 
@@ -382,11 +383,11 @@ function pull_confirmation() {
               } else {
                 $("textarea[attr-name='sku']").focus();
                 vm.suggest_sku();
-              } 
+              }
             })
           }
       }
-    }) 
+    })
   }
 
   vm.current_data = [];

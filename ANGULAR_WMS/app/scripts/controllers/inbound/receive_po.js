@@ -225,7 +225,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         var expiry = new Date(mfg_date.getFullYear(),mfg_date.getMonth(),mfg_date.getDate()+vm.shelf_life);
         //vm.model_data.data[parent_index][index].exp_date = (expiry.getMonth() + 1) + "/" + expiry.getDate() + "/" + expiry.getFullYear();
         var row_data = vm.model_data.data[parent_index][index]
-        if (row_data.exp_date == ''){
+        if (!row_data.exp_date || row_data.exp_date == ''){
             row_data.exp_date = (expiry.getMonth() + 1) + "/" + expiry.getDate() + "/" + expiry.getFullYear();
         }
         //$('.mfgDate').each(function(){
@@ -291,6 +291,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         fb.stop_fb();
         vm.imei_list = [];
       }
+      vm.sort_items = [];
+      vm.sort_flag = false;
       $state.go('app.inbound.RevceivePo');
     }
 
@@ -637,6 +639,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     }
 
+    vm.sort_items = [];
+    vm.sort_flag = false;
     vm.scan_sku = function(event, field) {
       if (event.keyCode == 13 && field.length > 0) {
         console.log(field);
@@ -683,7 +687,29 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           vm.service.apiCall('check_sku/', 'GET',{'sku_code': field}).then(function(data){
             if(data.message) {
               vm.field = data.data.sku_code;
+              vm.sort_flag = false;
+              for(var i=0; i<vm.model_data.data.length; i++) {
 
+                angular.forEach(vm.model_data.data[i], function(sku){
+
+                  // vm.sku_list_1.push(sku.wms_code);
+                  if(vm.field == sku.wms_code){
+                    // $timeout(function() {
+                      //vm.sort_items = [];
+                      //vm.sort_items.push(vm.model_data.data[i]);
+                      if(i != 0) {
+                        var temp_dict = [];
+                        angular.copy(vm.model_data.data[0], temp_dict);
+                        angular.copy(vm.model_data.data[i], vm.model_data.data[0]);
+                        angular.copy(temp_dict, vm.model_data.data[i]);
+                      }
+                      //vm.show_sel_item_top(vm.model_data.data[i]);
+                    // }, 500);
+                      $("input[attr-name='imei_"+vm.field+"']").trigger('focus');
+                    //vm.sort_flag = true;
+                  }
+                });
+              }
               if (vm.permissions.use_imei) {
                 vm.sku_list_1 = [];
                 for(var i=0; i<vm.model_data.data.length; i++) {
@@ -691,9 +717,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   angular.forEach(vm.model_data.data[i], function(sku){
 
                     vm.sku_list_1.push(sku.wms_code);
-                    if(vm.field == sku.wms_code){
-                      $("input[attr-name='imei_"+vm.field+"']").trigger('focus');
-                    }
                   });
                 }
 
@@ -711,12 +734,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 vm.sku_list_1 = [];
                 for(var i=0; i<vm.model_data.data.length; i++) {
 
-                  angular.forEach(vm.model_data.data[i], function(sku){
+                  angular.forEach(vm.model_data.data[i], function(sku, temp_sku_ind){
 
                     vm.sku_list_1.push(sku.wms_code);
                     if(vm.field == sku.wms_code){
                       if(sku.value < sku.po_quantity) {
                         sku["value"] = Number(sku["value"]) + 1;
+                        vm.calc_total_amt(event, vm.model_data, Number(i), temp_sku_ind);
                       } else {
                          Service.showNoty("Received Quantity Equal To PO Quantity");
                       }
@@ -741,6 +765,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             vm.scan_sku_disable = false;
           });
         }
+      }
+    }
+
+    vm.show_sel_item_top = function(record){
+      for(var i=0; i<vm.model_data.data.length; i++) {
+        angular.forEach(vm.model_data.data[i], function(sku){
+          if (record[0].wms_code != sku.wms_code) {
+            vm.sort_items.push(vm.model_data.data[i]);
+          } else {
+            $("input[attr-name='imei_"+record[0].wms_code+"']").trigger('focus');
+          }
+        })
       }
     }
 

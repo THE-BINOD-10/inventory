@@ -200,7 +200,7 @@ input[type="date"]:valid::before {
               </h4>
               <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>Description: {{data.sku_desc}}</b></h4>
               <h4 align="left" ng-if="showCase.central_order_mgmt" style="margin-bottom:0px;font-size: 14px;"><b>Dimensions: {{ data.length }} X {{ data.breadth }} X {{ data.height }}</b></h4>
-              <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>Colour: {{data.colour}}</b></h4>
+              <h4 align="left" ng-if="showCase.central_order_mgmt" style="margin-bottom:0px;font-size: 14px;"><b>Colour: {{data.colour}}</b></h4>
               <h4 align="left" ng-if="!(showCase.central_order_mgmt)" style="margin-bottom:0px;font-size: 14px;"><b>MRP: {{data.mrp}}</b></h4>
               <h4 ng-if="!(showCase.central_order_mgmt)" align="left" style="margin-bottom:0px;font-size: 14px;"><b>
                 <span class="mr20" ng-if="data.sgst_tax">SGST ({{data.sgst_tax}}%): {{(data.invoice_amount / 100 * data.sgst_tax) | number:2}}</span>

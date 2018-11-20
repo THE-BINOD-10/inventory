@@ -18,24 +18,11 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
   $ctrl.customization_types = {};
   $ctrl.client_logo = Session.parent.logo;
   $ctrl.api_url = Session.host;
-  $ctrl.get_categories = function() {
 
-    var data = {brand: ''};
-    Service.apiCall("get_sku_categories/", "GET",data).then(function(data){
-      if(data.message) {
-        $ctrl.categories = data.data.categories;
-        $ctrl.category = "";
-        $ctrl.customization_types= data.data.customization_types;
-        $ctrl.corporates = data.data.reseller_corporates;
-      }
-      $ctrl.categories_loading = false;
-    });
-  }
-  $ctrl.get_categories();
 
   $ctrl.style = '';
   $ctrl.styles = [];
-  $ctrl.get_styles = function(category){
+  function get_styles(category){
 
     if(!category) {
       $ctrl.style = "";
@@ -63,6 +50,22 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
     });
   }
 
+  $ctrl.get_categories = function() {
+
+    var data = {brand: ''};
+    Service.apiCall("get_sku_categories/", "GET",data).then(function(data){
+      if(data.message) {
+        $ctrl.categories = data.data.categories;
+        $ctrl.category = "";
+        $ctrl.customization_types= data.data.customization_types;
+        $ctrl.corporates = data.data.reseller_corporates;
+      }
+      $ctrl.categories_loading = false;
+    });
+    get_styles('ALL');
+  }
+  $ctrl.get_categories();
+
   $ctrl.selected_style = {};
   $ctrl.select_style = function(style, styles) {
 
@@ -77,14 +80,13 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
   }
 
   $ctrl.place = function(form) {
-
+    $ctrl.loading = true;
     if(form.$valid) {
-
-      console.log($ctrl);
-
       var formData = new FormData();
       var el = $("#image-upload");
-      var files = el[0].files;
+      if (el.length) {
+        var files = el[0].files;
+      }
 
       $.each(files, function(i, file) {
         formData.append('po_file', file);
@@ -98,7 +100,8 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
       $.each($ctrl.model_data, function(key, value) {
         formData.append(key, value);
       });
-
+      formData.append('enq_status', 'new_order');
+      // formData['status'] = 'new_order';
       var remarks = "";
       angular.forEach($ctrl.custom_remarks, function(remark) {
 
@@ -127,10 +130,13 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
               if(response == 'Success') {
 
                 Service.showNoty(response);
+                $ctrl.loading =false;
                 $scope.$apply(function() {
                   angular.copy(empty_data, $ctrl.model_data);
+                  // $ctrl.custom_remarks = ['remarks':''];
                   $ctrl.upload_name = [];
                   $ctrl.uploading = false;
+                  $ctrl.clearFiles();
                 });
                 $("input[type='file']").val('');
               } else {
@@ -147,21 +153,35 @@ function AppManualEnquiry($scope, $http, $q, Session, colFilters, Service, $stat
             }
       });
     }
+    $ctrl.loading =true;
   }
 
-  function readURL(input) {
-    if (input.files && input.files[0]) {
-      var reader = new FileReader();
-      reader.onload = function(e) {
-        $('#showImage').attr('src', e.target.result);
+  var imagesPreview = function(input, placeToInsertImagePreview) {
+    if (input.files) {
+      var filesAmount = input.files.length;
+      for (var i = 0; i < filesAmount; i++) {
+        var reader = new FileReader();
+        reader.onload = function(event) {
+          if(filesAmount == 1) {
+            $($.parseHTML('<div class="col-lg-8 col-md-8 col-sm-12 col-xs-12 image_display1" align="center"><img src="'+event.target.result+'" width="100%"></div>')).appendTo(placeToInsertImagePreview);
+          } else {
+            $($.parseHTML('<div class="col-md-3 dyn_imgs no-padding m5"><img src="'+event.target.result+'" width="100%"></div>')).appendTo(placeToInsertImagePreview);
+          }
+        }
+        reader.readAsDataURL(input.files[i]);
       }
-      reader.readAsDataURL(input.files[0]);
     }
-  }
+  };
 
-  $("#image-upload").change(function() {
-    readURL(this);
+  $('#image-upload').on('change', function() {
+    $("div.multi_imgs_display").empty();
+    imagesPreview(this, 'div.multi_imgs_display');
   });
+
+  $ctrl.clearFiles = function(){
+    $('#image-upload').val('');
+    $("div.multi_imgs_display").empty();
+  }
 
   $ctrl.upload_name = [];
   $scope.$on("fileSelected", function (event, args) {

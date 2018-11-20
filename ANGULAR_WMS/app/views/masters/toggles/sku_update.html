@@ -240,6 +240,20 @@
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
+                <label class="control-label"> Measurement Type </label>
+                <select name="measurement_type" class="form-control" ng-model="showCase.model_data.measurement_type">
+                  <option ng-repeat="type in showCase.sku_measurement_types" value="{{type}}" ng-selected="showCase.model_data.measurement_type == type">{{type}}</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> YouTube URL </label>
+                <input type="text" name="youtube_url" class="form-control" ng-model="showCase.model_data.sku_data.youtube_url">
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
                 <label class="control-label"> EAN Number </label>
                 <!-- <input type="text" name="ean_number" class="form-control" ng-model="showCase.model_data.sku_data.ean_number" decimal-number ng-readonly="showCase.model_data.user_type == 'distributor' || showCase.model_data.user_type == 'warehouse'"> -->
                 <div class="bootstrap-tagsinput" ng-mouseover="showCase.addValidation()">
@@ -247,16 +261,6 @@
                 </div>
               </div>
             </div>
-
-            <div class="col-md-4 col-sm-6 col-xs-6">
-              <div class="form-group">
-                <label class="control-label"> Measurement Type </label>
-                <select name="measurement_type" class="form-control" ng-model="showCase.model_data.measurement_type">
-                  <option ng-repeat="type in showCase.sku_measurement_types" value="{{type}}" ng-selected="showCase.model_data.measurement_type == type">{{type}}</option>
-                </select>
-              </div>
-            </div>
-
           </div>
           <div class="row">
             <div class="col-md-12"><hr></div>

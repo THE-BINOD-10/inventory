@@ -10,7 +10,7 @@
       <tab heading="Custom Orders">
         <div ng-include="'views/outbound/manual_enquiry.html'"></div>
       </tab>
-      <tab ng-if="permissions.user_type=='central_admin' || permissions.user_type=='admin_sub_user'" ng-controller="PendingManualEnquiryCtrl as showCase">
+      <tab ng-if="permissions.user_type=='central_admin'" ng-controller="PendingManualEnquiryCtrl as showCase">
         <tab-heading>
           <span>Pending For Approval<span> <span class='label label-info ml10'>{{showCase.tb_data.recordsTotal}}</span>
         </tab-heading>

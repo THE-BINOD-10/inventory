@@ -37,14 +37,14 @@
 <div class="app_body" scrolly="showCase.scroll(e)" style="position: relative">
   <div class="row search-items mt15 search-box">
     <div class="row">
-      <div class="col-md-1 col-sm-1 col-xs-12"></div>
-      <div class="col-md-9 col-sm-9 col-xs-7">
+      <div class="col-lg-1 col-md-1 col-sm-1 col-xs-12"></div>
+      <div class="col-lg-9 col-md-9 col-sm-6 col-xs-5">
         <div class="input-group mb10">
           <span class="input-group-addon" style="background: #ed1c24;color: white;"><i style="background: #ed1c24;width: 15px;font-size: 15px;" class="fa fa-search"></i></span>
             <input type="text" class="form-control" placeholder="Search for Products" ng-model="showCase.style" ng-blur="$state.go('user.App.Products'); showCase.get_category(true, false);" ng-debounce>
         </div>
       </div>
-      <div class="col-md-2 col-sm-2 col-xs-5" style="text-align: center;">
+      <div class="col-lg-2 col-md-2 col-sm-5 col-xs-7" style="text-align: center;">
         <button class="btn btn-icon-icon" style="background: white;float:left;">
           <i class="fa fa-filter" style="font-size: 15px;border-radius: 18px;color:white" title="Show Filters" ng-click="showCase.showFilters()"></i>
         </button>

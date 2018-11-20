@@ -428,8 +428,7 @@ def get_quantity_data(user_groups, sku_codes_list,asn_true=False):
         hundred_day_filter = today_filter + datetime.timedelta(days=100)
         ints_filters = {'quantity__gt': 0, 'sku__user': user}
         asn_qs = ASNStockDetail.objects.filter(**ints_filters)
-        intr_obj_100days_qs = asn_qs.exclude(arriving_date__lte=today_filter).filter(
-            arriving_date__lte=hundred_day_filter)
+        intr_obj_100days_qs = asn_qs.filter(arriving_date__lte=hundred_day_filter)
         intr_obj_100days_ids = intr_obj_100days_qs.values_list('id', flat=True)
         asnres_det_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
         asn_res_100days_qs = asnres_det_qs.filter(orderdetail__isnull=False)  # Reserved Quantity
@@ -441,6 +440,8 @@ def get_quantity_data(user_groups, sku_codes_list,asn_true=False):
 
         asn_avail_stock = dict(
             intr_obj_100days_qs.values_list('sku__sku_code').distinct().annotate(in_asn=Sum('quantity')))
+        non_kitted_stock = dict(asn_qs.filter(asn_po_num='NON_KITTED_STOCK').values_list('sku__sku_code').
+                                distinct().annotate(non_kitted_qty=Sum('quantity')))
         purchases = map(lambda d: d['open_po__sku__sku_code'], purch_dict)
         total_order_dict = dict(zip(purchases, map(lambda d: d['total_order'], purch_dict)))
         total_received_dict = dict(zip(purchases, map(lambda d: d['total_received'], purch_dict)))
@@ -449,12 +450,13 @@ def get_quantity_data(user_groups, sku_codes_list,asn_true=False):
             asn_stock_qty = asn_avail_stock.get(single_sku, 0)
             asn_res_qty = asn_res_100days_qty.get(single_sku, 0)
             asn_blk_qty = asn_blk_100days_qty.get(single_sku, 0)
+            non_kitted_qty = non_kitted_stock.get(single_sku, 0)
             if not exist:
                 available = 'No SKU'
                 reserved = 0
                 ret_list.append({'available': available, 'name': ware, 'transit': 0, 'reserved': reserved, 'user': user,
                                  'sku_code': single_sku, 'asn': asn_stock_qty, 'blocked': 0, 'asn_res': asn_res_qty,
-                                 'asn_blocked': asn_blk_qty})
+                                 'asn_blocked': asn_blk_qty, 'non_kitted': 0})
                 continue
             trans_quantity = 0
             if single_sku in purchases:
@@ -471,7 +473,7 @@ def get_quantity_data(user_groups, sku_codes_list,asn_true=False):
                 available = 0
             ret_list.append({'available': available, 'name': ware, 'transit': trans_quantity, 'reserved': pic_reserved,
                              'user': user, 'sku_code': single_sku, 'asn': asn_stock_qty, 'blocked': enq_reserved,
-                             'asn_res': asn_res_qty, 'asn_blocked': asn_blk_qty})
+                             'asn_res': asn_res_qty, 'asn_blocked': asn_blk_qty, 'non_kitted': non_kitted_qty})
     return ret_list
 
 
@@ -619,6 +621,10 @@ def get_availasn_stock(start_index, stop_index, temp_data, search_term, order_te
                     var['ASN Blocked'] = single['asn_blocked']
                 asn_open = var['ASN Total'] - var['ASN Res'] - var['ASN Blocked']
                 var['ASN Open'] = asn_open
+                if 'NON_KITTED' in var:
+                    var['NON_KITTED'] += single['non_kitted']
+                else:
+                    var['NON_KITTED'] = single['non_kitted']
         var['Net Open'] = var['WH Net Open'] + var['ASN Open']
 
         temp_data['aaData'].append(var)
@@ -1480,6 +1486,7 @@ def warehouse_headers(request, user=''):
             wh_list.append('WH Net Open')
             intr_headers = ['ASN Total', 'ASN Res', 'ASN Blocked', 'ASN Open', 'Net Open']
             wh_list.extend(intr_headers)
+            wh_list.append('NON_KITTED')
             headers = header + wh_list
         else:
             headers = header + [admin_user_name] + ware_list

@@ -246,6 +246,8 @@ def get_order_mapping(reader, file_type):
         order_mapping = copy.deepcopy(CENTRAL_ORDER_EXCEL)
     elif get_cell_data(0, 0, reader, file_type) == 'Courtesy SR Number':
         order_mapping = copy.deepcopy(CENTRAL_ORDER_EXCEL_ONE_ASSIST)
+    elif get_cell_data(0, 0, reader, file_type) == 'Warehouse Name':
+        order_mapping = copy.deepcopy(STOCK_TRANSFER_ORDER_EXCEL)
     elif get_cell_data(0, 2, reader, file_type) == 'Channel' and get_cell_data(0, 6, reader,
                                                                              file_type) == 'Fulfillment TAT':
         order_mapping = copy.deepcopy(UNI_COMMERCE_EXCEL)
@@ -5181,6 +5183,20 @@ def central_order_form(request, user=''):
         wb, ws = get_work_sheet('central_order_form', CENTRAL_ORDER_MAPPING.keys())
     return xls_to_response(wb, '%s.central_order_form.xls' % str(user.id))
 
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def stock_transfer_order_form(request, user=''):
+    central_order_file = request.GET['download-file']
+    if central_order_file:
+        return error_file_download(central_order_file)
+    # if user.username == 'one_assist':
+    #     wb, ws = get_work_sheet('central_order_form', CENTRAL_ORDER_ONE_ASSIST_MAPPING.keys())
+    # if user.username == '72Networks':
+    wb, ws = get_work_sheet('stock_transfer_order_form', STOCK_TRANSFER_ORDER_MAPPING.keys())
+    return xls_to_response(wb, '%s.stock_transfer_order_form.xls' % str(user.id))
+
 def create_order_fields_entry(interm_order_id, name, value, user):
     #import pdb; pdb.set_trace()
     order_fields_data = {}
@@ -5672,3 +5688,218 @@ def central_order_one_assist_upload(request, reader, user, no_of_rows, fname, fi
         except:
             pass
     return 'success'
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def stock_transfer_order_upload(request, user=''):
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+        # if user.username == 'one_assist':
+        #     upload_status = central_order_one_assist_upload(request, reader, user, no_of_rows, fname,
+        #         file_type=file_type, no_of_cols=no_of_cols)
+        # else:
+        upload_status = stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname,
+            file_type=file_type, no_of_cols=no_of_cols)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Stock Transfer Order Upload failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse(" Stock Transfer Order Upload Failed")
+    if not upload_status == 'success':
+        return HttpResponse(upload_status)
+
+    return HttpResponse('Success')
+
+def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
+    #import pdb; pdb.set_trace()
+    log.info("stock transfer order upload started")
+    st_time = datetime.datetime.now()
+    index_status = {}
+    order_mapping = get_order_mapping(reader, file_type)
+    if not order_mapping:
+        return "Headers not matching"
+    count = 0
+    exclude_rows = []
+    sku_masters_dict = {}
+    order_id_order_type = {}
+    order_data = {}
+    log.info("Validation Started %s" % datetime.datetime.now())
+    log.info("Order data Processing Started %s" % (datetime.datetime.now()))
+    for row_idx in range(1, no_of_rows):
+        user_obj = ''
+        if not order_mapping:
+            break
+        count += 1
+        if order_mapping.has_key('warehouse_name') and row_idx == 1:
+            try:
+                warehouse_name = str(int(get_cell_data(row_idx, order_mapping['warehouse_name'], reader, file_type)))
+            except:
+                warehouse_name = str(get_cell_data(row_idx, order_mapping['warehouse_name'], reader, file_type))
+            if not warehouse_name:
+                index_status.setdefault(count, set()).add('Invalid warehouse')
+            else:
+                try:
+                    sister_wh = get_sister_warehouse(user)
+                    user_obj = sister_wh.filter(user__username=warehouse_name)
+                    if not user_obj:
+                        index_status.setdefault(count, set()).add('Invalid Warehouse Location')
+                except:
+                    index_status.setdefault(count, set()).add('Invalid Warehouse Location')
+        if order_mapping.has_key('wms_code'):
+            try:
+                wms_code = str(int(get_cell_data(row_idx, order_mapping['wms_code'], reader, file_type)))
+            except:
+                wms_code = str(get_cell_data(row_idx, order_mapping['wms_code'], reader, file_type))
+            sku_master = SKUMaster.objects.filter(user=user.id, sku_code=wms_code)
+            if not sku_master:
+                index_status.setdefault(count, set()).add('Invalid SKU Code')
+            else:
+                if user_obj:
+                    wh_id = user_obj[0].user.id
+                    sku_master_id = sku_master[0].id
+                    sku_id = get_syncedusers_mapped_sku(wh=wh_id, sku_id=sku_master_id)
+                    if not sku_id:
+                        index_status.setdefault(count, set()).add('SKU Code Not found in mentioned Location')
+        """
+        if order_mapping.has_key('location'):
+            try:
+                location = str(int(get_cell_data(row_idx, order_mapping['location'], reader, file_type)))
+            except:
+                location = str(get_cell_data(row_idx, order_mapping['location'], reader, file_type))
+            warehouse_admin = get_warehouse_admin(user)
+            all_user_groups = UserGroups.objects.filter(admin_user_id=warehouse_admin.id)
+            if not all_user_groups:
+                index_status.setdefault(count, set()).add('Invalid Location')
+
+        if order_mapping.has_key('original_order_id'):
+            try:
+                original_order_id = str(int(get_cell_data(row_idx, order_mapping['original_order_id'], reader, file_type)))
+            except:
+                original_order_id = str(get_cell_data(row_idx, order_mapping['original_order_id'], reader, file_type))
+            order_fields_obj = OrderFields.objects.filter(user=user.id, name='original_order_id',
+                value=original_order_id, order_type = 'intermediate_order')
+            if order_fields_obj:
+                index_status.setdefault(count, set()).add('Order ID already present')
+            else:
+                order_detail_obj = OrderDetail.objects.filter(user=user.id, original_order_id=original_order_id)
+                if order_detail_obj:
+                    index_status.setdefault(count, set()).add('Order ID already present')
+        """
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name
+    order_amount = 0
+    interm_order_id = ''
+    all_data = {}
+    for row_idx in range(1, no_of_rows):
+        for key, value in order_mapping.iteritems():
+            if key == 'warehouse_name' and row_idx == 1:
+                try:
+                    warehouse = str(int(get_cell_data(row_idx, value, reader, file_type)))
+                except:
+                    warehouse = str(get_cell_data(row_idx, value, reader, file_type))
+            elif key == 'wms_code':
+                try:
+                    wms_code = str(int(get_cell_data(row_idx, value, reader, file_type)))
+                except:
+                    wms_code = str(get_cell_data(row_idx, value, reader, file_type))
+            elif key == 'quantity':
+                 quantity = int(get_cell_data(row_idx, value, reader, file_type))
+
+            elif key == 'price':
+                 price = int(get_cell_data(row_idx, value, reader, file_type))
+        cond = (user.username)
+        all_data.setdefault(cond, [])
+        all_data[cond].append([wms_code, quantity, price, 0])
+
+    warehouse = User.objects.get(username=warehouse)
+    f_name = 'stock_transfer_' + warehouse_name + '_'
+    #status = validate_st(all_data, warehouse)
+    # #if not status:
+    #     all_data = insert_st(all_data, warehouse)
+    #     status = confirm_stock_transfer(all_data, warehouse, user.username)
+    # if not status:
+    all_data = insert_st(all_data, warehouse)
+    status = confirm_stock_transfer(all_data, warehouse, user.username)
+    #import pdb; pdb.set_trace()
+    if status.status_code == 200:
+        return 'Success'
+    else:
+        return 'Failed'
+
+
+def insert_st(all_data, user):
+    #import pdb; pdb.set_trace()
+    for key, value in all_data.iteritems():
+        for val in value:
+            if val[3]:
+                open_st = OpenST.objects.get(id=val[3])
+                open_st.warehouse_id = User.objects.get(username__iexact=key).id
+                open_st.sku_id = SKUMaster.objects.get(wms_code=val[0], user=user.id).id
+                open_st.price = float(val[2])
+                open_st.order_quantity = float(val[1])
+                open_st.save()
+                continue
+            stock_dict = copy.deepcopy(OPEN_ST_FIELDS)
+            stock_dict['warehouse_id'] = User.objects.get(username__iexact=key).id
+            stock_dict['sku_id'] = SKUMaster.objects.get(wms_code=val[0], user=user.id).id
+            stock_dict['order_quantity'] = float(val[1])
+            stock_dict['price'] = float(val[2])
+            stock_transfer = OpenST(**stock_dict)
+            stock_transfer.save()
+            all_data[key][all_data[key].index(val)][3] = stock_transfer.id
+    return all_data
+
+def confirm_stock_transfer(all_data, user, warehouse_name):
+    for key, value in all_data.iteritems():
+        po_id = get_purchase_order_id(user) + 1
+        warehouse = User.objects.get(username__iexact=warehouse_name)
+        stock_transfer_obj = StockTransfer.objects.filter(sku__user=warehouse.id).order_by('-order_id')
+        if stock_transfer_obj:
+            order_id = int(stock_transfer_obj[0].order_id) + 1
+        else:
+            order_id = 1001
+
+        for val in value:
+            open_st = OpenST.objects.get(id=val[3])
+            sku_id = SKUMaster.objects.get(wms_code__iexact=val[0], user=warehouse.id).id
+            user_profile = UserProfile.objects.filter(user_id=user.id)
+            prefix = ''
+            if user_profile:
+                prefix = user_profile[0].prefix
+
+            po_dict = {'order_id': po_id, 'received_quantity': 0, 'saved_quantity': 0,
+                       'po_date': datetime.datetime.now(), 'ship_to': '',
+                       'status': '', 'prefix': prefix, 'creation_date': datetime.datetime.now()}
+            po_order = PurchaseOrder(**po_dict)
+            po_order.save()
+            st_purchase_dict = {'po_id': po_order.id, 'open_st_id': open_st.id,
+                                'creation_date': datetime.datetime.now()}
+            st_purchase = STPurchaseOrder(**st_purchase_dict)
+            st_purchase.save()
+            st_dict = copy.deepcopy(STOCK_TRANSFER_FIELDS)
+            st_dict['order_id'] = order_id
+            st_dict['invoice_amount'] = float(val[1]) * float(val[2])
+            st_dict['quantity'] = float(val[1])
+            st_dict['st_po_id'] = st_purchase.id
+            st_dict['sku_id'] = sku_id
+            stock_transfer = StockTransfer(**st_dict)
+            stock_transfer.save()
+            open_st.status = 0
+            open_st.save()
+        check_purchase_order_created(user, po_id)
+    return HttpResponse("Confirmed Successfully")

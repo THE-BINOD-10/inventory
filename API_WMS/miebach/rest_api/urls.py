@@ -502,6 +502,9 @@ urlpatterns += [
     url(r'^targets_upload/$', targets_upload),
     url(r'^central_order_form/$', central_order_form),
     url(r'^central_order_upload/$', central_order_upload),
+    url(r'^stock_transfer_order_form/$',stock_transfer_order_form),
+    url(r'^stock_transfer_order_upload/$',stock_transfer_order_upload),
+
 
     # configurations
     url(r'^configurations/$', configurations),

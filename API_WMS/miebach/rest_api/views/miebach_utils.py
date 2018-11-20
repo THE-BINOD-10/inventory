@@ -1275,6 +1275,10 @@ CENTRAL_ORDER_EXCEL_ONE_ASSIST = OrderedDict((
                             ('city', 3), ('pincode', 4), ('mobile_no', 5), ('email_id', 6),
                             ('sku_code', 7)
                           ))
+STOCK_TRANSFER_ORDER_EXCEL = OrderedDict((
+                            ('warehouse_name', 0), ('wms_code', 1), ('quantity', 2),
+                            ('price', 3)))
+
 
 CENTRAL_ORDER_XLS_UPLOAD = {'interm_order_id': '', 'sku': '', 'quantity': 1,
               'unit_price': 0, 'tax': 0, 'inter_state': 0, 'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0,
@@ -1875,6 +1879,10 @@ CENTRAL_ORDER_MAPPING = OrderedDict((
                                       ('CGST', 'cgst'), ('SGST', 'sgst'),
                                       ('IGST', 'igst'), ('Total Price', 'total_price'),
                                       ('Location', 'location')
+                                   ))
+STOCK_TRANSFER_ORDER_MAPPING = OrderedDict((
+                                      ('Warehouse Name', 'warehouse_name'), ('WMS Code', 'wms_code'),
+                                      ('Quantity', 'quantity'), ('Price', 'price')
                                    ))
 
 CENTRAL_ORDER_ONE_ASSIST_MAPPING = OrderedDict((

@@ -1124,6 +1124,7 @@ def validate_location_stock(val, all_locations, all_skus, user, picklist):
 
 
 def insert_order_serial(picklist, val, order='', shipped_orders_dict={}):
+    #import pdb; pdb.set_trace()
     if ',' in val['imei']:
         imei_nos = list(set(val['imei'].split(',')))
     else:
@@ -1738,6 +1739,7 @@ def picklist_confirmation(request, user=''):
         #         if value[i]['picked_quantity']:
         #             count += float(value[i]['picked_quantity'])
         for picklist_dict in final_data_list:
+            #import pdb; pdb.set_trace()
             picklist = picklist_dict['picklist']
             picklist_batch = picklist_dict['picklist_batch']
             count = picklist_dict['count']
@@ -1788,8 +1790,6 @@ def picklist_confirmation(request, user=''):
                     picking_count1 = 0  # picking_count
                     wms_id = all_skus.exclude(sku_code='').get(wms_code=val['wms_code'], user=user.id)
                     total_stock = StockDetail.objects.filter(**pic_check_data)
-
-
                     if 'imei' in val.keys() and val['imei'] and picklist.order:
                         insert_order_serial(picklist, val)
                     if 'labels' in val.keys() and val['labels'] and picklist.order:

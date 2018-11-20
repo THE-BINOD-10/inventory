@@ -233,7 +233,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
     vm.print_pdf_shipment_info = function(){
       vm.service.apiCall("print_pdf_shipment_info/", "POST", {"data":JSON.stringify(vm.model_data)}).then(function(data){
         if(data.message){
-          vm.service.print_data(data.data, 1);
+          vm.service.print_data(data.data, vm.model_data.manifest_number);
         }
       })
     }

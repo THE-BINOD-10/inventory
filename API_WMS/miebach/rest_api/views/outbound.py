@@ -5201,9 +5201,9 @@ def create_shipment(request, user):
         elif key in ORDER_SHIPMENT_DATA.keys():
             data_dict[key] = value
     data_dict['user'] = user.id
-    manifest_number = str(user.id)+str(randint(100, 9999))
+    manifest_number = str(user.id)+str(randint(100, 999999))
     if OrderShipment.objects.filter(manifest_number = manifest_number).exists():
-        manifest_number =  str(user_id)+ str(randint(100, 9999))
+        manifest_number =  str(user_id)+ str(randint(100, 999999))
     else:
         manifest_number = manifest_number
     data_dict['manifest_number'] = manifest_number
@@ -5545,13 +5545,18 @@ def shipment_info_data(request, user=''):
                 alternative_mobile_no = alternative_mobile_no_obj[0].value
                 if not alternative_mobile_no :
                     alternative_mobile_no = 0
-
+        serial_number = OrderIMEIMapping.objects.filter(po_imei__sku__wms_code =orders.order.sku.sku_code, po_imei__sku__user=user.id)
+        if serial_number :
+            serial_number = serial_number
+        else:
+            serial_number = 0
 
         ship_status = ship_status[ship_status.index(status):]
         data.append({'id': orders.id, 'order_id': orders.order.original_order_id, 'customer_name':orders.order.customer_name,'sku_code': orders.order.sku.sku_code,
                      'ship_quantity': orders.shipping_quantity,
                      'loan_proposal_id':float(loan_proposal_id),
                      'model':model,
+                     'serial_number':serial_number,
                      'mobile_no':float(mobile_no),
                      'alternative_mobile_no':float(alternative_mobile_no),
                      'district':district,

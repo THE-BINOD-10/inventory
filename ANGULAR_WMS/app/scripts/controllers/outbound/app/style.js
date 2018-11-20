@@ -14,6 +14,7 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
   vm.user_type = Session.roles.permissions.user_type;
   vm.service = Service;
   vm.dis_video = false;
+  vm.y_video_flag = false;
   if($stateParams.styleId){
     vm.styleId = $stateParams.styleId;
   }
@@ -90,6 +91,10 @@ function AppStyle($scope, $http, $q, Session, colFilters, Service, $state, $wind
         if (Object.keys(vm.style_details).length === 0) {
           vm.style_details = style_data[0];
         }
+        vm.y_video_flag = vm.style_details.youtube_url ? true : false;
+        $('.youtube_thumbnaile_elem').html('<object width="100" height="70" data="'+vm.style_details.youtube_url+'"></object>');
+        $('.youtube_video_play_elem').html('<object style="margin-top:49px" width="100%" height="100%" data="'+vm.style_details.youtube_url+'"></object>');
+        $('.youtube_video_play_mb_elem').html('<object width="100%" height="100%" data="'+vm.style_details.youtube_url+'"></object>');
         vm.style_total_counts = data.data.total_qty;
         var wish_status = false;
         if(style_data.length > 0) {

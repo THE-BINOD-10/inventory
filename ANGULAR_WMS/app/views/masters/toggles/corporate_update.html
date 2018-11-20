@@ -10,12 +10,14 @@
           <div class="row">
             <div class="col-md-4">
               <div class="form-group">
-                <label class="control-label"> Corporate ID * </label>
+                <label ng-if="permissions.priceband_sync == false" class="control-label"> Project ID * </label>
+                <label ng-if="permissions.priceband_sync == true" class="control-label"> Corporate ID * </label>
                 <input type="text" name="corporate_id" class="form-control numvalid" ng-model="showCase.model_data.corporate_id" maxlength="60" ng-readonly="showCase.update" required> </div>
             </div>
             <div class="col-md-4">
               <div class="form-group">
-                <label class="control-label"> Corporate Name * </label>
+                <label ng-if="permissions.priceband_sync == false" class="control-label"> Project Name * </label>
+                <label ng-if="permissions.priceband_sync == true" class="control-label"> Corporate Name * </label>
                 <input type="text" name="name" class="form-control namevalid" ng-model="showCase.model_data.name" maxlength="256" required> </div>
             </div>
             <div class="col-md-4">

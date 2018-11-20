@@ -1,5 +1,4 @@
 'use strict';
-
 angular.module('urbanApp', ['datatables'])
   .controller('CorporateMasterTable',['$scope', '$http', '$state', '$timeout', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
 
@@ -8,6 +7,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.apply_filters = colFilters;
     vm.service = Service;
     vm.user_type = Session.roles.permissions.user_type;
+    vm.project_type = Session.roles.permissions.priceband_sync;
 
     vm.filters = {'datatable': 'CorporateMaster', 'search0':'', 'search1':'', 'search2':'', 'search3':'', 'search4':'', 'search5':''}
     vm.dtOptions = DTOptionsBuilder.newOptions()
@@ -28,7 +28,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
          vm.apply_filters.add_search_boxes("#"+vm.dtInstance.id);
        });
 
-    if (vm.user_type != 'central_admin') {
+    if (vm.user_type != 'central_admin' && vm.project_type == false) {
 
       vm.corporate_id = 'Project ID';
       vm.corporate_name = 'Project Name';

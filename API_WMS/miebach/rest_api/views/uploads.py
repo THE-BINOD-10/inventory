@@ -5817,6 +5817,7 @@ def insert_st(all_data, user):
     return all_data
 
 def confirm_stock_transfer(all_data, user, warehouse_name):
+    user_profile = UserProfile.objects.filter(user_id=user.id)
     for key, value in all_data.iteritems():
         po_id = get_purchase_order_id(user) + 1
         warehouse = User.objects.get(username__iexact=warehouse_name)
@@ -5829,7 +5830,6 @@ def confirm_stock_transfer(all_data, user, warehouse_name):
         for val in value:
             open_st = OpenST.objects.get(id=val[3])
             sku_id = SKUMaster.objects.get(wms_code__iexact=val[0], user=warehouse.id).id
-            user_profile = UserProfile.objects.filter(user_id=user.id)
             prefix = ''
             if user_profile:
                 prefix = user_profile[0].prefix

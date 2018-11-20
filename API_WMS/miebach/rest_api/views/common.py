@@ -8072,7 +8072,7 @@ def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False):
         if not (ean_status or mapped_check):
             EANNumbers.objects.create(**ean_dict)
         elif ean_status:
-            error_eans.append(ean_number)
+            error_eans.append(str(ean_number))
     for rem_ean in rem_ean_list:
         if int(data.ean_number) == int(rem_ean):
             data.ean_number = 0

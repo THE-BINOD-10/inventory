@@ -5202,14 +5202,19 @@ def create_shipment(request, user):
             data_dict[key] = value
     data_dict['user'] = user.id
     manifest_number = str(user.id)+str(randint(100, 999999))
-    if OrderShipment.objects.filter(manifest_number = manifest_number).exists():
-        manifest_number =  str(user_id)+ str(randint(100, 999999))
-    else:
-        manifest_number = manifest_number
+    manifest_number = random_number_check(manifest_number,user)
     data_dict['manifest_number'] = manifest_number
     data = OrderShipment(**data_dict)
     data.save()
     return data
+
+def random_number_check(manifest_number, user):
+    from random import randint
+    if OrderShipment.objects.filter(manifest_number = manifest_number).exists():
+        manifest_number = str(user.id)+str(randint(100, 999999))
+        random_number_check(manifest_number,user)
+    return manifest_number
+
 
 
 @csrf_exempt

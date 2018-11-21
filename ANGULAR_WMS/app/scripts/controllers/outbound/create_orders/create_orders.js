@@ -63,6 +63,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     vm.model_data["telephone"] = parseInt(item.phone_number);
     vm.model_data["email_id"] = item.email;
     vm.model_data["address"] = item.address;
+    vm.model_data["ship_to"] = item.ship_to;
     if(item.tax_type) {
 
       vm.model_data["tax_type"] = item.tax_type;

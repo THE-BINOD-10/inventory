@@ -335,14 +335,15 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
                 prepare_str = ','.join(list(set(order_customer_name)))
             else:
                 prepare_str = ','.join(list(set(order_marketplace)))
-            if not prepare_str:
+            if not prepare_str and picklist_obj[0].order:
                 order_id = picklist_obj[0].order.original_order_id
-                order_fields = OrderFields.objects.filter(original_order_id=order_id, name="original_order_id")
-                if order_fields:
-                    user_id = order_fields[0].user
-                    user_profile = UserProfile.objects.get(user_id=user_id)
-                    if user_profile:
-                        prepare_str = user_profile.user.first_name
+                if order_id:
+                    order_fields = OrderFields.objects.filter(original_order_id=order_id, name="original_order_id")
+                    if order_fields:
+                        user_id = order_fields[0].user
+                        user_profile = UserProfile.objects.get(user_id=user_id)
+                        if user_profile:
+                            prepare_str = user_profile.user.username
             create_date_value = ""
             if picklist_obj[0].creation_date:
                 create_date_value = get_local_date(request.user, picklist_obj[0].creation_date)
@@ -6375,7 +6376,6 @@ def generate_order_jo_data(request, user=''):
 def search_customer_data(request, user=''):
     search_key = request.GET.get('q', '')
     total_data = []
-
     if not search_key:
         return HttpResponse(json.dumps(total_data))
 
@@ -6391,7 +6391,7 @@ def search_customer_data(request, user=''):
         if data.phone_number:
             data.phone_number = int(float(data.phone_number))
         total_data.append({'customer_id': data.customer_id, 'name': data.name, 'phone_number': str(data.phone_number),
-                           'email': data.email_id, 'address': data.address, 'tax_type': data.tax_type})
+                           'email': data.email_id, 'address': data.address, 'tax_type': data.tax_type, 'ship_to': data.shipping_address})
     return HttpResponse(json.dumps(total_data))
 
 

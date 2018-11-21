@@ -12406,6 +12406,23 @@ def convert_customorder_to_actualorder(request, user=''):
         #         break
         #     req_stock = req_qty
 
+        dist_order_copy = {}
+        customer_obj = CustomerMaster.objects.filter(id=cm_id)
+        if not customer_obj:
+            return HttpResponse('Customer Not Found, Something went wrong')
+
+        cm_id = customer_obj[0].id
+        generic_order_id = get_generic_order_id(cm_id)
+        dist_user_id = customer_obj[0].user
+
+        customer_user = WarehouseCustomerMapping.objects.filter(warehouse_id=dist_user_id)
+        if customer_user:
+            dist_order_copy['customer_id'] = customer_user[0].customer.customer_id
+            dist_order_copy['customer_name'] = customer_user[0].customer.name
+            dist_order_copy['telephone'] = customer_user[0].customer.phone_number
+            dist_order_copy['email_id'] = customer_user[0].customer.email_id
+            dist_order_copy['address'] = customer_user[0].customer.address
+
         for usr, qty in stock_wh_map.items():
             if qty <= 0:
                 continue
@@ -12415,11 +12432,11 @@ def convert_customorder_to_actualorder(request, user=''):
             mapped_sku_id = get_syncedusers_mapped_sku(usr, sku_id)
 
             order_detail_dict = {'sku_id': mapped_sku_id, 'title': title, 'quantity': quantity, 'order_id': order_id,
-                                 'original_order_id': org_ord_id, 'user': usr, 'customer_id': customer_id,
-                                 'customer_name': customer_name, 'shipment_date': exp_date,
-                                 'address': '', 'unit_price': smd_price, 'invoice_amount': invoice_amount,
+                                 'original_order_id': org_ord_id, 'user': usr,
+                                 'shipment_date': exp_date, 'unit_price': smd_price, 'invoice_amount': invoice_amount,
                                  'creation_date': datetime.datetime.now(), 'status': 1,
                                  'order_code': 'MN'}
+            order_detail_dict.update(dist_order_copy)
             ord_qs = OrderDetail.objects.filter(sku_id=mapped_sku_id, order_id=order_id, user=usr)
             if not ord_qs:
                 ord_obj = OrderDetail(**order_detail_dict)
@@ -12429,7 +12446,6 @@ def convert_customorder_to_actualorder(request, user=''):
                 ord_obj.qty = qty
                 ord_obj.save()
 
-            generic_order_id = get_generic_order_id(cm_id)
             corporate_po_number = enq_obj.po_number
             create_grouping_order_for_generic(generic_order_id, ord_obj, cm_id, usr, quantity, corporate_po_number,
                                               corp_name, ask_price, ask_price, exp_date)
@@ -12469,6 +12485,8 @@ def convert_customorder_to_actualorder(request, user=''):
                 try:
                     order_push_status = order_push(original_order_id, order_detail_user, "NEW")
                     log.info('New Order Push Status: %s' % (str(order_push_status)))
+                    if generic_order_id and not order_push_status:
+                        check_and_raise_po(generic_order_id, cm_id)
                 except:
                     log.info("Order Push failed for order: %s" %original_order_id)
 

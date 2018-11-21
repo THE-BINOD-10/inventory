@@ -36,7 +36,7 @@
            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.return_process == 'order_id'">
              <div class="form-group">
                <label class="control-label"> Order ID </label>
-              <textarea id="scan_order_id" rows="1" class="form-control" ng-model="showCase.model_data.scan_order_id" ng-keydown="showCase.scan_track($event, showCase.model_data.scan_order_id)"></textarea>
+              <textarea id="scan_order_id" rows="1" class="form-control" ng-model="showCase.model_data.scan_order_id" ng-keydown="showCase.scan_track($event, showCase.model_data.scan_order_id,showCase.model_data.seller_type)"></textarea>
              </div>
            </div>
            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.return_process == 'scan_awb'">
@@ -64,7 +64,7 @@
               <label class="control-label">MRP</label>
               <input type="text" ng-model="showCase.model_data.mrp" class="form-control pull-right decimal" placeholder="Enter MRP">
             </div>
-           
+
 
            <div class="col-md-3 col-sm-3 col-xs-6" ng-if="showCase.permissions.use_imei && showCase.return_process == 'scan_imei'">
              <div class="form-group">
@@ -128,6 +128,7 @@
                  <th>CGST</th>
                  <th>IGST</th>
                  <th> Reason </th>
+                 <th ng-if ="user.user_profile['user_type'] == 'marketplace_user' && showCase.return_process == 'sku_code'">Seller ID</th>
                  <th class="plus table_hea"></th>
                </tr>
              </thead>
@@ -158,7 +159,7 @@
                  <td ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'">
                    <input type="text" name="marketplace" class="form-control" ng-model="data_split.marketplace">
                  </td>
-                
+
                  <td ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'"> <input type="text" name="mrp" class="form-control decimal mrp_field" ng-model="data_split.mrp" > </td>
                  <td ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'"><input ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'" ui-jq="datepicker" ng-model="data_split.manufactured_date" class="form-control stk-readonly mfd_field" type="text" id="manufactured_date" readonly name="manufactured_date" required data-date-today-highlight="true" data-date-autoclose="true" placeholder="Manufactured Date"></td>
                  <td ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'"><input ng-if="showCase.industry_type == 'FMCG' && showCase.return_process == 'sku_code'" ui-jq="datepicker" ng-model="data_split.expiry_date" class="form-control stk-readonly exp_field" type="text" id="expiry_date" readonly name="expiry_date" required data-date-today-highlight="true" data-date-autoclose="true" placeholder="Expiry Date"></td>
@@ -166,6 +167,7 @@
                  <td><input type="text" class="form-control ig_ifieldg" ng-model="data_split.cgst" readonly ></td>
                  <td><input type="text" class="form-control ig_ifieldh" ng-model="data_split.igst" readonly ></td>
                  <td><input type="text" name="reason" class="form-control" ng-model="data_split.reason"></td>
+                 <td ng-if ="user.user_profile['user_type'] == 'marketplace_user' && showCase.return_process == 'sku_code'"><input type="text"  readonly name="seller_id" ng-model="showCase.model_data.seller_type"></td>
                  <td>
                    <i class="mr10" ng-click="showCase.update_data($index, data_split, showCase.model_data.data)" ng-class="showCase.service.isLast(false)"></i>
                    <i ng-hide="showCase.return_process == 'scan_imei' || showCase.allocate_order" ng-click="showCase.add_next($index, data_split, showCase.model_data.data)" class="fa fa-plus-square-o"></i>

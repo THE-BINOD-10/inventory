@@ -2978,8 +2978,8 @@ class RatingsMaster(models.Model):
     original_order_id = models.CharField(max_length=128, default='', blank=True, null=True)
     rating_product = models.IntegerField(max_length=10)
     rating_order = models.IntegerField(max_length=10)
-    reason_product = models.CharField(max_length=32, default='')
-    reason_order = models.CharField(max_length=32, default='')
+    reason_product = models.CharField(max_length=128, default='')
+    reason_order = models.CharField(max_length=128, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

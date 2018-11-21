@@ -1166,6 +1166,7 @@ def get_mp_inventory(request):
             skus = request_data.get('sku', [])
             skus = map(lambda sku: str(sku), skus)
             seller_id = request_data.get('seller_id', '')
+            warehouse = request_data.get('warehouse', '')
             #skus = eval(skus)
             if skus:
                 filter_params['sku_code__in'] = skus
@@ -1173,6 +1174,15 @@ def get_mp_inventory(request):
             return HttpResponse(json.dumps({'error_status': 'fail', 'message': 'Invalid JSON Data'}))
         if not seller_id:
             return HttpResponse(json.dumps({'error_status': 'fail', 'message': 'Seller ID is Mandatory'}))
+        if not warehouse:
+            return HttpResponse(json.dumps({'error_status': 'fail', 'message': 'Warehouse Name is Mandatory'}))
+        token_user = user
+        sister_whs = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+        sister_whs.append(token_user.username)
+        if warehouse in sister_whs:
+            user = User.objects.get(username=warehouse)
+        else:
+            return HttpResponse(json.dumps({'error_status': 'fail', 'message': 'Invalid Warehouse Name'}))
         try:
             seller_master = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
             if not seller_master:

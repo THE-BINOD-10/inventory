@@ -1852,6 +1852,7 @@ def inventory_excel_upload(request, user, data_list):
                     batch_dict['manufactured_date'] = mfg_date
                 if exp_date:
                     batch_dict['expiry_date'] = exp_date
+                add_ean_weight_to_batch_detail(SKUMaster.objects.get(id=inventory_data['sku_id']), batch_dict)
                 batch_obj = BatchDetail(**batch_dict)
                 batch_obj.save()
                 stock_query_filter['batch_detail_id'] = batch_obj.id

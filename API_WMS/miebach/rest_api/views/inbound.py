@@ -2469,6 +2469,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
         if remainder_mail:
             data.remainder_mail = remainder_mail
 
+        purchase_data = get_purchase_order_data(data)
         #Create Batch Detail entry
         batch_dict = {}
         if 'batch_no' in myDict.keys():
@@ -2478,7 +2479,11 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
                           'tax_percent': myDict['tax_percent'][i],
                           'mrp': myDict['mrp'][i], 'buy_price': myDict['buy_price'][i]
                          }
-        purchase_data = get_purchase_order_data(data)
+            try:
+                batch_dict['weight'] = float(''.join(re.findall('\d+', str(myDict['weight'][i]))))
+            except:
+                batch_dict['weight'] = 0
+            add_ean_weight_to_batch_detail(purchase_data['sku'], batch_dict)
         temp_quantity = data.received_quantity
         unit = ''
         sku_row_buy_price = 0
@@ -6265,8 +6270,8 @@ def confirm_primary_segregation(request, user=''):
                               'expiry_date': expiry_date,
                               'manufactured_date': manufactured_date,
                               'tax_percent': batch_detail.tax_percent,
-                              'mrp': batch_detail.mrp, 'buy_price': batch_detail.buy_price
-                              }
+                              'mrp': batch_detail.mrp, 'buy_price': batch_detail.buy_price,
+                              'weight': batch_detail.weight, 'ean_number': batch_detail.ean_number}
             purchase_data = get_purchase_order_data(segregation_obj.purchase_order)
             seller_received_dict = get_seller_received_list(segregation_obj.purchase_order, user)
             if sellable:

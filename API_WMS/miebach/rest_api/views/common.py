@@ -94,7 +94,7 @@ def truncate_float(value, decimal_limit):
 
 
 def number_in_words(value):
-    value = (num2words(int(round(value)), lang='en_IN')).capitalize()
+    value = (num2words(int(round(value)), lang='en_IN').replace(',', '').replace('-', ' ')).capitalize()
     return value
 
 
@@ -2944,6 +2944,9 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 imei_data.append(temp_imeis)
             if sku_code in [x['sku_code'] for x in data]:
                 continue
+            if math.ceil(quantity) == quantity:
+                quantity = int(quantity)
+
             data.append(
                 {'order_id': order_id, 'sku_code': sku_code, 'sku_desc': sku_desc,
                  'title': title, 'invoice_amount': str(invoice_amount),
@@ -2952,6 +2955,22 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                  'sku_category': dat.sku.sku_category, 'sku_size': dat.sku.sku_size, 'amt': amt, 'taxes': taxes_dict,
                  'base_price': base_price, 'hsn_code': hsn_code, 'imeis': temp_imeis,
                  'discount_percentage': discount_percentage, 'id': dat.id, 'shipment_date': shipment_date})
+
+    is_cess_tax_flag = 'true'
+    for ord_dict in data:
+        print ord_dict['taxes'].get('cess_tax', 0)
+        if ord_dict['taxes'].get('cess_tax', 0):
+            break
+    else:
+        is_cess_tax_flag = 'false'
+
+    if is_cess_tax_flag == 'false':
+        for ord_dict in data:
+            if 'cess_tax' in ord_dict:
+                ord_dict.pop('cess_tax')
+            if 'cess_amt' in ord_dict:
+                ord_dict.pop('cess_amt')
+
     _invoice_no, _sequence = get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos)
     challan_no, challan_sequence = get_challan_number(user, seller_summary)
     inv_date = invoice_date.strftime("%m/%d/%Y")
@@ -2987,6 +3006,9 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
         company_address = company_address.replace("\n", " ")
         company_name = seller.name #'SHPROC Procurement Pvt. Ltd.'
 
+    if math.ceil(total_quantity) == total_quantity:
+        total_quantity = int(total_quantity)
+
     invoice_data = {'data': data, 'imei_data': imei_data, 'company_name': company_name,
                     'company_address': company_address, 'company_number': company_number,
                     'order_date': order_date, 'email': email, 'marketplace': marketplace, 'total_amt': total_amt,
@@ -3012,7 +3034,8 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'order_reference_date_field': order_reference_date_field,
                     'order_reference_date': order_reference_date, 'invoice_header': invoice_header,
                     'cin_no': cin_no, 'challan_no': challan_no, 'customer_id': customer_id,
-                    'show_mrp': show_mrp, 'mode_of_transport' : mode_of_transport, 'vehicle_number' : vehicle_number}
+                    'show_mrp': show_mrp, 'mode_of_transport' : mode_of_transport, 'vehicle_number' : vehicle_number,
+                    'is_cess_tax_flag': is_cess_tax_flag}
     return invoice_data
 
 

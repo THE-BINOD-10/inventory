@@ -5663,7 +5663,8 @@ def app_shipment_info_data(request, user=''):
             result = firebase.get('/OrderDetails/' + loan_proposal_id + '/pod_status', None)
         except:
             result = False
-        pod_status = result
+        if result :
+            pod_status = result
         ship_status = ship_status[ship_status.index(status):]
         data.append({'id': orders.id,
                      'customer_name':orders.order.customer_name,

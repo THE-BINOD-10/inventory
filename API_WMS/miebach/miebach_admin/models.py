@@ -621,6 +621,7 @@ class ASNStockDetail(models.Model):
     asn_po_num = models.CharField(max_length=32, default='')
     sku = models.ForeignKey(SKUMaster)
     quantity = models.IntegerField(default=0)
+    status = models.CharField(max_length=32, default='open')
     arriving_date = models.DateField(blank=True, null=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)

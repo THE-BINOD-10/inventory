@@ -52,6 +52,10 @@
                   <th> SKU Code </th>
                   <th> Shipping Quantity </th>
                   <th> Serial_number </th>
+                  <th>Acknowledgement Slip</th>
+                  <th>ID Type</th>
+                  <th>ID NUMBER </th>
+                  <th>ID Card</th>
                   <th> Pack Reference </th>
                   <th> Status </th>
                 </tr>
@@ -69,6 +73,10 @@
                   <td>{{data.sku_code}}</td>
                   <td>{{data.ship_quantity}}</td>
                   <td>{{data.serial_number}}</td>
+                  <td> <img src="{{data.acknowledgement_slip}}" style="width:100px;height:100px;padding-right:2px;"/></td>
+                  <td>{{data.id_type}}</td>
+                  <td>{{data.id_proof_number}}</td>
+                  <td><img src="{{data.id_card}}" style="width:100px;height:100px;padding-right:2px;"/></td>
                   <td>{{data.pack_reference}}</td>
                   <td>
                     <select ng-model="data.status" class="form-control" name="status">

@@ -72,6 +72,7 @@ $(document).ready(function(){
            <th> SKU Code </th>
            <th> Shipping Quantity </th>
            <th> serial number </th>
+           <th>ID Number</th>
            <th> Pack Reference </th>
            <!-- <th> Status </th> -->
        </tr>
@@ -86,6 +87,7 @@ $(document).ready(function(){
                <td>{{ record.sku_code}}</td>
                <td>{{ record.ship_quantity}}</td>
                <td>{{ record.serial_number}}</td>
+               <td>{{ record.id_proof_number}}</td>
                <td>{{ record.pack_reference}}</td>
        </tr>
       {% endfor %}

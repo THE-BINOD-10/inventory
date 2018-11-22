@@ -5555,16 +5555,29 @@ def shipment_info_data(request, user=''):
         else:
             serial_number = 0
         from firebase import firebase
-        #import pdb; pdb.set_trace()
-        #firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)
-        #result = firebase.get('/OrderDetails/orders.order.original_order_id', None)
-        #print result
+        firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)
+        result = firebase.get('/OrderDetails/'+orders.order.original_order_id, None)
+        if  result :
+            acknowledgement_slip = result['acknowledgement_slip']
+            id_type = result['id_type']
+            id_card = result['id_card']
+            id_proof_number = result['id_proof_number']
+        else:
+            acknowledgement_slip =''
+            id_type =''
+            id_card =''
+            id_proof_number = ''
+
         ship_status = ship_status[ship_status.index(status):]
         data.append({'id': orders.id, 'order_id': orders.order.original_order_id, 'customer_name':orders.order.customer_name,'sku_code': orders.order.sku.sku_code,
                      'ship_quantity': orders.shipping_quantity,
                      'loan_proposal_id':float(loan_proposal_id),
                      'model':model,
                      'serial_number':serial_number,
+                     'acknowledgement_slip':acknowledgement_slip,
+                     'id_type':id_type,
+                     'id_proof_number':id_proof_number,
+                     'id_card':id_card,
                      'mobile_no':float(mobile_no),
                      'alternative_mobile_no':float(alternative_mobile_no),
                      'district':district,

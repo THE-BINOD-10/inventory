@@ -5645,13 +5645,14 @@ def app_shipment_info_data(request, user=''):
         if serial_number :
             serial_number = serial_number[0].po_imei.imei_number
         else:
-            serial_number = 0
+            serial_number = '0'
         id_card =' '
         acknowledgement_slip =' '
         uid = ' '
         id_proof_number =' '
-        time =' '
+        time =0
         id_type =' '
+        pod_status = False
         ship_status = ship_status[ship_status.index(status):]
         data.append({'id': orders.id,'customer_name':orders.order.customer_name,
                      'sku_code': orders.order.sku.sku_code,
@@ -5661,6 +5662,7 @@ def app_shipment_info_data(request, user=''):
                      'id_card':id_card,
                      'acknowledgement_slip':acknowledgement_slip,
                      'uid':uid,
+                     'pod_status': pod_status,
                      'id_proof_number': id_proof_number,
                      'time': time,
                      'id_type' : id_type,

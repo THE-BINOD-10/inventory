@@ -5641,17 +5641,29 @@ def app_shipment_info_data(request, user=''):
                 alternative_mobile_no = alternative_mobile_no_obj[0].value
                 if not alternative_mobile_no :
                     alternative_mobile_no = 0
-        serial_number = OrderIMEIMapping.objects.filter(po_imei__sku__wms_code =orders.order.sku.sku_code)
+        serial_number = OrderIMEIMapping.objects.filter(po_imei__sku__wms_code =orders.order.sku.sku_code,order_id= orders.order.id)
         if serial_number :
-            serial_number = serial_number
+            serial_number = serial_number[0].po_imei.imei_number
         else:
             serial_number = 0
-
+        id_card =''
+        acknowledgement_slip =''
+        uid = ''
+        id_proof_number =''
+        time =''
+        id_type =''
         ship_status = ship_status[ship_status.index(status):]
         data.append({'id': orders.id,'customer_name':orders.order.customer_name,
                      'sku_code': orders.order.sku.sku_code,
                      'ship_quantity': orders.shipping_quantity,
                      'loan_proposal_id':orders.order.original_order_id,
+                     'serial_number':serial_number,
+                     'id_card':id_card,
+                     'acknowledgement_slip':acknowledgement_slip,
+                     'uid':uid,
+                     'id_proof_number': id_proof_number,
+                     'time': time,
+                     'id_type' : id_type,
                      'model':model,
                      'mobile_no':float(mobile_no),
                      'alternative_mobile_no':float(alternative_mobile_no),

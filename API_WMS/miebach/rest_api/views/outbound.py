@@ -5670,10 +5670,12 @@ def app_shipment_info_data(request, user=''):
                      'district':district})
         if not ship_reference:
             ship_reference = orders.order_packaging.order_shipment.shipment_reference
-
-    return HttpResponse(json.dumps({'data': data,'manifest_number':manifest_number,
+    if manifest_number :
+        return HttpResponse(json.dumps({'data': data,'manifest_number':manifest_number,
                                      'truck_number': truck_number, 'driver_phone_number' : driver_phone_number,'driver_name':driver_name},
                                    cls=DjangoJSONEncoder))
+    else:
+        return HttpResponse("Invalid Manifest Number")
 
 
 

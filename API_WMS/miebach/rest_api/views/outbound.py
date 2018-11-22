@@ -5550,9 +5550,9 @@ def shipment_info_data(request, user=''):
                 alternative_mobile_no = alternative_mobile_no_obj[0].value
                 if not alternative_mobile_no :
                     alternative_mobile_no = 0
-        serial_number = OrderIMEIMapping.objects.filter(po_imei__sku__wms_code =orders.order.sku.sku_code, po_imei__sku__user=user.id)
+        serial_number = OrderIMEIMapping.objects.filter(po_imei__sku__wms_code =orders.order.sku.sku_code,order_id= orders.order.id,po_imei__sku__user=user.id)
         if serial_number :
-            serial_number = serial_number
+            serial_number = serial_number[0].po_imei.imei_number
         else:
             serial_number = 0
 

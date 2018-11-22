@@ -5556,9 +5556,9 @@ def shipment_info_data(request, user=''):
             serial_number = 0
         from firebase import firebase
         #import pdb; pdb.set_trace()
-        firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)
-        result = firebase.get('/UserDetail/8nm2b0sb1ubpcP7o8008b3Gdfrj2', None)
-        print result
+        #firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)
+        #result = firebase.get('/OrderDetails/orders.order.original_order_id', None)
+        #print result
         ship_status = ship_status[ship_status.index(status):]
         data.append({'id': orders.id, 'order_id': orders.order.original_order_id, 'customer_name':orders.order.customer_name,'sku_code': orders.order.sku.sku_code,
                      'ship_quantity': orders.shipping_quantity,
@@ -5656,9 +5656,13 @@ def app_shipment_info_data(request, user=''):
         time =0
         id_type =' '
         pod_status = False
+        loan_proposal_id = str(orders.order.original_order_id)
         from firebase import firebase
         firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)
-        result = firebase.get('/OrderDetails/123abc/pod_status', None)
+        try:
+            result = firebase.get('/OrderDetails/' + loan_proposal_id + '/pod_status', None)
+        except:
+            result = False
         pod_status = result
         ship_status = ship_status[ship_status.index(status):]
         data.append({'id': orders.id,

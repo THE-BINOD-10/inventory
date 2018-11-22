@@ -5575,6 +5575,96 @@ def shipment_info_data(request, user=''):
                                    cls=DjangoJSONEncoder))
 
 
+def app_shipment_info_data(request, user=''):
+    headers = ('Order ID', 'SKU Code', 'Shipping Quantity', 'Shipment Reference', 'Pack Reference', 'Status')
+    data = []
+    loan_proposal_id = 0
+    mobile_no = 0
+    model = ''
+    district = ''
+    alternative_mobile_no = 0
+    #customer_id = request.GET['customer_id']
+    manifest_number = request.GET['manifest_number']
+    #gateout = request.GET.get('gateout', '')
+    # if gateout:
+    #     gateout = int(gateout)
+    ship_reference = ''
+    shipment_orders = ShipmentInfo.objects.filter(order_shipment__manifest_number=manifest_number)
+    truck_number = ''
+    driver_phone_number = ''
+    driver_name = ''
+    manifest_number = ''
+    if shipment_orders:
+        truck_number = shipment_orders[0].order_shipment.truck_number
+        driver_name = shipment_orders[0].order_shipment.driver_name
+        driver_phone_number = shipment_orders[0].order_shipment.driver_phone_number
+        manifest_number = shipment_orders[0].order_shipment.manifest_number
+
+    for orders in shipment_orders:
+        ship_status = copy.deepcopy(SHIPMENT_STATUS)
+        status = 'Dispatched'
+        # tracking = ShipmentTracking.objects.filter(shipment_id=orders.id, shipment__order__user=user.id).order_by(
+        #     '-creation_date'). \
+        #     values_list('ship_status', flat=True)
+        # if tracking:
+        #     status = tracking[0]
+        #     if gateout:
+        #         if status != 'Delivered' and status != 'Out for Delivery':
+        #             continue
+        #     else:
+        #         if not (status != 'Delivered' and status != 'Out for Delivery'):
+        #             continue
+        interm_obj = IntermediateOrders.objects.filter(order_id=str(orders.order.id))
+        if interm_obj :
+            district_obj = OrderFields.objects.filter(original_order_id=str(orders.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id),name='district')
+            if district_obj:
+                district = district_obj[0].value
+                if not district :
+                    district = ''
+            loan_proposal_obj = OrderFields.objects.filter(original_order_id=str(orders.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id),name='loan_proposal_id')
+            if loan_proposal_obj :
+                loan_proposal_id = loan_proposal_obj[0].value
+                if not loan_proposal_id :
+                    loan_proposal_id = 0
+            model_obj = OrderFields.objects.filter(original_order_id=str(orders.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id),name='model')
+            if model_obj :
+                model = model_obj[0].value
+                if not model :
+                    model = ''
+            mobile_no_obj = OrderFields.objects.filter(original_order_id=str(orders.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id),name='mobile_no')
+            if mobile_no_obj :
+                mobile_no = mobile_no_obj[0].value
+                if not mobile_no :
+                    mobile_no = 0
+            alternative_mobile_no_obj = OrderFields.objects.filter(original_order_id=str(orders.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id),name='alternative_mobile_no')
+            if alternative_mobile_no_obj :
+                alternative_mobile_no = alternative_mobile_no_obj[0].value
+                if not alternative_mobile_no :
+                    alternative_mobile_no = 0
+        serial_number = OrderIMEIMapping.objects.filter(po_imei__sku__wms_code =orders.order.sku.sku_code)
+        if serial_number :
+            serial_number = serial_number
+        else:
+            serial_number = 0
+
+        ship_status = ship_status[ship_status.index(status):]
+        data.append({'id': orders.id,'customer_name':orders.order.customer_name,
+                     'sku_code': orders.order.sku.sku_code,
+                     'ship_quantity': orders.shipping_quantity,
+                     'loan_proposal_id':orders.order.original_order_id,
+                     'model':model,
+                     'mobile_no':float(mobile_no),
+                     'alternative_mobile_no':float(alternative_mobile_no),
+                     'district':district})
+        if not ship_reference:
+            ship_reference = orders.order_packaging.order_shipment.shipment_reference
+
+    return HttpResponse(json.dumps({'data': data,'manifest_number':manifest_number,
+                                     'truck_number': truck_number, 'driver_phone_number' : driver_phone_number,'driver_name':driver_name},
+                                   cls=DjangoJSONEncoder))
+
+
+
 @csrf_exempt
 @get_admin_user
 def update_shipment_status(request, user=''):

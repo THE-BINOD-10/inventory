@@ -361,6 +361,7 @@ urlpatterns = [
     url(r'^get_stock_transfer_shipment_popup_data/$', get_stock_transfer_shipment_popup_data),
     url(r'^insert_st_shipment_info/$', insert_st_shipment_info),
     url(r'^do_delegate_orders/$', do_delegate_orders),
+    url(r'^app_shipment_info_data/$', app_shipment_info_data),
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),

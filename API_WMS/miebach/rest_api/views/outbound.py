@@ -335,6 +335,13 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
                 prepare_str = ','.join(list(set(order_customer_name)))
             else:
                 prepare_str = ','.join(list(set(order_marketplace)))
+            if not prepare_str:
+                st_order = STOrder.objects.filter(picklist_id=picklist_obj[0].id)
+                if st_order:
+                    user_id = st_order[0].stock_transfer.st_po.open_st.sku.user
+                    user_profile = User.objects.get(id=user_id)
+                    if user_profile:
+                        prepare_str = user_profile.username
             if not prepare_str and picklist_obj[0].order:
                 order_id = picklist_obj[0].order.original_order_id
                 if order_id:

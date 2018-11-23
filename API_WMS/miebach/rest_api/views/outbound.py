@@ -5571,7 +5571,7 @@ def shipment_info_data(request, user=''):
         ship_status = ship_status[ship_status.index(status):]
         data.append({'id': orders.id, 'order_id': orders.order.original_order_id, 'customer_name':orders.order.customer_name,'sku_code': orders.order.sku.sku_code,
                      'ship_quantity': orders.shipping_quantity,
-                     'loan_proposal_id':float(loan_proposal_id),
+                     'loan_proposal_id':orders.order.original_order_id,
                      'model':model,
                      'serial_number':serial_number,
                      'signed_invoice_copy':signed_invoice_copy,

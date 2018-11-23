@@ -12,7 +12,7 @@
               <table class="table table-bordered bl br cal-table m0">
                 <thead>
                   <tr class="fs14">
-                    <th class="w10"><center>SKU Code</center></th>
+                    <th><center>SKU Code</center></th>
                     <th class="w7"><center>HSN</center></th>
                     <th><center>Description</center></th>
                     {% if show_mrp == 'true' %}
@@ -37,7 +37,7 @@
                   {% if not record.continue %}
                   <tr ng-repeat="record in page.data" class="fs14 rm-border">
                     <td class="text-left">
-                      <div style="overflow: hidden;width: 100px;  overflow-wrap: break-word;">{{record.sku_code}}</td>
+                      <div>{{record.sku_code}}</td>
                     <td class="text-left">{{record.hsn_code}}</td>
                     <td class="text-left"><div class="wrap">{{record.title}}</div></td>
                     {% if show_mrp == 'true' %}

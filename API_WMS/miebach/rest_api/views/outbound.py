@@ -1105,7 +1105,8 @@ def validate_location_stock(val, all_locations, all_skus, user, picklist):
     if 'pallet' in val and val['pallet']:
         pic_check_data['pallet_detail__pallet_code'] = val['pallet']
     if picklist.stock and picklist.stock.batch_detail_id:
-        pic_check_data['batch_detail_id'] = picklist.stock.batch_detail_id
+        pic_check_data['batch_detail__mrp'] = picklist.stock.batch_detail.mrp
+        pic_check_data['batch_detail__batch_no'] = picklist.stock.batch_detail.batch_no
     if picklist.sellerorderdetail_set.filter(seller_order__isnull=False).exists():
         pic_check_data['sellerstock__seller_id'] = picklist.sellerorderdetail_set.\
                                                     filter(seller_order__isnull=False)[0].seller_order.seller_id

@@ -271,7 +271,7 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    perm: "add_suppliermaster"
                  },
                  {
-                   title: "Raise StockTransfer Order Form Download/ Upload",
+                   title: "Create StockTransfer Order Form Download/ Upload",
                    download: "StockTransfer Order Download Form",
                    upload: "StockTransfer Order Upload Form",
                    durl: "stock_transfer_order_form/",

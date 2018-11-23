@@ -5719,7 +5719,7 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
         if not order_mapping:
             break
         count += 1
-        if order_mapping.has_key('warehouse_name') and row_idx == 1:
+        if order_mapping.has_key('warehouse_name') :
             try:
                 warehouse_name = str(int(get_cell_data(row_idx, order_mapping['warehouse_name'], reader, file_type)))
             except:
@@ -5763,10 +5763,10 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
         return f_name
     order_amount = 0
     interm_order_id = ''
-    all_data = {}
     for row_idx in range(1, no_of_rows):
+        all_data = {}
         for key, value in order_mapping.iteritems():
-            if key == 'warehouse_name' and row_idx == 1:
+            if key == 'warehouse_name':
                 try:
                     warehouse = str(int(get_cell_data(row_idx, value, reader, file_type)))
                 except:
@@ -5784,11 +5784,11 @@ def stock_transfer_order_xls_upload(request, reader, user, no_of_rows, fname, fi
         cond = (user.username)
         all_data.setdefault(cond, [])
         all_data[cond].append([wms_code, quantity, price, 0])
+        warehouse = User.objects.get(username=warehouse)
+        f_name = 'stock_transfer_' + warehouse_name + '_'
+        all_data = insert_st(all_data, warehouse)
+        status = confirm_stock_transfer(all_data, warehouse, user.username)
 
-    warehouse = User.objects.get(username=warehouse)
-    f_name = 'stock_transfer_' + warehouse_name + '_'
-    all_data = insert_st(all_data, warehouse)
-    status = confirm_stock_transfer(all_data, warehouse, user.username)
     if status.status_code == 200:
         return 'Success'
     else:
@@ -5817,7 +5817,6 @@ def insert_st(all_data, user):
     return all_data
 
 def confirm_stock_transfer(all_data, user, warehouse_name):
-    user_profile = UserProfile.objects.filter(user_id=user.id)
     for key, value in all_data.iteritems():
         po_id = get_purchase_order_id(user) + 1
         warehouse = User.objects.get(username__iexact=warehouse_name)
@@ -5830,6 +5829,7 @@ def confirm_stock_transfer(all_data, user, warehouse_name):
         for val in value:
             open_st = OpenST.objects.get(id=val[3])
             sku_id = SKUMaster.objects.get(wms_code__iexact=val[0], user=warehouse.id).id
+            user_profile = UserProfile.objects.filter(user_id=user.id)
             prefix = ''
             if user_profile:
                 prefix = user_profile[0].prefix

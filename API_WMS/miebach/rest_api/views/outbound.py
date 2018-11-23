@@ -5558,12 +5558,12 @@ def shipment_info_data(request, user=''):
         firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)
         result = firebase.get('/OrderDetails/'+orders.order.original_order_id, None)
         if  result :
-            acknowledgement_slip = result['acknowledgement_slip']
+            signed_invoice_copy = result['signed_invoice_copy']
             id_type = result['id_type']
             id_card = result['id_card']
             id_proof_number = result['id_proof_number']
         else:
-            acknowledgement_slip =''
+            signed_invoice_copy =''
             id_type =''
             id_card =''
             id_proof_number = ''
@@ -5574,7 +5574,7 @@ def shipment_info_data(request, user=''):
                      'loan_proposal_id':float(loan_proposal_id),
                      'model':model,
                      'serial_number':serial_number,
-                     'acknowledgement_slip':acknowledgement_slip,
+                     'signed_invoice_copy':signed_invoice_copy,
                      'id_type':id_type,
                      'id_proof_number':id_proof_number,
                      'id_card':id_card,
@@ -5663,7 +5663,7 @@ def app_shipment_info_data(request, user=''):
         else:
             serial_number = '0'
         id_card =' '
-        acknowledgement_slip =' '
+        signed_invoice_copy =' '
         uid = ' '
         id_proof_number =' '
         time =0
@@ -5686,7 +5686,7 @@ def app_shipment_info_data(request, user=''):
                      'loan_proposal_id':orders.order.original_order_id,
                      'serial_number':serial_number,
                      'id_card':id_card,
-                     'acknowledgement_slip':acknowledgement_slip,
+                     'signed_invoice_copy':signed_invoice_copy,
                      'uid':uid,
                      'pod_status': pod_status,
                      'id_proof_number': id_proof_number,

@@ -29,4 +29,4 @@ ANGULAR_WMS/app/data/*
 ANGULAR_WMS/app/temp/*
 ANGULAR_WMS/app/vendor/*
 ANGULAR_WMS/.tmp/*
-
+.idea/*

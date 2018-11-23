@@ -13099,7 +13099,7 @@ def get_stock_transfer_shipment_data(start_index, stop_index, temp_data, search_
     if order_term == 'desc':
         sort_data = '-%s' % sort_data
     stock_transfer_objs = StockTransfer.objects.filter(**stock_transfer_dict)
-    stock_transfers = stock_transfer_objs.values('order_id', 'st_po__open_st__warehouse__username').distinct().\
+    stock_transfers = stock_transfer_objs.values('order_id', 'st_po__open_st__sku__user').distinct().\
                                 annotate(ordered=Sum('quantity'), date_only=Cast('creation_date', DateField())).\
                                     order_by(sort_data)
     temp_data['recordsTotal'] = stock_transfers.count()
@@ -13108,11 +13108,16 @@ def get_stock_transfer_shipment_data(start_index, stop_index, temp_data, search_
                          values_list('stock_transfer__order_id').annotate(picked_qty=Sum('picklist__picked_quantity',
                                                                                          distinct=True)))
     for stock_transfer in stock_transfers:
+        destination_wh = ''
         order_id = stock_transfer['order_id']
+        user_id = stock_transfer['st_po__open_st__sku__user']
+        user_profile = User.objects.get(id=user_id)
+        if user_profile:
+            destination_wh = user_profile.username
         temp_data['aaData'].append(OrderedDict(( ('Stock Transfer ID', order_id),
                                             ('Picked Quantity', picklist_qtys.get(order_id, 0)),
                                             ('Stock Transfer Date&Time', str(stock_transfer['date_only'])),
-                                            ('Destination Warehouse', stock_transfer['st_po__open_st__warehouse__username']),
+                                            ('Destination Warehouse', destination_wh),
                                             ('Total Quantity', stock_transfer['ordered']))))
 
 

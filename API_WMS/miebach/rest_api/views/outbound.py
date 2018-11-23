@@ -222,7 +222,7 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
 
 @csrf_exempt
 def get_stock_transfer_orders(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
-    lis = ['id', 'st_po__open_st__warehouse__username', 'order_id', 'sku__sku_code', 'quantity']
+    lis = ['id', 'st_po__open_st__warehouse__username', 'order_id', 'sku__sku_code','creation_date', 'quantity']
     if order_term:
         order_data = lis[col_num]
         if order_term == 'desc':
@@ -242,6 +242,7 @@ def get_stock_transfer_orders(start_index, stop_index, temp_data, search_term, o
         w_user = User.objects.get(id=data.st_po.open_st.sku.user)
         temp_data['aaData'].append({'': checkbox, 'Warehouse Name': w_user.username, 'Stock Transfer ID': data.order_id,
                                     'SKU Code': data.sku.sku_code, 'Quantity': data.quantity, 'DT_RowClass': 'results',
+                                    'Creation Date':data.creation_date.strftime("%d %b, %Y"),
                                     'DT_RowAttr': {'id': data.id}, 'id': count})
         count = count + 1
 
@@ -12806,7 +12807,7 @@ def create_orders_check_ean(request, user=''):
 
 @csrf_exempt
 def get_stock_transfer_order_level_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user):
-    lis = ['order_id', 'st_po__open_st__warehouse__username', 'order_id', 'date_only']
+    lis = ['order_id', 'st_po__open_st__warehouse__username', 'order_id', 'date_only','tsum']
     stock_transfer_objs = StockTransfer.objects.filter(sku__user=user.id, status=1).\
                                             values('st_po__open_st__sku__user', 'order_id').\
                                             distinct().annotate(tsum=Sum('quantity'),

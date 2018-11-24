@@ -94,7 +94,7 @@ def truncate_float(value, decimal_limit):
 
 
 def number_in_words(value):
-    value = (num2words(int(round(value)), lang='en_IN')).capitalize()
+    value = (num2words(int(round(value)), lang='en_IN').replace(',', '').replace('-', ' ')).capitalize()
     return value
 
 
@@ -2753,12 +2753,12 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             if customer_details:
                 customer_id = customer_details[0]['id']
                 customer_address = customer_details[0]['name'] + '\n' + customer_details[0]['address']
+                if customer_details[0]['tin_number']:
+                    customer_address += ("\nGSTIN No: " + customer_details[0]['tin_number'])
                 if customer_details[0]['phone_number']:
                     customer_address += ("\nCall: " + customer_details[0]['phone_number'])
                 if customer_details[0]['email_id']:
-                    customer_address += ("\nEmail: " + customer_details[0]['email_id'])
-                if customer_details[0]['tin_number']:
-                    customer_address += ("\nGSTIN No: " + customer_details[0]['tin_number'])
+                    customer_address += ("\tEmail: " + customer_details[0]['email_id'])
                 consignee = customer_address
             else:
                 customer_id = dat.customer_id
@@ -2945,6 +2945,9 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 imei_data.append(temp_imeis)
             if sku_code in [x['sku_code'] for x in data]:
                 continue
+            if math.ceil(quantity) == quantity:
+                quantity = int(quantity)
+
             data.append(
                 {'order_id': order_id, 'sku_code': sku_code, 'sku_desc': sku_desc,
                  'title': title, 'invoice_amount': str(invoice_amount),
@@ -2954,6 +2957,34 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                  'base_price': base_price, 'hsn_code': hsn_code, 'imeis': temp_imeis,
                  'discount_percentage': discount_percentage, 'id': dat.id, 'shipment_date': shipment_date, 
                  'measurement_type': measurement_type})
+
+    is_cess_tax_flag = 'true'
+    for ord_dict in data:
+        if ord_dict['taxes'].get('cess_tax', 0):
+            break
+    else:
+        is_cess_tax_flag = 'false'
+
+    if is_cess_tax_flag == 'false':
+        for ord_dict in data:
+            if 'cess_tax' in ord_dict:
+                ord_dict.pop('cess_tax')
+            if 'cess_amt' in ord_dict:
+                ord_dict.pop('cess_amt')
+
+    is_igst_tax_flag = 'true'
+    for ord_dict in data:
+        if ord_dict['taxes'].get('igst_tax', 0):
+            break
+    else:
+        is_igst_tax_flag = 'false'
+
+    if is_igst_tax_flag == 'false':
+        for ord_dict in data:
+            if 'igst_tax' in ord_dict:
+                ord_dict.pop('igst_tax')
+            if 'igst_amt' in ord_dict:
+                ord_dict.pop('igst_amt')
     _invoice_no, _sequence = get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos)
     challan_no, challan_sequence = get_challan_number(user, seller_summary)
     inv_date = invoice_date.strftime("%m/%d/%Y")
@@ -2989,6 +3020,9 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
         company_address = company_address.replace("\n", " ")
         company_name = seller.name #'SHPROC Procurement Pvt. Ltd.'
 
+    if math.ceil(total_quantity) == total_quantity:
+        total_quantity = int(total_quantity)
+
     invoice_data = {'data': data, 'imei_data': imei_data, 'company_name': company_name,
                     'company_address': company_address, 'company_number': company_number,
                     'order_date': order_date, 'email': email, 'marketplace': marketplace, 'total_amt': total_amt,
@@ -3014,7 +3048,8 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'order_reference_date_field': order_reference_date_field,
                     'order_reference_date': order_reference_date, 'invoice_header': invoice_header,
                     'cin_no': cin_no, 'challan_no': challan_no, 'customer_id': customer_id,
-                    'show_mrp': show_mrp, 'mode_of_transport' : mode_of_transport, 'vehicle_number' : vehicle_number}
+                    'show_mrp': show_mrp, 'mode_of_transport' : mode_of_transport, 'vehicle_number' : vehicle_number,
+                    'is_cess_tax_flag': is_cess_tax_flag, 'is_igst_tax_flag': is_igst_tax_flag}
     return invoice_data
 
 
@@ -3422,7 +3457,7 @@ def get_sku_catalogs_data(request, user, request_data={}, is_catalog=''):
 
     today_filter = datetime.datetime.today()
     hundred_day_filter = today_filter + datetime.timedelta(days=90)
-    ints_filters = {'quantity__gt': 0, 'sku__sku_code__in': needed_skus, 'sku__user__in': gen_whs}
+    ints_filters = {'quantity__gt': 0, 'sku__sku_code__in': needed_skus, 'sku__user__in': gen_whs, 'status': 'open'}
     asn_qs = ASNStockDetail.objects.filter(**ints_filters)
     intr_obj_100days_qs = asn_qs.filter(Q(arriving_date__lte=hundred_day_filter)| Q(asn_po_num='NON_KITTED_STOCK'))
     intr_obj_100days_ids = intr_obj_100days_qs.values_list('id', flat=True)
@@ -5290,7 +5325,7 @@ def build_invoice(invoice_data, user, css=False):
     invoice_data['perm_hsn_summary'] = str(perm_hsn_summary)
     if len(invoice_data['hsn_summary'].keys()) == 0:
         invoice_data['perm_hsn_summary'] = 'false'
-    invoice_data['empty_tds'] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    invoice_data['html_data']['empty_tds'] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     invoice_height = 1358
     if 'side_image' in invoice_data.keys() and 'top_image' in invoice_data.keys():
         if not invoice_data['side_image'] and invoice_data['top_image']:
@@ -5429,7 +5464,7 @@ def build_marketplace_invoice(invoice_data, user, css=False):
     invoice_data['perm_hsn_summary'] = str(perm_hsn_summary)
     if len(invoice_data['hsn_summary'].keys()) == 0:
         invoice_data['perm_hsn_summary'] = 'false'
-    invoice_data['empty_tds'] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    invoice_data['empty_tds'] = [1, 2, 3, 4, 5, 6, 7, 8]
 
     inv_height = 1358  # total invoice height
     inv_details = 317  # 292 #invoice details height 292
@@ -7615,6 +7650,8 @@ def get_style_variants(sku_master, user, customer_id='', total_quantity=0, custo
                             price_data = NetworkMaster.objects.filter(dest_location_code_id=dist_wh_id).\
                                 values_list('source_location_code_id', 'price_type')
                         else:
+                            if level == 3:
+                                level = 1
                             price_data = NetworkMaster.objects.filter(dest_location_code_id=dist_wh_id).filter(
                                 source_location_code_id__userprofile__warehouse_level=level). \
                                 values_list('source_location_code_id', 'price_type')

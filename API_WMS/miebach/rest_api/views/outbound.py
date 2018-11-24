@@ -3670,7 +3670,7 @@ def fetch_asn_stock(dist_user_id, sku_code, req_stock):
         source_location_code__userprofile__warehouse_level=1).values_list('source_location_code_id',
                                                                           flat=True).order_by('lead_time',
                                                                                               'priority'))
-    ints_filters = {'quantity__gt': 0, 'sku__sku_code': sku_code, 'sku__user__in': source_whs}
+    ints_filters = {'quantity__gt': 0, 'sku__sku_code': sku_code, 'sku__user__in': source_whs, 'status': 'open'}
     asn_qs = ASNStockDetail.objects.filter(**ints_filters)
     intr_obj_3days_qs = asn_qs.filter(arriving_date__lte=threeday_filter)
     intr_obj_3days_ids = intr_obj_3days_qs.values_list('id', flat=True)
@@ -4272,7 +4272,8 @@ def create_order_from_intermediate_order(request, user):
 def block_asn_stock(sku_id, qty, lead_time, ord_det_id, is_enquiry=False):
     todays_date = datetime.datetime.today().date()
     lt_date = todays_date + datetime.timedelta(days=lead_time)
-    asn_qs = ASNStockDetail.objects.filter(sku_id=sku_id, arriving_date__lte=lt_date).order_by('arriving_date')
+    asn_qs = ASNStockDetail.objects.filter(sku_id=sku_id, status='open',
+                                           arriving_date__lte=lt_date).order_by('arriving_date')
     for asn_obj in asn_qs:
         asn_res_map = {'asnstock_id': asn_obj.id}
         if not is_enquiry:
@@ -5793,7 +5794,8 @@ def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_
     hundred_day_filter = today_filter + datetime.timedelta(days=90)
     sku_filter = [sku_master[0]['sku_class']]
 
-    asn_filters = {'quantity__gt': 0, 'sku__sku_class__in': sku_filter, 'sku__user__in': stock_display_warehouse}
+    asn_filters = {'quantity__gt': 0, 'sku__sku_class__in': sku_filter, 'sku__user__in': stock_display_warehouse,
+                   'status': 'open'}
     asn_qs = ASNStockDetail.objects.filter(**asn_filters)
     asn_3_qs = asn_qs.filter(Q(arriving_date__lte=threeday_filter) | Q(asn_po_num='NON_KITTED_STOCK'))
     asn_3_ids = asn_3_qs.values_list('id', flat=True)
@@ -6044,7 +6046,7 @@ def get_sku_variants(request, user=''):
 
     today_filter = datetime.datetime.today()
     hundred_day_filter = today_filter + datetime.timedelta(days=90)
-    ints_filters = {'quantity__gt': 0, 'sku__sku_code__in': needed_skus, 'sku__user__in': gen_whs}
+    ints_filters = {'quantity__gt': 0, 'sku__sku_code__in': needed_skus, 'sku__user__in': gen_whs, 'status': 'open'}
     asn_qs = ASNStockDetail.objects.filter(**ints_filters)
     intr_obj_100days_qs = asn_qs.filter(arriving_date__lte=hundred_day_filter)
     intr_obj_100days_ids = intr_obj_100days_qs.values_list('id', flat=True)
@@ -6136,7 +6138,9 @@ def get_sku_variants(request, user=''):
                                         arriving_date = datetime.datetime.strptime(asn_stock['By'], '%d-%b-%Y')
                                         quantity = int(asn_stock['Qty'])
                                         qc_quantity = int(math.floor(quantity*95/100))
-                                        asn_stock_detail = ASNStockDetail.objects.filter(sku_id=sku[0].id, asn_po_num=po)
+                                        asn_stock_detail = ASNStockDetail.objects.filter(sku_id=sku[0].id,
+                                                                                         asn_po_num=po,
+                                                                                         status='open')
                                         if asn_stock_detail:
                                             asn_stock_detail = asn_stock_detail[0]
                                             asn_stock_detail.quantity = qc_quantity
@@ -9029,7 +9033,7 @@ def get_customer_cart_data(request, user=""):
                 for wh in whs:
                     sku_id = get_syncedusers_mapped_sku(wh=wh, sku_id=record.sku.id)
                     if record.warehouse_level == 3:
-                        intransit_obj = ASNStockDetail.objects.filter(quantity__gt=0,
+                        intransit_obj = ASNStockDetail.objects.filter(quantity__gt=0, status='open',
                                                                       sku=sku_id).only('sku__sku_code',
                                                                                        'quantity').values(
                             'sku__sku_code').distinct().annotate(in_asn=Sum('quantity'))

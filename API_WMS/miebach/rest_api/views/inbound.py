@@ -2453,13 +2453,18 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
         if 'po_quantity' in myDict.keys() and 'price' in myDict.keys() and not myDict['id'][i]:
             if myDict['wms_code'][i] and myDict['quantity'][i]:
                 sku_master = SKUMaster.objects.filter(wms_code=myDict['wms_code'][i].upper(), user=user.id)
-                if not sku_master or not myDict['id'][0]:
+                exist_id = 0
+                for exist_list_ind, exist_list_id in enumerate(myDict['id']):
+                    if exist_list_id:
+                        exist_id = exist_list_ind
+                        break
+                if not sku_master or not myDict['id'][exist_id]:
                     if not status_msg:
                         status_msg = 'Invalid WMS Code ' + myDict['wms_code'][i]
                     else:
                         status_msg += ',' + myDict['wms_code'][i]
                     continue
-                get_data = create_purchase_order(request, myDict, i)
+                get_data = create_purchase_order(request, myDict, i, exist_id=exist_id)
                 myDict['id'][i] = get_data
         data = PurchaseOrder.objects.get(id=myDict['id'][i])
         if remarks != data.remarks:
@@ -2469,6 +2474,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
         if remainder_mail:
             data.remainder_mail = remainder_mail
 
+        purchase_data = get_purchase_order_data(data)
         #Create Batch Detail entry
         batch_dict = {}
         if 'batch_no' in myDict.keys():
@@ -2478,7 +2484,11 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
                           'tax_percent': myDict['tax_percent'][i],
                           'mrp': myDict['mrp'][i], 'buy_price': myDict['buy_price'][i]
                          }
-        purchase_data = get_purchase_order_data(data)
+            try:
+                batch_dict['weight'] = float(''.join(re.findall('\d+', str(myDict['weight'][i]))))
+            except:
+                batch_dict['weight'] = 0
+            add_ean_weight_to_batch_detail(purchase_data['sku'], batch_dict)
         temp_quantity = data.received_quantity
         unit = ''
         sku_row_buy_price = 0
@@ -5034,8 +5044,8 @@ def check_imei_exists(request, user=''):
 
 @csrf_exempt
 @get_admin_user
-def create_purchase_order(request, myDict, i, user=''):
-    po_order = PurchaseOrder.objects.filter(id=myDict['id'][0], open_po__sku__user=user.id)
+def create_purchase_order(request, myDict, i, user='', exist_id=0):
+    po_order = PurchaseOrder.objects.filter(id=myDict['id'][exist_id], open_po__sku__user=user.id)
     purchase_order = PurchaseOrder.objects.filter(order_id=po_order[0].order_id,
                                                   open_po__sku__wms_code=myDict['wms_code'][i],
                                                   open_po__sku__user=user.id)
@@ -6265,8 +6275,8 @@ def confirm_primary_segregation(request, user=''):
                               'expiry_date': expiry_date,
                               'manufactured_date': manufactured_date,
                               'tax_percent': batch_detail.tax_percent,
-                              'mrp': batch_detail.mrp, 'buy_price': batch_detail.buy_price
-                              }
+                              'mrp': batch_detail.mrp, 'buy_price': batch_detail.buy_price,
+                              'weight': batch_detail.weight, 'ean_number': batch_detail.ean_number}
             purchase_data = get_purchase_order_data(segregation_obj.purchase_order)
             seller_received_dict = get_seller_received_list(segregation_obj.purchase_order, user)
             if sellable:

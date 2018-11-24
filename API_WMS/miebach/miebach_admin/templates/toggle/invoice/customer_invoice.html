@@ -9,33 +9,33 @@
             <div class="invoice-body">
                 {% include "toggle/invoice/normal_details.html" %}
 
-              <table class="table table-bordered bl br cal-table m0">
+              <table class="table table-bordered table-responsive bl br cal-table m0">
                 <thead>
                   <tr class="fs14">
-                    <th class="w10"><center>SKU Code</center></th>
-                    <th class="w7"><center>HSN</center></th>
+                    <th><center>SKU Code</center></th>
+                    <th><center>HSN</center></th>
                     <th><center>Description</center></th>
                     {% if show_mrp == 'true' %}
-                      <th class="w5"><center>MRP</center></th>
+                      <th><center>MRP</center></th>
                     {% endif %}
-                    <th class="w7"><center>Unit</br>Rate</center></th>
-                    <th class="w5"><center>Qty</center></th>
+                    <th><center>Unit</br>Rate</center></th>
+                    <th><center>Qty</center></th>
                     {% if show_disc_invoice == 'true' %}
-                    <th class="w5"><center>Disc</center></th>
+                    <th><center>Disc</center></th>
                     {% endif %}
                     <!--<th class="w9"><center>Base</br>Price</center></th>-->
-                    <th class="w9"><center>Taxable</br>Value</center></th>
+                    <th><center>Taxable</br>Value</center></th>
                     {% if is_igst_tax_flag != 'true' %}
-                      <th class="w7"><center>CGST</center></th>
-                      <th class="w7"><center>SGST</center></th>
+                      <th><center>CGST</center></th>
+                      <th><center>SGST</center></th>
                     {% endif %}
                     {% if is_igst_tax_flag == 'true' %}
-                      <th class="w7"><center>IGST</center></th>
+                      <th><center>IGST</center></th>
                     {% endif %}
                     {% if is_cess_tax_flag == 'true' %}
-                      <th class="w7"><center>CESS</center></th>
+                      <th><center>CESS</center></th>
                     {% endif%}
-                    <th class="w9"><center>Total</center></th>
+                    <th><center>Total</center></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -93,13 +93,13 @@
                     {% if forloop.first == forloop.last %}
                       <tr class="rm-border" style="height: 41px;" ng-repeat="empty in page.empty_data">
                         {% for td in html_data.empty_tds %}
-                        <td ng-repeat="item in [1,2,3,4,5,6,7,8,9,10]"><p style="height:10px"></p></td>
+                        <td><p style="height:10px"></p></td>
                         {% endfor %}
                       </tr>
                     {% else %}
                       <tr class="rm-border" style="height: 38px;" ng-repeat="empty in page.empty_data">
                         {% for td in html_data.empty_tds %}
-                        <td ng-repeat="item in [1,2,3,4,5,6,7,8,9,10]"><p style="height:10px"></p></td>
+                        <td><p style="height:10px"></p></td>
                         {% endfor %}
                       </tr>
                     {% endif %}

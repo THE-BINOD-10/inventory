@@ -5320,7 +5320,7 @@ def build_invoice(invoice_data, user, css=False):
     invoice_data['perm_hsn_summary'] = str(perm_hsn_summary)
     if len(invoice_data['hsn_summary'].keys()) == 0:
         invoice_data['perm_hsn_summary'] = 'false'
-    invoice_data['empty_tds'] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    invoice_data['html_data']['empty_tds'] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     invoice_height = 1358
     if 'side_image' in invoice_data.keys() and 'top_image' in invoice_data.keys():
         if not invoice_data['side_image'] and invoice_data['top_image']:
@@ -5459,7 +5459,7 @@ def build_marketplace_invoice(invoice_data, user, css=False):
     invoice_data['perm_hsn_summary'] = str(perm_hsn_summary)
     if len(invoice_data['hsn_summary'].keys()) == 0:
         invoice_data['perm_hsn_summary'] = 'false'
-    invoice_data['empty_tds'] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    invoice_data['empty_tds'] = [1, 2, 3, 4, 5, 6, 7, 8]
 
     inv_height = 1358  # total invoice height
     inv_details = 317  # 292 #invoice details height 292

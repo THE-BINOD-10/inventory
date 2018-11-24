@@ -221,6 +221,29 @@
               </div>
             </div>
           </div>
+          <div class="row">
+            <div class="col-md-4"></div>
+            <div class="col-md-4"></div>
+            <div class="col-md-4">
+              <div class="pull-right">
+              <label class="control-label-">Change &nbsp;Password</label>
+                <toggle ng-model="showCase.change_password" on="No" off="Yes" onstyle="btn-warning" offstyle="btn-success" size="btn-sm"></toggle>
+              </div>
+            </div>
+          </div>
+            <div class="row" ng-show="showCase.change_password">
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="control-label">Enter the new Password *</label>
+                  <input type="text" name="new_password" class="form-control" ng-model="showCase.model_data.new_password">
+               </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                <button type="button" class="btn btn-success col-md-3 col-sm-3 col-xs-12" style="width: 150px; margin-top:26px;" ng-click="showCase.change_warehouse_password()">Change Password</button>
+              </div>
+              </div>
+          </div>
           <div class="row insert-status">
             <h4 align="center">{{showCase.message}}</h4>
           </div>

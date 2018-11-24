@@ -5555,9 +5555,11 @@ def shipment_info_data(request, user=''):
             serial_number = serial_number[0].po_imei.imei_number
         else:
             serial_number = 0
-        from firebase import firebase
-        firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)
-        result = firebase.get('/OrderDetails/'+orders.order.original_order_id, None)
+        result =''
+        if orders.order.original_order_id :
+            from firebase import firebase
+            firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)
+            result = firebase.get('/OrderDetails/'+orders.order.original_order_id, None)
         if  result :
             signed_invoice_copy = result['signed_invoice_copy']
             id_type = result['id_type']

@@ -69,6 +69,8 @@ urlpatterns = [
     url(r'^insert_sku/$', insert_sku),
     url(r'^upload_images/$', upload_images),
     url(r'^get_barcodes_myntra/$', get_barcodes_myntra),
+    url(r'^change_warehouse_password/$', change_warehouse_password),
+
 
     # url(r'^get_sku_field_names/$',get_sku_field_names),
     url(r'^create_update_custom_sku_template/$', create_update_custom_sku_template),

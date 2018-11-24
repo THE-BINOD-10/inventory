@@ -2926,6 +2926,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
 
             sku_code = dat.sku.sku_code
             sku_desc = dat.sku.sku_desc
+            measurement_type = dat.sku.measurement_type
             if display_customer_sku == 'true':
                 customer_sku_code_ins = customer_sku_codes.filter(customer__customer_id=dat.customer_id,
                                                                   sku__sku_code=sku_code)
@@ -2954,7 +2955,8 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                  'vat': vat, 'mrp_price': mrp_price, 'discount': discount, 'sku_class': dat.sku.sku_class,
                  'sku_category': dat.sku.sku_category, 'sku_size': dat.sku.sku_size, 'amt': amt, 'taxes': taxes_dict,
                  'base_price': base_price, 'hsn_code': hsn_code, 'imeis': temp_imeis,
-                 'discount_percentage': discount_percentage, 'id': dat.id, 'shipment_date': shipment_date})
+                 'discount_percentage': discount_percentage, 'id': dat.id, 'shipment_date': shipment_date, 
+                 'measurement_type': measurement_type})
 
     is_cess_tax_flag = 'true'
     for ord_dict in data:
@@ -2983,7 +2985,6 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 ord_dict.pop('igst_tax')
             if 'igst_amt' in ord_dict:
                 ord_dict.pop('igst_amt')
-
     _invoice_no, _sequence = get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos)
     challan_no, challan_sequence = get_challan_number(user, seller_summary)
     inv_date = invoice_date.strftime("%m/%d/%Y")
@@ -4595,17 +4596,21 @@ def get_sku_stock_summary(stock_data, load_unit_handle, user):
             res_qty = float(res_qty) + float(raw_reserved)
         location = stock.location.location
         zone = stock.location.zone.zone
-        pallet_number, batch, mrp = ['']*3
+        pallet_number, batch, mrp, ean, weight = ['']*5
         if pallet_switch == 'true' and stock.pallet_detail:
             pallet_number = stock.pallet_detail.pallet_code
         if industry_type == "FMCG" and stock.batch_detail:
             batch_detail = stock.batch_detail
             batch = batch_detail.batch_no
             mrp = batch_detail.mrp
-        cond = str((zone, location, pallet_number, batch, mrp))
+            weight = batch_detail.weight
+            if batch_detail.ean_number:
+                ean = int(batch_detail.ean_number)
+        cond = str((zone, location, pallet_number, batch, mrp, ean, weight))
         zones_data.setdefault(cond,
                               {'zone': zone, 'location': location, 'pallet_number': pallet_number, 'total_quantity': 0,
-                               'reserved_quantity': 0, 'batch': batch, 'mrp': mrp})
+                               'reserved_quantity': 0, 'batch': batch, 'mrp': mrp, 'ean': ean,
+                               'weight': weight})
         zones_data[cond]['total_quantity'] += stock.quantity
         zones_data[cond]['reserved_quantity'] += res_qty
         availabe_quantity.setdefault(location, 0)
@@ -8119,7 +8124,7 @@ def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False):
         if not (ean_status or mapped_check):
             EANNumbers.objects.create(**ean_dict)
         elif ean_status:
-            error_eans.append(ean_number)
+            error_eans.append(str(ean_number))
     for rem_ean in rem_ean_list:
         if int(data.ean_number) == int(rem_ean):
             data.ean_number = 0
@@ -8160,12 +8165,17 @@ def get_linked_warehouse_names(request, user=''):
     return HttpResponse(json.dumps({'wh_names': wh_names}))
 
 
-def get_sku_ean_list(sku):
+def get_sku_ean_list(sku, order_by_val=''):
     eans_list = []
     if sku.ean_number:
         eans_list.append(str(sku.ean_number))
     multi_eans = sku.eannumbers_set.filter().annotate(str_eans=Cast('ean_number', CharField())).\
                     values_list('str_eans', flat=True)
+    if order_by_val and multi_eans:
+        order_by_field = 'creation_date'
+        if order_by_val == 'desc':
+            order_by_field = '-creation_date'
+        multi_eans = multi_eans.order_by(order_by_field)
     if multi_eans:
         eans_list = list(chain(eans_list, multi_eans))
     return eans_list
@@ -8439,3 +8449,10 @@ def get_style_level_stock(request, user=''):
     return HttpResponse(json.dumps(sku_wise_list))
 
 
+def add_ean_weight_to_batch_detail(sku, batch_dict):
+    ean_number = get_sku_ean_list(sku, order_by_val='desc')
+    if ean_number:
+        batch_dict['ean_number'] = ean_number[0]
+    weight_obj = sku.skuattributes_set.filter(attribute_name='weight')
+    if weight_obj and not 'weight' in batch_dict.keys():
+        batch_dict['weight'] = float(''.join(re.findall('\d+', str(weight_obj[0].attribute_value))))

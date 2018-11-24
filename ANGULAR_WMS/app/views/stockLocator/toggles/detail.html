@@ -25,6 +25,8 @@
                         <th>Reserved Quantity</th>
                         <th ng-if="showCase.industry_type == 'FMCG'">Batch</th>
                         <th ng-if="showCase.industry_type == 'FMCG'">MRP</th>
+                        <th ng-if="showCase.industry_type == 'FMCG'">EAN</th>
+                        <th ng-if="showCase.industry_type == 'FMCG'">Weight</th>
                       </tr>
                     </thead>
                     <tbody ng-repeat="data in showCase.model_data.zones_data">
@@ -36,6 +38,8 @@
                         <td>{{data.reserved_quantity}}</td>
                         <td ng-if="showCase.industry_type == 'FMCG'">{{data.batch}}</td>
                         <td ng-if="showCase.industry_type == 'FMCG'">{{data.mrp}}</td>
+                        <td ng-if="showCase.industry_type == 'FMCG'">{{data.ean}}</td>
+                        <td ng-if="showCase.industry_type == 'FMCG'">{{data.weight}}</td>
                       </tr>
                     </tbody>
                   </table>

@@ -234,15 +234,15 @@ SUPPLIER_HEADERS = ['Supplier Id', 'Supplier Name', 'Address', 'Email', 'Phone N
 VENDOR_HEADERS = ['Vendor Id', 'Vendor Name', 'Address', 'Email', 'Phone No.']
 
 CUSTOMER_HEADERS = ['Customer Id', 'Customer Name', 'Credit Period', 'CST Number', 'TIN Number', 'PAN Number', 'Email',
-                    'Phone No.', 'City', 'State', 'Country', 'Pin Code', 'Address', 'Selling Price Type',
+                    'Phone No.', 'City', 'State', 'Country', 'Pin Code', 'Address', 'Shipping Address', 'Selling Price Type',
                     'Tax Type(Options: Inter State, Intra State)', 'Discount Percentage(%)', 'Markup(%)', 'SPOC Name']
 
 CUSTOMER_EXCEL_MAPPING = OrderedDict(
     (('customer_id', 0), ('name', 1), ('credit_period', 2), ('cst_number', 3), ('tin_number', 4),
      ('pan_number', 5), ('email_id', 6), ('phone_number', 7), ('city', 8), ('state', 9), ('country', 10),
-     ('pincode', 11), ('address', 12), ('price_type', 13), ('tax_type', 14), ('discount_percentage', 15),
-     ('markup', 16), ('spoc_name', 17)
-     ))
+     ('pincode', 11), ('address', 12), ('shipping_address', 13), ('price_type', 14), ('tax_type', 15), 
+     ('discount_percentage', 16), ('markup', 17), ('spoc_name', 18),
+    ))
 
 MARKETPLACE_CUSTOMER_EXCEL_MAPPING = OrderedDict(
     (('customer_id', 0), ('phone', 1), ('name', 2), ('address', 3), ('pincode', 4), ('city', 5), ('tin', 6)
@@ -978,10 +978,13 @@ CUSTOMER_MASTER_HEADERS = [' Customer ID', 'Customer Name', 'Email', 'Phone Numb
 
 CUSTOMER_FIELDS = ((('Customer ID *', 'id', 60), ('Customer Name *', 'name', 256)),
                    (('Email *', 'email_id', 64), ('Phone No. *', 'phone_number', 10)),
-                   (('Address *', 'address'), ('Status', 'status', 11)),)
+                   (('Address *', 'address'), ('Status', 'status', 11)),
+                   (('Shipping Address *', 'shipping_address'),),
+                   )
 
 CUSTOMER_DATA = {'name': '', 'address': '', 'phone_number': '', 'email_id': '', 'status': 1, 'price_type': '',
-                 'tax_type': '', 'lead_time': 0, 'is_distributor': 0, 'spoc_name': '', 'role': ''}
+                 'tax_type': '', 'lead_time': 0, 'is_distributor': 0, 'spoc_name': '', 'role': '', 
+                 'shipping_address': ''}
 
 CORPORATE_DATA = {'name': '', 'address': '', 'phone_number': '', 'email_id': '', 'status': 1, 'tax_type': ''}
 
@@ -1025,8 +1028,10 @@ BARCODE_OPTIONS = {'SKU Code': 'sku_code', 'Embedded SKU Code in Serial': 'sku_s
 REPORTS_DATA = {'SKU List': 'sku_list', 'Location Wise SKU': 'location_wise_stock', 'Receipt Summary': 'receipt_note',
                 'Dispatch Summary': 'dispatch_summary', 'SKU Wise Stock': 'sku_wise'}
 
-SKU_CUSTOMER_FIELDS = ((('Customer ID *', 'customer_id', 60), ('Customer Name *', 'customer_name', 256)),
-                       (('SKU Code *', 'sku_code'), ('Price *', 'price'),))
+SKU_CUSTOMER_FIELDS = (
+                        (('Customer ID *', 'customer_id', 60), ('Customer Name *', 'customer_name', 256)),
+                        (('SKU Code *', 'sku_code'), ('Price *', 'price'),)
+                      )
 
 CUSTOMER_SKU_DATA = {'customer_id': '', 'sku_id': '', 'price': 0, 'customer_sku_code': ''}
 
@@ -3310,7 +3315,7 @@ def get_order_summary_data(search_params, user, sub_user):
             order_status = order_summary[0].status
             remarks = order_summary[0].central_remarks
             order_taken_by = order_summary[0].order_taken_by
-            unit_price_inclusive_tax = ((float(data.invoice_amount) / float(data.quantity)))
+            #unit_price_inclusive_tax = ((float(data.invoice_amount) / float(data.quantity)))
             if not is_gst_invoice:
                 tax = order_summary[0].tax_value
                 vat = order_summary[0].vat
@@ -3322,8 +3327,7 @@ def get_order_summary_data(search_params, user, sub_user):
                 igst_amt = float(order_summary[0].igst_tax) * (float(amt) / 100)
                 utgst_amt = float(order_summary[0].utgst_tax) * (float(amt) / 100)
                 tax = cgst_amt + sgst_amt + igst_amt + utgst_amt
-            unit_price = unit_price_inclusive_tax - (tax / float(data.quantity))
-
+            #unit_price = unit_price_inclusive_tax - (tax / float(data.quantity))
         else:
             tax = float(float(data.invoice_amount) / 100) * vat
         if order_status == 'None':
@@ -3331,6 +3335,7 @@ def get_order_summary_data(search_params, user, sub_user):
         invoice_amount = "%.2f" % ((float(unit_price) * float(data.quantity)) + tax - discount)
         taxable_amount = "%.2f" % abs(float(invoice_amount) - float(tax))
         unit_price = "%.2f" % unit_price
+
         #payment mode
         payment_obj = OrderFields.objects.filter(user=user.id, name__icontains="payment_",\
                                       original_order_id=data.original_order_id).values_list('name', 'value')

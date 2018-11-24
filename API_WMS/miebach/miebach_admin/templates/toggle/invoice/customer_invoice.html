@@ -44,7 +44,9 @@
                       <td class="text-right">{{record.mrp_price}}</td>
                     {% endif %}
                     <td class="text-right">{{record.unit_price}}</td>
-                    <td class="text-right">{{record.quantity}}</td>
+
+                    <td class="text-right">{{record.quantity}} {{record.measurement_type}}</td>
+
                     {% if show_disc_invoice == 'true' %}
                     <td class="text-right">{{record.discount}}<br><span class="tax-percentage">@{{record.discount_percentage}}%</span></td>
                     {% endif %}

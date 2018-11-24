@@ -335,7 +335,22 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
                 prepare_str = ','.join(list(set(order_customer_name)))
             else:
                 prepare_str = ','.join(list(set(order_marketplace)))
-
+            if not prepare_str:
+                st_order = STOrder.objects.filter(picklist_id=picklist_obj[0].id)
+                if st_order:
+                    user_id = st_order[0].stock_transfer.st_po.open_st.sku.user
+                    user_profile = User.objects.get(id=user_id)
+                    if user_profile:
+                        prepare_str = user_profile.username
+            if not prepare_str and picklist_obj[0].order:
+                order_id = picklist_obj[0].order.original_order_id
+                if order_id:
+                    order_fields = OrderFields.objects.filter(original_order_id=order_id, name="original_order_id")
+                    if order_fields:
+                        user_id = order_fields[0].user
+                        user_profile = UserProfile.objects.get(user_id=user_id)
+                        if user_profile:
+                            prepare_str = user_profile.user.username
             create_date_value = ""
             if picklist_obj[0].creation_date:
                 create_date_value = get_local_date(request.user, picklist_obj[0].creation_date)
@@ -6369,7 +6384,6 @@ def generate_order_jo_data(request, user=''):
 def search_customer_data(request, user=''):
     search_key = request.GET.get('q', '')
     total_data = []
-
     if not search_key:
         return HttpResponse(json.dumps(total_data))
 
@@ -6385,7 +6399,7 @@ def search_customer_data(request, user=''):
         if data.phone_number:
             data.phone_number = int(float(data.phone_number))
         total_data.append({'customer_id': data.customer_id, 'name': data.name, 'phone_number': str(data.phone_number),
-                           'email': data.email_id, 'address': data.address, 'tax_type': data.tax_type})
+                           'email': data.email_id, 'address': data.address, 'tax_type': data.tax_type, 'ship_to': data.shipping_address})
     return HttpResponse(json.dumps(total_data))
 
 
@@ -13311,7 +13325,7 @@ def get_stock_transfer_shipment_data(start_index, stop_index, temp_data, search_
     if order_term == 'desc':
         sort_data = '-%s' % sort_data
     stock_transfer_objs = StockTransfer.objects.filter(**stock_transfer_dict)
-    stock_transfers = stock_transfer_objs.values('order_id', 'st_po__open_st__warehouse__username').distinct().\
+    stock_transfers = stock_transfer_objs.values('order_id', 'st_po__open_st__sku__user').distinct().\
                                 annotate(ordered=Sum('quantity'), date_only=Cast('creation_date', DateField())).\
                                     order_by(sort_data)
     temp_data['recordsTotal'] = stock_transfers.count()
@@ -13320,11 +13334,16 @@ def get_stock_transfer_shipment_data(start_index, stop_index, temp_data, search_
                          values_list('stock_transfer__order_id').annotate(picked_qty=Sum('picklist__picked_quantity',
                                                                                          distinct=True)))
     for stock_transfer in stock_transfers:
+        destination_wh = ''
         order_id = stock_transfer['order_id']
+        user_id = stock_transfer['st_po__open_st__sku__user']
+        user_profile = User.objects.get(id=user_id)
+        if user_profile:
+            destination_wh = user_profile.username
         temp_data['aaData'].append(OrderedDict(( ('Stock Transfer ID', order_id),
                                             ('Picked Quantity', picklist_qtys.get(order_id, 0)),
                                             ('Stock Transfer Date&Time', str(stock_transfer['date_only'])),
-                                            ('Destination Warehouse', stock_transfer['st_po__open_st__warehouse__username']),
+                                            ('Destination Warehouse', destination_wh),
                                             ('Total Quantity', stock_transfer['ordered']))))
 
 

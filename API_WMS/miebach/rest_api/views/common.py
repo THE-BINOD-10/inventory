@@ -2926,6 +2926,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
 
             sku_code = dat.sku.sku_code
             sku_desc = dat.sku.sku_desc
+            measurement_type = dat.sku.measurement_type
             if display_customer_sku == 'true':
                 customer_sku_code_ins = customer_sku_codes.filter(customer__customer_id=dat.customer_id,
                                                                   sku__sku_code=sku_code)
@@ -2951,7 +2952,8 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                  'vat': vat, 'mrp_price': mrp_price, 'discount': discount, 'sku_class': dat.sku.sku_class,
                  'sku_category': dat.sku.sku_category, 'sku_size': dat.sku.sku_size, 'amt': amt, 'taxes': taxes_dict,
                  'base_price': base_price, 'hsn_code': hsn_code, 'imeis': temp_imeis,
-                 'discount_percentage': discount_percentage, 'id': dat.id, 'shipment_date': shipment_date})
+                 'discount_percentage': discount_percentage, 'id': dat.id, 'shipment_date': shipment_date, 
+                 'measurement_type': measurement_type})
     _invoice_no, _sequence = get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos)
     challan_no, challan_sequence = get_challan_number(user, seller_summary)
     inv_date = invoice_date.strftime("%m/%d/%Y")

@@ -872,6 +872,7 @@ class CustomerMaster(models.Model):
     name = models.CharField(max_length=256, default='')
     last_name = models.CharField(max_length=256, default='')
     address = models.CharField(max_length=256, default='')
+    shipping_address = models.CharField(max_length=256, default='')
     city = models.CharField(max_length=64, default='')
     state = models.CharField(max_length=64, default='')
     country = models.CharField(max_length=64, default='')

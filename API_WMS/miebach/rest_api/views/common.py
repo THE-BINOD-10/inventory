@@ -2753,12 +2753,12 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             if customer_details:
                 customer_id = customer_details[0]['id']
                 customer_address = customer_details[0]['name'] + '\n' + customer_details[0]['address']
+                if customer_details[0]['tin_number']:
+                    customer_address += ("\nGSTIN No: " + customer_details[0]['tin_number'])
                 if customer_details[0]['phone_number']:
                     customer_address += ("\nCall: " + customer_details[0]['phone_number'])
                 if customer_details[0]['email_id']:
-                    customer_address += ("\nEmail: " + customer_details[0]['email_id'])
-                if customer_details[0]['tin_number']:
-                    customer_address += ("\nGSTIN No: " + customer_details[0]['tin_number'])
+                    customer_address += ("\tEmail: " + customer_details[0]['email_id'])
                 consignee = customer_address
             else:
                 customer_id = dat.customer_id
@@ -2958,7 +2958,6 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
 
     is_cess_tax_flag = 'true'
     for ord_dict in data:
-        print ord_dict['taxes'].get('cess_tax', 0)
         if ord_dict['taxes'].get('cess_tax', 0):
             break
     else:
@@ -2970,6 +2969,20 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 ord_dict.pop('cess_tax')
             if 'cess_amt' in ord_dict:
                 ord_dict.pop('cess_amt')
+
+    is_igst_tax_flag = 'true'
+    for ord_dict in data:
+        if ord_dict['taxes'].get('igst_tax', 0):
+            break
+    else:
+        is_igst_tax_flag = 'false'
+
+    if is_igst_tax_flag == 'false':
+        for ord_dict in data:
+            if 'igst_tax' in ord_dict:
+                ord_dict.pop('igst_tax')
+            if 'igst_amt' in ord_dict:
+                ord_dict.pop('igst_amt')
 
     _invoice_no, _sequence = get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos)
     challan_no, challan_sequence = get_challan_number(user, seller_summary)
@@ -3035,7 +3048,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'order_reference_date': order_reference_date, 'invoice_header': invoice_header,
                     'cin_no': cin_no, 'challan_no': challan_no, 'customer_id': customer_id,
                     'show_mrp': show_mrp, 'mode_of_transport' : mode_of_transport, 'vehicle_number' : vehicle_number,
-                    'is_cess_tax_flag': is_cess_tax_flag}
+                    'is_cess_tax_flag': is_cess_tax_flag, 'is_igst_tax_flag': is_igst_tax_flag}
     return invoice_data
 
 

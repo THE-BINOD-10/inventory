@@ -335,7 +335,22 @@ def open_orders(start_index, stop_index, temp_data, search_term, order_term, col
                 prepare_str = ','.join(list(set(order_customer_name)))
             else:
                 prepare_str = ','.join(list(set(order_marketplace)))
-
+            if not prepare_str:
+                st_order = STOrder.objects.filter(picklist_id=picklist_obj[0].id)
+                if st_order:
+                    user_id = st_order[0].stock_transfer.st_po.open_st.sku.user
+                    user_profile = User.objects.get(id=user_id)
+                    if user_profile:
+                        prepare_str = user_profile.username
+            if not prepare_str and picklist_obj[0].order:
+                order_id = picklist_obj[0].order.original_order_id
+                if order_id:
+                    order_fields = OrderFields.objects.filter(original_order_id=order_id, name="original_order_id")
+                    if order_fields:
+                        user_id = order_fields[0].user
+                        user_profile = UserProfile.objects.get(user_id=user_id)
+                        if user_profile:
+                            prepare_str = user_profile.user.username
             create_date_value = ""
             if picklist_obj[0].creation_date:
                 create_date_value = get_local_date(request.user, picklist_obj[0].creation_date)
@@ -3655,7 +3670,7 @@ def fetch_asn_stock(dist_user_id, sku_code, req_stock):
         source_location_code__userprofile__warehouse_level=1).values_list('source_location_code_id',
                                                                           flat=True).order_by('lead_time',
                                                                                               'priority'))
-    ints_filters = {'quantity__gt': 0, 'sku__sku_code': sku_code, 'sku__user__in': source_whs}
+    ints_filters = {'quantity__gt': 0, 'sku__sku_code': sku_code, 'sku__user__in': source_whs, 'status': 'open'}
     asn_qs = ASNStockDetail.objects.filter(**ints_filters)
     intr_obj_3days_qs = asn_qs.filter(arriving_date__lte=threeday_filter)
     intr_obj_3days_ids = intr_obj_3days_qs.values_list('id', flat=True)
@@ -4257,7 +4272,8 @@ def create_order_from_intermediate_order(request, user):
 def block_asn_stock(sku_id, qty, lead_time, ord_det_id, is_enquiry=False):
     todays_date = datetime.datetime.today().date()
     lt_date = todays_date + datetime.timedelta(days=lead_time)
-    asn_qs = ASNStockDetail.objects.filter(sku_id=sku_id, arriving_date__lte=lt_date).order_by('arriving_date')
+    asn_qs = ASNStockDetail.objects.filter(sku_id=sku_id, status='open',
+                                           arriving_date__lte=lt_date).order_by('arriving_date')
     for asn_obj in asn_qs:
         asn_res_map = {'asnstock_id': asn_obj.id}
         if not is_enquiry:
@@ -5778,7 +5794,8 @@ def all_whstock_quant(sku_master, user, level=0, lead_times=None, dist_reseller_
     hundred_day_filter = today_filter + datetime.timedelta(days=90)
     sku_filter = [sku_master[0]['sku_class']]
 
-    asn_filters = {'quantity__gt': 0, 'sku__sku_class__in': sku_filter, 'sku__user__in': stock_display_warehouse}
+    asn_filters = {'quantity__gt': 0, 'sku__sku_class__in': sku_filter, 'sku__user__in': stock_display_warehouse,
+                   'status': 'open'}
     asn_qs = ASNStockDetail.objects.filter(**asn_filters)
     asn_3_qs = asn_qs.filter(Q(arriving_date__lte=threeday_filter) | Q(asn_po_num='NON_KITTED_STOCK'))
     asn_3_ids = asn_3_qs.values_list('id', flat=True)
@@ -6029,7 +6046,7 @@ def get_sku_variants(request, user=''):
 
     today_filter = datetime.datetime.today()
     hundred_day_filter = today_filter + datetime.timedelta(days=90)
-    ints_filters = {'quantity__gt': 0, 'sku__sku_code__in': needed_skus, 'sku__user__in': gen_whs}
+    ints_filters = {'quantity__gt': 0, 'sku__sku_code__in': needed_skus, 'sku__user__in': gen_whs, 'status': 'open'}
     asn_qs = ASNStockDetail.objects.filter(**ints_filters)
     intr_obj_100days_qs = asn_qs.filter(arriving_date__lte=hundred_day_filter)
     intr_obj_100days_ids = intr_obj_100days_qs.values_list('id', flat=True)
@@ -6121,7 +6138,9 @@ def get_sku_variants(request, user=''):
                                         arriving_date = datetime.datetime.strptime(asn_stock['By'], '%d-%b-%Y')
                                         quantity = int(asn_stock['Qty'])
                                         qc_quantity = int(math.floor(quantity*95/100))
-                                        asn_stock_detail = ASNStockDetail.objects.filter(sku_id=sku[0].id, asn_po_num=po)
+                                        asn_stock_detail = ASNStockDetail.objects.filter(sku_id=sku[0].id,
+                                                                                         asn_po_num=po,
+                                                                                         status='open')
                                         if asn_stock_detail:
                                             asn_stock_detail = asn_stock_detail[0]
                                             asn_stock_detail.quantity = qc_quantity
@@ -6369,7 +6388,6 @@ def generate_order_jo_data(request, user=''):
 def search_customer_data(request, user=''):
     search_key = request.GET.get('q', '')
     total_data = []
-
     if not search_key:
         return HttpResponse(json.dumps(total_data))
 
@@ -6385,7 +6403,7 @@ def search_customer_data(request, user=''):
         if data.phone_number:
             data.phone_number = int(float(data.phone_number))
         total_data.append({'customer_id': data.customer_id, 'name': data.name, 'phone_number': str(data.phone_number),
-                           'email': data.email_id, 'address': data.address, 'tax_type': data.tax_type})
+                           'email': data.email_id, 'address': data.address, 'tax_type': data.tax_type, 'ship_to': data.shipping_address})
     return HttpResponse(json.dumps(total_data))
 
 
@@ -9015,7 +9033,7 @@ def get_customer_cart_data(request, user=""):
                 for wh in whs:
                     sku_id = get_syncedusers_mapped_sku(wh=wh, sku_id=record.sku.id)
                     if record.warehouse_level == 3:
-                        intransit_obj = ASNStockDetail.objects.filter(quantity__gt=0,
+                        intransit_obj = ASNStockDetail.objects.filter(quantity__gt=0, status='open',
                                                                       sku=sku_id).only('sku__sku_code',
                                                                                        'quantity').values(
                             'sku__sku_code').distinct().annotate(in_asn=Sum('quantity'))
@@ -13311,7 +13329,7 @@ def get_stock_transfer_shipment_data(start_index, stop_index, temp_data, search_
     if order_term == 'desc':
         sort_data = '-%s' % sort_data
     stock_transfer_objs = StockTransfer.objects.filter(**stock_transfer_dict)
-    stock_transfers = stock_transfer_objs.values('order_id', 'st_po__open_st__warehouse__username').distinct().\
+    stock_transfers = stock_transfer_objs.values('order_id', 'st_po__open_st__sku__user').distinct().\
                                 annotate(ordered=Sum('quantity'), date_only=Cast('creation_date', DateField())).\
                                     order_by(sort_data)
     temp_data['recordsTotal'] = stock_transfers.count()
@@ -13320,11 +13338,16 @@ def get_stock_transfer_shipment_data(start_index, stop_index, temp_data, search_
                          values_list('stock_transfer__order_id').annotate(picked_qty=Sum('picklist__picked_quantity',
                                                                                          distinct=True)))
     for stock_transfer in stock_transfers:
+        destination_wh = ''
         order_id = stock_transfer['order_id']
+        user_id = stock_transfer['st_po__open_st__sku__user']
+        user_profile = User.objects.get(id=user_id)
+        if user_profile:
+            destination_wh = user_profile.username
         temp_data['aaData'].append(OrderedDict(( ('Stock Transfer ID', order_id),
                                             ('Picked Quantity', picklist_qtys.get(order_id, 0)),
                                             ('Stock Transfer Date&Time', str(stock_transfer['date_only'])),
-                                            ('Destination Warehouse', stock_transfer['st_po__open_st__warehouse__username']),
+                                            ('Destination Warehouse', destination_wh),
                                             ('Total Quantity', stock_transfer['ordered']))))
 
 

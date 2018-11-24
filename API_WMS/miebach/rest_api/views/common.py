@@ -7650,6 +7650,8 @@ def get_style_variants(sku_master, user, customer_id='', total_quantity=0, custo
                             price_data = NetworkMaster.objects.filter(dest_location_code_id=dist_wh_id).\
                                 values_list('source_location_code_id', 'price_type')
                         else:
+                            if level == 3:
+                                level = 1
                             price_data = NetworkMaster.objects.filter(dest_location_code_id=dist_wh_id).filter(
                                 source_location_code_id__userprofile__warehouse_level=level). \
                                 values_list('source_location_code_id', 'price_type')

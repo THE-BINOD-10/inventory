@@ -2222,12 +2222,12 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
     if customer_view:
         lis = ['order__customer_id', 'order__customer_name', 'order__sku__wms_code', 'order__sku__sku_desc']#'order__quantity', 'picked_quantity']
         model_obj = Picklist
-        param_keys = {'wms_code': 'stock__sku__wms_code', 'sku_code': 'stock__sku__sku_code'}
+        param_keys = {'wms_code': 'order__sku__wms_code', 'sku_code': 'order__sku__sku_code'}
         search_parameters.update({'status__in': ['open', 'batch_open', 'picked', 'batch_picked', 'dispatched'],
                                   #'picked_quantity__gt': 0,
                                   'stock__gt': 0,
                                   'order__user': user.id,
-                                  'stock__sku_id__in': sku_master_ids
+                                  'order__sku_id__in': sku_master_ids
                                 })
     else:
         if serial_view:
@@ -2243,12 +2243,12 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
             lis = ['order__order_id', 'order__sku__wms_code', 'order__sku__sku_desc', 'stock__location__location',
                    'picked_quantity', 'picked_quantity', 'updation_date', 'updation_date']
             model_obj = Picklist
-            param_keys = {'wms_code': 'stock__sku__wms_code', 'sku_code': 'stock__sku__sku_code'}
+            param_keys = {'wms_code': 'order__sku__wms_code', 'sku_code': 'order__sku__sku_code'}
             search_parameters['status__in'] = ['open', 'batch_open', 'picked', 'batch_picked', 'dispatched']
             search_parameters['picked_quantity__gt'] = 0
-            search_parameters['stock__gt'] = 0
+            #search_parameters['stock__gt'] = 0
             search_parameters['order__user'] = user.id
-            search_parameters['stock__sku_id__in'] = sku_master_ids
+            search_parameters['order__sku_id__in'] = sku_master_ids
 
     temp_data = copy.deepcopy(AJAX_DATA)
 
@@ -2311,6 +2311,21 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                   )))
         else:
             if not serial_view:
+                if not data.stock:
+                    date = get_local_date(user, data.updation_date).split(' ')
+                    order_id = data.order.original_order_id
+                    if not order_id:
+                        order_id = str(data.order.order_code) + str(data.order.order_id)
+                    child_sku_code = ''
+                    if data.order_type == 'combo':
+                        child_sku_code = data.sku_code
+                    temp_data['aaData'].append(OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.sku_code),
+                                                            ('Child SKU', child_sku_code),
+                                                            ('Description', data.order.sku.sku_desc),
+                                                            ('Location', 'NO STOCK'),
+                                                            ('Quantity', data.order.quantity),
+                                                            ('Picked Quantity', data.picked_quantity),
+                                                            ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])))))
                 pick_locs = data.picklistlocation_set.exclude(reserved=0, quantity=0)
                 for pick_loc in pick_locs:
                     picked_quantity = float(pick_loc.quantity) - float(pick_loc.reserved)

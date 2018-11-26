@@ -25,13 +25,9 @@
                     {% endif %}
                     <!--<th class="w9"><center>Base</br>Price</center></th>-->
                     <th><center>Taxable</br>Value</center></th>
-                    {% if is_igst_tax_flag != 'true' %}
-                      <th><center>CGST</center></th>
-                      <th><center>SGST</center></th>
-                    {% endif %}
-                    {% if is_igst_tax_flag == 'true' %}
-                      <th><center>IGST</center></th>
-                    {% endif %}
+                    <th><center>CGST</center></th>
+                    <th><center>SGST</center></th>
+                    <th><center>IGST</center></th>
                     {% if is_cess_tax_flag == 'true' %}
                       <th><center>CESS</center></th>
                     {% endif%}
@@ -58,13 +54,9 @@
                     {% endif %}
                     <!--<td class="text-right">{{record.base_price}}</td>-->
                     <td class="text-right"> {{record.amt}} </td>
-                    {% if is_igst_tax_flag != 'true' %}
-                      <td class="text-right">{{record.taxes.cgst_amt}}<br><span class="tax-percentage">@{{record.taxes.cgst_tax}}%</span></td>
-                      <td class="text-right">{{record.taxes.sgst_amt}}<br><span class="tax-percentage">@{{record.taxes.sgst_tax}}%</span></td>
-                    {% endif %}
-                    {% if is_igst_tax_flag == 'true' %}
-                      <td class="text-right">{{record.taxes.igst_amt}}<br><span class="tax-percentage">@{{record.taxes.igst_tax}}%</span></td>
-                    {% endif %}
+                    <td class="text-right">{{record.taxes.cgst_amt}}<br><span class="tax-percentage">@{{record.taxes.cgst_tax}}%</span></td>
+                    <td class="text-right">{{record.taxes.sgst_amt}}<br><span class="tax-percentage">@{{record.taxes.sgst_tax}}%</span></td>
+                    <td class="text-right">{{record.taxes.igst_amt}}<br><span class="tax-percentage">@{{record.taxes.igst_tax}}%</span></td>
                     {% if is_cess_tax_flag == 'true' %}
                       <td class="text-right">{{record.taxes.cess_amt}}<br><span class="tax-percentage">@{{record.taxes.cess_tax}}%</span></td>
                     {% endif %}
@@ -116,13 +108,9 @@
                     {% endif %}
                     <td colspan='{{html_data.hsn_summary_span}}'><b>Summary</b></td>
                     <td><b>Taxable</br>Value</b></td>
-                    {% if is_igst_tax_flag != 'true' %}
-                      <td><b>CGST</b></td>
-                      <td><b>SGST</b></td>
-                    {% endif %}
-                    {% if is_igst_tax_flag == 'true' %}
-                      <td><b>IGST</b></td>
-                    {% endif %}
+                    <td><b>CGST</b></td>
+                    <td><b>SGST</b></td>
+                    <td><b>IGST</b></td>
                     {% if is_cess_tax_flag == 'true' %}
                       <td><b>CESS</b></td>
                     {% endif %}
@@ -137,13 +125,9 @@
                     {% endif %}
                     <td colspan='{{html_data.hsn_summary_span}}' class="text-left">{{hsn}}</td>
                     <td class="text-right">{{data.taxable}}</td>
-                    {% if is_igst_tax_flag != 'true' %}
-                      <td class="text-right">{{data.cgst_amt}}</td>
-                      <td class="text-right">{{data.sgst_amt}}</td>
-                    {% endif %}
-                    {% if is_igst_tax_flag == 'true' %}
-                      <td class="text-right">{{data.igst_amt}}</td>
-                    {% endif %}
+                    <td class="text-right">{{data.cgst_amt}}</td>
+                    <td class="text-right">{{data.sgst_amt}}</td>
+                    <td class="text-right">{{data.igst_amt}}</td>
                     {% if is_cess_tax_flag == 'true' %}
                       <td class="text-right">{{data.cess_amt}}</td>
                     {% endif %}
@@ -166,13 +150,9 @@
                     {% endif %} 
                     <!--<td></td>-->
                     <td>{{total_taxable_amt}}</td>
-                    {% if is_igst_tax_flag != 'true' %}
-                      <td>{{total_taxes.cgst_amt}}</td>
-                      <td>{{total_taxes.sgst_amt}}</td>
-                    {% endif %}
-                    {% if is_igst_tax_flag == 'true' %}
-                      <td>{{total_taxes.igst_amt}}</td>
-                    {% endif %}
+                    <td>{{total_taxes.cgst_amt}}</td>
+                    <td>{{total_taxes.sgst_amt}}</td>
+                    <td>{{total_taxes.igst_amt}}</td>
                     {% if is_cess_tax_flag == 'true' %}
                       <td>{{total_taxes.cess_amt}}</td>
                     {% endif %}

@@ -5297,6 +5297,8 @@ def get_invoice_html_data(invoice_data):
     data = {'totals_data': {'label_width': 6, 'value_width': 6}, 'columns': 11, 'emty_tds': [], 'hsn_summary_span': 3}
     if show_mrp == 'true':
         data['columns'] += 1
+    if invoice_data.get('is_cess_tax_flag', '') == 'false':
+        data['columns'] -= 1
     if invoice_data.get('invoice_remarks', '') not in ['false', '']:
         data['totals_data']['label_width'] = 4
         data['totals_data']['value_width'] = 8
@@ -5325,7 +5327,7 @@ def build_invoice(invoice_data, user, css=False):
     invoice_data['perm_hsn_summary'] = str(perm_hsn_summary)
     if len(invoice_data['hsn_summary'].keys()) == 0:
         invoice_data['perm_hsn_summary'] = 'false'
-    invoice_data['html_data']['empty_tds'] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    # invoice_data['html_data']['empty_tds'] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     invoice_height = 1358
     if 'side_image' in invoice_data.keys() and 'top_image' in invoice_data.keys():
         if not invoice_data['side_image'] and invoice_data['top_image']:

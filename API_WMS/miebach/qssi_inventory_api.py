@@ -39,7 +39,7 @@ def update_inventory(company_name):
                                 inventory_values[sku_id] = {}
                             inventory_values[sku_id]['TU_INVENTORY'] = item['Inventory']
                             expected_items = item['Expected']
-                            if isinstance(expected_items, list) and expected_items:
+                            if isinstance(expected_items, list):
                                 asn_stock_map.setdefault(sku_id, []).extend(expected_items)
                             wait_on_qc = [v for d in item['OnHoldDetails'] for k, v in d.items() if k == 'WAITONQC']
                             if wait_on_qc:
@@ -99,6 +99,15 @@ def update_inventory(company_name):
                         sku = SKUMaster.objects.filter(user=user_id, sku_code=sku_id)
                         if sku:
                             sku = sku[0]
+                            existing_asn = ASNStockDetail.objects.filter(sku_id=sku.id).exclude(
+                                asn_po_num='NON_KITTED_STOCK')
+                            db_po_nums = existing_asn.values_list('asn_po_num', flat=True)
+                            api_po_nums = [i['PO'] for i in asn_inv]
+                            expired_po_nums = set(db_po_nums) - set(api_po_nums)
+                            if expired_po_nums:
+                                log.info('L3 Stock either delivered or cancelled. SKU: %s, POs: %s'
+                                         %(sku.sku_code, expired_po_nums))
+                                existing_asn.filter(asn_po_num__in=expired_po_nums).update(status='closed')
                             for asn_stock in asn_inv:
                                 po = asn_stock['PO']
                                 expected_time = asn_stock['By']

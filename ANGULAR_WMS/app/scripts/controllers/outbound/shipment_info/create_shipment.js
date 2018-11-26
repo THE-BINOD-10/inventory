@@ -191,6 +191,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
       $state.go('app.outbound.ShipmentInfo');
       angular.copy(vm.empty_data, vm.model_data);
       get_data();
+      vm.scan_sku = '';
+      vm.scan_carton_exist = '';
     }
 
     vm.today_date = new Date();

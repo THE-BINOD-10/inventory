@@ -27,5 +27,22 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       vm.dtInstance = {};
     })
   })
+  vm.change_datatable = function()
+  {
+     if(vm.invoice_number)
+     {
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Invoice Number').withTitle('Invoice Number'))
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Quantity').withTitle('Quantity'))
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Invoice Date').withTitle('Invoice Date'))
+     }
+     else{
+       vm.dtColumns.pop(DTColumnBuilder.newColumn('Invoice Number').withTitle('Invoice Number'))
+       vm.dtColumns.pop(DTColumnBuilder.newColumn('Quantity').withTitle('Quantity'))
+       vm.dtColumns.pop(DTColumnBuilder.newColumn('Invoice Date').withTitle('Invoice Date'))
+     }
+  }
+
+
+
 
   }

@@ -30,6 +30,11 @@
               <div class="col-md-4 col-sm-4 col-xs-6" ng-repeat="field in showCase.report_data.filters">
                 <div ng-include="service.get_view_url(field.type, 'inputs')"></div>
               </div>
+              <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.invoice_number">
+                <label class="control-label">Invoice Number</label>
+                <div><input name="invoice_number" class="form-control" type="text" ng-model="showCase.model_data.invoice_number"></div>
+              </div>
+
             </div>
             <div class="col-md-12">
               <div ng-include="'views/common/controls/report_controls.html'"></div>

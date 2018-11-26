@@ -3169,7 +3169,6 @@ def get_order_summary_data(search_params, user, sub_user):
     # lis = ['order_id', 'customer_name', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'updation_date', 'updation_date', 'marketplace']
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
-
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
         search_parameters['creation_date__gt'] = search_params['from_date']
@@ -3205,7 +3204,11 @@ def get_order_summary_data(search_params, user, sub_user):
     search_parameters['quantity__gt'] = 0
     search_parameters['user'] = user.id
     search_parameters['sku_id__in'] = sku_master_ids
-    orders = OrderDetail.objects.filter(**search_parameters)
+
+    if 'invoice_number' in search_params :
+        orders = OrderDetail.objects.filter(sellerordersummary__invoice_number = search_params['invoice_number'])
+    else:
+        orders = OrderDetail.objects.filter(**search_parameters)
     pick_filters = {}
     for key, value in search_parameters.iteritems():
         pick_filters['order__%s' % key] = value
@@ -3250,7 +3253,7 @@ def get_order_summary_data(search_params, user, sub_user):
 
         orders = orders.filter(id__in=ord_ids)
         _status = status_search
-        
+
     if search_params.get('order_term'):
         order_data = lis[search_params['order_index']]
         if search_params['order_term'] == 'desc':

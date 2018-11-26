@@ -5299,10 +5299,6 @@ def get_invoice_html_data(invoice_data):
         data['columns'] += 1
     if invoice_data.get('is_cess_tax_flag', '') == 'false':
         data['columns'] -= 1
-    if invoice_data.get('is_igst_tax_flag', '') == 'true':
-        data['columns'] -= 2
-    if invoice_data.get('is_igst_tax_flag', '') == 'false':
-        data['columns'] -= 1
     if invoice_data.get('invoice_remarks', '') not in ['false', '']:
         data['totals_data']['label_width'] = 4
         data['totals_data']['value_width'] = 8

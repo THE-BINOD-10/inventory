@@ -84,10 +84,16 @@
             </div>
             <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.carton_code">
               <div class="form-group">
-                <label class="control-label"> Selected Carton code <b>{{ showCase.carton_code}}</b> </label>
+                <label class="control-label"> Selected Carton code </label>
+                <input name="selected_carton_code" class="form-control" disabled="" type="text" value="{{showCase.carton_code}}">
               </div>
             </div>
-
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.carton_code">
+              <div class="form-group">
+                <label class="control-label">Scan Existing Carton</label>
+                <input type="text" id="scan_carton_exist" name="scan_carton_exist" ng-model="showCase.scan_carton_exist" class="form-control" ng-keydown="showCase.update_sku_carton_exist($event, showCase.scan_carton_exist)">
+              </div>
+            </div>
           </div>
           <div class="row">
             <div class="col-md-12">

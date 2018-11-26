@@ -7492,6 +7492,7 @@ def get_gen_wh_ids(request, user, delivery_date):
 
 def get_incremental(user, type_name, default_val=''):
     # custom sku counter
+    # import pdb; pdb.set_trace()
     if not default_val:
         default = 1001
     else:
@@ -7507,6 +7508,18 @@ def get_incremental(user, type_name, default_val=''):
         count = default
     return count
 
+def get_decremental(user, type_name, old_pack_ref_no):
+    # custom sku counter
+    data = IncrementalTable.objects.filter(user=user.id, type_name=type_name)
+    if data:
+        data = data[0]
+        #count = data.value + 1
+        if int(data.value) == int(old_pack_ref_no) :
+            data.value = data.value - 1
+        data.save()
+        return 'Success'
+    else:
+        return 'Fail'   
 
 def check_and_update_incremetal_type_val(table_value, user, type_name):
     table_value = int(table_value)

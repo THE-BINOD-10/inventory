@@ -2669,6 +2669,15 @@ def shipment_pack_ref(request, user=''):
     pack_ref_no = get_incremental(user, 'shipment_pack_ref')
     return HttpResponse(json.dumps({'pack_ref_no': pack_ref_no}))
 
+@login_required
+@get_admin_user
+def shipment_pack_ref_decrease(request, user=''):
+    old_pack_ref_no = request.GET['pack_ref_no']
+    pack_ref_no = get_decremental(user, 'shipment_pack_ref', old_pack_ref_no)
+    if pack_ref_no == 'Success' :
+        return HttpResponse('Success')
+    else:
+        return  HttpResponse('Failed')  
 
 @login_required
 @get_admin_user

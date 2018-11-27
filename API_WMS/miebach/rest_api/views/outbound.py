@@ -11114,11 +11114,12 @@ def update_cust_profile(request, user=''):
 @login_required
 @get_admin_user
 def print_cartons_data(request, user=''):
+
     request_dict = dict(request.POST.iterlists())
     company_info = user.userprofile.__dict__
     company_name = company_info['company_name']
     sel_carton = request.POST.get('sel_carton', '')
-    table_headers = ['S.No', 'Carton Number', 'SKU Code', 'SKU Description', 'Quantity']
+    table_headers = ['S.No', 'Carton Number', 'SKU Code', ' SKU Description', 'Quantity']
     address = company_info['address']
     shipment_number = request.POST.get('shipment_number', '')
     shipment_date = get_local_date(user, datetime.datetime.now(), True).strftime("%d %b, %Y")
@@ -11128,6 +11129,7 @@ def print_cartons_data(request, user=''):
     is_excel = request.POST.get('is_excel', '')
     data = OrderedDict()
     count = 1
+    total_quantity = 0
     customers_obj = OrderDetail.objects.select_related('customer_id', 'customer_name', 'marketplace').\
                                 filter(id__in=request_dict['id']).only('customer_id', 'customer_name', 'marketplace').\
                                 values('customer_id', 'customer_name', 'marketplace', 'address').distinct()
@@ -11157,12 +11159,14 @@ def print_cartons_data(request, user=''):
         quantity = request_dict['shipping_quantity'][ind]
         try:
             quantity = int(quantity)
+            total_quantity = quantity + total_quantity
         except:
             quantity = 0
         grouping_key = '%s:%s' % (str(pack_reference), str(sku_code))
         data.setdefault(grouping_key, [])
         if data[grouping_key]:
             data[grouping_key][4] = int(data[grouping_key][4]) + quantity
+            total_quantity = data[grouping_key][4] + total_quantity
         else:
             if not is_excel:
                 data[grouping_key] = [count, pack_reference, sku_code, title, quantity]
@@ -11173,7 +11177,7 @@ def print_cartons_data(request, user=''):
                   'customer_name': customer_info.get('name', ''), 'name': company_name,
                   'shipment_number': shipment_number, 'company_address': address,
                   'shipment_date': shipment_date, 'company_name': company_name, 'truck_number':truck_number,
-                  'courier_name': courier_name, 'data': data.values()}
+                  'courier_name': courier_name, 'data': data.values(), 'total_quantity':total_quantity}
     if not is_excel:
         return render(request, 'templates/toggle/print_cartons_wise_qty.html', final_data)
     else:

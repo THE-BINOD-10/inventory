@@ -6,7 +6,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'STAGING',
         'USER': 'root',
-        'PASSWORD': 'mka',
+        'PASSWORD': 'krothapalli',
         'TEST_MIRROR': 'default'
     }
 }

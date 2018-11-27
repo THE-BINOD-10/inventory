@@ -920,7 +920,7 @@ def modify_po_update(request, user=''):
 @csrf_exempt
 @get_admin_user
 def switches(request, user=''):
-    
+
     log.info('Request params for ' + user.username + ' on ' + str(
         get_local_date(user, datetime.datetime.now())) + ' is ' + str(request.GET.dict()))
     try:
@@ -1277,8 +1277,8 @@ def confirm_po(request, user=''):
                  'location': profile.location, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
                  'vendor_telephone': vendor_telephone, 'total_qty': total_qty, 'receipt_type': receipt_type,
                  'title': title, 'ship_to_address': ship_to_address,
-                 'gstin_no': gstin_no, 'w_address': ship_to_address, 
-                 'wh_telephone': wh_telephone, 'terms_condition' : terms_condition, 
+                 'gstin_no': gstin_no, 'w_address': ship_to_address,
+                 'wh_telephone': wh_telephone, 'terms_condition' : terms_condition,
                  'total_amt_in_words' : total_amt_in_words, 'show_cess_tax': show_cess_tax,
                  'company_address': company_address, 'wh_gstin': profile.gst_number}
     if round_value:
@@ -2888,9 +2888,11 @@ def check_returns(request, user=''):
 @get_admin_user
 def check_sku(request, user=''):
     data = {}
+    import pdb; pdb.set_trace()
     sku_code = request.GET.get('sku_code')
     allocate_order = request.GET.get('allocate_order', 'false')
     check = False
+    combo_data =[]
     sku_id = check_and_return_mapping_id(sku_code, '', user, check)
     if not sku_id:
         try:
@@ -2898,6 +2900,19 @@ def check_sku(request, user=''):
                                               user=user.id)
         except:
             sku_id = ''
+    combo_skus = SKURelation.objects.filter(relation_type='combo', parent_sku_id=sku_id)
+    for combo in combo_skus:
+        combo_data.append(
+            OrderedDict((('sku_code', combo.member_sku.wms_code),
+                         ('description', combo.member_sku.sku_desc),
+                         ('return_quantity', 1),
+                         ("status",'confirmed'),
+                         ('ship_quantity', ''),
+                         ('unit_price', ''),
+                         ('cgst',''),
+                         ('sgst',''),
+                         ('igst',''))))
+    import pdb; pdb.set_trace()
     if sku_id:
         sku_data = SKUMaster.objects.get(id=sku_id)
         if allocate_order == 'true':
@@ -2906,7 +2921,10 @@ def check_sku(request, user=''):
             data = {"status": 'confirmed', 'sku_code': sku_data.sku_code, 'description': sku_data.sku_desc,
                     'order_id': '', 'ship_quantity': '', 'unit_price': '', 'return_quantity': 1,'cgst':'',
                     'sgst':'', 'igst':''}
-        return HttpResponse(json.dumps(data))
+        if combo_skus:
+            return HttpResponse(json.dumps(combo_data))
+        else:
+            return HttpResponse(json.dumps(data))
 
     """
     sku_master = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)
@@ -3226,6 +3244,7 @@ def confirm_sales_return(request, user=''):
     log.info('Request params for Confirm Sales Return for ' + user.username + ' is ' + str(request.POST.dict()))
     try:
         # Group the Input Data Based on the Group Type
+        import pdb; pdb.set_trace()
         final_data_list = group_sales_return_data(data_dict, return_process)
         for return_dict in final_data_list:
             all_data = []
@@ -4010,7 +4029,7 @@ def save_st(request, user=''):
             data_dict['price'][i] = 0
         cond = (warehouse_name)
         all_data.setdefault(cond, [])
-        all_data[cond].append([data_dict['wms_code'][i], data_dict['order_quantity'][i], 
+        all_data[cond].append([data_dict['wms_code'][i], data_dict['order_quantity'][i],
             data_dict['price'][i], data_id])
     status = validate_st(all_data, user)
     if not status:
@@ -4801,7 +4820,7 @@ def confirm_po1(request, user=''):
             total_amt_in_words = number_in_words(round(total)) + ' ONLY'
             round_value = float(round(total) - float(total))
             data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
-                         'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': round(total),             
+                         'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': round(total),
                          'company_name': profile.company_name, 'location': profile.location,
                          'po_reference': po_reference,
                          'total_qty': total_qty, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
@@ -6537,7 +6556,7 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
         seller_summary_obj = SellerPOSummary.objects.exclude(id__in=return_ids).filter(receipt_number=data['receipt_number'],\
                                             purchase_order__order_id=data['purchase_order__order_id'],\
                                             purchase_order__open_po__supplier__name=data['purchase_order__open_po__supplier__name'])
- 
+
         tot_amt, rem_quantity = 0, 0
         for seller_sum in seller_summary_obj:
             rem_quantity = 0
@@ -6627,7 +6646,7 @@ def get_processed_po_data(start_index, stop_index, temp_data, search_term, order
         seller_summary_obj = SellerPOSummary.objects.filter(receipt_number=data['receipt_number'],\
                                             purchase_order__order_id=data['purchase_order__order_id'],\
                                             purchase_order__open_po__supplier__name=data['purchase_order__open_po__supplier__name'])
- 
+
         tot_amt = 0
         for seller_sum in seller_summary_obj:
             price = seller_sum.purchase_order.open_po.price
@@ -6764,7 +6783,7 @@ def generate_supplier_invoice(request, user=''):
                     sell_summary_param['invoice_number'] = inv_no
                 else:
                     sell_summary_param['purchase_order__order_id'] = req_data.get('purchase_order__order_id', '')
-                    sell_summary_param['receipt_number'] = req_data.get('receipt_number', '') 
+                    sell_summary_param['receipt_number'] = req_data.get('receipt_number', '')
                     sell_summary_param['challan_number'] = req_data.get('challan_id', '')
                 #sell_summary_param['invoice_number'] = req_data.get('invoice_number', '')
                 seller_summary = SellerPOSummary.objects.filter(**sell_summary_param)
@@ -6907,7 +6926,7 @@ def pagination(sku_list):
         sku['index'] = index
         index = index + 1
     temp = {"sku_code": "", "title": "", "quantity": ""}
-    sku_slices = [sku_list[i: i+mx] for i in range(0, len(sku_list), mx)] 
+    sku_slices = [sku_list[i: i+mx] for i in range(0, len(sku_list), mx)]
     #extra_tuple = ('', '', '', '', '', '', '', '', '', '', '', '')
     if len(sku_slices[-1]) == mx:
         temp = sku_slices[-1]
@@ -7925,7 +7944,7 @@ def stock_transfer_mail_pdf(request, f_name, html_data, warehouse):
 def render_st_html_data(request, user, warehouse, all_data):
     user_profile = UserProfile.objects.filter(user = user).values('phone_number', 'company_name', 'location',
         'city', 'state', 'country', 'pin_code', 'address', 'wh_address', 'wh_phone_number', 'gst_number')
-    destination_user_profile = UserProfile.objects.filter(user = warehouse).values('phone_number', 
+    destination_user_profile = UserProfile.objects.filter(user = warehouse).values('phone_number',
         'company_name', 'location', 'city', 'state', 'country', 'pin_code', 'address', 'wh_address', 'wh_phone_number', 'gst_number')
     po_skus_list = []
     po_skus_dict = OrderedDict()
@@ -7937,10 +7956,10 @@ def render_st_html_data(request, user, warehouse, all_data):
             po_skus_dict = {}
             st_id = obj[3]
             stock_transfer_obj = OpenST.objects.get(id=st_id)
-            po_skus_list.append( OrderedDict( ( ('sku', stock_transfer_obj.sku), 
-                ('sku_desc', stock_transfer_obj.sku.sku_desc), ( 'order_qty', int(stock_transfer_obj.order_quantity)), 
+            po_skus_list.append( OrderedDict( ( ('sku', stock_transfer_obj.sku),
+                ('sku_desc', stock_transfer_obj.sku.sku_desc), ( 'order_qty', int(stock_transfer_obj.order_quantity)),
                 ('measurement_type', stock_transfer_obj.sku.measurement_type), ('price', float(stock_transfer_obj.price)),
-                ('amount', stock_transfer_obj.price * stock_transfer_obj.order_quantity), ('sgst', 0), ('cgst', 0), 
+                ('amount', stock_transfer_obj.price * stock_transfer_obj.order_quantity), ('sgst', 0), ('cgst', 0),
                 ('igst', 0), ('utgst', 0) )) )
             total_order_qty += int(stock_transfer_obj.order_quantity)
             total_amount += float(stock_transfer_obj.price) * int(stock_transfer_obj.order_quantity)

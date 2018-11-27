@@ -705,7 +705,6 @@ vm.add_shipment = function(valid) {
   }
 
   vm.confirm_st_shipment = function(valid) {
-    debugger;
     if(valid.$valid) {
       if(vm.check_st_quantity(vm.model_data.data, 'shipping_quantity')) {
         vm.bt_disable = true

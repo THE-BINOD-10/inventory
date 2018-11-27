@@ -73,13 +73,14 @@
         }
 
         $http.get(Session.url + "status/", {withCredentials: true}).then(function (resp) {
+          if (window.current_version) {
+            $http.get(Session.url + "service_worker_check/?current_version="+window.current_version).then(function (data) {
 
-          $http.get(Session.url + "service_worker_check/?current_version="+window.current_version).then(function (data) {
-
-            if (data.data.reload) {
-              location.reload();
-            }
-          })
+              if (data.data.reload) {
+                location.reload();
+              }
+            })
+          }
           resp = resp.data;
           update_manifest(resp.data);
 
@@ -149,12 +150,12 @@
             "short_name": "STOCKONE",
             "icons": [
             {
-              "src": "images/stockone_logo.png",
+              "src": "https://go.stockone.in/images/stockone_logo.png",
               "sizes": "192x192",
               "type": "image\/png"
             },
             {
-              "src": "images/stockone_logo.png",
+              "src": "https://go.stockone.in/images/stockone_logo.png",
               "sizes": "512x512",
               "type": "image\/png"
             }
@@ -166,16 +167,16 @@
           "gcm_sender_id": "21194035295"
         };
         if(resp_data.parent && 'userName' in resp_data.parent && temp_user_list.indexOf(resp_data.parent.userName.toLowerCase()) != -1) {
-          manifest_json["name"] = "SAGARFAB";
-          manifest_json["short_name"] = "SAGARFAB";
+          manifest_json["name"] = "My Tee";
+          manifest_json["short_name"] = "My Tee";
           manifest_json["icons"] =  [
             {
-              "src": "images/sagar_fab.png",
+              "src": "https://go.stockone.in/images/MYTEE.png",
               "sizes": "192x192",
               "type": "image/png"
             },
             {
-              "src": "images/sagar_fab.png",
+              "src": "https://go.stockone.in/images/MYTEE.png",
               "sizes": "512x512",
               "type": "image/png"
             }

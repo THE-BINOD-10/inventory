@@ -885,6 +885,8 @@ def sku_form(request, user=''):
         headers = copy.deepcopy(USER_SKU_EXCEL[user_profile.user_type])
     attributes = get_user_attributes(user, 'sku')
     attr_headers = list(attributes.values_list('attribute_name', flat=True))
+    if get_misc_value('use_imei', user.id)  == 'true':
+        headers.append("Enable Serial Number")
     if attr_headers:
         headers += attr_headers
     if user_profile.industry_type == "FMCG":
@@ -1409,6 +1411,14 @@ def validate_sku_form(request, reader, user, no_of_rows, no_of_cols, fname, file
                 if cell_data:
                     if not str(cell_data).lower() in ['enable', 'disable']:
                         index_status.setdefault(row_idx, set()).add('Hot Release Should be Enable or Disable')
+            elif key == 'enable_serial_based':
+                if cell_data:
+                    if not str(cell_data).lower() in ['enable', 'disable']:
+                        index_status.setdefault(row_idx, set()).add('Enable Serial Number Should be Enable or Disable')
+            elif key == 'sequence':
+                if cell_data:
+                    if not isinstance(cell_data, (int, float)):
+                        index_status.setdefault(row_idx, set()).add('Sequence should be in number')
 
     master_sku = SKUMaster.objects.filter(user=user.id)
     master_sku = [data.sku_code for data in master_sku]
@@ -1441,7 +1451,6 @@ def get_sku_file_mapping(reader, user, no_of_rows, no_of_cols, fname, file_type)
                                                  sku_mapping)
     if get_cell_data(0, 1, reader, file_type) == 'Product Code' and get_cell_data(0, 2, reader, file_type) == 'Name':
         sku_file_mapping = copy.deepcopy(ITEM_MASTER_EXCEL)
-
     return sku_file_mapping
 
 
@@ -1585,6 +1594,14 @@ def sku_excel_upload(request, reader, user, no_of_rows, no_of_cols, fname, file_
                         ean_numbers = str(cell_data).split(',')
                     else:
                         ean_numbers = [str(int(cell_data))]
+            elif key == 'enable_serial_based':
+                toggle_value = str(cell_data).lower()
+                if toggle_value == "enable":
+                    cell_data = 1
+                if toggle_value == "disable":
+                    cell_data = 0
+                setattr(sku_data, key, cell_data)
+                data_dict[key] = cell_data
             elif cell_data:
                 data_dict[key] = cell_data
                 if sku_data:
@@ -1837,6 +1854,7 @@ def inventory_excel_upload(request, user, data_list):
                     batch_dict['manufactured_date'] = mfg_date
                 if exp_date:
                     batch_dict['expiry_date'] = exp_date
+                add_ean_weight_to_batch_detail(SKUMaster.objects.get(id=inventory_data['sku_id']), batch_dict)
                 batch_obj = BatchDetail(**batch_dict)
                 batch_obj.save()
                 stock_query_filter['batch_detail_id'] = batch_obj.id
@@ -2016,6 +2034,7 @@ def supplier_excel_upload(request, open_sheet, user, demo_data=False):
             elif key == 'name':
                 if not isinstance(cell_data, (str, unicode)):
                     cell_data = str(int(cell_data))
+                cell_data = str(xcode(cell_data))
                 supplier_data['name'] = cell_data
                 if supplier_master and cell_data:
                     setattr(supplier_master, key, cell_data)
@@ -2659,7 +2678,8 @@ def purchase_upload_mail(request, data_to_send, user):
             total_qty += one_stat['quantity']
             po_data.append((one_stat['sku_code'], '', '', one_stat['quantity'], one_stat['price'],
                             one_stat['quantity'] * one_stat['price']))
-
+        company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
+        iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
         profile = UserProfile.objects.get(user=request.user.id)
         t = loader.get_template('templates/toggle/po_download.html')
         w_address, company_address = get_purchase_company_address(profile)
@@ -2670,7 +2690,8 @@ def purchase_upload_mail(request, data_to_send, user):
                            'w_address': w_address, 'vendor_name': vendor_name,
                            'vendor_address': vendor_address, 'vendor_telephone': vendor_telephone,
                            'customization': customization, 'ship_to_address': ship_to_address,
-                           'company_address': company_address, 'wh_gstin': profile.gst_number}
+                           'company_address': company_address, 'wh_gstin': profile.gst_number,
+                           'company_logo': company_logo, 'iso_company_logo': iso_company_logo}
         rendered = t.render(data_dictionary)
         write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, telephone, po_data,
                            str(order_date).split(' ')[0])
@@ -3298,7 +3319,6 @@ def validate_customer_form(request, reader, user, no_of_rows, fname, file_type='
         customer_master = None
         for key, value in mapping_dict.iteritems():
             cell_data = get_cell_data(row_idx, mapping_dict[key], reader, file_type)
-
             if key == 'customer_id':
                 if cell_data:
                     try:
@@ -3316,6 +3336,16 @@ def validate_customer_form(request, reader, user, no_of_rows, fname, file_type='
             elif key == 'name':
                 if not cell_data and not customer_master:
                     index_status.setdefault(row_idx, set()).add('Missing Customer Name')
+
+            elif key == 'phone_number':
+                if cell_data:
+                    try:
+                        cell_data = str(int(cell_data))
+                    except:
+                        cell_data = str(cell_data)
+
+                    if len(cell_data) != 10:
+                        index_status.setdefault(row_idx, set()).add('Phone Number should be in 10 digit')
 
             elif key in number_fields.keys():
                 if cell_data:
@@ -3369,7 +3399,6 @@ def customer_excel_upload(request, reader, user, no_of_rows, fname, file_type):
             break
         customer_data = copy.deepcopy(CUSTOMER_DATA)
         customer_master = None
-
         for key, value in mapping_dict.iteritems():
             cell_data = get_cell_data(row_idx, mapping_dict[key], reader, file_type)
             # cell_data = open_sheet.cell(row_idx, mapping_dict[key]).value
@@ -3423,7 +3452,6 @@ def customer_excel_upload(request, reader, user, no_of_rows, fname, file_type):
                     customer_data[key] = cell_data
                 if cell_data and customer_master:
                     setattr(customer_master, key, cell_data)
-
         if customer_master:
             customer_master.save()
         else:
@@ -5179,7 +5207,7 @@ def central_order_form(request, user=''):
         return error_file_download(central_order_file)
     if user.username == 'one_assist':
         wb, ws = get_work_sheet('central_order_form', CENTRAL_ORDER_ONE_ASSIST_MAPPING.keys())
-    if user.username == '72Networks':
+    if user.username != 'one_assist':
         wb, ws = get_work_sheet('central_order_form', CENTRAL_ORDER_MAPPING.keys())
     return xls_to_response(wb, '%s.central_order_form.xls' % str(user.id))
 
@@ -5306,7 +5334,7 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                 except:
                     order_id = str(get_cell_data(row_idx, value, reader, file_type))
                 get_interm_order_id = IntermediateOrders.objects.all().aggregate(Max('interm_order_id'))
-                if get_interm_order_id:
+                if get_interm_order_id['interm_order_id__max']:
                     interm_order_id = get_interm_order_id['interm_order_id__max'] + 1
                 else:
                     interm_order_id = 10000

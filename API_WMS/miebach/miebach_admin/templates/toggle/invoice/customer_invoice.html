@@ -9,27 +9,29 @@
             <div class="invoice-body">
                 {% include "toggle/invoice/normal_details.html" %}
 
-              <table class="table table-bordered bl br cal-table m0">
+              <table class="table table-bordered table-responsive bl br cal-table m0">
                 <thead>
                   <tr class="fs14">
                     <th><center>SKU Code</center></th>
                     <th class="w7"><center>HSN</center></th>
                     <th><center>Description</center></th>
                     {% if show_mrp == 'true' %}
-                      <th class="w5"><center>MRP</center></th>
+                      <th><center>MRP</center></th>
                     {% endif %}
-                    <th class="w7"><center>Unit</br>Rate</center></th>
-                    <th class="w5"><center>Qty</center></th>
+                    <th><center>Unit</br>Rate</center></th>
+                    <th><center>Qty</center></th>
                     {% if show_disc_invoice == 'true' %}
-                    <th class="w5"><center>Disc</center></th>
+                    <th><center>Disc</center></th>
                     {% endif %}
                     <!--<th class="w9"><center>Base</br>Price</center></th>-->
-                    <th class="w9"><center>Taxable</br>Value</center></th>
-                    <th class="w7"><center>CGST</center></th>
-                    <th class="w7"><center>SGST</center></th>
-                    <th class="w7"><center>IGST</center></th>
-                    <th class="w7"><center>CESS</center></th>
-                    <th class="w9"><center>Total</center></th>
+                    <th><center>Taxable</br>Value</center></th>
+                    <th><center>CGST</center></th>
+                    <th><center>SGST</center></th>
+                    <th><center>IGST</center></th>
+                    {% if is_cess_tax_flag == 'true' %}
+                      <th><center>CESS</center></th>
+                    {% endif%}
+                    <th><center>Total</center></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -44,7 +46,9 @@
                       <td class="text-right">{{record.mrp_price}}</td>
                     {% endif %}
                     <td class="text-right">{{record.unit_price}}</td>
-                    <td class="text-right">{{record.quantity}}</td>
+
+                    <td class="text-right">{{record.quantity}} {{record.measurement_type}}</td>
+
                     {% if show_disc_invoice == 'true' %}
                     <td class="text-right">{{record.discount}}<br><span class="tax-percentage">@{{record.discount_percentage}}%</span></td>
                     {% endif %}
@@ -53,7 +57,9 @@
                     <td class="text-right">{{record.taxes.cgst_amt}}<br><span class="tax-percentage">@{{record.taxes.cgst_tax}}%</span></td>
                     <td class="text-right">{{record.taxes.sgst_amt}}<br><span class="tax-percentage">@{{record.taxes.sgst_tax}}%</span></td>
                     <td class="text-right">{{record.taxes.igst_amt}}<br><span class="tax-percentage">@{{record.taxes.igst_tax}}%</span></td>
-                    <td class="text-right">{{record.taxes.cess_amt}}<br><span class="tax-percentage">@{{record.taxes.cess_tax}}%</span></td>
+                    {% if is_cess_tax_flag == 'true' %}
+                      <td class="text-right">{{record.taxes.cess_amt}}<br><span class="tax-percentage">@{{record.taxes.cess_tax}}%</span></td>
+                    {% endif %}
                     <td class="text-right">{{record.invoice_amount}}</td>
                   </tr>
                   {% endif %}
@@ -81,13 +87,13 @@
                     {% if forloop.first == forloop.last %}
                       <tr class="rm-border" style="height: 41px;" ng-repeat="empty in page.empty_data">
                         {% for td in html_data.empty_tds %}
-                        <td ng-repeat="item in [1,2,3,4,5,6,7,8,9,10]"><p style="height:10px"></p></td>
+                        <td><p style="height:10px"></p></td>
                         {% endfor %}
                       </tr>
                     {% else %}
                       <tr class="rm-border" style="height: 38px;" ng-repeat="empty in page.empty_data">
                         {% for td in html_data.empty_tds %}
-                        <td ng-repeat="item in [1,2,3,4,5,6,7,8,9,10]"><p style="height:10px"></p></td>
+                        <td><p style="height:10px"></p></td>
                         {% endfor %}
                       </tr>
                     {% endif %}
@@ -105,7 +111,9 @@
                     <td><b>CGST</b></td>
                     <td><b>SGST</b></td>
                     <td><b>IGST</b></td>
-                    <td><b>CESS</b></td>
+                    {% if is_cess_tax_flag == 'true' %}
+                      <td><b>CESS</b></td>
+                    {% endif %}
                     <td></td>
                   </tr>
                   {% for hsn, data in hsn_summary.items %}
@@ -120,7 +128,9 @@
                     <td class="text-right">{{data.cgst_amt}}</td>
                     <td class="text-right">{{data.sgst_amt}}</td>
                     <td class="text-right">{{data.igst_amt}}</td>
-                    <td class="text-right">{{data.cess_amt}}</td>
+                    {% if is_cess_tax_flag == 'true' %}
+                      <td class="text-right">{{data.cess_amt}}</td>
+                    {% endif %}
                     <td></td>
                   </tr>
                   {% endfor %}
@@ -143,7 +153,9 @@
                     <td>{{total_taxes.cgst_amt}}</td>
                     <td>{{total_taxes.sgst_amt}}</td>
                     <td>{{total_taxes.igst_amt}}</td>
-                    <td>{{total_taxes.cess_amt}}</td>
+                    {% if is_cess_tax_flag == 'true' %}
+                      <td>{{total_taxes.cess_amt}}</td>
+                    {% endif %}
                     <td>{{total_invoice}}</td>
                   </tr>
                   <tr ng-if="$last">

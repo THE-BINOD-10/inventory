@@ -163,49 +163,49 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
   }
 
   /*Rating module start*/
-  function customerRating() {
+  // function customerRating() {
 
-    var mod_data = vm.modelData;
-    var modalInstance = $modal.open({
-      templateUrl: 'views/outbound/app/create_orders/rating_toggle/customer_rating.html',
-      controller: 'customerRatingCtrl',
-      controllerAs: '$ctrl',
-      size: 'md',
-      backdrop: 'static',
-      keyboard: false,
-      resolve: {
-        items: function () {
-          return mod_data;
-        }
-      }
-    });
+  //   var mod_data = vm.modelData;
+  //   var modalInstance = $modal.open({
+  //     templateUrl: 'views/outbound/app/create_orders/rating_toggle/customer_rating.html',
+  //     controller: 'customerRatingCtrl',
+  //     controllerAs: '$ctrl',
+  //     size: 'md',
+  //     backdrop: 'static',
+  //     keyboard: false,
+  //     resolve: {
+  //       items: function () {
+  //         return mod_data;
+  //       }
+  //     }
+  //   });
 
-    modalInstance.result.then(function (selectedItem) {
-      console.log(selectedItem);
-    })
-  }
+  //   modalInstance.result.then(function (selectedItem) {
+  //     console.log(selectedItem);
+  //   })
+  // }
 
-  vm.display_ratings = function() {
+  // vm.display_ratings = function() {
 
-    var formData = {}
+  //   var formData = {}
 
-    Service.apiCall("get_ratings_data_popup/", "POST", formData).then(function(response) {
+  //   Service.apiCall("get_ratings_data_popup/", "POST", formData).then(function(response) {
 
-      if (response.message) {
+  //     if (response.message) {
 
-        vm.order_ratings = response.data.data;
-        if (!$.isEmptyObject(vm.order_ratings)) {
+  //       vm.order_ratings = response.data.data;
+  //       if (!$.isEmptyObject(vm.order_ratings)) {
 
-          vm.modelData = {'profile_name': vm.profile_name, 'order_ratings': vm.order_ratings};
-          customerRating();
-        }
-      } else {
+  //         vm.modelData = {'profile_name': vm.profile_name, 'order_ratings': vm.order_ratings};
+  //         customerRating();
+  //       }
+  //     } else {
 
-        vm.service.pop_msg(response.data.message);
-      }
-    });
-  }
-  vm.display_ratings();
+  //       vm.service.pop_msg(response.data.message);
+  //     }
+  //   });
+  // }
+  // vm.display_ratings();
   /*Rating module end*/
   function change_filter_data() {
     var data = {brand: vm.brand, category: vm.category, is_catalog: true, sale_through: vm.order_type_value};
@@ -1433,6 +1433,24 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
     "V Neck":"V_NECK.png",
   }
 
+  vm.isprava_imgs = {
+                  'Bed':"Bed.jpg",
+                  'chair':"chair.jpg",
+                  'cushion':"cushion.jpg",
+                  'Door':"Door.jpg",
+                  'light':"light.jpg",
+                  "mirror":"mirror.jpg",
+                  "painting":"painting.jpg",
+                  "seating":"seating.jpg",
+                  "Stone-decor":"Stone-decor.jpg",
+                  "storage":"storage.jpg",
+                  "table":"table.jpg",
+                  "Trelis-partision":"Trelis-partision.jpg",
+                  "vase":"vase.jpg",
+                  "window":"window.jpg",
+                  "Wooden box":"Wooden box.jpg"
+               };
+
   vm.get_category_image = function(category) {
 
     if (Session.parent.userName == 'shailesh_mehta') {
@@ -1445,6 +1463,8 @@ function appCreateOrders($scope, $http, $q, Session, colFilters, Service, $state
       return '/images/categories/'+vm.sagar_fab_imgs[category];
     } else if(Session.parent.userName != 'sagar_fab' && vm.category_image_map[category]) {
       return '/images/categories/'+vm.category_image_map[category];
+    } else if(Session.parent.userName == 'isprava_admin' && vm.isprava_imgs[category]) {
+      return '/images/categories/'+vm.isprava_imgs[category];
     } else {
       return '/images/categories/default.png';
     }

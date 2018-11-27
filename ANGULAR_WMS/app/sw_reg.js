@@ -17,7 +17,7 @@
         }
 
          Notification.requestPermission(function(result) {
-           if (result !== 'granted')
+           if (result !== 'granted' && typeof(reject) != 'undefined')
              return reject(Error("Denied notification permission"));
         });
 

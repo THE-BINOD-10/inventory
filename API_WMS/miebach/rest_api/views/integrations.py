@@ -1719,6 +1719,20 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                 error_message = 'Invalid Order Status - Should be ' + ','.join(order_status_dict.keys())
                 update_error_message(failed_status, 5024, error_message, original_order_id)
                 break
+            token_user = user
+            if 'warehouse' not in order.keys():
+                error_message = 'warehouse key missing'
+                update_error_message(failed_status, 5021, error_message, original_order_id)
+                break
+            else:
+                warehouse = order['warehouse']
+                sister_whs = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+                sister_whs.append(token_user.username)
+                if warehouse in sister_whs:
+                    user = User.objects.get(username=warehouse)
+                else:
+                    error_message = 'Invalid Warehouse Name'
+                    update_error_message(failed_status, 5020, error_message, original_order_id)
 
             if order.has_key('billing_address'):
                 order_details['customer_id'] = order['billing_address'].get('customer_id', 0)
@@ -1791,6 +1805,10 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
 
                         invoice_amount = 0
                         unit_price = sku_item['unit_price']
+                        try:
+                            mrp = float(sku_item['mrp'])
+                        except:
+                            mrp = 0
                         if not order_det:
                             order_det = order_det1
 
@@ -1813,11 +1831,14 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
 
                             final_data_dict = check_and_add_dict(grouping_key, 'order_details', order_details,
                                                                  final_data_dict=final_data_dict)
-                        if not failed_status and not insert_status and sku_item.get('tax_percent', {}):
-                            order_summary_dict['cgst_tax'] = float(sku_item['tax_percent'].get('CGST', 0))
-                            order_summary_dict['sgst_tax'] = float(sku_item['tax_percent'].get('SGST', 0))
-                            order_summary_dict['igst_tax'] = float(sku_item['tax_percent'].get('IGST', 0))
-                            order_summary_dict['utgst_tax'] = float(sku_item['tax_percent'].get('UTGST', 0))
+                        if not failed_status and not insert_status:
+                            order_summary_dict['mrp'] = mrp
+                            if sku_item.get('tax_percent', {}):
+                                order_summary_dict['cgst_tax'] = float(sku_item['tax_percent'].get('CGST', 0))
+                                order_summary_dict['sgst_tax'] = float(sku_item['tax_percent'].get('SGST', 0))
+                                order_summary_dict['igst_tax'] = float(sku_item['tax_percent'].get('IGST', 0))
+                                order_summary_dict['utgst_tax'] = float(sku_item['tax_percent'].get('UTGST', 0))
+                                order_summary_dict['cess_tax'] = float(sku_item['tax_percent'].get('CESS', 0))
                             order_summary_dict['consignee'] = order_details['address']
                             order_summary_dict['invoice_date'] = order_details['creation_date']
                             order_summary_dict['inter_state'] = 0

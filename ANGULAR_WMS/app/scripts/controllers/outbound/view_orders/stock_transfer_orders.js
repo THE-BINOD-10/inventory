@@ -366,7 +366,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.generate_data = [];
     vm.generate_picklist = generate_picklist;
     function generate_picklist() {
-      for(var key in vm.selected){
+      for(var key in vm.selected) {
         console.log(vm.selected[key]);
         if(vm.selected[key]) {
           vm.generate_data.push(vm.dtInstance.DataTable.context[0].aoData[key]._aData);
@@ -377,7 +377,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         var data = {};
         for(var i=0;i<vm.generate_data.length;i++) {
           // data[vm.generate_data[i]['Stock Transfer ID']+":"+vm.generate_data[i]['SKU Code']]= vm.generate_data[i].DT_RowAttr.id;
-          data[vm.generate_data[i]['Stock Transfer ID']] = vm.generate_data[i].DT_RowAttr.id;
+          data[vm.generate_data[i].DT_RowAttr.id] = vm.generate_data[i]['Stock Transfer ID'];
         }
 
         var url = 'st_generate_picklist/';

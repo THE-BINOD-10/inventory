@@ -23,10 +23,11 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
   vm.api_url = Session.host;
   vm.is_portal_lite = Session.roles.permissions.is_portal_lite;
 
+  vm.unique_levels = {};
   vm.sel_styles = {};
   vm.get_customer_cart_data = function() {
-    
-    vm.place_order_loading = true; 
+
+    vm.place_order_loading = true;
     vm.service.apiCall("get_customer_cart_data/").then(function(data){
 
       if(data.message) {
@@ -35,6 +36,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
 
         vm.model_data.invoice_type = data.data.invoice_types[0]
         if(vm.model_data.data.length > 0) {
+          vm.unique_levels = {};
           angular.forEach(vm.model_data.data, function(sku){
 
             sku['org_price'] = sku.price;
@@ -42,6 +44,9 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
             sku.quantity = Number(sku.quantity);
             sku.invoice_amount = Number(sku.price) * sku.quantity;
             sku.total_amount = ((sku.invoice_amount*sku.tax) / 100) + sku.invoice_amount;
+            if (!vm.unique_levels[sku.warehouse_level]) {
+              vm.unique_levels[sku.warehouse_level] = sku.level_name;
+            }
 
             vm.quantity_valid(sku);
           });
@@ -87,7 +92,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
     }
   }
 
-  vm.change_remarks = function(remark) {
+  /*vm.change_remarks = function(remark) {
 
     angular.forEach(vm.model_data.data, function(data){
       if(!data['sku_remarks']){
@@ -96,7 +101,7 @@ function AppCart($scope, $http, $q, Session, colFilters, Service, $state, $windo
         data['remarks'] = data['sku_remarks'];
       }
     })
-  }
+  }*/
   vm.change_sku_remarks = function(data) {
 
     data['remarks'] = data['sku_remarks'];
@@ -161,16 +166,16 @@ vm.update_cartdata_for_approval = function() {
   vm.remove_item = function(index) {
 
     var deleted_sku_id = vm.model_data.data[index].sku_id;
-    vm.delete_customer_cart_data(vm.model_data.data[index]); 
+    vm.delete_customer_cart_data(vm.model_data.data[index]);
     vm.model_data.data.splice(index,1);
     delete vm.sku_group_data[deleted_sku_id];
 
     if (vm.model_data.data) {
-      
+
       for (var i = 0; i < vm.model_data.data.length; i++) {
 
         vm.update_sku_levels(vm.model_data.data, vm.model_data.data[i]);
-        break; 
+        break;
       }
     }
 
@@ -292,9 +297,9 @@ vm.update_cartdata_for_approval = function() {
     var total_quantity = 0;
 
     angular.forEach(data, function(record){
-          
+
       if (record.quantity && row.sku_id == record.sku_id) {
-        
+
         total_quantity += Number(record.quantity);
       }
     });
@@ -313,7 +318,7 @@ vm.update_cartdata_for_approval = function() {
     angular.forEach(data, function(record) {
 
       if (vm.sel_styles[record.sku_style]) {
-        
+
         vm.priceRangesCheck(record, Number(vm.sel_styles[record.sku_style]));
       }
 
@@ -322,7 +327,7 @@ vm.update_cartdata_for_approval = function() {
         vm.sku_group_data[record.sku_id].quantity += record.quantity;
         vm.sku_group_data[record.sku_id].add_sku_total_price += (record.price * record.quantity);
       } else {
-        
+
         vm.sku_group_data[record.sku_id] = {'sku_code': record.sku_id, 'quantity': record.quantity};
         vm.sku_group_data[record.sku_id][record.level_name] = record.level_name;
         vm.sku_group_data[record.sku_id].add_sku_total_price = (record.price * record.quantity);
@@ -352,7 +357,7 @@ vm.update_cartdata_for_approval = function() {
 
     var price = record.price;
     if (record.prices) {
-      
+
       var prices = record.prices;
 
       for (var priceRng = 0; priceRng < prices.length; priceRng++) {
@@ -416,6 +421,13 @@ vm.update_cartdata_for_approval = function() {
 
   vm.change_remarks = function(data) {
     if(data){
+      angular.forEach(vm.model_data.data, function(data){
+        if(!data['sku_remarks']){
+          data['remarks'] = vm.model_data.remarks;
+        } else {
+          data['remarks'] = data['sku_remarks'];
+      }
+    })
       vm.update_customer_cart_data(data);
     }
   }
@@ -492,34 +504,38 @@ vm.update_cartdata_for_approval = function() {
 
         vm.service.showNoty("The Customer Name is Required Please Select", "success", "bottomRight");
       } else {
-
-        if (vm.model_data.data.length == 0) {
-
-          Service.showNoty('Please Items To Cart First');
+        if (vm.unique_levels['0'] || vm.unique_levels['2']) {
+          Service.showNoty("Enquiry Order can't be placed to <b>L0 & L2</b> levels, Please remove them");
           return false;
-        }
-        vm.place_order_loading = true;
-        var send = {'name': vm.model_data.client_name_header};
-        Service.apiCall("insert_enquiry_data/", "POST", send).then(function(data){
+        } else {
+          if (vm.model_data.data.length == 0) {
 
-          if(data.message) {
+            Service.showNoty('Please Items To Cart First');
+            return false;
+          }
+          vm.place_order_loading = true;
+          var send = {'name': vm.model_data.client_name_header};
+          Service.apiCall("insert_enquiry_data/", "POST", send).then(function(data){
 
-            if(data.data == 'Success') {
+            if(data.message) {
 
-              vm.model_data.data = [];
-              Data.enquiry_orders = [];
-              Service.showNoty('Successfully added');
-              $state.go("user.App.Brands");
+              if(data.data == 'Success') {
+
+                vm.model_data.data = [];
+                Data.enquiry_orders = [];
+                Service.showNoty('Successfully added');
+                $state.go("user.App.Brands");
+              } else {
+
+                Service.showNoty(data.data, 'warning');
+              }
             } else {
 
-              Service.showNoty(data.data, 'warning');
+              Service.showNoty("Something Went Wrong");
             }
-          } else {
-
-            Service.showNoty("Something Went Wrong");
-          }
-          vm.place_order_loading = false;
-        });
+            vm.place_order_loading = false;
+          });
+        }
       }
     }
   }

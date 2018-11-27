@@ -254,49 +254,54 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       var po_number = '';
       var status = false;
       var field_name = "";
-      var checkbox_valid = [];
-	  var key = 0;
-	  angular.forEach(vm.selected, function(obj, idx) {
-		if (obj) {
-		  checkbox_valid.push(obj)
-		  key = parseInt(idx);
-		  if (checkbox_valid.length	< 1) {
-			vm.service.showNoty("Please select only one row");
-			return false;
-		  }
-		}
-	  });
-	  var selected_row = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]['_aData'];
-	  var send = {};
-	  send['order_id'] = selected_row['Stock Transfer ID'];
-	  send['warehouse_name'] = selected_row['Warehouse Name'];
-	  send['picklist_number'] = selected_row['Picklist Number'];
-	  send['picked_qty'] = selected_row['Picklist Quantity'];
-	  send['stock_transfer_datetime'] = selected_row['Stock Transfer Date&Time'];
-	  send['total_amount'] = selected_row['Total Amount'];
-	  send['invoice_date'] = selected_row['Invoice Date'];
-	  send['order_date'] = selected_row['Order Date'];
+      var checkbox_valid = []
+  	  var key = 0
+      var flag = 1
+  	  angular.forEach(vm.selected, function(obj, idx) {
+    		if (obj) {
+    		  checkbox_valid.push(obj)
+    		  key = parseInt(idx);
+    		  if (checkbox_valid.length	> 1) {
+    			vm.service.showNoty("Please select only one row");
+          flag = 0
+    			return false;
+    		  }
+    		}
+  	  });
+      if (!flag) {
+        return false;
+      }
+  	  var selected_row = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]['_aData'];
+  	  var send = {};
+  	  send['order_id'] = selected_row['Stock Transfer ID'];
+  	  send['warehouse_name'] = selected_row['Warehouse Name'];
+  	  send['picklist_number'] = selected_row['Picklist Number'];
+  	  send['picked_qty'] = selected_row['Picklist Quantity'];
+  	  send['stock_transfer_datetime'] = selected_row['Stock Transfer Date&Time'];
+  	  send['total_amount'] = selected_row['Total Amount'];
+  	  send['invoice_date'] = selected_row['Invoice Date'];
+  	  send['order_date'] = selected_row['Order Date'];
 
-	  vm.service.apiCall("generate_stock_transfer_invoice/", "GET", send).then(function(data) {
-          if(data.message) {
-            if(click_type == 'generate') {
-              vm.pdf_data = data.data.resp;
-              $state.go("app.outbound.CustomerInvoicesMain.StockTransferInvoiceGen");
+  	  vm.service.apiCall("generate_stock_transfer_invoice/", "GET", send).then(function(data) {
+            if(data.message) {
+              if(click_type == 'generate') {
+                vm.pdf_data = data.data.resp;
+                $state.go("app.outbound.CustomerInvoicesMain.StockTransferInvoiceGen");
+              }
             }
-          }
-          vm.bt_disable = false;
-      });
+            vm.bt_disable = false;
+        });
+      }
+      vm.inv_height = 1358; //total invoice height
+      vm.inv_details = 292; //invoice details height
+      vm.inv_footer = 95;   //invoice footer height
+      vm.inv_totals = 127;  //invoice totals height
+      vm.inv_header = 47;   //invoice tables headers height
+      vm.inv_product = 47;  //invoice products cell height
+      vm.inv_summary = 47;  //invoice summary headers height
+      vm.inv_total = 27;    //total display height
+      vm.render_data = []
     }
-    vm.inv_height = 1358; //total invoice height
-    vm.inv_details = 292; //invoice details height
-    vm.inv_footer = 95;   //invoice footer height
-    vm.inv_totals = 127;  //invoice totals height
-    vm.inv_header = 47;   //invoice tables headers height
-    vm.inv_product = 47;  //invoice products cell height
-    vm.inv_summary = 47;  //invoice summary headers height
-    vm.inv_total = 27;    //total display height
-    vm.render_data = []
-  }
 
 function EditInvoice($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $modalInstance, items) {
 

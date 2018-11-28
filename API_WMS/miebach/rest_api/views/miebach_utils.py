@@ -5499,11 +5499,24 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
                 log.debug(traceback.format_exc())
                 log.info('Firebase query  failed for %s and params are %s and error statement is %s' % (
                 str(user.username), str(request.POST.dict()), str(e)))
+
         if result :
-            signed_invoice_copy = result['signed_invoice_copy']
-            id_type = result['id_type']
-            id_card = result['id_card']
-            id_proof_number = result['id_proof_number']
+            try:
+                signed_invoice_copy = result['signed_invoice_copy']
+            except:
+                signed_invoice_copy = ''
+            try :
+                id_type = result['id_type']
+            except:
+                id_type = ''
+            try :
+                id_card = result['id_card']
+            except :
+                id_card = ''
+            try :
+                id_proof_number = result['id_proof_number']
+            except:
+                id_proof_number = ''
         else:
             signed_invoice_copy =''
             id_type =''

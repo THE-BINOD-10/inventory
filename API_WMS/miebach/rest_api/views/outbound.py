@@ -5573,9 +5573,16 @@ def shipment_info_data(request, user=''):
             serial_number = 0
         result =''
         if orders.order.original_order_id :
-            from firebase import firebase
-            firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)
-            result = firebase.get('/OrderDetails/'+orders.order.original_order_id, None)
+            try:
+                from firebase import firebase
+                firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)
+                result = firebase.get('/OrderDetails/'+orders.order.original_order_id, None)
+            except Exception as e:
+                result = 0
+                import traceback
+                log.debug(traceback.format_exc())
+                log.info('Firebase query  failed for %s and params are %s and error statement is %s' % (
+                str(user.username), str(request.POST.dict()), str(e)))
         if  result :
             signed_invoice_copy = result['signed_invoice_copy']
             id_type = result['id_type']

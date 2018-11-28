@@ -1272,12 +1272,12 @@ def confirm_po(request, user=''):
     iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
     total_amt_in_words = number_in_words(round(total)) + ' ONLY'
     round_value = float(round(total) - float(total))
-    data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 
+    data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address,
                  'order_id': order_id, 'telephone': str(telephone),
-                 'name': name, 'order_date': order_date, 'total': round(total), 
+                 'name': name, 'order_date': order_date, 'total': round(total),
                  'po_reference': po_reference, 'company_name': company_name,
-                 'location': profile.location, 'vendor_name': vendor_name, 
-                 'vendor_address': vendor_address, 'vendor_telephone': vendor_telephone, 
+                 'location': profile.location, 'vendor_name': vendor_name,
+                 'vendor_address': vendor_address, 'vendor_telephone': vendor_telephone,
                  'total_qty': total_qty, 'receipt_type': receipt_type,
                  'title': title, 'ship_to_address': ship_to_address,
                  'gstin_no': gstin_no, 'w_address': ship_to_address,
@@ -1686,7 +1686,7 @@ def get_supplier_data(request, user=''):
                             'dis': True,
                             'sku_extra_data': sku_extra_data, 'product_images': product_images,
                             'sku_details': sku_details, 'shelf_life': order_data['shelf_life'],
-                            'tax_percent': tax_percent, 'cess_percent': order_data['cess_tax'], 
+                            'tax_percent': tax_percent, 'cess_percent': order_data['cess_tax'],
                             'total_amt': 0, 'show_imei': order_data['sku'].enable_serial_based }])
     supplier_name, order_date, expected_date, remarks = '', '', '', ''
     if purchase_orders:
@@ -2903,7 +2903,6 @@ def check_returns(request, user=''):
 @get_admin_user
 def check_sku(request, user=''):
     data = {}
-    import pdb; pdb.set_trace()
     sku_code = request.GET.get('sku_code')
     allocate_order = request.GET.get('allocate_order', 'false')
     check = False
@@ -2927,7 +2926,6 @@ def check_sku(request, user=''):
                          ('cgst',''),
                          ('sgst',''),
                          ('igst',''))))
-    import pdb; pdb.set_trace()
     if sku_id:
         sku_data = SKUMaster.objects.get(id=sku_id)
         if allocate_order == 'true':
@@ -3259,7 +3257,6 @@ def confirm_sales_return(request, user=''):
     log.info('Request params for Confirm Sales Return for ' + user.username + ' is ' + str(request.POST.dict()))
     try:
         # Group the Input Data Based on the Group Type
-        import pdb; pdb.set_trace()
         final_data_list = group_sales_return_data(data_dict, return_process)
         for return_dict in final_data_list:
             all_data = []
@@ -4635,7 +4632,7 @@ def confirm_add_po(request, sales_data='', user=''):
                  'gstin_no': gstin_no, 'industry_type': industry_type, 'expiry_date': expiry_date,
                  'wh_telephone': wh_telephone, 'wh_gstin': profile.gst_number, 'wh_pan': profile.pan_number,
                  'terms_condition': terms_condition, 'show_cess_tax' : show_cess_tax,
-                 'company_address': company_address, 
+                 'company_address': company_address,
                  'company_logo': company_logo, 'iso_company_logo': iso_company_logo}
     if round_value:
         data_dict['round_total'] = "%.2f" % round_value

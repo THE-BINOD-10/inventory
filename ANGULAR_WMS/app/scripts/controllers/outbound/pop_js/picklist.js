@@ -138,7 +138,7 @@ function view_orders() {
         if(total < data.reserved_quantity) {
           vm.service.apiCall('check_imei/', 'GET', elem).then(function(data){
             if(data.message) {
-              if(data.data.data.sku_code == record.parent_sku_code) {
+              if(data.data.data.sku_code == record.wms_code) {
                 record.picked_quantity = parseInt(record.picked_quantity) + 1;
                 record.scan = '';
               } else {

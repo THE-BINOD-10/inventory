@@ -1198,6 +1198,7 @@ class SKURelation(models.Model):
     id = BigAutoField(primary_key=True)
     parent_sku = models.ForeignKey(SKUMaster, blank=True, null=True, related_name='parent_sku')
     member_sku = models.ForeignKey(SKUMaster, blank=True, null=True, related_name='member_sku')
+    quantity = models.FloatField(default=1)
     relation_type = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -1205,6 +1206,7 @@ class SKURelation(models.Model):
     class Meta:
         db_table = 'SKU_RELATION'
         unique_together = ('parent_sku', 'member_sku', 'relation_type')
+        index_together = ('parent_sku', 'member_sku', 'relation_type')
 
     def __unicode__(self):
         return '%s: %s || %s' % (self.relation_type, self.parent_sku, self.member_sku)

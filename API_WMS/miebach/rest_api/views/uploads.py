@@ -2032,6 +2032,7 @@ def supplier_excel_upload(request, open_sheet, user, demo_data=False):
             elif key == 'name':
                 if not isinstance(cell_data, (str, unicode)):
                     cell_data = str(int(cell_data))
+                cell_data = str(xcode(cell_data))
                 supplier_data['name'] = cell_data
                 if supplier_master and cell_data:
                     setattr(supplier_master, key, cell_data)

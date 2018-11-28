@@ -5490,7 +5490,6 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
 
         if admin_user.get_username() == '72Networks' :
             try:
-                import pdb; pdb.set_trace()
                 from firebase import firebase
                 firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)
                 result = firebase.get('/OrderDetails/'+order_id, None)

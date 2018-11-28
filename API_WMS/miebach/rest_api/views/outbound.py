@@ -2384,6 +2384,10 @@ def view_picklist(request, user=''):
     single_order = ''
     order_status = ''
     headers = list(PRINT_OUTBOUND_PICKLIST_HEADERS)
+    qc_items_qs = UserAttributes.objects.filter(user_id=user.id,
+                                                attribute_model='dispatch_qc',
+                                                status=1).values_list('attribute_name', flat=True)
+    qc_items = list(qc_items_qs)
     misc_detail = MiscDetail.objects.filter(user=user.id)
     data = misc_detail.filter(misc_type='show_image')
     if data:
@@ -2409,7 +2413,8 @@ def view_picklist(request, user=''):
                                     'show_image': show_image, 'use_imei': use_imei,
                                     'order_status': order_status, 'user': request.user.id,
                                     'single_order': single_order,
-                                    'sku_total_quantities': sku_total_quantities, 'courier_name' : courier_name}))
+                                    'sku_total_quantities': sku_total_quantities, 'courier_name' : courier_name,
+                                    'qc_items': qc_items}))
 
 
 @csrf_exempt

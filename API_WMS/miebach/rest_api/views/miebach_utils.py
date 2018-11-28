@@ -5420,6 +5420,7 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
 def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
     from miebach_admin.models import *
     from miebach_admin.views import *
+    from common import get_admin
     from rest_api.views.common import get_sku_master, get_order_detail_objs
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     search_parameters = {}
@@ -5479,11 +5480,36 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
     if stop_index:
         model_data = model_data[start_index:stop_index]
 
+    admin_user = get_admin(user)
+    result = ''
     for data in model_data:
         order_id = data['order__original_order_id']
         if not order_id:
             order_id = data['order__order_code'] + str(data['order__order_id'])
         date = get_local_date(user, data['creation_date']).split(' ')
+
+        if admin_user.get_username() == '72Networks' :
+            try:
+                from firebase import firebase
+                firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)
+                result = firebase.get('/OrderDetails/'+order_id, None)
+            except Exception as e:
+                result = 0
+                import traceback
+                log.debug(traceback.format_exc())
+                log.info('Firebase query  failed for %s and params are %s and error statement is %s' % (
+                str(user.username), str(request.POST.dict()), str(e)))
+        if result :
+            signed_invoice_copy = result['signed_invoice_copy']
+            id_type = result['id_type']
+            id_card = result['id_card']
+            id_proof_number = result['id_proof_number']
+        else:
+            signed_invoice_copy =''
+            id_type =''
+            id_card =''
+            id_proof_number = ''
+
         temp_data['aaData'].append(OrderedDict((('Shipment Number', data['order_shipment__shipment_number']),
                                                 ('Order ID', order_id), ('SKU Code', data['order__sku__sku_code']),
                                                 ('Title', data['order__title']),
@@ -5492,6 +5518,10 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
                                                 ('Shipped Quantity', data['shipping_quantity']),
                                                 ('Truck Number', data['order_shipment__truck_number']),
                                                 ('Date', ' '.join(date)),
+                                                ('Signed Invoice Copy',signed_invoice_copy),
+                                                ('ID Type',id_type),
+                                                ('ID Card' , id_card),
+                                                ('ID Proof Number' , id_proof_number),
                                                 ('Shipment Status', ship_status.get(data['id'], '')),
                                                 ('Courier Name', data['order_shipment__courier_name']),
                                                 ('Payment Status', data['order__customerordersummary__payment_status']),

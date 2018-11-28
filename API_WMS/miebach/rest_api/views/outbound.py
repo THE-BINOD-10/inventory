@@ -5572,7 +5572,8 @@ def shipment_info_data(request, user=''):
         else:
             serial_number = 0
         result =''
-        if orders.order.original_order_id :
+        admin_user = get_admin(user)
+        if admin_user.get_username() == '72Networks' :
             try:
                 from firebase import firebase
                 firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)

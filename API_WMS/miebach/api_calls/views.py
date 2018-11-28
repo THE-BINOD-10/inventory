@@ -1099,7 +1099,11 @@ def update_orders(request):
         return HttpResponse(json.dumps({'message': 'Please send proper data'}))
     log.info('Request params for ' + request.user.username + ' is ' + str(orders))
     try:
-        validation_dict, failed_status, final_data_dict = validate_orders_format(orders, user=request.user, company_name='mieone')
+        if request.user.userprofile.user_type == 'marketplace_user':
+            validation_dict, failed_status, final_data_dict = validate_seller_orders_format(orders, user=request.user,
+                                                                                     company_name='mieone')
+        else:
+            validation_dict, failed_status, final_data_dict = validate_orders_format(orders, user=request.user, company_name='mieone')
         if validation_dict:
             return HttpResponse(json.dumps({'messages': validation_dict, 'status': 0}))
         if failed_status:

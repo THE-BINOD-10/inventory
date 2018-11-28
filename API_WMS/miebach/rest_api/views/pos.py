@@ -129,6 +129,18 @@ def search_product_data(request, user=''):
         except:
             master_data = SKUMaster.objects.exclude(sku_type='RM').filter(Q(wms_code__icontains=search_key) |
                                                                       Q(sku_desc__icontains=search_key), user=user.id)
+    filt_master_ids = list(master_data.values_list('id', flat=True)[:30])
+    stock_dict = dict(StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE') \
+        .filter(sku__user=user.id, quantity__gt=0, sku_id__in=filt_master_ids).values_list('sku_id').distinct().\
+                      annotate(total=Sum('quantity')))
+    pick_reserved = dict(PicklistLocation.objects.filter(stock__sku__user=user.id, status=1,
+                                                          stock__sku_id__in=filt_master_ids).\
+                                           only('stock__sku_id', 'reserved').\
+                                    values_list('stock__sku_id').distinct().annotate(in_reserved=Sum('reserved')))
+    rm_reserved = dict(RMLocation.objects.filter(stock__sku__user=user.id, status=1,
+                                                stock__sku_id__in=filt_master_ids).\
+                                           only('stock__sku_id', 'reserved').\
+                                    values_list('stock__sku_id').distinct().annotate(in_reserved=Sum('reserved')))
     for data in master_data[:30]:
         status = 'Inactive'
         if data.status:
@@ -158,12 +170,15 @@ def search_product_data(request, user=''):
                     discount_percentage = category.discount
         if discount_percentage:
             discount_price = price - ((price * discount_percentage) / 100)
-        stock_quantity = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE') \
+        '''stock_quantity = StockDetail.objects.exclude(location__zone__zone='DAMAGED_ZONE') \
             .filter(sku__wms_code=data.wms_code, \
                     sku__user=user.id).aggregate(Sum('quantity'))
         stock_quantity = stock_quantity['quantity__sum']
         if not stock_quantity:
-            stock_quantity = 0
+            stock_quantity = 0'''
+        stock_quantity = stock_dict.get(data.id, 0)
+        stock_quantity -= pick_reserved.get(data.id, 0)
+        stock_quantity -= rm_reserved.get(data.id, 0)
         ean_numbers = get_sku_ean_list(data)
         ean_numbers = ','.join(ean_numbers)
         total_data.append({'search': str(data.wms_code) + " " + data.sku_desc + " " +\
@@ -206,8 +221,8 @@ def add_customer(request):
     return HttpResponse("success")
 
 
-def get_stock_count(request, order, stock, stock_diff, user, order_quantity):
-    stock_quantity = float(stock.quantity)
+def get_stock_count(request, order, stock, stock_diff, user, order_quantity, stock_qty):
+    stock_quantity = stock_qty
     if stock_quantity <= 0:
         return 0, stock_diff
     if stock_diff:
@@ -237,14 +252,62 @@ def picklist_creation(request, stock_detail, stock_quantity, order_detail, \
                                                              picklist=None, \
                                                              quantity=order_detail.quantity, \
                                                              invoice_number=invoice_number)
-    if stock_quantity < float(order_detail.quantity):
+    needed_order_quantity = float(order_detail.quantity)
+    pick_reserved = dict(PicklistLocation.objects.prefetch_related('picklist', 'stock'). \
+            filter(picklist__order__user=order_detail.user, picklist__stock__sku_id=order_detail.sku_id).\
+            values_list('stock_id').distinct().annotate(total=Sum('reserved')))
+    raw_reserved = dict(RMLocation.objects.filter(status=1, stock__sku_id=order_detail.sku_id,
+                                                material_picklist__jo_material__material_code__user=order_detail.user).\
+                                             values_list('stock_id').distinct().annotate(total=Sum('reserved')))
+    stock_diff = 0
+    for stock in stock_detail:
+        stock_qty = stock.quantity
+        stock_qty -= pick_reserved.get(stock.id, 0)
+        stock_qty -= raw_reserved.get(stock.id, 0)
+        stock_count, stock_diff = get_stock_count(request, order_detail, stock, \
+                                                  stock_diff, user, order_detail.quantity, stock_qty)
+        auto_skus.append(order_detail.sku.wms_code)
+        if not stock_count:
+            continue
+        stock.quantity = float(stock.quantity) - stock_count
+        stock.quantity = get_decimal_limit(user.id, float(stock.quantity))
+        stock.save()
         picklist = Picklist.objects.create(picklist_number=picklist_number, \
                                            reserved_quantity=0, \
-                                           picked_quantity=stock_diff, \
+                                           picked_quantity=stock_count, \
                                            remarks='Picklist_' + str(picklist_number), \
                                            status='batch_picked', \
                                            order_id=order_detail.id, \
-                                           stock_id='', creation_date=NOW)
+                                           stock_id=stock.id, creation_date=NOW)
+        PicklistLocation.objects.create(quantity=stock_count, status=0, \
+                                        picklist_id=picklist.id, reserved=0, \
+                                        stock_id=stock.id, \
+                                        creation_date=NOW)
+        needed_order_quantity -= stock_count
+        picks_all.append(picklist.id)
+        quantity = picklist.picked_quantity
+        if picklist.order.order_id in picklists_send_mail.keys():
+            if picklist.order.sku.sku_code in picklists_send_mail[picklist.order.order_id].keys():
+                qty = float(picklists_send_mail[picklist.order.order_id][picklist.order.sku.sku_code])
+                picklists_send_mail[picklist.order.order_id][picklist.order.sku.sku_code] = qty +\
+                      float(quantity)
+            else:
+                picklists_send_mail[picklist.order.order_id].update(
+                    {picklist.order.sku.sku_code: float(quantity)})
+        else:
+            picklists_send_mail.update(
+                {picklist.order.order_id: {picklist.order.sku.sku_code: float(quantity)}})
+        if not stock_diff:
+            break
+    if needed_order_quantity > 0:
+        picklist = Picklist.objects.create(picklist_number=picklist_number, \
+                                           reserved_quantity=0, \
+                                           picked_quantity=needed_order_quantity, \
+                                           remarks='Picklist_' + str(picklist_number), \
+                                           status='batch_picked', \
+                                           order_id=order_detail.id, \
+                                           stock=None, creation_date=NOW)
+        needed_order_quantity = 0
         picks_all.append(picklist.id)
         quantity = picklist.picked_quantity
         if picklist.order.order_id in picklists_send_mail.keys():
@@ -267,43 +330,6 @@ def picklist_creation(request, stock_detail, stock_quantity, order_detail, \
         obj.sgst_tax = item['sgst_percent']
         obj.creation_date = NOW
         obj.save()
-    stock_diff = 0
-    for stock in stock_detail:
-        stock_count, stock_diff = get_stock_count(request, order_detail, stock, \
-                                                  stock_diff, user, order_detail.quantity)
-        auto_skus.append(order_detail.sku.wms_code)
-        if not stock_count:
-            continue
-        stock.quantity = float(stock.quantity) - stock_count
-        stock.quantity = get_decimal_limit(user.id, float(stock.quantity))
-        stock.save()
-        picklist = Picklist.objects.create(picklist_number=picklist_number, \
-                                           reserved_quantity=0, \
-                                           picked_quantity=stock_count, \
-                                           remarks='Picklist_' + str(picklist_number), \
-                                           status='batch_picked', \
-                                           order_id=order_detail.id, \
-                                           stock_id=stock.id, creation_date=NOW)
-        PicklistLocation.objects.create(quantity=stock_count, status=0, \
-                                        picklist_id=picklist.id, reserved=0, \
-                                        stock_id=stock.id, \
-                                        creation_date=NOW)
-        picks_all.append(picklist.id)
-        quantity = picklist.picked_quantity
-        if picklist.order.order_id in picklists_send_mail.keys():
-            if picklist.order.sku.sku_code in picklists_send_mail[picklist.order.order_id].keys():
-                qty = float(picklists_send_mail[picklist.order.order_id][picklist.order.sku.sku_code])
-                picklists_send_mail[picklist.order.order_id][picklist.order.sku.sku_code] = qty +\
-                      float(quantity)
-            else:
-                picklists_send_mail[picklist.order.order_id].update(
-                    {picklist.order.sku.sku_code: float(quantity)})
-        else:
-            picklists_send_mail.update(
-                {picklist.order.order_id: {picklist.order.sku.sku_code: float(quantity)}})
-
-        if not stock_diff:
-            break
     #auto po
     if auto_skus:
         auto_skus = list(set(auto_skus))
@@ -463,7 +489,7 @@ def customer_order(request):
                     items_to_mail.append([sku.sku_desc, item['quantity'], item['price']])
                     if status == 0:
                         stock_diff, invoice_number = item['quantity'], order_id
-                        stock_detail = StockDetail.objects.exclude( \
+                        stock_detail = sku_stocks.exclude( \
                             location__zone__zone='DAMAGED_ZONE') \
                             .filter(sku__wms_code=sku.wms_code, \
                                     sku__user=user_id)

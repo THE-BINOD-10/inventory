@@ -730,12 +730,20 @@ def get_picklist_data(data_id, user_id):
     stocks = pick_stocks.filter(quantity__gt=0).values('sku__wms_code', 'location__location').distinct().annotate(
         quantity=Sum('quantity'))
     reserved_instances = PicklistLocation.objects.filter(status=1, picklist__order__user=user_id).values(
-        'stock__sku__wms_code',
-        'stock__location__location'). \
+        'stock__sku__wms_code', 'stock__location__location'). \
         distinct().annotate(reserved=Sum('reserved'))
     stock_skus = map(lambda d: d['sku__wms_code'], stocks)
     reserved_skus = map(lambda d: d['stock__sku__wms_code'], reserved_instances)
     data = []
+    dispatched_imeis = OrderIMEIMapping.objects.filter(status=1, order__user=user_id, po_imei__isnull=False).values_list(
+        'po_imei_id', flat=True)
+    dict_list = ['sku__sku_code', 'imei_number']
+    imei_qs = POIMEIMapping.objects.filter(status=1, sku__user=user_id).exclude(id__in=dispatched_imeis).values_list(
+        *dict_list).order_by('creation_date')
+    sku_imeis_map = {}
+    for sku_code, imei_number in imei_qs:
+        sku_imeis_map.setdefault(sku_code, []).append(imei_number)
+
     if not picklist_orders:
         return data, sku_total_quantities, courier_name
     if picklist_orders.filter(order_type='combo').exists():
@@ -967,7 +975,8 @@ def get_picklist_data(data_id, user_id):
                  'customer_name': customer_name, 'marketplace': marketplace, 'remarks': remarks,
                  'load_unit_handle': load_unit_handle, 'category': category, 'customer_address': customer_address,
                  'original_order_id': original_order_id, 'mrp':mrp, 'batchno':batch_no,
-                 'is_combo_picklist': is_combo_picklist, 'parent_sku_code': parent_sku_code})
+                 'is_combo_picklist': is_combo_picklist, 'parent_sku_code': parent_sku_code,
+                 'sku_imeis_map': sku_imeis_map})
 
             if wms_code in sku_total_quantities.keys():
                 sku_total_quantities[wms_code] += float(order.reserved_quantity)
@@ -6630,17 +6639,14 @@ def get_seller_order_details(request, user=''):
         order_details_data.append(
             {'product_title': product_title, 'quantity': quantity, 'invoice_amount': invoice_amount, 'remarks': remarks,
              'cust_id': customer_id, 'cust_name': customer_name, 'phone': phone, 'email': email, 'address': address,
-             'city': city,
-             'state': state, 'pin': pin, 'shipment_date': str(shipment_date), 'item_code': sku_code,
-             'order_id': order_id,
-             'image_url': one_order.sku.image_url, 'market_place': one_order.marketplace,
+             'city': city, 'state': state, 'pin': pin, 'shipment_date': str(shipment_date), 'item_code': sku_code,
+             'order_id': order_id, 'image_url': one_order.sku.image_url, 'market_place': one_order.marketplace,
              'order_id_code': one_order.order_code + str(one_order.order_id),
              'print_vendor': vend_dict['printing_vendor'],
              'embroidery_vendor': vend_dict['embroidery_vendor'], 'production_unit': vend_dict['production_unit'],
              'sku_extra_data': sku_extra_data, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax, 'igst_tax': igst_tax,
              'unit_price': one_order.unit_price, 'discount_percentage': discount_percentage, 'taxes': taxes_data,
-             'order_charges': order_charges,
-             'sku_status': one_order.status})
+             'order_charges': order_charges, 'sku_status': one_order.status})
     data_dict.append({'cus_data': cus_data, 'status': status_obj, 'ord_data': order_details_data,
                       'central_remarks': central_remarks, 'seller_details': seller_details,
                       'invoice_type': invoice_type, 'invoice_types': invoice_types})

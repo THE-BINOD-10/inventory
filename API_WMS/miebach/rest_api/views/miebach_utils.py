@@ -1478,7 +1478,7 @@ ORDER_DETAIL_INGRAM_API_MAPPING = {'order_id': 'order_increment_id', 'order_stat
 
 SKU_MASTER_API_MAPPING = OrderedDict((('skus', 'skus'), ('sku_code', 'sku_code'), ('sku_desc', 'sku_desc'),
                                       ('sku_brand', 'sku_brand'), ('sku_category', 'sku_category_name'),
-                                      ('price', 'price'), ('sub_category', 'sub_category'),
+                                      ('price', 'selling_price'), ('sub_category', 'sub_category'),
                                       ('mrp', 'mrp'), ('sku_class', 'sku_class'),
                                       ('style_name', 'style_name'), ('status', 'status'), ('hsn_code', 'hsn_code'),
                                       ('ean_number', 'ean_number'), ('threshold_quantity', 'threshold_quantity'),

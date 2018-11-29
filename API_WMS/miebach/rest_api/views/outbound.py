@@ -5601,12 +5601,19 @@ def shipment_info_data(request, user=''):
                 id_proof_number = result['id_proof_number']
             except :
                 id_proof_number = ''
+            try :
+                status = result['pod_status']
+                if status :
+                    status = 'Delivered'
+                else:
+                    status = 'In Transit'
+            except:
+                status = 'In Transit'
         else:
             signed_invoice_copy =''
             id_type =''
             id_card =''
             id_proof_number = ''
-
         ship_status = ship_status[ship_status.index(status):]
         data.append({'id': orders.id, 'order_id': orders.order.original_order_id, 'customer_name':orders.order.customer_name,'sku_code': orders.order.sku.sku_code,
                      'ship_quantity': orders.shipping_quantity,

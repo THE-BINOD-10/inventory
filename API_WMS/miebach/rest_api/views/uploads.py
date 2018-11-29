@@ -5421,8 +5421,10 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
             elif key == 'unit_price':
                 try:
                     order_data['unit_price'] = float(get_cell_data(row_idx, value, reader, file_type))
+                    unit_price = order_data['unit_price']
                 except:
                     order_data['unit_price'] = 0
+                    unit_price = order_data['unit_price']
             elif key == 'cgst':
                 try:
                     order_data['cgst_tax'] = float(get_cell_data(row_idx, value, reader, file_type))
@@ -5508,6 +5510,7 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
             order_dict['shipment_date'] = interm_obj.shipment_date
             order_dict['remarks'] = interm_obj.remarks
             order_dict['quantity'] = 1
+            order_dict['unit_price'] = unit_price
             get_existing_order = OrderDetail.objects.filter(**{'sku_id': sku_id,
                 'original_order_id': order_id, 'user':interm_obj.order_assigned_wh_id })
             if get_existing_order:

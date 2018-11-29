@@ -2826,6 +2826,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             taxes_dict = {}
             tax_type, invoice_header, vehicle_number, mode_of_transport = '', '', 0, ''
             order_summary = CustomerOrderSummary.objects.filter(order_id=dat.id)
+            
             if order_summary:
                 tax = order_summary[0].tax_value
                 vat = order_summary[0].vat

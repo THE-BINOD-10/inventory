@@ -5456,7 +5456,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
 
     model_data = ShipmentInfo.objects.filter(**search_parameters).\
                                     values('order_shipment__shipment_number', 'order__order_id', 'id',
-                                           'order__original_order_id', 'order__order_code', 'order__sku__sku_code',
+                                           'order__original_order_id', 'order__id','order__order_code', 'order__sku__sku_code',
                                            'order__title', 'order__customer_name', 'order__quantity', 'shipping_quantity',
                                            'order_shipment__truck_number', 'creation_date',
                                            'order_shipment__courier_name',
@@ -5522,6 +5522,11 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
             id_type =''
             id_card =''
             id_proof_number = ''
+        serial_number = OrderIMEIMapping.objects.filter(po_imei__sku__wms_code =data['order__sku__sku_code'],order_id=data['order__id'],po_imei__sku__user=user.id)
+        if serial_number :
+            serial_number = serial_number[0].po_imei.imei_number
+        else:
+            serial_number = 0
 
         temp_data['aaData'].append(OrderedDict((('Shipment Number', data['order_shipment__shipment_number']),
                                                 ('Order ID', order_id), ('SKU Code', data['order__sku__sku_code']),
@@ -5534,6 +5539,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
                                                 ('Signed Invoice Copy',signed_invoice_copy),
                                                 ('ID Type',id_type),
                                                 ('ID Card' , id_card),
+                                                ('Serial Number' ,serial_number),
                                                 ('ID Proof Number' , id_proof_number),
                                                 ('Shipment Status', ship_status.get(data['id'], '')),
                                                 ('Courier Name', data['order_shipment__courier_name']),

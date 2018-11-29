@@ -1059,11 +1059,11 @@ def update_skus(skus, user='', company_name=''):
         sync_sku_switch = get_misc_value('sku_sync', user.id)
         if all_users and sync_sku_switch == 'true' and all_sku_masters:
             create_update_sku(all_sku_masters, all_users)
-        return insert_status, failed_status
+        return insert_status, failed_status.values()
 
     except:
         traceback.print_exc()
-        return insert_status, failed_status
+        return insert_status, failed_status.values()
 
 
 def update_customers(customers, user='', company_name=''):

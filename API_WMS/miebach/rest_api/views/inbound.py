@@ -3505,13 +3505,82 @@ def putaway_location(data, value, exc_loc, user, order_id, po_id):
     data.save()
 
 
+# def create_update_seller_stock(data, value, user, stock_obj, exc_loc, use_value=False):
+#     if not data.purchase_order.open_po:
+#         return
+#
+#     seller_stock_update_details = []
+#     received_quantity = float(stock_obj.quantity)
+#     if use_value:
+#         received_quantity = value
+#     seller_po_summaries = SellerPOSummary.objects.filter(seller_po__seller__user=user.id,
+#                                                          seller_po__open_po_id=data.purchase_order.open_po_id,
+#                                                          putaway_quantity__gt=0, location_id=exc_loc)
+#     for sell_summary in seller_po_summaries:
+#         if received_quantity <= 0:
+#             continue
+#         if received_quantity < float(sell_summary.putaway_quantity):
+#             sell_quan = float(received_quantity)
+#             sell_summary.putaway_quantity = float(sell_summary.putaway_quantity) - float(received_quantity)
+#         elif received_quantity >= float(sell_summary.putaway_quantity):
+#             sell_quan = float(sell_summary.putaway_quantity)
+#             received_quantity -= float(sell_summary.putaway_quantity)
+#             sell_summary.putaway_quantity = 0
+#         sell_summary.save()
+#         seller_stock = SellerStock.objects.filter(seller_id=sell_summary.seller_po.seller_id, stock_id=stock_obj.id,
+#                                                   stock__sku__user=user.id, seller_po_summary_id=sell_summary.id)
+#         if not seller_stock:
+#             seller_stock = SellerStock.objects.create(seller_id=sell_summary.seller_po.seller_id, quantity=sell_quan,
+#                                                       seller_po_summary_id=sell_summary.id,
+#                                                       creation_date=datetime.datetime.now(), status=1,
+#                                                       stock_id=stock_obj.id)
+#         else:
+#             seller_stock[0].quantity = float(seller_stock[0].quantity) + float(sell_quan)
+#             seller_stock[0].save()
+#         if isinstance(seller_stock, QuerySet):
+#             seller_stock = seller_stock[0]
+#
+#         if seller_stock:
+#             if seller_stock.stock.location.zone.zone not in ['DAMAGED_ZONE']:
+#                 seller_stock_update_details.append({
+#                     'sku_code': str(seller_stock.stock.sku.sku_code),
+#                     'seller_id': int(seller_stock.seller.seller_id),
+#                     'quantity': int(value)
+#                 })
+#     return seller_stock_update_details
+
+
 def create_update_seller_stock(data, value, user, stock_obj, exc_loc, use_value=False):
     if not data.purchase_order.open_po:
         return
+    seller_obj = data.purchase_order.open_po.sellerpo_set.filter()
+    if seller_obj:
+        seller_id = seller_obj[0].seller_id
+    else:
+        return
+
     seller_stock_update_details = []
-    received_quantity = float(stock_obj.quantity)
     if use_value:
         received_quantity = value
+    else:
+        received_quantity = float(stock_obj.quantity)
+    exist_obj = SellerStock.objects.filter(seller_id=seller_id, stock_id=stock_obj.id)
+    if exist_obj:
+        exist_obj = exist_obj[0]
+        exist_obj.quantity = float(exist_obj.quantity) + received_quantity
+        exist_obj.save()
+        seller_stock = exist_obj
+    else:
+        seller_stock = SellerStock.objects.create(seller_id=seller_id, quantity=received_quantity,
+                                                  creation_date=datetime.datetime.now(), status=1,
+                                                  stock_id=stock_obj.id)
+    if seller_stock:
+        if seller_stock.stock.location.zone.zone not in ['DAMAGED_ZONE']:
+            seller_stock_update_details.append({
+                'sku_code': str(seller_stock.stock.sku.sku_code),
+                'seller_id': int(seller_stock.seller.seller_id),
+                'quantity': int(value)
+            })
     seller_po_summaries = SellerPOSummary.objects.filter(seller_po__seller__user=user.id,
                                                          seller_po__open_po_id=data.purchase_order.open_po_id,
                                                          putaway_quantity__gt=0, location_id=exc_loc)
@@ -3519,33 +3588,11 @@ def create_update_seller_stock(data, value, user, stock_obj, exc_loc, use_value=
         if received_quantity <= 0:
             continue
         if received_quantity < float(sell_summary.putaway_quantity):
-            sell_quan = float(received_quantity)
             sell_summary.putaway_quantity = float(sell_summary.putaway_quantity) - float(received_quantity)
         elif received_quantity >= float(sell_summary.putaway_quantity):
-            sell_quan = float(sell_summary.putaway_quantity)
             received_quantity -= float(sell_summary.putaway_quantity)
             sell_summary.putaway_quantity = 0
         sell_summary.save()
-        seller_stock = SellerStock.objects.filter(seller_id=sell_summary.seller_po.seller_id, stock_id=stock_obj.id,
-                                                  stock__sku__user=user.id, seller_po_summary_id=sell_summary.id)
-        if not seller_stock:
-            seller_stock = SellerStock.objects.create(seller_id=sell_summary.seller_po.seller_id, quantity=sell_quan,
-                                                      seller_po_summary_id=sell_summary.id,
-                                                      creation_date=datetime.datetime.now(), status=1,
-                                                      stock_id=stock_obj.id)
-        else:
-            seller_stock[0].quantity = float(seller_stock[0].quantity) + float(sell_quan)
-            seller_stock[0].save()
-        if isinstance(seller_stock, QuerySet):
-            seller_stock = seller_stock[0]
-
-        if seller_stock:
-            if seller_stock.stock.location.zone.zone not in ['DAMAGED_ZONE']:
-                seller_stock_update_details.append({
-                    'sku_code': str(seller_stock.stock.sku.sku_code),
-                    'seller_id': int(seller_stock.seller.seller_id),
-                    'quantity': int(value)
-                })
     return seller_stock_update_details
 
 

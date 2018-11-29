@@ -862,6 +862,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
         error_message = 'SKU Code should not be empty'
         update_error_message(failed_status, 5022, error_message, sku_data.get(sku_mapping['sku_desc'], ''),
                              field_key='sku_desc')
+        return sku_master, insert_status
     sku_ins = SKUMaster.objects.filter(user=user.id, sku_code=sku_code)
     if sku_ins:
         sku_master = sku_ins[0]

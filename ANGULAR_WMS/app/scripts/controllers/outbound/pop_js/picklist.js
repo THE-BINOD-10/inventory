@@ -1046,9 +1046,22 @@ angular
     console.log(vm.sku_details[values].status);
     console.log(vm.sku_details);
   }
-  
+  vm.passdata = function() {
+    vm.totalData("pass");
+  }
   vm.canceldata = function(){
     vm.checkbox = true;
+    vm.totalData("fail");
+  }
+  vm.totalData = function(key){
+    if(key == "pass") {
+      vm.sku_details['sku_status'] = {'status': key}
+    } else {
+      vm.sku_details['sku_status'] = {'status': key}
+    }
+  }
+  vm.submitData = function() {
+    console.log(vm.sku_details);
   }
   vm.ok = function (msg) {
     $modalInstance.close(vm.status_data);

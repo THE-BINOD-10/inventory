@@ -5323,6 +5323,10 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
         return f_name
     order_amount = 0
     interm_order_id = ''
+    client_code = ''
+    address1 = ''
+    address2 = ''
+    address_value = ''
     for row_idx in range(1, no_of_rows):
         order_data = copy.deepcopy(CENTRAL_ORDER_XLS_UPLOAD)
         order_data['user'] = user
@@ -5365,6 +5369,7 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                 create_order_fields_entry(interm_order_id, key, key_value, user)
             elif key == 'client_code':
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
+                client_code = key_value
                 create_order_fields_entry(interm_order_id, key, key_value, user)
             elif key == 'client_id':
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
@@ -5376,9 +5381,11 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
             elif key == 'address1':
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
                 create_order_fields_entry(interm_order_id, key, key_value, user)
+                address1 = key_value
             elif key == 'address2':
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
                 create_order_fields_entry(interm_order_id, key, key_value, user)
+                address2 = key_value
             elif key == 'landmark':
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
                 create_order_fields_entry(interm_order_id, key, key_value, user)
@@ -5449,6 +5456,7 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                     order_data['order_assigned_wh'] = user_obj[0].user
                     order_data['status'] = ''
         try:
+            address_value = address1 + ' ' + address2 + ' ' + client_code
             order_dict = {}
             interm_obj = IntermediateOrders.objects.create(**order_data)
             order_fields = OrderFields.objects.filter(user = user.id, original_order_id=interm_obj.interm_order_id)
@@ -5487,9 +5495,8 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                mobile_no_obj = OrderFields.objects.filter(original_order_id=str(interm_obj.interm_order_id), order_type='intermediate_order', user=user.id, name='mobile_no')
                if mobile_no_obj:
                    order_dict['telephone'] = mobile_no_obj[0].value
-               address_obj = OrderFields.objects.filter(original_order_id=str(interm_obj.interm_order_id), order_type='intermediate_order', user=user.id, name='address1')
-               if address_obj:
-                   order_dict['address'] = address_obj[0].value
+               if address_value:
+                   order_dict['address'] = address_value
                intermediate_obj = IntermediateOrders.objects.filter(user=user.id, interm_order_id=str(interm_obj.interm_order_id))
                if intermediate_obj:
                    order_dict['customer_name'] = intermediate_obj[0].customer_name

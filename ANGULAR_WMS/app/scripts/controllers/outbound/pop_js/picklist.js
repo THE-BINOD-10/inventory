@@ -140,7 +140,7 @@ function view_orders() {
             if(data.message) {
               if(data.data.data.sku_code == record.wms_code) {
                 record.picked_quantity = parseInt(record.picked_quantity) + 1;
-                record.scan = '';
+                // record.scan = '';
               } else {
                 Service.pop_msg(data.data.status);
                 scan_data.splice(length-1,1);

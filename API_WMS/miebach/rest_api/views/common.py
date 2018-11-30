@@ -2679,9 +2679,15 @@ def get_mapping_imeis(user, dat, seller_summary, sor_id='', sell_ids=''):
             'quantity__sum']
         if not stop_index:
             stop_index = 0
-    imeis = list(
-        OrderIMEIMapping.objects.filter(sku__user=user.id, order_id=dat.id, sor_id=sor_id).order_by('creation_date'). \
-        values_list('po_imei__imei_number', flat=True))
+    if sor_id :
+        imeis = list(
+            OrderIMEIMapping.objects.filter(sku__user=user.id, order_id=dat.id, sor_id=sor_id).order_by('creation_date'). \
+            values_list('po_imei__imei_number', flat=True))
+    else:
+        imeis = list(
+            OrderIMEIMapping.objects.filter(sku__user=user.id, order_id=dat.id).order_by('creation_date'). \
+            values_list('po_imei__imei_number', flat=True))
+
     if start_index or stop_index:
         stop_index = int(start_index) + int(stop_index)
         imeis = imeis[int(start_index): stop_index]
@@ -2690,7 +2696,6 @@ def get_mapping_imeis(user, dat, seller_summary, sor_id='', sell_ids=''):
 
 def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell_ids='', from_pos=False):
     """ Build Invoice Json Data"""
-
     # Initializing Default Values
     data, imei_data, customer_details = [], [], []
     order_date, order_id, marketplace, consignee, order_no, purchase_type, seller_address, customer_address = '', '', '', '', '', '', '', ''
@@ -2826,7 +2831,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             taxes_dict = {}
             tax_type, invoice_header, vehicle_number, mode_of_transport = '', '', 0, ''
             order_summary = CustomerOrderSummary.objects.filter(order_id=dat.id)
-            
+
             if order_summary:
                 tax = order_summary[0].tax_value
                 vat = order_summary[0].vat
@@ -2986,6 +2991,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 ord_dict.pop('igst_tax')
             if 'igst_amt' in ord_dict:
                 ord_dict.pop('igst_amt')
+                
     _invoice_no, _sequence = get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos)
     challan_no, challan_sequence = get_challan_number(user, seller_summary)
     inv_date = invoice_date.strftime("%m/%d/%Y")

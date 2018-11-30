@@ -8460,4 +8460,7 @@ def add_ean_weight_to_batch_detail(sku, batch_dict):
         batch_dict['ean_number'] = ean_number[0]
     weight_obj = sku.skuattributes_set.filter(attribute_name='weight')
     if weight_obj and not 'weight' in batch_dict.keys():
-        batch_dict['weight'] = float(''.join(re.findall('\d+', str(weight_obj[0].attribute_value))))
+        try:
+            batch_dict['weight'] = float(''.join(re.findall('\d+', str(weight_obj[0].attribute_value))))
+        except:
+            batch_dict['weight'] = 0

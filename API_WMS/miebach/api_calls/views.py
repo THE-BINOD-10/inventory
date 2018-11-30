@@ -999,7 +999,9 @@ def update_sku(request):
         log.info(insert_status)
         log.info(failed_status)
         if not failed_status:
-            failed_status = {'status': 1, 'messages': ['Success']}
+            failed_status = {'status': 1, 'message': 'Success'}
+        else:
+            failed_status = {'status': 0, 'messages': failed_status}
 
     except Exception as e:
         import traceback

@@ -39,7 +39,16 @@
                   {% if not record.continue %}
                   <tr ng-repeat="record in page.data" class="fs14 rm-border">
                     <td class="text-left">
-                      <div>{{record.sku_code}}</td>
+                      <div>{{record.sku_code}}
+                        <!-- this is for 72networks -->
+                        {% if record.imeis   %}
+                         {% if record.quantity == 1 %}
+                         {% for imei in record.imeis %}
+                        <br><span class="tax-percentage">({{ imei }})</span>
+                          {% endfor %}
+                          {% endif %}
+                       {% endif %}
+                      </td>
                     <td class="text-left">{{record.hsn_code}}</td>
                     <td class="text-left"><div class="wrap">{{record.title}}</div></td>
                     {% if show_mrp == 'true' %}
@@ -63,24 +72,24 @@
                     <td class="text-right">{{record.invoice_amount}}</td>
                   </tr>
                   {% endif %}
-                  {% if record.imeis %}
+                 <!-- {% if record.imeis %}
                   <tr class="fs14">
                     <td></td>
                     <td></td>
                     <td>
-                      <div style="font-size: 13px;line-height:16px;">
+                       <div style="font-size: 13px;line-height:16px;">
                         <span class="pull-left"><b>IMEI List: </b></span></br>
                         {% for imei in record.imeis %}
                         <div {% if not forloop.counter|divisibleby:2 %} style="display: block;float: left;" {% else %} style="display: block;float: right;" {% endif %}>
                           <i>{{imei}}</i>
-                        </div>
-                          {% if forloop.counter|divisibleby:2 %}</br>{% endif %}
+                        </div> -->
+                          <!-- {% if forloop.counter|divisibleby:2 %}</br>{% endif %}
                         {% endfor %}
                       </div>
                     </td>
                     <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
                   </tr>
-                  {% endif %}
+                  {% endif %} -->
 
                   {% endfor %}
                   {% for empty in page.empty_data %}

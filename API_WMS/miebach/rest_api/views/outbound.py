@@ -2868,8 +2868,8 @@ def check_imei(request, user=''):
                         #    shipped_orders_dict.setdefault(int(order.id), {}).setdefault('quantity', 0)
                         #    shipped_orders_dict[int(order.id)]['quantity'] += 1
                         #    shipping_quantity += 1
-                if not status:
-                    status = 'Success'
+            if not status:
+                status = 'Success'
 
         if shipped_orders_dict:
             log.info('Order Status update call for user ' + str(user.username) + ' is ' + str(shipped_orders_dict))
@@ -13973,7 +13973,8 @@ def do_delegate_orders(request, user=''):
         result_data['output_msg'] = output_msg
         result_data['status'] = True
     return HttpResponse(json.dumps(result_data), content_type='application/json')
-
+@login_required
+@get_admin_user
 def print_pdf_shipment_info(request, user=''):
     data = eval(request.POST['data'])['data']
     driver_name = eval(request.POST['data'])['driver_name']
@@ -13983,3 +13984,29 @@ def print_pdf_shipment_info(request, user=''):
 
 
     return render(request, 'templates/toggle/shipment_info.html',{'data':data,'driver_name':driver_name,'manifest_number':manifest_number,'truck_number':truck_number,'driver_phone_number':driver_phone_number})
+
+@login_required
+@get_admin_user
+def reassgin_order(request, user=''):
+    import pdb; pdb.set_trace()
+    order_det_id=[]
+    order_det_reassigned_id =[]
+    order_det_no_reassigned_id =[]
+    order_id_list =request.GET.getlist('order_ids[]')
+    for order_id in order_id_list :
+        ord_obj = OrderDetail.objects.get(original_order_id=order_id, user=user.id)
+        interm_obj = IntermediateOrders.objects.filter(order_id=ord_obj.id)
+        if interm_obj:
+            interm_obj = interm_obj[0]
+            if ord_obj.quantity != interm_obj.quantity :
+                order_det_not_reassigned_id.append(ord_obj.id)
+                log.info('%s orderid is not assigned ' % (str(order_id)))
+
+            else:
+                order_det_reassigned_id.append(ord_obj.id)
+                log.info('%s orderid is  assigned' % (str(order_id)))
+                interm_obj.status = 0
+                interm_obj.save()
+
+    order_cancel_functionality(order_det_reassigned_id)
+    return HttpResponse(json.dumps({'data': "Success", 'message': '', 'status': 'Successfully removed'}))

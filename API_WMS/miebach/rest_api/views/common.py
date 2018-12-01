@@ -2557,6 +2557,8 @@ def get_full_invoice_number(user, order_no, order, invoice_date='', pick_number=
             invoice_number = str(get_financial_year(invoice_date)) + '/' + str(order_no)
         elif user_profile.warehouse_type == 'DIST':
             invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), order_no)
+        elif user_profile.user_type == 'warehouse_user':
+            invoice_number = user_profile.prefix + str(invoice_date.strftime('%m%y')) + '/' + str(order_no)    
         else:
             if from_pos:
                 sub_usr = ''.join(re.findall('\d+', OrderDetail.objects.get(id=order_ids[0]).order_code))

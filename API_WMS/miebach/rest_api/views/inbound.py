@@ -3047,13 +3047,13 @@ def create_default_zones(user, zone, location, sequence):
     return [locations]
 
 
-def get_return_segregation_locations(order_returns, batch_dict, data):
+def get_return_segregation_locations(order_returns, batch_dict, data, user):
     picklist_exclude_zones = get_exclude_zones(User.objects.get(id=order_returns.sku.user))
     stock_objs = StockDetail.objects.exclude(Q(location__location__in=picklist_exclude_zones) |
                                              Q(batch_detail__mrp=batch_dict['mrp'])). \
                                     filter(sku__user=order_returns.sku.user,
                                             sku__sku_code=order_returns.sku.sku_code, quantity__gt=0)
-    if stock_objs:
+    if stock_objs and get_misc_value('sellable_segregation', user.id) == 'true':
         put_zone = ZoneMaster.objects.filter(zone='Non Sellable Zone', user=order_returns.sku.user)
         if not put_zone:
             create_default_zones(user, 'Non Sellable Zone', 'Non-Sellable1', 10001)
@@ -3082,7 +3082,7 @@ def save_return_locations(order_returns, all_data, damaged_quantity, request, us
                      'wms_code': order_returns.sku.wms_code, 'sku_group': order_returns.sku.sku_group,
                      'sku': order_returns.sku}
         if batch_dict and not data['put_zone'] == 'DAMAGED_ZONE':
-            data = get_return_segregation_locations(order_returns, batch_dict, data)
+            data = get_return_segregation_locations(order_returns, batch_dict, data, user)
         if is_rto and not data['put_zone'] == 'DAMAGED_ZONE':
             locations = LocationMaster.objects.filter(zone__user=user.id, zone__zone='RTO_ZONE')
             if not locations:

@@ -187,11 +187,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           } else {
             var status = true;
             for(var i = 0; i < vm.model_data.data.length; i++) {
+              var temp_mrp = 0;
+              if(vm.model_data.mrp) {
+                temp_mrp = vm.model_data.mrp;
+              }
+              else if(data.data['batch_data'] && data.data.batch_data.length > 0 && data.data.batch_data[0]['mrp']) {
+                temp_mrp = data.data.batch_data[0]['mrp'];
+              }
               if(field == vm.model_data.data[i].sku_code && vm.model_data.data[i].is_new &&
                     vm.model_data.marketplace == vm.model_data.data[i].marketplace &&
                      (vm.model_data.data[i].ship_quantity > vm.model_data.data[i].return_quantity || vm.model_data.data[i].ship_quantity=="")
-                     && (!vm.scan_sku_marketplace_user || (vm.scan_sku_marketplace_user && vm.model_data.data[i].seller_id == vm.model_data.seller_type))
-                     && (!vm.industry_type == 'FMCG' || (vm.industry_type == 'FMCG' && vm.model_data.data[i].mrp == vm.model_data.mrp))) {
+                     && (vm.permissions.user_type != 'marketplace_user' || (vm.permissions.user_type == 'marketplace_user' && vm.model_data.data[i].seller_id == vm.model_data.seller_type))
+                     && (vm.industry_type != 'FMCG' || (vm.industry_type == 'FMCG' && vm.model_data.data[i].mrp == temp_mrp))) {
                 vm.model_data.data[i].return_quantity = Number(vm.model_data.data[i].return_quantity) + 1;
                 status = false;
                 vm.add_excl_orders(vm.model_data.data[i]);
@@ -200,8 +207,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               if(vm.sku_mapping[field] == vm.model_data.data[i].sku_code && vm.model_data.data[i].is_new &&
                     vm.model_data.marketplace == vm.model_data.data[i].marketplace &&
                      (vm.model_data.data[i].ship_quantity > vm.model_data.data[i].return_quantity || vm.model_data.data[i].ship_quantity=="")
-                     && (!vm.scan_sku_marketplace_user || (vm.scan_sku_marketplace_user && vm.model_data.data[i].seller_id == vm.model_data.seller_type))
-                     && (!vm.industry_type == 'FMCG' || (vm.industry_type == 'FMCG' && vm.model_data.data[i].mrp == vm.model_data.mrp))) {
+                     && (vm.permissions.user_type != 'marketplace_user' || (vm.permissions.user_type == 'marketplace_user' && vm.model_data.data[i].seller_id == vm.model_data.seller_type))
+                     && (vm.industry_type != 'FMCG' || (vm.industry_type == 'FMCG' && vm.model_data.data[i].mrp == temp_mrp))) {
                 vm.model_data.data[i].return_quantity = Number(vm.model_data.data[i].return_quantity) + 1;
                 status = false;
                 break;

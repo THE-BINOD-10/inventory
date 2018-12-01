@@ -3177,7 +3177,7 @@ def group_sales_return_data(data_dict, return_process, user):
 
     returns_dict = {}
     grouping_dict = {'order_id': '[str(data_dict["order_id"][ind]), str(data_dict["sku_code"][ind])]',
-                     'sku_code': '[data_dict["sku_code"][ind]]', 'return_id': 'data_dict["id"][ind]',
+                     'sku_code': '[str(data_dict["order_id"][ind]), data_dict["sku_code"][ind]]', 'return_id': 'data_dict["id"][ind]',
                      'scan_imei': 'data_dict["id"][ind]',
                      'scan_awb': '[str(data_dict["order_id"][ind]), str(data_dict["sku_code"][ind])]'}
     if user.userprofile.user_type == 'marketplace_user' and return_process == 'sku_code':
@@ -5083,7 +5083,7 @@ def returns_putaway_data(request, user=''):
                     seller_stock = SellerStock(**seller_stock_dict)
                     seller_stock.save()
                 mod_locations.append(new_stock.location.location)
-            if seller_stock.stock.location.zone.zone not in ['DAMAGED_ZONE']:
+            if seller_stock and seller_stock.stock.location.zone.zone not in ['DAMAGED_ZONE']:
                 marketplace_data.append({'sku_code': str(seller_stock.stock.sku.sku_code),
                                          'seller_id': int(seller_stock.seller.seller_id),
                                          'quantity': int(quantity)})

@@ -609,7 +609,7 @@ class StockDetail(models.Model):
 
     class Meta:
         db_table = 'STOCK_DETAIL'
-        unique_together = ('receipt_number', 'receipt_date', 'sku', 'location', 'pallet_detail', 'batch_detail', 'unit_price')
+        unique_together = ('receipt_number', 'receipt_date', 'sku', 'location', 'pallet_detail', 'batch_detail', 'unit_price', 'receipt_type')
         index_together = (('sku', 'location', 'quantity'), ('location', 'sku', 'pallet_detail'))
 
     def __unicode__(self):
@@ -2018,6 +2018,7 @@ class OrderReturns(models.Model):
     return_id = models.CharField(max_length=256)
     order = models.ForeignKey(OrderDetail, blank=True, null=True)
     seller_order = models.ForeignKey(SellerOrder, blank=True, null=True)
+    seller = models.ForeignKey(SellerMaster, blank=True, null=True)
     return_date = models.DateTimeField(auto_now_add=True)
     quantity = models.FloatField(default=0)
     damaged_quantity = models.FloatField(default=0)

@@ -5689,7 +5689,7 @@ def get_returns_seller_order_id(order_detail_id, sku_code, user, sor_id=''):
         filt_params['sor_id'] = sor_id
     seller_order = SellerOrder.objects.filter(**filt_params)
     if seller_order:
-        return seller_order[0].id
+        return seller_order[0]
     else:
         return ''
 
@@ -7426,6 +7426,8 @@ def allocate_order_returns(user, sku_data, request):
     order_filter = {'user': user.id, 'sku_id': sku_data.id}
     if request.GET.get('marketplace', ''):
         order_filter['marketplace'] = request.GET.get('marketplace', '')
+    if request.GET.get('seller_id', ''): 
+        order_filter['sellerorder__seller__seller_id'] = request.GET.get('seller_id', '').split(':')[0]
     if request.GET.get('exclude_order_ids', []):
         excl_filter['original_order_id__in'] = request.GET.get('exclude_order_ids', []).split(',')
     if request.GET.get('order_id', ''):

@@ -2557,8 +2557,6 @@ def get_full_invoice_number(user, order_no, order, invoice_date='', pick_number=
             invoice_number = str(get_financial_year(invoice_date)) + '/' + str(order_no)
         elif user_profile.warehouse_type == 'DIST':
             invoice_number = 'TI/%s/%s' % (invoice_date.strftime('%m%y'), order_no)
-        elif user_profile.user_type == 'warehouse_user':
-            invoice_number = user_profile.prefix + str(invoice_date.strftime('%m%y')) + '/' + str(order_no)    
         else:
             if from_pos:
                 sub_usr = ''.join(re.findall('\d+', OrderDetail.objects.get(id=order_ids[0]).order_code))
@@ -2568,11 +2566,14 @@ def get_full_invoice_number(user, order_no, order, invoice_date='', pick_number=
     return invoice_number
 
 
-def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos=False):
+def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos=False, order_obj=None):
     invoice_number = ""
     inv_no = ""
     invoice_sequence = None
-    order = None
+    if order_obj:
+        order = order_obj
+    else:
+        order = None
     invoice_no_gen = MiscDetail.objects.filter(user=user.id, misc_type='increment_invoice')
     if invoice_no_gen:
         seller_order_summary = SellerOrderSummary.objects.filter(Q(order__id__in=order_ids) |
@@ -2987,7 +2988,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 ord_dict.pop('igst_tax')
             if 'igst_amt' in ord_dict:
                 ord_dict.pop('igst_amt')
-    _invoice_no, _sequence = get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos)
+    _invoice_no, _sequence = get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos, order_obj=dat)
     challan_no, challan_sequence = get_challan_number(user, seller_summary)
     inv_date = invoice_date.strftime("%m/%d/%Y")
     invoice_date = invoice_date.strftime("%d %b %Y")

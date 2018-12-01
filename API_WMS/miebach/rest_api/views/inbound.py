@@ -5039,10 +5039,12 @@ def returns_putaway_data(request, user=''):
                 else:
                     receipt_number = get_stock_receipt_number(user)
                     seller_receipt_mapping[seller_id] = receipt_number
-            stock_data = StockDetail.objects.filter(location_id=location_id[0].id, receipt_number=receipt_number,
-                                                    sku_id=sku_id,
-                                                    sku__user=user.id, receipt_type='return')
             batch_detail = BatchDetail.objects.filter(transact_type='return_loc', transact_id=returns_data.id)
+            stock_filter_params = {'location_id': location_id[0].id, 'receipt_number': receipt_number,
+                                   'sku_id': sku_id, 'sku__user': user.id, 'receipt_type': 'return'}
+            if batch_detail:
+                stock_filter_params['batch_detail_id'] = batch_detail[0].id
+            stock_data = StockDetail.objects.filter(**stock_filter_params)
             seller_stock = None
             if stock_data:
                 stock_data = stock_data[0]

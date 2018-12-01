@@ -901,7 +901,10 @@ def sales_returns_form(request, user=''):
     if returns_file:
         return error_file_download(returns_file)
 
-    wb, ws = get_work_sheet('returns', SALES_RETURNS_HEADERS)
+    sales_retun_mapping = copy.deepcopy(SALES_RETURNS_HEADERS)
+    if user.userprofile.user_type == 'marketplace_user':
+        sales_retun_mapping.append('SOR ID')
+    wb, ws = get_work_sheet('returns', sales_retun_mapping)
     return xls_to_response(wb, '%s.returns_form.xls' % str(user.id))
 
 
@@ -3514,7 +3517,7 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
     sku_data = []
     wms_data = []
     index_status = {}
-    order_mapping = get_sales_returns_mapping(reader, file_type)
+    order_mapping = get_sales_returns_mapping(reader, file_type, user)
     if not order_mapping:
         return 'Invalid File'
     for row_idx in range(1, no_of_rows):
@@ -3603,6 +3606,8 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
                         order__sku__sku_code=sku_code, order__user=user.id)
                     if not seller_order:
                         index_status.setdefault(row_idx, set()).add('Invalid Sor ID')
+                else:
+                    index_status.setdefault(row_idx, set()).add('SOR ID is mandatory')
 
     if not index_status:
         return 'Success'
@@ -3625,7 +3630,7 @@ def validate_sales_return_form(request, reader, user, no_of_rows, fname, file_ty
 def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls'):
     from inbound import save_return_locations
     index_status = {}
-    order_mapping = get_sales_returns_mapping(reader, file_type)
+    order_mapping = get_sales_returns_mapping(reader, file_type, user)
     count = 1
 
     for row_idx in range(1, no_of_rows):
@@ -3691,11 +3696,12 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
                 sor_id = get_cell_data(row_idx, order_mapping[key], reader, file_type)
                 if isinstance(sor_id, float):
                     sor_id = str(int(sor_id))
-                seller_order_id = ''
+                seller_order = ''
                 if sor_id:
-                    seller_order_id = get_returns_seller_order_id(order_data['order_id'], sku_code, user, sor_id=sor_id)
-                if seller_order_id:
-                    order_data[key] = seller_order_id
+                    seller_order = get_returns_seller_order_id(order_data['order_id'], sku_code, user, sor_id=sor_id)
+                if seller_order:
+                    order_data[key] = seller_order.id
+                    order_data['seller_id'] = seller_order.seller_id
             else:
                 cell_data = get_cell_data(row_idx, order_mapping[key], reader, file_type)
                 if cell_data:
@@ -3726,10 +3732,12 @@ def sales_returns_csv_xls_upload(request, reader, user, no_of_rows, fname, file_
     return 'Success'
 
 
-def get_sales_returns_mapping(reader, file_type):
+def get_sales_returns_mapping(reader, file_type, user):
     order_mapping = {}
     if get_cell_data(0, 0, reader, file_type) == 'Return ID':
         order_mapping = copy.deepcopy(GENERIC_RETURN_EXCEL)
+        if user.userprofile.user_type == 'marketplace_user':
+            order_mapping['seller_order_id'] = 7
     elif get_cell_data(0, 0, reader, file_type) == 'GatePass No':
         order_mapping = copy.deepcopy(MYNTRA_RETURN_EXCEL)
     elif get_cell_data(0, 0, reader, file_type) == 'Sale Order Item Code':

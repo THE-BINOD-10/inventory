@@ -2983,7 +2983,14 @@ def create_return_order(data, user):
         sor_id = ''
         if data.get('sor_id', ''):
             sor_id = data['sor_id']
-
+        seller_id = ''
+        if data.get('seller_id', ''):
+            temp_seller = data['seller_id']
+            if ':' in temp_seller:
+                seller_val_id = temp_seller.split(':')[0]
+                seller_obj = SellerMaster.objects.filter(user=user_obj.id, seller_id=seller_val_id)
+                if seller_obj.exists():
+                    seller_id = seller_obj[0].id
         if data.get('order_imei_id', ''):
             order_map_ins = OrderIMEIMapping.objects.get(id=data['order_imei_id'])
             data['order_id'] = order_map_ins.order.original_order_id
@@ -2992,6 +2999,8 @@ def create_return_order(data, user):
 
         return_details = {'return_id': '', 'return_date': datetime.datetime.now(), 'quantity': quantity,
                           'sku_id': sku_id[0].id, 'status': 1, 'marketplace': marketplace, 'return_type': return_type}
+        if seller_id:
+            return_details['seller_id'] = seller_id
         if data.get('order_id', ''):
             order_detail = get_order_detail_objs(data['order_id'], user_obj,
                                                  search_params={'sku_id': sku_id[0].id, 'user': user})
@@ -3000,11 +3009,12 @@ def create_return_order(data, user):
                 if order_detail[0].status == int(2):
                     order_detail[0].status = 4
                     order_detail[0].save()
-                seller_order_id = get_returns_seller_order_id(return_details['order_id'], sku_id[0].sku_code, user_obj,
+                seller_order = get_returns_seller_order_id(return_details['order_id'], sku_id[0].sku_code, user_obj,
                                                               sor_id=sor_id)
-                if seller_order_id:
-                    return_details['seller_order_id'] = seller_order_id
-                    seller_order_ids.append(seller_order_id)
+                if seller_order:
+                    return_details['seller_order_id'] = seller_order.id
+                    return_details['seller_id'] = seller_order.seller_id
+                    seller_order_ids.append(seller_order.id)
         returns = OrderReturns(**return_details)
         returns.save()
 
@@ -3162,14 +3172,21 @@ def save_return_imeis(user, returns, status, imei_numbers):
                                               creation_date=datetime.datetime.now(), order_return_id=returns.id)
 
 
-def group_sales_return_data(data_dict, return_process):
+def group_sales_return_data(data_dict, return_process, user):
     """ Group Sales Return Data """
 
     returns_dict = {}
     grouping_dict = {'order_id': '[str(data_dict["order_id"][ind]), str(data_dict["sku_code"][ind])]',
-                     'sku_code': 'data_dict["sku_code"][ind]', 'return_id': 'data_dict["id"][ind]',
+                     'sku_code': '[data_dict["sku_code"][ind]]', 'return_id': 'data_dict["id"][ind]',
                      'scan_imei': 'data_dict["id"][ind]',
                      'scan_awb': '[str(data_dict["order_id"][ind]), str(data_dict["sku_code"][ind])]'}
+    if user.userprofile.user_type == 'marketplace_user' and return_process == 'sku_code':
+        grouping_dict['sku_code'] = grouping_dict['sku_code'][:-1] + \
+                                    ',str(data_dict["seller_id"][ind]), str(data_dict["sor_id"][ind])]'
+    if user.userprofile.industry_type == 'FMCG':
+        grouping_dict['sku_code'] = grouping_dict['sku_code'][:-1] + \
+                                    ',str(data_dict["mrp"][ind])]'
+
     grouping_key = grouping_dict[return_process]
     zero_index_list = ['scan_order_id', 'return_process', 'return_type']
     number_fields = ['return', 'damaged', 'mrp']
@@ -3241,7 +3258,7 @@ def confirm_sales_return(request, user=''):
     log.info('Request params for Confirm Sales Return for ' + user.username + ' is ' + str(request.POST.dict()))
     try:
         # Group the Input Data Based on the Group Type
-        final_data_list = group_sales_return_data(data_dict, return_process)
+        final_data_list = group_sales_return_data(data_dict, return_process, user)
         for return_dict in final_data_list:
             all_data = []
             check_seller_order = True
@@ -3681,7 +3698,7 @@ def putaway_data(request, user=''):
                 putaway_location(data, value, exc_loc, user, 'purchase_order_id', data.purchase_order_id)
                 stock_check_params = {'location_id': exc_loc, 'receipt_number':data.purchase_order.order_id,
                                      'sku_id': order_data['sku_id'], 'sku__user': user.id,
-                                      'unit_price': order_data['price']}
+                                      'unit_price': order_data['price'], 'receipt_type': 'purchase order'}
                 if batch_obj:
                     stock_check_params['batch_detail_id'] = batch_obj[0].id
                     stock_check_params['unit_price'] = batch_obj[0].buy_price
@@ -4978,6 +4995,8 @@ def get_return_seller_id(returns, user):
     else:
         if returns.seller_order:
             seller_id = returns.seller_order.seller_id
+        elif returns.seller:
+            seller_id = returns.seller_id
     return seller_id
 
 
@@ -4987,14 +5006,17 @@ def get_return_seller_id(returns, user):
 def returns_putaway_data(request, user=''):
     return_wms_codes = []
     user_profile = UserProfile.objects.get(user_id=user.id)
-    stock = StockDetail.objects.filter(sku__user=user.id).order_by('-receipt_number')
-    if stock:
-        receipt_number = int(stock[0].receipt_number) + 1
-    else:
-        receipt_number = 1
+    # stock = StockDetail.objects.filter(sku__user=user.id).order_by('-receipt_number')
+    # if stock:
+    #     receipt_number = int(stock[0].receipt_number) + 1
+    # else:
+    #     receipt_number = 1
+    receipt_number = get_stock_receipt_number(user)
+    first_receipt_used = False
     myDict = dict(request.POST.iterlists())
     mod_locations = []
     marketplace_data = []
+    seller_receipt_mapping = {}
     for i in range(0, len(myDict['id'])):
         status = ''
         data_id = myDict['id'][i]
@@ -5015,45 +5037,58 @@ def returns_putaway_data(request, user=''):
             sku_id = returns_data.returns.sku_id
             return_wms_codes.append(returns_data.returns.sku.wms_code)
             seller_id = get_return_seller_id(returns_data.returns, user)
+            if seller_id:
+                if seller_id in seller_receipt_mapping.keys():
+                    receipt_number = seller_receipt_mapping[seller_id]
+                else:
+                    receipt_number = get_stock_receipt_number(user)
+                    seller_receipt_mapping[seller_id] = receipt_number
             stock_data = StockDetail.objects.filter(location_id=location_id[0].id, receipt_number=receipt_number,
                                                     sku_id=sku_id,
-                                                    sku__user=user.id)
+                                                    sku__user=user.id, receipt_type='return')
             batch_detail = BatchDetail.objects.filter(transact_type='return_loc', transact_id=returns_data.id)
+            seller_stock = None
             if stock_data:
                 stock_data = stock_data[0]
                 setattr(stock_data, 'quantity', float(stock_data.quantity) + quantity)
                 if batch_detail:
                     stock_data.batch_detail_id = batch_detail[0].id
                 stock_data.save()
-                stock_id = stock_data.id
+                if seller_id:
+                    seller_stock_obj = stock_data.sellerstock_set.filter(seller_id=seller_id)
+                    if not seller_stock_obj:
+                        seller_stock_dict = {'seller_id': seller_id, 'stock_id': stock_data.id, 'quantity': quantity,
+                                             'status': 1,
+                                             'creation_date': datetime.datetime.now()}
+                        seller_stock = SellerStock(**seller_stock_dict)
+                        seller_stock.save()
+                    else:
+                        seller_stock = seller_stock_obj[0]
+                        seller_stock.quantity = float(seller_stock.quantity) + quantity
+                        seller_stock.save()
                 mod_locations.append(stock_data.location.location)
             else:
                 stock_dict = {'location_id': location_id[0].id, 'receipt_number': receipt_number,
                               'receipt_date': datetime.datetime.now(),
                               'sku_id': sku_id, 'quantity': quantity, 'status': 1,
-                              'creation_date': datetime.datetime.now(), 'updation_date': datetime.datetime.now()}
+                              'creation_date': datetime.datetime.now(), 'updation_date': datetime.datetime.now(),
+                              'receipt_type': 'return'}
                 if batch_detail:
                     stock_dict['batch_detail_id'] = batch_detail[0].id
                 new_stock = StockDetail(**stock_dict)
                 new_stock.save()
                 stock_id = new_stock.id
-                mod_locations.append(new_stock.location.location)
-            if stock_id and seller_id:
-                seller_stock = SellerStock.objects.filter(stock_id=stock_id, seller_id=seller_id, seller__user=user.id)
-                if seller_stock:
-                    seller_stock = seller_stock[0]
-                    setattr(seller_stock, 'quantity', float(seller_stock.quantity) + quantity)
-                    seller_stock.save()
-                else:
+                if seller_id:
                     seller_stock_dict = {'seller_id': seller_id, 'stock_id': stock_id, 'quantity': quantity,
                                          'status': 1,
                                          'creation_date': datetime.datetime.now()}
                     seller_stock = SellerStock(**seller_stock_dict)
                     seller_stock.save()
-                if seller_stock.stock.location.zone.zone not in ['DAMAGED_ZONE']:
-                    marketplace_data.append({'sku_code': str(seller_stock.stock.sku.sku_code),
-                                             'seller_id': int(seller_stock.seller.seller_id),
-                                             'quantity': int(quantity)})
+                mod_locations.append(new_stock.location.location)
+            if seller_stock.stock.location.zone.zone not in ['DAMAGED_ZONE']:
+                marketplace_data.append({'sku_code': str(seller_stock.stock.sku.sku_code),
+                                         'seller_id': int(seller_stock.seller.seller_id),
+                                         'quantity': int(quantity)})
             returns_data.quantity = float(returns_data.quantity) - float(quantity)
 
             # Save SKU Level stats

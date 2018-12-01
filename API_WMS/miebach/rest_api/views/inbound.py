@@ -3310,6 +3310,7 @@ def confirm_sales_return(request, user=''):
                               'manufactured_date': return_dict.get('manufactured_date', ''),
                               'expiry_date': return_dict.get('expiry_date', ''),
                               'batch_no': ''}
+                add_ean_weight_to_batch_detail(order_returns[0].sku, batch_dict)
                 return_loc_params['batch_dict'] = batch_dict
             locations_status = save_return_locations(**return_loc_params)
             if not locations_status == 'Success':
@@ -5006,11 +5007,6 @@ def get_return_seller_id(returns, user):
 def returns_putaway_data(request, user=''):
     return_wms_codes = []
     user_profile = UserProfile.objects.get(user_id=user.id)
-    # stock = StockDetail.objects.filter(sku__user=user.id).order_by('-receipt_number')
-    # if stock:
-    #     receipt_number = int(stock[0].receipt_number) + 1
-    # else:
-    #     receipt_number = 1
     receipt_number = get_stock_receipt_number(user)
     first_receipt_used = False
     myDict = dict(request.POST.iterlists())

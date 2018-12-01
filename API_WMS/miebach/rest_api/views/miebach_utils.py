@@ -234,15 +234,15 @@ SUPPLIER_HEADERS = ['Supplier Id', 'Supplier Name', 'Address', 'Email', 'Phone N
 VENDOR_HEADERS = ['Vendor Id', 'Vendor Name', 'Address', 'Email', 'Phone No.']
 
 CUSTOMER_HEADERS = ['Customer Id', 'Customer Name', 'Credit Period', 'CST Number', 'TIN Number', 'PAN Number', 'Email',
-                    'Phone No.', 'City', 'State', 'Country', 'Pin Code', 'Address', 'Selling Price Type',
+                    'Phone No.', 'City', 'State', 'Country', 'Pin Code', 'Address', 'Shipping Address', 'Selling Price Type',
                     'Tax Type(Options: Inter State, Intra State)', 'Discount Percentage(%)', 'Markup(%)', 'SPOC Name']
 
 CUSTOMER_EXCEL_MAPPING = OrderedDict(
     (('customer_id', 0), ('name', 1), ('credit_period', 2), ('cst_number', 3), ('tin_number', 4),
      ('pan_number', 5), ('email_id', 6), ('phone_number', 7), ('city', 8), ('state', 9), ('country', 10),
-     ('pincode', 11), ('address', 12), ('price_type', 13), ('tax_type', 14), ('discount_percentage', 15),
-     ('markup', 16), ('spoc_name', 17)
-     ))
+     ('pincode', 11), ('address', 12), ('shipping_address', 13), ('price_type', 14), ('tax_type', 15), 
+     ('discount_percentage', 16), ('markup', 17), ('spoc_name', 18),
+    ))
 
 MARKETPLACE_CUSTOMER_EXCEL_MAPPING = OrderedDict(
     (('customer_id', 0), ('phone', 1), ('name', 2), ('address', 3), ('pincode', 4), ('city', 5), ('tin', 6)
@@ -978,10 +978,13 @@ CUSTOMER_MASTER_HEADERS = [' Customer ID', 'Customer Name', 'Email', 'Phone Numb
 
 CUSTOMER_FIELDS = ((('Customer ID *', 'id', 60), ('Customer Name *', 'name', 256)),
                    (('Email *', 'email_id', 64), ('Phone No. *', 'phone_number', 10)),
-                   (('Address *', 'address'), ('Status', 'status', 11)),)
+                   (('Address *', 'address'), ('Status', 'status', 11)),
+                   (('Shipping Address *', 'shipping_address'),),
+                   )
 
 CUSTOMER_DATA = {'name': '', 'address': '', 'phone_number': '', 'email_id': '', 'status': 1, 'price_type': '',
-                 'tax_type': '', 'lead_time': 0, 'is_distributor': 0, 'spoc_name': '', 'role': ''}
+                 'tax_type': '', 'lead_time': 0, 'is_distributor': 0, 'spoc_name': '', 'role': '', 
+                 'shipping_address': ''}
 
 CORPORATE_DATA = {'name': '', 'address': '', 'phone_number': '', 'email_id': '', 'status': 1, 'tax_type': ''}
 
@@ -1025,8 +1028,10 @@ BARCODE_OPTIONS = {'SKU Code': 'sku_code', 'Embedded SKU Code in Serial': 'sku_s
 REPORTS_DATA = {'SKU List': 'sku_list', 'Location Wise SKU': 'location_wise_stock', 'Receipt Summary': 'receipt_note',
                 'Dispatch Summary': 'dispatch_summary', 'SKU Wise Stock': 'sku_wise'}
 
-SKU_CUSTOMER_FIELDS = ((('Customer ID *', 'customer_id', 60), ('Customer Name *', 'customer_name', 256)),
-                       (('SKU Code *', 'sku_code'), ('Price *', 'price'),))
+SKU_CUSTOMER_FIELDS = (
+                        (('Customer ID *', 'customer_id', 60), ('Customer Name *', 'customer_name', 256)),
+                        (('SKU Code *', 'sku_code'), ('Price *', 'price'),)
+                      )
 
 CUSTOMER_SKU_DATA = {'customer_id': '', 'sku_id': '', 'price': 0, 'customer_sku_code': ''}
 
@@ -1471,17 +1476,19 @@ ORDER_DETAIL_INGRAM_API_MAPPING = {'order_id': 'order_increment_id', 'order_stat
 
                                    }
 
-SKU_MASTER_API_MAPPING = OrderedDict((('skus', 'skus'), ('sku_code', 'sku_code'), ('sku_desc', 'sku_name'),
+SKU_MASTER_API_MAPPING = OrderedDict((('skus', 'skus'), ('sku_code', 'sku_code'), ('sku_desc', 'sku_desc'),
                                       ('sku_brand', 'sku_brand'), ('sku_category', 'sku_category_name'),
-                                      ('price', 'price'),
-                                      ('mrp', 'mrp'), ('product_type', 'product_type'), ('sku_class', 'sku_class'),
+                                      ('price', 'selling_price'), ('sub_category', 'sub_category'),
+                                      ('mrp', 'mrp'), ('sku_class', 'sku_class'),
                                       ('style_name', 'style_name'), ('status', 'status'), ('hsn_code', 'hsn_code'),
                                       ('ean_number', 'ean_number'), ('threshold_quantity', 'threshold_quantity'),
                                       ('color', 'color'),
                                       ('measurement_type', 'measurement_type'), ('sku_size', 'sku_size'),
                                       ('size_type', 'size_type'),
                                       ('mix_sku', 'mix_sku'), ('sku_type', 'sku_type'), ('attributes', 'sku_options'),
-                                      ('child_skus', 'child_skus')))
+                                      ('child_skus', 'child_skus'), ('cgst', 'cgst'), ('sgst', 'sgst'),
+                                      ('igst', 'igst'), ('cess', 'cess'), ('shelf_life', 'shelf_life'),
+                                      ('image_url', 'image_url')))
 
 CUSTOMER_MASTER_API_MAPPING = OrderedDict((('customers', 'customers'), ('customer_id', 'customer_id'), ('name', 'name'),
                                            ('address', 'address'), ('city', 'city'), ('state', 'state'),
@@ -2213,12 +2220,12 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
     if customer_view:
         lis = ['order__customer_id', 'order__customer_name', 'order__sku__wms_code', 'order__sku__sku_desc']#'order__quantity', 'picked_quantity']
         model_obj = Picklist
-        param_keys = {'wms_code': 'stock__sku__wms_code', 'sku_code': 'stock__sku__sku_code'}
+        param_keys = {'wms_code': 'order__sku__wms_code', 'sku_code': 'order__sku__sku_code'}
         search_parameters.update({'status__in': ['open', 'batch_open', 'picked', 'batch_picked', 'dispatched'],
                                   #'picked_quantity__gt': 0,
                                   'stock__gt': 0,
                                   'order__user': user.id,
-                                  'stock__sku_id__in': sku_master_ids
+                                  'order__sku_id__in': sku_master_ids
                                 })
     else:
         if serial_view:
@@ -2234,12 +2241,12 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
             lis = ['order__order_id', 'order__sku__wms_code', 'order__sku__sku_desc', 'stock__location__location',
                    'picked_quantity', 'picked_quantity', 'updation_date', 'updation_date']
             model_obj = Picklist
-            param_keys = {'wms_code': 'stock__sku__wms_code', 'sku_code': 'stock__sku__sku_code'}
+            param_keys = {'wms_code': 'order__sku__wms_code', 'sku_code': 'order__sku__sku_code'}
             search_parameters['status__in'] = ['open', 'batch_open', 'picked', 'batch_picked', 'dispatched']
             search_parameters['picked_quantity__gt'] = 0
-            search_parameters['stock__gt'] = 0
+            #search_parameters['stock__gt'] = 0
             search_parameters['order__user'] = user.id
-            search_parameters['stock__sku_id__in'] = sku_master_ids
+            search_parameters['order__sku_id__in'] = sku_master_ids
 
     temp_data = copy.deepcopy(AJAX_DATA)
 
@@ -2302,6 +2309,21 @@ def get_dispatch_data(search_params, user, sub_user, serial_view=False, customer
                                                   )))
         else:
             if not serial_view:
+                if not data.stock:
+                    date = get_local_date(user, data.updation_date).split(' ')
+                    order_id = data.order.original_order_id
+                    if not order_id:
+                        order_id = str(data.order.order_code) + str(data.order.order_id)
+                    child_sku_code = ''
+                    if data.order_type == 'combo':
+                        child_sku_code = data.sku_code
+                    temp_data['aaData'].append(OrderedDict((('Order ID', order_id), ('WMS Code', data.order.sku.sku_code),
+                                                            ('Child SKU', child_sku_code),
+                                                            ('Description', data.order.sku.sku_desc),
+                                                            ('Location', 'NO STOCK'),
+                                                            ('Quantity', data.order.quantity),
+                                                            ('Picked Quantity', data.picked_quantity),
+                                                            ('Date', ' '.join(date[0:3])), ('Time', ' '.join(date[3:5])))))
                 pick_locs = data.picklistlocation_set.exclude(reserved=0, quantity=0)
                 for pick_loc in pick_locs:
                     picked_quantity = float(pick_loc.quantity) - float(pick_loc.reserved)
@@ -3310,7 +3332,7 @@ def get_order_summary_data(search_params, user, sub_user):
             order_status = order_summary[0].status
             remarks = order_summary[0].central_remarks
             order_taken_by = order_summary[0].order_taken_by
-            unit_price_inclusive_tax = ((float(data.invoice_amount) / float(data.quantity)))
+            #unit_price_inclusive_tax = ((float(data.invoice_amount) / float(data.quantity)))
             if not is_gst_invoice:
                 tax = order_summary[0].tax_value
                 vat = order_summary[0].vat
@@ -3322,8 +3344,7 @@ def get_order_summary_data(search_params, user, sub_user):
                 igst_amt = float(order_summary[0].igst_tax) * (float(amt) / 100)
                 utgst_amt = float(order_summary[0].utgst_tax) * (float(amt) / 100)
                 tax = cgst_amt + sgst_amt + igst_amt + utgst_amt
-            unit_price = unit_price_inclusive_tax - (tax / float(data.quantity))
-
+            #unit_price = unit_price_inclusive_tax - (tax / float(data.quantity))
         else:
             tax = float(float(data.invoice_amount) / 100) * vat
         if order_status == 'None':
@@ -3331,6 +3352,7 @@ def get_order_summary_data(search_params, user, sub_user):
         invoice_amount = "%.2f" % ((float(unit_price) * float(data.quantity)) + tax - discount)
         taxable_amount = "%.2f" % abs(float(invoice_amount) - float(tax))
         unit_price = "%.2f" % unit_price
+
         #payment mode
         payment_obj = OrderFields.objects.filter(user=user.id, name__icontains="payment_",\
                                       original_order_id=data.original_order_id).values_list('name', 'value')

@@ -1855,6 +1855,7 @@ def inventory_excel_upload(request, user, data_list):
                     batch_dict['manufactured_date'] = mfg_date
                 if exp_date:
                     batch_dict['expiry_date'] = exp_date
+                add_ean_weight_to_batch_detail(SKUMaster.objects.get(id=inventory_data['sku_id']), batch_dict)
                 batch_obj = BatchDetail(**batch_dict)
                 batch_obj.save()
                 stock_query_filter['batch_detail_id'] = batch_obj.id
@@ -2034,6 +2035,7 @@ def supplier_excel_upload(request, open_sheet, user, demo_data=False):
             elif key == 'name':
                 if not isinstance(cell_data, (str, unicode)):
                     cell_data = str(int(cell_data))
+                cell_data = str(xcode(cell_data))
                 supplier_data['name'] = cell_data
                 if supplier_master and cell_data:
                     setattr(supplier_master, key, cell_data)
@@ -3318,7 +3320,6 @@ def validate_customer_form(request, reader, user, no_of_rows, fname, file_type='
         customer_master = None
         for key, value in mapping_dict.iteritems():
             cell_data = get_cell_data(row_idx, mapping_dict[key], reader, file_type)
-
             if key == 'customer_id':
                 if cell_data:
                     try:
@@ -3336,6 +3337,16 @@ def validate_customer_form(request, reader, user, no_of_rows, fname, file_type='
             elif key == 'name':
                 if not cell_data and not customer_master:
                     index_status.setdefault(row_idx, set()).add('Missing Customer Name')
+
+            elif key == 'phone_number':
+                if cell_data:
+                    try:
+                        cell_data = str(int(cell_data))
+                    except:
+                        cell_data = str(cell_data)
+
+                    if len(cell_data) != 10:
+                        index_status.setdefault(row_idx, set()).add('Phone Number should be in 10 digit')
 
             elif key in number_fields.keys():
                 if cell_data:
@@ -3389,7 +3400,6 @@ def customer_excel_upload(request, reader, user, no_of_rows, fname, file_type):
             break
         customer_data = copy.deepcopy(CUSTOMER_DATA)
         customer_master = None
-
         for key, value in mapping_dict.iteritems():
             cell_data = get_cell_data(row_idx, mapping_dict[key], reader, file_type)
             # cell_data = open_sheet.cell(row_idx, mapping_dict[key]).value
@@ -3443,7 +3453,6 @@ def customer_excel_upload(request, reader, user, no_of_rows, fname, file_type):
                     customer_data[key] = cell_data
                 if cell_data and customer_master:
                     setattr(customer_master, key, cell_data)
-
         if customer_master:
             customer_master.save()
         else:
@@ -5204,7 +5213,7 @@ def central_order_form(request, user=''):
         return error_file_download(central_order_file)
     if user.username == 'one_assist':
         wb, ws = get_work_sheet('central_order_form', CENTRAL_ORDER_ONE_ASSIST_MAPPING.keys())
-    if user.username == '72Networks':
+    if user.username != 'one_assist':
         wb, ws = get_work_sheet('central_order_form', CENTRAL_ORDER_MAPPING.keys())
     return xls_to_response(wb, '%s.central_order_form.xls' % str(user.id))
 
@@ -5317,7 +5326,7 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                 except:
                     order_id = str(get_cell_data(row_idx, value, reader, file_type))
                 get_interm_order_id = IntermediateOrders.objects.all().aggregate(Max('interm_order_id'))
-                if get_interm_order_id:
+                if get_interm_order_id['interm_order_id__max']:
                     interm_order_id = get_interm_order_id['interm_order_id__max'] + 1
                 else:
                     interm_order_id = 10000

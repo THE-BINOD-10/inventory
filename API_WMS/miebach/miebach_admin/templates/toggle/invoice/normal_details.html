@@ -96,7 +96,7 @@
                       </div>
                       {% else %}
 
-                      <address class="m0 p0" style="height: 170px;overflow: hidden;">
+                      <address class="m0 p0" style="height: 170px;overflow: hidden;font-size: 14px;">
                         <strong>
                           <span class="fs16" ng-if="user.userName != 'campus_sutra'">Bill To,</span>
                           <!--<span class="fs16" ng-if="user.userName == 'campus_sutra'">CONSIGNEE,</span>-->
@@ -113,6 +113,10 @@
                           {% if customer_details.0.address %}
                           <p class="fs13 p0 m0 pre-custom" ng-if="showCase.pdf_data.customer_details[0].address">{{customer_details.0.address}}</p>
                           {% endif %}
+                          {% if customer_details.0.tin_number %}
+                          <p class="fs13 m0" ng-if="showCase.pdf_data.customer_details[0].tin_number">
+                            <b>GSTIN No: </b>{{customer_details.0.tin_number}}</p>
+                          {% endif %}
                           {% if customer_details.0.phone_number %}
                           <p class="fs13 m0" ng-if="showCase.pdf_data.customer_details[0].phone_number">
                             <b>Mobile No: </b>{{customer_details.0.phone_number}}</p>
@@ -120,10 +124,6 @@
                           {% if customer_details.0.email_id %}
                           <p class="fs13 m0" m0 ng-if="showCase.pdf_data.customer_details[0].email_id">
                             <b>Email: </b>{{customer_details.0.email_id}}</p>
-                          {% endif %}
-                          {% if customer_details.0.tin_number %}
-                          <p class="fs13 m0" ng-if="showCase.pdf_data.customer_details[0].tin_number">
-                            <b>GSTIN No: </b>{{customer_details.0.tin_number}}</p>
                           {% endif %}
                         </div>
                         {% endif %}
@@ -146,7 +146,7 @@
                         </div>
                       </div>
                       {% else %}
-                      <address class="m0 p0" style="height: 170px;overflow: hidden;">
+                      <address class="m0 p0" style="height: 170px;overflow: hidden;font-size: 14px;">
                         <strong>
                           <span class="fs16">Ship To,</span>
                         </strong><br>

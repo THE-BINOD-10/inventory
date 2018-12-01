@@ -583,6 +583,8 @@ class BatchDetail(models.Model):
     tax_percent = models.FloatField(default=0)
     transact_id = models.IntegerField(default=0)
     transact_type = models.CharField(max_length=36, default='')
+    weight = models.FloatField(default=0)
+    ean_number = models.DecimalField(max_digits=20, decimal_places=0, default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -621,6 +623,7 @@ class ASNStockDetail(models.Model):
     asn_po_num = models.CharField(max_length=32, default='')
     sku = models.ForeignKey(SKUMaster)
     quantity = models.IntegerField(default=0)
+    status = models.CharField(max_length=32, default='open')
     arriving_date = models.DateField(blank=True, null=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -870,6 +873,7 @@ class CustomerMaster(models.Model):
     name = models.CharField(max_length=256, default='')
     last_name = models.CharField(max_length=256, default='')
     address = models.CharField(max_length=256, default='')
+    shipping_address = models.CharField(max_length=256, default='')
     city = models.CharField(max_length=64, default='')
     state = models.CharField(max_length=64, default='')
     country = models.CharField(max_length=64, default='')
@@ -1194,6 +1198,7 @@ class SKURelation(models.Model):
     id = BigAutoField(primary_key=True)
     parent_sku = models.ForeignKey(SKUMaster, blank=True, null=True, related_name='parent_sku')
     member_sku = models.ForeignKey(SKUMaster, blank=True, null=True, related_name='member_sku')
+    quantity = models.FloatField(default=1)
     relation_type = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -1201,6 +1206,7 @@ class SKURelation(models.Model):
     class Meta:
         db_table = 'SKU_RELATION'
         unique_together = ('parent_sku', 'member_sku', 'relation_type')
+        index_together = ('parent_sku', 'member_sku', 'relation_type')
 
     def __unicode__(self):
         return '%s: %s || %s' % (self.relation_type, self.parent_sku, self.member_sku)
@@ -2977,8 +2983,8 @@ class RatingsMaster(models.Model):
     original_order_id = models.CharField(max_length=128, default='', blank=True, null=True)
     rating_product = models.IntegerField(max_length=10)
     rating_order = models.IntegerField(max_length=10)
-    reason_product = models.CharField(max_length=32, default='')
-    reason_order = models.CharField(max_length=32, default='')
+    reason_product = models.CharField(max_length=128, default='')
+    reason_order = models.CharField(max_length=128, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

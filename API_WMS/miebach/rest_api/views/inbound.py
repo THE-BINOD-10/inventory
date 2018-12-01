@@ -5163,7 +5163,7 @@ def create_purchase_order(request, myDict, i, user='', exist_id=0):
             new_data['cess_tax'] = float(myDict['cess_percent'][i])
         open_po = OpenPO.objects.create(**new_data)
         purchase_order = PurchaseOrder.objects.create(order_id=po_order_id, open_po_id=open_po.id,
-                                    received_quantity=myDict['quantity'][i], po_date=po_order[0].po_date,
+                                    received_quantity=0, po_date=po_order[0].po_date,
                                     ship_to=po_order[0].ship_to, prefix=user.userprofile.prefix,
                                     creation_date=datetime.datetime.now())
         #get_data = confirm_add_po(request, new_data)
@@ -5177,7 +5177,7 @@ def create_purchase_order(request, myDict, i, user='', exist_id=0):
             if not exist_seller_po:
                 SellerPO.objects.create(seller_id=seller_po[0].seller_id, open_po_id=open_po.id,
                                     seller_quantity=po_quantity,
-                                    received_quantity=myDict['quantity'][i],
+                                    received_quantity=0,
                                     receipt_type=seller_po[0].receipt_type, unit_price=price,
                                     status=1)
     return myDict['id'][i]

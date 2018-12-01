@@ -2001,6 +2001,22 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         vm.model_data.data[outIndex][inIndex][field] = Number(value).toFixed(1);
       }
     }
+
+  vm.check_mrp_buy_price = function(event, data, index, parent_index) {
+    var sku_row_data = {};
+    angular.copy(data.data[parent_index][index], sku_row_data);
+    if(sku_row_data.buy_price == ''){
+      sku_row_data.buy_price = 0;
+    }
+    if(sku_row_data.mrp == ''){
+      sku_row_data.mrp = 0;
+    }
+    if(sku_row_data.buy_price > sku_row_data.mrp){
+      pop_msg("Buy Price should be less than or equal to MRP");
+      data.data[parent_index][index]['buy_price'] = sku_row_data.mrp;
+    }
+  }
+
 }
 
 stockone.directive('dtPoData', function() {

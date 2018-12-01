@@ -151,21 +151,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.scan_skus = [];
     vm.sku_mapping = {};
     vm.scan_sku = function(event, field) {
-           if(vm.permissions.user_type == 'marketplace_user')
-             {
-                if(vm.model_data.seller_type)
-                   {
-                     vm.scan_sku_marketplace_user = true;
-                    }
-                else
-                  {
-                    vm.scan_sku_marketplace_user = false;
-                    pop_msg("Please Select Seller ID")
-                  }
-              }
-           else {
-              vm.scan_sku_marketplace_user = true;
-               }
+      if(vm.permissions.user_type == 'marketplace_user')
+      {
+        if(vm.model_data.seller_type) {
+          vm.scan_sku_marketplace_user = true;
+        }
+        else {
+          vm.scan_sku_marketplace_user = false;
+          pop_msg("Please Select Seller ID")
+        }
+      }
+      else {
+        vm.scan_sku_marketplace_user = true;
+      }
       if(vm.scan_sku_marketplace_user)
        {
        if ( event.keyCode == 13 && field) {
@@ -192,7 +190,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               if(field == vm.model_data.data[i].sku_code && vm.model_data.data[i].is_new &&
                     vm.model_data.marketplace == vm.model_data.data[i].marketplace &&
                      (vm.model_data.data[i].ship_quantity > vm.model_data.data[i].return_quantity || vm.model_data.data[i].ship_quantity=="")
-                     && (!vm.scan_sku_marketplace_user || (vm.scan_sku_marketplace_user && vm.model_data.data[i].seller_id == vm.model_data.seller_type))) {
+                     && (!vm.scan_sku_marketplace_user || (vm.scan_sku_marketplace_user && vm.model_data.data[i].seller_id == vm.model_data.seller_type))
+                     && (!vm.industry_type == 'FMCG' || (vm.industry_type == 'FMCG' && vm.model_data.data[i].mrp == vm.model_data.mrp))) {
                 vm.model_data.data[i].return_quantity = Number(vm.model_data.data[i].return_quantity) + 1;
                 status = false;
                 vm.add_excl_orders(vm.model_data.data[i]);
@@ -201,7 +200,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               if(vm.sku_mapping[field] == vm.model_data.data[i].sku_code && vm.model_data.data[i].is_new &&
                     vm.model_data.marketplace == vm.model_data.data[i].marketplace &&
                      (vm.model_data.data[i].ship_quantity > vm.model_data.data[i].return_quantity || vm.model_data.data[i].ship_quantity=="")
-                     && (!vm.scan_sku_marketplace_user || (vm.scan_sku_marketplace_user && vm.model_data.data[i].seller_id == vm.model_data.seller_type))) {
+                     && (!vm.scan_sku_marketplace_user || (vm.scan_sku_marketplace_user && vm.model_data.data[i].seller_id == vm.model_data.seller_type))
+                     && (!vm.industry_type == 'FMCG' || (vm.industry_type == 'FMCG' && vm.model_data.data[i].mrp == vm.model_data.mrp))) {
                 vm.model_data.data[i].return_quantity = Number(vm.model_data.data[i].return_quantity) + 1;
                 status = false;
                 break;
@@ -212,27 +212,33 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
               vm.add_new_sku(data.data);
             }
           }
+          vm.model_data.mrp = '';
         });
         vm.model_data.return_sku_code = '';
-        vm.model_data.mrp = '';
+
       }
      }
     }
 
     vm.add_new_sku = function(new_sku) {
+      var temp_mrp = 0;
+      if(vm.model_data.mrp){
+        temp_mrp = vm.model_data.mrp;
+      }
       if (!$.isEmptyObject(new_sku.batch_data)) {
         if (new_sku.batch_data.length) {
           vm.model_data.data.push({'sku_code': new_sku.sku_code, 'sku_desc': new_sku.description, 'ship_quantity': new_sku.ship_quantity,
                                    'order_id': new_sku.order_id, 'return_quantity': 1, 'damaged_quantity': 0, 'track_id_enable': false,
                                    'is_new': true, 'marketplace':vm.model_data.marketplace, 'sor_id': new_sku.sor_id,
                                    'unit_price': new_sku.unit_price, 'old_order_id': new_sku.order_id, 'mrp': new_sku.batch_data[0].mrp,
-                                   'manufactured_date': new_sku.batch_data[0].manufactured_date, 'expiry_date': new_sku.batch_data[0].expiry_date,'sgst': new_sku.sgst,'cgst': new_sku.cgst,'igst': new_sku.igst, 'seller_id':  vm.model_data.seller_type})
+                                   'manufactured_date': new_sku.batch_data[0].manufactured_date, 'expiry_date': new_sku.batch_data[0].expiry_date,'sgst': new_sku.sgst,'cgst': new_sku.cgst,'igst': new_sku.igst,
+                                   'seller_id':  vm.model_data.seller_type})
         }
       } else {
         vm.model_data.data.push({'sku_code': new_sku.sku_code, 'sku_desc': new_sku.description, 'ship_quantity': new_sku.ship_quantity,
                                'order_id': new_sku.order_id, 'return_quantity': 1, 'damaged_quantity': 0, 'track_id_enable': false,
                                'is_new': true, 'marketplace':vm.model_data.marketplace, 'sor_id': new_sku.sor_id,
-                               'unit_price': new_sku.unit_price, 'old_order_id': new_sku.order_id, 'mrp': 0,
+                               'unit_price': new_sku.unit_price, 'old_order_id': new_sku.order_id, 'mrp': temp_mrp,
                                'manufactured_date': '', 'expiry_date': '','sgst': new_sku.sgst,'cgst': new_sku.cgst,'igst': new_sku.igst,
                                'seller_id': vm.model_data.seller_type})
       }

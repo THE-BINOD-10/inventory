@@ -793,7 +793,7 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
             cell_data = sku_code.upper()
 
         if not order_data.get('order_id', ''):
-            order_data['order_id'] = get_order_id(user_id)
+            order_data['order_id'] = get_order_id(user.id)
             order_data['order_code'] = 'MN'
         if isinstance(order_data['order_id'], float):
             order_data['order_id'] = str(int(order_data['order_id'])).upper()

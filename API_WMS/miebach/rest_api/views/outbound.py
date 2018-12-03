@@ -1792,10 +1792,15 @@ def picklist_confirmation(request, user=''):
                         continue
                     if not picklist.stock:
                         if val['location'] == 'NO STOCK':
+                            if float(picklist.reserved_quantity) > float(val['picked_quantity']):
+                                picking_count = float(val['picked_quantity'])
+                            else:
+                                picking_count = float(picklist.reserved_quantity)
+                            count -= picking_count
                             seller_pick_number = confirm_no_stock(picklist, request, user, picks_all,
                                                                   picklists_send_mail, merge_flag, user_profile,
                                                                   seller_pick_number, val=val,
-                                                                  p_quantity=float(val['picked_quantity']))
+                                                                  p_quantity=picking_count)
                             continue
                     if float(picklist.reserved_quantity) > float(val['picked_quantity']):
                         picking_count = float(val['picked_quantity'])

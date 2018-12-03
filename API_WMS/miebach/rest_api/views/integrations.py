@@ -855,7 +855,7 @@ def update_cancelled(orders, user='', company_name=''):
         traceback.print_exc()
 
 
-def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_status, parent_sku=None):
+def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_status, user_attr_list, parent_sku=None):
     sku_master = None
     sku_code = sku_data.get(sku_mapping['sku_code'], '')
     if not sku_code:
@@ -875,6 +875,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
     ean_numbers = ''
     taxes_mapping = {'cgst': 'cgst_tax', 'sgst': 'sgst_tax', 'igst': 'igst_tax', 'cess': 'cess_tax'}
     taxes_dict = {}
+    option_not_created = []
     for key, val in sku_mapping.iteritems():
         if key in exclude_list:
             continue
@@ -927,6 +928,12 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
         elif key == 'attributes':
             if value and isinstance(value, list):
                 sku_options = value
+                option_names = map(operator.itemgetter('name'), sku_options)
+                option_not_created = list(set(option_names) - set(user_attr_list))
+                if option_not_created:
+                    error_message = 'SKU Options %s are not created' % (','.join(option_not_created))
+                    update_error_message(failed_status, 5030, error_message, sku_code,
+                                         field_key='sku_code')
             continue
         elif key in ["cgst", "sgst", "igst", "cess"]:
             try:
@@ -965,6 +972,8 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
         sku_master.save()
     if sku_master and sku_options:
         for option in sku_options:
+            if option in option_not_created:
+                continue
             sku_attributes = SKUAttributes.objects.filter(sku_id=sku_master.id, attribute_name=option['name'])
             if sku_attributes:
                 sku_attributes = sku_attributes[0]
@@ -1012,6 +1021,8 @@ def update_skus(skus, user='', company_name=''):
                 update_error_message(failed_status, 5021, error_message, warehouse, field_key='warehouse')
         if failed_status:
             return insert_status, failed_status
+        user_attr_list = get_user_attributes(user, 'sku')
+        user_attr_list = list(user_attr_list.values_list('attribute_name', flat=True))
         user_profile = user.userprofile
         sku_ids = []
         all_sku_masters = []
@@ -1020,7 +1031,7 @@ def update_skus(skus, user='', company_name=''):
         skus = skus.get(sku_mapping['skus'], [])
         for sku_data in skus:
             sku_master, insert_status = sku_master_insert_update(sku_data, user, sku_mapping, insert_status,
-                                                                 failed_status)
+                                                                 failed_status, user_attr_list)
             all_sku_masters.append(sku_master)
             if sku_data.has_key('child_skus'):
                 for child_data in sku_data['child_skus']:

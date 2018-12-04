@@ -10479,14 +10479,15 @@ def generate_stock_transfer_invoice(request, user=''):
     data = get_picked_data(picklist_number[0], user.id, marketplace='')
     invoice_amt = 0
     total_picked_quantity = picked_qty[0]
-    #get_stock_transfer = StockTransfer.objects.filter(order_id = order_id[0]).distinct()
-    get_stock_transfer = STOrder.objects.filter(picklist__stock__sku__user = user.id, stock_transfer__order_id = order_id[0], picklist__status__in = ['picked','batch_picked']).distinct()
-    for obj in get_stock_transfer:
+    get_stock_transfer = StockTransfer.objects.filter(sku__user=user.id, order_id=order_id[0])
+    pick_qtys = dict(STOrder.objects.filter(stock_transfer_id__in=get_stock_transfer.values_list('id', flat=True)).\
+        values_list('stock_transfer__order_id').annotate(tot_sum=Sum('picklist__picked_quantity')))
+    for stock_transfer in get_stock_transfer:
         try:
             warehouse = ''
-            shipment_date = str(obj.stock_transfer.updation_date)
-            invoice_date = str(obj.stock_transfer.creation_date)
-            warehouse_id = obj.stock_transfer.st_po.open_st.sku.user
+            shipment_date = str(stock_transfer.updation_date)
+            invoice_date = str(stock_transfer.creation_date)
+            warehouse_id = stock_transfer.st_po.open_st.sku.user
             warehouse_obj = User.objects.get(id=warehouse_id)
             if warehouse_obj:
                 warehouse = warehouse_obj.username
@@ -10496,20 +10497,20 @@ def generate_stock_transfer_invoice(request, user=''):
                 'phone_number' : to_warehouse_details[0]['phone_number'], 'cin_number' : to_warehouse_details[0]['cin_number'], 
                 'pin_code' : to_warehouse_details[0]['pin_code'], 'country' : to_warehouse_details[0]['country'] }
             #warehouse = obj.stock_transfer.st_po.open_st.warehouse.username
-            sku_price = obj.stock_transfer.st_po.open_st.price
-            rate = obj.stock_transfer.st_po.open_st.price
-            total_picked_quantity = obj.stock_transfer.quantity
-            total_price = rate * obj.stock_transfer.quantity
+            sku_price = stock_transfer.st_po.open_st.price
+            rate = stock_transfer.st_po.open_st.price
+            total_picked_quantity = pick_qtys.get(stock_transfer.order_id)
+            total_price = rate * stock_transfer.quantity
             invoice_amt = total_price + invoice_amt
-            sku_description = obj.stock_transfer.sku.sku_desc
-            sku = obj.stock_transfer.sku.wms_code
+            sku_description = stock_transfer.sku.sku_desc
+            sku = stock_transfer.sku.wms_code
             try:
                 resp_list['resp'][0].update({'invoice_amount':invoice_amt})
             except:
                 pass
         except:
             continue
-	    search_val = ''
+        search_val = ''
         try:
             search_val = (item for idx,item in enumerate(resp_list['resp']) if item["order_id"] == order_id[0] and item["warehouse_name"] == warehouse and item['sku_code'] == sku).next()
             if search_val:
@@ -10523,7 +10524,7 @@ def generate_stock_transfer_invoice(request, user=''):
                 invoice_number = order_id[0]
             else:
                 invoice_number = ''
-		resp_list['resp'].append({'order_id' : order_id[0], 'picked_quantity' : total_picked_quantity, 'rate' : rate, 
+        resp_list['resp'].append({'order_id' : order_id[0], 'picked_quantity' : total_picked_quantity, 'rate' : rate,
             'amount' : total_price, 'stock_transfer_date_time' : str(shipment_date), 'warehouse_name': warehouse, 
             'sku_code' : sku, 'invoice_date' : str(invoice_date), 'from_warehouse' : from_warehouse, 
             'to_warehouse' : to_warehouse, 'invoice_amount' : invoice_amt, 'sku_description' : sku_description, 

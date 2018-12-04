@@ -6241,8 +6241,9 @@ def modify_invoice_data(invoice_data, user):
                         taxes['sgst_amt'] += float(single_entry['taxes']['sgst_amt'])
                         taxes['igst_amt'] += float(single_entry['taxes']['igst_amt'])
                 total = amount - tax
+                formated_inv = "%.2f" % invoice_amount
                 new_data.append(
-                    {'price': price, 'sku_class': sku_list, 'discount': discount, 'invoice_amount': invoice_amount,
+                    {'price': price, 'sku_class': sku_list, 'discount': discount, 'invoice_amount': formated_inv,
                      'quantity': quantity, 'tax': tax, 'amount': amount, 'category': category, 'vat': vat,
                      'styles': styles, 'amt': amt, 'taxes': taxes, 'base_price': base_price})
         invoice_data['data'] = new_data
@@ -9855,7 +9856,7 @@ def get_customer_invoice_tab_data(start_index, stop_index, temp_data, search_ter
                                          ('check_field', 'Order ID')))
             data_dict.update(OrderedDict((('Customer Name', order.customer_name),
                                           ('Order Quantity', data['ordered_quantity']), ('Picked Quantity', data['total_quantity']),
-                                          ('Total Amount', picked_amount),
+                                          ('Total Amount', "%.2f" %picked_amount),
                                           ('Order Date&Time', invoice_date), ('Invoice Number', '')
                                           )))
             temp_data['aaData'].append(data_dict)
@@ -10262,9 +10263,10 @@ def construct_sell_ids(request, user, status_flag='processed_orders', cancel_inv
         splitted_data = data_id.split(':')
         common_id = 'invoice_number_in' if cancel_inv else 'order_id_in'
         sell_ids.setdefault(field_mapping[common_id], [])
-        sell_ids.setdefault('pick_number__in', [])
         sell_ids[field_mapping[common_id]].append(splitted_data[0])
-        sell_ids['pick_number__in'].append(splitted_data[1])
+        if splitted_data[1]:
+            sell_ids.setdefault('pick_number__in', [])
+            sell_ids['pick_number__in'].append(splitted_data[1])
         # sell_ids['order_status_flag'] = status_flag
     return sell_ids
 
@@ -10295,6 +10297,7 @@ def move_to_dc(request, user=''):
 @csrf_exempt
 @get_admin_user
 def move_to_inv(request, user=''):
+    log.info('Move To Invoice: Request params for ' + user.username + ' are ' + str(request.GET.dict()))
     cancel_flag = request.GET.get('cancel', '')
     if cancel_flag == 'true':
         sell_ids = construct_sell_ids(request, user, cancel_inv=True)
@@ -10313,7 +10316,13 @@ def move_to_inv(request, user=''):
             invoice_seq = invoice_sequence[0]
             inv_no = int(invoice_seq.value)
             order_no = str(inv_no).zfill(3)
-            seller_summary.update(invoice_number=order_no)
+            for sel_obj in seller_summary:
+                if not sel_obj.invoice_number:
+                    sel_obj.invoice_number = order_no
+                    sel_obj.save()
+                else:
+                    log.info("Invoice number already generated for Sel Obj ID:%s" %(sel_obj.id))
+            #seller_summary.update(invoice_number=order_no)
             invoice_seq.value = inv_no + 1
             invoice_seq.save()
     try:
@@ -11989,12 +11998,15 @@ def get_manual_enquiry_orders(start_index, stop_index, temp_data, search_term, o
         if order_term == 'desc':
             order_data = '-%s' % order_data
         if search_term:
+            if search_term.startswith('ad'):
+                search_term = 'pending_approval'
             em_qs = ManualEnquiry.objects.filter(Q(customer_name__icontains=search_term) |
                                                  Q(enquiry_id__icontains=search_term) |
                                                  Q(user__username__icontains=search_term) |
                                                  Q(sku__sku_code__icontains=search_term) |
                                                  Q(sku__sku_class__icontains=search_term) |
-                                                 Q(customization_type__icontains=search_term),
+                                                 Q(customization_type__icontains=search_term) |
+                                                 Q(status__istartswith=search_term),
                                                  **data_filters).order_by(order_data)
         else:
             em_qs = ManualEnquiry.objects.filter(**data_filters).order_by(order_data)

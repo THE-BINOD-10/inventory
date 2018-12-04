@@ -1003,7 +1003,8 @@ def switches(request, user=''):
                        'receive_po_invoice_check': 'receive_po_invoice_check',
                        'mark_as_delivered': 'mark_as_delivered',
                        'order_exceed_stock': 'order_exceed_stock',
-                       'receive_po_mandatory_fields': 'receive_po_mandatory_fields'
+                       'receive_po_mandatory_fields': 'receive_po_mandatory_fields',
+                       'sku_pack_config': 'sku_pack_config',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():

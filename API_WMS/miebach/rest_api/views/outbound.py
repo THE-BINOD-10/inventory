@@ -12290,6 +12290,7 @@ def request_manual_enquiry_approval(request, user=''):
         users_list.append(admin_user.id)
     elif request.user.userprofile.warehouse_type == 'CENTRAL_ADMIN' and request.user.userprofile.zone != '':
         admin_user = user
+        users_list.append(admin_user.id)
     else:
         admin_user = get_priceband_admin_user(user)
         if not admin_user:
@@ -12300,9 +12301,8 @@ def request_manual_enquiry_approval(request, user=''):
             purchase_admin_user_id = purchase_admin_user_id[0]
             users_list.append(purchase_admin_user_id)
     if request.user.userprofile.warehouse_type not in ('SM_PURCHASE_ADMIN', 'SM_DESIGN_ADMIN'):
-        if request.user.id == admin_user.id:
-            vals = (request.user.username, enq_data[0].enquiry_id, qty, sku_code, cust_name)
-            contents_msg = "%s updated the status for custom order %s of %s Pcs %s for %s" %vals
+        vals = (request.user.username, enq_data[0].enquiry_id, qty, sku_code, cust_name)
+        contents_msg = "%s updated the status for custom order %s of %s Pcs %s for %s" %vals
     else:
         if request.user.userprofile.warehouse_type == "SM_PURCHASE_ADMIN":
             contents_msg = "Purchase Admin requesting Designer for ArtWork"

@@ -938,13 +938,42 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
 
   vm.generate_pdf_file2 = function(data){
     var send = {};
-    send['data'] = $(".modal-body:visible").html()
-    send['css'] = 'page1'
-    vm.apiCall("generate_pdf_file/", "POST", send).then(function(data){
-       if(data.message) {
-         window.open(Session.url + data.data, '_blank');
-       }
-    })
+    send = $(".modal-body:visible").html()
+    vm.print_invoice_data(send, "");
+  }
+
+  vm.print_invoice_data = function(data, title) {
+    if(!(data)) {
+      data = $('.print:visible').clone();
+    } else {
+      data = $(data).clone();
+    }
+    var print_div= "<div class='print'></div>";
+    print_div= $(print_div).html(data);
+    print_div = $(print_div).clone();
+
+    $(print_div).find(".modal-body").css('max-height', 'none');
+    $(print_div).find(".modal-footer").remove();
+    print_div = $(print_div).html();
+
+    var mywindow = window.open(Session.url + '/dispatch_invoice.pdf', '_blank', title, 'height=400,width=600');
+    mywindow.document.write('<html><head><title>'+title+'</title>');
+    mywindow.document.write('<link rel="stylesheet" type="text/css" href="vendor/bootstrap/dist/css/bootstrap.min.css" />');
+    mywindow.document.write('<link rel="stylesheet" type="text/css" href="styles/custom/page.css" media="print"/>');
+    mywindow.document.write('<link rel="stylesheet" type="text/css" href="styles/custom/page1.css" media="print"/>');
+    mywindow.document.write('</head><body>');
+    mywindow.document.write(print_div);
+    mywindow.document.write('</body></html>');
+
+    mywindow.document.close();
+    mywindow.focus();
+
+    $timeout(function(){
+      mywindow.print();
+      mywindow.close();
+    }, 20);
+
+    return true;
   }
 
   vm.generate_pdf_file = function(data){

@@ -920,7 +920,11 @@ def print_excel(request, temp_data, headers, excel_name='', user='', file_type='
             except:
                 thedatawriter.writerow(excel_headers)
             for data in temp_data['aaData']:
-                thedatawriter.writerow(data.values())
+                temp_csv_list = []
+                for key, value in data.iteritems():
+                    if key in excel_headers:
+                        temp_csv_list.append(str(xcode(value)))
+                thedatawriter.writerow(temp_csv_list)
                 counter += 1
     else:
         try:

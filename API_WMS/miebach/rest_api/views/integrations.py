@@ -972,7 +972,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
         sku_master.save()
     if sku_master and sku_options:
         for option in sku_options:
-            if option in option_not_created:
+            if option['name'] in option_not_created:
                 continue
             sku_attributes = SKUAttributes.objects.filter(sku_id=sku_master.id, attribute_name=option['name'])
             if sku_attributes:

@@ -12133,7 +12133,11 @@ def get_manual_enquiry_detail(request, user=''):
             if wh_stock:
                 wh_total = wh_stock[0]['available']
                 wh_res = wh_stock[0]['reserved']
+                if wh_total == 'No SKU':
+                    wh_total = 0
                 wh_open = wh_total - wh_res
+                if wh_open < 0:
+                    wh_open = 0
                 wh_blocked = wh_stock[0]['blocked']
                 intr_open = wh_stock[0]['asn']
                 intr_blocked = wh_stock[0]['asn_blocked']
@@ -12153,7 +12157,7 @@ def get_manual_enquiry_detail(request, user=''):
         import traceback
         log.debug(traceback.format_exc())
         log.info('Get Manual Enquiry Detail failed. User: %s, Params: %s, Error: %s'
-                 % (user.username, str(request.POST.dict()), str(e)))
+                 % (main_user.username, str(request.POST.dict()), str(e)))
         return HttpResponse('Get Manual Enquiry Detail failed')
 
 

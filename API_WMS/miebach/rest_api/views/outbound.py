@@ -13985,28 +13985,33 @@ def print_pdf_shipment_info(request, user=''):
 
     return render(request, 'templates/toggle/shipment_info.html',{'data':data,'driver_name':driver_name,'manifest_number':manifest_number,'truck_number':truck_number,'driver_phone_number':driver_phone_number})
 
-@login_required
-@get_admin_user
-def reassgin_order(request, user=''):
-    import pdb; pdb.set_trace()
-    order_det_id=[]
-    order_det_reassigned_id =[]
-    order_det_no_reassigned_id =[]
-    order_id_list =request.GET.getlist('order_ids[]')
-    for order_id in order_id_list :
-        ord_obj = OrderDetail.objects.get(original_order_id=order_id, user=user.id)
-        interm_obj = IntermediateOrders.objects.filter(order_id=ord_obj.id)
-        if interm_obj:
-            interm_obj = interm_obj[0]
-            if ord_obj.quantity != interm_obj.quantity :
-                order_det_not_reassigned_id.append(ord_obj.id)
-                log.info('%s orderid is not assigned ' % (str(order_id)))
-
-            else:
-                order_det_reassigned_id.append(ord_obj.id)
-                log.info('%s orderid is  assigned' % (str(order_id)))
-                interm_obj.status = 0
-                interm_obj.save()
-
-    order_cancel_functionality(order_det_reassigned_id)
-    return HttpResponse(json.dumps({'data': "Success", 'message': '', 'status': 'Successfully removed'}))
+# @login_required
+# @get_admin_user
+# def reassgin_order(request, user=''):
+#     import pdb; pdb.set_trace()
+#     order_det_id=[]
+#     order_det_reassigned_id =[]
+#     order_det_no_reassigned_id =[]
+#     try:
+#         order_id_list =request.GET.getlist('order_ids[]')
+#         for order_id in order_id_list :
+#             ord_obj = OrderDetail.objects.get(original_order_id=order_id, user=user.id)
+#             interm_obj = IntermediateOrders.objects.filter(order_id=ord_obj.id)
+#             if interm_obj:
+#                 interm_obj = interm_obj[0]
+#                 if ord_obj.quantity != interm_obj.quantity :
+#                     order_det_not_reassigned_id.append(ord_obj.id)
+#                     log.info('%s orderid is not assigned ' % (str(order_id)))
+#                 else:
+#                     order_det_reassigned_id.append(ord_obj.id)
+#                     log.info('%s orderid is  assigned' % (str(order_id)))
+#                     interm_obj.status = 0
+#                     interm_obj.save()
+#
+#                     order_cancel_functionality(order_det_reassigned_id)
+#         return HttpResponse(json.dumps({'data': "Success", 'message': '', 'status': 'Successfully removed'}))
+#     except Exception as e:
+#         import traceback
+#         log.debug(traceback.format_exc())
+#         log.info('Reassign of orders failed for %s and params are %s and error statement is %s' % (
+#         str(user.username), str(request.POST.dict()), str(e)))

@@ -364,7 +364,6 @@ urlpatterns = [
     url(r'^insert_st_shipment_info/$', insert_st_shipment_info),
     url(r'^do_delegate_orders/$', do_delegate_orders),
     url(r'^app_shipment_info_data/$', app_shipment_info_data),
-    url(r'^reassgin_order/$', reassgin_order),
 
 
 

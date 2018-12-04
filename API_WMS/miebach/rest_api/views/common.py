@@ -561,6 +561,7 @@ data_datatable = {  # masters
     #invoice based payment tracker
     'PaymentTrackerInvBased': 'get_inv_based_payment_data',
     'OutboundPaymentReport': 'get_outbound_payment_report',
+
 }
 
 
@@ -2991,7 +2992,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 ord_dict.pop('igst_tax')
             if 'igst_amt' in ord_dict:
                 ord_dict.pop('igst_amt')
-                
+
     _invoice_no, _sequence = get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos)
     challan_no, challan_sequence = get_challan_number(user, seller_summary)
     inv_date = invoice_date.strftime("%m/%d/%Y")
@@ -3010,7 +3011,11 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     dispatch_through = "By Road"
     _total_invoice = round(total_invoice_amount)
     # _invoice_no =  'TI/%s/%s' %(datetime.datetime.now().strftime('%m%y'), order_no)
-    side_image = get_company_logo(user, COMPANY_LOGO_PATHS)
+    admin_user = get_admin(user)
+    if admin_user.get_username() == '72Networks' :
+        side_image = get_company_logo(admin_user, COMPANY_LOGO_PATHS)
+    else:
+        side_image = get_company_logo(user, COMPANY_LOGO_PATHS)
     top_image = get_company_logo(user, TOP_COMPANY_LOGO_PATHS)
 
     declaration = DECLARATIONS.get(user.username, '')
@@ -6196,7 +6201,6 @@ def get_shipment_quantity(user, all_orders, sku_grouping=False):
 
             all_data = list(customer_orders.values(*filter_list).distinct().annotate(picked=Sum('quantity'),
                                                                                      ordered=Sum('quantity')))
-
             for ind, dat in enumerate(all_data):
                 if sku_grouping == 'true':
                     ship_dict = {'order__sku__sku_code': dat['sku__sku_code'], 'order__sku__user': user.id,
@@ -6227,6 +6231,14 @@ def get_shipment_quantity(user, all_orders, sku_grouping=False):
                     all_data[ind]['shipping_quantity'] -= shipped
                     if all_data[ind]['picked'] < 0:
                         del all_data[ind]
+                #import pdb; pdb.set_trace()
+                serial_number = OrderIMEIMapping.objects.filter(po_imei__sku__wms_code =all_data[ind]['sku__sku_code'],order_id= all_data[ind]['id'],po_imei__sku__user=user.id)
+                serial_numbers_list = []
+                if serial_number :
+                    for i in range(serial_number.count()):
+                        serial_numbers_list.append(serial_number[i].po_imei.imei_number)
+
+                all_data[ind]['serial_number'] = serial_numbers_list
 
             data = list(chain(data, all_data))
     except Exception as e:

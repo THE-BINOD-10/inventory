@@ -2,15 +2,17 @@
 
   <!-- toggle small sidebar menu -->
   <a href="javascript:;" class="toggle-sidebar hidden-xs hamburger-icon v3" data-ng-click="app.layout.isSmallSidebar = !app.layout.isSmallSidebar">
-    <img ng-if="user.userName != '72networks'" src="images/stockone_logo.png" height="15" alt="">
+    <img ng-if="user.userName != '72Networks' && !user.parent['72networks']" src="images/stockone_logo.png" height="15" alt="">
+
   </a>
   <!-- /toggle small sidebar menu -->
 
   <!-- logo -->
   <div class="brand-logo">
-    <img ng-if="user.userName != 'sagar_fab' && user.userName != '72Networks'" data-ng-src="images/stockone_logo_text.png" alt="">
+    <img ng-if="user.userName != 'sagar_fab' && user.userName != '72Networks' && !user.parent['72networks']" data-ng-src="images/stockone_logo_text.png" alt="">
     <img ng-if="user.userName == 'sagar_fab'" data-ng-src="images/sagar_fab.png" alt="">
     <img ng-if="user.userName == '72Networks'" data-ng-src="images/72networks.png" alt="" style="padding-left:35px">
+    <img ng-if="user.parent['72networks']" data-ng-src="images/72networks.png" alt="" style="padding-left:35px;width=100%">
 
     <!--<h5 style="color: #FFF;font-size: 22px;margin: 0px;margin-left: 7px;"><b>Mie</b>one</h5>-->
   </div>

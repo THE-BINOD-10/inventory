@@ -203,6 +203,9 @@ def add_user_permissions(request, response_data, user=''):
     parent_data = {}
     parent_data['userId'] = user.id
     parent_data['userName'] = user.username
+    admin_user = get_admin(user)
+    if admin_user.get_username() == '72Networks':
+        parent_data['72networks'] = True
     parent_data['logo'] = COMPANY_LOGO_PATHS.get(user.username, '')
     response_data['data']['userName'] = request.user.username
     response_data['data']['userId'] = request.user.id

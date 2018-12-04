@@ -23,10 +23,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
       angular.copy(vm.empty_data, vm.model_data);
       vm.dtOptions = data.dtOptions;
       vm.dtColumns = data.dtColumns;
+      vm.dtColumns.push(DTColumnBuilder.newColumn('Order Number').withTitle('Order Number'))
       vm.datatable = true;
       vm.dtInstance = {};
     })
   })
+
   vm.change_datatable = function()
   {
      if(vm.invoice_number)

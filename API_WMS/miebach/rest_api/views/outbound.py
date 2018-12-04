@@ -10481,7 +10481,7 @@ def generate_stock_transfer_invoice(request, user=''):
     total_picked_quantity = picked_qty[0]
     get_stock_transfer = StockTransfer.objects.filter(sku__user=user.id, order_id=order_id[0])
     pick_qtys = dict(STOrder.objects.filter(stock_transfer_id__in=get_stock_transfer.values_list('id', flat=True)).\
-        values_list('stock_transfer__order_id').annotate(tot_sum=Sum('picklist__picked_quantity')))
+        annotate(group_key=Concat('stock_transfer__order_id', Value('<<>>'), 'stock_transfer__sku__sku_code', output_field=CharField())).values_list('group_key').annotate(tot_sum=Sum('picklist__picked_quantity')))
     for stock_transfer in get_stock_transfer:
         try:
             warehouse = ''
@@ -10499,7 +10499,7 @@ def generate_stock_transfer_invoice(request, user=''):
             #warehouse = obj.stock_transfer.st_po.open_st.warehouse.username
             sku_price = stock_transfer.st_po.open_st.price
             rate = stock_transfer.st_po.open_st.price
-            total_picked_quantity = pick_qtys.get(stock_transfer.order_id)
+            total_picked_quantity = pick_qtys.get(str(stock_transfer.order_id) + '<<>>' + str(stock_transfer.sku.sku_code), 0)
             total_price = rate * stock_transfer.quantity
             invoice_amt = total_price + invoice_amt
             sku_description = stock_transfer.sku.sku_desc

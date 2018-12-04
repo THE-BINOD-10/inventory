@@ -12118,14 +12118,14 @@ def get_manual_enquiry_detail(request, user=''):
             dest_user = cust_obj[0].customer.user
             res_lt = cust_obj[0].customer.lead_time
             far_wh_lt = NetworkMaster.objects.filter(dest_location_code_id=dest_user,
-                                                     source_location_code__username__in=['DL01', 'MH03']).aggregate(
+                                                     source_location_code__userprofile__warehouse_level=1).aggregate(
                 max_lt=Max('lead_time'))['max_lt']
             if not far_wh_lt:
                 far_wh_lt = 0
             far_wh_lt += res_lt
         #Get L1, L3 level stocks data
         wh_lists = get_sister_warehouse(main_user)
-        wh_users = User.objects.filter(id__in=wh_lists.values_list('user_id', flat=True)).exclude(username='KA02')
+        wh_users = User.objects.filter(id__in=wh_lists.values_list('user_id', flat=True))
         wh_stock_list = []
         l1_users = wh_users.filter(userprofile__warehouse_level=1)
         for l1_user in l1_users:
@@ -12230,18 +12230,17 @@ def notify_designer(request, user=''):
         admin_user = get_priceband_admin_user(user)
         if not admin_user:
             admin_user = request.user
-        # market_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
-        #     Q(userprofile__warehouse_type='SM_MARKET_ADMIN')).values_list('id', flat=True)
-        # if market_admin_user_id:
-        #     market_admin_user_id = market_admin_user_id[0]
-        #     users_list.append(market_admin_user_id)
         purchase_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
             Q(userprofile__warehouse_type='SM_PURCHASE_ADMIN')).values_list('id', flat=True)
         if purchase_admin_user_id:
             purchase_admin_user_id = purchase_admin_user_id[0]
             users_list.append(purchase_admin_user_id)
         users_list.append(admin_user.id)
-    contents = {"en": "%s Send Order %s to add ArtWork" % (request.user.username, enquiry_id)}
+    qty = manual_enq.quantity
+    sku_code = manual_enq.sku.sku_code
+    cust_name = manual_enq.customer_name
+    vals = (request.user.username, enquiry_id, qty, sku_code, cust_name)
+    contents = {"en": "%s require artwork for custom order %s of %s Pcs %s for %s" % (vals)}
     send_push_notification(contents, users_list)
     return HttpResponse("Success")
 
@@ -12280,6 +12279,10 @@ def request_manual_enquiry_approval(request, user=''):
         enq_data[0].smd_price = smd_price
         enq_data[0].rc_price = rc_price
     enq_data[0].save()
+    ord_no = enq_data[0].enquiry_id
+    qty = enq_data[0].quantity
+    sku_code = enq_data[0].sku.sku_code
+    cust_name = enq_data[0].customer_name
     users_list = []
     if request.user.userprofile.warehouse_type in ('SM_MARKET_ADMIN', 'SM_PURCHASE_ADMIN', 'SM_DESIGN_ADMIN'):
         users_list.append(request.user.id)
@@ -12291,11 +12294,6 @@ def request_manual_enquiry_approval(request, user=''):
         admin_user = get_priceband_admin_user(user)
         if not admin_user:
             admin_user = request.user
-        # market_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
-        #     Q(userprofile__warehouse_type='SM_MARKET_ADMIN')).values_list('id', flat=True)
-        # if market_admin_user_id:
-        #     market_admin_user_id = market_admin_user_id[0]
-        #     users_list.append(market_admin_user_id)
         purchase_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
             Q(userprofile__warehouse_type='SM_PURCHASE_ADMIN')).values_list('id', flat=True)
         if purchase_admin_user_id:
@@ -12303,14 +12301,14 @@ def request_manual_enquiry_approval(request, user=''):
             users_list.append(purchase_admin_user_id)
     if request.user.userprofile.warehouse_type not in ('SM_PURCHASE_ADMIN', 'SM_DESIGN_ADMIN'):
         if request.user.id == admin_user.id:
-            contents_msg = "Admin User updated the status to %s for Enquiry order %s" % (status, enq_data[0].enquiry_id)
-        else:
-            contents_msg = "Marketing admin requesting approval for custom order %s" % (enq_data[0].enquiry_id)
+            vals = (request.user.username, enq_data[0].enquiry_id, qty, sku_code, cust_name)
+            contents_msg = "%s updated the status for custom order %s of %s Pcs %s for %s" %vals
     else:
         if request.user.userprofile.warehouse_type == "SM_PURCHASE_ADMIN":
             contents_msg = "Purchase Admin requesting Designer for ArtWork"
         else:
-            contents_msg = "Designer Uploaded Artwork"
+            vals = (ord_no, qty, sku_code, cust_name)
+            contents_msg = "SM Design Admin uploaded artwork for custom order %s of %s Pcs %s for %s" %vals
 
     contents = {"en": contents_msg}
     users_list.append(enq_data[0].user_id)
@@ -12345,11 +12343,6 @@ def confirm_or_hold_custom_order(request, user=''):
             cust_ord_obj.save()
             users_list = []
             admin_user = get_priceband_admin_user(user)
-            # market_admin_user_id = AdminGroups.objects.get(user_id=admin_user.id).group.user_set.filter(
-            #     Q(userprofile__warehouse_type='SM_MARKET_ADMIN')).values_list('id', flat=True)
-            # if market_admin_user_id:
-            #     market_admin_user_id = market_admin_user_id[0]
-            #     users_list.append(market_admin_user_id)
             users_list.append(admin_user.id)
             contents = {"en": "%s  %s  for custom order %s" % ( request.user.username, ch_map[cust_order_status],
                                                                 cust_ord_obj.enquiry_id)}
@@ -12374,10 +12367,6 @@ def convert_customorder_to_actualorder(request, user=''):
     except:
         return HttpResponse('Something Went Wrong')
     resp = {'msg': 'Success', 'data': []}
-    # smd_price = request.POST.get('sm_d_price', '')
-    # if smd_price:
-    #     smd_price = float(smd_price)
-    # rc_price = request.POST.get('r_c_price', '')
     try:
         enq_id = request.POST.get('enquiry_id', '')
         res_user_id = request.POST.get('user_id', '')

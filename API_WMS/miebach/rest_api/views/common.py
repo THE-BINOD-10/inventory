@@ -126,11 +126,15 @@ def get_user_permissions(request, user):
     user_perms = []
     ignore_list = PERMISSION_IGNORE_LIST
     all_groups = request.user.groups.all()
+    group_ids = all_groups.values_list('id', flat=True)
+    user_perms_list = list(Permission.objects.filter(group__id__in=group_ids).\
+                                        values_list('codename', flat=True).distinct())
     for permission in permissions:
         temp = permission['codename']
         if not temp in user_perms and not temp in ignore_list:
             user_perms.append(temp)
-            roles[temp] = get_permission(request.user, temp, groups=all_groups)
+            roles[temp] = get_permission(request.user, temp, groups=all_groups,
+                                         user_perms_list=user_perms_list)
             if roles[temp]:
                 label_perms.append(temp)
 
@@ -601,14 +605,18 @@ def permissionpage(request, cond=''):
         return (request.user.is_staff or request.user.is_superuser)
 
 
-def get_permission(user, codename, groups=None):
+def get_permission(user, codename, groups=None, user_perms_list=None):
     in_group = False
     if not groups:
         groups = user.groups.all()
-    for grp in groups:
-        in_group = codename in grp.permissions.values_list('codename', flat=True)
-        if in_group:
-            break
+    if user_perms_list:
+        if codename in user_perms_list:
+            in_group = True
+    else:
+        for grp in groups:
+            in_group = codename in grp.permissions.values_list('codename', flat=True)
+            if in_group:
+                break
     return codename in user.user_permissions.values_list('codename', flat=True) or in_group
 
 
@@ -1879,7 +1887,8 @@ def update_picklist_locations(pick_loc, picklist, update_picked, update_quantity
 @login_required
 @get_admin_user
 def add_group_data(request, user=''):
-    permissions = Permission.objects.all()
+    #permissions = Permission.objects.all()
+    permissions = user.user_permissions.filter()
     prod_stages = ProductionStages.objects.filter(user=user.id).values_list('stage_name', flat=True)
     brands = Brands.objects.filter(user=user.id).values_list('brand_name', flat=True)
     order_statuses = get_misc_value('extra_view_order_status', user.id)
@@ -1900,6 +1909,7 @@ def add_group_data(request, user=''):
             for i in sub_perms:
                 reversed_perms[i[1]] = i[0]
 
+    import pdb;pdb.set_trace()
     for permission in permissions:
         temp = permission.codename
         if not temp in perms_list and not temp in ignore_list:

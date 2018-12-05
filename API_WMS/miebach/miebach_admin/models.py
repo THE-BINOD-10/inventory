@@ -3045,3 +3045,16 @@ class TableUpdateHistory(models.Model):
         db_table = 'TABLE_UPDATE_HISTORY'
         index_together = (('user', 'model_id'), ('user', 'model_id', 'model_name'),
                           ('user', 'model_id', 'model_name', 'model_field'))
+
+
+class SKUPackMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    sku = models.ForeignKey(SKUMaster)
+    pack_id = models.CharField(max_length=32, default='')
+    pack_quantity = models.PositiveIntegerField()
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'SKU_PACK_MASTER'
+        unique_together = ('sku', 'pack_id')

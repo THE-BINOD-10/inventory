@@ -204,7 +204,7 @@ def add_user_permissions(request, response_data, user=''):
     parent_data['userId'] = user.id
     parent_data['userName'] = user.username
     admin_user = get_admin(user)
-    if admin_user.get_username() == '72Networks':
+    if admin_user.get_username().lower() == '72Networks'.lower():
         parent_data['72networks'] = True
     parent_data['logo'] = COMPANY_LOGO_PATHS.get(user.username, '')
     response_data['data']['userName'] = request.user.username
@@ -3015,7 +3015,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     _total_invoice = round(total_invoice_amount)
     # _invoice_no =  'TI/%s/%s' %(datetime.datetime.now().strftime('%m%y'), order_no)
     admin_user = get_admin(user)
-    if admin_user.get_username() == '72Networks' :
+    if admin_user.get_username() .lower()== '72Networks'.lower() :
         side_image = get_company_logo(admin_user, COMPANY_LOGO_PATHS)
     else:
         side_image = get_company_logo(user, COMPANY_LOGO_PATHS)

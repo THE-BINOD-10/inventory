@@ -5488,7 +5488,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
             order_id = data['order__order_code'] + str(data['order__order_id'])
         date = get_local_date(user, data['creation_date']).split(' ')
 
-        if admin_user.get_username() == '72Networks' :
+        if admin_user.get_username().lower() == '72Networks'.lower() :
             try:
                 from firebase import firebase
                 firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)

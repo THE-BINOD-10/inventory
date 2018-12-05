@@ -250,7 +250,7 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "sku_substitution_upload/",
                    dparam: "download-file",
                    value: "",
-                   //perm: "add_sellerstocktransfer"
+                   perm: "add_substitutionsummary"
                  }, {
                    title: "Targets form Download/ Upload",
                    download: "Targets Download Form",

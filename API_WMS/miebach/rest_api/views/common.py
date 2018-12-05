@@ -122,7 +122,7 @@ def get_user_permissions(request, user):
     config = dict(zip(map(operator.itemgetter('misc_type'), configuration),
                       map(operator.itemgetter('misc_value'), configuration)))
 
-    permissions = Permission.objects.exclude(codename__icontains='delete_').values('codename')
+    permissions = Permission.objects.values('codename')
     user_perms = []
     ignore_list = PERMISSION_IGNORE_LIST
     all_groups = request.user.groups.all()
@@ -164,7 +164,7 @@ def get_label_permissions(request, user, role_perms, user_type):
         else:
             labels[label] = False
 
-    extra_labels = ['DASHBOARD', 'UPLOADS', 'REPORTS', 'CONFIGURATIONS']
+    extra_labels = ['DASHBOARD', 'CONFIGURATIONS']
     for label in extra_labels:
         labels[label] = True if user_type != 'supplier' else False
     return labels
@@ -1889,7 +1889,10 @@ def add_group_data(request, user=''):
                    'permission', 'group', 'logentry']
     permission_dict = copy.deepcopy(PERMISSION_DICT)
     reversed_perms = {}
+    exclude_labels = ['UPLOADS']
     for key, value in permission_dict.iteritems():
+        if key in exclude_labels:
+            continue
         sub_perms = permission_dict[key]
         if len(sub_perms) == 2:
             reversed_perms[sub_perms[1]] = sub_perms[0]

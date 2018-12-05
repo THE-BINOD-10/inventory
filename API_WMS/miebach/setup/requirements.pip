@@ -21,5 +21,6 @@ south==1.0.2
 Pillow==4.0.0
 pyBarcode==0.7
 django-oauth-toolkit==1.0.0
+django-admin-view-permission==1.9
 reportlab==3.2.0
 lxml==3.3.3

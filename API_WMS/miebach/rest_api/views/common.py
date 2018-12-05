@@ -1909,7 +1909,6 @@ def add_group_data(request, user=''):
             for i in sub_perms:
                 reversed_perms[i[1]] = i[0]
 
-    import pdb;pdb.set_trace()
     for permission in permissions:
         temp = permission.codename
         if not temp in perms_list and not temp in ignore_list:

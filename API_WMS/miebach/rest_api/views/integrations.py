@@ -984,7 +984,11 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                                              attribute_value=option['value'],
                                              creation_date=datetime.datetime.now())
     if sku_master and taxes_dict:
-        tax_master_obj = TaxMaster.objects.filter(user=user.id, **taxes_dict)
+        tax_master_obj = TaxMaster.objects.filter(Q(cgst_tax=taxes_dict.get('cgst_tax', 0),
+                                                    sgst_tax=taxes_dict.get('sgst_tax', 0))
+                                                  | Q(igst_tax=taxes_dict.get('igst_tax', 0)),
+                                                  cess_tax=taxes_dict.get('cess_tax', 0), user=user.id)
+        #tax_master_obj = TaxMaster.objects.filter(user=user.id, **taxes_dict)
         if tax_master_obj.exists():
             sku_master.product_type = tax_master_obj[0].product_type
             sku_master.save()

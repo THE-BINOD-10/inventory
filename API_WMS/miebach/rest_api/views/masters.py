@@ -416,6 +416,27 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
 
 
 @csrf_exempt
+def get_sku_pack_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    lis = ['pack_id', 'pack_id','pack_quantity']
+
+    search_params = get_filtered_params(filters, lis)
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if search_term:
+            master_data = SKUPackMaster.objects.filter(
+                Q(sku__wms_code__icontains=search_term)).order_by(order_data)
+    else:
+        master_data = SKUPackMaster.objects.filter(**search_params).order_by(order_data)
+
+    temp_data['recordsTotal'] = len(master_data)
+    temp_data['recordsFiltered'] = len(master_data)
+    for data in master_data[start_index: stop_index]:
+        temp_data['aaData'].append(
+            OrderedDict((('sku', data.sku.wms_code), ('pack_id', data.pack_id), ('pack_quantity', data.pack_quantity))))
+
+
+@csrf_exempt
 def get_corporate_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     lis = ['corporate_id', 'name', 'email_id', 'phone_number', 'address', 'status']
     search_params = get_filtered_params(filters, lis)
@@ -1539,6 +1560,66 @@ def insert_customer(request, user=''):
         str(user.username), str(request.POST.dict()), str(e)))
 
     return HttpResponse(status_msg)
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def insert_sku_pack(request, user=''):
+    sku_pack = copy.deepcopy(SKU_PACK_DATA)
+    sku_code = request.POST['sku_code']
+    pack_id = request.POST['pack_id']
+    pack_quantity = request.POST['pack_quantity']
+    sku_obj = SKUMaster.objects.filter(wms_code=sku_code.upper(), user=user.id)
+    if not sku_obj:
+        return HttpResponse('Wrong WMS Code')
+
+    pack_obj = SKUPackMaster.objects.filter(sku__wms_code= sku_code,pack_id = pack_id,sku__user = user.id)
+    if pack_obj :
+        pack_obj = pack_obj[0]
+        pack_obj.pack_quantity = pack_quantity
+        pack_obj.save()
+    else:
+        sku_pack['sku'] = sku_obj[0]
+        sku_pack ['pack_id'] = pack_id
+        sku_pack ['pack_quantity'] = pack_quantity
+        try:
+         SKUPackMaster.objects.create(**sku_pack)
+        except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('Insert New SKUPACK failed for %s and params are %s and error statement is %s' % (str(user.username), \
+                                                                                                   str(request.POST.dict()),
+                                                                                                   str(e)))
+
+    return HttpResponse('Added Successfully')
+
+# @csrf_exempt
+# @login_required
+# @get_admin_user
+# def update_sku_pack(request, user=''):
+#     try:
+#         import pdb; pdb.set_trace()
+#         sku_pack = copy.deepcopy(SKU_PACK_DATA)
+#         sku_code = request.POST['sku_code']
+#         pack_id = request.POST['pack_id']
+#         pack_quantity = request.POST['pack_quantity']
+#         pack_obj = SKUPackMaster.objects.filter(sku__wms_code= sku_code,pack_id = pack_id,sku__user = user.id)
+#         if pack_obj :
+#             pack_obj = pack_obj[0]
+#             pack_obj.pack_id = pack_id
+#             pack_obj.pack_quantity = pack_quantity
+#             pack_obj.save()
+#
+#     except Exception as e:
+#         import traceback
+#         log.debug(traceback.format_exc())
+#         log.info('Update SKUPACK failed for %s and params are %s and error statement is %s' % (str(user.username), \
+#                                                                                                    str(request.POST.dict())))
+#
+#     return HttpResponse('Updated Successfully')
+
+
 
 
 @csrf_exempt

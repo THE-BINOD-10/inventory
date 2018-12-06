@@ -13,6 +13,60 @@ from rest_api.views.common import *
 from rest_api.views.utils import *
 log = init_logger('logs/qssi_stock_check.log')
 
+def ans_stock_details(user, sku_code):
+    # ASN Stock Related to SM
+    today_filter = datetime.datetime.today()
+    hundred_day_filter = today_filter + datetime.timedelta(days=100)
+    ints_filters = {'quantity__gt': 0, 'sku__user': user.id, 'sku__sku_code': sku_code}
+    asn_qs = ASNStockDetail.objects.filter(**ints_filters)
+    intr_obj_100days_qs = asn_qs.filter(arriving_date__lte=hundred_day_filter)
+    intr_obj_100days_ids = intr_obj_100days_qs.values_list('id', flat=True)
+    asnres_det_qs = ASNReserveDetail.objects.filter(asnstock__in=intr_obj_100days_ids)
+    asn_res_100days_qs = asnres_det_qs.filter(orderdetail__isnull=False)  # Reserved Quantity
+    asn_res_100days_qty = dict(asn_res_100days_qs.values_list('asnstock__sku__sku_code').
+                               annotate(in_res=Sum('reserved_qty')))
+    l3_res_stock = asn_res_100days_qty.get(sku_code, 0)
+    return l3_res_stock
+
+
+def update_asn_res_stock(order_obj, l3_res_stock):
+    ASNReserveDetail.objects.filter(orderdetail=order_obj).update(reserved_qty=l3_res_stock)
+
+
+def update_asn_to_stock(wh, sku_code):
+    from rest_api.views.outbound import check_stocks
+    total_stock = StockDetail.objects.filter(sku__user=wh.id,
+                                             quantity__gt=0,
+                                             sku__sku_code=sku_code).only('sku__sku_code', 'quantity').values_list(
+        'sku__sku_code').distinct().annotate(in_stock=Sum('quantity'))
+    res_stock = PicklistLocation.objects.filter(stock__sku__user=wh.id,
+                                                status=1,
+                                                stock__sku__sku_code=sku_code).only(
+        'stock__sku__sku_code', 'reserved').values_list('stock__sku__sku_code').distinct().annotate(
+        in_reserved=Sum('reserved'))
+    blocked_stock = EnquiredSku.objects.filter(sku__user=wh.id,
+                                               sku__sku_code=sku_code).filter(
+        ~Q(enquiry__extend_status='rejected')).only('sku__sku_code', 'quantity').values_list('sku__sku_code').annotate(
+        tot_qty=Sum('quantity'))
+
+    total_stock = dict(total_stock).get(sku_code, 0)
+    res_stock = dict(res_stock).get(sku_code, 0)
+    blocked_stock = dict(blocked_stock).get(sku_code, 0)
+    wh_open_stock = total_stock - res_stock - blocked_stock
+
+    order_obj = OrderDetail.objects.filter(user=wh.id, sku_code=sku_code, status=1).order_by('creation_date')[0]
+    l3_res_stock = ans_stock_details(wh, sku_code)
+    picklist_qty_map = {}
+
+    if wh_open_stock > 0 and l3_res_stock > 0:
+        wh_res_stock = min(wh_open_stock, l3_res_stock)
+        l3_res_stock = l3_res_stock - min(wh_open_stock, l3_res_stock)
+        picklist_qty_map[sku_code] = wh_res_stock
+        # Generate PickList functionality
+        check_stocks(picklist_qty_map, wh, 'false', [order_obj])
+        update_asn_res_stock(order_obj, l3_res_stock)
+
+
 def update_inventory(company_name):
     integration_users = Integrations.objects.filter(name = company_name).values_list('user', flat=True)
     for user_id in integration_users:
@@ -95,6 +149,7 @@ def update_inventory(company_name):
                                 StockDetail.objects.create(**new_stock_dict)
                                 log.info("New stock created for user %s for sku %s" %
                                          (user.username, str(sku.sku_code)))
+                            #update_asn_to_stock(user, sku_id)
                     for sku_id, asn_inv in asn_stock_map.iteritems():
                         sku = SKUMaster.objects.filter(user=user_id, sku_code=sku_id)
                         if sku:
@@ -116,6 +171,8 @@ def update_inventory(company_name):
                                 arriving_date = datetime.datetime.strptime(asn_stock['By'], '%d-%b-%Y')
                                 quantity = int(asn_stock['Qty'])
                                 qc_quantity = int(floor(quantity*95/100))
+                                if qc_quantity <= 0:
+                                    continue
                                 asn_stock_detail = ASNStockDetail.objects.filter(sku_id=sku.id, asn_po_num=po)
                                 if asn_stock_detail:
                                     asn_stock_detail = asn_stock_detail[0]

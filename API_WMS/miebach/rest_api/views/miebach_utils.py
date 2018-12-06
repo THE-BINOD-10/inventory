@@ -1294,7 +1294,6 @@ STOCK_TRANSFER_ORDER_EXCEL = OrderedDict((
                             ('warehouse_name', 0), ('wms_code', 1), ('quantity', 2),
                             ('price', 3)))
 
-
 CENTRAL_ORDER_XLS_UPLOAD = {'interm_order_id': '', 'sku': '', 'quantity': 1,
               'unit_price': 0, 'tax': 0, 'inter_state': 0, 'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0,
               'utgst_tax': 0, 'status': 0, 'project_name': '', 'remarks': '', 'customer_id': 0,
@@ -1801,7 +1800,7 @@ ORDER_ID_AWB_EXCEL_MAPPING = OrderedDict((('order_id', 0), ('awb_no', 1), ('cour
 # Company logo names
 COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg', 'Subhas_Publishing': 'book_publications.png',
                       'sm_admin': 'sm-brand.jpg', 'corp_attire': 'corp_attire.jpg',
-                      'aidin_technologies': 'aidin_tech.jpg', 'nutricane': 'nutricane.jpg','72Networks':'72networks.png'}
+                      'aidin_technologies': 'aidin_tech.jpg', 'nutricane': 'nutricane.jpg'}
 
 TOP_COMPANY_LOGO_PATHS = {'Konda_foundation': 'dr_reddy_logo.png'}
 
@@ -3175,11 +3174,10 @@ def get_order_summary_data(search_params, user, sub_user):
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     lis = ['creation_date', 'order_id', 'customer_name', 'sku__sku_brand', 'sku__sku_category', 'sku__sku_class',
            'sku__sku_size', 'sku__sku_desc', 'sku_code', 'quantity', 'sku__mrp', 'sku__mrp', 'sku__mrp',
-           'sku__discount_percentage', 'city', 'state', 'marketplace', 'invoice_amount', 'order_id'];
+           'sku__discount_percentage', 'city', 'state', 'marketplace', 'invoice_amount','order_id', 'order_id','order_id','order_id','order_id','order_id','invoice_number','quantity','creation_date'];
     # lis = ['order_id', 'customer_name', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'updation_date', 'updation_date', 'marketplace']
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
-
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
         search_parameters['creation_date__gt'] = search_params['from_date']
@@ -3216,7 +3214,10 @@ def get_order_summary_data(search_params, user, sub_user):
     search_parameters['user'] = user.id
     search_parameters['sku_id__in'] = sku_master_ids
 
-    orders = OrderDetail.objects.filter(**search_parameters)
+    if 'invoice_number' in search_params :
+        orders = OrderDetail.objects.filter(sellerordersummary__invoice_number = search_params['invoice_number'])
+    else:
+        orders = OrderDetail.objects.filter(**search_parameters)
     pick_filters = {}
     for key, value in search_parameters.iteritems():
         pick_filters['order__%s' % key] = value
@@ -3266,7 +3267,14 @@ def get_order_summary_data(search_params, user, sub_user):
         order_data = lis[search_params['order_index']]
         if search_params['order_term'] == 'desc':
             order_data = "-%s" % order_data
-        orders = orders.order_by(order_data)
+            if order_data == '-invoice_number':
+                orders = orders.order_by('-sellerordersummary__invoice_number')
+            elif order_data == '-quantity' :
+                orders = orders.order_by('-sellerordersummary__quantity')
+            elif  order_data == '-creation_date' :
+                orders = orders.order_by('-creation_date')
+            else:
+                orders = orders.order_by(order_data)
 
     temp_data['recordsTotal'] = orders.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -3285,7 +3293,6 @@ def get_order_summary_data(search_params, user, sub_user):
         temp_data['totalMRP'] = 0
     if stop_index:
         orders = orders[start_index:stop_index]
-
     status = ''
     count = 1
     extra_fields = []
@@ -3376,8 +3383,20 @@ def get_order_summary_data(search_params, user, sub_user):
             for val in extra_vals:
                 if field == val['name']:
                     pos_extra[str(val['name'])] = str(val['value'])
+        invoice_number_obj = SellerOrderSummary.objects.filter(order_id = data.id)
+        if invoice_number_obj :
+            invoice_number = invoice_number_obj[0].invoice_number
+            quantity = invoice_number_obj[0].quantity
+            invoice_date = get_local_date(user,invoice_number_obj[0].creation_date)
+        else:
+            invoice_number = 0
+            quantity = 0
+            invoice_date = 0
+
+
         aaData = OrderedDict((('Order Date', ''.join(date[0:3])), ('Order ID', order_id),
                                                 ('Customer Name', data.customer_name),
+                                                ('Order Number' ,data.order_reference),
                                                 ('SKU Brand', data.sku.sku_brand),
                                                 ('SKU Category', data.sku.sku_category),
                                                 ('SKU Class', data.sku.sku_class),
@@ -3385,11 +3404,14 @@ def get_order_summary_data(search_params, user, sub_user):
                                                 ('SKU Code', data.sku.sku_code), ('Order Qty', int(data.quantity)),
                                                 ('MRP', int(data.sku.mrp)), ('Unit Price', float(unit_price_inclusive_tax)),
                                                 ('Discount', discount),
+                                                ('Invoice Number',invoice_number),
+                                                ('Quantity',quantity),
                                                 ('Taxable Amount', float(taxable_amount)), ('Tax', tax),
                                                 ('City', data.city), ('State', data.state), ('Marketplace', data.marketplace),
                                                 ('Invoice Amount', float(invoice_amount)), ('Price', data.sku.price),
                                                 ('Status', status), ('Order Status', order_status),
                                                 ('Remarks', remarks), ('Order Taken By', order_taken_by),
+                                                ('Invoice Date',invoice_date),
                                                 ('Payment Cash', payment_cash), ('Payment Card', payment_card)))
         aaData.update(OrderedDict(pos_extra))
         temp_data['aaData'].append(aaData)

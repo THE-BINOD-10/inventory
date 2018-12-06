@@ -41,7 +41,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
        .withPaginationType('full_numbers')
        .withOption('rowCallback', rowCallback)
        .withOption('RecordsTotal', function( settings ) {
-         console.log("complete") 
+         console.log("complete")
        });
 
     vm.dtColumns = [
@@ -171,7 +171,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
       vm.service.apiCall("update_shipment_status/", "GET", send).then(function(data) {
         if(data.message) {
           if(data.data["status"]) {
-              vm.service.showNoty(data.data.message);  
+              vm.service.showNoty(data.data.message);
           } else {
               vm.service.showNoty(data.data.message, 'error', 'topRight');
           }
@@ -229,6 +229,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
           vm.bt_disable = true;
         });
       }
+    }
+    vm.print_pdf_shipment_info = function(){
+      vm.service.apiCall("print_pdf_shipment_info/", "POST", {"data":JSON.stringify(vm.model_data)}).then(function(data){
+        if(data.message){
+          vm.service.print_data(data.data, vm.model_data.manifest_number);
+        }
+      })
     }
 
     $rootScope.$on("CallParentMethod", function(){

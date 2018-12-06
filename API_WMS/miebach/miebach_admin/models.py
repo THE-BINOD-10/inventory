@@ -814,7 +814,10 @@ class OrderShipment(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.PositiveIntegerField()
     shipment_number = models.PositiveIntegerField()
+    manifest_number = models.DecimalField(max_digits=50, decimal_places=0,default=0)
     shipment_date = models.DateTimeField()
+    driver_name = models.CharField(max_length =32 , default ='')
+    driver_phone_number = models.CharField(max_length =32 , default ='')
     truck_number = models.CharField(max_length=64)
     shipment_reference = models.CharField(max_length=64)
     status = models.CharField(max_length=32)
@@ -3032,7 +3035,7 @@ class SellableSuggestions(models.Model):
         db_table = 'SELLABLE_SUGGESTIONS'
         index_together = (('seller', 'stock', 'status'), ('stock', 'status'))
 
-
+#
 class TableUpdateHistory(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User, blank=True, null=True)

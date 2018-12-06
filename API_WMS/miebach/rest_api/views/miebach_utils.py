@@ -148,8 +148,8 @@ PO_SUGGESTIONS_DATA = {'supplier_id': '', 'sku_id': '', 'order_quantity': '', 'o
 
 PO_DATA = {'open_po_id': '', 'status': '', 'received_quantity': 0}
 
-ORDER_SHIPMENT_DATA = {'shipment_number': '', 'shipment_date': '', 'truck_number': '', 'shipment_reference': '',
-                       'status': 1, 'courier_name': ''}
+ORDER_SHIPMENT_DATA = {'shipment_number': '','manifest_number':'','shipment_date': '', 'truck_number': '', 'shipment_reference': '',
+                       'status': 1, 'courier_name': '','driver_name':'','driver_phone_number':''}
 
 SKU_FIELDS = ((('WMS SKU Code *', 'wms_code', 60), ('Product Description *', 'sku_desc', 256)),
               (('SKU Type', 'sku_type', 60), ('Put Zone *', 'zone_id', 60)),
@@ -240,7 +240,7 @@ CUSTOMER_HEADERS = ['Customer Id', 'Customer Name', 'Credit Period', 'CST Number
 CUSTOMER_EXCEL_MAPPING = OrderedDict(
     (('customer_id', 0), ('name', 1), ('credit_period', 2), ('cst_number', 3), ('tin_number', 4),
      ('pan_number', 5), ('email_id', 6), ('phone_number', 7), ('city', 8), ('state', 9), ('country', 10),
-     ('pincode', 11), ('address', 12), ('shipping_address', 13), ('price_type', 14), ('tax_type', 15), 
+     ('pincode', 11), ('address', 12), ('shipping_address', 13), ('price_type', 14), ('tax_type', 15),
      ('discount_percentage', 16), ('markup', 17), ('spoc_name', 18),
     ))
 
@@ -983,7 +983,7 @@ CUSTOMER_FIELDS = ((('Customer ID *', 'id', 60), ('Customer Name *', 'name', 256
                    )
 
 CUSTOMER_DATA = {'name': '', 'address': '', 'phone_number': '', 'email_id': '', 'status': 1, 'price_type': '',
-                 'tax_type': '', 'lead_time': 0, 'is_distributor': 0, 'spoc_name': '', 'role': '', 
+                 'tax_type': '', 'lead_time': 0, 'is_distributor': 0, 'spoc_name': '', 'role': '',
                  'shipping_address': ''}
 
 CORPORATE_DATA = {'name': '', 'address': '', 'phone_number': '', 'email_id': '', 'status': 1, 'tax_type': ''}
@@ -1009,7 +1009,7 @@ UOM_FIELDS = ['Kgs', 'Units', 'Meters']
 PICKLIST_SKIP_LIST = ('sortingTable_length', 'fifo-switch', 'ship_reference', 'selected')
 
 MAIL_REPORTS = {'sku_list': ['SKU List'], 'location_wise_stock': ['Location Wise SKU'],
-                'receipt_note': ['Receipt Summary'], 'dispatch_summary': ['Dispatch Summary'],
+                'receipt_note': ['Receipt Summary'], 'dispatch_summary': ['Dispatch Summary'],'shipment_report':['Shipment Report'],
                 'sku_wise': ['SKU Wise Stock']}
 
 MAIL_REPORTS_DATA = OrderedDict((('Raise PO', 'raise_po'), ('Receive PO', 'receive_po'), ('Orders', 'order'),
@@ -1026,7 +1026,7 @@ PICKLIST_OPTIONS = {'Scan SKU': 'scan_sku', 'Scan SKU Location': 'scan_sku_locat
 BARCODE_OPTIONS = {'SKU Code': 'sku_code', 'Embedded SKU Code in Serial': 'sku_serial', 'EAN Number': 'sku_ean'}
 
 REPORTS_DATA = {'SKU List': 'sku_list', 'Location Wise SKU': 'location_wise_stock', 'Receipt Summary': 'receipt_note',
-                'Dispatch Summary': 'dispatch_summary', 'SKU Wise Stock': 'sku_wise'}
+                'Dispatch Summary': 'dispatch_summary', 'SKU Wise Stock': 'sku_wise','Shipment Report':'shipment_report'}
 
 SKU_CUSTOMER_FIELDS = (
                         (('Customer ID *', 'customer_id', 60), ('Customer Name *', 'customer_name', 256)),
@@ -1290,10 +1290,13 @@ CENTRAL_ORDER_EXCEL_ONE_ASSIST = OrderedDict((
                             ('city', 3), ('pincode', 4), ('mobile_no', 5), ('email_id', 6),
                             ('sku_code', 7)
                           ))
+STOCK_TRANSFER_ORDER_EXCEL = OrderedDict((
+                            ('warehouse_name', 0), ('wms_code', 1), ('quantity', 2),
+                            ('price', 3)))
 
-CENTRAL_ORDER_XLS_UPLOAD = {'interm_order_id': '', 'sku': '', 'quantity': 1, 
-              'unit_price': 0, 'tax': 0, 'inter_state': 0, 'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 
-              'utgst_tax': 0, 'status': 0, 'project_name': '', 'remarks': '', 'customer_id': 0, 
+CENTRAL_ORDER_XLS_UPLOAD = {'interm_order_id': '', 'sku': '', 'quantity': 1,
+              'unit_price': 0, 'tax': 0, 'inter_state': 0, 'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0,
+              'utgst_tax': 0, 'status': 0, 'project_name': '', 'remarks': '', 'customer_id': 0,
               'customer_name': '', 'shipment_date': datetime.datetime.now()}
 
 # End of Order File Upload Templates
@@ -1795,8 +1798,8 @@ ORDER_ID_AWB_MAP_EXCEL_HEADERS = ['Order ID', 'AWB No', 'Courier Name', 'Marketp
 ORDER_ID_AWB_EXCEL_MAPPING = OrderedDict((('order_id', 0), ('awb_no', 1), ('courier_name', 2), ('marketplace', 3)))
 
 # Company logo names
-COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg', 'Subhas_Publishing': 'book_publications.png', 
-                      'sm_admin': 'sm-brand.jpg', 'corp_attire': 'corp_attire.jpg', 
+COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg', 'Subhas_Publishing': 'book_publications.png',
+                      'sm_admin': 'sm-brand.jpg', 'corp_attire': 'corp_attire.jpg',
                       'aidin_technologies': 'aidin_tech.jpg', 'nutricane': 'nutricane.jpg'}
 
 TOP_COMPANY_LOGO_PATHS = {'Konda_foundation': 'dr_reddy_logo.png'}
@@ -1886,7 +1889,7 @@ CENTRAL_ORDER_MAPPING = OrderedDict((
                                       ('Batch Date', 'batch_date'), ('Branch ID', 'branch_id'),
                                       ('Branch Name', 'branch_name'), ('Loan Proposal ID', 'loan_proposal_id'),
                                       ('Loan Proposal Code', 'loan_proposal_code'), ('Client Code', 'client_code'),
-                                      ('Client ID', 'client_id'), ('Customer Name', 'customer_name'), 
+                                      ('Client ID', 'client_id'), ('Customer Name', 'customer_name'),
                                       ('Address1', 'address1'), ('Address2', 'address2'),
                                       ('Landmark', 'landmark'), ('Village', 'village'),
                                       ('District', 'district'), ('State1', 'state'),
@@ -1896,6 +1899,10 @@ CENTRAL_ORDER_MAPPING = OrderedDict((
                                       ('CGST', 'cgst'), ('SGST', 'sgst'),
                                       ('IGST', 'igst'), ('Total Price', 'total_price'),
                                       ('Location', 'location')
+                                   ))
+STOCK_TRANSFER_ORDER_MAPPING = OrderedDict((
+                                      ('Warehouse Name', 'warehouse_name'), ('WMS Code', 'wms_code'),
+                                      ('Quantity', 'quantity'), ('Price', 'price')
                                    ))
 
 CENTRAL_ORDER_ONE_ASSIST_MAPPING = OrderedDict((
@@ -3167,11 +3174,10 @@ def get_order_summary_data(search_params, user, sub_user):
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     lis = ['creation_date', 'order_id', 'customer_name', 'sku__sku_brand', 'sku__sku_category', 'sku__sku_class',
            'sku__sku_size', 'sku__sku_desc', 'sku_code', 'quantity', 'sku__mrp', 'sku__mrp', 'sku__mrp',
-           'sku__discount_percentage', 'city', 'state', 'marketplace', 'invoice_amount', 'order_id'];
+           'sku__discount_percentage', 'city', 'state', 'marketplace', 'invoice_amount','order_id', 'order_id','order_id','order_id','order_id','order_id','invoice_number','quantity','creation_date'];
     # lis = ['order_id', 'customer_name', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'updation_date', 'updation_date', 'marketplace']
     temp_data = copy.deepcopy(AJAX_DATA)
     search_parameters = {}
-
     if 'from_date' in search_params:
         search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
         search_parameters['creation_date__gt'] = search_params['from_date']
@@ -3208,7 +3214,10 @@ def get_order_summary_data(search_params, user, sub_user):
     search_parameters['user'] = user.id
     search_parameters['sku_id__in'] = sku_master_ids
 
-    orders = OrderDetail.objects.filter(**search_parameters)
+    if 'invoice_number' in search_params :
+        orders = OrderDetail.objects.filter(sellerordersummary__invoice_number = search_params['invoice_number'])
+    else:
+        orders = OrderDetail.objects.filter(**search_parameters)
     pick_filters = {}
     for key, value in search_parameters.iteritems():
         pick_filters['order__%s' % key] = value
@@ -3258,7 +3267,14 @@ def get_order_summary_data(search_params, user, sub_user):
         order_data = lis[search_params['order_index']]
         if search_params['order_term'] == 'desc':
             order_data = "-%s" % order_data
-        orders = orders.order_by(order_data)
+            if order_data == '-invoice_number':
+                orders = orders.order_by('-sellerordersummary__invoice_number')
+            elif order_data == '-quantity' :
+                orders = orders.order_by('-sellerordersummary__quantity')
+            elif  order_data == '-creation_date' :
+                orders = orders.order_by('-creation_date')
+            else:
+                orders = orders.order_by(order_data)
 
     temp_data['recordsTotal'] = orders.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
@@ -3277,7 +3293,6 @@ def get_order_summary_data(search_params, user, sub_user):
         temp_data['totalMRP'] = 0
     if stop_index:
         orders = orders[start_index:stop_index]
-
     status = ''
     count = 1
     extra_fields = []
@@ -3368,8 +3383,20 @@ def get_order_summary_data(search_params, user, sub_user):
             for val in extra_vals:
                 if field == val['name']:
                     pos_extra[str(val['name'])] = str(val['value'])
+        invoice_number_obj = SellerOrderSummary.objects.filter(order_id = data.id)
+        if invoice_number_obj :
+            invoice_number = invoice_number_obj[0].invoice_number
+            quantity = invoice_number_obj[0].quantity
+            invoice_date = get_local_date(user,invoice_number_obj[0].creation_date)
+        else:
+            invoice_number = 0
+            quantity = 0
+            invoice_date = 0
+
+
         aaData = OrderedDict((('Order Date', ''.join(date[0:3])), ('Order ID', order_id),
                                                 ('Customer Name', data.customer_name),
+                                                ('Order Number' ,data.order_reference),
                                                 ('SKU Brand', data.sku.sku_brand),
                                                 ('SKU Category', data.sku.sku_category),
                                                 ('SKU Class', data.sku.sku_class),
@@ -3377,11 +3404,14 @@ def get_order_summary_data(search_params, user, sub_user):
                                                 ('SKU Code', data.sku.sku_code), ('Order Qty', int(data.quantity)),
                                                 ('MRP', int(data.sku.mrp)), ('Unit Price', float(unit_price_inclusive_tax)),
                                                 ('Discount', discount),
+                                                ('Invoice Number',invoice_number),
+                                                ('Quantity',quantity),
                                                 ('Taxable Amount', float(taxable_amount)), ('Tax', tax),
                                                 ('City', data.city), ('State', data.state), ('Marketplace', data.marketplace),
                                                 ('Invoice Amount', float(invoice_amount)), ('Price', data.sku.price),
                                                 ('Status', status), ('Order Status', order_status),
                                                 ('Remarks', remarks), ('Order Taken By', order_taken_by),
+                                                ('Invoice Date',invoice_date),
                                                 ('Payment Cash', payment_cash), ('Payment Card', payment_card)))
         aaData.update(OrderedDict(pos_extra))
         temp_data['aaData'].append(aaData)
@@ -5414,6 +5444,7 @@ def get_enquiry_status_report_data(search_params, user, sub_user):
 def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
     from miebach_admin.models import *
     from miebach_admin.views import *
+    from common import get_admin
     from rest_api.views.common import get_sku_master, get_order_detail_objs
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     search_parameters = {}
@@ -5449,7 +5480,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
 
     model_data = ShipmentInfo.objects.filter(**search_parameters).\
                                     values('order_shipment__shipment_number', 'order__order_id', 'id',
-                                           'order__original_order_id', 'order__order_code', 'order__sku__sku_code',
+                                           'order__original_order_id', 'order__id','order__order_code', 'order__sku__sku_code',
                                            'order__title', 'order__customer_name', 'order__quantity', 'shipping_quantity',
                                            'order_shipment__truck_number', 'creation_date',
                                            'order_shipment__courier_name',
@@ -5473,11 +5504,69 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
     if stop_index:
         model_data = model_data[start_index:stop_index]
 
+    admin_user = get_admin(user)
+    result = ''
     for data in model_data:
         order_id = data['order__original_order_id']
         if not order_id:
             order_id = data['order__order_code'] + str(data['order__order_id'])
         date = get_local_date(user, data['creation_date']).split(' ')
+
+        shipment_status = ship_status.get(data['id'], '')
+
+        if admin_user.get_username().lower() == '72Networks'.lower() :
+            try:
+                from firebase import firebase
+                firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)
+                result = firebase.get('/OrderDetails/'+order_id, None)
+            except Exception as e:
+                result = 0
+                import traceback
+                log.debug(traceback.format_exc())
+                log.info('Firebase query  failed for %s and params are %s and error statement is %s' % (
+                str(user.username), str(request.POST.dict()), str(e)))
+
+        if result :
+            try:
+                signed_invoice_copy = result['signed_invoice_copy']
+            except:
+                signed_invoice_copy = ''
+            try :
+                id_type = result['id_type']
+            except:
+                id_type = ''
+            try :
+                id_card = result['id_card']
+            except :
+                id_card = ''
+            try :
+                id_proof_number = result['id_proof_number']
+            except:
+                id_proof_number = ''
+            try :
+                pod_status = result['pod_status']
+            except:
+                pod_status = False
+        else:
+            signed_invoice_copy =''
+            id_type =''
+            id_card =''
+            id_proof_number = ''
+            pod_status = False
+
+        if pod_status :
+            shipment_status = 'Delivered'
+        else:
+            shipment_status = shipment_status
+
+
+        serial_number = OrderIMEIMapping.objects.filter(po_imei__sku__wms_code =data['order__sku__sku_code'],order_id=data['order__id'],po_imei__sku__user=user.id)
+        if serial_number :
+            serial_number = serial_number[0].po_imei.imei_number
+        else:
+            serial_number = 0
+
+
         temp_data['aaData'].append(OrderedDict((('Shipment Number', data['order_shipment__shipment_number']),
                                                 ('Order ID', order_id), ('SKU Code', data['order__sku__sku_code']),
                                                 ('Title', data['order__title']),
@@ -5486,7 +5575,12 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
                                                 ('Shipped Quantity', data['shipping_quantity']),
                                                 ('Truck Number', data['order_shipment__truck_number']),
                                                 ('Date', ' '.join(date)),
-                                                ('Shipment Status', ship_status.get(data['id'], '')),
+                                                ('Signed Invoice Copy',signed_invoice_copy),
+                                                ('ID Type',id_type),
+                                                ('ID Card' , id_card),
+                                                ('Serial Number' ,serial_number),
+                                                ('ID Proof Number' , id_proof_number),
+                                                ('Shipment Status',shipment_status ),
                                                 ('Courier Name', data['order_shipment__courier_name']),
                                                 ('Payment Status', data['order__customerordersummary__payment_status']),
                                                 ('Pack Reference', data['order_packaging__package_reference']))))

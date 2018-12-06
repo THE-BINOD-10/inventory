@@ -2906,7 +2906,6 @@ def check_sku(request, user=''):
     sku_code = request.GET.get('sku_code')
     allocate_order = request.GET.get('allocate_order', 'false')
     check = False
-    combo_data =[]
     sku_id = check_and_return_mapping_id(sku_code, '', user, check)
     if not sku_id:
         try:
@@ -2914,18 +2913,6 @@ def check_sku(request, user=''):
                                               user=user.id)
         except:
             sku_id = ''
-    combo_skus = SKURelation.objects.filter(relation_type='combo', parent_sku_id=sku_id)
-    for combo in combo_skus:
-        combo_data.append(
-            OrderedDict((('sku_code', combo.member_sku.wms_code),
-                         ('description', combo.member_sku.sku_desc),
-                         ('return_quantity', 1),
-                         ("status",'confirmed'),
-                         ('ship_quantity', ''),
-                         ('unit_price', ''),
-                         ('cgst',''),
-                         ('sgst',''),
-                         ('igst',''))))
     if sku_id:
         sku_data = SKUMaster.objects.get(id=sku_id)
         if allocate_order == 'true':
@@ -2934,10 +2921,7 @@ def check_sku(request, user=''):
             data = {"status": 'confirmed', 'sku_code': sku_data.sku_code, 'description': sku_data.sku_desc,
                     'order_id': '', 'ship_quantity': '', 'unit_price': '', 'return_quantity': 1,'cgst':'',
                     'sgst':'', 'igst':''}
-        if combo_skus:
-            return HttpResponse(json.dumps(combo_data))
-        else:
-            return HttpResponse(json.dumps(data))
+        return HttpResponse(json.dumps(data))
 
     """
     sku_master = SKUMaster.objects.filter(sku_code=sku_code, user=user.id)

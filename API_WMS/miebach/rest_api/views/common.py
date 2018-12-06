@@ -2933,7 +2933,6 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             invoice_amount = _tax + amt
             total_invoice += _tax + amt
             total_taxable_amt += amt
-
             sku_code = dat.sku.sku_code
             sku_desc = dat.sku.sku_desc
             measurement_type = dat.sku.measurement_type
@@ -2944,14 +2943,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     sku_code = customer_sku_code_ins[0]['customer_sku_code']
 
             temp_imeis = []
-            #if show_imei_invoice == 'true':
             temp_imeis = get_mapping_imeis(user, dat, seller_summary, sor_id, sell_ids=sell_ids)
-                # imeis = OrderIMEIMapping.objects.filter(order__user = user.id, order_id = dat.id, sor_id = sor_id)
-                # temp_imeis = []
-                # if imeis:
-                #     for imei in imeis:
-                #         if imei:
-                #             temp_imeis.append(imei.po_imei.imei_number)
             imei_data.append(temp_imeis)
             if sku_code in [x['sku_code'] for x in data]:
                 continue
@@ -2959,7 +2951,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 quantity = int(quantity)
 
             data.append(
-                {'order_id': order_id, 'sku_code': sku_code, 'sku_desc': sku_desc,'serial_number' :8000,
+                {'order_id': order_id, 'sku_code': sku_code, 'sku_desc': sku_desc,
                  'title': title, 'invoice_amount': str(invoice_amount),
                  'quantity': quantity, 'tax': "%.2f" % (_tax), 'unit_price': unit_price, 'tax_type': tax_type,
                  'vat': vat, 'mrp_price': mrp_price, 'discount': discount, 'sku_class': dat.sku.sku_class,
@@ -6234,7 +6226,6 @@ def get_shipment_quantity(user, all_orders, sku_grouping=False):
                     all_data[ind]['shipping_quantity'] -= shipped
                     if all_data[ind]['picked'] < 0:
                         del all_data[ind]
-                #import pdb; pdb.set_trace()
                 serial_number = OrderIMEIMapping.objects.filter(po_imei__sku__wms_code =all_data[ind]['sku__sku_code'],order_id= all_data[ind]['id'],po_imei__sku__user=user.id)
                 serial_numbers_list = []
                 if serial_number :

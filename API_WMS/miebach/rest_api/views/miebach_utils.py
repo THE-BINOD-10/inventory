@@ -5488,6 +5488,8 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
             order_id = data['order__order_code'] + str(data['order__order_id'])
         date = get_local_date(user, data['creation_date']).split(' ')
 
+        shipment_status = ship_status.get(data['id'], '')
+
         if admin_user.get_username().lower() == '72Networks'.lower() :
             try:
                 from firebase import firebase
@@ -5517,16 +5519,29 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
                 id_proof_number = result['id_proof_number']
             except:
                 id_proof_number = ''
+            try :
+                pod_status = result['pod_status']
+            except:
+                pod_status = False
         else:
             signed_invoice_copy =''
             id_type =''
             id_card =''
             id_proof_number = ''
+            pod_status = False
+
+        if pod_status :
+            shipment_status = 'Delivered'
+        else:
+            shipment_status = shipment_status
+
+
         serial_number = OrderIMEIMapping.objects.filter(po_imei__sku__wms_code =data['order__sku__sku_code'],order_id=data['order__id'],po_imei__sku__user=user.id)
         if serial_number :
             serial_number = serial_number[0].po_imei.imei_number
         else:
             serial_number = 0
+
 
         temp_data['aaData'].append(OrderedDict((('Shipment Number', data['order_shipment__shipment_number']),
                                                 ('Order ID', order_id), ('SKU Code', data['order__sku__sku_code']),
@@ -5541,7 +5556,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
                                                 ('ID Card' , id_card),
                                                 ('Serial Number' ,serial_number),
                                                 ('ID Proof Number' , id_proof_number),
-                                                ('Shipment Status', ship_status.get(data['id'], '')),
+                                                ('Shipment Status',shipment_status ),
                                                 ('Courier Name', data['order_shipment__courier_name']),
                                                 ('Payment Status', data['order__customerordersummary__payment_status']),
                                                 ('Pack Reference', data['order_packaging__package_reference']))))

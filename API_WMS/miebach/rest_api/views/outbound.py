@@ -5645,11 +5645,7 @@ def app_shipment_info_data(request, user=''):
     model = ''
     district = ''
     alternative_mobile_no = 0
-    #customer_id = request.GET['customer_id']
     manifest_number = request.GET['manifest_number']
-    #gateout = request.GET.get('gateout', '')
-    # if gateout:
-    #     gateout = int(gateout)
     ship_reference = ''
     shipment_orders = ShipmentInfo.objects.filter(order_shipment__manifest_number=manifest_number)
     truck_number = ''
@@ -5665,17 +5661,6 @@ def app_shipment_info_data(request, user=''):
     for orders in shipment_orders:
         ship_status = copy.deepcopy(SHIPMENT_STATUS)
         status = 'Dispatched'
-        # tracking = ShipmentTracking.objects.filter(shipment_id=orders.id, shipment__order__user=user.id).order_by(
-        #     '-creation_date'). \
-        #     values_list('ship_status', flat=True)
-        # if tracking:
-        #     status = tracking[0]
-        #     if gateout:
-        #         if status != 'Delivered' and status != 'Out for Delivery':
-        #             continue
-        #     else:
-        #         if not (status != 'Delivered' and status != 'Out for Delivery'):
-        #             continue
         interm_obj = IntermediateOrders.objects.filter(order_id=str(orders.order.id))
         if interm_obj :
             district_obj = OrderFields.objects.filter(original_order_id=str(orders.order.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id),name='district')

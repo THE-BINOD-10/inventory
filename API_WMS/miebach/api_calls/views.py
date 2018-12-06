@@ -995,14 +995,20 @@ def update_sku(request):
         return HttpResponse(json.dumps({'message': 'Please send proper data'}))
     log.info('Request params for ' + request.user.username + ' is ' + str(skus))
     try:
-        status = update_skus(skus, user=request.user, company_name='mieone')
-        log.info(status)
+        insert_status, failed_status = update_skus(skus, user=request.user, company_name='mieone')
+        log.info(insert_status)
+        log.info(failed_status)
+        if not failed_status:
+            failed_status = {'status': 1, 'message': 'Success'}
+        else:
+            failed_status = {'status': 0, 'messages': failed_status}
+
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info('Update SKUS data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
         status = {'message': 'Internal Server Error'}
-    return HttpResponse(json.dumps(status))
+    return HttpResponse(json.dumps(failed_status))
 
 @csrf_exempt
 @login_required

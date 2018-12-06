@@ -924,7 +924,11 @@ def print_excel(request, temp_data, headers, excel_name='', user='', file_type='
             except:
                 thedatawriter.writerow(excel_headers)
             for data in temp_data['aaData']:
-                thedatawriter.writerow(data.values())
+                temp_csv_list = []
+                for key, value in data.iteritems():
+                    if key in excel_headers:
+                        temp_csv_list.append(str(xcode(value)))
+                thedatawriter.writerow(temp_csv_list)
                 counter += 1
     else:
         try:
@@ -5739,7 +5743,7 @@ def get_returns_seller_order_id(order_detail_id, sku_code, user, sor_id=''):
         filt_params['sor_id'] = sor_id
     seller_order = SellerOrder.objects.filter(**filt_params)
     if seller_order:
-        return seller_order[0].id
+        return seller_order[0]
     else:
         return ''
 
@@ -7483,6 +7487,8 @@ def allocate_order_returns(user, sku_data, request):
     order_filter = {'user': user.id, 'sku_id': sku_data.id}
     if request.GET.get('marketplace', ''):
         order_filter['marketplace'] = request.GET.get('marketplace', '')
+    if request.GET.get('seller_id', ''): 
+        order_filter['sellerorder__seller__seller_id'] = request.GET.get('seller_id', '').split(':')[0]
     if request.GET.get('exclude_order_ids', []):
         excl_filter['original_order_id__in'] = request.GET.get('exclude_order_ids', []).split(',')
     if request.GET.get('order_id', ''):
@@ -8473,4 +8479,7 @@ def add_ean_weight_to_batch_detail(sku, batch_dict):
         batch_dict['ean_number'] = ean_number[0]
     weight_obj = sku.skuattributes_set.filter(attribute_name='weight')
     if weight_obj and not 'weight' in batch_dict.keys():
-        batch_dict['weight'] = float(''.join(re.findall('\d+', str(weight_obj[0].attribute_value))))
+        try:
+            batch_dict['weight'] = float(''.join(re.findall('\d+', str(weight_obj[0].attribute_value))))
+        except:
+            batch_dict['weight'] = 0

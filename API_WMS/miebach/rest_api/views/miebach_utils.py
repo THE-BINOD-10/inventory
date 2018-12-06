@@ -1480,17 +1480,19 @@ ORDER_DETAIL_INGRAM_API_MAPPING = {'order_id': 'order_increment_id', 'order_stat
 
                                    }
 
-SKU_MASTER_API_MAPPING = OrderedDict((('skus', 'skus'), ('sku_code', 'sku_code'), ('sku_desc', 'sku_name'),
+SKU_MASTER_API_MAPPING = OrderedDict((('skus', 'skus'), ('sku_code', 'sku_code'), ('sku_desc', 'sku_desc'),
                                       ('sku_brand', 'sku_brand'), ('sku_category', 'sku_category_name'),
-                                      ('price', 'price'),
-                                      ('mrp', 'mrp'), ('product_type', 'product_type'), ('sku_class', 'sku_class'),
+                                      ('price', 'selling_price'), ('sub_category', 'sub_category'),
+                                      ('mrp', 'mrp'), ('sku_class', 'sku_class'),
                                       ('style_name', 'style_name'), ('status', 'status'), ('hsn_code', 'hsn_code'),
                                       ('ean_number', 'ean_number'), ('threshold_quantity', 'threshold_quantity'),
                                       ('color', 'color'),
                                       ('measurement_type', 'measurement_type'), ('sku_size', 'sku_size'),
                                       ('size_type', 'size_type'),
                                       ('mix_sku', 'mix_sku'), ('sku_type', 'sku_type'), ('attributes', 'sku_options'),
-                                      ('child_skus', 'child_skus')))
+                                      ('child_skus', 'child_skus'), ('cgst', 'cgst'), ('sgst', 'sgst'),
+                                      ('igst', 'igst'), ('cess', 'cess'), ('shelf_life', 'shelf_life'),
+                                      ('image_url', 'image_url')))
 
 CUSTOMER_MASTER_API_MAPPING = OrderedDict((('customers', 'customers'), ('customer_id', 'customer_id'), ('name', 'name'),
                                            ('address', 'address'), ('city', 'city'), ('state', 'state'),

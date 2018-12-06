@@ -611,7 +611,7 @@ class StockDetail(models.Model):
 
     class Meta:
         db_table = 'STOCK_DETAIL'
-        unique_together = ('receipt_number', 'receipt_date', 'sku', 'location', 'pallet_detail', 'batch_detail', 'unit_price')
+        unique_together = ('receipt_number', 'receipt_date', 'sku', 'location', 'pallet_detail', 'batch_detail', 'unit_price', 'receipt_type')
         index_together = (('sku', 'location', 'quantity'), ('location', 'sku', 'pallet_detail'))
 
     def __unicode__(self):
@@ -1201,6 +1201,7 @@ class SKURelation(models.Model):
     id = BigAutoField(primary_key=True)
     parent_sku = models.ForeignKey(SKUMaster, blank=True, null=True, related_name='parent_sku')
     member_sku = models.ForeignKey(SKUMaster, blank=True, null=True, related_name='member_sku')
+    quantity = models.FloatField(default=1)
     relation_type = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -1208,6 +1209,7 @@ class SKURelation(models.Model):
     class Meta:
         db_table = 'SKU_RELATION'
         unique_together = ('parent_sku', 'member_sku', 'relation_type')
+        index_together = ('parent_sku', 'member_sku', 'relation_type')
 
     def __unicode__(self):
         return '%s: %s || %s' % (self.relation_type, self.parent_sku, self.member_sku)
@@ -2025,6 +2027,7 @@ class OrderReturns(models.Model):
     return_id = models.CharField(max_length=256)
     order = models.ForeignKey(OrderDetail, blank=True, null=True)
     seller_order = models.ForeignKey(SellerOrder, blank=True, null=True)
+    seller = models.ForeignKey(SellerMaster, blank=True, null=True)
     return_date = models.DateTimeField(auto_now_add=True)
     quantity = models.FloatField(default=0)
     damaged_quantity = models.FloatField(default=0)

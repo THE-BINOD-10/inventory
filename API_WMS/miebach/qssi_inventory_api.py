@@ -89,6 +89,10 @@ def update_inventory(company_name):
                         actual_sku_id = sku_id
                         if sku_id[-3:]=="-TU":
                             sku_id = sku_id[:-3]
+                            if sku_id in stock_dict:
+                                stock_dict[sku_id] += int(item['Inventory'])
+                            else:
+                                stock_dict[sku_id] = int(item['Inventory'])
                             if sku_id not in inventory_values:
                                 inventory_values[sku_id] = {}
                             inventory_values[sku_id]['TU_INVENTORY'] = item['Inventory']
@@ -108,9 +112,9 @@ def update_inventory(company_name):
                                 inventory_values[sku_id] = {}
                             inventory_values[sku_id]['NORMAL_INVENTORY'] = item['Inventory']
                             if sku_id in stock_dict:
-                                stock_dict[sku_id] += int(item['Inventory'])
+                                stock_dict[sku_id] += int(item['FG'])
                             else:
-                                stock_dict[sku_id] = int(item['Inventory'])
+                                stock_dict[sku_id] = int(item['FG'])
                     else:
                         for sku_id in inventory_values:
                             tu_inv = inventory_values[sku_id].get('TU_INVENTORY', 0)

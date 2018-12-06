@@ -590,12 +590,22 @@ def get_availasn_stock(start_index, stop_index, temp_data, search_term, order_te
         header = other['header']
         var = OrderedDict()
         var[header[0]] = sku_det['single_sku']
+        for wh in one_data:
+            stats = ['-Total', '-Res', '-Blocked', '-Open', '-NK']
+            for stat in stats:
+                var[wh['name'] + stat] = 0
+        var['ASN Total'] = 0
+        var['ASN Res'] = 0
+        var['ASN Blocked'] = 0
+        var['ASN Open'] = 0
+        var['NON_KITTED'] = 0
         for single in one_data:
             if single['name']:
                 wh_name = single['name']
                 var[wh_name + '-Total'] = single['available']
                 var[wh_name + '-Res'] = single['reserved']
                 var[wh_name + '-Blocked'] = single['blocked']
+                var[wh_name + '-NK'] = single['non_kitted']
                 if not isinstance(single['available'], float):
                     single['available'] = 0
                 net_amt = single['available'] - single['blocked'] - single['reserved']

@@ -5477,8 +5477,6 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                 return HttpResponse("SKU Not found in Selected Warehouse")
             order_dict['sku_id'] = sku_id
             order_dict['title'] = interm_obj.sku.sku_desc
-            #order_dict['sku_code'] = interm_obj.sku.sku_code
-            order_dict['title'] = interm_obj.sku.sku_desc
             order_dict['status'] = 1
 
             if interm_obj.customer_user:
@@ -5619,21 +5617,7 @@ def central_order_one_assist_upload(request, reader, user, no_of_rows, fname, fi
                     sku_id = get_syncedusers_mapped_sku(wh=wh_id, sku_id=sku_master_id)
                     if not sku_id:
                         index_status.setdefault(count, set()).add('SKU Code Not found in mentioned Location')
-        """
-        if order_mapping.has_key('original_order_id'):
-            try:
-                original_order_id = str(int(get_cell_data(row_idx, order_mapping['original_order_id'], reader, file_type)))
-            except:
-                original_order_id = str(get_cell_data(row_idx, order_mapping['original_order_id'], reader, file_type))
-            order_fields_obj = OrderFields.objects.filter(user=user.id, name='original_order_id',
-                value=original_order_id, order_type = 'intermediate_order')
-            if order_fields_obj:
-                index_status.setdefault(count, set()).add('Order ID already present')
-            else:
-                order_detail_obj = OrderDetail.objects.filter(user=user.id, original_order_id=original_order_id)
-                if order_detail_obj:
-                    index_status.setdefault(count, set()).add('Order ID already present')
-        """
+
     if index_status and file_type == 'csv':
         f_name = fname.name.replace(' ', '_')
         file_path = rewrite_csv_file(f_name, index_status, reader)

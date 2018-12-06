@@ -137,16 +137,18 @@ function view_orders() {
         elem[id]= scan_data[length-1]
         if(total < data.reserved_quantity) {
           vm.service.apiCall('check_imei/', 'GET', elem).then(function(data){
-            if(data.message) {
-              if(data.data.data.sku_code == record.parent_sku_code) {
+            if(data.data.status == "Success") {
+              if(data.data.data.sku_code == record.wms_code) {
                 record.picked_quantity = parseInt(record.picked_quantity) + 1;
-                record.scan = '';
               } else {
                 Service.pop_msg(data.data.status);
                 scan_data.splice(length-1,1);
                 record.scan = scan_data.join('\n');
                 record.scan = record.scan+"\n";
               }
+            }
+            else{
+              Service.pop_msg(data.data.status);
             }
           });
         } else {

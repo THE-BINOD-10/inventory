@@ -7712,16 +7712,15 @@ def get_custom_order_data(start_index, stop_index, temp_data, search_term, order
 def get_ratings_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                          filters):
     ''' Order Rating datatable code '''
-
     user_profile = UserProfile.objects.get(user_id=user.id)
     admin_user = get_priceband_admin_user(user)
     lis = ['rating__original_order_id', 'rating__original_order_id', 'rating__original_order_id',\
            'rating__rating_order', 'rating__reason_product', 'rating__rating_order',\
-           'rating__reason_order']#for filter purpose
+           'rating__reason_order', 'rating__updation_date']#for filter purpose
     user_filter = {'rating__user': user.id}
     result_values = ['rating__original_order_id', 'rating__rating_product',\
                      'rating__reason_product', 'rating__rating_order',\
-                     'rating__reason_order']#to make distinct grouping
+                     'rating__reason_order', 'rating__updation_date']#to make distinct grouping
 
     if search_term:
         search_term = search_term.replace('(', '\(').replace(')', '\)')
@@ -7761,6 +7760,7 @@ def get_ratings_data(start_index, stop_index, temp_data, search_term, order_term
                                 ('reason_order', data['rating__reason_order']),
                                 ('rating_product', data['rating__rating_product']),
                                 ('reason_product', data['rating__reason_product']),
+                                ('updation_date', get_local_date(user, data['rating__updation_date'])),
                                ))
         temp_data['aaData'].append(data_dict)
 
@@ -9575,7 +9575,6 @@ def get_stock_transfer_invoice_data(start_index, stop_index, temp_data, search_t
 def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                               filters):
     ''' Customer Invoice datatable code '''
-
     user_profile = UserProfile.objects.get(user_id=user.id)
 
     admin_user = get_priceband_admin_user(user)
@@ -9588,14 +9587,14 @@ def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, o
                    'seller_order__order__customer_name', 'quantity', 'quantity', 'date_only', 'id']
             user_filter = {'seller_order__seller__user': user.id}
             result_values = ['seller_order__order__order_id', 'seller_order__seller__name', 'pick_number',
-                             'seller_order__sor_id', 'seller_order__order__original_order_id']
+                             'seller_order__sor_id', 'seller_order__order__original_order_id', 'delivered_flag']
             field_mapping = {'order_quantity_field': 'seller_order__quantity', 'date_only': 'seller_order__creation_date'}
             is_marketplace = True
         else:
             lis = ['order__order_id', 'order__order_id', 'order__customer_name', 'quantity', 'quantity', 'date_only',
                    'seller_order__order__original_order_id']
             user_filter = {'order__user': user.id}
-            result_values = ['order__order_id', 'pick_number', 'order__original_order_id']
+            result_values = ['order__order_id', 'pick_number', 'order__original_order_id', 'delivered_flag']
             field_mapping = {'order_quantity_field': 'order__quantity', 'date_only': 'order__creation_date'}
             is_marketplace = False
 
@@ -9658,7 +9657,7 @@ def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, o
                 total_quantity = data['total_quantity']
                 picked_amount = order_summaries.filter(seller_order__order__original_order_id=\
                                                data['seller_order__order__original_order_id'])\
-                                               .values('order__sku_id', 'order__invoice_amount', 'order__quantity').distinct()\
+                                               .values('order__sku_id', 'order__invoice_amount', 'order__quantity', 'delivered_flag').distinct()\
                                                .annotate(pic_qty=Sum('quantity'))\
                                                .annotate(cur_amt=(F('order__invoice_amount')/F('order__quantity'))* F('pic_qty'))\
                                                .aggregate(Sum('cur_amt'))['cur_amt__sum']
@@ -9672,11 +9671,19 @@ def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, o
                 ordered_quantity = orders.filter(original_order_id=data['order__original_order_id'])\
                                          .exclude(status=3).aggregate(Sum('quantity'))['quantity__sum']
                 picked_amount = order_summaries.filter(order__original_order_id=data['order__original_order_id'])\
-                                               .values('order__sku_id', 'order__invoice_amount', 'order__quantity')\
+                                               .values('order__sku_id', 'order__invoice_amount', 'order__quantity', 'delivered_flag')\
                                                .distinct().annotate(pic_qty=Sum('quantity'))\
                                                .annotate(cur_amt=(F('order__invoice_amount')/F('order__quantity'))* F('pic_qty'))\
                                                .aggregate(Sum('cur_amt'))['cur_amt__sum']
             order_id = order.order_code + str(order.order_id)
+
+            if str(data['delivered_flag']) == '0':
+                delivered_status = "Not Delivered"
+            elif str(data['delivered_flag']) == '1':
+                delivered_status = "Delivered"
+            elif str(data['delivered_flag']) == '2':
+                delivered_status = "Ratings Given"
+
             if order.original_order_id:
                 order_id = order.original_order_id
 
@@ -9698,10 +9705,10 @@ def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, o
                                          ('check_field', 'Order ID')))
             data_dict.update(OrderedDict((('Customer Name', order.customer_name),
                                           ('Order Quantity', ordered_quantity), ('Picked Quantity', data['total_quantity']),
-                                          ('Total Amount', picked_amount),
+                                          ('Total Amount', picked_amount), ('Delivered Flag', delivered_status),
                                           ('Order Date&Time', order_date), ('Invoice Number', '')
                                           )))
-            temp_data['aaData'].append(data_dict)
+            temp_data['aaData'].append(data_dict) 
         log.info('Customer Invoice filtered %s for %s ' % (str(temp_data['recordsTotal']), user.username))
 
 
@@ -13214,7 +13221,7 @@ def save_cutomer_ratings(request, user=''):
     original_order_id = order_ratings_data['order_id']
     items = order_ratings_data['items']
     seller = SellerOrderSummary.objects.filter(order__user=warehouse_user, order__customer_name=customer_name, order__original_order_id=original_order_id, delivered_flag=1).update(delivered_flag=2)
-    rating_obj = RatingsMaster.objects.create(user=user, original_order_id=original_order_id, rating_product=product_rate, rating_order=order_rate, reason_product=product_reason, reason_order=order_reason)
+    rating_obj = RatingsMaster.objects.create(user=user, original_order_id=original_order_id, rating_product=product_rate, rating_order=order_rate, reason_product=product_reason, reason_order=order_reason, updation_date=updation_date)
     if rating_obj:
         for obj in items:
             sku_obj = SKUMaster.objects.filter(sku_code = obj['sku_code'], user = user.id)

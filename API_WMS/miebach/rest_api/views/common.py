@@ -7539,25 +7539,26 @@ def get_invoice_sequence_obj(user, marketplace):
 
 def create_update_batch_data(batch_dict):
     batch_obj = None
-    if {'batch_no', 'mrp', 'expiry_date'}.issubset(batch_dict):
-        if batch_dict['expiry_date']:
-            batch_dict['expiry_date'] = datetime.datetime.strptime(batch_dict['expiry_date'], '%m/%d/%Y')
+    batch_dict1 = copy.deepcopy(batch_dict)
+    if {'batch_no', 'mrp', 'expiry_date'}.issubset(batch_dict1):
+        if batch_dict1['expiry_date']:
+            batch_dict1['expiry_date'] = datetime.datetime.strptime(batch_dict1['expiry_date'], '%m/%d/%Y')
         else:
-            batch_dict['expiry_date'] = None
-        if batch_dict['manufactured_date']:
-            batch_dict['manufactured_date'] = datetime.datetime.strptime(batch_dict['manufactured_date'], '%m/%d/%Y')
+            batch_dict1['expiry_date'] = None
+        if batch_dict1['manufactured_date']:
+            batch_dict1['manufactured_date'] = datetime.datetime.strptime(batch_dict1['manufactured_date'], '%m/%d/%Y')
         else:
-            batch_dict['manufactured_date'] = None
+            batch_dict1['manufactured_date'] = None
         number_fields = ['mrp', 'buy_price', 'tax_percent']
         for field in number_fields:
             try:
-                batch_dict[field] = float(batch_dict.get(field, 0))
+                batch_dict1[field] = float(batch_dict1.get(field, 0))
             except:
-                batch_dict[field] = 0
-        batch_objs = BatchDetail.objects.filter(**batch_dict)
+                batch_dict1[field] = 0
+        batch_objs = BatchDetail.objects.filter(**batch_dict1)
         if not batch_objs.exists():
-            batch_dict['creation_date'] = datetime.datetime.now()
-            batch_obj = BatchDetail.objects.create(**batch_dict)
+            batch_dict1['creation_date'] = datetime.datetime.now()
+            batch_obj = BatchDetail.objects.create(**batch_dict1)
         else:
             batch_obj = batch_objs[0]
     return batch_obj

@@ -1613,11 +1613,11 @@ def get_order(orig_order_id, user):
 
 def update_error_message(failed_status, error_code, error_message, field_value, field_key='OrderId'):
     error_group_key = '%s:%s' % (field_key, field_value)
-    failed_status.setdefault(error_group_key, {field_key: field_value, "result": {"errors": []}})
-    failed_status[error_group_key]["result"]["errors"].append(
+    failed_status.setdefault(error_group_key, {field_key: field_value, "errors": []})
+    failed_status[error_group_key]["errors"].append(
         {
-            "ErrorCode": error_code,
-            "ErrorMessage": error_message
+            "status": error_code,
+            "message": error_message
         }
     )
 

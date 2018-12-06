@@ -9682,7 +9682,7 @@ def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, o
             elif str(data['delivered_flag']) == '1':
                 delivered_status = "Delivered"
             elif str(data['delivered_flag']) == '2':
-                delivered_status = "Ratings Given"
+                delivered_status = "Ratings Updated"
 
             if order.original_order_id:
                 order_id = order.original_order_id

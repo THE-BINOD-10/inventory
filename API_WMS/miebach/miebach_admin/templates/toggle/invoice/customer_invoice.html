@@ -13,7 +13,7 @@
                 <thead>
                   <tr class="fs14">
                     <th><center>SKU Code</center></th>
-                    <th><center>HSN</center></th>
+                    <th class="w7"><center>HSN</center></th>
                     <th><center>Description</center></th>
                     {% if show_mrp == 'true' %}
                       <th><center>MRP</center></th>
@@ -39,7 +39,16 @@
                   {% if not record.continue %}
                   <tr ng-repeat="record in page.data" class="fs14 rm-border">
                     <td class="text-left">
-                      <div class="wrap">{{record.sku_code}}</div></td>
+                      <div>{{record.sku_code}}
+                        <!-- this is for 72networks -->
+                        {% if record.imeis   %}
+                         {% if record.quantity == 1 %}
+                         {% for imei in record.imeis %}
+                        <br><span class="tax-percentage">({{ imei }})</span>
+                          {% endfor %}
+                          {% endif %}
+                       {% endif %}
+                      </td>
                     <td class="text-left">{{record.hsn_code}}</td>
                     <td class="text-left"><div class="wrap">{{record.title}}</div></td>
                     {% if show_mrp == 'true' %}
@@ -63,24 +72,24 @@
                     <td class="text-right">{{record.invoice_amount}}</td>
                   </tr>
                   {% endif %}
-                  {% if record.imeis %}
+                 <!-- {% if record.imeis %}
                   <tr class="fs14">
                     <td></td>
                     <td></td>
                     <td>
-                      <div style="font-size: 13px;line-height:16px;">
+                       <div style="font-size: 13px;line-height:16px;">
                         <span class="pull-left"><b>IMEI List: </b></span></br>
                         {% for imei in record.imeis %}
                         <div {% if not forloop.counter|divisibleby:2 %} style="display: block;float: left;" {% else %} style="display: block;float: right;" {% endif %}>
                           <i>{{imei}}</i>
-                        </div>
-                          {% if forloop.counter|divisibleby:2 %}</br>{% endif %}
+                        </div> -->
+                          <!-- {% if forloop.counter|divisibleby:2 %}</br>{% endif %}
                         {% endfor %}
                       </div>
                     </td>
                     <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
                   </tr>
-                  {% endif %}
+                  {% endif %} -->
 
                   {% endfor %}
                   {% for empty in page.empty_data %}
@@ -147,7 +156,7 @@
                     <td>{{total_quantity}}</td>
                     {% if show_disc_invoice == 'true' %}
                     <td class="text-right">{{record.discount}}</td>
-                    {% endif %} 
+                    {% endif %}
                     <!--<td></td>-->
                     <td>{{total_taxable_amt}}</td>
                     <td>{{total_taxes.cgst_amt}}</td>
@@ -162,7 +171,7 @@
                     <td colspan='{{html_data.columns}}' class="fs14">
                       <div class="row no-margin" style="position:relative">
                         {% if invoice_remarks != 'false' %}
-                        <div style="position: absolute;left: 25%;top: -3px;bottom: -3px;width: 1px;background-color: black !important;"></div> 
+                        <div style="position: absolute;left: 25%;top: -3px;bottom: -3px;width: 1px;background-color: black !important;"></div>
                         <div class="col-xs-3 no-padding">
                           <p class="pre-custom fs14">{{invoice_remarks}}</p>
                         </div>

@@ -1,0 +1,83 @@
+{%load staticfiles%}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/bootstrap-responsive.css' %}"/>
+    <link rel="stylesheet" type="text/css" href="{% static 'css/bootstrap.css' %}"/>
+
+ <link rel="stylesheet" type="text/css" href="{% static 'css/page.css' %}"/>
+
+<script type="text/javascript" src="{% static 'js/jquery.js' %}"></script>
+ {% load tag_extras %}
+ <div class="row" style="padding-left: 2px;">
+   <div class="col-md-12">
+     <div class="col-md-6">
+       <span class="pull-right" style="float: right;">Manifest Number: <b><span>{{ manifest_number}}</span></b></span>
+     </div>
+   </div>
+ </div>
+ <div class="row" style="padding-left: 2px;">
+   <div class="col-md-12">
+     <div class="col-md-6">
+       <span class="pull-right" style="float: right;">Truck Number <b><span> {{truck_number }}</span></b></span>
+     </div>
+   </div>
+ </div>
+ <div class="row" style="padding-left: 2px;">
+   <div class="col-md-12">
+     <div class="col-md-6">
+       <span class="pull-right" style="float: right;">Driver Name: <b><span>{{driver_name}}</span></b></span>
+     </div>
+   </div>
+ </div>
+ <div class="row" style="padding-left: 2px;">
+   <div class="col-md-12">
+     <div class="col-md-6">
+       <span class="pull-right" style="float: right;">Driver Phone Number:<b> <span>{{driver_phone_number}}</span></b></span>
+     </div>
+   </div>
+ </div>
+ <div class="row" style="padding-left: 2px;">
+   <div class="col-md-6">
+   </div>
+   <div class="col-md-6">
+       <span>Opening KM'S:<b><span></span></b></span>
+   </div>
+ </div>
+ <div class="row" style="padding-left: 2px;">
+   <div class="col-md-6">
+       <span>Closing KM'S:<b><span></span></b></span>
+   </div>
+ </div>
+ <div class="row" style="padding-left: 10px;">
+   <div class="col-md-12">
+     <table class="table table-bordered picklist-table" style="width: 100%; font-size: 12px;">
+       <tr>
+           <th> Order ID </th>
+           <th>Loan Proposal Id </th>
+           <th> Customer Name </th>
+           <th>Model Description</th>
+           <th> District </th>
+           <th> Phone numbers </th>
+           <th> SKU Code </th>
+           <th> Shipping Quantity </th>
+           <th> serial number </th>
+           <th>ID Number</th>
+           <th> Pack Reference </th>
+           <!-- <th> Status </th> -->
+       </tr>
+       {% for record in data %}
+         <tr>
+               <td> {{record.order_id}}</td>
+               <td>{{ record.loan_proposal_id}}</td>
+               <td>{{ record.customer_name}}</td>
+               <td>{{ record.model}}</td>
+               <td>{{ record.district}}</td>
+               <td>{{ record.mobile_no }},{{record.alternative_mobile_no}}</td>
+               <td>{{ record.sku_code}}</td>
+               <td>{{ record.ship_quantity}}</td>
+               <td>{{ record.serial_number}}</td>
+               <td>{{ record.id_proof_number}}</td>
+               <td>{{ record.pack_reference}}</td>
+       </tr>
+      {% endfor %}
+     </table>
+   </div>
+ </div>

@@ -203,6 +203,9 @@ def add_user_permissions(request, response_data, user=''):
     parent_data = {}
     parent_data['userId'] = user.id
     parent_data['userName'] = user.username
+    admin_user = get_admin(user)
+    if admin_user.get_username().lower() == '72Networks'.lower():
+        parent_data['72networks'] = True
     parent_data['logo'] = COMPANY_LOGO_PATHS.get(user.username, '')
     response_data['data']['userName'] = request.user.username
     response_data['data']['userId'] = request.user.id
@@ -561,6 +564,7 @@ data_datatable = {  # masters
     #invoice based payment tracker
     'PaymentTrackerInvBased': 'get_inv_based_payment_data',
     'OutboundPaymentReport': 'get_outbound_payment_report',
+
 }
 
 
@@ -2683,9 +2687,15 @@ def get_mapping_imeis(user, dat, seller_summary, sor_id='', sell_ids=''):
             'quantity__sum']
         if not stop_index:
             stop_index = 0
-    imeis = list(
-        OrderIMEIMapping.objects.filter(sku__user=user.id, order_id=dat.id, sor_id=sor_id).order_by('creation_date'). \
-        values_list('po_imei__imei_number', flat=True))
+    if sor_id :
+        imeis = list(
+            OrderIMEIMapping.objects.filter(sku__user=user.id, order_id=dat.id, sor_id=sor_id).order_by('creation_date'). \
+            values_list('po_imei__imei_number', flat=True))
+    else:
+        imeis = list(
+            OrderIMEIMapping.objects.filter(sku__user=user.id, order_id=dat.id).order_by('creation_date'). \
+            values_list('po_imei__imei_number', flat=True))
+
     if start_index or stop_index:
         stop_index = int(start_index) + int(stop_index)
         imeis = imeis[int(start_index): stop_index]
@@ -2694,7 +2704,6 @@ def get_mapping_imeis(user, dat, seller_summary, sor_id='', sell_ids=''):
 
 def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell_ids='', from_pos=False):
     """ Build Invoice Json Data"""
-
     # Initializing Default Values
     data, imei_data, customer_details = [], [], []
     order_date, order_id, marketplace, consignee, order_no, purchase_type, seller_address, customer_address = '', '', '', '', '', '', '', ''
@@ -2830,6 +2839,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             taxes_dict = {}
             tax_type, invoice_header, vehicle_number, mode_of_transport = '', '', 0, ''
             order_summary = CustomerOrderSummary.objects.filter(order_id=dat.id)
+
             if order_summary:
                 tax = order_summary[0].tax_value
                 vat = order_summary[0].vat
@@ -2927,7 +2937,6 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             invoice_amount = _tax + amt
             total_invoice += _tax + amt
             total_taxable_amt += amt
-
             sku_code = dat.sku.sku_code
             sku_desc = dat.sku.sku_desc
             measurement_type = dat.sku.measurement_type
@@ -2938,15 +2947,8 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     sku_code = customer_sku_code_ins[0]['customer_sku_code']
 
             temp_imeis = []
-            if show_imei_invoice == 'true':
-                temp_imeis = get_mapping_imeis(user, dat, seller_summary, sor_id, sell_ids=sell_ids)
-                # imeis = OrderIMEIMapping.objects.filter(order__user = user.id, order_id = dat.id, sor_id = sor_id)
-                # temp_imeis = []
-                # if imeis:
-                #     for imei in imeis:
-                #         if imei:
-                #             temp_imeis.append(imei.po_imei.imei_number)
-                imei_data.append(temp_imeis)
+            temp_imeis = get_mapping_imeis(user, dat, seller_summary, sor_id, sell_ids=sell_ids)
+            imei_data.append(temp_imeis)
             if sku_code in [x['sku_code'] for x in data]:
                 continue
             if math.ceil(quantity) == quantity:
@@ -2959,7 +2961,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                  'vat': vat, 'mrp_price': mrp_price, 'discount': discount, 'sku_class': dat.sku.sku_class,
                  'sku_category': dat.sku.sku_category, 'sku_size': dat.sku.sku_size, 'amt': amt, 'taxes': taxes_dict,
                  'base_price': base_price, 'hsn_code': hsn_code, 'imeis': temp_imeis,
-                 'discount_percentage': discount_percentage, 'id': dat.id, 'shipment_date': shipment_date, 
+                 'discount_percentage': discount_percentage, 'id': dat.id, 'shipment_date': shipment_date,
                  'measurement_type': measurement_type})
 
     is_cess_tax_flag = 'true'
@@ -2989,6 +2991,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 ord_dict.pop('igst_tax')
             if 'igst_amt' in ord_dict:
                 ord_dict.pop('igst_amt')
+
     _invoice_no, _sequence = get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos)
     challan_no, challan_sequence = get_challan_number(user, seller_summary)
     inv_date = invoice_date.strftime("%m/%d/%Y")
@@ -3007,7 +3010,11 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     dispatch_through = "By Road"
     _total_invoice = round(total_invoice_amount)
     # _invoice_no =  'TI/%s/%s' %(datetime.datetime.now().strftime('%m%y'), order_no)
-    side_image = get_company_logo(user, COMPANY_LOGO_PATHS)
+    admin_user = get_admin(user)
+    if admin_user.get_username() .lower()== '72Networks'.lower() :
+        side_image = get_company_logo(admin_user, COMPANY_LOGO_PATHS)
+    else:
+        side_image = get_company_logo(user, COMPANY_LOGO_PATHS)
     top_image = get_company_logo(user, TOP_COMPANY_LOGO_PATHS)
 
     declaration = DECLARATIONS.get(user.username, '')
@@ -6193,7 +6200,6 @@ def get_shipment_quantity(user, all_orders, sku_grouping=False):
 
             all_data = list(customer_orders.values(*filter_list).distinct().annotate(picked=Sum('quantity'),
                                                                                      ordered=Sum('quantity')))
-
             for ind, dat in enumerate(all_data):
                 if sku_grouping == 'true':
                     ship_dict = {'order__sku__sku_code': dat['sku__sku_code'], 'order__sku__user': user.id,
@@ -6224,6 +6230,13 @@ def get_shipment_quantity(user, all_orders, sku_grouping=False):
                     all_data[ind]['shipping_quantity'] -= shipped
                     if all_data[ind]['picked'] < 0:
                         del all_data[ind]
+                serial_number = OrderIMEIMapping.objects.filter(po_imei__sku__wms_code =all_data[ind]['sku__sku_code'],order_id= all_data[ind]['id'],po_imei__sku__user=user.id)
+                serial_numbers_list = []
+                if serial_number :
+                    for i in range(serial_number.count()):
+                        serial_numbers_list.append(serial_number[i].po_imei.imei_number)
+
+                all_data[ind]['serial_number'] = serial_numbers_list
 
             data = list(chain(data, all_data))
     except Exception as e:
@@ -7539,25 +7552,26 @@ def get_invoice_sequence_obj(user, marketplace):
 
 def create_update_batch_data(batch_dict):
     batch_obj = None
-    if {'batch_no', 'mrp', 'expiry_date'}.issubset(batch_dict):
-        if batch_dict['expiry_date']:
-            batch_dict['expiry_date'] = datetime.datetime.strptime(batch_dict['expiry_date'], '%m/%d/%Y')
+    batch_dict1 = copy.deepcopy(batch_dict)
+    if {'batch_no', 'mrp', 'expiry_date'}.issubset(batch_dict1):
+        if batch_dict1['expiry_date']:
+            batch_dict1['expiry_date'] = datetime.datetime.strptime(batch_dict1['expiry_date'], '%m/%d/%Y')
         else:
-            batch_dict['expiry_date'] = None
-        if batch_dict['manufactured_date']:
-            batch_dict['manufactured_date'] = datetime.datetime.strptime(batch_dict['manufactured_date'], '%m/%d/%Y')
+            batch_dict1['expiry_date'] = None
+        if batch_dict1['manufactured_date']:
+            batch_dict1['manufactured_date'] = datetime.datetime.strptime(batch_dict1['manufactured_date'], '%m/%d/%Y')
         else:
-            batch_dict['manufactured_date'] = None
+            batch_dict1['manufactured_date'] = None
         number_fields = ['mrp', 'buy_price', 'tax_percent']
         for field in number_fields:
             try:
-                batch_dict[field] = float(batch_dict.get(field, 0))
+                batch_dict1[field] = float(batch_dict1.get(field, 0))
             except:
-                batch_dict[field] = 0
-        batch_objs = BatchDetail.objects.filter(**batch_dict)
+                batch_dict1[field] = 0
+        batch_objs = BatchDetail.objects.filter(**batch_dict1)
         if not batch_objs.exists():
-            batch_dict['creation_date'] = datetime.datetime.now()
-            batch_obj = BatchDetail.objects.create(**batch_dict)
+            batch_dict1['creation_date'] = datetime.datetime.now()
+            batch_obj = BatchDetail.objects.create(**batch_dict1)
         else:
             batch_obj = batch_objs[0]
     return batch_obj

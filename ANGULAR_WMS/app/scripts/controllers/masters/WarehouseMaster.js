@@ -115,6 +115,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     });
   }
+  vm.change_warehouse_password = change_warehouse_password;
+  function change_warehouse_password(){
+    vm.service.apiCall("change_warehouse_password/", "POST",{'new_password':vm.model_data.new_password,'user_name':vm.model_data.username}).then(function(data) {
+      vm.service.pop_msg(data.data);
+  });
+  }
 
   vm.create_warehouse = create_warehouse;
   function create_warehouse(form) {
@@ -156,4 +162,3 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
   }
 }
-

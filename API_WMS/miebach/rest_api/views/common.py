@@ -7534,6 +7534,7 @@ def update_sku_attributes_data(data, key, value):
     else:
         sku_attr_obj.update(attribute_value=value)
 
+
 def update_sku_attributes(data, request):
     for key, value in request.POST.iteritems():
         if 'attr_' not in key:
@@ -8482,3 +8483,15 @@ def add_ean_weight_to_batch_detail(sku, batch_dict):
             batch_dict['weight'] = float(''.join(re.findall('\d+', str(weight_obj[0].attribute_value))))
         except:
             batch_dict['weight'] = 0
+
+
+def check_and_create_duplicate_batch(batch_detail_obj, model_obj):
+    extra_batch = batch_detail_obj.sellerposummary_set.filter(id=model_obj.id)
+    if extra_batch.exists():
+        batch_detail_obj.pk = None
+        batch_detail_obj.id = None
+        batch_detail_obj.save()
+        model_obj.batch_detail_id = batch_detail_obj.id
+        model_obj.save()
+    return model_obj
+

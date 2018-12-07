@@ -6,6 +6,8 @@ from django.db import models as django_models
 from django.db.models import Sum
 import copy
 import re
+import reversion
+from reversion.models import Version
 from miebach_admin.models import *
 from itertools import chain
 from operator import itemgetter
@@ -475,14 +477,15 @@ SKU_WISE_GRN_DICT = {'filters' : [
                        "SKU Category", "Received Qty", "Unit Rate", "Pre-Tax Received Value", "CGST(%)",
                        "SGST(%)", "IGST(%)", "UTGST(%)", "CESS(%)", "CGST",
                        "SGST", "IGST", "UTGST", "CESS", "Post-Tax Received Value", "Invoiced Unit Rate",
-                       "Invoiced Total Amount", "Invoice Number", "Invoice Date", "Challan Number", "Challan Date"],
+                       "Invoiced Total Amount", "Invoice Number", "Invoice Date", "Challan Number",
+                       "Challan Date", "Updated User"],
 		'mk_dt_headers': [ "Received Date", "PO Date", "PO Number", "Supplier ID", "Supplier Name", "Recepient",
                            "SKU Code", "SKU Description", "HSN Code", "SKU Class", "SKU Style Name", "SKU Brand", "SKU Category",
                            "Received Qty", "Unit Rate", "Pre-Tax Received Value", "CGST(%)", "SGST(%)",
                            "IGST(%)", "UTGST(%)", "CESS(%)", "CGST",
                             "SGST", "IGST", "UTGST", "CESS", "Post-Tax Received Value", "Margin %",
                            "Margin", "Invoiced Unit Rate", "Invoiced Total Amount", "Invoice Number", "Invoice Date",
-                           "Challan Number", "Challan Date"],
+                           "Challan Number", "Challan Date", "Updated User"],
 		'dt_url': 'get_sku_wise_po_filter', 'excel_name': 'goods_receipt', 'print_url': '',
 	   }
 
@@ -2552,7 +2555,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                'purchase_order__open_po__cess_tax', 'purchase_order__open_po__cgst_tax', 'purchase_order__open_po__sgst_tax',
                'purchase_order__open_po__igst_tax', 'purchase_order__open_po__utgst_tax',
                'purchase_order__open_po__cess_tax','id', 'seller_po__margin_percent', 'id', 'id', 'id',
-               'invoice_number', 'invoice_date', 'challan_number', 'challan_date']
+               'invoice_number', 'invoice_date', 'challan_number', 'challan_date', 'id']
         model_name = SellerPOSummary
         field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date',
                          'order_id': 'purchase_order__order_id',
@@ -2594,7 +2597,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                'purchase_order__open_po__igst_tax', 'purchase_order__open_po__utgst_tax',
                'purchase_order__open_po__cess_tax',
                'id', 'seller_po__margin_percent', 'id', 'id', 'id',
-               'invoice_number', 'invoice_date', 'challan_number', 'challan_date']
+               'invoice_number', 'invoice_date', 'challan_number', 'challan_date', 'id']
         field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date',
                          'order_id': 'purchase_order__order_id',
                          'wms_code': 'purchase_order__open_po__sku__wms_code__iexact',
@@ -2729,6 +2732,10 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
             invoice_date = data['invoice_date'].strftime("%d %b, %Y")
         if data['challan_date']:
             challan_date = data['challan_date'].strftime("%d %b, %Y")
+        updated_user_name = user.username
+        version_obj = Version.objects.get_for_object(SellerPOSummary.objects.get(id=data['id']))
+        if version_obj.exists():
+            updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
         temp_data['aaData'].append(OrderedDict((('Received Date', get_local_date(user, result.creation_date)),
                             ('PO Date', get_local_date(user, result.creation_date)),
                             ('PO Number', po_number),
@@ -2766,7 +2773,8 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                             ('Challan Date', challan_date),
                             ('DT_RowAttr', {'data-id': data['id']}), ('key', 'po_summary_id'),
                             ('receipt_type', data['seller_po__receipt_type']),
-                            ('receipt_no', 'receipt_no')
+                            ('receipt_no', 'receipt_no'),
+                            ('Updated User', updated_user_name)
 	)))
     if stop_index and custom_search:
         if temp_data['aaData']:

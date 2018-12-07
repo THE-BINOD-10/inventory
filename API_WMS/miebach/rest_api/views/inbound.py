@@ -8401,6 +8401,7 @@ def update_existing_grn(request, user=''):
                         if getattr(model_obj.batch_detail, field_mapping[key]):
                             prev_val = datetime.datetime.strftime(getattr(model_obj.batch_detail, field_mapping[key]), '%m/%d/%Y')
                             if myDict[key][ind] != prev_val and value:
+                                model_obj = check_and_create_duplicate_batch(model_obj.batch_detail, model_obj)
                                 setattr(model_obj.batch_detail, field_mapping[key],
                                         datetime.datetime.strptime(value, '%m/%d/%Y'))
                                 model_obj.batch_detail.save()
@@ -8426,6 +8427,7 @@ def update_existing_grn(request, user=''):
                     if model_obj.batch_detail:
                         prev_val = float(getattr(model_obj.batch_detail, field_mapping[key]))
                         if prev_val != value:
+                            model_obj = check_and_create_duplicate_batch(model_obj.batch_detail, model_obj)
                             setattr(model_obj.batch_detail, field_mapping[key], value)
                             model_obj.batch_detail.save()
                             create_update_table_history(user, model_obj.id, model_name, field_mapping[key], prev_val, value)
@@ -8451,6 +8453,7 @@ def update_existing_grn(request, user=''):
                     if model_obj.batch_detail:
                         prev_val = getattr(model_obj.batch_detail, field_mapping[key])
                         if prev_val != value:
+                            model_obj = check_and_create_duplicate_batch(model_obj.batch_detail, model_obj)
                             setattr(model_obj.batch_detail, field_mapping[key], value)
                             model_obj.batch_detail.save()
                             create_update_table_history(user, model_obj.id, model_name, field_mapping[key],

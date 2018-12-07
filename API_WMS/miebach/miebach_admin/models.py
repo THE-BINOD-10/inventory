@@ -1,10 +1,10 @@
-
 from django.db import models
 from django.contrib.auth.models import User, Group
 from miebach_utils import BigAutoField
 from datetime import date
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+import reversion
 from .choices import UNIT_TYPE_CHOICES, REMARK_CHOICES, TERMS_CHOICES, CUSTOMIZATION_TYPES, ROLE_TYPE_CHOICES, \
     CUSTOMER_ROLE_CHOICES, APPROVAL_STATUSES
 
@@ -433,6 +433,7 @@ class SKUQuantity(models.Model):
         return str(self.sku)
 
 
+@reversion.register()
 class OpenPO(models.Model):
     id = BigAutoField(primary_key=True)
     supplier = models.ForeignKey(SupplierMaster, blank=True, null=True, db_index=True)
@@ -572,7 +573,7 @@ class PalletMapping(models.Model):
         db_table = 'PALLET_MAPPING'
         index_together = ('pallet_detail', 'po_location')
 
-
+@reversion.register()
 class BatchDetail(models.Model):
     id = BigAutoField(primary_key=True)
     batch_no = models.CharField(max_length=64, default='')
@@ -1938,6 +1939,7 @@ class SellerPO(models.Model):
         return str(self.id)
 
 
+@reversion.register(follow=('batch_detail',))
 class SellerPOSummary(models.Model):
     id = BigAutoField(primary_key=True)
     receipt_number = models.PositiveIntegerField(default=0)

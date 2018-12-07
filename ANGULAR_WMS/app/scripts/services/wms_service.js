@@ -85,10 +85,10 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
 
           if(data.data == "Success") {
             $state.go($state.current, {}, {reload: true});
-          }   
-        }   
-      })  
-    } 
+          }
+        }
+      })
+    }
 
     vm.get_view_url = function(type, dir) {
 
@@ -112,10 +112,10 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
           if(data.message) {
             vm.reports[name] = data.data.data;
             d.resolve(vm.reports[name]);
-          }   
-        })  
+          }
+        })
       }
-      return d.promise;   
+      return d.promise;
     }
 
     vm.get_report_dt = function(filters, data) {
@@ -192,7 +192,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
 
       var d = $q.defer();
       if ( event.keyCode == 13 && field.length > 0) {
-      
+
         if(url) {
           vm.service.apiCall(url, 'GET', {code: field}).then(function(data){
             if(data.message) {
@@ -263,7 +263,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
     //common variables
     vm.titleHtml = '<input type="checkbox" class="data-select" ng-model="showCase.selectAll" ng-change="showCase.bt_disable = showCase.service.toggleAll(showCase.selectAll, showCase.selected, showCase.bt_disable); $event.stopPropagation();">';
     vm.frontHtml = '<input class="data-select" type="checkbox" ng-model="showCase.selected[';
-    vm.endHtml = ']" ng-change="showCase.bt_disable = showCase.service.toggleOne(showCase.selectAll, showCase.selected, showCase.bt_disable);$event.stopPropagation();showCase.selectAll = showCase.servce.select_all(showCase.selectAll, showCase.selected)">'; 
+    vm.endHtml = ']" ng-change="showCase.bt_disable = showCase.service.toggleOne(showCase.selectAll, showCase.selected, showCase.bt_disable);$event.stopPropagation();showCase.selectAll = showCase.servce.select_all(showCase.selectAll, showCase.selected)">';
 
     vm.status = function(data) {
 
@@ -535,7 +535,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
 
     /* negative number stop */
     $.validator.addMethod('number',
-      function (value) { 
+      function (value) {
         return Number(value) >= 0;
       }, 'Enter a positive number.');
 
@@ -564,7 +564,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
     };
 
     vm.alert_info = function(title, info) {
- 
+
       SweetAlert.swal(title, info);
     }
 
@@ -750,7 +750,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       })
     }
 
-    vm.datatable = { 
+    vm.datatable = {
                      titleHtml: vm.titleHtml,
                      frontHtml: vm.frontHtml,
                      endHtml: vm.endHtml,
@@ -759,7 +759,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
                      select_all: vm.select_all,
                    }
 
-    //Api Calls 
+    //Api Calls
 
     //Api Calls
 
@@ -857,7 +857,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
 
     if(Session.userName = "adam_clothing") {
 
-      if( type == "font") { 
+      if( type == "font") {
         return {"font-size": "10px"}
       } else if(type == "td") {
         return {"font-size": "10px", "border-top": "1px solid #fff", "border-bottom": "1px solid #fff", "padding": "5px 10px"}
@@ -938,13 +938,36 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
 
   vm.generate_pdf_file2 = function(data){
     var send = {};
-    send['data'] = $(".modal-body:visible").html()
-    send['css'] = 'page1'
-    vm.apiCall("generate_pdf_file/", "POST", send).then(function(data){
-       if(data.message) {
-         window.open(Session.url + data.data, '_blank');
-       }
-    })
+    send = $(".modal-body:visible").html()
+   vm.print_invoice_data(send, "");
+ }
+  vm.print_invoice_data = function(data, title) {
+   if(!(data)) {
+     data = $('.print:visible').clone();
+   } else {
+     data = $(data).clone();
+   }
+   var print_div= "<div class='print'></div>";
+   print_div= $(print_div).html(data);
+   print_div = $(print_div).clone();
+    $(print_div).find(".modal-body").css('max-height', 'none');
+   $(print_div).find(".modal-footer").remove();
+   print_div = $(print_div).html();
+    var mywindow = window.open(Session.url + '/dispatch_invoice.pdf', '_blank', title, 'height=400,width=600');
+   mywindow.document.write('<html><head><title>'+title+'</title>');
+   mywindow.document.write('<link rel="stylesheet" type="text/css" href="vendor/bootstrap/dist/css/bootstrap.min.css" />');
+   mywindow.document.write('<link rel="stylesheet" type="text/css" href="styles/custom/page.css" media="print"/>');
+   mywindow.document.write('<link rel="stylesheet" type="text/css" href="styles/custom/page1.css" media="print"/>');
+   mywindow.document.write('</head><body>');
+   mywindow.document.write(print_div);
+   mywindow.document.write('</body></html>');
+    mywindow.document.close();
+   mywindow.focus();
+    $timeout(function(){
+     mywindow.print();
+     mywindow.close();
+   }, 20);
+    return true;
   }
 
   vm.generate_pdf_file = function(data){
@@ -1117,7 +1140,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
             } else if(parseInt(element.val()) < 0) {
                 value = element.val("0");
             }
-        });        
+        });
     }
     });
 
@@ -1150,7 +1173,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
                     return transformedInput;
                 }
                 return undefined;
-            }            
+            }
             ngModelCtrl.$parsers.push(fromUser);
         }
       };
@@ -1203,19 +1226,19 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       };
     });
 
-    app.directive('decimalNumber', function () {  
-      return {  
-        restrict: 'A',  
+    app.directive('decimalNumber', function () {
+      return {
+        restrict: 'A',
         link: function (scope, elm, attrs, ctrl) {
-            elm.on('keydown', function (event) {  
-                var $input = $(this);  
-                var value = $input.val();  
-                value = value.replace(/[^0-9\.]/g, '')  
+            elm.on('keydown', function (event) {
+                var $input = $(this);
+                var value = $input.val();
+                value = value.replace(/[^0-9\.]/g, '')
                 var findsDot = new RegExp(/\./g)
                 var containsDot = value.match(findsDot)
-                if (containsDot != null && ([46, 110, 190].indexOf(event.which) > -1)) {  
-                    event.preventDefault();  
-                    return false;  
+                if (containsDot != null && ([46, 110, 190].indexOf(event.which) > -1)) {
+                    event.preventDefault();
+                    return false;
                 }
                 if(containsDot != null) {
                   var data = value.split(".")
@@ -1225,32 +1248,32 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
                   }
                 }
                 $input.val(value);
-                if (event.which == 64 || event.which == 16) {  
-                    // numbers  
-                    return false;  
-                } if ([8, 13, 27, 37, 38, 39, 40, 110].indexOf(event.which) > -1) {  
-                    // backspace, enter, escape, arrows  
-                    return true;  
-                } else if (event.which >= 48 && event.which <= 57) {  
-                    // numbers  
-                    return true;  
-                } else if (event.which >= 96 && event.which <= 105) {  
-                    // numpad number  
-                    return true;  
-                } else if ([46, 110, 190].indexOf(event.which) > -1) {  
-                    // dot and numpad dot  
-                    return true;  
+                if (event.which == 64 || event.which == 16) {
+                    // numbers
+                    return false;
+                } if ([8, 13, 27, 37, 38, 39, 40, 110].indexOf(event.which) > -1) {
+                    // backspace, enter, escape, arrows
+                    return true;
+                } else if (event.which >= 48 && event.which <= 57) {
+                    // numbers
+                    return true;
+                } else if (event.which >= 96 && event.which <= 105) {
+                    // numpad number
+                    return true;
+                } else if ([46, 110, 190].indexOf(event.which) > -1) {
+                    // dot and numpad dot
+                    return true;
                 } else if(event.keyCode == 9) {
                     // press tab
                     return true;
-                } else {  
-                    event.preventDefault();  
-                    return false;  
-                }  
-            });  
-        }  
-      }  
-    }); 
+                } else {
+                    event.preventDefault();
+                    return false;
+                }
+            });
+        }
+      }
+    });
 
     app.directive('fileUploadd', function () {
     return {
@@ -1274,7 +1297,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
             el.bind('change', function (event) {
                 var fname = $(this).val();
                 var re = /(\.jpg|\.jpeg|\.bmp|\.gif|\.png)$/i;
-                if(!re.exec(fname)) {   
+                if(!re.exec(fname)) {
                   alert("File extension not supported!");
                   $(this).val('');
                 } else {
@@ -1289,14 +1312,14 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
     };
     });
 
-    app.directive('multiImageUpload', function () { 
+    app.directive('multiImageUpload', function () {
     return {
         scope: true,
         link: function (scope, el, attrs) {
             el.bind('change', function (event) {
                 var fname = $(this).val();
                 var re = /(\.jpg|\.jpeg|\.bmp|\.gif|\.png)$/i;
-                if(!re.exec(fname)) {    
+                if(!re.exec(fname)) {
                   scope.$emit("fileSelected", { file: [], msg:"File extension not supported!"});
                   $(this).val('');
                 } else {
@@ -1405,9 +1428,9 @@ app.directive('ngDebounce', function($timeout) {
         priority: 99,
         link: function(scope, elm, attr, ngModelCtrl) {
             if (attr.type === 'radio' || attr.type === 'checkbox') return;
-            
+
             elm.unbind('input');
-            
+
             var debounce;
             elm.bind('input', function() {
                 $timeout.cancel(debounce);
@@ -1423,13 +1446,13 @@ app.directive('ngDebounce', function($timeout) {
                 });
             });
         }
-                     
+
     }
 });
 
-app.directive('discountNumber', function () {  
+app.directive('discountNumber', function () {
       return {
-        restrict: 'A',  
+        restrict: 'A',
         link: function (scope, elm, attrs, ctrl) {
             elm.on('keyup', function (event) {
                 var $input = $(this);
@@ -1437,9 +1460,9 @@ app.directive('discountNumber', function () {
                 value = value.replace(/[^0-9\.]/g, '');
                 var findsDot = new RegExp(/\./g)
                 var containsDot = value.match(findsDot)
-                if (containsDot != null && ([46, 110, 190].indexOf(event.which) > -1)) {  
-                    event.preventDefault();  
-                    return false;  
+                if (containsDot != null && ([46, 110, 190].indexOf(event.which) > -1)) {
+                    event.preventDefault();
+                    return false;
                 }
                 if(containsDot != null) {
                   var data = value.split(".")
@@ -1460,9 +1483,9 @@ app.directive('discountNumber', function () {
                   $input.val(99.99);
                   return false;
                 }
-            });  
-        }  
-      }  
+            });
+        }
+      }
     });
 
 
@@ -1482,6 +1505,3 @@ app.directive('discountNumber', function () {
       }
     });
   }])
-
-  
-

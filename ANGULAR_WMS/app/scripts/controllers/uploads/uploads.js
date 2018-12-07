@@ -269,6 +269,15 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    dparam: "download-file",
                    value: "",
                    perm: "add_suppliermaster"
+                 },
+                 {
+                   title: "Create StockTransfer Order Form Download/ Upload",
+                   download: "StockTransfer Order Download Form",
+                   upload: "StockTransfer Order Upload Form",
+                   durl: "stock_transfer_order_form/",
+                   uurl: "stock_transfer_order_upload/",
+                   dparam: "download-file",
+                   value: "",
                  }
                 ]
 

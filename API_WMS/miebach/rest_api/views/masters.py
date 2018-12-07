@@ -778,7 +778,6 @@ def get_warehouse_user_results(start_index, stop_index, temp_data, search_term, 
     search_params1 = {}
     search_params2 = {}
     lis = ['username', 'first_name', 'email', 'id']
-
     warehouse_admin = get_warehouse_admin(user)
     exclude_admin = {}
     if warehouse_admin.id == user.id:
@@ -3945,3 +3944,17 @@ def add_sub_zone_mapping(request, user=''):
         mapping_obj.save()
         return HttpResponse('Added Successfully')
     return HttpResponse('Mapping Already Exists')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def change_warehouse_password (request ,user=''):
+    user_name = request.POST['user_name']
+    new_password = request.POST['new_password']
+    user_obj = User.objects.get(username=user_name)
+    if user_obj :
+        user_obj.set_password(new_password)
+        user_obj.save()
+        return HttpResponse('Successfully changed the Password')
+    else:
+        return HttpResponse('Failed to change the Password')

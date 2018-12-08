@@ -286,6 +286,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       vm.model_data = {};
       vm.html = "";
+      vm.scanned_sku_pack_ids =[]
       vm.print_enable = false;
       if(vm.permissions.use_imei) {
         fb.stop_fb();
@@ -430,6 +431,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if (form.$valid) {
 
         var abs_inv_value = vm.absOfInvValueTotal(vm.model_data.invoice_value, vm.skus_total_amount);
+
         if (vm.permissions.receive_po_invoice_check && abs_inv_value <= 3){
 
           vm.save_sku();
@@ -445,17 +447,32 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     }
 
+    vm.save_sku_pack_ids = function()
+    {
+      var sub_model_data = []
+      // for(var i=0; i<vm.model_data.data.length; i++)
+      //  {
+      //   sub_model_data.push(vm.model_data.data[i][0]);
+      // }
+        vm.service.apiCall('save_sku_pack_scans/', 'POST',{"data":JSON.stringify(vm.model_data)}).then(function(data)
+        {
+                console.log("success")
+        });
+
+    }
+
     vm.save_sku = function(){
 
       var data = [];
 
-      for(var i=0; i<vm.model_data.data.length; i++)  {
+      for(var i=0; i<vm.model_data.data.length; i++) {
         angular.forEach(vm.model_data.data[i], function(sku){
           if(!sku.is_new) {
             data.push({name: sku.order_id, value: sku.value});
           }
         });
       }
+
 
       data.push({name: 'remarks', value: vm.model_data.remarks});
       data.push({name: 'expected_date', value: vm.model_data.expected_date});
@@ -479,6 +496,38 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       return Math.abs(inv_value - total_value);
     }
+   vm.scanned_sku_pack_ids =[]
+    vm.check_sku_pack = function(event,record)
+    {
+        event.stopPropagation();
+        if (event.keyCode == 13 )
+        {
+          if(vm.scanned_sku_pack_ids.indexOf(record.scanned_pack_id) == -1)
+          {
+           vm.service.apiCall('check_sku_pack_scan/', 'GET', record).then(function(data){
+             if (data.data.decremented_recieve_qty)
+               {
+                 record.value += data.data.decremented_recieve_qty
+                 record.total_amt = record.price * record.value
+                 if (!record.scanned_list)
+                 {
+                   record.scanned_list =[]
+                 }
+                 vm.scanned_sku_pack_ids.push(record.scanned_pack_id)
+                 record.scanned_list.push(record.scanned_pack_id)
+                 Service.showNoty(data.data.status)
+               }
+            else{
+                Service.showNoty(data.data.status, 'error', 'topRight')
+                }
+            });
+           }
+           else{
+                Service.showNoty("Sku pack is already scanned", 'error', 'topRight')
+           }
+        }
+    }
+
 
     // vm.skus_total_amount
 
@@ -492,6 +541,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       // data.push({name: 'po_unit', value: form.po_unit.$viewValue});
       // data.push({name: 'tax_per', value: form.tax_per.$viewValue});
       if (form.$valid) {
+        if(vm.permissions.sku_pack_config)
+        {
+          vm.save_sku_pack_ids();
+        }
         if (vm.permissions.receive_po_invoice_check && vm.model_data.invoice_value){
 
           var abs_inv_value = vm.absOfInvValueTotal(vm.model_data.invoice_value, vm.skus_total_amount);

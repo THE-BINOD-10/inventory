@@ -404,7 +404,7 @@ var app = angular.module('urbanApp')
 
            .state('app.masters.SkuPackMaster', {
              url: '/SkuPackMaster',
-             permission: 'sku_pack_config',
+             // permission: 'sku_pack_config',
              templateUrl: 'views/masters/sku_pack_datatable.html',
              resolve: {
                deps: ['$ocLazyLoad', function ($ocLazyLoad) {

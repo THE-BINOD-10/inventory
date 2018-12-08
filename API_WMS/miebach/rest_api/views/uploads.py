@@ -289,6 +289,8 @@ def get_order_mapping(reader, file_type):
         order_mapping = copy.deepcopy(ORDER_DEF_EXCEL)
     elif get_cell_data(0, 0, reader, file_type) == 'Courier':
         order_mapping = copy.deepcopy(SNAPDEAL_EXCEL)
+    elif get_cell_data(0, 1, reader, file_type) == 'Pack ID' and get_cell_data(0, 2, reader, file_type) == 'Pack Quantity'  :
+          order_mapping = copy.deepcopy(SKU_PACK_EXCEL)
     elif 'Courier' in get_cell_data(0, 1, reader, file_type):
         order_mapping = copy.deepcopy(SNAPDEAL_EXCEL1)
     elif get_cell_data(0, 0, reader, file_type) == 'ASIN':
@@ -5278,7 +5280,7 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
             all_user_groups = UserGroups.objects.filter(admin_user_id=warehouse_admin.id)
             if not all_user_groups:
                 index_status.setdefault(count, set()).add('Invalid Location')
-        
+
         if order_mapping.has_key('original_order_id'):
             try:
                 original_order_id = str(int(get_cell_data(row_idx, order_mapping['original_order_id'], reader, file_type)))
@@ -5434,7 +5436,7 @@ def central_order_upload(request, user=''):
         if ex_status:
             return HttpResponse(ex_status)
         if user.username == 'one_assist':
-            upload_status = central_order_one_assist_upload(request, reader, user, no_of_rows, fname, 
+            upload_status = central_order_one_assist_upload(request, reader, user, no_of_rows, fname,
                 file_type=file_type, no_of_cols=no_of_cols)
         else:
             upload_status = central_order_xls_upload(request, reader, user, no_of_rows, fname,
@@ -5598,3 +5600,129 @@ def central_order_one_assist_upload(request, reader, user, no_of_rows, fname, fi
         except:
             pass
     return 'success'
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def skupack_master_download(request, user=''):
+    wb, ws = get_work_sheet('sku_pack_form', SKU_PACK_MAPPING.keys())
+    return xls_to_response(wb, '%s.sku_pack_form.xls' % str(user.id))
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def skupack_master_upload(request, user=''):
+    try:
+        fname = request.FILES['files']
+        reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
+        if ex_status:
+            return HttpResponse(ex_status)
+        upload_status = sku_pack_xls_upload(request, reader, user, no_of_rows, fname,
+            file_type=file_type, no_of_cols=no_of_cols)
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Sku Pack form Upload failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
+        return HttpResponse(" Sku Pack Upload Failed")
+    if not upload_status == 'success':
+        return HttpResponse(upload_status)
+    return HttpResponse('Success')
+
+def sku_pack_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls', no_of_cols=0):
+    log.info("Sku Pack  upload started")
+    st_time = datetime.datetime.now()
+    index_status = {}
+    order_mapping = get_order_mapping(reader, file_type)
+    if not order_mapping:
+        return "Headers not matching"
+    count = 0
+    exclude_rows = []
+    sku_masters_dict = {}
+    order_id_order_type = {}
+    order_data = {}
+    log.info("Validation Started %s" % datetime.datetime.now())
+    log.info("Sku Pack data Processing Started %s" % (datetime.datetime.now()))
+    for row_idx in range(1, no_of_rows):
+        user_obj = ''
+        if not order_mapping:
+            break
+        count += 1
+        if order_mapping.has_key('sku_code') :
+            try:
+                sku_code = str(int(get_cell_data(row_idx, order_mapping['sku_code'], reader, file_type)))
+            except:
+                sku_code = str(get_cell_data(row_idx, order_mapping['sku_code'], reader, file_type))
+            if not sku_code:
+                index_status.setdefault(count, set()).add('Invalid sku code')
+            else:
+                try:
+                    sku_obj = SKUMaster.objects.filter(wms_code=sku_code.upper(), user=user.id)
+                    if not sku_obj:
+                        index_status.setdefault(count, set()).add('Invalid sku code')
+                except:
+                    index_status.setdefault(count, set()).add('Invalid sku code')
+        if order_mapping.has_key('pack_id'):
+            try:
+                pack_id = str(int(get_cell_data(row_idx, order_mapping['pack_id'], reader, file_type)))
+            except:
+                pack_id = str(get_cell_data(row_idx, order_mapping['pack_id'], reader, file_type))
+
+            if not pack_id:
+                index_status.setdefault(count, set()).add('Invalid pack_id')
+        if order_mapping.has_key('pack_quantity'):
+            try:
+                pack_quantity = int(get_cell_data(row_idx, order_mapping['pack_quantity'], reader, file_type))
+            except:
+                index_status.setdefault(count, set()).add('Invalid pack quantity')
+            if not pack_id:
+                index_status.setdefault(count, set()).add('Invalid pack quantity')
+
+    if index_status and file_type == 'csv':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_csv_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name
+    elif index_status and file_type == 'xls':
+        f_name = fname.name.replace(' ', '_')
+        file_path = rewrite_excel_file(f_name, index_status, reader)
+        if file_path:
+            f_name = file_path
+        return f_name
+
+    sku_pack = copy.deepcopy(SKU_PACK_DATA)
+    for row_idx in range(1, no_of_rows):
+        for key, value in order_mapping.iteritems():
+            if key == 'sku_code':
+                try:
+                    sku_code = str(int(get_cell_data(row_idx, value, reader, file_type)))
+                except:
+                    sku_code = str(get_cell_data(row_idx, value, reader, file_type))
+            elif key == 'pack_id':
+                try:
+                    pack_id = str(int(get_cell_data(row_idx, value, reader, file_type)))
+                except:
+                    pack_id = str(get_cell_data(row_idx, value, reader, file_type))
+            elif key == 'pack_quantity':
+                 pack_quantity = int(get_cell_data(row_idx, value, reader, file_type))
+
+                 pack_obj = SKUPackMaster.objects.filter(sku__wms_code= sku_code,pack_id = pack_id,sku__user = user.id)
+                 if pack_obj :
+                     pack_obj = pack_obj[0]
+                     pack_obj.pack_quantity = pack_quantity
+                     pack_obj.save()
+                 else:
+                     sku_pack['sku'] = sku_obj[0]
+                     sku_pack ['pack_id'] = pack_id
+                     sku_pack ['pack_quantity'] = pack_quantity
+                     try:
+                         SKUPackMaster.objects.create(**sku_pack)
+                     except Exception as e:
+                         import traceback
+                         log.debug(traceback.format_exc())
+                         log.info('Insert New SKUPACK failed for %s and params are %s and error statement is %s' % (str(user.username), \
+                                                                                                   str(request.POST.dict()),
+                                                                                                   str(e)))
+
+    return 'Success'

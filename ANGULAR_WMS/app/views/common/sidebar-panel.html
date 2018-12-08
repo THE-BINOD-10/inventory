@@ -72,6 +72,11 @@
             <span>Source-SKU Mapping</span>
           </a>
         </li>
+        <li ui-sref-active="active">
+          <a ui-sref="app.masters.SkuPackMaster" ng-show="show_tab('sku_pack_config')">
+            <span>SKU Pack Master</span>
+          </a>
+        </li>
         <li ui-sref-active="active" ng-if="permissions.user_type != 'central_admin' && permissions.priceband_sync == false">
           <a ui-sref="app.masters.CorporateMaster" ng-show="show_tab('add_corporatemaster')">
             <span>Project Master</span>
@@ -90,11 +95,6 @@
         <li ui-sref-active="active">
           <a ui-sref="app.masters.CustomerMaster" ng-show="show_tab('add_customermaster')">
             <span>Customer Master</span>
-          </a>
-        </li>
-        <li ui-sref-active="active">
-          <a ui-sref="app.masters.SKUPackMaster" ng-if="permissions.sku_pack_config" ng-show="show_tab('sku_pack_config')">
-            <span>SKU Pack Master</span>
           </a>
         </li>
         <li ui-sref-active="active" ng-show="show_tab('add_customersku')">

@@ -2188,7 +2188,7 @@ def get_receipt_filter_data(search_params, user, sub_user):
     query_prefix = ''
     lis = ['open_po__supplier__name', 'order_id', 'open_po__sku__wms_code', 'open_po__sku__sku_desc',
            'received_quantity',
-           'updation_date', 'reason']
+           'updation_date', 'reason', 'order_id']
     model_obj = PurchaseOrder
     if use_imei == 'true':
         lis = ['purchase_order__open_po__supplier__name', 'purchase_order__order_id',
@@ -2249,6 +2249,10 @@ def get_receipt_filter_data(search_params, user, sub_user):
         if data.reason:
             reason = data.reason
         po_reference = '%s%s_%s' % (data.prefix, str(data.creation_date).split(' ')[0].replace('-', ''), data.order_id)
+        updated_user_name = user.username
+        version_obj = Version.objects.get_for_object(data)
+        if version_obj.exists():
+            updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
         temp_data['aaData'].append(OrderedDict((('PO Reference', po_reference), ('WMS Code', data.open_po.sku.wms_code),
                                                 ('Description', data.open_po.sku.sku_desc),
                                                 ('Supplier',
@@ -2256,7 +2260,7 @@ def get_receipt_filter_data(search_params, user, sub_user):
                                                 ('Receipt Number', data.open_po_id),
                                                 ('Received Quantity', data.received_quantity),
                                                 ('Serial Number', serial_number), ('Received Date', received_date),
-                                                ('Closing Reason', reason))))
+                                                ('Closing Reason', reason), ('Updated User', updated_user_name))))
     return temp_data
 
 

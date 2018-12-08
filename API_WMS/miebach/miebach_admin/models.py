@@ -469,6 +469,7 @@ class OpenPO(models.Model):
         return str(str(self.sku) + " : " + str(self.supplier))
 
 
+@reversion.register()
 class PurchaseOrder(models.Model):
     id = BigAutoField(primary_key=True)
     order_id = models.PositiveIntegerField(db_index=True)
@@ -2880,6 +2881,7 @@ class UserAttributes(models.Model):
         unique_together = ('user', 'attribute_model', 'attribute_name')
 
 
+@reversion.register()
 class PrimarySegregation(models.Model):
     id = BigAutoField(primary_key=True)
     purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True)
@@ -2942,6 +2944,7 @@ class SellerOrderTransfer(models.Model):
         index_together = ('seller_transfer', 'seller_order')
 
 
+@reversion.register()
 class ReturnToVendor(models.Model):
     id = BigAutoField(primary_key=True)
     rtv_number = models.CharField(max_length=32, default='')

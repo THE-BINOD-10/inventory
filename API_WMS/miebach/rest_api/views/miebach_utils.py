@@ -6,6 +6,8 @@ from django.db import models as django_models
 from django.db.models import Sum
 import copy
 import re
+import reversion
+from reversion.models import Version
 from miebach_admin.models import *
 from itertools import chain
 from operator import itemgetter
@@ -63,8 +65,8 @@ PERMISSION_KEYS = ['add_qualitycheck', 'add_skustock', 'add_shipmentinfo', 'add_
                    'add_joborder', 'add_materialpicklist', 'add_polocation', 'add_stockdetail', 'add_cyclecount',
                    'add_inventoryadjustment',
                    'add_orderdetail', 'add_picklist']
-LABEL_KEYS = ["MASTERS_LABEL", "INBOUND_LABEL", "PRODUCTION_LABEL", "STOCK_LABEL", "OUTBOUND_LABEL", "SHIPMENT_LABEL",
-              "OTHERS_LABEL",
+LABEL_KEYS = ["NOTIFICATION_LABEL", "MASTERS_LABEL", "INBOUND_LABEL", "PRODUCTION_LABEL", "STOCK_LABEL", "OUTBOUND_LABEL", "SHIPMENT_LABEL",
+              "OTHERS_LABEL", "UPLOADS", "REPORTS",
               "PAYMENT_LABEL"]
 
 SKU_DATA = {'user': '', 'sku_code': '', 'wms_code': '',
@@ -475,14 +477,15 @@ SKU_WISE_GRN_DICT = {'filters' : [
                        "SKU Category", "Received Qty", "Unit Rate", "MRP", "Pre-Tax Received Value", "CGST(%)",
                        "SGST(%)", "IGST(%)", "UTGST(%)", "CESS(%)", "CGST",
                        "SGST", "IGST", "UTGST", "CESS", "Post-Tax Received Value", "Invoiced Unit Rate",
-                       "Invoiced Total Amount", "Invoice Number", "Invoice Date", "Challan Number", "Challan Date"],
+                       "Invoiced Total Amount", "Invoice Number", "Invoice Date", "Challan Number",
+                       "Challan Date", "Updated User"],
 		'mk_dt_headers': [ "Received Date", "PO Date", "PO Number", "Supplier ID", "Supplier Name", "Recepient",
                            "SKU Code", "SKU Description", "HSN Code", "SKU Class", "SKU Style Name", "SKU Brand", "SKU Category",
                            "Received Qty", "Unit Rate", "MRP", "Pre-Tax Received Value", "CGST(%)", "SGST(%)",
                            "IGST(%)", "UTGST(%)", "CESS(%)", "CGST",
                             "SGST", "IGST", "UTGST", "CESS", "Post-Tax Received Value", "Margin %",
                            "Margin", "Invoiced Unit Rate", "Invoiced Total Amount", "Invoice Number", "Invoice Date",
-                           "Challan Number", "Challan Date"],
+                           "Challan Number", "Challan Date", "Updated User"],
 		'dt_url': 'get_sku_wise_po_filter', 'excel_name': 'goods_receipt', 'print_url': '',
 	   }
 
@@ -1356,38 +1359,49 @@ SKU_FIELD_TYPES = [{'field_name': 'sku_category', 'field_value': 'SKU Category'}
                    {'field_name': 'sku_group', 'field_value': 'SKU Group'}]
 
 PERMISSION_DICT = OrderedDict((
+    # Notifications
+    ("NOTIFICATION_LABEL", (("Notifications", "view_pushnotifications"), )),
     # Masters
     ("MASTERS_LABEL", (("SKU Master", "add_skumaster"), ("Location Master", "add_locationmaster"),
-                       ("Supplier Master", "add_suppliermaster"), ("Supplier SKU Mapping", "add_skusupplier"),
+                       ("Supplier Master", "add_suppliermaster"), ("Source SKU Mapping", "add_skusupplier"),
+                       ("Project Master", "add_corporatemaster"),
+                       ("Reseller Corporate Mapping", "add_corpresellermapping"),
                        ("Customer Master", "add_customermaster"), ("Customer SKU Mapping", "add_customersku"),
                        ("BOM Master", "add_bommaster"), ("Staff Master", "add_staffmaster"),
                        ("Vendor Master", "add_vendormaster"), ("Discount Master", "add_categorydiscount"),
                        ("Custom SKU Template", "add_productproperties"), ("Size Master", "add_sizemaster"),
                        ('Pricing Master', 'add_pricemaster'), ('Network Master', 'add_networkmaster'),
-                       ('Tax Master', 'add_taxmaster'), ('T&C Master', 'add_tandcmaster'))),
+                       ('Tax Master', 'add_taxmaster'), ('T&C Master', 'add_tandcmaster'),
+                       ('Seller Master', 'add_sellermaster'), ('Seller Margin Mapping', 'add_sellermarginmapping'),
+                       ('Staff Master', 'add_staffmaster'), ('Notification Master', 'add_pushnotifications'))),
 
     # Inbound
     ("INBOUND_LABEL", (("Raise PO", "add_openpo"), ("Confirm PO", "change_openpo"),
-                       ("Receive PO", "add_purchaseorder"),
-                       ("Quality Check", "add_qualitycheck"),
+                       ("Receive PO", "add_purchaseorder"), ("Generate GRN", "change_purchaseorder"),
+                       ("Quality Check", "add_qualitycheck"), ("Primary Segregation", "add_primarysegregation"),
                        ("Putaway Confirmation", "add_polocation"), ("Sales Returns", "add_orderreturns"),
                        ("Returns Putaway", "add_returnslocation"),
-                       ("RTV", "add_returntovendor"))),
+                       ("RTV", "add_returntovendor"), ("Seller Invoices", "add_sellerpo"),
+                       ("Supplier Invoices", "change_sellerposummary"), ("GRN Edit", "delete_sellerposummary"),
+                       )),
 
     # Production
     ("PRODUCTION_LABEL", (("Raise Job order", "add_jomaterial"), ("RM Picklist", "add_materialpicklist"),
                           ("Receive Job Order", "add_joborder"), ("Job Order Putaway", "add_rmlocation"))),
 
     # Stock Locator
-    ("STOCK_LABEL", (("Stock Detail", "add_stockdetail"), ("Vendor Stock", "add_vendorstock"),
+    ("STOCK_LABEL", (("Stock Summary", "add_skustock"), ("Stock Detail", "add_stockdetail"),
+                     ("Vendor Stock", "add_vendorstock"),
                      ("Cycle Count", "add_cyclecount"), ("Move Inventory", "change_inventoryadjustment"),
-                     ("Inventory Adjustment", "add_inventoryadjustment"), ("Stock Summary", "add_skustock"),
-                     ("Warehouse Stock", "add_usergroups"), ("IMEI Tracker", "add_poimeimapping"))),
+                     ("Inventory Adjustment", "add_inventoryadjustment"),
+                     ("Warehouse Stock", "add_usergroups"), ("IMEI Tracker", "add_poimeimapping"),
+                     ("Seller Stock", "add_sellerstock"))),
 
     # Outbound
     ("OUTBOUND_LABEL", (("Create Orders", "add_orderdetail"), ("View Orders", "add_picklist"),
                         ("Pull Confirmation", "add_picklistlocation"), ("Enquiry Orders", "add_enquirymaster"),
                         ("Customer Invoices", "add_sellerordersummary"), ("Manual Orders", "add_manualenquiry"),
+                        ("Shipment Info", "add_shipmentinfo"), ("Create Stock Transfer", "add_stocktransfer"),
                         )),
 
     # Shipment Info
@@ -1398,6 +1412,34 @@ PERMISSION_DICT = OrderedDict((
 
     # Payment
     ("PAYMENT_LABEL", (("PAYMENTS", "add_paymentsummary"),)),
+
+    # Uploads
+    ("UPLOADS", (('Create Orders', 'add_orderdetail'), ('SKU Master', 'add_skumaster'),
+                                    ('Stock Detail', 'add_stockdetail'), ('Supplier Master', 'add_suppliermaster'),
+                                    ('add_skusupplier', 'add_skusupplier'), ('add_locationmaster', 'add_locationmaster'),
+                                    ('Raise PO', 'add_openpo'),
+                                    ('change_inventoryadjustment', 'change_inventoryadjustment'),
+                                    ('add_bommaster', 'add_bommaster'),
+                                    ('add_inventoryadjustment', 'add_inventoryadjustment'),
+                                    ('add_vendormaster', 'add_vendormaster'),
+                                    ('add_customermaster', 'add_customermaster'),
+                                    ('add_orderreturns', 'add_orderreturns'), ('add_pricemaster', 'add_pricemaster'),
+                                    ('add_networkmaster', 'add_networkmaster'), ('add_orderlabels', 'add_orderlabels'),
+                                    ('add_jomaterial', 'add_jomaterial'),
+                                    ('add_sellerstocktransfer', 'add_sellerstocktransfer'),
+                                    ('add_substitutionsummary', 'add_substitutionsummary'),
+                                    ('add_targetmaster', 'add_targetmaster'))),
+    ("REPORTS", (('SKU List Report', 'view_skumaster'),('Location Wise Filter Report', 'view_locationmaster'),
+                 ('Goods Receipt Note Report', 'view_sellerposummary'), ('Receipt Summary Report', 'view_polocation'),
+                 ('Dispatch Summary Report', 'view_picklist'), ('SKU Wise Stock Report', 'view_stockdetail'),
+                 ('SKU Wise PO Report', 'view_openpo'), ('Supplier Wise PO Report', 'view_purchaseorder'),
+                 ('Sales Return Report', 'view_orderreturns'),
+                 ('Inventory Adjustment Report', 'view_inventoryadjustment'),
+                 ('Inventory Aging Report', 'view_cyclecount'), ('Stock Summary Report', 'change_stockdetail'),
+                 ('Daily Production Report', 'view_statustracking'), ('Order Summary Report', 'view_orderdetail'),
+                 ('Open JO Report', 'view_openjo'), ('Seller Invoice Detail Report', 'view_sellerpo'),
+                 ('RM Picklist Report', 'view_materialpicklist'), ('Stock Ledger Report', 'view_stockstats'),
+                 ('Shipment Report', 'view_ordershipment'), ('RTV Report', 'view_returntovendor'))),
 
     # Uploaded POs
     ("UPLOADPO_LABEL", (("uploadedPOs", "add_orderuploads"),)),
@@ -2146,7 +2188,7 @@ def get_receipt_filter_data(search_params, user, sub_user):
     query_prefix = ''
     lis = ['open_po__supplier__name', 'order_id', 'open_po__sku__wms_code', 'open_po__sku__sku_desc',
            'received_quantity',
-           'updation_date', 'reason']
+           'updation_date', 'reason', 'order_id']
     model_obj = PurchaseOrder
     if use_imei == 'true':
         lis = ['purchase_order__open_po__supplier__name', 'purchase_order__order_id',
@@ -2207,6 +2249,10 @@ def get_receipt_filter_data(search_params, user, sub_user):
         if data.reason:
             reason = data.reason
         po_reference = '%s%s_%s' % (data.prefix, str(data.creation_date).split(' ')[0].replace('-', ''), data.order_id)
+        updated_user_name = user.username
+        version_obj = Version.objects.get_for_object(data)
+        if version_obj.exists():
+            updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
         temp_data['aaData'].append(OrderedDict((('PO Reference', po_reference), ('WMS Code', data.open_po.sku.wms_code),
                                                 ('Description', data.open_po.sku.sku_desc),
                                                 ('Supplier',
@@ -2214,7 +2260,7 @@ def get_receipt_filter_data(search_params, user, sub_user):
                                                 ('Receipt Number', data.open_po_id),
                                                 ('Received Quantity', data.received_quantity),
                                                 ('Serial Number', serial_number), ('Received Date', received_date),
-                                                ('Closing Reason', reason))))
+                                                ('Closing Reason', reason), ('Updated User', updated_user_name))))
     return temp_data
 
 
@@ -2521,7 +2567,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                'purchase_order__open_po__cess_tax', 'purchase_order__open_po__cgst_tax', 'purchase_order__open_po__sgst_tax',
                'purchase_order__open_po__igst_tax', 'purchase_order__open_po__utgst_tax',
                'purchase_order__open_po__cess_tax','id', 'seller_po__margin_percent', 'id', 'id', 'id',
-               'invoice_number', 'invoice_date', 'challan_number', 'challan_date']
+               'invoice_number', 'invoice_date', 'challan_number', 'challan_date', 'id']
         model_name = SellerPOSummary
         field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date',
                          'order_id': 'purchase_order__order_id',
@@ -2564,7 +2610,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                'purchase_order__open_po__igst_tax', 'purchase_order__open_po__utgst_tax',
                'purchase_order__open_po__cess_tax',
                'id', 'seller_po__margin_percent', 'id', 'id', 'id',
-               'invoice_number', 'invoice_date', 'challan_number', 'challan_date']
+               'invoice_number', 'invoice_date', 'challan_number', 'challan_date', 'id']
         field_mapping = {'from_date': 'creation_date', 'to_date': 'creation_date',
                          'order_id': 'purchase_order__order_id',
                          'wms_code': 'purchase_order__open_po__sku__wms_code__iexact',
@@ -2703,6 +2749,10 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
             invoice_date = data['invoice_date'].strftime("%d %b, %Y")
         if data['challan_date']:
             challan_date = data['challan_date'].strftime("%d %b, %Y")
+        updated_user_name = user.username
+        version_obj = Version.objects.get_for_object(SellerPOSummary.objects.get(id=data['id']))
+        if version_obj.exists():
+            updated_user_name = version_obj.order_by('-revision__date_created')[0].revision.user.username
         seller_po_summary = SellerPOSummary.objects.get(id=data['id'])
         temp_data['aaData'].append(OrderedDict((('Received Date', get_local_date(user, seller_po_summary.creation_date)),
                             ('PO Date', get_local_date(user, result.creation_date)),
@@ -2741,7 +2791,8 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                             ('Challan Date', challan_date),
                             ('DT_RowAttr', {'data-id': data['id']}), ('key', 'po_summary_id'),
                             ('receipt_type', data['seller_po__receipt_type']),
-                            ('receipt_no', 'receipt_no')
+                            ('receipt_no', 'receipt_no'),
+                            ('Updated User', updated_user_name)
 	)))
     if stop_index and custom_search:
         if temp_data['aaData']:

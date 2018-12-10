@@ -1672,22 +1672,57 @@ def get_supplier_data(request, user=''):
                 weight = skuattributes[0].attribute_value
             tax_percent = order_data['cgst_tax'] + order_data['sgst_tax'] + order_data['igst_tax'] +\
                           order_data['utgst_tax']
-            orders.append([{ 'order_id': order.id, 'wms_code': order_data['wms_code'],
-                            'sku_desc': order_data['sku_desc'], 'weight': weight,
-                            'po_quantity': float(order_data['order_quantity']) - float(order.received_quantity),
-                            'name': str(order.order_id) + '-' + str(
-                                re.sub(r'[^\x00-\x7F]+', '', order_data['wms_code'])),
-                            'value': get_decimal_limit(user.id, order.saved_quantity),
-                            'receive_quantity': get_decimal_limit(user.id, order.received_quantity),
-                            'price': order_data['price'],
-                            'mrp': order_data['mrp'],
-                            'temp_wms': order_data['temp_wms'], 'order_type': order_data['order_type'],
-                            'unit': order_data['unit'],
-                            'dis': True,
-                            'sku_extra_data': sku_extra_data, 'product_images': product_images,
-                            'sku_details': sku_details, 'shelf_life': order_data['shelf_life'],
-                            'tax_percent': tax_percent, 'cess_percent': order_data['cess_tax'],
-                            'total_amt': 0, 'show_imei': order_data['sku'].enable_serial_based }])
+            tax_percent_copy = tax_percent
+            temp_jsons = TempJson.objects.filter(model_id=order.id, model_name='PO')
+            if temp_jsons.exists():
+                for temp_json_obj in temp_jsons:
+                    temp_json = json.loads(temp_json_obj.model_json)
+                    orders.append([{'order_id': order.id, 'wms_code': order_data['wms_code'],
+                                    'sku_desc': order_data['sku_desc'], 'weight': temp_json.get('weight', 0),
+                                    'po_quantity': float(order_data['order_quantity']) - float(order.received_quantity),
+                                    'name': str(order.order_id) + '-' + str(
+                                        re.sub(r'[^\x00-\x7F]+', '', order_data['wms_code'])),
+                                    'value': temp_json.get('quantity', 0),
+                                    'receive_quantity': get_decimal_limit(user.id, order.received_quantity),
+                                    'price': order_data['price'],
+                                    'mrp': temp_json.get('mrp', 0),
+                                    'temp_wms': order_data['temp_wms'], 'order_type': order_data['order_type'],
+                                    'unit': order_data['unit'],
+                                    'dis': True,
+                                    'sku_extra_data': sku_extra_data, 'product_images': product_images,
+                                    'sku_details': sku_details, 'shelf_life': order_data['shelf_life'],
+                                    'tax_percent': temp_json.get('tax_percent', 0),
+                                    'cess_percent': temp_json.get('cess_percent', 0),
+                                    'total_amt': 0, 'show_imei': order_data['sku'].enable_serial_based,
+                                    'tax_percent_copy': tax_percent_copy, 'temp_json_id': temp_json_obj.id,
+                                    'buy_price': temp_json.get('buy_price', 0),
+                                    'discount_percentage': temp_json.get('discount_percentage', 0),
+                                    'batch_no': temp_json.get('batch_no', ''),
+                                    'mfg_date': temp_json.get('mfg_date', ''),
+                                    'exp_date': temp_json.get('exp_date', ''),
+                                    'pallet_number': temp_json.get('pallet_number', '')}])
+            else:
+                orders.append([{ 'order_id': order.id, 'wms_code': order_data['wms_code'],
+                                'sku_desc': order_data['sku_desc'], 'weight': weight,
+                                'po_quantity': float(order_data['order_quantity']) - float(order.received_quantity),
+                                'name': str(order.order_id) + '-' + str(
+                                    re.sub(r'[^\x00-\x7F]+', '', order_data['wms_code'])),
+                                'value': get_decimal_limit(user.id, order.saved_quantity),
+                                'receive_quantity': get_decimal_limit(user.id, order.received_quantity),
+                                'price': order_data['price'],
+                                'mrp': order_data['mrp'],
+                                'temp_wms': order_data['temp_wms'], 'order_type': order_data['order_type'],
+                                'unit': order_data['unit'],
+                                'dis': True,
+                                'sku_extra_data': sku_extra_data, 'product_images': product_images,
+                                'sku_details': sku_details, 'shelf_life': order_data['shelf_life'],
+                                'tax_percent': tax_percent, 'cess_percent': order_data['cess_tax'],
+                                'total_amt': 0, 'show_imei': order_data['sku'].enable_serial_based,
+                                 'tax_percent_copy': tax_percent_copy, 'temp_json_id': '',
+                                 'buy_price': order_data['price'],
+                                 'discount_percentage': 0, 'batch_no': '', 'mfg_date': '', 'exp_date': '',
+                                 'pallet_number': ''
+                                 }])
     supplier_name, order_date, expected_date, remarks = '', '', '', ''
     if purchase_orders:
         purchase_order = purchase_orders[0]
@@ -1698,13 +1733,27 @@ def get_supplier_data(request, user=''):
         if purchase_order.expected_date:
             purchase_order = purchase_orders.latest('expected_date')
             expected_date = datetime.datetime.strftime(purchase_order.expected_date, "%m/%d/%Y")
-
+        temp_json = TempJson.objects.filter(model_id=purchase_order.id, model_name='PO')
+        invoice_number = ''
+        invoice_date = ''
+        dc_number = ''
+        dc_date = ''
+        dc_level_grn = ''
+        if temp_json.exists():
+            temp_json = json.loads(temp_json[0].model_json)
+            invoice_number = temp_json.get('invoice_number', '')
+            invoice_date = temp_json.get('invoice_date', '')
+            dc_number = temp_json.get('dc_number', '')
+            dc_date = temp_json.get('dc_date', '')
+            dc_level_grn = temp_json.get('dc_level_grn', '')
     return HttpResponse(json.dumps({'data': orders, 'po_id': order_id, 'options': REJECT_REASONS, \
                                     'supplier_id': order_data['supplier_id'], 'use_imei': use_imei, \
                                     'temp': temp, 'po_reference': po_reference, 'order_ids': order_ids, \
                                     'supplier_name': supplier_name, 'order_date': order_date, \
                                     'expected_date': expected_date, 'remarks': remarks,
-                                    'remainder_mail': remainder_mail}))
+                                    'remainder_mail': remainder_mail, 'invoice_number': invoice_number,
+                                    'invoice_date': invoice_date, 'dc_number': dc_number,
+                                    'dc_date': dc_date, 'dc_grn': dc_level_grn}))
 
 
 @csrf_exempt
@@ -1713,48 +1762,64 @@ def get_supplier_data(request, user=''):
 def update_putaway(request, user=''):
     try:
         log.info("Update Receive PO data for user %s and request params are %s" % (
-            user.username, str(request.GET.dict())))
-        remarks = request.GET.get('remarks', '')
-        expected_date = request.GET.get('expected_date', '')
-        remainder_mail = request.GET.get('remainder_mail', '')
-        mrp = request.GET.get('mrp','')
+            user.username, str(request.POST.dict())))
+        remarks = request.POST.get('remarks', '')
+        expected_date = request.POST.get('expected_date', '')
+        remainder_mail = request.POST.get('remainder_mail', '')
+        mrp = request.POST.get('mrp','')
         _expected_date = ''
         if expected_date:
             _expected_date = expected_date
             expected_date = expected_date.split('/')
             expected_date = datetime.date(int(expected_date[2]), int(expected_date[0]), int(expected_date[1]))
-        for key, value in request.GET.iteritems():
-            if key in ['remarks', 'expected_date', 'remainder_mail', 'invoice_date', 'round_off_total', 'invoice_number']:
-                continue
-            po = PurchaseOrder.objects.get(id=key)
-            total_count = float(value)
-            order_quantity = 0
-            if remarks != po.remarks:
+        data_dict = dict(request.POST.iterlists())
+        zero_index_keys = ['scan_sku', 'lr_number', 'remainder_mail', 'carrier_name', 'expected_date', 'invoice_date',
+                           'remarks', 'invoice_number', 'dc_level_grn', 'dc_number', 'dc_date']
+        for i in range(0, len(data_dict['id'])):
+            po_data = {}
+            if not data_dict['id'][i]:
+                if 'po_quantity' in data_dict.keys() and 'price' in data_dict.keys() and not data_dict['id'][i]:
+                    if data_dict['wms_code'][i] and data_dict['quantity'][i]:
+                        sku_master = SKUMaster.objects.filter(wms_code=data_dict['wms_code'][i].upper(),
+                                                              user=user.id)
+                        exist_id = 0
+                        for exist_list_ind, exist_list_id in enumerate(data_dict['id']):
+                            if exist_list_id:
+                                exist_id = exist_list_ind
+                                break
+                    get_data = create_purchase_order(request, data_dict, i, exist_id=exist_id)
+                    data_dict['id'][i] = get_data
+                else:
+                    continue
+            po = PurchaseOrder.objects.get(id=data_dict['id'][i])
+            for key in data_dict.keys():
+                if key in zero_index_keys:
+                    po_data[key] = data_dict[key][0]
+                else:
+                    po_data[key] = data_dict[key][i]
+            if po_data.get('remarks', '') != po.remarks:
                 po.remarks = remarks
             if expected_date:
                 if po.expected_date and expected_date.strftime('%d/%m/%Y') != po.expected_date.strftime('%d/%m/%Y'):
                     po.expected_date = expected_date
                 else:
                     po.expected_date = expected_date
-            if po.open_po:
-                order_quantity = po.open_po.order_quantity
-            elif po.stpurchaseorder_set.filter():
-                st_order = po.stpurchaseorder_set.filter()
-                order_quantity = st_order[0].open_st.order_quantity
-            elif po.rwpurchase_set.filter():
-                rw_purchase = po.rwpurchase_set.filter()
-                order_quantity = rw_purchase[0].rwo.job_order.product_quantity
-            if total_count > order_quantity:
-                return HttpResponse('Given quantity is greater than expected quantity')
-            if remainder_mail:
-                po.remainder_mail = remainder_mail
-            setattr(po, 'saved_quantity', float(value))
+            if po_data.get('remainder_mail', 0):
+                po.remainder_mail = po_data['remainder_mail']
+            # setattr(po, 'saved_quantity', float(value))
             po.save()
+            if not data_dict['temp_json_id'][i]:
+                TempJson.objects.create(model_id=po.id, model_name='PO', model_json=json.dumps(po_data))
+            else:
+                exist_temp_json = TempJson.objects.filter(id=data_dict['temp_json_id'][i], model_name='PO')
+                if exist_temp_json:
+                    exist_temp_json[0].model_json = json.dumps(po_data)
+                    exist_temp_json[0].save()
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info(
-            "Update Receive PO data failed for params " + str(request.GET.dict()) + " and error statement is " + str(e))
+            "Update Receive PO data failed for params " + str(request.POST.dict()) + " and error statement is " + str(e))
         return HttpResponse('Updated Failed')
     return HttpResponse('Updated Successfully')
 
@@ -2474,6 +2539,10 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
         if remainder_mail:
             data.remainder_mail = remainder_mail
 
+        if 'temp_json_id' in myDict.keys() and myDict['temp_json_id'][i]:
+            temp_json_obj = TempJson.objects.filter(id=myDict['temp_json_id'][i])
+            if temp_json_obj.exists():
+                temp_json_obj.delete()
         purchase_data = get_purchase_order_data(data)
         #Create Batch Detail entry
         batch_dict = {}
@@ -8401,6 +8470,7 @@ def update_existing_grn(request, user=''):
                         if getattr(model_obj.batch_detail, field_mapping[key]):
                             prev_val = datetime.datetime.strftime(getattr(model_obj.batch_detail, field_mapping[key]), '%m/%d/%Y')
                             if myDict[key][ind] != prev_val and value:
+                                model_obj = check_and_create_duplicate_batch(model_obj.batch_detail, model_obj)
                                 setattr(model_obj.batch_detail, field_mapping[key],
                                         datetime.datetime.strptime(value, '%m/%d/%Y'))
                                 model_obj.batch_detail.save()
@@ -8426,6 +8496,7 @@ def update_existing_grn(request, user=''):
                     if model_obj.batch_detail:
                         prev_val = float(getattr(model_obj.batch_detail, field_mapping[key]))
                         if prev_val != value:
+                            model_obj = check_and_create_duplicate_batch(model_obj.batch_detail, model_obj)
                             setattr(model_obj.batch_detail, field_mapping[key], value)
                             model_obj.batch_detail.save()
                             create_update_table_history(user, model_obj.id, model_name, field_mapping[key], prev_val, value)
@@ -8451,6 +8522,7 @@ def update_existing_grn(request, user=''):
                     if model_obj.batch_detail:
                         prev_val = getattr(model_obj.batch_detail, field_mapping[key])
                         if prev_val != value:
+                            model_obj = check_and_create_duplicate_batch(model_obj.batch_detail, model_obj)
                             setattr(model_obj.batch_detail, field_mapping[key], value)
                             model_obj.batch_detail.save()
                             create_update_table_history(user, model_obj.id, model_name, field_mapping[key],

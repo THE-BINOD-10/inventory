@@ -1025,7 +1025,7 @@ PICKLIST_OPTIONS = {'Scan SKU': 'scan_sku', 'Scan SKU Location': 'scan_sku_locat
                     'Scan Label': 'scan_label',
                     'Scan None': 'scan_none'}
 
-BARCODE_OPTIONS = {'SKU Code': 'sku_code', 'Embedded SKU Code in Serial': 'sku_serial', 'EAN Number': 'sku_ean'}
+BARCODE_OPTIONS = {'SKU Code': 'sku_code', 'Embedded SKU Code in Serial': 'sku_serial', 'EAN Number': 'sku_ean','SKU PACK':'sku_pack'}
 
 REPORTS_DATA = {'SKU List': 'sku_list', 'Location Wise SKU': 'location_wise_stock', 'Receipt Summary': 'receipt_note',
                 'Dispatch Summary': 'dispatch_summary', 'SKU Wise Stock': 'sku_wise'}

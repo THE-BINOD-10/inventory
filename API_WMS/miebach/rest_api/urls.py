@@ -191,7 +191,7 @@ urlpatterns = [
     url(r'^update_existing_grn/$', update_existing_grn),
     url(r'^confirm_central_po/$', confirm_central_po),
     url(r'^check_sku_pack_scan/$', check_sku_pack_scan),
-    url(r'^save_sku_pack_scans/$', save_sku_pack_scans),
+    # url(r'^save_sku_pack_scans/$', save_sku_pack_scans),
 
 
     # Production

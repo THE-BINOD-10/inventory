@@ -4912,7 +4912,6 @@ def generate_barcode_dict(pdf_format, myDicts, user):
                     single.update()
                     single['SKUCode'] = sku if sku else label
                     single['Label'] = label if label else sku
-
                     if barcode_opt == 'sku_ean' and sku_data.ean_number:
                         single['Label'] = str(sku_data.ean_number)
                     single['SKUPrintQty'] = quant
@@ -5006,9 +5005,11 @@ def generate_barcode_dict(pdf_format, myDicts, user):
                 single.update()
                 single['SKUCode'] = sku if sku else label
                 single['Label'] = label if label else sku
-
                 if barcode_opt == 'sku_ean' and sku_data.ean_number:
                     single['Label'] = str(sku_data.ean_number)
+                if barcode_opt == 'sku_pack' :
+                    single['Label'] = myDict['pack_id']
+                    single['pack_id'] = myDict['pack_id']
                 single['SKUPrintQty'] = quant
                 for show_keys1 in show_fields:
                     show_keys2 = [show_keys1]
@@ -5067,7 +5068,6 @@ def generate_barcode_dict(pdf_format, myDicts, user):
                 single['Customer Address'] = c_details[0].address if c_details else ''
                 single['Customer Telephone'] = c_details[0].phone_number if c_details else ''
                 single['Customer Email'] = c_details[0].email_id if c_details else ''
-
             address = user_prf.address
             if BARCODE_ADDRESS_DICT.get(user.username, ''):
                 address = BARCODE_ADDRESS_DICT.get(user.username)
@@ -5075,7 +5075,6 @@ def generate_barcode_dict(pdf_format, myDicts, user):
             if "bulk" in pdf_format.lower():
                 single['Qty'] = single['SKUPrintQty']
                 single['SKUPrintQty'] = "1"
-
             barcodes_list.append(single)
     log.info(barcodes_list)
     return get_barcodes(make_data_dict(barcodes_list, user_prf, pdf_format))

@@ -447,19 +447,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     }
 
-    vm.save_sku_pack_ids = function()
-    {
-      var sub_model_data = []
-      // for(var i=0; i<vm.model_data.data.length; i++)
-      //  {
-      //   sub_model_data.push(vm.model_data.data[i][0]);
-      // }
-        vm.service.apiCall('save_sku_pack_scans/', 'POST',{"data":JSON.stringify(vm.model_data)}).then(function(data)
-        {
-                console.log("success")
-        });
-
-    }
+    // vm.save_sku_pack_ids = function()
+    // {
+    //   var sub_model_data = []
+    //   // for(var i=0; i<vm.model_data.data.length; i++)
+    //   //  {
+    //   //   sub_model_data.push(vm.model_data.data[i][0]);
+    //   // }
+    //     vm.service.apiCall('save_sku_pack_scans/', 'POST',{"data":JSON.stringify(vm.model_data)}).then(function(data)
+    //     {
+    //             console.log("success")
+    //     });
+    //
+    // }
 
     vm.save_sku = function(){
 
@@ -496,35 +496,59 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       return Math.abs(inv_value - total_value);
     }
-   vm.scanned_sku_pack_ids =[]
-    vm.check_sku_pack = function(event,record)
+   vm.scanned =[]
+    vm.check_sku_pack = function(event,pack_id)
     {
         event.stopPropagation();
         if (event.keyCode == 13 )
         {
-          if(vm.scanned_sku_pack_ids.indexOf(record.scanned_pack_id) == -1)
-          {
-           vm.service.apiCall('check_sku_pack_scan/', 'GET', record).then(function(data){
-             if (data.data.decremented_recieve_qty)
+          // if(vm.scanned_sku_pack_ids.indexOf(record.scanned_pack_id) == -1)
+          // {
+           vm.service.apiCall('check_sku_pack_scan/', 'GET', {'pack_id':pack_id}).then(function(data){
+             if (data.data.flag)
                {
-                 record.value += data.data.decremented_recieve_qty
-                 record.total_amt = record.price * record.value
-                 if (!record.scanned_list)
+                 for(var i=0; i<vm.model_data.data.length; i++)
                  {
-                   record.scanned_list =[]
+                   if(vm.model_data.data[i][0].po_quantity > vm.model_data.data[i][0].value && vm.model_data.data[i][0].po_quantity >= data.data.quantity)
+                   {
+                      if(vm.model_data.data[i][0].wms_code == data.data.sku_code)
+                       {
+                         vm.model_data.data[i][0].pack_id = pack_id
+                         if(!vm.model_data.data[i][0].num_packs)
+                         {
+                           vm.model_data.data[i][0].num_packs =0
+                         }
+                         vm.model_data.data[i][0].num_packs +=1;
+                         vm.model_data.data[i][0].value += data.data.quantity
+                          if (vm.model_data.data[i][0].price)
+                           {
+                            vm.model_data.data[i][0].total_amt =  vm.model_data.data[i][0].price *  vm.model_data.data[i][0].value
+                            }
+                          break;
+                       }
+                       else
+                        {
+                         Service.showNoty('Pack Id is not matched to SKU', 'error', 'topRight')
+                       }
+                   }
+                  else if(vm.model_data.data[i][0].po_quantity = vm.model_data.data[i][0].value)
+                      {
+                          vm.scanned.push(vm.model_data.data[i][0].wms_code)
+                      }
+                  else{
+                    Service.showNoty('Recived quantity is greater than PO quantity', 'error', 'topRight')
+                  }
                  }
-                 vm.scanned_sku_pack_ids.push(record.scanned_pack_id)
-                 record.scanned_list.push(record.scanned_pack_id)
-                 Service.showNoty(data.data.status)
+
                }
             else{
                 Service.showNoty(data.data.status, 'error', 'topRight')
                 }
             });
-           }
-           else{
-                Service.showNoty("Sku pack is already scanned", 'error', 'topRight')
-           }
+           // }
+           // else{
+           //      Service.showNoty("Sku pack is already scanned", 'error', 'topRight')
+           // }
         }
     }
 
@@ -541,10 +565,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       // data.push({name: 'po_unit', value: form.po_unit.$viewValue});
       // data.push({name: 'tax_per', value: form.tax_per.$viewValue});
       if (form.$valid) {
-        if(vm.permissions.sku_pack_config)
-        {
-          vm.save_sku_pack_ids();
-        }
         if (vm.permissions.receive_po_invoice_check && vm.model_data.invoice_value){
 
           var abs_inv_value = vm.absOfInvValueTotal(vm.model_data.invoice_value, vm.skus_total_amount);

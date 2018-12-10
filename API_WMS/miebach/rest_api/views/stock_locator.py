@@ -176,8 +176,15 @@ def get_stock_results(start_index, stop_index, temp_data, search_term, order_ter
             wms_code_obj_sku_unit_price = wms_code_obj.filter(unit_price=0).only('quantity', 'sku__cost_price')
             total_wms_qty_sku_unit_price = sum(wms_code_obj_sku_unit_price.annotate(stock_value=Sum(F('quantity') * F('sku__cost_price'))).values_list('stock_value',flat=True))
             total_stock_value = total_wms_qty_unit_price + total_wms_qty_sku_unit_price
+            
+        try:
+            sku_pack_obj = SKUPackMaster.objects.get(sku__wms_code= data[0],sku__user = user.id)
+            sku_packs = int(quantity / sku_pack_obj.pack_quantity)
+        except:
+            sku_packs = 0
         temp_data['aaData'].append(OrderedDict((('WMS Code', data[0]), ('Product Description', data[1]),
                                                 ('SKU Category', data[2]), ('SKU Brand', data[3]),
+                                                ('sku_packs',sku_packs),
                                                 ('Available Quantity', quantity),
                                                 ('Reserved Quantity', reserved), ('Total Quantity', total),
                                                 ('Unit of Measurement', sku.measurement_type), ('Stock Value', total_stock_value ),
@@ -1450,7 +1457,7 @@ def warehouse_headers(request, user=''):
         if level:
             warehouses = UserProfile.objects.filter(user__in=warehouses,warehouse_level=int(level)).values_list('user_id',flat=True)
         ware_list = list(User.objects.filter(id__in=warehouses).values_list('username', flat=True))
-        
+
         user_groups = UserGroups.objects.filter(Q(admin_user_id=user.id) | Q(user_id=user.id))
         if user_groups:
             admin_user_id = user_groups[0].admin_user_id

@@ -1574,6 +1574,10 @@ def insert_sku_pack(request, user=''):
     if not sku_obj:
         return HttpResponse('Wrong WMS Code')
 
+    redundent_sku_obj = SKUPackMaster.objects.filter(sku__wms_code= sku_code , sku__user = user.id)
+
+    if redundent_sku_obj and redundent_sku_obj[0].pack_id != pack_id :
+        return HttpResponse('SKU Code have already mapped to %s' %(str(redundent_sku_obj[0].pack_id)))
     pack_obj = SKUPackMaster.objects.filter(sku__wms_code= sku_code,pack_id = pack_id,sku__user = user.id)
     if pack_obj :
         pack_obj = pack_obj[0]
@@ -2780,7 +2784,6 @@ def generate_barcodes(request, user=''):
     myDict.pop('pdf_format')
     if myDict.has_key('order_id'):
         myDict.pop('order_id')
-
     if myDict.has_key('format'):
         myDict.pop('format')
     others = {}
@@ -2788,7 +2791,6 @@ def generate_barcodes(request, user=''):
     if myDict.has_key('Label'):
         barcodes_list = generate_barcode_dict(pdf_format, data_dict, user)
         return HttpResponse(json.dumps(barcodes_list))
-
     tmp = []
     for d in data_dict:
         if d.has_key('quantity') and int(d['quantity']) > 1:

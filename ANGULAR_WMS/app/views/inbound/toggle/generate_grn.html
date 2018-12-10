@@ -67,10 +67,16 @@
                 <input name="expected_date" ui-jq="datepicker" ng-model="showCase.model_data.expected_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}" readonly>
               </div>
             </div>
-            <div class="col-md-3 col-sm-3 col-xs-6" style="height:74px;">
+            <div class="col-md-3 col-sm-3 col-xs-6" style="height:74px;" ng-if="!showCase.permissions.sku_pack_config">
               <div class="form-group">
                 <label for="scan_sku" class="control-label"> Scan SKU </label>
                 <textarea class="form-control" rows="1" ng-model="showCase.model_data.scan_sku" type="text" name="scan_sku" ng-keydown="showCase.scan_sku($event, showCase.model_data.scan_sku)" focus-on="focusSKU" auto-focus ng-readonly="showCase.scan_sku_disable"></textarea>
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-3 col-xs-6" style="height:74px;" ng-if="showCase.permissions.sku_pack_config">
+              <div class="form-group">
+                <label for="scan_sku" class="control-label"> Scan Pack </label>
+                <input type="text" name="scan_pack"  ng-model="showCase.model_data.pack_id" class="form-control detectTab"  ng-keydown="showCase.check_sku_pack($event, showCase.model_data.pack_id)" >
               </div>
             </div>
 
@@ -145,7 +151,6 @@
                     <th>Received Qty</th>
                     <th>UOM</th>
                     <th ng-if="showCase.permissions.use_imei">Serial Number</th>
-                    <th ng-if="showCase.permissions.sku_pack_config">SKU Pack Scan</th>
                     <th>Unit Price</th>
                     <th ng-if="showCase.industry_type=='FMCG'">Buy Price</th>
                     <th ng-if="showCase.industry_type=='FMCG'">MRP</th>
@@ -172,6 +177,8 @@
                       <!-- out of elements start -->
                       <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{outerIndex}}">
                       <input type="hidden" name="supplier_id" value="{{showCase.model_data.supplier_id}}">
+                      <input type="hidden" name="pack_id" value="{{data.pack_id}}">
+                      <input type="hidden" name="num_packs" value="{{data.num_packs}}">
                       <input type="hidden" name="id" value="{{data.order_id}}" ng-model="data.order_id">
                       <input type="hidden" name="new_sku" value="{{data.is_new}}">
                       <input ng-if="showCase.po_qc" type="hidden" class="form-control" value="{{data.accepted_quantity}}" name="accepted_quantity">
@@ -195,10 +202,6 @@
                       <input type="text" name="imei" attr-name="{{'imei_'+data.wms_code}}" ng-model="data.imei_number" class="form-control detectTab" ng-readonly="data.po_quantity == data.value || data.disable" ng-keydown="showCase.check_imei_exists($event, data, outerIndex)" ng-disabled="!data.show_imei">
                       <input ng-if="!showCase.po_qc" type="hidden" name="imei_number" class="form-control detectTab" value="{{data.imei_list.join(',')}}">
                     </td>
-                    <td ng-if="showCase.permissions.sku_pack_config">
-                      <input type="text" name="scan_pack"  ng-model="data.scanned_pack_id" class="form-control detectTab"  ng-keydown="showCase.check_sku_pack($event, data)" >
-                    </td>
-
                     <td><input type="text" ng-model="data.price" title="{{ data.price }}" size="13" name="price" class="form-control detectTab" value="" ng-readonly="records[0].dis" ng-class="service.get_decimal_perm()" ng-keyup="showCase.calc_total_amt($event, showCase.model_data, innerIndex, outerIndex)"></td>
                     <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.buy_price" size="13" title="{{ data.buy_price }}" name="buy_price" class="form-control" value="{{data.buy_price}}" ng-keyup="showCase.calc_total_amt($event, showCase.model_data, innerIndex, outerIndex)" ng-required="showCase.receive_po_mandatory_fields['buy_price']"></td>
                     <!-- <td ng-if="showCase.industry_type=='FMCG'"><input type="text" ng-model="data.buy_price" size="13" title="{{ data.buy_price }}" name="buy_price" ng-required="showCase.receive_po_mandatory_fields['buy_price']" class="form-control detectTab" ng-class="service.get_decimal_perm()" ng-keyup="showCase.calc_total_amt($event, showCase.model_data, innerIndex, outerIndex)" value="{{data.buy_price}}"></td> -->

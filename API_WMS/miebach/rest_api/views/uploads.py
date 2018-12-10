@@ -5662,6 +5662,8 @@ def sku_pack_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls
                         index_status.setdefault(count, set()).add('Invalid sku code')
                 except:
                     index_status.setdefault(count, set()).add('Invalid sku code')
+            redundent_sku_obj = SKUPackMaster.objects.filter(sku__wms_code= sku_code , sku__user = user.id)
+
         if order_mapping.has_key('pack_id'):
             try:
                 pack_id = str(int(get_cell_data(row_idx, order_mapping['pack_id'], reader, file_type)))
@@ -5670,6 +5672,9 @@ def sku_pack_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls
 
             if not pack_id:
                 index_status.setdefault(count, set()).add('Invalid pack_id')
+            if redundent_sku_obj :
+                if redundent_sku_obj[0].pack_id != pack_id :
+                    index_status.setdefault(count, set()).add('SKU Code is already mapped to other pack_id')
         if order_mapping.has_key('pack_quantity'):
             try:
                 pack_quantity = int(get_cell_data(row_idx, order_mapping['pack_quantity'], reader, file_type))

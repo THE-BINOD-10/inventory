@@ -8667,85 +8667,64 @@ def confirm_central_po(request, user=''):
 @login_required
 @get_admin_user
 def check_sku_pack_scan(request, user=''):
-    record = request.GET
-    sku_code = record.get('wms_code')
+    pack_id = request.GET.get('pack_id')
     status =''
-    decremented_recieve_qty = 0
-    scanned_pack_id = record.get('scanned_pack_id')
-    po_quantity = int(record.get('po_quantity'))
-    recived_quantity = int(record.get('value'))
+    flag = 0
     try:
-        po_imei_obj = POIMEIMapping.objects.get(sku__wms_code= sku_code,imei_number = scanned_pack_id,sku__user = user.id)
-        log.info('Already mapped to other po_imei')
-    except:
-        po_imei_obj = False
-        log.info('')
-    try:
-        pack_obj = SKUPackMaster.objects.get(sku__wms_code= sku_code,pack_id = scanned_pack_id,sku__user = user.id)
-        if pack_obj and not po_imei_obj :
-            if po_quantity > int(pack_obj.pack_quantity) and (po_quantity - recived_quantity) >= int(pack_obj.pack_quantity) :
-                status = "Success fully scanned"
-                decremented_recieve_qty = pack_obj.pack_quantity
-                pack_obj.save()
-            elif po_quantity == int(pack_obj.pack_quantity)  :
-                status = "Success fully scanned"
-                decremented_recieve_qty = pack_obj.pack_quantity
-                pack_obj.save()
-            elif int(pack_obj.pack_quantity) == 0:
-                status = "quantity is empty"
-                decremented_recieve_qty = 0
-            else :
-                status ="Pack is larger than po quantity"
-                decremented_recieve_qty = 0
-        else:
-            status = "Invalid sku pack or Already mapped to other PO"
-            decremented_recieve_qty = 0
+        pack_obj = SKUPackMaster.objects.get(pack_id = pack_id,sku__user = user.id)
+        if pack_obj :
+            sku_code = pack_obj.sku.wms_code
+            status = "Sku Pack  matched"
+            flag = True
+            quantity = pack_obj.pack_quantity
     except Exception as e:
             status = "Sku Pack Doesnot matched"
-            decremented_recieve_qty = 0
-            log.info('some thing went wrong  %s' % (str(user.username),str(request.POST.dict()), str(e)))
+            flag = False
+            quantity =0
+            sku_code =0
+            log.info('some thing went wrong  %s %s %s' % (str(user.username),str(request.POST.dict()), str(e)))
 
-    return HttpResponse(json.dumps({'status' :status,"decremented_recieve_qty":decremented_recieve_qty}))
+    return HttpResponse(json.dumps({'status' :status,"sku_code":sku_code,"quantity":quantity,"flag":flag}))
 
-@csrf_exempt
-@login_required
-@get_admin_user
-def save_sku_pack_scans(request, user=''):
-    data = json.loads(request.POST.get('data'))
-    sub_data = data['data']
-    po_id = data['po_id']
-    flag = 0
-    for record in sub_data:
-        sku_code = record[0]['wms_code']
-        try:
-            scanned_pack_list = record[0]['scanned_list']
-        except:
-            scanned_pack_list=[]
-        try:
-            for pack_id in scanned_pack_list :
-                po_imei ={}
-                sku_obj = SKUMaster.objects.filter(wms_code=sku_code.upper(), user=user.id)
-                purchase_orders = PurchaseOrder.objects.filter(order_id=po_id, open_po__sku__user=user.id, open_po__sku_id=sku_obj[0].id)
-                po_imei['sku'] = sku_obj[0]
-                po_imei ['pack_status'] = 1
-                po_imei ['imei_number'] = pack_id
-                po_imei['purchase_order'] = purchase_orders[0]
-                try:
-                    if pack_id:
-                        POIMEIMapping.objects.create(**po_imei)
-                        log.info('succesfully saved in the po imei mapping table')
-                except Exception as e:
-                    status = "Sku Pack Doesnot matched"
-                    flag = 0
-                    import traceback
-                    log.debug(traceback.format_exc())
-                    log.info('Insert pack id in PO_IMEI_MAPPING failed for %s and params are %s and error statement is %s' % (str(user.username), \
-                                                                                                   str(request.POST.dict()),
-                                                                                                   str(e)))
-        except Exception as e:
-            import traceback
-            log.debug(traceback.format_exc())
-            log.info('Insert pack id in PO_IMEI_MAPPING failed for %s and params are %s and error statement is %s' % (str(user.username), \
-                                                                                           str(request.POST.dict()),
-                                                                                           str(e)))
-    return HttpResponse('Success')
+# @csrf_exempt
+# @login_required
+# @get_admin_user
+# def save_sku_pack_scans(request, user=''):
+#     data = json.loads(request.POST.get('data'))
+#     sub_data = data['data']
+#     po_id = data['po_id']
+#     flag = 0
+#     for record in sub_data:
+#         sku_code = record[0]['wms_code']
+#         try:
+#             scanned_pack_list = record[0]['scanned_list']
+#         except:
+#             scanned_pack_list=[]
+#         try:
+#             for pack_id in scanned_pack_list :
+#                 po_imei ={}
+#                 sku_obj = SKUMaster.objects.filter(wms_code=sku_code.upper(), user=user.id)
+#                 purchase_orders = PurchaseOrder.objects.filter(order_id=po_id, open_po__sku__user=user.id, open_po__sku_id=sku_obj[0].id)
+#                 po_imei['sku'] = sku_obj[0]
+#                 po_imei ['pack_status'] = 1
+#                 po_imei ['imei_number'] = pack_id
+#                 po_imei['purchase_order'] = purchase_orders[0]
+#                 try:
+#                     if pack_id:
+#                         POIMEIMapping.objects.create(**po_imei)
+#                         log.info('succesfully saved in the po imei mapping table')
+#                 except Exception as e:
+#                     status = "Sku Pack Doesnot matched"
+#                     flag = 0
+#                     import traceback
+#                     log.debug(traceback.format_exc())
+#                     log.info('Insert pack id in PO_IMEI_MAPPING failed for %s and params are %s and error statement is %s' % (str(user.username), \
+#                                                                                                    str(request.POST.dict()),
+#                                                                                                    str(e)))
+#         except Exception as e:
+#             import traceback
+#             log.debug(traceback.format_exc())
+#             log.info('Insert pack id in PO_IMEI_MAPPING failed for %s and params are %s and error statement is %s' % (str(user.username), \
+#                                                                                            str(request.POST.dict()),
+#                                                                                            str(e)))
+#     return HttpResponse('Success')

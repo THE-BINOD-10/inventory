@@ -8509,3 +8509,16 @@ def check_and_create_duplicate_batch(batch_detail_obj, model_obj):
         model_obj.save()
     return model_obj
 
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def delete_temp_json(request, user=''):
+    model_name = request.POST.get('model_name', '')
+    json_id = request.POST.get('json_id', '')
+    if json_id and model_name:
+        temp_json_obj = TempJson.objects.filter(id=json_id, model_name=model_name)
+        if temp_json_obj.exists():
+            temp_json_obj.delete()
+    return HttpResponse(json.dumps({'message': 'deleted'}))
+

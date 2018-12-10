@@ -1377,7 +1377,7 @@ PERMISSION_DICT = OrderedDict((
 
     # Inbound
     ("INBOUND_LABEL", (("Raise PO", "add_openpo"), ("Confirm PO", "change_openpo"),
-                       ("Receive PO", "add_purchaseorder"), ("Generate GRN", "change_purchase_order"),
+                       ("Receive PO", "add_purchaseorder"), ("Generate GRN", "change_purchaseorder"),
                        ("Quality Check", "add_qualitycheck"), ("Primary Segregation", "add_primarysegregation"),
                        ("Putaway Confirmation", "add_polocation"), ("Sales Returns", "add_orderreturns"),
                        ("Returns Putaway", "add_returnslocation"),
@@ -1414,10 +1414,10 @@ PERMISSION_DICT = OrderedDict((
     ("PAYMENT_LABEL", (("PAYMENTS", "add_paymentsummary"),)),
 
     # Uploads
-    ("UPLOADS", (('add_orderdetail', 'add_orderdetail'), ('add_skumaster', 'add_skumaster'),
-                                    ('add_stockdetail', 'add_stockdetail'), ('add_suppliermaster', 'add_suppliermaster'),
+    ("UPLOADS", (('Create Orders', 'add_orderdetail'), ('SKU Master', 'add_skumaster'),
+                                    ('Stock Detail', 'add_stockdetail'), ('Supplier Master', 'add_suppliermaster'),
                                     ('add_skusupplier', 'add_skusupplier'), ('add_locationmaster', 'add_locationmaster'),
-                                    ('add_openpo', 'add_openpo'),
+                                    ('Raise PO', 'add_openpo'),
                                     ('change_inventoryadjustment', 'change_inventoryadjustment'),
                                     ('add_bommaster', 'add_bommaster'),
                                     ('add_inventoryadjustment', 'add_inventoryadjustment'),

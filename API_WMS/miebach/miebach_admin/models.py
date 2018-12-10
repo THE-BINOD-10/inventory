@@ -3040,7 +3040,7 @@ class SellableSuggestions(models.Model):
         db_table = 'SELLABLE_SUGGESTIONS'
         index_together = (('seller', 'stock', 'status'), ('stock', 'status'))
 
-#
+
 class TableUpdateHistory(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User, blank=True, null=True)
@@ -3056,3 +3056,16 @@ class TableUpdateHistory(models.Model):
         db_table = 'TABLE_UPDATE_HISTORY'
         index_together = (('user', 'model_id'), ('user', 'model_id', 'model_name'),
                           ('user', 'model_id', 'model_name', 'model_field'))
+
+
+class TempJson(models.Model):
+    id = BigAutoField(primary_key=True)
+    model_id = models.PositiveIntegerField()
+    model_name = models.CharField(max_length=32, default='')
+    model_json = models.TextField(default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'TEMP_JSON'
+        index_together = ('model_id', 'model_name')

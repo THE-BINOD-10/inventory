@@ -953,21 +953,23 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
     $(print_div).find(".modal-body").css('max-height', 'none');
    $(print_div).find(".modal-footer").remove();
    print_div = $(print_div).html();
-    var mywindow = window.open(Session.url + '/dispatch_invoice.pdf', '_blank', title, 'height=400,width=600');
-   mywindow.document.write('<html><head><title>'+title+'</title>');
-   mywindow.document.write('<link rel="stylesheet" type="text/css" href="vendor/bootstrap/dist/css/bootstrap.min.css" />');
-   mywindow.document.write('<link rel="stylesheet" type="text/css" href="styles/custom/page.css" media="print"/>');
-   mywindow.document.write('<link rel="stylesheet" type="text/css" href="styles/custom/page1.css" media="print"/>');
-   mywindow.document.write('</head><body>');
-   mywindow.document.write(print_div);
-   mywindow.document.write('</body></html>');
-    mywindow.document.close();
-   mywindow.focus();
-    $timeout(function(){
-     mywindow.print();
-     mywindow.close();
-   }, 20);
+   let mywindow = window.open(Session.url + '/dispatch_invoice.pdf', '_blank', title, 'height=400,width=600');
+   if (mywindow) {
+      mywindow.document.write('<html><head><title>'+title+'</title>');
+      mywindow.document.write('<link rel="stylesheet" type="text/css" href="vendor/bootstrap/dist/css/bootstrap.min.css" />');
+      mywindow.document.write('<link rel="stylesheet" type="text/css" href="styles/custom/page.css" media="print"/>');
+      mywindow.document.write('<link rel="stylesheet" type="text/css" href="styles/custom/page1.css" media="print"/>');
+      mywindow.document.write('</head><body>');
+      mywindow.document.write(print_div);
+      mywindow.document.write('</body></html>');
+      mywindow.document.close();
+      mywindow.focus();
+      $timeout(function(){
+       mywindow.print();
+      mywindow.close();
+    }, 20);
     return true;
+   }
   }
 
   vm.generate_pdf_file = function(data){

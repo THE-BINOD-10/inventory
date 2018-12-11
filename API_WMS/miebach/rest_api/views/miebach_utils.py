@@ -2447,11 +2447,11 @@ def sku_wise_purchase_data(search_params, user, sub_user):
         supp_search = search_params['supplier'].split(':')
         search_parameters['open_po__supplier_id'] = supp_search[0]
     if 'from_date' in search_params:
-        search_parameters['po_date__gte'] = search_params['from_date']
+        search_parameters['creation_date__gte'] = search_params['from_date']
     if 'to_date' in search_params:
         search_params['to_date'] = datetime.datetime.combine(search_params['to_date'] + datetime.timedelta(1),
                                                              datetime.time())
-        search_parameters['po_date__lte'] = search_params['to_date']
+        search_parameters['creation_date__lte'] = search_params['to_date']
 
     start_index = search_params.get('start', 0)
     stop_index = start_index + search_params.get('length', 0)
@@ -2516,7 +2516,7 @@ def sku_wise_purchase_data(search_params, user, sub_user):
                 aft_price = price + ((price / 100) * tax)
             pre_amount = float(order_data['order_quantity']) * float(price)
             aft_amount = float(order_data['order_quantity']) * float(aft_price)
-            temp = OrderedDict((('PO Date', get_local_date(user, data.po_date)), ('PO Number', po_number),
+            temp = OrderedDict((('PO Date', get_local_date(user, data.creation_date)), ('PO Number', po_number),
                                 ('Supplier ID', order_data['supplier_id']),
                                 ('Supplier Name', order_data['supplier_name']),
                                 ('SKU Code', order_data['sku_code']),

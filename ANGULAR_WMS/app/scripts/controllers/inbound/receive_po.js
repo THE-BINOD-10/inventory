@@ -447,20 +447,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     }
 
-    // vm.save_sku_pack_ids = function()
-    // {
-    //   var sub_model_data = []
-    //   // for(var i=0; i<vm.model_data.data.length; i++)
-    //   //  {
-    //   //   sub_model_data.push(vm.model_data.data[i][0]);
-    //   // }
-    //     vm.service.apiCall('save_sku_pack_scans/', 'POST',{"data":JSON.stringify(vm.model_data)}).then(function(data)
-    //     {
-    //             console.log("success")
-    //     });
-    //
-    // }
-
     vm.save_sku = function(){
 
       var data = [];
@@ -502,8 +488,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         event.stopPropagation();
         if (event.keyCode == 13 )
         {
-          // if(vm.scanned_sku_pack_ids.indexOf(record.scanned_pack_id) == -1)
-          // {
            vm.service.apiCall('check_sku_pack_scan/', 'GET', {'pack_id':pack_id}).then(function(data){
              if (data.data.flag)
                {
@@ -552,10 +536,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 Service.showNoty(data.data.status, 'error', 'topRight')
                 }
             });
-           // }
-           // else{
-           //      Service.showNoty("Sku pack is already scanned", 'error', 'topRight')
-           // }
         }
     }
 

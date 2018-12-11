@@ -1598,34 +1598,6 @@ def insert_sku_pack(request, user=''):
 
     return HttpResponse('Added Successfully')
 
-# @csrf_exempt
-# @login_required
-# @get_admin_user
-# def update_sku_pack(request, user=''):
-#     try:
-#         import pdb; pdb.set_trace()
-#         sku_pack = copy.deepcopy(SKU_PACK_DATA)
-#         sku_code = request.POST['sku_code']
-#         pack_id = request.POST['pack_id']
-#         pack_quantity = request.POST['pack_quantity']
-#         pack_obj = SKUPackMaster.objects.filter(sku__wms_code= sku_code,pack_id = pack_id,sku__user = user.id)
-#         if pack_obj :
-#             pack_obj = pack_obj[0]
-#             pack_obj.pack_id = pack_id
-#             pack_obj.pack_quantity = pack_quantity
-#             pack_obj.save()
-#
-#     except Exception as e:
-#         import traceback
-#         log.debug(traceback.format_exc())
-#         log.info('Update SKUPACK failed for %s and params are %s and error statement is %s' % (str(user.username), \
-#                                                                                                    str(request.POST.dict())))
-#
-#     return HttpResponse('Updated Successfully')
-
-
-
-
 @csrf_exempt
 @login_required
 @get_admin_user

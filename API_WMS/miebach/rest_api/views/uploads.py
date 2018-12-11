@@ -5652,7 +5652,6 @@ def sku_pack_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls
                 sku_code = str(int(get_cell_data(row_idx, order_mapping['sku_code'], reader, file_type)))
             except:
                 sku_code = str(get_cell_data(row_idx, order_mapping['sku_code'], reader, file_type))
-            import pdb; pdb.set_trace()
             if not sku_code:
                 index_status.setdefault(count, set()).add('Invalid sku code')
             else:
@@ -5690,7 +5689,6 @@ def sku_pack_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls
             f_name = file_path
         return f_name
     elif index_status and file_type == 'xls':
-        import pdb; pdb.set_trace()
         f_name = fname.name.replace(' ', '_')
         file_path = rewrite_excel_file(f_name, index_status, reader)
         if file_path:

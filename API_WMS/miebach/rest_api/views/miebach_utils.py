@@ -107,6 +107,8 @@ ISSUE_DATA = {'issue_title': '', 'name': '', 'email_id': '',
 SUPPLIER_SKU_DATA = {'supplier_id': '', 'supplier_type': '',
                      'sku': '', 'supplier_code': '', 'preference': '', 'moq': '', 'price': ''}
 
+SKU_PACK_DATA = {'sku': '','pack_id':'', 'pack_quantity': '','creation_date':datetime.datetime.now()}
+
 WAREHOUSE_SKU_DATA = {'warehouse': '', 'sku': '', 'priority': '', 'moq': '', 'price': ''}
 
 UPLOAD_ORDER_DATA = {'order_id': '', 'title': '', 'user': '',
@@ -240,7 +242,7 @@ CUSTOMER_HEADERS = ['Customer Id', 'Customer Name', 'Credit Period', 'CST Number
 CUSTOMER_EXCEL_MAPPING = OrderedDict(
     (('customer_id', 0), ('name', 1), ('credit_period', 2), ('cst_number', 3), ('tin_number', 4),
      ('pan_number', 5), ('email_id', 6), ('phone_number', 7), ('city', 8), ('state', 9), ('country', 10),
-     ('pincode', 11), ('address', 12), ('shipping_address', 13), ('price_type', 14), ('tax_type', 15), 
+     ('pincode', 11), ('address', 12), ('shipping_address', 13), ('price_type', 14), ('tax_type', 15),
      ('discount_percentage', 16), ('markup', 17), ('spoc_name', 18),
     ))
 
@@ -983,7 +985,7 @@ CUSTOMER_FIELDS = ((('Customer ID *', 'id', 60), ('Customer Name *', 'name', 256
                    )
 
 CUSTOMER_DATA = {'name': '', 'address': '', 'phone_number': '', 'email_id': '', 'status': 1, 'price_type': '',
-                 'tax_type': '', 'lead_time': 0, 'is_distributor': 0, 'spoc_name': '', 'role': '', 
+                 'tax_type': '', 'lead_time': 0, 'is_distributor': 0, 'spoc_name': '', 'role': '',
                  'shipping_address': ''}
 
 CORPORATE_DATA = {'name': '', 'address': '', 'phone_number': '', 'email_id': '', 'status': 1, 'tax_type': ''}
@@ -1023,7 +1025,7 @@ PICKLIST_OPTIONS = {'Scan SKU': 'scan_sku', 'Scan SKU Location': 'scan_sku_locat
                     'Scan Label': 'scan_label',
                     'Scan None': 'scan_none'}
 
-BARCODE_OPTIONS = {'SKU Code': 'sku_code', 'Embedded SKU Code in Serial': 'sku_serial', 'EAN Number': 'sku_ean'}
+BARCODE_OPTIONS = {'SKU Code': 'sku_code', 'Embedded SKU Code in Serial': 'sku_serial', 'EAN Number': 'sku_ean','SKU PACK':'sku_pack'}
 
 REPORTS_DATA = {'SKU List': 'sku_list', 'Location Wise SKU': 'location_wise_stock', 'Receipt Summary': 'receipt_note',
                 'Dispatch Summary': 'dispatch_summary', 'SKU Wise Stock': 'sku_wise'}
@@ -1291,10 +1293,12 @@ CENTRAL_ORDER_EXCEL_ONE_ASSIST = OrderedDict((
                             ('sku_code', 7)
                           ))
 
-CENTRAL_ORDER_XLS_UPLOAD = {'interm_order_id': '', 'sku': '', 'quantity': 1, 
-              'unit_price': 0, 'tax': 0, 'inter_state': 0, 'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 
-              'utgst_tax': 0, 'status': 0, 'project_name': '', 'remarks': '', 'customer_id': 0, 
+CENTRAL_ORDER_XLS_UPLOAD = {'interm_order_id': '', 'sku': '', 'quantity': 1,
+              'unit_price': 0, 'tax': 0, 'inter_state': 0, 'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0,
+              'utgst_tax': 0, 'status': 0, 'project_name': '', 'remarks': '', 'customer_id': 0,
               'customer_name': '', 'shipment_date': datetime.datetime.now()}
+
+SKU_PACK_EXCEL =OrderedDict((('sku_code', 0), ('pack_id', 1), ('pack_quantity', 2)))
 
 # End of Order File Upload Templates
 
@@ -1793,8 +1797,8 @@ ORDER_ID_AWB_MAP_EXCEL_HEADERS = ['Order ID', 'AWB No', 'Courier Name', 'Marketp
 ORDER_ID_AWB_EXCEL_MAPPING = OrderedDict((('order_id', 0), ('awb_no', 1), ('courier_name', 2), ('marketplace', 3)))
 
 # Company logo names
-COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg', 'Subhas_Publishing': 'book_publications.png', 
-                      'sm_admin': 'sm-brand.jpg', 'corp_attire': 'corp_attire.jpg', 
+COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg', 'Subhas_Publishing': 'book_publications.png',
+                      'sm_admin': 'sm-brand.jpg', 'corp_attire': 'corp_attire.jpg',
                       'aidin_technologies': 'aidin_tech.jpg', 'nutricane': 'nutricane.jpg'}
 
 TOP_COMPANY_LOGO_PATHS = {'Konda_foundation': 'dr_reddy_logo.png'}
@@ -1884,7 +1888,7 @@ CENTRAL_ORDER_MAPPING = OrderedDict((
                                       ('Batch Date', 'batch_date'), ('Branch ID', 'branch_id'),
                                       ('Branch Name', 'branch_name'), ('Loan Proposal ID', 'loan_proposal_id'),
                                       ('Loan Proposal Code', 'loan_proposal_code'), ('Client Code', 'client_code'),
-                                      ('Client ID', 'client_id'), ('Customer Name', 'customer_name'), 
+                                      ('Client ID', 'client_id'), ('Customer Name', 'customer_name'),
                                       ('Address1', 'address1'), ('Address2', 'address2'),
                                       ('Landmark', 'landmark'), ('Village', 'village'),
                                       ('District', 'district'), ('State1', 'state'),
@@ -1900,8 +1904,10 @@ CENTRAL_ORDER_ONE_ASSIST_MAPPING = OrderedDict((
                                       ('Courtesy SR Number', 'original_order_id'), ('Customer handset Model', 'sku_code'),
                                       ('Customer Name', 'customer_name'), ('Address', 'address'),
                                       ('City', 'city'), ('Pincode', 'pincode'),
-                                      ('Customer primary contact', 'mobile_no'), ('Customer emailId', 'email_id')
-                                  ))
+                                      ('Customer primary contact', 'mobile_no'), ('Customer emailId', 'email_id') ))
+SKU_PACK_MAPPING = OrderedDict((('Sku Code', 'sku_code'), ('Pack ID', 'pack_id'),
+                                      ('Pack Quantity', 'pack_quantity')))
+
 
 #PICKLIST_EXCLUDE_ZONES = ['DAMAGED_ZONE', 'QC_ZONE', 'Non Sellable Zone']
 

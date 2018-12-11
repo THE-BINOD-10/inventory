@@ -920,7 +920,7 @@ def modify_po_update(request, user=''):
 @csrf_exempt
 @get_admin_user
 def switches(request, user=''):
-    
+
     log.info('Request params for ' + user.username + ' on ' + str(
         get_local_date(user, datetime.datetime.now())) + ' is ' + str(request.GET.dict()))
     try:
@@ -1273,16 +1273,16 @@ def confirm_po(request, user=''):
     iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
     total_amt_in_words = number_in_words(round(total)) + ' ONLY'
     round_value = float(round(total) - float(total))
-    data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 
+    data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address,
                  'order_id': order_id, 'telephone': str(telephone),
-                 'name': name, 'order_date': order_date, 'total': round(total), 
+                 'name': name, 'order_date': order_date, 'total': round(total),
                  'po_reference': po_reference, 'company_name': company_name,
-                 'location': profile.location, 'vendor_name': vendor_name, 
-                 'vendor_address': vendor_address, 'vendor_telephone': vendor_telephone, 
+                 'location': profile.location, 'vendor_name': vendor_name,
+                 'vendor_address': vendor_address, 'vendor_telephone': vendor_telephone,
                  'total_qty': total_qty, 'receipt_type': receipt_type,
                  'title': title, 'ship_to_address': ship_to_address,
-                 'gstin_no': gstin_no, 'w_address': ship_to_address, 
-                 'wh_telephone': wh_telephone, 'terms_condition' : terms_condition, 
+                 'gstin_no': gstin_no, 'w_address': ship_to_address,
+                 'wh_telephone': wh_telephone, 'terms_condition' : terms_condition,
                  'total_amt_in_words' : total_amt_in_words, 'show_cess_tax': show_cess_tax,
                  'company_address': company_address, 'wh_gstin': profile.gst_number,
                  'company_logo': company_logo, 'iso_company_logo': iso_company_logo}
@@ -1687,7 +1687,7 @@ def get_supplier_data(request, user=''):
                             'dis': True,
                             'sku_extra_data': sku_extra_data, 'product_images': product_images,
                             'sku_details': sku_details, 'shelf_life': order_data['shelf_life'],
-                            'tax_percent': tax_percent, 'cess_percent': order_data['cess_tax'], 
+                            'tax_percent': tax_percent, 'cess_percent': order_data['cess_tax'],
                             'total_amt': 0, 'show_imei': order_data['sku'].enable_serial_based }])
     supplier_name, order_date, expected_date, remarks = '', '', '', ''
     if purchase_orders:
@@ -4026,7 +4026,7 @@ def save_st(request, user=''):
             data_dict['price'][i] = 0
         cond = (warehouse_name)
         all_data.setdefault(cond, [])
-        all_data[cond].append([data_dict['wms_code'][i], data_dict['order_quantity'][i], 
+        all_data[cond].append([data_dict['wms_code'][i], data_dict['order_quantity'][i],
             data_dict['price'][i], data_id])
     status = validate_st(all_data, user)
     if not status:
@@ -4617,7 +4617,7 @@ def confirm_add_po(request, sales_data='', user=''):
                  'gstin_no': gstin_no, 'industry_type': industry_type, 'expiry_date': expiry_date,
                  'wh_telephone': wh_telephone, 'wh_gstin': profile.gst_number, 'wh_pan': profile.pan_number,
                  'terms_condition': terms_condition, 'show_cess_tax' : show_cess_tax,
-                 'company_address': company_address, 
+                 'company_address': company_address,
                  'company_logo': company_logo, 'iso_company_logo': iso_company_logo}
     if round_value:
         data_dict['round_total'] = "%.2f" % round_value
@@ -4822,7 +4822,7 @@ def confirm_po1(request, user=''):
             company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
             iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
             data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
-                         'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': round(total),             
+                         'telephone': str(telephone), 'name': name, 'order_date': order_date, 'total': round(total),
                          'company_name': profile.company_name, 'location': profile.location,
                          'po_reference': po_reference,
                          'total_qty': total_qty, 'vendor_name': vendor_name, 'vendor_address': vendor_address,
@@ -6559,7 +6559,7 @@ def get_po_challans_data(start_index, stop_index, temp_data, search_term, order_
         seller_summary_obj = SellerPOSummary.objects.exclude(id__in=return_ids).filter(receipt_number=data['receipt_number'],\
                                             purchase_order__order_id=data['purchase_order__order_id'],\
                                             purchase_order__open_po__supplier__name=data['purchase_order__open_po__supplier__name'])
- 
+
         tot_amt, rem_quantity = 0, 0
         for seller_sum in seller_summary_obj:
             rem_quantity = 0
@@ -6649,7 +6649,7 @@ def get_processed_po_data(start_index, stop_index, temp_data, search_term, order
         seller_summary_obj = SellerPOSummary.objects.filter(receipt_number=data['receipt_number'],\
                                             purchase_order__order_id=data['purchase_order__order_id'],\
                                             purchase_order__open_po__supplier__name=data['purchase_order__open_po__supplier__name'])
- 
+
         tot_amt = 0
         for seller_sum in seller_summary_obj:
             price = seller_sum.purchase_order.open_po.price
@@ -6786,7 +6786,7 @@ def generate_supplier_invoice(request, user=''):
                     sell_summary_param['invoice_number'] = inv_no
                 else:
                     sell_summary_param['purchase_order__order_id'] = req_data.get('purchase_order__order_id', '')
-                    sell_summary_param['receipt_number'] = req_data.get('receipt_number', '') 
+                    sell_summary_param['receipt_number'] = req_data.get('receipt_number', '')
                     sell_summary_param['challan_number'] = req_data.get('challan_id', '')
                 #sell_summary_param['invoice_number'] = req_data.get('invoice_number', '')
                 seller_summary = SellerPOSummary.objects.filter(**sell_summary_param)
@@ -6929,7 +6929,7 @@ def pagination(sku_list):
         sku['index'] = index
         index = index + 1
     temp = {"sku_code": "", "title": "", "quantity": ""}
-    sku_slices = [sku_list[i: i+mx] for i in range(0, len(sku_list), mx)] 
+    sku_slices = [sku_list[i: i+mx] for i in range(0, len(sku_list), mx)]
     #extra_tuple = ('', '', '', '', '', '', '', '', '', '', '', '')
     if len(sku_slices[-1]) == mx:
         temp = sku_slices[-1]
@@ -7947,7 +7947,7 @@ def stock_transfer_mail_pdf(request, f_name, html_data, warehouse):
 def render_st_html_data(request, user, warehouse, all_data):
     user_profile = UserProfile.objects.filter(user = user).values('phone_number', 'company_name', 'location',
         'city', 'state', 'country', 'pin_code', 'address', 'wh_address', 'wh_phone_number', 'gst_number')
-    destination_user_profile = UserProfile.objects.filter(user = warehouse).values('phone_number', 
+    destination_user_profile = UserProfile.objects.filter(user = warehouse).values('phone_number',
         'company_name', 'location', 'city', 'state', 'country', 'pin_code', 'address', 'wh_address', 'wh_phone_number', 'gst_number')
     po_skus_list = []
     po_skus_dict = OrderedDict()
@@ -7959,10 +7959,10 @@ def render_st_html_data(request, user, warehouse, all_data):
             po_skus_dict = {}
             st_id = obj[3]
             stock_transfer_obj = OpenST.objects.get(id=st_id)
-            po_skus_list.append( OrderedDict( ( ('sku', stock_transfer_obj.sku), 
-                ('sku_desc', stock_transfer_obj.sku.sku_desc), ( 'order_qty', int(stock_transfer_obj.order_quantity)), 
+            po_skus_list.append( OrderedDict( ( ('sku', stock_transfer_obj.sku),
+                ('sku_desc', stock_transfer_obj.sku.sku_desc), ( 'order_qty', int(stock_transfer_obj.order_quantity)),
                 ('measurement_type', stock_transfer_obj.sku.measurement_type), ('price', float(stock_transfer_obj.price)),
-                ('amount', stock_transfer_obj.price * stock_transfer_obj.order_quantity), ('sgst', 0), ('cgst', 0), 
+                ('amount', stock_transfer_obj.price * stock_transfer_obj.order_quantity), ('sgst', 0), ('cgst', 0),
                 ('igst', 0), ('utgst', 0) )) )
             total_order_qty += int(stock_transfer_obj.order_quantity)
             total_amount += float(stock_transfer_obj.price) * int(stock_transfer_obj.order_quantity)
@@ -8662,3 +8662,26 @@ def confirm_central_po(request, user=''):
                  " user " + str(user.username)+ "Params are " + str(request.POST.dict()) + " on " + \
                  str(get_local_date(user, datetime.datetime.now())) + "and error statement is " + str(e))
         return HttpResponse("Create PO Failed")
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def check_sku_pack_scan(request, user=''):
+    pack_id = request.GET.get('pack_id')
+    status =''
+    flag = 0
+    try:
+        pack_obj = SKUPackMaster.objects.get(pack_id = pack_id,sku__user = user.id)
+        if pack_obj :
+            sku_code = pack_obj.sku.wms_code
+            status = "Sku Pack  matched"
+            flag = True
+            quantity = pack_obj.pack_quantity
+    except Exception as e:
+            status = "Sku Pack Doesnot matched"
+            flag = False
+            quantity =0
+            sku_code =0
+            log.info('some thing went wrong  %s %s %s' % (str(user.username),str(request.POST.dict()), str(e)))
+
+    return HttpResponse(json.dumps({'status' :status,"sku_code":sku_code,"quantity":quantity,"flag":flag}))

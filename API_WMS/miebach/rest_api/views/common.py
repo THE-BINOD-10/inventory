@@ -495,7 +495,7 @@ def get_search_params(request, user=''):
 data_datatable = {  # masters
     'SKUMaster': 'get_sku_results', 'SupplierMaster': 'get_supplier_results', \
     'SupplierSKUMappingMaster': 'get_supplier_mapping', 'CustomerMaster': 'get_customer_master', \
-    'BOMMaster': 'get_bom_results', 'CustomerSKUMapping': 'get_customer_sku_mapping', \
+    'BOMMaster': 'get_bom_results', 'CustomerSKUMapping': 'get_customer_sku_mapping', 'SKUPackMaster' :'get_sku_pack_master',\
     'WarehouseMaster': 'get_warehouse_user_results', 'VendorMaster': 'get_vendor_master_results', \
     'DiscountMaster': 'get_discount_results', 'CustomSKUMaster': 'get_custom_sku_properties', \
     'SizeMaster': 'get_size_master_data', 'PricingMaster': 'get_price_master_results', \
@@ -2955,7 +2955,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                  'vat': vat, 'mrp_price': mrp_price, 'discount': discount, 'sku_class': dat.sku.sku_class,
                  'sku_category': dat.sku.sku_category, 'sku_size': dat.sku.sku_size, 'amt': amt, 'taxes': taxes_dict,
                  'base_price': base_price, 'hsn_code': hsn_code, 'imeis': temp_imeis,
-                 'discount_percentage': discount_percentage, 'id': dat.id, 'shipment_date': shipment_date, 
+                 'discount_percentage': discount_percentage, 'id': dat.id, 'shipment_date': shipment_date,
                  'measurement_type': measurement_type})
 
     is_cess_tax_flag = 'true'
@@ -4912,7 +4912,6 @@ def generate_barcode_dict(pdf_format, myDicts, user):
                     single.update()
                     single['SKUCode'] = sku if sku else label
                     single['Label'] = label if label else sku
-
                     if barcode_opt == 'sku_ean' and sku_data.ean_number:
                         single['Label'] = str(sku_data.ean_number)
                     single['SKUPrintQty'] = quant
@@ -5006,9 +5005,11 @@ def generate_barcode_dict(pdf_format, myDicts, user):
                 single.update()
                 single['SKUCode'] = sku if sku else label
                 single['Label'] = label if label else sku
-
                 if barcode_opt == 'sku_ean' and sku_data.ean_number:
                     single['Label'] = str(sku_data.ean_number)
+                if barcode_opt == 'sku_pack' :
+                    single['Label'] = myDict['pack_id']
+                    single['pack_id'] = myDict['pack_id']
                 single['SKUPrintQty'] = quant
                 for show_keys1 in show_fields:
                     show_keys2 = [show_keys1]
@@ -5067,7 +5068,6 @@ def generate_barcode_dict(pdf_format, myDicts, user):
                 single['Customer Address'] = c_details[0].address if c_details else ''
                 single['Customer Telephone'] = c_details[0].phone_number if c_details else ''
                 single['Customer Email'] = c_details[0].email_id if c_details else ''
-
             address = user_prf.address
             if BARCODE_ADDRESS_DICT.get(user.username, ''):
                 address = BARCODE_ADDRESS_DICT.get(user.username)
@@ -5075,7 +5075,6 @@ def generate_barcode_dict(pdf_format, myDicts, user):
             if "bulk" in pdf_format.lower():
                 single['Qty'] = single['SKUPrintQty']
                 single['SKUPrintQty'] = "1"
-
             barcodes_list.append(single)
     log.info(barcodes_list)
     return get_barcodes(make_data_dict(barcodes_list, user_prf, pdf_format))

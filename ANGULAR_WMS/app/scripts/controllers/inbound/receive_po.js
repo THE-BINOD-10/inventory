@@ -286,6 +286,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       vm.model_data = {};
       vm.html = "";
+      vm.scanned_wms =[]
       vm.print_enable = false;
       if(vm.permissions.use_imei) {
         fb.stop_fb();
@@ -430,6 +431,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if (form.$valid) {
 
         var abs_inv_value = vm.absOfInvValueTotal(vm.model_data.invoice_value, vm.skus_total_amount);
+
         if (vm.permissions.receive_po_invoice_check && abs_inv_value <= 3){
 
           vm.save_sku();
@@ -449,13 +451,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       var data = [];
 
-      for(var i=0; i<vm.model_data.data.length; i++)  {
+      for(var i=0; i<vm.model_data.data.length; i++) {
         angular.forEach(vm.model_data.data[i], function(sku){
           if(!sku.is_new) {
             data.push({name: sku.order_id, value: sku.value});
           }
         });
       }
+
 
       data.push({name: 'remarks', value: vm.model_data.remarks});
       data.push({name: 'expected_date', value: vm.model_data.expected_date});
@@ -479,6 +482,63 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       return Math.abs(inv_value - total_value);
     }
+  vm.scanned_wms =[]
+    vm.check_sku_pack = function(event,pack_id)
+    {
+        event.stopPropagation();
+        if (event.keyCode == 13 )
+        {
+           vm.service.apiCall('check_sku_pack_scan/', 'GET', {'pack_id':pack_id}).then(function(data){
+             if (data.data.flag)
+               {
+                 for(var i=0; i<vm.model_data.data.length; i++)
+                 {
+                   if (vm.model_data.data[i][0].wms_code.indexOf(vm.scanned_wms) == -1 || vm.scanned_wms.length == 0)
+                   {
+                     if(vm.model_data.data[i][0].po_quantity > vm.model_data.data[i][0].value && vm.model_data.data[i][0].po_quantity >= (vm.model_data.data[i][0].value+data.data.quantity))
+                      {
+                       if(vm.model_data.data[i][0].wms_code == data.data.sku_code)
+                        {
+                          vm.model_data.data[i][0].pack_id = pack_id
+                          if(!vm.model_data.data[i][0].num_packs)
+                          {
+                            vm.model_data.data[i][0].num_packs =0
+                          }
+                          vm.model_data.data[i][0].num_packs +=1;
+                          vm.model_data.data[i][0].value += data.data.quantity
+                          if (vm.model_data.data[i][0].price)
+                          {
+                            vm.model_data.data[i][0].total_amt =  vm.model_data.data[i][0].price * vm.model_data.data[i][0].value
+                           }
+                           break;
+                         }
+                       else
+                        {
+                          if(!vm.model_data.data[i][0].value)
+                           {
+                             Service.showNoty('Pack Id is not matched to SKU', 'error', 'topRight')
+                           }
+                        }
+                      }
+                  else if(vm.model_data.data[i][0].po_quantity == vm.model_data.data[i][0].value)
+                      {
+                           vm.scanned_wms.push(vm.model_data.data[i][0].wms_code)
+                      }
+                  else
+                    {
+                    Service.showNoty('Recived quantity is greater than PO quantity', 'error', 'topRight')
+                    }
+                   }
+                 }
+
+               }
+            else{
+                Service.showNoty(data.data.status, 'error', 'topRight')
+                }
+            });
+        }
+    }
+
 
     // vm.skus_total_amount
 

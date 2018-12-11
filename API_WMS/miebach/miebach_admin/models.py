@@ -1051,6 +1051,7 @@ class POIMEIMapping(models.Model):
     sku = models.ForeignKey(SKUMaster, blank=True, null=True)
     seller = models.ForeignKey(SellerMaster, blank=True, null=True)
     purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True)
+    pack_status = models.IntegerField(default=0)
     job_order = models.ForeignKey(JobOrder, blank=True, null=True)
     imei_number = models.CharField(max_length=64, default='')
     status = models.IntegerField(default=1)
@@ -1059,7 +1060,7 @@ class POIMEIMapping(models.Model):
 
     class Meta:
         db_table = 'PO_IMEI_MAPPING'
-        unique_together = ('purchase_order', 'imei_number', 'sku', 'job_order', 'seller')
+        unique_together = ('purchase_order','imei_number', 'sku', 'job_order', 'seller')
 
 
 class OrderIMEIMapping(models.Model):

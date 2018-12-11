@@ -44,7 +44,7 @@
     <!-- /dashboard -->
 
 
-    <!-- 
+    <!--
       Masters -->
     <li data-ng-class="{open: $state.includes('app.masters')}" ng-show="show_tab('MASTERS_LABEL')">
       <a href="javascript:;">
@@ -73,7 +73,7 @@
           </a>
         </li>
         <li ui-sref-active="active">
-          <a ui-sref="app.masters.SKUPackMaster" ng-show="show_tab('add_skupack')">
+          <a ui-sref="app.masters.SkuPackMaster" ng-show="show_tab('sku_pack_config')">
             <span>SKU Pack Master</span>
           </a>
         </li>
@@ -388,7 +388,7 @@
           <a ui-sref="app.outbound.Ratings">
             <span>Ratings</span>
           </a>
-        </li> 
+        </li>
       </ul>
     </li>
     <!-- /maps -->
@@ -627,7 +627,7 @@
         <i class="fa fa-tasks"></i>
         <span>Tally</span>
       </a>
-    </li> 
+    </li>
     <!-- Tally -->
 
     <li ui-sref-active="active" ng-show="user.user_profile['user_type'] == 'supplier'">

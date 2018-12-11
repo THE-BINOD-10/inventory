@@ -69,6 +69,10 @@ urlpatterns = [
     url(r'^insert_sku/$', insert_sku),
     url(r'^upload_images/$', upload_images),
     url(r'^get_barcodes_myntra/$', get_barcodes_myntra),
+    url(r'^insert_sku_pack/$',insert_sku_pack),
+    # url(r'^update_sku_pack/$',update_sku_pack),
+
+
 
     # url(r'^get_sku_field_names/$',get_sku_field_names),
     url(r'^create_update_custom_sku_template/$', create_update_custom_sku_template),
@@ -186,6 +190,8 @@ urlpatterns = [
     url(r'^get_grn_level_data/$', get_grn_level_data),
     url(r'^update_existing_grn/$', update_existing_grn),
     url(r'^confirm_central_po/$', confirm_central_po),
+    url(r'^check_sku_pack_scan/$', check_sku_pack_scan),
+
 
     # Production
     url(r'^generated_jo_data/$', generated_jo_data),
@@ -497,10 +503,14 @@ urlpatterns += [
     url(r'^network_master_upload/$', network_master_upload),
     url(r'^sku_substitution_form/$', sku_substitution_form),
     url(r'^sku_substitution_upload/$', sku_substitution_upload),
-    url(r'^targets_form/$', targets_form),  
+    url(r'^targets_form/$', targets_form),
     url(r'^targets_upload/$', targets_upload),
     url(r'^central_order_form/$', central_order_form),
     url(r'^central_order_upload/$', central_order_upload),
+    url(r'^skupack_master_download/$', skupack_master_download),
+    url(r'^skupack_master_upload/$', skupack_master_upload),
+
+
 
     # configurations
     url(r'^configurations/$', configurations),

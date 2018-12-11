@@ -286,7 +286,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       vm.model_data = {};
       vm.html = "";
-      vm.scanned_sku_pack_ids =[]
+      vm.scanned_wms =[]
       vm.print_enable = false;
       if(vm.permissions.use_imei) {
         fb.stop_fb();
@@ -496,7 +496,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       return Math.abs(inv_value - total_value);
     }
-   vm.scanned =[]
+  vm.scanned_wms =[]
     vm.check_sku_pack = function(event,pack_id)
     {
         event.stopPropagation();
@@ -509,35 +509,42 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                {
                  for(var i=0; i<vm.model_data.data.length; i++)
                  {
-                   if(vm.model_data.data[i][0].po_quantity > vm.model_data.data[i][0].value && vm.model_data.data[i][0].po_quantity >= data.data.quantity)
+                   if (vm.model_data.data[i][0].wms_code.indexOf(vm.scanned_wms) == -1 || vm.scanned_wms.length == 0)
                    {
-                      if(vm.model_data.data[i][0].wms_code == data.data.sku_code)
-                       {
-                         vm.model_data.data[i][0].pack_id = pack_id
-                         if(!vm.model_data.data[i][0].num_packs)
-                         {
-                           vm.model_data.data[i][0].num_packs =0
-                         }
-                         vm.model_data.data[i][0].num_packs +=1;
-                         vm.model_data.data[i][0].value += data.data.quantity
+                     if(vm.model_data.data[i][0].po_quantity > vm.model_data.data[i][0].value && vm.model_data.data[i][0].po_quantity >= (vm.model_data.data[i][0].value+data.data.quantity))
+                      {
+                       if(vm.model_data.data[i][0].wms_code == data.data.sku_code)
+                        {
+                          vm.model_data.data[i][0].pack_id = pack_id
+                          if(!vm.model_data.data[i][0].num_packs)
+                          {
+                            vm.model_data.data[i][0].num_packs =0
+                          }
+                          vm.model_data.data[i][0].num_packs +=1;
+                          vm.model_data.data[i][0].value += data.data.quantity
                           if (vm.model_data.data[i][0].price)
-                           {
-                            vm.model_data.data[i][0].total_amt =  vm.model_data.data[i][0].price *  vm.model_data.data[i][0].value
-                            }
-                          break;
-                       }
+                          {
+                            vm.model_data.data[i][0].total_amt =  vm.model_data.data[i][0].price * vm.model_data.data[i][0].value
+                           }
+                           break;
+                         }
                        else
                         {
-                         Service.showNoty('Pack Id is not matched to SKU', 'error', 'topRight')
-                       }
-                   }
-                  else if(vm.model_data.data[i][0].po_quantity = vm.model_data.data[i][0].value)
-                      {
-                          vm.scanned.push(vm.model_data.data[i][0].wms_code)
+                          if(!vm.model_data.data[i][0].value)
+                           {
+                             Service.showNoty('Pack Id is not matched to SKU', 'error', 'topRight')
+                           }
+                        }
                       }
-                  else{
+                  else if(vm.model_data.data[i][0].po_quantity == vm.model_data.data[i][0].value)
+                      {
+                           vm.scanned_wms.push(vm.model_data.data[i][0].wms_code)
+                      }
+                  else
+                    {
                     Service.showNoty('Recived quantity is greater than PO quantity', 'error', 'topRight')
-                  }
+                    }
+                   }
                  }
 
                }

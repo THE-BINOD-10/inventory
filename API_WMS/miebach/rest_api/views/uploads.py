@@ -5617,15 +5617,14 @@ def skupack_master_upload(request, user=''):
         reader, no_of_rows, no_of_cols, file_type, ex_status = check_return_excel(fname)
         if ex_status:
             return HttpResponse(ex_status)
-        upload_status = sku_pack_xls_upload(request, reader, user, no_of_rows, fname,
-            file_type=file_type, no_of_cols=no_of_cols)
+        upload_status = sku_pack_xls_upload(request, reader, user, no_of_rows, fname,file_type=file_type, no_of_cols=no_of_cols)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info('Sku Pack form Upload failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(request.POST.dict()), str(e)))
         return HttpResponse(" Sku Pack Upload Failed")
-    if not upload_status == 'success':
+    if not upload_status == 'Success':
         return HttpResponse(upload_status)
     return HttpResponse('Success')
 
@@ -5653,6 +5652,7 @@ def sku_pack_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls
                 sku_code = str(int(get_cell_data(row_idx, order_mapping['sku_code'], reader, file_type)))
             except:
                 sku_code = str(get_cell_data(row_idx, order_mapping['sku_code'], reader, file_type))
+            import pdb; pdb.set_trace()
             if not sku_code:
                 index_status.setdefault(count, set()).add('Invalid sku code')
             else:
@@ -5690,6 +5690,7 @@ def sku_pack_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls
             f_name = file_path
         return f_name
     elif index_status and file_type == 'xls':
+        import pdb; pdb.set_trace()
         f_name = fname.name.replace(' ', '_')
         file_path = rewrite_excel_file(f_name, index_status, reader)
         if file_path:
@@ -5723,11 +5724,9 @@ def sku_pack_xls_upload(request, reader, user, no_of_rows, fname, file_type='xls
                      sku_pack ['pack_quantity'] = pack_quantity
                      try:
                          SKUPackMaster.objects.create(**sku_pack)
+                         return 'Success'
                      except Exception as e:
                          import traceback
                          log.debug(traceback.format_exc())
-                         log.info('Insert New SKUPACK failed for %s and params are %s and error statement is %s' % (str(user.username), \
-                                                                                                   str(request.POST.dict()),
-                                                                                                   str(e)))
-
-    return 'Success'
+                         log.info('Insert New SKUPACK failed for %s and params are %s and error statement is %s' % (str(user.username), str(request.POST.dict()),str(e)))
+                         return 'Failed'

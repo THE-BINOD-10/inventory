@@ -41,6 +41,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   }
   vm.dtColumns.push(DTColumnBuilder.newColumn('Received Date').withTitle('Received Date'))
   vm.dtColumns.push(DTColumnBuilder.newColumn('Closing Reason').withTitle('Closing Reason'))
+  vm.dtColumns.push(DTColumnBuilder.newColumn('Updated User').withTitle('Updated User'))
   vm.dtInstance = {};
 
   vm.empty_data = {

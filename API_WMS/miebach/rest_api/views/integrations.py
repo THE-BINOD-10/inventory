@@ -868,7 +868,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
         sku_master = sku_ins[0]
     sku_master_dict = {'user': user.id, 'creation_date': datetime.datetime.now()}
     exclude_list = ['skus', 'child_skus']
-    number_fields = ['threshold_quantity', 'ean_number', 'hsn_code', 'price', 'mrp', 'status', 'shelf_life']
+    number_fields = ['threshold_quantity', 'hsn_code', 'price', 'mrp', 'status', 'shelf_life']
     sku_size = ''
     size_type = ''
     sku_options = []
@@ -949,6 +949,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
         elif key == 'ean_number':
             if value:
                 ean_numbers = str(value)
+            continue
         sku_master_dict[key] = value
         if sku_master:
             setattr(sku_master, key, value)
@@ -998,7 +999,8 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                                  field_key='sku_code')
     if sku_master and ean_numbers:
         try:
-            update_ean_sku_mapping(user, ean_numbers, sku_master)
+            ean_numbers = ean_numbers.split(',')
+            update_ean_sku_mapping(user, ean_numbers, sku_master, True)
         except:
             pass
     return sku_master, insert_status

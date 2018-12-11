@@ -576,6 +576,13 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                     cell_data = float(cell_data)
                 except:
                     index_status.setdefault(count, set()).add('MRP should be Number')
+        if 'mode_of_transport' in order_mapping:
+            mot_options = get_misc_value('mode_of_transport', user.id)
+            cell_data = get_cell_data(row_idx, order_mapping['mode_of_transport'], reader, file_type)
+            if cell_data and mot_options not in ['', 'false']:
+                mot_options = mot_options.split(',')
+                if cell_data not in mot_options:
+                    index_status.setdefault(count, set()).add('Mode of Transport not defined')
 
     if index_status and file_type == 'csv':
         f_name = fname.name.replace(' ', '_')
@@ -777,6 +784,14 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 order_data['invoice_amount'] = invoice_amount_value
                 if not order_data['marketplace']:
                     order_data['marketplace'] = "Offline"
+            elif key == 'mode_of_transport':
+                mode_of_transport = get_cell_data(row_idx, value, reader, file_type)
+                if mode_of_transport:
+                    order_summary_dict['mode_of_transport'] = mode_of_transport
+            elif key == 'vehicle_number':
+                vehicle_number = get_cell_data(row_idx, value, reader, file_type)
+                if vehicle_number:
+                    order_summary_dict['vehicle_number'] = vehicle_number
             else:
                 order_data[key] = get_cell_data(row_idx, value, reader, file_type)
 
@@ -848,7 +863,6 @@ def order_upload(request, user=''):
 @csrf_exempt
 @get_admin_user
 def order_form(request, user=''):
-    print request.GET['download-order-form']
     order_file = request.GET['download-order-form']
     if order_file:
         response = read_and_send_excel(order_file)

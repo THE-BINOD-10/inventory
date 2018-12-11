@@ -122,15 +122,19 @@ def get_user_permissions(request, user):
     config = dict(zip(map(operator.itemgetter('misc_type'), configuration),
                       map(operator.itemgetter('misc_value'), configuration)))
 
-    permissions = Permission.objects.exclude(codename__icontains='delete_').values('codename')
+    permissions = Permission.objects.values('codename')
     user_perms = []
     ignore_list = PERMISSION_IGNORE_LIST
     all_groups = request.user.groups.all()
+    group_ids = all_groups.values_list('id', flat=True)
+    user_perms_list = list(Permission.objects.filter(group__id__in=group_ids).\
+                                        values_list('codename', flat=True).distinct())
     for permission in permissions:
         temp = permission['codename']
         if not temp in user_perms and not temp in ignore_list:
             user_perms.append(temp)
-            roles[temp] = get_permission(request.user, temp, groups=all_groups)
+            roles[temp] = get_permission(request.user, temp, groups=all_groups,
+                                         user_perms_list=user_perms_list)
             if roles[temp]:
                 label_perms.append(temp)
 
@@ -164,7 +168,7 @@ def get_label_permissions(request, user, role_perms, user_type):
         else:
             labels[label] = False
 
-    extra_labels = ['DASHBOARD', 'UPLOADS', 'REPORTS', 'CONFIGURATIONS']
+    extra_labels = ['DASHBOARD', 'CONFIGURATIONS']
     for label in extra_labels:
         labels[label] = True if user_type != 'supplier' else False
     return labels
@@ -605,14 +609,18 @@ def permissionpage(request, cond=''):
         return (request.user.is_staff or request.user.is_superuser)
 
 
-def get_permission(user, codename, groups=None):
+def get_permission(user, codename, groups=None, user_perms_list=None):
     in_group = False
     if not groups:
         groups = user.groups.all()
-    for grp in groups:
-        in_group = codename in grp.permissions.values_list('codename', flat=True)
-        if in_group:
-            break
+    if user_perms_list:
+        if codename in user_perms_list:
+            in_group = True
+    else:
+        for grp in groups:
+            in_group = codename in grp.permissions.values_list('codename', flat=True)
+            if in_group:
+                break
     return codename in user.user_permissions.values_list('codename', flat=True) or in_group
 
 
@@ -1883,7 +1891,8 @@ def update_picklist_locations(pick_loc, picklist, update_picked, update_quantity
 @login_required
 @get_admin_user
 def add_group_data(request, user=''):
-    permissions = Permission.objects.all()
+    #permissions = Permission.objects.all()
+    permissions = user.user_permissions.filter()
     prod_stages = ProductionStages.objects.filter(user=user.id).values_list('stage_name', flat=True)
     brands = Brands.objects.filter(user=user.id).values_list('brand_name', flat=True)
     order_statuses = get_misc_value('extra_view_order_status', user.id)
@@ -1893,7 +1902,10 @@ def add_group_data(request, user=''):
                    'permission', 'group', 'logentry']
     permission_dict = copy.deepcopy(PERMISSION_DICT)
     reversed_perms = {}
+    exclude_labels = ['UPLOADS']
     for key, value in permission_dict.iteritems():
+        if key in exclude_labels:
+            continue
         sub_perms = permission_dict[key]
         if len(sub_perms) == 2:
             reversed_perms[sub_perms[1]] = sub_perms[0]
@@ -7535,6 +7547,7 @@ def update_sku_attributes_data(data, key, value):
     else:
         sku_attr_obj.update(attribute_value=value)
 
+
 def update_sku_attributes(data, request):
     for key, value in request.POST.iteritems():
         if 'attr_' not in key:
@@ -8484,3 +8497,28 @@ def add_ean_weight_to_batch_detail(sku, batch_dict):
             batch_dict['weight'] = float(''.join(re.findall('\d+', str(weight_obj[0].attribute_value))))
         except:
             batch_dict['weight'] = 0
+
+
+def check_and_create_duplicate_batch(batch_detail_obj, model_obj):
+    extra_batch = batch_detail_obj.sellerposummary_set.filter(id=model_obj.id)
+    if extra_batch.exists():
+        batch_detail_obj.pk = None
+        batch_detail_obj.id = None
+        batch_detail_obj.save()
+        model_obj.batch_detail_id = batch_detail_obj.id
+        model_obj.save()
+    return model_obj
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def delete_temp_json(request, user=''):
+    model_name = request.POST.get('model_name', '')
+    json_id = request.POST.get('json_id', '')
+    if json_id and model_name:
+        temp_json_obj = TempJson.objects.filter(id=json_id, model_name=model_name)
+        if temp_json_obj.exists():
+            temp_json_obj.delete()
+    return HttpResponse(json.dumps({'message': 'deleted'}))
+

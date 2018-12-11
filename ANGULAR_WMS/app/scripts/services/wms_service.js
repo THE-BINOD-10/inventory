@@ -966,8 +966,8 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, col
       mywindow.focus();
       $timeout(function(){
        mywindow.print();
-      mywindow.close();
-    }, 20);
+       mywindow.close();
+    }, 2000);
     return true;
    }
   }

@@ -1760,9 +1760,12 @@ def get_supplier_data(request, user=''):
 @login_required
 @get_admin_user
 def update_putaway(request, user=''):
+    from mail_server import send_mail
     try:
         log.info("Update Receive PO data for user %s and request params are %s" % (
             user.username, str(request.POST.dict())))
+        send_for_approval = request.POST.get('display_approval_button', '')
+        approval_po_created = True
         remarks = request.POST.get('remarks', '')
         expected_date = request.POST.get('expected_date', '')
         remainder_mail = request.POST.get('remainder_mail', '')
@@ -1774,7 +1777,7 @@ def update_putaway(request, user=''):
             expected_date = datetime.date(int(expected_date[2]), int(expected_date[0]), int(expected_date[1]))
         data_dict = dict(request.POST.iterlists())
         zero_index_keys = ['scan_sku', 'lr_number', 'remainder_mail', 'carrier_name', 'expected_date', 'invoice_date',
-                           'remarks', 'invoice_number', 'dc_level_grn', 'dc_number', 'dc_date']
+                           'remarks', 'invoice_number', 'dc_level_grn', 'dc_number', 'dc_date', 'display_approval_button']
         for i in range(0, len(data_dict['id'])):
             po_data = {}
             if not data_dict['id'][i]:
@@ -1811,10 +1814,23 @@ def update_putaway(request, user=''):
             if not data_dict['temp_json_id'][i]:
                 TempJson.objects.create(model_id=po.id, model_name='PO', model_json=json.dumps(po_data))
             else:
+                approval_po_created = False
                 exist_temp_json = TempJson.objects.filter(id=data_dict['temp_json_id'][i], model_name='PO')
                 if exist_temp_json:
                     exist_temp_json[0].model_json = json.dumps(po_data)
                     exist_temp_json[0].save()
+        if send_for_approval == 'true':
+            grn_permission = get_permission(request.user, 'change_purchaseorder')
+            if not grn_permission:
+                perm = Permission.objects.get(codename='change_purchaseorder')
+                sub_users = get_sub_users(user)
+                sub_users = sub_users.filter(groups__permissions=perm).exclude(email='')
+                receiver_mails = list(sub_users.values_list('email', flat=True))
+                po_reference = get_po_reference(po)
+                mail_message = 'User %s requested approval for PO Number %s' % (request.user.username, po_reference)
+                subject = 'GRN Approval request for PO: %s' % po_reference
+                receiver_mails.append(user.email)
+                send_mail(list(set(receiver_mails)), subject, mail_message)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

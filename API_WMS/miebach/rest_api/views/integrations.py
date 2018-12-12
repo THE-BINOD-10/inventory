@@ -962,12 +962,12 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
     if sku_code in sum(insert_status.values(), []):
         return sku_master, insert_status
     tax_master_obj = None
-    if taxes_dict:
+    if taxes_dict and sum(taxes_dict.values()) > 0:
         tax_master_obj = TaxMaster.objects.filter(Q(cgst_tax=taxes_dict.get('cgst_tax', 0),
                                                     sgst_tax=taxes_dict.get('sgst_tax', 0))
                                                   | Q(igst_tax=taxes_dict.get('igst_tax', 0)),
                                                   cess_tax=taxes_dict.get('cess_tax', 0), user=user.id)
-        if sum(taxes_dict.values()) > 0 and not tax_master_obj:
+        if not tax_master_obj:
             error_message = 'Tax Master not found'
             update_error_message(failed_status, 5028, error_message, sku_code,
                                  field_key='sku_code')

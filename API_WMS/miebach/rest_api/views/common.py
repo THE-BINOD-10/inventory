@@ -8522,3 +8522,8 @@ def delete_temp_json(request, user=''):
             temp_json_obj.delete()
     return HttpResponse(json.dumps({'message': 'deleted'}))
 
+
+def get_sub_users(user):
+    sub_users = AdminGroups.objects.get(user_id=user.id).group.user_set.filter()
+    return sub_users
+

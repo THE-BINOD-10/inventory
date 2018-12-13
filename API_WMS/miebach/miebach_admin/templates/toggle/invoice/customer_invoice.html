@@ -250,7 +250,10 @@
                       <td colspan='8' style="text-align:left;" class="fs14">
                     {% endif %}
                       <span><b class="fs16">DECLARATION:</b></span><br>
-                      <p class="pre-custom fs14">{{declaration}}</p>
+                      <p class="pre-custom fs14" style ="display:inline; word-wrap: break-word;">{{declaration}}</p>
+                      {% if invoice_remarks != 'false' %}
+                      <p  style ="display:inline; word-wrap: break-word;">{{invoice_declaration}}</p>
+                      {% endif %}
                     </td>
                     <td colspan='{{html_data.hsn_summary_span}}'>
                       <p align="center"><b class="fs16 m0">{{company_name}}</b></p>

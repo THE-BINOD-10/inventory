@@ -18,7 +18,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'show_mrp': false, 'decimal_limit': 1,'picklist_sort_by': false, 'auto_generate_picklist': false,
                     'detailed_invoice': false, 'picklist_options': {}, 'scan_picklist_option':'', 'seller_margin': '',
                     'tax_details':{}, 'hsn_summary': false, 'display_customer_sku': false, 'create_seller_order': false,
-                    'invoice_remarks': '', 'show_disc_invoice': false, 'serial_limit': '',
+                    'invoice_remarks': '','invoice_declaration':'', 'show_disc_invoice': false, 'serial_limit': '',
                     'increment_invoice': false, 'create_shipment_type': false, 'auto_allocate_stock': false,
                     'generic_wh_level': false, 'auto_confirm_po': false, 'create_order_po': false, 'shipment_sku_scan': false,
                     'disable_brands_view': false, 'sellable_segregation': false, 'display_styles_price': false,
@@ -46,7 +46,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      62: 'auto_raise_stock_transfer', 63: 'inbound_supplier_invoice', 64: 'customer_dc',
                      65: 'auto_expire_enq_limit', 66: 'invoice_based_payment_tracker', 67: 'receive_po_invoice_check',
                      68: 'mark_as_delivered', 69: 'receive_po_mandatory_fields', 70: 'central_order_mgmt',
-                     71: 'order_exceed_stock'}
+                     71: 'order_exceed_stock',72:'invoice_declaration'}
 
   vm.check_box_data = [
     {
@@ -84,13 +84,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       class_name: "glyphicon glyphicon-sort",
       display: true
     },
-    { 
+    {
       name: "Display Discount In Invoice",
       model_name: "show_disc_invoice",
       param_no: 43,
       class_name: "glyphicon glyphicon-sort",
       display: true
-    }, 
+    },
     {
       name: "Display Customer SKU In Invoice",
       model_name: "display_customer_sku",
@@ -244,7 +244,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       param_no: 41,
       class_name: "fa fa-server",
       display: vm.marketplace_user
-    }, 
+    },
     {
       name: "Display Remarks in Mail",
       model_name: "display_remarks_mail",
@@ -252,7 +252,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       class_name: "fa fa-envelope",
       display: true
     },
-    { 
+    {
       name: "Decimal Quantity",
       model_name: "float_switch",
       param_no: 15,
@@ -266,7 +266,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       class_name: "fa fa-server",
       display: true
     },
-    { 
+    {
       name: "Generic Wharehouse Level",
       model_name: "generic_wh_level",
       param_no: 49,
@@ -405,13 +405,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
   vm.message = "";
 
   vm.save_pos_extra_fields = function(){
-    
+
     vm.model_data['pos_extra_fields'] = [];
     vm.validation_err = false;
     var input_type = {'Input':'', 'Textarea':''};
 
     angular.forEach(vm.pos_extra_fields, function(data){
-      
+
       if (!data.input_type || !data.field_name) {
         vm.service.showNoty('Please fill all the required fields which are selected', 'success', 'topRight');
         vm.validation_err = true;
@@ -423,9 +423,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
         }
       }
     });
-    
+
     if (!vm.validation_err) {
-      
+
       vm.model_data['pos_extra_fields'] = vm.pos_extra_fields;
       var send = {'pos_extra_fields':vm.pos_extra_fields};
       vm.service.apiCall("pos_extra_fields/", "POST", input_type).then(function(data) {
@@ -915,6 +915,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     vm.switches(data, 42);
     Auth.status();
   }
+  vm.update_invoice_declaration = function(invoice_declaration) {
+
+    var data = $("[name='invoice_declaration']").val().split("\n").join("<<>>");
+    vm.switches(data, 72);
+    Auth.status();
+  }
 
   vm.getRemarks = function(remarks) {
 
@@ -926,6 +932,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
     }
     }, 1000);
   }
+
       var keynum = "";
       vm.limitLines = function(rows, e) {
         var lines = $(e.target).val().split('\n').length;

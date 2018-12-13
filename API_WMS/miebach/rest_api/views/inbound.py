@@ -8821,3 +8821,26 @@ def confirm_central_po(request, user=''):
                  " user " + str(user.username)+ "Params are " + str(request.POST.dict()) + " on " + \
                  str(get_local_date(user, datetime.datetime.now())) + "and error statement is " + str(e))
         return HttpResponse("Create PO Failed")
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def check_sku_pack_scan(request, user=''):
+    pack_id = request.GET.get('pack_id')
+    status =''
+    flag = 0
+    try:
+        pack_obj = SKUPackMaster.objects.get(pack_id = pack_id,sku__user = user.id)
+        if pack_obj :
+            sku_code = pack_obj.sku.wms_code
+            status = "Sku Pack  matched"
+            flag = True
+            quantity = pack_obj.pack_quantity
+    except Exception as e:
+            status = "Sku Pack Doesnot matched"
+            flag = False
+            quantity =0
+            sku_code =0
+            log.info('some thing went wrong  %s %s %s' % (str(user.username),str(request.POST.dict()), str(e)))
+
+    return HttpResponse(json.dumps({'status' :status,"sku_code":sku_code,"quantity":quantity,"flag":flag}))

@@ -251,7 +251,7 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    dparam: "download-file",
                    value: "",
                    perm: "add_substitutionsummary"
-                 }, {
+                 },{
                    title: "Targets form Download/ Upload",
                    download: "Targets Download Form",
                    upload: "Targets Upload Form",
@@ -276,9 +276,16 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    upload: "StockTransfer Order Upload Form",
                    durl: "stock_transfer_order_form/",
                    uurl: "stock_transfer_order_upload/",
+                 },{
+                   title: "SKUPack Master Form Download/ Upload",
+                   download: "SKUPack Master Download Form",
+                   upload: "SKUPack Master Upload Form",
+                   durl: "skupack_master_download/",
+                   uurl: "skupack_master_upload/",
                    dparam: "download-file",
                    value: "",
                  }
+
                 ]
 
   $scope.download = function(data) {

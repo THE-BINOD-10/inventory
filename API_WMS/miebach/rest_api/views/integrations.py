@@ -858,9 +858,12 @@ def update_cancelled(orders, user='', company_name=''):
 def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_status, user_attr_list, parent_sku=None):
     sku_master = None
     sku_code = sku_data.get(sku_mapping['sku_code'], '')
+    if sku_data.get(sku_mapping['sku_desc'], ''):
+        if isinstance(sku_data[sku_mapping['sku_desc']], unicode):
+            sku_data[sku_mapping['sku_desc']] = sku_data[sku_mapping['sku_desc']].encode('ascii', 'ignore')
     if not sku_code:
         error_message = 'SKU Code should not be empty'
-        update_error_message(failed_status, 5022, error_message, sku_data.get(sku_mapping['sku_desc'], ''),
+        update_error_message(failed_status, 5022, error_message, sku_data[sku_mapping['sku_desc']],
                              field_key='sku_desc')
         return sku_master, insert_status
     sku_ins = SKUMaster.objects.filter(user=user.id, sku_code=sku_code)
@@ -868,7 +871,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
         sku_master = sku_ins[0]
     sku_master_dict = {'user': user.id, 'creation_date': datetime.datetime.now()}
     exclude_list = ['skus', 'child_skus']
-    number_fields = ['threshold_quantity', 'ean_number', 'hsn_code', 'price', 'mrp', 'status', 'shelf_life']
+    number_fields = ['threshold_quantity', 'hsn_code', 'price', 'mrp', 'status', 'shelf_life']
     sku_size = ''
     size_type = ''
     sku_options = []
@@ -949,11 +952,26 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
         elif key == 'ean_number':
             if value:
                 ean_numbers = str(value)
+            continue
+        if value == None:
+            value = ''
         sku_master_dict[key] = value
         if sku_master:
             setattr(sku_master, key, value)
 
     if sku_code in sum(insert_status.values(), []):
+        return sku_master, insert_status
+    tax_master_obj = None
+    if taxes_dict and sum(taxes_dict.values()) > 0:
+        tax_master_obj = TaxMaster.objects.filter(Q(cgst_tax=taxes_dict.get('cgst_tax', 0),
+                                                    sgst_tax=taxes_dict.get('sgst_tax', 0))
+                                                  | Q(igst_tax=taxes_dict.get('igst_tax', 0)),
+                                                  cess_tax=taxes_dict.get('cess_tax', 0), user=user.id)
+        if not tax_master_obj:
+            error_message = 'Tax Master not found'
+            update_error_message(failed_status, 5028, error_message, sku_code,
+                                 field_key='sku_code')
+    if '%s:%s' % ('sku_code', str(sku_code)) in failed_status.keys():
         return sku_master, insert_status
     if sku_master:
         sku_master.save()
@@ -972,6 +990,8 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
         sku_master.save()
     if sku_master and sku_options:
         for option in sku_options:
+            if not option.get('value', ''):
+                continue
             if option['name'] in option_not_created:
                 continue
             sku_attributes = SKUAttributes.objects.filter(sku_id=sku_master.id, attribute_name=option['name'])
@@ -983,22 +1003,13 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                 SKUAttributes.objects.create(sku_id=sku_master.id, attribute_name=option['name'],
                                              attribute_value=option['value'],
                                              creation_date=datetime.datetime.now())
-    if sku_master and taxes_dict:
-        tax_master_obj = TaxMaster.objects.filter(Q(cgst_tax=taxes_dict.get('cgst_tax', 0),
-                                                    sgst_tax=taxes_dict.get('sgst_tax', 0))
-                                                  | Q(igst_tax=taxes_dict.get('igst_tax', 0)),
-                                                  cess_tax=taxes_dict.get('cess_tax', 0), user=user.id)
-        #tax_master_obj = TaxMaster.objects.filter(user=user.id, **taxes_dict)
-        if tax_master_obj.exists():
-            sku_master.product_type = tax_master_obj[0].product_type
-            sku_master.save()
-        elif sum(taxes_dict.values()) > 0:
-            error_message = 'Tax Master not found'
-            update_error_message(failed_status, 5028, error_message, sku_code,
-                                 field_key='sku_code')
+    if sku_master and tax_master_obj:
+        sku_master.product_type = tax_master_obj[0].product_type
+        sku_master.save()
     if sku_master and ean_numbers:
         try:
-            update_ean_sku_mapping(user, ean_numbers, sku_master)
+            ean_numbers = ean_numbers.split(',')
+            update_ean_sku_mapping(user, ean_numbers, sku_master, True)
         except:
             pass
     return sku_master, insert_status
@@ -1037,7 +1048,7 @@ def update_skus(skus, user='', company_name=''):
             sku_master, insert_status = sku_master_insert_update(sku_data, user, sku_mapping, insert_status,
                                                                  failed_status, user_attr_list)
             all_sku_masters.append(sku_master)
-            if sku_data.has_key('child_skus'):
+            if sku_data.has_key('child_skus') and sku_data['child_skus'] and isinstance(sku_data['child_skus'], list):
                 for child_data in sku_data['child_skus']:
                     #sku_master1, insert_status = sku_master_insert_update(child_data, user, sku_mapping, insert_status,
                     #                                                      parent_sku=sku_master)

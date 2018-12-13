@@ -469,22 +469,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         var elem = angular.element($('form'));
         elem = elem[0];
         elem = $(elem).serializeArray();
-//      var data = [];
-//
-//      for(var i=0; i<vm.model_data.data.length; i++)  {
-//        angular.forEach(vm.model_data.data[i], function(sku){
-//          if(!sku.is_new) {
-//            data.push({name: sku.order_id, value: sku.value});
-//          }
-//        });
-//      }
-//
-//      data.push({name: 'remarks', value: vm.model_data.remarks});
-//      data.push({name: 'expected_date', value: vm.model_data.expected_date});
-//      data.push({name: 'remainder_mail', value: vm.model_data.remainder_mail});
-//      data.push({name: 'invoice_number', value: vm.model_data.invoice_number});
-//      data.push({name: 'invoice_date', value: vm.model_data.invoice_date});
-//      data.push({name: 'round_off_total', value: vm.model_data.round_off_total});
+        elem.push({'name': 'display_approval_button', value: vm.display_approval_button})
       vm.service.apiCall('update_putaway/', 'POST', elem, true).then(function(data){
         if(data.message) {
           if(data.data == 'Updated Successfully') {

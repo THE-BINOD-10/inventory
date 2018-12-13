@@ -1424,6 +1424,9 @@ def get_raisepo_group_data(user, myDict):
         if 'mrp' in myDict.keys():
             if myDict['mrp'][i]:
                 mrp = float(myDict['mrp'][i])
+        if 'ean_number' in myDict.keys():
+            if myDict['ean_number'][i]:
+                ean_number = float(myDict['ean_number'][i])
         if 'sgst_tax' in myDict.keys():
             if myDict['sgst_tax'][i]:
                 sgst_tax = float(myDict['sgst_tax'][i])
@@ -1454,7 +1457,9 @@ def get_raisepo_group_data(user, myDict):
                                    'supplier_code': supplier_code, 'po_name': po_name, 'receipt_type': receipt_type,
                                    'remarks': remarks, 'measurement_unit': measurement_unit,
                                    'vendor_id': vendor_id, 'ship_to': ship_to, 'sellers': {}, 'data_id': data_id,
-                                   'order_type': order_type, 'mrp': mrp, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax,
+                                   'order_type': order_type,
+                                    'ean_number':ean_number,
+                                    'mrp': mrp, 'sgst_tax': sgst_tax, 'cgst_tax': cgst_tax,
                                    'igst_tax': igst_tax, 'cess_tax': cess_tax,
                                    'utgst_tax': utgst_tax, 'po_delivery_date': po_delivery_date})
         order_qty = myDict['order_quantity'][i]
@@ -1681,6 +1686,7 @@ def get_supplier_data(request, user=''):
                             'value': get_decimal_limit(user.id, order.saved_quantity),
                             'receive_quantity': get_decimal_limit(user.id, order.received_quantity),
                             'price': order_data['price'],
+                            'ean_number':order_data['ean_number'],
                             'mrp': order_data['mrp'],
                             'temp_wms': order_data['temp_wms'], 'order_type': order_data['order_type'],
                             'unit': order_data['unit'],
@@ -4466,16 +4472,25 @@ def confirm_add_po(request, sales_data='', user=''):
         'ean_number').exclude(ean_number=0)
     if ean_data:
         ean_flag = True
+    if myDict['ean_number']:
+           ean_data = myDict['ean_number']
+           ean_flag = True
+
 
     all_data = get_raisepo_group_data(user, myDict)
+
 
     for key, value in all_data.iteritems():
         po_suggestions = copy.deepcopy(PO_SUGGESTIONS_DATA)
         sku_id = SKUMaster.objects.filter(wms_code=key.upper(), user=user.id)
 
         ean_number = 0
-        if sku_id:
+        ean_number = value['ean_number']
+        if ean_number:
+            ean_number = ean_number
+        else :
             ean_number = int(sku_id[0].ean_number)
+
 
         if not sku_id:
             sku_id = SKUMaster.objects.filter(wms_code='TEMP', user=user.id)
@@ -4491,6 +4506,8 @@ def confirm_add_po(request, sales_data='', user=''):
         mrp = value['mrp']
         if not mrp:
             mrp = 0
+
+
 
         if not 'supplier_code' in myDict.keys() and value['supplier_id']:
             supplier = SKUSupplier.objects.filter(supplier_id=value['supplier_id'], sku__user=user.id)
@@ -4520,6 +4537,7 @@ def confirm_add_po(request, sales_data='', user=''):
         po_suggestions['price'] = float(price)
         po_suggestions['status'] = 'Manual'
         po_suggestions['remarks'] = value['remarks']
+        po_suggestions['ean_number'] = value['ean_number']
         po_suggestions['measurement_unit'] = "UNITS"
         po_suggestions['mrp'] = float(mrp)
         po_suggestions['sgst_tax'] = value['sgst_tax']

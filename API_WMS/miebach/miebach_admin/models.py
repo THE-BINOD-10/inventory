@@ -446,6 +446,7 @@ class OpenPO(models.Model):
     order_type = models.CharField(max_length=32, default='SR')
     remarks = models.CharField(max_length=256, default='')
     tax_type = models.CharField(max_length=32, default='')
+    ean_number = models.DecimalField(max_digits=20, decimal_places=0, db_index=True, default=0)
     sgst_tax = models.FloatField(default=0)
     cgst_tax = models.FloatField(default=0)
     igst_tax = models.FloatField(default=0)

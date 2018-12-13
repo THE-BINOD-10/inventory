@@ -300,5 +300,10 @@ def results_data(request, user=''):
             for wh in whs:
                 headers[wh+'-NK'] = wh+'-NK'
         excel_data = print_excel(request, temp_data, headers, excel_name=request_data.get('datatable'))
+        file_type = 'xls'
+        if len(temp_data['aaData']) > 65535:
+            file_type = 'csv'
+        excel_data = print_excel(request, temp_data, headers, excel_name=request_data.get('datatable'),
+                                 file_type=file_type)
         return excel_data
     return HttpResponse(json.dumps(temp_data), content_type='application/json')

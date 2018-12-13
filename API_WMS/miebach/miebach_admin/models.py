@@ -1,10 +1,10 @@
-
 from django.db import models
 from django.contrib.auth.models import User, Group
 from miebach_utils import BigAutoField
 from datetime import date
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+import reversion
 from .choices import UNIT_TYPE_CHOICES, REMARK_CHOICES, TERMS_CHOICES, CUSTOMIZATION_TYPES, ROLE_TYPE_CHOICES, \
     CUSTOMER_ROLE_CHOICES, APPROVAL_STATUSES
 
@@ -433,6 +433,7 @@ class SKUQuantity(models.Model):
         return str(self.sku)
 
 
+@reversion.register()
 class OpenPO(models.Model):
     id = BigAutoField(primary_key=True)
     supplier = models.ForeignKey(SupplierMaster, blank=True, null=True, db_index=True)
@@ -468,6 +469,7 @@ class OpenPO(models.Model):
         return str(str(self.sku) + " : " + str(self.supplier))
 
 
+@reversion.register()
 class PurchaseOrder(models.Model):
     id = BigAutoField(primary_key=True)
     order_id = models.PositiveIntegerField(db_index=True)
@@ -572,7 +574,7 @@ class PalletMapping(models.Model):
         db_table = 'PALLET_MAPPING'
         index_together = ('pallet_detail', 'po_location')
 
-
+@reversion.register()
 class BatchDetail(models.Model):
     id = BigAutoField(primary_key=True)
     batch_no = models.CharField(max_length=64, default='')
@@ -611,7 +613,7 @@ class StockDetail(models.Model):
 
     class Meta:
         db_table = 'STOCK_DETAIL'
-        unique_together = ('receipt_number', 'receipt_date', 'sku', 'location', 'pallet_detail', 'batch_detail', 'unit_price')
+        unique_together = ('receipt_number', 'receipt_date', 'sku', 'location', 'pallet_detail', 'batch_detail', 'unit_price', 'receipt_type')
         index_together = (('sku', 'location', 'quantity'), ('location', 'sku', 'pallet_detail'))
 
     def __unicode__(self):
@@ -814,7 +816,10 @@ class OrderShipment(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.PositiveIntegerField()
     shipment_number = models.PositiveIntegerField()
+    manifest_number = models.DecimalField(max_digits=50, decimal_places=0,default=0)
     shipment_date = models.DateTimeField()
+    driver_name = models.CharField(max_length =32 , default ='')
+    driver_phone_number = models.CharField(max_length =32 , default ='')
     truck_number = models.CharField(max_length=64)
     shipment_reference = models.CharField(max_length=64)
     status = models.CharField(max_length=32)
@@ -1198,6 +1203,7 @@ class SKURelation(models.Model):
     id = BigAutoField(primary_key=True)
     parent_sku = models.ForeignKey(SKUMaster, blank=True, null=True, related_name='parent_sku')
     member_sku = models.ForeignKey(SKUMaster, blank=True, null=True, related_name='member_sku')
+    quantity = models.FloatField(default=1)
     relation_type = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -1205,6 +1211,7 @@ class SKURelation(models.Model):
     class Meta:
         db_table = 'SKU_RELATION'
         unique_together = ('parent_sku', 'member_sku', 'relation_type')
+        index_together = ('parent_sku', 'member_sku', 'relation_type')
 
     def __unicode__(self):
         return '%s: %s || %s' % (self.relation_type, self.parent_sku, self.member_sku)
@@ -1936,6 +1943,7 @@ class SellerPO(models.Model):
         return str(self.id)
 
 
+@reversion.register(follow=('batch_detail',))
 class SellerPOSummary(models.Model):
     id = BigAutoField(primary_key=True)
     receipt_number = models.PositiveIntegerField(default=0)
@@ -2022,6 +2030,7 @@ class OrderReturns(models.Model):
     return_id = models.CharField(max_length=256)
     order = models.ForeignKey(OrderDetail, blank=True, null=True)
     seller_order = models.ForeignKey(SellerOrder, blank=True, null=True)
+    seller = models.ForeignKey(SellerMaster, blank=True, null=True)
     return_date = models.DateTimeField(auto_now_add=True)
     quantity = models.FloatField(default=0)
     damaged_quantity = models.FloatField(default=0)
@@ -2872,6 +2881,7 @@ class UserAttributes(models.Model):
         unique_together = ('user', 'attribute_model', 'attribute_name')
 
 
+@reversion.register()
 class PrimarySegregation(models.Model):
     id = BigAutoField(primary_key=True)
     purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True)
@@ -2934,6 +2944,7 @@ class SellerOrderTransfer(models.Model):
         index_together = ('seller_transfer', 'seller_order')
 
 
+@reversion.register()
 class ReturnToVendor(models.Model):
     id = BigAutoField(primary_key=True)
     rtv_number = models.CharField(max_length=32, default='')
@@ -3058,3 +3069,16 @@ class SKUPackMaster(models.Model):
     class Meta:
         db_table = 'SKU_PACK_MASTER'
         unique_together = ('sku', 'pack_id')
+
+
+class TempJson(models.Model):
+    id = BigAutoField(primary_key=True)
+    model_id = models.PositiveIntegerField()
+    model_name = models.CharField(max_length=32, default='')
+    model_json = models.TextField(default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'TEMP_JSON'
+        index_together = ('model_id', 'model_name')

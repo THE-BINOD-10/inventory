@@ -161,7 +161,7 @@ function view_orders() {
         elem[id]= scan_data[length-1]
         if(total < data.reserved_quantity) {
           vm.service.apiCall('check_imei/', 'GET', elem).then(function(data){
-            if(data.message) {
+          if(data.data.status == "Success") {
               if(data.data.data.sku_code == record.wms_code) {
                 if(vm.record_serial_data[0] == scan_data) {
                   vm.qc_items(vm.model_data);
@@ -177,6 +177,9 @@ function view_orders() {
                 record.scan = record.scan+"\n";
                 record.scan = '';
               }
+            }
+            else{
+              Service.pop_msg(data.data.status);
             }
           });
         } else {

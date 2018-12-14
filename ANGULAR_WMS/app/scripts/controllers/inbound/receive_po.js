@@ -20,6 +20,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.display_approval_button = false;
     vm.supplier_id = '';
     vm.order_id = 0;
+    vm.invoice_readonly ='';
     vm.receive_po_mandatory_fields = {};
     if(vm.permissions.receive_po_mandatory_fields) {
       angular.forEach(vm.permissions.receive_po_mandatory_fields.split(','), function(field){

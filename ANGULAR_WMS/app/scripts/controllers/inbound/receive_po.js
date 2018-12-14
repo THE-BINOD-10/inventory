@@ -285,6 +285,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     function close() {
 
       vm.model_data = {};
+      vm.invoice_readonly = '';
       vm.html = "";
       vm.print_enable = false;
       if(vm.permissions.use_imei) {

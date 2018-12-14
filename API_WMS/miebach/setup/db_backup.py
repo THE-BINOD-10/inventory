@@ -15,7 +15,7 @@ class DBBackup:
         self.default = settings.DATABASES['default']
         self.db_name = self.default['NAME']
         self.password = self.default['PASSWORD']
-        self.host = self.default['HOST']
+        self.host = self.default.get('HOST', 'localhost')
         self.user = self.default['USER']
 
     def mysql_backup(self):
@@ -42,6 +42,10 @@ class DBBackup:
         tar.close()
         os.remove(os.path.join(self.backup_path, bfile))
         status = file_upload(tar_file_path, '/WMS_SQL/', 'u156461.your-backup.de', 'u156461', 'ZAl8lR76yJZ2pLSX', 1)
+        if not status:
+            self.sending_mail('Error')
+        else:
+            os.remove(tar_file_path)
 
     def sending_mail(self, res):
         if res == "success":
@@ -52,7 +56,7 @@ class DBBackup:
             subject = "Alert : DB backup Failed"
             body = "Hi Team, Backup creation is failed please check asap."
 
-        send_to = ["abhishek@mieone.com", "wms-dev@mieone.com", "sandhani@mieone.com", "sreekanth@mieone.com"]
+        send_to = ["wms-dev@mieone.com", "sai@mieone.com", "sreekanth@mieone.com"]
         #send_to = ["sreekanth@mieone.com"]
         send_mail(send_to, subject, body)
 

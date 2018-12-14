@@ -1626,6 +1626,7 @@ def get_supplier_data(request, user=''):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     temp = get_misc_value('pallet_switch', user.id)
     order_ids = []
+    uploaded_file_dict = {}
     headers = ['WMS CODE', 'PO Quantity', 'Received Quantity', 'Unit Price', '']
     if temp == 'true':
         headers.insert(2, 'Pallet Number')
@@ -1746,6 +1747,10 @@ def get_supplier_data(request, user=''):
             dc_number = temp_json.get('dc_number', '')
             dc_date = temp_json.get('dc_date', '')
             dc_level_grn = temp_json.get('dc_level_grn', '')
+            master_docs = MasterDocs.objects.filter(master_id=purchase_order.order_id, master_type='PO_TEMP')
+            if master_docs.exists():
+                uploaded_file_dict = {'file_name': 'Uploaded File', 'id': master_docs[0].id,
+                                      'file_url': '/' + master_docs[0].uploaded_file.name}
     return HttpResponse(json.dumps({'data': orders, 'po_id': order_id, 'options': REJECT_REASONS, \
                                     'supplier_id': order_data['supplier_id'], 'use_imei': use_imei, \
                                     'temp': temp, 'po_reference': po_reference, 'order_ids': order_ids, \
@@ -1753,7 +1758,8 @@ def get_supplier_data(request, user=''):
                                     'expected_date': expected_date, 'remarks': remarks,
                                     'remainder_mail': remainder_mail, 'invoice_number': invoice_number,
                                     'invoice_date': invoice_date, 'dc_number': dc_number,
-                                    'dc_date': dc_date, 'dc_grn': dc_level_grn}))
+                                    'dc_date': dc_date, 'dc_grn': dc_level_grn,
+                                    'uploaded_file_dict': uploaded_file_dict}))
 
 
 @csrf_exempt
@@ -1819,6 +1825,18 @@ def update_putaway(request, user=''):
                 if exist_temp_json:
                     exist_temp_json[0].model_json = json.dumps(po_data)
                     exist_temp_json[0].save()
+        file_obj = request.FILES.get('files-0', '')
+        if file_obj:
+            master_docs_obj = MasterDocs.objects.filter(master_id=po.order_id, master_type='PO_TEMP',
+                                                        user_id=user.id)
+            if not master_docs_obj:
+                upload_master_file(request, user, po.order_id, 'PO_TEMP', master_file=file_obj)
+            else:
+                master_docs_obj = master_docs_obj[0]
+                if os.path.exists(master_docs_obj.uploaded_file.path):
+                    os.remove(master_docs_obj.uploaded_file.path)
+                master_docs_obj.uploaded_file = file_obj
+                master_docs_obj.save()
         if send_for_approval == 'true':
             grn_permission = get_permission(request.user, 'change_purchaseorder')
             if not grn_permission:
@@ -2492,6 +2510,37 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
     return seller_received_list
 
 
+def create_file_po_mapping(request, user, receipt_no, myDict):
+    try:
+        purchase_order_obj = PurchaseOrder.objects.filter(id=myDict['id'][0])
+        if purchase_order_obj:
+            file_obj = request.FILES.get('files-0', '')
+            po_order_id = purchase_order_obj[0].order_id
+            master_docs_obj = MasterDocs.objects.filter(master_id=po_order_id, user=user.id,
+                                                        master_type='PO_TEMP')
+            grn_key = '%s/%s' % (str(po_order_id), str(receipt_no))
+            if file_obj:
+                upload_master_file(request, user, grn_key, 'GRN',
+                                   master_file=request.FILES['files-0'])
+            elif master_docs_obj:
+                master_docs_obj = master_docs_obj[0]
+                master_docs_obj.master_id = grn_key
+                master_docs_obj.master_type = 'GRN'
+                master_docs_obj.save()
+            exist_master_docs = MasterDocs.objects.filter(master_id=po_order_id, user=user.id,
+                                      master_type='PO_TEMP')
+            if exist_master_docs:
+                for exist_master_doc in exist_master_docs:
+                    if os.path.exists(exist_master_doc.uploaded_file):
+                        os.remove(exist_master_doc.uploaded_file.path)
+                    exist_master_doc.delete()
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Create GRN File Mapping failed for user " + str(user.username) + \
+                 " and error statement is " + str(e))
+
+
 def generate_grn(myDict, request, user, is_confirm_receive=False):
     order_quantity_dict = {}
     all_data = OrderedDict()
@@ -2695,6 +2744,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
         po_data.append((purchase_data['wms_code'], purchase_data['supplier_code'], purchase_data['sku_desc'],
                         purchase_data['order_quantity'],
                         value, price))
+    create_file_po_mapping(request, user, seller_receipt_id, myDict)
     return po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict, seller_receipt_id
 
 

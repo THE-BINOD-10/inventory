@@ -167,6 +167,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                       vm.model_data.dc_level_grn = true;
                     }
                     vm.shelf_life = vm.model_data.data[0][0].shelf_life;
+                    if(vm.model_data.uploaded_file_dict && Object.keys(vm.model_data.uploaded_file_dict).length > 0) {
+                      vm.model_data.uploaded_file_dict.file_url = vm.service.check_image_url(vm.model_data.uploaded_file_dict.file_url);
+                    }
 
 //                    angular.forEach(vm.model_data.data, function(row){
 //                      angular.forEach(row, function(sku){
@@ -465,12 +468,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     vm.save_sku = function(){
-        var that = vm;
-        var elem = angular.element($('form'));
-        elem = elem[0];
-        elem = $(elem).serializeArray();
-        elem.push({'name': 'display_approval_button', value: vm.display_approval_button})
-      vm.service.apiCall('update_putaway/', 'POST', elem, true).then(function(data){
+      var that = vm;
+      var elem = angular.element($('form'));
+      elem = elem[0];
+      elem = $(elem).serializeArray();
+      elem.push({'name': 'display_approval_button', value: vm.display_approval_button})
+      var form_data = new FormData();
+      console.log(form_data);
+      var files = $(".grn-form").find('[name="files"]')[0].files;
+      $.each(files, function(i, file) {
+        form_data.append('files-' + i, file);
+      });
+      $.each(elem, function(i, val) {
+        form_data.append(val.name, val.value);
+      });
+      vm.service.apiCall('update_putaway/', 'POST', form_data, true, true).then(function(data){
         if(data.message) {
           if(data.data == 'Updated Successfully') {
             vm.close();
@@ -541,11 +553,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           return false;
         }
         elem = $(elem).serializeArray();
+        var form_data = new FormData();
+        console.log(form_data);
+        var files = $(".grn-form").find('[name="files"]')[0].files;
+        $.each(files, function(i, file) {
+          form_data.append('files-' + i, file);
+        });
+        $.each(elem, function(i, val) {
+          form_data.append(val.name, val.value);
+        });
         var url = "confirm_grn/"
         if(vm.po_qc) {
           url = "confirm_receive_qc/"
         }
-        vm.service.apiCall(url, 'POST', elem, true).then(function(data){
+        vm.service.apiCall(url, 'POST', form_data, true, true).then(function(data){
           if(data.message) {
             if(data.data.search("<div") != -1) {
               vm.extra_width = {}

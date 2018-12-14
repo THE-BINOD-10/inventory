@@ -268,7 +268,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.conf_disable = true;
       var elem = [];
       elem.push({'name': 'seller_id', 'value': vm.model_data.seller_details.seller_id});
-      elem.push({'name': 'enable_dc_returns', 'value': vm.model_data.filters.enable_dc_returns});
+      if(vm.model_data.filters) {
+        elem.push({'name': 'enable_dc_returns', 'value': vm.model_data.filters.enable_dc_returns});
+      }
 
       angular.forEach(vm.model_data.data, function(row){
         angular.forEach(row, function(sku){
@@ -310,7 +312,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.conf_disable = true;
       var elem = [];
       elem.push({'name': 'seller_id', 'value': vm.model_data.seller_details.seller_id});
-      elem.push({'name': 'enable_dc_returns', 'value': vm.model_data.filters.enable_dc_returns});
+      if(vm.model_data.filters) {
+        elem.push({'name': 'enable_dc_returns', 'value': vm.model_data.filters.enable_dc_returns});
+      }
 
       angular.forEach(vm.model_data.data, function(row){
         angular.forEach(row, function(sku){

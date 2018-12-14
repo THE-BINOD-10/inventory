@@ -401,7 +401,8 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
             phone_number = data.phone_number
         temp_data['aaData'].append(
             OrderedDict((('customer_id', data.customer_id), ('name', data.name), ('address', data.address),
-                         ('phone_number', phone_number), ('email_id', data.email_id), ('status', status),
+                         ('shipping_address', data.shipping_address),
+                         ('phone_number', str(phone_number)), ('email_id', data.email_id), ('status', status),
                          ('tin_number', data.tin_number), ('credit_period', data.credit_period),
                          ('login_created', login_created), ('username', user_name), ('price_type_list', price_types),
                          ('price_type', price_type), ('cst_number', data.cst_number),
@@ -777,7 +778,6 @@ def get_warehouse_user_results(start_index, stop_index, temp_data, search_term, 
     search_params1 = {}
     search_params2 = {}
     lis = ['username', 'first_name', 'email', 'id']
-
     warehouse_admin = get_warehouse_admin(user)
     exclude_admin = {}
     if warehouse_admin.id == user.id:
@@ -1090,7 +1090,7 @@ def update_supplier_values(request, user=''):
         data_id = request.POST['id']
         data = get_or_none(SupplierMaster, {'id': data_id, 'user': user.id})
         old_name = data.name
-        upload_master_file(request, data.id, "SupplierMaster")
+        upload_master_file(request, user, data.id, "SupplierMaster")
 
         create_login = request.POST.get('create_login', '')
         password = request.POST.get('password', '')
@@ -1175,7 +1175,7 @@ def insert_supplier(request, user=''):
 
             data_dict['user'] = user.id
             supplier_master = SupplierMaster(**data_dict)
-            upload_master_file(request, supplier_master.id, "SupplierMaster")
+            upload_master_file(request, user, supplier_master.id, "SupplierMaster")
             supplier_master.save()
             status_msg = 'New Supplier Added'
             if create_login == 'true':
@@ -1197,14 +1197,15 @@ def insert_supplier(request, user=''):
 
 
 @csrf_exempt
-def upload_master_file(request, master_id, master_type):
+def upload_master_file(request, user, master_id, master_type, master_file=None):
     master_id = master_id
     master_type = master_type
-    master_file = request.FILES.get('master_file', '')
+    if not master_file:
+        master_file = request.FILES.get('master_file', '')
     if not master_file and master_id and master_type:
         return 'Fields are missing.'
     upload_doc_dict = {'master_id': master_id, 'master_type': master_type,
-                       'uploaded_file': master_file}
+                       'uploaded_file': master_file, 'user_id': user.id}
     master_doc = MasterDocs.objects.filter(**upload_doc_dict)
     if not master_doc:
         master_doc = MasterDocs(**upload_doc_dict)
@@ -3944,3 +3945,17 @@ def add_sub_zone_mapping(request, user=''):
         mapping_obj.save()
         return HttpResponse('Added Successfully')
     return HttpResponse('Mapping Already Exists')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def change_warehouse_password (request ,user=''):
+    user_name = request.POST['user_name']
+    new_password = request.POST['new_password']
+    user_obj = User.objects.get(username=user_name)
+    if user_obj :
+        user_obj.set_password(new_password)
+        user_obj.save()
+        return HttpResponse('Successfully changed the Password')
+    else:
+        return HttpResponse('Failed to change the Password')

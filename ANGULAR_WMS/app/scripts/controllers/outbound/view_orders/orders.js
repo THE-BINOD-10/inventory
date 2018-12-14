@@ -1160,4 +1160,35 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.service.print_data(vm.html, "Purchase Order");
   }
 
+vm.reassgined_list = []
+vm.reassign_order = function() {
+    vm.bt_disable = true;
+    vm.reassgined_list = []
+    for(var key in vm.selected){
+      console.log(vm.selected[key]);
+      if(vm.selected[key]) {
+        vm.reassgined_list.push(vm.dtInstance.DataTable.context[0].aoData[key]._aData['Order ID']);
+      }
+    }
+  if(vm.reassgined_list.length > 0) {
+    var order_ids = vm.reassgined_list
+    vm.service.apiCall("reassgin_order/",'GET',{'order_ids':order_ids}).then(function(data) {
+      if(data.message) {
+        console.log(data.data);
+        if(data.data == 'Success') {
+          Service.showNoty('Successfully  Reassgined the Order');
+        } else {
+          Service.showNoty(data.data, 'warning');
+        }
+      } else {
+        Service.showNoty('Something Went Wrong', 'warning');
+      }
+    });
   }
+  else{
+    vm.bt_disable = false;
+  }
+
+
+  }
+}

@@ -73,9 +73,9 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
 
                             alternate_view: true,
                             view: 'ShipmentPickedAlternative',
-                            tb_headers: {'ShipmentPickedOrders': ['Order ID', 'SKU Code', 'Title', 'Customer ID', 'Customer Name', 'Marketplace',
+                            tb_headers: {'ShipmentPickedOrders': ['Order ID', 'SKU Code', 'Title', 'Customer ID', 'Customer Name','Address', 'Marketplace',
                                                                   'Picked Quantity'],
-                                         'ShipmentPickedAlternative': ['Order ID', 'Customer ID', 'Customer Name', 'Marketplace',
+                                         'ShipmentPickedAlternative': ['Order ID', 'Customer ID', 'Customer Name', 'Marketplace','Address',
                                                                   'Picked Quantity', 'Total Quantity', 'Order Date']}
                          }
 

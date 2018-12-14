@@ -134,7 +134,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
     vm.update_carton_code = function(carton_code){
       $scope.$apply(function() {
         vm.carton_code = carton_code;
-        
+
         if (!vm.model_data.sel_cartons[carton_code]) {
           vm.model_data.sel_cartons[carton_code] = 0;
         }
@@ -384,7 +384,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
 
       modalInstance.result.then(function (selectedItem) {
         console.log(selectedItem);
-      }); 
+      });
     }
 
   vm.add_shipment = function(valid) {
@@ -458,18 +458,39 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
                 imei_order_id = vm.model_data.data[0].order_id;
               }
           }
-          var check_imei_dict = {is_shipment: true, imei: imei, order_id: imei_order_id, groupby: vm.group_by}
-          vm.service.apiCall('check_imei/', 'GET', check_imei_dict).then(function(data){
-            if(data.message) {
-              if (data.data.status == "Success") {
-                vm.update_imei_data(data.data, imei);
+        if(!vm.model_data.data[0].serial_number.length) 
+          {
+           var check_imei_dict = {is_shipment: true, imei: imei, order_id: imei_order_id, groupby: vm.group_by}
+           vm.service.apiCall('check_imei/', 'GET', check_imei_dict).then(function(data){
+             if(data.message) {
+               if (data.data.status == "Success") {
+                 vm.update_imei_data(data.data, imei);
                 //vm.check_equal(data2);
-              } else {
-                vm.service.showNoty(data.data.status);
-              }
-              vm.imei_number = "";
+               } else {
+                 vm.service.showNoty(data.data.status);
+               }
+               vm.imei_number = "";
+             }
+           });
+          }
+        else{
+              for(var i=0;i<vm.model_data.data.length;i++)
+               {
+                  for(var j =0;j<vm.model_data.data[i].serial_number.length;j++)
+                    {
+                        if(vm.model_data.data[i].serial_number[j] == imei)
+                          {
+                            if(vm.model_data.data[i].picked > vm.model_data.data[i]['sub_data'][0].shipping_quantity)
+                              {
+                                vm.model_data.data[i]['sub_data'][0].shipping_quantity += 1;
+                                vm.model_data.data[i].serial_number[j] =''
+
+                              }
+                            }
+                        }
+                  }
             }
-          });
+
         }
       }
     }
@@ -567,7 +588,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
         }
         vm.awb_no = '';
         vm.bt_disable = true;
-        }); 
+        });
       }
     }
     vm.bt_disable = false;
@@ -622,7 +643,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
                 if (vm.carton_code == vm.model_data.data[i].sub_data[last_index].pack_reference ||
                   !vm.model_data.data[i].sub_data[last_index].pack_reference ||
                   (!vm.model_data.data[i].sub_data[last_index].shipping_quantity && vm.model_data.data[i].sub_data[last_index].pack_reference)) {
-                  
+
                   vm.model_data.data[i].sub_data[last_index].shipping_quantity = Number(exist_quan) + 1;
 
                   if (vm.model_data.data[i].sub_data[last_index].shipping_quantity) {
@@ -675,8 +696,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
         var sel_cartons_len = Object.keys(vm.model_data.sel_cartons);
         var sel_cartons = JSON.stringify(vm.model_data.sel_cartons);
         var total_items = 0;
-        angular.forEach(vm.model_data.sel_cartons, function(row){ 
-          total_items += row; 
+        angular.forEach(vm.model_data.sel_cartons, function(row){
+          total_items += row;
         });
         var elem = angular.element($('#add-customer'));
         elem = elem[0];

@@ -69,6 +69,8 @@ urlpatterns = [
     url(r'^insert_sku/$', insert_sku),
     url(r'^upload_images/$', upload_images),
     url(r'^get_barcodes_myntra/$', get_barcodes_myntra),
+    url(r'^change_warehouse_password/$', change_warehouse_password),
+
 
     # url(r'^get_sku_field_names/$',get_sku_field_names),
     url(r'^create_update_custom_sku_template/$', create_update_custom_sku_template),
@@ -252,6 +254,7 @@ urlpatterns = [
     url(r'^get_courier_name_for_marketplaces/$', get_courier_name_for_marketplaces),
     url(r'^print_picklist_excel/$', print_picklist_excel),
     url(r'^print_picklist/$', print_picklist),
+    url(r'^print_pdf_shipment_info/$',print_pdf_shipment_info),
     url('^marketplace_segregation/$', marketplace_segregation),
     url('^get_customer_data/$', get_customer_data),
     url('^insert_order_data/$', insert_order_data),
@@ -360,6 +363,9 @@ urlpatterns = [
     url(r'^get_stock_transfer_shipment_popup_data/$', get_stock_transfer_shipment_popup_data),
     url(r'^insert_st_shipment_info/$', insert_st_shipment_info),
     url(r'^do_delegate_orders/$', do_delegate_orders),
+    url(r'^app_shipment_info_data/$', app_shipment_info_data),
+
+
 
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),
@@ -497,10 +503,13 @@ urlpatterns += [
     url(r'^network_master_upload/$', network_master_upload),
     url(r'^sku_substitution_form/$', sku_substitution_form),
     url(r'^sku_substitution_upload/$', sku_substitution_upload),
-    url(r'^targets_form/$', targets_form),  
+    url(r'^targets_form/$', targets_form),
     url(r'^targets_upload/$', targets_upload),
     url(r'^central_order_form/$', central_order_form),
     url(r'^central_order_upload/$', central_order_upload),
+    url(r'^stock_transfer_order_form/$',stock_transfer_order_form),
+    url(r'^stock_transfer_order_upload/$',stock_transfer_order_upload),
+
 
     # configurations
     url(r'^configurations/$', configurations),
@@ -541,6 +550,7 @@ urlpatterns += [
     url(r'update_profile_data/$', update_profile_data),
     url(r'get_cust_profile_info/$', get_cust_profile_info),
     url(r'get_linked_warehouse_names/$', get_linked_warehouse_names),
+    url(r'delete_temp_json/$', delete_temp_json),
 
     # Retailone
     url(r'^get_marketplace_data/$', get_marketplace_data),

@@ -167,7 +167,7 @@
                  <td><input type="text" class="form-control ig_ifieldg" ng-model="data_split.cgst" readonly ></td>
                  <td><input type="text" class="form-control ig_ifieldh" ng-model="data_split.igst" readonly ></td>
                  <td><input type="text" name="reason" class="form-control" ng-model="data_split.reason"></td>
-                 <td ng-if ="user.user_profile['user_type'] == 'marketplace_user' && showCase.return_process == 'sku_code'"><input type="text" class="form-control unitp_field" readonly name="seller_id" ng-model="showCase.model_data.seller_type"></td>
+                 <td ng-if ="user.user_profile['user_type'] == 'marketplace_user' && showCase.return_process == 'sku_code'"><input type="text"  readonly name="seller_id" ng-model="data_split.seller_id" class="form-control order_field"></td>
                  <td>
                    <i class="mr10" ng-click="showCase.update_data($index, data_split, showCase.model_data.data)" ng-class="showCase.service.isLast(false)"></i>
                    <i ng-hide="showCase.return_process == 'scan_imei' || showCase.allocate_order" ng-click="showCase.add_next($index, data_split, showCase.model_data.data)" class="fa fa-plus-square-o"></i>

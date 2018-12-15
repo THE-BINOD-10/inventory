@@ -20,6 +20,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.display_approval_button = false;
     vm.supplier_id = '';
     vm.order_id = 0;
+    vm.invoice_readonly ='';
     vm.receive_po_mandatory_fields = {};
     if(vm.permissions.receive_po_mandatory_fields) {
       angular.forEach(vm.permissions.receive_po_mandatory_fields.split(','), function(field){
@@ -297,12 +298,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       vm.model_data = {};
       vm.html = "";
+      vm.invoice_readonly = '';
       vm.print_enable = false;
       if(vm.permissions.use_imei) {
         fb.stop_fb();
         vm.imei_list = [];
       }
       vm.sort_items = [];
+      firsttotal =0;
       vm.sort_flag = false;
       vm.display_approval_button = false;
       $state.go('app.inbound.RevceivePo');
@@ -811,6 +814,27 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         })
       }
     }
+    var firsttotal = 0
+vm.change_overall_discount =function(discount,total){
+  if(total>discount)
+  {
+    if(!firsttotal)
+    {
+      firsttotal = vm.model_data.round_off_total
+    }
+    if(firsttotal < vm.model_data.round_off_total)
+    {
+      firsttotal = vm.model_data.round_off_total
+    }
+    vm.model_data.overall_discount = discount;
+    vm.model_data.round_off_total = firsttotal - vm.model_data.overall_discount;
+    vm.skus_total_amount = vm.model_data.round_off_total;
+    $('.totals').text('Totals: ' + vm.model_data.round_off_total);
+  }
+  else{
+  vm.model_data.overall_discount   = 0;
+  }
+}
 
     vm.addNewScannedSku = function(event, field){
 

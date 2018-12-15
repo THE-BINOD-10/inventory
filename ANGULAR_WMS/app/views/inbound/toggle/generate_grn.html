@@ -119,6 +119,12 @@
                 <input class="form-control" ng-if="showCase.invoice_readonly == 'True'" ng-model="showCase.model_data.invoice_value" type="text" ng-class="service.get_decimal_perm()" name="invoice_value" readonly>
               </div>
             </div>
+            <div class="col-md-3 col-sm-3 col-xs-6">
+              <div class="form-group">
+                <label for="over_discount" class="control-label"> Discount(value)</label>
+                <input class="form-control"  ng-model="showCase.model_data.overall_discount" type="text"  ng-keyup="showCase.change_overall_discount(showCase.model_data.overall_discount,showCase.model_data.round_off_total )" name ="overall_discount">
+              </div>
+            </div>
             <div class="col-md-3 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label for="remarks" class="control-label"> Remarks </label>
@@ -303,7 +309,7 @@
               <div class="col-md-5" ng-if="showCase.round_off">
                 <div class="form-group">
                   <label for="remarks" class="control-label"> Round Off Total</label>
-                  <input type="number" ng-model="showCase.model_data.round_off_total" title="{{ showCase.model_data.round_off_total }}" name="round_off_total" class="form-control pull-right" value="{{showCase.model_data.round_off_total}}" ng-pattern="/^[0-9]+(\.[0-9]{1,2})?$/" onwheel="this.blur()" step="0.01">
+                  <input type="number" ng-model="showCase.model_data.round_off_total" title="{{ showCase.model_data.round_off_total }}" name="round_off_total" class="form-control pull-right" value="{{showCase.model_data.round_off_total }}" ng-pattern="/^[0-9]+(\.[0-9]{1,2})?$/" onwheel="this.blur()" step="0.01">
                 </div>
               </div>
             </div>

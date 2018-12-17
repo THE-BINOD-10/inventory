@@ -1197,7 +1197,7 @@ def insert_supplier(request, user=''):
 
 
 @csrf_exempt
-def upload_master_file(request, user, master_id, master_type, master_file=None):
+def upload_master_file(request, user, master_id, master_type, master_file=None, extra_flag=''):
     master_id = master_id
     master_type = master_type
     if not master_file:
@@ -1205,7 +1205,7 @@ def upload_master_file(request, user, master_id, master_type, master_file=None):
     if not master_file and master_id and master_type:
         return 'Fields are missing.'
     upload_doc_dict = {'master_id': master_id, 'master_type': master_type,
-                       'uploaded_file': master_file, 'user_id': user.id}
+                       'uploaded_file': master_file, 'user_id': user.id, 'extra_flag': extra_flag}
     master_doc = MasterDocs.objects.filter(**upload_doc_dict)
     if not master_doc:
         master_doc = MasterDocs(**upload_doc_dict)

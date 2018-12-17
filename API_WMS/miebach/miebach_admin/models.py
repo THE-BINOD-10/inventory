@@ -2907,13 +2907,15 @@ class MasterDocs(models.Model):
     master_id = models.CharField(max_length=64, default='')
     master_type = models.CharField(max_length=64, default='')
     uploaded_file = models.FileField(upload_to=get_path, blank=True, null=True)
+    extra_flag = models.CharField(max_length=32, default='')
     user = models.ForeignKey(User, blank=True, null=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'MASTER_DOCS'
-        index_together = ('master_id', 'master_type', 'uploaded_file')
+        index_together = (('master_id', 'master_type', 'uploaded_file'),
+                          ('user', 'master_id', 'master_type', 'extra_flag'))
 
 
 class WarehouseSKUMapping(models.Model):

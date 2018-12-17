@@ -2518,13 +2518,13 @@ def create_file_po_mapping(request, user, receipt_no, myDict):
             po_order_id = purchase_order_obj[0].order_id
             master_docs_obj = MasterDocs.objects.filter(master_id=po_order_id, user=user.id,
                                                         master_type='PO_TEMP')
-            grn_key = '%s/%s' % (str(po_order_id), str(receipt_no))
             if file_obj:
-                upload_master_file(request, user, grn_key, 'GRN',
-                                   master_file=request.FILES['files-0'])
+                upload_master_file(request, user, po_order_id, 'GRN',
+                                   master_file=request.FILES['files-0'], extra_flag=receipt_no)
             elif master_docs_obj:
                 master_docs_obj = master_docs_obj[0]
-                master_docs_obj.master_id = grn_key
+                master_docs_obj.master_id = po_order_id
+                master_docs_obj.extra_flag = receipt_no
                 master_docs_obj.master_type = 'GRN'
                 master_docs_obj.save()
             exist_master_docs = MasterDocs.objects.filter(master_id=po_order_id, user=user.id,
@@ -8886,3 +8886,55 @@ def confirm_central_po(request, user=''):
                  " user " + str(user.username)+ "Params are " + str(request.POST.dict()) + " on " + \
                  str(get_local_date(user, datetime.datetime.now())) + "and error statement is " + str(e))
         return HttpResponse("Create PO Failed")
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def download_grn_invoice_mapping(request, user=''):
+    search_parameters = {'purchase_order__open_po__sku__user': user.id}
+    if request.GET.get('from_date', ''):
+        from_date = request.GET['from_date'].split('/')
+        search_parameters['creation_date__gt'] = datetime.date(int(from_date[2]), int(from_date[0]),
+                                                                       int(from_date[1]))
+    if request.GET.get('to_date', ''):
+        to_date = request.GET['to_date'].split('/')
+        to_date = datetime.date(int(to_date[2]), int(to_date[0]), int(to_date[1]))
+        to_date = datetime.datetime.combine(to_date + datetime.timedelta(1),
+                                                             datetime.time())
+        search_parameters['creation_date__lt'] = to_date
+    if request.GET.get('sku_code', ''):
+        search_parameters['purchase_order__open_po__sku__sku_code'] = request.GET.get('sku_code', '')
+    if request.GET.get('open_po', ''):
+        search_parameters['purchase_order__order_id'] = request.GET.get('open_po', '')
+    if request.GET.get('invoice_number', ''):
+        search_parameters['invoice_number'] = request.GET['invoice_number']
+    order_ids = SellerPOSummary.objects.filter(**search_parameters).\
+                                        values('purchase_order__order_id', 'receipt_number',
+                                                    'purchase_order__open_po__supplier__name').distinct().\
+                                    annotate(invoice_date=Cast('creation_date', DateField()))
+    total_file_size = 0
+    master_doc_objs = OrderedDict()
+    for order in order_ids:
+        master_docs = MasterDocs.objects.filter(user_id=user.id, master_id=order['purchase_order__order_id'],
+                                  master_type='GRN', extra_flag=order['receipt_number'])
+        if master_docs.exists():
+            master_docs = master_docs[0]
+            supplier_name = order['purchase_order__open_po__supplier__name']
+            invoice_date = str(order['invoice_date'])
+            file_format = master_docs.uploaded_file.path.split('.')[-1]
+            master_doc_objs['%s_%s.%s' % (supplier_name, invoice_date, file_format)] = master_docs
+            total_file_size += master_docs.uploaded_file.size
+        if float(total_file_size/1024)/1024 > 15:
+            return HttpResponse("Selected Filters exceeding File limit(15 MB)")
+    zip_subdir = ""
+    zip_filename = "GRN_INVOICES.zip"
+    stringio = StringIO.StringIO()
+    zf = zipfile.ZipFile(stringio, "w")
+    for fname, file_obj in master_doc_objs.items():
+        zip_path = os.path.join(zip_subdir, fname)
+        zf.write(file_obj.uploaded_file.path, zip_path)
+    zf.close()
+    resp = HttpResponse(stringio.getvalue(), content_type="application/x-zip-compressed")
+    resp['Content-Disposition'] = 'attachment; filename=%s' % zip_filename
+    return resp

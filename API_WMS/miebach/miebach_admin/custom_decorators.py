@@ -69,9 +69,16 @@ def login_required(f):
                     request.user = objs[0].application.user
                     return f(request, *args, **kwargs)
                 else:
-                    return HttpResponse(json.dumps(response_data), status=401)
+                    try:
+                        temp_abs_url = request.get_full_path()
+                        if temp_abs_url.split('/')[1] == 'api':
+                            return HttpResponse(json.dumps(response_data), status=401)
+                        else:
+                            return HttpResponse(json.dumps(response_data))
+                    except:
+                        return HttpResponse(json.dumps(response_data))
             else:
-                return HttpResponse(json.dumps(response_data), status=401)
+                return HttpResponse(json.dumps(response_data))
 
         return f(request, *args, **kwargs)
 

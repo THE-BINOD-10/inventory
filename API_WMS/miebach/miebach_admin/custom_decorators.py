@@ -69,9 +69,9 @@ def login_required(f):
                     request.user = objs[0].application.user
                     return f(request, *args, **kwargs)
                 else:
-                    return HttpResponse(json.dumps(response_data))
+                    return HttpResponse(json.dumps(response_data), status=401)
             else:
-                return HttpResponse(json.dumps(response_data))
+                return HttpResponse(json.dumps(response_data), status=401)
 
         return f(request, *args, **kwargs)
 

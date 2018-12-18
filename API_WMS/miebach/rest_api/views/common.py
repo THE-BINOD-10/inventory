@@ -5917,7 +5917,7 @@ def update_order_dicts(orders, user='', company_name=''):
         auto_picklist_signal = get_misc_value('auto_generate_picklist', order_det_dict['user'])
         if auto_picklist_signal == 'true':
             message = check_stocks(order_sku, user, 'false', [order_detail])
-        status = {'status': 1, 'messages': ['Success']}
+        status = {'status': 1, 'messages': 'Success'}
     return status
 
 

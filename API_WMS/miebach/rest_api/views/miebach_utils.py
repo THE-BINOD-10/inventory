@@ -3273,9 +3273,11 @@ def get_order_summary_data(search_params, user, sub_user):
     search_parameters['quantity__gt'] = 0
     search_parameters['user'] = user.id
     search_parameters['sku_id__in'] = sku_master_ids
-
     if 'invoice_number' in search_params :
         orders = OrderDetail.objects.filter(sellerordersummary__invoice_number = search_params['invoice_number'])
+
+    elif 'invoice_date' in search_params:
+        orders = OrderDetail.objects.filter(sellerordersummary__creation_date__icontains = search_params['invoice_date'])
     else:
         orders = OrderDetail.objects.filter(**search_parameters)
     pick_filters = {}

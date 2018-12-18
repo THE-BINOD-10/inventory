@@ -440,7 +440,7 @@ def get_search_params(request, user=''):
     search_params = {}
     filter_params = {}
     headers = []
-    date_fields = ['from_date', 'to_date']
+    date_fields = ['from_date', 'to_date','invoice_date']
     data_mapping = {'start': 'start', 'length': 'length', 'draw': 'draw', 'search[value]': 'search_term',
                     'order[0][dir]': 'order_term',
                     'order[0][column]': 'order_index', 'from_date': 'from_date', 'to_date': 'to_date',
@@ -455,7 +455,7 @@ def get_search_params(request, user=''):
                     'imei_number': 'imei_number',
                     'order_id': 'order_id', 'job_code': 'job_code', 'job_order_code': 'job_order_code',
                     'fg_sku_code': 'fg_sku_code',
-                    'rm_sku_code': 'rm_sku_code', 'pallet': 'pallet',
+                    'rm_sku_code': 'rm_sku_code', 'pallet': 'pallet','invoice_date':'invoice_date',
                     'staff_id': 'id', 'ean': 'ean', 'invoice_number': 'invoice_number', 'dc_number': 'challan_number',
                     'zone_code': 'zone_code', 'distributor_code': 'distributor_code', 'reseller_code': 'reseller_code',
                     'supplier_id': 'supplier_id', 'rtv_number': 'rtv_number', 'corporate_name': 'corporate_name',
@@ -7499,7 +7499,7 @@ def allocate_order_returns(user, sku_data, request):
     order_filter = {'user': user.id, 'sku_id': sku_data.id}
     if request.GET.get('marketplace', ''):
         order_filter['marketplace'] = request.GET.get('marketplace', '')
-    if request.GET.get('seller_id', ''): 
+    if request.GET.get('seller_id', ''):
         order_filter['sellerorder__seller__seller_id'] = request.GET.get('seller_id', '').split(':')[0]
     if request.GET.get('exclude_order_ids', []):
         excl_filter['original_order_id__in'] = request.GET.get('exclude_order_ids', []).split(',')
@@ -8526,4 +8526,3 @@ def delete_temp_json(request, user=''):
 def get_sub_users(user):
     sub_users = AdminGroups.objects.get(user_id=user.id).group.user_set.filter()
     return sub_users
-

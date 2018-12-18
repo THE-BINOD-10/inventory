@@ -100,7 +100,7 @@
             ng-change="pop.change_quantity(record)" style="width: 50px" ng-readonly="pop.model_data.blind_order && pop.permissions.use_imei">
 
             <input type="text" name="quantity" class="form-control"  ng-if = "!pop.parent_user"  ng-model="record.quantity" ng-class="pop.service.get_decimal_perm()"
-            ng-change="pop.change_quantity(record)" style="width: 50px" ng-readonly="(pop.model_data.blind_order && pop.permissions.use_imei) || !pop.permissions.multi_warehouse ">
+            ng-change="pop.change_quantity(record)" style="width: 50px" ng-readonly="(pop.model_data.blind_order && pop.permissions.use_imei) || !pop.parent_user ">
         </td>
         <td>{{record.base_price | number:2}}</td>
         <td class="text-right">{{record.discount | number:2}}<br><span class="tax-percentage">@{{record.discount_percentage}}%</span></td>

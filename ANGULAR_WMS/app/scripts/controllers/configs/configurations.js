@@ -46,7 +46,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      62: 'auto_raise_stock_transfer', 63: 'inbound_supplier_invoice', 64: 'customer_dc',
                      65: 'auto_expire_enq_limit', 66: 'invoice_based_payment_tracker', 67: 'receive_po_invoice_check',
                      68: 'mark_as_delivered', 69: 'receive_po_mandatory_fields', 70: 'central_order_mgmt',
-                     71: 'order_exceed_stock',72:'invoice_declaration'}
+                     71: 'order_exceed_stock',72:'invoice_declaration',73:'central_order_reassigning'}
 
   vm.check_box_data = [
     {
@@ -398,7 +398,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
      param_no: 71,
      class_name: "fa fa-server",
      display: true
-    }
+   },
+   {
+     name: "Central Order Reassigning",
+     model_name: "central_order_reassigning",
+     param_no: 73,
+     class_name: "fa fa-server",
+     display: true
+   }
 ]
 
   vm.empty = {};
@@ -563,6 +570,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       }
       $('#my-select').multiSelect();
       vm.getRemarks(vm.model_data.invoice_remarks)
+      vm.getDeclaration(vm.model_data.invoice_declaration)
     }
   })
 
@@ -929,6 +937,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       $("[name='invoice_remarks']").val( remarks.split("<<>>").join("\n") )
     } else {
       $("[name='invoice_remarks']").val( remarks );
+    }
+    }, 1000);
+  }
+  vm.getDeclaration= function(declaration) {
+
+    $timeout(function() {
+    if(declaration && declaration.split("<<>>").length > 1) {
+      $("[name='invoice_declaration']").val( declaration.split("<<>>").join("\n") )
+    } else {
+      $("[name='invoice_declaration']").val( declaration );
     }
     }, 1000);
   }

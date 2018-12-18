@@ -1529,7 +1529,7 @@ SKU_MASTER_API_MAPPING = OrderedDict((('skus', 'skus'), ('sku_code', 'sku_code')
                                       ('mrp', 'mrp'), ('sku_class', 'sku_class'),
                                       ('style_name', 'style_name'), ('status', 'status'), ('hsn_code', 'hsn_code'),
                                       ('ean_number', 'ean_number'), ('threshold_quantity', 'threshold_quantity'),
-                                      ('color', 'color'),
+                                      ('color', 'color'), ('selling_price', 'price'), ('cost_price', 'cost_price'),
                                       ('measurement_type', 'measurement_type'), ('sku_size', 'sku_size'),
                                       ('size_type', 'size_type'),
                                       ('mix_sku', 'mix_sku'), ('sku_type', 'sku_type'), ('attributes', 'sku_options'),
@@ -1848,7 +1848,7 @@ ORDER_ID_AWB_EXCEL_MAPPING = OrderedDict((('order_id', 0), ('awb_no', 1), ('cour
 # Company logo names
 COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg', 'Subhas_Publishing': 'book_publications.png',
                       'sm_admin': 'sm-brand.jpg', 'corp_attire': 'corp_attire.jpg',
-                      'aidin_technologies': 'aidin_tech.jpg', 'nutricane': 'nutricane.jpg'}
+                      'aidin_technologies': 'aidin_tech.jpg', 'nutricane': 'nutricane.jpg', '72Networks':'72networks.png'}
 
 TOP_COMPANY_LOGO_PATHS = {'Konda_foundation': 'dr_reddy_logo.png'}
 

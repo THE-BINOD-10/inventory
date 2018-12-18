@@ -1635,6 +1635,7 @@ def get_supplier_data(request, user=''):
     data = {}
     order_id = request.GET['supplier_id']
     remainder_mail = 0
+    invoice_value = 0
     purchase_orders = PurchaseOrder.objects.filter(order_id=order_id, open_po__sku__user=user.id,
                                                    open_po__sku_id__in=sku_master_ids,
                                                    received_quantity__lt=F('open_po__order_quantity')).exclude(
@@ -1746,6 +1747,7 @@ def get_supplier_data(request, user=''):
             dc_number = temp_json.get('dc_number', '')
             dc_date = temp_json.get('dc_date', '')
             dc_level_grn = temp_json.get('dc_level_grn', '')
+            invoice_value = temp_json.get('invoice_value', '')
     return HttpResponse(json.dumps({'data': orders, 'po_id': order_id, 'options': REJECT_REASONS, \
                                     'supplier_id': order_data['supplier_id'], 'use_imei': use_imei, \
                                     'temp': temp, 'po_reference': po_reference, 'order_ids': order_ids, \
@@ -1753,7 +1755,7 @@ def get_supplier_data(request, user=''):
                                     'expected_date': expected_date, 'remarks': remarks,
                                     'remainder_mail': remainder_mail, 'invoice_number': invoice_number,
                                     'invoice_date': invoice_date, 'dc_number': dc_number,
-                                    'dc_date': dc_date, 'dc_grn': dc_level_grn}))
+                                    'dc_date': dc_date, 'dc_grn': dc_level_grn, 'invoice_value': invoice_value}))
 
 
 @csrf_exempt
@@ -1777,7 +1779,8 @@ def update_putaway(request, user=''):
             expected_date = datetime.date(int(expected_date[2]), int(expected_date[0]), int(expected_date[1]))
         data_dict = dict(request.POST.iterlists())
         zero_index_keys = ['scan_sku', 'lr_number', 'remainder_mail', 'carrier_name', 'expected_date', 'invoice_date',
-                           'remarks', 'invoice_number', 'dc_level_grn', 'dc_number', 'dc_date', 'display_approval_button']
+                           'remarks', 'invoice_number', 'dc_level_grn', 'dc_number', 'dc_date',
+                           'display_approval_button', 'invoice_value']
         for i in range(0, len(data_dict['id'])):
             po_data = {}
             if not data_dict['id'][i]:
@@ -4757,18 +4760,18 @@ def confirm_add_po(request, sales_data='', user=''):
         round_value = float(round(total) - float(total))
         company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
         iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
-        data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
-                     'telephone': str(telephone), 'ship_to_address': ship_to_address,
+        data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address.encode('ascii', 'ignore'), 'order_id': order_id,
+                     'telephone': str(telephone), 'ship_to_address': ship_to_address.encode('ascii', 'ignore'),
                      'name': name, 'order_date': order_date, 'total': round(total), 'po_reference': po_reference,
                      'user_name': request.user.username, 'total_amt_in_words': total_amt_in_words,
                      'total_qty': total_qty, 'company_name': company_name, 'location': profile.location,
-                     'w_address': ship_to_address,
-                     'vendor_name': vendor_name, 'vendor_address': vendor_address,
+                     'w_address': ship_to_address.encode('ascii', 'ignore'),
+                     'vendor_name': vendor_name, 'vendor_address': vendor_address.encode('ascii', 'ignore'),
                      'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title,
                      'gstin_no': gstin_no, 'industry_type': industry_type, 'expiry_date': expiry_date,
                      'wh_telephone': wh_telephone, 'wh_gstin': profile.gst_number, 'wh_pan': profile.pan_number,
                      'terms_condition': terms_condition, 'show_cess_tax' : show_cess_tax,
-                     'company_address': company_address,
+                     'company_address': company_address.encode('ascii', 'ignore'),
                      'company_logo': company_logo, 'iso_company_logo': iso_company_logo}
         if round_value:
             data_dict['round_total'] = "%.2f" % round_value

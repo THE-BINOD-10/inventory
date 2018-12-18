@@ -963,12 +963,12 @@ def po_message(po_data, phone_no, user_name, f_name, order_date, ean_flag):
         for po in po_data:
             data += '\nD.NO: %s, Qty: %s' % (po[2], po[4])
             total_quantity += int(po[4])
-            total_amount += int(po[6])
+            total_amount += float(po[6])
     else:
         for po in po_data:
             data += '\nD.NO: %s, Qty: %s' % (po[1], po[3])
             total_quantity += int(po[3])
-            total_amount += int(po[5])
+            total_amount += float(po[5])
     data += '\nTotal Qty: %s, Total Amount: %s\nPlease check WhatsApp for Images' % (total_quantity, total_amount)
     send_sms(phone_no, data)
 
@@ -5917,7 +5917,7 @@ def update_order_dicts(orders, user='', company_name=''):
         auto_picklist_signal = get_misc_value('auto_generate_picklist', order_det_dict['user'])
         if auto_picklist_signal == 'true':
             message = check_stocks(order_sku, user, 'false', [order_detail])
-        status = {'status': 1, 'messages': ['Success']}
+        status = {'status': 1, 'messages': 'Success'}
     return status
 
 

@@ -167,6 +167,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                       vm.model_data.dc_level_grn = true;
                     }
                     vm.shelf_life = vm.model_data.data[0][0].shelf_life;
+                    for(var par_ind=0;par_ind < vm.model_data.data.length;par_ind++)
+                    {
+                      vm.calc_total_amt(event, vm.model_data, 0, par_ind);
+                    }
 
 //                    angular.forEach(vm.model_data.data, function(row){
 //                      angular.forEach(row, function(sku){
@@ -1993,7 +1997,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }
       }
       vm.skus_total_amount = totals;
-      $('.totals').text('Totals: ' + totals);
+      //$('.totals').text('Totals: ' + totals);
       vm.model_data.round_off_total = Math.round(totals * 100) / 100;
     }
 
@@ -2022,7 +2026,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     if(sku_row_data.mrp == ''){
       sku_row_data.mrp = 0;
     }
-    if(sku_row_data.buy_price > sku_row_data.mrp){
+    if(Number(sku_row_data.buy_price) > Number(sku_row_data.mrp)){
       pop_msg("Buy Price should be less than or equal to MRP");
       data.data[parent_index][index]['buy_price'] = sku_row_data.mrp;
     }

@@ -5227,9 +5227,6 @@ def stock_transfer_order_form(request, user=''):
     central_order_file = request.GET['download-file']
     if central_order_file:
         return error_file_download(central_order_file)
-    # if user.username == 'one_assist':
-    #     wb, ws = get_work_sheet('central_order_form', CENTRAL_ORDER_ONE_ASSIST_MAPPING.keys())
-    # if user.username == '72Networks':
     wb, ws = get_work_sheet('stock_transfer_order_form', STOCK_TRANSFER_ORDER_MAPPING.keys())
     return xls_to_response(wb, '%s.stock_transfer_order_form.xls' % str(user.id))
 

@@ -9,6 +9,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.apply_filters = colFilters;
     vm.service = Service;
     vm.permissions = Session.roles.permissions;
+
     vm.user_type = Session.roles.permissions.user_type;
 
     vm.selected = {};
@@ -221,6 +222,8 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
   var vm = this;
   vm.service = Service;
   vm.permissions = Session.roles.permissions;
+  vm.parent = Session.parent.userName
+  vm.userName = Session.userName
   vm.priceband_sync = Session.roles.permissions.priceband_sync;
 
   vm.model_data = items;
@@ -243,6 +246,16 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
       vm.model_data.flag = true;
     }
   }
+
+ if (vm.parent == vm.userName)
+ {
+   vm.parent_user = true;
+ }
+ else{
+   vm.parent_user = false;
+ }
+
+
 
   vm.delete_charge = function(id){
 
@@ -400,16 +413,16 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
     if(data.priceRanges && data.priceRanges.length > 0) {
 
       for(var skuRec = 0; skuRec < data.priceRanges.length; skuRec++){
-    
+
         if(data.quantity >= data.priceRanges[skuRec].min_unit_range && data.quantity <= data.priceRanges[skuRec].max_unit_range){
-    
+
           data.unit_price = data.priceRanges[skuRec].price;
           flag = true;
         }
       }
 
       if (!flag) {
-    
+
         data.unit_price = data.priceRanges[data.priceRanges.length-1].price;
       }
     }
@@ -493,7 +506,7 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
 
   vm.discountChange = function(data) {
 
-    vm.cal_percentage(data, false); 
+    vm.cal_percentage(data, false);
   }
 
   vm.discountPercentageChange = function(data, status) {

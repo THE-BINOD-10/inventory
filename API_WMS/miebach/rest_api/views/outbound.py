@@ -92,7 +92,7 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
     if user_dict:
         user_dict = eval(user_dict)
 
-    if user.username == "72networks":
+    if user.username.lower() == "72networks":
         lis = ['id', 'order_id', 'address', 'sku__sku_code', 'title', 'quantity', 'shipment_date', 'city', 'status']
     else:
         lis = ['id', 'order_id', 'sku__sku_code', 'title', 'quantity', 'shipment_date', 'city', 'status']
@@ -7606,7 +7606,7 @@ def get_order_category_view_data(start_index, stop_index, temp_data, search_term
                                  filters={}, user_dict={}):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     user_dict = eval(user_dict)
-    if user.username == "72networks":
+    if user.username.lower() == "72networks":
         lis = ['id', 'customer_name', 'order_id', 'address', 'sku__sku_category', 'total', 'city', 'status']
     else:
         lis = ['id', 'customer_name', 'order_id', 'sku__sku_category', 'total', 'city', 'status']
@@ -7689,7 +7689,7 @@ def get_order_category_view_data(start_index, stop_index, temp_data, search_term
                                                 ('id', index), ('DT_RowClass', 'results'))))
         index += 1
 
-    if user.username == "72networks":
+    if user.username.lower() == "72networks":
         col_val = ['Customer Name', 'Customer Name', 'Order ID', 'Address', 'Category', 'Total Quantity', 'Order Taken By', 'Status']
     else:
         col_val = ['Customer Name', 'Customer Name', 'Order ID', 'Category', 'Total Quantity', 'Order Taken By', 'Status']
@@ -7707,7 +7707,7 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     user_dict = eval(user_dict)
 
-    if user.username != '72networks':
+    if user.username.lower() != '72networks':
         lis = ['order_id', 'customer_name', 'order_id', 'marketplace', 'total', 'shipment_date', 'date_only',
         'city', 'status']
     else:
@@ -10738,7 +10738,7 @@ def generate_stock_transfer_invoice(request, user=''):
         resp_list['resp'].append({'order_id' : order_id[0], 'picked_quantity' : total_picked_quantity, 'rate' : rate,
             'amount' : total_price, 'stock_transfer_date_time' : str(shipment_date), 'warehouse_name': warehouse,
             'sku_code' : sku, 'invoice_date' : str(invoice_date), 'from_warehouse' : from_warehouse,
-            'to_warehouse' : to_warehouse, 'invoice_amount' : invoice_amt, 'sku_description' : sku_description, 
+            'to_warehouse' : to_warehouse, 'invoice_amount' : invoice_amt, 'sku_description' : sku_description,
             'invoice_number' : invoice_number })
     return HttpResponse(json.dumps(resp_list))
 
@@ -13976,33 +13976,39 @@ def print_pdf_shipment_info(request, user=''):
 
     return render(request, 'templates/toggle/shipment_info.html',{'data':data,'driver_name':driver_name,'manifest_number':manifest_number,'truck_number':truck_number,'driver_phone_number':driver_phone_number})
 
-# @login_required
-# @get_admin_user
-# def reassgin_order(request, user=''):
-#     import pdb; pdb.set_trace()
-#     order_det_id=[]
-#     order_det_reassigned_id =[]
-#     order_det_no_reassigned_id =[]
-#     try:
-#         order_id_list =request.GET.getlist('order_ids[]')
-#         for order_id in order_id_list :
-#             ord_obj = OrderDetail.objects.get(original_order_id=order_id, user=user.id)
-#             interm_obj = IntermediateOrders.objects.filter(order_id=ord_obj.id)
-#             if interm_obj:
-#                 interm_obj = interm_obj[0]
-#                 if ord_obj.quantity != interm_obj.quantity :
-#                     order_det_not_reassigned_id.append(ord_obj.id)
-#                     log.info('%s orderid is not assigned ' % (str(order_id)))
-#                 else:
-#                     order_det_reassigned_id.append(ord_obj.id)
-#                     log.info('%s orderid is  assigned' % (str(order_id)))
-#                     interm_obj.status = 0
-#                     interm_obj.save()
-#
-#                     order_cancel_functionality(order_det_reassigned_id)
-#         return HttpResponse(json.dumps({'data': "Success", 'message': '', 'status': 'Successfully removed'}))
-#     except Exception as e:
-#         import traceback
-#         log.debug(traceback.format_exc())
-#         log.info('Reassign of orders failed for %s and params are %s and error statement is %s' % (
-#         str(user.username), str(request.POST.dict()), str(e)))
+@login_required
+@get_admin_user
+def send_back_order(request, user=''):
+    order_det_id=[]
+    order_det_reassigned_id =[]
+    order_det_not_reassigned_id =[]
+    order_det_reassigned_orderid =[]
+    order_det_not_reassigned_orderid =[]
+    try:
+        order_id_list =request.POST.getlist('order_id')
+        remarks_list = request.POST.getlist('remarks')
+        for i in range(len(order_id_list)) :
+            ord_obj = OrderDetail.objects.get(original_order_id=order_id_list[i], user=user.id)
+            interm_obj = IntermediateOrders.objects.filter(order_id=ord_obj.id)
+            if interm_obj:
+                interm_obj = interm_obj[0]
+                if ord_obj.quantity != interm_obj.quantity :
+                    order_det_not_reassigned_id.append(ord_obj.id)
+                    order_det_not_reassigned_orderid.append(ord_obj.original_order_id)
+                    log.info('%s orderid is not assigned ' % (str(order_id_list[i],)))
+                else:
+                    order_det_reassigned_id.append(ord_obj.id)
+                    log.info('%s orderid is  assigned' % (str(order_id_list[i],)))
+                    interm_obj.status = 0
+                    interm_obj.remarks=remarks_list[i]
+                    interm_obj.save()
+                    order_det_reassigned_orderid.append(ord_obj.original_order_id)
+                    order_cancel_functionality(order_det_reassigned_id)
+
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info('Reassign of orders failed for %s and params are %s and error statement is %s' % (
+        str(user.username), str(request.POST.dict()), str(e)))
+
+    return HttpResponse(json.dumps({'data':order_det_not_reassigned_orderid , 'message': 'Success', 'status': 'Successfully removed'}))

@@ -1427,6 +1427,8 @@ def get_raisepo_group_data(user, myDict):
         if 'ean_number' in myDict.keys():
             if myDict['ean_number'][i]:
                 ean_number = float(myDict['ean_number'][i])
+        else:
+            ean_number = 0        
         if 'sgst_tax' in myDict.keys():
             if myDict['sgst_tax'][i]:
                 sgst_tax = float(myDict['sgst_tax'][i])
@@ -4472,9 +4474,13 @@ def confirm_add_po(request, sales_data='', user=''):
         'ean_number').exclude(ean_number=0)
     if ean_data:
         ean_flag = True
-    if myDict['ean_number']:
-           ean_data = myDict['ean_number']
-           ean_flag = True
+    try:
+        if myDict['ean_number']:
+            ean_data = myDict['ean_number']
+            ean_flag = True
+    except:
+            ean_flag = False
+
 
 
     all_data = get_raisepo_group_data(user, myDict)

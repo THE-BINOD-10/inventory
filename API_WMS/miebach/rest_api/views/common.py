@@ -7022,16 +7022,17 @@ def fetch_unit_price_based_ranges(dest_loc_id, level, admin_id, wms_code):
 def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_objs, is_distributor,
                          order_summary_dict, ship_to, corporate_po_number, client_name, admin_user, sku_total_qty_map,
                          order_user_sku, order_user_objs, address_selected=''):
+    order_data1 = copy.deepcopy(order_data)
     order_data_excluding_keys = ['warehouse_level', 'margin_data', 'el_price', 'del_date']
-    order_unit_price = order_data['unit_price']
-    el_price = order_data.get('el_price', 0)
-    del_date = order_data.get('del_date', '')
+    order_unit_price = order_data1['unit_price']
+    el_price = order_data1.get('el_price', 0)
+    del_date = order_data1.get('del_date', '')
     if not is_distributor:
 
-        sku_code = order_data['sku_code']
-        qty = order_data['quantity']
+        sku_code = order_data1['sku_code']
+        qty = order_data1['quantity']
         total_qty = sku_total_qty_map[sku_code]
-        price_ranges_map = fetch_unit_price_based_ranges(user_id, order_data['warehouse_level'],
+        price_ranges_map = fetch_unit_price_based_ranges(user_id, order_data1['warehouse_level'],
                                                          admin_user.id, sku_code)
         if price_ranges_map.has_key('price_ranges'):
             max_unit_ranges = [i['max_unit_range'] for i in price_ranges_map['price_ranges']]
@@ -7039,17 +7040,17 @@ def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_obj
             for each_map in price_ranges_map['price_ranges']:
                 min_qty, max_qty, price = each_map['min_unit_range'], each_map['max_unit_range'], each_map['price']
                 if min_qty <= total_qty <= max_qty:
-                    order_data['unit_price'] = price
+                    order_data1['unit_price'] = price
                     invoice_amount = get_tax_inclusive_invoice_amt(cm_id, price, qty, user_id, sku_code, admin_user)
-                    order_data['invoice_amount'] = invoice_amount
+                    order_data1['invoice_amount'] = invoice_amount
                     break
                 elif max_qty >= highest_max:
-                    order_data['unit_price'] = price
+                    order_data1['unit_price'] = price
                     invoice_amount = get_tax_inclusive_invoice_amt(cm_id, price, qty, user_id, sku_code, admin_user)
-                    order_data['invoice_amount'] = invoice_amount
+                    order_data1['invoice_amount'] = invoice_amount
 
 
-        dist_order_copy = copy.copy(order_data)
+        dist_order_copy = copy.deepcopy(order_data1)
         # dist_order_copy['user'] = user_id
         customer_user = WarehouseCustomerMapping.objects.filter(warehouse_id=user_id)
         if customer_user:
@@ -7074,10 +7075,10 @@ def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_obj
             order_detail = order_obj[0]
 
     else:
-        order_obj = OrderDetail.objects.filter(order_id=order_data['order_id'],
-                                               sku_id=order_data['sku_id'],
-                                               order_code=order_data['order_code'])
-        dist_order_copy = copy.copy(order_data)
+        order_obj = OrderDetail.objects.filter(order_id=order_data1['order_id'],
+                                               sku_id=order_data1['sku_id'],
+                                               order_code=order_data1['order_code'])
+        dist_order_copy = copy.deepcopy(order_data)
         # Distributor can place order directly to any wh/distributor
         for exc_key in order_data_excluding_keys:
             if exc_key in dist_order_copy:
@@ -7096,13 +7097,13 @@ def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_obj
     # Collecting needed data for Picklist generation
     order_user_sku.setdefault(order_detail.user, {})
     order_user_sku[order_detail.user].setdefault(order_detail.sku, 0)
-    order_user_sku[order_detail.user][order_detail.sku] += order_data['quantity']
+    order_user_sku[order_detail.user][order_detail.sku] += order_data1['quantity']
 
     # Collecting User order objs for picklist generation
     order_user_objs.setdefault(order_detail.user, [])
     order_user_objs[order_detail.user].append(order_detail)
 
-    create_grouping_order_for_generic(generic_order_id, order_detail, cm_id, order_data['user'], order_data['quantity'],
+    create_grouping_order_for_generic(generic_order_id, order_detail, cm_id, order_data1['user'], order_data1['quantity'],
                                       corporate_po_number, client_name, order_unit_price, el_price, del_date)
 
 

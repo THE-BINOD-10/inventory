@@ -4322,6 +4322,120 @@ def block_asn_stock(sku_id, qty, lead_time, ord_det_id, is_enquiry=False):
                 ASNReserveDetail.objects.create(**asn_res_map)
 
 
+def construct_backorder_dict(myDict, backorder_map):
+    for i in range(0, len(myDict['sku_id'])):
+        sku_id, quantity, wh_level = myDict['sku_id'][i], myDict['quantity'][i], myDict['warehouse_level'][i]
+        backorder_map.setdefault(sku_id, {}).setdefault(wh_level, quantity)
+
+
+def create_backorders(backorder_splitup_map, admin_user, sku_total_qty_map):
+    for sku_code, wh_level_map in backorder_splitup_map.items():
+        for wh_level, qty_map in wh_level_map.items():
+            for usr, qty in qty_map.items():
+                dist_mapping = WarehouseCustomerMapping.objects.filter(warehouse_id=usr, status=1)
+                taxes = {'cgst_tax': 0, 'sgst_tax': 0, 'igst_tax': 0, 'utgst_tax': 0}
+                order_summary_dict = {'discount': 0, 'issue_type': 'order', 'vat': 0, 'tax_value': 0, 'status': 1,
+                                      'shipment_time_slot': '9-12', 'creation_date': datetime.datetime.now()}
+                if dist_mapping:
+                    usr_sku_master = SKUMaster.objects.get(user=usr, sku_code=sku_code)
+                    cust_obj = dist_mapping[0].customer
+                    cm_id = cust_obj.id
+                    generic_order_id = get_generic_order_id(cm_id)
+                    parent_user = cust_obj.user
+                    backorder_copy = {'quantity': qty, 'order_code': 'MN', 'customer_id': cust_obj.customer_id,
+                                      'customer_name': cust_obj.name, 'telephone': cust_obj.phone_number,
+                                      'email_id': cust_obj.email_id, 'address': cust_obj.address, 'user': parent_user,
+                                      'order_id': get_order_id(parent_user)}
+                    backorder_copy['original_order_id'] = 'MN%s' % backorder_copy['order_id']
+                    if cust_obj.tax_type:
+                        inter_state_dict = dict(
+                            zip(SUMMARY_INTER_STATE_STATUS.values(), SUMMARY_INTER_STATE_STATUS.keys()))
+                        inter_state = inter_state_dict.get(cust_obj.tax_type, 2)
+                        tax_master = TaxMaster.objects.filter(user_id=admin_user.id, inter_state=inter_state,
+                                                              product_type=usr_sku_master.product_type)
+                        if tax_master:
+                            tax_master = tax_master[0]
+                            taxes['cgst_tax'] = float(tax_master.cgst_tax)
+                            taxes['sgst_tax'] = float(tax_master.sgst_tax)
+                            taxes['igst_tax'] = float(tax_master.igst_tax)
+                            taxes['utgst_tax'] = float(tax_master.utgst_tax)
+                    order_summary_dict.update(taxes)
+                else:
+                    continue
+                total_qty = sku_total_qty_map[sku_code]
+                sku_obj = SKUMaster.objects.filter(user=usr, sku_code=sku_code)
+                if sku_obj:
+                    sku_id = sku_obj[0].id
+                    backorder_copy['sku_id'] = sku_id
+                else:
+                    continue
+                # sending level 1 as we need to place back orders to SM Warehouses only
+                price_ranges_map = fetch_unit_price_based_ranges(usr, 1, admin_user.id, sku_code)
+                backorder_feasibility_flag = False
+                if price_ranges_map.has_key('price_ranges'):
+                    max_unit_ranges = [i['max_unit_range'] for i in price_ranges_map['price_ranges']]
+                    highest_max = max(max_unit_ranges)
+                    for index, each_map in enumerate(price_ranges_map['price_ranges']):
+                        if index == 0:
+                            continue
+                        min_qty, max_qty, price = each_map['min_unit_range'], each_map['max_unit_range'], each_map[
+                            'price']
+                        if min_qty <= total_qty <= max_qty:
+                            backorder_copy['unit_price'] = price
+                            invoice_amount = get_tax_inclusive_invoice_amt(cust_obj.id, price, qty,
+                                                                           usr, sku_code, admin_user)
+                            backorder_copy['invoice_amount'] = invoice_amount
+                            backorder_feasibility_flag = True
+                            break
+                        elif max_qty >= highest_max:
+                            backorder_copy['unit_price'] = price
+                            invoice_amount = get_tax_inclusive_invoice_amt(cust_obj.id, price, qty,
+                                                                           usr, sku_code, admin_user)
+                            backorder_copy['invoice_amount'] = invoice_amount
+                else:
+                    continue
+                if not backorder_feasibility_flag:
+                    log.info("Not Creating Back order as total qty (%s) is in Price Grid A" % total_qty)
+                    continue
+                order_obj = OrderDetail.objects.filter(order_id=backorder_copy['order_id'],
+                                                       sku_id=backorder_copy['sku_id'],
+                                                       order_code=backorder_copy['order_code'])
+                # Distributor can place order directly to any wh/distributor
+                backorder_copy['shipment_date'] = datetime.datetime.today().date()
+                if not order_obj:
+                    order_detail = OrderDetail(**backorder_copy)
+                    order_detail.save()
+                else:
+                    order_detail = order_obj[0]
+                order_summary_dict['order_id'] = order_detail.id
+                create_ordersummary_data(order_summary_dict, order_detail, backorder_copy['address'])
+                # order_objs.append(order_detail)
+
+                # order_user_sku = {}
+                # Collecting needed data for Picklist generation
+                # order_user_sku.setdefault(order_detail.user, {})
+                # order_user_sku[order_detail.user].setdefault(order_detail.sku, 0)
+                # order_user_sku[order_detail.user][order_detail.sku] += backorder_copy['quantity']
+
+                # Collecting User order objs for picklist generation
+                # order_user_objs.setdefault(order_detail.user, [])
+                # order_user_objs[order_detail.user].append(order_detail)
+                el_price = backorder_copy['unit_price'] # Considering same unit price as el_price as both would be same here
+                del_date = backorder_copy['shipment_date']
+                create_grouping_order_for_generic(generic_order_id, order_detail, cm_id, parent_user,
+                                                  backorder_copy['quantity'], '', '',
+                                                  backorder_copy['unit_price'], el_price, del_date)
+
+                generic_orders = GenericOrderDetailMapping.objects.filter(generic_order_id=generic_order_id,
+                                                                          customer_id=cm_id). \
+                    values('orderdetail__original_order_id', 'orderdetail__user').distinct()
+                for generic_order in generic_orders:
+                    original_order_id = generic_order['orderdetail__original_order_id']
+                    order_detail_user = User.objects.get(id=generic_order['orderdetail__user'])
+                    resp = order_push(original_order_id, order_detail_user, "NEW")
+                    log.info('New (Back) Order Push Status: %s' % (str(resp)))
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -4407,6 +4521,9 @@ def insert_order_data(request, user=''):
         # get_order_customer_details
         user_order_ids_map = {}
         sku_total_qty_map = {}
+        backorder_map = {}
+        backorder_splitup_map = {}
+        construct_backorder_dict(myDict, backorder_map)
         sku_level_total_qtys(myDict, sku_total_qty_map)
         if user_type == 'customer':
             customer_user = CustomerUserMapping.objects.filter(user_id=request.user.id)
@@ -4453,6 +4570,10 @@ def insert_order_data(request, user=''):
                 else:
                     order_data['warehouse_level'] = 0
                 stock_wh_map = split_orders(**order_data)
+                if order_data['warehouse_level'] != 1:
+                    sku_id = myDict['sku_id'][i]
+                    wh_level = order_data['warehouse_level']
+                    backorder_splitup_map.setdefault(sku_id, {}).setdefault(wh_level, {}).update(stock_wh_map)
                 if order_data['warehouse_level'] == 3:
                     for lt, st_wh_map in stock_wh_map.items():
                         fetch_order_ids(st_wh_map, user_order_ids_map)
@@ -4657,6 +4778,8 @@ def insert_order_data(request, user=''):
                                                                     datetime.datetime.now(), other_charge_amounts, user)
         # if generic_order_id:
         #     check_and_raise_po(generic_order_id, cm_id)
+        if admin_user:
+            create_backorders(backorder_splitup_map, admin_user, sku_total_qty_map)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

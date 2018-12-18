@@ -1740,6 +1740,7 @@ def get_supplier_data(request, user=''):
         dc_number = ''
         dc_date = ''
         dc_level_grn = ''
+        overall_discount = 0
         if temp_json.exists():
             temp_json = json.loads(temp_json[0].model_json)
             invoice_number = temp_json.get('invoice_number', '')
@@ -1747,6 +1748,7 @@ def get_supplier_data(request, user=''):
             dc_number = temp_json.get('dc_number', '')
             dc_date = temp_json.get('dc_date', '')
             dc_level_grn = temp_json.get('dc_level_grn', '')
+            overall_discount = temp_json.get('overall_discount', '')
             master_docs = MasterDocs.objects.filter(master_id=purchase_order.order_id, master_type='PO_TEMP')
             if master_docs.exists():
                 uploaded_file_dict = {'file_name': 'Uploaded File', 'id': master_docs[0].id,
@@ -1759,7 +1761,8 @@ def get_supplier_data(request, user=''):
                                     'remainder_mail': remainder_mail, 'invoice_number': invoice_number,
                                     'invoice_date': invoice_date, 'dc_number': dc_number,
                                     'dc_date': dc_date, 'dc_grn': dc_level_grn,
-                                    'uploaded_file_dict': uploaded_file_dict}))
+                                    'uploaded_file_dict': uploaded_file_dict, 'overall_discount': overall_discount,
+                                    'round_off_total': 0}))
 
 
 @csrf_exempt
@@ -2435,6 +2438,9 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
     cess_tax = 0
     if 'cess_percent' in myDict.keys() and myDict['cess_percent'][i]:
         cess_tax = myDict['cess_percent'][i]
+    overall_discount = 0
+    if 'overall_discount' in myDict.keys() and myDict['overall_discount'][0]:
+        overall_discount = myDict['overall_discount'][0]
     if user.userprofile.user_type == 'warehouse_user':
         seller_po_summary, created = SellerPOSummary.objects.get_or_create(receipt_number=receipt_id,
                                                                            invoice_number=invoice_number,
@@ -2448,7 +2454,8 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
                                                                            order_status_flag=order_status_flag,
                                                                            discount_percent=discount_percent,
                                                                            round_off_total=round_off_total,
-                                                                           cess_tax=cess_tax)
+                                                                           cess_tax=cess_tax,
+                                                                           overall_discount=overall_discount)
         seller_received_list.append(
             {'seller_id': '', 'sku_id': data.open_po.sku_id, 'quantity': value,
              'id': seller_po_summary.id})
@@ -2503,7 +2510,8 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
                                                                                order_status_flag=order_status_flag,
                                                                                invoice_date=invoice_date,
                                                                                round_off_total=round_off_total,
-                                                                               cess_tax=cess_tax)
+                                                                               cess_tax=cess_tax,
+                                                                               overall_discount=overall_discount)
             seller_received_list.append(
                 {'seller_id': sell_po.seller_id, 'sku_id': data.open_po.sku_id, 'quantity': value,
                  'id': seller_po_summary.id})

@@ -36,7 +36,7 @@
     <!-- /dashboard -->
 
     <!-- notifications -->
-    <li ui-sref-active="">
+    <li ui-sref-active="" ng-show="show_tab('NOTIFICATION_LABEL')">
       <a ui-sref="app.notifications">
         <i class="fa fa-bell"></i>
         <span class="button__badge" ng-if="user.notification_count != 0">{{user.notification_count}}</span>
@@ -104,7 +104,7 @@
             <span>BOM Master</span>
           </a>
         </li>
-        <li ng-show="show_tab('multi_warehouse')" ui-sref-active="active">
+        <li ng-show="show_tab('multi_warehouse') && show_tab('is_staff')" ui-sref-active="active">
           <a ui-sref="app.masters.WarehouseMaster">
             <span>Warehouse Master</span>
           </a>
@@ -144,12 +144,12 @@
             <span>Tax Master</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="user.user_profile['user_type'] == 'marketplace_user'">
+        <li ui-sref-active="active" ng-show="user.user_profile['user_type'] == 'marketplace_user' && show_tab('add_sellermaster')">
           <a ui-sref="app.masters.SellerMaster">
             <span>Seller Master</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="user.user_profile['user_type'] == 'marketplace_user'">
+        <li ui-sref-active="active" ng-show="user.user_profile['user_type'] == 'marketplace_user' && show_tab('add_sellermarginmapping')">
           <a ui-sref="app.masters.SellerMarginMapping">
             <span>Seller Margin Mapping</span>
           </a>
@@ -160,12 +160,12 @@
           </a>
         </li>
         <!-- <li ui-sref-active="active" ng-show="show_tab('add_staffmaster')"> -->
-        <li ui-sref-active="active"">
+        <li ui-sref-active="active" ng-show="show_tab('add_staffmaster')">
           <a ui-sref="app.masters.StaffMaster">
             <span>Staff Master</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin'">
+        <li ui-sref-active="active" ng-show="permissions.user_type == 'central_admin' && show_tab('add_pushnotifications')" >
           <a ui-sref="app.masters.NotificationMaster">
             <span>Notification Master</span>
           </a>
@@ -196,7 +196,7 @@
             <span>Quality Check</span>
           </a>
         </li>
-        <li ng-show="show_tab('sellable_segregation')" ui-sref-active="active">
+        <li ng-show="show_tab('sellable_segregation') && show_tab('add_primarysegregation')" ui-sref-active="active">
           <a ui-sref="app.inbound.PrimarySegregation">
             <span>Primary Segregation</span>
           </a>
@@ -216,17 +216,17 @@
             <span>Sales Returns</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="user.user_profile['user_type'] == 'marketplace_user'">
+        <li ui-sref-active="active" ng-show="user.user_profile['user_type'] == 'marketplace_user' && show_tab('add_sellerpo')">
           <a ui-sref="app.inbound.SellerInvoice">
             <span>Seller Invoices</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="show_tab('inbound_supplier_invoice')">
+        <li ui-sref-active="active" ng-show="show_tab('inbound_supplier_invoice') && show_tab('change_sellerposummary')">
           <a ui-sref="app.inbound.SupplierInvoice">
             <span>Supplier Invoices</span>
           </a>
         </li>
-        <li ui-sref-active="active">
+        <li ui-sref-active="active" ng-show="show_tab('delete_sellerposummary')">
           <a ui-sref="app.inbound.GrnEdit">
             <span>GRN Edit</span>
           </a>
@@ -313,7 +313,7 @@
             <span>Warehouse's Stock</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="user.user_profile['user_type'] == 'marketplace_user'">
+        <li ui-sref-active="active" ng-show="user.user_profile['user_type'] == 'marketplace_user' && show_tab('add_sellerstock')">
           <a ui-sref="app.stockLocator.SellerStock">
             <span>Seller Stock</span>
           </a>
@@ -443,102 +443,102 @@
         <span>Reports</span>
       </a>
       <ul class="sub-menu">
-        <li ui-sref-active="active">
+        <li ui-sref-active="active" ng-show="show_tab('view_skumaster')">
           <a ui-sref="app.reports.SKUList">
             <span>SKU List</span>
           </a>
         </li>
-        <li ui-sref-active="active">
+        <li ui-sref-active="active" ng-show="show_tab('view_locationmaster')">
           <a ui-sref="app.reports.LocationWiseFilter">
             <span>Location Wise Filter</span>
           </a>
         </li>
-        <li ui-sref-active="active">
+        <li ui-sref-active="active" ng-show="show_tab('view_sellerposummary')">
           <a ui-sref="app.reports.GoodsReceiptNote">
             <span>Goods Receipt Note</span>
           </a>
         </li>
-        <li ui-sref-active="active">
+        <li ui-sref-active="active" ng-show="show_tab('view_polocation')">
           <a ui-sref="app.reports.ReceiptSummary">
             <span>Receipt Summary</span>
           </a>
         </li>
-        <li ui-sref-active="active">
+        <li ui-sref-active="active" ng-show="show_tab('view_picklist')">
           <a ui-sref="app.reports.DispatchSummaryReport">
             <span>Dispatch Summary</span>
           </a>
         </li>
-        <li ui-sref-active="active">
+        <li ui-sref-active="active" ng-show="show_tab('view_stockdetail')">
           <a ui-sref="app.reports.SKUWiseStock">
             <span>SKU Wise Stock</span>
           </a>
         </li>
-        <li ui-sref-active="active">
+        <li ui-sref-active="active" ng-show="show_tab('view_openpo')">
           <a ui-sref="app.reports.SKUWisePurchaseOrders">
             <span>SKU Wise Purchase Orders</span>
           </a>
         </li>
-        <li ui-sref-active="active">
+        <li ui-sref-active="active" ng-show="show_tab('view_purchaseorder')">
           <a ui-sref="app.reports.SupplierWisePOs">
             <span>Supplier Wise PO's</span>
           </a>
         </li>
-        <li ng-show="show_tab('add_orderreturns')" ui-sref-active="active">
+        <li ng-show="show_tab('view_orderreturns')" ui-sref-active="active">
           <a ui-sref="app.reports.SalesReturnReport">
             <span>Sales Return</span>
           </a>
         </li>
-         <li ui-sref-active="active">
+         <li ui-sref-active="active" ng-show="show_tab('view_inventoryadjustment')">
           <a ui-sref="app.reports.InventoryAdjustment">
             <span>Inventory Adjustment</span>
           </a>
         </li>
-        <li ui-sref-active="active">
+        <li ui-sref-active="active" ng-show="show_tab('view_cyclecount')">
           <a ui-sref="app.reports.InventoryAging">
             <span>Inventory Aging</span>
           </a>
         </li>
-        <li ui-sref-active="active">
+        <li ui-sref-active="active" ng-show="show_tab('change_stockdetail')">
           <a ui-sref="app.reports.StockSummaryReport">
             <span>Stock Summary</span>
           </a>
         </li>
-        <li ui-sref-active="active">
+        <li ui-sref-active="active" ng-show="show_tab('view_statustracking')">
           <a ui-sref="app.reports.DailyProductionReport">
             <span>Daily Production</span>
           </a>
         </li>
-        <li ui-sref-active="active">
+        <li ui-sref-active="active" ng-show="show_tab('view_orderdetail')">
           <a ui-sref="app.reports.OrderSummaryReport">
             <span>Order Summary</span>
           </a>
         </li>
-        <li ui-sref-active="active">
+        <li ui-sref-active="active" ng-show="show_tab('view_openjo')">
           <a ui-sref="app.reports.OpenJOReport">
             <span>Open JO</span>
           </a>
         </li>
-        <li ui-sref-active="active" ng-show="user.user_profile['user_type'] == 'marketplace_user'">
+        <li ui-sref-active="active" ng-show="user.user_profile['user_type'] == 'marketplace_user' && show_tab('view_sellerpo')">
           <a ui-sref="app.reports.SellerInvoiceDetails">
             <span>Seller Invoice Details</span>
           </a>
         </li>
-        <li ui-sref-active="active">
+        <li ui-sref-active="active" ng-show="show_tab('view_materialpicklist')">
           <a ui-sref="app.reports.RMPicklistReport">
             <span>RM Picklist</span>
           </a>
         </li>
-        <li ui-sref-active="active">
+        <li ui-sref-active="active" ng-show="show_tab('view_stockstats')">
           <a ui-sref="app.reports.StockLedgerReport">
             <span>Stock Ledger</span>
           </a>
         </li>
-        <li ui-sref-active="active">
+        <li ui-sref-active="active" ng-show="show_tab('view_ordershipment')">
           <a ui-sref="app.reports.ShipmentReport">
             <span>Shipment</span>
           </a>
         </li>
-        <li ui-sref-active="active">
+        <li ui-sref-active="active" ng-show="show_tab('view_returntovendor')">
           <a ui-sref="app.reports.RTVReport">
             <span>RTV</span>
           </a>

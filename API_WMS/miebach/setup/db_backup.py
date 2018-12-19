@@ -43,8 +43,7 @@ class DBBackup:
         os.remove(os.path.join(self.backup_path, bfile))
         status = file_upload(tar_file_path, '/WMS_SQL/', 'u156461.your-backup.de', 'u156461', 'ZAl8lR76yJZ2pLSX', 1)
         if not status:
-            res = 'Error'
-            self.sending_mail(res)
+            self.sending_mail('Error')
         else:
             os.remove(tar_file_path)
 

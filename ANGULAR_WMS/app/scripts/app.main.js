@@ -180,7 +180,7 @@ angular
 
       var special = ["add_shipmentinfo", "add_qualitycheck", "pos_switch", "production_switch", "setup_status", "order_manage", "add_productproperties", "add_pricemaster", "add_sizemaster", "add_paymentsummary", "add_issues", "show_pull_now", "tally_config", "change_inventoryadjustment"];
       var labels_list = ["MASTERS_LABEL", "INBOUND_LABEL", "PRODUCTION_LABEL", "STOCK_LABEL", "OUTBOUND_LABEL", "SHIPMENT_LABEL",
-      "OTHERS_LABEL", "PAYMENT_LABEL", "DASHBOARD", "UPLOADS", "REPORTS", "CONFIGURATIONS"];
+      "OTHERS_LABEL", "PAYMENT_LABEL", "DASHBOARD", "UPLOADS", "REPORTS", "CONFIGURATIONS" , "NOTIFICATION_LABEL"];
       $scope.show_tab = function(data) {
         if (!(Session.userName)) {
           return false;

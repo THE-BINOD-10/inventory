@@ -4276,8 +4276,7 @@ def create_order_from_intermediate_order(request, user):
 def block_asn_stock(sku_id, qty, lead_time, ord_det_id, is_enquiry=False):
     todays_date = datetime.datetime.today().date()
     lt_date = todays_date + datetime.timedelta(days=lead_time)
-    asn_qs = ASNStockDetail.objects.filter(sku_id=sku_id, status='open',
-                                           arriving_date__lte=lt_date).order_by('arriving_date')
+    asn_qs = ASNStockDetail.objects.filter(sku_id=sku_id, status='open').order_by('arriving_date')
     for asn_obj in asn_qs:
         asn_res_map = {'asnstock_id': asn_obj.id}
         if not is_enquiry:
@@ -6308,6 +6307,10 @@ def get_sku_variants(request, user=''):
                                     actual_sku_id = sku_id
                                     if sku_id[-3:]=="-TU":
                                         sku_id = sku_id[:-3]
+                                        if sku_id in stock_dict:
+                                            stock_dict[sku_id] += int(item['Inventory'])
+                                        else:
+                                            stock_dict[sku_id] = int(item['Inventory'])
                                         expected_items = item['Expected']
                                         if isinstance(expected_items, list) and expected_items:
                                             asn_stock_map.setdefault(sku_id, []).extend(expected_items)
@@ -6322,9 +6325,9 @@ def get_sku_variants(request, user=''):
                                                 stock_dict[sku_id] = int(wait_on_qc[0])
                                     else:
                                         if sku_id in stock_dict:
-                                            stock_dict[sku_id] += int(item['Inventory'])
+                                            stock_dict[sku_id] += int(item['FG'])
                                         else:
-                                            stock_dict[sku_id] = int(item['Inventory'])
+                                            stock_dict[sku_id] = int(item['FG'])
                                 for sku_id, inventory in stock_dict.iteritems():
                                     sku = SKUMaster.objects.filter(user = user_id, sku_code = sku_id)
                                     if sku:
@@ -10500,6 +10503,7 @@ def move_to_dc(request, user=''):
 @csrf_exempt
 @get_admin_user
 def move_to_inv(request, user=''):
+    log.info('Move To Invoice: Request params for ' + user.username + ' are ' + str(request.GET.dict()))
     cancel_flag = request.GET.get('cancel', '')
     if cancel_flag == 'true':
         sell_ids = construct_sell_ids(request, user, cancel_inv=True)
@@ -10518,9 +10522,18 @@ def move_to_inv(request, user=''):
             invoice_seq = invoice_sequence[0]
             inv_no = int(invoice_seq.value)
             order_no = str(inv_no).zfill(3)
-            seller_summary.update(invoice_number=order_no)
-            invoice_seq.value = inv_no + 1
-            invoice_seq.save()
+            is_inv_num_added = False
+            for sel_obj in seller_summary:
+                if not sel_obj.invoice_number:
+                    sel_obj.invoice_number = order_no
+                    sel_obj.save()
+                    is_inv_num_added = True
+                else:
+                    log.info("Invoice number already generated for Sel Obj ID:%s" %(sel_obj.id))
+            #seller_summary.update(invoice_number=order_no)
+            if is_inv_num_added:
+                invoice_seq.value = inv_no + 1
+                invoice_seq.save()
     try:
         for sel_obj in seller_summary:
             if cancel_flag == 'true':

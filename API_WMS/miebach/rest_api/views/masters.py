@@ -2948,6 +2948,13 @@ def create_network_supplier(dest, src):
     phone_number = ''
     if user_profile.phone_number:
         phone_number = user_profile.phone_number
+    true_flag = True
+    while true_flag:
+        supplier_qs = SupplierMaster.objects.filter(id=max_sup_id)
+        if supplier_qs:
+            max_sup_id += 1
+        else:
+            true_flag = False
     supplier = SupplierMaster.objects.create(id=max_sup_id, user=dest_id, name=user_profile.user.username,
                                              email_id=user_profile.user.email,
                                              phone_number=phone_number,

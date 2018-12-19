@@ -8527,3 +8527,62 @@ def get_sub_users(user):
     sub_users = AdminGroups.objects.get(user_id=user.id).group.user_set.filter()
     return sub_users
 
+
+def update_order_dicts_rista(orders, user='', company_name=''):
+    from outbound import check_stocks
+    trans_mapping = {}
+    import pdb;pdb.set_trace()
+    collect_order_detail_list = []
+    order_sku = {}
+    status = {'status': 0, 'messages': ['Something went wrong']}
+    for order_key, order in orders.iteritems():
+	if order_key == "extra":
+	    if float(order.get('shipping_charges', 0)):
+                OrderCharges.objects.create(**{'order_id': order.get('original_order_id', ''), 'user':user, 'charge_name':'Shipping Charges', 'charge_amount': float(order.get('shipping_charges', 0)) })
+	    if float(order.get('discount', 0)):
+                OrderCharges.objects.create(**{'order_id': order.get('original_order_id', ''), 'user':user, 'charge_name':'Discount', 'charge_amount': float(order.get('discount',0)) })
+	    continue
+        if not order.get('order_details', {}):
+            continue
+        order_det_dict = order['order_details']
+	original_order_id = order_det_dict['original_order_id']
+        if not order.get('order_detail_obj', None):
+            order_obj = OrderDetail.objects.filter(original_order_id=order_det_dict['original_order_id'],
+                                                   order_id=order_det_dict['order_id'],
+                                                   order_code=order_det_dict['order_code'],
+                                                   sku_id=order_det_dict['sku_id'],
+                                                   user=order_det_dict['user'])
+        else:
+            order_obj = [order.get('order_detail_obj', None)]
+        if order_obj:
+            order_obj = order_obj[0]
+            order_obj.quantity = float(order_obj.quantity) + float(order_det_dict.get('quantity', 0))
+            order_obj.invoice_amount = float(order_obj.invoice_amount) + float(order_det_dict.get('invoice_amount', 0))
+            order_obj.sku_code = str(order_det_dict.get('line_item_id', ''))
+            order_obj.save()
+            order_detail = order_obj
+	    collect_order_detail_list.append(order_detail)
+        else:
+            del(order['order_details']['telephone'])
+            del(order['order_details']['pin_code'])
+            order_detail = OrderDetail.objects.create(**order['order_details'])
+            collect_order_detail_list.append(order_detail)
+        if order.get('order_summary_dict', {}) and not order_obj:
+            order['order_summary_dict']['order_id'] = order_detail.id
+            customer_order_summary = CustomerOrderSummary.objects.create(**order['order_summary_dict'])
+        if order.get('seller_order_dict', {}):
+            trans_mapping = check_create_seller_order(order['seller_order_dict'], order_detail, user,
+                                                      order.get('swx_mappings', []), trans_mapping=trans_mapping)
+        sku_obj = SKUMaster.objects.filter(id=order_det_dict['sku_id'])
+        if sku_obj:
+            sku_obj = sku_obj[0]
+        else:
+            continue
+	import pdb;pdb.set_trace()
+	order_sku.update({sku_obj: order_det_dict['quantity']})
+    auto_picklist_signal = get_misc_value('auto_generate_picklist', order_det_dict['user'])
+    if auto_picklist_signal == 'true':
+        message = check_stocks(order_sku, user, 'false', collect_order_detail_list)
+    status = {'status': 1, 'messages': ['Success']}
+    return status
+

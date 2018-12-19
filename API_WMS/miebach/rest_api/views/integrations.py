@@ -1639,6 +1639,7 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
     insert_status = []
     final_data_dict = OrderedDict()
     try:
+        #import pdb;pdb.set_trace()
         seller_master_dict, valid_order, query_params = {}, {}, {}
         failed_status = OrderedDict()
         if not orders:
@@ -1706,6 +1707,7 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                     message = 'Order is already cancelled at Stockone'
                 update_error_message(failed_status, error_code, message, original_order_id)
                 break
+            #import pdb;pdb.set_trace()
             for sku_item in sku_items:
                 try:
                     shipment_date = NOW

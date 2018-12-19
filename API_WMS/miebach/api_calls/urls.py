@@ -44,4 +44,5 @@ urlpatterns = [
     url(r'^update_orders/$',update_orders),
     url(r'^mp/update_orders/$',update_mp_orders),
     url(r'^mp/get_inventory/$',get_mp_inventory),
+    url(r'^rista_update_orders/$', rista_update_orders)
 ]

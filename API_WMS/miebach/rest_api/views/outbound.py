@@ -763,6 +763,7 @@ def get_picklist_data(data_id, user_id):
             order_code = ''
             mrp = ''
             batch_no = ''
+            manufactured_date =''
             courier_name = ''
             if order.stock:
                 stock_id = pick_stocks.get(id=order.stock_id)
@@ -824,6 +825,7 @@ def get_picklist_data(data_id, user_id):
                 if stock_id.batch_detail:
                     mrp = stock_id.batch_detail.mrp
                     batch_no = stock_id.batch_detail.batch_no
+                    manufactured_date = stock_id.batch_detail.manufactured_date
 
             match_condition = (location, pallet_detail, wms_code, sku_code, title)
             if match_condition not in batch_data:
@@ -851,6 +853,7 @@ def get_picklist_data(data_id, user_id):
                                                'stock_left': stock_left, 'last_picked_locs': last_picked_locs,
                                                'customer_name': customer_name, 'customer_address': customer_address,
                                                'marketplace': marketplace,
+                                               'manufactured_date':manufactured_date,
                                                'order_no': order_id, 'remarks': remarks,
                                                'load_unit_handle': load_unit_handle, 'category': category,
                                                'original_order_id': original_order_id, 'mrp':mrp,
@@ -10751,7 +10754,7 @@ def generate_stock_transfer_invoice(request, user=''):
         resp_list['resp'].append({'order_id' : order_id[0], 'picked_quantity' : total_picked_quantity, 'rate' : rate,
             'amount' : total_price, 'stock_transfer_date_time' : str(shipment_date), 'warehouse_name': warehouse,
             'sku_code' : sku, 'invoice_date' : str(invoice_date), 'from_warehouse' : from_warehouse,
-            'to_warehouse' : to_warehouse, 'invoice_amount' : invoice_amt, 'sku_description' : sku_description, 
+            'to_warehouse' : to_warehouse, 'invoice_amount' : invoice_amt, 'sku_description' : sku_description,
             'invoice_number' : invoice_number })
     return HttpResponse(json.dumps(resp_list))
 

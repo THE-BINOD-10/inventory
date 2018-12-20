@@ -2859,9 +2859,12 @@ def confirm_grn(request, confirm_returns='', user=''):
                 bill_date = challan_date.strftime('%d-%m-%Y') if challan_date else ''
             else:
                 bill_no = request.POST.get('invoice_number', '')
+            overall_discount = request.POST.get('overall_discount',0)
             report_data_dict = {'data': putaway_data, 'data_dict': data_dict, 'data_slices': sku_slices,
                                 'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty,
                                 'total_price': total_price, 'total_tax': total_tax,
+                                'overall_discount':overall_discount,
+                                'net_amount':float(total_price) - float(overall_discount),
                                 'address': address,
                                 'company_name': profile.company_name, 'company_address': profile.address,
                                 'po_number': po_number, 'bill_no': bill_no,

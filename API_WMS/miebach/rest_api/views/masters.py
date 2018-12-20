@@ -1095,7 +1095,7 @@ def update_supplier_values(request, user=''):
         data_id = request.POST['id']
         data = get_or_none(SupplierMaster, {'id': data_id, 'user': user.id})
         old_name = data.name
-        upload_master_file(request, data.id, "SupplierMaster")
+        upload_master_file(request, user, data.id, "SupplierMaster")
 
         create_login = request.POST.get('create_login', '')
         password = request.POST.get('password', '')
@@ -1180,7 +1180,7 @@ def insert_supplier(request, user=''):
 
             data_dict['user'] = user.id
             supplier_master = SupplierMaster(**data_dict)
-            upload_master_file(request, supplier_master.id, "SupplierMaster")
+            upload_master_file(request, user, supplier_master.id, "SupplierMaster")
             supplier_master.save()
             status_msg = 'New Supplier Added'
             if create_login == 'true':
@@ -1202,14 +1202,15 @@ def insert_supplier(request, user=''):
 
 
 @csrf_exempt
-def upload_master_file(request, master_id, master_type):
+def upload_master_file(request, user, master_id, master_type, master_file=None, extra_flag=''):
     master_id = master_id
     master_type = master_type
-    master_file = request.FILES.get('master_file', '')
+    if not master_file:
+        master_file = request.FILES.get('master_file', '')
     if not master_file and master_id and master_type:
         return 'Fields are missing.'
     upload_doc_dict = {'master_id': master_id, 'master_type': master_type,
-                       'uploaded_file': master_file}
+                       'uploaded_file': master_file, 'user_id': user.id, 'extra_flag': extra_flag}
     master_doc = MasterDocs.objects.filter(**upload_doc_dict)
     if not master_doc:
         master_doc = MasterDocs(**upload_doc_dict)

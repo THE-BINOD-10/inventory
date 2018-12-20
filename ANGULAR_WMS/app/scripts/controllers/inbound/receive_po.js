@@ -20,6 +20,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.display_approval_button = false;
     vm.supplier_id = '';
     vm.order_id = 0;
+    vm.invoice_readonly ='';
     vm.receive_po_mandatory_fields = {};
     if(vm.permissions.receive_po_mandatory_fields) {
       angular.forEach(vm.permissions.receive_po_mandatory_fields.split(','), function(field){
@@ -171,6 +172,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     {
                       vm.calc_total_amt(event, vm.model_data, 0, par_ind);
                     }
+                    if(vm.model_data.uploaded_file_dict && Object.keys(vm.model_data.uploaded_file_dict).length > 0) {
+                      vm.model_data.uploaded_file_dict.file_url = vm.service.check_image_url(vm.model_data.uploaded_file_dict.file_url);
+                    }
 
 //                    angular.forEach(vm.model_data.data, function(row){
 //                      angular.forEach(row, function(sku){
@@ -297,7 +301,9 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     function close() {
 
       vm.model_data = {};
+      vm.invoice_readonly = '';
       vm.html = "";
+      vm.invoice_readonly = '';
       vm.print_enable = false;
       if(vm.permissions.use_imei) {
         fb.stop_fb();
@@ -469,12 +475,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     vm.save_sku = function(){
-        var that = vm;
-        var elem = angular.element($('form'));
-        elem = elem[0];
-        elem = $(elem).serializeArray();
-        elem.push({'name': 'display_approval_button', value: vm.display_approval_button})
-      vm.service.apiCall('update_putaway/', 'POST', elem, true).then(function(data){
+      var that = vm;
+      var elem = angular.element($('form'));
+      elem = elem[0];
+      elem = $(elem).serializeArray();
+      elem.push({'name': 'display_approval_button', value: vm.display_approval_button})
+      var form_data = new FormData();
+      console.log(form_data);
+      var files = $(".grn-form").find('[name="files"]')[0].files;
+      $.each(files, function(i, file) {
+        form_data.append('files-' + i, file);
+      });
+      $.each(elem, function(i, val) {
+        form_data.append(val.name, val.value);
+      });
+      vm.service.apiCall('update_putaway/', 'POST', form_data, true, true).then(function(data){
         if(data.message) {
           if(data.data == 'Updated Successfully') {
             vm.close();
@@ -545,11 +560,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           return false;
         }
         elem = $(elem).serializeArray();
+        var form_data = new FormData();
+        console.log(form_data);
+        var files = $(".grn-form").find('[name="files"]')[0].files;
+        $.each(files, function(i, file) {
+          form_data.append('files-' + i, file);
+        });
+        $.each(elem, function(i, val) {
+          form_data.append(val.name, val.value);
+        });
         var url = "confirm_grn/"
         if(vm.po_qc) {
           url = "confirm_receive_qc/"
         }
-        vm.service.apiCall(url, 'POST', elem, true).then(function(data){
+        vm.service.apiCall(url, 'POST', form_data, true, true).then(function(data){
           if(data.message) {
             if(data.data.search("<div") != -1) {
               vm.extra_width = {}
@@ -792,6 +816,23 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             $("input[attr-name='imei_"+record[0].wms_code+"']").trigger('focus');
           }
         })
+      }
+    }
+    vm.change_overall_discount =function(){
+      var discount = 0;
+      var total = 0;
+      if(vm.model_data.overall_discount) {
+        discount = vm.model_data.overall_discount;
+      }
+      if(vm.model_data.round_off_total) {
+        total = vm.model_data.round_off_total;
+      }
+      if(total>discount)
+      {
+        vm.calc_total_amt(event, vm.model_data, 0, 0);
+      }
+      else{
+        vm.model_data.overall_discount = 0;
       }
     }
 
@@ -1996,9 +2037,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             }
         }
       }
+      var overall_discount = 0;
+      if(vm.model_data.overall_discount) {
+        overall_discount = vm.model_data.overall_discount;
+      }
       vm.skus_total_amount = totals;
       //$('.totals').text('Totals: ' + totals);
-      vm.model_data.round_off_total = Math.round(totals * 100) / 100;
+      vm.model_data.round_off_total = (Math.round(totals * 100) / 100) - overall_discount;
     }
 
     vm.pull_cls = "pull-right";

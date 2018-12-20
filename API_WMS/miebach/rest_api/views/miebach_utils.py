@@ -7,6 +7,8 @@ from django.db.models import Sum
 import copy
 import re
 import reversion
+import zipfile
+import StringIO
 from reversion.models import Version
 from miebach_admin.models import *
 from itertools import chain
@@ -435,7 +437,7 @@ SKU_WISE_PO_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'typ
                                    'Rejected Quantity', 'Receipt Date', 'Status'],
                     'mk_dt_headers': ['PO Date', 'PO Number', 'Supplier ID', 'Supplier Name', 'SKU Code',
                                       'SKU Description', 'SKU Class', 'SKU Style Name', 'SKU Brand', 'SKU Category',
-                                      'PO Qty', 'Unit Rate', 'MRP', 'Pre-Tax PO Amount', 'Tax', 'After Tax PO Amount',
+                                      'PO Qty',  'Unit Rate', 'MRP', 'Pre-Tax PO Amount', 'Tax', 'After Tax PO Amount',
                                       'Qty received', 'Status'],
                     'dt_url': 'get_sku_purchase_filter', 'excel_name': 'sku_wise_purchases',
                     'print_url': 'print_sku_wise_purchase',
@@ -444,6 +446,7 @@ SKU_WISE_PO_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'typ
 GRN_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'type': 'date'},
                         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
                         {'label': 'PO Number', 'name': 'open_po', 'type': 'input'},
+                        {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
                         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'}],
             'dt_headers': ['PO Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity'],
             'mk_dt_headers': ['PO Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity'],
@@ -478,7 +481,7 @@ SKU_WISE_GRN_DICT = {'filters' : [
                        "SKU Code", "SKU Description", "HSN Code", "SKU Class", "SKU Style Name", "SKU Brand",
                        "SKU Category", "Received Qty", "Unit Rate", "MRP", "Pre-Tax Received Value", "CGST(%)",
                        "SGST(%)", "IGST(%)", "UTGST(%)", "CESS(%)", "CGST",
-                       "SGST", "IGST", "UTGST", "CESS", "Post-Tax Received Value", "Invoiced Unit Rate",
+                       "SGST", "IGST", "UTGST", "CESS", "Post-Tax Received Value", "Invoiced Unit Rate","Overall Discount",
                        "Invoiced Total Amount", "Invoice Number", "Invoice Date", "Challan Number",
                        "Challan Date", "Updated User"],
 		'mk_dt_headers': [ "Received Date", "PO Date", "PO Number", "Supplier ID", "Supplier Name", "Recepient",
@@ -486,7 +489,7 @@ SKU_WISE_GRN_DICT = {'filters' : [
                            "Received Qty", "Unit Rate", "MRP", "Pre-Tax Received Value", "CGST(%)", "SGST(%)",
                            "IGST(%)", "UTGST(%)", "CESS(%)", "CGST",
                             "SGST", "IGST", "UTGST", "CESS", "Post-Tax Received Value", "Margin %",
-                           "Margin", "Invoiced Unit Rate", "Invoiced Total Amount", "Invoice Number", "Invoice Date",
+                           "Margin", "Invoiced Unit Rate","Overall Discount", "Invoiced Total Amount", "Invoice Number", "Invoice Date",
                            "Challan Number", "Challan Date", "Updated User"],
 		'dt_url': 'get_sku_wise_po_filter', 'excel_name': 'goods_receipt', 'print_url': '',
 	   }
@@ -2592,7 +2595,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'purchase_order__open_po__utgst_tax', 'purchase_order__open_po__cess_tax',
                          'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price', 'id',
                          'seller_po__receipt_type', 'receipt_number', 'batch_detail__buy_price',
-                         'batch_detail__tax_percent', 'invoice_number', 'invoice_date', 'challan_number',
+                         'batch_detail__tax_percent', 'invoice_number', 'invoice_date', 'challan_number','overall_discount',
                          'challan_date', 'discount_percent', 'cess_tax', 'batch_detail__mrp']
     else:
         unsorted_dict = {16: 'Pre-Tax Received Value', 27: 'Post-Tax Received Value',
@@ -2633,7 +2636,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'purchase_order__open_po__sgst_tax', 'purchase_order__open_po__igst_tax',
                          'purchase_order__open_po__utgst_tax', 'purchase_order__open_po__cess_tax',
                          'seller_po__margin_percent', 'purchase_order__prefix', 'seller_po__unit_price', 'id',
-                         'seller_po__receipt_type', 'receipt_number', 'batch_detail__buy_price',
+                         'seller_po__receipt_type', 'receipt_number', 'batch_detail__buy_price','overall_discount',
                          'batch_detail__tax_percent', 'invoice_number', 'invoice_date', 'challan_number',
                          'challan_date', 'discount_percent', 'cess_tax', 'batch_detail__mrp'
                          ]
@@ -2789,6 +2792,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                             ('Invoiced Unit Rate', final_price),
                             ('Invoiced Total Amount', invoice_total_amount),
                             ('Invoice Number', data['invoice_number']),
+                            ('Overall Discount',data['overall_discount']),
                             ('Invoice Date', invoice_date),
                             ('Challan Number', data['challan_number']),
                             ('Challan Date', challan_date),
@@ -2836,6 +2840,8 @@ def get_po_filter_data(search_params, user, sub_user):
             search_parameters[field_mapping['order_id']] = temp[-1]
     if 'sku_code' in search_params:
         search_parameters[field_mapping['wms_code']] = search_params['sku_code']
+    if 'invoice_number' in search_params:
+        search_parameters['sellerposummary__invoice_number'] = search_params['invoice_number']
     search_parameters[field_mapping['user']] = user.id
     search_parameters[field_mapping['sku_id__in']] = sku_master_ids
     search_parameters['received_quantity__gt'] = 0

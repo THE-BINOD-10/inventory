@@ -1626,6 +1626,7 @@ def get_supplier_data(request, user=''):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     temp = get_misc_value('pallet_switch', user.id)
     order_ids = []
+    uploaded_file_dict = {}
     headers = ['WMS CODE', 'PO Quantity', 'Received Quantity', 'Unit Price', '']
     if temp == 'true':
         headers.insert(2, 'Pallet Number')
@@ -1740,6 +1741,7 @@ def get_supplier_data(request, user=''):
         dc_number = ''
         dc_date = ''
         dc_level_grn = ''
+        overall_discount = 0
         if temp_json.exists():
             temp_json = json.loads(temp_json[0].model_json)
             invoice_number = temp_json.get('invoice_number', '')
@@ -1748,6 +1750,11 @@ def get_supplier_data(request, user=''):
             dc_date = temp_json.get('dc_date', '')
             dc_level_grn = temp_json.get('dc_level_grn', '')
             invoice_value = temp_json.get('invoice_value', '')
+            overall_discount = temp_json.get('overall_discount', '')
+            master_docs = MasterDocs.objects.filter(master_id=purchase_order.order_id, master_type='PO_TEMP')
+            if master_docs.exists():
+                uploaded_file_dict = {'file_name': 'Uploaded File', 'id': master_docs[0].id,
+                                      'file_url': '/' + master_docs[0].uploaded_file.name}
     return HttpResponse(json.dumps({'data': orders, 'po_id': order_id, 'options': REJECT_REASONS, \
                                     'supplier_id': order_data['supplier_id'], 'use_imei': use_imei, \
                                     'temp': temp, 'po_reference': po_reference, 'order_ids': order_ids, \
@@ -1755,7 +1762,9 @@ def get_supplier_data(request, user=''):
                                     'expected_date': expected_date, 'remarks': remarks,
                                     'remainder_mail': remainder_mail, 'invoice_number': invoice_number,
                                     'invoice_date': invoice_date, 'dc_number': dc_number,
-                                    'dc_date': dc_date, 'dc_grn': dc_level_grn, 'invoice_value': invoice_value}))
+                                    'dc_date': dc_date, 'dc_grn': dc_level_grn,
+                                    'uploaded_file_dict': uploaded_file_dict, 'overall_discount': overall_discount,
+                                    'round_off_total': 0, 'invoice_value': invoice_value}))
 
 
 @csrf_exempt
@@ -1780,7 +1789,7 @@ def update_putaway(request, user=''):
         data_dict = dict(request.POST.iterlists())
         zero_index_keys = ['scan_sku', 'lr_number', 'remainder_mail', 'carrier_name', 'expected_date', 'invoice_date',
                            'remarks', 'invoice_number', 'dc_level_grn', 'dc_number', 'dc_date',
-                           'display_approval_button', 'invoice_value']
+                           'display_approval_button', 'invoice_value', 'overall_discount']
         for i in range(0, len(data_dict['id'])):
             po_data = {}
             if not data_dict['id'][i]:
@@ -1822,6 +1831,18 @@ def update_putaway(request, user=''):
                 if exist_temp_json:
                     exist_temp_json[0].model_json = json.dumps(po_data)
                     exist_temp_json[0].save()
+        file_obj = request.FILES.get('files-0', '')
+        if file_obj:
+            master_docs_obj = MasterDocs.objects.filter(master_id=po.order_id, master_type='PO_TEMP',
+                                                        user_id=user.id)
+            if not master_docs_obj:
+                upload_master_file(request, user, po.order_id, 'PO_TEMP', master_file=file_obj)
+            else:
+                master_docs_obj = master_docs_obj[0]
+                if os.path.exists(master_docs_obj.uploaded_file.path):
+                    os.remove(master_docs_obj.uploaded_file.path)
+                master_docs_obj.uploaded_file = file_obj
+                master_docs_obj.save()
         if send_for_approval == 'true':
             grn_permission = get_permission(request.user, 'change_purchaseorder')
             if not grn_permission:
@@ -2420,6 +2441,9 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
     cess_tax = 0
     if 'cess_percent' in myDict.keys() and myDict['cess_percent'][i]:
         cess_tax = myDict['cess_percent'][i]
+    overall_discount = 0
+    if 'overall_discount' in myDict.keys() and myDict['overall_discount'][0]:
+        overall_discount = myDict['overall_discount'][0]
     if user.userprofile.user_type == 'warehouse_user':
         seller_po_summary, created = SellerPOSummary.objects.get_or_create(receipt_number=receipt_id,
                                                                            invoice_number=invoice_number,
@@ -2433,7 +2457,8 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
                                                                            order_status_flag=order_status_flag,
                                                                            discount_percent=discount_percent,
                                                                            round_off_total=round_off_total,
-                                                                           cess_tax=cess_tax)
+                                                                           cess_tax=cess_tax,
+                                                                           overall_discount=overall_discount)
         seller_received_list.append(
             {'seller_id': '', 'sku_id': data.open_po.sku_id, 'quantity': value,
              'id': seller_po_summary.id})
@@ -2488,11 +2513,43 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
                                                                                order_status_flag=order_status_flag,
                                                                                invoice_date=invoice_date,
                                                                                round_off_total=round_off_total,
-                                                                               cess_tax=cess_tax)
+                                                                               cess_tax=cess_tax,
+                                                                               overall_discount=overall_discount)
             seller_received_list.append(
                 {'seller_id': sell_po.seller_id, 'sku_id': data.open_po.sku_id, 'quantity': value,
                  'id': seller_po_summary.id})
     return seller_received_list
+
+
+def create_file_po_mapping(request, user, receipt_no, myDict):
+    try:
+        purchase_order_obj = PurchaseOrder.objects.filter(id=myDict['id'][0])
+        if purchase_order_obj:
+            file_obj = request.FILES.get('files-0', '')
+            po_order_id = purchase_order_obj[0].order_id
+            master_docs_obj = MasterDocs.objects.filter(master_id=po_order_id, user=user.id,
+                                                        master_type='PO_TEMP')
+            if file_obj:
+                upload_master_file(request, user, po_order_id, 'GRN',
+                                   master_file=request.FILES['files-0'], extra_flag=receipt_no)
+            elif master_docs_obj:
+                master_docs_obj = master_docs_obj[0]
+                master_docs_obj.master_id = po_order_id
+                master_docs_obj.extra_flag = receipt_no
+                master_docs_obj.master_type = 'GRN'
+                master_docs_obj.save()
+            exist_master_docs = MasterDocs.objects.filter(master_id=po_order_id, user=user.id,
+                                      master_type='PO_TEMP')
+            if exist_master_docs:
+                for exist_master_doc in exist_master_docs:
+                    if os.path.exists(exist_master_doc.uploaded_file):
+                        os.remove(exist_master_doc.uploaded_file.path)
+                    exist_master_doc.delete()
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Create GRN File Mapping failed for user " + str(user.username) + \
+                 " and error statement is " + str(e))
 
 
 def generate_grn(myDict, request, user, is_confirm_receive=False):
@@ -2698,6 +2755,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
         po_data.append((purchase_data['wms_code'], purchase_data['supplier_code'], purchase_data['sku_desc'],
                         purchase_data['order_quantity'],
                         value, price))
+    create_file_po_mapping(request, user, seller_receipt_id, myDict)
     return po_data, status_msg, all_data, order_quantity_dict, purchase_data, data, data_dict, seller_receipt_id
 
 
@@ -2804,9 +2862,12 @@ def confirm_grn(request, confirm_returns='', user=''):
                 bill_date = challan_date.strftime('%d-%m-%Y') if challan_date else ''
             else:
                 bill_no = request.POST.get('invoice_number', '')
+            overall_discount = request.POST.get('overall_discount',0)
             report_data_dict = {'data': putaway_data, 'data_dict': data_dict, 'data_slices': sku_slices,
                                 'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty,
                                 'total_price': total_price, 'total_tax': total_tax,
+                                'overall_discount':overall_discount,
+                                'net_amount':float(total_price) - float(overall_discount),
                                 'address': address,
                                 'company_name': profile.company_name, 'company_address': profile.address,
                                 'po_number': po_number, 'bill_no': bill_no,
@@ -8839,3 +8900,55 @@ def confirm_central_po(request, user=''):
                  " user " + str(user.username)+ "Params are " + str(request.POST.dict()) + " on " + \
                  str(get_local_date(user, datetime.datetime.now())) + "and error statement is " + str(e))
         return HttpResponse("Create PO Failed")
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def download_grn_invoice_mapping(request, user=''):
+    search_parameters = {'purchase_order__open_po__sku__user': user.id}
+    if request.GET.get('from_date', ''):
+        from_date = request.GET['from_date'].split('/')
+        search_parameters['creation_date__gt'] = datetime.date(int(from_date[2]), int(from_date[0]),
+                                                                       int(from_date[1]))
+    if request.GET.get('to_date', ''):
+        to_date = request.GET['to_date'].split('/')
+        to_date = datetime.date(int(to_date[2]), int(to_date[0]), int(to_date[1]))
+        to_date = datetime.datetime.combine(to_date + datetime.timedelta(1),
+                                                             datetime.time())
+        search_parameters['creation_date__lt'] = to_date
+    if request.GET.get('sku_code', ''):
+        search_parameters['purchase_order__open_po__sku__sku_code'] = request.GET.get('sku_code', '')
+    if request.GET.get('open_po', ''):
+        search_parameters['purchase_order__order_id'] = request.GET.get('open_po', '')
+    if request.GET.get('invoice_number', ''):
+        search_parameters['invoice_number'] = request.GET['invoice_number']
+    order_ids = SellerPOSummary.objects.filter(**search_parameters).\
+                                        values('purchase_order__order_id', 'receipt_number',
+                                                    'purchase_order__open_po__supplier__name').distinct().\
+                                    annotate(invoice_date=Cast('creation_date', DateField()))
+    total_file_size = 0
+    master_doc_objs = OrderedDict()
+    for order in order_ids:
+        master_docs = MasterDocs.objects.filter(user_id=user.id, master_id=order['purchase_order__order_id'],
+                                  master_type='GRN', extra_flag=order['receipt_number'])
+        if master_docs.exists():
+            master_docs = master_docs[0]
+            supplier_name = order['purchase_order__open_po__supplier__name']
+            invoice_date = str(order['invoice_date'])
+            file_format = master_docs.uploaded_file.path.split('.')[-1]
+            master_doc_objs['%s_%s.%s' % (supplier_name, invoice_date, file_format)] = master_docs
+            total_file_size += master_docs.uploaded_file.size
+        if float(total_file_size/1024)/1024 > 15:
+            return HttpResponse("Selected Filters exceeding File limit(15 MB)")
+    zip_subdir = ""
+    zip_filename = "GRN_INVOICES.zip"
+    stringio = StringIO.StringIO()
+    zf = zipfile.ZipFile(stringio, "w")
+    for fname, file_obj in master_doc_objs.items():
+        zip_path = os.path.join(zip_subdir, fname)
+        zf.write(file_obj.uploaded_file.path, zip_path)
+    zf.close()
+    resp = HttpResponse(stringio.getvalue(), content_type="application/x-zip-compressed")
+    resp['Content-Disposition'] = 'attachment; filename=%s' % zip_filename
+    return resp

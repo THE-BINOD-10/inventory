@@ -849,7 +849,7 @@ PRINT_OUTBOUND_PICKLIST_HEADERS = (
 'WMS Code', 'Title', 'Category', 'Zone', 'Location', 'Reserved Quantity', 'Picked Quantity')
 
 PRINT_OUTBOUND_PICKLIST_HEADERS_FMCG = (
-'WMS Code', 'Title', 'Category', 'Zone', 'Location', 'Batch No', 'MRP','Reserved Quantity', 'Picked Quantity')
+'WMS Code', 'Title', 'Category', 'Zone', 'Location', 'Batch No','MFG Date', 'MRP','Reserved Quantity', 'Picked Quantity')
 
 
 PRINT_PICKLIST_HEADERS = (

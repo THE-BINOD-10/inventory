@@ -46,10 +46,10 @@
                 </div>
               </label>
             </div>
-            <div class="col-md-6 col-sm-6 col-xs-5">
+            <div ng-if="pop.industry_type=='FMCG'" class="col-md-6 col-sm-6 col-xs-5">
               <p align="right">Show Mfg date</p>
             </div>
-            <div>
+            <div ng-if="pop.industry_type=='FMCG'">
               <label class="switch switch-sm square">
                 <div>
                   <input type="checkbox" ng-model="pop.show_mfg_date">
@@ -178,7 +178,7 @@
                   <!--<td><input name="zone_{{data.id}}" ng-model="record.zone" class="form-control" type="text"></td>-->
                   <td><input name="location_{{data.id}}" ng-model="record.location" class="form-control" type="text" ng-blur="pop.checkCapacity($index, data, 'location', $event);"></td>
                   <td ng-if="pop.industry_type=='FMCG'"><input ng-model="data.batchno" class="form-control" type="text" readonly></td>
-                  <td ng-if="pop.industry_type=='FMCG' && pop.show_mfg_date"><input ng-model="data.batchno" class="form-control" type="text" readonly></td>
+                  <td ng-if="pop.industry_type=='FMCG' && pop.show_mfg_date"><input ng-model="data.manufactured_date" class="form-control" size="35" type="text"></td>
                   <td ng-if="pop.industry_type=='FMCG'"><input ng-model="data.mrp" class="form-control" type="text" readonly></td>
                   <td ng-if="pop.permissions.pallet_switch"><input ng-if="data.load_unit_handle == 'pallet'" ng-model="record.pallet_code" class="form-control" type="text" ng-blur="pop.checkCapacity($index, data, 'pallet_code', $event);"></td>
                   <td><input name="reserved_quantity_{{data.id}}" ng-model="data.reserved_quantity" class="form-control" type="text" readonly></td>

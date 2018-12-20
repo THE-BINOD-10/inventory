@@ -8565,6 +8565,7 @@ def update_order_dicts_rista(orders, user='', company_name=''):
         else:
             del(order['order_details']['telephone'])
             del(order['order_details']['pin_code'])
+            order['order_details']['customer_name'] = order.get('customer_name', '')
             order_detail = OrderDetail.objects.create(**order['order_details'])
             collect_order_detail_list.append(order_detail)
         if order.get('order_summary_dict', {}) and not order_obj:
@@ -8580,9 +8581,6 @@ def update_order_dicts_rista(orders, user='', company_name=''):
             continue
 	import pdb;pdb.set_trace()
 	order_sku.update({sku_obj: order_det_dict['quantity']})
-    auto_picklist_signal = get_misc_value('auto_generate_picklist', order_det_dict['user'])
-    if auto_picklist_signal == 'true':
-        message = check_stocks(order_sku, user, 'false', collect_order_detail_list)
     status = {'status': 1, 'messages': ['Success']}
     return status
 

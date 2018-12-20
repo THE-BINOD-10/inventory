@@ -1148,7 +1148,7 @@ def update_mp_orders(request):
             if type(failed_status) == dict:
                 final_failed_status.update({'status': 207, 'messages': failed_status})
             if type(failed_status) == list:
-                failed_status = failed_status[0]
+                failed_status = failed_status
                 final_failed_status.update({'messages': failed_status})
             return HttpResponse(json.dumps(final_failed_status), status=207)
         status = update_order_dicts(final_data_dict, user=request.user, company_name='mieone')

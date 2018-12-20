@@ -524,7 +524,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if (form.$valid) {
         if (vm.permissions.receive_po_invoice_check && vm.model_data.invoice_value){
 
-          var abs_inv_value = vm.absOfInvValueTotal(vm.model_data.invoice_value, vm.skus_total_amount);
+          var abs_inv_value = vm.absOfInvValueTotal(vm.model_data.invoice_value, vm.model_data.round_off_total);
 
           if (vm.permissions.receive_po_invoice_check && abs_inv_value <= 3){
 

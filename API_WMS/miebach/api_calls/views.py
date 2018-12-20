@@ -966,7 +966,6 @@ def get_sku(request):
 @csrf_exempt
 @login_required
 def update_order(request):
-    import pdb;pdb.set_trace()
     try:
         orders = json.loads(request.body)
     except:
@@ -1100,7 +1099,6 @@ def update_return(request):
 @csrf_exempt
 @login_required
 def update_orders(request):
-    import pdb;pdb.set_trace()
     try:
         orders = json.loads(request.body)
     except:
@@ -1359,7 +1357,6 @@ def rista_update_orders(request):
 
         if validation_dict:
             return HttpResponse(json.dumps({'messages': validation_dict, 'status': 0}))
-        import pdb;pdb.set_trace()
         if failed_status:
             if type(failed_status) == dict:
                 failed_status.update({'Status': 'Failure'})

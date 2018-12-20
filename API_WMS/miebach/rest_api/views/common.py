@@ -8531,11 +8531,11 @@ def get_sub_users(user):
 def update_order_dicts_rista(orders, user='', company_name=''):
     from outbound import check_stocks
     trans_mapping = {}
-    import pdb;pdb.set_trace()
     collect_order_detail_list = []
     order_sku = {}
     status = {'status': 0, 'messages': ['Something went wrong']}
     for order_key, order in orders.iteritems():
+        customer_name = order['order_details']['customer_name']
 	if order_key == "extra":
 	    if float(order.get('shipping_charges', 0)):
                 OrderCharges.objects.create(**{'order_id': order.get('original_order_id', ''), 'user':user, 'charge_name':'Shipping Charges', 'charge_amount': float(order.get('shipping_charges', 0)) })
@@ -8565,7 +8565,7 @@ def update_order_dicts_rista(orders, user='', company_name=''):
         else:
             del(order['order_details']['telephone'])
             del(order['order_details']['pin_code'])
-            order['order_details']['customer_name'] = order.get('customer_name', '')
+            order['order_details']['customer_name'] = customer_name
             order_detail = OrderDetail.objects.create(**order['order_details'])
             collect_order_detail_list.append(order_detail)
         if order.get('order_summary_dict', {}) and not order_obj:
@@ -8579,7 +8579,6 @@ def update_order_dicts_rista(orders, user='', company_name=''):
             sku_obj = sku_obj[0]
         else:
             continue
-	import pdb;pdb.set_trace()
 	order_sku.update({sku_obj: order_det_dict['quantity']})
     status = {'status': 1, 'messages': ['Success']}
     return status

@@ -1682,6 +1682,58 @@ def validate_picklist_combos(data, all_picklists, picks_all):
                 combo_status.append({str(key): value.keys()})
     return combo_status, final_data_list
 
+def rista_inventory_transfer(picklist_list):
+    import pdb;pdb.set_trace()
+    collect_tax_dict = {}
+    for obj in collect_tax_dict:
+	data_dict = {'measuringUnit':'', 'skuCode':'', 'itemName':'', 'quantity':0, 'unitCost':0, 'itemAmount':0, 'taxAmount':0, 'totalAmount':0, 'taxes': []}
+	data_dict.update({'measuringUnit': picklist.order.sku.measurement_type})
+	data_dict.update({'skuCode': picklist.order.sku.wms_code})
+	data_dict.update({'itemName': picklist.order.sku.sku_desc})
+	data_dict.update({'quantity': picking_count1})
+	data_dict.update({'unitCost': picklist.order.unit_price})
+	data_dict.update({'itemAmount': data_dict['quantity'] * data_dict['unitCost']})
+	#Item Taxes
+	tax_dict = {}
+	tax_dict["taxName"] = ""
+	tax_dict["percentage"] = 0
+	tax_dict["taxableAmount"] = data_dict['itemAmount']
+	tax_dict["taxAmount"] = 0
+	data_dict.update({'taxes': []})
+	data_dict['taxes'].append(tax_dict)
+	if tax_dict["taxName"] in collect_tax_dict.keys():
+	    collect_tax_dict[tax_dict["taxName"]]['taxAmount'] += tax_dict["taxAmount"]
+	else:
+	    collect_tax_dict[tax_dict["taxName"]] = {}
+	    collect_tax_dict[tax_dict["taxName"]]['percentage'] = 0
+	    collect_tax_dict[tax_dict["taxName"]]['taxAmount'] = 0
+	    collect_tax_dict[tax_dict["taxName"]]["taxableAmount"] = 0
+	data_dict.update({'taxAmount': tax_amt})
+	data_dict.update({'totalAmount': total_amt})
+	rista_stockone_api['items'].append(data_dict)
+	#Overall Tax
+	tax_dict_update = {}
+	tax_dict_update["taxName"] = 
+	tax_dict_update["percentage"] = 
+	tax_dict_update["taxableAmount"] = 
+	tax_dict_update["taxAmount"] = 
+
+	rista_stockone_api['taxes'] = tax_dict_update
+	rista_stockone_api['totalAmount'] = 
+	rista_stockone_api['taxAmount'] = 
+	rista_stockone_api['itemsAmount'] = 
+	rista_stockone_api['notes'] = 
+	#To Branch
+	toBranch = {}
+	toBranch["branchCode"] = 
+	rista_stockone_api['toBranch'] = toBranch
+	#Source Info
+	sourceInfo = {}
+	sourceInfo['orderDate'] = 
+	sourceInfo['orderNumber'] =
+    return rista_stockone_api
+
+
 
 @csrf_exempt
 @login_required
@@ -1757,6 +1809,9 @@ def picklist_confirmation(request, user=''):
         #     for i in range(0, len(value)):
         #         if value[i]['picked_quantity']:
         #             count += float(value[i]['picked_quantity'])
+
+	resp = rista_inventory_transfer(final_data_list)
+
         for picklist_dict in final_data_list:
             picklist = picklist_dict['picklist']
             picklist_batch = picklist_dict['picklist_batch']
@@ -1776,55 +1831,9 @@ def picklist_confirmation(request, user=''):
                     picklist_batch = update_no_stock_to_location(request, user, picklist, val, picks_all,
                                                                  picklist_batch)
 
-		data_dict = {'measuringUnit':'', 'skuCode':'', 'itemName':'', 'quantity':0, 'unitCost':0, 'itemAmount':0, 'taxAmount':0,
-		'totalAmount':0, 'taxes': {}}
-                data_dict.update({'measuringUnit':picklist.order.sku.measurement_type})
-                data_dict.update({'skuCode':picklist.order.sku.wms_code})
-		data_dict.update({'itemName':picklist.order.sku.sku_desc})
-		data_dict.update({'quantity':picking_count1})
-		data_dict.update({'unitCost':picklist.order.unit_price})
-		data_dict.update({'itemAmount':total_amt - tax_amt})
-		data_dict.update({'taxAmount':tax_amt})
-		data_dict.update({'totalAmount':total_amt})
-
-		tax_dict = {}
-		tax_dict["taxName"] = ""
-		tax_dict["percentage"] = 0
-		tax_dict["taxableAmount"] = 0
-		tax_dict["taxAmount"] = 0
-		data_dict.update({'taxes':tax_dict})
-
-		rista_stockone_api['items'].append(data_dict)
-
-		tax_dict_update = {}
-		tax_dict_update["taxName"] = 
-		tax_dict_update["percentage"] = 
-		tax_dict_update["taxableAmount"] = 
-		tax_dict_update["taxAmount"] = 
-
-		rista_stockone_api['taxes'] = tax_dict_update
-
-		rista_stockone_api['totalAmount'] = 
-		rista_stockone_api['taxAmount'] = 
-		rista_stockone_api['itemsAmount'] = 
-		rista_stockone_api['notes'] = 
-
-		toBranch = {}
-		toBranch["branchCode"] = 
-		rista_stockone_api['toBranch'] = toBranch
-
-		sourceInfo = {}
-		sourceInfo['orderDate'] = 
-		sourceInfo['orderNumber'] = 
-
                 for picklist in picklist_batch:
-		    rista_stockone_api['indentNumber'] = picklist.order.original_order_id
-		    rista_stockone_api['indentDate'] = picklist.order.creation_date
-		    rista_stockone_api['indentBusinessDay'] = picklist.order.creation_date
-        	    rista_stockone_api['itemCount'] = len(rista_stockone_api['items'])
                     if count == 0:
                         continue
-
 
                     # if val['wms_code'] == 'TEMP' and val.get('wmscode', ''):
                     #     if picklist.order:

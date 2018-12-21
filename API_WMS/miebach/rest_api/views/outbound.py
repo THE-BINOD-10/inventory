@@ -3635,9 +3635,11 @@ def get_order_customer_details(order_data, request):
     return order_data
 
 
-def check_and_raise_po(generic_order_id, cm_id):
+def check_and_raise_po(generic_order_id, cm_id, ord_det_id=None):
     ''' it will create purchese order in warehouse '''
     generic_data = GenericOrderDetailMapping.objects.filter(generic_order_id=generic_order_id, customer_id=cm_id)
+    if ord_det_id:
+        generic_data = generic_data.filter(orderdetail_id=ord_det_id)
     if not generic_data:
         log.info("No Order Found")
         return "No Order Found"
@@ -4409,17 +4411,6 @@ def create_backorders(backorder_splitup_map, admin_user, sku_total_qty_map):
                     order_detail = order_obj[0]
                 order_summary_dict['order_id'] = order_detail.id
                 create_ordersummary_data(order_summary_dict, order_detail, backorder_copy['address'])
-                # order_objs.append(order_detail)
-
-                # order_user_sku = {}
-                # Collecting needed data for Picklist generation
-                # order_user_sku.setdefault(order_detail.user, {})
-                # order_user_sku[order_detail.user].setdefault(order_detail.sku, 0)
-                # order_user_sku[order_detail.user][order_detail.sku] += backorder_copy['quantity']
-
-                # Collecting User order objs for picklist generation
-                # order_user_objs.setdefault(order_detail.user, [])
-                # order_user_objs[order_detail.user].append(order_detail)
                 el_price = backorder_copy['unit_price'] # Considering same unit price as el_price as both would be same here
                 del_date = backorder_copy['shipment_date']
                 create_grouping_order_for_generic(generic_order_id, order_detail, cm_id, parent_user,
@@ -4434,6 +4425,7 @@ def create_backorders(backorder_splitup_map, admin_user, sku_total_qty_map):
                     order_detail_user = User.objects.get(id=generic_order['orderdetail__user'])
                     resp = order_push(original_order_id, order_detail_user, "NEW")
                     log.info('New (Back) Order Push Status: %s' % (str(resp)))
+                check_and_raise_po(generic_order_id, cm_id, order_detail.id)
 
 
 @csrf_exempt
@@ -4547,6 +4539,7 @@ def insert_order_data(request, user=''):
             order_data['unit_price'] = 0
             order_data['sku_code'] = myDict['sku_id'][i]
             vendor_items = ['printing_vendor', 'embroidery_vendor', 'production_unit']
+            exclude_order_items = ['warehouse_level', 'margin_data', 'el_price', 'del_date', 'vehicle_num']
 
             # Written a separate function to make the code simpler
             order_data, order_summary_dict, sku_master = construct_order_data_dict(
@@ -4588,16 +4581,9 @@ def insert_order_data(request, user=''):
                     if not order_obj:
                         el_price = order_data['el_price']
                         del_date = order_data['del_date']
-                        if 'warehouse_level' in order_data:
-                            order_data.pop('warehouse_level')
-                        if 'margin_data' in order_data:
-                            order_data.pop('margin_data')
-                        if 'el_price' in order_data:
-                            order_data.pop('el_price')
-                        if 'del_date' in order_data:
-                            order_data.pop('del_date')
-                        if 'vehicle_num' in order_data:
-                            order_data.pop('vehicle_num')
+                        for item in exclude_order_items:
+                            if item in order_data:
+                                order_data.pop(item)
                         order_data['sku_id'] = mapped_sku_id
                         order_obj = OrderDetail(**order_data)
                         order_obj.save()
@@ -4710,16 +4696,9 @@ def insert_order_data(request, user=''):
                     order_data['creation_date'] = creation_date
                     if not order_data.get('original_order_id', ''):
                         order_data['original_order_id'] = str(order_data['order_code']) + str(order_data['order_id'])
-                    if 'warehouse_level' in order_data:
-                        order_data.pop('warehouse_level')
-                    if 'margin_data' in order_data:
-                        order_data.pop('margin_data')
-                    if 'el_price' in order_data:
-                        order_data.pop('el_price')
-                    if 'del_date' in order_data:
-                        order_data.pop('del_date')
-                    if 'vehicle_num' in order_data:
-                        order_data.pop('vehicle_num')
+                    for item in exclude_order_items:
+                        if item in order_data:
+                            order_data.pop(item)
                     order_detail = OrderDetail(**order_data)
                     order_detail.save()
                     created_order_objs.append(order_detail)
@@ -4776,10 +4755,6 @@ def insert_order_data(request, user=''):
                                                   creation_date=datetime.datetime.now())
         other_charge_amounts = construct_other_charge_amounts_map(created_order_id, myDict,
                                                                     datetime.datetime.now(), other_charge_amounts, user)
-        # if generic_order_id:
-        #     check_and_raise_po(generic_order_id, cm_id)
-        if admin_user:
-            create_backorders(backorder_splitup_map, admin_user, sku_total_qty_map)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -4840,6 +4815,8 @@ def insert_order_data(request, user=''):
 
         if generic_order_id and not is_emiza_order_failed:
             check_and_raise_po(generic_order_id, cm_id)
+            create_backorders(backorder_splitup_map, admin_user, sku_total_qty_map)
+
         if user_type == 'customer' and not is_distributor and message in success_messages:
             # Creating Uploading POs object with file upload pending.
             # upload_po Api is called in front-end if file is present

@@ -1729,6 +1729,8 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
 
                     invoice_amount = 0
                     unit_price = sku_item['unit_price']
+                    measurement_type = sku_item['measurement_type']
+                    import pdb;pdb.set_trace()
                     if not order_det:
                         order_det = order_det1
 

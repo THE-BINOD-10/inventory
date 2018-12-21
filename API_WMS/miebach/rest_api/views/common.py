@@ -8574,7 +8574,9 @@ def update_order_dicts_rista(orders, user='', company_name=''):
         if order.get('seller_order_dict', {}):
             trans_mapping = check_create_seller_order(order['seller_order_dict'], order_detail, user,
                                                       order.get('swx_mappings', []), trans_mapping=trans_mapping)
+        import pdb;pdb.set_trace()
         sku_obj = SKUMaster.objects.filter(id=order_det_dict['sku_id'])
+        sku_obj.update(measurement_type=order_det_dict['measurement_type'])
         if sku_obj:
             sku_obj = sku_obj[0]
         else:

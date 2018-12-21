@@ -110,6 +110,7 @@ def clearLineItems(order):
 	    "name": Item.get('itemName',None),
 	    "quantity": Item.get('quantity',None),
 	    "unit_price": Item.get('unitCost',None),
+            "measurement_type": Item.get('measuringUnit', None),
 	    "shipping_charge": 0,
 	    "discount_amount": 0,
 	    "tax_percent": {

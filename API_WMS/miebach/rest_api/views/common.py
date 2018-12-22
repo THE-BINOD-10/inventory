@@ -6416,7 +6416,6 @@ def picklist_generation(order_data, enable_damaged_stock, picklist_number, user,
     if switch_vals['marketplace_model'] == 'true':
         all_zone_mappings = ZoneMarketplaceMapping.objects.filter(zone__user=user.id, status=1)
         is_marketplace_model = True
-
     fefo_enabled = False
     add_mrp_filter = False
     if user.userprofile.industry_type == 'FMCG':
@@ -8574,14 +8573,17 @@ def update_order_dicts_rista(orders, user='', company_name=''):
         if order.get('seller_order_dict', {}):
             trans_mapping = check_create_seller_order(order['seller_order_dict'], order_detail, user,
                                                       order.get('swx_mappings', []), trans_mapping=trans_mapping)
-        import pdb;pdb.set_trace()
         sku_obj = SKUMaster.objects.filter(id=order_det_dict['sku_id'])
-        sku_obj.update(measurement_type=order_det_dict['measurement_type'])
+        if 'measurement_type' in order_det_dict.keys():
+            sku_obj.update(measurement_type=order_det_dict['measurement_type'])
         if sku_obj:
             sku_obj = sku_obj[0]
         else:
             continue
 	order_sku.update({sku_obj: order_det_dict['quantity']})
+        import pdb;pdb.set_trace()
+        for order_fields in order.get('order_fields_list', ''):
+            OrderFields.objects.create(**order_fields)
     status = {'status': 1, 'messages': ['Success']}
     return status
 

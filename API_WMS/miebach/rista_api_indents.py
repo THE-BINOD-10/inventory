@@ -36,7 +36,7 @@ def make_request():
         'content-type': 'application/json'
     }
     url = "{}://{}{}".format(SCHEME, API_HOST, ENDPOINT)
-    inv_payload = {'branch' : 'BW', 'day' : '2018-12-20'}
+    inv_payload = {'branch' : 'BW', 'day' : '2018-12-22'}
     resp = requests.get(url, headers=headers, params=inv_payload)
     #with open('inventory_indent.json', 'w') as f:
     #    f.write(resp.content)
@@ -49,7 +49,7 @@ def make_request():
 
 def sendToStockOne(resp):
     resp = resp['data']
-    #import pdb;pdb.set_trace()
+    import pdb;pdb.set_trace()
     stockone_auth = {}
     get_client_secret = User.objects.filter(username='BW')
     if get_client_secret:
@@ -135,9 +135,10 @@ def writeOrders(access_token, resp):
     for order in resp:
 	try:
 	    customer_details = order['fromBranch']
+            import pdb;pdb.set_trace()
             allOrders.append({
                     "source":"drunken_monkey",
-		    "original_order_id": order['indentNumber'],
+                    "original_order_id": order['indentNumber'],
                     "order_id": order['indentNumber'],
                     "order_code": '',
                     "order_date": order['indentDate'][0:10] + " " + order['indentDate'][11:19],
@@ -148,8 +149,15 @@ def writeOrders(access_token, resp):
                     "discount": 0,
                     "shipping_charges": 0,
                     "invoice_amount": order['totalAmount'],
-		    "customer_name": customer_details['branchName'],
-		    "customer_code": customer_details['branchCode']
+                    "customer_name": customer_details['branchName'],
+                    "customer_code": customer_details['branchCode'],
+                    "to_branch_code": order['branchCode'],
+                    "to_branch_name": order['branchName'],
+                    "item_count": order['itemCount'],
+                    "all_total_items": order['itemsAmount'],
+                    "all_total_tax": order['taxAmount'],
+                    "status": order['status'],
+                    "fulfillmentStatus": order['fulfillmentStatus']
 	    })
 	except:
 	    print "Order List Check"

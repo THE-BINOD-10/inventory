@@ -1682,17 +1682,29 @@ def validate_picklist_combos(data, all_picklists, picks_all):
                 combo_status.append({str(key): value.keys()})
     return combo_status, final_data_list
 
+
 def rista_inventory_transfer(picklist_list):
     import pdb;pdb.set_trace()
     collect_tax_dict = {}
-    for obj in collect_tax_dict:
+    for obj in picklist_list:
+	picked_stock_dict = {}
+        if 'value' in obj.keys():
+	    get_line_item_detail = obj['value']
+	    #picked_stock_dict[] =
+	    picking_count1 = 0
+	    for obj_dict in get_line_item_detail:
+		#dict_key = obj_dict['wms_code'] + '<<>>' + obj_dict['location']
+		picking_count1 = int(obj_dict['picked_quantity'])
+        if not 'picklist' in obj.keys():
+            continue
+        picklist_value = obj['picklist']
 	data_dict = {'measuringUnit':'', 'skuCode':'', 'itemName':'', 'quantity':0, 'unitCost':0, 'itemAmount':0, 'taxAmount':0, 'totalAmount':0, 'taxes': []}
-	data_dict.update({'measuringUnit': picklist.order.sku.measurement_type})
-	data_dict.update({'skuCode': picklist.order.sku.wms_code})
-	data_dict.update({'itemName': picklist.order.sku.sku_desc})
+	data_dict.update({'measuringUnit': picklist_value.order.sku.measurement_type})
+	data_dict.update({'skuCode': picklist_value.order.sku.wms_code})
+	data_dict.update({'itemName': picklist_value.order.sku.sku_desc})
 	data_dict.update({'quantity': picking_count1})
-	data_dict.update({'unitCost': picklist.order.unit_price})
-	data_dict.update({'itemAmount': data_dict['quantity'] * data_dict['unitCost']})
+	data_dict.update({'unitCost': picklist_value.order.unit_price})
+	data_dict.update({'itemAmount': data_dict['quantity'] * data_dict['unitCost'] })
 	#Item Taxes
 	tax_dict = {}
 	tax_dict["taxName"] = ""
@@ -1713,26 +1725,25 @@ def rista_inventory_transfer(picklist_list):
 	rista_stockone_api['items'].append(data_dict)
 	#Overall Tax
 	tax_dict_update = {}
-	tax_dict_update["taxName"] = 
-	tax_dict_update["percentage"] = 
-	tax_dict_update["taxableAmount"] = 
-	tax_dict_update["taxAmount"] = 
+	tax_dict_update["taxName"] = ''
+	tax_dict_update["percentage"] = 0
+	tax_dict_update["taxableAmount"] = 0
+	tax_dict_update["taxAmount"] = 0
 
 	rista_stockone_api['taxes'] = tax_dict_update
-	rista_stockone_api['totalAmount'] = 
-	rista_stockone_api['taxAmount'] = 
-	rista_stockone_api['itemsAmount'] = 
-	rista_stockone_api['notes'] = 
+	rista_stockone_api['totalAmount'] = 0
+	rista_stockone_api['taxAmount'] = 0
+	rista_stockone_api['itemsAmount'] = 0
+	rista_stockone_api['notes'] = ''
 	#To Branch
 	toBranch = {}
-	toBranch["branchCode"] = 
+	toBranch["branchCode"] = ''
 	rista_stockone_api['toBranch'] = toBranch
 	#Source Info
 	sourceInfo = {}
-	sourceInfo['orderDate'] = 
-	sourceInfo['orderNumber'] =
+	sourceInfo['orderDate'] = picklist.order.order_date
+	sourceInfo['orderNumber'] = picklist.order.original_order_id
     return rista_stockone_api
-
 
 
 @csrf_exempt

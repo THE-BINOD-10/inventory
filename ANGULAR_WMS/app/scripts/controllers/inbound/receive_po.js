@@ -298,9 +298,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     function close() {
 
       vm.model_data = {};
-      vm.invoice_readonly = '';
       vm.html = "";
-      vm.invoice_readonly = '';
+      vm.invoice_readonly_option = false
       vm.print_enable = false;
       if(vm.permissions.use_imei) {
         fb.stop_fb();
@@ -1980,7 +1979,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       });
     });
   }
-
+  vm.invoice_readonly_option = false;
+  vm.invoice_readonly = function(){
+      if(vm.permissions.receive_po_invoice_check)
+      {
+        if(!vm.model_data.invoice_value)
+        {
+          Service.showNoty('Please fill the invoice value');
+        }
+        else
+        {
+          vm.invoice_readonly_option = true;
+        }
+      }
+  }
   vm.skus_total_amount = 0;
   vm.calc_total_amt = function(event, data, index, parent_index) {
       var sku_row_data = {};

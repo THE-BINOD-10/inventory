@@ -30,13 +30,14 @@ def make_request():
         "iat": tokencreationtime
     }
     token = jwt.encode(payload, secretKey, algorithm='HS256')
+    import pdb;pdb.set_trace()
     headers =  {
         'x-api-key': apiKey,
         'x-api-token': token,
         'content-type': 'application/json'
     }
     url = "{}://{}{}".format(SCHEME, API_HOST, ENDPOINT)
-    inv_payload = {'branch' : 'BW', 'day' : '2018-12-22'}
+    inv_payload = {'branch' : 'BW', 'day' : '2018-12-23'}
     resp = requests.get(url, headers=headers, params=inv_payload)
     #with open('inventory_indent.json', 'w') as f:
     #    f.write(resp.content)

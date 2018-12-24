@@ -8581,7 +8581,6 @@ def update_order_dicts_rista(orders, user='', company_name=''):
         else:
             continue
 	order_sku.update({sku_obj: order_det_dict['quantity']})
-        import pdb;pdb.set_trace()
         for order_fields in order.get('order_fields_list', ''):
             OrderFields.objects.create(**order_fields)
     status = {'status': 1, 'messages': ['Success']}

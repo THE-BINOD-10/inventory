@@ -1353,7 +1353,7 @@ def rista_update_orders(request):
             validation_dict, failed_status, final_data_dict = validate_seller_orders_format(orders, user=request.user,
                                                                                      company_name='mieone')
         else:
-            validation_dict, failed_status, final_data_dict = validate_orders_format(orders, user=request.user, company_name='mieone')
+            validation_dict, failed_status, final_data_dict = validate_orders_format_rista(orders, user=request.user, company_name='mieone')
 
         if validation_dict:
             return HttpResponse(json.dumps({'messages': validation_dict, 'status': 0}))

@@ -1686,7 +1686,10 @@ def validate_picklist_combos(data, all_picklists, picks_all):
 def rista_inventory_transfer(picklist_list):
     import pdb;pdb.set_trace()
     collect_tax_dict = {}
+    collect_order_wise = {}
     for obj in picklist_list:
+        #{'picklist_batch': <QuerySet [<Picklist: 1002>]>, 'count': 4.0, 'value': [{u'stock_id': u'835492', u'title': u'Coffee Powder 1kg', u'order_id': u'', u'labels': u'', u'wms_code': u'274', u'picked_quantity': u'4', u'location': u'DFLT', u'picklist_status': u'open', u'orig_loc': u'DFLT', u'reserved_quantity': u'4', u'orig_wms': u'274'}], 'picklist': <Picklist: 1002>, 'picklist_order_id': u'', 'key': u'2342722'}
+        rista_stockone_api = {}
 	picked_stock_dict = {}
         if 'value' in obj.keys():
 	    get_line_item_detail = obj['value']
@@ -1705,6 +1708,7 @@ def rista_inventory_transfer(picklist_list):
 	data_dict.update({'quantity': picking_count1})
 	data_dict.update({'unitCost': picklist_value.order.unit_price})
 	data_dict.update({'itemAmount': data_dict['quantity'] * data_dict['unitCost'] })
+
 	#Item Taxes
 	tax_dict = {}
 	tax_dict["taxName"] = ""
@@ -1723,6 +1727,12 @@ def rista_inventory_transfer(picklist_list):
 	data_dict.update({'taxAmount': tax_amt})
 	data_dict.update({'totalAmount': total_amt})
 	rista_stockone_api['items'].append(data_dict)
+
+        order_fields = OrderFields.objects.filter(original_order_id=picklist_value.order.original_order_id).values('name', 'value')
+        for name, value in order_fields.items():
+            print "asd"
+
+
 	#Overall Tax
 	tax_dict_update = {}
 	tax_dict_update["taxName"] = ''
@@ -1735,6 +1745,8 @@ def rista_inventory_transfer(picklist_list):
 	rista_stockone_api['taxAmount'] = 0
 	rista_stockone_api['itemsAmount'] = 0
 	rista_stockone_api['notes'] = ''
+
+
 	#To Branch
 	toBranch = {}
 	toBranch["branchCode"] = ''
@@ -1743,7 +1755,9 @@ def rista_inventory_transfer(picklist_list):
 	sourceInfo = {}
 	sourceInfo['orderDate'] = picklist.order.order_date
 	sourceInfo['orderNumber'] = picklist.order.original_order_id
-    return rista_stockone_api
+        rista_stockone_api['sourceInfo'] = sourceInfo
+        collect_order_wise[picklist.order.original_order_id] = rista_stockone_api
+    return collect_order_wise.values()
 
 
 @csrf_exempt
@@ -1822,6 +1836,8 @@ def picklist_confirmation(request, user=''):
         #             count += float(value[i]['picked_quantity'])
 
 	resp = rista_inventory_transfer(final_data_list)
+        print resp
+        return ''
 
         for picklist_dict in final_data_list:
             picklist = picklist_dict['picklist']

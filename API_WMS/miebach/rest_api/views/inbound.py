@@ -8925,6 +8925,9 @@ def download_grn_invoice_mapping(request, user=''):
             search_parameters['purchase_order__order_id'] = temp[-1]
     if request.GET.get('invoice_number', ''):
         search_parameters['invoice_number'] = request.GET['invoice_number']
+    if 'supplier' in request.GET and ':' in request.GET['supplier']:
+        search_parameters['purchase_order__open_po__supplier__id__iexact'] = \
+            request.GET['supplier'].split(':')[0]
     order_ids = SellerPOSummary.objects.filter(**search_parameters).\
                                         values('purchase_order__order_id', 'receipt_number',
                                                     'purchase_order__open_po__supplier__name').distinct().\

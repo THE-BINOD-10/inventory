@@ -1001,7 +1001,10 @@ def update_sku(request):
         if not failed_status:
             failed_status = {'status': 200, 'message': 'Success'}
         else:
-            failed_status = {'status': 207, 'messages': failed_status}
+            if not (insert_status.get('SKUS Created', '') or insert_status.get('SKUS updated', '')):
+                failed_status = {'status': 422, 'messages': failed_status}
+            else:
+                failed_status = {'status': 207, 'messages': failed_status}
         return HttpResponse(json.dumps(failed_status), status=failed_status.get('status', 200))
     except Exception as e:
         import traceback
@@ -1144,13 +1147,13 @@ def update_mp_orders(request):
         if validation_dict:
             return HttpResponse(json.dumps({'messages': validation_dict, 'status': 207}), status=207)
         if failed_status:
-            final_failed_status = {'status': 207}
+            final_failed_status = {'status': 422}
             if type(failed_status) == dict:
-                final_failed_status.update({'status': 207, 'messages': failed_status})
+                final_failed_status.update({'status': 422, 'messages': failed_status})
             if type(failed_status) == list:
                 failed_status = failed_status
                 final_failed_status.update({'messages': failed_status})
-            return HttpResponse(json.dumps(final_failed_status), status=207)
+            return HttpResponse(json.dumps(final_failed_status), status=422)
         status = update_order_dicts(final_data_dict, user=request.user, company_name='mieone')
         log.info(status)
     except Exception as e:

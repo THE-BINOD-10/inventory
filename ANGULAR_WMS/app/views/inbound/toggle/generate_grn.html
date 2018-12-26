@@ -146,6 +146,7 @@
                     <th>Title</th>
                     <!-- <th>PO Quantity</th> -->
                     <th>PO Qty</th>
+                    <th>Is Offer Applicable</th>
                     <th ng-if="showCase.permissions.pallet_switch">Pallet Number</th>
                     <!-- <th>Received Quantity</th> -->
                     <th>Received Qty</th>
@@ -193,6 +194,10 @@
                       <input type="text" ng-model="data.po_quantity" size="10" ng-if="!data.is_new" title="{{ data.po_quantity }}" name="po_quantity" class="form-control detectTab" ng-readonly="records[0].dis" ng-class="service.get_decimal_perm()">
                       <input type="text" ng-model="data.po_quantity" size="10" ng-if="data.is_new" title="{{ data.po_quantity }}" name="po_quantity" class="form-control detectTab" ng-readonly="data.is_new" ng-class="service.get_decimal_perm()">
                     </td>
+                    <td>
+                      <input type="checkbox"  ng-checked = "data.offer_check"  value = "{{data.offer_check}}" ng-model="data.offer_check" style="zoom:1.5;">
+                    </td>
+                    <input type= "hidden"  value = "{{data.offer_check}}"  name="offer_applicable">
                     <td ng-if="showCase.permissions.pallet_switch"><input type="text" ng-show=" data.sku_details[0].fields.load_unit_handle == 'pallet'" ng-model="data.pallet_number" name="pallet_number" class="form-control detectTab"></td>
                     <td><input ng-if="showCase.model_data.use_imei=='false'" type="text" size="20" ng-model="data.value" name="quantity" class="form-control detectTab" ng-class="service.get_decimal_perm()" required ng-keyup="[showCase.calc_total_amt($event, showCase.model_data, innerIndex, outerIndex), showCase.send_for_approval_check($event, showCase.model_data), showCase.invoice_readonly= 'True']" ng-readonly="showCase.permissions.use_imei">
                     <input ng-if="showCase.model_data.use_imei=='true'" type="text" size="20" ng-model="data.value" ng-init="data.value = !showCase.showOldQty ? 0 : data.value" name="quantity" class="form-control detectTab" ng-class="service.get_decimal_perm()" required ng-keyup="showCase.calc_total_amt($event, showCase.model_data, innerIndex, outerIndex);showCase.invoice_readonly= 'True'" ng-readonly="showCase.permissions.use_imei && data.show_imei"> </div></td>

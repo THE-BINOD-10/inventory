@@ -121,10 +121,10 @@ def update_inventory(company_name):
                             nor_inv = inventory_values[sku_id].get('NORMAL_INVENTORY', 0)
                             inv_stock_diff = int(tu_inv) - int(nor_inv)
                             non_kitted_stock = max(inv_stock_diff, 0)
+                            sku = SKUMaster.objects.filter(user=user_id, sku_code=sku_id)
+                            sku = sku[0]
                             if non_kitted_stock:
-                                sku = SKUMaster.objects.filter(user=user_id, sku_code=sku_id)
                                 if sku:
-                                    sku = sku[0]
                                     asn_obj = ASNStockDetail.objects.filter(sku_id=sku.id, asn_po_num='NON_KITTED_STOCK')
                                     if asn_obj:
                                         asn_obj = asn_obj[0]
@@ -133,6 +133,12 @@ def update_inventory(company_name):
                                     else:
                                         ASNStockDetail.objects.create(asn_po_num='NON_KITTED_STOCK', sku_id=sku.id,
                                                                       quantity=non_kitted_stock)
+                            else:
+                                non_kitted_qs = ASNStockDetail.objects.filter(asn_po_num='NON_KITTED_STOCK',
+                                                                              sku_id=sku.id, status='open')
+                                if non_kitted_qs:
+                                    non_kitted_qs.update(status='closed')
+
 
                     for sku_id, inventory in stock_dict.iteritems():
                         sku = SKUMaster.objects.filter(user = user_id, sku_code = sku_id)

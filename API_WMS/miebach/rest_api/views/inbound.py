@@ -2444,6 +2444,15 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
     overall_discount = 0
     if 'overall_discount' in myDict.keys() and myDict['overall_discount'][0]:
         overall_discount = myDict['overall_discount'][0]
+    mrp_change =''
+    if float(data.open_po.mrp) != float(myDict['mrp'][i]) :
+         mrp_change = "mrp_change"
+    offer_applicable = ''
+    if 'offer_applicable' in myDict.keys() :
+        offer_applicable = myDict['offer_applicable'][i]
+        if offer_applicable :
+            offer_applicable = "offer_applied"
+    grn_remarks = offer_applicable +','+ mrp_change
     if user.userprofile.user_type == 'warehouse_user':
         seller_po_summary, created = SellerPOSummary.objects.get_or_create(receipt_number=receipt_id,
                                                                            invoice_number=invoice_number,
@@ -2458,7 +2467,8 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
                                                                            discount_percent=discount_percent,
                                                                            round_off_total=round_off_total,
                                                                            cess_tax=cess_tax,
-                                                                           overall_discount=overall_discount)
+                                                                           overall_discount=overall_discount,
+                                                                           grn_remarks = grn_remarks)
         seller_received_list.append(
             {'seller_id': '', 'sku_id': data.open_po.sku_id, 'quantity': value,
              'id': seller_po_summary.id})
@@ -2514,7 +2524,8 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
                                                                                invoice_date=invoice_date,
                                                                                round_off_total=round_off_total,
                                                                                cess_tax=cess_tax,
-                                                                               overall_discount=overall_discount)
+                                                                               overall_discount=overall_discount,
+                                                                               grn_remarks = grn_remarks)
             seller_received_list.append(
                 {'seller_id': sell_po.seller_id, 'sku_id': data.open_po.sku_id, 'quantity': value,
                  'id': seller_po_summary.id})

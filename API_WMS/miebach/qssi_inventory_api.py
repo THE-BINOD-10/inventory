@@ -122,6 +122,7 @@ def update_inventory(company_name):
                             inv_stock_diff = int(tu_inv) - int(nor_inv)
                             non_kitted_stock = max(inv_stock_diff, 0)
                             sku = SKUMaster.objects.filter(user=user_id, sku_code=sku_id)
+                            if not sku: continue
                             sku = sku[0]
                             if non_kitted_stock:
                                 if sku:

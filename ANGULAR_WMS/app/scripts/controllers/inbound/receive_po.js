@@ -1983,7 +1983,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     });
   }
   vm.invoice_readonly_option = false;
-  vm.invoice_readonly = function(){
+  vm.invoice_readonly = function(event){
+      console.log(vm);
       if(vm.permissions.receive_po_invoice_check)
       {
         if(!vm.model_data.invoice_value)
@@ -2109,10 +2110,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         if(!sku_row_data[i].buy_price || sku_row_data[i].buy_price == '') {
           sku_row_data[i].buy_price = 0;
         }
-        if(sku_row_data[i].price != sku_row_data[i].buy_price){
-          vm.display_approval_button = true;
-          break;
+        var price_tolerence = 0;
+        var buy_price = Number(sku_row_data[i].buy_price);
+        var price = Number(sku_row_data[i].price);
+        if(price && (buy_price > price))  {
+          price_tolerence = ((buy_price-price)/price)*100;
+          if(price_tolerence > 2){
+            vm.display_approval_button = true;
+            break;
+          }
         }
+//        if(sku_row_data[i].price != sku_row_data[i].buy_price){
+//          vm.display_approval_button = true;
+//          break;
+//        }
         if(sku_row_data[i].tax_percent == '') {
           sku_row_data[i].tax_percent = 0;
         }

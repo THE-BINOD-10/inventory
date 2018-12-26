@@ -1896,7 +1896,7 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'invoice_based_payment_tracker': 'invoice_based_payment_tracker',
                         'inbound_supplier_invoice': 'inbound_supplier_invoice', 'customer_dc': 'customer_dc',
                         'receive_po_invoice_check': 'receive_po_invoice_check', 'mark_as_delivered': 'mark_as_delivered',
-                        'order_exceed_stock': 'order_exceed_stock',
+                        'order_exceed_stock': 'order_exceed_stock', 'sku_pack_config': 'sku_pack_config',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',

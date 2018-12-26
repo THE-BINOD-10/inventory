@@ -1962,7 +1962,7 @@ class SellerPOSummary(models.Model):
     round_off_total = models.FloatField(default=0)
     cess_tax = models.FloatField(default=0)
     overall_discount = models.FloatField(default=0)
-    grn_remarks = models.CharField(max_length=64, default='')
+    remarks = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

@@ -2452,7 +2452,7 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
         offer_applicable = myDict['offer_applicable'][i]
         if offer_applicable :
             offer_applicable = "offer_applied"
-    grn_remarks = offer_applicable +','+ mrp_change
+    remarks = offer_applicable +','+ mrp_change
     if user.userprofile.user_type == 'warehouse_user':
         seller_po_summary, created = SellerPOSummary.objects.get_or_create(receipt_number=receipt_id,
                                                                            invoice_number=invoice_number,
@@ -2468,7 +2468,7 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
                                                                            round_off_total=round_off_total,
                                                                            cess_tax=cess_tax,
                                                                            overall_discount=overall_discount,
-                                                                           grn_remarks = grn_remarks)
+                                                                           remarks = remarks)
         seller_received_list.append(
             {'seller_id': '', 'sku_id': data.open_po.sku_id, 'quantity': value,
              'id': seller_po_summary.id})
@@ -2525,7 +2525,7 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
                                                                                round_off_total=round_off_total,
                                                                                cess_tax=cess_tax,
                                                                                overall_discount=overall_discount,
-                                                                               grn_remarks = grn_remarks)
+                                                                               remarks = remarks)
             seller_received_list.append(
                 {'seller_id': sell_po.seller_id, 'sku_id': data.open_po.sku_id, 'quantity': value,
                  'id': seller_po_summary.id})

@@ -1636,6 +1636,7 @@ def get_supplier_data(request, user=''):
     data = {}
     order_id = request.GET['supplier_id']
     remainder_mail = 0
+    invoice_value = 0
     purchase_orders = PurchaseOrder.objects.filter(order_id=order_id, open_po__sku__user=user.id,
                                                    open_po__sku_id__in=sku_master_ids,
                                                    received_quantity__lt=F('open_po__order_quantity')).exclude(
@@ -1748,6 +1749,7 @@ def get_supplier_data(request, user=''):
             dc_number = temp_json.get('dc_number', '')
             dc_date = temp_json.get('dc_date', '')
             dc_level_grn = temp_json.get('dc_level_grn', '')
+            invoice_value = temp_json.get('invoice_value', '')
             overall_discount = temp_json.get('overall_discount', '')
             master_docs = MasterDocs.objects.filter(master_id=purchase_order.order_id, master_type='PO_TEMP')
             if master_docs.exists():
@@ -1762,7 +1764,7 @@ def get_supplier_data(request, user=''):
                                     'invoice_date': invoice_date, 'dc_number': dc_number,
                                     'dc_date': dc_date, 'dc_grn': dc_level_grn,
                                     'uploaded_file_dict': uploaded_file_dict, 'overall_discount': overall_discount,
-                                    'round_off_total': 0}))
+                                    'round_off_total': 0, 'invoice_value': invoice_value}))
 
 
 @csrf_exempt
@@ -1786,7 +1788,8 @@ def update_putaway(request, user=''):
             expected_date = datetime.date(int(expected_date[2]), int(expected_date[0]), int(expected_date[1]))
         data_dict = dict(request.POST.iterlists())
         zero_index_keys = ['scan_sku', 'lr_number', 'remainder_mail', 'carrier_name', 'expected_date', 'invoice_date',
-                           'remarks', 'invoice_number','overall_discount','invoice_value', 'dc_level_grn', 'dc_number', 'dc_date', 'display_approval_button']
+                           'remarks', 'invoice_number', 'dc_level_grn', 'dc_number', 'dc_date',
+                           'display_approval_button', 'invoice_value', 'overall_discount']
         for i in range(0, len(data_dict['id'])):
             po_data = {}
             if not data_dict['id'][i]:
@@ -2859,7 +2862,10 @@ def confirm_grn(request, confirm_returns='', user=''):
                 bill_date = challan_date.strftime('%d-%m-%Y') if challan_date else ''
             else:
                 bill_no = request.POST.get('invoice_number', '')
-            overall_discount = request.POST.get('overall_discount',0)
+            try:
+                overall_discount = float(request.POST['overall_discount'])
+            except:
+                overall_discount = 0
             report_data_dict = {'data': putaway_data, 'data_dict': data_dict, 'data_slices': sku_slices,
                                 'total_received_qty': total_received_qty, 'total_order_qty': total_order_qty,
                                 'total_price': total_price, 'total_tax': total_tax,
@@ -3193,13 +3199,13 @@ def create_default_zones(user, zone, location, sequence):
     return [locations]
 
 
-def get_return_segregation_locations(order_returns, batch_dict, data):
+def get_return_segregation_locations(order_returns, batch_dict, data, user):
     picklist_exclude_zones = get_exclude_zones(User.objects.get(id=order_returns.sku.user))
     stock_objs = StockDetail.objects.exclude(Q(location__location__in=picklist_exclude_zones) |
                                              Q(batch_detail__mrp=batch_dict['mrp'])). \
                                     filter(sku__user=order_returns.sku.user,
                                             sku__sku_code=order_returns.sku.sku_code, quantity__gt=0)
-    if stock_objs:
+    if stock_objs and get_misc_value('sellable_segregation', user.id) == 'true':
         put_zone = ZoneMaster.objects.filter(zone='Non Sellable Zone', user=order_returns.sku.user)
         if not put_zone:
             create_default_zones(user, 'Non Sellable Zone', 'Non-Sellable1', 10001)
@@ -3228,7 +3234,7 @@ def save_return_locations(order_returns, all_data, damaged_quantity, request, us
                      'wms_code': order_returns.sku.wms_code, 'sku_group': order_returns.sku.sku_group,
                      'sku': order_returns.sku}
         if batch_dict and not data['put_zone'] == 'DAMAGED_ZONE':
-            data = get_return_segregation_locations(order_returns, batch_dict, data)
+            data = get_return_segregation_locations(order_returns, batch_dict, data, user)
         if is_rto and not data['put_zone'] == 'DAMAGED_ZONE':
             locations = LocationMaster.objects.filter(zone__user=user.id, zone__zone='RTO_ZONE')
             if not locations:
@@ -4818,18 +4824,18 @@ def confirm_add_po(request, sales_data='', user=''):
         round_value = float(round(total) - float(total))
         company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
         iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
-        data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address, 'order_id': order_id,
-                     'telephone': str(telephone), 'ship_to_address': ship_to_address,
+        data_dict = {'table_headers': table_headers, 'data': po_data, 'address': address.encode('ascii', 'ignore'), 'order_id': order_id,
+                     'telephone': str(telephone), 'ship_to_address': ship_to_address.encode('ascii', 'ignore'),
                      'name': name, 'order_date': order_date, 'total': round(total), 'po_reference': po_reference,
                      'user_name': request.user.username, 'total_amt_in_words': total_amt_in_words,
                      'total_qty': total_qty, 'company_name': company_name, 'location': profile.location,
-                     'w_address': ship_to_address,
-                     'vendor_name': vendor_name, 'vendor_address': vendor_address,
+                     'w_address': ship_to_address.encode('ascii', 'ignore'),
+                     'vendor_name': vendor_name, 'vendor_address': vendor_address.encode('ascii', 'ignore'),
                      'vendor_telephone': vendor_telephone, 'receipt_type': receipt_type, 'title': title,
                      'gstin_no': gstin_no, 'industry_type': industry_type, 'expiry_date': expiry_date,
                      'wh_telephone': wh_telephone, 'wh_gstin': profile.gst_number, 'wh_pan': profile.pan_number,
                      'terms_condition': terms_condition, 'show_cess_tax' : show_cess_tax,
-                     'company_address': company_address,
+                     'company_address': company_address.encode('ascii', 'ignore'),
                      'company_logo': company_logo, 'iso_company_logo': iso_company_logo}
         if round_value:
             data_dict['round_total'] = "%.2f" % round_value
@@ -6400,7 +6406,7 @@ def get_po_segregation_data(request, user=''):
         #deviation_remarks = {'Price Deviation': False, 'MRP Deviation': False, 'Shelf Life Ratio Exceeded': False,
         #                     'Tax Rate Deviation': False}
         deviation_remarks = []
-        if segregation_obj.batch_detail:
+        if segregation_obj.batch_detail and segregation_obj.purchase_order.open_po:
             if segregation_obj.batch_detail.buy_price != segregation_obj.purchase_order.open_po.price:
                 #deviation_remarks['Price Deviation'] = True
                 deviation_remarks.append('Price Deviation')
@@ -8917,9 +8923,14 @@ def download_grn_invoice_mapping(request, user=''):
     if request.GET.get('sku_code', ''):
         search_parameters['purchase_order__open_po__sku__sku_code'] = request.GET.get('sku_code', '')
     if request.GET.get('open_po', ''):
-        search_parameters['purchase_order__order_id'] = request.GET.get('open_po', '')
+        temp = re.findall('\d+', request.GET.get('open_po', ''))
+        if temp:
+            search_parameters['purchase_order__order_id'] = temp[-1]
     if request.GET.get('invoice_number', ''):
         search_parameters['invoice_number'] = request.GET['invoice_number']
+    if 'supplier' in request.GET and ':' in request.GET['supplier']:
+        search_parameters['purchase_order__open_po__supplier__id__iexact'] = \
+            request.GET['supplier'].split(':')[0]
     order_ids = SellerPOSummary.objects.filter(**search_parameters).\
                                         values('purchase_order__order_id', 'receipt_number',
                                                     'purchase_order__open_po__supplier__name').distinct().\

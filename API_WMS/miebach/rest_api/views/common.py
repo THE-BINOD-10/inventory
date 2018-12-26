@@ -963,12 +963,12 @@ def po_message(po_data, phone_no, user_name, f_name, order_date, ean_flag):
         for po in po_data:
             data += '\nD.NO: %s, Qty: %s' % (po[2], po[4])
             total_quantity += int(po[4])
-            total_amount += int(po[6])
+            total_amount += float(po[6])
     else:
         for po in po_data:
             data += '\nD.NO: %s, Qty: %s' % (po[1], po[3])
             total_quantity += int(po[3])
-            total_amount += int(po[5])
+            total_amount += float(po[5])
     data += '\nTotal Qty: %s, Total Amount: %s\nPlease check WhatsApp for Images' % (total_quantity, total_amount)
     send_sms(phone_no, data)
 
@@ -2586,11 +2586,14 @@ def get_full_invoice_number(user, order_no, order, invoice_date='', pick_number=
     return invoice_number
 
 
-def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos=False):
+def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos=False, order_obj=None):
     invoice_number = ""
     inv_no = ""
     invoice_sequence = None
-    order = None
+    if order_obj:
+        order = order_obj
+    else:
+        order = None
     invoice_no_gen = MiscDetail.objects.filter(user=user.id, misc_type='increment_invoice')
     if invoice_no_gen:
         seller_order_summary = SellerOrderSummary.objects.filter(Q(order__id__in=order_ids) |
@@ -3004,7 +3007,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             if 'igst_amt' in ord_dict:
                 ord_dict.pop('igst_amt')
 
-    _invoice_no, _sequence = get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos)
+    _invoice_no, _sequence = get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos, order_obj=dat)
     challan_no, challan_sequence = get_challan_number(user, seller_summary)
     inv_date = invoice_date.strftime("%m/%d/%Y")
     invoice_date = invoice_date.strftime("%d %b %Y")
@@ -5917,7 +5920,7 @@ def update_order_dicts(orders, user='', company_name=''):
         auto_picklist_signal = get_misc_value('auto_generate_picklist', order_det_dict['user'])
         if auto_picklist_signal == 'true':
             message = check_stocks(order_sku, user, 'false', [order_detail])
-        status = {'status': 1, 'messages': ['Success']}
+        status = {'status': 1, 'messages': 'Success'}
     return status
 
 

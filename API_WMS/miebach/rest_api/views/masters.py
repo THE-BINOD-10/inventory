@@ -62,18 +62,19 @@ def save_image_file(image_file, data, user, extra_image='', saved_file_path='', 
 @csrf_exempt
 def get_sku_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
-    lis = ['wms_code', 'ean_number', 'sku_desc', 'sku_type', 'sku_category', 'sku_class', 'color', 'zone__zone', 'status']
+    lis = ['wms_code', 'ean_number', 'sku_desc', 'sku_type', 'sku_category', 'sku_class', 'color', 'zone__zone',
+           'creation_date', 'updation_date', 'status']
     order_data = SKU_MASTER_HEADERS.values()[col_num]
     search_params1, search_params2 = get_filtered_params_search(filters, lis)
-    if 'status__icontains' in search_params1.keys():
-        if (str(search_params['status__icontains']).lower() in "active"):
+    if 'status__icontains' in search_params2.keys():
+        if (str(search_params2['status__icontains']).lower() in "active"):
             search_params1["status__icontains"] = 1
             search_params2["status__icontains"] = 1
-        elif (str(search_params1['status__icontains']).lower() in "inactive"):
+        elif (str(search_params2['status__icontains']).lower() in "inactive"):
             search_params1["status__icontains"] = 0
             search_params2["status__icontains"] = 0
-        else:
-            search_params["status__icontains"] = "none"
+        # else:
+        #     search_params1["status__icontains"] = "none"
     if order_term == 'desc':
         order_data = '-%s' % order_data
     master_data = []
@@ -170,6 +171,8 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
         if data.status:
             status = 'Active'
 
+        creation_date = get_local_date(user, data.creation_date, send_date=True).strftime('%Y-%m-%d %I:%M %p')
+        updation_date = get_local_date(user, data.updation_date, send_date=True).strftime('%Y-%m-%d %I:%M %p')
         zone = ''
         if data.zone_id:
             zone = data.zone.zone
@@ -177,7 +180,9 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
             (('WMS SKU Code', data.wms_code), ('Product Description', data.sku_desc), ('image_url', data.image_url),
              ('SKU Type', data.sku_type), ('SKU Category', data.sku_category), ('DT_RowClass', 'results'),
              ('Zone', zone), ('SKU Class', data.sku_class), ('Status', status), ('DT_RowAttr', {'data-id': data.id}),
-             ('Color', data.color), ('EAN Number', str(data.ean_number)))))
+             ('Color', data.color), ('EAN Number', str(data.ean_number)),
+             ('Creation Date', creation_date),
+             ('Updation Date', updation_date))))
 
 
 @csrf_exempt

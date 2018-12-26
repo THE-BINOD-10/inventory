@@ -168,10 +168,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                       vm.model_data.dc_level_grn = true;
                     }
                     vm.shelf_life = vm.model_data.data[0][0].shelf_life;
+                    for(var par_ind=0;par_ind < vm.model_data.data.length;par_ind++)
+                    {
+                      vm.calc_total_amt(event, vm.model_data, 0, par_ind);
+                    }
                     if(vm.model_data.uploaded_file_dict && Object.keys(vm.model_data.uploaded_file_dict).length > 0) {
                       vm.model_data.uploaded_file_dict.file_url = vm.service.check_image_url(vm.model_data.uploaded_file_dict.file_url);
                     }
-                    vm.calc_total_amt(event, vm.model_data, 0, 0);
 
 //                    angular.forEach(vm.model_data.data, function(row){
 //                      angular.forEach(row, function(sku){
@@ -520,7 +523,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if (form.$valid) {
         if (vm.permissions.receive_po_invoice_check && vm.model_data.invoice_value){
 
-          var abs_inv_value = vm.absOfInvValueTotal(vm.model_data.invoice_value, vm.skus_total_amount);
+          var abs_inv_value = vm.absOfInvValueTotal(vm.model_data.invoice_value, vm.model_data.round_off_total);
 
           if (vm.permissions.receive_po_invoice_check && abs_inv_value <= 3){
 
@@ -1980,12 +1983,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     });
   }
   vm.invoice_readonly_option = false;
-  vm.invoice_readonly = function(){
+  vm.invoice_readonly = function(event, data, key_name, is_number){
+      console.log(vm);
       if(vm.permissions.receive_po_invoice_check)
       {
-        if(!vm.model_data.invoice_value)
+        if(!vm.model_data.invoice_value || vm.model_data.invoice_value == "0")
         {
           Service.showNoty('Please fill the invoice value');
+          if(is_number) {
+            data[key_name] = 0;
+          }
+          else {
+            data[key_name] = '';
+          }
         }
         else
         {
@@ -2080,7 +2090,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     if(sku_row_data.mrp == ''){
       sku_row_data.mrp = 0;
     }
-    if(sku_row_data.buy_price > sku_row_data.mrp){
+    if(Number(sku_row_data.buy_price) > Number(sku_row_data.mrp)){
       pop_msg("Buy Price should be less than or equal to MRP");
       data.data[parent_index][index]['buy_price'] = sku_row_data.mrp;
     }
@@ -2106,10 +2116,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         if(!sku_row_data[i].buy_price || sku_row_data[i].buy_price == '') {
           sku_row_data[i].buy_price = 0;
         }
-        if(sku_row_data[i].price != sku_row_data[i].buy_price){
-          vm.display_approval_button = true;
-          break;
+        var price_tolerence = 0;
+        var buy_price = Number(sku_row_data[i].buy_price);
+        var price = Number(sku_row_data[i].price);
+        if(price && (buy_price > price))  {
+          price_tolerence = ((buy_price-price)/price)*100;
+          if(price_tolerence > 2){
+            vm.display_approval_button = true;
+            break;
+          }
         }
+//        if(sku_row_data[i].price != sku_row_data[i].buy_price){
+//          vm.display_approval_button = true;
+//          break;
+//        }
         if(sku_row_data[i].tax_percent == '') {
           sku_row_data[i].tax_percent = 0;
         }

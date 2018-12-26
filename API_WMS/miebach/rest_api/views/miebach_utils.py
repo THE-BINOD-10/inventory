@@ -447,6 +447,7 @@ GRN_DICT = {'filters': [{'label': 'From Date', 'name': 'from_date', 'type': 'dat
                         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
                         {'label': 'PO Number', 'name': 'open_po', 'type': 'input'},
                         {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
+                        {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
                         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'}],
             'dt_headers': ['PO Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity'],
             'mk_dt_headers': ['PO Number', 'Supplier ID', 'Supplier Name', 'Order Quantity', 'Received Quantity'],
@@ -475,6 +476,8 @@ SKU_WISE_GRN_DICT = {'filters' : [
 			{'label': 'From Date', 'name': 'from_date', 'type': 'date'},
                         {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
                         {'label': 'PO Number', 'name': 'open_po', 'type': 'input'},
+                        {'label': 'Invoice Number', 'name': 'invoice_number', 'type': 'input'},
+                        {'label': 'Supplier ID', 'name': 'supplier', 'type': 'supplier_search'},
                         {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'}
 		    ],
 		'dt_headers': ["Received Date", "PO Date", "PO Number", "Supplier ID", "Supplier Name", "Recepient",
@@ -915,7 +918,8 @@ PUT_AWAY = OrderedDict(
 SKU_MASTER_HEADERS = OrderedDict(
     [('WMS SKU Code', 'wms_code'), ('EAN Number', 'ean_number'), ('Product Description', 'sku_desc'),
      ('SKU Type', 'sku_type'), ('SKU Category', 'sku_category'), ('SKU Class', 'sku_class'),
-     ('Color', 'color'), ('Zone', 'zone_id'), ('Status', 'status')])
+     ('Color', 'color'), ('Zone', 'zone_id'), ('Creation Date', 'creation_date'), ('Updation Date', 'updation_date'),
+     ('Status', 'status')])
 
 PRICING_MASTER_HEADER = OrderedDict(
     [('SKU Code', 'sku__sku_code'), ('SKU Description', 'sku__sku_desc'), ('Selling Price Type', 'price_type'),
@@ -1532,7 +1536,7 @@ SKU_MASTER_API_MAPPING = OrderedDict((('skus', 'skus'), ('sku_code', 'sku_code')
                                       ('mrp', 'mrp'), ('sku_class', 'sku_class'),
                                       ('style_name', 'style_name'), ('status', 'status'), ('hsn_code', 'hsn_code'),
                                       ('ean_number', 'ean_number'), ('threshold_quantity', 'threshold_quantity'),
-                                      ('color', 'color'),
+                                      ('color', 'color'), ('selling_price', 'price'), ('cost_price', 'cost_price'),
                                       ('measurement_type', 'measurement_type'), ('sku_size', 'sku_size'),
                                       ('size_type', 'size_type'),
                                       ('mix_sku', 'mix_sku'), ('sku_type', 'sku_type'), ('attributes', 'sku_options'),
@@ -1847,7 +1851,7 @@ ORDER_ID_AWB_EXCEL_MAPPING = OrderedDict((('order_id', 0), ('awb_no', 1), ('cour
 # Company logo names
 COMPANY_LOGO_PATHS = {'TranceHomeLinen': 'trans_logo.jpg', 'Subhas_Publishing': 'book_publications.png',
                       'sm_admin': 'sm-brand.jpg', 'corp_attire': 'corp_attire.jpg',
-                      'aidin_technologies': 'aidin_tech.jpg', 'nutricane': 'nutricane.jpg'}
+                      'aidin_technologies': 'aidin_tech.jpg', 'nutricane': 'nutricane.jpg', '72Networks':'72networks.png'}
 
 TOP_COMPANY_LOGO_PATHS = {'Konda_foundation': 'dr_reddy_logo.png'}
 
@@ -2581,7 +2585,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'sku_id__in': 'purchase_order__open_po__sku_id__in',
                          'prefix': 'purchase_order__prefix', 'supplier_id': 'purchase_order__open_po__supplier_id',
                          'supplier_name': 'purchase_order__open_po__supplier__name',
-                         'receipt_type': 'seller_po__receipt_type'}
+                         'receipt_type': 'seller_po__receipt_type', 'invoice_number': 'invoice_number'}
         result_values = ['purchase_order__order_id', 'purchase_order__open_po__supplier_id',
                          'purchase_order__open_po__supplier__name', 'purchase_order__open_po__supplier__tax_type',
                          'purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
@@ -2623,7 +2627,7 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
                          'sku_id__in': 'purchase_order__open_po__sku_id__in',
                          'prefix': 'purchase_order__prefix', 'supplier_id': 'purchase_order__open_po__supplier_id',
                          'supplier_name': 'purchase_order__open_po__supplier__name',
-                         'receipt_type': 'seller_po__receipt_type'}
+                         'receipt_type': 'seller_po__receipt_type', 'invoice_number': 'invoice_number'}
         result_values = ['purchase_order__order_id', 'purchase_order__open_po__supplier_id',
                          'purchase_order__open_po__supplier__name',
                          'purchase_order__open_po__sku__sku_code', 'purchase_order__open_po__sku__sku_desc',
@@ -2662,6 +2666,11 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
             search_parameters[field_mapping['order_id']] = temp[-1]
     if 'sku_code' in search_params:
         search_parameters[field_mapping['wms_code']] = search_params['sku_code']
+    if 'invoice_number' in search_params:
+        search_parameters[field_mapping['invoice_number']] = search_params['invoice_number']
+    if 'supplier' in search_params and ':' in search_params['supplier']:
+        search_parameters[field_mapping['supplier_id']] = \
+            search_params['supplier'].split(':')[0]
     search_parameters[field_mapping['user']] = user.id
     search_parameters[field_mapping['sku_id__in']] = sku_master_ids
     query_data = model_name.objects.exclude(**excl_status).filter(**search_parameters)
@@ -2841,6 +2850,9 @@ def get_po_filter_data(search_params, user, sub_user):
         search_parameters[field_mapping['wms_code']] = search_params['sku_code']
     if 'invoice_number' in search_params:
         search_parameters['sellerposummary__invoice_number'] = search_params['invoice_number']
+    if 'supplier' in search_params and ':' in search_params['supplier']:
+        search_parameters['sellerposummary__purchase_order__open_po__supplier__id__iexact'] = \
+            search_params['supplier'].split(':')[0]
     search_parameters[field_mapping['user']] = user.id
     search_parameters[field_mapping['sku_id__in']] = sku_master_ids
     search_parameters['received_quantity__gt'] = 0

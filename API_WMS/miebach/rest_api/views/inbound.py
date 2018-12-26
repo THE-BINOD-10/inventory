@@ -6406,7 +6406,7 @@ def get_po_segregation_data(request, user=''):
         #deviation_remarks = {'Price Deviation': False, 'MRP Deviation': False, 'Shelf Life Ratio Exceeded': False,
         #                     'Tax Rate Deviation': False}
         deviation_remarks = []
-        if segregation_obj.batch_detail:
+        if segregation_obj.batch_detail and segregation_obj.purchase_order.open_po:
             if segregation_obj.batch_detail.buy_price != segregation_obj.purchase_order.open_po.price:
                 #deviation_remarks['Price Deviation'] = True
                 deviation_remarks.append('Price Deviation')

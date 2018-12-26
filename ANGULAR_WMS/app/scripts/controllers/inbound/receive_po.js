@@ -1983,13 +1983,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     });
   }
   vm.invoice_readonly_option = false;
-  vm.invoice_readonly = function(event){
+  vm.invoice_readonly = function(event, data, key_name, is_number){
       console.log(vm);
       if(vm.permissions.receive_po_invoice_check)
       {
-        if(!vm.model_data.invoice_value)
+        if(!vm.model_data.invoice_value || vm.model_data.invoice_value == "0")
         {
           Service.showNoty('Please fill the invoice value');
+          if(is_number) {
+            data[key_name] = 0;
+          }
+          else {
+            data[key_name] = '';
+          }
         }
         else
         {

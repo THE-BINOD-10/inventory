@@ -138,9 +138,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
        });
 
     var table_headers_dict = vm.g_data.tb_headers[vm.g_data.view]
-    if (Session.userName != "72networks") {
-      delete(table_headers_dict['Address'])
-    }
     vm.dtColumns = vm.service.build_colums2(table_headers_dict)
     vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle(vm.service.titleHtml).notSortable().withOption('width', '20px')
       .renderWith(function(data, type, full, meta) {
@@ -1160,35 +1157,46 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.service.print_data(vm.html, "Purchase Order");
   }
 
-vm.reassgined_list = []
-vm.reassign_order = function() {
-    vm.bt_disable = true;
-    vm.reassgined_list = []
+vm.send_back_order = function() {
+  var data = [];
+  if (vm.g_data.view == 'OrderView') {
     for(var key in vm.selected){
-      console.log(vm.selected[key]);
       if(vm.selected[key]) {
-        vm.reassgined_list.push(vm.dtInstance.DataTable.context[0].aoData[key]._aData['Order ID']);
+        var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]._aData
+        data.push({name: 'id', value: $(temp[""]).attr("name")})
       }
     }
-  if(vm.reassgined_list.length > 0) {
-    var order_ids = vm.reassgined_list
-    vm.service.apiCall("reassgin_order/",'GET',{'order_ids':order_ids}).then(function(data) {
-      if(data.message) {
-        console.log(data.data);
-        if(data.data == 'Success') {
-          Service.showNoty('Successfully  Reassgined the Order');
-        } else {
-          Service.showNoty(data.data, 'warning');
-        }
-      } else {
-        Service.showNoty('Something Went Wrong', 'warning');
+  } else {
+    for(var key in vm.selected){
+      if(vm.selected[key]) {
+        var temp = vm.dtInstance.DataTable.context[0].aoData[parseInt(key)]._aData
+        data.push(temp)
       }
-    });
+    }
   }
-  else{
-    vm.bt_disable = false;
-  }
+  var send_data  = {data: data}
+  var modalInstance = $modal.open({
+    templateUrl: 'views/outbound/toggle/rejected_orders.html',
+    controller: 'Rejectorderpop',
+    controllerAs: 'pop',
+    size: 'lg',
+    backdrop: 'static',
+    keyboard: false,
+    windowClass: 'full-modal',
+    resolve: {
+      items: function () {
+        return send_data;
+      }
+    }
+  });
 
-
-  }
+  modalInstance.result.then(function (selectedItem) {
+    var data = selectedItem;
+    reloadData();
+  }, function () {
+     $log.info('Modal dismissed at: ' + new Date());
+  });
+  //
+  // //$state.go("app.outbound.ViewOrders.PO", {data: JSON.stringify(data)});
+}
 }

@@ -9466,6 +9466,7 @@ def get_order_shipment_picked(start_index, stop_index, temp_data, search_term, o
     if user_dict:
         user_dict = eval(user_dict)
     lis = ['order__order_id', 'order__order_id', 'order__customer_id', 'order__customer_name', 'order__marketplace',
+           'order__address',
            'total_picked',
            'total_ordered', 'order__creation_date']
     data_dict = {'status__in': ['picked', 'batch_picked', 'open', 'batch_open'], 'order__user': user.id,
@@ -10751,7 +10752,7 @@ def generate_stock_transfer_invoice(request, user=''):
         resp_list['resp'].append({'order_id' : order_id[0], 'picked_quantity' : total_picked_quantity, 'rate' : rate,
             'amount' : total_price, 'stock_transfer_date_time' : str(shipment_date), 'warehouse_name': warehouse,
             'sku_code' : sku, 'invoice_date' : str(invoice_date), 'from_warehouse' : from_warehouse,
-            'to_warehouse' : to_warehouse, 'invoice_amount' : invoice_amt, 'sku_description' : sku_description, 
+            'to_warehouse' : to_warehouse, 'invoice_amount' : invoice_amt, 'sku_description' : sku_description,
             'invoice_number' : invoice_number })
     return HttpResponse(json.dumps(resp_list))
 

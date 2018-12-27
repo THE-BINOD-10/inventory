@@ -5709,12 +5709,39 @@ def app_shipment_info_data(request, user=''):
         from firebase import firebase
         firebase = firebase.FirebaseApplication('https://pod-stockone.firebaseio.com/', None)
         try:
-            result = firebase.get('/OrderDetails/' + loan_proposal_id + '/pod_status', None)
-        except:
-            result = False
-        if result :
-            pod_status = result
-        ship_status = ship_status[ship_status.index(status):]
+            result = firebase.get('/OrderDetails/'+loan_proposal_id, None)
+        except Exception as e:
+            result = 0
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('Firebase query  failed for %s and params are %s and error statement is %s' % (
+            str(user.username), str(request.POST.dict()), str(e)))
+        if  result :
+            try:
+                signed_invoice_copy = result['signed_invoice_copy']
+            except:
+                signed_invoice_copy = ''
+            try :
+                id_type = result['id_type']
+            except:
+                id_type = ''
+            try :
+                id_card = result['id_card']
+            except :
+                id_card = ''
+            try :
+                id_proof_number = result['id_proof_number']
+            except :
+                id_proof_number = ''
+            try :
+                pod_status = result['pod_status']
+            except:
+                pod_status = False
+            try:
+                uid= result['uid']
+            except :
+                uid = ' '
+
         data.append({'id': orders.id,
                      'customer_name':orders.order.customer_name,
                      'sku_code': orders.order.sku.sku_code,
@@ -9457,12 +9484,12 @@ def delete_customer_cart_data(request, user=""):
 def get_order_shipment_picked(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user,
                               user_dict={}, filters={}):
     '''Shipment Info Alternative datatable code '''
-
     log.info("Shipment Alternative view started")
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     if user_dict:
         user_dict = eval(user_dict)
     lis = ['order__order_id', 'order__order_id', 'order__customer_id', 'order__customer_name', 'order__marketplace',
+           'order__address',
            'total_picked',
            'total_ordered', 'order__creation_date']
     data_dict = {'status__in': ['picked', 'batch_picked', 'open', 'batch_open'], 'order__user': user.id,

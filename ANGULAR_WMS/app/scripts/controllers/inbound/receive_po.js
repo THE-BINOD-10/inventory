@@ -521,6 +521,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       // data.push({name: 'po_unit', value: form.po_unit.$viewValue});
       // data.push({name: 'tax_per', value: form.tax_per.$viewValue});
       if (form.$valid) {
+        if(vm.milkbasket_users.indexOf(vm.parent_username) >= 0 && !vm.model_data.dc_level_grn){
+          if($(".grn-form").find('[name="files"]')[0].files.length < 1) {
+            colFilters.showNoty("Uploading file is mandatory");
+            return
+          }
+        }
         if (vm.permissions.receive_po_invoice_check && vm.model_data.invoice_value){
 
           var abs_inv_value = vm.absOfInvValueTotal(vm.model_data.invoice_value, vm.model_data.round_off_total);

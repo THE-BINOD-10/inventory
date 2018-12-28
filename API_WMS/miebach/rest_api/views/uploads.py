@@ -6128,6 +6128,7 @@ def validate_block_stock_form(reader, user, no_of_rows, no_of_cols, fname, file_
 
 
 def block_stock_xls_upload(request, reader, user, admin_user, no_of_rows, fname, file_type='xls', no_of_cols=0):
+    from outbound import block_asn_stock
     log.info("Block Stock upload started")
     enq_limit = get_misc_value('auto_expire_enq_limit', admin_user.id)
     if enq_limit:
@@ -6213,6 +6214,8 @@ def block_stock_xls_upload(request, reader, user, admin_user, no_of_rows, fname,
             enq_sku_obj.levelbase_price = levelbase_price
             enq_sku_obj.warehouse_level = level
             enq_sku_obj.save()
+            if int(level) == 3:
+                block_asn_stock(sku_qs[0].id, qty, 90, enq_sku_obj, is_enquiry=True) # Default max leadtime is 90days
             return 'Success'
         except:
             import traceback

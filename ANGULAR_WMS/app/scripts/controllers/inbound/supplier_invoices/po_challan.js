@@ -256,17 +256,28 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     send = {data: send, inv_number: vm.inv_number, inv_date: vm.inv_date}
     var url = click_type === 'cancel_poc' ? 'move_to_po_challan/' : 'move_to_invoice/';
     vm.bt_disable = true;
-    vm.service.apiCall(url, "GET", send).then(function(data){
+    var form_data = new FormData();
+    angular.forEach(send, function(val, key) {
+      form_data.append(key, val);
+    });
+    if(click_type == 'move_to_invoice/') {
+      var files = $("body #add-customer").find('[name="files"]')[0].files;
+      $.each(files, function(i, file) {
+        form_data.append('files-' + i, file);
+      });
+    }
+    vm.service.apiCall(url, 'POST', form_data, true, true).then(function(data){
       if(data.message) {
-        console.log(data.data.message);
-        if(data.data.message == 'success'){
+        console.log(data.data);
+        var response_data = JSON.parse(data.data)
+        if(response_data.message == 'success'){
           vm.invoice_number = '';
           vm.invoice_date = '';
           vm.close();
           vm.reloadData();
         }
         else {
-          vm.service.showNoty(data.data.message);
+          vm.service.showNoty(response_data.message);
         }
       } else {
         vm.service.showNoty("Something went wrong while moving to po challan !!!");

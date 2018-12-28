@@ -516,6 +516,8 @@ urlpatterns += [
     url(r'^stock_transfer_order_upload/$',stock_transfer_order_upload),
     url(r'^skupack_master_download/$', skupack_master_download),
     url(r'^skupack_master_upload/$', skupack_master_upload),
+    url(r'^block_stock_download/$', block_stock_download),
+    url(r'^block_stock_upload/$', block_stock_upload),
 
 
     # configurations

@@ -284,8 +284,16 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "skupack_master_upload/",
                    dparam: "download-file",
                    value: "",
-                 }
-
+                 },
+                 {
+                   title: "BlockStock Form Download/ Upload",
+                   download: "BlockStock Download Form",
+                   upload: "BlockStock Upload Form",
+                   durl: "block_stock_download/",
+                   uurl: "block_stock_upload/",
+                   dparam: "download-file",
+                   value: "",
+                 },
                 ]
 
   $scope.download = function(data) {

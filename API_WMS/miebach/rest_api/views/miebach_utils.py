@@ -208,6 +208,7 @@ MOVE_INVENTORY_FIELDS = ((('WMS Code *', 'wms_code'), ('Source Location *', 'sou
 
 ADJUST_INVENTORY_FIELDS = ( (('WMS Code *','wms_code'),('Location *','location')),
                             (('Physical Quantity *','quantity'),('Reason','reason')),
+                            (('Physical Quantity *','quantity'),('Reason','reason')),
                             (('Pallet Code', 'pallet_no'),) )
 
 #MOVE_INVENTORY_UPLOAD_FIELDS = ['WMS Code', 'Source Location', 'Destination Location', 'Quantity']
@@ -1434,7 +1435,9 @@ PERMISSION_DICT = OrderedDict((
                                     ('add_jomaterial', 'add_jomaterial'),
                                     ('add_sellerstocktransfer', 'add_sellerstocktransfer'),
                                     ('add_substitutionsummary', 'add_substitutionsummary'),
-                                    ('add_targetmaster', 'add_targetmaster'))),
+                                    ('add_targetmaster', 'add_targetmaster'),
+                                    ('add_enquirymaster', 'add_enquirymaster'),
+                 )),
     ("REPORTS", (('SKU List Report', 'view_skumaster'),('Location Wise Filter Report', 'view_locationmaster'),
                  ('Goods Receipt Note Report', 'view_sellerposummary'), ('Receipt Summary Report', 'view_polocation'),
                  ('Dispatch Summary Report', 'view_picklist'), ('SKU Wise Stock Report', 'view_stockdetail'),
@@ -1960,6 +1963,14 @@ CENTRAL_ORDER_ONE_ASSIST_MAPPING = OrderedDict((
                                       ('Customer primary contact', 'mobile_no'), ('Customer emailId', 'email_id') ))
 SKU_PACK_MAPPING = OrderedDict((('Sku Code', 'sku_code'), ('Pack ID', 'pack_id'),
                                       ('Pack Quantity', 'pack_quantity')))
+# SKU_PACK_MAPPING = OrderedDict((('Sku Code', 'sku_code'), ('Pack ID', 'pack_id'), ('Pack Quantity', 'pack_quantity')))
+BLOCK_STOCK_MAPPING = OrderedDict((
+    ('Sku Code', 'sku_code'), ('Quantity', 'quantity'), ('Client Name', 'corporate_name'),
+    ('Reseller Name', 'reseller_name'), ('Warehouse Name', 'warehouse'), ('Level', 'level')
+    ))
+
+BLOCK_STOCK_DEF_EXCEL = OrderedDict((
+    ('sku_code', 0), ('quantity', 1), ('corporate_name', 2), ('reseller_name', 3), ('warehouse', 4), ('level', 5)))
 
 
 #PICKLIST_EXCLUDE_ZONES = ['DAMAGED_ZONE', 'QC_ZONE', 'Non Sellable Zone']

@@ -8983,7 +8983,11 @@ def download_grn_invoice_mapping(request, user=''):
             supplier_name = order['purchase_order__open_po__supplier__name']
             invoice_date = str(order['invoice_date'])
             file_format = master_docs.uploaded_file.path.split('.')[-1]
-            master_doc_objs['%s_%s.%s' % (supplier_name, invoice_date, file_format)] = master_docs
+            po_reference = invoice_date
+            seller_po_sum = SellerPOSummary.objects.filter(**order)
+            if seller_po_sum.exists():
+                po_reference = get_po_reference(seller_po_sum[0].purchase_order) + '_' + str(order['receipt_number'])
+            master_doc_objs['%s_%s.%s' % (supplier_name, po_reference, file_format)] = master_docs
             total_file_size += master_docs.uploaded_file.size
         if float(total_file_size/1024)/1024 > 15:
             return HttpResponse("Selected Filters exceeding File limit(15 MB)")

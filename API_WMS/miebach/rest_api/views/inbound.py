@@ -1004,6 +1004,7 @@ def switches(request, user=''):
                        'receive_po_invoice_check': 'receive_po_invoice_check',
                        'mark_as_delivered': 'mark_as_delivered',
                        'order_exceed_stock': 'order_exceed_stock',
+                       'central_order_reassigning':'central_order_reassigning',
                        'receive_po_mandatory_fields': 'receive_po_mandatory_fields'
                        }
         toggle_field, selection = "", ""
@@ -1428,7 +1429,7 @@ def get_raisepo_group_data(user, myDict):
             if myDict['ean_number'][i]:
                 ean_number = float(myDict['ean_number'][i])
         else:
-            ean_number = 0        
+            ean_number = 0
         if 'sgst_tax' in myDict.keys():
             if myDict['sgst_tax'][i]:
                 sgst_tax = float(myDict['sgst_tax'][i])

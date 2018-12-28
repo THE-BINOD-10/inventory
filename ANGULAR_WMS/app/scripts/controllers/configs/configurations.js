@@ -25,7 +25,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'display_sku_cust_mapping': false, 'disable_categories_view': false, 'is_portal_lite': false,
                     'invoice_based_payment_tracker': false, 'receive_po_invoice_check': false,
                     'auto_raise_stock_transfer': false, 'inbound_supplier_invoice': false, 'customer_dc': false,
-                    'mark_as_delivered': false, 'order_exceed_stock': false, 'receive_po_mandatory_fields': false
+                    'mark_as_delivered': false, 'central_order_reassigning':false,'order_exceed_stock': false, 'receive_po_mandatory_fields': false
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',

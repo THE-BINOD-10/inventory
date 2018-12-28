@@ -91,11 +91,7 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     if user_dict:
         user_dict = eval(user_dict)
-
-    if user.username.lower() == "72networks":
-        lis = ['id', 'order_id', 'address', 'sku__sku_code', 'title', 'quantity', 'shipment_date', 'city', 'status']
-    else:
-        lis = ['id', 'order_id', 'sku__sku_code', 'title', 'quantity', 'shipment_date', 'city', 'status']
+    lis = ['id', 'order_id', 'address', 'sku__sku_code', 'title', 'quantity', 'shipment_date', 'city', 'status']
 
     unsorted_dict = {6: 'Order Taken By', 7: 'Status'}
     data_dict = {'status': 1, 'user': user.id, 'quantity__gt': 0}
@@ -116,7 +112,6 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
         search_params['order_code__icontains'] = ''.join(re.findall('\D+', order_search))
 
     search_params['sku_id__in'] = sku_master_ids
-
     if 'city__icontains' in search_params.keys():
         order_taken_val_user = CustomerOrderSummary.objects.filter(
             order_taken_by__icontains=search_params['city__icontains'],
@@ -139,11 +134,7 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
     if search_term:
         master_data = OrderDetail.objects.filter(
             Q(sku__sku_code__icontains=search_term, status=1) | Q(order_id__icontains=search_term,
-                                                                  status=1) | Q(title__icontains=search_term,
-                                                                                status=1) | Q(
-                quantity__icontains=search_term,
-                status=1), user=user.id, quantity__gt=0).filter(**search_params).exclude(order_code="CO")
-
+                                                                  status=1) | Q(title__icontains=search_term,status=1) | Q(quantity__icontains=search_term,status=1), user=user.id, quantity__gt=0).filter(**search_params).exclude(order_code="CO")
     elif order_term:
         order_data = lis[col_num]
         if order_term == 'desc':
@@ -200,12 +191,87 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
         seller_order = all_seller_orders.filter(order_id=data.id).aggregate(Sum('quantity'))['quantity__sum']
         if seller_order:
             quantity = quantity - seller_order
-
-        temp_data['aaData'].append(OrderedDict((('', checkbox), ('Order ID', order_id), ('SKU Code', sku_code),
+        # central_order_headers = ['batch_number','batch_date','branch_id','branch_name','loan_proposal_id','loan_proposal_code',
+        # 'client_code','client_id','customer_name','address1', 'address2','landmark','village',
+        # 'district','state','pincode', 'mobile_no','alternative_mobile_no','model']
+        # 'unit_price','cgst','sgst', 'igst',
+        # 'total_price''location'
+        import pdb; pdb.set_trace()
+        is_excel_download = request.POST.get('excel')
+        central_order_reassigning =  get_misc_value('central_order_reassigning', user.id) # for 72networks
+        if central_order_reassigning == 'true' and is_excel_download:
+            batch_number =''
+            batch_data =''
+            branch_id = ''
+            loan_proposal_code =''
+            client_code = ''
+            client_id =''
+            customer_name = ''
+            address1 = ''
+            address2 = ''
+            landmark = ''
+            village = ''
+            district = ''
+            state = ''
+            pincode = ''
+            mobile_no =''
+            alternative_mobile_no =''
+            model = ''
+            interm_obj = IntermediateOrders.objects.filter(order_id=str(data.id))
+            if interm_obj :
+                orderfield_obj = OrderFields.objects.filter(original_order_id=str(data.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id))
+            if orderfield_obj:
+                for order_field in orderfield_obj :
+                    if order_field.name == batch_number:
+                        batch_number = order_field.value
+                    if order_field.name == batch_data :
+                        batch_data = order_field.value
+                    if order_field.name == branch_id :
+                        branch_id = order_field.value
+                    if order_field.name == loan_proposal_code:
+                        loan_proposal_code = order_field.value
+                    if order_field.name == client_code :
+                        client_code = order_field.value
+                    if order_field.name == client_id :
+                        client_id = order_field.value
+                    if order_field.name == customer_name :
+                        customer_name = order_field.value
+                    if order_field.name == address1 :
+                        address1 = order_field.value
+                    if order_field.name == address2 :
+                        address2 = order_field.value
+                    if order_field.name == landmark :
+                        landmark = order_field.value
+                    if order_field.name == village :
+                        village = order_field.value
+                    if order_field.name == district :
+                        district = order_field.value
+                    if order_field.name == state :
+                        state = order_field.value
+                    if order_field.name == pincode :
+                        pincode = order_field.value
+                    if order_field.name == mobile_no :
+                        mobile_no = order_field.value
+                    if order_field.name == alternative_mobile_no :
+                        alternative_mobile_no = order_field.value
+                    if order_field.name == model :
+                        model = order_field.value
+            temp_data['aaData'].append(OrderedDict((('Loan Proposal ID', data.original_order_id), ('SKU Code', sku_code),
+                                               ('Title', data.title), ('id', count), ('Product Quantity', quantity),
+                                               ('Shipment Date', shipment_data),
+                                               ('Marketplace', data.marketplace),
+                                               ('Address', data.address),
+                                               ('Name',data.address),
+                                               ('DT_RowClass', 'results'),
+                                               ('DT_RowAttr', {'data-id': str(data.order_id)}),
+                                               ('Order Taken By', order_taken_val), ('Status', cust_status))))
+        else:
+            temp_data['aaData'].append(OrderedDict((('', checkbox), ('Order ID', order_id), ('SKU Code', sku_code),
                                                 ('Title', data.title), ('id', count), ('Product Quantity', quantity),
                                                 ('Shipment Date', shipment_data),
                                                 ('Marketplace', data.marketplace),
                                                 ('Address', data.address),
+                                                ('Name',data.address),
                                                 ('DT_RowClass', 'results'),
                                                 ('DT_RowAttr', {'data-id': str(data.order_id)}),
                                                 ('Order Taken By', order_taken_val), ('Status', cust_status))))
@@ -230,8 +296,7 @@ def get_stock_transfer_orders(start_index, stop_index, temp_data, search_term, o
         master_data = StockTransfer.objects.filter(sku__user=user.id, status=1).order_by(order_data)
     if search_term:
         master_data = StockTransfer.objects.filter(Q(st_po__open_st__warehouse__username__icontains=search_term) |
-                                                   Q(quantity__icontains=search_term) | Q(
-            order_id__icontains=search_term) |
+                                                   Q(quantity__icontains=search_term) | Q(order_id__icontains=search_term) |
                                                    Q(sku__sku_code__icontains=search_term), sku__user=user.id,
                                                    status=1).order_by(order_data)
     temp_data['recordsTotal'] = len(master_data)
@@ -7633,10 +7698,8 @@ def get_order_category_view_data(start_index, stop_index, temp_data, search_term
                                  filters={}, user_dict={}):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     user_dict = eval(user_dict)
-    if user.username.lower() == "72networks":
-        lis = ['id', 'customer_name', 'order_id', 'address', 'sku__sku_category', 'total', 'city', 'status']
-    else:
-        lis = ['id', 'customer_name', 'order_id', 'sku__sku_category', 'total', 'city', 'status']
+
+    lis = ['id', 'customer_name', 'order_id', 'address', 'sku__sku_category', 'total', 'city', 'status']
 
     data_dict = {'status': 1, 'user': user.id, 'quantity__gt': 0}
 
@@ -7716,10 +7779,9 @@ def get_order_category_view_data(start_index, stop_index, temp_data, search_term
                                                 ('id', index), ('DT_RowClass', 'results'))))
         index += 1
 
-    if user.username.lower() == "72networks":
-        col_val = ['Customer Name', 'Customer Name', 'Order ID', 'Address', 'Category', 'Total Quantity', 'Order Taken By', 'Status']
-    else:
-        col_val = ['Customer Name', 'Customer Name', 'Order ID', 'Category', 'Total Quantity', 'Order Taken By', 'Status']
+
+    col_val = ['Customer Name', 'Customer Name', 'Order ID', 'Address', 'Category', 'Total Quantity', 'Order Taken By', 'Status']
+
     if order_term:
         order_data = col_val[col_num]
         if order_term == "asc":
@@ -7734,12 +7796,10 @@ def get_order_view_data(start_index, stop_index, temp_data, search_term, order_t
     sku_master, sku_master_ids = get_sku_master(user, request.user)
     user_dict = eval(user_dict)
 
-    if user.username.lower() != '72networks':
-        lis = ['order_id', 'customer_name', 'order_id', 'marketplace', 'total', 'shipment_date', 'date_only',
+
+    lis = ['order_id', 'customer_name', 'order_id', 'address', 'marketplace', 'total', 'shipment_date', 'date_only',
         'city', 'status']
-    else:
-        lis = ['order_id', 'customer_name', 'order_id', 'address', 'marketplace', 'total', 'shipment_date', 'date_only',
-        'city', 'status']
+
     # unsort_lis = ['Customer Name', 'Order ID', 'Market Place ', 'Total Quantity']
     unsorted_dict = {7: 'Order Taken By', 8: 'Status'}
     data_dict = {'status': 1, 'user': user.id, 'quantity__gt': 0}

@@ -1,6 +1,6 @@
 'use strict';
 
-angular  
+angular
   .module('urbanApp')
   .service('colFilters', function($rootScope, $q, $http, $timeout, Session){
 
@@ -8,14 +8,14 @@ angular
   var vm = this;
   vm.label = '';
   vm.value = '';
- 
+
   vm.add_search_boxes = function(id) {
     var table = (id)? id+" > thead > tr > th": ".custom-table > thead > tr > th";
     var count = 0;
     $(this).text().length > 0;
     $(table).each( function() {
       var title = $(this).text();
-      if (typeof title == "string" && title.length > 0) { 
+      if (typeof title == "string" && title.length > 0) {
         $(this).empty();
         $(this).html("<span class='inpt-hd'>"+title+"</span><input style='width:100%;' class='inpt-vl hide' type='text' name='search"+count+"'>");
         count++;
@@ -73,11 +73,22 @@ angular
     function download_excel() {
       var data = {};
       data['excel'] = true;
+      if (Session.roles.permissions['central_order_reassigning'] == true && vm.search.datatable == "OrderView") //for 72 networks
+      {
+        data['Central Order ID'] = 'Central Order ID';data['Batch Number'] = 'Batch Number';data['Batch Date'] = 'Batch Date';
+        data['Branch Name'] = 'Branch Name';data ['Loan Proposal ID'] ='Loan Proposal ID';data ['Loan Proposal Code'] ='Loan Proposal Code';data ['Client Code'] ='Client Code';
+        data ['Client ID'] ='Client ID';data ['Customer Name'] ='Customer Name';data ['Address1'] ='Address1';data ['Address2'] ='Address2';data ['Landmark'] ='Landmark';
+        data ['Village'] ='Village';data ['District'] ='District';data ['State1'] ='State1';data ['Pincode'] ='Pincode';data ['Mobile Number'] ='Mobile Number';data ['Alternative Mobile Number'] ='Alternative Mobile Number';
+        data ['SKU Code'] ='SKU Code';data ['Model'] ='Model';data ['Unit Price'] ='Unit Price';data ['CGST'] ='CGST';data ['SGST'] ='SGST';
+        data ['IGST'] ='IGST';data ['Total Price'] ='Total Price';data ['Location'] ='Location';
+      }
+   else{
       angular.forEach(vm.headers, function(value, key) {
         if(value.mData) {
           data[value.mData] = value.sTitle;
-        }
-      })
+         }
+       })
+     }
       angular.extend(data, vm.search);
       data['search[value]'] = $(".dataTables_filter:visible").find("input").val();
       data = $.param(data);
@@ -131,7 +142,7 @@ angular
 
     $(print_div).find("link").each(function(){
       var data = $(this).attr("href");
-      $(this).attr("href", Session.host.slice(0,-1)+data); 
+      $(this).attr("href", Session.host.slice(0,-1)+data);
     })
 
     $(print_div).find("script[type='text/javascript']").each(function(){
@@ -161,6 +172,6 @@ angular
       mywindow.close();
     }, 3000);
 
-    return true; 
+    return true;
   }
 })

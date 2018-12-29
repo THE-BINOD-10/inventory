@@ -191,17 +191,12 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
         seller_order = all_seller_orders.filter(order_id=data.id).aggregate(Sum('quantity'))['quantity__sum']
         if seller_order:
             quantity = quantity - seller_order
-        # central_order_headers = ['batch_number','batch_date','branch_id','branch_name','loan_proposal_id','loan_proposal_code',
-        # 'client_code','client_id','customer_name','address1', 'address2','landmark','village',
-        # 'district','state','pincode', 'mobile_no','alternative_mobile_no','model']
-        # 'unit_price','cgst','sgst', 'igst',
-        # 'total_price''location'
-        import pdb; pdb.set_trace()
         is_excel_download = request.POST.get('excel')
         central_order_reassigning =  get_misc_value('central_order_reassigning', user.id) # for 72networks
         if central_order_reassigning == 'true' and is_excel_download:
             batch_number =''
-            batch_data =''
+            batch_date =''
+            branch_name =''
             branch_id = ''
             loan_proposal_code =''
             client_code = ''
@@ -217,54 +212,67 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
             mobile_no =''
             alternative_mobile_no =''
             model = ''
-            interm_obj = IntermediateOrders.objects.filter(order_id=str(data.id))
-            if interm_obj :
-                orderfield_obj = OrderFields.objects.filter(original_order_id=str(data.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id))
-            if orderfield_obj:
-                for order_field in orderfield_obj :
-                    if order_field.name == batch_number:
-                        batch_number = order_field.value
-                    if order_field.name == batch_data :
-                        batch_data = order_field.value
-                    if order_field.name == branch_id :
-                        branch_id = order_field.value
-                    if order_field.name == loan_proposal_code:
-                        loan_proposal_code = order_field.value
-                    if order_field.name == client_code :
-                        client_code = order_field.value
-                    if order_field.name == client_id :
-                        client_id = order_field.value
-                    if order_field.name == customer_name :
-                        customer_name = order_field.value
-                    if order_field.name == address1 :
-                        address1 = order_field.value
-                    if order_field.name == address2 :
-                        address2 = order_field.value
-                    if order_field.name == landmark :
-                        landmark = order_field.value
-                    if order_field.name == village :
-                        village = order_field.value
-                    if order_field.name == district :
-                        district = order_field.value
-                    if order_field.name == state :
-                        state = order_field.value
-                    if order_field.name == pincode :
-                        pincode = order_field.value
-                    if order_field.name == mobile_no :
-                        mobile_no = order_field.value
-                    if order_field.name == alternative_mobile_no :
-                        alternative_mobile_no = order_field.value
-                    if order_field.name == model :
-                        model = order_field.value
-            temp_data['aaData'].append(OrderedDict((('Loan Proposal ID', data.original_order_id), ('SKU Code', sku_code),
-                                               ('Title', data.title), ('id', count), ('Product Quantity', quantity),
-                                               ('Shipment Date', shipment_data),
-                                               ('Marketplace', data.marketplace),
-                                               ('Address', data.address),
-                                               ('Name',data.address),
-                                               ('DT_RowClass', 'results'),
-                                               ('DT_RowAttr', {'data-id': str(data.order_id)}),
-                                               ('Order Taken By', order_taken_val), ('Status', cust_status))))
+            total_price =''
+            try :
+                interm_obj = IntermediateOrders.objects.filter(order_id=str(data.id))
+                if interm_obj :
+                    orderfield_obj = OrderFields.objects.filter(original_order_id=str(data.original_order_id), order_type='intermediate_order',user=str(interm_obj[0].user.id))
+                    if orderfield_obj:
+                        for order_field in orderfield_obj :
+                            if order_field.name == 'batch_number':
+                                batch_number = order_field.value
+                            elif order_field.name == 'batch_date' :
+                                batch_date = order_field.value
+                            elif order_field.name == 'branch_id' :
+                                branch_id = order_field.value
+                            elif order_field.name == 'branch_name' :
+                                branch_name = order_field.value
+                            elif order_field.name == 'loan_proposal_code':
+                                loan_proposal_code = order_field.value
+                            elif order_field.name == 'client_code' :
+                                client_code = order_field.value
+                            elif order_field.name == 'client_id' :
+                                client_id = order_field.value
+                            elif order_field.name == 'customer_name' :
+                                customer_name = order_field.value
+                            elif order_field.name == 'address1' :
+                                address1 = order_field.value
+                            elif order_field.name == 'address2' :
+                                address2 = order_field.value
+                            elif order_field.name == 'landmark' :
+                                landmark = order_field.value
+                            elif order_field.name == 'village' :
+                                village = order_field.value
+                            elif order_field.name == 'district' :
+                                district = order_field.value
+                            elif order_field.name == 'state' :
+                                state = order_field.value
+                            elif order_field.name == 'pincode' :
+                                pincode = order_field.value
+                            elif order_field.name == 'mobile_no' :
+                                mobile_no = order_field.value
+                            elif order_field.name == 'alternative_mobile_no' :
+                                alternative_mobile_no = order_field.value
+                            elif order_field.name == 'model' :
+                                model = order_field.value
+                            elif order_field.name == 'total_price' :
+                                total_price = order_field.value
+                    unit_price = interm_obj[0].unit_price
+                    cgst = interm_obj[0].cgst_tax
+                    sgst = interm_obj[0].sgst_tax
+                    igst = interm_obj[0].igst_tax
+                    location = interm_obj[0].order_assigned_wh
+            except Exception as e:
+                import traceback
+                log.debug(traceback.format_exc())
+                log.info('downloading excel  failed for %s and params are %s and error statement is %s' % (
+                str(user.username), str(request.POST.dict()), str(e)))
+
+            temp_data['aaData'].append(OrderedDict((('Central Order ID', data.original_order_id),('Batch Number',batch_number),
+                                                    ('Batch Date',batch_date),('Branch ID',branch_id),('Branch Name',branch_name),('Loan Proposal ID',data.original_order_id),('Loan Proposal Code',loan_proposal_code),('Client Code',client_code),('Client ID',client_id),
+                                                    ('Customer Name',customer_name),('Address1',address1),('Address2',address2),('Landmark',landmark),('Village',village),('District',district),
+                                                    ('State1',state),('Pincode',pincode),('Mobile Number',mobile_no),('Alternative Mobile Number',alternative_mobile_no),('SKU Code',sku_code),('Model',model),
+                                                    ('Unit Price',unit_price),('CGST',cgst),('SGST',sgst),('IGST',igst),('Total Price',total_price),('Location',location.username))))
         else:
             temp_data['aaData'].append(OrderedDict((('', checkbox), ('Order ID', order_id), ('SKU Code', sku_code),
                                                 ('Title', data.title), ('id', count), ('Product Quantity', quantity),
@@ -276,7 +284,6 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
                                                 ('DT_RowAttr', {'data-id': str(data.order_id)}),
                                                 ('Order Taken By', order_taken_val), ('Status', cust_status))))
         count = count + 1
-
     col_val = ['Order ID', 'Order ID', 'SKU Code', 'Title', 'Product Quantity', 'Shipment Date', 'Order Taken By',
                'Status']
     if stop_index and custom_search:

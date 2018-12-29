@@ -128,10 +128,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       vm.model_data = {};
       vm.html = "";
       vm.print_enable = false;
-      if(vm.permissions.use_imei) {
-        fb.stop_fb();
-        vm.imei_list = [];
-      }
       $state.go('app.inbound.PrimarySegregation');
     }
 

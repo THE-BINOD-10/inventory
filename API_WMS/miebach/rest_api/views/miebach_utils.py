@@ -35,6 +35,8 @@ NOW = datetime.datetime.now()
 
 SKU_GROUP_FIELDS = {'group': '', 'user': ''}
 
+MILKBASKET_USERS = ['milkbasket', 'milkbasket_noida', 'milkbasket_test', 'milkbasket_bangalore']
+
 #ADJUST_INVENTORY_EXCEL_HEADERS = ['WMS Code', 'Location', 'Physical Quantity', 'Reason']
 
 ADJUST_INVENTORY_EXCEL_MAPPING = OrderedDict((('Seller ID', 'seller_id'), ('WMS Code', 'wms_code'),
@@ -1536,7 +1538,7 @@ SKU_MASTER_API_MAPPING = OrderedDict((('skus', 'skus'), ('sku_code', 'sku_code')
                                       ('mrp', 'mrp'), ('sku_class', 'sku_class'),
                                       ('style_name', 'style_name'), ('status', 'status'), ('hsn_code', 'hsn_code'),
                                       ('ean_number', 'ean_number'), ('threshold_quantity', 'threshold_quantity'),
-                                      ('color', 'color'), ('selling_price', 'price'), ('cost_price', 'cost_price'),
+                                      ('color', 'color'), ('cost_price', 'cost_price'),
                                       ('measurement_type', 'measurement_type'), ('sku_size', 'sku_size'),
                                       ('size_type', 'size_type'),
                                       ('mix_sku', 'mix_sku'), ('sku_type', 'sku_type'), ('attributes', 'sku_options'),

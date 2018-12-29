@@ -16,7 +16,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.industry_type = Session.user_profile.industry_type;
     vm.user_type = Session.user_profile.user_type;
     vm.parent_username = Session.parent.userName;
-    vm.milkbasket_users = ['milkbasket', 'milkbasket_noida', 'milkbasket_test'];
+    vm.milkbasket_users = ['milkbasket', 'milkbasket_noida', 'milkbasket_test', 'milkbasket_bangalore'];
     vm.display_approval_button = false;
     vm.supplier_id = '';
     vm.order_id = 0;
@@ -301,9 +301,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     function close() {
 
       vm.model_data = {};
-      vm.invoice_readonly = '';
       vm.html = "";
-      vm.invoice_readonly = '';
+      vm.invoice_readonly_option = false
       vm.print_enable = false;
       if(vm.permissions.use_imei) {
         fb.stop_fb();
@@ -476,6 +475,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.save_sku = function(){
       var that = vm;
+      if(vm.milkbasket_users.indexOf(vm.parent_username) >= 0 && !vm.model_data.dc_level_grn &&
+          vm.display_approval_button && !Object.keys(vm.model_data.uploaded_file_dict)) {
+        if($(".grn-form").find('[name="files"]')[0].files.length < 1) {
+          colFilters.showNoty("Uploading file is mandatory");
+          return
+        }
+      }
       var elem = angular.element($('form'));
       elem = elem[0];
       elem = $(elem).serializeArray();
@@ -522,6 +528,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       // data.push({name: 'po_unit', value: form.po_unit.$viewValue});
       // data.push({name: 'tax_per', value: form.tax_per.$viewValue});
       if (form.$valid) {
+        if(vm.milkbasket_users.indexOf(vm.parent_username) >= 0 && !vm.model_data.dc_level_grn &&
+            !Object.keys(vm.model_data.uploaded_file_dict)){
+          if($(".grn-form").find('[name="files"]')[0].files.length < 1) {
+            colFilters.showNoty("Uploading file is mandatory");
+            return
+          }
+        }
         if (vm.permissions.receive_po_invoice_check && vm.model_data.invoice_value){
 
           var abs_inv_value = vm.absOfInvValueTotal(vm.model_data.invoice_value, vm.model_data.round_off_total);
@@ -1983,7 +1996,27 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       });
     });
   }
-
+  vm.invoice_readonly_option = false;
+  vm.invoice_readonly = function(event, data, key_name, is_number){
+      console.log(vm);
+      if(vm.permissions.receive_po_invoice_check)
+      {
+        if(!vm.model_data.invoice_value || vm.model_data.invoice_value == "0")
+        {
+          Service.showNoty('Please fill the invoice value');
+          if(is_number) {
+            data[key_name] = 0;
+          }
+          else {
+            data[key_name] = '';
+          }
+        }
+        else
+        {
+          vm.invoice_readonly_option = true;
+        }
+      }
+  }
   vm.skus_total_amount = 0;
   vm.calc_total_amt = function(event, data, index, parent_index) {
       var sku_row_data = {};
@@ -2097,10 +2130,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         if(!sku_row_data[i].buy_price || sku_row_data[i].buy_price == '') {
           sku_row_data[i].buy_price = 0;
         }
-        if(sku_row_data[i].price != sku_row_data[i].buy_price){
-          vm.display_approval_button = true;
-          break;
+        var price_tolerence = 0;
+        var buy_price = Number(sku_row_data[i].buy_price);
+        var price = Number(sku_row_data[i].price);
+        if(price && (buy_price > price))  {
+          price_tolerence = ((buy_price-price)/price)*100;
+          if(price_tolerence > 2){
+            vm.display_approval_button = true;
+            break;
+          }
         }
+//        if(sku_row_data[i].price != sku_row_data[i].buy_price){
+//          vm.display_approval_button = true;
+//          break;
+//        }
         if(sku_row_data[i].tax_percent == '') {
           sku_row_data[i].tax_percent = 0;
         }

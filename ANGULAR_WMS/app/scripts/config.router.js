@@ -1263,6 +1263,7 @@ var app = angular.module('urbanApp')
                              'scripts/controllers/outbound/pop_js/picklist.js',
                              'scripts/controllers/outbound/pop_js/manual_details.js',
                              'scripts/controllers/outbound/pop_js/custom_order_details.js',
+                             'scripts/controllers/outbound/pop_js/reject_order.js',
                              'scripts/controllers/outbound/pop_js/enquiry_details.js'
                             ]
                         }]);

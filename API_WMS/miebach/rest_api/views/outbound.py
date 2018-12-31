@@ -4131,14 +4131,13 @@ def create_central_order(request, user):
 @get_admin_user
 @fn_timer
 def create_order_from_intermediate_order(request, user):
-
     mail_ids, user_mail_id, items = [], [], []
     order_dict = {}
     created_order_objs = []
     message = 'Success'
     first = True
     inter_obj_data = {}
-
+    central_order_reassigning =  get_misc_value('central_order_reassigning', user.id) #for 72networks
     warehouses = json.loads(request.POST.get('warehouse'))
     for wh, wh_data in warehouses.iteritems():
         # Picklist generation
@@ -4158,7 +4157,7 @@ def create_order_from_intermediate_order(request, user):
             if status != '0':
                 if wh_usr_obj:
                     wh_id = wh_usr_obj[0].id
-                    wh_usr_obj = wh_usr_obj[0]
+                    wh_usr_obj = wh_usr_obj
                 else:
                     return HttpResponse('User Missing')
             interm_det_id = request.POST.get('interm_det_id', '')
@@ -4192,6 +4191,9 @@ def create_order_from_intermediate_order(request, user):
                 #inv_amt = (interm_obj.unit_price * interm_obj.quantity) + interm_obj.tax
                 if first:
                     if interm_obj.order_id or interm_obj.order_assigned_wh:
+                        if central_order_reassigning :
+                            interm_obj.order_assigned_wh = wh_usr_obj[0]
+                            interm_obj.remarks = ''
                         if status:
                             interm_obj.status = status
                         if shipment_date and status:
@@ -8103,7 +8105,7 @@ def get_central_orders_data(start_index, stop_index, temp_data, search_term, ord
     lis = ['', 'interm_order_id', 'sku__sku_code', 'sku__sku_desc', 'quantity', 'shipment_date', 'project_name', 'remarks',
            'order_assigned_wh__username', 'id','creation_date']
     data_dict = {'user': user.id, 'quantity__gt': 0}
-    status_map = {'1': 'Accept', '0': 'Reject'}
+    status_map = {'1': 'Accept', '0': 'Reject','2': 'Pending'}
     order_data = lis[col_num]
     if order_term == 'desc':
         order_data = '-%s' % order_data
@@ -13888,7 +13890,13 @@ def do_delegate_orders(request, user=''):
 
                     #Order Detail Save Block
                     original_order_id, address1, address2, client_code, village, state, pincode = '', '', '', '', '', '', ''
-                    order_fields = OrderFields.objects.filter(user=user.id, original_order_id=interm_obj.interm_order_id)
+                    central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)#for 72 networks
+
+                    if central_order_reassigning :
+                        ord_det_obj = OrderDetail.objects.filter(id = interm_obj.order_id)
+                        order_fields = OrderFields.objects.filter(user=user.id, original_order_id=ord_det_obj[0].original_order_id)
+                    else:
+                        order_fields = OrderFields.objects.filter(user=user.id, original_order_id=interm_obj.original_order_id)
                     order_field_name_values = order_fields.values('name', 'value')
                     for obj in list(order_field_name_values):
                         if obj['name'] == "original_order_id":
@@ -14072,7 +14080,7 @@ def print_pdf_shipment_info(request, user=''):
 
 @login_required
 @get_admin_user
-def send_back_order(request, user=''):
+def send_order_back(request, user=''):
     order_det_id=[]
     order_det_reassigned_id =[]
     order_det_not_reassigned_id =[]
@@ -14104,5 +14112,9 @@ def send_back_order(request, user=''):
         log.debug(traceback.format_exc())
         log.info('Reassign of orders failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(request.POST.dict()), str(e)))
+    if  len(order_det_not_reassigned_orderid) > 0 :
+        status = "These Order ID's are not sent back"
+    else:
+        status ="Successfully sended all the orders back"
 
-    return HttpResponse(json.dumps({'data':order_det_not_reassigned_orderid , 'message': 'Success', 'status': 'Successfully removed'}))
+    return HttpResponse(json.dumps({'data':order_det_not_reassigned_orderid , 'message': 'Success', 'status':status }))

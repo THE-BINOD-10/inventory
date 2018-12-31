@@ -1157,7 +1157,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.service.print_data(vm.html, "Purchase Order");
   }
 
-vm.send_back_order = function() {
+vm.send_order_back = function() {
   var data = [];
   if (vm.g_data.view == 'OrderView') {
     for(var key in vm.selected){

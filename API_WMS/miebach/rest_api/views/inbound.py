@@ -1945,7 +1945,9 @@ def get_purchaseorder_locations(put_zone, temp_dict):
     seller_id = temp_dict.get('seller_id', '')
     location_masters = LocationMaster.objects.filter(zone__user=user).exclude(
         lock_status__in=['Inbound', 'Inbound and Outbound'])
-    exclude_zones_list = ['QC_ZONE', 'DAMAGED_ZONE', 'RTO_ZONE', 'Non Sellable Zone']
+    exclude_zones_list = get_exclude_zones(User.objects.get(id=user))
+    exclude_zones_list.append('RTO_ZONE')
+    # exclude_zones_list = ['QC_ZONE', 'DAMAGED_ZONE', 'RTO_ZONE', 'Non Sellable Zone']
     if put_zone in exclude_zones_list:
         location = location_masters.filter(zone__zone=put_zone, zone__user=user)
         if location:
@@ -2444,15 +2446,14 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
     overall_discount = 0
     if 'overall_discount' in myDict.keys() and myDict['overall_discount'][0]:
         overall_discount = myDict['overall_discount'][0]
-    mrp_change =''
+    remarks_list = []
     if float(data.open_po.mrp) != float(myDict['mrp'][i]) :
-         mrp_change = "mrp_change"
-    offer_applicable = ''
+         remarks_list.append("mrp_change")
     if 'offer_applicable' in myDict.keys() :
         offer_applicable = myDict['offer_applicable'][i]
-        if offer_applicable :
-            offer_applicable = "offer_applied"
-    remarks = offer_applicable +','+ mrp_change
+        if offer_applicable == 'true':
+            remarks_list.append("offer_applied")
+    remarks = ','.join(remarks_list)
     if user.userprofile.user_type == 'warehouse_user':
         seller_po_summary, created = SellerPOSummary.objects.get_or_create(receipt_number=receipt_id,
                                                                            invoice_number=invoice_number,
@@ -2471,7 +2472,7 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
                                                                            remarks = remarks)
         seller_received_list.append(
             {'seller_id': '', 'sku_id': data.open_po.sku_id, 'quantity': value,
-             'id': seller_po_summary.id})
+             'id': seller_po_summary.id, 'remarks': remarks})
     else:
         for sell_po in seller_pos:
             if not value:
@@ -2528,7 +2529,7 @@ def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number
                                                                                remarks = remarks)
             seller_received_list.append(
                 {'seller_id': sell_po.seller_id, 'sku_id': data.open_po.sku_id, 'quantity': value,
-                 'id': seller_po_summary.id})
+                 'id': seller_po_summary.id, 'remarks': remarks})
     return seller_received_list
 
 
@@ -2561,6 +2562,36 @@ def create_file_po_mapping(request, user, receipt_no, myDict):
         log.debug(traceback.format_exc())
         log.info("Create GRN File Mapping failed for user " + str(user.username) + \
                  " and error statement is " + str(e))
+
+
+def update_remarks_put_zone(remarks, user, put_zone, seller_summary_id=''):
+    if remarks == 'offer_applied':
+        offer_zone_check = ZoneMaster.objects.filter(zone='Offer Change', user=user.id)
+        if offer_zone_check.exists():
+            put_zone = offer_zone_check[0].zone
+    elif remarks == 'mrp_change':
+        mrp_change_check = ZoneMaster.objects.filter(zone='MRP Change', user=user.id)
+        if mrp_change_check.exists():
+            put_zone = mrp_change_check[0].zone
+    elif remarks == 'mrp_change,offer_applied':
+        offer_zone_check = ZoneMaster.objects.filter(zone='Offer Change', user=user.id)
+        if offer_zone_check.exists():
+            put_zone = offer_zone_check[0].zone
+    elif seller_summary_id:
+        seller_po_summary = SellerPOSummary.objects.filter(id=seller_summary_id)
+        if seller_po_summary:
+            seller_po_summary = seller_po_summary[0]
+            if seller_po_summary.batch_detail and seller_po_summary.purchase_order.open_po:
+                other_mrp_stock = StockDetail.objects.filter(sku__user=user.id, quantity__gt=0,
+                                                             sku_id=seller_po_summary.purchase_order.open_po.sku_id,
+                                           sellerstock__seller_id=seller_po_summary.seller_po.seller_id).\
+                    exclude(Q(location__zone__zone__in=get_exclude_zones(user)) |
+                              Q(batch_detail__mrp=seller_po_summary.batch_detail.mrp))
+                if other_mrp_stock.exists():
+                    mrp_change_check = ZoneMaster.objects.filter(zone='MRP Change', user=user.id)
+                    if mrp_change_check.exists():
+                        put_zone = mrp_change_check[0].zone
+    return put_zone
 
 
 def generate_grn(myDict, request, user, is_confirm_receive=False):
@@ -2728,7 +2759,10 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
                 put_zone = put_zone[0]
 
             put_zone = put_zone.zone
-
+        if seller_received_list:
+            remarks = seller_received_list[0].get('remarks', '')
+            put_zone = update_remarks_put_zone(remarks, user, put_zone,
+                                               seller_summary_id=seller_received_list[0].get('id', ''))
         temp_dict = {'received_quantity': float(value), 'user': user.id, 'data': data, 'pallet_number': pallet_number,
                      'pallet_data': pallet_data}
 
@@ -4098,7 +4132,8 @@ def get_seller_received_list(data, user):
     seller_received_list = []
     for summary in seller_po_summary:
         seller_received_list.append({'seller_id': summary.seller_po.seller_id, 'sku': summary.seller_po.open_po.sku,
-                                     'quantity': summary.putaway_quantity, 'id': summary.id})
+                                     'quantity': summary.putaway_quantity, 'id': summary.id,
+                                     'remarks': summary.remarks })
     return seller_received_list
 
 
@@ -6541,6 +6576,10 @@ def confirm_primary_segregation(request, user=''):
                     else:
                         put_zone = put_zone[0]
                     put_zone = put_zone.zone
+                if seller_received_dict:
+                    remarks = seller_received_dict[0].get('remarks', '')
+                    put_zone = update_remarks_put_zone(remarks, user, put_zone,
+                                                       seller_summary_id=seller_received_dict[0].get('id', ''))
                 temp_dict = {'received_quantity': sellable, 'user': user.id, 'data': segregation_obj.purchase_order,
                              'pallet_number': '', 'pallet_data': {}}
                 seller_received_dict, seller_summary_dict = get_quality_check_seller(seller_received_dict, temp_dict,
@@ -6557,6 +6596,10 @@ def confirm_primary_segregation(request, user=''):
                 else:
                     put_zone = put_zone[0]
                 put_zone = put_zone.zone
+                if seller_received_dict:
+                    remarks = seller_received_dict[0].get('remarks', '')
+                    put_zone = update_remarks_put_zone(remarks, user, put_zone,
+                                                       seller_summary_id=seller_received_dict[0].get('id', ''))
                 temp_dict = {'received_quantity': non_sellable, 'user': user.id, 'data': segregation_obj.purchase_order,
                              'pallet_number': '', 'pallet_data': {}}
                 seller_received_dict, seller_summary_dict = get_quality_check_seller(seller_received_dict, temp_dict,

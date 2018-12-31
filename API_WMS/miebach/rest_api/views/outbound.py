@@ -13957,12 +13957,18 @@ def do_delegate_orders(request, user=''):
                         get_existing_order.save()
                         order_fields.update(original_order_id=original_order_id)
                         interm_obj_filter.update(status=1)
+                        if central_order_reassigning :
+                            interm_obj_filter.update(order_id = get_existing_order.id)
+
                     else:
                         try:
                             ord_obj = OrderDetail(**order_dict)
                             ord_obj.save()
                             order_fields.update(original_order_id=original_order_id)
                             interm_obj_filter.update(status=1)
+                            if central_order_reassigning :
+                                interm_obj_filter.update(order_id = ord_obj.id)
+
                         except:
                             resp_dict[str(interm_obj.interm_order_id)] = 'Error in Saving Order ID'
                             created_order_objs.append(resp_dict)
@@ -14090,6 +14096,7 @@ def send_order_back(request, user=''):
         order_id_list =request.POST.getlist('order_id')
         remarks_list = request.POST.getlist('remarks')
         for i in range(len(order_id_list)) :
+            import pdb; pdb.set_trace()
             ord_obj = OrderDetail.objects.get(original_order_id=order_id_list[i], user=user.id)
             interm_obj = IntermediateOrders.objects.filter(order_id=ord_obj.id)
             if interm_obj:
@@ -14103,6 +14110,7 @@ def send_order_back(request, user=''):
                     log.info('%s orderid is  assigned' % (str(order_id_list[i],)))
                     interm_obj.status = 0
                     interm_obj.remarks=remarks_list[i]
+                    PushNotifications.objects.create(user_id=interm_obj.user_id, message=ord_obj.original_order_id+"  "+"order got rejected from"+"  "+interm_obj.order_assigned_wh.username+" "+"with central order id"+" "+str(interm_obj.interm_order_id))
                     interm_obj.save()
                     order_det_reassigned_orderid.append(ord_obj.original_order_id)
                     order_cancel_functionality(order_det_reassigned_id)

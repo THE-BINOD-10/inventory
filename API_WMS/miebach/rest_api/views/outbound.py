@@ -1690,44 +1690,53 @@ def rista_inventory_transfer(picklist_list):
     for obj in picklist_list:
         #{'picklist_batch': <QuerySet [<Picklist: 1002>]>, 'count': 4.0, 'value': [{u'stock_id': u'835492', u'title': u'Coffee Powder 1kg', u'order_id': u'', u'labels': u'', u'wms_code': u'274', u'picked_quantity': u'4', u'location': u'DFLT', u'picklist_status': u'open', u'orig_loc': u'DFLT', u'reserved_quantity': u'4', u'orig_wms': u'274'}], 'picklist': <Picklist: 1002>, 'picklist_order_id': u'', 'key': u'2342722'}
         rista_stockone_api = {}
-	picked_stock_dict = {}
+        picked_stock_dict = {}
         if 'value' in obj.keys():
-	    get_line_item_detail = obj['value']
-	    #picked_stock_dict[] =
-	    picking_count1 = 0
-	    for obj_dict in get_line_item_detail:
-		#dict_key = obj_dict['wms_code'] + '<<>>' + obj_dict['location']
-		picking_count1 = int(obj_dict['picked_quantity'])
+            get_line_item_detail = obj['value']
+            #picked_stock_dict[] =
+            picking_count1 = 0
+            for obj_dict in get_line_item_detail:
+                #dict_key = obj_dict['wms_code'] + '<<>>' + obj_dict['location']
+                picking_count1 = int(obj_dict['picked_quantity'])
         if not 'picklist' in obj.keys():
             continue
         picklist_value = obj['picklist']
-	data_dict = {'measuringUnit':'', 'skuCode':'', 'itemName':'', 'quantity':0, 'unitCost':0, 'itemAmount':0, 'taxAmount':0, 'totalAmount':0, 'taxes': []}
-	data_dict.update({'measuringUnit': picklist_value.order.sku.measurement_type})
-	data_dict.update({'skuCode': picklist_value.order.sku.wms_code})
-	data_dict.update({'itemName': picklist_value.order.sku.sku_desc})
-	data_dict.update({'quantity': picking_count1})
-	data_dict.update({'unitCost': picklist_value.order.unit_price})
-	data_dict.update({'itemAmount': data_dict['quantity'] * data_dict['unitCost'] })
-
-	#Item Taxes
-	tax_dict = {}
-	tax_dict["taxName"] = ""
-	tax_dict["percentage"] = 0
-	tax_dict["taxableAmount"] = data_dict['itemAmount']
-	tax_dict["taxAmount"] = 0
-	data_dict.update({'taxes': []})
-	data_dict['taxes'].append(tax_dict)
-	if tax_dict["taxName"] in collect_tax_dict.keys():
-	    collect_tax_dict[tax_dict["taxName"]]['taxAmount'] += tax_dict["taxAmount"]
-	else:
-	    collect_tax_dict[tax_dict["taxName"]] = {}
-	    collect_tax_dict[tax_dict["taxName"]]['percentage'] = 0
-	    collect_tax_dict[tax_dict["taxName"]]['taxAmount'] = 0
-	    collect_tax_dict[tax_dict["taxName"]]["taxableAmount"] = 0
-	data_dict.update({'taxAmount': tax_amt})
-	data_dict.update({'totalAmount': total_amt})
-	rista_stockone_api['items'].append(data_dict)
-
+        data_dict = {'measuringUnit':'', 'skuCode':'', 'itemName':'', 'quantity':0, 'unitCost':0, 'itemAmount':0, 'taxAmount':0, 'totalAmount':0, 'taxes': []}
+        data_dict.update({'measuringUnit': picklist_value.order.sku.measurement_type})
+        data_dict.update({'skuCode': picklist_value.order.sku.wms_code})
+        data_dict.update({'itemName': picklist_value.order.sku.sku_desc})
+        data_dict.update({'quantity': picking_count1})
+        data_dict.update({'unitCost': picklist_value.order.unit_price})
+        data_dict.update({'itemAmount': data_dict['quantity'] * data_dict['unitCost'] })
+        data_dict.update({'taxes': []})
+        customer_order_summary = CustomerOrderSummary.objects.filter(order=picklist_value.order)
+        for cust_obj in customer_order_summary:
+            cgst_tax = cust_obj.cgst_tax
+            tax_dict = {}
+            cgst_value = round(float(cgst_tax), 1)
+            tax_dict["taxName"] = "CGST" + cgst_value
+            tax_dict["percentage"] = round(float(cgst_tax), 1)
+            tax_dict["taxableAmount"] = data_dict['itemAmount']
+            tax_dict["taxAmount"] = 0
+            data_dict['taxes'].append(tax_dict)
+            sgst_tax = cust_obj.sgst_tax
+            tax_dict = {}
+            sgst_value = round(float(sgst_tax), 1)
+            tax_dict["taxName"] = "SGST" + sgst_value
+            tax_dict["percentage"] = round(float(sgst_tax), 1)
+            tax_dict["taxableAmount"] = data_dict['itemAmount']
+            tax_dict["taxAmount"] = 0
+            data_dict['taxes'].append(tax_dict)
+	    #if tax_dict["taxName"] in collect_tax_dict.keys():
+	    # 	collect_tax_dict[tax_dict["taxName"]]['taxAmount'] += tax_dict["taxAmount"]
+	    #else:
+	    #	collect_tax_dict[tax_dict["taxName"]] = {}
+	    #	collect_tax_dict[tax_dict["taxName"]]['percentage'] = 0
+	    #	collect_tax_dict[tax_dict["taxName"]]['taxAmount'] = 0
+	    #	collect_tax_dict[tax_dict["taxName"]]["taxableAmount"] = 0
+        data_dict.update({'taxAmount': tax_amt})
+        data_dict.update({'totalAmount': total_amt})
+        rista_stockone_api['items'].append(data_dict)
         order_fields = OrderFields.objects.filter(original_order_id=picklist_value.order.original_order_id).values('name', 'value')
         for name, value in order_fields.items():
             print "asd"
@@ -1739,20 +1748,20 @@ def rista_inventory_transfer(picklist_list):
 	tax_dict_update["percentage"] = 0
 	tax_dict_update["taxableAmount"] = 0
 	tax_dict_update["taxAmount"] = 0
-
-	rista_stockone_api['taxes'] = tax_dict_update
-	rista_stockone_api['totalAmount'] = 0
-	rista_stockone_api['taxAmount'] = 0
-	rista_stockone_api['itemsAmount'] = 0
-	rista_stockone_api['notes'] = ''
+        
+        rista_stockone_api['taxes'] = tax_dict_update
+        rista_stockone_api['totalAmount'] = 0
+        rista_stockone_api['taxAmount'] = 0
+        rista_stockone_api['itemsAmount'] = 0
+        rista_stockone_api['notes'] = ''
 
 
 	#To Branch
-	toBranch = {}
-	toBranch["branchCode"] = ''
-	rista_stockone_api['toBranch'] = toBranch
+        toBranch = {}
+        toBranch["branchCode"] = ''
+        rista_stockone_api['toBranch'] = toBranch
 	#Source Info
-	sourceInfo = {}
+        sourceInfo = {}
 	sourceInfo['orderDate'] = picklist.order.order_date
 	sourceInfo['orderNumber'] = picklist.order.original_order_id
         rista_stockone_api['sourceInfo'] = sourceInfo

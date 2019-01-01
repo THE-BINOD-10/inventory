@@ -15,6 +15,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.industry_type = Session.user_profile.industry_type;
     vm.parent_username = Session.parent.userName;
     vm.milkbasket_users = ['milkbasket', 'milkbasket_noida', 'milkbasket_test', 'milkbasket_bangalore'];
+    vm.milkbasket_file_check = ['milkbasket'];
 
     vm.selected = {};
     vm.checked_items = {};
@@ -263,7 +264,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       form_data.append(key, val);
     });
     if(click_type == 'move_to_invoice/') {
-      if(vm.milkbasket_users.indexOf(vm.parent_username) >= 0) {
+      if(vm.milkbasket_file_check.indexOf(vm.parent_username) >= 0) {
         if($("body #add-customer").find('[name="files"]')[0].files.length < 1) {
           vm.service.showNoty("Uploading file is mandatory");
           return

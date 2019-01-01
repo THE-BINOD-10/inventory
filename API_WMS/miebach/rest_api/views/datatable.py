@@ -42,21 +42,27 @@ def sku_excel_download(search_params, temp_data, headers, user, request):
     if search_params.get('search_0', ''):
         search_terms["wms_code__icontains"] = search_params.get('search_0', '')
     if search_params.get('search_1', ''):
-        search_terms["sku_desc__icontains"] = search_params.get('search_1', '')
+        search_terms["ean_number__icontains"] = search_params.get('search_1', '')
     if search_params.get('search_2', ''):
-        search_terms["sku_type__icontains"] = search_params.get('search_2', '')
+        search_terms["sku_desc__icontains"] = search_params.get('search_2', '')
     if search_params.get('search_3', ''):
-        search_terms["sku_category__icontains"] = search_params.get('search_3', '')
+        search_terms["sku_type__icontains"] = search_params.get('search_3', '')
     if search_params.get('search_4', ''):
-        search_terms["sku_class__icontains"] = search_params.get('search_4', '')
+        search_terms["sku_category__icontains"] = search_params.get('search_4', '')
     if search_params.get('search_5', ''):
-        search_terms["color__icontains"] = search_params.get('search_5', '')
+        search_terms["sku_class__icontains"] = search_params.get('search_5', '')
     if search_params.get('search_6', ''):
-        search_terms["zone__zone__icontains"] = search_params.get('search_6', '')
+        search_terms["color__icontains"] = search_params.get('search_6', '')
     if search_params.get('search_7', ''):
-        if (str(search_params.get('search_7', '')).lower() in "active"):
+        search_terms["zone__zone__icontains"] = search_params.get('search_7', '')
+    if search_params.get('search_8', ''):
+        search_terms["creation_date__iregex"] = search_params.get('search_8', '')
+    if search_params.get('search_9', ''):
+        search_terms["updation_date__iregex"] = search_params.get('search_9', '')
+    if search_params.get('search_7', ''):
+        if (str(search_params.get('search_10', '')).lower() in "active"):
             search_terms["status__icontains"] = 1
-        elif (str(search_params.get('search_7', '')).lower() in "inactive"):
+        elif (str(search_params.get('search_10', '')).lower() in "inactive"):
             search_terms["status__icontains"] = 0
         else:
             search_terms["status__icontains"] = "none"

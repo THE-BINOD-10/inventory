@@ -4157,7 +4157,7 @@ def create_order_from_intermediate_order(request, user):
             if status != '0':
                 if wh_usr_obj:
                     wh_id = wh_usr_obj[0].id
-                    wh_usr_obj = wh_usr_obj
+                    wh_usr_obj = wh_usr_obj[0]
                 else:
                     return HttpResponse('User Missing')
             interm_det_id = request.POST.get('interm_det_id', '')
@@ -4192,7 +4192,7 @@ def create_order_from_intermediate_order(request, user):
                 if first:
                     if interm_obj.order_id or interm_obj.order_assigned_wh:
                         if central_order_reassigning :
-                            interm_obj.order_assigned_wh = wh_usr_obj[0]
+                            interm_obj.order_assigned_wh = wh_usr_obj
                             interm_obj.remarks = ''
                         if status:
                             interm_obj.status = status
@@ -10018,7 +10018,7 @@ def get_customer_invoice_data(start_index, stop_index, temp_data, search_term, o
                                           ('Total Amount', picked_amount), ('Delivered Flag', delivered_status),
                                           ('Order Date&Time', order_date), ('Invoice Number', '')
                                           )))
-            temp_data['aaData'].append(data_dict) 
+            temp_data['aaData'].append(data_dict)
         log.info('Customer Invoice filtered %s for %s ' % (str(temp_data['recordsTotal']), user.username))
 
 

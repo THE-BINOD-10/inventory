@@ -11891,19 +11891,36 @@ def get_enquiry_orders(start_index, stop_index, temp_data, search_term, order_te
 @get_admin_user
 def move_enquiry_to_order(request, user=''):
     message = 'Success'
-    enquiry_id = request.GET.get('enquiry_id', '')
+    enquiry_id = request.POST.get('enquiry_id', '')
     if not enquiry_id:
         return HttpResponse('No enquiry ID')
+    changed_data = request.POST.get('changed_data', [])
+    if changed_data:
+        changed_data = eval(changed_data)
     cum_obj = CustomerUserMapping.objects.filter(user=request.user.id)
     if not cum_obj:
         return "No Customer User Mapping Object"
     cm_id = cum_obj[0].customer_id
+    delete_flag = True
     em_qs = EnquiryMaster.objects.filter(enquiry_id=enquiry_id, customer_id=cm_id)
     try:
         for em_obj in em_qs:
             data_vals = em_obj.enquiredsku_set.values_list('sku', 'quantity', 'levelbase_price', 'warehouse_level')
             for data_val in data_vals:
                 sku, quantity, lb_price, warehouse_level = data_val
+                for i in changed_data:
+                    if i['sku'] == sku and i['warehouse_level'] == warehouse_level:
+                        delete_flag = False
+                        quantity = int(i['move_quantity'])
+                        enq_qs = EnquiredSku.objects.filter(sku=sku, warehouse_level=warehouse_level,
+                                                            enquiry_id=em_obj.id)
+                        if enq_qs:
+                            enq_obj = enq_qs[0]
+                            if quantity < enq_obj.quantity:
+                                enq_obj.quantity -= quantity
+                                enq_obj.save()
+                            else:
+                                em_obj.delete()
                 sku_id = get_syncedusers_mapped_sku(user.id, sku)
                 data = {'user_id': user.id, 'customer_user_id': request.user.id, 'sku_id': sku_id,
                         'tax': 0, 'warehouse_level': warehouse_level, 'levelbase_price': lb_price}
@@ -11921,7 +11938,8 @@ def move_enquiry_to_order(request, user=''):
         log.debug(traceback.format_exc())
         message = 'Failed'
     else:
-        em_qs.delete()  # Removing item from Enquiry Table after converting it to Order
+        if delete_flag:
+            em_qs.delete()  # Removing item from Enquiry Table after converting it to Order
     return HttpResponse(message)
 
 

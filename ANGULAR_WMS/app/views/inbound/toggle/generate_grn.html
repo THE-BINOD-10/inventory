@@ -44,7 +44,18 @@
 				  </span>
 			  </label></p>
 			</div>
-
+      <div class="row">
+        <div class=" col-md-offset-10 col-md-2 col-sm-6 col-xs-6">
+          <p align="left">Show Ean Number
+          <label class="switch switch-sm square">
+              <input type="checkbox" ng-model="showCase.show_ean_number">
+              <span>
+                <i class="handle"></i>
+              </span>
+          </label>
+          </p>
+        </div>
+        </div>
             <div class="col-sm-12"><hr></div>
           </div>
           <div class="row">
@@ -66,10 +77,16 @@
                 <input name="expected_date" ui-jq="datepicker" ng-model="showCase.model_data.expected_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}" readonly>
               </div>
             </div>
-            <div class="col-md-3 col-sm-3 col-xs-6" style="height:74px;">
+            <div class="col-md-3 col-sm-3 col-xs-6" style="height:74px;" ng-if="!showCase.permissions.sku_pack_config">
               <div class="form-group">
                 <label for="scan_sku" class="control-label"> Scan SKU </label>
                 <textarea class="form-control" rows="1" ng-model="showCase.model_data.scan_sku" type="text" name="scan_sku" ng-keydown="showCase.scan_sku($event, showCase.model_data.scan_sku)" focus-on="focusSKU" auto-focus ng-readonly="showCase.scan_sku_disable"></textarea>
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-3 col-xs-6" style="height:74px;" ng-if="showCase.permissions.sku_pack_config">
+              <div class="form-group">
+                <label for="scan_sku" class="control-label"> Scan Pack </label>
+                <input type="text" name="scan_pack"  ng-model="showCase.model_data.pack_id" class="form-control detectTab"  ng-keydown="showCase.check_sku_pack($event, showCase.model_data.pack_id)" >
               </div>
             </div>
 
@@ -144,7 +161,7 @@
                   <tr>
                     <th>WMS CODE</th>
                     <th>Title</th>
-                    <!-- <th>PO Quantity</th> -->
+                    <th ng-if = "showCase.show_ean_number">EAN Number</th>
                     <th>PO Qty</th>
                     <th ng-if="showCase.permissions.pallet_switch">Pallet Number</th>
                     <!-- <th>Received Quantity</th> -->
@@ -153,6 +170,7 @@
                     <th ng-if="showCase.permissions.use_imei">Serial Number</th>
                     <th>Unit Price</th>
                     <th ng-if="showCase.industry_type=='FMCG'">Buy Price</th>
+
                     <th ng-if="showCase.industry_type=='FMCG'">MRP</th>
                     <th ng-if="showCase.industry_type=='FMCG'">Weight</th>
                     <th>Discount</th>
@@ -177,6 +195,8 @@
                       <!-- out of elements start -->
                       <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{outerIndex}}">
                       <input type="hidden" name="supplier_id" value="{{showCase.model_data.supplier_id}}">
+                      <input type="hidden" name="pack_id" value="{{data.pack_id}}">
+                      <input type="hidden" name="num_packs" value="{{data.num_packs}}">
                       <input type="hidden" name="id" value="{{data.order_id}}" ng-model="data.order_id">
                       <input type="hidden" name="new_sku" value="{{data.is_new}}">
                       <input type="hidden" name="temp_json_id" value="{{data.temp_json_id}}">
@@ -189,6 +209,10 @@
                     <td>
                       <input type="text" ng-model="data.sku_desc" size="70" title="{{ data.sku_desc }}" class="form-control detectTab" readonly>
                     </td>
+                    <td ng-if = "showCase.show_ean_number">
+                      <input type="text"  ng-model="data.ean_number" size="70" title="{{ data.ean_number }}" class="form-control detectTab" readonly>
+                    </td>
+
                     <td>
                       <input type="text" ng-model="data.po_quantity" size="10" ng-if="!data.is_new" title="{{ data.po_quantity }}" name="po_quantity" class="form-control detectTab" ng-readonly="records[0].dis" ng-class="service.get_decimal_perm()">
                       <input type="text" ng-model="data.po_quantity" size="10" ng-if="data.is_new" title="{{ data.po_quantity }}" name="po_quantity" class="form-control detectTab" ng-readonly="data.is_new" ng-class="service.get_decimal_perm()">

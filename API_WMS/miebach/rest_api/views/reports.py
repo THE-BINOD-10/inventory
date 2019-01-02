@@ -57,6 +57,11 @@ def get_report_data(request, user=''):
             data['filters'][data_index]['values'] = list(
                 OrderDetail.objects.exclude(sku__sku_category='').filter(user=user.id).values_list('sku__sku_category',
                                                                                                    flat=True).distinct())
+        if 'sister_warehouse' in filter_keys :
+            sister_wh = get_sister_warehouse(user)
+            data_index = data['filters'].index(filter(lambda person: 'sister_warehouse' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = list(
+                UserGroups.objects.filter(Q(admin_user=user) | Q(user=user)).values_list('user__username',flat=True).distinct())
         if 'order_report_status' in filter_keys:
             data_index = data['filters'].index(
                 filter(lambda person: 'order_report_status' in person['name'], data['filters'])[0])

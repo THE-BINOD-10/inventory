@@ -76,7 +76,7 @@ angular
       if (Session.roles.permissions['central_order_reassigning'] == true && vm.search.datatable == "OrderView") //for 72 networks
       {
         data['Central Order ID'] = 'Central Order ID';data['Batch Number'] = 'Batch Number';data['Batch Date'] = 'Batch Date';
-        data['Branch Name'] = 'Branch Name';data ['Loan Proposal ID'] ='Loan Proposal ID';data ['Loan Proposal Code'] ='Loan Proposal Code';data ['Client Code'] ='Client Code';
+        data['Branch Name'] = 'Branch Name';data['Branch ID'] = 'Branch ID'; ['Loan Proposal ID'] ='Loan Proposal ID';data ['Loan Proposal Code'] ='Loan Proposal Code';data ['Client Code'] ='Client Code';
         data ['Client ID'] ='Client ID';data ['Customer Name'] ='Customer Name';data ['Address1'] ='Address1';data ['Address2'] ='Address2';data ['Landmark'] ='Landmark';
         data ['Village'] ='Village';data ['District'] ='District';data ['State1'] ='State1';data ['Pincode'] ='Pincode';data ['Mobile Number'] ='Mobile Number';data ['Alternative Mobile Number'] ='Alternative Mobile Number';
         data ['SKU Code'] ='SKU Code';data ['Model'] ='Model';data ['Unit Price'] ='Unit Price';data ['CGST'] ='CGST';data ['SGST'] ='SGST';

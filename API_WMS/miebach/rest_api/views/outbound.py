@@ -14096,7 +14096,6 @@ def send_order_back(request, user=''):
         order_id_list =request.POST.getlist('order_id')
         remarks_list = request.POST.getlist('remarks')
         for i in range(len(order_id_list)) :
-            import pdb; pdb.set_trace()
             ord_obj = OrderDetail.objects.get(original_order_id=order_id_list[i], user=user.id)
             interm_obj = IntermediateOrders.objects.filter(order_id=ord_obj.id)
             if interm_obj:

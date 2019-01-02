@@ -323,8 +323,8 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
       gst_val = Number(record.base_price) * gst_val / 100;
     }
 
-    record.invoice_amount = ((Number(record.base_price - Number(record.discount))/100)*record.tax)+(Number(record.base_price)-
-      Number(record.discount)) + gst_val;
+     var discount_val = ((Number(record.base_price) * Number(record.discount)/100))
+      record.invoice_amount = record.base_price - discount_val + gst_val
   }
 
 
@@ -400,16 +400,16 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
     if(data.priceRanges && data.priceRanges.length > 0) {
 
       for(var skuRec = 0; skuRec < data.priceRanges.length; skuRec++){
-    
+
         if(data.quantity >= data.priceRanges[skuRec].min_unit_range && data.quantity <= data.priceRanges[skuRec].max_unit_range){
-    
+
           data.unit_price = data.priceRanges[skuRec].price;
           flag = true;
         }
       }
 
       if (!flag) {
-    
+
         data.unit_price = data.priceRanges[data.priceRanges.length-1].price;
       }
     }
@@ -493,7 +493,7 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
 
   vm.discountChange = function(data) {
 
-    vm.cal_percentage(data, false); 
+    vm.cal_percentage(data, false);
   }
 
   vm.discountPercentageChange = function(data, status) {

@@ -476,7 +476,7 @@ def get_search_params(request, user=''):
         if '[data]' in key:
             headers.append(value)
 
-        if key in data_mapping and value:   
+        if key in data_mapping and value:
             if key in int_params:
                 value = int(value)
 
@@ -3579,26 +3579,18 @@ def search_wms_data(request, user=''):
     if not search_key:
         return HttpResponse(json.dumps(total_data))
 
-    lis = ['wms_code', 'sku_desc', 'mrp','ean_number']
+    lis = ['wms_code', 'sku_desc', 'mrp']
     query_objects = sku_master.filter(Q(wms_code__icontains=search_key) | Q(sku_desc__icontains=search_key),
                                       user=user.id)
 
     master_data = query_objects.filter(Q(wms_code__exact=search_key) | Q(sku_desc__exact=search_key), user=user.id)
     if master_data:
         master_data = master_data[0]
-        ean_numbers = list(master_data.eannumbers_set.values_list('ean_number', flat=True))
-        if master_data.ean_number:
-            ean_numbers.append(sku_data['ean_number'])
-        if ean_numbers:
-            ean_numbers = ','.join(map(str, ean_numbers))
-        else:
-            ean_numbers = 0
-
 
         total_data.append({'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc, \
                            'measurement_unit': master_data.measurement_type,
                            'load_unit_handle': master_data.load_unit_handle,
-                           'mrp': master_data.mrp,'ean_number':ean_numbers})
+                           'mrp': master_data.mrp})
 
     master_data = query_objects.filter(Q(wms_code__istartswith=search_key) | Q(sku_desc__istartswith=search_key),
                                        user=user.id)
@@ -3752,8 +3744,7 @@ def build_search_data(to_data, from_data, limit):
                     to_data.append({'wms_code': data.wms_code, 'sku_desc': data.sku_desc,
                                     'measurement_unit': data.measurement_type,
                                     'mrp': data.mrp, 'sku_class': data.sku_class,
-                                    'style_name': data.style_name,
-                                    'ean_number': float(data.ean_number)})
+                                    'style_name': data.style_name})
         return to_data
 
 
@@ -5200,7 +5191,6 @@ def get_purchase_order_data(order):
         order_type = ''
         price = 0
         mrp = 0
-        ean_number = 0
         supplier_code = ''
         cgst_tax = 0
         sgst_tax = 0
@@ -5219,7 +5209,6 @@ def get_purchase_order_data(order):
         sku = open_data.sku
         price = open_data.price
         mrp = open_data.mrp
-        ean_number = open_data.ean_number
         unit = open_data.measurement_unit
         order_type = status_dict[order.open_po.order_type]
         supplier_code = open_data.supplier_code
@@ -5243,7 +5232,6 @@ def get_purchase_order_data(order):
         sku = open_data.sku
         price = open_data.price
         mrp = 0
-        ean_number = 0
         order_type = ''
         supplier_code = ''
         cgst_tax = 0
@@ -5252,7 +5240,7 @@ def get_purchase_order_data(order):
         utgst_tax = 0
         cess_tax = 0
         tin_number = ''
-    order_data = {'order_quantity': order_quantity, 'price': price, 'mrp': mrp,'ean_number':float(ean_number) ,'wms_code': sku.wms_code,
+    order_data = {'order_quantity': order_quantity, 'price': price, 'mrp': mrp,'wms_code': sku.wms_code,
                   'sku_code': sku.sku_code, 'supplier_id': user_data.id, 'zone': sku.zone,
                   'qc_check': sku.qc_check, 'supplier_name': username, 'gstin_number': gstin_number,
                   'sku_desc': sku.sku_desc, 'address': address, 'unit': unit, 'load_unit_handle': sku.load_unit_handle,

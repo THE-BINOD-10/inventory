@@ -5243,9 +5243,6 @@ def stock_transfer_order_form(request, user=''):
     central_order_file = request.GET['download-file']
     if central_order_file:
         return error_file_download(central_order_file)
-    # if user.username == 'one_assist':
-    #     wb, ws = get_work_sheet('central_order_form', CENTRAL_ORDER_ONE_ASSIST_MAPPING.keys())
-    # if user.username == '72Networks':
     wb, ws = get_work_sheet('stock_transfer_order_form', STOCK_TRANSFER_ORDER_MAPPING.keys())
     return xls_to_response(wb, '%s.stock_transfer_order_form.xls' % str(user.id))
 
@@ -5351,6 +5348,8 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
     address1 = ''
     address2 = ''
     address_value = ''
+    mobile_no = ''
+    alt_mobile_no = ''
     for row_idx in range(1, no_of_rows):
         order_data = copy.deepcopy(CENTRAL_ORDER_XLS_UPLOAD)
         order_data['user'] = user
@@ -5427,9 +5426,11 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                 create_order_fields_entry(interm_order_id, key, key_value, user)
             elif key == 'mobile_no':
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
+                mobile_no = key_value
                 create_order_fields_entry(interm_order_id, key, key_value, user)
             elif key == 'alternative_mobile_no':
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
+                alt_mobile_no = key_value
                 create_order_fields_entry(interm_order_id, key, key_value, user)
             elif key == 'sku_code':
                 try:
@@ -5482,7 +5483,7 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                     order_data['order_assigned_wh'] = user_obj[0].user
                     order_data['status'] = ''
         try:
-            address_value = address1 + ' ' + address2 + ' ' + client_code
+            address_value = address1 + ' ' + address2 + ' ' + client_code + ' ' + mobile_no + ' ' + alt_mobile_no
             order_dict = {}
             interm_obj = IntermediateOrders.objects.create(**order_data)
             order_fields = OrderFields.objects.filter(user = user.id, original_order_id=interm_obj.interm_order_id)

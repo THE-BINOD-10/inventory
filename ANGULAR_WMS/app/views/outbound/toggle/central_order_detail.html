@@ -63,10 +63,10 @@
             <div class="col-md-4 col-sm-6 col-xs-6">
               <div class="form-group">
                 <label class="control-label"> Status </label>
-                <select ng-if="!showCase.model_data.already_assigned" class="form-control" name="status" ng-model="showCase.model_data.status">
+                <select ng-if="!showCase.model_data.already_assigned || showCase.permissions.central_order_reassigning" class="form-control" name="status" ng-model="showCase.model_data.status">
                   <option ng-repeat="(key, value) in showCase.status_dropdown" value="{{key}}" ng-selected="key == showCase.model_data.status">{{value}}</option>
                 </select>
-                <input ng-if="showCase.model_data.already_assigned" type="text" name="status" class="form-control" ng-model="showCase.status_dropdown[showCase.model_data.status]" maxlength="256" disabled>
+                <input ng-if="showCase.model_data.already_assigned && !showCase.permissions.central_order_reassigning" type="text" name="status" class="form-control" ng-model="showCase.status_dropdown[showCase.model_data.status]" maxlength="256" disabled>
               </div>
             </div>
             <div class="col-md-4 col-sm-6 col-xs-6" ng-if="showCase.model_data.already_assigned">
@@ -78,7 +78,7 @@
                 <input ng-if="showCase.model_data.already_assigned" type="text" name="status" class="form-control" ng-model="showCase.model_data.warehouse" maxlength="256" disabled>
               </div>
             </div>
-            <div class="col-md-4 col-sm-6 col-xs-6" ng-if="!showCase.model_data.already_assigned">
+            <div class="col-md-4 col-sm-6 col-xs-6" ng-if="!showCase.model_data.already_assigned || showCase.permissions.central_order_reassigning">
               <div class="form-group">
                 <label class="control-label" ng-if="showCase.model_data.status!='0'"> Style Search</label>
                 <input type="text" autocomplete="off" name="sku_class" class="form-control detectTab"
@@ -90,7 +90,7 @@
               </div>
             </div>
 
-            <div class="col-md-12 col-sm-12 col-xs-12" ng-if="!showCase.model_data.already_assigned">
+            <div class="col-md-12 col-sm-12 col-xs-12" ng-if="!showCase.model_data.already_assigned || showCase.permissions.central_order_reassigning">
               <div class="row over-x">
                 <table class="table mw85">
                   <thead>

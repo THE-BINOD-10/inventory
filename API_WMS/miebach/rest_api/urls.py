@@ -369,6 +369,7 @@ urlpatterns = [
     url(r'^insert_st_shipment_info/$', insert_st_shipment_info),
     url(r'^do_delegate_orders/$', do_delegate_orders),
     url(r'^app_shipment_info_data/$', app_shipment_info_data),
+    url(r'^send_order_back/$', send_order_back),
 
 
 
@@ -452,6 +453,8 @@ urlpatterns = [
     url(r'^print_debit_note/$', print_debit_note),
     url(r'^get_sku_categories_list/$', get_sku_categories_list),
     url(r'^get_sku_wise_rtv_filter/$', get_sku_wise_rtv_filter),
+    url(r'^download_grn_invoice_mapping/$', download_grn_invoice_mapping),
+
 ]
 
 # urlpatterns += patterns('rest_api.views',

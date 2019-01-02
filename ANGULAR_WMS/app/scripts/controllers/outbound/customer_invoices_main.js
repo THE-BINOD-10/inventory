@@ -110,7 +110,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             });
 
           var columns = data.data.headers;
-          var not_sort = ['Order Quantity', 'Picked Quantity']
+          if (vm.permissions.mark_as_delivered) {
+            columns.push('Delivered Flag')
+          }
+          var not_sort = ['Order Quantity', 'Picked Quantity', 'Delivered Flag']
           vm.dtColumns = vm.service.build_colums(columns, not_sort);
           vm.dtColumns.unshift(DTColumnBuilder.newColumn(null).withTitle('').notSortable().withOption('width', '20px')
                  .renderWith(function(data, type, full, meta) {
@@ -370,6 +373,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       Service.apiCall("invoice_mark_delivered/", "POST", data).then(function(resp_data) {
         if(resp_data.data.status) {
           Service.showNoty(resp_data.data.message, 'success', 'topRight');
+
         } else {
           Service.showNoty(resp_data.data.message, 'error', 'topRight');
         }

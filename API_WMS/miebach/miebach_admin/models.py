@@ -1962,6 +1962,7 @@ class SellerPOSummary(models.Model):
     discount_percent = models.FloatField(default=0)
     round_off_total = models.FloatField(default=0)
     cess_tax = models.FloatField(default=0)
+    overall_discount = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -2115,6 +2116,7 @@ class SellerOrderSummary(models.Model):
     challan_number = models.CharField(max_length=64, default='')
     order_status_flag = models.CharField(max_length=64, default='processed_orders')
     delivered_flag = models.IntegerField(default=0)
+    overall_discount = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -2908,10 +2910,15 @@ class MasterDocs(models.Model):
     master_id = models.CharField(max_length=64, default='')
     master_type = models.CharField(max_length=64, default='')
     uploaded_file = models.FileField(upload_to=get_path, blank=True, null=True)
+    extra_flag = models.CharField(max_length=32, default='')
+    user = models.ForeignKey(User, blank=True, null=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'MASTER_DOCS'
-        index_together = ('master_id', 'master_type', 'uploaded_file')
+        index_together = (('master_id', 'master_type', 'uploaded_file'),
+                          ('user', 'master_id', 'master_type', 'extra_flag'))
 
 
 class WarehouseSKUMapping(models.Model):

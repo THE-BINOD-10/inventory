@@ -15,7 +15,6 @@ from  rest_api.views.mail_server import send_mail_attachment
 from rest_api.views.miebach_utils import *
 from miebach_admin.models import *
 from rest_api.views.utils import *
-from rest_api.views.reports import get_shipment_report
 
 log = init_logger('logs/stockone_report_mail.log')
 

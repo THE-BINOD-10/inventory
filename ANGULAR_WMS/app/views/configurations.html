@@ -266,7 +266,7 @@
           </label>
         </div>
       </div>
-      
+
       <div class="row col-md-12" style="padding-bottom: 15px" ng-if="showCase.model_data.float_switch">
         <div class="col-md-5 col-sm-8 col-xs-12">
           <i class="fa fa-server fa-15px pull-left" style="line-height: 34px;"></i>
@@ -322,7 +322,7 @@
       <div class="row col-md-12" style="padding-bottom: 15px" ng-init="showCase.online_enable_save = false">
         <div class="col-md-5 col-sm-8 col-xs-12">
           <i class="fa fa-shopping-cart fa-15px pull-left" style="line-height: 34px;"></i>
-          <strong style="line-height: 34px;" class="pull-left ml20"> Online Percentage ( 0% ) </strong> 
+          <strong style="line-height: 34px;" class="pull-left ml20"> Online Percentage ( 0% ) </strong>
         </div>
         <div class="col-md-1 col-sm-2 col-xs-3">
             <input type="number" class="form-control online-input" id="online_percentage" maxlength="3" ng-model="showCase.model_data.online_percentage" ng-change="showCase.online_enable_save = true">
@@ -374,7 +374,18 @@
         </div>
         <div class="col-md-1 col-sm-1 col-xs-2"><i ng-click="showCase.update_invoice_remarks(showCase.model_data.invoice_remarks)" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i>
         </div>
-      </div> 
+      </div>
+      <div class="row col-md-12" style="padding-bottom: 15px">
+        <div class="col-md-5 col-sm-8 col-xs-12">
+          <i class="fa fa-step-forward fa-15px pull-left" style="line-height: 34px;"></i>
+          <strong style="line-height: 34px;" class="pull-left ml20"> Invoice Declaration  </strong>
+        </div>
+        <div class="col-md-6 col-sm-6 col-xs-8">
+          <textarea name="invoice_declaration" rows="6" cols="29" ng-keydown="showCase.limitLines(5, $event)"></textarea>
+        </div>
+        <div class="col-md-1 col-sm-1 col-xs-2"><i ng-click="showCase.update_invoice_declaration(showCase.model_data.invoice_declaration)" class="fa fa-save" style="font-size: 25px;padding: 4px;cursor: pointer;"></i>
+        </div>
+      </div>
       <div class="row col-md-12" style="padding-bottom: 15px">
         <div class="col-md-5 col-sm-8 col-xs-12">
           <i class="fa fa-step-forward fa-15px pull-left" style="line-height: 34px;"></i>
@@ -511,7 +522,7 @@
         </div>
         <div class="col-md-1"></div>
       </div>
-    </div> 
+    </div>
   </div>
 </div>
 </form>

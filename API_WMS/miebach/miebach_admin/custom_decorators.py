@@ -57,7 +57,7 @@ def login_required(f):
     """Login Decorator """
     def wrap(request, *args, **kwargs):
         """ this check the session if userid key exist, if not it will redirect to login page """
-        response_data = {'data': {}, 'message': 'invalid user', 'status': 0}
+        response_data = {'data': {}, 'message': 'invalid user', 'status': 401}
         if not request.user.is_authenticated():
             if django_login_required(request):
                 from oauth2_provider.models import AccessToken
@@ -69,7 +69,14 @@ def login_required(f):
                     request.user = objs[0].application.user
                     return f(request, *args, **kwargs)
                 else:
-                    return HttpResponse(json.dumps(response_data))
+                    try:
+                        temp_abs_url = request.get_full_path()
+                        if temp_abs_url.split('/')[1] == 'api':
+                            return HttpResponse(json.dumps(response_data), status=401)
+                        else:
+                            return HttpResponse(json.dumps(response_data))
+                    except:
+                        return HttpResponse(json.dumps(response_data))
             else:
                 return HttpResponse(json.dumps(response_data))
 

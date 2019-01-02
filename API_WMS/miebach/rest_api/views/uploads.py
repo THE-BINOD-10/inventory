@@ -576,6 +576,13 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                     cell_data = float(cell_data)
                 except:
                     index_status.setdefault(count, set()).add('MRP should be Number')
+        if 'mode_of_transport' in order_mapping:
+            mot_options = get_misc_value('mode_of_transport', user.id)
+            cell_data = get_cell_data(row_idx, order_mapping['mode_of_transport'], reader, file_type)
+            if cell_data and mot_options not in ['', 'false']:
+                mot_options = mot_options.split(',')
+                if cell_data not in mot_options:
+                    index_status.setdefault(count, set()).add('Mode of Transport not defined')
 
     if index_status and file_type == 'csv':
         f_name = fname.name.replace(' ', '_')
@@ -777,6 +784,14 @@ def order_csv_xls_upload(request, reader, user, no_of_rows, fname, file_type='xl
                 order_data['invoice_amount'] = invoice_amount_value
                 if not order_data['marketplace']:
                     order_data['marketplace'] = "Offline"
+            elif key == 'mode_of_transport':
+                mode_of_transport = get_cell_data(row_idx, value, reader, file_type)
+                if mode_of_transport:
+                    order_summary_dict['mode_of_transport'] = mode_of_transport
+            elif key == 'vehicle_number':
+                vehicle_number = get_cell_data(row_idx, value, reader, file_type)
+                if vehicle_number:
+                    order_summary_dict['vehicle_number'] = vehicle_number
             else:
                 order_data[key] = get_cell_data(row_idx, value, reader, file_type)
 
@@ -848,7 +863,6 @@ def order_upload(request, user=''):
 @csrf_exempt
 @get_admin_user
 def order_form(request, user=''):
-    print request.GET['download-order-form']
     order_file = request.GET['download-order-form']
     if order_file:
         response = read_and_send_excel(order_file)
@@ -5332,6 +5346,8 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
     address1 = ''
     address2 = ''
     address_value = ''
+    mobile_no = ''
+    alt_mobile_no = ''
     for row_idx in range(1, no_of_rows):
         order_data = copy.deepcopy(CENTRAL_ORDER_XLS_UPLOAD)
         order_data['user'] = user
@@ -5408,9 +5424,11 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                 create_order_fields_entry(interm_order_id, key, key_value, user)
             elif key == 'mobile_no':
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
+                mobile_no = key_value
                 create_order_fields_entry(interm_order_id, key, key_value, user)
             elif key == 'alternative_mobile_no':
                 key_value = str(get_cell_data(row_idx, value, reader, file_type))
+                alt_mobile_no = key_value
                 create_order_fields_entry(interm_order_id, key, key_value, user)
             elif key == 'sku_code':
                 try:
@@ -5463,7 +5481,7 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                     order_data['order_assigned_wh'] = user_obj[0].user
                     order_data['status'] = ''
         try:
-            address_value = address1 + ' ' + address2 + ' ' + client_code
+            address_value = address1 + ' ' + address2 + ' ' + client_code + ' ' + mobile_no + ' ' + alt_mobile_no
             order_dict = {}
             interm_obj = IntermediateOrders.objects.create(**order_data)
             order_fields = OrderFields.objects.filter(user = user.id, original_order_id=interm_obj.interm_order_id)

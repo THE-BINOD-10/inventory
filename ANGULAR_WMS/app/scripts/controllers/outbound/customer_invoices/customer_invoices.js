@@ -336,8 +336,8 @@ function EditInvoice($scope, $http, $q, $state, $timeout, Session, colFilters, S
       gst_val = Number(record.base_price) * gst_val / 100;
     }
 
-    record.invoice_amount = ((Number(record.base_price - Number(record.discount))/100)*record.tax)+(Number(record.base_price)-
-      Number(record.discount)) + gst_val;
+     var discount_val = ((Number(record.base_price) * Number(record.discount)/100))
+      record.invoice_amount = record.base_price - discount_val + gst_val
   }
 
 

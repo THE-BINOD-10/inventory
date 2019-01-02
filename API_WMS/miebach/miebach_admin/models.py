@@ -1,10 +1,10 @@
-
 from django.db import models
 from django.contrib.auth.models import User, Group
 from miebach_utils import BigAutoField
 from datetime import date
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+import reversion
 from .choices import UNIT_TYPE_CHOICES, REMARK_CHOICES, TERMS_CHOICES, CUSTOMIZATION_TYPES, ROLE_TYPE_CHOICES, \
     CUSTOMER_ROLE_CHOICES, APPROVAL_STATUSES
 
@@ -433,6 +433,7 @@ class SKUQuantity(models.Model):
         return str(self.sku)
 
 
+@reversion.register()
 class OpenPO(models.Model):
     id = BigAutoField(primary_key=True)
     supplier = models.ForeignKey(SupplierMaster, blank=True, null=True, db_index=True)
@@ -469,6 +470,7 @@ class OpenPO(models.Model):
         return str(str(self.sku) + " : " + str(self.supplier))
 
 
+@reversion.register()
 class PurchaseOrder(models.Model):
     id = BigAutoField(primary_key=True)
     order_id = models.PositiveIntegerField(db_index=True)
@@ -573,7 +575,7 @@ class PalletMapping(models.Model):
         db_table = 'PALLET_MAPPING'
         index_together = ('pallet_detail', 'po_location')
 
-
+@reversion.register()
 class BatchDetail(models.Model):
     id = BigAutoField(primary_key=True)
     batch_no = models.CharField(max_length=64, default='')
@@ -1942,6 +1944,7 @@ class SellerPO(models.Model):
         return str(self.id)
 
 
+@reversion.register(follow=('batch_detail',))
 class SellerPOSummary(models.Model):
     id = BigAutoField(primary_key=True)
     receipt_number = models.PositiveIntegerField(default=0)
@@ -1959,6 +1962,7 @@ class SellerPOSummary(models.Model):
     discount_percent = models.FloatField(default=0)
     round_off_total = models.FloatField(default=0)
     cess_tax = models.FloatField(default=0)
+    overall_discount = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -2112,6 +2116,7 @@ class SellerOrderSummary(models.Model):
     challan_number = models.CharField(max_length=64, default='')
     order_status_flag = models.CharField(max_length=64, default='processed_orders')
     delivered_flag = models.IntegerField(default=0)
+    overall_discount = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -2879,6 +2884,7 @@ class UserAttributes(models.Model):
         unique_together = ('user', 'attribute_model', 'attribute_name')
 
 
+@reversion.register()
 class PrimarySegregation(models.Model):
     id = BigAutoField(primary_key=True)
     purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True)
@@ -2904,10 +2910,15 @@ class MasterDocs(models.Model):
     master_id = models.CharField(max_length=64, default='')
     master_type = models.CharField(max_length=64, default='')
     uploaded_file = models.FileField(upload_to=get_path, blank=True, null=True)
+    extra_flag = models.CharField(max_length=32, default='')
+    user = models.ForeignKey(User, blank=True, null=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'MASTER_DOCS'
-        index_together = ('master_id', 'master_type', 'uploaded_file')
+        index_together = (('master_id', 'master_type', 'uploaded_file'),
+                          ('user', 'master_id', 'master_type', 'extra_flag'))
 
 
 class WarehouseSKUMapping(models.Model):
@@ -2941,6 +2952,7 @@ class SellerOrderTransfer(models.Model):
         index_together = ('seller_transfer', 'seller_order')
 
 
+@reversion.register()
 class ReturnToVendor(models.Model):
     id = BigAutoField(primary_key=True)
     rtv_number = models.CharField(max_length=32, default='')
@@ -3036,7 +3048,7 @@ class SellableSuggestions(models.Model):
         db_table = 'SELLABLE_SUGGESTIONS'
         index_together = (('seller', 'stock', 'status'), ('stock', 'status'))
 
-#
+
 class TableUpdateHistory(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.ForeignKey(User, blank=True, null=True)
@@ -3052,3 +3064,16 @@ class TableUpdateHistory(models.Model):
         db_table = 'TABLE_UPDATE_HISTORY'
         index_together = (('user', 'model_id'), ('user', 'model_id', 'model_name'),
                           ('user', 'model_id', 'model_name', 'model_field'))
+
+
+class TempJson(models.Model):
+    id = BigAutoField(primary_key=True)
+    model_id = models.PositiveIntegerField()
+    model_name = models.CharField(max_length=32, default='')
+    model_json = models.TextField(default='')
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'TEMP_JSON'
+        index_together = ('model_id', 'model_name')

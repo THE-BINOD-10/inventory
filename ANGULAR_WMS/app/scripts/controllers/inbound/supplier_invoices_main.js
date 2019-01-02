@@ -189,7 +189,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     send = {data: send, inv_number: vm.inv_number}
     var url = click_type === 'move_to_po_challan' ? 'move_to_po_challan/' : 'move_to_invoice/';
     vm.bt_disable = true;
-    vm.service.apiCall(url, "GET", send).then(function(data){
+    vm.service.apiCall(url, "POST", send).then(function(data){
       if(data.message) {
         console.log(data.message);
         if(data.data.message == 'success'){

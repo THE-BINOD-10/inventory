@@ -33,6 +33,7 @@ ALLOWED_HOSTS = ['*']
 
 INSTALLED_APPS = (
     #'grappelli',
+    'admin_view_permission',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -45,6 +46,7 @@ INSTALLED_APPS = (
     'api_calls',
     'rest_api',
     'oauth2_provider',
+    'reversion'
 )
 
 #INSTALLED_APPS = ("longerusername",) + INSTALLED_APPS
@@ -55,6 +57,7 @@ AUTHENTICATION_BACKENDS = (
 '''
 MIDDLEWARE_CLASSES = (
     'oauth2_provider.middleware.OAuth2TokenMiddleware',
+    'reversion.middleware.RevisionMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',

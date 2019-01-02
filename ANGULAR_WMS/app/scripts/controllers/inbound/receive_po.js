@@ -15,8 +15,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.self_life_ratio = Number(vm.permissions.shelf_life_ratio) || 0;
     vm.industry_type = Session.user_profile.industry_type;
     vm.user_type = Session.user_profile.user_type;
+    vm.parent_username = Session.parent.userName;
+    vm.milkbasket_users = ['milkbasket', 'milkbasket_noida', 'milkbasket_test', 'milkbasket_bangalore'];
+    vm.milkbasket_file_check = ['milkbasket'];
+    vm.display_approval_button = false;
     vm.supplier_id = '';
     vm.order_id = 0;
+    vm.invoice_readonly ='';
     vm.receive_po_mandatory_fields = {};
     if(vm.permissions.receive_po_mandatory_fields) {
       angular.forEach(vm.permissions.receive_po_mandatory_fields.split(','), function(field){
@@ -148,6 +153,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                     vm.serial_numbers = [];
                     vm.skus_total_amount = 0;
                     angular.copy(data.data, vm.model_data);
+                    vm.send_for_approval_check(event, vm.model_data);
                     vm.title = "Generate GRN";
                     if (vm.industry_type == 'FMCG') {
                       vm.extra_width = {
@@ -158,14 +164,25 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                         'width': '900px'
                       };
                     }
+                    vm.model_data.dc_level_grn = false;
+                    if(vm.model_data.dc_grn == 'on') {
+                      vm.model_data.dc_level_grn = true;
+                    }
                     vm.shelf_life = vm.model_data.data[0][0].shelf_life;
+                    for(var par_ind=0;par_ind < vm.model_data.data.length;par_ind++)
+                    {
+                      vm.calc_total_amt(event, vm.model_data, 0, par_ind);
+                    }
+                    if(vm.model_data.uploaded_file_dict && Object.keys(vm.model_data.uploaded_file_dict).length > 0) {
+                      vm.model_data.uploaded_file_dict.file_url = vm.service.check_image_url(vm.model_data.uploaded_file_dict.file_url);
+                    }
 
-                    angular.forEach(vm.model_data.data, function(row){
-                      angular.forEach(row, function(sku){
-                        sku['buy_price'] = sku.price;
-                        sku['discount_percentage'] = 0;
-                      });
-                    });
+//                    angular.forEach(vm.model_data.data, function(row){
+//                      angular.forEach(row, function(sku){
+//                        sku['buy_price'] = sku.price;
+//                        sku['discount_percentage'] = 0;
+//                      });
+//                    });
 
                     console.log('MRP is: '+vm.model_data.data[0][0].buy_price);
                     if(vm.permissions.use_imei) {
@@ -222,7 +239,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     $scope.getExpiryDate = function(index, parent_index){
         var mfg_date = new Date(vm.model_data.data[parent_index][index].mfg_date);
-        var expiry = new Date(mfg_date.getFullYear(),mfg_date.getMonth(),mfg_date.getDate()+vm.shelf_life);
+        var shelf_life = vm.model_data.data[parent_index][index].shelf_life;
+        if(!shelf_life || shelf_life=='') {
+          shelf_life = 0;
+        }
+        var expiry = new Date(mfg_date.getFullYear(),mfg_date.getMonth(),mfg_date.getDate()+shelf_life);
         //vm.model_data.data[parent_index][index].exp_date = (expiry.getMonth() + 1) + "/" + expiry.getDate() + "/" + expiry.getFullYear();
         var row_data = vm.model_data.data[parent_index][index]
         if (!row_data.exp_date || row_data.exp_date == ''){
@@ -253,8 +274,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         Service.showNoty('Please choose manufacturer date first');
         vm.model_data.data[parent_index][index].exp_date = '';
       } else {
-        if (vm.shelf_life && shelf_life_ratio) {
-          var res_days = (vm.shelf_life * (shelf_life_ratio / 100));
+        var shelf_life = vm.model_data.data[parent_index][index].shelf_life;
+        if(!shelf_life || shelf_life=='') {
+          shelf_life = 0; 
+        }
+        if (shelf_life && shelf_life_ratio) {
+          var res_days = (shelf_life * (shelf_life_ratio / 100));
           var cur_date = new Date();
           if(new Date(exp_date) > new Date()){
 
@@ -286,6 +311,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       vm.model_data = {};
       vm.html = "";
+      vm.invoice_readonly_option = false
       vm.print_enable = false;
       if(vm.permissions.use_imei) {
         fb.stop_fb();
@@ -293,6 +319,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
       vm.sort_items = [];
       vm.sort_flag = false;
+      vm.display_approval_button = false;
       $state.go('app.inbound.RevceivePo');
     }
 
@@ -309,10 +336,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           new_dic.manf_date = "";
           new_dic.exp_date = "";
           new_dic.total_amt = "";
+          new_dic.temp_json_id = "";
           data.push(new_dic);
         } else {
+          if(data[index]['temp_json_id']) {
+            var json_delete_data = {'model_name': 'PO', 'json_id': data[index]['temp_json_id']}
+            vm.service.apiCall('delete_temp_json/', 'POST', json_delete_data, true).then(function(data){
+              if(data.message) {
+                console.log("Temp Json deleted");
+              }
+            });
+          }
           data.splice(index,1);
         }
+
       }
     }
 
@@ -446,24 +483,35 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     }
 
     vm.save_sku = function(){
-
-      var data = [];
-
-      for(var i=0; i<vm.model_data.data.length; i++)  {
-        angular.forEach(vm.model_data.data[i], function(sku){
-          if(!sku.is_new) {
-            data.push({name: sku.order_id, value: sku.value});
-          }
-        });
+      var that = vm;
+      if(vm.milkbasket_file_check.indexOf(vm.parent_username) >= 0 && !vm.model_data.dc_level_grn &&
+          vm.display_approval_button && Object.keys(vm.model_data.uploaded_file_dict).length == 0) {
+        if($(".grn-form").find('[name="files"]')[0].files.length < 1) {
+          colFilters.showNoty("Uploading file is mandatory");
+          return
+        }
       }
-
-      data.push({name: 'remarks', value: vm.model_data.remarks});
-      data.push({name: 'expected_date', value: vm.model_data.expected_date});
-      data.push({name: 'remainder_mail', value: vm.model_data.remainder_mail});
-      data.push({name: 'invoice_number', value: vm.model_data.invoice_number});
-      data.push({name: 'invoice_date', value: vm.model_data.invoice_date});
-      data.push({name: 'round_off_total', value: vm.model_data.round_off_total});
-      vm.service.apiCall('update_putaway/', 'GET', data, true).then(function(data){
+      if($(".grn-form").find('[name="files"]')[0].files.length > 0){
+        var size_check_status = vm.file_size_check($(".grn-form").find('[name="files"]')[0].files[0]);
+        if(size_check_status){
+          colFilters.showNoty("File Size should be less than 10 MB");
+          return
+        }
+      }
+      var elem = angular.element($('form'));
+      elem = elem[0];
+      elem = $(elem).serializeArray();
+      elem.push({'name': 'display_approval_button', value: vm.display_approval_button})
+      var form_data = new FormData();
+      console.log(form_data);
+      var files = $(".grn-form").find('[name="files"]')[0].files;
+      $.each(files, function(i, file) {
+        form_data.append('files-' + i, file);
+      });
+      $.each(elem, function(i, val) {
+        form_data.append(val.name, val.value);
+      });
+      vm.service.apiCall('update_putaway/', 'POST', form_data, true, true).then(function(data){
         if(data.message) {
           if(data.data == 'Updated Successfully') {
             vm.close();
@@ -480,6 +528,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       return Math.abs(inv_value - total_value);
     }
 
+    vm.absOfQtyTolerence = function(inv_value, total_value){
+      return Math.abs(1.1*inv_value);
+    }
+
     // vm.skus_total_amount
 
     vm.html = "";
@@ -492,9 +544,23 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       // data.push({name: 'po_unit', value: form.po_unit.$viewValue});
       // data.push({name: 'tax_per', value: form.tax_per.$viewValue});
       if (form.$valid) {
+        if(vm.milkbasket_file_check.indexOf(vm.parent_username) >= 0 && !vm.model_data.dc_level_grn &&
+            Object.keys(vm.model_data.uploaded_file_dict).length == 0){
+          if($(".grn-form").find('[name="files"]')[0].files.length < 1) {
+            colFilters.showNoty("Uploading file is mandatory");
+            return
+          }
+        }
+        if($(".grn-form").find('[name="files"]')[0].files.length > 0){
+          var size_check_status = vm.file_size_check($(".grn-form").find('[name="files"]')[0].files[0]);
+          if(size_check_status){
+            colFilters.showNoty("File Size should be less than 10 MB");
+            return
+          }
+        }
         if (vm.permissions.receive_po_invoice_check && vm.model_data.invoice_value){
 
-          var abs_inv_value = vm.absOfInvValueTotal(vm.model_data.invoice_value, vm.skus_total_amount);
+          var abs_inv_value = vm.absOfInvValueTotal(vm.model_data.invoice_value, vm.model_data.round_off_total);
 
           if (vm.permissions.receive_po_invoice_check && abs_inv_value <= 3){
 
@@ -530,11 +596,20 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           return false;
         }
         elem = $(elem).serializeArray();
+        var form_data = new FormData();
+        console.log(form_data);
+        var files = $(".grn-form").find('[name="files"]')[0].files;
+        $.each(files, function(i, file) {
+          form_data.append('files-' + i, file);
+        });
+        $.each(elem, function(i, val) {
+          form_data.append(val.name, val.value);
+        });
         var url = "confirm_grn/"
         if(vm.po_qc) {
           url = "confirm_receive_qc/"
         }
-        vm.service.apiCall(url, 'POST', elem, true).then(function(data){
+        vm.service.apiCall(url, 'POST', form_data, true, true).then(function(data){
           if(data.message) {
             if(data.data.search("<div") != -1) {
               vm.extra_width = {}
@@ -777,6 +852,23 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             $("input[attr-name='imei_"+record[0].wms_code+"']").trigger('focus');
           }
         })
+      }
+    }
+    vm.change_overall_discount =function(){
+      var discount = 0;
+      var total = 0;
+      if(vm.model_data.overall_discount) {
+        discount = vm.model_data.overall_discount;
+      }
+      if(vm.model_data.round_off_total) {
+        total = vm.model_data.round_off_total;
+      }
+      if(total>discount)
+      {
+        vm.calc_total_amt(event, vm.model_data, 0, 0);
+      }
+      else{
+        vm.model_data.overall_discount = 0;
       }
     }
 
@@ -1927,7 +2019,27 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       });
     });
   }
-
+  vm.invoice_readonly_option = false;
+  vm.invoice_readonly = function(event, data, key_name, is_number){
+      console.log(vm);
+      if(vm.permissions.receive_po_invoice_check)
+      {
+        if(!vm.model_data.invoice_value || vm.model_data.invoice_value == "0")
+        {
+          Service.showNoty('Please fill the invoice value');
+          if(is_number) {
+            data[key_name] = 0;
+          }
+          else {
+            data[key_name] = '';
+          }
+        }
+        else
+        {
+          vm.invoice_readonly_option = true;
+        }
+      }
+  }
   vm.skus_total_amount = 0;
   vm.calc_total_amt = function(event, data, index, parent_index) {
       var sku_row_data = {};
@@ -1981,9 +2093,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
             }
         }
       }
+      var overall_discount = 0;
+      if(vm.model_data.overall_discount) {
+        overall_discount = vm.model_data.overall_discount;
+      }
       vm.skus_total_amount = totals;
-      $('.totals').text('Totals: ' + totals);
-      vm.model_data.round_off_total = Math.round(totals * 100) / 100;
+      //$('.totals').text('Totals: ' + totals);
+      vm.model_data.round_off_total = (Math.round(totals * 100) / 100) - overall_discount;
     }
 
     vm.pull_cls = "pull-right";
@@ -2011,9 +2127,75 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     if(sku_row_data.mrp == ''){
       sku_row_data.mrp = 0;
     }
-    if(sku_row_data.buy_price > sku_row_data.mrp){
+    if(Number(sku_row_data.buy_price) > Number(sku_row_data.mrp)){
       pop_msg("Buy Price should be less than or equal to MRP");
       data.data[parent_index][index]['buy_price'] = sku_row_data.mrp;
+    }
+  }
+
+    vm.send_for_approval_check = function(event, data) {
+    if(vm.milkbasket_users.indexOf(vm.parent_username) < 0){
+      return
+    }
+    if(vm.permissions.change_purchaseorder) {
+      return
+    }
+    vm.display_approval_button = false;
+    var total_po_data = [];
+    angular.copy(data.data, total_po_data);
+    angular.forEach(total_po_data, function(sku_row_data) {
+      var tot_qty = 0;
+      for(var i=0;i<sku_row_data.length;i++) {
+        if(sku_row_data[i].value == '') {
+          sku_row_data[i].value = 0;
+        }
+        tot_qty += Number(sku_row_data[i].value);
+        if(!sku_row_data[i].buy_price || sku_row_data[i].buy_price == '') {
+          sku_row_data[i].buy_price = 0;
+        }
+        var price_tolerence = 0;
+        var buy_price = Number(sku_row_data[i].buy_price);
+        var price = Number(sku_row_data[i].price);
+        if(price && (buy_price > price))  {
+          price_tolerence = ((buy_price-price)/price)*100;
+          if(price_tolerence > 2){
+            vm.display_approval_button = true;
+            break;
+          }
+        }
+//        if(sku_row_data[i].price != sku_row_data[i].buy_price){
+//          vm.display_approval_button = true;
+//          break;
+//        }
+        if(sku_row_data[i].tax_percent == '') {
+          sku_row_data[i].tax_percent = 0;
+        }
+        if(sku_row_data[i].tax_percent != sku_row_data[i].tax_percent_copy){
+          vm.display_approval_button = true;
+          break;
+        }
+      }
+      var po_quantity = 0;
+      if(sku_row_data[0].po_quantity != '') {
+        po_quantity = sku_row_data[0].po_quantity;
+      }
+      if(po_quantity && po_quantity < tot_qty) {
+        var abs_qty_value = vm.absOfQtyTolerence(po_quantity, tot_qty);
+        console.log(abs_qty_value);
+        if(tot_qty > abs_qty_value) {
+          vm.display_approval_button = true;
+        }
+      }
+    })
+  }
+
+  vm.file_size_check = function(event, file_obj) {
+    var file_size = ($(".grn-form").find('[name="files"]')[0].files[0].size/1024)/1024;
+    if(file_size > 10) {
+      return true;
+    }
+    else {
+      return false;
     }
   }
 

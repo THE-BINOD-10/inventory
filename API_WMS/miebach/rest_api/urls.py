@@ -448,6 +448,8 @@ urlpatterns = [
     url(r'^print_debit_note/$', print_debit_note),
     url(r'^get_sku_categories_list/$', get_sku_categories_list),
     url(r'^get_sku_wise_rtv_filter/$', get_sku_wise_rtv_filter),
+    url(r'^download_grn_invoice_mapping/$', download_grn_invoice_mapping),
+
 ]
 
 # urlpatterns += patterns('rest_api.views',
@@ -551,6 +553,7 @@ urlpatterns += [
     url(r'update_profile_data/$', update_profile_data),
     url(r'get_cust_profile_info/$', get_cust_profile_info),
     url(r'get_linked_warehouse_names/$', get_linked_warehouse_names),
+    url(r'delete_temp_json/$', delete_temp_json),
 
     # Retailone
     url(r'^get_marketplace_data/$', get_marketplace_data),

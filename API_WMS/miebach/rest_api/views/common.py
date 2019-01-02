@@ -122,15 +122,19 @@ def get_user_permissions(request, user):
     config = dict(zip(map(operator.itemgetter('misc_type'), configuration),
                       map(operator.itemgetter('misc_value'), configuration)))
 
-    permissions = Permission.objects.exclude(codename__icontains='delete_').values('codename')
+    permissions = Permission.objects.values('codename')
     user_perms = []
     ignore_list = PERMISSION_IGNORE_LIST
     all_groups = request.user.groups.all()
+    group_ids = all_groups.values_list('id', flat=True)
+    user_perms_list = list(Permission.objects.filter(group__id__in=group_ids).\
+                                        values_list('codename', flat=True).distinct())
     for permission in permissions:
         temp = permission['codename']
         if not temp in user_perms and not temp in ignore_list:
             user_perms.append(temp)
-            roles[temp] = get_permission(request.user, temp, groups=all_groups)
+            roles[temp] = get_permission(request.user, temp, groups=all_groups,
+                                         user_perms_list=user_perms_list)
             if roles[temp]:
                 label_perms.append(temp)
 
@@ -164,7 +168,7 @@ def get_label_permissions(request, user, role_perms, user_type):
         else:
             labels[label] = False
 
-    extra_labels = ['DASHBOARD', 'UPLOADS', 'REPORTS', 'CONFIGURATIONS']
+    extra_labels = ['DASHBOARD', 'CONFIGURATIONS']
     for label in extra_labels:
         labels[label] = True if user_type != 'supplier' else False
     return labels
@@ -436,7 +440,7 @@ def get_search_params(request, user=''):
     search_params = {}
     filter_params = {}
     headers = []
-    date_fields = ['from_date', 'to_date']
+    date_fields = ['from_date', 'to_date','invoice_date']
     data_mapping = {'start': 'start', 'length': 'length', 'draw': 'draw', 'search[value]': 'search_term',
                     'order[0][dir]': 'order_term',
                     'order[0][column]': 'order_index', 'from_date': 'from_date', 'to_date': 'to_date',
@@ -451,7 +455,7 @@ def get_search_params(request, user=''):
                     'imei_number': 'imei_number',
                     'order_id': 'order_id', 'job_code': 'job_code', 'job_order_code': 'job_order_code',
                     'fg_sku_code': 'fg_sku_code',
-                    'rm_sku_code': 'rm_sku_code', 'pallet': 'pallet',
+                    'rm_sku_code': 'rm_sku_code', 'pallet': 'pallet','invoice_date':'invoice_date',
                     'staff_id': 'id', 'ean': 'ean', 'invoice_number': 'invoice_number', 'dc_number': 'challan_number',
                     'zone_code': 'zone_code', 'distributor_code': 'distributor_code', 'reseller_code': 'reseller_code',
                     'supplier_id': 'supplier_id', 'rtv_number': 'rtv_number', 'corporate_name': 'corporate_name',
@@ -605,14 +609,18 @@ def permissionpage(request, cond=''):
         return (request.user.is_staff or request.user.is_superuser)
 
 
-def get_permission(user, codename, groups=None):
+def get_permission(user, codename, groups=None, user_perms_list=None):
     in_group = False
     if not groups:
         groups = user.groups.all()
-    for grp in groups:
-        in_group = codename in grp.permissions.values_list('codename', flat=True)
-        if in_group:
-            break
+    if user_perms_list:
+        if codename in user_perms_list:
+            in_group = True
+    else:
+        for grp in groups:
+            in_group = codename in grp.permissions.values_list('codename', flat=True)
+            if in_group:
+                break
     return codename in user.user_permissions.values_list('codename', flat=True) or in_group
 
 
@@ -955,12 +963,12 @@ def po_message(po_data, phone_no, user_name, f_name, order_date, ean_flag):
         for po in po_data:
             data += '\nD.NO: %s, Qty: %s' % (po[2], po[4])
             total_quantity += int(po[4])
-            total_amount += int(po[6])
+            total_amount += float(po[6])
     else:
         for po in po_data:
             data += '\nD.NO: %s, Qty: %s' % (po[1], po[3])
             total_quantity += int(po[3])
-            total_amount += int(po[5])
+            total_amount += float(po[5])
     data += '\nTotal Qty: %s, Total Amount: %s\nPlease check WhatsApp for Images' % (total_quantity, total_amount)
     send_sms(phone_no, data)
 
@@ -1883,7 +1891,8 @@ def update_picklist_locations(pick_loc, picklist, update_picked, update_quantity
 @login_required
 @get_admin_user
 def add_group_data(request, user=''):
-    permissions = Permission.objects.all()
+    #permissions = Permission.objects.all()
+    permissions = user.user_permissions.filter()
     prod_stages = ProductionStages.objects.filter(user=user.id).values_list('stage_name', flat=True)
     brands = Brands.objects.filter(user=user.id).values_list('brand_name', flat=True)
     order_statuses = get_misc_value('extra_view_order_status', user.id)
@@ -1893,7 +1902,10 @@ def add_group_data(request, user=''):
                    'permission', 'group', 'logentry']
     permission_dict = copy.deepcopy(PERMISSION_DICT)
     reversed_perms = {}
+    exclude_labels = ['UPLOADS']
     for key, value in permission_dict.iteritems():
+        if key in exclude_labels:
+            continue
         sub_perms = permission_dict[key]
         if len(sub_perms) == 2:
             reversed_perms[sub_perms[1]] = sub_perms[0]
@@ -2574,11 +2586,14 @@ def get_full_invoice_number(user, order_no, order, invoice_date='', pick_number=
     return invoice_number
 
 
-def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos=False):
+def get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos=False, order_obj=None):
     invoice_number = ""
     inv_no = ""
     invoice_sequence = None
-    order = None
+    if order_obj:
+        order = order_obj
+    else:
+        order = None
     invoice_no_gen = MiscDetail.objects.filter(user=user.id, misc_type='increment_invoice')
     if invoice_no_gen:
         seller_order_summary = SellerOrderSummary.objects.filter(Q(order__id__in=order_ids) |
@@ -2997,7 +3012,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
             if 'igst_amt' in ord_dict:
                 ord_dict.pop('igst_amt')
 
-    _invoice_no, _sequence = get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos)
+    _invoice_no, _sequence = get_invoice_number(user, order_no, invoice_date, order_ids, user_profile, from_pos, order_obj=dat)
     challan_no, challan_sequence = get_challan_number(user, seller_summary)
     inv_date = invoice_date.strftime("%m/%d/%Y")
     invoice_date = invoice_date.strftime("%d %b %Y")
@@ -5924,7 +5939,7 @@ def update_order_dicts(orders, user='', company_name=''):
         auto_picklist_signal = get_misc_value('auto_generate_picklist', order_det_dict['user'])
         if auto_picklist_signal == 'true':
             message = check_stocks(order_sku, user, 'false', [order_detail])
-        status = {'status': 1, 'messages': ['Success']}
+        status = {'status': 1, 'messages': 'Success'}
     return status
 
 
@@ -7554,6 +7569,7 @@ def update_sku_attributes_data(data, key, value):
     else:
         sku_attr_obj.update(attribute_value=value)
 
+
 def update_sku_attributes(data, request):
     for key, value in request.POST.iteritems():
         if 'attr_' not in key:
@@ -7571,25 +7587,26 @@ def get_invoice_sequence_obj(user, marketplace):
 
 def create_update_batch_data(batch_dict):
     batch_obj = None
-    if {'batch_no', 'mrp', 'expiry_date'}.issubset(batch_dict):
-        if batch_dict['expiry_date']:
-            batch_dict['expiry_date'] = datetime.datetime.strptime(batch_dict['expiry_date'], '%m/%d/%Y')
+    batch_dict1 = copy.deepcopy(batch_dict)
+    if {'batch_no', 'mrp', 'expiry_date'}.issubset(batch_dict1):
+        if batch_dict1['expiry_date']:
+            batch_dict1['expiry_date'] = datetime.datetime.strptime(batch_dict1['expiry_date'], '%m/%d/%Y')
         else:
-            batch_dict['expiry_date'] = None
-        if batch_dict['manufactured_date']:
-            batch_dict['manufactured_date'] = datetime.datetime.strptime(batch_dict['manufactured_date'], '%m/%d/%Y')
+            batch_dict1['expiry_date'] = None
+        if batch_dict1['manufactured_date']:
+            batch_dict1['manufactured_date'] = datetime.datetime.strptime(batch_dict1['manufactured_date'], '%m/%d/%Y')
         else:
-            batch_dict['manufactured_date'] = None
+            batch_dict1['manufactured_date'] = None
         number_fields = ['mrp', 'buy_price', 'tax_percent']
         for field in number_fields:
             try:
-                batch_dict[field] = float(batch_dict.get(field, 0))
+                batch_dict1[field] = float(batch_dict1.get(field, 0))
             except:
-                batch_dict[field] = 0
-        batch_objs = BatchDetail.objects.filter(**batch_dict)
+                batch_dict1[field] = 0
+        batch_objs = BatchDetail.objects.filter(**batch_dict1)
         if not batch_objs.exists():
-            batch_dict['creation_date'] = datetime.datetime.now()
-            batch_obj = BatchDetail.objects.create(**batch_dict)
+            batch_dict1['creation_date'] = datetime.datetime.now()
+            batch_obj = BatchDetail.objects.create(**batch_dict1)
         else:
             batch_obj = batch_objs[0]
     return batch_obj
@@ -8502,3 +8519,32 @@ def add_ean_weight_to_batch_detail(sku, batch_dict):
             batch_dict['weight'] = float(''.join(re.findall('\d+', str(weight_obj[0].attribute_value))))
         except:
             batch_dict['weight'] = 0
+
+
+def check_and_create_duplicate_batch(batch_detail_obj, model_obj):
+    extra_batch = batch_detail_obj.sellerposummary_set.filter(id=model_obj.id)
+    if extra_batch.exists():
+        batch_detail_obj.pk = None
+        batch_detail_obj.id = None
+        batch_detail_obj.save()
+        model_obj.batch_detail_id = batch_detail_obj.id
+        model_obj.save()
+    return model_obj
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def delete_temp_json(request, user=''):
+    model_name = request.POST.get('model_name', '')
+    json_id = request.POST.get('json_id', '')
+    if json_id and model_name:
+        temp_json_obj = TempJson.objects.filter(id=json_id, model_name=model_name)
+        if temp_json_obj.exists():
+            temp_json_obj.delete()
+    return HttpResponse(json.dumps({'message': 'deleted'}))
+
+
+def get_sub_users(user):
+    sub_users = AdminGroups.objects.get(user_id=user.id).group.user_set.filter()
+    return sub_users

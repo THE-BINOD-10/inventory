@@ -714,6 +714,10 @@ def print_po_reports(request, user=''):
                 seller_summary_objs = data.sellerposummary_set.filter(receipt_number=receipt_no)
                 open_data = data.open_po
                 grouped_data = OrderedDict()
+                if seller_summary_objs[0].overall_discount :
+                    overall_discount = seller_summary_objs[0].overall_discount
+                else:
+                    overall_discount = 0
                 for seller_summary_obj in seller_summary_objs:
                     quantity = seller_summary_obj.quantity
                     bill_no = seller_summary_obj.invoice_number if seller_summary_obj.invoice_number else ''
@@ -819,13 +823,14 @@ def print_po_reports(request, user=''):
     title = 'Purchase Order'
     #if receipt_type == 'Hosted Warehouse':
     #    title = 'Stock Transfer Note'
+    net_amount = total - overall_discount
     return render(request, 'templates/toggle/c_putaway_toggle.html',
                   {'table_headers': table_headers, 'data': po_data, 'data_slices': sku_slices, 'address': address,
                    'order_id': order_id, 'telephone': str(telephone), 'name': name, 'order_date': order_date,
                    'total_price': total, 'data_dict': data_dict, 'bill_no': bill_no,
                    'po_number': po_reference, 'company_address': w_address, 'company_name': user_profile.company_name,
-                   'display': 'display-none', 'receipt_type': receipt_type, 'title': title,
-                   'total_received_qty': total_qty, 'bill_date': bill_date, 'total_tax': total_tax,
+                   'display': 'display-none', 'receipt_type': receipt_type, 'title': title,'overall_discount':overall_discount,
+                   'total_received_qty': total_qty, 'bill_date': bill_date, 'total_tax': total_tax,'net_amount':net_amount,
                    'company_address': company_address})
 
 

@@ -57,6 +57,11 @@ def get_report_data(request, user=''):
             data['filters'][data_index]['values'] = list(
                 OrderDetail.objects.exclude(sku__sku_category='').filter(user=user.id).values_list('sku__sku_category',
                                                                                                    flat=True).distinct())
+        if 'sister_warehouse' in filter_keys :
+            sister_wh = get_sister_warehouse(user)
+            data_index = data['filters'].index(filter(lambda person: 'sister_warehouse' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = list(
+                UserGroups.objects.filter(Q(admin_user=user) | Q(user=user)).values_list('user__username',flat=True).distinct())
         if 'order_report_status' in filter_keys:
             data_index = data['filters'].index(
                 filter(lambda person: 'order_report_status' in person['name'], data['filters'])[0])
@@ -1304,7 +1309,7 @@ def print_purchase_order_form(request, user=''):
             tax += open_po.cess_tax
             show_cess_tax = True
         total += amount + ((amount / 100) * float(tax))
-        total_tax_amt = (open_po.utgst_tax + open_po.sgst_tax + open_po.cgst_tax + open_po.igst_tax + open_po.cess_tax 
+        total_tax_amt = (open_po.utgst_tax + open_po.sgst_tax + open_po.cgst_tax + open_po.igst_tax + open_po.cess_tax
             + open_po.utgst_tax) * (amount/100)
         total_sku_amt = total_tax_amt + amount
         if user.userprofile.industry_type == 'FMCG':
@@ -1385,14 +1390,14 @@ def print_purchase_order_form(request, user=''):
         company_name = 'SHPROC Procurement Pvt. Ltd.'
         title = 'Purchase Order'
     data_dict = {
-                 'table_headers': table_headers, 
-                 'data': po_data, 
-                 'address': address, 
+                 'table_headers': table_headers,
+                 'data': po_data,
+                 'address': address,
                  'order_id': order_id,
                  'telephone': str(telephone),
-                 'name': name, 
+                 'name': name,
                  'order_date': order_date,
-                 'total': round(total), 
+                 'total': round(total),
                  'total_qty': total_qty,
                  'vendor_name': vendor_name,
                  'vendor_address': vendor_address,
@@ -1405,8 +1410,8 @@ def print_purchase_order_form(request, user=''):
                  'terms_condition' : terms_condition,
                  'total_amt_in_words' : total_amt_in_words,
                  'show_cess_tax': show_cess_tax,
-                 'company_name': profile.company_name, 
-                 'location': profile.location, 
+                 'company_name': profile.company_name,
+                 'location': profile.location,
                  'po_reference': po_reference,
                  'industry_type': profile.industry_type,
                  'company_address': company_address

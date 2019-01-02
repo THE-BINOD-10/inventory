@@ -442,7 +442,7 @@ def get_search_params(request, user=''):
                     'order[0][column]': 'order_index', 'from_date': 'from_date', 'to_date': 'to_date',
                     'wms_code': 'wms_code',
                     'supplier': 'supplier', 'sku_code': 'sku_code', 'category': 'sku_category',
-                    'sku_category': 'sku_category', 'sku_type': 'sku_type',
+                    'sku_category': 'sku_category', 'sku_type': 'sku_type','sister_warehouse':'sister_warehouse',
                     'class': 'sku_class', 'zone_id': 'zone', 'location': 'location', 'open_po': 'open_po',
                     'marketplace': 'marketplace',
                     'special_key': 'special_key', 'brand': 'sku_brand', 'stage': 'stage', 'jo_code': 'jo_code',
@@ -472,7 +472,7 @@ def get_search_params(request, user=''):
         if '[data]' in key:
             headers.append(value)
 
-        if key in data_mapping and value:
+        if key in data_mapping and value:   
             if key in int_params:
                 value = int(value)
 

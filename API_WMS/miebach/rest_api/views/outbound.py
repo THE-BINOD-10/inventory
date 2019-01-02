@@ -11902,6 +11902,7 @@ def move_enquiry_to_order(request, user=''):
         return "No Customer User Mapping Object"
     cm_id = cum_obj[0].customer_id
     delete_flag = True
+    admin_user = get_priceband_admin_user(user)
     em_qs = EnquiryMaster.objects.filter(enquiry_id=enquiry_id, customer_id=cm_id)
     try:
         for em_obj in em_qs:
@@ -11918,6 +11919,8 @@ def move_enquiry_to_order(request, user=''):
                             enq_obj = enq_qs[0]
                             if quantity < enq_obj.quantity:
                                 enq_obj.quantity -= quantity
+                                enq_obj.invoice_amount = get_tax_inclusive_invoice_amt(cm_id, lb_price, enq_obj.quantity,
+                                                                        user.id, enq_obj.sku.sku_code, admin_user)
                                 enq_obj.save()
                             else:
                                 em_obj.delete()

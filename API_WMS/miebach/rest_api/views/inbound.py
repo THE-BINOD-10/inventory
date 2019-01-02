@@ -968,6 +968,7 @@ def switches(request, user=''):
                        'display_remarks_mail': 'display_remarks_mail',
                        'create_seller_order': 'create_seller_order',
                        'invoice_remarks': 'invoice_remarks',
+                        'invoice_declaration':'invoice_declaration',
                        'show_disc_invoice': 'show_disc_invoice',
                        'serial_limit': 'serial_limit',
                        'increment_invoice': 'increment_invoice',
@@ -1003,6 +1004,7 @@ def switches(request, user=''):
                        'receive_po_invoice_check': 'receive_po_invoice_check',
                        'mark_as_delivered': 'mark_as_delivered',
                        'order_exceed_stock': 'order_exceed_stock',
+                       'central_order_reassigning':'central_order_reassigning',
                        'receive_po_mandatory_fields': 'receive_po_mandatory_fields'
                        }
         toggle_field, selection = "", ""
@@ -4620,6 +4622,7 @@ def confirm_add_po(request, sales_data='', user=''):
         if ean_data:
             ean_flag = True
 
+
         all_data = get_raisepo_group_data(user, myDict)
 
         for key, value in all_data.iteritems():
@@ -4627,9 +4630,8 @@ def confirm_add_po(request, sales_data='', user=''):
             sku_id = SKUMaster.objects.filter(wms_code=key.upper(), user=user.id)
 
             ean_number = 0
-            if sku_id:
-                ean_number = int(sku_id[0].ean_number)
 
+            ean_number = int(sku_id[0].ean_number)
             if not sku_id:
                 sku_id = SKUMaster.objects.filter(wms_code='TEMP', user=user.id)
                 po_suggestions['wms_code'] = key.upper()

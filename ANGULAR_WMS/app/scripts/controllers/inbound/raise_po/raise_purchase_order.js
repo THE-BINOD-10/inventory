@@ -92,7 +92,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
                       "total_price": 0,
                       "tax": "",
                       "sub_total": "",
-                      "po_delivery_date": data.data.po_delivery_date, 
+                      "po_delivery_date": data.data.po_delivery_date,
                       "supplier_name": data.data.supplier_name,
                       "data": data.data.data,
               };
@@ -162,8 +162,8 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       return nRow;
     }
 
-  $(document).on('keydown', 'input.detectTab', function(e) { 
-    var keyCode = e.keyCode || e.which; 
+  $(document).on('keydown', 'input.detectTab', function(e) {
+    var keyCode = e.keyCode || e.which;
 
     var fields_count = (this.closest('#tab_count').childElementCount-1);
     var cur_td_index = (this.parentElement.nextElementSibling.cellIndex);
@@ -193,7 +193,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
                       "supplier_sku_prices": "",
                       "terms_condition": "",
                       "data": [
-                        {'fields':{"supplier_Code":"", "ean_number":"", "order_quantity":"", 'price':0, "measurement_unit":"", 
+                        {'fields':{"supplier_Code":"", "ean_number":"", "order_quantity":"", 'price':0, "measurement_unit":"",
                                    "dedicated_seller": "", "row_price": 0, 'sku': {"price":"", 'wms_code': ""},
                                    "sgst_tax": "", "cgst_tax": "", "igst_tax": "", "cess_tax": "", "utgst_tax": "", "tax": ""}}
                       ],
@@ -248,7 +248,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
 
           vm.default_status = (Session.user_profile.user_type == 'marketplace_user') ? true: false;
 
-          
+
           vm.model_data.receipt_type = 'Purchase Order';
           if (Session.user_profile.user_type == 'marketplace_user') {
             vm.model_data.receipt_type = 'Hosted Warehouse';
@@ -270,7 +270,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
     vm.update_data = function (index, flag=true, plus=false) {
       if (index == vm.model_data.data.length-1) {
         if (vm.model_data.data[index]["fields"]["sku"] && (vm.model_data.data[index]["fields"]["sku"]["wms_code"] && vm.model_data.data[index]["fields"]["order_quantity"])) {
-          
+
           if (plus) {
 
             vm.model_data.data.push({"fields": {"wms_code":"", "ean_number": "", "supplier_code":"", "order_quantity":"", "price":0,
@@ -600,6 +600,7 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
       product.fields.measurement_unit = item.measurement_unit;
       product.fields.description = item.sku_desc;
       product.fields.order_quantity = 1;
+      product.fields.ean_number = item.ean_number;
       product.fields.price = 0;
       product.fields.mrp = item.mrp;
       product.fields.description = item.sku_desc;
@@ -624,7 +625,6 @@ function ServerSideProcessingCtrl($scope, $http, $q, $state, $compile, $timeout,
           if(Object.values(data).length) {
             product.fields.price = data.price;
             product.fields.supplier_code = data.supplier_code;
-            product.fields.ean_number = data.ean_number;
 
             vm.model_data.data[index].fields.row_price = (vm.model_data.data[index].fields.order_quantity * Number(vm.model_data.data[index].fields.price));
             vm.getTotals();

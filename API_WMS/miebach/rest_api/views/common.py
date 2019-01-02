@@ -446,7 +446,7 @@ def get_search_params(request, user=''):
                     'order[0][column]': 'order_index', 'from_date': 'from_date', 'to_date': 'to_date',
                     'wms_code': 'wms_code',
                     'supplier': 'supplier', 'sku_code': 'sku_code', 'category': 'sku_category',
-                    'sku_category': 'sku_category', 'sku_type': 'sku_type',
+                    'sku_category': 'sku_category', 'sku_type': 'sku_type','sister_warehouse':'sister_warehouse',
                     'class': 'sku_class', 'zone_id': 'zone', 'location': 'location', 'open_po': 'open_po',
                     'marketplace': 'marketplace',
                     'special_key': 'special_key', 'brand': 'sku_brand', 'stage': 'stage', 'jo_code': 'jo_code',
@@ -2741,12 +2741,17 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     display_customer_sku = get_misc_value('display_customer_sku', user.id)
     show_imei_invoice = get_misc_value('show_imei_invoice', user.id)
     invoice_remarks = get_misc_value('invoice_remarks', user.id)
+    invoice_declaration = get_misc_value('invoice_declaration', user.id)
     show_disc_invoice = get_misc_value('show_disc_invoice', user.id)
     show_mrp = get_misc_value('show_mrp', user.id)
 
     if len(invoice_remarks.split("<<>>")) > 1:
         invoice_remarks = invoice_remarks.split("<<>>")
         invoice_remarks = "\n".join(invoice_remarks)
+
+    if len(invoice_declaration.split("<<>>")) > 1:
+        invoice_declaration = invoice_declaration.split("<<>>")
+        invoice_declaration = "\n".join(invoice_declaration)
 
     if display_customer_sku == 'true':
         customer_sku_codes = CustomerSKU.objects.filter(sku__user=user.id).exclude(customer_sku_code='').values(
@@ -3069,6 +3074,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'hsn_summary': hsn_summary,
                     'hsn_summary_display': get_misc_value('hsn_summary', user.id), 'seller_address': seller_address,
                     'customer_address': customer_address, 'invoice_remarks': invoice_remarks,
+                    'invoice_declaration':invoice_declaration,
                     'show_disc_invoice': show_disc_invoice,
                     'seller_company': seller_company, 'sequence_number': _sequence, 'order_reference': order_reference,
                     'order_reference_date_field': order_reference_date_field,
@@ -3580,6 +3586,7 @@ def search_wms_data(request, user=''):
     master_data = query_objects.filter(Q(wms_code__exact=search_key) | Q(sku_desc__exact=search_key), user=user.id)
     if master_data:
         master_data = master_data[0]
+
         total_data.append({'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc, \
                            'measurement_unit': master_data.measurement_type,
                            'load_unit_handle': master_data.load_unit_handle,
@@ -5233,7 +5240,7 @@ def get_purchase_order_data(order):
         utgst_tax = 0
         cess_tax = 0
         tin_number = ''
-    order_data = {'order_quantity': order_quantity, 'price': price, 'mrp': mrp, 'wms_code': sku.wms_code,
+    order_data = {'order_quantity': order_quantity, 'price': price, 'mrp': mrp,'wms_code': sku.wms_code,
                   'sku_code': sku.sku_code, 'supplier_id': user_data.id, 'zone': sku.zone,
                   'qc_check': sku.qc_check, 'supplier_name': username, 'gstin_number': gstin_number,
                   'sku_desc': sku.sku_desc, 'address': address, 'unit': unit, 'load_unit_handle': sku.load_unit_handle,

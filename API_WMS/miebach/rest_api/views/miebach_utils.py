@@ -19,6 +19,7 @@ from django.db.models.fields import DateField, CharField
 from django.db.models import Value
 from utils import init_logger, get_currency_format
 
+
 # from inbound import *
 
 AJAX_DATA = {
@@ -407,6 +408,7 @@ ORDER_SUMMARY_DICT = {
                 {'label': 'City', 'name': 'city', 'type': 'input'},
                 {'label': 'State', 'name': 'state', 'type': 'input'},
                 {'label': 'SKU Category', 'name': 'sku_category', 'type': 'select'},
+                {'label': 'Sister Warehouse', 'name': 'sister_warehouse', 'type': 'select'},
                 {'label': 'SKU Brand', 'name': 'brand', 'type': 'input'},
                 {'label': 'SKU Class', 'name': 'sku_class', 'type': 'input'},
                 {'label': 'SKU Size', 'name': 'sku_size', 'type': 'input'},
@@ -1902,12 +1904,14 @@ CONFIG_SWITCHES_DICT = {'use_imei': 'use_imei', 'tally_config': 'tally_config', 
                         'inbound_supplier_invoice': 'inbound_supplier_invoice', 'customer_dc': 'customer_dc',
                         'receive_po_invoice_check': 'receive_po_invoice_check', 'mark_as_delivered': 'mark_as_delivered',
                         'order_exceed_stock': 'order_exceed_stock',
+                        'central_order_reassigning':'central_order_reassigning',
                         }
 
 CONFIG_INPUT_DICT = {'email': 'email', 'report_freq': 'report_frequency',
                      'scan_picklist_option': 'scan_picklist_option',
                      'data_range': 'report_data_range', 'imei_limit': 'imei_limit',
                      'invoice_remarks': 'invoice_remarks',
+                     'invoice_declaration':'invoice_declaration',
                      'invoice_marketplaces': 'invoice_marketplaces', 'serial_limit': 'serial_limit',
                      'extra_view_order_status': 'extra_view_order_status',
                      'invoice_types': 'invoice_types',
@@ -3250,8 +3254,8 @@ def get_openjo_details(search_params, user, sub_user):
 def get_order_summary_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from miebach_admin.views import *
+
     from rest_api.views.common import get_sku_master, get_order_detail_objs, get_local_date
-    sku_master, sku_master_ids = get_sku_master(user, sub_user)
     lis = ['creation_date', 'order_id', 'customer_name', 'sku__sku_brand', 'sku__sku_category', 'sku__sku_class',
            'sku__sku_size', 'sku__sku_desc', 'sku_code', 'quantity', 'sku__mrp', 'sku__mrp', 'sku__mrp',
            'sku__discount_percentage', 'city', 'state', 'marketplace', 'invoice_amount','order_id', 'order_id','order_id','order_id','order_id','order_id','invoice_number','quantity','creation_date'];
@@ -3291,6 +3295,17 @@ def get_order_summary_data(search_params, user, sub_user):
     stop_index = start_index + search_params.get('length', 0)
 
     search_parameters['quantity__gt'] = 0
+    central_order_reassigning =  get_misc_value('central_order_reassigning', user.id)
+    if central_order_reassigning == 'true' :
+        if 'sister_warehouse' in search_params:
+            sister_warehouse_name = search_params['sister_warehouse']
+            user = User.objects.get(username=sister_warehouse_name)
+            user = user
+            sub_user = user
+        else:
+            pass
+
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
     search_parameters['user'] = user.id
     search_parameters['sku_id__in'] = sku_master_ids
     if 'invoice_number' in search_params :
@@ -3475,6 +3490,15 @@ def get_order_summary_data(search_params, user, sub_user):
             quantity = 0
             invoice_date = 0
 
+        try:
+            serial_number = OrderIMEIMapping.objects.filter(po_imei__sku__wms_code =data.sku.sku_code,order__original_order_id=order_id,po_imei__sku__user=user.id)
+        except:
+            serial_number =''
+        if serial_number :
+            serial_number = serial_number[0].po_imei.imei_number
+        else:
+            serial_number = ''
+
 
         aaData = OrderedDict((('Order Date', ''.join(date[0:3])), ('Order ID', order_id),
                                                 ('Customer Name', data.customer_name),
@@ -3486,6 +3510,7 @@ def get_order_summary_data(search_params, user, sub_user):
                                                 ('SKU Code', data.sku.sku_code), ('Order Qty', int(data.quantity)),
                                                 ('MRP', int(data.sku.mrp)), ('Unit Price', float(unit_price_inclusive_tax)),
                                                 ('Discount', discount),
+                                                ('Serial Number',serial_number),
                                                 ('Invoice Number',invoice_number),
                                                 ('Quantity',quantity),
                                                 ('Taxable Amount', float(taxable_amount)), ('Tax', tax),
@@ -5641,12 +5666,11 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
         else:
             shipment_status = shipment_status
 
-
         serial_number = OrderIMEIMapping.objects.filter(po_imei__sku__wms_code =data['order__sku__sku_code'],order_id=data['order__id'],po_imei__sku__user=user.id)
         if serial_number :
             serial_number = serial_number[0].po_imei.imei_number
         else:
-            serial_number = 0
+            serial_number = ''
 
 
         temp_data['aaData'].append(OrderedDict((('Shipment Number', data['order_shipment__shipment_number']),

@@ -62,18 +62,19 @@ def save_image_file(image_file, data, user, extra_image='', saved_file_path='', 
 @csrf_exempt
 def get_sku_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
-    lis = ['wms_code', 'ean_number', 'sku_desc', 'sku_type', 'sku_category', 'sku_class', 'color', 'zone__zone', 'status']
+    lis = ['wms_code', 'ean_number', 'sku_desc', 'sku_type', 'sku_category', 'sku_class', 'color', 'zone__zone',
+           'creation_date', 'updation_date', 'status']
     order_data = SKU_MASTER_HEADERS.values()[col_num]
     search_params1, search_params2 = get_filtered_params_search(filters, lis)
-    if 'status__icontains' in search_params1.keys():
-        if (str(search_params['status__icontains']).lower() in "active"):
+    if 'status__icontains' in search_params2.keys():
+        if (str(search_params2['status__icontains']).lower() in "active"):
             search_params1["status__icontains"] = 1
             search_params2["status__icontains"] = 1
-        elif (str(search_params1['status__icontains']).lower() in "inactive"):
+        elif (str(search_params2['status__icontains']).lower() in "inactive"):
             search_params1["status__icontains"] = 0
             search_params2["status__icontains"] = 0
-        else:
-            search_params["status__icontains"] = "none"
+        # else:
+        #     search_params1["status__icontains"] = "none"
     if order_term == 'desc':
         order_data = '-%s' % order_data
     master_data = []
@@ -170,6 +171,8 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
         if data.status:
             status = 'Active'
 
+        creation_date = get_local_date(user, data.creation_date, send_date=True).strftime('%Y-%m-%d %I:%M %p')
+        updation_date = get_local_date(user, data.updation_date, send_date=True).strftime('%Y-%m-%d %I:%M %p')
         zone = ''
         if data.zone_id:
             zone = data.zone.zone
@@ -177,7 +180,9 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
             (('WMS SKU Code', data.wms_code), ('Product Description', data.sku_desc), ('image_url', data.image_url),
              ('SKU Type', data.sku_type), ('SKU Category', data.sku_category), ('DT_RowClass', 'results'),
              ('Zone', zone), ('SKU Class', data.sku_class), ('Status', status), ('DT_RowAttr', {'data-id': data.id}),
-             ('Color', data.color), ('EAN Number', str(data.ean_number)))))
+             ('Color', data.color), ('EAN Number', str(data.ean_number)),
+             ('Creation Date', creation_date),
+             ('Updation Date', updation_date))))
 
 
 @csrf_exempt
@@ -413,6 +418,27 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
                          ('discount_percentage', data.discount_percentage), ('lead_time', data.lead_time),
                          ('is_distributor', str(data.is_distributor)), ('markup', data.markup),
                          ('role', data.role), ('spoc_name', data.spoc_name))))
+
+
+@csrf_exempt
+def get_sku_pack_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    lis = ['pack_id', 'pack_id','pack_quantity']
+
+    search_params = get_filtered_params(filters, lis)
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if search_term:
+            master_data = SKUPackMaster.objects.filter(
+                Q(sku__wms_code__icontains=search_term)).order_by(order_data)
+    else:
+        master_data = SKUPackMaster.objects.filter(**search_params).order_by(order_data)
+
+    temp_data['recordsTotal'] = len(master_data)
+    temp_data['recordsFiltered'] = len(master_data)
+    for data in master_data[start_index: stop_index]:
+        temp_data['aaData'].append(
+            OrderedDict((('sku', data.sku.wms_code), ('pack_id', data.pack_id), ('pack_quantity', data.pack_quantity))))
 
 
 @csrf_exempt
@@ -1090,7 +1116,7 @@ def update_supplier_values(request, user=''):
         data_id = request.POST['id']
         data = get_or_none(SupplierMaster, {'id': data_id, 'user': user.id})
         old_name = data.name
-        upload_master_file(request, data.id, "SupplierMaster")
+        upload_master_file(request, user, data.id, "SupplierMaster")
 
         create_login = request.POST.get('create_login', '')
         password = request.POST.get('password', '')
@@ -1175,7 +1201,7 @@ def insert_supplier(request, user=''):
 
             data_dict['user'] = user.id
             supplier_master = SupplierMaster(**data_dict)
-            upload_master_file(request, supplier_master.id, "SupplierMaster")
+            upload_master_file(request, user, supplier_master.id, "SupplierMaster")
             supplier_master.save()
             status_msg = 'New Supplier Added'
             if create_login == 'true':
@@ -1197,14 +1223,15 @@ def insert_supplier(request, user=''):
 
 
 @csrf_exempt
-def upload_master_file(request, master_id, master_type):
+def upload_master_file(request, user, master_id, master_type, master_file=None, extra_flag=''):
     master_id = master_id
     master_type = master_type
-    master_file = request.FILES.get('master_file', '')
+    if not master_file:
+        master_file = request.FILES.get('master_file', '')
     if not master_file and master_id and master_type:
         return 'Fields are missing.'
     upload_doc_dict = {'master_id': master_id, 'master_type': master_type,
-                       'uploaded_file': master_file}
+                       'uploaded_file': master_file, 'user_id': user.id, 'extra_flag': extra_flag}
     master_doc = MasterDocs.objects.filter(**upload_doc_dict)
     if not master_doc:
         master_doc = MasterDocs(**upload_doc_dict)
@@ -1539,6 +1566,42 @@ def insert_customer(request, user=''):
 
     return HttpResponse(status_msg)
 
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def insert_sku_pack(request, user=''):
+    sku_pack = copy.deepcopy(SKU_PACK_DATA)
+    sku_code = request.POST['sku_code']
+    pack_id = request.POST['pack_id']
+    pack_quantity = request.POST['pack_quantity']
+    sku_obj = SKUMaster.objects.filter(wms_code=sku_code.upper(), user=user.id)
+    if not sku_obj:
+        return HttpResponse('Wrong WMS Code')
+
+    redundent_sku_obj = SKUPackMaster.objects.filter(sku__wms_code= sku_code , sku__user = user.id)
+
+    if redundent_sku_obj and redundent_sku_obj[0].pack_id != pack_id :
+        return HttpResponse('SKU Code have already mapped to %s' %(str(redundent_sku_obj[0].pack_id)))
+    pack_obj = SKUPackMaster.objects.filter(sku__wms_code= sku_code,pack_id = pack_id,sku__user = user.id)
+    if pack_obj :
+        pack_obj = pack_obj[0]
+        pack_obj.pack_quantity = pack_quantity
+        pack_obj.save()
+    else:
+        sku_pack['sku'] = sku_obj[0]
+        sku_pack ['pack_id'] = pack_id
+        sku_pack ['pack_quantity'] = pack_quantity
+        try:
+         SKUPackMaster.objects.create(**sku_pack)
+        except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('Insert New SKUPACK failed for %s and params are %s and error statement is %s' % (str(user.username), \
+                                                                                                   str(request.POST.dict()),
+                                                                                                   str(e)))
+
+    return HttpResponse('Added Successfully')
 
 @csrf_exempt
 @login_required
@@ -2698,7 +2761,6 @@ def generate_barcodes(request, user=''):
     myDict.pop('pdf_format')
     if myDict.has_key('order_id'):
         myDict.pop('order_id')
-
     if myDict.has_key('format'):
         myDict.pop('format')
     others = {}
@@ -2706,7 +2768,6 @@ def generate_barcodes(request, user=''):
     if myDict.has_key('Label'):
         barcodes_list = generate_barcode_dict(pdf_format, data_dict, user)
         return HttpResponse(json.dumps(barcodes_list))
-
     tmp = []
     for d in data_dict:
         if d.has_key('quantity') and int(d['quantity']) > 1:
@@ -2893,6 +2954,13 @@ def create_network_supplier(dest, src):
     phone_number = ''
     if user_profile.phone_number:
         phone_number = user_profile.phone_number
+    true_flag = True
+    while true_flag:
+        supplier_qs = SupplierMaster.objects.filter(id=max_sup_id)
+        if supplier_qs:
+            max_sup_id += 1
+        else:
+            true_flag = False
     supplier = SupplierMaster.objects.create(id=max_sup_id, user=dest_id, name=user_profile.user.username,
                                              email_id=user_profile.user.email,
                                              phone_number=phone_number,

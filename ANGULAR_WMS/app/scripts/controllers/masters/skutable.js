@@ -49,9 +49,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('SKU Class').withTitle('SKU Class'),
         DTColumnBuilder.newColumn('Color').withTitle('Color'),
         DTColumnBuilder.newColumn('Zone').withTitle('Zone'),
+        DTColumnBuilder.newColumn('Creation Date').withTitle('Creation Date'),
+        DTColumnBuilder.newColumn('Updation Date').withTitle('Updation Date'),
         DTColumnBuilder.newColumn('Status').withTitle('Status').renderWith(function(data, type, full, meta) {
                           return vm.service.status(data);
-                        }).withOption('width', '80px')
+                        }).withOption('width', '80px'),
     ];
 
     var sku_attr_list = [];

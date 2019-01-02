@@ -2,6 +2,21 @@
 <div ng-repeat="order_details in order.order_details.data" class="mb10">
   <div class="detail-list">
     <div class="detail-item border-grey detail-bg-grey">
+      <div class="row ng-scope">
+        <div class="col-md-11 col-sm-11 col-xs-10">
+          <p align="right">Partial Order</p>
+        </div>
+        <div class="col-md-1 col-sm-1 col-xs-2">
+          <label class="switch switch-sm square">
+            <div>
+              <input type="checkbox" ng-model="showCase.model_data.partial_order" class="ng-pristine ng-valid">
+              <span>
+                <i class="handle"></i>
+              </span>
+            </div>
+          </label>
+        </div>
+      </div>
       <div class="row no-margin">
         <div class="col-md-6 col-sm-6 col-xs-9">
           <h4 class="detail-black"><b>Enquiry ID: {{order_details.order_id}}</b></h4>
@@ -51,9 +66,13 @@
             <p class="no-margin order-bold detail-black" style="font-size:12px">{{data.schedule_date}}</p>
             <!--<span><b>Price:</b> <b style="color:#ed1c24">1234</b></span>-->
           </div>
-          <div class="widget-details col-md-2 col-sm-2 col-xs-2 text-center">
+          <div class="widget-details col-md-1 col-sm-1 col-xs-1 text-center">
             <small class="order-label">Qty</small>
             <p class="no-margin order-bold detail-black">{{data.quantity}}</p>
+          </div>
+          <div class="widget-details col-md-1 col-sm-1 col-xs-1 text-center" ng-if="showCase.model_data.partial_order">
+            <small class="order_label">EditQty</small>
+            <input class="no-margin order-bold detail-black" value="{{data.quantity}}" ng-model="data.move_quantity" ng-change="order.check_quantity(data, data.quantity, data.move_quantity)">
           </div>
           <div class="widget-details col-md-3 col-sm-3 col-xs-3 text-right">
             <small class="order-label">Total</small>
@@ -66,6 +85,10 @@
      <div class="detail-item border-grey detail-bg-grey">
       <div class="row no-margin">
         <div class="col-md-4 col-sm-4 col-xs-3">
+          <div class="widget-details col-xs-8 pull-left" ng-if="showCase.model_data.partial_order">
+            <small class="order-label"> </small>
+            <button type='button' class="btn btn-warning pull-left" style="min-width: 75px;height: 26px;padding: 2px 5px;" ng-click="order.moveToCartPartial($event, order.order_details)" ng-disabled="order.moving">{{(order.moving)? 'Moving': 'Move to Cart';}}</button>
+          </div>
         </div>
         <div class="col-md-8 col-sm-8 col-xs-9">
           <div class="row no-margin">

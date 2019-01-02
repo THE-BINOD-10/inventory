@@ -1864,7 +1864,10 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                 order_details['telephone'] = order['billing_address'].get('phone_number', '')
                 order_details['city'] = order['billing_address'].get('city', '')
                 order_details['address'] = order['billing_address'].get('address', '')
-                order_details['pin_code'] = order['billing_address'].get('pincode', '')
+                try:
+                    order_details['pin_code'] = int(order['billing_address'].get('pincode', ''))
+                except:
+                    pass
 
             if not order.get('sub_orders', []):
                 update_error_message(failed_status, 5024, 'Sub Orders Missing', original_order_id)
@@ -1961,7 +1964,12 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                                 order_summary_dict['igst_tax'] = float(sku_item['tax_percent'].get('IGST', 0))
                                 order_summary_dict['utgst_tax'] = float(sku_item['tax_percent'].get('UTGST', 0))
                                 order_summary_dict['cess_tax'] = float(sku_item['tax_percent'].get('CESS', 0))
-                            order_summary_dict['consignee'] = order_details['address']
+                            if sku_item.get('discount_amount', 0):
+                                try:
+                                    order_summary_dict['discount'] = float(sku_item['discount_amount'])
+                                except:
+                                    order_summary_dict['discount'] = 0
+                            order_summary_dict['consignee'] = order_details.get('address', '')
                             order_summary_dict['invoice_date'] = order_details['creation_date']
                             order_summary_dict['inter_state'] = 0
                             if order_summary_dict['igst_tax']:
@@ -1974,16 +1982,8 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                         seller_order_dict['quantity'] = sku_item['quantity']
                         final_data_dict = check_and_add_dict(grouping_key, 'seller_order_dict', seller_order_dict,
                                                             final_data_dict=final_data_dict)
-                if len(failed_sku_status):
-                    failed_status = {
-                        "OrderId": original_order_id,
-                        "Result": {
-                            "Errors": failed_sku_status
-                        }
-                    }
-                    break
 
-                final_data_dict[grouping_key]['shipping_tax'] = eval(order_mapping.get('shipping_tax', ''))
+                #final_data_dict[grouping_key]['shipping_tax'] = eval(order_mapping.get('shipping_tax', ''))
                 final_data_dict[grouping_key]['status_type'] = order_status
     except Exception as e:
         import traceback

@@ -25,6 +25,25 @@
 	    	 data-date-today-highlight="true" data-date-autoclose="true" required>
             </div>
 	  </div>
+      <div class="col-md-4 col-sm-4 col-xs-6">
+        <div>File Upload</div>
+         <span class="btn btn-primary up-btn" style="position: relative;overflow: hidden;width: 250px;">Choose File
+           <input style="position: absolute;
+                        top: 0;
+                        right: 0;
+                        min-width: 100%;
+                        min-height: 100%;
+                        font-size: 100px;
+                        text-align: right;
+                        filter: alpha(opacity=0);
+                        opacity: 0;
+                        outline: none;
+                        background: white;
+                        cursor: inherit;
+                        display: block;" class="btn btn-primary" type = "file" name="files" id="file-upload" ng-model="file_input" multiple/>
+         </span>
+        <!-- <input type="file" id="image-upload" name="files" file-upload multiple=""> -->
+      </div>
 
 	</div>
 

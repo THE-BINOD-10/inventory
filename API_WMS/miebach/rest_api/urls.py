@@ -70,6 +70,9 @@ urlpatterns = [
     url(r'^upload_images/$', upload_images),
     url(r'^get_barcodes_myntra/$', get_barcodes_myntra),
     url(r'^change_warehouse_password/$', change_warehouse_password),
+    url(r'^insert_sku_pack/$',insert_sku_pack),
+    # url(r'^update_sku_pack/$',update_sku_pack),
+
 
 
     # url(r'^get_sku_field_names/$',get_sku_field_names),
@@ -188,6 +191,8 @@ urlpatterns = [
     url(r'^get_grn_level_data/$', get_grn_level_data),
     url(r'^update_existing_grn/$', update_existing_grn),
     url(r'^confirm_central_po/$', confirm_central_po),
+    url(r'^check_sku_pack_scan/$', check_sku_pack_scan),
+
 
     # Production
     url(r'^generated_jo_data/$', generated_jo_data),
@@ -364,6 +369,7 @@ urlpatterns = [
     url(r'^insert_st_shipment_info/$', insert_st_shipment_info),
     url(r'^do_delegate_orders/$', do_delegate_orders),
     url(r'^app_shipment_info_data/$', app_shipment_info_data),
+    url(r'^send_order_back/$', send_order_back),
 
 
 
@@ -447,6 +453,8 @@ urlpatterns = [
     url(r'^print_debit_note/$', print_debit_note),
     url(r'^get_sku_categories_list/$', get_sku_categories_list),
     url(r'^get_sku_wise_rtv_filter/$', get_sku_wise_rtv_filter),
+    url(r'^download_grn_invoice_mapping/$', download_grn_invoice_mapping),
+
 ]
 
 # urlpatterns += patterns('rest_api.views',
@@ -509,6 +517,10 @@ urlpatterns += [
     url(r'^central_order_upload/$', central_order_upload),
     url(r'^stock_transfer_order_form/$',stock_transfer_order_form),
     url(r'^stock_transfer_order_upload/$',stock_transfer_order_upload),
+    url(r'^skupack_master_download/$', skupack_master_download),
+    url(r'^skupack_master_upload/$', skupack_master_upload),
+    url(r'^block_stock_download/$', block_stock_download),
+    url(r'^block_stock_upload/$', block_stock_upload),
 
 
     # configurations

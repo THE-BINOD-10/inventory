@@ -12,6 +12,7 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
   vm.order_id = "";
   vm.status = "";
   vm.intermediate_order = false;
+  vm.partial_order = "";
   if($stateParams.intermediate_order) {
     vm.intermediate_order = $stateParams.intermediate_order;
   }
@@ -63,6 +64,45 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
 
       return "Partially Dispatched";
     }
+  }
+
+  vm.check_quantity = function(data, db_qty, move_qty) {
+    if(db_qty < move_qty){
+        Service.showNoty('Can not move more than present quantity');
+        data.move_quantity = db_qty;
+    }
+  }
+
+  vm.moveToCartPartial = function(event, changed_order_data) {
+    event.stopPropagation();
+    var modified_data = changed_order_data['data'];
+    var required_data = {'enquiry_id': modified_data[0]['order_id'], 'changed_data': []};
+    for(var i=0; i<modified_data[0].data.length; i++){
+        var temp_data = {};
+        temp_data['sku'] = modified_data[0].data[i]['sku'];
+        temp_data['move_quantity'] = modified_data[0].data[i]['move_quantity']
+        temp_data['warehouse_level'] = modified_data[0].data[i]['warehouse_level']
+        required_data['changed_data'].push(temp_data);
+    }
+    required_data['changed_data'] = JSON.stringify(required_data['changed_data']);
+
+    Service.apiCall("move_enquiry_to_order/", 'POST', required_data).then(function(data) {
+
+      if(data.message) {
+
+        console.log(data.data);
+        if(data.data == 'Success') {
+          Service.showNoty('Successfully Moved To Cart');
+          $state.go('user.App.Cart');
+        } else {
+
+          Service.showNoty(data.data, 'warning');
+        }
+      } else {
+
+        Service.showNoty('Something Went Wrong', 'warning');
+      }
+    });
   }
 
   // custom orders

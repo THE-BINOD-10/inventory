@@ -2,6 +2,15 @@
   .modal-lg {
     width: 1000px;
   }
+  #serial_no {
+      width: 100%;
+      padding: 4px !important;
+      text-align: center;
+      background-color: #e4e4e4;
+      margin-top: -15px;
+      margin-bottom: 5px;
+      display :none;
+  }
 </style>
 <div id="page-pop">
   <!-- Modal -->
@@ -15,7 +24,7 @@
         </div>
         <div class="modal-body">
           <div class="row" ng-hide="pop.permissions.user_type == 'warehouse' || pop.permissions.user_type == 'distributor'">
-			<div class="col-md-6 col-sm-6 col-xs-6" style="margin-bottom: 10px;">
+      <div class="col-md-6 col-sm-6 col-xs-6" style="margin-bottom: 10px;">
             <div class="col-md-6 col-sm-6 col-xs-5">
               <p align="right">Display Order ID in Print View</p>
             </div>
@@ -30,8 +39,8 @@
                 </div>
               </label>
             </div>
-			</div>
-			<div class="col-md-6 col-sm-6 col-xs-6" style="margin-bottom: 10px;">
+      </div>
+      <div class="col-md-6 col-sm-6 col-xs-6" style="margin-bottom: 10px;">
             <div class="col-md-6 col-sm-6 col-xs-5">
               <p align="right">Merged Invoice</p>
             </div>
@@ -46,21 +55,7 @@
                 </div>
               </label>
             </div>
-            <!-- <div ng-if="pop.industry_type=='FMCG'" class="col-md-6 col-sm-6 col-xs-5">
-              <p align="right">Show Mfg date</p>
-            </div>
-            <div ng-if="pop.industry_type=='FMCG'">
-              <label class="switch switch-sm square">
-                <div>
-                  <input type="checkbox" ng-model="pop.show_mfg_date">
-                  <span>
-                    <i class="handle"></i>
-                  </span>
-                </div>
-              </label>
-            </div> -->
-			</div>
-
+      </div>
 
           </div>
           <!--<div class="row" ng-if="pop.state_data.page == 'ViewOrders'">
@@ -184,11 +179,21 @@
                   <td><input name="reserved_quantity_{{data.id}}" ng-model="data.reserved_quantity" class="form-control" type="text" readonly></td>
                   <td><input name="picked_quantity_{{data.id}}" ng-model="record.picked_quantity" class="form-control" type="text" ng-change="pop.count_sku_quantity();pop.cal_quantity(record, data)" ng-class="service.get_decimal_perm()" ng-readonly = "pop.permissions.scan_picklist_option != 'scan_sku_location' && pop.permissions.scan_picklist_option != 'scan_sku' && pop.permissions.scan_picklist_option != 'scan_none'" ng-style="(pop.validate_skus[data.order_id][data.wms_code] == data.wms_code) ? pop.qty_validation : ''"></td>
                   <td ng-if="pop.permissions.scan_picklist_option == 'scan_serial'"><textarea class="form-control" name="imei_{{data.id}}" rows="1" ng-model="record.scan" ng-keydown="pop.serial_scan($event,record.scan, data, record)"></textarea></td>
+                  <td ng-if="pop.permissions.scan_picklist_option == 'scan_serial'" ng-click="pop.myFunction(data, record)" style="width: 20px;padding-left: 10px;padding-top: 15px;font-size: 25px;cursor: pointer;"><i class="glyphicon glyphicon-download"></i></td>
                   <td style="width: 20px;padding-left: 10px;padding-top: 15px;"><i ng-click="pop.update_data($index, data, $last)" ng-class="pop.service.isLast($last)"></i></td>
                 </tr>
               </tbody>
             </table>
           </div>
+            <div id="serial_no" class="mb10">
+              <div class="detail-item border-grey detail-bg-grey">
+                <div class="row no-margin">
+                  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2" ng-repeat="data in pop.record_serial_data">
+                    <input ng-model="data" class="form-control" type="text" readonly style="background-color: #ffffff;opacity: 1;" disabled="disabled">
+                  </div>
+                </div>
+              </div>
+            </div>
           <!--<div class="row" ng-if="pop.state_data.page != 'PullConfirmation'">
             <div class="col-md-12">
               <button type="button" class="btn btn-success pull-right" ng-click="pop.print_barcodes(pop.model_data.picklist_id)">Print Barcodes</button>

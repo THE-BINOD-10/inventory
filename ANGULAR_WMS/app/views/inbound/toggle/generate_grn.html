@@ -77,10 +77,16 @@
                 <input name="expected_date" ui-jq="datepicker" ng-model="showCase.model_data.expected_date" class="form-control stk-readonly" type="text" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}" readonly>
               </div>
             </div>
-            <div class="col-md-3 col-sm-3 col-xs-6" style="height:74px;">
+            <div class="col-md-3 col-sm-3 col-xs-6" style="height:74px;" ng-if="!showCase.permissions.sku_pack_config">
               <div class="form-group">
                 <label for="scan_sku" class="control-label"> Scan SKU </label>
                 <textarea class="form-control" rows="1" ng-model="showCase.model_data.scan_sku" type="text" name="scan_sku" ng-keydown="showCase.scan_sku($event, showCase.model_data.scan_sku)" focus-on="focusSKU" auto-focus ng-readonly="showCase.scan_sku_disable"></textarea>
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-3 col-xs-6" style="height:74px;" ng-if="showCase.permissions.sku_pack_config">
+              <div class="form-group">
+                <label for="scan_sku" class="control-label"> Scan Pack </label>
+                <input type="text" name="scan_pack"  ng-model="showCase.model_data.pack_id" class="form-control detectTab"  ng-keydown="showCase.check_sku_pack($event, showCase.model_data.pack_id)" >
               </div>
             </div>
 
@@ -189,6 +195,8 @@
                       <!-- out of elements start -->
                       <input type="hidden" id="skuIndex" name="sku_index" class="form-control skuIndex" value="{{outerIndex}}">
                       <input type="hidden" name="supplier_id" value="{{showCase.model_data.supplier_id}}">
+                      <input type="hidden" name="pack_id" value="{{data.pack_id}}">
+                      <input type="hidden" name="num_packs" value="{{data.num_packs}}">
                       <input type="hidden" name="id" value="{{data.order_id}}" ng-model="data.order_id">
                       <input type="hidden" name="new_sku" value="{{data.is_new}}">
                       <input type="hidden" name="temp_json_id" value="{{data.temp_json_id}}">

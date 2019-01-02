@@ -25,7 +25,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                     'display_sku_cust_mapping': false, 'disable_categories_view': false, 'is_portal_lite': false,
                     'invoice_based_payment_tracker': false, 'receive_po_invoice_check': false,
                     'auto_raise_stock_transfer': false, 'inbound_supplier_invoice': false, 'customer_dc': false,
-                    'mark_as_delivered': false, 'central_order_reassigning':false,'order_exceed_stock': false, 'receive_po_mandatory_fields': false
+                    'mark_as_delivered': false, 'order_exceed_stock': false, 'receive_po_mandatory_fields': false,
+                    'sku_pack_config': false, 'central_order_reassigning':false,
                   };
   vm.all_mails = '';
   vm.switch_names = {1:'send_message', 2:'batch_switch', 3:'fifo_switch', 4: 'show_image', 5: 'back_order',
@@ -46,7 +47,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
                      62: 'auto_raise_stock_transfer', 63: 'inbound_supplier_invoice', 64: 'customer_dc',
                      65: 'auto_expire_enq_limit', 66: 'invoice_based_payment_tracker', 67: 'receive_po_invoice_check',
                      68: 'mark_as_delivered', 69: 'receive_po_mandatory_fields', 70: 'central_order_mgmt',
-                     71: 'order_exceed_stock',72:'invoice_declaration',73:'central_order_reassigning'}
+                     71: 'order_exceed_stock',72:'invoice_declaration',73:'central_order_reassigning', 74: 'sku_pack_config'}
 
   vm.check_box_data = [
     {
@@ -398,6 +399,14 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
      param_no: 71,
      class_name: "fa fa-server",
      display: true
+    },
+    {
+      name: "SKU Pack Configuration",
+      model_name: "sku_pack_config",
+      param_no: 74,
+      class_name: "fa fa-server",
+      display: true
+    },
    },
    {
      name: "Central Order Reassigning",

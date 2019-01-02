@@ -9466,6 +9466,7 @@ def get_order_shipment_picked(start_index, stop_index, temp_data, search_term, o
     if user_dict:
         user_dict = eval(user_dict)
     lis = ['order__order_id', 'order__order_id', 'order__customer_id', 'order__customer_name', 'order__marketplace',
+           'order__address',
            'total_picked',
            'total_ordered', 'order__creation_date']
     data_dict = {'status__in': ['picked', 'batch_picked', 'open', 'batch_open'], 'order__user': user.id,

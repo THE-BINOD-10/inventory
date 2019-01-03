@@ -407,7 +407,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       class_name: "fa fa-server",
       display: true
     },
-   },
    {
      name: "Central Order Reassigning",
      model_name: "central_order_reassigning",

@@ -30,6 +30,7 @@
                     <th>Non Sellable Quantity</th>
                     <th>Measurement</th>
                     <th>Unit Price</th>
+                    <th>Offer?</th>
                     <th ng-if="showCase.industry_type=='FMCG'">Buy Price</th>
                     <th ng-if="showCase.industry_type=='FMCG'">MRP</th>
                     <th ng-if="showCase.industry_type=='FMCG'">Batch No</th>
@@ -49,14 +50,18 @@
                       <input type="text" name="wms_code" class="form-control pricevalid" ng-model="data.wms_code" ng-readonly="true">
                     </td>
                     <td>
-                      <input type="text" ng-model="data.sku_desc" title="{{ data.sku_desc }}" class="form-control" readonly>
+                      <input type="text" ng-model="data.sku_desc" title="{{ data.sku_desc }}" class="form-control"  readonly>
                     </td>
                     <td><input type="text" ng-model="data.quantity" name="quantity" class="form-control" ng-readonly="true" ng-class="service.get_decimal_perm()"></td>
                     <td><input type="text" ng-model="data.sellable" name="sellable" class="form-control" ng-class="service.get_decimal_perm()" required ng-change="showCase.receive_quantity_change(data)"></div></td>
                     <td><input type="text" ng-model="data.non_sellable" name="non_sellable" class="form-control" ng-readonly="true" ng-class="service.get_decimal_perm()"></td>
                     <td><input type="text" ng-model="data.unit" name="unit" class="form-control" readonly></td>
                     <td><input type="text" ng-model="data.price" name="price" class="form-control" value="" ng-readonly="true"></td>
-                    
+                    <td>
+                      <input type="checkbox"  ng-checked = "data.offer_check"  value = "{{data.offer_check}}" ng-model="data.offer_check" style="zoom:1.5;">
+                    </td>
+                    <input type= "hidden"  value = "{{data.offer_check}}"  name="offer_applicable">
+
                     <td ng-if="showCase.industry_type=='FMCG'">
                       <input type="text" ng-model="data.buy_price" size="22" title="{{ data.buy_price }}" name="buy_price" class="form-control" value="{{data.buy_price}}" ng-readonly="true">
                     </td>

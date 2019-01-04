@@ -6439,10 +6439,12 @@ def get_segregation_pos(start_index, stop_index, temp_data, search_term, order_t
 def get_po_segregation_data(request, user=''):
     segregations = get_primary_suggestions_data(request, user)
     order_id = request.GET['order_id']
+
     segregations = segregations.select_related('purchase_order', 'batch_detail').\
                                 filter(purchase_order__order_id=order_id)
     if not segregations:
         return HttpResponse("No Data found")
+
     po_reference = get_po_reference(segregations[0].purchase_order)
     orders = []
     order_data = {}
@@ -6473,6 +6475,18 @@ def get_po_segregation_data(request, user=''):
                 po_tax = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.cess_tax + open_po.utgst_tax
                 if seg_tax != po_tax:
                     deviation_remarks.append('Tax Rate Deviation')
+            seller_po_summary_obj = SellerPOSummary.objects.filter(purchase_order__id =segregation_obj.purchase_order.id)
+            if seller_po_summary_obj:
+                seller_po_summary_obj = seller_po_summary_obj[0]
+                remarks = seller_po_summary_obj.remarks
+                if str(remarks).find('offer_applied') != -1 :
+                    offer_check = True
+                else:
+                    offer_check = False
+            else:
+                offer_check = False
+
+
 
         order = segregation_obj.purchase_order
         order_data = get_purchase_order_data(order)
@@ -6489,6 +6503,7 @@ def get_po_segregation_data(request, user=''):
             data_dict = {'segregation_id': segregation_obj.id,'order_id': order.id, 'wms_code': order_data['wms_code'],
                             'sku_desc': order_data['sku_desc'],
                             'quantity': quantity, 'sellable': quantity,
+                            'offer_check' :offer_check,
                             'non_sellable': 0,
                             'name': str(order.order_id) + '-' + str(
                                 re.sub(r'[^\x00-\x7F]+', '', order_data['wms_code'])),
@@ -6527,6 +6542,7 @@ def get_po_segregation_data(request, user=''):
 @login_required
 @get_admin_user
 def confirm_primary_segregation(request, user=''):
+
     data_dict = dict(request.POST.iterlists())
     log.info('Request params for ' + user.username + ' is ' + str(data_dict))
     try:
@@ -6548,9 +6564,32 @@ def confirm_primary_segregation(request, user=''):
             segregation_obj.status = 0
             segregation_obj.save()
             batch_dict = {}
+            seller_po_summary_obj = SellerPOSummary.objects.filter(purchase_order__id =segregation_obj.purchase_order.id)
+            if seller_po_summary_obj :
+                seller_po_summary_obj = seller_po_summary_obj[0]
+                remarks = seller_po_summary_obj.remarks
+                remarks = str(remarks)
+                offer_applicable = data_dict['offer_applicable'][ind]
+                if str(remarks).find('offer_applied') == -1 and offer_applicable == 'true' :
+                    remarks_offer ="offer_applied"
+                    if remarks:
+                        remarks = remarks+","+remarks_offe
+                    else:
+                        remarks = remarks_offer
+                elif str(remarks).find('offer_applied') != -1 and  offer_applicable == 'false' :
+                     if remarks.find('mrp_change') != -1 :
+                         remarks = 'mrp_change'
+                     else:
+                         remarks = ''
+
+                seller_po_summary_obj.remarks = remarks
+                seller_po_summary_obj.save()
+
             if segregation_obj.batch_detail:
                 batch_detail = segregation_obj.batch_detail
                 manufactured_date = ''
+
+
                 if batch_detail.manufactured_date:
                     manufactured_date = batch_detail.manufactured_date.strftime('%m/%d/%Y')
                 expiry_date = ''

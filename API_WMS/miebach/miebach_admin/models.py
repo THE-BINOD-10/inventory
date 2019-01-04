@@ -835,6 +835,7 @@ class OrderPackaging(models.Model):
     id = BigAutoField(primary_key=True)
     order_shipment = models.ForeignKey(OrderShipment)
     package_reference = models.CharField(max_length=64)
+    box_number = models.CharField(max_length=64, default='')
     status = models.CharField(max_length=32)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)

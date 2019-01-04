@@ -97,57 +97,87 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
 
     //DATA table end
     vm.carton_code = "";
+    vm.carton = "";
+    vm.box_num = "";
     vm.add_carton = function() {
-        var carton_code = '';
-        swal2({
-          title: 'Please enter your carton code',
-          text: '',
-          input: 'text',
-          confirmButtonColor: '#33cc66',
-          // cancelButtonColor: '#d33',
-          confirmButtonText: 'Save',
-          cancelButtonText: 'Cancel',
-          showLoaderOnConfirm: true,
-          inputOptions: 'Testing',
-          inputPlaceholder: 'Enter Carton',
-          confirmButtonClass: 'btn btn-success',
-          cancelButtonClass: 'btn btn-default',
-          showCancelButton: true,
-          preConfirm: function (text) {
-            return new Promise(function (resolve, reject) {
-              vm.update_carton_code(text);
-              resolve();
-            })
-          },
-          allowOutsideClick: false,
-          // buttonsStyling: false
-        }).then(function (text) {
-            $('#scan_sku').focus();
-            // swal2({
-            //   type: 'success',
-            //   title: 'Carton Code Added!',
-            //   // html: 'Submitted text is: ' + text
-            // })
-        });
+      var carton_code = '';
+      vm.service.apiCall('shipment_pack_ref').then(function(data){
+        if(data.message) {
+          console.log(data);
+          swal2({
+            title: 'Please enter your carton code',
+            text: '',
+            html:
+              '<input class="swal2-input" name="carton_num" id="carton_num" placeholder="Enter Carton" type="text" style="display: block;" value="'+data.data.pack_ref_no+'"  readonly>' +
+              '<input class="swal2-input" name="box_num" id="box_num" placeholder="Enter Box Number" value="" type="text" style="display: block;">',
+            confirmButtonColor: '#33cc66',
+            confirmButtonText: 'Save',
+            cancelButtonText: 'Cancel',
+            showLoaderOnConfirm: true,
+            inputOptions: 'Testing',
+            inputPlaceholder: 'Enter Carton',
+            confirmButtonClass: 'btn btn-success',
+            cancelButtonClass: 'btn btn-default',
+            showCancelButton: true,
+            preConfirm: function () {
+              return new Promise(function (resolve) {
+                resolve([
+                  $('#carton_num').val(),
+                  $('#box_num').val()
+                ])
+              })
+            },
+            allowOutsideClick: false,
+          }).then(function (text) {
+            $scope.$apply(function() {
+              $('#scan_sku').focus();
+              vm.carton = $('#carton_num').val();
+              vm.box_num = $('#box_num').val();
+              vm.update_carton_code(vm.carton);
+                });
+              }).catch(function(error) {
+                $('#scan_sku').focus();
+                vm.service.apiCall('shipment_pack_ref_decrease', "GET", {'pack_ref_no': $('#carton_num').val()})
+              });
+            }
+          });
     }
 
     vm.update_carton_code = function(carton_code){
-      $scope.$apply(function() {
         vm.carton_code = carton_code;
-
         if (!vm.model_data.sel_cartons[carton_code]) {
           vm.model_data.sel_cartons[carton_code] = 0;
         }
-      });
     }
 
-   vm.bt_disable = false;
+    vm.update_sku_carton_exist = function(event, scanned_carton) {
+      var flag = false;
+      if (event.keyCode == 13) {
+        for (var i = 0; i < Object.keys(vm.model_data.sel_cartons).length; i++) {
+          if (Object.keys(vm.model_data.sel_cartons)[i] == scanned_carton) {
+            vm.carton_code = scanned_carton;
+            vm.scan_carton_exist = '';
+            $('#scan_sku').focus();
+            flag = false;
+            break;
+          } else {
+              flag = true;
+          }
+        }
+      }
+      if(flag) {
+        vm.service.showNoty("Scanned Pack Reference carton Not Found !");
+        vm.scan_carton_exist = '';
+      }
+    }
 
     vm.close = close;
     function close() {
       $state.go('app.outbound.ShipmentInfo');
       angular.copy(vm.empty_data, vm.model_data);
       get_data();
+      vm.scan_sku = '';
+      vm.scan_carton_exist = '';
     }
 
     vm.today_date = new Date();
@@ -160,7 +190,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
         var order_ids = [];
         var mk_places = [];
         var cust_details = {}
-      	angular.forEach(vm.selected, function(key,value){
+        angular.forEach(vm.selected, function(key,value){
           if(key) {
             var temp = table[Number(value)]['order_id']
             var temp2 = table[Number(value)]['Marketplace']
@@ -168,15 +198,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
             cust_details['cust_id'] = table[Number(value)]['Customer ID']
             cust_details['order_id'] = temp
             cust_details['marketplace'] = temp2
-	        data.push({ name: "order_id", value: temp})
-	        if(order_ids.indexOf(temp) == -1) {
+          data.push({ name: "order_id", value: temp})
+          if(order_ids.indexOf(temp) == -1) {
               order_ids.push(temp);
-	        }
-	        if(mk_places.indexOf(temp2) == -1) {
-	          mk_places.push(temp2);
-	        }
           }
-      	});
+          if(mk_places.indexOf(temp2) == -1) {
+            mk_places.push(temp2);
+            }
+          }
+        });
         vm.model_data['cust_details'] = cust_details;
         if(order_ids.length == 0) {
           vm.service.showNoty("Please Select Orders First");
@@ -330,7 +360,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
       vm.barcode_title = 'Barcode Generation';
       vm.model_data['barcodes'] = [];
 
-	  vm.model_data['format_types'] = [];
+      vm.model_data['format_types'] = [];
       var key_obj = {};//{'format1': 'SKUCode', 'format2': 'Details', 'format3': 'Details', 'Bulk Barcode': 'Details'};
       vm.service.apiCall('get_format_types/').then(function(data){
         $.each(data['data']['data'], function(ke, val){
@@ -338,7 +368,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
           });
           key_obj = data['data']['data'];
       });
-	  var elem = angular.element($('#add-customer'));
+      var elem = angular.element($('#add-customer'));
       elem = elem[0];
       elem = $(elem).serializeArray();
       var list = [];
@@ -351,22 +381,21 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
         if(masters.indexOf(key['name']) != -1){
             onetime_data[key['name']] = key['value'];
         }
-      	if(!dict.hasOwnProperty(key['name'])){
-        	dict[key['name']] = key['value'];
-      	}else{
-            angular.extend(dict, onetime_data)
-        	list.push(dict);
-         	dict = {}
-            dict[key['name']] = key['value'];
-      	}
+        if(!dict.hasOwnProperty(key['name'])){
+          dict[key['name']] = key['value'];
+        }else{
+          angular.extend(dict, onetime_data)
+          list.push(dict);
+          dict = {}
+          dict[key['name']] = key['value'];
+        }
       });
       if(dict.hasOwnProperty('sku_code')){
           angular.extend(dict, onetime_data)
-	      list.push(dict);
+          list.push(dict);
       }
-	  vm.model_data['barcodes'] = list;
+      vm.model_data['barcodes'] = list;
       vm.model_data.have_data = true;
-      //$state.go('app.inbound.RevceivePo.barcode');
       var modalInstance = $modal.open({
         templateUrl: 'views/outbound/toggle/shipment_barcodes.html',
         controller: 'Barcodes',
@@ -458,7 +487,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
                 imei_order_id = vm.model_data.data[0].order_id;
               }
           }
-        if(!vm.model_data.data[0].serial_number.length) 
+        if(!vm.model_data.data[0].serial_number.length)
           {
            var check_imei_dict = {is_shipment: true, imei: imei, order_id: imei_order_id, groupby: vm.group_by}
            vm.service.apiCall('check_imei/', 'GET', check_imei_dict).then(function(data){
@@ -654,6 +683,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
                       vm.model_data.sel_cartons[vm.carton_code] = 1;
                     }
                     vm.model_data.data[i].sub_data[last_index].pack_reference = vm.carton_code;
+                    vm.model_data.data[i].sub_data[last_index].box_num = vm.box_num;
                   }
 
                   // if (!vm.model_data.data[i].sub_data[last_index].pack_reference) {

@@ -446,7 +446,7 @@ def get_search_params(request, user=''):
                     'order[0][column]': 'order_index', 'from_date': 'from_date', 'to_date': 'to_date',
                     'wms_code': 'wms_code',
                     'supplier': 'supplier', 'sku_code': 'sku_code', 'category': 'sku_category',
-                    'sku_category': 'sku_category', 'sku_type': 'sku_type',
+                    'sku_category': 'sku_category', 'sku_type': 'sku_type','sister_warehouse':'sister_warehouse',
                     'class': 'sku_class', 'zone_id': 'zone', 'location': 'location', 'open_po': 'open_po',
                     'marketplace': 'marketplace',
                     'special_key': 'special_key', 'brand': 'sku_brand', 'stage': 'stage', 'jo_code': 'jo_code',
@@ -502,7 +502,7 @@ def get_search_params(request, user=''):
 data_datatable = {  # masters
     'SKUMaster': 'get_sku_results', 'SupplierMaster': 'get_supplier_results', \
     'SupplierSKUMappingMaster': 'get_supplier_mapping', 'CustomerMaster': 'get_customer_master', \
-    'BOMMaster': 'get_bom_results', 'CustomerSKUMapping': 'get_customer_sku_mapping', \
+    'BOMMaster': 'get_bom_results', 'CustomerSKUMapping': 'get_customer_sku_mapping', 'SKUPackMaster' :'get_sku_pack_master',\
     'WarehouseMaster': 'get_warehouse_user_results', 'VendorMaster': 'get_vendor_master_results', \
     'DiscountMaster': 'get_discount_results', 'CustomSKUMaster': 'get_custom_sku_properties', \
     'SizeMaster': 'get_size_master_data', 'PricingMaster': 'get_price_master_results', \
@@ -2742,12 +2742,17 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     display_customer_sku = get_misc_value('display_customer_sku', user.id)
     show_imei_invoice = get_misc_value('show_imei_invoice', user.id)
     invoice_remarks = get_misc_value('invoice_remarks', user.id)
+    invoice_declaration = get_misc_value('invoice_declaration', user.id)
     show_disc_invoice = get_misc_value('show_disc_invoice', user.id)
     show_mrp = get_misc_value('show_mrp', user.id)
 
     if len(invoice_remarks.split("<<>>")) > 1:
         invoice_remarks = invoice_remarks.split("<<>>")
         invoice_remarks = "\n".join(invoice_remarks)
+
+    if len(invoice_declaration.split("<<>>")) > 1:
+        invoice_declaration = invoice_declaration.split("<<>>")
+        invoice_declaration = "\n".join(invoice_declaration)
 
     if display_customer_sku == 'true':
         customer_sku_codes = CustomerSKU.objects.filter(sku__user=user.id).exclude(customer_sku_code='').values(
@@ -3070,6 +3075,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'hsn_summary': hsn_summary,
                     'hsn_summary_display': get_misc_value('hsn_summary', user.id), 'seller_address': seller_address,
                     'customer_address': customer_address, 'invoice_remarks': invoice_remarks,
+                    'invoice_declaration':invoice_declaration,
                     'show_disc_invoice': show_disc_invoice,
                     'seller_company': seller_company, 'sequence_number': _sequence, 'order_reference': order_reference,
                     'order_reference_date_field': order_reference_date_field,
@@ -3581,6 +3587,7 @@ def search_wms_data(request, user=''):
     master_data = query_objects.filter(Q(wms_code__exact=search_key) | Q(sku_desc__exact=search_key), user=user.id)
     if master_data:
         master_data = master_data[0]
+
         total_data.append({'wms_code': master_data.wms_code, 'sku_desc': master_data.sku_desc, \
                            'measurement_unit': master_data.measurement_type,
                            'load_unit_handle': master_data.load_unit_handle,
@@ -4939,7 +4946,6 @@ def generate_barcode_dict(pdf_format, myDicts, user):
                     single.update()
                     single['SKUCode'] = sku if sku else label
                     single['Label'] = label if label else sku
-
                     if barcode_opt == 'sku_ean' and sku_data.ean_number:
                         single['Label'] = str(sku_data.ean_number)
                     single['SKUPrintQty'] = quant
@@ -5033,9 +5039,11 @@ def generate_barcode_dict(pdf_format, myDicts, user):
                 single.update()
                 single['SKUCode'] = sku if sku else label
                 single['Label'] = label if label else sku
-
                 if barcode_opt == 'sku_ean' and sku_data.ean_number:
                     single['Label'] = str(sku_data.ean_number)
+                if barcode_opt == 'sku_pack' :
+                    single['Label'] = myDict['pack_id']
+                    single['pack_id'] = myDict['pack_id']
                 single['SKUPrintQty'] = quant
                 for show_keys1 in show_fields:
                     show_keys2 = [show_keys1]
@@ -5094,7 +5102,6 @@ def generate_barcode_dict(pdf_format, myDicts, user):
                 single['Customer Address'] = c_details[0].address if c_details else ''
                 single['Customer Telephone'] = c_details[0].phone_number if c_details else ''
                 single['Customer Email'] = c_details[0].email_id if c_details else ''
-
             address = user_prf.address
             if BARCODE_ADDRESS_DICT.get(user.username, ''):
                 address = BARCODE_ADDRESS_DICT.get(user.username)
@@ -5102,7 +5109,6 @@ def generate_barcode_dict(pdf_format, myDicts, user):
             if "bulk" in pdf_format.lower():
                 single['Qty'] = single['SKUPrintQty']
                 single['SKUPrintQty'] = "1"
-
             barcodes_list.append(single)
     log.info(barcodes_list)
     return get_barcodes(make_data_dict(barcodes_list, user_prf, pdf_format))
@@ -5234,7 +5240,7 @@ def get_purchase_order_data(order):
         utgst_tax = 0
         cess_tax = 0
         tin_number = ''
-    order_data = {'order_quantity': order_quantity, 'price': price, 'mrp': mrp, 'wms_code': sku.wms_code,
+    order_data = {'order_quantity': order_quantity, 'price': price, 'mrp': mrp,'wms_code': sku.wms_code,
                   'sku_code': sku.sku_code, 'supplier_id': user_data.id, 'zone': sku.zone,
                   'qc_check': sku.qc_check, 'supplier_name': username, 'gstin_number': gstin_number,
                   'sku_desc': sku.sku_desc, 'address': address, 'unit': unit, 'load_unit_handle': sku.load_unit_handle,
@@ -7027,16 +7033,17 @@ def fetch_unit_price_based_ranges(dest_loc_id, level, admin_id, wms_code):
 def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_objs, is_distributor,
                          order_summary_dict, ship_to, corporate_po_number, client_name, admin_user, sku_total_qty_map,
                          order_user_sku, order_user_objs, address_selected=''):
+    order_data1 = copy.deepcopy(order_data)
     order_data_excluding_keys = ['warehouse_level', 'margin_data', 'el_price', 'del_date']
-    order_unit_price = order_data['unit_price']
-    el_price = order_data.get('el_price', 0)
-    del_date = order_data.get('del_date', '')
+    order_unit_price = order_data1['unit_price']
+    el_price = order_data1.get('el_price', 0)
+    del_date = order_data1.get('del_date', '')
     if not is_distributor:
 
-        sku_code = order_data['sku_code']
-        qty = order_data['quantity']
+        sku_code = order_data1['sku_code']
+        qty = order_data1['quantity']
         total_qty = sku_total_qty_map[sku_code]
-        price_ranges_map = fetch_unit_price_based_ranges(user_id, order_data['warehouse_level'],
+        price_ranges_map = fetch_unit_price_based_ranges(user_id, order_data1['warehouse_level'],
                                                          admin_user.id, sku_code)
         if price_ranges_map.has_key('price_ranges'):
             max_unit_ranges = [i['max_unit_range'] for i in price_ranges_map['price_ranges']]
@@ -7044,17 +7051,17 @@ def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_obj
             for each_map in price_ranges_map['price_ranges']:
                 min_qty, max_qty, price = each_map['min_unit_range'], each_map['max_unit_range'], each_map['price']
                 if min_qty <= total_qty <= max_qty:
-                    order_data['unit_price'] = price
+                    order_data1['unit_price'] = price
                     invoice_amount = get_tax_inclusive_invoice_amt(cm_id, price, qty, user_id, sku_code, admin_user)
-                    order_data['invoice_amount'] = invoice_amount
+                    order_data1['invoice_amount'] = invoice_amount
                     break
                 elif max_qty >= highest_max:
-                    order_data['unit_price'] = price
+                    order_data1['unit_price'] = price
                     invoice_amount = get_tax_inclusive_invoice_amt(cm_id, price, qty, user_id, sku_code, admin_user)
-                    order_data['invoice_amount'] = invoice_amount
+                    order_data1['invoice_amount'] = invoice_amount
 
 
-        dist_order_copy = copy.copy(order_data)
+        dist_order_copy = copy.deepcopy(order_data1)
         # dist_order_copy['user'] = user_id
         customer_user = WarehouseCustomerMapping.objects.filter(warehouse_id=user_id)
         if customer_user:
@@ -7079,10 +7086,10 @@ def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_obj
             order_detail = order_obj[0]
 
     else:
-        order_obj = OrderDetail.objects.filter(order_id=order_data['order_id'],
-                                               sku_id=order_data['sku_id'],
-                                               order_code=order_data['order_code'])
-        dist_order_copy = copy.copy(order_data)
+        order_obj = OrderDetail.objects.filter(order_id=order_data1['order_id'],
+                                               sku_id=order_data1['sku_id'],
+                                               order_code=order_data1['order_code'])
+        dist_order_copy = copy.deepcopy(order_data)
         # Distributor can place order directly to any wh/distributor
         for exc_key in order_data_excluding_keys:
             if exc_key in dist_order_copy:
@@ -7101,13 +7108,13 @@ def create_generic_order(order_data, cm_id, user_id, generic_order_id, order_obj
     # Collecting needed data for Picklist generation
     order_user_sku.setdefault(order_detail.user, {})
     order_user_sku[order_detail.user].setdefault(order_detail.sku, 0)
-    order_user_sku[order_detail.user][order_detail.sku] += order_data['quantity']
+    order_user_sku[order_detail.user][order_detail.sku] += order_data1['quantity']
 
     # Collecting User order objs for picklist generation
     order_user_objs.setdefault(order_detail.user, [])
     order_user_objs[order_detail.user].append(order_detail)
 
-    create_grouping_order_for_generic(generic_order_id, order_detail, cm_id, order_data['user'], order_data['quantity'],
+    create_grouping_order_for_generic(generic_order_id, order_detail, cm_id, order_data1['user'], order_data1['quantity'],
                                       corporate_po_number, client_name, order_unit_price, el_price, del_date)
 
 
@@ -7853,6 +7860,17 @@ def get_incremental(user, type_name, default_val=''):
         count = default
     return count
 
+def get_decremental(user, type_name, old_pack_ref_no):
+    # custom sku counter
+    data = IncrementalTable.objects.filter(user=user.id, type_name=type_name)
+    if data:
+        data = data[0]
+        if int(data.value) == int(old_pack_ref_no) :
+            data.value = data.value - 1
+        data.save()
+        return 'Success'
+    else:
+        return 'Fail'
 
 def check_and_update_incremetal_type_val(table_value, user, type_name):
     table_value = int(table_value)

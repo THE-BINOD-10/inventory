@@ -92,9 +92,9 @@
             <div class="col-md-2 col-sm-4 col-xs-6 mb10">
               <button ng-hide="showCase.permissions.user_type == 'warehouse' || showCase.permissions.user_type == 'distributor'" type="submit" class="btn btn-primary" style="width: 100%" ng-click="showCase.raise_stock_transfer()" ng-disabled="showCase.bt_disable" ng-if="showCase.pop_buttons">Raise Stock Transfer</button>
             </div>
-            <!-- <div class="col-md-2 col-sm-4 col-xs-6 mb10">
-              <button type="submit" class="btn btn-primary" style="width: 100%" ng-click="showCase.reassign_order()" ng-disabled="showCase.bt_disable" ng-if="showCase.pop_buttons">Reassign Order</button>
-            </div> -->
+            <div class="col-md-2 col-sm-4 col-xs-6 mb10">
+              <button type="submit" class="btn btn-primary" style="width: 100%" ng-click="showCase.send_order_back()" ng-disabled="showCase.bt_disable" ng-if="showCase.pop_buttons && showCase.permissions.central_order_reassigning">Send Order Back</button>
+            </div>
             <!--<button type="submit" class="btn btn-primary pull-right" ng-disabled="showCase.bt_disable" style="margin-right:10px;" ng-click="showCase.transfer()">Transfer Order</button>-->
             <div class="col-md-2 col-sm-4 col-xs-6 mb10">
               <input name="ship_reference" class="pull-right form-control" ng-model="showCase.ship_reference" type="text" placeholder="Enter Shipment Reference">

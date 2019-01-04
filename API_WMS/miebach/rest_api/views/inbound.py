@@ -968,6 +968,7 @@ def switches(request, user=''):
                        'display_remarks_mail': 'display_remarks_mail',
                        'create_seller_order': 'create_seller_order',
                        'invoice_remarks': 'invoice_remarks',
+                        'invoice_declaration':'invoice_declaration',
                        'show_disc_invoice': 'show_disc_invoice',
                        'serial_limit': 'serial_limit',
                        'increment_invoice': 'increment_invoice',
@@ -1003,7 +1004,9 @@ def switches(request, user=''):
                        'receive_po_invoice_check': 'receive_po_invoice_check',
                        'mark_as_delivered': 'mark_as_delivered',
                        'order_exceed_stock': 'order_exceed_stock',
-                       'receive_po_mandatory_fields': 'receive_po_mandatory_fields'
+                       'receive_po_mandatory_fields': 'receive_po_mandatory_fields',
+                       'sku_pack_config': 'sku_pack_config',
+                       'central_order_reassigning':'central_order_reassigning',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -4625,6 +4628,7 @@ def confirm_add_po(request, sales_data='', user=''):
         if ean_data:
             ean_flag = True
 
+
         all_data = get_raisepo_group_data(user, myDict)
 
         for key, value in all_data.iteritems():
@@ -4637,6 +4641,7 @@ def confirm_add_po(request, sales_data='', user=''):
                 if eans:
                     ean_number = eans[0]
 
+            ean_number = int(sku_id[0].ean_number)
             if not sku_id:
                 sku_id = SKUMaster.objects.filter(wms_code='TEMP', user=user.id)
                 po_suggestions['wms_code'] = key.upper()
@@ -8958,6 +8963,28 @@ def confirm_central_po(request, user=''):
                  str(get_local_date(user, datetime.datetime.now())) + "and error statement is " + str(e))
         return HttpResponse("Create PO Failed")
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def check_sku_pack_scan(request, user=''):
+    pack_id = request.GET.get('pack_id')
+    status =''
+    flag = 0
+    try:
+        pack_obj = SKUPackMaster.objects.get(pack_id = pack_id,sku__user = user.id)
+        if pack_obj :
+            sku_code = pack_obj.sku.wms_code
+            status = "Sku Pack  matched"
+            flag = True
+            quantity = pack_obj.pack_quantity
+    except Exception as e:
+            status = "Sku Pack Doesnot matched"
+            flag = False
+            quantity =0
+            sku_code =0
+            log.info('some thing went wrong  %s %s %s' % (str(user.username),str(request.POST.dict()), str(e)))
+
+    return HttpResponse(json.dumps({'status' :status,"sku_code":sku_code,"quantity":quantity,"flag":flag}))
 
 @csrf_exempt
 @login_required
@@ -9018,3 +9045,4 @@ def download_grn_invoice_mapping(request, user=''):
     resp = HttpResponse(stringio.getvalue(), content_type="application/x-zip-compressed")
     resp['Content-Disposition'] = 'attachment; filename=%s' % zip_filename
     return resp
+

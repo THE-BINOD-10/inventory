@@ -1080,8 +1080,8 @@ def confirm_po(request, user=''):
     show_cess_tax = False
     myDict = dict(request.POST.iterlists())
     display_remarks = get_misc_value('display_remarks_mail', user.id)
-    ean_data = SKUMaster.objects.filter(wms_code__in=myDict['wms_code'], user=user.id).values_list(
-        'ean_number').exclude(ean_number=0)
+    ean_data = SKUMaster.objects.filter(Q(ean_number__gt=0) | Q(eannumbers__isnull=False),
+                                        wms_code__in=myDict['wms_code'], user=user.id).values_list('ean_number')
     if ean_data:
         ean_flag = True
     all_data = get_raisepo_group_data(user, myDict)
@@ -1215,7 +1215,11 @@ def confirm_po(request, user=''):
                         purchase_order.cgst_tax,
                         purchase_order.igst_tax, purchase_order.cess_tax, purchase_order.utgst_tax, total_sku_amt]
         if ean_flag:
-            po_temp_data.insert(1, purchase_order.sku.ean_number)
+            ean_number = 0
+            eans = get_sku_ean_list(purchase_order.sku)
+            if eans:
+                ean_number = eans[0]
+            po_temp_data.insert(1, ean_number)
         if display_remarks == 'true':
             po_temp_data.append(purchase_order.remarks)
 
@@ -4615,8 +4619,9 @@ def confirm_add_po(request, sales_data='', user=''):
         myDict = sales_data
     try:
         log.info('Request params for Confirm Add Po for ' + user.username + ' is ' + str(myDict))
-        ean_data = SKUMaster.objects.filter(wms_code__in=myDict['wms_code'], user=user.id).values_list(
-            'ean_number').exclude(ean_number=0)
+        ean_data = SKUMaster.objects.filter(Q(ean_number__gt=0) | Q(eannumbers__isnull=False),
+                                            wms_code__in=myDict['wms_code'], user=user.id).values_list(
+            'ean_number')
         if ean_data:
             ean_flag = True
 
@@ -4628,7 +4633,9 @@ def confirm_add_po(request, sales_data='', user=''):
 
             ean_number = 0
             if sku_id:
-                ean_number = int(sku_id[0].ean_number)
+                eans = get_sku_ean_list(sku_id[0])
+                if eans:
+                    ean_number = eans[0]
 
             if not sku_id:
                 sku_id = SKUMaster.objects.filter(wms_code='TEMP', user=user.id)
@@ -4948,7 +4955,12 @@ def confirm_po1(request, user=''):
             purchase_orders = OpenPO.objects.filter(supplier_id=val, status__in=['Manual', 'Automated', ''],
                                                     order_type=status_dict[key],
                                                     sku__user=user.id)
-            if list(purchase_orders.exclude(sku__ean_number=0).values_list('sku__ean_number', flat=True)):
+            po_sku_ids = purchase_orders.values_list('sku_id', flat=True)
+
+            ean_data = SKUMaster.objects.filter(Q(ean_number__gt=0) | Q(eannumbers__isnull=False),
+                                                id__in=po_sku_ids, user=user.id).\
+                                                values_list('ean_number')
+            if list(ean_data):
                 ean_flag = True
             for purchase_order in purchase_orders:
                 data_id = purchase_order.id
@@ -4996,7 +5008,11 @@ def confirm_po1(request, user=''):
                 if purchase_order.cess_tax:
                     show_cess_tax = True
                 if ean_flag:
-                    po_temp_data.insert(1, purchase_order.sku.ean_number)
+                    ean_number = 0
+                    eans = get_sku_ean_list(purchase_order.sku)
+                    if eans:
+                        ean_number = eans[0]
+                    po_temp_data.insert(1, ean_number)
                 if display_remarks == 'true':
                     po_temp_data.append(purchase_order.remarks)
                 po_data.append(po_temp_data)

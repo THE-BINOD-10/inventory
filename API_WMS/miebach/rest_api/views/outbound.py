@@ -1575,7 +1575,7 @@ def check_req_min_order_val(user, skus):
     sku_qty_map = {}
     sku_objs = SKUMaster.objects.filter(wms_code__in=skus, user=user.id, threshold_quantity__gt=0)
     for sku in sku_objs:
-        qty = get_auto_po_quantity(sku)
+        qty, total_qty = get_auto_po_quantity(sku)
         supplier_id, price, taxes = auto_po_warehouses(sku, qty)
         sku_qty_map[sku.sku_code] = (qty, price)
         if price:

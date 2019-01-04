@@ -2861,7 +2861,6 @@ def get_customer_sku(request, user=''):
             courier_name = customer_order_summary[0].courier_name
     data = get_shipment_quantity(user, all_orders, sku_grouping)
     if data:
-        #pack_ref_no = get_incremental(user, 'shipment_pack_ref')
         return HttpResponse(json.dumps({'data': data,
                                         'shipment_id': '',
                                         'display_fields': '',
@@ -13179,7 +13178,6 @@ def update_cust_profile(request, user=''):
 @login_required
 @get_admin_user
 def print_cartons_data(request, user=''):
-
     request_dict = dict(request.POST.iterlists())
     company_info = user.userprofile.__dict__
     company_name = company_info['company_name']

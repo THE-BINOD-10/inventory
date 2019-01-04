@@ -15,14 +15,15 @@ from  rest_api.views.mail_server import send_mail_attachment
 from rest_api.views.miebach_utils import *
 from miebach_admin.models import *
 from rest_api.views.utils import *
+
 log = init_logger('logs/stockone_report_mail.log')
 
 reports_list = {'SKU List': get_sku_filter_data, 'Location Wise Stock': get_location_stock_data,
                 'Receipt Summary': get_receipt_filter_data, 'Dispatch Summary': get_dispatch_data,
-                'SKU Wise': sku_wise_purchase_data}
+                'SKU Wise': print_sku_wise_data,'Shipment Report':get_shipment_report_data}
 
 data_dict = {'sku_list': 'SKU List', 'location_wise_stock': 'Location Wise Stock', 'receipt_note': 'Receipt Summary',
-             'dispatch_summary': 'Dispatch Summary', 'sku_wise': 'SKU Wise'}
+             'dispatch_summary': 'Dispatch Summary', 'sku_wise': 'SKU Wise','shipment_report':'Shipment Report'}
 
 
 class MailReports:

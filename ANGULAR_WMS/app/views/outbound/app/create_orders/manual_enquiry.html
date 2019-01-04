@@ -1,5 +1,24 @@
+<style>
+  div.dyn_imgs {
+    float: left;
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    width: 210px;
+    height: 150px;
+    max-width: 200px;
+    overflow: hidden;
+  }
+  .dyn_imgs img {
+    cursor: pointer;
+    min-height: 100%;
+  }
+  .dyn_imgs img:hover {
+    height: 100%;
+  }
+</style>
+
 <div class="order_details" ng-controller="AppManualEnquiry as Enquiry">
-  <div class="row style-menu" style="line-height: 40px;">
+  <div class="row style-menu" style="line-height: 40px;" >
     <div class="col-md-4 col-sm-4 col-xs-6">
     </div>
     <div class="col-md-4 col-sm-4 hidden-xs" align="center">
@@ -7,10 +26,19 @@
       <img ng-src="{{showCase.api_url}}static/company_logos/{{Enquiry.client_logo}}" ng-if="Enquiry.client_logo" style="height: 43px;"/>
     </div>
     <div class="col-md-4 col-sm-4 col-xs-6">
-      <a class="fa fa-power-off pull-right fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" ng-click="showCase.logout()"></a>
-      <a href="" class="pull-right hide" ng-click="$state.go('user.App.Cart')">
-          <i class="fa fa-cart-plus fa-2x" style="color:#fff;padding-right: 10px;padding-top: 5px;" title="Go To Cart Page"></i>
-      </a>
+      <div class="btn-group pull-right" role="group">
+        <a class="" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          <i class="fa fa-user fa-2x" style="color:#fff;padding-right: 10px;padding-top: 10px;"></i>
+        </a>
+        <ul class="dropdown-menu">
+          <li><a ng-click="$state.go('user.App.MyOrders');showCase.get_orders();">Your Orders</a></li>
+          <li><a ng-click="$state.go('user.App.Profile')">Profile</a></li>
+          <li><a ng-click="$state.go('user.App.ManualEnquiry');">Create Custom Order</a></li>
+          <li ng-if="showCase.permissions.display_sku_cust_mapping"><a ng-click="$state.go('user.App.PendingOrder');">Pending Order</a></li>
+          <li><a ng-click="showCase.logout()">Logout</a></li>
+        </ul>
+      </div>
+      <a class="hide fa fa-power-off pull-right fa-2x" style="color:#fff;padding-right: 10px;padding-top: 10px;" ng-click="showCase.logout()"></a>
     </div>
   </div>
   <div class="clearfix app_body" style="padding-top: 20px; padding-bottom:20px;">
@@ -34,7 +62,7 @@
             </div>
             <i ng-if="$ctrl.categories_loading" class="fa fa-spinner fa-spin fa-2x fa-fw mt5"></i>
           </div>
-          <div class="form-group">
+          <!-- <div class="form-group">
             <label class="col-sm-5 col-xs-5 control-label">Choose Categories *</label>
             <div class="col-sm-3 col-xs-5">
               <select class="form-control" name="choose_category" ng-disabled="Enquiry.categories_loading" ng-model="Enquiry.category" ng-change="Enquiry.get_styles(Enquiry.category)" ng-required="true">
@@ -44,15 +72,14 @@
               </select>
             </div>
             <i ng-if="Enquiry.categories_loading" class="fa fa-spinner fa-spin fa-2x fa-fw mt5"></i>
-          </div>
+          </div> -->
           <div class="form-group">
             <label class="col-sm-5 col-xs-5 control-label">Choose Style *</label>
             <div class="col-sm-3 col-xs-5">
-              <select ui-select2 class="form-control sku-id-select" 
-                       name="choose_stype" 
-                       ng-disabled="Enquiry.styles_loading || Enquiry.styles.length == 0" 
-                       ng-model="Enquiry.model_data.sku_id" 
-                       ng-change="Enquiry.select_style(Enquiry.model_data.sku_id, Enquiry.styles)" 
+              <select ui-select2 class="form-control sku-id-select"
+                       name="choose_stype"
+                       ng-model="Enquiry.model_data.sku_id"
+                       ng-change="Enquiry.select_style(Enquiry.model_data.sku_id, Enquiry.styles)"
                        ng-required="false">
                   <option ng-selected="Enquiry.style == ''" value="">None</option>
                   <option ng-repeat="style in Enquiry.styles" ng-selected="Enquiry.model_data.sku_id == style.sku_class" value="{{style.sku_class}}">{{style.sku_class}}</option>
@@ -71,8 +98,16 @@
                 <div class="col-md-8 col-sm-8 col-xs-7" style="padding-left: 20px;">
                   <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>Style Name: {{Enquiry.selected_style.sku_class}}</b></h4>
                   <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>Description: {{Enquiry.selected_style.sku_desc}}</b></h4>
-                  <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>MSP: {{Enquiry.selected_style.variants[0].your_price}}</b></h4>
-                  <h4 align="left" style="margin-bottom:0px;font-size: 14px;"><b>MRP: {{Enquiry.selected_style.variants[0].mrp}}</b></h4>
+                  <h4 align="left" style="margin-bottom:0px;font-size: 14px;">
+                    <b>MSP: {{Enquiry.selected_style.variants[0].your_price}}</b> &nbsp;&nbsp;&nbsp;
+                    <b>BuyPrice: {{Enquiry.selected_style.variants[0].price_ranges[0].buy_price}}</b> &nbsp;&nbsp;&nbsp;
+                    <b>MRP: {{Enquiry.selected_style.variants[0].mrp}}</b>
+                  </h4>
+                  <h4 align="left" style="margin-bottom:0px;font-size: 14px;">
+                    <b>Stock: {{Enquiry.selected_style.style_quantity}}</b> &nbsp;&nbsp;&nbsp;
+                    <b>Intransit: {{ Enquiry.selected_style.asn_quantity }}</b> &nbsp;&nbsp;&nbsp;
+                    <b>Blocked Qty: {{ Enquiry.selected_style.blocked_qty }}</b>
+                  </h4>
                   <div ng-if="Enquiry.selected_style.variants[0].price_ranges.length > 0">
                     <table class="table table-bordered mb0 mt5" style="font-size:10px;">
                       <tbody>
@@ -98,15 +133,21 @@
           <div class="form-group">
             <label class="col-sm-5 col-xs-5 control-label">Choose Customization Type *</label>
             <div class="col-sm-3 col-xs-5" ng-init="Enquiry.model_data.customization_type = 'price_custom'">
-              <select class="form-control" ng-model="Enquiry.model_data.customization_type" ng-required="true">
+              <select class="form-control" ng-model="Enquiry.model_data.customization_type" ng-change="Enquiry.clearFiles()" ng-required="true">
                 <option ng-repeat="(key, value) in Enquiry.customization_types" ng-selected="Enquiry.model_data.customization_type == key" value="{{key}}">{{value}}</option>
               </select>
             </div>
           </div>
           <div class="form-group" ng-if="Enquiry.model_data.customization_type != 'product_custom'">
-            <label class="col-sm-5 col-xs-5 control-label">Ask Price *</label>
+            <label class="col-sm-5 col-xs-5 control-label">Ask Price Per Unit *</label>
             <div class="col-sm-3 col-xs-5">
               <input type="text" name="ask_price" decimal-number ng-model="Enquiry.model_data.ask_price" class="form-control" ng-required="true">
+            </div>
+          </div>
+          <div class="form-group" ng-if="Enquiry.model_data.customization_type != 'product_custom'">
+            <label class="col-sm-5 col-xs-5 control-label">Apprx Client PO Rate *</label>
+            <div class="col-sm-3 col-xs-5">
+              <input type="text" name="client_po_rate" decimal-number ng-model="Enquiry.model_data.client_po_rate" class="form-control" ng-required="true">
             </div>
           </div>
           <div class="form-group" ng-if="Enquiry.model_data.customization_type != 'product_custom'">
@@ -116,12 +157,13 @@
             </div>
           </div>
           <div class="form-group">
-            <label class="col-sm-5 col-xs-5 control-label">Expected Date *</label>
+            <label class="col-sm-5 col-xs-5 control-label">Approximate Delivery Date</label>
             <div class="col-sm-3 col-xs-5">
-              <input type="date" name="expected_date" ng-model="Enquiry.model_data.expected_date" class="form-control" ng-required="true">
+              <input type="date" name="expected_date" ng-model="Enquiry.model_data.expected_date" class="form-control">
             </div>
           </div>
-          <div class="form-group" ng-init="Enquiry.custom_remarks = [{'remark': ''}]">
+          <div class="form-group" ng-if="Enquiry.model_data.customization_type != 'price_custom'" ng-init="Enquiry.custom_remarks = [{'remark': ''}]">
+          <!-- <div class="form-group" ng-init="Enquiry.custom_remarks = [{'remark': ''}]"> -->
             <label class="col-sm-5 col-xs-5 control-label">Customization Requirements</label>
             <div class="col-sm-3 col-xs-5">
               <div ng-repeat="remark in Enquiry.custom_remarks">
@@ -136,28 +178,22 @@
               <textarea type="text" name="remarks" ng-model="Enquiry.model_data.remarks" class="form-control" ng-required="true"></textarea>
             </div>
           </div>
-          <div class="form-group">
+          <div class="form-group" ng-show="Enquiry.model_data.customization_type != 'price_custom'">
             <label class="col-sm-5 col-xs-5 control-label">Choose Images </label>
             <div class="col-sm-3 col-xs-5">
               <span class="btn btn-primary up-btn" style="position: relative;overflow: hidden;width: 250px;">Choose File
-                <input style="position: absolute;
-                                top: 0;
-                                right: 0;
-                                min-width: 100%;
-                                min-height: 100%;
-                                font-size: 100px;
-                                text-align: right;
-                                filter: alpha(opacity=0);
-                                opacity: 0;
-                                outline: none;
-                                background: white;
-                                cursor: inherit;
-                                display: block;" class="btn btn-primary" type = "file" name="files" id="image-upload" multi-image-upload multiple/>
-              </span><br>
-               <span ng-if="Enquiry.upload_name.length > 0"><b>FILES :</b> {{Enquiry.upload_name.join(", ")}}. </span>
+                <input type="file" style="position: absolute; top: 0; right: 0; min-width: 100%; min-height: 100%; font-size: 100px; text-align: right; filter: alpha(opacity=0); opacity: 0; outline: none; background: white; cursor: inherit; display: block" class="btn btn-primary" type = "file" name="files" id="image-upload" multi-image-upload multiple/>
+              </span>
             </div>
           </div>
-          <button style="display:block;margin:auto;margin-top:40px;" type="submit" class="btn btn-warning btn-round" ng-disabled="Enquiry.uploading" ng-click="Enquiry.place(form)">{{(Enquiry.uploading)?'Placing Enquiry':'Place Enquiry';}}</button>
+          <div class="row form-group" ng-show="Enquiry.model_data.customization_type != 'price_custom'">
+            <div class="col-lg-2 col-md-2"></div>
+            <div class="col-lg-8 col-md-8 col-sm-12 col-xs-12 multi_imgs_display"></div>
+            <div class="col-lg-2 col-md-2"></div>
+          </div>
+          <div class="row mt10">
+            <button style="display:block;margin:auto;margin-top:40px;" type="submit" class="btn btn-warning btn-round" ng-disabled="Enquiry.uploading" ng-click="Enquiry.place(form)">{{(Enquiry.uploading)?'Placing Enquiry':'Place Enquiry';}}</button>
+          </div>
         </div>
       </div>
       </form>

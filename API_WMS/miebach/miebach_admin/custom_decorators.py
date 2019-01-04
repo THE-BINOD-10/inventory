@@ -6,6 +6,7 @@ from datetime import datetime
 from models import UserProfile, UserAccessTokens, AdminGroups, CustomerUserMapping
 from django.contrib.auth.models import User,Permission,Group
 from django.http import HttpResponse
+from django.contrib.auth import authenticate, login, logout as wms_logout
 from django.contrib.auth.decorators import login_required as django_login_required
 import re
 import json
@@ -56,7 +57,7 @@ def login_required(f):
     """Login Decorator """
     def wrap(request, *args, **kwargs):
         """ this check the session if userid key exist, if not it will redirect to login page """
-        response_data = {'data': {}, 'message': 'invalid user'}
+        response_data = {'data': {}, 'message': 'invalid user', 'status': 401}
         if not request.user.is_authenticated():
             if django_login_required(request):
                 from oauth2_provider.models import AccessToken
@@ -68,7 +69,14 @@ def login_required(f):
                     request.user = objs[0].application.user
                     return f(request, *args, **kwargs)
                 else:
-                    return HttpResponse(json.dumps(response_data))
+                    try:
+                        temp_abs_url = request.get_full_path()
+                        if temp_abs_url.split('/')[1] == 'api':
+                            return HttpResponse(json.dumps(response_data), status=401)
+                        else:
+                            return HttpResponse(json.dumps(response_data))
+                    except:
+                        return HttpResponse(json.dumps(response_data))
             else:
                 return HttpResponse(json.dumps(response_data))
 
@@ -107,6 +115,18 @@ def get_admin_user(f):
                 user = User.objects.get(id=user_id)
 
         kwargs['user'] = user
+        return f(request, *args, **kwargs)
+    wrap.__doc__ = f.__doc__
+    wrap.__name__ = f.__name__
+    return wrap
+
+
+def check_customer_user(f):
+    def wrap(request, *args, **kwargs):
+        if request.user.is_authenticated():
+            user_prof = UserProfile.objects.filter(user_id=request.user.id)
+            if user_prof and user_prof[0].user_type == 'customer':
+                wms_logout(request)
         return f(request, *args, **kwargs)
     wrap.__doc__ = f.__doc__
     wrap.__name__ = f.__name__

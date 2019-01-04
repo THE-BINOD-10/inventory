@@ -893,7 +893,6 @@ def view_rm_picklist(request, user=''):
         headers.insert(0, 'Image')
     if get_misc_value('pallet_switch', user.id) == 'true' and 'Pallet Code' not in headers:
         headers.insert(headers.index('Location') + 1, 'Pallet Code')
-
     return HttpResponse(
         json.dumps({'data': data, 'job_code': data_id, 'show_image': show_image, 'user': request.user.id,
                     'display_update': display_update}))
@@ -919,33 +918,38 @@ def get_raw_picklist_data(data_id, user):
                 zone = location.stock.location.zone.zone
                 sequence = location.stock.location.pick_sequence
                 stock_id = location.stock_id
-
             match_condition = (location_name, pallet_detail, picklist.jo_material.material_code.sku_code)
+            location_reserved = location.reserved
+            temp_loc_reserved = get_decimal_limit(user.id, location.reserved)
+            if temp_loc_reserved > 0:
+                location_reserved = temp_loc_reserved
             if match_condition not in batch_data:
                 if pallet_detail:
                     pallet_code = location.stock.pallet_detail.pallet_code
                 else:
                     pallet_code = ''
                 if picklist.reserved_quantity == 0:
+                    #RMLocation.objects.filter(material_picklist_id=picklist.id).update(reserved=0, status=0)
                     continue
                 batch_data[match_condition] = {
                     'wms_code': location.material_picklist.jo_material.material_code.sku_code,
                     'zone': zone, 'sequence': sequence, 'location': location_name,
-                    'reserved_quantity': get_decimal_limit(user.id, location.reserved),
+                    'reserved_quantity': location_reserved,
                     'job_code': picklist.jo_material.job_order.job_code,
-                    'stock_id': stock_id, 'picked_quantity': get_decimal_limit(user.id, location.reserved),
+                    'stock_id': stock_id, 'picked_quantity': location_reserved,
                     'pallet_code': pallet_code, 'id': location.id,
                     'title': location.material_picklist.jo_material.material_code.sku_desc,
                     'image': picklist.jo_material.material_code.image_url,
-                    'measurement_type': picklist.jo_material.unit_measurement_type}
+                    'measurement_type': picklist.jo_material.unit_measurement_type,
+                    'show_imei': location.material_picklist.jo_material.material_code.enable_serial_based
+                }
             else:
                 batch_data[match_condition]['reserved_quantity'] = get_decimal_limit(user.id, float(
-                    float(batch_data[match_condition]['reserved_quantity']) + float(location.reserved)))
+                    float(batch_data[match_condition]['reserved_quantity']) + float(location_reserved)))
                 batch_data[match_condition]['picked_quantity'] = get_decimal_limit(user.id, float(
                     float(batch_data[match_condition]['picked_quantity']) + float(location.reserved)))
-
+                batch_data[match_condition]['show_imei'] = location.material_picklist.jo_material.material_code.enable_serial_based
     data = batch_data.values()
-
     data = sorted(data, key=itemgetter('sequence'))
     return data
 
@@ -958,7 +962,7 @@ def insert_rwo_po(rw_order, request, user):
     po_data = []
     if job_order.filter(status='order-confirmed'):
         return
-    po_id = get_purchase_order_id(user)
+    po_id = get_purchase_order_id(user) + 1
     for order in job_order:
         total_qty += order.product_quantity
         prefix = UserProfile.objects.get(user_id=rw_order.vendor.user).prefix
@@ -979,6 +983,8 @@ def insert_rwo_po(rw_order, request, user):
 
     profile = UserProfile.objects.get(user=user.id)
     phone_no = str(rw_order.vendor.phone_number)
+    company_logo = get_po_company_logo(user, COMPANY_LOGO_PATHS, request)
+    iso_company_logo = get_po_company_logo(user, ISO_COMPANY_LOGO_PATHS, request)
     po_reference = '%s%s_%s' % (prefix, str(po_order.creation_date).split(' ')[0].replace('-', ''), po_order.order_id)
     w_address, company_address = get_purchase_company_address(profile)
     data_dict = {'table_headers': table_headers, 'data': po_data, 'address': rw_order.vendor.address,
@@ -986,8 +992,8 @@ def insert_rwo_po(rw_order, request, user):
                  'telephone': phone_no, 'name': rw_order.vendor.name, 'order_date': order_date,
                  'total': total, 'user_name': user.username, 'total_qty': total_qty,
                  'location': profile.location, 'w_address': w_address,
-                 'company_name': profile.company_name, 'company_address': company_address}
-
+                 'company_name': profile.company_name, 'company_address': company_address,
+                 'company_logo': company_logo, 'iso_company_logo': iso_company_logo}
     check_purchase_order_created(user, po_id)
     t = loader.get_template('templates/toggle/po_download.html')
     rendered = t.render(data_dict)
@@ -1076,6 +1082,41 @@ def confirm_rm_no_stock(picklist, picking_count, count, raw_loc, request, user):
     return count
 
 
+def insert_jo_material_serial(picklist, val, user):
+    if ',' in val['imei_numbers']:
+        imei_nos = list(set(val['imei_numbers'].split(',')))
+    else:
+        imei_nos = list(set(val['imei_numbers'].split('\r\n')))
+    for imei in imei_nos:
+        imei_filter = {}
+        job_order = picklist.jo_material.job_order
+        sku_id = picklist.jo_material.material_code_id
+        po_mapping, status, imei_data = check_get_imei_details(imei, val['wms_code'], user.id,
+                                                               check_type='order_mapping',
+                                                               job_order=job_order)
+        # po_mapping = POIMEIMapping.objects.filter(purchase_order__open_po__sku__sku_code=val['wms_code'], imei_number=imei, status=1,
+        #                                          purchase_order__open_po__sku__user=user_id)
+        imei_mapping = None
+        if imei and po_mapping:
+            order_mapping = {'jo_material_id': picklist.jo_material_id, 'po_imei_id': po_mapping[0].id,
+                             'imei_number': '',
+                             'sku_id': sku_id}
+            order_mapping_ins = OrderIMEIMapping.objects.filter(po_imei_id=po_mapping[0].id,
+                                                                jo_material_id=picklist.jo_material_id)
+            if not order_mapping_ins:
+                if po_mapping[0].seller_id:
+                    order_mapping['seller_id'] = seller_id
+                imei_mapping = OrderIMEIMapping(**order_mapping)
+                imei_mapping.save()
+                po_imei = po_mapping[0]
+                log.info('%s imei code is mapped for %s and for id %s' %
+                         (str(imei), val['wms_code'], str(picklist.jo_material.job_order.job_code)))
+                if po_imei:
+                    po_imei.status = 0
+                    po_imei.save()
+    return 'success'
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -1129,7 +1170,6 @@ def rm_picklist_confirmation(request, user=''):
                     if count == 0:
                         continue
                     picklist = raw_loc.material_picklist
-
                     sku = picklist.jo_material.material_code
                     if float(picklist.reserved_quantity) > picked_quantity_val:
                         picking_count = picked_quantity_val
@@ -1142,6 +1182,8 @@ def rm_picklist_confirmation(request, user=''):
                     location = LocationMaster.objects.filter(location=val['location'], zone__user=user.id)
                     if not location:
                         return HttpResponse("Invalid Location")
+                    if 'imei_numbers' in val.keys():
+                        insert_jo_material_serial(picklist, val, user)
                     stock_dict = {'sku_id': sku.id, 'location_id': location[0].id, 'sku__user': user.id}
                     stock_detail = StockDetail.objects.filter(**stock_dict)
                     for stock in stock_detail:
@@ -1207,6 +1249,7 @@ def rm_picklist_confirmation(request, user=''):
                         picklist.reserved_quantity = 0
                     if picklist.reserved_quantity == 0:
                         picklist.status = 'picked'
+                        RMLocation.objects.filter(material_picklist_id=picklist.id).update(reserved=0, status=0)
                     if picklist.picked_quantity > 0 and picklist.jo_material.job_order.status in ['order-confirmed',
                                                                                                   'picklist_gen']:
                         if stages:
@@ -1629,9 +1672,11 @@ def group_stage_dict(all_data):
             grouping_key = data[2]
             if data[1].get('pallet_number', ''):
                 grouping_key = str(data[2]) + '<<>>' + str(data[1]['pallet_number'])
-            new_dict[key].setdefault(grouping_key, {'quantity': 0, 'pallet_list': [], 'exist_ids': []})
+            new_dict[key].setdefault(grouping_key, {'quantity': 0, 'pallet_list': [], 'exist_ids': [],
+                                                    'imeis': ''})
             new_dict[key][grouping_key]['quantity'] = float(new_dict[key][grouping_key]['quantity']) + float(data[0])
             new_dict[key][grouping_key]['pallet_list'].append({'quantity': data[0], 'pallet_dict': data[1]})
+            new_dict[key][grouping_key]['imeis'] = new_dict[key][grouping_key]['imeis'] + str(data[4])
             if data[3]:
                 new_dict[key][grouping_key]['exist_ids'].append(data[3])
     return new_dict
@@ -1663,7 +1708,7 @@ def update_status_tracking(status_trackings, quantity, user, to_add=False, save_
 
 def build_jo_data(data_list):
     new_dict = {}
-    for key in data_list:
+    for key, value in data_list.iteritems():
         job_order = JobOrder.objects.get(id=key)
         pallet_mapping = PalletMapping.objects.filter(pallet_detail__user=job_order.product_code.user,
                                                       po_location__job_order__job_code=job_order.job_code,
@@ -1676,11 +1721,13 @@ def build_jo_data(data_list):
         for status_tracking in status_trackings:
             new_dict.setdefault(key, [])
             pallet_dict = {}
+            imeis = value.get(status_tracking.status_value, {}).get('imeis', '')
             if status_tracking.status_type == 'JO-PALLET':
                 pallet = pallet_mapping.get(id=status_tracking.status_id)
                 pallet_dict = {'pallet_number': pallet.pallet_detail.pallet_code, 'pallet_id': pallet.id}
             new_dict[key].append(
-                [float(status_tracking.quantity), pallet_dict, status_tracking.status_value, status_tracking.id])
+                [float(status_tracking.quantity), pallet_dict, status_tracking.status_value, status_tracking.id,
+                 imeis])
     return new_dict
 
 
@@ -1777,7 +1824,7 @@ def save_receive_pallet(all_data, user, is_grn=False):
                                                                                  final_update_data=final_update_data,
                                                                                  updated_status_ids=updated_status_ids)
 
-    new_data = build_jo_data(all_data.keys())
+    new_data = build_jo_data(all_data)
     for final_data in final_update_data:
         update_status_tracking(*final_data)
     return new_data
@@ -1801,8 +1848,10 @@ def save_receive_jo(request, user=''):
             rec_quantity = data_dict['received_quantity'][i]
             if not rec_quantity:
                 rec_quantity = 0
+            imeis = ''
             all_data[cond].append(
-                [rec_quantity, pallet_dict, data_dict['stage'][i], data_dict['status_track_id'][i]])
+                [rec_quantity, pallet_dict, data_dict['stage'][i], data_dict['status_track_id'][i],
+                 imeis])
         save_receive_pallet(all_data, user)
 
         return HttpResponse("Saved Successfully")
@@ -1838,8 +1887,12 @@ def confirm_jo_grn(request, user=''):
             rec_quantity = data_dict['received_quantity'][i]
             if not rec_quantity:
                 rec_quantity = 0
+            imeis = ''
+            if 'imei_numbers' in data_dict.keys() and data_dict['imei_numbers'][i]:
+                imeis = data_dict['imei_numbers'][i]
             all_data[cond].append(
-                [rec_quantity, pallet_dict, data_dict['stage'][i], data_dict['status_track_id'][i]])
+                [rec_quantity, pallet_dict, data_dict['stage'][i], data_dict['status_track_id'][i],
+                 imeis])
 
         all_data = save_receive_pallet(all_data, user, is_grn=True)
 
@@ -1873,6 +1926,8 @@ def confirm_jo_grn(request, user=''):
                 locations = get_purchaseorder_locations(put_zone, temp_dict)
                 job_order.received_quantity = float(job_order.received_quantity) + float(val[0])
                 received_quantity = float(val[0])
+                if val[4]:
+                    insert_jo_mapping(val[4], job_order, user.id)
                 for loc in locations:
                     if loc.zone.zone != 'DEFAULT':
                         location_quantity, received_quantity = get_remaining_capacity(loc, received_quantity, put_zone,
@@ -3244,3 +3299,70 @@ def send_job_order_mail(request, user, job_code):
         log.info('Job Order Vendor Mail Notification failed for %s and params are %s and error statement is %s' % (
             str(user.username), str(request.POST.dict()), str(e)))
         return "Mail Sending Failed"
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def generate_jo_labels(request, user=''):
+    data_dict = dict(request.POST.iterlists())
+    order_id = request.POST.get('order_id', '')
+    pdf_format = request.POST.get('pdf_format', '')
+    data = {}
+    data['pdf_format'] = [pdf_format]
+    if not order_id:
+        return HttpResponse(json.dumps({'message': 'Please send Job Order Id', 'data': []}))
+    log.info('Request params for Generate JO Labels for ' + user.username + ' is ' + str(data_dict))
+    try:
+        serial_number = 1
+        max_serial = POLabels.objects.filter(sku__user=user.id, custom_label=0).aggregate(Max('serial_number'))['serial_number__max']
+        if max_serial:
+            serial_number = int(max_serial) + 1
+        job_orders = JobOrder.objects.filter(product_code__user=user.id, job_code=order_id)
+        creation_date = datetime.datetime.now()
+        all_po_labels = POLabels.objects.filter(sku__user=user.id, job_order__job_code=order_id, status=1)
+        for ind in range(0, len(data_dict['wms_code'])):
+            order = job_orders.filter(product_code__wms_code=data_dict['wms_code'][ind])
+            if not order:
+                continue
+            else:
+                order = order[0]
+                sku = order.product_code
+            needed_quantity = int(data_dict['quantity'][ind])
+            po_labels = all_po_labels.filter(job_order_id=order.id).order_by('serial_number')
+            data.setdefault('label', [])
+            data.setdefault('wms_code', [])
+            data.setdefault('quantity', [])
+            data.setdefault('mfg_date', [])
+            for labels in po_labels:
+                data['label'].append(labels.label)
+                data['quantity'].append(1)
+                data['wms_code'].append(labels.sku.wms_code)
+                data['mfg_date'].append(labels.creation_date.strftime("%d %B %Y"))
+                needed_quantity -= 1
+            for quantity in range(0, needed_quantity):
+                imei_numbers = data_dict.get('imei_numbers', '')
+                if imei_numbers and imei_numbers[0] != '':
+                    imei_numbers = imei_numbers[0].split(',')
+                    label = imei_numbers[quantity]
+                    data['custome_label'] = 1
+                else:
+                    label = str(user.username[:2]).upper() + (str(serial_number).zfill(5))
+                data['label'].append(label)
+                data['quantity'].append(1)
+                label_dict = {'job_order_id': order.id, 'serial_number': serial_number, 'label': label,
+                              'status': 1,
+                              'creation_date': creation_date}
+                label_dict['sku_id'] = sku.id
+                data['wms_code'].append(sku.wms_code)
+                POLabels.objects.create(**label_dict)
+                data['mfg_date'].append(creation_date.strftime("%d %B %Y"))
+                serial_number += 1
+
+        barcodes_list = generate_barcode_dict(pdf_format, data, user)
+        return HttpResponse(json.dumps(barcodes_list))
+    except Exception as e:
+        import traceback
+        log.debug(traceback.format_exc())
+        log.info("Generating Labels failed for params " + str(data_dict) + " and error statement is " + str(e))
+        return HttpResponse("Generate Labels Failed")

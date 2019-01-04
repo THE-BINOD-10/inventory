@@ -16,10 +16,11 @@
                     .then(function (resp) {
 
           resp = resp.data;
+          update_manifest(resp.data);
           if (resp.message != "Fail") {
              //setloginStatus(resp);
              Session.set(resp.data);
-            
+
           }
           return resp;
         });
@@ -72,8 +73,16 @@
         }
 
         $http.get(Session.url + "status/", {withCredentials: true}).then(function (resp) {
+          if (window.current_version) {
+            $http.get(Session.url + "service_worker_check/?current_version="+window.current_version).then(function (data) {
 
+              if (data.data.reload) {
+                location.reload();
+              }
+            })
+          }
           resp = resp.data;
+          update_manifest(resp.data);
 
           if ((resp.message != "Fail") && resp.data.userId) {
              //setloginStatus(resp);
@@ -84,22 +93,22 @@
               $state.go("app.Register");
             }
           } else {
-            
+
             $state.go("user.signin");
           }
 
           deferredStatus.resolve(resp.message);
-       
+
         }).catch(function(err){
 
             /*getloginStatus().then(function(resp){
               if((resp.message != "Fail") && resp.data.userId) {
-                 //TODO add the statusinto indexDb  
+                 //TODO add the statusinto indexDb
                  Session.set(resp.data);
                   if(resp.data.roles.permissions["setup_status"] == "true") {
                    $state.go("app.Register");
                   }
-                
+
                }else{
                  $state.go("user.signin");
                }
@@ -122,7 +131,7 @@
         $http.get(Session.url + "status/", {withCredentials: true}).then(function (resp) {
 
           resp = resp.data;
-
+          update_manifest(resp.data);
           if ((resp.message != "Fail") && resp.data.userId) {
              /*setloginStatus(resp);*/
              Session.set(resp.data);
@@ -133,6 +142,52 @@
         })
         return deferredStatus.promise;
       };
+
+      function update_manifest(resp_data) {
+        var temp_user_list = ["sagar_fab"];
+        var manifest_json = {
+            "name": "STOCKONE",
+            "short_name": "STOCKONE",
+            "icons": [
+            {
+              "src": "https://go.stockone.in/images/stockone_logo.png",
+              "sizes": "192x192",
+              "type": "image\/png"
+            },
+            {
+              "src": "https://go.stockone.in/images/stockone_logo.png",
+              "sizes": "512x512",
+              "type": "image\/png"
+            }
+          ],
+          "start_url": "/#/",
+          "display": "standalone",
+          "background_color": "#ffffff",
+          "orientation":"potrait",
+          "gcm_sender_id": "21194035295"
+        };
+        if(resp_data.parent && 'userName' in resp_data.parent && temp_user_list.indexOf(resp_data.parent.userName.toLowerCase()) != -1) {
+          manifest_json["name"] = "My Tee";
+          manifest_json["short_name"] = "My Tee";
+          manifest_json["icons"] =  [
+            {
+              "src": "https://go.stockone.in/images/MYTEE.png",
+              "sizes": "192x192",
+              "type": "image/png"
+            },
+            {
+              "src": "https://go.stockone.in/images/MYTEE.png",
+              "sizes": "512x512",
+              "type": "image/png"
+            }
+          ]
+        }
+        const stringManifest = JSON.stringify(manifest_json);
+        const blob = new Blob([stringManifest], {type: 'application/json'});
+        const manifestURL = URL.createObjectURL(blob);
+        document.querySelector('#my-manifest-placeholder').setAttribute('href', manifestURL);
+      };
+
   }]);
 
 }(window.angular));

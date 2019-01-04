@@ -13,7 +13,7 @@ $(document).ready(function(){
     //var today = new Date(),
     //month = today.toLocaleString('en-US', { month: "long" });
     //$('body').find('#date').html(today.toString().replace(/GMT.+/,""))
-    //var d = new Date();          
+    //var d = new Date();
     //var n = d.toLocaleString([], { hour12: true});
     //var data = n.split(",")
     //$('body').find('#date').html(data[0]);
@@ -118,6 +118,7 @@ $(document).ready(function(){
         <td>{{ record.location }}</td>
         {% if fmcg_industry_type %}
           <td>{{ record.batchno }}</td>
+          <!-- <td>{{ record.manufactured_date }}</td> -->
           <td>{{ record.mrp }}</td>
         {% endif %}
         <td>{{ record.reserved_quantity }}</td>

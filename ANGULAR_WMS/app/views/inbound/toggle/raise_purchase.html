@@ -22,23 +22,22 @@
           </div>
           <button type="button" class="close" ng-click="showCase.close()"><span>&times;</span> </button>
         </div>
-        <div class="modal-body raise_po"
-             ng-class="(showCase.confirm_print)? 'hide': 'show'">
-           <div ng-if="!(user.user_profile.user_type == 'marketplace_user')">
-           <div class="row" ng-if="(!(showCase.update))">
-            <div class="col-md-11 col-sm-11 col-xs-10">
-              <p align="right">Vendor Receipt</p>
-            </div>
-            <div class="col-md-1 col-sm-1 col-xs-2">
-              <label class="switch switch-sm square">
-                <div>
-                  <input type="checkbox" ng-model="showCase.vendor_receipt">
-                  <span>
-                    <i class="handle"></i>
-                  </span>
-                </div>
-              </label>
-            </div>
+        <div class="modal-body raise_po" ng-class="(showCase.confirm_print)? 'hide': 'show'">
+          <div ng-if="!(user.user_profile.user_type == 'marketplace_user')">
+            <div class="row" ng-if="(!(showCase.update)) && showCase.warehouse_type != 'CENTRAL_ADMIN'">
+              <div class="col-md-11 col-sm-11 col-xs-10">
+                <p align="right">Vendor Receipt</p>
+              </div>
+              <div class="col-md-1 col-sm-1 col-xs-2">
+                <label class="switch switch-sm square">
+                  <div>
+                    <input type="checkbox" ng-model="showCase.vendor_receipt">
+                    <span>
+                      <i class="handle"></i>
+                    </span>
+                  </div>
+                </label>
+              </div>
             </div>
           </div>
           <div class="row">
@@ -98,6 +97,30 @@
                 <input name="po_delivery_date" ui-jq="datepicker" ng-model="showCase.model_data.po_delivery_date" class="form-control stk-readonly" type="text" id="po_delivery_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{showCase.date}}">
               </div>
             </div>
+            <div class="col-md-4 col-sm-4 col-xs-6" ng-if="showCase.warehouse_type == 'CENTRAL_ADMIN'">
+              <div class="form-group">
+                <label class="control-label"> Warehouse </label>
+                <select class="form-control" name="warehouse_name" ng-model="showCase.model_data.warehouse" ng-init="showCase.model_data.warehouse=showCase.model_data.warehouse_names[0]">
+                  <option ng-repeat="type in showCase.model_data.warehouse_names" ng-selected="showCase.model_data.warehouse==type" value="{{type}}">{{type}}</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-4 col-xs-6" >
+              <div class="col-md-6 col-sm-6 col-xs-6">
+                <p align="right">Show Ean Number</p>
+              </div>
+              <div class="col-md-6 col-sm-6 col-xs-6">
+                <label class="switch switch-sm square">
+                  <div>
+                    <input type="checkbox" ng-model="showCase.show_ean_number">
+                    <span>
+                      <i class="handle"></i>
+                    </span>
+                  </div>
+                </label>
+              </div>
+
+            </div>
           </div>
           <div class="row">
             <div class="col-md-12"><hr></div>
@@ -109,7 +132,9 @@
                   <tr>
                     <th>WMS Code*</th>
                     <th>Title</th>
+                    <th ng-if="showCase.show_ean_number">EAN Number</th>
                     <th class="w10_" ng-if="!(user.user_profile.user_type == 'marketplace_user')">Supplier Code</th>
+
                     <!--<th ng-if="user.user_profile.user_type == 'marketplace_user'">Description</th>-->
                     <th class="w10_">Quantity*</th>
                     <th ng-if="!(user.user_profile.user_type == 'marketplace_user')">Measurement</th>
@@ -139,6 +164,10 @@
                       <input type="text" ng-model="product.fields.description" name="description" class="form-control"
                              ng-readonly="showCase.default_status">
                     </td>-->
+                    <td ng-if="showCase.show_ean_number">
+                      <input  ng-model="product.fields.ean_number" name="ean_number" title="{{ product.fields.ean_number }}" type="text" class="form-control detectTab" readonly size="50">
+                    </td>
+
                     <td ng-if="!(user.user_profile.user_type == 'marketplace_user')" ng-readonly="showCase.default_status">
                       <input id="wms1" ng-model="product.fields.supplier_code" type="text" name="supplier_code" class="form-control detectTab " value="">
                     </td>
@@ -207,13 +236,6 @@
 			<div class="col-md-5 col-sm-5 col-xs-5" style="text-align: right;">
 				<strong>Supplier Level Last Transactions :</strong>
 			</div>
-			<div class="col-md-2 col-sm-3 col-xs-4">
-			  <label class="switch switch-sm square">
-				<div><input type="checkbox" ng-model="showCase.supplier_level_last_transaction" ng-change="showCase.supplier_level(showCase.supplier_level_last_transaction)" class="ng-valid ng-dirty ng-pristine"><span><i class="handle"></i></span>
-				</div>
-			  </label>
-			</div>
-
             </div>
 
             <div class="col-md-5 col-sm-5 col-xs-5" style="text-align: left;">
@@ -258,11 +280,14 @@
           <div class="row insert-status"><h4 align="center">{{ showCase.message }}</h4></div>
         </div>
 		</div>
-        <div class="modal-footer">
+        <div class="modal-footer" ng-if="showCase.warehouse_type != 'CENTRAL_ADMIN'">
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop {{showCase.permissions.change_openpo?'pop-normal':'pop-green'}}" ng-click="showCase.save_raise_po(form)">{{showCase.permissions.change_openpo?'Save':'Send for Approval'}}</button>
           <button ng-if="(!(showCase.print_enable))" type="submit" class="btn pop pop-green" ng-show="showCase.permissions.change_openpo" data-dismiss="modal" ng-click="showCase.confirm(form)">Confirm PO</button>
           <button ng-if="showCase.print_enable" type="button" class="btn pop pop-normal" ng-click="showCase.barcode()">Print Barcodes</button>
           <button ng-if="showCase.print_enable" type="button" class="btn pop pop-green" ng-click="showCase.print_grn()">Print</button>
+        </div>
+        <div class="modal-footer" ng-if="showCase.warehouse_type == 'CENTRAL_ADMIN'">
+          <button type="submit" class="btn pop pop-green" ng-show="showCase.permissions.change_openpo" data-dismiss="modal" ng-click="showCase.confirm(form)">Confirm PO</button>
         </div>
       </div>
     </div>

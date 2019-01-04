@@ -48,37 +48,35 @@
           <button type="button" class="btn btn btn-warning" style="width: 100%" ng-click="showCase.service.pull_order_now()">Pull Now</button>
         </div>
       </div>
-            <div class="row">
-              <div class="col-md-4 col-sm-hidden col-xs-hidden">
-              </div>
-              <div class="col-md-2 col-sm-4 col-xs-6" style="line-height: 34px;">
-                <span style="float:right">Select View: </span>
-              </div>
-              <div class="col-md-2 col-sm-4 col-xs-6 mb10" style="height: 34px;padding-left: 0px;">
-                <select class="form-control pull-right" ng-model="showCase.g_data.view" ng-change="showCase.change_datatable()">
-                  <option ng-repeat="view in showCase.g_data.views" value="{{view}}" ng-selected="view == showCase.g_data.view"> {{view}}</option>
-                </select>
-              </div>
-              <div class="hide">
-                <label class="hide switch switch-sm square pull-right mr30 mt5">
-                  <div>
-                    <input type="checkbox" ng-model="showCase.permissions.batch_switch" ng-change="showCase.service.switches(showCase.permissions.batch_switch,'batch_switch')">
-                    <span>
-                      <i class="handle"></i>
-                    </span>
-                  </div>
-                </label>
-                <label style="padding: 5px;" class="control-label pull-right"><b>Batch:</b></label>
-              </div>
-              <div class="col-md-2 col-sm-4 col-xs-6 mb10">
-                <input type="text" autocomplete="off" class="form-control" placeholder="Search Customer" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_customer_sku_mapping?', 'orders')" typeahead-loading="CustomersLoading" ng-model="showCase.special_key.customer_id" typeahead-on-select="showCase.change_customer(showCase.special_key.customer_id)">
-              </div>
-              <div class="col-md-2 col-sm-4 col-xs-6 mb10">
-                <select class="selectpicker form-control pull-right" style="width: 155px;" ng-model="showCase.market_filter" title="Select MarketPlace" multiple>
-                  <option ng-repeat="market in showCase.market_list" > {{market}}</option>
-                </select>
-              </div>
+      <div class="row">
+        <div class="col-md-2 col-sm-4 col-xs-6" style="line-height: 34px;">
+          <span style="float:right">Select View: </span>
+        </div>
+        <div class="col-md-2 col-sm-4 col-xs-6 mb10" style="height: 34px;padding-left: 0px;">
+          <select class="form-control pull-right" ng-model="showCase.g_data.view" ng-change="showCase.change_datatable()">
+            <option ng-repeat="view in showCase.g_data.views" value="{{view}}" ng-selected="view == showCase.g_data.view"> {{view}}</option>
+          </select>
+        </div>
+        <div class="hide">
+          <label class="hide switch switch-sm square pull-right mr30 mt5">
+            <div>
+              <input type="checkbox" ng-model="showCase.permissions.batch_switch" ng-change="showCase.service.switches(showCase.permissions.batch_switch,'batch_switch')">
+              <span>
+                <i class="handle"></i>
+              </span>
             </div>
+          </label>
+          <label style="padding: 5px;" class="control-label pull-right"><b>Batch:</b></label>
+        </div>
+        <div class="col-md-2 col-sm-4 col-xs-6 mb10">
+          <input type="text" autocomplete="off" class="form-control" placeholder="Search Customer" typeahead="address for address in showCase.service.getSearchValues($viewValue, 'search_customer_sku_mapping?', 'orders')" typeahead-loading="CustomersLoading" ng-model="showCase.special_key.customer_id" typeahead-on-select="showCase.change_customer(showCase.special_key.customer_id)">
+        </div>
+        <div class="col-md-2 col-sm-4 col-xs-6 mb10">
+          <select class="selectpicker form-control pull-right" style="width: 155px;" ng-model="showCase.market_filter" title="Select MarketPlace" multiple>
+            <option ng-repeat="market in showCase.market_list" > {{market}}</option>
+          </select>
+        </div>
+      </div>
           </div>
           <div class="panel-body">
             <table datatable="" dt-options="showCase.dtOptions" dt-columns="showCase.dtColumns" dt-instance="showCase.dtInstance" class="custom-table table table-condensed datatable sku-table"></table>
@@ -94,7 +92,8 @@
             <div class="col-md-2 col-sm-4 col-xs-6 mb10">
               <button ng-hide="showCase.permissions.user_type == 'warehouse' || showCase.permissions.user_type == 'distributor'" type="submit" class="btn btn-primary" style="width: 100%" ng-click="showCase.raise_stock_transfer()" ng-disabled="showCase.bt_disable" ng-if="showCase.pop_buttons">Raise Stock Transfer</button>
             </div>
-            <div class="col-md-2 col-sm-0 col-xs-0">
+            <div class="col-md-2 col-sm-4 col-xs-6 mb10">
+              <button type="submit" class="btn btn-primary" style="width: 100%" ng-click="showCase.send_order_back()" ng-disabled="showCase.bt_disable" ng-if="showCase.pop_buttons && showCase.permissions.central_order_reassigning">Send Order Back</button>
             </div>
             <!--<button type="submit" class="btn btn-primary pull-right" ng-disabled="showCase.bt_disable" style="margin-right:10px;" ng-click="showCase.transfer()">Transfer Order</button>-->
             <div class="col-md-2 col-sm-4 col-xs-6 mb10">
@@ -165,6 +164,12 @@
       <tab heading="Custom Orders">
         <div ng-include="'views/outbound/view_orders/custom_orders.html'"></div>
       </tab>
+      <tab heading="Central Orders" ng-if="show_tab(permissions.central_order_mgmt == 'true')">
+        <div ng-include="'views/outbound/view_orders/central_orders.html'"></div>
+      </tab>
+      <!--<tab heading="Create Central Orders" ng-if="show_tab(showCase.permissions.central_order_mgmt == true)">
+        <div ng-include="'views/outbound/view_orders/create_central_orders.html'"></div>
+      </tab>-->
     </tabset>
   </div>
 </div>

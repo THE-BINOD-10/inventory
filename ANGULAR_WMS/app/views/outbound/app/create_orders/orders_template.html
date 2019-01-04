@@ -16,7 +16,8 @@ input[type="date"]:valid::before {
 }
 </style>
         <div class="order-list">
-          <div class="order-item" ng-class="(!($last))? 'border-grey': ''" ng-repeat="order in orders.order_data.data" ng-click="orders.open_details({orderId: order.order_id, state: orders.status, customerId: order.customer_id})" style="cursor: pointer">
+          <div class="order-item" ng-class="(!($last))? 'border-grey': ''" ng-repeat="order in orders.order_data.data" ng-click="orders.open_details({orderId: order.order_id, state: orders.status, customerId: order.customer_id, intermediate_order: order.intermediate_order})"
+          style="cursor: pointer">
             <div class="row" ng-if="orders.your_orders=='orders'">
               <div class="col-md-6 col-sm-6 col-xs-6">
                 <div class="order-id">
@@ -25,7 +26,11 @@ input[type="date"]:valid::before {
                 </div>
               </div>
               <div class="col-md-6 col-sm-6 col-xs-6">
-                <span class="label pull-right text-uppercase" ng-class="(orders.getStatus(order.total_quantity, order.picked_quantity) == 'Open')? 'label-danger': 'label-success';" style="font-size: 12px;">{{orders.getStatus(order.total_quantity, order.picked_quantity)}}</span>
+                <span class="label pull-right text-uppercase"
+                ng-class="(orders.getStatus(order.total_quantity, order.picked_quantity, order.status) == 'Open')? 'label-danger':
+                          (orders.getStatus(order.total_quantity, order.picked_quantity, order.status) == 'Dispatched')? 'label-success':
+                          'label-danger';" style="font-size: 12px;">
+                {{orders.getStatus(order.total_quantity, order.picked_quantity, order.status)}}</span>
               </div>
             </div>
             <div class="row" ng-if="orders.your_orders=='orders'">
@@ -33,7 +38,9 @@ input[type="date"]:valid::before {
                 <div class="widget-details col-xs-3 text-left">
                   <small class="order-label" ng-if="permissions.user_type == 'distributor'">Reseller Order ID</small>
                   <small class="order-label" ng-if="permissions.user_type != 'distributor'">Order ID</small>
-                  <h2 class="no-margin order-bold">{{order.order_id}}</h2></div>
+                  <h2 class="no-margin order-bold">{{order.order_id}}
+                    <span ng-if="order.intermediateorders__interm_order_id">({{order.intermediateorders__interm_order_id}})</span>
+                  </h2></div>
                 <div class="widget-details col-xs-2 text-center">
                   <small class="order-label">Ordered Qty</small>
                   <h2 class="no-margin order-bold">{{order.total_quantity}}</h2>
@@ -61,11 +68,14 @@ input[type="date"]:valid::before {
                     <strong>Note:</strong> Freight as applicable will be charged extra.
                   </div>
                 </div>
-<!--
-                <div class="widget-details col-xs-4 text-right">
+
+                <!-- <div class="widget-details col-xs-4 text-right">
                   <button ng-if="(permissions.user_type == 'reseller' || permissions.user_type == 'distributor' || permissions.user_type == 'dist_customer') && (orders.getStatus(order.total_quantity, order.picked_quantity) == 'Open') && user.user_profile['user_type'] != 'warehouse_user'" type="button" class="btn btn-warning mt20 pull-right ng-binding ng-click-active" style="min-width: 75px;height: 26px;padding: 2px 5px;" ng-click="orders.order_cancel(order, $index, $event)">Cancel</button>
+                </div> -->
+
+                <div class="widget-details col-xs-4 text-right">
+                  <button ng-if="(permissions.user_type == 'customer' && permissions.central_order_mgmt) && (orders.getStatus(order.total_quantity, order.picked_quantity) == 'Open')" type="button" class="btn btn-warning mt20 pull-right ng-binding ng-click-active" style="min-width: 75px;height: 26px;padding: 2px 5px;" ng-click="orders.order_cancel(order, $index, $event)">Cancel</button>
                 </div>
--->
 
               </div>
             </div>
@@ -106,7 +116,7 @@ input[type="date"]:valid::before {
                   <input name="extended_date" ui-jq="datepicker" ng-click="$event.stopPropagation()" ng-model="order.extended_date" placeholder="Select Date" class="form-control stk-readonly" type="text" id="extended_date" data-date-today-highlight="true" data-date-autoclose="true" data-date-start-date="{{orders.date}}" readonly="true" style="height: 26px">
                   <input type="hidden" name="order_id" value="{{order.order_id}}">
                 </div>
-                
+
                 <div class="widget-details col-xs-2">
                   <button type='button' class="btn btn-primary" style="min-width: 75px;height: 26px;padding: 2px 5px;" ng-click="orders.confirm_to_extend(order, form); $event.stopPropagation()">Save</button>
                 </div>
@@ -125,13 +135,17 @@ input[type="date"]:valid::before {
                 <div class="widget-details col-xs-2 text-left">
                   <small class="order-label">Enquiry Date</small>
                   <h2 class="no-margin order-bold">{{order.date}}</h2></div>
-                <div class="widget-details col-xs-4 text-center">
+                <div class="widget-details col-xs-3 text-center">
                   <small class="order-label">Customer Name</small>
                   <h2 class="no-margin order-bold">{{order.customer_name}}</h2>
                 </div>
-                <div class="widget-details col-xs-4 text-right">
+                <div class="widget-details col-xs-3 text-right">
                   <small class="order-label">Style Name</small>
                   <h2 class="no-margin order-bold">{{order.style_name}}</h2>
+                </div>
+                <div class="widget-details col-xs-2 text-right">
+                  <small class="order-label">Status</small>
+                  <h2 class="no-margin order-bold">{{order.status}}</h2>
                 </div>
               </section>
             </div>

@@ -62,18 +62,19 @@ def save_image_file(image_file, data, user, extra_image='', saved_file_path='', 
 @csrf_exempt
 def get_sku_results(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
     sku_master, sku_master_ids = get_sku_master(user, request.user)
-    lis = ['wms_code', 'ean_number', 'sku_desc', 'sku_type', 'sku_category', 'sku_class', 'color', 'zone__zone', 'status']
+    lis = ['wms_code', 'ean_number', 'sku_desc', 'sku_type', 'sku_category', 'sku_class', 'color', 'zone__zone',
+           'creation_date', 'updation_date', 'status']
     order_data = SKU_MASTER_HEADERS.values()[col_num]
     search_params1, search_params2 = get_filtered_params_search(filters, lis)
-    if 'status__icontains' in search_params1.keys():
-        if (str(search_params['status__icontains']).lower() in "active"):
+    if 'status__icontains' in search_params2.keys():
+        if (str(search_params2['status__icontains']).lower() in "active"):
             search_params1["status__icontains"] = 1
             search_params2["status__icontains"] = 1
-        elif (str(search_params1['status__icontains']).lower() in "inactive"):
+        elif (str(search_params2['status__icontains']).lower() in "inactive"):
             search_params1["status__icontains"] = 0
             search_params2["status__icontains"] = 0
-        else:
-            search_params["status__icontains"] = "none"
+        # else:
+        #     search_params1["status__icontains"] = "none"
     if order_term == 'desc':
         order_data = '-%s' % order_data
     master_data = []
@@ -170,6 +171,8 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
         if data.status:
             status = 'Active'
 
+        creation_date = get_local_date(user, data.creation_date, send_date=True).strftime('%Y-%m-%d %I:%M %p')
+        updation_date = get_local_date(user, data.updation_date, send_date=True).strftime('%Y-%m-%d %I:%M %p')
         zone = ''
         if data.zone_id:
             zone = data.zone.zone
@@ -177,7 +180,9 @@ def get_sku_results(start_index, stop_index, temp_data, search_term, order_term,
             (('WMS SKU Code', data.wms_code), ('Product Description', data.sku_desc), ('image_url', data.image_url),
              ('SKU Type', data.sku_type), ('SKU Category', data.sku_category), ('DT_RowClass', 'results'),
              ('Zone', zone), ('SKU Class', data.sku_class), ('Status', status), ('DT_RowAttr', {'data-id': data.id}),
-             ('Color', data.color), ('EAN Number', str(data.ean_number)))))
+             ('Color', data.color), ('EAN Number', str(data.ean_number)),
+             ('Creation Date', creation_date),
+             ('Updation Date', updation_date))))
 
 
 @csrf_exempt
@@ -401,7 +406,8 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
             phone_number = data.phone_number
         temp_data['aaData'].append(
             OrderedDict((('customer_id', data.customer_id), ('name', data.name), ('address', data.address),
-                         ('phone_number', phone_number), ('email_id', data.email_id), ('status', status),
+                         ('shipping_address', data.shipping_address),
+                         ('phone_number', str(phone_number)), ('email_id', data.email_id), ('status', status),
                          ('tin_number', data.tin_number), ('credit_period', data.credit_period),
                          ('login_created', login_created), ('username', user_name), ('price_type_list', price_types),
                          ('price_type', price_type), ('cst_number', data.cst_number),
@@ -412,6 +418,27 @@ def get_customer_master(start_index, stop_index, temp_data, search_term, order_t
                          ('discount_percentage', data.discount_percentage), ('lead_time', data.lead_time),
                          ('is_distributor', str(data.is_distributor)), ('markup', data.markup),
                          ('role', data.role), ('spoc_name', data.spoc_name))))
+
+
+@csrf_exempt
+def get_sku_pack_master(start_index, stop_index, temp_data, search_term, order_term, col_num, request, user, filters):
+    lis = ['pack_id', 'pack_id','pack_quantity']
+
+    search_params = get_filtered_params(filters, lis)
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if search_term:
+            master_data = SKUPackMaster.objects.filter(
+                Q(sku__wms_code__icontains=search_term)).order_by(order_data)
+    else:
+        master_data = SKUPackMaster.objects.filter(**search_params).order_by(order_data)
+
+    temp_data['recordsTotal'] = len(master_data)
+    temp_data['recordsFiltered'] = len(master_data)
+    for data in master_data[start_index: stop_index]:
+        temp_data['aaData'].append(
+            OrderedDict((('sku', data.sku.wms_code), ('pack_id', data.pack_id), ('pack_quantity', data.pack_quantity))))
 
 
 @csrf_exempt
@@ -465,9 +492,9 @@ def get_corporate_master(start_index, stop_index, temp_data, search_term, order_
             OrderedDict((('corporate_id', data.corporate_id), ('name', data.name), ('address', data.address),
                          ('phone_number', phone_number), ('email_id', data.email_id), ('status', status),
                          ('tin_number', data.tin_number), ('cst_number', data.cst_number),
-                         ('pan_number', data.pan_number), ('pincode', data.pincode), ('city', data.city), 
-                         ('state', data.state), ('country', data.country), 
-                         ('tax_type', TAX_TYPE_ATTRIBUTES.get(data.tax_type, '')), ('DT_RowId', data.corporate_id), 
+                         ('pan_number', data.pan_number), ('pincode', data.pincode), ('city', data.city),
+                         ('state', data.state), ('country', data.country),
+                         ('tax_type', TAX_TYPE_ATTRIBUTES.get(data.tax_type, '')), ('DT_RowId', data.corporate_id),
                          ('DT_RowClass', 'results'))))
 
 
@@ -624,13 +651,20 @@ def get_vendor_master_results(start_index, stop_index, temp_data, search_term, o
 
 @get_admin_user
 def location_master(request, user=''):
-    filter_params = {'user': user.id}
-    distinct_loctype = filter_by_values(ZoneMaster, filter_params, ['zone'])
+    filter_params = {'user': user.id, 'level': 0}
+    distinct_loctype = ZoneMaster.objects.filter(**filter_params)
+    #distinct_loctype = filter_by_values(ZoneMaster, filter_params, ['zone', 'level'])
     new_loc = []
     location_groups = LocationGroups.objects.filter(location__zone__user=user.id).values('location__location',
                                                                                          'group').distinct()
     for loc_type in distinct_loctype:
-        filter_params = {'zone__zone': loc_type['zone'], 'zone__user': user.id}
+        filter_params = {'zone__zone': loc_type.zone, 'zone__user': user.id}
+        sub_zone_obj = loc_type.subzonemapping_set.filter()
+        sub_zone = ''
+        if sub_zone_obj:
+            sub_zone = sub_zone_obj[0].sub_zone.zone
+            del filter_params['zone__zone']
+            filter_params['zone__zone__in'] = [sub_zone, loc_type.zone]
         loc = filter_by_values(LocationMaster, filter_params,
                                ['location', 'max_capacity', 'fill_sequence', 'pick_sequence', 'status',
                                 'pallet_capacity', 'lock_status'])
@@ -640,10 +674,11 @@ def location_master(request, user=''):
             loc_groups = map(lambda d: d['group'], loc_group_dict)
             loc_groups = [str(x).encode('UTF8') for x in loc_groups]
             loc_location['location_group'] = loc_groups
+            loc_location['sub_zone'] = sub_zone
         new_loc.append(loc)
 
     data = []
-    modified_zone = zip(distinct_loctype, new_loc)
+    modified_zone = zip(distinct_loctype.values('zone'), new_loc)
     if modified_zone:
         for loc in modified_zone:
             zone = loc[0]['zone']
@@ -731,6 +766,8 @@ def get_sku_data(request, user=''):
     sku_data['hot_release'] = 0
     sku_data['shelf_life'] = data.shelf_life
     sku_data['measurement_type'] = data.measurement_type;
+    sku_data['youtube_url'] = data.youtube_url;
+    sku_data['enable_serial_based'] = data.enable_serial_based
     sku_fields = SKUFields.objects.filter(field_type='size_type', sku_id=data.id)
     if sku_fields:
         sku_data['size_type'] = sku_fields[0].field_value
@@ -767,7 +804,6 @@ def get_warehouse_user_results(start_index, stop_index, temp_data, search_term, 
     search_params1 = {}
     search_params2 = {}
     lis = ['username', 'first_name', 'email', 'id']
-
     warehouse_admin = get_warehouse_admin(user)
     exclude_admin = {}
     if warehouse_admin.id == user.id:
@@ -926,10 +962,10 @@ def update_sku(request, user=''):
         if not wms or not description:
             return HttpResponse('Missing Required Fields')
         data = get_or_none(SKUMaster, {'wms_code': wms, 'user': user.id})
-
         image_file = request.FILES.get('files-0', '')
         if image_file:
             save_image_file(image_file, data, user)
+        setattr(data, 'enable_serial_based', False)
         for key, value in request.POST.iteritems():
 
             if 'attr_' in key:
@@ -974,10 +1010,11 @@ def update_sku(request, user=''):
                 value = 1 if (value.lower() == 'enable') else 0;
                 check_update_hot_release(data, value)
                 continue
+            elif key == 'enable_serial_based':
+                value = 1
             if key in number_fields and not value:
                 value = 0
             setattr(data, key, value)
-
         data.save()
         update_sku_attributes(data, request)
 
@@ -1079,7 +1116,7 @@ def update_supplier_values(request, user=''):
         data_id = request.POST['id']
         data = get_or_none(SupplierMaster, {'id': data_id, 'user': user.id})
         old_name = data.name
-        upload_master_file(request, data.id, "SupplierMaster")
+        upload_master_file(request, user, data.id, "SupplierMaster")
 
         create_login = request.POST.get('create_login', '')
         password = request.POST.get('password', '')
@@ -1164,7 +1201,7 @@ def insert_supplier(request, user=''):
 
             data_dict['user'] = user.id
             supplier_master = SupplierMaster(**data_dict)
-            upload_master_file(request, supplier_master.id, "SupplierMaster")
+            upload_master_file(request, user, supplier_master.id, "SupplierMaster")
             supplier_master.save()
             status_msg = 'New Supplier Added'
             if create_login == 'true':
@@ -1186,14 +1223,15 @@ def insert_supplier(request, user=''):
 
 
 @csrf_exempt
-def upload_master_file(request, master_id, master_type):
+def upload_master_file(request, user, master_id, master_type, master_file=None, extra_flag=''):
     master_id = master_id
     master_type = master_type
-    master_file = request.FILES.get('master_file', '')
+    if not master_file:
+        master_file = request.FILES.get('master_file', '')
     if not master_file and master_id and master_type:
         return 'Fields are missing.'
     upload_doc_dict = {'master_id': master_id, 'master_type': master_type,
-                       'uploaded_file': master_file}
+                       'uploaded_file': master_file, 'user_id': user.id, 'extra_flag': extra_flag}
     master_doc = MasterDocs.objects.filter(**upload_doc_dict)
     if not master_doc:
         master_doc = MasterDocs(**upload_doc_dict)
@@ -1401,7 +1439,7 @@ def update_corporate_values(request, user=''):
         name_ch = False
         if _name != data.name:
             name_ch = True
-        
+
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -1451,13 +1489,13 @@ def insert_corporate(request, user=''):
             data_dict['user'] = user.id
             corporate_master = CorporateMaster(**data_dict)
             corporate_master.save()
-            status_msg = 'New Corporate Added' 
+            status_msg = 'New Corporate Added'
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info('Add New Corporate failed for %s and params are %s and error statement is %s' % (
         str(user.username), str(request.POST.dict()), str(e)))
-    
+
     return HttpResponse(status_msg)
 
 
@@ -1528,6 +1566,42 @@ def insert_customer(request, user=''):
 
     return HttpResponse(status_msg)
 
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def insert_sku_pack(request, user=''):
+    sku_pack = copy.deepcopy(SKU_PACK_DATA)
+    sku_code = request.POST['sku_code']
+    pack_id = request.POST['pack_id']
+    pack_quantity = request.POST['pack_quantity']
+    sku_obj = SKUMaster.objects.filter(wms_code=sku_code.upper(), user=user.id)
+    if not sku_obj:
+        return HttpResponse('Wrong WMS Code')
+
+    redundent_sku_obj = SKUPackMaster.objects.filter(sku__wms_code= sku_code , sku__user = user.id)
+
+    if redundent_sku_obj and redundent_sku_obj[0].pack_id != pack_id :
+        return HttpResponse('SKU Code have already mapped to %s' %(str(redundent_sku_obj[0].pack_id)))
+    pack_obj = SKUPackMaster.objects.filter(sku__wms_code= sku_code,pack_id = pack_id,sku__user = user.id)
+    if pack_obj :
+        pack_obj = pack_obj[0]
+        pack_obj.pack_quantity = pack_quantity
+        pack_obj.save()
+    else:
+        sku_pack['sku'] = sku_obj[0]
+        sku_pack ['pack_id'] = pack_id
+        sku_pack ['pack_quantity'] = pack_quantity
+        try:
+         SKUPackMaster.objects.create(**sku_pack)
+        except Exception as e:
+            import traceback
+            log.debug(traceback.format_exc())
+            log.info('Insert New SKUPACK failed for %s and params are %s and error statement is %s' % (str(user.username), \
+                                                                                                   str(request.POST.dict()),
+                                                                                                   str(e)))
+
+    return HttpResponse('Added Successfully')
 
 @csrf_exempt
 @login_required
@@ -2029,6 +2103,9 @@ def add_zone(request, user=''):
     data = ZoneMaster.objects.filter(zone=zone, user=user.id)
     update = request.GET.get('update', '')
     marketplace = request.GET.get('marketplaces', '')
+    level = request.GET.get('level', 0)
+    if level == '':
+        level = 0
     if update == 'true':
         if not data:
             status = 'ZONE not found'
@@ -2040,6 +2117,7 @@ def add_zone(request, user=''):
             location_dict = copy.deepcopy(ZONE_DATA)
             location_dict['user'] = user.id
             location_dict['zone'] = zone
+            location_dict['level'] = level
             loc_master = ZoneMaster(**location_dict)
             loc_master.save()
             update_zone_marketplace_mapping(loc_master, marketplace)
@@ -2063,6 +2141,7 @@ def get_zone_data(request, user=''):
             ZoneMarketplaceMapping.objects.filter(zone__user=user.id, zone__zone=zone, status=1).values_list(
                 'marketplace', flat=True))
         resp['marketplaces'] = marketplace_list
+        resp['level'] = data[0].level
         status = 'Success'
     resp['msg'] = status
     return HttpResponse(json.dumps(resp))
@@ -2146,11 +2225,34 @@ def update_location(request, user=''):
     return HttpResponse('Updated Successfully')
 
 
+def get_user_zones(user, level='', exclude_mapped=False):
+    """ Get Zones based on the filters"""
+    zone_filter = {'user': user.id}
+    if level:
+        zone_filter['level'] = level
+    zone_master = ZoneMaster.objects.filter(**zone_filter)
+    if exclude_mapped:
+        excl_list = SubZoneMapping.objects.filter(zone__user=user.id).values_list('sub_zone_id', flat=True)
+        zone_master = zone_master.exclude(id__in=excl_list)
+    zones_list = list(zone_master.values_list('zone', flat=True))
+    return zones_list
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_zones(request, user=''):
+    level = request.GET.get('level', '')
+    exclude_mapped = request.GET.get('exclude_mapped', '')
+    zones_list = get_user_zones(user, level=level, exclude_mapped=exclude_mapped)
+    return HttpResponse(json.dumps({'zones_list': zones_list}))
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
 def get_zones_list(request, user=''):
-    zones_list = list(ZoneMaster.objects.filter(user=user.id).values_list('zone', flat=True))
+    zones_list = get_user_zones(user)
     all_groups = list(SKUGroups.objects.filter(user=user.id).values_list('group', flat=True))
     market_places = list(Marketplaces.objects.filter(user=user.id).values_list('name', flat=True))
     size_names = SizeMaster.objects.filter(user=user.id)
@@ -2170,7 +2272,6 @@ def get_zones_list(request, user=''):
 @get_admin_user
 def insert_sku(request, user=''):
     """ Insert New SKU Details """
-
     log.info('Insert SKU request params for ' + user.username + ' is ' + str(request.POST.dict()))
     load_unit_dict = LOAD_UNIT_HANDLE_DICT
     try:
@@ -2179,6 +2280,7 @@ def insert_sku(request, user=''):
         zone = request.POST['zone_id']
         size_type = request.POST.get('size_type', '')
         hot_release = request.POST.get('hot_release', '')
+        enable_serial_based = request.POST.get('enable_serial_based', 0)
         if not wms or not description:
             return HttpResponse('Missing Required Fields')
         filter_params = {'zone': zone, 'user': user.id}
@@ -2192,7 +2294,6 @@ def insert_sku(request, user=''):
         notified_users.extend(wh_ids)
         notified_users.extend(cust_ids)
         notified_users = list(set(notified_users))
-
         if not data:
             data_dict = copy.deepcopy(SKU_DATA)
             data_dict['user'] = user.id
@@ -2214,6 +2315,11 @@ def insert_sku(request, user=''):
                             value = 0
                     elif key == 'load_unit_handle':
                         value = load_unit_dict.get(value.lower(), 'unit')
+                    elif key == 'enable_serial_based':
+                        if not value:
+                            value = 0
+                        else:
+                            value = 1
                     #elif key == 'ean_number' and value:
                     #    ean_status = check_ean_number(wms, value, user)
                     #    if ean_status:
@@ -2655,7 +2761,6 @@ def generate_barcodes(request, user=''):
     myDict.pop('pdf_format')
     if myDict.has_key('order_id'):
         myDict.pop('order_id')
-
     if myDict.has_key('format'):
         myDict.pop('format')
     others = {}
@@ -2663,7 +2768,6 @@ def generate_barcodes(request, user=''):
     if myDict.has_key('Label'):
         barcodes_list = generate_barcode_dict(pdf_format, data_dict, user)
         return HttpResponse(json.dumps(barcodes_list))
-
     tmp = []
     for d in data_dict:
         if d.has_key('quantity') and int(d['quantity']) > 1:
@@ -2850,6 +2954,13 @@ def create_network_supplier(dest, src):
     phone_number = ''
     if user_profile.phone_number:
         phone_number = user_profile.phone_number
+    true_flag = True
+    while true_flag:
+        supplier_qs = SupplierMaster.objects.filter(id=max_sup_id)
+        if supplier_qs:
+            max_sup_id += 1
+        else:
+            true_flag = False
     supplier = SupplierMaster.objects.create(id=max_sup_id, user=dest_id, name=user_profile.user.username,
                                              email_id=user_profile.user.email,
                                              phone_number=phone_number,
@@ -3242,7 +3353,7 @@ def get_tax_data(request, user=''):
     if not taxes:
         response['msg'] = 'Product Type Not Found'
         return HttpResponse(response)
-        
+
     resp = {'data': []}
     resp['product_type'] = taxes[0].product_type
     for tax in taxes:
@@ -3814,8 +3925,8 @@ def get_supplier_master_excel(temp_data, search_term, order_term, col_num, reque
         os.makedirs('static/excel_files/')
     path_to_file = '../' + path
     headers = ['Supplier ID', 'Name', 'Address', 'Phone Number', 'Email ID', 'CST Number', 'TIN Number', 'PAN Number',
-    'City', 'State', 'Days To Supply', 'Fulfillment Amount', 'Credibility', 'Country', 'Pincode', 
-    'Status', 'Supplier Type', 'Tax Type', 'PO Exp Duration', 'Owner Name', 
+    'City', 'State', 'Days To Supply', 'Fulfillment Amount', 'Credibility', 'Country', 'Pincode',
+    'Status', 'Supplier Type', 'Tax Type', 'PO Exp Duration', 'Owner Name',
     'Owner Number', 'Owner Email Id', 'Spoc Name', 'Spoc Number', 'Lead Time', 'Spoc Email ID', 'Credit Period',
     'Bank Name', 'IFSC', 'Branch Name', 'Account Number', 'Account Holder Name']
     try:
@@ -3878,3 +3989,40 @@ def push_message_notification(request, user=''):
         if sms_enabled:
             send_sms(receivers_phnums, message)
     return HttpResponse('Message sent Successfully')
+
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def add_sub_zone_mapping(request, user=''):
+    """ Create Sub Zone Mapping"""
+    zone = request.GET.get('zone', '')
+    sub_zone = request.GET.get('sub_zone', '')
+    zone_obj = ZoneMaster.objects.filter(zone=zone, user=user.id)
+    sub_zone_obj = ZoneMaster.objects.filter(zone=sub_zone, user=user.id)
+    if not zone_obj:
+        return HttpResponse('Invalid Zone')
+    if not sub_zone_obj:
+        return HttpResponse('Invalid Sub zone')
+    exist_mapping = SubZoneMapping.objects.filter(zone_id=zone_obj[0].id, sub_zone_id=sub_zone_obj[0].id)
+    if not exist_mapping:
+        mapping_dict = {'zone_id': zone_obj[0].id, 'sub_zone_id': sub_zone_obj[0].id, 'status': 1,
+                        'creation_date': datetime.datetime.now()}
+        mapping_obj = SubZoneMapping(**mapping_dict)
+        mapping_obj.save()
+        return HttpResponse('Added Successfully')
+    return HttpResponse('Mapping Already Exists')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def change_warehouse_password (request ,user=''):
+    user_name = request.POST['user_name']
+    new_password = request.POST['new_password']
+    user_obj = User.objects.get(username=user_name)
+    if user_obj :
+        user_obj.set_password(new_password)
+        user_obj.save()
+        return HttpResponse('Successfully changed the Password')
+    else:
+        return HttpResponse('Failed to change the Password')

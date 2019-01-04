@@ -9,24 +9,24 @@
                 <tbody>
                   <tr>
                     <td align="center" colspan="2">
-                      <span class="pull-left fs14">Page No.{{forloop.counter}} of {{ data|length }}</span>
+                      <span class="pull-left fs13">Page No.{{forloop.counter}} of {{ data|length }}</span>
                       <h4 class="m0" align="center"><b>{{ invoice_header }}</b></h4>
-                      <span class="fs14" style="position: absolute;right: 3px;top: 3px;">{{title}}</span>
+                      <span class="fs13" style="position: absolute;right: 3px;top: 3px;">{{title}}</span>
                     </td>
                   </tr>
                   <tr>
                     <td style="width: 50%">
-                      <div class="row m0" style="height: 105px;overflow: hidden;">
-                        <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
+                      <div class="row m0" style="max-height: 120px;overflow: hidden;">
+                      <div class="col-md-12 col-sm-12 col-xs-12 fs13 p0" style="line-height:1.3">
                           {% if side_image %}
                           <div class="col-md-2 col-sm-2 col-xs-2 padding-none fs10 p0">
                             <img src="data:image/jpg;base64, {{side_image}}" style="width:100%;padding-right:2px;"/>
                           </div>
                           {% endif %}
                           {% if side_image %}
-                          <div class="col-md-10 col-sm-10 col-xs-10 fs14 p0">
+                          <div class="col-md-10 col-sm-10 col-xs-10 fs13 p0">
                           {% else %}
-                          <div class="col-md-12 col-sm-12 col-xs-12 fs14 p0">
+                          <div class="col-md-12 col-sm-12 col-xs-12 fs13 p0">
                           {% endif %}
                           <div class="col-md-12 p0">
                             {% if seller_company %}
@@ -52,11 +52,29 @@
                     </td>
                     <td>
                       <div class="row m0">
-                        <div class="col-xs-12 text-left p0 fs14">
+                        <div class="col-xs-12 text-left p0 fs13">
                           <strong>Invoice Number:</strong>{{invoice_no}}<br>
                           <strong>Invoice Date:</strong>{{invoice_date}}<br>
-                          <strong>Order Number:</strong>{% if order_reference %} {{order_reference}} {% else %} {{order_id}} {% endif %}<br>
-                          <strong>Order Date:</strong>{% if order_reference_date %} {{ order_reference_date }} {% else %} {{order_date}} {% endif %}<br>
+                          <strong>Order Number:</strong>
+                             {% if order_reference %}
+                               {{order_reference}}
+                             {% else %}
+                               {{order_id}}
+                             {% endif %}
+                           <br>
+                           <strong>Order Date:</strong>
+                             {% if order_reference_date %} 
+                               {{ order_reference_date }} 
+                             {% else %}
+                               {{order_date}} 
+                             {% endif %}
+                           <br>
+                           <strong>Mode of Transport:</strong>
+                             {{ mode_of_transport }}
+                           <br>
+                           <strong>Vehicle Number:</strong>
+                             {{ vehicle_number }}
+                           <br>
                           {% if purchase_type %}
                           <span ng-if="showCase.pdf_data.purchase_type"><strong>Purchase Type:</strong>{{purchase_type}}</span>
                           {% endif %}
@@ -72,13 +90,13 @@
                           <span><b>Bill To:</b></span>
                         </div>
 
-                        <div class="col-md-12 p0 fs14">
+                        <div class="col-md-12 p0 fs13">
                           <p class="pre-custom p0">{{customer_address}}</p>
                         </div>
                       </div>
                       {% else %}
 
-                      <address class="m0 p0" style="height: 170px;overflow: hidden;">
+                      <address class="m0 p0" style="height: 170px;overflow: hidden;font-size: 14px;">
                         <strong>
                           <span class="fs16" ng-if="user.userName != 'campus_sutra'">Bill To,</span>
                           <!--<span class="fs16" ng-if="user.userName == 'campus_sutra'">CONSIGNEE,</span>-->
@@ -86,31 +104,31 @@
                         {% if marketplace|lower == 'offline' %}
                         <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() == 'offline'">
                           {% if customer_details.0.name == '' %}
-                          <p class="fs14 m0" ng-if= "showCase.pdf_data.customer_details[0].name == ''">{{marketplace}}</p>
+                          <p class="fs13 m0" ng-if= "showCase.pdf_data.customer_details[0].name == ''">{{marketplace}}</p>
                           {% endif %}
                           {% if customer_details.0.name%}
-                          <p class="fs14 m0" ng-if="showCase.pdf_data.customer_details[0].name">
+                          <p class="fs13 m0" ng-if="showCase.pdf_data.customer_details[0].name">
                           {{customer_details.0.name}}</p>
                           {% endif %}
                           {% if customer_details.0.address %}
-                          <p class="fs14 p0 m0 pre-custom" ng-if="showCase.pdf_data.customer_details[0].address">{{customer_details.0.address}}</p>
+                          <p class="fs13 p0 m0 pre-custom" ng-if="showCase.pdf_data.customer_details[0].address">{{customer_details.0.address}}</p>
+                          {% endif %}
+                          {% if customer_details.0.tin_number %}
+                          <p class="fs13 m0" ng-if="showCase.pdf_data.customer_details[0].tin_number">
+                            <b>GSTIN No: </b>{{customer_details.0.tin_number}}</p>
                           {% endif %}
                           {% if customer_details.0.phone_number %}
-                          <p class="fs14 m0" ng-if="showCase.pdf_data.customer_details[0].phone_number">
+                          <p class="fs13 m0" ng-if="showCase.pdf_data.customer_details[0].phone_number">
                             <b>Mobile No: </b>{{customer_details.0.phone_number}}</p>
                           {% endif %}
                           {% if customer_details.0.email_id %}
-                          <p class="fs14 m0" m0 ng-if="showCase.pdf_data.customer_details[0].email_id">
+                          <p class="fs13 m0" m0 ng-if="showCase.pdf_data.customer_details[0].email_id">
                             <b>Email: </b>{{customer_details.0.email_id}}</p>
-                          {% endif %}
-                          {% if customer_details.0.tin_number %}
-                          <p class="fs14 m0" ng-if="showCase.pdf_data.customer_details[0].tin_number">
-                            <b>GSTIN No: </b>{{customer_details.0.tin_number}}</p>
                           {% endif %}
                         </div>
                         {% endif %}
                         {% if marketplace|lower != 'offline' %}
-                        <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() != 'offline'" class="fs14">
+                        <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() != 'offline'" class="fs13">
                           {{marketplace}}<br>
                         </div>
                         {% endif %}
@@ -123,43 +141,43 @@
                         <div class="col-md-12 p0 fs16">
                           <span><b>Ship To:</b></span>
                         </div>
-                        <div class="col-md-12 p0 fs14">
+                        <div class="col-md-12 p0 fs13">
                           <p class="pre-custom p0">{{consignee}}</p>
                         </div>
                       </div>
                       {% else %}
-                      <address class="m0 p0" style="height: 170px;overflow: hidden;">
+                      <address class="m0 p0" style="height: 170px;overflow: hidden;font-size: 14px;">
                         <strong>
                           <span class="fs16">Ship To,</span>
                         </strong><br>
                         {% if consignee %}
-                        <div class="col-md-12 p0 fs14">
+                        <div class="col-md-12 p0 fs13">
                           <p class="pre-custom p0">{{consignee}}</p>
                         </div>
                         {% elif marketplace|lower == 'offline' %}
                         <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() == 'offline'">
                           {% if customer_details.0.name == '' %}
-                          <p class="fs14 m0" ng-if= "showCase.pdf_data.customer_details[0].name == ''">{{marketplace}}</p>
+                          <p class="fs13 m0" ng-if= "showCase.pdf_data.customer_details[0].name == ''">{{marketplace}}</p>
                           {% endif %}
                           {% if customer_details.0.name%}
-                          <p class="fs14 m0" ng-if="showCase.pdf_data.customer_details[0].name">
+                          <p class="fs13 m0" ng-if="showCase.pdf_data.customer_details[0].name">
                           {{customer_details.0.name}}</p>
                           {% endif %}
                           {% if customer_details.0.address %}
-                          <p class="fs14 p0 m0 pre-custom" ng-if="showCase.pdf_data.customer_details[0].address">{{customer_details.0.address}}</p>
+                          <p class="fs13 p0 m0 pre-custom" ng-if="showCase.pdf_data.customer_details[0].address">{{customer_details.0.address}}</p>
                           {% endif %}
                           {% if customer_details.0.tin_number %}
-                          <p class="fs14 m0" ng-if="showCase.pdf_data.customer_details[0].tin_number">
+                          <p class="fs13 m0" ng-if="showCase.pdf_data.customer_details[0].tin_number">
                             <b>GSTIN No: </b>{{customer_details.0.tin_number}}</p>
                           {% endif %}
                           {% if customer_details.0.email_id %}
-                          <p class="fs14 m0" m0 ng-if="showCase.pdf_data.customer_details[0].email_id">
+                          <p class="fs13 m0" m0 ng-if="showCase.pdf_data.customer_details[0].email_id">
                             <b>Email: </b>{{customer_details.0.email_id}}</p>
                           {% endif %}
                         </div>
                         {% endif %}
                         {% if marketplace|lower != 'offline' %}
-                        <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() != 'offline'" class="fs14">
+                        <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() != 'offline'" class="fs13">
                           {{marketplace}}<br>
                         </div>
                         {% endif %}

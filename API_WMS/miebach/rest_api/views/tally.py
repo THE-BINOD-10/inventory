@@ -56,6 +56,7 @@ class TallyAPI:
         type_of_voucher
         """
         self.user_id = request.POST.get('user_id', 0)
+        self.user = User.objects.get(id=self.user_id)
         log.info('Sales Invoice - user_id : ' + self.user_id)
         self.updation_date = self.get_updation_date(request)
         tally_config = self.tally_configuration()
@@ -89,10 +90,17 @@ class TallyAPI:
             if COD_obj:
                 COD = \
                 COD_obj.values('dispatch_through', 'payment_terms', 'tax_type', 'cgst_tax', 'sgst_tax', 'igst_tax',
-                               'invoice_type')[0]
+                               'invoice_type', 'invoice_date')[0]
             s_obj[key_value]['tally_company_name'] = tally_config.get('company_name', '')
-            s_obj[key_value]['voucher_foreign_key'] = obj['invoice_number'] if obj['invoice_number'] else obj[
-                'order__order_id']
+            order_no = obj['invoice_number'] if obj['invoice_number'] else obj['order__order_id']
+            order_obj = OrderDetail.objects.get(id=obj['order_id'])
+            invoice_date = obj['creation_date']
+            #if COD['invoice_date']:
+            #    invoice_date = obj['invoice_date']
+            pick_number = obj['pick_number']
+            if int(pick_number) == 1:
+                pick_number = ''
+            s_obj[key_value]['voucher_foreign_key'] = get_full_invoice_number(self.user, order_no, order_obj, invoice_date=invoice_date, pick_number=pick_number)
             s_obj[key_value]['dt_of_voucher'] = obj['creation_date'].strftime('%d/%m/%Y')
             s_obj[key_value]['voucher_type_name'] = VOUCHER_NAME_DICT.get(COD.get('invoice_type', ''),
                                                                           COD.get('invoice_type', ''))
@@ -191,8 +199,7 @@ class TallyAPI:
                 s_obj[key_value]['party_ledger'].update(party_ledger_obj)
 
             s_obj[key_value]['party_ledger_tax'] = s_obj[key_value]['party_ledger_tax'] + party_ledger_tax_obj
-            s_obj[key_value]['voucher_no'] = '' if int(tally_config.get('automatic_voucher', 0)) else obj[
-                'order__order_id']
+            s_obj[key_value]['voucher_no'] = '' if int(tally_config.get('automatic_voucher', 0)) else s_obj[key_value]['voucher_foreign_key']
             s_obj[key_value]['reference'] = obj['order__order_id']
             s_obj[key_value]['despatch_doc_no'] = obj['order__order_code']
             s_obj[key_value]['despatched_through'] = COD.get('dispatch_through', '')

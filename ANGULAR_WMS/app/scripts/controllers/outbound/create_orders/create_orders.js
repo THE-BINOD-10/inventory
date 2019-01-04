@@ -8,6 +8,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
   vm.service = Service;
   vm.g_data = Data.create_orders
   vm.company_name = Session.user_profile.company_name;
+  vm.order_exceed_stock = Boolean(Session.roles.permissions.order_exceed_stock);
   vm.permissions = Session.roles.permissions;
   vm.model_data = {}
   vm.auto_shipment = false;
@@ -17,7 +18,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
                             location: "", serials: [], serial: "", capacity: 0, discount: ""
                           }],
                     customer_id: "", payment_received: "", order_taken_by: "", other_charges: [],  shipment_time_slot: "",
-                    tax_type: "", blind_order: false, mode_of_transport: "", payment_status: ""};
+                    tax_type: "", vehicle_num: "",blind_order: false, mode_of_transport: "", payment_status: ""};
 
   angular.copy(empty_data, vm.model_data);
 
@@ -62,6 +63,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
     vm.model_data["telephone"] = parseInt(item.phone_number);
     vm.model_data["email_id"] = item.email;
     vm.model_data["address"] = item.address;
+    vm.model_data["ship_to"] = item.ship_to;
     if(item.tax_type) {
 
       vm.model_data["tax_type"] = item.tax_type;
@@ -96,11 +98,11 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
   }
 
   vm.bt_disable = false;
-  vm.insert_order_data = function(event, form) {
+  vm.insert_order_data = function(event, form, is_sample='') {
     if (event.keyCode != 13) {
       if (form.$valid && vm.model_data.shipment_date && vm.model_data.shipment_time_slot) {
-        if(vm.model_data.blind_order) {
-          for(var i = 0; i < vm.model_data.data.length; i++) {
+        if (vm.model_data.blind_order) {
+          for (var i = 0; i < vm.model_data.data.length; i++) {
 
             if (vm.model_data.data[i].sku_id && (!vm.model_data.data[i].location)) {
 
@@ -114,6 +116,9 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
         var elem = angular.element($('form'));
         elem = elem[0];
         elem = $(elem).serializeArray();
+        if (is_sample == 'sample') {
+          elem.push({'name':'is_sample', 'value':true});
+        }
         vm.service.apiCall('insert_order_data/', 'POST', elem).then(function(data){
           if(data.message) {
             if(data.data.indexOf("Success") != -1) {
@@ -534,6 +539,7 @@ function CreateOrders($scope, $filter, $http, $q, Session, colFilters, Service, 
         vm.style_data = data.data.data;
         vm.style_total_counts = data.data.total_qty;
         vm.style_headers = data.data.style_headers;
+        vm.sku_spl_attrs = data.data.sku_spl_attrs;
         vm.style_detail_hd = Object.keys(vm.style_headers);
         //var quant_len = data.data.data.length-1;
         //vm.stock_quantity = vm.style_data[quant_len].style_quantity;

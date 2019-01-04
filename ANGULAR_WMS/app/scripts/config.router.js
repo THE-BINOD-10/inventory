@@ -303,6 +303,10 @@ var app = angular.module('urbanApp')
             url: '/Location',
             templateUrl: 'views/masters/toggles/add_location.html'
           })
+          .state('app.masters.LocationMaster.SubZoneMapping', {
+            url: '/Location',
+            templateUrl: 'views/masters/toggles/add_sub_zone_mapping.html'
+          })
         .state('app.masters.sourceSKUMapping', {
           url: '/SourceSKUMapping',
           permission: 'add_skusupplier',
@@ -397,6 +401,28 @@ var app = angular.module('urbanApp')
              url: '/customer',
              templateUrl: 'views/masters/toggles/customer_update.html'
            })
+
+           .state('app.masters.SkuPackMaster', {
+             url: '/SkuPackMaster',
+             // permission: 'sku_pack_config',
+             templateUrl: 'views/masters/sku_pack_datatable.html',
+             resolve: {
+               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                   return $ocLazyLoad.load('scripts/controllers/masters/skuPackMaster.js');
+                       }]
+             },
+             data: {
+               title: 'Sku Pack Master',
+             }
+           })
+             .state('app.masters.SkuPackMaster.skupack', {
+                url: '/skupack',
+                templateUrl: 'views/masters/toggles/sku_pack_update.html'
+              })
+
+
+
+
         .state('app.masters.Customer-SKUMapping', {
           url: '/Customer-SKUMapping',
           permission: 'add_customersku',
@@ -884,6 +910,20 @@ var app = angular.module('urbanApp')
             title: 'Supplier Invoice',
           }
         })
+        .state('app.inbound.GrnEdit', {
+          url: '/GrnEdit',
+          templateUrl: 'views/inbound/grn_edit.html',
+          resolve: {
+            deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load([
+                    'scripts/controllers/inbound/grn_edit.js'
+                ])
+            }]
+          },
+          data: {
+            title: 'GRN Edit',
+          }
+        })
         .state('app.inbound.SupplierInvoice.InvoiceM', {
             url: '/InvoiceM',
             templateUrl: 'views/inbound/print/supplier_inv.html'
@@ -921,6 +961,10 @@ var app = angular.module('urbanApp')
           data: {
             title: 'Auto Back Orders',
           }
+        })
+        .state('app.inbound.GrnEdit.GrnEditPopup', {
+          url: '/GrnEditPopup',
+          templateUrl: 'views/inbound/toggle/grn_edit_popup.html'
         })
 
       // Production routes
@@ -1150,7 +1194,11 @@ var app = angular.module('urbanApp')
           templateUrl: 'views/stockLocator/move_inventory.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/stockLocator/move_inventory.js');
+                return $ocLazyLoad.load(['scripts/controllers/stockLocator/move_inventory.js'
+                ]).then(function() {
+                    return $ocLazyLoad.load(['scripts/controllers/stockLocator/auto_sellable.js'
+                  ])
+                });
               }]
           },
           data: {
@@ -1237,6 +1285,7 @@ var app = angular.module('urbanApp')
                              'scripts/controllers/outbound/pop_js/picklist.js',
                              'scripts/controllers/outbound/pop_js/manual_details.js',
                              'scripts/controllers/outbound/pop_js/custom_order_details.js',
+                             'scripts/controllers/outbound/pop_js/reject_order.js',
                              'scripts/controllers/outbound/pop_js/enquiry_details.js'
                             ]
                         }]);
@@ -1306,13 +1355,17 @@ var app = angular.module('urbanApp')
           resolve: {
             deps: ['$ocLazyLoad', function ($ocLazyLoad) {
               return $ocLazyLoad.load([
-                       'scripts/controllers/outbound/view_orders/custom_orders.js'
-                        ]).then( function() {
-                  return $ocLazyLoad.load([
+                       // 'scripts/controllers/outbound/view_orders/custom_orders.js',
+                       'scripts/controllers/outbound/view_orders/central_orders.js',
+                       'scripts/controllers/outbound/view_orders/create_central_orders.js',
+              ]).then( function() {
+                return $ocLazyLoad.load([
                     'scripts/controllers/outbound/view_orders/stock_transfer_orders.js'
                   ])
-                }).then(function () {
+              }).then(function () {
                 return $ocLazyLoad.load('scripts/controllers/outbound/view_orders/orders.js');
+              }).then(function () {
+                return $ocLazyLoad.load('scripts/controllers/outbound/view_orders/custom_orders.js');
               });
             }]
           },
@@ -1341,6 +1394,10 @@ var app = angular.module('urbanApp')
           .state('app.outbound.ViewOrders.CustomOrderDetails', {
             url: '/CustomOrderDetails',
             templateUrl: 'views/outbound/toggle/custom_order_detail.html'
+          })
+          .state('app.outbound.ViewOrders.CentralOrderDetails', {
+            url: '/CentralOrderDetails',
+            templateUrl: 'views/outbound/toggle/central_order_detail.html'
           })
           .state('app.outbound.ViewOrders.GenerateInvoice', {
             url: '/Invoice',
@@ -1467,6 +1524,10 @@ var app = angular.module('urbanApp')
                 return $ocLazyLoad.load([
                   'scripts/controllers/outbound/shipment_info/gateout.js'
                 ])
+              }).then( function() {
+                return $ocLazyLoad.load([
+                  'scripts/controllers/outbound/shipment_info/stock_transfer_shipment.js'
+                ])
               });
             }]
           },
@@ -1474,14 +1535,18 @@ var app = angular.module('urbanApp')
             title: 'Shipment Info',
           }
         })
-          .state('app.outbound.ShipmentInfo.Shipment', {
-            url: '/Shipment',
-            templateUrl: 'views/outbound/toggle/ship_tg.html'
-          })
-          .state('app.outbound.ShipmentInfo.ConfirmShipment', {
-            url: '/ConfirmShipment',
-            templateUrl: 'views/outbound/toggle/confirm_ship_tg.html'
-          })
+        .state('app.outbound.ShipmentInfo.Shipment', {
+          url: '/Shipment',
+          templateUrl: 'views/outbound/toggle/ship_tg.html'
+        })
+        .state('app.outbound.ShipmentInfo.ConfirmShipment', {
+          url: '/ConfirmShipment',
+          templateUrl: 'views/outbound/toggle/confirm_ship_tg.html'
+        })
+        .state('app.outbound.ShipmentInfo.ST_Shipment', {
+          url: '/STShipment',
+          templateUrl: 'views/outbound/toggle/st_ship_tg.html'
+        })
         .state('app.outbound.BackOrders', {
           url: '/BackOrders',
           templateUrl: 'views/outbound/back_orders.html',
@@ -2598,7 +2663,7 @@ var app = angular.module('urbanApp')
             }
           })
           .state('user.App.OrderDetails', {
-            url: '/OrderDetails?orderId&state',
+            url: '/OrderDetails?orderId&state&intermediate_order',
             params: {
               state: 'orders',
             },

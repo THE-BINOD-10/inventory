@@ -73,11 +73,19 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
 
                             alternate_view: true,
                             view: 'ShipmentPickedAlternative',
-                            tb_headers: {'ShipmentPickedOrders': ['Order ID', 'SKU Code', 'Title', 'Customer ID', 'Customer Name', 'Marketplace',
+                            tb_headers: {'ShipmentPickedOrders': ['Order ID', 'SKU Code', 'Title', 'Customer ID', 'Customer Name','Address', 'Marketplace',
                                                                   'Picked Quantity'],
-                                         'ShipmentPickedAlternative': ['Order ID', 'Customer ID', 'Customer Name', 'Marketplace',
+                                         'ShipmentPickedAlternative': ['Order ID', 'Customer ID', 'Customer Name', 'Marketplace','Address',
                                                                   'Picked Quantity', 'Total Quantity', 'Order Date']}
                          }
+
+  self.tranfer_shipment = {
+                       //alternate_view: true,
+                       view: 'StockTransferShipment',
+                       tb_headers: {'StockTransferShipment': ['Stock Transfer ID', 'Destination Warehouse', 'Total Quantity', 'Picked Quantity', 'Stock Transfer Date&Time']}
+                                    // 'ShipmentPickedAlternative': ['Order ID', 'Customer ID', 'Customer Name', 'Marketplace',
+                                    //                          'Picked Quantity', 'Total Quantity', 'Order Date']}
+                    }
 
   /*** Production ***/
 
@@ -114,10 +122,10 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
                                                    'SKUView': 'batch_generate_picklist/',
                                                    'SellerOrderView': 'seller_generate_picklist/'
                                                  },
-                        tb_headers: { 'CustomerOrderView': {'Customer Name': 'Customer Name', 'Order ID': 'Order ID', 'Market Place': 'Market Place', 'Total Quantity': 'Total Quantity', 'Shipment Date': 'Exp Delivery Date', 'Creation Date': 'Creation Date', 'Order Taken By': 'Order Taken By', 'Status': 'Status'},
-                                      'CustomerCategoryView': {'Customer Name': 'Customer Name', 'Order ID': 'Order ID', 'Category': 'Category', 'Total Quantity': 'Total Quantity', 'Order Taken By': 'Order Taken By', 'Status': 'Status'},
+                        tb_headers: { 'CustomerOrderView': {'Customer Name': 'Customer Name', 'Order ID': 'Order ID', 'Address': 'Address', 'Market Place': 'Market Place', 'Total Quantity': 'Total Quantity', 'Shipment Date': 'Exp Delivery Date', 'Creation Date': 'Creation Date', 'Order Taken By': 'Order Taken By', 'Status': 'Status'},
+                                      'CustomerCategoryView': {'Customer Name': 'Customer Name', 'Order ID': 'Order ID', 'Address': 'Address', 'Category': 'Category', 'Total Quantity': 'Total Quantity', 'Order Taken By': 'Order Taken By', 'Status': 'Status'},
                                       'SKUView': {'SKU Code': 'SKU Code', 'Title': 'Title', 'Total Quantity': 'Total Quantity'},
-                                      'OrderView': {'Order ID': 'Order ID', 'SKU Code': 'SKU Code', 'Title': 'Title', 'Product Quantity': 'Product Quantity', 'Shipment Date': 'Exp Delivery Date', 'Order Taken By': 'Order Taken By', 'Status': 'Status'},
+                                      'OrderView': {'Order ID': 'Order ID', 'Address': 'Address', 'SKU Code': 'SKU Code', 'Title': 'Title', 'Product Quantity': 'Product Quantity', 'Shipment Date': 'Exp Delivery Date', 'Order Taken By': 'Order Taken By', 'Status': 'Status'},
                                       'SellerOrderView': {'SOR ID': 'SOR ID', 'UOR ID': 'UOR ID', 'Seller Name': 'Seller Name', 'Customer Name': 'Customer Name', 'Market Place': 'Market Place', 'Total Quantity': 'Total Quantity', 'Creation Date': 'Creation Date', 'Order Taken By': 'Order Taken By', 'Status': 'Status'}
                                     },
                         dt_data: {'OrderView': {}, 'OrderCategoryView': ''}
@@ -174,6 +182,7 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
     self.datatable = 'ReturnToVendor';
     self.seller_types = [];
     self.rtv_filters = {};
+    self.receive_jo_barcodes = false;
 
     /** login page maintainance **/
     self.login_data = {
@@ -184,4 +193,3 @@ function Service($rootScope, $compile, $q, $http, $state, $timeout, Session, COL
       default: 'user.signin'
     }
 }
-

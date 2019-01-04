@@ -7,6 +7,8 @@
     <!-- <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1, maximum-scale=1, minimal-ui"> -->
     <meta name="viewport" content="width=device-width, initial-scale=1, minimal-ui">
 
+    <script src="sw.js"></script>
+    <script src="https://cdxn.onesignal.com/sdks/OneSignalSDK.js" async=""></script>
     <!--register service worker-->
     <script src="sw_reg.js"></script>
     
@@ -60,7 +62,8 @@
     <link rel="stylesheet" href="vendor/select2/select2.css">
 
     <!-- manifest -->
-     <link rel="manifest" href="manifest.json">
+     <link rel="manifest" id="my-manifest-placeholder">
+
   </head>
   <body data-ng-controller="AppCtrl" class="{{ app.layout.sidebarTheme }} {{ app.layout.headerTheme }}">
     <!-- quick launch panel -->
@@ -193,6 +196,38 @@
     <SCRIPT type="text/javascript">
 	window.history.forward();
 	function noBack() { window.history.forward(); }
+
+
+    //Common Manifest File
+    var manifest_json = { 
+  "name": "STOCKONE",
+  "short_name": "STOCKONE",
+  "icons": [
+        {
+            "src": "images/stockone_logo.png",
+            "sizes": "192x192",
+            "type": "image\/png"
+        },
+        {
+            "src": "images/stockone_logo.png",
+            "sizes": "512x512",
+            "type": "image\/png"
+        }
+    ],  
+  "start_url": "/#/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "orientation":"potrait",
+  "gcm_sender_id": "21194035295"
+};
+
+
+    const stringManifest = JSON.stringify(manifest_json);
+    const blob = new Blob([stringManifest], {type: 'application/json'});
+    const manifestURL = URL.createObjectURL(blob);
+    document.querySelector('#my-manifest-placeholder').setAttribute('href', manifestURL);
+
+
     </SCRIPT>
 
 </body>

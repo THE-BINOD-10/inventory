@@ -11,6 +11,11 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
 
   vm.order_id = "";
   vm.status = "";
+  vm.intermediate_order = false;
+  vm.partial_order = "";
+  if($stateParams.intermediate_order) {
+    vm.intermediate_order = $stateParams.intermediate_order;
+  }
   if($stateParams.orderId && $stateParams.state) {
     vm.order_id = $stateParams.orderId;
     vm.status = $stateParams.state;
@@ -19,6 +24,9 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
   }
 
   var url = "get_customer_order_detail/?order_id=";
+  if (vm.intermediate_order == 'true') {
+    url = "get_intermediate_order_detail/?order_id=";
+  }
   if(vm.status == "enquiry") {
     url = "get_customer_enquiry_detail/?enquiry_id=";
   } else if (vm.status == "manual_enquiry") {
@@ -35,6 +43,9 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
         console.log(data.data);
         vm.order_details = {}
         vm.order_details = data.data;
+        if (data.data.order) {
+          vm.client_name_header = data.data.order.customer_name
+        }
       }
       vm.loading = false;
     })
@@ -55,6 +66,45 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
     }
   }
 
+  vm.check_quantity = function(data, db_qty, move_qty) {
+    if(db_qty < move_qty){
+        Service.showNoty('Can not move more than present quantity');
+        data.move_quantity = db_qty;
+    }
+  }
+
+  vm.moveToCartPartial = function(event, changed_order_data) {
+    event.stopPropagation();
+    var modified_data = changed_order_data['data'];
+    var required_data = {'enquiry_id': modified_data[0]['order_id'], 'changed_data': []};
+    for(var i=0; i<modified_data[0].data.length; i++){
+        var temp_data = {};
+        temp_data['sku'] = modified_data[0].data[i]['sku'];
+        temp_data['move_quantity'] = modified_data[0].data[i]['move_quantity']
+        temp_data['warehouse_level'] = modified_data[0].data[i]['warehouse_level']
+        required_data['changed_data'].push(temp_data);
+    }
+    required_data['changed_data'] = JSON.stringify(required_data['changed_data']);
+
+    Service.apiCall("move_enquiry_to_order/", 'POST', required_data).then(function(data) {
+
+      if(data.message) {
+
+        console.log(data.data);
+        if(data.data == 'Success') {
+          Service.showNoty('Successfully Moved To Cart');
+          $state.go('user.App.Cart');
+        } else {
+
+          Service.showNoty(data.data, 'warning');
+        }
+      } else {
+
+        Service.showNoty('Something Went Wrong', 'warning');
+      }
+    });
+  }
+
   // custom orders
   //
   vm.moment = moment();
@@ -68,6 +118,7 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
     vm.disable_btn = true;
     vm.model_data['user_id'] = Session.userId;
     vm.model_data['enquiry_id'] = vm.order_details.order.enquiry_id;
+    vm.model_data['enq_status'] = 'marketing_pending';
     Service.apiCall('save_manual_enquiry_data/', 'POST', vm.model_data).then(function(data) {
       if (data.message) {
         if (data.data == 'Success') {
@@ -87,36 +138,106 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
       vm.disable_btn = false;
     });
   }
+  vm.clear_flag = false;
+  vm.clear = function(){
+    vm.clear_flag = true;
+    vm.edit_enable = false;
+  }
 
-  vm.accept_or_hold = function(){
-    swal({
-        title: "Confirm the Order or Hold the Stock!",
-        text: "Custom Order Text",
-        type: "warning",
-        showCancelButton: true,
-        confirmButtonText: "Confirm Order",
-        cancelButtonText: "Hold",
-        closeOnConfirm: true
-        },
-        function(isConfirm){
-          var elem = {'order_id': vm.order_id};
-          if(isConfirm){
-              elem['status'] = 'confirm_order'
-              vm.service.apiCall('confirm_or_hold_custom_order/', 'POST', elem).then(function(data){
-                if(data.message) {
-                   console.log('Calling Confirm');
-                }
+    vm.accept_or_hold = function(){
+      if (vm.po_number_header && vm.client_name_header) {
+        swal({
+            title: "Confirm the Order or Hold the Stock!",
+            text: "Custom Order Text",
+            type: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Confirm Order",
+            cancelButtonText: "Block Stock",
+            closeOnConfirm: true
+            },
+            function(isConfirm){
+              // var elem = {'order_id': vm.order_id, 'uploaded_po': vm.upload_file_name};
+              var elem = {'order_id': vm.order_id};
+              if(isConfirm){
+                  elem['enq_status'] = 'confirm_order'
+              }else{
+                  elem['enq_status'] = 'hold_order'
+                  // elem['status'] = 'stock_blocked'
+              }
+              elem['po_number'] = vm.po_number_header;
+              // var formData = new FormData();
+              // var el = $("#file");
+              // var files = el[0].files;
+              //
+              // $.each(files, function(i, file) {
+              //   formData.append('po_file', file);
+              // });
+
+              // var data = {'user_id': Session.userId, 'enquiry_id': vm.order_details.order.enquiry_id}
+              // $.each(elem, function(key, value) {
+              //   formData.append(key, value);
+              // });
+              vm.service.apiCall('confirm_or_hold_custom_order/', 'POST', elem  ).then(function(data){
+                    if(data.data.msg == 'Success') {
+                       if(isConfirm){
+                         vm.upload_po(vm.po_number_header, vm.client_name_header);
+                         Service.showNoty('Order Confirmed Successfully');
+                       }else{
+                         Service.showNoty('Placed Enquiry Order Successfully');
+                       }
+                    }else{
+                        Service.showNoty(data.data, 'warning');
+                    }
               })
-          }else{
-              elem['status'] = 'hold_order'
-              vm.service.apiCall('confirm_or_hold_custom_order/', 'POST', elem).then(function(data){
-                if(data.message){
-                  console.log('Calling Hold');
+            }
+          );
+      } else {
+        Service.showNoty('Please fill the PO Number', 'warning');
+      }
+    }
+
+    vm.upload_po = function(po, name) {
+
+      var formData = new FormData();
+      var el = $("#file");
+      var files = el[0].files;
+
+      if(files.length == 0){
+
+        return false;
+      }
+
+      $.each(files, function(i, file) {
+        formData.append('po_file', file);
+      });
+
+      formData.append('po_number', po);
+      formData.append('customer_name', name);
+
+      vm.uploading = true;
+      $.ajax({url: Session.url+'upload_po/',
+              data: formData,
+              method: 'POST',
+              processData : false,
+              contentType : false,
+              xhrFields: {
+                  withCredentials: true
+              },
+              'success': function(response) {
+                if(response == 'Uploaded Successfully') {
+
+                  Service.showNoty(response);
+                } else {
+                  Service.showNoty(response, 'warning');
                 }
-              })
-          }
-        }
-      );
+                vm.uploading = false;
+              },
+              'error': function(response) {
+                console.log('fail');
+                Service.showNoty('Something Went Wrong', 'warning');
+                vm.uploading = false;
+              }
+      });
     }
 
   vm.image_loding = {};
@@ -143,7 +264,7 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
   vm.upload_name = [];
   $scope.$on("fileSelected", function (event, args) {
     $scope.$apply(function () {
-      vm.upload_name = []; 
+      vm.upload_name = [];
       if (args.msg == 'success') {
         angular.forEach(args.file, function(data){vm.upload_name.push(data.name)});
         vm.upload_image();
@@ -152,6 +273,15 @@ function AppOrderDetails($scope, $http, $q, Session, colFilters, Service, $state
       }
     });
   });
+
+  vm.uploaded_po = '';
+  $scope.uploadPo = function(args){
+    vm.upload_file_name = "";
+    $scope.$apply(function () {
+      vm.upload_file_name = args.files;
+      vm.uploaded_po = args.files[0].name;
+    });
+  }
 
   vm.uploading = false;
   vm.upload_image = function() {

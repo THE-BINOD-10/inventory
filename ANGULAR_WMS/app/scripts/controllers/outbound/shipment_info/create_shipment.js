@@ -434,12 +434,42 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
 
   vm.add_shipment = function(valid) {
     if(valid.$valid) {
-      if(vm.service.check_quantity(vm.model_data.data, 'sub_data', 'shipping_quantity'))  {
+      if(vm.service.check_quantity(vm.model_data.data, 'sub_data', 'shipping_quantity')) {
         vm.bt_disable = true;
         var data = $("#add-customer:visible").serializeArray();
         vm.service.apiCall("insert_shipment_info/", "POST", data, true).then(function(data){
-          if(data.data.status) {
-            vm.service.showNoty(data.data.message);
+          if(data.message) {
+            vm.service.showNoty("Shipment Created Successfully");
+            if (!(data.data.status)) {
+              if(data.data.search("<div") != -1) {
+                if(!(data)) {
+                  data = $('.print:visible').clone();
+                } else {
+                  data = $(data.data).clone();
+                }
+                var print_div= "<div class='print'></div>";
+                print_div= $(print_div).html(data);
+                print_div = $(print_div).clone();
+                $(print_div).find(".modal-body").css('max-height', 'none');
+                $(print_div).find(".modal-footer").remove();
+                print_div = $(print_div).html();
+                var title = "Order Shipment Print"
+                var mywindow = window.open('', title, 'height=400,width=600');
+                mywindow.document.write('<html><head><title>'+title+'</title>');
+                mywindow.document.write('<link rel="stylesheet" type="text/css" href="vendor/bootstrap/dist/css/bootstrap.min.css" />');
+                mywindow.document.write('<link rel="stylesheet" type="text/css" href="styles/custom/page.css" media="print"/>');
+                mywindow.document.write('</head><body>');
+                mywindow.document.write(print_div);
+                mywindow.document.write('</body></html>');
+                mywindow.document.close();
+                mywindow.focus();
+                $timeout(function(){
+                  mywindow.print();
+                  mywindow.close();
+                }, 3000);
+                return true;
+              }
+            }
             vm.close();
             vm.reloadData();
             vm.awb_no = '';
@@ -473,18 +503,39 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
                 imei_order_id = vm.model_data.data[0].order_id;
               }
           }
-          var check_imei_dict = {is_shipment: true, imei: imei, order_id: imei_order_id, groupby: vm.group_by}
-          vm.service.apiCall('check_imei/', 'GET', check_imei_dict).then(function(data){
-            if(data.message) {
-              if (data.data.status == "Success") {
-                vm.update_imei_data(data.data, imei);
+        if(!vm.model_data.data[0].serial_number.length) 
+          {
+           var check_imei_dict = {is_shipment: true, imei: imei, order_id: imei_order_id, groupby: vm.group_by}
+           vm.service.apiCall('check_imei/', 'GET', check_imei_dict).then(function(data){
+             if(data.message) {
+               if (data.data.status == "Success") {
+                 vm.update_imei_data(data.data, imei);
                 //vm.check_equal(data2);
-              } else {
-                vm.service.showNoty(data.data.status);
-              }
-              vm.imei_number = "";
+               } else {
+                 vm.service.showNoty(data.data.status);
+               }
+               vm.imei_number = "";
+             }
+           });
+          }
+        else{
+              for(var i=0;i<vm.model_data.data.length;i++)
+               {
+                  for(var j =0;j<vm.model_data.data[i].serial_number.length;j++)
+                    {
+                        if(vm.model_data.data[i].serial_number[j] == imei)
+                          {
+                            if(vm.model_data.data[i].picked > vm.model_data.data[i]['sub_data'][0].shipping_quantity)
+                              {
+                                vm.model_data.data[i]['sub_data'][0].shipping_quantity += 1;
+                                vm.model_data.data[i].serial_number[j] =''
+
+                              }
+                            }
+                        }
+                  }
             }
-          });
+
         }
       }
     }

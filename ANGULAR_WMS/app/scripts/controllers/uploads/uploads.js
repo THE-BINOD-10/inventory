@@ -223,7 +223,6 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    dparam: "marketplace-serial-file",
                    value: "",
                    perm: "use_imei"
-
                  }, {
                     title: "OrderId AWB Mapping Download/Upload",
                     download: "Download OrderId AWB Mapping Form",
@@ -243,7 +242,7 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    dparam: "download-file",
                    value: "",
                    perm: "add_sellerstocktransfer"
-                  }, {
+                 }, {
                    title: "SKU Substitution form Download/ Upload",
                    download: "Download SKU Substitution Form",
                    upload: "Upload SKU Substitution Form",
@@ -251,9 +250,8 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    uurl: "sku_substitution_upload/",
                    dparam: "download-file",
                    value: "",
-                   //perm: "add_sellerstocktransfer"
-                  },
-                  {
+                   perm: "add_substitutionsummary"
+                 },{
                    title: "Targets form Download/ Upload",
                    download: "Targets Download Form",
                    upload: "Targets Upload Form",
@@ -262,7 +260,40 @@ function uploads($scope, Session, $http, $rootScope, Service) {
                    dparam: "download-file",
                    value: "",
                    perm: "add_targetmaster"
-                  }
+                 }, {
+                   title: "Central Order Form Download/ Upload",
+                   download: "Central Order Download Form",
+                   upload: "Central Order Upload Form",
+                   durl: "central_order_form/",
+                   uurl: "central_order_upload/",
+                   dparam: "download-file",
+                   value: "",
+                   perm: "add_suppliermaster"
+                 },
+                 {
+                   title: "Create StockTransfer Order Form Download/ Upload",
+                   download: "StockTransfer Order Download Form",
+                   upload: "StockTransfer Order Upload Form",
+                   durl: "stock_transfer_order_form/",
+                   uurl: "stock_transfer_order_upload/",
+                 },{
+                   title: "SKUPack Master Form Download/ Upload",
+                   download: "SKUPack Master Download Form",
+                   upload: "SKUPack Master Upload Form",
+                   durl: "skupack_master_download/",
+                   uurl: "skupack_master_upload/",
+                   dparam: "download-file",
+                   value: "",
+                 },
+                 {
+                   title: "BlockStock Form Download/ Upload",
+                   download: "BlockStock Download Form",
+                   upload: "BlockStock Upload Form",
+                   durl: "block_stock_download/",
+                   uurl: "block_stock_upload/",
+                   dparam: "download-file",
+                   value: "",
+                 },
                 ]
 
   $scope.download = function(data) {

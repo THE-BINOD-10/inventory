@@ -49,9 +49,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('SKU Class').withTitle('SKU Class'),
         DTColumnBuilder.newColumn('Color').withTitle('Color'),
         DTColumnBuilder.newColumn('Zone').withTitle('Zone'),
+        DTColumnBuilder.newColumn('Creation Date').withTitle('Creation Date'),
+        DTColumnBuilder.newColumn('Updation Date').withTitle('Updation Date'),
         DTColumnBuilder.newColumn('Status').withTitle('Status').renderWith(function(data, type, full, meta) {
                           return vm.service.status(data);
-                        }).withOption('width', '80px')
+                        }).withOption('width', '80px'),
     ];
 
     var sku_attr_list = [];
@@ -116,7 +118,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     if (Service.searched_wms_code != '') {
       vm.model_data.sku_data.sku_code = Service.searched_wms_code;
     };
-    
+
     function readImage(input) {
       var deferred = $.Deferred();
 
@@ -165,7 +167,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       }
     }
 
-    vm.isEmptyMarket = false 
+    vm.isEmptyMarket = false
     function rowCallback(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
         $('td', nRow).unbind('click');
         $('td', nRow).bind('click', function() {
@@ -174,10 +176,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                 vm.model_data = {};
                 angular.copy(empty_data, vm.model_data);
                 vm.service.apiCall("get_sku_data/", "GET", {data_id: aData.DT_RowAttr["data-id"]}).then(function(data) {
-
                  if (data.message) {
                   data = data.data;
                   vm.update=true;
+                  vm.model_data.serial_number = vm.permissions.use_imei;
                   vm.model_data.user_type = vm.permissions.user_type;
                   vm.model_data.sku_data = data.sku_data;
                   vm.model_data.market_data = data.market_data;
@@ -191,7 +193,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.model_data.sku_data.zone = vm.model_data.zones[index];
                   vm.model_data.attributes = data.attributes;
                   vm.model_data.measurement_type = data.sku_data.measurement_type;
-
+                  //vm.model_data.enable_serial_based = data.sku_data.enable_serial_based;
                   angular.forEach(vm.model_data.attributes, function(attr_dat){
                     if(data.sku_attributes[attr_dat.attribute_name])
                     {
@@ -209,10 +211,10 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
                   index = vm.sku_types.indexOf(vm.model_data.sku_data.sku_type);
                   vm.model_data.sku_data.sku_type = vm.sku_types[index];
- 
+
                   vm.model_data.sku_data.status = vm.status_data[vm.model_data.sku_data.status];
                   vm.model_data.sku_data.qc_check = vm.qc_data[vm.model_data.sku_data.qc_check];
- 
+
                   vm.isEmptyMarket = (data.market_data.length > 0) ? false : true;
                   vm.combo = (vm.model_data.combo_data.length > 0) ? true: false;
                   vm.model_data.sku_data.image_url = vm.service.check_image_url(vm.model_data.sku_data.image_url);
@@ -220,6 +222,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   if(vm.model_data.sku_data.ean_number == "0") {
 
                       vm.model_data.sku_data.ean_number = "";
+                  }
+                  if(vm.model_data.sku_data.enable_serial_based) {
+                    vm.model_data.sku_data.enable_serial_based = true
+                  } else {
+                    vm.model_data.sku_data.enable_serial_based = false
                   }
                   $(".sales_return_reasons").importTags(vm.model_data.sales_return_reasons||'');
                   $state.go('app.masters.SKUMaster.update');
@@ -348,7 +355,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
                   vm.close();
                 }
               } else {
-                vm.pop_msg(response); 
+                vm.pop_msg(response);
               }
               $rootScope.process = false;
             }});
@@ -395,6 +402,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.service.apiCall('get_zones_list/').then(function(data){
       if(data.message) {
         data = data.data;
+        vm.model_data.serial_number = vm.permissions.use_imei;
         vm.model_data.zones = data.zones;
         vm.model_data.product_types = data.product_types;
         vm.model_data.sku_data.product_type = '';
@@ -495,7 +503,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
           reader.readAsDataURL(input.files[0]);
           reader.onload = function (e) {
 
-              $('#photo-id').attr('src', e.target.result);                    
+              $('#photo-id').attr('src', e.target.result);
               var canvas = document.createElement("canvas");
               var imageElement = document.createElement("img");
 
@@ -554,7 +562,7 @@ app.directive('fileUpload', function () {
                 for (var i = 0;i<files.length;i++) {
                     //emit event upward
                     scope.$emit("fileSelected", { file: files[i] });
-                }                                       
+                }
             });
         }
     };

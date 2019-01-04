@@ -65,6 +65,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.toggle_sku_wise = false;
 
   vm.title = "Purchase Order";
+  vm.download_invoice_url = Session.url + 'download_grn_invoice_mapping/';
 
   vm.row_call = function(aData) {
     if (!vm.toggle_sku_wise) {
@@ -88,39 +89,39 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.reports = {}
   vm.toggle_grn = function() {
     var send = {};
-	var name;
-	if (vm.toggle_sku_wise) {
+  	var name;
+  	if (vm.toggle_sku_wise) {
       name = 'sku_wise_grn_report';
     } else {
       name = 'grn_report';
     }
     vm.service.apiCall("get_report_data/", "GET", {report_name: name}).then(function(data) {
-	if(data.message) {
-	  if ($.isEmptyObject(data.data.data)) {
-		vm.datatable = false;
-		vm.dtInstance = {};
-	  } else {
-	  vm.reports[name] = data.data.data;
-	  angular.copy(data.data.data, vm.report_data);
-      vm.report_data["row_call"] = vm.row_call;
-      vm.service.get_report_dt(vm.empty_data, vm.report_data).then(function(datam) {
-        vm.empty_data = datam.empty_data;
-        angular.copy(vm.empty_data, vm.model_data);
-        vm.dtOptions = datam.dtOptions;
-        vm.dtColumns = datam.dtColumns;
-        vm.datatable = true;
-        vm.dtInstance = {};
-        vm.report_data['excel2'] = true;
-		vm.report_data['row_click'] = true;
-        if (vm.toggle_sku_wise) {
-            vm.report_data['excel_name'] = 'sku_wise_goods_receipt'
-        } else {
-            vm.report_data['excel_name'] = 'goods_receipt'
-        }
-      })
-	}
-	}
-	})
+  	if(data.message) {
+  	  if ($.isEmptyObject(data.data.data)) {
+  		  vm.datatable = false;
+  		  vm.dtInstance = {};
+  	  } else {
+  	    vm.reports[name] = data.data.data;
+  	    angular.copy(data.data.data, vm.report_data);
+        vm.report_data["row_call"] = vm.row_call;
+        vm.service.get_report_dt(vm.empty_data, vm.report_data).then(function(datam) {
+          vm.empty_data = datam.empty_data;
+          angular.copy(vm.empty_data, vm.model_data);
+          vm.dtOptions = datam.dtOptions;
+          vm.dtColumns = datam.dtColumns;
+          vm.datatable = true;
+          vm.dtInstance = {};
+          vm.report_data['excel2'] = true;
+  		    vm.report_data['row_click'] = true;
+          if (vm.toggle_sku_wise) {
+              vm.report_data['excel_name'] = 'sku_wise_goods_receipt'
+          } else {
+              vm.report_data['excel_name'] = 'goods_receipt'
+          }
+        })
+  	  }
+  	}
+    })
   }
 
   vm.toggle_grn()
@@ -132,6 +133,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
                     'from_date': '',
                     'to_date': '',
                     'open_po': '',
+                    'invoice_number': '',
                     'wms_code': ''
                     };
 
@@ -150,5 +152,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.service.print_data(vm.print_page, "Good Receipt Note");
   }
 
+  vm.download_invoice_zip = function() {
+    console.log(vm.model_data);
+    var filt_string = ''
+    angular.forEach(vm.model_data, function(val, key){
+      if(filt_string) {
+        filt_string += '&' + key + '=' + val
+      }
+      else {
+        filt_string = key + '=' + val
+      }
+    });
+    vm.download_invoice_url = Session.url + 'download_grn_invoice_mapping/' + '?' + filt_string;
   }
+
+}
 

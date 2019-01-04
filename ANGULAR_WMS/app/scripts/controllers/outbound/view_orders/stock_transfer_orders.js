@@ -53,7 +53,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
 
         vm.date = datearray[0] + '/' + datearray[1] + '/' + datearray[2];
       } else {
-        
+
         vm.date = datearray[1] + '/' + datearray[0] + '/' + datearray[2];
       }
     }
@@ -104,6 +104,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             DTColumnBuilder.newColumn('Warehouse Name').withTitle('Warehouse Name'),
             DTColumnBuilder.newColumn('Stock Transfer ID').withTitle('Stock Transfer ID'),
             DTColumnBuilder.newColumn('Creation Date').withTitle('Creation Date'),
+            DTColumnBuilder.newColumn('Quantity').withTitle('Quantity')
         ];
       } else {
 
@@ -146,12 +147,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
             DTColumnBuilder.newColumn('Warehouse Name').withTitle('Warehouse Name'),
             DTColumnBuilder.newColumn('Stock Transfer ID').withTitle('Stock Transfer ID'),
             DTColumnBuilder.newColumn('SKU Code').withTitle('SKU Code'),
+            DTColumnBuilder.newColumn('Creation Date').withTitle('Creation Date'),
             DTColumnBuilder.newColumn('Quantity').withTitle('Quantity')
         ];
       }
     }
 
-    vm.changeDtFields(false);    
+    vm.changeDtFields(false);
 
     vm.dtInstance = {};
     vm.reloadData = reloadData;
@@ -225,7 +227,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     $('td:not(td:first)', nRow).bind('click', function() {
 
         $scope.$apply(function() {
-          
+
           var data = {order_id: aData['Stock Transfer ID']};
           $state.go('app.outbound.ViewOrders.StockTransferAltView');
 
@@ -241,18 +243,18 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       // elem = $(elem).serializeArray();
       var elem = [];
 
-      elem.push({name: 'order_id', value: vm.order_id}, /*{name: 'customer_id', value: vm.customer_id},*/ 
+      elem.push({name: 'order_id', value: vm.order_id}, /*{name: 'customer_id', value: vm.customer_id},*/
                 {name: 'customer_name', value: vm.customer_name}, {name: 'city', value: vm.city},
                 {name: 'address', value: vm.address}, {name: 'state', value: vm.state}, {name: 'pincode', value: vm.pin},
                 {name: 'creation_date', value: vm.creation_date});
-      
+
       angular.forEach(vm.items_dict, function(item){
 
         elem.push({name: 'closing_stock', value: item.closing_stock},
                 {name: 'consumed', value: item.consumed}, {name: 'invoice_amount', value: item.invoice_amount},
                 {name: 'item_code', value: item.item_code}, {name: 'opening_stock', value: item.opening_stock},
-                {name: 'product_title', value: item.product_title}, {name: 'quantity', value: item.quantity}, 
-                {name: 'received', value: item.received}, {name: 'total_stock', value: item.total_stock}, 
+                {name: 'product_title', value: item.product_title}, {name: 'quantity', value: item.quantity},
+                {name: 'received', value: item.received}, {name: 'total_stock', value: item.total_stock},
                 {name: 'unit_price', value: item.unit_price}, {name: 'adjusted', value: item.adjusted});
       });
 
@@ -290,8 +292,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
           vm.model_data['data'] = [];
         }
 
-        vm.model_data.data.push({item_code:'', product_title:'', quantity:0, unit_price:0, invoice_amount:0, 
-          opening_stock: '', order_id: vm.order_id, received: '', total_stock: '', adjusted: '', consumed: '', closing: '', new_product:true, 
+        vm.model_data.data.push({item_code:'', product_title:'', quantity:0, unit_price:0, invoice_amount:0,
+          opening_stock: '', order_id: vm.order_id, received: '', total_stock: '', adjusted: '', consumed: '', closing: '', new_product:true,
           default_status: false, sku_status: 1});
       } else {
         var data_to_delete = {};
@@ -322,8 +324,8 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
       var total = (data.quantity * data.unit_price);
       var discount_amt = (total*data.discount_per)/100;
       var invoice_amount_dis = Number(total - discount_amt);
-      
-      /*if (flag) { // Used to execute taxes for unitprice change only 
+
+      /*if (flag) { // Used to execute taxes for unitprice change only
         if (data.taxes.length) {
           for (var i = 0; i < data.taxes.length; i++) {
 
@@ -364,7 +366,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
     vm.generate_data = [];
     vm.generate_picklist = generate_picklist;
     function generate_picklist() {
-      for(var key in vm.selected){
+      for(var key in vm.selected) {
         console.log(vm.selected[key]);
         if(vm.selected[key]) {
           vm.generate_data.push(vm.dtInstance.DataTable.context[0].aoData[key]._aData);
@@ -375,7 +377,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $timeout, Ses
         var data = {};
         for(var i=0;i<vm.generate_data.length;i++) {
           // data[vm.generate_data[i]['Stock Transfer ID']+":"+vm.generate_data[i]['SKU Code']]= vm.generate_data[i].DT_RowAttr.id;
-          data[vm.generate_data[i]['Stock Transfer ID']] = vm.generate_data[i].DT_RowAttr.id;
+          data[vm.generate_data[i].DT_RowAttr.id] = vm.generate_data[i]['Stock Transfer ID'];
         }
 
         var url = 'st_generate_picklist/';

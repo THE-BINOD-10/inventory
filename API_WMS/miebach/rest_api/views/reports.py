@@ -57,6 +57,11 @@ def get_report_data(request, user=''):
             data['filters'][data_index]['values'] = list(
                 OrderDetail.objects.exclude(sku__sku_category='').filter(user=user.id).values_list('sku__sku_category',
                                                                                                    flat=True).distinct())
+        if 'sister_warehouse' in filter_keys :
+            sister_wh = get_sister_warehouse(user)
+            data_index = data['filters'].index(filter(lambda person: 'sister_warehouse' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = list(
+                UserGroups.objects.filter(Q(admin_user=user) | Q(user=user)).values_list('user__username',flat=True).distinct())
         if 'order_report_status' in filter_keys:
             data_index = data['filters'].index(
                 filter(lambda person: 'order_report_status' in person['name'], data['filters'])[0])
@@ -137,6 +142,14 @@ def get_po_filter(request, user=''):
     headers, search_params, filter_params = get_search_params(request)
     temp_data = get_po_filter_data(search_params, user, request.user)
 
+    return HttpResponse(json.dumps(temp_data), content_type='application/json')
+
+@csrf_exempt
+@login_required
+@get_admin_user
+def get_grn_edit_filter(request, user=''):
+    headers, search_params, filter_params = get_search_params(request)
+    temp_data = get_grn_edit_filter_data(search_params, user, request.user)
     return HttpResponse(json.dumps(temp_data), content_type='application/json')
 
 @csrf_exempt
@@ -319,40 +332,6 @@ def print_dispatch_summary(request, user=''):
     if report_data:
         html_data = create_reports_table(report_data[0].keys(), report_data)
     return HttpResponse(html_data)
-
-
-def print_sku_wise_data(search_params, user, sub_user):
-    from rest_api.views.common import get_sku_master
-    sku_master, sku_master_ids = get_sku_master(user, sub_user)
-    temp_data = copy.deepcopy(AJAX_DATA)
-    search_parameters = {}
-    cmp_data = ('sku_code', 'wms_code', 'sku_category', 'sku_type', 'sku_class')
-    for data in cmp_data:
-        if data in search_params:
-            search_parameters['%s__%s' % (data, 'iexact')] = search_params[data]
-
-    start_index = search_params.get('start', 0)
-    stop_index = start_index + search_params.get('length', 0)
-    search_parameters['user'] = user.id
-
-    sku_master = sku_master.filter(**search_parameters)
-    temp_data['recordsTotal'] = len(sku_master)
-    temp_data['recordsFiltered'] = len(sku_master)
-
-    if stop_index:
-        sku_master = sku_master[start_index:stop_index]
-
-    for data in sku_master:
-        total_quantity = 0
-        stock_data = StockDetail.objects.exclude(location__zone__zone='DEFAULT').filter(sku_id=data.id)
-        for stock in stock_data:
-            total_quantity += int(stock.quantity)
-
-        temp_data['aaData'].append(OrderedDict((('SKU Code', data.sku_code), ('WMS Code', data.wms_code),
-                                                ('Product Description', data.sku_desc),
-                                                ('SKU Category', data.sku_category),
-                                                ('Total Quantity', total_quantity))))
-    return temp_data
 
 
 @csrf_exempt
@@ -735,6 +714,10 @@ def print_po_reports(request, user=''):
                 seller_summary_objs = data.sellerposummary_set.filter(receipt_number=receipt_no)
                 open_data = data.open_po
                 grouped_data = OrderedDict()
+                if seller_summary_objs[0].overall_discount :
+                    overall_discount = seller_summary_objs[0].overall_discount
+                else:
+                    overall_discount = 0
                 for seller_summary_obj in seller_summary_objs:
                     quantity = seller_summary_obj.quantity
                     bill_no = seller_summary_obj.invoice_number if seller_summary_obj.invoice_number else ''
@@ -745,7 +728,10 @@ def print_po_reports(request, user=''):
                     igst_tax = open_data.igst_tax
                     utgst_tax = open_data.utgst_tax
                     cess_tax = open_data.cess_tax
+                    if seller_summary_obj.cess_tax:
+                        cess_tax = seller_summary_obj.cess_tax
                     gst_tax = cgst_tax + sgst_tax + igst_tax + utgst_tax + cess_tax
+                    discount = seller_summary_obj.discount_percent
                     if seller_summary_obj.batch_detail:
                         price = seller_summary_obj.batch_detail.buy_price
                         temp_tax_percent = seller_summary_obj.batch_detail.tax_percent
@@ -761,6 +747,8 @@ def print_po_reports(request, user=''):
                         gst_tax = cgst_tax + sgst_tax + igst_tax + utgst_tax + cess_tax
                     grouping_key = '%s:%s' % (str(open_data.sku.sku_code), str(price))
                     amount = float(quantity) * float(price)
+                    if discount:
+                        amount = amount - (amount * float(discount)/100)
                     if gst_tax:
                         amount += (amount / 100) * gst_tax
                     grouped_data.setdefault(grouping_key, [open_data.sku.wms_code, open_data.order_quantity, 0,
@@ -835,13 +823,14 @@ def print_po_reports(request, user=''):
     title = 'Purchase Order'
     #if receipt_type == 'Hosted Warehouse':
     #    title = 'Stock Transfer Note'
+    net_amount = total - overall_discount
     return render(request, 'templates/toggle/c_putaway_toggle.html',
                   {'table_headers': table_headers, 'data': po_data, 'data_slices': sku_slices, 'address': address,
                    'order_id': order_id, 'telephone': str(telephone), 'name': name, 'order_date': order_date,
                    'total_price': total, 'data_dict': data_dict, 'bill_no': bill_no,
                    'po_number': po_reference, 'company_address': w_address, 'company_name': user_profile.company_name,
-                   'display': 'display-none', 'receipt_type': receipt_type, 'title': title,
-                   'total_received_qty': total_qty, 'bill_date': bill_date, 'total_tax': total_tax,
+                   'display': 'display-none', 'receipt_type': receipt_type, 'title': title,'overall_discount':overall_discount,
+                   'total_received_qty': total_qty, 'bill_date': bill_date, 'total_tax': total_tax,'net_amount':net_amount,
                    'company_address': company_address})
 
 
@@ -1325,7 +1314,7 @@ def print_purchase_order_form(request, user=''):
             tax += open_po.cess_tax
             show_cess_tax = True
         total += amount + ((amount / 100) * float(tax))
-        total_tax_amt = (open_po.utgst_tax + open_po.sgst_tax + open_po.cgst_tax + open_po.igst_tax + open_po.cess_tax 
+        total_tax_amt = (open_po.utgst_tax + open_po.sgst_tax + open_po.cgst_tax + open_po.igst_tax + open_po.cess_tax
             + open_po.utgst_tax) * (amount/100)
         total_sku_amt = total_tax_amt + amount
         if user.userprofile.industry_type == 'FMCG':
@@ -1406,14 +1395,14 @@ def print_purchase_order_form(request, user=''):
         company_name = 'SHPROC Procurement Pvt. Ltd.'
         title = 'Purchase Order'
     data_dict = {
-                 'table_headers': table_headers, 
-                 'data': po_data, 
-                 'address': address, 
+                 'table_headers': table_headers,
+                 'data': po_data,
+                 'address': address,
                  'order_id': order_id,
                  'telephone': str(telephone),
-                 'name': name, 
+                 'name': name,
                  'order_date': order_date,
-                 'total': round(total), 
+                 'total': round(total),
                  'total_qty': total_qty,
                  'vendor_name': vendor_name,
                  'vendor_address': vendor_address,
@@ -1426,8 +1415,8 @@ def print_purchase_order_form(request, user=''):
                  'terms_condition' : terms_condition,
                  'total_amt_in_words' : total_amt_in_words,
                  'show_cess_tax': show_cess_tax,
-                 'company_name': profile.company_name, 
-                 'location': profile.location, 
+                 'company_name': profile.company_name,
+                 'location': profile.location,
                  'po_reference': po_reference,
                  'industry_type': profile.industry_type,
                  'company_address': company_address

@@ -39,15 +39,21 @@ def decide_and_return_response(request, **kwargs):
         return return_response(data)
     return data
 
-def scroll_data(request, obj_lists, limit=''):
+def scroll_data(request, obj_lists, limit='', request_type='POST'):
     #if not obj_lists: return {}
     items, page_num = 10, 1
     if limit:
         items = limit
-    if 'items' in request.POST.keys():
-        items = request.POST.get('items', items)
-    if 'pagenum' in request.POST.keys():
-        page_num = int(request.POST.get('pagenum', page_num))
+    if request_type == 'body':
+        request_data = json.loads(request.body)
+    elif request_type == 'POST':
+        request_data = request.POST.dict()
+    else:
+        request_data = request.GET.dict()
+    if 'items' in request_data.keys():
+        items = request_data.get('items', items)
+    if 'pagenum' in request_data.keys():
+        page_num = int(request_data.get('pagenum', page_num))
     paginator = Paginator(obj_lists, items)
 
     if items:
@@ -986,17 +992,27 @@ def update_sku(request):
         skus = json.loads(request.body)
     except:
         log.info('Incorrect Request params for ' + request.user.username + ' is ' + str(skus))
-        return HttpResponse(json.dumps({'message': 'Please send proper data'}))
+        return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid JSON Data'}), status=400)
     log.info('Request params for ' + request.user.username + ' is ' + str(skus))
     try:
-        status = update_skus(skus, user=request.user, company_name='mieone')
-        log.info(status)
+        insert_status, failed_status = update_skus(skus, user=request.user, company_name='mieone')
+        log.info(insert_status)
+        log.info(failed_status)
+        if not failed_status:
+            failed_status = {'status': 200, 'message': 'Success'}
+        else:
+            if not (insert_status.get('SKUS Created', '') or insert_status.get('SKUS updated', '')):
+                failed_status = {'status': 422, 'messages': failed_status}
+            else:
+                failed_status = {'status': 207, 'messages': failed_status}
+        return HttpResponse(json.dumps(failed_status), status=failed_status.get('status', 200))
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info('Update SKUS data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
         status = {'message': 'Internal Server Error'}
-    return HttpResponse(json.dumps(status))
+        return HttpResponse(json.dumps(status), status=500)
+
 
 @csrf_exempt
 @login_required
@@ -1090,10 +1106,14 @@ def update_orders(request):
     try:
         orders = json.loads(request.body)
     except:
-        return HttpResponse(json.dumps({'message': 'Please send proper data'}))
+        return HttpResponse(json.dumps({'status': 400, 'message': 'Please send proper data'}))
     log.info('Request params for ' + request.user.username + ' is ' + str(orders))
     try:
-        validation_dict, failed_status, final_data_dict = validate_orders_format(orders, user=request.user, company_name='mieone')
+        if request.user.userprofile.user_type == 'marketplace_user':
+            validation_dict, failed_status, final_data_dict = validate_seller_orders_format(orders, user=request.user,
+                                                                                     company_name='mieone')
+        else:
+            validation_dict, failed_status, final_data_dict = validate_orders_format(orders, user=request.user, company_name='mieone')
         if validation_dict:
             return HttpResponse(json.dumps({'messages': validation_dict, 'status': 0}))
         if failed_status:
@@ -1103,7 +1123,8 @@ def update_orders(request):
                 failed_status = failed_status[0]
                 failed_status.update({'Status': 'Failure'})
             return HttpResponse(json.dumps(failed_status))
-        status = update_ingram_order_dicts(final_data_dict, seller_id, user=request.user)
+        #status = update_ingram_order_dicts(final_data_dict, seller_id, user=request.user)
+        status = update_order_dicts(final_data_dict, user=request.user, company_name='mieone')
         log.info(status)
     except Exception as e:
         import traceback
@@ -1119,19 +1140,20 @@ def update_mp_orders(request):
     try:
         orders = json.loads(request.body)
     except:
-        return HttpResponse(json.dumps({'message': 'Please send proper data'}))
+        return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid JSON Data'}), status=400)
     log.info('Request params for ' + request.user.username + ' is ' + str(orders))
     try:
         validation_dict, failed_status, final_data_dict = validate_seller_orders_format(orders, user=request.user, company_name='mieone')
         if validation_dict:
-            return HttpResponse(json.dumps({'messages': validation_dict, 'status': 0}))
+            return HttpResponse(json.dumps({'messages': validation_dict, 'status': 207}), status=207)
         if failed_status:
+            final_failed_status = {'status': 422}
             if type(failed_status) == dict:
-                failed_status.update({'Status': 'Failure'})
+                final_failed_status.update({'status': 422, 'messages': failed_status})
             if type(failed_status) == list:
-                failed_status = failed_status[0]
-                failed_status.update({'Status': 'Failure'})
-            return HttpResponse(json.dumps(failed_status))
+                failed_status = failed_status
+                final_failed_status.update({'messages': failed_status})
+            return HttpResponse(json.dumps(final_failed_status), status=422)
         status = update_order_dicts(final_data_dict, user=request.user, company_name='mieone')
         log.info(status)
     except Exception as e:
@@ -1151,6 +1173,7 @@ def get_mp_inventory(request):
     filter_params = {'user': user.id}
     error_status = []
     request_data = request.body
+    picklist_exclude_zones = get_exclude_zones(user)
     try:
         try:
             request_data = json.loads(request_data)
@@ -1158,57 +1181,81 @@ def get_mp_inventory(request):
             skus = request_data.get('sku', [])
             skus = map(lambda sku: str(sku), skus)
             seller_id = request_data.get('seller_id', '')
+            warehouse = request_data.get('warehouse', '')
             #skus = eval(skus)
             if skus:
                 filter_params['sku_code__in'] = skus
         except:
-            return HttpResponse(json.dumps({'error_status': 'fail', 'message': 'Invalid JSON Data'}))
+            return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid JSON Data'}), status=400)
         if not seller_id:
-            return HttpResponse(json.dumps({'error_status': 'fail', 'message': 'Seller ID is Mandatory'}))
+            return HttpResponse(json.dumps({'status': 207, 'message': 'Seller ID is Mandatory'}), status=207)
+        if not warehouse:
+            return HttpResponse(json.dumps({'status': 207, 'message': 'Warehouse Name is Mandatory'}), status=207)
+        token_user = user
+        sister_whs = list(get_sister_warehouse(user).values_list('user__username', flat=True))
+        sister_whs.append(token_user.username)
+        if warehouse in sister_whs:
+            user = User.objects.get(username=warehouse)
+        else:
+            return HttpResponse(json.dumps({'status': 207, 'message': 'Invalid Warehouse Name'}), status=207)
         try:
             seller_master = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
             if not seller_master:
-                return HttpResponse(json.dumps({'error_status': 'fail', 'message': 'Invalid Seller ID'}))
+                return HttpResponse(json.dumps({'status': 207, 'message': 'Invalid Seller ID'}), status=207)
         except:
-            return HttpResponse(json.dumps({'error_status': 'fail', 'message': 'Invalid Seller ID'}))
+            return HttpResponse(json.dumps({'status': 207, 'message': 'Invalid Seller ID'}), status=207)
         seller_master_id = seller_master[0].id
         sku_records = SKUMaster.objects.filter(**filter_params).values('sku_code')
         error_skus = set(skus) - set(sku_records.values_list('sku_code', flat=True))
         for error_sku in error_skus:
-            error_status.append({'sku': error_sku, 'error': 'SKU Not found'})
-        page_info = scroll_data(request, sku_records, limit=limit)
+            error_status.append({'sku': error_sku, 'message': 'SKU Not found', 'status': 5030})
+        page_info = scroll_data(request, sku_records, limit=limit, request_type='body')
         sku_records = page_info['data']
         if industry_type == 'FMCG':
             stocks = SellerStock.objects.select_related('seller', 'stock', 'stock__location__zone').\
                           filter(seller_id=seller_master_id,stock__sku__user=user.id, stock__quantity__gt=0).\
-                                exclude(Q(stock__location__zone__zone__in=PICKLIST_EXCLUDE_ZONES) |
+                                exclude(Q(stock__location__zone__zone__in=picklist_exclude_zones) |
                                         Q(stock__receipt_number=0)).only('stock__sku__sku_code',
                                                                         'stock__batch_detail__mrp', 'quantity').\
                           annotate(group_key=Concat('stock__sku__sku_code',Value('<<>>'), 'stock__batch_detail__mrp',
+                                                    Value('<<>>'), 'stock__batch_detail__ean_number', Value('<<>>'),
+                                                    'stock__batch_detail__weight',
                                     output_field=CharField())).values('group_key').distinct().\
                           annotate(stock_sum=Sum('quantity'))
             pick_res = dict(PicklistLocation.objects.select_related('seller__sellerstock', 'stock', 'stock__sku').\
                             filter(stock__sellerstock__seller_id=seller_master_id, reserved__gt=0, status=1,
                                     stock__sellerstock__quantity__gt=0, stock__sku__user=user.id). \
                             only('stock__sku__sku_code', 'stock__batch_detail__mrp', 'reserved').\
-                            annotate(group_key=Concat('stock__sku__sku_code', Value('<<>>'), 'stock__batch_detail__mrp',
+                            annotate(group_key=Concat('stock__sku__sku_code',Value('<<>>'), 'stock__batch_detail__mrp',
+                                                      Value('<<>>'), 'stock__batch_detail__ean_number', Value('<<>>'),
+                                                      'stock__batch_detail__weight',
                                               output_field=CharField())).values_list('group_key').distinct(). \
                             annotate(stock_sum=Sum('reserved')))
             unsellable_stock = SellerStock.objects.select_related('seller', 'stock', 'stock__location__zone__zone').\
                           filter(seller_id=seller_master_id,stock__sku__user=user.id, stock__quantity__gt=0,
                                  stock__location__zone__zone='Non Sellable Zone'). \
                           only('stock__sku__sku_code', 'stock__batch_detail__mrp', 'reserved').\
-                          annotate(group_key=Concat('stock__sku__sku_code', Value('<<>>'), 'stock__batch_detail__mrp',
+                          annotate(group_key=Concat('stock__sku__sku_code',Value('<<>>'), 'stock__batch_detail__mrp',
+                                                    Value('<<>>'), 'stock__batch_detail__ean_number', Value('<<>>'),
+                                                    'stock__batch_detail__weight',
                                           output_field=CharField())).values('group_key').distinct(). \
                           annotate(stock_sum=Sum('quantity'))
             for sku in sku_records:
                 group_data = stocks.filter(stock__sku__sku_code=sku['sku_code']).values('group_key', 'stock_sum')
                 group_data1 = unsellable_stock.filter(stock__sku__sku_code=sku['sku_code']).\
                                         exclude(group_key__in=group_data.values_list('group_key', flat=True))
-                mrp_list = []
+                mrp_dict = {}
                 for stock_dat in group_data:
-                    sku_code = stock_dat['group_key'].split('<<>>')[0]
-                    mrp = stock_dat['group_key'].split('<<>>')[1]
+                    splitted_val = stock_dat['group_key'].split('<<>>')
+                    sku_code = splitted_val[0]
+                    mrp = splitted_val[1]
+                    ean = splitted_val[2]
+                    weight = splitted_val[3]
+                    if not ean:
+                        ean = ''
+                    if not weight:
+                        weight = 0
+                    sub_group_key = '%s<<>>%s<<>>%s' % (mrp, ean, weight)
                     if not mrp:
                         mrp = 0
                     inventory = stock_dat['stock_sum']
@@ -1226,25 +1273,46 @@ def get_mp_inventory(request):
                     if not unsellable:
                         unsellable = 0
                     inventory -= reserved
-                    mrp_list.append(OrderedDict(( ('mrp', mrp), ('inventory', int(inventory)),
-                                          ('on_hold', int(reserved)), ('un_sellable', int(unsellable)))))
+                    mrp_dict.setdefault(sub_group_key, OrderedDict(( ('mrp', mrp), ('ean', ean), ('weight', weight),
+                                                                     ('inventory', OrderedDict((('sellable', 0),
+                                                                                                ('on_hold', 0),
+                                                                                                ('un_sellable', 0)))))))
+                    mrp_dict[sub_group_key]['inventory']['sellable'] += int(inventory)
+                    mrp_dict[sub_group_key]['inventory']['on_hold'] += int(reserved)
+                    mrp_dict[sub_group_key]['inventory']['un_sellable'] += int(unsellable)
                 for stock_dat1 in group_data1:
-                    mrp = stock_dat1['group_key'].split('<<>>')[1]
+                    splitted_val = stock_dat1['group_key'].split('<<>>')
+                    sku_code = splitted_val[0]
+                    mrp = splitted_val[1]
+                    ean = splitted_val[2]
+                    weight = splitted_val[3]
+                    if not ean:
+                        ean = ''
+                    if not weight:
+                        weight = 0
+                    sub_group_key = '%s<<>>%s<<>>%s' % (mrp, ean, weight)
                     if not mrp:
                         mrp = 0
                     inventory = stock_dat1['stock_sum']
                     if not inventory:
                         inventory = 0
-                    mrp_list.append(OrderedDict(( ('mrp', mrp), ('inventory', 0),
-                                          ('on_hold', 0), ('un_sellable', int(inventory)))))
+                    mrp_dict.setdefault(sub_group_key, OrderedDict(( ('mrp', mrp), ('ean', ean), ('weight', weight),
+                                                                     ('inventory', OrderedDict((('sellable', 0),
+                                                                                                ('on_hold', 0),
+                                                                                                ('un_sellable', 0)))))))
+                    mrp_dict[sub_group_key]['inventory']['un_sellable'] += int(inventory)
+
+                mrp_list = mrp_dict.values()
                 if not mrp_list:
-                    mrp_list = OrderedDict(( ('mrp', 0), ('inventory', 0),
-                                          ('on_hold', 0), ('un_sellable', 0)))
+                    mrp_list = OrderedDict(( ('mrp', 0), ('ean', ''), ('weight', 0),
+                                                                     ('inventory', OrderedDict((('sellable', 0),
+                                                                                                ('on_hold', 0),
+                                                                                                ('un_sellable', 0))))))
                 data.append(OrderedDict(( ('sku', sku['sku_code']), ('data', mrp_list))))
         else:
             stocks = dict(SellerStock.objects.select_related('seller', 'stock', 'stock__location__zone').\
                           filter(seller_id=seller_master_id,stock__sku__user=user.id, stock__quantity__gt=0).\
-                                exclude(Q(stock__location__zone__zone__in=PICKLIST_EXCLUDE_ZONES) |
+                                exclude(Q(stock__location__zone__zone__in=picklist_exclude_zones) |
                                         Q(stock__receipt_number=0)).values_list('stock__sku__sku_code').distinct().\
                           annotate(tot_stock=Sum('quantity')))
             pick_res = dict(PicklistLocation.objects.select_related('seller__sellerstock', 'stock', 'stock__sku').\
@@ -1265,11 +1333,16 @@ def get_mp_inventory(request):
                                           ('on_hold', int(reserved)), ('un_sellable', unsellable))))
         page_info['data'] = data
         #data = scroll_data(request, data, limit=limit)
-        response_data = {'page_info': page_info.get('page_info', {}), 'status': 'success', 'error_status': error_status,
-                         'inventory_status': page_info['data']}
+        response_data = {'page_info': page_info.get('page_info', {}), 'status': 200,
+                         'messages': [{'errors': error_status}],
+                         'products': page_info['data']}
+        output_status = 200
+        if error_status:
+            output_status = 207
+        return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder), status=output_status)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info('Get Inventory failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
-        response_data = {'messages': 'Internal Server Error', 'status': 0}
-    return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
+        response_data = {'messages': 'Internal Server Error', 'status': 500}
+        return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder), status=500)

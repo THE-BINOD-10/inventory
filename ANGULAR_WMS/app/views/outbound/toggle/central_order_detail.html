@@ -1,0 +1,170 @@
+<div id="page-pop" class="modal fade in" tabindex="-1" role="dialog" style="display: block;">
+  <div class="modal-dialog model-custom modal-lg">
+    <form name="form" class="ng-pristine ng-valid" role="form" ui-jq="validate" ui-options="validationOpt">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" ng-click="showCase.close()"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">Update</h4>
+      </div>
+      <div class="modal-body" id="update_sku">
+        <div class="row">
+            <input type="hidden" name="data_id" ng-model="showCase.model_data.data_id" class="form-control" value="">
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Order ID</label>
+                <input type="text" name="order_id" class="form-control" ng-model="showCase.model_data.order_id" disabled>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> SKU Code </label>
+                <input type="text" name="sku_code" class="form-control" ng-model="showCase.model_data.sku_code" maxlength="256" disabled>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> SKU Description </label>
+                <input type="text" name="sku_desc" class="form-control" ng-model="showCase.model_data.sku_desc" maxlength="256" disabled>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label">Alt SKU Code </label>
+                <!--<input type="text" name="sku_code" class="form-control" ng-model="showCase.model_data.sku_code" maxlength="256" disabled>-->
+                <input type="text" ng-if="!showCase.model_data.already_assigned" autocomplete="off" name="alt_sku_code" class="form-control detectTab" placeholder="Search WMS Code/Description" typeahead="address.wms_code+' : '+address.sku_desc for address in showCase.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="showCase.model_data.alt_sku_code" typeahead-on-select="showCase.get_sku_details(product, $item, $index)">
+                <input type="text" ng-if="showCase.model_data.already_assigned" name="alt_sku_code" class="form-control" ng-model="showCase.model_data.alt_sku_code" maxlength="256" disabled>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Alt SKU Description </label>
+                <input type="text" name="alt_sku_desc" class="form-control" ng-model="showCase.model_data.alt_sku_desc" maxlength="256" disabled>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Product Quantity </label>
+                <input type="text" name="quantity" class="form-control" ng-model="showCase.model_data.quantity" maxlength="256" disabled>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Project Name </label>
+                <input type="text" name="project_name" class="form-control" ng-model="showCase.model_data.project_name" maxlength="256" disabled>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Shipment Date </label>
+                <input ng-if="!showCase.model_data.already_picked" type="text" name="shipment_date" ui-jq="datepicker" class="form-control" ng-model="showCase.model_data.shipment_date" maxlength="256" data-date-today-highlight="true" required>
+                <input ng-if="showCase.model_data.already_picked" type="text" name="shipment_date" class="form-control" ng-model="showCase.model_data.shipment_date" maxlength="256" disabled>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6">
+              <div class="form-group">
+                <label class="control-label"> Status </label>
+                <select ng-if="!showCase.model_data.already_assigned || showCase.permissions.central_order_reassigning" class="form-control" name="status" ng-model="showCase.model_data.status">
+                  <option ng-repeat="(key, value) in showCase.status_dropdown" value="{{key}}" ng-selected="key == showCase.model_data.status">{{value}}</option>
+                </select>
+                <input ng-if="showCase.model_data.already_assigned && !showCase.permissions.central_order_reassigning" type="text" name="status" class="form-control" ng-model="showCase.status_dropdown[showCase.model_data.status]" maxlength="256" disabled>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6" ng-if="showCase.model_data.already_assigned">
+              <div class="form-group">
+                <label class="control-label"> Warehouse </label>
+                <!--<select ng-if="!showCase.model_data.already_assigned && showCase.model_data.status!='0'" class="form-control" name="warehouse" ng-model="showCase.model_data.warehouse"
+                        ng-options="wh_id as wh_id + '(' + wh_stock + ')' for (wh_id, wh_stock) in showCase.model_data.wh_level_stock_map"
+                        ng-selected="type == showCase.model_data.warehouse"></select>-->
+                <input ng-if="showCase.model_data.already_assigned" type="text" name="status" class="form-control" ng-model="showCase.model_data.warehouse" maxlength="256" disabled>
+              </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-6" ng-if="!showCase.model_data.already_assigned || showCase.permissions.central_order_reassigning">
+              <div class="form-group">
+                <label class="control-label" ng-if="showCase.model_data.status!='0'"> Style Search</label>
+                <input type="text" autocomplete="off" name="sku_class" class="form-control detectTab"
+                       placeholder="Search SKU Class/Style Name" typeahead="address.sku_class+' : '+address.style_name for address in showCase.service.getSearchValues($viewValue, 'search_style_data?')"
+                       typeahead-loading="loadingLocations" ng-model="showCase.model_data.sku_class"
+                       typeahead-on-select="showCase.get_sku_qty_details(product, $item, $index)"
+                       ng-keyup="$event.keyCode == 13 ? showCase.key_event(product, $item, $index) : null"
+                       ng-readonly="!showCase.sel_warehouse_flag">
+              </div>
+            </div>
+
+            <div class="col-md-12 col-sm-12 col-xs-12" ng-if="!showCase.model_data.already_assigned || showCase.permissions.central_order_reassigning">
+              <div class="row over-x">
+                <table class="table mw85">
+                  <thead>
+                    <tr>
+                      <th>Warehouse</th>
+                      <th>Available Stock</th>
+                      <th>Quantity</th>
+                      <th class="plus"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="field" ng-repeat="records in showCase.model_data.data">
+                      <td>
+                        <!-- <input type="text" name="status" class="form-control" ng-model="key" maxlength="256" disabled> -->
+                        <select class="form-control" name="warehouse" ng-model="records.sel_warehouse" ng-change="showCase.change_warehouse(records,$index)">
+                          <option value="">Select Warehouse</option>
+                          <option ng-repeat="(key, data) in showCase.model_data.wh_level_stock_map" value="{{key}}">{{key}}</option>
+                        </select>
+                      </td>
+                      <td><input type="text" name="available" class="form-control" ng-init="records.wh_available = showCase.model_data.wh_level_stock_map[records.warehouse].available" ng-model="records.wh_available" disabled></td>
+                      <td>
+                        <input type="text" name="quantity" class="form-control" ng-init="records.wh_quantity = showCase.model_data.wh_level_stock_map[records.warehouse].quantity" ng-model="records.wh_quantity"
+                           ng-change="showCase.change_wh_quantity(records.sel_warehouse, records.wh_quantity, showCase.model_data.quantity, $index)" ng-readonly="!records.sel_warehouse">
+                      </td>
+                      <td>
+                        <i ng-click="showCase.update_data(records,$index)" class="fa fa-minus-square-o"></i>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="row">
+                <center>
+                  <button type="button" class="btn btn-default" style="margin-top:10px" ng-click="showCase.add_warehouse()">Add New Warehouse</button>
+                </center>
+              </div>
+            </div>
+            <div class="col-md-12 col-sm-12 col-xs-12" ng-if="(showCase.display_style_stock_table)">
+        		  <div class="col-md-12 col-sm-12 col-xs-12">
+                      <div style="margin-bottom: 10px;"><strong>SKU Level Available Quantity :</strong></div>
+        		  </div>
+
+        		  <div class="col-md-12 col-sm-12 col-xs-12 mb10">
+                  <table class="table table-bordered">
+                    <thead>
+                      <tr>
+                        <th>SKU Code</th>
+                        <th>SKU Description</th>
+                        <th>Available Quantity</th>
+                      </tr>
+                    </thead>
+                    <tbody ng-repeat="data in showCase.sku_level_qtys">
+                        <tr class="field">
+        				  <td>{{data.sku_code}}</td>
+                          <td>{{data.sku_desc}}</td>
+                          <td>{{data.avail_qty}}</td>
+                        </tr>
+                    </tbody>
+                  </table>
+        		  </div>
+        		</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div class="form-group" style="margin-bottom:0px;">
+          <button type="button" class="btn pop pop-normal" ng-click="showCase.close()">Close</button>
+          <button type="submit" class="btn pop pop-green"
+                  ng-click="showCase.submit(showCase.model_data.warehouse, showCase.model_data.status, showCase.model_data.data_id, showCase.model_data.shipment_date, showCase.model_data.alt_sku_code)" ng-disabled="process">
+            <span>Save</span>
+            <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate pull-right ml10" ng-if="process">
+          </button>
+        </div>
+      </div>
+    </div><!-- /.modal-content -->
+    </form>
+  </div><!-- /.modal-dialog -->
+</div>

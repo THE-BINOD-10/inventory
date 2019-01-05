@@ -1347,12 +1347,13 @@ def auto_po(wms_codes, user):
                 if not supplier_master_id:
                     continue
             elif auto_po_switch == 'true':
-                supplier_id = SKUSupplier.objects.filter(sku_id=sku.id, sku__user=user).order_by('preference')
+                supplier_id = SKUSupplier.objects.filter(sku_id=sku.id, sku__user=user, moq__gt=0).order_by('preference')
                 if not supplier_id:
                     continue
                 moq = supplier_id[0].moq
                 if not moq:
-                    moq = qty
+                    # moq = qty
+                    continue
                 supplier_master_id = supplier_id[0].supplier_id
                 price = supplier_id[0].price
             elif auto_raise_stock_transfer == 'true':

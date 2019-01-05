@@ -8527,7 +8527,7 @@ def get_sub_users(user):
     return sub_users
 
 
-def update_order_dicts_rista(orders, user='', company_name=''):
+def update_order_dicts_rista(orders, rista_resp, user='', company_name=''):
     from outbound import check_stocks
     trans_mapping = {}
     collect_order_detail_list = []
@@ -8583,6 +8583,9 @@ def update_order_dicts_rista(orders, user='', company_name=''):
 	order_sku.update({sku_obj: order_det_dict['quantity']})
         for order_fields in order.get('order_fields_list', ''):
             OrderFields.objects.create(**order_fields)
+            #print 'obj'
+    for resp_obj in rista_resp:
+        OrderFields.objects.create(**{'user':user.id, 'original_order_id':resp_obj['indentNumber'], 'name':'rista_resp', 'value': str(resp_obj), 'order_type': 'rista'})
     status = {'status': 1, 'messages': ['Success']}
     return status
 

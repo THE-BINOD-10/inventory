@@ -30,14 +30,14 @@ def make_request():
         "iat": tokencreationtime
     }
     token = jwt.encode(payload, secretKey, algorithm='HS256')
-    import pdb;pdb.set_trace()
+    #import pdb;pdb.set_trace()
     headers =  {
         'x-api-key': apiKey,
         'x-api-token': token,
         'content-type': 'application/json'
     }
     url = "{}://{}{}".format(SCHEME, API_HOST, ENDPOINT)
-    inv_payload = {'branch' : 'BW', 'day' : '2018-12-23'}
+    inv_payload = {'branch' : 'BW', 'day' : '2019-01-04'}
     resp = requests.get(url, headers=headers, params=inv_payload)
     #with open('inventory_indent.json', 'w') as f:
     #    f.write(resp.content)
@@ -50,7 +50,6 @@ def make_request():
 
 def sendToStockOne(resp):
     resp = resp['data']
-    import pdb;pdb.set_trace()
     stockone_auth = {}
     get_client_secret = User.objects.filter(username='BW')
     if get_client_secret:
@@ -67,6 +66,7 @@ def sendToStockOne(resp):
 	access_token = getAuthToken(stockone_auth)
     except:
 	print "Error in generating Access Token"
+    #import pdb;pdb.set_trace()
     try:
 	writeOrders(access_token, resp)
     except:
@@ -126,6 +126,7 @@ def clearLineItems(order):
 def writeOrders(access_token, resp):
     api_status = 'fail'
     data = {}
+    data_dict = {}
     url = "http://beta.stockone.in:3331/api/rista_update_orders/"
     count = 0
     headers = {
@@ -136,7 +137,6 @@ def writeOrders(access_token, resp):
     for order in resp:
 	try:
 	    customer_details = order['fromBranch']
-            import pdb;pdb.set_trace()
             allOrders.append({
                     "source":"drunken_monkey",
                     "original_order_id": order['indentNumber'],
@@ -163,7 +163,10 @@ def writeOrders(access_token, resp):
 	except:
 	    print "Order List Check"
     payload = json.dumps(allOrders)
-    response = requests.request("POST", url, data=payload, headers=headers)
+    data_dict['all_orders'] = json.dumps(allOrders)
+    data_dict['resp'] = json.dumps(resp)
+    #import pdb;pdb.set_trace()
+    response = requests.request("POST", url, data=json.dumps(data_dict), headers=headers)
     return True
 
 make_request()

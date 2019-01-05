@@ -822,7 +822,7 @@ def validate_wms(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision()
+@reversion.create_revision(atomic=False)
 def modify_po_update(request, user=''):
     reversion.set_user(request.user)
     myDict = dict(request.POST.iterlists())
@@ -1072,7 +1072,7 @@ def delete_tax(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision()
+@reversion.create_revision(atomic=False)
 def confirm_po(request, user=''):
     reversion.set_user(request.user)
     sku_id = ''
@@ -1486,7 +1486,7 @@ def get_raisepo_group_data(user, myDict):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision()
+@reversion.create_revision(atomic=False)
 def add_po(request, user=''):
     reversion.set_user(request.user)
     status = 'Failed to Add PO'
@@ -1616,7 +1616,7 @@ def insert_inventory_adjust(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision()
+@reversion.create_revision(atomic=False)
 def delete_po(request, user=''):
     reversion.set_user(request.user)
     for key, value in request.GET.iteritems():
@@ -2777,7 +2777,7 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision()
+@reversion.create_revision(atomic=False)
 def confirm_grn(request, confirm_returns='', user=''):
     reversion.set_user(request.user)
     data_dict = ''
@@ -3786,7 +3786,7 @@ def create_update_seller_stock(data, value, user, stock_obj, exc_loc, use_value=
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision()
+@reversion.create_revision(atomic=False)
 def putaway_data(request, user=''):
     reversion.set_user(request.user)
     purchase_order_id = ''
@@ -4602,7 +4602,7 @@ def order_status(request):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision()
+@reversion.create_revision(atomic=False)
 def confirm_add_po(request, sales_data='', user=''):
     reversion.set_user(request.user)
     ean_flag = False
@@ -4948,7 +4948,7 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision()
+@reversion.create_revision(atomic=False)
 def confirm_po1(request, user=''):
     reversion.set_user(request.user)
     data = copy.deepcopy(PO_DATA)
@@ -5971,7 +5971,7 @@ def check_return_imei(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision()
+@reversion.create_revision(atomic=False)
 def confirm_receive_qc(request, user=''):
     reversion.set_user(request.user)
     data_dict = ''
@@ -6515,7 +6515,7 @@ def get_po_segregation_data(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision()
+@reversion.create_revision(atomic=False)
 def confirm_primary_segregation(request, user=''):
     reversion.set_user(request.user)
     data_dict = dict(request.POST.iterlists())
@@ -6968,7 +6968,7 @@ def get_processed_po_data(start_index, stop_index, temp_data, search_term, order
 
 @csrf_exempt
 @get_admin_user
-@reversion.create_revision()
+@reversion.create_revision(atomic=False)
 def move_to_poc(request, user=''):
     reversion.set_user(request.user)
     sell_ids = {}
@@ -7001,7 +7001,7 @@ def move_to_poc(request, user=''):
 
 @csrf_exempt
 @get_admin_user
-@reversion.create_revision()
+@reversion.create_revision(atomic=False)
 def move_to_invoice(request, user=''):
     reversion.set_user(request.user)
     sell_ids = {}
@@ -8016,7 +8016,7 @@ def save_update_rtv(data_list, return_type=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision()
+@reversion.create_revision(atomic=False)
 def save_rtv(request, user=''):
     reversion.set_user(request.user)
     request_data = dict(request.POST.iterlists())
@@ -8043,7 +8043,7 @@ def save_rtv(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision()
+@reversion.create_revision(atomic=False)
 def create_rtv(request, user=''):
     reversion.set_user(request.user)
     request_data = dict(request.POST.iterlists())
@@ -8585,7 +8585,7 @@ def get_grn_level_data(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
-@reversion.create_revision()
+@reversion.create_revision(atomic=False)
 def update_existing_grn(request, user=''):
     reversion.set_user(request.user)
     data_dict = ''

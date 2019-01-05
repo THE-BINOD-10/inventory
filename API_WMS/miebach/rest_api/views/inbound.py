@@ -1087,7 +1087,7 @@ def confirm_po(request, user=''):
     show_cess_tax = False
     myDict = dict(request.POST.iterlists())
     display_remarks = get_misc_value('display_remarks_mail', user.id)
-    ean_data = SKUMaster.objects.filter(Q(ean_number__gt=0) | Q(eannumbers__isnull=False),
+    ean_data = SKUMaster.objects.filter(Q(ean_number__gt=0) | Q(eannumbers__ean_number__gt=0),
                                         wms_code__in=myDict['wms_code'], user=user.id).values_list('ean_number')
     if ean_data:
         ean_flag = True
@@ -4975,7 +4975,7 @@ def confirm_po1(request, user=''):
                                                     sku__user=user.id)
             po_sku_ids = purchase_orders.values_list('sku_id', flat=True)
 
-            ean_data = SKUMaster.objects.filter(Q(ean_number__gt=0) | Q(eannumbers__isnull=False),
+            ean_data = SKUMaster.objects.filter(Q(ean_number__gt=0) | Q(eannumbers__ean_number__gt=0),
                                                 id__in=po_sku_ids, user=user.id)
             if ean_data:
                 ean_flag = True

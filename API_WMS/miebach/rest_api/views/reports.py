@@ -1302,7 +1302,12 @@ def print_purchase_order_form(request, user=''):
     if not po_id:
         return HttpResponse("Purchase Order Id is missing")
     purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user=user.id, order_id=po_id)
-    ean_flag = list(purchase_orders.exclude(open_po__sku__ean_number=0))
+    po_sku_ids = purchase_orders.values_list('open_po__sku_id', flat=True)
+    ean_flag = False
+    ean_data = SKUMaster.objects.filter(Q(ean_number__gt=0) | Q(eannumbers__ean_number__gt=0),
+                                        id__in=po_sku_ids, user=user.id)
+    if ean_data:
+        ean_flag = True
     display_remarks = get_misc_value('display_remarks_mail', user.id)
     po_data = []
     for order in purchase_orders:
@@ -1327,13 +1332,13 @@ def print_purchase_order_form(request, user=''):
                             open_po.order_quantity, open_po.measurement_unit, open_po.price, amount,
                             open_po.sgst_tax, open_po.cgst_tax, open_po.igst_tax, open_po.cess_tax,
                             open_po.utgst_tax, total_sku_amt]
-        
-        ean_number = 0
-        eans = get_sku_ean_list(open_po.sku)
-        if eans:
-            ean_number = eans[0]
-        if ean_number :
-            po_temp_data.insert(1,ean_number)
+
+        if ean_flag:
+            ean_number = 0
+            eans = get_sku_ean_list(open_po.sku)
+            if eans:
+                ean_number = eans[0]
+            po_temp_data.insert(1, ean_number)
         if display_remarks == 'true':
             po_temp_data.append(open_po.remarks)
         po_data.append(po_temp_data)

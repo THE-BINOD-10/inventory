@@ -3070,3 +3070,4 @@ class TempJson(models.Model):
     class Meta:
         db_table = 'TEMP_JSON'
         index_together = ('model_id', 'model_name')
+

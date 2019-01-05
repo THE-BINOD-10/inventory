@@ -30,18 +30,17 @@ def make_request():
         "iat": tokencreationtime
     }
     token = jwt.encode(payload, secretKey, algorithm='HS256')
-    #import pdb;pdb.set_trace()
+    import pdb;pdb.set_trace()
     headers =  {
         'x-api-key': apiKey,
         'x-api-token': token,
         'content-type': 'application/json'
     }
     url = "{}://{}{}".format(SCHEME, API_HOST, ENDPOINT)
-    inv_payload = {'branch' : 'BW', 'day' : '2019-01-04'}
+    inv_payload = {'branch' : 'BW', 'day' : '2019-01-05'}
     resp = requests.get(url, headers=headers, params=inv_payload)
     #with open('inventory_indent.json', 'w') as f:
     #    f.write(resp.content)
-    #import pdb;pdb.set_trace()
     print len(resp.json())
     print resp.json()
     if resp.json():
@@ -66,7 +65,6 @@ def sendToStockOne(resp):
 	access_token = getAuthToken(stockone_auth)
     except:
 	print "Error in generating Access Token"
-    #import pdb;pdb.set_trace()
     try:
 	writeOrders(access_token, resp)
     except:
@@ -79,7 +77,6 @@ def getAuthToken(stockone_auth):
 	payload = "------WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; name=\"client_id\"\r\n\r\n{}\r\n------WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; name=\"client_secret\"\r\n\r\n{}\r\n------WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; name=\"redirect_uri\n\n\"\r\n\r\nhttp://api.stockone.in/o/token/\r\n------WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; name=\"grant_type\"\r\n\r\n{}\r\n------WebKitFormBoundary7MA4YWxkTrZu0gW--".format(*dbData)
         headers = {'content-type': 'multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW'}
         response = requests.request("POST", url, data=payload,headers=headers)
-        #import pdb;pdb.set_trace()
         accessToken = response.json()['access_token']
     	return accessToken
 
@@ -165,8 +162,8 @@ def writeOrders(access_token, resp):
     payload = json.dumps(allOrders)
     data_dict['all_orders'] = json.dumps(allOrders)
     data_dict['resp'] = json.dumps(resp)
-    #import pdb;pdb.set_trace()
     response = requests.request("POST", url, data=json.dumps(data_dict), headers=headers)
+    import pdb;pdb.set_trace()
     return True
 
 make_request()

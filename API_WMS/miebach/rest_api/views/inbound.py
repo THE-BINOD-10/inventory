@@ -4774,7 +4774,6 @@ def confirm_add_po(request, sales_data='', user=''):
             data_dict['round_total'] = "%.2f" % round_value
         t = loader.get_template('templates/toggle/po_download.html')
         rendered = t.render(data_dict)
-        import pdb;pdb.set_trace()
         if get_misc_value('raise_po', user.id) == 'true':
             write_and_mail_pdf(po_reference, rendered, request, user, supplier_email, phone_no, po_data,
                                str(order_date).split(' ')[0], ean_flag=ean_flag)

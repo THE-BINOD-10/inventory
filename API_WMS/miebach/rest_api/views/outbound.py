@@ -24,8 +24,7 @@ import datetime
 import shutil
 from utils import *
 import os, math
-
-
+from rest_api.rista_save_transfer import *
 
 log = init_logger('logs/outbound.log')
 
@@ -1682,9 +1681,29 @@ def validate_picklist_combos(data, all_picklists, picks_all):
                 combo_status.append({str(key): value.keys()})
     return combo_status, final_data_list
 
-
-def rista_inventory_transfer(picklist_list):
+def rista_inventory_transfer(original_order_id_list, user):
     import pdb;pdb.set_trace()
+    for order_id in original_order_id_list:
+	data_dict_confirm = {}
+	rista_json = {}
+        model_name_value = 'rista<<>>' + order_id
+        temp_json = TempJson.objects.filter(model_id=int(user.id), model_name=model_name_value)
+        if temp_json:
+            rista_json = eval(temp_json[0].model_json)
+	data_dict_confirm["branchCode"] = rista_json['branchCode']
+	data_dict_confirm["toBranch"] = {'branchCode' : str(rista_json['fromBranch']['branchCode'])}
+	data_dict_confirm["notes"] = ""
+	data_dict_confirm["itemsAmount"] = rista_json['itemsAmount']
+	data_dict_confirm["taxAmount"] = rista_json['taxAmount']
+	data_dict_confirm["totalAmount"] = rista_json['totalAmount']
+	data_dict_confirm["taxes"] = rista_json['taxes']
+	data_dict_confirm["items"] = rista_json['items']
+	data_dict_confirm["sourceInfo"] = {"orderDate": rista_json['indentDate'], "orderNumber": rista_json['indentNumber']}
+	save_transfer_in(data_dict_confirm)
+	print data_dict_confirm
+    return True
+
+def rista_inventory_transfer_pick(picklist_list):
     collect_tax_dict = {}
     collect_order_wise = {}
     for obj in picklist_list:
@@ -1792,6 +1811,7 @@ def picklist_confirmation(request, user=''):
 
     log.info('Request params for ' + user.username + ' is ' + str(data))
     try:
+	rista_order_id_list = []
         data = OrderedDict(sorted(data.items(), reverse=True))
         error_string = ''
         picklist_number = request.POST['picklist_number']
@@ -1821,32 +1841,6 @@ def picklist_confirmation(request, user=''):
         if combo_status:
             return HttpResponse(json.dumps({'message': 'Combo Quantities are not matching',
                                             'sku_codes': combo_status, 'status': 0}))
-        # for key, value in data.iteritems():
-        #     if key in ('name', 'number', 'order', 'sku', 'invoice'):
-        #         continue
-        #     picklist_batch = ''
-        #     picklist_order_id = value[0]['order_id']
-        #     if picklist_order_id:
-        #         picklist = all_picklists.get(order__order_id=picklist_order_id,
-        #                                      order__sku__sku_code=value[0]['wms_code'])
-        #     elif not key:
-        #         scan_wms_codes = map(lambda d: d['wms_code'], value)
-        #         picklist_batch = picks_all.filter(
-        #             Q(stock__sku__wms_code__in=scan_wms_codes) | Q(order__sku__wms_code=scan_wms_codes),
-        #             reserved_quantity__gt=0, status__icontains='open')
-        #
-        #     else:
-        #         picklist = picks_all.get(id=key)
-        #     count = 0
-        #     if not picklist_batch:
-        #         picklist_batch = get_picklist_batch(picklist, value, all_picklists)
-        #     for i in range(0, len(value)):
-        #         if value[i]['picked_quantity']:
-        #             count += float(value[i]['picked_quantity'])
-
-	resp = rista_inventory_transfer(final_data_list)
-        print resp
-        return ''
 
         for picklist_dict in final_data_list:
             picklist = picklist_dict['picklist']
@@ -1986,6 +1980,7 @@ def picklist_confirmation(request, user=''):
 
                         if picklist.order:
                             check_and_update_order(user.id, picklist.order.original_order_id)
+			rista_order_id_list.append(str(picklist.order.original_order_id))
                         all_pick_locations.filter(picklist_id=picklist.id, status=1).update(status=0)
 
                     picklist.save()
@@ -2031,6 +2026,12 @@ def picklist_confirmation(request, user=''):
                     create_intransit_order(auto_skus, user, sku_qty_map)
             else:
                 auto_po(auto_skus, user.id)
+
+	import pdb;pdb.set_trace()
+        rista_order_id = list(set(rista_order_id_list))
+	resp = rista_inventory_transfer(rista_order_id_list, user)
+        print resp
+        return ''
 
         detailed_invoice = get_misc_value('detailed_invoice', user.id)
         if (detailed_invoice == 'false' and picklist.order and picklist.order.marketplace == "Offline"):

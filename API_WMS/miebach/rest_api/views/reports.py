@@ -1327,8 +1327,13 @@ def print_purchase_order_form(request, user=''):
                             open_po.order_quantity, open_po.measurement_unit, open_po.price, amount,
                             open_po.sgst_tax, open_po.cgst_tax, open_po.igst_tax, open_po.cess_tax,
                             open_po.utgst_tax, total_sku_amt]
-        if ean_flag:
-            po_temp_data.insert(1, open_po.sku.ean_number)
+        
+        ean_number = 0
+        eans = get_sku_ean_list(open_po.sku)
+        if eans:
+            ean_number = eans[0]
+        if ean_number :
+            po_temp_data.insert(1,ean_number)
         if display_remarks == 'true':
             po_temp_data.append(open_po.remarks)
         po_data.append(po_temp_data)

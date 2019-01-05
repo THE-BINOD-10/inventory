@@ -9071,4 +9071,3 @@ def download_grn_invoice_mapping(request, user=''):
     resp = HttpResponse(stringio.getvalue(), content_type="application/x-zip-compressed")
     resp['Content-Disposition'] = 'attachment; filename=%s' % zip_filename
     return resp
-

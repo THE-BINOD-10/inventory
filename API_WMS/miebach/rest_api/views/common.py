@@ -1213,8 +1213,8 @@ def get_auto_po_quantity(sku, stock_quantity=''):
         if sku_stock:
             stock_quantity = sku_stock
 
-    purchase_order = PurchaseOrder.objects.exclude(status__in=['location-assigned', 'confirmed-putaway']). \
-        filter(open_po__sku__user=sku.user, open_po__sku_id=sku.id, open_po__vendor_id__isnull=False). \
+    purchase_order = PurchaseOrder.objects.exclude(status__in=['confirmed-putaway']). \
+        filter(open_po__sku__user=sku.user, open_po__sku_id=sku.id, open_po__vendor_id__isnull=True). \
         values('open_po__sku_id').annotate(total_order=Sum('open_po__order_quantity'),
                                            total_received=Sum('received_quantity'))
 
@@ -1241,11 +1241,12 @@ def get_auto_po_quantity(sku, stock_quantity=''):
         if diff_quantity > 0:
             transit_quantity = diff_quantity
 
-    raise_quantity = int(sku.threshold_quantity) - (stock_quantity + transit_quantity + production_quantity + intr_qty)
+    total_quantity = (stock_quantity + transit_quantity + production_quantity + intr_qty)
+    raise_quantity = int(sku.threshold_quantity) - total_quantity
     if raise_quantity < 0:
         raise_quantity = 0
 
-    return int(raise_quantity)
+    return int(raise_quantity), int(total_quantity)
 
 
 def auto_po_warehouses(sku, qty):
@@ -1331,8 +1332,8 @@ def auto_po(wms_codes, user):
         price_band_flag = get_misc_value('priceband_sync', user)
         for sku in sku_codes:
             taxes = {}
-            qty = get_auto_po_quantity(sku)
-            if qty > int(sku.threshold_quantity):
+            qty, total_qty = get_auto_po_quantity(sku)
+            if total_qty >= int(sku.threshold_quantity):
                 continue
             if price_band_flag == 'true':
                 intransit_orders = IntransitOrders.objects.filter(sku=sku, user=sku.user, status=1). \
@@ -1346,12 +1347,13 @@ def auto_po(wms_codes, user):
                 if not supplier_master_id:
                     continue
             elif auto_po_switch == 'true':
-                supplier_id = SKUSupplier.objects.filter(sku_id=sku.id, sku__user=user).order_by('preference')
+                supplier_id = SKUSupplier.objects.filter(sku_id=sku.id, sku__user=user, moq__gt=0).order_by('preference')
                 if not supplier_id:
                     continue
                 moq = supplier_id[0].moq
                 if not moq:
-                    moq = qty
+                    # moq = qty
+                    continue
                 supplier_master_id = supplier_id[0].supplier_id
                 price = supplier_id[0].price
             elif auto_raise_stock_transfer == 'true':
@@ -7859,6 +7861,17 @@ def get_incremental(user, type_name, default_val=''):
         count = default
     return count
 
+def get_decremental(user, type_name, old_pack_ref_no):
+    # custom sku counter
+    data = IncrementalTable.objects.filter(user=user.id, type_name=type_name)
+    if data:
+        data = data[0]
+        if int(data.value) == int(old_pack_ref_no) :
+            data.value = data.value - 1
+        data.save()
+        return 'Success'
+    else:
+        return 'Fail'
 
 def check_and_update_incremetal_type_val(table_value, user, type_name):
     table_value = int(table_value)

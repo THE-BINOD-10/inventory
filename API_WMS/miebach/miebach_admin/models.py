@@ -835,6 +835,7 @@ class OrderPackaging(models.Model):
     id = BigAutoField(primary_key=True)
     order_shipment = models.ForeignKey(OrderShipment)
     package_reference = models.CharField(max_length=64)
+    box_number = models.CharField(max_length=64, default='')
     status = models.CharField(max_length=32)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -2116,7 +2117,6 @@ class SellerOrderSummary(models.Model):
     challan_number = models.CharField(max_length=64, default='')
     order_status_flag = models.CharField(max_length=64, default='processed_orders')
     delivered_flag = models.IntegerField(default=0)
-    overall_discount = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

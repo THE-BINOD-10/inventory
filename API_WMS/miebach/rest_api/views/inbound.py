@@ -822,7 +822,9 @@ def validate_wms(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False)
 def modify_po_update(request, user=''):
+    reversion.set_user(request.user)
     myDict = dict(request.POST.iterlists())
     terms_condition = request.POST.get('terms_condition','')
     wrong_wms = []
@@ -1070,7 +1072,9 @@ def delete_tax(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False)
 def confirm_po(request, user=''):
+    reversion.set_user(request.user)
     sku_id = ''
     ean_flag = False
     data = copy.deepcopy(PO_DATA)
@@ -1083,8 +1087,8 @@ def confirm_po(request, user=''):
     show_cess_tax = False
     myDict = dict(request.POST.iterlists())
     display_remarks = get_misc_value('display_remarks_mail', user.id)
-    ean_data = SKUMaster.objects.filter(wms_code__in=myDict['wms_code'], user=user.id).values_list(
-        'ean_number').exclude(ean_number=0)
+    ean_data = SKUMaster.objects.filter(Q(ean_number__gt=0) | Q(eannumbers__ean_number__gt=0),
+                                        wms_code__in=myDict['wms_code'], user=user.id).values_list('ean_number')
     if ean_data:
         ean_flag = True
     all_data = get_raisepo_group_data(user, myDict)
@@ -1218,7 +1222,11 @@ def confirm_po(request, user=''):
                         purchase_order.cgst_tax,
                         purchase_order.igst_tax, purchase_order.cess_tax, purchase_order.utgst_tax, total_sku_amt]
         if ean_flag:
-            po_temp_data.insert(1, purchase_order.sku.ean_number)
+            ean_number = 0
+            eans = get_sku_ean_list(purchase_order.sku)
+            if eans:
+                ean_number = eans[0]
+            po_temp_data.insert(1, ean_number)
         if display_remarks == 'true':
             po_temp_data.append(purchase_order.remarks)
 
@@ -1478,7 +1486,9 @@ def get_raisepo_group_data(user, myDict):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False)
 def add_po(request, user=''):
+    reversion.set_user(request.user)
     status = 'Failed to Add PO'
     terms_condition = request.POST.get('terms_condition','')
     myDict = dict(request.POST.iterlists())
@@ -1606,7 +1616,9 @@ def insert_inventory_adjust(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False)
 def delete_po(request, user=''):
+    reversion.set_user(request.user)
     for key, value in request.GET.iteritems():
         if key == 'seller_po_id':
             seller_po = SellerPO.objects.get(id=value)
@@ -2765,7 +2777,9 @@ def generate_grn(myDict, request, user, is_confirm_receive=False):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False)
 def confirm_grn(request, confirm_returns='', user=''):
+    reversion.set_user(request.user)
     data_dict = ''
     headers = (
     'WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
@@ -3772,7 +3786,9 @@ def create_update_seller_stock(data, value, user, stock_obj, exc_loc, use_value=
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False)
 def putaway_data(request, user=''):
+    reversion.set_user(request.user)
     purchase_order_id = ''
     diff_quan = 0
     all_data = {}
@@ -4586,7 +4602,9 @@ def order_status(request):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False)
 def confirm_add_po(request, sales_data='', user=''):
+    reversion.set_user(request.user)
     ean_flag = False
     po_order_id = ''
     status = ''
@@ -4618,11 +4636,10 @@ def confirm_add_po(request, sales_data='', user=''):
         myDict = sales_data
     try:
         log.info('Request params for Confirm Add Po for ' + user.username + ' is ' + str(myDict))
-        ean_data = SKUMaster.objects.filter(wms_code__in=myDict['wms_code'], user=user.id).values_list(
-            'ean_number').exclude(ean_number=0)
+        ean_data = SKUMaster.objects.filter(Q(ean_number__gt=0) | Q(eannumbers__ean_number__gt=0),
+                                            wms_code__in=myDict['wms_code'], user=user.id)
         if ean_data:
             ean_flag = True
-
 
         all_data = get_raisepo_group_data(user, myDict)
 
@@ -4631,8 +4648,11 @@ def confirm_add_po(request, sales_data='', user=''):
             sku_id = SKUMaster.objects.filter(wms_code=key.upper(), user=user.id)
 
             ean_number = 0
+            if sku_id:
+                eans = get_sku_ean_list(sku_id[0])
+                if eans:
+                    ean_number = eans[0]
 
-            ean_number = int(sku_id[0].ean_number)
             if not sku_id:
                 sku_id = SKUMaster.objects.filter(wms_code='TEMP', user=user.id)
                 po_suggestions['wms_code'] = key.upper()
@@ -4928,7 +4948,9 @@ def write_and_mail_pdf(f_name, html_data, request, user, supplier_email, phone_n
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False)
 def confirm_po1(request, user=''):
+    reversion.set_user(request.user)
     data = copy.deepcopy(PO_DATA)
     po_id = get_purchase_order_id(user)
     ids_dict = {}
@@ -4951,7 +4973,11 @@ def confirm_po1(request, user=''):
             purchase_orders = OpenPO.objects.filter(supplier_id=val, status__in=['Manual', 'Automated', ''],
                                                     order_type=status_dict[key],
                                                     sku__user=user.id)
-            if list(purchase_orders.exclude(sku__ean_number=0).values_list('sku__ean_number', flat=True)):
+            po_sku_ids = purchase_orders.values_list('sku_id', flat=True)
+
+            ean_data = SKUMaster.objects.filter(Q(ean_number__gt=0) | Q(eannumbers__ean_number__gt=0),
+                                                id__in=po_sku_ids, user=user.id)
+            if ean_data:
                 ean_flag = True
             for purchase_order in purchase_orders:
                 data_id = purchase_order.id
@@ -4999,7 +5025,11 @@ def confirm_po1(request, user=''):
                 if purchase_order.cess_tax:
                     show_cess_tax = True
                 if ean_flag:
-                    po_temp_data.insert(1, purchase_order.sku.ean_number)
+                    ean_number = 0
+                    eans = get_sku_ean_list(purchase_order.sku)
+                    if eans:
+                        ean_number = eans[0]
+                    po_temp_data.insert(1, ean_number)
                 if display_remarks == 'true':
                     po_temp_data.append(purchase_order.remarks)
                 po_data.append(po_temp_data)
@@ -5941,7 +5971,9 @@ def check_return_imei(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False)
 def confirm_receive_qc(request, user=''):
+    reversion.set_user(request.user)
     data_dict = ''
     headers = (
     'WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
@@ -6483,7 +6515,9 @@ def get_po_segregation_data(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False)
 def confirm_primary_segregation(request, user=''):
+    reversion.set_user(request.user)
     data_dict = dict(request.POST.iterlists())
     log.info('Request params for ' + user.username + ' is ' + str(data_dict))
     try:
@@ -6934,7 +6968,9 @@ def get_processed_po_data(start_index, stop_index, temp_data, search_term, order
 
 @csrf_exempt
 @get_admin_user
+@reversion.create_revision(atomic=False)
 def move_to_poc(request, user=''):
+    reversion.set_user(request.user)
     sell_ids = {}
     seller_summary = SellerPOSummary.objects.none()
     req_data = request.POST.get('data', '')
@@ -6965,7 +7001,9 @@ def move_to_poc(request, user=''):
 
 @csrf_exempt
 @get_admin_user
+@reversion.create_revision(atomic=False)
 def move_to_invoice(request, user=''):
+    reversion.set_user(request.user)
     sell_ids = {}
     seller_summary = SellerPOSummary.objects.none()
     req_data = request.POST.get('data', '')
@@ -7978,7 +8016,9 @@ def save_update_rtv(data_list, return_type=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False)
 def save_rtv(request, user=''):
+    reversion.set_user(request.user)
     request_data = dict(request.POST.iterlists())
     enable_dc_returns = request.POST.get('enable_dc_returns', '')
     if enable_dc_returns == 'true':
@@ -8003,7 +8043,9 @@ def save_rtv(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False)
 def create_rtv(request, user=''):
+    reversion.set_user(request.user)
     request_data = dict(request.POST.iterlists())
     enable_dc_returns = request.POST.get('enable_dc_returns', '')
     if enable_dc_returns == 'true':
@@ -8543,7 +8585,9 @@ def get_grn_level_data(request, user=''):
 @csrf_exempt
 @login_required
 @get_admin_user
+@reversion.create_revision(atomic=False)
 def update_existing_grn(request, user=''):
+    reversion.set_user(request.user)
     data_dict = ''
     headers = (
     'WMS CODE', 'Order Quantity', 'Received Quantity', 'Measurement', 'Unit Price', 'CSGT(%)', 'SGST(%)', 'IGST(%)',
@@ -9027,4 +9071,3 @@ def download_grn_invoice_mapping(request, user=''):
     resp = HttpResponse(stringio.getvalue(), content_type="application/x-zip-compressed")
     resp['Content-Disposition'] = 'attachment; filename=%s' % zip_filename
     return resp
-

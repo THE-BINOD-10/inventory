@@ -24,6 +24,7 @@ ENDPOINT = '/v1/inventory/transfer'
 SCHEME = 'https'
 
 def save_transfer_in(input_data):
+    resp_data_dict = {}
     tokencreationtime = int(round(time.time()))
     payload = {
         "iss": apiKey,
@@ -37,12 +38,17 @@ def save_transfer_in(input_data):
         'content-type': 'application/json'
     }
     url = "{}://{}{}".format(SCHEME, API_HOST, ENDPOINT)
-    #inv_payload = {'branch' : 'BW', 'day' : '2019-01-05'}
     resp = requests.post(url, headers=headers, data=json.dumps(input_data))
-    #with open('inventory_indent.json', 'w') as f:
-    #    f.write(resp.content)
-    print len(resp.json())
-    print resp.json()
-    return True
+    resp = resp.json()
+    if resp['code'] == 'ConflictError':
+        resp_data_dict['message'] = json.dumps(resp)
+	resp_data_dict['status'] = False
+    elif resp['code'] == 'BadRequestError':
+	resp_data_dict['message'] = json.dumps(resp)
+        resp_data_dict['status'] = False
+    else:
+	resp_data_dict['message'] = json.dumps(resp)
+	resp_data_dict['status'] = True
+    return resp_data_dict
 
 

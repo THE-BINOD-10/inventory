@@ -1699,9 +1699,10 @@ def rista_inventory_transfer(original_order_id_list, user):
 	data_dict_confirm["taxes"] = rista_json['taxes']
 	data_dict_confirm["items"] = rista_json['items']
 	data_dict_confirm["sourceInfo"] = {"orderDate": rista_json['indentDate'], "orderNumber": rista_json['indentNumber']}
-	save_transfer_in(data_dict_confirm)
-	print data_dict_confirm
-    return True
+        print data_dict_confirm
+	save_transfer_resp = save_transfer_in(data_dict_confirm)
+        print save_transfer_resp
+    return save_transfer_resp
 
 def rista_inventory_transfer_pick(picklist_list):
     collect_tax_dict = {}
@@ -2029,10 +2030,9 @@ def picklist_confirmation(request, user=''):
 
 	import pdb;pdb.set_trace()
         rista_order_id = list(set(rista_order_id_list))
-	resp = rista_inventory_transfer(rista_order_id_list, user)
+	resp = rista_inventory_transfer(rista_order_id, user)
         print resp
-        return ''
-
+        import pdb;pdb.set_trace()
         detailed_invoice = get_misc_value('detailed_invoice', user.id)
         if (detailed_invoice == 'false' and picklist.order and picklist.order.marketplace == "Offline"):
             check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)

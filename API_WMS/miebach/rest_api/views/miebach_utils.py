@@ -786,9 +786,22 @@ CURRENT_STOCK_REPORT_DICT = {
         {'label': 'SKU Class', 'name': 'sku_class', 'type': 'input'}
     ],
     'dt_headers': ['Seller ID', 'Seller Name', 'SKU Code', 'SKU Description', 'Location', 'Weight', 'MRP', 'Available Quantity',
-                   'Reserved Quantity', 'Total Quantity'],
+                   'Reserved Quantity', 'Total Quantity','Category','Warehouse Name','Report Generation Time'],
     'dt_url': 'get_current_stock_report', 'excel_name': 'get_current_stock_report',
     'print_url': 'print_current_stock_report',
+}
+
+INVENTORY_NAME_REPORT_DICT = {
+    'filters': [
+        {'label': 'SKU Code', 'name': 'sku_code', 'type': 'sku_search'},
+        {'label': 'SKU Category', 'name': 'sku_category', 'type': 'input'},
+        {'label': 'SKU Brand', 'name': 'brand', 'type': 'input'},
+        {'label': 'SKU Class', 'name': 'sku_class', 'type': 'input'}
+    ],
+    'dt_headers': ['Seller ID', 'Seller Name','SKU Code', 'SKU Description', 'Category', 'Weight', 'MRP', 'Batch Number',
+                   'Ean Number', 'Manufactured Date','Expiry Date','Quantity','Value','Average Cost Price','Warehouse Name','Report Generation Time'],
+    'dt_url': 'get_inventory_name_report', 'excel_name': 'get_inventory_name_report',
+    'print_url': 'print_inventory_name_report',
 }
 
 
@@ -808,7 +821,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'corporate_target_report': CORPORATE_TARGET_REPORT,
                      'corporate_reseller_mapping_report': CORPORATE_RESELLSER_MAPPING_REPORT,
                      'enquiry_status_report': ENQUIRY_STATUS_REPORT,
-                     'grn_edit': GRN_EDIT_DICT, 'current_stock_report': CURRENT_STOCK_REPORT_DICT,
+                     'grn_edit': GRN_EDIT_DICT, 'current_stock_report': CURRENT_STOCK_REPORT_DICT,'inventory_name_report':INVENTORY_NAME_REPORT_DICT,
                      }
 
 SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', 'sku-wise', 1, 2, 'sku-wise-report'): (
@@ -1363,6 +1376,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'get_rtv_report': 'get_rtv_report_data',
                         'sku_wise_rtv_report': 'get_sku_wise_rtv_filter_data',
                         'get_current_stock_report': 'get_current_stock_report_data',
+                        'get_inventory_name_report':'get_inventory_name_report',
                         }
 # End of Download Excel Report Mapping
 
@@ -1466,7 +1480,7 @@ PERMISSION_DICT = OrderedDict((
                  ('Open JO Report', 'view_openjo'), ('Seller Invoice Detail Report', 'view_sellerpo'),
                  ('RM Picklist Report', 'view_materialpicklist'), ('Stock Ledger Report', 'view_stockstats'),
                  ('Shipment Report', 'view_ordershipment'), ('RTV Report', 'view_returntovendor'),
-                 ('Current Stock Report', 'view_skudetailstats'))),
+                 ('Current Stock Report', 'view_skudetailstats'),('Inventory Name Report', 'view_inventory'))),
 
     # Uploaded POs
     ("UPLOADPO_LABEL", (("uploadedPOs", "add_orderuploads"),)),
@@ -5955,8 +5969,8 @@ def get_current_stock_report_data(search_params, user, sub_user):
     from rest_api.views.common import get_sku_master, get_filtered_params
     temp_data = copy.deepcopy(AJAX_DATA)
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
-    lis = ['seller__seller_id', 'seller__name', 'sku__sku_code', 'stock__location__location',
-           'stock__batch_detail__weight', 'stock__batch_detail__mrp', 'total', 'total', 'total']
+    lis = ['seller__seller_id', 'seller__name', 'sku__sku_code','sku__sku_code', 'stock__location__location',
+           'stock__batch_detail__weight', 'stock__batch_detail__mrp', 'total', 'total', 'total','stock__sku__sku_category','seller__seller_id','seller__seller_id']
     sort_cols = ['Seller ID', 'Seller Name', 'SKU Code', 'SKU Description', 'Location', 'Weight', 'MRP', 'Available Quantity',
                    'Reserved Quantity', 'Total Quantity']
     col_num = search_params.get('order_index', 0)
@@ -6022,7 +6036,7 @@ def get_current_stock_report_data(search_params, user, sub_user):
                                                     Value('<<>>'), 'stock__batch_detail__mrp',
                                                     output_field=CharField())).values_list('grouped_val').distinct().\
                         annotate(rm_reserved=Sum('reserved')))
-
+    time = str(datetime.datetime.now())
     for ind, sku_data in enumerate(master_data[start_index:stop_index]):
         data = sku_data[0].split('<<>>')
         sku = SKUMaster.objects.filter(sku_code=data[2], user=user.id)[0]
@@ -6039,5 +6053,113 @@ def get_current_stock_report_data(search_params, user, sub_user):
                                                 ('SKU Code', data[2]), ('SKU Description', sku.sku_desc),
                                                 ('Location', data[3]), ('Weight', data[4]), ('MRP', data[5]),
                                                 ('Available Quantity', quantity),
-                                                ('Reserved Quantity', reserved), ('Total Quantity', total))))
+                                                ('Reserved Quantity', reserved), ('Total Quantity', total),('Category',sku.sku_category),('Warehouse Name',user.username),('Report Generation Time',time))))
+    return temp_data
+
+def get_inventory_name_report_data(search_params, user, sub_user):
+    from miebach_admin.models import *
+    from miebach_admin.views import *
+    from rest_api.views.common import get_sku_master, get_filtered_params
+    temp_data = copy.deepcopy(AJAX_DATA)
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    lis = ['seller__seller_id', 'seller__name','stock__sku__sku_code','stock__sku__sku_desc','stock__sku__sku_category',
+           'stock__batch_detail__weight', 'stock__batch_detail__manufactured_date','stock__batch_detail__weight','stock__batch_detail__mrp','stock__batch_detail__batch_no',
+           'stock__batch_detail__ean_number','stock__batch_detail__manufactured_date', 'stock__batch_detail__expiry_date','total', 'total', 'total']
+    sort_cols = ['Seller ID', 'Seller Name', 'SKU Code', 'SKU Description', 'Location', 'Weight', 'MRP', 'Available Quantity',
+                   'Reserved Quantity', 'Total Quantity']
+    col_num = search_params.get('order_index', 0)
+    order_term = search_params.get('order_term', 'asc')
+    start_index = search_params.get('start', 0)
+    if search_params.get('length', 0):
+        stop_index = start_index + search_params.get('length', 0)
+    else:
+        stop_index = None
+    # import pdb; pdb.set_trace()
+    search_parameters = {}
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if 'sku_code' in search_params:
+        if search_params['sku_code']:
+            search_parameters['stock__sku__sku_code'] = search_params['sku_code']
+    if 'sku_brand' in search_params:
+        if search_params['sku_brand']:
+            search_parameters['stock__sku__sku_brand__icontains'] = search_params['sku_brand']
+    if 'sku_category' in search_params:
+        if search_params['sku_category']:
+            search_parameters['stock__sku__sku_category__icontains'] = search_params['sku_category']
+    if 'sku_class' in search_params:
+        if search_params['sku_class']:
+            search_parameters['stock__sku__sku_class__icontains'] = search_params['sku_class']
+    search_parameters['stock__sku_id__in'] = sku_master_ids
+    search_parameters['stock__quantity__gt'] = 0
+    master_data = SellerStock.objects.exclude(stock__receipt_number=0).\
+                                            annotate(grouped_val=Concat('seller__seller_id', Value('<<>>'),
+                                                                        'seller__name', Value('<<>>'),
+                                                    'stock__sku__wms_code', Value('<<>>'),
+                                                    'stock__batch_detail__weight', Value('<<>>'),
+                                                    'stock__batch_detail__batch_no', Value('<<>>'),
+                                                    'stock__batch_detail__ean_number', Value('<<>>'),
+                                                    'stock__batch_detail__manufactured_date', Value('<<>>'),
+                                                    'stock__batch_detail__expiry_date', Value('<<>>'),
+                                                    'stock__batch_detail__mrp', output_field=CharField())).\
+                                            values_list('grouped_val').distinct().\
+                                            distinct().annotate(total=Sum('quantity')).\
+                                            filter(stock__sku__user=user.id, **search_parameters).\
+                                            order_by(order_data)
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    if 'stock__quantity__gt' in search_parameters.keys():
+        del search_parameters['stock__quantity__gt']
+    picklist_reserved = dict(PicklistLocation.objects.prefetch_related('stock__sku', 'stock__sellerstock__seller',
+                                                                    'stock__sellerstock', 'stock__location__location').\
+                             filter(status=1, stock__sku__user=user.id, reserved__gt=0, **search_parameters).\
+                             annotate(grouped_val=Concat('stock__sellerstock__seller__seller_id', Value('<<>>'),
+                                                         'stock__sellerstock__seller__name', Value('<<>>'),
+                                                         'stock__sku__wms_code', Value('<<>>'),
+                                                         'stock__location__location', Value('<<>>'),
+                                                         'stock__batch_detail__mrp', Value('<<>>'),
+                                                         'stock__batch_detail__batch_no', Value('<<>>'),
+                                                         output_field=CharField())).\
+                             values_list('grouped_val').distinct().annotate(reserved=Sum('reserved')))
+    raw_reserved = dict(RMLocation.objects.prefetch_related('stock__sku', 'stock__sellerstock__seller',
+                                                                    'stock__sellerstock', 'stock__location__location').\
+                        filter(status=1, stock__sku__user=user.id, reserved__gt=0,
+                        **search_parameters).\
+                        annotate(grouped_val=Concat('stock__sellerstock__seller__seller_id', Value('<<>>'),
+                                                    'stock__sellerstock__seller__name', Value('<<>>'),
+                                                    'material_picklist__jo_material__material_code__wms_code',
+                                                    Value('<<>>'), 'stock__location__location',
+                                                    Value('<<>>'), 'stock__batch_detail__batch_no',
+                                                    Value('<<>>'), 'stock__batch_detail__mrp',
+                                                    output_field=CharField())).values_list('grouped_val').distinct().\
+                        annotate(rm_reserved=Sum('reserved')))
+    time = str(datetime.datetime.now())
+    for ind, sku_data in enumerate(master_data[start_index:stop_index]):
+        # import pdb; pdb.set_trace()
+        data = sku_data[0].split('<<>>')
+        sku = SKUMaster.objects.filter(sku_code=data[2], user=user.id)[0]
+        total = sku_data[1]
+        reserved = 0
+        if sku_data[0] in picklist_reserved.keys():
+            reserved += float(picklist_reserved[sku_data[0]])
+        if sku_data[0] in raw_reserved.keys():
+            reserved += float(raw_reserved[sku_data[0]])
+        quantity = total - reserved
+        if quantity < 0:
+            quantity = 0
+        if data[6]:
+            manufactured_date = data[6]
+        else:
+            manufactured_date = ''
+        if data[7]:
+            expiry_date = data[7]
+        else :
+            expiry_date = ''
+        temp_data['aaData'].append(OrderedDict((('Seller ID', data[0]), ('Seller Name', data[1]),('SKU Code', data[2]), ('SKU Description', sku.sku_desc),
+                                                 ('Category',sku.sku_category), ('Weight',data[3] ), ('MRP', data[8]),
+                                                ('Available Quantity', quantity),('Batch Number', data[4]),
+                                                ('Reserved Quantity', reserved),('Manufactured Date',manufactured_date),
+                                                ('Ean Number',data[5]),('Expiry Date',expiry_date),('Value',0),('Average Cost Price',0),
+                                                ('Quantity', total),('Warehouse Name',user.username),('Report Generation Time',time))))
     return temp_data

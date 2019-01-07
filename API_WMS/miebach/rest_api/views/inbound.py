@@ -6570,18 +6570,14 @@ def confirm_primary_segregation(request, user=''):
                 remarks = seller_po_summary_obj.remarks
                 remarks = str(remarks)
                 offer_applicable = data_dict['offer_applicable'][ind]
-                if str(remarks).find('offer_applied') == -1 and offer_applicable == 'true' :
-                    remarks_offer ="offer_applied"
-                    if remarks:
-                        remarks = remarks+","+remarks_offe
-                    else:
-                        remarks = remarks_offer
-                elif str(remarks).find('offer_applied') != -1 and  offer_applicable == 'false' :
-                     if remarks.find('mrp_change') != -1 :
-                         remarks = 'mrp_change'
-                     else:
-                         remarks = ''
-
+                remark_keys = remarks.split(',')
+                if offer_applicable == 'true':
+                    if 'offer_applied' not in remark_keys:
+                        remark_keys.append('offer_applied')
+                elif offer_applicable == 'false':
+                    if 'offer_applied' in remark_keys:
+                        remark_keys.remove('offer_applied')
+                remarks = ','.join(remark_keys)
                 seller_po_summary_obj.remarks = remarks
                 seller_po_summary_obj.save()
 

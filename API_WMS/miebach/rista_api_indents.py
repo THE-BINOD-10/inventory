@@ -12,8 +12,9 @@ django.setup()
 from django.db.models import Q
 from miebach_admin.models import *
 import datetime
-from rest_api.views.utils import *
-
+#from rest_api.views.utils import *
+#from utils import *
+#order_pull_stockone_logs = init_logger('logs/order_pull_stockone.log')
 
 apiKey = '945ae8b1-1886-43f4-9d0e-4986c0f383d3'
 secretKey = 'lolnJIoZK2otG_d_PUiAXFgWOWOuglfJ8wnwNvDhg-w'
@@ -24,6 +25,8 @@ ENDPOINT = '/v1/inventory/indents/page'
 SCHEME = 'https'
 
 def make_request():
+    a = datetime.datetime.now()
+    #order_pull_rista_stockone_logs.info(' ----- Started - Order Push Rista to Stockone ------- ')
     tokencreationtime = int(round(time.time()))
     payload = {
         "iss": apiKey,
@@ -37,14 +40,16 @@ def make_request():
         'content-type': 'application/json'
     }
     url = "{}://{}{}".format(SCHEME, API_HOST, ENDPOINT)
-    inv_payload = {'branch' : 'BW', 'day' : '2019-01-05'}
+    inv_payload = {'branch' : 'BW', 'day' : '2019-01-07'}
     resp = requests.get(url, headers=headers, params=inv_payload)
-    #with open('inventory_indent.json', 'w') as f:
-    #    f.write(resp.content)
     print len(resp.json())
-    print resp.json()
     if resp.json():
 	sendToStockOne(resp.json())
+    b = datetime.datetime.now()
+    delta = b - a
+    time_taken = str(delta.total_seconds() * 1000)
+    #order_pull_rista_stockone_logs.info('----- Ended - Order Push Rista to Stockone ------- ')
+
 
 
 def sendToStockOne(resp):

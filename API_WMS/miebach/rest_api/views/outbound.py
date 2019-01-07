@@ -1682,7 +1682,7 @@ def validate_picklist_combos(data, all_picklists, picks_all):
     return combo_status, final_data_list
 
 def rista_inventory_transfer(original_order_id_list, user):
-    import pdb;pdb.set_trace()
+    rista_inv = []
     for order_id in original_order_id_list:
 	data_dict_confirm = {}
 	rista_json = {}
@@ -1699,10 +1699,9 @@ def rista_inventory_transfer(original_order_id_list, user):
 	data_dict_confirm["taxes"] = rista_json['taxes']
 	data_dict_confirm["items"] = rista_json['items']
 	data_dict_confirm["sourceInfo"] = {"orderDate": rista_json['indentDate'], "orderNumber": rista_json['indentNumber']}
-        print data_dict_confirm
-	save_transfer_resp = save_transfer_in(data_dict_confirm)
-        print save_transfer_resp
-    return save_transfer_resp
+	save_transfer_resp = save_transfer_in_rista(data_dict_confirm)
+        rista_inv.append(save_transfer_resp)
+    return rista_inv
 
 def rista_inventory_transfer_pick(picklist_list):
     collect_tax_dict = {}
@@ -2028,11 +2027,10 @@ def picklist_confirmation(request, user=''):
             else:
                 auto_po(auto_skus, user.id)
 
-	import pdb;pdb.set_trace()
         rista_order_id = list(set(rista_order_id_list))
-	resp = rista_inventory_transfer(rista_order_id, user)
-        print resp
-        import pdb;pdb.set_trace()
+	rista_response = rista_inventory_transfer(rista_order_id, user)
+        print rista_response
+        #import pdb;pdb.set_trace()
         detailed_invoice = get_misc_value('detailed_invoice', user.id)
         if (detailed_invoice == 'false' and picklist.order and picklist.order.marketplace == "Offline"):
             check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)

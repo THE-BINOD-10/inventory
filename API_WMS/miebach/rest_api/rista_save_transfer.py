@@ -15,7 +15,7 @@ import datetime
 from rest_api.views.utils import *
 import time
 
-save_transfer_in_logs = init_logger('logs/save_transfer_in.log')
+save_transfer_in_logs = init_logger('logs/rista_save_transfer_in.log')
 
 apiKey = '945ae8b1-1886-43f4-9d0e-4986c0f383d3'
 secretKey = 'lolnJIoZK2otG_d_PUiAXFgWOWOuglfJ8wnwNvDhg-w'

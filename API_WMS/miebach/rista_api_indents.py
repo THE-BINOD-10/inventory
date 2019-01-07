@@ -13,7 +13,7 @@ from django.db.models import Q
 from miebach_admin.models import *
 import datetime
 from rest_api.views.utils import *
-order_pull_rista_stockone_logs = init_logger('logs/order_pull_stockone.log')
+order_pull_rista_stockone_logs = init_logger('logs/rista_order_pull_stockone.log')
 
 apiKey = '945ae8b1-1886-43f4-9d0e-4986c0f383d3'
 secretKey = 'lolnJIoZK2otG_d_PUiAXFgWOWOuglfJ8wnwNvDhg-w'

@@ -30,6 +30,7 @@ def make_request():
     order_pull_rista_stockone_logs.info(' ----- Started - Order Push Rista to Stockone ------- ')
     tokencreationtime = int(round(time.time()))
     payload = {
+        "jti": tokencreationtime,
         "iss": apiKey,
         "iat": tokencreationtime
     }
@@ -48,7 +49,6 @@ def make_request():
     delta = b - a
     time_taken = str(delta.total_seconds() * 1000)
     order_pull_rista_stockone_logs.info('----- Ended - Order Push Rista to Stockone ------- ')
-
 
 
 def sendToStockOne(resp):

@@ -1696,8 +1696,14 @@ def rista_inventory_transfer(original_order_id_list, user):
 	data_dict_confirm["itemsAmount"] = rista_json['itemsAmount']
 	data_dict_confirm["taxAmount"] = rista_json['taxAmount']
 	data_dict_confirm["totalAmount"] = rista_json['totalAmount']
-	data_dict_confirm["taxes"] = rista_json['taxes']
-	data_dict_confirm["items"] = rista_json['items']
+        if rista_json['taxAmount'] == 0:
+            data_dict_confirm["taxes"] = []
+            for obj in rista_json['items']:
+                obj['taxes'] = []
+	    data_dict_confirm["items"] = rista_json['items']
+        else:
+            data_dict_confirm["taxes"] = rista_json['taxes']
+            data_dict_confirm["items"] = rista_json['items']
 	data_dict_confirm["sourceInfo"] = {"orderDate": rista_json['indentDate'], "orderNumber": rista_json['indentNumber']}
 	save_transfer_resp = save_transfer_in_rista(data_dict_confirm)
         rista_inv.append(save_transfer_resp)

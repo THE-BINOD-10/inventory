@@ -13,7 +13,6 @@ from django.db.models import Q
 from miebach_admin.models import *
 import datetime
 from rest_api.views.utils import *
-#from utils import *
 import time
 
 save_transfer_in_logs = init_logger('logs/save_transfer_in.log')

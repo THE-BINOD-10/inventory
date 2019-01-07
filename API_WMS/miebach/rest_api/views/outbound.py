@@ -2030,7 +2030,6 @@ def picklist_confirmation(request, user=''):
         rista_order_id = list(set(rista_order_id_list))
 	rista_response = rista_inventory_transfer(rista_order_id, user)
         print rista_response
-        #import pdb;pdb.set_trace()
         detailed_invoice = get_misc_value('detailed_invoice', user.id)
         if (detailed_invoice == 'false' and picklist.order and picklist.order.marketplace == "Offline"):
             check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)

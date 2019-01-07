@@ -12,9 +12,8 @@ django.setup()
 from django.db.models import Q
 from miebach_admin.models import *
 import datetime
-#from rest_api.views.utils import *
-#from utils import *
-#order_pull_stockone_logs = init_logger('logs/order_pull_stockone.log')
+from rest_api.views.utils import *
+order_pull_rista_stockone_logs = init_logger('logs/order_pull_stockone.log')
 
 apiKey = '945ae8b1-1886-43f4-9d0e-4986c0f383d3'
 secretKey = 'lolnJIoZK2otG_d_PUiAXFgWOWOuglfJ8wnwNvDhg-w'
@@ -24,16 +23,17 @@ ENDPOINT = '/v1/inventory/indents/page'
 
 SCHEME = 'https'
 
+stockone_url = 'http://beta.stockone.in:3331'
+
 def make_request():
     a = datetime.datetime.now()
-    #order_pull_rista_stockone_logs.info(' ----- Started - Order Push Rista to Stockone ------- ')
+    order_pull_rista_stockone_logs.info(' ----- Started - Order Push Rista to Stockone ------- ')
     tokencreationtime = int(round(time.time()))
     payload = {
         "iss": apiKey,
         "iat": tokencreationtime
     }
     token = jwt.encode(payload, secretKey, algorithm='HS256')
-    import pdb;pdb.set_trace()
     headers =  {
         'x-api-key': apiKey,
         'x-api-token': token,
@@ -42,13 +42,12 @@ def make_request():
     url = "{}://{}{}".format(SCHEME, API_HOST, ENDPOINT)
     inv_payload = {'branch' : 'BW', 'day' : '2019-01-07'}
     resp = requests.get(url, headers=headers, params=inv_payload)
-    print len(resp.json())
     if resp.json():
 	sendToStockOne(resp.json())
     b = datetime.datetime.now()
     delta = b - a
     time_taken = str(delta.total_seconds() * 1000)
-    #order_pull_rista_stockone_logs.info('----- Ended - Order Push Rista to Stockone ------- ')
+    order_pull_rista_stockone_logs.info('----- Ended - Order Push Rista to Stockone ------- ')
 
 
 
@@ -77,7 +76,7 @@ def sendToStockOne(resp):
 
 
 def getAuthToken(stockone_auth):
-        url = "http://beta.stockone.in:3331/o/token/"
+        url = stockone_url + "/o/token/"
 	dbData = [stockone_auth['client_id'], stockone_auth['client_secret'], stockone_auth['authorization_grant_type']]
 	payload = "------WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; name=\"client_id\"\r\n\r\n{}\r\n------WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; name=\"client_secret\"\r\n\r\n{}\r\n------WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; name=\"redirect_uri\n\n\"\r\n\r\nhttp://api.stockone.in/o/token/\r\n------WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; name=\"grant_type\"\r\n\r\n{}\r\n------WebKitFormBoundary7MA4YWxkTrZu0gW--".format(*dbData)
         headers = {'content-type': 'multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW'}
@@ -89,14 +88,6 @@ def getAuthToken(stockone_auth):
 def clearLineItems(order):
     itemsArr = []
     sub_total_price = float(order['itemsAmount'])
-    #cgst_percent = 0
-    #sgst_percent = 0
-    #for ind in order.get('tax_lines'):
-	#if ind['title'] == "CGST":
-	    #cgst_percent = (float(ind['price']) * 100) / sub_total_price
-	#elif ind['title'] == "SGST":
-	    #sgst_percent = (float(ind['price']) * 100) / sub_total_price
-    #import pdb;pdb.set_trace()
     for Item in order['items']:
 	tax_list = Item.get('taxes')
 	cgst_percent = 0
@@ -106,8 +97,6 @@ def clearLineItems(order):
 		cgst_percent = tax_value['percentage']
 	    if (tax_value['taxName']).startswith('SGST'):
                 sgst_percent = tax_value['percentage']
-	    #tax_value['percentage']
-	    #tax_value['taxName']
 	obj = {
 	    "sku": Item.get('skuCode',None),
 	    "name": Item.get('itemName',None),
@@ -129,7 +118,7 @@ def writeOrders(access_token, resp):
     api_status = 'fail'
     data = {}
     data_dict = {}
-    url = "http://beta.stockone.in:3331/api/rista_update_orders/"
+    url = stockone_url + "/api/rista_update_orders/"
     count = 0
     headers = {
             'Content-Type': "application/json",
@@ -168,7 +157,6 @@ def writeOrders(access_token, resp):
     data_dict['all_orders'] = json.dumps(allOrders)
     data_dict['resp'] = json.dumps(resp)
     response = requests.request("POST", url, data=json.dumps(data_dict), headers=headers)
-    import pdb;pdb.set_trace()
-    return True
+    return response
 
 make_request()

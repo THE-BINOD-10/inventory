@@ -8532,7 +8532,6 @@ def update_order_dicts_rista(orders, rista_resp, user='', company_name=''):
     trans_mapping = {}
     collect_order_detail_list = []
     order_sku = {}
-    import pdb;pdb.set_trace()
     status = {'status': 0, 'messages': ['Something went wrong']}
     for order_key, order in orders.iteritems():
         customer_name = order['order_details']['customer_name']

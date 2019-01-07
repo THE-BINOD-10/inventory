@@ -1350,7 +1350,6 @@ def rista_update_orders(request):
         return HttpResponse(json.dumps({'status': 400, 'message': 'Please send proper data'}))
     log.info('Request params for ' + request.user.username + ' is ' + str(orders))
     try:
-        import pdb;pdb.set_trace()
         if request.user.userprofile.user_type == 'marketplace_user':
             validation_dict, failed_status, final_data_dict = validate_seller_orders_format(orders, user=request.user,
                                                                                      company_name='mieone')

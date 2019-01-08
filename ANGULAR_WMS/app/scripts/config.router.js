@@ -2194,6 +2194,18 @@ var app = angular.module('urbanApp')
             title: 'Current Stock Report',
           }
         })
+        .state('app.reports.InventoryNameReport', {
+          url: '/InventoryNameReport',
+          templateUrl: 'views/reports/inventory_name_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/inventory_name_report.js');
+              }]
+          },
+          data: {
+            title: 'Inventory Name Report',
+          }
+        })
 
 
       // configuration route

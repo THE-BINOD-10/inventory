@@ -450,6 +450,8 @@ urlpatterns = [
     url(r'^download_grn_invoice_mapping/$', download_grn_invoice_mapping),
     url(r'^get_current_stock_report/$', get_current_stock_report),
     url(r'^print_current_stock_report/$', print_current_stock_report),
+    url(r'^get_inventory_name_report/$', get_inventory_name_report),
+    # url(r'^print_inventory_name_report/$', print_inventory_name_report)
 
 ]
 

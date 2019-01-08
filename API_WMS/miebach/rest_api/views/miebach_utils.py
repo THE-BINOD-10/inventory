@@ -5985,59 +5985,85 @@ def get_current_stock_report_data(search_params, user, sub_user):
     search_parameters['stock__sku_id__in'] = sku_master_ids
     search_parameters['stock__quantity__gt'] = 0
     master_data = SellerStock.objects.exclude(stock__receipt_number=0).\
+                                            values('seller__seller_id', 'seller__name', 'stock__sku__wms_code',
+                                                 'stock__location__location', 'stock__batch_detail__weight',
+                                                 'stock__batch_detail__mrp', 'quantity',
+                                                 'stock__sku__sku_desc').distinct().\
                                             annotate(grouped_val=Concat('seller__seller_id', Value('<<>>'),
                                                                         'seller__name', Value('<<>>'),
                                                         'stock__sku__wms_code', Value('<<>>'),
                                                     'stock__location__location', Value('<<>>'),
                                                     'stock__batch_detail__weight', Value('<<>>'),
-                                                    'stock__batch_detail__mrp', output_field=CharField())).\
-                                            values_list('grouped_val').distinct().\
-                                            distinct().annotate(total=Sum('quantity')).\
+                                                    'stock__batch_detail__mrp', output_field=CharField()),
+                                                     total=Sum('quantity')).\
                                             filter(stock__sku__user=user.id, **search_parameters).\
                                             order_by(order_data)
     temp_data['recordsTotal'] = master_data.count()
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     if 'stock__quantity__gt' in search_parameters.keys():
         del search_parameters['stock__quantity__gt']
-    picklist_reserved = dict(PicklistLocation.objects.prefetch_related('stock__sku', 'stock__sellerstock__seller',
-                                                                    'stock__sellerstock', 'stock__location__location').\
-                             filter(status=1, stock__sku__user=user.id, reserved__gt=0, **search_parameters).\
-                             annotate(grouped_val=Concat('stock__sellerstock__seller__seller_id', Value('<<>>'),
-                                                         'stock__sellerstock__seller__name', Value('<<>>'),
-                                                         'stock__sku__wms_code', Value('<<>>'),
-                                                         'stock__location__location', Value('<<>>'),
-                                                         'stock__batch_detail__mrp', Value('<<>>'),
-                                                         'stock__batch_detail__weight', Value('<<>>'),
-                                                         output_field=CharField())).\
-                             values_list('grouped_val').distinct().annotate(reserved=Sum('reserved')))
-    raw_reserved = dict(RMLocation.objects.prefetch_related('stock__sku', 'stock__sellerstock__seller',
-                                                                    'stock__sellerstock', 'stock__location__location').\
-                        filter(status=1, stock__sku__user=user.id, reserved__gt=0,
-                        **search_parameters).\
-                        annotate(grouped_val=Concat('stock__sellerstock__seller__seller_id', Value('<<>>'),
-                                                    'stock__sellerstock__seller__name', Value('<<>>'),
-                                                    'material_picklist__jo_material__material_code__wms_code',
-                                                    Value('<<>>'), 'stock__location__location',
-                                                    Value('<<>>'), 'stock__batch_detail__weight',
-                                                    Value('<<>>'), 'stock__batch_detail__mrp',
-                                                    output_field=CharField())).values_list('grouped_val').distinct().\
-                        annotate(rm_reserved=Sum('reserved')))
+    # picklist_reserved = PicklistLocation.objects.filter(status=1, stock__sku__user=user.id, reserved__gt=0, **search_parameters).\
+    #                          prefetch_related('stock__sku', 'stock__sellerstock__seller',
+    #                                                                 'stock__sellerstock', 'stock__location__location'). \
+    #                          only('stock__sellerstock__seller__seller_id', 'stock__sellerstock__seller__name',
+    #                               'stock__sku__wms_code',
+    #                               'stock__location__location', 'stock__batch_detail__weight',
+    #                               'stock__batch_detail__mrp', 'quantity').distinct().\
+    #                          annotate(grouped_val=Concat('stock__sellerstock__seller__seller_id', Value('<<>>'),
+    #                                                      'stock__sellerstock__seller__name', Value('<<>>'),
+    #                                                      'stock__sku__wms_code', Value('<<>>'),
+    #                                                      'stock__location__location', Value('<<>>'),
+    #                                                      'stock__batch_detail__mrp', Value('<<>>'),
+    #                                                      'stock__batch_detail__weight', Value('<<>>'),
+    #                                                      output_field=CharField()), reserved_sum=Sum('reserved'))
+    # raw_reserved = dict(RMLocation.objects.prefetch_related('stock__sku', 'stock__sellerstock__seller',
+    #                                                                 'stock__sellerstock', 'stock__location__location').\
+    #                     filter(status=1, stock__sku__user=user.id, reserved__gt=0,
+    #                     **search_parameters).\
+    #                     annotate(grouped_val=Concat('stock__sellerstock__seller__seller_id', Value('<<>>'),
+    #                                                 'stock__sellerstock__seller__name', Value('<<>>'),
+    #                                                 'material_picklist__jo_material__material_code__wms_code',
+    #                                                 Value('<<>>'), 'stock__location__location',
+    #                                                 Value('<<>>'), 'stock__batch_detail__weight',
+    #                                                 Value('<<>>'), 'stock__batch_detail__mrp',
+    #                                                 output_field=CharField())).values_list('grouped_val').distinct().\
+    #                     annotate(rm_reserved=Sum('reserved')))
 
+    all_pick_res = PicklistLocation.objects.filter(status=1, stock__sku__user=user.id, reserved__gt=0, **search_parameters)
+    all_raw_res = RMLocation.objects.filter(status=1, stock__sku__user=user.id, reserved__gt=0, **search_parameters)
     for ind, sku_data in enumerate(master_data[start_index:stop_index]):
-        data = sku_data[0].split('<<>>')
-        sku = SKUMaster.objects.filter(sku_code=data[2], user=user.id)[0]
-        total = sku_data[1]
+        data = sku_data['grouped_val'].split('<<>>')
+        seller_id = sku_data['seller__seller_id']
         reserved = 0
-        if sku_data[0] in picklist_reserved.keys():
-            reserved += float(picklist_reserved[sku_data[0]])
-        if sku_data[0] in raw_reserved.keys():
-            reserved += float(raw_reserved[sku_data[0]])
+        res_filters = {'stock__sku__sku_code': sku_data['stock__sku__wms_code'],
+                       'stock__location__location': sku_data['stock__location__location'],
+                       'stock__sellerstock__seller__seller_id': seller_id}
+        weight = ''
+        mrp = 0
+        if sku_data['stock__batch_detail__mrp']:
+            res_filters['stock__batch_detail__mrp'] = sku_data['stock__batch_detail__mrp']
+            weight = sku_data['stock__batch_detail__mrp']
+        if sku_data['stock__batch_detail__weight']:
+            res_filters['stock__batch_detail__weight'] = sku_data['stock__batch_detail__weight']
+            weight = sku_data['stock__batch_detail__weight']
+        picklist_reserved = all_pick_res.filter(**res_filters).aggregate(Sum('reserved'))['reserved__sum']
+        raw_reserved = all_raw_res.filter(**res_filters).aggregate(Sum('reserved'))['reserved__sum']
+        if picklist_reserved:
+            reserved = picklist_reserved
+        if raw_reserved:
+            reserved += raw_reserved
+        total = sku_data['total']
+        # if sku_data.grouped_val in raw_reserved.keys():
+        #     reserved += float(raw_reserved[sku_data.grouped_val])
         quantity = total - reserved
         if quantity < 0:
             quantity = 0
-        temp_data['aaData'].append(OrderedDict((('Seller ID', data[0]), ('Seller Name', data[1]),
-                                                ('SKU Code', data[2]), ('SKU Description', sku.sku_desc),
-                                                ('Location', data[3]), ('Weight', data[4]), ('MRP', data[5]),
+        temp_data['aaData'].append(OrderedDict((('Seller ID', sku_data['seller__seller_id']),
+                                                ('Seller Name', sku_data['seller__name']),
+                                                ('SKU Code', sku_data['stock__sku__wms_code']),
+                                                ('SKU Description', sku_data['stock__sku__sku_desc']),
+                                                ('Location', sku_data['stock__location__location']),
+                                                ('Weight', weight), ('MRP', mrp),
                                                 ('Available Quantity', quantity),
                                                 ('Reserved Quantity', reserved), ('Total Quantity', total))))
     return temp_data

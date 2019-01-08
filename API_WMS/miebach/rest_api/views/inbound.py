@@ -2557,7 +2557,7 @@ def create_file_po_mapping(request, user, receipt_no, myDict):
                                       master_type='PO_TEMP')
             if exist_master_docs:
                 for exist_master_doc in exist_master_docs:
-                    if os.path.exists(exist_master_doc.uploaded_file):
+                    if exist_master_doc.uploaded_file and os.path.exists(exist_master_doc.uploaded_file.path):
                         os.remove(exist_master_doc.uploaded_file.path)
                     exist_master_doc.delete()
     except Exception as e:

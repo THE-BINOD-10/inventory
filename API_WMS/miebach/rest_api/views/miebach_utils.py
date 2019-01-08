@@ -6074,7 +6074,6 @@ def get_inventory_name_report_data(search_params, user, sub_user):
         stop_index = start_index + search_params.get('length', 0)
     else:
         stop_index = None
-    # import pdb; pdb.set_trace()
     search_parameters = {}
     order_data = lis[col_num]
     if order_term == 'desc':
@@ -6136,7 +6135,6 @@ def get_inventory_name_report_data(search_params, user, sub_user):
                         annotate(rm_reserved=Sum('reserved')))
     time = str(datetime.datetime.now())
     for ind, sku_data in enumerate(master_data[start_index:stop_index]):
-        # import pdb; pdb.set_trace()
         data = sku_data[0].split('<<>>')
         sku = SKUMaster.objects.filter(sku_code=data[2], user=user.id)[0]
         total = sku_data[1]

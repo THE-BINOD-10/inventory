@@ -6063,8 +6063,8 @@ def get_inventory_name_report_data(search_params, user, sub_user):
     temp_data = copy.deepcopy(AJAX_DATA)
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     lis = ['seller__seller_id', 'seller__name','stock__sku__sku_code','stock__sku__sku_desc','stock__sku__sku_category',
-           'stock__batch_detail__weight', 'stock__batch_detail__manufactured_date','stock__batch_detail__weight','stock__batch_detail__mrp','stock__batch_detail__batch_no',
-           'stock__batch_detail__ean_number','stock__batch_detail__manufactured_date', 'stock__batch_detail__expiry_date','total', 'total', 'total']
+           'stock__batch_detail__weight', 'stock__batch_detail__mrp','stock__batch_detail__batch_no','stock__batch_detail__ean_number','stock__batch_detail__manufactured_date',
+           'stock__batch_detail__expiry_date','total', 'total','total', 'total', 'total']
     sort_cols = ['Seller ID', 'Seller Name', 'SKU Code', 'SKU Description', 'Location', 'Weight', 'MRP', 'Available Quantity',
                    'Reserved Quantity', 'Total Quantity']
     col_num = search_params.get('order_index', 0)
@@ -6101,7 +6101,9 @@ def get_inventory_name_report_data(search_params, user, sub_user):
                                                     'stock__batch_detail__ean_number', Value('<<>>'),
                                                     'stock__batch_detail__manufactured_date', Value('<<>>'),
                                                     'stock__batch_detail__expiry_date', Value('<<>>'),
-                                                    'stock__batch_detail__mrp', output_field=CharField())).\
+                                                    'stock__batch_detail__mrp', Value('<<>>'),
+                                                    'stock__batch_detail__buy_price', Value('<<>>'),
+                                                     output_field=CharField())).\
                                             values_list('grouped_val').distinct().\
                                             distinct().annotate(total=Sum('quantity')).\
                                             filter(stock__sku__user=user.id, **search_parameters).\
@@ -6144,8 +6146,22 @@ def get_inventory_name_report_data(search_params, user, sub_user):
         if sku_data[0] in raw_reserved.keys():
             reserved += float(raw_reserved[sku_data[0]])
         quantity = total - reserved
+
         if quantity < 0:
             quantity = 0
+        value = float(quantity) * float(data[9])
+        total_stock_value = 0
+        if quantity:
+            wms_code_obj = StockDetail.objects.exclude(receipt_number=0).filter(sku__wms_code = data[2], sku__user=user.id)
+            wms_code_obj_unit_price = wms_code_obj.filter(unit_price__gt=0).only('quantity', 'unit_price')
+            total_wms_qty_unit_price = sum(wms_code_obj_unit_price.annotate(stock_value=Sum(F('quantity') * F('unit_price'))).values_list('stock_value',flat=True))
+            wms_code_obj_sku_unit_price = wms_code_obj.filter(unit_price=0).only('quantity', 'sku__cost_price')
+            total_wms_qty_sku_unit_price = sum(wms_code_obj_sku_unit_price.annotate(stock_value=Sum(F('quantity') * F('sku__cost_price'))).values_list('stock_value',flat=True))
+            total_stock_value = total_wms_qty_unit_price + total_wms_qty_sku_unit_price
+        if float(data[9]) :
+            average_cost_price = total_stock_value/float(data[9])
+        else:
+            average_cost_price = 0
         if data[6]:
             manufactured_date = data[6]
         else:
@@ -6158,6 +6174,6 @@ def get_inventory_name_report_data(search_params, user, sub_user):
                                                  ('Category',sku.sku_category), ('Weight',data[3] ), ('MRP', data[8]),
                                                 ('Available Quantity', quantity),('Batch Number', data[4]),
                                                 ('Reserved Quantity', reserved),('Manufactured Date',manufactured_date),
-                                                ('Ean Number',data[5]),('Expiry Date',expiry_date),('Value',0),('Average Cost Price',0),
+                                                ('Ean Number',data[5]),('Expiry Date',expiry_date),('Value',value),('Average Cost Price',average_cost_price),
                                                 ('Quantity', total),('Warehouse Name',user.username),('Report Generation Time',time))))
     return temp_data

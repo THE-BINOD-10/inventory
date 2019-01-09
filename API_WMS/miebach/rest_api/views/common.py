@@ -2744,6 +2744,8 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     invoice_declaration = get_misc_value('invoice_declaration', user.id)
     show_disc_invoice = get_misc_value('show_disc_invoice', user.id)
     show_mrp = get_misc_value('show_mrp', user.id)
+    show_sno = get_misc_value('sno_in_invoice',user.id)
+    count = 0
 
     if len(invoice_remarks.split("<<>>")) > 1:
         invoice_remarks = invoice_remarks.split("<<>>")
@@ -2973,7 +2975,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 continue
             if math.ceil(quantity) == quantity:
                 quantity = int(quantity)
-
+            count = count +1
             data.append(
                 {'order_id': order_id, 'sku_code': sku_code, 'sku_desc': sku_desc,
                  'title': title, 'invoice_amount': str(invoice_amount),
@@ -2981,7 +2983,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                  'vat': vat, 'mrp_price': mrp_price, 'discount': discount, 'sku_class': dat.sku.sku_class,
                  'sku_category': dat.sku.sku_category, 'sku_size': dat.sku.sku_size, 'amt': amt, 'taxes': taxes_dict,
                  'base_price': base_price, 'hsn_code': hsn_code, 'imeis': temp_imeis,
-                 'discount_percentage': discount_percentage, 'id': dat.id, 'shipment_date': shipment_date,
+                 'discount_percentage': discount_percentage, 'id': dat.id, 'shipment_date': shipment_date,'sno':count,
                  'measurement_type': measurement_type})
 
     is_cess_tax_flag = 'true'
@@ -3076,6 +3078,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                     'customer_address': customer_address, 'invoice_remarks': invoice_remarks,
                     'invoice_declaration':invoice_declaration,
                     'show_disc_invoice': show_disc_invoice,
+                    'show_sno':show_sno,
                     'seller_company': seller_company, 'sequence_number': _sequence, 'order_reference': order_reference,
                     'order_reference_date_field': order_reference_date_field,
                     'order_reference_date': order_reference_date, 'invoice_header': invoice_header,
@@ -5326,9 +5329,12 @@ def update_seller_order(seller_order_dict, order, user):
 
 def get_invoice_html_data(invoice_data):
     show_mrp = invoice_data.get('show_mrp', 'false')
+    show_sno = invoice_data.get('show_sno', 'false')
     data = {'totals_data': {'label_width': 6, 'value_width': 6}, 'columns': 11, 'emty_tds': [], 'hsn_summary_span': 3}
     if show_mrp == 'true':
         data['columns'] += 1
+    if show_sno == 'true' :
+        data['columns'] += 1    
     if invoice_data.get('is_cess_tax_flag', '') == 'false':
         data['columns'] -= 1
     if invoice_data.get('invoice_remarks', '') not in ['false', '']:

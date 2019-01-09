@@ -24,14 +24,35 @@ function CreateStockOrders($scope, $http, $state, Session, colFilters, Service) 
       vm.model_data.data.splice(index,1);
     }
   }
-
+vm.get_sku_details = function (data){
+  vm.service.apiCall('get_mapping_values/', 'GET', {'wms_code':data.wms_code, 'supplier_id': 0}).then(function(resp){
+    if(Object.values(resp).length) {
+      data.price = resp.data.price;
+    }
+  });
+}
+vm.changeUnitPrice = function(data){
+  data.total_price = (data.order_quantity * data.price)
+  if(data.cgst)
+  {
+    data.total_price += parseFloat(data.cgst)
+  }
+  if(data.sgst)
+  {
+   data.total_price += parseFloat(data.cgst)
+  }
+  if(data.igst)
+  {
+   data.total_price += parseFloat(data.cgst)
+  }
+}
   vm.warehouse_list = [];
   vm.service.apiCall('get_warehouses_list/').then(function(data){
     if(data.message) {
       vm.warehouse_list = data.data.warehouses;
     }
   })
-  vm.bt_disable = false; 
+  vm.bt_disable = false;
   vm.insert_order_data = function(data) {
     if (data.$valid) {
       vm.bt_disable = true;

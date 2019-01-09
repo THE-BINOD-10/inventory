@@ -5098,12 +5098,15 @@ def validate_st(all_data, user):
 def insert_st(all_data, user):
     for key, value in all_data.iteritems():
         for val in value:
-            if val[3]:
-                open_st = OpenST.objects.get(id=val[3])
+            if val[6]:
+                open_st = OpenST.objects.get(id=val[6])
                 open_st.warehouse_id = User.objects.get(username__iexact=key).id
                 open_st.sku_id = SKUMaster.objects.get(wms_code=val[0], user=user.id).id
                 open_st.price = float(val[2])
                 open_st.order_quantity = float(val[1])
+                open_st.cgst_tax = float(val[3])
+                open_st.sgst_tax = float(val[4])
+                open_st.igst_tax = float(val[5])
                 open_st.save()
                 continue
             stock_dict = copy.deepcopy(OPEN_ST_FIELDS)
@@ -5111,9 +5114,12 @@ def insert_st(all_data, user):
             stock_dict['sku_id'] = SKUMaster.objects.get(wms_code=val[0], user=user.id).id
             stock_dict['order_quantity'] = float(val[1])
             stock_dict['price'] = float(val[2])
+            stock_dict['cgst_tax'] = float(val[3])
+            stock_dict['sgst_tax'] = float(val[4])
+            stock_dict['igst_tax'] = float(val[5])
             stock_transfer = OpenST(**stock_dict)
             stock_transfer.save()
-            all_data[key][all_data[key].index(val)][3] = stock_transfer.id
+            all_data[key][all_data[key].index(val)][6] = stock_transfer.id
     return all_data
 
 
@@ -5126,9 +5132,8 @@ def confirm_stock_transfer(all_data, user, warehouse_name):
             order_id = int(stock_transfer_obj[0].order_id) + 1
         else:
             order_id = 1001
-
         for val in value:
-            open_st = OpenST.objects.get(id=val[3])
+            open_st = OpenST.objects.get(id=val[6])
             sku_id = SKUMaster.objects.get(wms_code__iexact=val[0], user=warehouse.id).id
             user_profile = UserProfile.objects.filter(user_id=user.id)
             prefix = ''
@@ -5146,7 +5151,7 @@ def confirm_stock_transfer(all_data, user, warehouse_name):
             st_purchase.save()
             st_dict = copy.deepcopy(STOCK_TRANSFER_FIELDS)
             st_dict['order_id'] = order_id
-            st_dict['invoice_amount'] = float(val[1]) * float(val[2])
+            st_dict['invoice_amount'] = (float(val[1]) * float(val[2])) + float(val[3]) + float(val[4]) + float(val[5])
             st_dict['quantity'] = float(val[1])
             st_dict['st_po_id'] = st_purchase.id
             st_dict['sku_id'] = sku_id
@@ -5170,10 +5175,13 @@ def create_stock_transfer(request, user=''):
         data_id = ''
         if data_dict['id'][i]:
             data_id = data_dict['id'][i]
+        data_dict['cgst'][i] = data_dict['cgst'][i] if data_dict['cgst'][i] else 0
+        data_dict['sgst'][i] = data_dict['sgst'][i] if data_dict['sgst'][i] else 0
+        data_dict['igst'][i] = data_dict['igst'][i] if data_dict['igst'][i] else 0
         cond = (user.username)
         all_data.setdefault(cond, [])
         all_data[cond].append(
-            [data_dict['wms_code'][i], data_dict['order_quantity'][i], data_dict['price'][i], data_id])
+            [data_dict['wms_code'][i], data_dict['order_quantity'][i], data_dict['price'][i],data_dict['cgst'][i],data_dict['sgst'][i],data_dict['igst'][i], data_id])
     warehouse = User.objects.get(username=warehouse_name)
     f_name = 'stock_transfer_' + warehouse_name + '_'
     status = validate_st(all_data, warehouse)

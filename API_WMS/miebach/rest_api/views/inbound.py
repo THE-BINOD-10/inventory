@@ -1007,6 +1007,7 @@ def switches(request, user=''):
                        'receive_po_mandatory_fields': 'receive_po_mandatory_fields',
                        'sku_pack_config': 'sku_pack_config',
                        'central_order_reassigning':'central_order_reassigning',
+                       'sno_in_invoice':'sno_in_invoice',
                        }
         toggle_field, selection = "", ""
         for key, value in request.GET.iteritems():
@@ -9027,4 +9028,3 @@ def download_grn_invoice_mapping(request, user=''):
     resp = HttpResponse(stringio.getvalue(), content_type="application/x-zip-compressed")
     resp['Content-Disposition'] = 'attachment; filename=%s' % zip_filename
     return resp
-

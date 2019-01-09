@@ -1385,6 +1385,9 @@ class OpenST(models.Model):
     sku = models.ForeignKey(SKUMaster)
     order_quantity = models.FloatField(default=0)
     price = models.FloatField()
+    cgst_tax = models.FloatField(default=0)
+    sgst_tax = models.FloatField(default=0)
+    igst_tax = models.FloatField(default=0)
     status = models.CharField(max_length=32)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -2116,7 +2119,6 @@ class SellerOrderSummary(models.Model):
     challan_number = models.CharField(max_length=64, default='')
     order_status_flag = models.CharField(max_length=64, default='processed_orders')
     delivered_flag = models.IntegerField(default=0)
-    overall_discount = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

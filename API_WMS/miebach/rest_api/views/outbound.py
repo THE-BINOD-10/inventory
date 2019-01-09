@@ -1698,12 +1698,16 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
             sku_dict[ind['skuCode']] = ind['quantity']
         sku_code_list = list(set(sku_code_list))
         import pdb;pdb.set_trace()
-        for sku_code_obj in order_id_dict[order_id]:
-            sku_code = sku_code_obj.keys()[0]
-            partial = False
-            if sku_code_obj[sku_code] != sku_dict[sku_code]:
-                partial = True
-                break
+        partial = False
+        if len(order_id_dict[order_id]) != len(sku_code_list):
+            partial = True
+        if not partial:
+            for sku_code_obj in order_id_dict[order_id]:
+                sku_code = sku_code_obj.keys()[0]
+                partial = False
+                if sku_code_obj[sku_code] != sku_dict[sku_code]:
+                    partial = True
+                    break
         if not partial:
             data_dict_confirm["branchCode"] = rista_json['branchCode']
             data_dict_confirm["toBranch"] = {'branchCode' : str(rista_json['fromBranch']['branchCode'])}
@@ -1735,10 +1739,9 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
                 data_dict_confirm["taxes"] = []
                 for obj in rista_json['items']:
                     obj['taxes'] = []
-                data_dict_confirm["items"] = rista_json['items']
             else:
                 data_dict_confirm["taxes"] = rista_json['taxes']
-                data_dict_confirm["items"] = rista_json['items']
+            data_dict_confirm["items"] = rista_json['items']
             sku_code_list_with_qty = order_id_dict[order_id]
             sku_code_obj_list = []
             for obj in rista_json['items']:
@@ -1760,6 +1763,7 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
                             sku_code_obj['totalAmount'] += sku_code_obj['itemAmount']
                             data_dict_confirm["itemsAmount"] += sku_code_obj['itemAmount']
                             data_dict_confirm["totalAmount"] += sku_code_obj['totalAmount']
+                            import pdb;pdb.set_trace()
                             for tax_data in obj['taxes']:
                                 tax_amount = (sku_code_obj['itemAmount'] * tax_data['percentage'])/100
                                 tax_data['taxAmount'] = tax_amount
@@ -1768,24 +1772,33 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
                                 if not sku_code_obj['taxes']:
                                     data_dict_confirm["taxes"] = []
                                 else:
+                                    data_dict_confirm["taxes"] = []
                                     if data_dict_confirm["taxes"]:
                                         for idx, tax_obj in enumerate(data_dict_confirm["taxes"]):
-                                            if tax_obj['taxName'] == sku_code_obj['taxes'][idx]['taxName']:
-                                                tax_obj['taxAmount'] = sku_code_obj['taxes'][idx]['taxAmount']
-                                                data_dict_confirm["taxAmount"] += sku_code_obj['taxes'][idx]['taxAmount']
-                                                tax_obj['percentage'] = sku_code_obj['taxes'][idx]['percentage']
+                                            try:
+                                                taxes_obj = sku_code_obj['taxes'][idx]
+                                            except:
+                                                continue
+                                            if tax_obj['taxName'] == taxes_obj['taxName']:
+                                                tax_obj['taxAmount'] = taxes_obj['taxAmount']
+                                                data_dict_confirm["taxAmount"] += taxes_obj['taxAmount']
+                                                tax_obj['percentage'] = taxes_obj['percentage']
                                                 tax_obj['taxableAmount'] = data_dict_confirm["itemsAmount"]
-                                                sku_code_obj['taxes'][idx]['taxableAmount'] = sku_code_obj['itemAmount']
+                                                taxes_obj['taxableAmount'] = sku_code_obj['itemAmount']
                                             else:
-                                                tax_obj['taxAmount'] = sku_code_obj['taxes'][idx]['taxAmount']
-                                                data_dict_confirm["taxAmount"] += sku_code_obj['taxes'][idx]['taxAmount']
-                                                tax_obj['percentage'] = sku_code_obj['taxes'][idx]['percentage']
-                                                tax_obj['taxableAmount'] = data_dict_confirm["itemsAmount"]
-                                                tax_obj['taxName'] = sku_code_obj['taxes'][idx]['taxName']
-                                                sku_code_obj['taxes'][idx]['taxableAmount'] = sku_code_obj['itemAmount']
+                                                continue
+                                                #tax_obj['taxAmount'] = taxes_obj['taxAmount']
+                                                #data_dict_confirm["taxAmount"] += taxes_obj['taxAmount']
+                                                #tax_obj['percentage'] = taxes_obj['percentage']
+                                                #tax_obj['taxableAmount'] = data_dict_confirm["itemsAmount"]
+                                                #tax_obj['taxName'] = taxes_obj['taxName']
+                                                #taxes_obj['taxableAmount'] = sku_code_obj['itemAmount']
                                     else:
                                         data_dict_confirm["taxes"] = sku_code_obj['taxes']
-                            if not obj['taxes']:
+                            data_dict_confirm['taxAmount'] = 0
+                            for tax_obj in data_dict_confirm["taxes"]:
+                                data_dict_confirm['taxAmount'] += tax_obj['taxAmount']
+                            if (not bool(data_dict_confirm["taxes"])) and (not bool(obj['taxes'])):
                                 data_dict_confirm["taxes"] = []
                             sku_code_obj['totalAmount'] += sku_code_obj['taxAmount']
                             sku_code_obj_list.append(sku_code_obj)

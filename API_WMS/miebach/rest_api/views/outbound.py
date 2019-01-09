@@ -1698,11 +1698,13 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
             sku_dict[ind['skuCode']] = ind['quantity']
         sku_code_list = list(set(sku_code_list))
         import pdb;pdb.set_trace()
-        for sku_code_obj in sku_code_list:
+        for sku_code_obj in order_id_dict[order_id]:
+            sku_code = sku_code_obj.keys()[0]
             partial = False
-            if sku_dict[sku_code_obj] == order_id_dict[sku_code_obj]:
+            if sku_code_obj[sku_code] != sku_dict[sku_code]:
                 partial = True
-        if partial:
+                break
+        if not partial:
             data_dict_confirm["branchCode"] = rista_json['branchCode']
             data_dict_confirm["toBranch"] = {'branchCode' : str(rista_json['fromBranch']['branchCode'])}
             data_dict_confirm["notes"] = ""

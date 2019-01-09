@@ -1684,7 +1684,6 @@ def validate_picklist_combos(data, all_picklists, picks_all):
 def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
     rista_inv = []
     sku_code_list = []
-    import pdb;pdb.set_trace()
     for order_id in original_order_id_list:
 	data_dict_confirm = {}
 	rista_json = {}
@@ -1734,36 +1733,60 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
 	    sku_code_list_with_qty = order_id_dict[order_id]
             sku_code_obj_list = []
 	    for obj in rista_json['items']:
-                import pdb;pdb.set_trace()
-		sku_code_obj = {}
+                sku_code_obj = {}
                 sku_code_obj['totalAmount'] = 0
-                for key, value in sku_code_list_with_qty.items():
-                    if obj['skuCode'] in key:
-                        sku_code_obj['skuCode'] = obj['skuCode']
-                        sku_code_obj['taxes'] = obj['taxes']
-                        for tax_data in obj['taxes']:
-                            data_dict_confirm["taxAmount"] += tax_data['taxAmount']
-                        sku_code_obj['measuringUnit'] = obj['measuringUnit']
-                        sku_code_obj['itemName'] = obj['itemName']
-                        sku_code_obj['unitCost'] = obj['unitCost']
-                        sku_code_obj['quantity'] = value
-                        sku_code_obj['itemAmount'] = obj['unitCost'] * value
-                        for tax_data in obj['taxes']:
-                            tax_amount = (sku_code_obj['itemAmount'] * tax_data['percentage'])/100
-                            tax_data['taxAmount'] = tax_amount
-                            sku_code_obj['taxAmount'] += tax_amount
-                            data_dict_confirm["taxAmount"] += tax_amount
-                        sku_code_obj['itemAmount'] += sku_code_obj['taxAmount']
-                        sku_code_obj['totalAmount'] += sku_code_obj['itemAmount']
-                        data_dict_confirm["itemsAmount"] += sku_code_obj['itemAmount']
-                        data_dict_confirm["totalAmount"] += sku_code_obj['totalAmount']
-                        sku_code_obj_list.append(sku_code_obj)
+                for sku_obj in sku_code_list_with_qty:
+                    for key, value in sku_obj.items():
+                        if obj['skuCode'] in key:
+                            sku_code_obj['skuCode'] = obj['skuCode']
+                            sku_code_obj['taxes'] = obj['taxes']
+                            for tax_data in obj['taxes']:
+                                data_dict_confirm["taxAmount"] += tax_data['taxAmount']
+                            sku_code_obj['measuringUnit'] = obj['measuringUnit']
+                            sku_code_obj['itemName'] = obj['itemName']
+                            sku_code_obj['unitCost'] = obj['unitCost']
+                            sku_code_obj['quantity'] = value
+                            sku_code_obj['itemAmount'] = obj['unitCost'] * value
+			    sku_code_obj['taxAmount'] = 0
+			    sku_code_obj['totalAmount'] += sku_code_obj['itemAmount']
+			    data_dict_confirm["itemsAmount"] += sku_code_obj['itemAmount']
+			    data_dict_confirm["totalAmount"] += sku_code_obj['totalAmount']
+                            for tax_data in obj['taxes']:
+                                tax_amount = (sku_code_obj['itemAmount'] * tax_data['percentage'])/100
+                                tax_data['taxAmount'] = tax_amount
+                                sku_code_obj['taxAmount'] += tax_amount
+                                data_dict_confirm["taxAmount"] = 0
+                                if not sku_code_obj['taxes']:
+                                    data_dict_confirm["taxes"] = []
+                                else:
+                                    if data_dict_confirm["taxes"]:
+					for idx, tax_obj in enumerate(data_dict_confirm["taxes"]):
+					    if tax_obj['taxName'] == sku_code_obj['taxes'][idx]['taxName']:
+						tax_obj['taxAmount'] = sku_code_obj['taxes'][idx]['taxAmount']
+						data_dict_confirm["taxAmount"] += sku_code_obj['taxes'][idx]['taxAmount']
+						tax_obj['percentage'] = sku_code_obj['taxes'][idx]['percentage']
+						tax_obj['taxableAmount'] = data_dict_confirm["itemsAmount"]
+						sku_code_obj['taxes'][idx]['taxableAmount'] = sku_code_obj['itemAmount']
+					    else:
+						tax_obj['taxAmount'] = sku_code_obj['taxes'][idx]['taxAmount']
+						data_dict_confirm["taxAmount"] += sku_code_obj['taxes'][idx]['taxAmount']
+						tax_obj['percentage'] = sku_code_obj['taxes'][idx]['percentage']
+						tax_obj['taxableAmount'] = data_dict_confirm["itemsAmount"]
+						tax_obj['taxName'] = sku_code_obj['taxes'][idx]['taxName']
+						sku_code_obj['taxes'][idx]['taxableAmount'] = sku_code_obj['itemAmount']
+				    else:
+					data_dict_confirm["taxes"] = sku_code_obj['taxes']
+			    if not obj['taxes']:
+				data_dict_confirm["taxes"] = []
+			    sku_code_obj['totalAmount'] += sku_code_obj['taxAmount']
+                            sku_code_obj_list.append(sku_code_obj)
 	    data_dict_confirm["items"] = sku_code_obj_list
 	    temp_json_model_name = 'rista<<>>transfer_in<<>>' + order_id
 	    temp_json_obj = TempJson.objects.filter(**{'model_id':user.id, 'model_name':temp_json_model_name}).count()
             data_dict_confirm["sourceInfo"] = {"orderDate": rista_json['indentDate'], "orderNumber": str(rista_json['indentNumber']) + '-' + str(temp_json_obj + 1)}
             save_transfer_resp = save_transfer_in_rista(data_dict_confirm)
-            TempJson.objects.create(**{'model_id':user.id, 'model_name':temp_json_model_name, 'model_json':str(save_transfer_resp)})
+            if save_transfer_resp['status'] != False:
+                TempJson.objects.create(**{'model_id':user.id, 'model_name':temp_json_model_name, 'model_json':str(save_transfer_resp)})
             rista_inv.append(save_transfer_resp)
     return rista_inv
 
@@ -1906,7 +1929,6 @@ def picklist_confirmation(request, user=''):
         if combo_status:
             return HttpResponse(json.dumps({'message': 'Combo Quantities are not matching',
                                             'sku_codes': combo_status, 'status': 0}))
-        import pdb;pdb.set_trace()
         for picklist_dict in final_data_list:
             picklist = picklist_dict['picklist']
             picklist_batch = picklist_dict['picklist_batch']
@@ -2058,7 +2080,7 @@ def picklist_confirmation(request, user=''):
                             else:
                                 rista_order_dict[original_order_id_str] = []
                                 rista_order_dict[original_order_id_str].append(sku_code_dict)
-                    import pdb;pdb.set_trace()
+                    #import pdb;pdb.set_trace()
                     picklist.save()
 
                     if user_profile.user_type == 'marketplace_user' and picklist.order:

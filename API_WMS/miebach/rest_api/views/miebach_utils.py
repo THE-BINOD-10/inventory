@@ -1481,7 +1481,7 @@ PERMISSION_DICT = OrderedDict((
                  ('Open JO Report', 'view_openjo'), ('Seller Invoice Detail Report', 'view_sellerpo'),
                  ('RM Picklist Report', 'view_materialpicklist'), ('Stock Ledger Report', 'view_stockstats'),
                  ('Shipment Report', 'view_ordershipment'), ('RTV Report', 'view_returntovendor'),
-                 ('Current Stock Report', 'view_skudetailstats'),('Inventory Value Report', 'view_inventory'))),
+                 ('Current Stock Report', 'view_skudetailstats'), ('Inventory Value Report', 'delete_skudetailstats'))),
 
     # Uploaded POs
     ("UPLOADPO_LABEL", (("uploadedPOs", "add_orderuploads"),)),
@@ -6120,7 +6120,10 @@ def get_inventory_value_report_data(search_params, user, sub_user):
                 price = seller_stock.stock.batch_detail.buy_price
             total_stock_value += float("%.2f" % (seller_stock.quantity * price))
             total_qty += seller_stock.quantity
-        average_cost_price = "%.2f" % (total_stock_value/total_qty)
+
+        average_cost_price = 0
+        if total_stock_value and quantity:
+            average_cost_price = "%.2f" % (total_stock_value/quantity)
         manufactured_date = ''
         expiry_date = ''
         weight = ''

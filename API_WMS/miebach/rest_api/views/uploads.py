@@ -5211,6 +5211,9 @@ def sku_substitution_upload(request, user=''):
         if data_dict.get('dest_mrp', 0):
             dest_filter['batch_detail__mrp'] = data_dict['dest_mrp']
             mrp_dict['mrp'] = data_dict['dest_mrp']
+        if data_dict.get('seller_master_id', 0):
+            dest_filter['sellerstock__seller_id'] = data_dict['seller_master_id']
+            mrp_dict['mrp'] = data_dict['dest_mrp']
         dest_stocks = StockDetail.objects.filter(**dest_filter)
         update_substitution_data(data_dict['src_stocks'], dest_stocks, data_dict['source_sku_code_obj'],
                                  data_dict['source_location_obj'], data_dict['source_quantity'],

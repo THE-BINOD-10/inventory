@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('InventoryNameReportCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
+  .controller('InventoryValueReportCtrl',['$scope', '$http', '$state', '$compile', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'colFilters', 'Service', ServerSideProcessingCtrl]);
 
 function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOptionsBuilder, DTColumnBuilder, colFilters, Service) {
 
@@ -30,7 +30,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.reports = {}
   vm.toggle_rtv_sku_wise = function() {
     var send = {};
-	var name = 'inventory_name_report';
+	var name = 'inventory_value_report';
     vm.service.apiCall("get_report_data/", "GET", {report_name: name}).then(function(data) {
 	if(data.message) {
 	  if ($.isEmptyObject(data.data.data)) {

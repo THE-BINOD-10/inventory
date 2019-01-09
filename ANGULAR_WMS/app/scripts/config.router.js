@@ -2194,16 +2194,16 @@ var app = angular.module('urbanApp')
             title: 'Current Stock Report',
           }
         })
-        .state('app.reports.InventoryNameReport', {
-          url: '/InventoryNameReport',
-          templateUrl: 'views/reports/inventory_name_report.html',
+        .state('app.reports.InventoryValueReport', {
+          url: '/InventoryValueReport',
+          templateUrl: 'views/reports/inventory_value_report.html',
           resolve: {
               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
-                return $ocLazyLoad.load('scripts/controllers/reports/inventory_name_report.js');
+                return $ocLazyLoad.load('scripts/controllers/reports/inventory_value_report.js');
               }]
           },
           data: {
-            title: 'Inventory Name Report',
+            title: 'Inventory Value Report',
           }
         })
 

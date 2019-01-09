@@ -57,6 +57,11 @@ def get_report_data(request, user=''):
             data['filters'][data_index]['values'] = list(
                 OrderDetail.objects.exclude(sku__sku_category='').filter(user=user.id).values_list('sku__sku_category',
                                                                                                    flat=True).distinct())
+        if 'sister_warehouse' in filter_keys :
+            sister_wh = get_sister_warehouse(user)
+            data_index = data['filters'].index(filter(lambda person: 'sister_warehouse' in person['name'], data['filters'])[0])
+            data['filters'][data_index]['values'] = list(
+                UserGroups.objects.filter(Q(admin_user=user) | Q(user=user)).values_list('user__username',flat=True).distinct())
         if 'order_report_status' in filter_keys:
             data_index = data['filters'].index(
                 filter(lambda person: 'order_report_status' in person['name'], data['filters'])[0])
@@ -1297,7 +1302,12 @@ def print_purchase_order_form(request, user=''):
     if not po_id:
         return HttpResponse("Purchase Order Id is missing")
     purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user=user.id, order_id=po_id)
-    ean_flag = list(purchase_orders.exclude(open_po__sku__ean_number=0))
+    po_sku_ids = purchase_orders.values_list('open_po__sku_id', flat=True)
+    ean_flag = False
+    ean_data = SKUMaster.objects.filter(Q(ean_number__gt=0) | Q(eannumbers__ean_number__gt=0),
+                                        id__in=po_sku_ids, user=user.id)
+    if ean_data:
+        ean_flag = True
     display_remarks = get_misc_value('display_remarks_mail', user.id)
     po_data = []
     for order in purchase_orders:
@@ -1322,8 +1332,13 @@ def print_purchase_order_form(request, user=''):
                             open_po.order_quantity, open_po.measurement_unit, open_po.price, amount,
                             open_po.sgst_tax, open_po.cgst_tax, open_po.igst_tax, open_po.cess_tax,
                             open_po.utgst_tax, total_sku_amt]
+
         if ean_flag:
-            po_temp_data.insert(1, open_po.sku.ean_number)
+            ean_number = 0
+            eans = get_sku_ean_list(open_po.sku)
+            if eans:
+                ean_number = eans[0]
+            po_temp_data.insert(1, ean_number)
         if display_remarks == 'true':
             po_temp_data.append(open_po.remarks)
         po_data.append(po_temp_data)

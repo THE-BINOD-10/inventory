@@ -9,6 +9,8 @@ function Picklist($scope, $http, $state, $timeout, Session, colFilters, Service,
   vm.industry_type = Session.user_profile.industry_type;
   vm.user_type=Session.user_profile.user_type;
   vm.model_data = {};
+  vm.record_serial_data = [];
+  vm.record_qcitems_data = [];
   vm.status_data = {message:"cancel", data:{}}
   vm.qty_validation = {};
 
@@ -123,8 +125,30 @@ function view_orders() {
   }
 
 }
-*/
+*/ 
+    vm.getrecordSerialnumber = function(rowdata) {
+      for(var i=0; i < vm.model_data.data.length; i++) {
+        if(vm.model_data.data[i].wms_code == rowdata.wms_code) {
+          angular.copy(vm.model_data.data[i]['sku_imeis_map'][vm.model_data.data[i].wms_code].sort(), vm.record_serial_data);
+        }
+      }
+    }
+    vm.myFunction = function(rowdata, record) {
+    var x = document.getElementById("serial_no");
+    if (x.style.display === "none" || x.style.display === "") {
+      for(var i=0; i < vm.model_data.data.length; i++) {
+        if(vm.model_data.data[i].wms_code == rowdata.wms_code) {
+          angular.copy(vm.model_data.data[i]['sku_imeis_map'][vm.model_data.data[i].wms_code].sort(), vm.record_serial_data);
+          x.style.display = "block";
+        }
+      }
+    } else {
+        x.style.display = "none";
+    }
+  }
+
   vm.serial_scan = function(event, scan, data, record) {
+    vm.getrecordSerialnumber(data);
       if ( event.keyCode == 13) {
         var id = data.id;
         var total = 0;
@@ -137,14 +161,21 @@ function view_orders() {
         elem[id]= scan_data[length-1]
         if(total < data.reserved_quantity) {
           vm.service.apiCall('check_imei/', 'GET', elem).then(function(data){
-            if(data.data.status == "Success") {
+          if(data.data.status == "Success") {
               if(data.data.data.sku_code == record.wms_code) {
-                record.picked_quantity = parseInt(record.picked_quantity) + 1;
+                if(vm.record_serial_data[0] == scan_data) {
+                  vm.qc_items(vm.model_data);
+                  vm.increament(record);
+                } else {
+                  vm.service.showNoty("Please Enter the Correct Serial Number !");
+                  record.scan = '';
+                }
               } else {
                 Service.pop_msg(data.data.status);
                 scan_data.splice(length-1,1);
                 record.scan = scan_data.join('\n');
                 record.scan = record.scan+"\n";
+                record.scan = '';
               }
             }
             else{
@@ -155,14 +186,42 @@ function view_orders() {
           scan_data.splice(length-1,1);
           record.scan = scan_data.join('\n');
           record.scan = record.scan+"\n";
-          Service.pop_msg("picked already equal to reserved quantity");
+          vm.service.showNoty("picked already equal to reserved quantity !");
+          // Service.pop_msg("picked already equal to reserved quantity");
         }
       }
     }
 
+    vm.increament = function (record) {
+      record.picked_quantity = parseInt(record.picked_quantity) + 1;
+      vm.record_serial_data.shift()
+      record.scan = '';
+    }
+
+    vm.qc_items = function(items) {
+    var mod_data =  vm.state_data
+    angular.copy(vm.model_data["qc_items"].sort(), vm.record_qcitems_data);
+    var modalInstance = $modal.open({
+      templateUrl: 'views/outbound/toggle/qcitems.html',
+      controller: 'qcitesms',
+      controllerAs: 'pop',
+      size: 'lg',
+      backdrop: 'static',
+      keyboard: false,
+      resolve: {
+        items: function () {
+          return mod_data;
+        }
+      }
+    });
+
+    modalInstance.result.then(function (selectedItem) {
+      console.log(selectedItem);
+    });
+  }
+
     vm.isLast = isLast;
     function isLast(check) {
-
       var cssClass = check ? "fa fa-plus-square-o" : "fa fa-minus-square-o";
       return cssClass
     }
@@ -947,3 +1006,71 @@ function Barcodes($scope, $http, $state, $timeout, Session, colFilters, Service,
 angular
   .module('urbanApp')
   .controller('Barcodes', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$modalInstance', 'items', Barcodes]);*/
+  function qcitesms($scope, $http, $state, $timeout, Session, colFilters, Service, $stateParams, $q, $modalInstance, items) {
+
+  var vm = this;
+  vm.state_data = items;
+  vm.service = Service;
+  vm.input_types = ['Input', 'Number', 'Textarea'];
+  vm.empty_data = {'id': '', 'attribute_name': '', 'attribute_type': 'Input'}
+  vm.model_data = {};
+  vm.record_qcitems_data = [];
+  vm.sku_details = {};
+  vm.pop_data = {};
+  vm.status_data = "";
+  vm.status_data = [];
+  
+  vm.getPoData = function(data){
+    Service.apiCall(data.url, data.method, data.data, true).then(function(data){
+      if(data.message) {
+        angular.copy(data.data, vm.model_data);
+        for(var i=0; i < vm.model_data["qc_items"].length; i++) {
+          var keyvalue = vm.model_data["qc_items"][i];
+          var key = vm.model_data["qc_items"][i].replace(/[" "]/g, '_').toLowerCase();
+          vm.record_qcitems_data.push({[key] : vm.model_data["qc_items"][i]})
+          vm.sku_details[vm.model_data["qc_items"][i]] = {'status': true, 'comment': ""}
+      }
+        console.log(vm.sku_details)
+        console.log(vm.record_qcitems_data)
+      }
+    });
+  }
+  vm.getPoData(vm.state_data);
+  vm.qcitemstatus = function (keys, values){
+    for(var i=0; i < Object.keys(vm.sku_details).length; i++) {
+      if(Object.keys(vm.sku_details)[i] == values) {
+        if(vm.sku_details[values].status == true) {
+          vm.sku_details[values].status = false
+        } else {
+          vm.sku_details[values].status = true
+        }
+      }
+    }
+    console.log(vm.sku_details[values].status);
+    console.log(vm.sku_details);
+  }
+  vm.passdata = function() {
+    vm.totalData("pass");
+  }
+  vm.canceldata = function(){
+    vm.checkbox = true;
+    vm.totalData("fail");
+  }
+  vm.totalData = function(key){
+    if(key == "pass") {
+      vm.sku_details['sku_status'] = {'status': key}
+    } else {
+      vm.sku_details['sku_status'] = {'status': key}
+    }
+  }
+  vm.submitData = function() {
+    console.log(vm.sku_details);
+  }
+  vm.ok = function (msg) {
+    $modalInstance.close(vm.status_data);
+  };
+}
+
+angular
+  .module('urbanApp')
+  .controller('qcitesms', ['$scope', '$http', '$state', '$timeout', 'Session', 'colFilters', 'Service', '$stateParams', '$q', '$modalInstance', 'items', qcitesms]);

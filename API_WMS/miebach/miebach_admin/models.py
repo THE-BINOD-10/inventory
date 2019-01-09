@@ -835,6 +835,7 @@ class OrderPackaging(models.Model):
     id = BigAutoField(primary_key=True)
     order_shipment = models.ForeignKey(OrderShipment)
     package_reference = models.CharField(max_length=64)
+    box_number = models.CharField(max_length=64, default='')
     status = models.CharField(max_length=32)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -1056,6 +1057,7 @@ class POIMEIMapping(models.Model):
     sku = models.ForeignKey(SKUMaster, blank=True, null=True)
     seller = models.ForeignKey(SellerMaster, blank=True, null=True)
     purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True)
+    pack_status = models.IntegerField(default=0)
     job_order = models.ForeignKey(JobOrder, blank=True, null=True)
     imei_number = models.CharField(max_length=64, default='')
     status = models.IntegerField(default=1)
@@ -1064,7 +1066,7 @@ class POIMEIMapping(models.Model):
 
     class Meta:
         db_table = 'PO_IMEI_MAPPING'
-        unique_together = ('purchase_order', 'imei_number', 'sku', 'job_order', 'seller')
+        unique_together = ('purchase_order','imei_number', 'sku', 'job_order', 'seller')
 
 
 class OrderIMEIMapping(models.Model):
@@ -3063,6 +3065,19 @@ class TableUpdateHistory(models.Model):
         db_table = 'TABLE_UPDATE_HISTORY'
         index_together = (('user', 'model_id'), ('user', 'model_id', 'model_name'),
                           ('user', 'model_id', 'model_name', 'model_field'))
+
+
+class SKUPackMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    sku = models.ForeignKey(SKUMaster)
+    pack_id = models.CharField(max_length=32, default='')
+    pack_quantity = models.PositiveIntegerField()
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'SKU_PACK_MASTER'
+        unique_together = ('sku', 'pack_id')
 
 
 class TempJson(models.Model):

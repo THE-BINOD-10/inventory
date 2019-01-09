@@ -17,6 +17,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
     vm.user_type = Session.user_profile.user_type;
     vm.parent_username = Session.parent.userName;
     vm.milkbasket_users = ['milkbasket', 'milkbasket_noida', 'milkbasket_test', 'milkbasket_bangalore'];
+    vm.milkbasket_file_check = ['milkbasket'];
     vm.display_approval_button = false;
     vm.supplier_id = '';
     vm.order_id = 0;
@@ -238,7 +239,11 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     $scope.getExpiryDate = function(index, parent_index){
         var mfg_date = new Date(vm.model_data.data[parent_index][index].mfg_date);
-        var expiry = new Date(mfg_date.getFullYear(),mfg_date.getMonth(),mfg_date.getDate()+vm.shelf_life);
+        var shelf_life = vm.model_data.data[parent_index][index].shelf_life;
+        if(!shelf_life || shelf_life=='') {
+          shelf_life = 0;
+        }
+        var expiry = new Date(mfg_date.getFullYear(),mfg_date.getMonth(),mfg_date.getDate()+shelf_life);
         //vm.model_data.data[parent_index][index].exp_date = (expiry.getMonth() + 1) + "/" + expiry.getDate() + "/" + expiry.getFullYear();
         var row_data = vm.model_data.data[parent_index][index]
         if (!row_data.exp_date || row_data.exp_date == ''){
@@ -269,8 +274,12 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         Service.showNoty('Please choose manufacturer date first');
         vm.model_data.data[parent_index][index].exp_date = '';
       } else {
-        if (vm.shelf_life && shelf_life_ratio) {
-          var res_days = (vm.shelf_life * (shelf_life_ratio / 100));
+        var shelf_life = vm.model_data.data[parent_index][index].shelf_life;
+        if(!shelf_life || shelf_life=='') {
+          shelf_life = 0; 
+        }
+        if (shelf_life && shelf_life_ratio) {
+          var res_days = (shelf_life * (shelf_life_ratio / 100));
           var cur_date = new Date();
           if(new Date(exp_date) > new Date()){
 
@@ -302,6 +311,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       vm.model_data = {};
       vm.html = "";
+      vm.scanned_wms =[]
       vm.invoice_readonly_option = false
       vm.print_enable = false;
       if(vm.permissions.use_imei) {
@@ -458,6 +468,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       if (form.$valid) {
 
         var abs_inv_value = vm.absOfInvValueTotal(vm.model_data.invoice_value, vm.skus_total_amount);
+
         if (vm.permissions.receive_po_invoice_check && abs_inv_value <= 3){
 
           vm.save_sku();
@@ -475,10 +486,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
     vm.save_sku = function(){
       var that = vm;
-      if(vm.milkbasket_users.indexOf(vm.parent_username) >= 0 && !vm.model_data.dc_level_grn &&
+      if(vm.milkbasket_file_check.indexOf(vm.parent_username) >= 0 && !vm.model_data.dc_level_grn &&
           vm.display_approval_button && Object.keys(vm.model_data.uploaded_file_dict).length == 0) {
         if($(".grn-form").find('[name="files"]')[0].files.length < 1) {
           colFilters.showNoty("Uploading file is mandatory");
+          return
+        }
+      }
+      if($(".grn-form").find('[name="files"]')[0].files.length > 0){
+        var size_check_status = vm.file_size_check($(".grn-form").find('[name="files"]')[0].files[0]);
+        if(size_check_status){
+          colFilters.showNoty("File Size should be less than 10 MB");
           return
         }
       }
@@ -511,6 +529,63 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
 
       return Math.abs(inv_value - total_value);
     }
+  vm.scanned_wms =[]
+    vm.check_sku_pack = function(event,pack_id)
+    {
+        event.stopPropagation();
+        if (event.keyCode == 13 )
+        {
+           vm.service.apiCall('check_sku_pack_scan/', 'GET', {'pack_id':pack_id}).then(function(data){
+             if (data.data.flag)
+               {
+                 for(var i=0; i<vm.model_data.data.length; i++)
+                 {
+                   if (vm.model_data.data[i][0].wms_code.indexOf(vm.scanned_wms) == -1 || vm.scanned_wms.length == 0)
+                   {
+                     if(vm.model_data.data[i][0].po_quantity > vm.model_data.data[i][0].value && vm.model_data.data[i][0].po_quantity >= (vm.model_data.data[i][0].value+data.data.quantity))
+                      {
+                       if(vm.model_data.data[i][0].wms_code == data.data.sku_code)
+                        {
+                          vm.model_data.data[i][0].pack_id = pack_id
+                          if(!vm.model_data.data[i][0].num_packs)
+                          {
+                            vm.model_data.data[i][0].num_packs =0
+                          }
+                          vm.model_data.data[i][0].num_packs +=1;
+                          vm.model_data.data[i][0].value += data.data.quantity
+                          if (vm.model_data.data[i][0].price)
+                          {
+                            vm.model_data.data[i][0].total_amt =  vm.model_data.data[i][0].price * vm.model_data.data[i][0].value
+                           }
+                           break;
+                         }
+                       else
+                        {
+                          if(!vm.model_data.data[i][0].value)
+                           {
+                             Service.showNoty('Pack Id is not matched to SKU', 'error', 'topRight')
+                           }
+                        }
+                      }
+                  else if(vm.model_data.data[i][0].po_quantity == vm.model_data.data[i][0].value)
+                      {
+                           vm.scanned_wms.push(vm.model_data.data[i][0].wms_code)
+                      }
+                  else
+                    {
+                    Service.showNoty('Recived quantity is greater than PO quantity', 'error', 'topRight')
+                    }
+                   }
+                 }
+
+               }
+            else{
+                Service.showNoty(data.data.status, 'error', 'topRight')
+                }
+            });
+        }
+    }
+
 
     vm.absOfQtyTolerence = function(inv_value, total_value){
       return Math.abs(1.1*inv_value);
@@ -528,10 +603,17 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       // data.push({name: 'po_unit', value: form.po_unit.$viewValue});
       // data.push({name: 'tax_per', value: form.tax_per.$viewValue});
       if (form.$valid) {
-        if(vm.milkbasket_users.indexOf(vm.parent_username) >= 0 && !vm.model_data.dc_level_grn &&
+        if(vm.milkbasket_file_check.indexOf(vm.parent_username) >= 0 && !vm.model_data.dc_level_grn &&
             Object.keys(vm.model_data.uploaded_file_dict).length == 0){
           if($(".grn-form").find('[name="files"]')[0].files.length < 1) {
             colFilters.showNoty("Uploading file is mandatory");
+            return
+          }
+        }
+        if($(".grn-form").find('[name="files"]')[0].files.length > 0){
+          var size_check_status = vm.file_size_check($(".grn-form").find('[name="files"]')[0].files[0]);
+          if(size_check_status){
+            colFilters.showNoty("File Size should be less than 10 MB");
             return
           }
         }
@@ -2164,6 +2246,16 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         }
       }
     })
+  }
+
+  vm.file_size_check = function(event, file_obj) {
+    var file_size = ($(".grn-form").find('[name="files"]')[0].files[0].size/1024)/1024;
+    if(file_size > 10) {
+      return true;
+    }
+    else {
+      return false;
+    }
   }
 
 }

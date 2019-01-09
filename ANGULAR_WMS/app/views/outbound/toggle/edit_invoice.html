@@ -23,7 +23,7 @@
           <div class="col-md-4 col-sm-4 col-xs-6">
             <div class="form-group">
               <label class="control-label"> Order Reference </label>
-              <input name="order_reference" ng-model="pop.model_data.order_reference" class="form-control" type="text">
+              <input name="order_reference" ng-model="pop.model_data.order_reference"  class="form-control" type="text">
             </div>
           </div>
           <div class="col-md-4 col-sm-4 col-xs-6">
@@ -41,7 +41,8 @@
           <div class="col-md-4 col-sm-4 col-xs-6">
             <div class="form-group" ng-if="pop.permissions.increment_invoice && pop.model_data.temp_sequence_number">
               <label class="control-label">Invoice Number</label>
-              <input name="invoice_number" ng-model="pop.model_data.sequence_number" class="form-control" type="text" ng-required="true" decimal-number>
+              <input name="invoice_number" ng-model="pop.model_data.sequence_number" ng-if="pop.permissions.multi_warehouse" class="form-control" type="text" ng-required="true" decimal-number>
+              <input name="invoice_number" ng-model="pop.model_data.sequence_number" ng-if="!pop.permissions.multi_warehouse" class="form-control" type="text" ng-required="true" decimal-number readonly>
               <input name="marketplace" ng-model="pop.model_data.marketplace" value="{{pop.model_data.marketplace}}" class="form-control" type="hidden">
             </div>
           </div>
@@ -71,45 +72,60 @@
         <th><center>SGST</center></th>
         <th><center>IGST</center></th>
         <th><center>Total</center></th>
-        <th class="plus"></th>
+        <th  class="plus"></th>
       <!-- </tr> -->
     </thead>
     <tbody>
       <tr class="rm-padding rm-brdr text-right" ng-repeat="record in pop.model_data.data">
         <td style="text-align: left;">
-            <input type="text" autocomplete="off" name="sku_id" class="form-control" placeholder="Search WMS Code"
+            <input type="text" autocomplete="off" name="sku_id" ng-if="pop.parent_user" class="form-control" placeholder="Search WMS Code"
+            typeahead="address.wms_code+' : '+address.sku_desc for address in pop.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="record.sku_code" typeahead-on-select="pop.get_sku_data(record, $item, $index)">
+            <input type="text" autocomplete="off" name="sku_id" ng-if="!pop.parent_user" readonly class="form-control" placeholder="Search WMS Code"
             typeahead="address.wms_code+' : '+address.sku_desc for address in pop.service.getSearchValues($viewValue, 'search_wms_data?')" typeahead-loading="loadingLocations" ng-model="record.sku_code" typeahead-on-select="pop.get_sku_data(record, $item, $index)">
             <!--{{record.sku_code}}--></td>
         <td style="text-align: left;">{{record.hsn_code}}</td>
         <td style="text-align: left;">
-            <input type="text" class="form-control" ng-model="record.title" name="title">
+            <input type="text" class="form-control" ng-if="pop.parent_user"  ng-model="record.title" name="title">
+            <input type="text" class="form-control" ng-if="!pop.parent_user" readonly ng-model="record.title" name="title">
+
         </td>
         <td>
           <input type="hidden" name="id" value="{{record.id}}">
-          <input type="text" name="unit_price" ng-readonly="pop.priceband_sync" class="form-control" ng-model="record.unit_price" style="padding: 5px 5px;height: 34px;width: 60px" ng-change="pop.changeUnitPrice(record)" decimal-number required>
+          <input type="text" name="unit_price" ng-if="pop.parent_user" ng-readonly="pop.priceband_sync" class="form-control" ng-model="record.unit_price" style="padding: 5px 5px;height: 34px;width: 60px" ng-change="pop.changeUnitPrice(record)" decimal-number required>
+          <input type="text" name="unit_price" ng-if="!pop.parent_user"  ng-readonly="pop.priceband_sync || show_tab('multi_warehouse') == False" class="form-control" ng-model="record.unit_price" style="padding: 5px 5px;height: 34px;width: 60px" ng-change="pop.changeUnitPrice(record)" decimal-number required>
+
         </td>
         <td>
-            <input type="text" name="quantity" class="form-control" ng-model="record.quantity" ng-class="pop.service.get_decimal_perm()"
+            <input type="text" name="quantity" class="form-control" ng-if="pop.parent_user"  ng-model="record.quantity" ng-class="pop.service.get_decimal_perm()"
             ng-change="pop.change_quantity(record)" style="width: 50px" ng-readonly="pop.model_data.blind_order && pop.permissions.use_imei">
+
+            <input type="text" name="quantity" class="form-control"  ng-if = "!pop.parent_user"  ng-model="record.quantity" ng-class="pop.service.get_decimal_perm()"
+            ng-change="pop.change_quantity(record)" style="width: 50px" ng-readonly="(pop.model_data.blind_order && pop.permissions.use_imei) || !pop.parent_user ">
         </td>
         <td>{{record.base_price | number:2}}</td>
         <td class="text-right">{{record.discount | number:2}}<br><span class="tax-percentage">@{{record.discount_percentage}}%</span></td>
         <td> {{record.amt | number:2}} </td>
         <td class="text-right">
-          <input type="text" name="cgst_tax" ng-model="record.taxes.cgst_tax" value="{{record.taxes.cgst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width">
+          <input type="text" name="cgst_tax" ng-if="pop.parent_user" ng-model="record.taxes.cgst_tax" value="{{record.taxes.cgst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width">
+          <input type="text" name="cgst_tax"  ng-if="!pop.parent_user" readonly ng-model="record.taxes.cgst_tax" value="{{record.taxes.cgst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width">
+
           <!-- {{record.taxes.cgst_amt | number:2}} --><br><span class="tax-percentage">{{record.taxes.cgst_tax}}%</span></td>
         <td class="text-right">
-          <input type="text" name="sgst_tax" ng-model="record.taxes.sgst_tax" value="{{record.taxes.sgst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width">
+          <input type="text" name="sgst_tax" ng-if="pop.parent_user"  ng-model="record.taxes.sgst_tax" value="{{record.taxes.sgst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width">
+          <input type="text" name="sgst_tax" ng-if="!pop.parent_user" readonly ng-model="record.taxes.sgst_tax" value="{{record.taxes.sgst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width">
+
           <!-- {{record.taxes.sgst_amt | number:2}} --><br><span class="tax-percentage">{{record.taxes.sgst_tax}}%</span></td>
         <td class="text-right">
-          <input type="text" name="igst_tax" ng-model="record.taxes.igst_tax" value="{{record.taxes.igst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width">
+          <input type="text" name="igst_tax"  ng-if="pop.parent_user" ng-model="record.taxes.igst_tax" value="{{record.taxes.igst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width">
+          <input type="text" name="igst_tax" ng-if="!pop.parent_user" readonly ng-model="record.taxes.igst_tax" value="{{record.taxes.igst_tax}}" ng-blur="pop.gst_calculate(record)" class="form-control re-textbox-width">
+
           <!-- {{record.taxes.igst_amt | number:2}} --><br><span class="tax-percentage">{{record.taxes.igst_tax}}%</span></td>
         <!-- <td ng-init="pop.gst_calculate(record)"> -->
         <td>
           {{record.invoice_amount | number:2}}
           <input type="hidden" name="invoice_amount" value="{{record.invoice_amount | number:2}}" class="form-control">
         </td>
-        <td><i style="font-size: 20px;padding-top: 7px;cursor: pointer;"
+        <td ng-if ="pop.parent_user"><i style="font-size: 20px;padding-top: 7px;cursor: pointer;"
             ng-click="pop.update_data($index, record, $last)" ng-class="pop.isLast($last)"></i>
         </td>
         <input name="customer_id" value="{{pop.model_data.customer_id}}" ng-model="pop.model_data.customer_id" class="form-control" type="hidden">
@@ -137,7 +153,7 @@
         </div>
       </div>
     </div>
-    
+
     <div class="col-md-12" ng-if="pop.model_data.order_charges && !pop.model_data.flag">
       <div class="row mt20" ng-repeat="charge in pop.model_data.order_charges">
         <div class="col-md-3 col-sm-4 col-xs-6">

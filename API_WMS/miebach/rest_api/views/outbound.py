@@ -1692,10 +1692,17 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
         if temp_json:
             rista_json = eval(temp_json[0].model_json)
         get_all_sku_code = eval(temp_json[0].model_json)['items']
+        sku_dict = {}
         for ind in get_all_sku_code:
             sku_code_list.append(ind['skuCode'])
+            sku_dict[ind['skuCode']] = ind['quantity']
         sku_code_list = list(set(sku_code_list))
-        if len(sku_code_list) == len(order_id_dict[order_id]):
+        import pdb;pdb.set_trace()
+        for sku_code_obj in sku_code_list:
+            partial = False
+            if sku_dict[sku_code_obj] == order_id_dict[sku_code_obj]:
+                partial = True
+        if partial:
             data_dict_confirm["branchCode"] = rista_json['branchCode']
             data_dict_confirm["toBranch"] = {'branchCode' : str(rista_json['fromBranch']['branchCode'])}
             data_dict_confirm["notes"] = ""
@@ -1711,18 +1718,18 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
                 data_dict_confirm["taxes"] = rista_json['taxes']
                 data_dict_confirm["items"] = rista_json['items']
             data_dict_confirm["sourceInfo"] = {"orderDate": rista_json['indentDate'], "orderNumber": rista_json['indentNumber']}
-	    save_transfer_resp = save_transfer_in_rista(data_dict_confirm)
+            save_transfer_resp = save_transfer_in_rista(data_dict_confirm)
             temp_json_model_name = 'rista<<>>transfer_in<<>>' + order_id
             TempJson.objects.create(**{'model_id':user.id, 'model_name':temp_json_model_name, 'model_json':str(save_transfer_resp)})
             rista_inv.append(save_transfer_resp)
         else:
             data_dict_confirm["branchCode"] = rista_json['branchCode']
-	    data_dict_confirm["toBranch"] = {'branchCode' : str(rista_json['fromBranch']['branchCode'])}
-	    data_dict_confirm["notes"] = ""
-	    data_dict_confirm["itemsAmount"] = 0
-	    data_dict_confirm["taxAmount"] = 0
-	    data_dict_confirm["totalAmount"] = 0
-	    if rista_json['taxAmount'] == 0:
+            data_dict_confirm["toBranch"] = {'branchCode' : str(rista_json['fromBranch']['branchCode'])}
+            data_dict_confirm["notes"] = ""
+            data_dict_confirm["itemsAmount"] = 0
+            data_dict_confirm["taxAmount"] = 0
+            data_dict_confirm["totalAmount"] = 0
+            if rista_json['taxAmount'] == 0:
                 data_dict_confirm["taxes"] = []
                 for obj in rista_json['items']:
                     obj['taxes'] = []
@@ -1730,9 +1737,9 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
             else:
                 data_dict_confirm["taxes"] = rista_json['taxes']
                 data_dict_confirm["items"] = rista_json['items']
-	    sku_code_list_with_qty = order_id_dict[order_id]
+            sku_code_list_with_qty = order_id_dict[order_id]
             sku_code_obj_list = []
-	    for obj in rista_json['items']:
+            for obj in rista_json['items']:
                 sku_code_obj = {}
                 sku_code_obj['totalAmount'] = 0
                 for sku_obj in sku_code_list_with_qty:
@@ -1747,10 +1754,10 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
                             sku_code_obj['unitCost'] = obj['unitCost']
                             sku_code_obj['quantity'] = value
                             sku_code_obj['itemAmount'] = obj['unitCost'] * value
-			    sku_code_obj['taxAmount'] = 0
-			    sku_code_obj['totalAmount'] += sku_code_obj['itemAmount']
-			    data_dict_confirm["itemsAmount"] += sku_code_obj['itemAmount']
-			    data_dict_confirm["totalAmount"] += sku_code_obj['totalAmount']
+                            sku_code_obj['taxAmount'] = 0
+                            sku_code_obj['totalAmount'] += sku_code_obj['itemAmount']
+                            data_dict_confirm["itemsAmount"] += sku_code_obj['itemAmount']
+                            data_dict_confirm["totalAmount"] += sku_code_obj['totalAmount']
                             for tax_data in obj['taxes']:
                                 tax_amount = (sku_code_obj['itemAmount'] * tax_data['percentage'])/100
                                 tax_data['taxAmount'] = tax_amount
@@ -1760,25 +1767,25 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
                                     data_dict_confirm["taxes"] = []
                                 else:
                                     if data_dict_confirm["taxes"]:
-					for idx, tax_obj in enumerate(data_dict_confirm["taxes"]):
-					    if tax_obj['taxName'] == sku_code_obj['taxes'][idx]['taxName']:
-						tax_obj['taxAmount'] = sku_code_obj['taxes'][idx]['taxAmount']
-						data_dict_confirm["taxAmount"] += sku_code_obj['taxes'][idx]['taxAmount']
-						tax_obj['percentage'] = sku_code_obj['taxes'][idx]['percentage']
-						tax_obj['taxableAmount'] = data_dict_confirm["itemsAmount"]
-						sku_code_obj['taxes'][idx]['taxableAmount'] = sku_code_obj['itemAmount']
-					    else:
-						tax_obj['taxAmount'] = sku_code_obj['taxes'][idx]['taxAmount']
-						data_dict_confirm["taxAmount"] += sku_code_obj['taxes'][idx]['taxAmount']
-						tax_obj['percentage'] = sku_code_obj['taxes'][idx]['percentage']
-						tax_obj['taxableAmount'] = data_dict_confirm["itemsAmount"]
-						tax_obj['taxName'] = sku_code_obj['taxes'][idx]['taxName']
-						sku_code_obj['taxes'][idx]['taxableAmount'] = sku_code_obj['itemAmount']
-				    else:
-					data_dict_confirm["taxes"] = sku_code_obj['taxes']
-			    if not obj['taxes']:
-				data_dict_confirm["taxes"] = []
-			    sku_code_obj['totalAmount'] += sku_code_obj['taxAmount']
+                                        for idx, tax_obj in enumerate(data_dict_confirm["taxes"]):
+                                            if tax_obj['taxName'] == sku_code_obj['taxes'][idx]['taxName']:
+                                                tax_obj['taxAmount'] = sku_code_obj['taxes'][idx]['taxAmount']
+                                                data_dict_confirm["taxAmount"] += sku_code_obj['taxes'][idx]['taxAmount']
+                                                tax_obj['percentage'] = sku_code_obj['taxes'][idx]['percentage']
+                                                tax_obj['taxableAmount'] = data_dict_confirm["itemsAmount"]
+                                                sku_code_obj['taxes'][idx]['taxableAmount'] = sku_code_obj['itemAmount']
+                                            else:
+                                                tax_obj['taxAmount'] = sku_code_obj['taxes'][idx]['taxAmount']
+                                                data_dict_confirm["taxAmount"] += sku_code_obj['taxes'][idx]['taxAmount']
+                                                tax_obj['percentage'] = sku_code_obj['taxes'][idx]['percentage']
+                                                tax_obj['taxableAmount'] = data_dict_confirm["itemsAmount"]
+                                                tax_obj['taxName'] = sku_code_obj['taxes'][idx]['taxName']
+                                                sku_code_obj['taxes'][idx]['taxableAmount'] = sku_code_obj['itemAmount']
+                                    else:
+                                        data_dict_confirm["taxes"] = sku_code_obj['taxes']
+                            if not obj['taxes']:
+                                data_dict_confirm["taxes"] = []
+                            sku_code_obj['totalAmount'] += sku_code_obj['taxAmount']
                             sku_code_obj_list.append(sku_code_obj)
 	    data_dict_confirm["items"] = sku_code_obj_list
 	    temp_json_model_name = 'rista<<>>transfer_in<<>>' + order_id

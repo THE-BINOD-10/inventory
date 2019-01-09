@@ -34,6 +34,7 @@ def make_request():
         "iss": apiKey,
         "iat": tokencreationtime
     }
+    import pdb;pdb.set_trace()
     token = jwt.encode(payload, secretKey, algorithm='HS256')
     headers =  {
         'x-api-key': apiKey,
@@ -41,7 +42,7 @@ def make_request():
         'content-type': 'application/json'
     }
     url = "{}://{}{}".format(SCHEME, API_HOST, ENDPOINT)
-    inv_payload = {'branch' : 'BW', 'day' : '2019-01-07'}
+    inv_payload = {'branch' : 'BW', 'day' : '2019-01-09'}
     resp = requests.get(url, headers=headers, params=inv_payload)
     if resp.json():
 	sendToStockOne(resp.json())

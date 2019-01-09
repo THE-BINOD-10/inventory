@@ -1682,13 +1682,13 @@ def validate_picklist_combos(data, all_picklists, picks_all):
     return combo_status, final_data_list
 
 def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
-    import pdb;pdb.set_trace()
     rista_inv = []
     sku_code_list = []
+    import pdb;pdb.set_trace()
     for order_id in original_order_id_list:
 	data_dict_confirm = {}
 	rista_json = {}
-        model_name_value = 'rista<<>>' + order_id
+        model_name_value = 'rista<<>>indent_out<<>>' + order_id
         temp_json = TempJson.objects.filter(model_id=int(user.id), model_name=model_name_value)
         if temp_json:
             rista_json = eval(temp_json[0].model_json)
@@ -1697,7 +1697,6 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
             sku_code_list.append(ind['skuCode'])
         sku_code_list = list(set(sku_code_list))
         if len(sku_code_list) == len(order_id_dict[order_id]):
-            #confirm_full_picklist
             data_dict_confirm["branchCode"] = rista_json['branchCode']
             data_dict_confirm["toBranch"] = {'branchCode' : str(rista_json['fromBranch']['branchCode'])}
             data_dict_confirm["notes"] = ""
@@ -1718,11 +1717,9 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
             TempJson.objects.create(**{'model_id':user.id, 'model_name':temp_json_model_name, 'model_json':str(save_transfer_resp)})
             rista_inv.append(save_transfer_resp)
         else:
-            #Partial_Picklist
             data_dict_confirm["branchCode"] = rista_json['branchCode']
 	    data_dict_confirm["toBranch"] = {'branchCode' : str(rista_json['fromBranch']['branchCode'])}
 	    data_dict_confirm["notes"] = ""
-
 	    data_dict_confirm["itemsAmount"] = 0
 	    data_dict_confirm["taxAmount"] = 0
 	    data_dict_confirm["totalAmount"] = 0
@@ -1734,29 +1731,40 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
             else:
                 data_dict_confirm["taxes"] = rista_json['taxes']
                 data_dict_confirm["items"] = rista_json['items']
-	    sku_code_list = order_id_dict[order_id]
+	    sku_code_list_with_qty = order_id_dict[order_id]
+            sku_code_obj_list = []
 	    for obj in rista_json['items']:
+                import pdb;pdb.set_trace()
 		sku_code_obj = {}
-		if obj['skuCode'] in sku_code_list:
-		    sku_code_obj['skuCode'] = obj['skuCode']
-		    sku_code_obj['taxes'] = obj['taxes']
-		    for tax_data in obj['taxes']:
-			data_dict_confirm["taxAmount"] += tax_data['taxAmount']
-		    sku_code_obj['itemAmount'] = obj['itemAmount']
-		    sku_code_obj['measuringUnit'] = obj['measuringUnit']
-		    sku_code_obj['totalAmount'] = obj['totalAmount']
-		    sku_code_obj['itemName'] = obj['itemName']
-		    sku_code_obj['unitCost'] = obj['unitCost']
-		    sku_code_obj['quantity'] = obj['quantity']
-		    data_dict_confirm["itemsAmount"] += sku_code_obj['itemAmount']
-		    data_dict_confirm["totalAmount"] += sku_code_obj['totalAmount']
-		    sku_code_obj_list.append(sku_code_obj)
+                sku_code_obj['totalAmount'] = 0
+                for key, value in sku_code_list_with_qty.items():
+                    if obj['skuCode'] in key:
+                        sku_code_obj['skuCode'] = obj['skuCode']
+                        sku_code_obj['taxes'] = obj['taxes']
+                        for tax_data in obj['taxes']:
+                            data_dict_confirm["taxAmount"] += tax_data['taxAmount']
+                        sku_code_obj['measuringUnit'] = obj['measuringUnit']
+                        sku_code_obj['itemName'] = obj['itemName']
+                        sku_code_obj['unitCost'] = obj['unitCost']
+                        sku_code_obj['quantity'] = value
+                        sku_code_obj['itemAmount'] = obj['unitCost'] * value
+                        for tax_data in obj['taxes']:
+                            tax_amount = (sku_code_obj['itemAmount'] * tax_data['percentage'])/100
+                            tax_data['taxAmount'] = tax_amount
+                            sku_code_obj['taxAmount'] += tax_amount
+                            data_dict_confirm["taxAmount"] += tax_amount
+                        sku_code_obj['itemAmount'] += sku_code_obj['taxAmount']
+                        sku_code_obj['totalAmount'] += sku_code_obj['itemAmount']
+                        data_dict_confirm["itemsAmount"] += sku_code_obj['itemAmount']
+                        data_dict_confirm["totalAmount"] += sku_code_obj['totalAmount']
+                        sku_code_obj_list.append(sku_code_obj)
 	    data_dict_confirm["items"] = sku_code_obj_list
-	    data_dict_confirm["sourceInfo"] = {"orderDate": rista_json['indentDate'], "orderNumber": rista_json['indentNumber']}
-            save_transfer_resp = save_transfer_in_rista(data_dict_confirm)
 	    temp_json_model_name = 'rista<<>>transfer_in<<>>' + order_id
-	    TempJson.objects.create(**{'model_id':user.id, 'model_name':temp_json_model_name, 'model_json':str(save_transfer_resp)})
-	    rista_inv.append(save_transfer_resp)
+	    temp_json_obj = TempJson.objects.filter(**{'model_id':user.id, 'model_name':temp_json_model_name}).count()
+            data_dict_confirm["sourceInfo"] = {"orderDate": rista_json['indentDate'], "orderNumber": str(rista_json['indentNumber']) + '-' + str(temp_json_obj + 1)}
+            save_transfer_resp = save_transfer_in_rista(data_dict_confirm)
+            TempJson.objects.create(**{'model_id':user.id, 'model_name':temp_json_model_name, 'model_json':str(save_transfer_resp)})
+            rista_inv.append(save_transfer_resp)
     return rista_inv
 
 def rista_inventory_transfer_pick(picklist_list):
@@ -1898,7 +1906,7 @@ def picklist_confirmation(request, user=''):
         if combo_status:
             return HttpResponse(json.dumps({'message': 'Combo Quantities are not matching',
                                             'sku_codes': combo_status, 'status': 0}))
-
+        import pdb;pdb.set_trace()
         for picklist_dict in final_data_list:
             picklist = picklist_dict['picklist']
             picklist_batch = picklist_dict['picklist_batch']
@@ -2033,21 +2041,26 @@ def picklist_confirmation(request, user=''):
                             picklist.status = 'batch_picked'
                         else:
                             picklist.status = 'picked'
-			import pdb;pdb.set_trace()
                         if picklist.order:
                             check_and_update_order(user.id, picklist.order.original_order_id)
-                        original_order_id_str = str(picklist.order.original_order_id)
-			rista_order_id_list.append(original_order_id_str)
-			picking_count1 = int(picking_count1)
-			if picking_count1:
-			    sku_code_str = picklist.order.sku.sku_code
-			    if original_order_id_str in rista_order_dict.keys():
-				rista_order_dict[original_order_id_str].append(sku_code_str)
-			    else:
-                                rista_order_dict[original_order_id_str] = []
-				rista_order_dict[original_order_id_str].append(sku_code_str)
                         all_pick_locations.filter(picklist_id=picklist.id, status=1).update(status=0)
+
+                    if user.username == "BW":
+                        original_order_id_str = str(picklist.order.original_order_id)
+                        rista_order_id_list.append(original_order_id_str)
+                        picking_count1 = int(picking_count1)
+                        if picking_count1:
+                            sku_code_str = picklist.order.sku.sku_code
+                            sku_code_dict = {}
+                            sku_code_dict[sku_code_str] = picking_count1
+                            if original_order_id_str in rista_order_dict.keys():
+                                rista_order_dict[original_order_id_str].append(sku_code_dict)
+                            else:
+                                rista_order_dict[original_order_id_str] = []
+                                rista_order_dict[original_order_id_str].append(sku_code_dict)
+                    import pdb;pdb.set_trace()
                     picklist.save()
+
                     if user_profile.user_type == 'marketplace_user' and picklist.order:
                         create_seller_order_summary(picklist, picking_count1, seller_pick_number, picks_all,
                                                     seller_stock_objs)

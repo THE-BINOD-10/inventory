@@ -1729,6 +1729,7 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
             TempJson.objects.create(**{'model_id':user.id, 'model_name':temp_json_model_name, 'model_json':str(save_transfer_resp)})
             rista_inv.append(save_transfer_resp)
         else:
+            data_dict_confirm["taxes"] = []
             data_dict_confirm["branchCode"] = rista_json['branchCode']
             data_dict_confirm["toBranch"] = {'branchCode' : str(rista_json['fromBranch']['branchCode'])}
             data_dict_confirm["notes"] = ""
@@ -1789,10 +1790,8 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
                                                 tax_obj['taxableAmount'] = data_dict_confirm["itemsAmount"]
                                                 tax_obj['taxName'] = sku_code_obj['taxes'][idx]['taxName']
                                                 sku_code_obj['taxes'][idx]['taxableAmount'] = sku_code_obj['itemAmount']
-                                    #else:
-                                    #    data_dict_confirm["taxes"] = sku_code_obj['taxes']
-                            if not obj['taxes']:
-                                data_dict_confirm["taxes"] = []
+                            if sku_code_obj['taxes']:
+                                data_dict_confirm["taxes"] += (sku_code_obj['taxes'])
                             sku_code_obj['totalAmount'] += sku_code_obj['taxAmount']
                             sku_code_obj_list.append(sku_code_obj)
 	    data_dict_confirm["items"] = sku_code_obj_list
@@ -1803,7 +1802,6 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
 		data_dict_confirm["taxAmount"] += items_obj['taxAmount']
 		data_dict_confirm["itemsAmount"] += items_obj["itemAmount"]
 	    data_dict_confirm["totalAmount"] = data_dict_confirm["itemsAmount"] + data_dict_confirm["taxAmount"]
-            data_dict_confirm["taxes"] = obj['taxes']
 	    temp_json_model_name = 'rista<<>>transfer_in<<>>' + order_id
 	    temp_json_obj = TempJson.objects.filter(**{'model_id':user.id, 'model_name':temp_json_model_name}).count()
             data_dict_confirm["sourceInfo"] = {"orderDate": rista_json['indentDate'], "orderNumber": str(rista_json['indentNumber']) + '-' + str(temp_json_obj + 1)}

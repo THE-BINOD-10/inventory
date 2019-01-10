@@ -2218,6 +2218,8 @@ def save_po_location(put_zone, temp_dict, seller_received_list=[], run_segregati
         seller_received_list = [{'seller_id': '', 'sku_id': (purchase_data['sku']).id,
                                 'quantity': received_quantity, 'id': ''}]
     for po_received in seller_received_list:
+        if po_received.get('put_zone', ''):
+            put_zone = po_received['put_zone']
         temp_dict['seller_id'] = po_received.get('seller_id', '')
         batch_dict['transact_type'] = 'po'
         batch_dict['transact_id'] = data.id
@@ -4156,10 +4158,12 @@ def check_wms_qc(request, user=''):
                                     'options': REJECT_REASONS, 'use_imei': use_imei}))
 
 
-def get_seller_received_list(data, user):
+def get_seller_received_list(data, user, sps_obj=None):
     seller_po_summary = SellerPOSummary.objects.filter(Q(location_id__isnull=True) | Q(location__zone__zone='QC_ZONE'),
                                                        seller_po__seller__user=user.id, putaway_quantity__gt=0,
                                                        seller_po__open_po_id=data.open_po_id)
+    if sps_obj:
+        seller_po_summary = seller_po_summary.filter(id=sps_obj.id)
     seller_received_list = []
     for summary in seller_po_summary:
         seller_received_list.append({'seller_id': summary.seller_po.seller_id, 'sku': summary.seller_po.open_po.sku,
@@ -6522,9 +6526,8 @@ def get_po_segregation_data(request, user=''):
                 po_tax = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.cess_tax + open_po.utgst_tax
                 if seg_tax != po_tax:
                     deviation_remarks.append('Tax Rate Deviation')
-            seller_po_summary_obj = SellerPOSummary.objects.filter(id=segregation_obj.seller_po_summary.id)
-            if seller_po_summary_obj:
-                seller_po_summary_obj = seller_po_summary_obj[0]
+            if segregation_obj.seller_po_summary:
+                seller_po_summary_obj = segregation_obj.seller_po_summary
                 remarks = seller_po_summary_obj.remarks
                 if str(remarks).find('offer_applied') != -1 :
                     offer_check = True
@@ -6532,7 +6535,6 @@ def get_po_segregation_data(request, user=''):
                     offer_check = False
             else:
                 offer_check = False
-
 
 
         order = segregation_obj.purchase_order
@@ -6612,9 +6614,8 @@ def confirm_primary_segregation(request, user=''):
             segregation_obj.status = 0
             segregation_obj.save()
             batch_dict = {}
-            seller_po_summary_obj = SellerPOSummary.objects.filter(purchase_order__id =segregation_obj.purchase_order.id)
-            if seller_po_summary_obj :
-                seller_po_summary_obj = seller_po_summary_obj[0]
+            if segregation_obj.seller_po_summary:
+                seller_po_summary_obj = segregation_obj.seller_po_summary
                 remarks = seller_po_summary_obj.remarks
                 remarks = str(remarks)
                 offer_applicable = data_dict['offer_applicable'][ind]
@@ -6648,7 +6649,8 @@ def confirm_primary_segregation(request, user=''):
                               'mrp': batch_detail.mrp, 'buy_price': batch_detail.buy_price,
                               'weight': batch_detail.weight, 'ean_number': batch_detail.ean_number}
             purchase_data = get_purchase_order_data(segregation_obj.purchase_order)
-            seller_received_dict = get_seller_received_list(segregation_obj.purchase_order, user)
+            seller_received_dict = get_seller_received_list(segregation_obj.purchase_order, user,
+                                                            sps_obj=segregation_obj.seller_po_summary)
             if sellable:
                 put_zone = purchase_data['zone']
                 if put_zone:
@@ -6661,14 +6663,14 @@ def confirm_primary_segregation(request, user=''):
                     else:
                         put_zone = put_zone[0]
                     put_zone = put_zone.zone
-                if seller_received_dict:
-                    remarks = seller_received_dict[0].get('remarks', '')
-                    put_zone = update_remarks_put_zone(remarks, user, put_zone,
-                                                       seller_summary_id=seller_received_dict[0].get('id', ''))
                 temp_dict = {'received_quantity': sellable, 'user': user.id, 'data': segregation_obj.purchase_order,
                              'pallet_number': '', 'pallet_data': {}}
                 seller_received_dict, seller_summary_dict = get_quality_check_seller(seller_received_dict, temp_dict,
                                                                                      purchase_data)
+                for seller_index, seller_received in enumerate(seller_received_dict):
+                    put_zone = update_remarks_put_zone(seller_received.get('remarks', ''), user, put_zone,
+                                                       seller_summary_id=seller_received.get('id', ''))
+                    seller_received_dict[seller_index]['put_zone'] = put_zone
                 save_po_location(put_zone, temp_dict, seller_received_list=seller_summary_dict, run_segregation=False,
                                  batch_dict=batch_dict)
             sellable_qty = get_decimal_limit(user.id, (float(segregation_obj.sellable) + sellable))
@@ -6681,14 +6683,14 @@ def confirm_primary_segregation(request, user=''):
                 else:
                     put_zone = put_zone[0]
                 put_zone = put_zone.zone
-                if seller_received_dict:
-                    remarks = seller_received_dict[0].get('remarks', '')
-                    put_zone = update_remarks_put_zone(remarks, user, put_zone,
-                                                       seller_summary_id=seller_received_dict[0].get('id', ''))
                 temp_dict = {'received_quantity': non_sellable, 'user': user.id, 'data': segregation_obj.purchase_order,
                              'pallet_number': '', 'pallet_data': {}}
                 seller_received_dict, seller_summary_dict = get_quality_check_seller(seller_received_dict, temp_dict,
                                                                                      purchase_data)
+                for seller_index, seller_received in enumerate(seller_received_dict):
+                    put_zone = update_remarks_put_zone(seller_received.get('remarks', ''), user, put_zone,
+                                                       seller_summary_id=seller_received.get('id', ''))
+                    seller_received_dict[seller_index]['put_zone'] = put_zone
                 save_po_location(put_zone, temp_dict, seller_received_list=seller_summary_dict, run_segregation=False,
                                  batch_dict=batch_dict)
             non_sellable_qty = get_decimal_limit(user.id, (float(segregation_obj.non_sellable) + non_sellable))

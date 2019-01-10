@@ -2225,7 +2225,8 @@ def save_po_location(put_zone, temp_dict, seller_received_list=[], run_segregati
         if sellable_segregation == 'true' and run_segregation:
             if batch_obj and po_received.get('id', ''):
                 SellerPOSummary.objects.filter(id=po_received['id']).update(batch_detail_id=batch_obj.id)
-            create_update_primary_segregation(data, po_received['quantity'], temp_dict, batch_obj=batch_obj)
+            create_update_primary_segregation(data, po_received['quantity'], temp_dict, batch_obj=batch_obj,
+                                              sps_id=po_received.get('id', ''))
             continue
         location = get_purchaseorder_locations(put_zone, temp_dict)
         received_quantity = po_received['quantity']
@@ -2408,9 +2409,12 @@ def get_seller_receipt_id(purchase_order):
     return receipt_number
 
 
-def create_update_primary_segregation(data, quantity, temp_dict, batch_obj=None):
+def create_update_primary_segregation(data, quantity, temp_dict, batch_obj=None, sps_id=''):
     if not batch_obj and not 'quality_check' in temp_dict.keys():
-        segregation_obj = PrimarySegregation.objects.filter(purchase_order_id=data.id)
+        primary_filt_dict = {'purchase_order_id': data.id}
+        if sps_id:
+            primary_filt_dict['seller_po_summary_id'] = sps_id
+        segregation_obj = PrimarySegregation.objects.filter(**primary_filt_dict)
         if segregation_obj:
             segregation_obj = segregation_obj[0]
             segregation_obj.quantity = float(segregation_obj.quantity) + quantity
@@ -2418,12 +2422,17 @@ def create_update_primary_segregation(data, quantity, temp_dict, batch_obj=None)
                 segregation_obj.status = 1
             segregation_obj.save()
         else:
-            segregation_obj = PrimarySegregation.objects.create(purchase_order_id=data.id, quantity=quantity,status=1,
-                                              creation_date=datetime.datetime.now())
+            primary_seg_dict = {'purchase_order_id': data.id, 'quantity': quantity, 'status': 1,
+                                'creation_date': datetime.datetime.now()}
+            if sps_id:
+                primary_seg_dict['seller_po_summary_id'] = sps_id
+            segregation_obj = PrimarySegregation.objects.create(**primary_seg_dict)
     else:
         if batch_obj:
-            segregation_obj = PrimarySegregation.objects.filter(purchase_order_id=data.id,
-                                                                batch_detail_id=batch_obj.id)
+            primary_filt_dict = {'purchase_order_id': data.id, 'batch_detail_id': batch_obj.id}
+            if sps_id:
+                primary_filt_dict['seller_po_summary_id'] = sps_id
+            segregation_obj = PrimarySegregation.objects.filter(**primary_filt_dict)
             if segregation_obj:
                 segregation_obj = segregation_obj[0]
                 segregation_obj.quantity = float(segregation_obj.quantity) + quantity
@@ -2431,9 +2440,12 @@ def create_update_primary_segregation(data, quantity, temp_dict, batch_obj=None)
                     segregation_obj.status = 1
                 segregation_obj.save()
             else:
-                segregation_obj = PrimarySegregation.objects.create(purchase_order_id=data.id, quantity=quantity, status=1,
-                                                                    creation_date=datetime.datetime.now(),
-                                                                    batch_detail_id=batch_obj.id)
+                primary_seg_dict = {'purchase_order_id': data.id, 'quantity': quantity, 'status': 1,
+                                    'creation_date': datetime.datetime.now(),
+                                    'batch_detail_id': batch_obj.id}
+                if sps_id:
+                    primary_seg_dict['seller_po_summary_id'] = sps_id
+                segregation_obj = PrimarySegregation.objects.create(**primary_seg_dict)
 
 def update_seller_po(data, value, user, myDict, i, receipt_id='', invoice_number='', invoice_date=None,
                      challan_number='', challan_date=None, dc_level_grn='', round_off_total=0):
@@ -6510,7 +6522,7 @@ def get_po_segregation_data(request, user=''):
                 po_tax = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.cess_tax + open_po.utgst_tax
                 if seg_tax != po_tax:
                     deviation_remarks.append('Tax Rate Deviation')
-            seller_po_summary_obj = SellerPOSummary.objects.filter(purchase_order__id =segregation_obj.purchase_order.id)
+            seller_po_summary_obj = SellerPOSummary.objects.filter(id=segregation_obj.seller_po_summary.id)
             if seller_po_summary_obj:
                 seller_po_summary_obj = seller_po_summary_obj[0]
                 remarks = seller_po_summary_obj.remarks
@@ -6606,7 +6618,9 @@ def confirm_primary_segregation(request, user=''):
                 remarks = seller_po_summary_obj.remarks
                 remarks = str(remarks)
                 offer_applicable = data_dict['offer_applicable'][ind]
-                remark_keys = remarks.split(',')
+                remark_keys = []
+                if remarks:
+                    remark_keys = remarks.split(',')
                 if offer_applicable == 'true':
                     if 'offer_applied' not in remark_keys:
                         remark_keys.append('offer_applied')

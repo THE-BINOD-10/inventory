@@ -2890,6 +2890,7 @@ class PrimarySegregation(models.Model):
     id = BigAutoField(primary_key=True)
     purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True)
     batch_detail = models.ForeignKey(BatchDetail, blank=True, null=True)
+    seller_po_summary = models.ForeignKey(SellerPOSummary, blank=True, null=True)
     quantity = models.FloatField(default=0)
     sellable = models.FloatField(default=0)
     non_sellable = models.FloatField(default=0)
@@ -2899,7 +2900,7 @@ class PrimarySegregation(models.Model):
 
     class Meta:
         db_table = 'PRIMARY_SEGREGATION'
-        unique_together = ('purchase_order', 'batch_detail')
+        unique_together = ('purchase_order', 'batch_detail', 'seller_po_summary')
 
 
 

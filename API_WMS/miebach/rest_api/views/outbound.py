@@ -1790,6 +1790,9 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
                                                 tax_obj['taxableAmount'] = data_dict_confirm["itemsAmount"]
                                                 tax_obj['taxName'] = sku_code_obj['taxes'][idx]['taxName']
                                                 sku_code_obj['taxes'][idx]['taxableAmount'] = sku_code_obj['itemAmount']
+                                    for obj_dict in sku_code_obj['taxes']:
+                                        if obj_dict['taxAmount'] == 0:
+                                            sku_code_obj['taxes'] = []
                             if sku_code_obj['taxes']:
                                 data_dict_confirm["taxes"] += (sku_code_obj['taxes'])
                             sku_code_obj['totalAmount'] += sku_code_obj['taxAmount']
@@ -1801,6 +1804,7 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
 	    for items_obj in data_dict_confirm["items"]:
 		data_dict_confirm["taxAmount"] += items_obj['taxAmount']
 		data_dict_confirm["itemsAmount"] += items_obj["itemAmount"]
+            import pdb;pdb.set_trace()
 	    data_dict_confirm["totalAmount"] = data_dict_confirm["itemsAmount"] + data_dict_confirm["taxAmount"]
 	    temp_json_model_name = 'rista<<>>transfer_in<<>>' + order_id
 	    temp_json_obj = TempJson.objects.filter(**{'model_id':user.id, 'model_name':temp_json_model_name}).count()

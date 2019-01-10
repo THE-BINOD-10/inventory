@@ -35,16 +35,28 @@ def make_request():
         "iat": tokencreationtime
     }
     token = jwt.encode(payload, secretKey, algorithm='HS256')
+    branch_list = ['BW']
     headers =  {
         'x-api-key': apiKey,
         'x-api-token': token,
         'content-type': 'application/json'
     }
     url = "{}://{}{}".format(SCHEME, API_HOST, ENDPOINT)
-    inv_payload = {'branch' : 'BW', 'day' : str(datetime.datetime.now().date())}
-    resp = requests.get(url, headers=headers, params=inv_payload)
-    if resp.json():
-	sendToStockOne(resp.json())
+    for branch_code in branch_list:
+        inv_payload = {'branch' : branch_code, 'day' : str(datetime.datetime.now().date())}
+        resp_data = []
+        lastKey = 1
+        while lastKey:
+            resp = requests.get(url, headers=headers, params=inv_payload)
+            resp_json = resp.json()
+            resp_data += resp_json['data']
+            if 'lastKey' in resp_json.keys():
+                lastKey = 1
+                inv_payload['lastKey'] = resp_json['lastKey']
+            else:
+                lastKey = 0
+        if resp_data:
+            send_to_stockone_resp = sendToStockOne({'data':resp_data})
     b = datetime.datetime.now()
     delta = b - a
     time_taken = str(delta.total_seconds() * 1000)
@@ -70,9 +82,10 @@ def sendToStockOne(resp):
     except:
 	print "Error in generating Access Token"
     try:
-	writeOrders(access_token, resp)
+	write_order_resp = writeOrders(access_token, resp)
     except:
 	print "Error in Creating Orders"
+    return write_order_resp
 
 
 def getAuthToken(stockone_auth):

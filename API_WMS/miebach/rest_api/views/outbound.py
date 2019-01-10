@@ -1764,7 +1764,6 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
                             sku_code_obj['totalAmount'] += sku_code_obj['itemAmount']
                             data_dict_confirm["itemsAmount"] += sku_code_obj['itemAmount']
                             data_dict_confirm["totalAmount"] += sku_code_obj['totalAmount']
-			    import pdb;pdb.set_trace()
                             for tax_data in obj['taxes']:
                                 tax_amount = (sku_code_obj['itemAmount'] * tax_data['percentage'])/100
                                 tax_data['taxAmount'] = tax_amount
@@ -1796,7 +1795,6 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
                                 data_dict_confirm["taxes"] = []
                             sku_code_obj['totalAmount'] += sku_code_obj['taxAmount']
                             sku_code_obj_list.append(sku_code_obj)
-	    import pdb;pdb.set_trace()
 	    data_dict_confirm["items"] = sku_code_obj_list
 	    data_dict_confirm["itemsAmount"] = 0
 	    data_dict_confirm["totalAmount"] = 0
@@ -1805,6 +1803,7 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
 		data_dict_confirm["taxAmount"] += items_obj['taxAmount']
 		data_dict_confirm["itemsAmount"] += items_obj["itemAmount"]
 	    data_dict_confirm["totalAmount"] = data_dict_confirm["itemsAmount"] + data_dict_confirm["taxAmount"]
+            data_dict_confirm["taxes"] = obj['taxes']
 	    temp_json_model_name = 'rista<<>>transfer_in<<>>' + order_id
 	    temp_json_obj = TempJson.objects.filter(**{'model_id':user.id, 'model_name':temp_json_model_name}).count()
             data_dict_confirm["sourceInfo"] = {"orderDate": rista_json['indentDate'], "orderNumber": str(rista_json['indentNumber']) + '-' + str(temp_json_obj + 1)}
@@ -2105,7 +2104,6 @@ def picklist_confirmation(request, user=''):
                             else:
                                 rista_order_dict[original_order_id_str] = []
                                 rista_order_dict[original_order_id_str].append(sku_code_dict)
-                    #import pdb;pdb.set_trace()
                     picklist.save()
 
                     if user_profile.user_type == 'marketplace_user' and picklist.order:
@@ -2151,7 +2149,6 @@ def picklist_confirmation(request, user=''):
                 auto_po(auto_skus, user.id)
 
         rista_order_id = list(set(rista_order_id_list))
-        import pdb;pdb.set_trace()
 	rista_response = rista_inventory_transfer(rista_order_id, rista_order_dict, user)
         print rista_response
         detailed_invoice = get_misc_value('detailed_invoice', user.id)

@@ -42,7 +42,7 @@ def make_request():
         'content-type': 'application/json'
     }
     url = "{}://{}{}".format(SCHEME, API_HOST, ENDPOINT)
-    inv_payload = {'branch' : 'BW', 'day' : '2019-01-09'}
+    inv_payload = {'branch' : 'BW', 'day' : str(datetime.datetime.now().date())}
     resp = requests.get(url, headers=headers, params=inv_payload)
     if resp.json():
 	sendToStockOne(resp.json())

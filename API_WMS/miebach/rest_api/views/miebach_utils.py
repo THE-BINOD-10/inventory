@@ -804,6 +804,24 @@ INVENTORY_VALUE_REPORT_DICT = {
     'print_url': 'print_inventory_value_report',
 }
 
+BULK_TO_RETAIL_REPORT_DICT = {
+    'filters': [
+        {'label': 'From Date', 'name': 'from_date', 'type': 'date'},
+        {'label': 'To Date', 'name': 'to_date', 'type': 'date'},
+        {'label': 'Source SKU Code', 'name': 'source_sku_code', 'type': 'source_sku_search'},
+        {'label': 'Source SKU Category', 'name': 'source_sku_category', 'type': 'input'},
+        {'label': 'Destination SKU Code', 'name': 'destination_sku_code', 'type': 'destination_sku_search'},
+        {'label': 'Destination SKU Category', 'name': 'destination_sku_category', 'type': 'input'},
+    ],
+    'dt_headers': ['Date', 'Seller ID', 'Seller Name', 'Source SKU Code', 'Source SKU Description',
+                   'Source SKU Category', 'Source Location',
+                   'Source Weight', 'Source MRP', 'Source Quantity', 'Destination SKU Code',
+                   'Destination SKU Description', 'Destination SKU Category', 'Destination Location',
+                   'Destination Weight', 'Destination MRP', 'Destination Quantity', 'Warehouse Name',
+                   'Report Generation Time'],
+    'dt_url': 'get_bulk_to_retail_report', 'excel_name': 'get_bulk_to_retail_report',
+    'print_url': 'print_bulk_to_retail_report',
+}
 
 REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report': OPEN_JO_REP_DICT,
                      'sku_wise_po_report': SKU_WISE_PO_DICT,
@@ -823,6 +841,7 @@ REPORT_DATA_NAMES = {'order_summary_report': ORDER_SUMMARY_DICT, 'open_jo_report
                      'enquiry_status_report': ENQUIRY_STATUS_REPORT,
                      'grn_edit': GRN_EDIT_DICT, 'current_stock_report': CURRENT_STOCK_REPORT_DICT,
                      'inventory_value_report':INVENTORY_VALUE_REPORT_DICT,
+                     'bulk_to_retail_report': BULK_TO_RETAIL_REPORT_DICT,
                      }
 
 SKU_WISE_STOCK = {('sku_wise_form', 'skustockTable', 'SKU Wise Stock Summary', 'sku-wise', 1, 2, 'sku-wise-report'): (
@@ -1378,6 +1397,7 @@ EXCEL_REPORT_MAPPING = {'dispatch_summary': 'get_dispatch_data', 'sku_list': 'ge
                         'sku_wise_rtv_report': 'get_sku_wise_rtv_filter_data',
                         'get_current_stock_report': 'get_current_stock_report_data',
                         'get_inventory_value_report':'get_inventory_value_report_data',
+                        'get_bulk_to_retail_report':'get_bulk_to_retail_report_data',
                         }
 # End of Download Excel Report Mapping
 
@@ -1481,7 +1501,9 @@ PERMISSION_DICT = OrderedDict((
                  ('Open JO Report', 'view_openjo'), ('Seller Invoice Detail Report', 'view_sellerpo'),
                  ('RM Picklist Report', 'view_materialpicklist'), ('Stock Ledger Report', 'view_stockstats'),
                  ('Shipment Report', 'view_ordershipment'), ('RTV Report', 'view_returntovendor'),
-                 ('Current Stock Report', 'view_skudetailstats'), ('Inventory Value Report', 'delete_skudetailstats'))),
+                 ('Current Stock Report', 'view_skudetailstats'),
+                 ('Inventory Value Report', 'delete_skudetailstats'),
+                 ('Bulk To Retail Report', 'view_substitutionsummary'))),
 
     # Uploaded POs
     ("UPLOADPO_LABEL", (("uploadedPOs", "add_orderuploads"),)),
@@ -2712,7 +2734,6 @@ def get_sku_wise_po_filter_data(search_params, user, sub_user):
     order_term = search_params.get('order_term', 'asc')
     if order_term:
         order_data = lis[col_num]
-        print order_data
         if order_term == 'desc':
             order_data = "-%s" % order_data
         model_data = model_data.order_by(order_data)
@@ -5967,7 +5988,7 @@ def print_sku_wise_data(search_params, user, sub_user):
 def get_current_stock_report_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from miebach_admin.views import *
-    from rest_api.views.common import get_sku_master, get_filtered_params
+    from rest_api.views.common import get_sku_master, get_filtered_params, get_local_date
     temp_data = copy.deepcopy(AJAX_DATA)
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     lis = ['seller__seller_id', 'seller__name', 'stock__sku__sku_code','stock__sku__sku_desc',
@@ -6016,7 +6037,7 @@ def get_current_stock_report_data(search_params, user, sub_user):
 
     all_pick_res = PicklistLocation.objects.filter(status=1, stock__sku__user=user.id, reserved__gt=0, **search_parameters)
     all_raw_res = RMLocation.objects.filter(status=1, stock__sku__user=user.id, reserved__gt=0, **search_parameters)
-    time = str(datetime.datetime.now())
+    time = get_local_date(user, datetime.datetime.now())
     for ind, sku_data in enumerate(master_data[start_index:stop_index]):
         seller_id = sku_data['seller__seller_id']
         reserved = 0
@@ -6050,14 +6071,14 @@ def get_current_stock_report_data(search_params, user, sub_user):
                                                 ('Weight', weight), ('MRP', mrp),
                                                 ('Available Quantity', quantity),
                                                 ('Reserved Quantity', reserved), ('Total Quantity', total),
-                                                ('Warehouse Name',user.username), ('Report Generation Time',time))))
+                                                ('Warehouse Name',user.username), ('Report Generation Time', time))))
     return temp_data
 
 
 def get_inventory_value_report_data(search_params, user, sub_user):
     from miebach_admin.models import *
     from miebach_admin.views import *
-    from rest_api.views.common import get_sku_master, get_filtered_params
+    from rest_api.views.common import get_sku_master, get_filtered_params, get_local_date
     temp_data = copy.deepcopy(AJAX_DATA)
     sku_master, sku_master_ids = get_sku_master(user, sub_user)
     lis = ['seller__seller_id', 'seller__name','stock__sku__sku_code','stock__sku__sku_desc','stock__sku__sku_category',
@@ -6106,7 +6127,7 @@ def get_inventory_value_report_data(search_params, user, sub_user):
     temp_data['recordsFiltered'] = temp_data['recordsTotal']
     if 'stock__quantity__gt' in search_parameters.keys():
         del search_parameters['stock__quantity__gt']
-    time = str(datetime.datetime.now())
+    time = get_local_date(user, datetime.datetime.now())
     for ind, sku_data in enumerate(master_data[start_index:stop_index]):
         quantity = sku_data['total']
         sku_data1 = copy.deepcopy(sku_data)
@@ -6132,7 +6153,7 @@ def get_inventory_value_report_data(search_params, user, sub_user):
         if sku_data['stock__batch_detail__manufactured_date']:
             manufactured_date = str(sku_data['stock__batch_detail__manufactured_date'])
         if sku_data['stock__batch_detail__manufactured_date']:
-            expiry_date = str(sku_data['stock__batch_detail__manufactured_date'])
+            expiry_date = str(sku_data['stock__batch_detail__expiry_date'])
         if sku_data['stock__batch_detail__weight']:
             weight = sku_data['stock__batch_detail__weight']
         if sku_data['stock__batch_detail__mrp']:
@@ -6151,5 +6172,94 @@ def get_inventory_value_report_data(search_params, user, sub_user):
                                                 ('Value', total_stock_value),
                                                 ('Average Cost Price', average_cost_price),
                                                 ('Warehouse Name',user.username),
-                                                ('Report Generation Time',time))))
+                                                ('Report Generation Time', time))))
+    return temp_data
+
+
+def get_bulk_to_retail_report_data(search_params, user, sub_user):
+    from miebach_admin.models import *
+    from miebach_admin.views import *
+    from rest_api.views.common import get_sku_master, get_filtered_params, get_local_date
+    temp_data = copy.deepcopy(AJAX_DATA)
+    sku_master, sku_master_ids = get_sku_master(user, sub_user)
+    lis = ['date_only', 'seller__seller_id', 'seller__name', 'source_sku_code__sku_code',
+           'source_sku_code__sku_desc', 'source_sku_code__sku_category', 'source_location',
+           'source_batch__weight', 'source_batch__mrp','source_quantity', 'destination_sku_code__sku_code',
+           'destination_sku_code__sku_desc', 'destination_sku_code__sku_category', 'destination_location',
+           'dest_batch__weight', 'dest_batch__mrp', 'destination_quantity', 'seller__seller_id', 'seller__seller_id']
+    col_num = search_params.get('order_index', 0)
+    order_term = search_params.get('order_term', 'asc')
+    start_index = search_params.get('start', 0)
+    if search_params.get('length', 0):
+        stop_index = start_index + search_params.get('length', 0)
+    else:
+        stop_index = None
+    search_parameters = {}
+    order_data = lis[col_num]
+    if order_term == 'desc':
+        order_data = '-%s' % order_data
+    if 'from_date' in search_params:
+        search_params['from_date'] = datetime.datetime.combine(search_params['from_date'], datetime.time())
+        search_parameters['creation_date__gt'] = search_params['from_date']
+    if 'to_date' in search_params:
+        search_parameters['creation_date__lt'] = datetime.datetime.combine(search_params['to_date'] + \
+                                                                           datetime.timedelta(1),
+                                                             datetime.time())
+    if 'source_sku_code' in search_params:
+        if search_params['source_sku_code']:
+            search_parameters['source_sku_code__sku_code'] = search_params['source_sku_code']
+    if 'source_sku_category' in search_params:
+        if search_params['source_sku_category']:
+            search_parameters['source_sku_code__sku_category__icontains'] = search_params['source_sku_category']
+    if 'destination_sku_code' in search_params:
+        if search_params['destination_sku_code']:
+            search_parameters['destination_sku_code__sku_code'] = search_params['destination_sku_code']
+    if 'destination_sku_category' in search_params:
+        if search_params['destination_sku_category']:
+            search_parameters['destination_sku_code__sku_category__icontains'] = search_params['destination_sku_category']
+    search_parameters['source_sku_code__id__in'] = sku_master_ids
+    search_parameters['seller__isnull'] = False
+    search_parameters['source_sku_code__user'] = user.id
+    master_data = SubstitutionSummary.objects.filter(**search_parameters).\
+                                            values('seller__seller_id', 'seller__name', 'source_sku_code__sku_code',
+                                                   'source_sku_code__sku_desc', 'source_sku_code__sku_category',
+                                                   'source_location', 'source_batch__weight', 'source_batch__mrp',
+                                                   'source_quantity', 'destination_sku_code__sku_code',
+                                                   'destination_sku_code__sku_desc',
+                                                   'destination_sku_code__sku_category',
+                                                   'destination_location', 'dest_batch__weight', 'dest_batch__mrp',
+                                                   'destination_quantity').\
+                                            annotate(date_only=Cast('creation_date', DateField())).\
+                                            order_by(order_data)
+    temp_data['recordsTotal'] = master_data.count()
+    temp_data['recordsFiltered'] = temp_data['recordsTotal']
+    time = get_local_date(user, datetime.datetime.now())
+    for ind, sku_data in enumerate(master_data[start_index:stop_index]):
+        source_weight, dest_weight = '', ''
+        source_mrp, dest_mrp = 0, 0
+        if sku_data['source_batch__weight']:
+            source_weight = sku_data['source_batch__weight']
+        if sku_data['source_batch__mrp']:
+            source_mrp = sku_data['source_batch__mrp']
+        if sku_data['dest_batch__weight']:
+            source_weight = sku_data['dest_batch__weight']
+        if sku_data['dest_batch__mrp']:
+            source_mrp = sku_data['dest_batch__mrp']
+        temp_data['aaData'].append(OrderedDict((('Date', str(sku_data['date_only'])),
+                                                ('Seller ID', sku_data['seller__seller_id']),
+                                                ('Seller Name', sku_data['seller__name']),
+                                                ('Source SKU Code', sku_data['source_sku_code__sku_code']),
+                                                ('Source SKU Description', sku_data['source_sku_code__sku_desc']),
+                                                ('Source SKU Category', sku_data['source_sku_code__sku_category']),
+                                                ('Source Location', sku_data['source_location']),
+                                                ('Source Weight', source_weight), ('Source MRP', source_mrp),
+                                                ('Source Quantity', sku_data['source_quantity']),
+                                                ('Destination SKU Code', sku_data['destination_sku_code__sku_code']),
+                                                ('Destination SKU Description', sku_data['destination_sku_code__sku_desc']),
+                                                ('Destination SKU Category', sku_data['destination_sku_code__sku_category']),
+                                                ('Destination Location', sku_data['destination_location']),
+                                                ('Destination Weight', dest_weight), ('Destination MRP', dest_mrp),
+                                                ('Destination Quantity', sku_data['destination_quantity']),
+                                                ('Warehouse Name',user.username),
+                                                ('Report Generation Time', time))))
     return temp_data

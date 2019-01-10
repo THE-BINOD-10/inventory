@@ -460,7 +460,10 @@ def get_search_params(request, user=''):
                     'zone_code': 'zone_code', 'distributor_code': 'distributor_code', 'reseller_code': 'reseller_code',
                     'supplier_id': 'supplier_id', 'rtv_number': 'rtv_number', 'corporate_name': 'corporate_name',
                     'enquiry_number': 'enquiry_number', 'enquiry_status': 'enquiry_status',
-                    'aging_period': 'aging_period'}
+                    'aging_period': 'aging_period', 'source_sku_code': 'source_sku_code',
+                    'destination_sku_code': 'destination_sku_code',
+                    'destination_sku_category': 'destination_sku_category',
+                    'source_sku_category': 'source_sku_category'}
     int_params = ['start', 'length', 'draw', 'order[0][column]']
     filter_mapping = {'search0': 'search_0', 'search1': 'search_1',
                       'search2': 'search_2', 'search3': 'search_3',

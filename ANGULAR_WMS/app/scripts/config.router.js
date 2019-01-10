@@ -2206,6 +2206,18 @@ var app = angular.module('urbanApp')
             title: 'Inventory Value Report',
           }
         })
+        .state('app.reports.BulkToRetailReport', {
+          url: '/BulkToRetailReport',
+          templateUrl: 'views/reports/bulk_to_retail_report.html',
+          resolve: {
+              deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                return $ocLazyLoad.load('scripts/controllers/reports/bulk_to_retail_report.js');
+              }]
+          },
+          data: {
+            title: 'Bulk to Retail Report',
+          }
+        })
 
 
       // configuration route

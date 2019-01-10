@@ -401,6 +401,28 @@ var app = angular.module('urbanApp')
              url: '/customer',
              templateUrl: 'views/masters/toggles/customer_update.html'
            })
+
+           .state('app.masters.SkuPackMaster', {
+             url: '/SkuPackMaster',
+             // permission: 'sku_pack_config',
+             templateUrl: 'views/masters/sku_pack_datatable.html',
+             resolve: {
+               deps: ['$ocLazyLoad', function ($ocLazyLoad) {
+                   return $ocLazyLoad.load('scripts/controllers/masters/skuPackMaster.js');
+                       }]
+             },
+             data: {
+               title: 'Sku Pack Master',
+             }
+           })
+             .state('app.masters.SkuPackMaster.skupack', {
+                url: '/skupack',
+                templateUrl: 'views/masters/toggles/sku_pack_update.html'
+              })
+
+
+
+
         .state('app.masters.Customer-SKUMapping', {
           url: '/Customer-SKUMapping',
           permission: 'add_customersku',
@@ -1263,6 +1285,7 @@ var app = angular.module('urbanApp')
                              'scripts/controllers/outbound/pop_js/picklist.js',
                              'scripts/controllers/outbound/pop_js/manual_details.js',
                              'scripts/controllers/outbound/pop_js/custom_order_details.js',
+                             'scripts/controllers/outbound/pop_js/reject_order.js',
                              'scripts/controllers/outbound/pop_js/enquiry_details.js'
                             ]
                         }]);

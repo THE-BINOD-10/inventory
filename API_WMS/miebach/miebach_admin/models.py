@@ -835,6 +835,7 @@ class OrderPackaging(models.Model):
     id = BigAutoField(primary_key=True)
     order_shipment = models.ForeignKey(OrderShipment)
     package_reference = models.CharField(max_length=64)
+    box_number = models.CharField(max_length=64, default='')
     status = models.CharField(max_length=32)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
@@ -1057,6 +1058,7 @@ class POIMEIMapping(models.Model):
     sku = models.ForeignKey(SKUMaster, blank=True, null=True)
     seller = models.ForeignKey(SellerMaster, blank=True, null=True)
     purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True)
+    pack_status = models.IntegerField(default=0)
     job_order = models.ForeignKey(JobOrder, blank=True, null=True)
     imei_number = models.CharField(max_length=64, default='')
     status = models.IntegerField(default=1)
@@ -1065,7 +1067,7 @@ class POIMEIMapping(models.Model):
 
     class Meta:
         db_table = 'PO_IMEI_MAPPING'
-        unique_together = ('purchase_order', 'imei_number', 'sku', 'job_order', 'seller')
+        unique_together = ('purchase_order','imei_number', 'sku', 'job_order', 'seller')
 
 
 class OrderIMEIMapping(models.Model):
@@ -1962,6 +1964,8 @@ class SellerPOSummary(models.Model):
     discount_percent = models.FloatField(default=0)
     round_off_total = models.FloatField(default=0)
     cess_tax = models.FloatField(default=0)
+    overall_discount = models.FloatField(default=0)
+    remarks = models.CharField(max_length=64, default='')
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 
@@ -2908,10 +2912,15 @@ class MasterDocs(models.Model):
     master_id = models.CharField(max_length=64, default='')
     master_type = models.CharField(max_length=64, default='')
     uploaded_file = models.FileField(upload_to=get_path, blank=True, null=True)
+    extra_flag = models.CharField(max_length=32, default='')
+    user = models.ForeignKey(User, blank=True, null=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'MASTER_DOCS'
-        index_together = ('master_id', 'master_type', 'uploaded_file')
+        index_together = (('master_id', 'master_type', 'uploaded_file'),
+                          ('user', 'master_id', 'master_type', 'extra_flag'))
 
 
 class WarehouseSKUMapping(models.Model):
@@ -3059,6 +3068,19 @@ class TableUpdateHistory(models.Model):
                           ('user', 'model_id', 'model_name', 'model_field'))
 
 
+class SKUPackMaster(models.Model):
+    id = BigAutoField(primary_key=True)
+    sku = models.ForeignKey(SKUMaster)
+    pack_id = models.CharField(max_length=32, default='')
+    pack_quantity = models.PositiveIntegerField()
+    creation_date = models.DateTimeField(auto_now_add=True)
+    updation_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'SKU_PACK_MASTER'
+        unique_together = ('sku', 'pack_id')
+
+
 class TempJson(models.Model):
     id = BigAutoField(primary_key=True)
     model_id = models.PositiveIntegerField()
@@ -3070,4 +3092,3 @@ class TempJson(models.Model):
     class Meta:
         db_table = 'TEMP_JSON'
         index_together = ('model_id', 'model_name')
-

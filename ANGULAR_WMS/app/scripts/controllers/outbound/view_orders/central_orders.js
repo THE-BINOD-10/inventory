@@ -119,7 +119,7 @@ var vm = this;
         return nRow;
     }
 
-    vm.status_dropdown = {0: 'Reject', 1: 'Accept'};
+    vm.status_dropdown = {0: 'Reject', 1: 'Accept',2: 'Pending'};
 
 
     vm.close = close;
@@ -140,7 +140,6 @@ var vm = this;
 
     vm.submit = submit;
     function submit(wh, status, data_id, shipment_date, alt_sku_code){
-
       var sum = 0;
       angular.forEach(vm.model_data.data, function(row){
         if(row.wh_quantity){

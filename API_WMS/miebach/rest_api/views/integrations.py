@@ -961,13 +961,30 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
 
     if sku_code in sum(insert_status.values(), []):
         return sku_master, insert_status
-    tax_master_obj = None
+    product_type = ''
     if taxes_dict and sum(taxes_dict.values()) > 0:
-        tax_master_obj = TaxMaster.objects.filter(Q(cgst_tax=taxes_dict.get('cgst_tax', 0),
-                                                    sgst_tax=taxes_dict.get('sgst_tax', 0))
-                                                  | Q(igst_tax=taxes_dict.get('igst_tax', 0)),
-                                                  cess_tax=taxes_dict.get('cess_tax', 0), user=user.id)
-        if not tax_master_obj:
+        product_type_dict = {}
+        cgst_check = True
+        if taxes_dict.get('cgst_tax', 0) or taxes_dict.get('sgst_tax', 0):
+            tax_master_obj = TaxMaster.objects.filter(cgst_tax=taxes_dict.get('cgst_tax', 0),
+                                                    sgst_tax=taxes_dict.get('sgst_tax', 0), igst_tax=0,
+                                                  cess_tax=taxes_dict.get('cess_tax', 0), user=user.id).\
+                                        values_list('product_type', flat=True).distinct()
+            if tax_master_obj:
+                product_type_dict['product_type__in'] = tax_master_obj
+                product_type = tax_master_obj[0]
+            else:
+                cgst_check = False
+        if taxes_dict.get('igst_tax', 0) and cgst_check:
+            tax_master_obj = TaxMaster.objects.filter(igst_tax=taxes_dict.get('igst_tax', 0),
+                                                        cess_tax=taxes_dict.get('cess_tax', 0), user=user.id,
+                                                       **product_type_dict). \
+                                            values_list('product_type', flat=True)
+            if not tax_master_obj:
+                product_type = ''
+            else:
+                product_type = tax_master_obj[0]
+        if not product_type:
             error_message = 'Tax Master not found'
             update_error_message(failed_status, 5028, error_message, sku_code,
                                  field_key='sku_code')
@@ -1003,8 +1020,8 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                 SKUAttributes.objects.create(sku_id=sku_master.id, attribute_name=option['name'],
                                              attribute_value=option['value'],
                                              creation_date=datetime.datetime.now())
-    if sku_master and tax_master_obj:
-        sku_master.product_type = tax_master_obj[0].product_type
+    if sku_master and product_type:
+        sku_master.product_type = product_type
         sku_master.save()
     if sku_master and ean_numbers:
         try:
@@ -1844,7 +1861,6 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
             if 'warehouse' not in order.keys():
                 error_message = 'warehouse key missing'
                 update_error_message(failed_status, 5021, error_message, original_order_id)
-                break
             else:
                 warehouse = order['warehouse']
                 sister_whs = list(get_sister_warehouse(user).values_list('user__username', flat=True))
@@ -1864,20 +1880,20 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                             order_details['customer_id'] = order['billing_address'].get('customer_id', 0)
                         else:
                             update_error_message(failed_status, 5024, 'Invalid Customer ID', original_order_id)
-                            continue
                     except:
                         update_error_message(failed_status, 5024, 'Customer ID should be Number',
                                              original_order_id)
-                        continue
                 order_details['customer_name'] = order['billing_address'].get('name', '')
                 order_details['telephone'] = order['billing_address'].get('phone_number', '')
                 order_details['city'] = order['billing_address'].get('city', '')
                 order_details['address'] = order['billing_address'].get('address', '')
-                order_details['pin_code'] = order['billing_address'].get('pincode', '')
+                try:
+                    order_details['pin_code'] = int(order['billing_address'].get('pincode', ''))
+                except:
+                    pass
 
             if not order.get('sub_orders', []):
                 update_error_message(failed_status, 5024, 'Sub Orders Missing', original_order_id)
-                continue
             if order_code:
                 filter_params['order_code'] = order_code
             valid_order['user'] = user.id
@@ -1899,7 +1915,6 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                     error_code = "5003"
                     message = 'Order is already cancelled at Stockone'
                 update_error_message(failed_status, error_code, message, original_order_id)
-                break
             for sub_order in order['sub_orders']:
                 seller_order_dict = copy.deepcopy(SELLER_ORDER_FIELDS)
                 seller_id = sub_order.get('seller_id', '')
@@ -1972,7 +1987,12 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                                 order_summary_dict['igst_tax'] = float(sku_item['tax_percent'].get('IGST', 0))
                                 order_summary_dict['utgst_tax'] = float(sku_item['tax_percent'].get('UTGST', 0))
                                 order_summary_dict['cess_tax'] = float(sku_item['tax_percent'].get('CESS', 0))
-                            order_summary_dict['consignee'] = order_details['address']
+                            if sku_item.get('discount_amount', 0):
+                                try:
+                                    order_summary_dict['discount'] = float(sku_item['discount_amount'])
+                                except:
+                                    order_summary_dict['discount'] = 0
+                            order_summary_dict['consignee'] = order_details.get('address', '')
                             order_summary_dict['invoice_date'] = order_details['creation_date']
                             order_summary_dict['inter_state'] = 0
                             if order_summary_dict['igst_tax']:
@@ -1985,16 +2005,8 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                         seller_order_dict['quantity'] = sku_item['quantity']
                         final_data_dict = check_and_add_dict(grouping_key, 'seller_order_dict', seller_order_dict,
                                                             final_data_dict=final_data_dict)
-                if len(failed_sku_status):
-                    failed_status = {
-                        "OrderId": original_order_id,
-                        "Result": {
-                            "Errors": failed_sku_status
-                        }
-                    }
-                    break
 
-                final_data_dict[grouping_key]['shipping_tax'] = eval(order_mapping.get('shipping_tax', ''))
+                #final_data_dict[grouping_key]['shipping_tax'] = eval(order_mapping.get('shipping_tax', ''))
                 final_data_dict[grouping_key]['status_type'] = order_status
     except Exception as e:
         import traceback

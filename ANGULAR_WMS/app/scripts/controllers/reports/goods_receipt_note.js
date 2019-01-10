@@ -65,6 +65,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
   vm.toggle_sku_wise = false;
 
   vm.title = "Purchase Order";
+  vm.download_invoice_url = Session.url + 'download_grn_invoice_mapping/';
 
   vm.row_call = function(aData) {
     if (!vm.toggle_sku_wise) {
@@ -132,6 +133,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
                     'from_date': '',
                     'to_date': '',
                     'open_po': '',
+                    'invoice_number': '',
                     'wms_code': ''
                     };
 
@@ -150,5 +152,19 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, DTOp
     vm.service.print_data(vm.print_page, "Good Receipt Note");
   }
 
+  vm.download_invoice_zip = function() {
+    console.log(vm.model_data);
+    var filt_string = ''
+    angular.forEach(vm.model_data, function(val, key){
+      if(filt_string) {
+        filt_string += '&' + key + '=' + val
+      }
+      else {
+        filt_string = key + '=' + val
+      }
+    });
+    vm.download_invoice_url = Session.url + 'download_grn_invoice_mapping/' + '?' + filt_string;
   }
+
+}
 

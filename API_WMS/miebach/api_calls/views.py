@@ -992,7 +992,7 @@ def update_sku(request):
         skus = json.loads(request.body)
     except:
         log.info('Incorrect Request params for ' + request.user.username + ' is ' + str(skus))
-        return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid JSON Data'}))
+        return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid JSON Data'}), status=400)
     log.info('Request params for ' + request.user.username + ' is ' + str(skus))
     try:
         insert_status, failed_status = update_skus(skus, user=request.user, company_name='mieone')
@@ -1001,14 +1001,18 @@ def update_sku(request):
         if not failed_status:
             failed_status = {'status': 200, 'message': 'Success'}
         else:
-            failed_status = {'status': 207, 'messages': failed_status}
-
+            if not (insert_status.get('SKUS Created', '') or insert_status.get('SKUS updated', '')):
+                failed_status = {'status': 422, 'messages': failed_status}
+            else:
+                failed_status = {'status': 207, 'messages': failed_status}
+        return HttpResponse(json.dumps(failed_status), status=failed_status.get('status', 200))
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info('Update SKUS data failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
         status = {'message': 'Internal Server Error'}
-    return HttpResponse(json.dumps(failed_status))
+        return HttpResponse(json.dumps(status), status=500)
+
 
 @csrf_exempt
 @login_required
@@ -1136,20 +1140,20 @@ def update_mp_orders(request):
     try:
         orders = json.loads(request.body)
     except:
-        return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid JSON Data'}))
+        return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid JSON Data'}), status=400)
     log.info('Request params for ' + request.user.username + ' is ' + str(orders))
     try:
         validation_dict, failed_status, final_data_dict = validate_seller_orders_format(orders, user=request.user, company_name='mieone')
         if validation_dict:
-            return HttpResponse(json.dumps({'messages': validation_dict, 'status': 207}))
+            return HttpResponse(json.dumps({'messages': validation_dict, 'status': 207}), status=207)
         if failed_status:
-            final_failed_status = {'status': 207}
+            final_failed_status = {'status': 422}
             if type(failed_status) == dict:
-                final_failed_status.update({'status': 207, 'messages': failed_status})
+                final_failed_status.update({'status': 422, 'messages': failed_status})
             if type(failed_status) == list:
-                failed_status = failed_status[0]
+                failed_status = failed_status
                 final_failed_status.update({'messages': failed_status})
-            return HttpResponse(json.dumps(final_failed_status))
+            return HttpResponse(json.dumps(final_failed_status), status=422)
         status = update_order_dicts(final_data_dict, user=request.user, company_name='mieone')
         log.info(status)
     except Exception as e:
@@ -1182,24 +1186,24 @@ def get_mp_inventory(request):
             if skus:
                 filter_params['sku_code__in'] = skus
         except:
-            return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid JSON Data'}))
+            return HttpResponse(json.dumps({'status': 400, 'message': 'Invalid JSON Data'}), status=400)
         if not seller_id:
-            return HttpResponse(json.dumps({'status': 207, 'message': 'Seller ID is Mandatory'}))
+            return HttpResponse(json.dumps({'status': 207, 'message': 'Seller ID is Mandatory'}), status=207)
         if not warehouse:
-            return HttpResponse(json.dumps({'status': 207, 'message': 'Warehouse Name is Mandatory'}))
+            return HttpResponse(json.dumps({'status': 207, 'message': 'Warehouse Name is Mandatory'}), status=207)
         token_user = user
         sister_whs = list(get_sister_warehouse(user).values_list('user__username', flat=True))
         sister_whs.append(token_user.username)
         if warehouse in sister_whs:
             user = User.objects.get(username=warehouse)
         else:
-            return HttpResponse(json.dumps({'status': 207, 'message': 'Invalid Warehouse Name'}))
+            return HttpResponse(json.dumps({'status': 207, 'message': 'Invalid Warehouse Name'}), status=207)
         try:
             seller_master = SellerMaster.objects.filter(user=user.id, seller_id=seller_id)
             if not seller_master:
-                return HttpResponse(json.dumps({'status': 207, 'message': 'Invalid Seller ID'}))
+                return HttpResponse(json.dumps({'status': 207, 'message': 'Invalid Seller ID'}), status=207)
         except:
-            return HttpResponse(json.dumps({'status': 207, 'message': 'Invalid Seller ID'}))
+            return HttpResponse(json.dumps({'status': 207, 'message': 'Invalid Seller ID'}), status=207)
         seller_master_id = seller_master[0].id
         sku_records = SKUMaster.objects.filter(**filter_params).values('sku_code')
         error_skus = set(skus) - set(sku_records.values_list('sku_code', flat=True))
@@ -1277,7 +1281,7 @@ def get_mp_inventory(request):
                     mrp_dict[sub_group_key]['inventory']['on_hold'] += int(reserved)
                     mrp_dict[sub_group_key]['inventory']['un_sellable'] += int(unsellable)
                 for stock_dat1 in group_data1:
-                    splitted_val = stock_dat['group_key'].split('<<>>')
+                    splitted_val = stock_dat1['group_key'].split('<<>>')
                     sku_code = splitted_val[0]
                     mrp = splitted_val[1]
                     ean = splitted_val[2]
@@ -1332,12 +1336,16 @@ def get_mp_inventory(request):
         response_data = {'page_info': page_info.get('page_info', {}), 'status': 200,
                          'messages': [{'errors': error_status}],
                          'products': page_info['data']}
+        output_status = 200
+        if error_status:
+            output_status = 207
+        return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder), status=output_status)
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
         log.info('Get Inventory failed for %s and params are %s and error statement is %s' % (str(request.user.username), str(request.body), str(e)))
-        response_data = {'messages': 'Internal Server Error', 'status': 0}
-    return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder))
+        response_data = {'messages': 'Internal Server Error', 'status': 500}
+        return HttpResponse(json.dumps(response_data, cls=DjangoJSONEncoder), status=500)
 
 
 @csrf_exempt

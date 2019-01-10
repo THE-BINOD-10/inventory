@@ -37,6 +37,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
       DTColumnBuilder.newColumn('reason_order').withTitle('Reason For Order Experience'),
       DTColumnBuilder.newColumn('rating_product').withTitle('Rating For Product'),
       DTColumnBuilder.newColumn('reason_product').withTitle('Reason For Product'),
+      DTColumnBuilder.newColumn('updation_date').withTitle('Submitted Date'),
   ];
 
   vm.dtInstance = {};

@@ -1852,7 +1852,8 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
 				tax_data['taxableAmount'] = sku_code_obj['itemAmount']
                                 data_dict_confirm["taxAmount"] = 0
                                 if not sku_code_obj['taxes']:
-                                    data_dict_confirm["taxes"] = []
+                                    #data_dict_confirm["taxes"] = []
+                                    print data_dict_confirm["taxes"]
                                 else:
                                     if obj["taxes"]:
                                         for idx, tax_obj in enumerate(obj["taxes"]):
@@ -1884,9 +1885,23 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
 		data_dict_confirm["taxAmount"] += items_obj['taxAmount']
 		data_dict_confirm["itemsAmount"] += items_obj["itemAmount"]
 	    data_dict_confirm["totalAmount"] = data_dict_confirm["itemsAmount"] + data_dict_confirm["taxAmount"]
+            form_tax_dict = {}
+            for obj in data_dict_confirm["taxes"]:
+                if obj['taxName'] in form_tax_dict.keys():
+                    inner_tax_dict = form_tax_dict[obj['taxName']]
+                    inner_tax_dict['taxAmount'] += obj['taxAmount']
+                    inner_tax_dict['taxableAmount'] += obj['taxableAmount']
+                else:
+                    form_tax_dict[obj['taxName']] = {}
+                    form_tax_dict[obj['taxName']]['taxName'] = obj['taxName']
+                    form_tax_dict[obj['taxName']]['percentage'] = obj['percentage']
+                    form_tax_dict[obj['taxName']]['taxableAmount'] = obj['taxableAmount']
+                    form_tax_dict[obj['taxName']]['taxAmount'] = obj['taxAmount']
 	    temp_json_model_name = 'rista<<>>transfer_in<<>>' + order_id
 	    temp_json_obj = TempJson.objects.filter(**{'model_id':user.id, 'model_name':temp_json_model_name}).count()
             data_dict_confirm["sourceInfo"] = {"orderDate": rista_json['indentDate'], "orderNumber": str(rista_json['indentNumber']) + '-' + str(temp_json_obj + 1)}
+            import pdb;pdb.set_trace()
+            data_dict_confirm['taxes'] = form_tax_dict.values()
             save_transfer_resp = save_transfer_in_rista(data_dict_confirm)
             if save_transfer_resp['status'] != False:
                 TempJson.objects.create(**{'model_id':user.id, 'model_name':temp_json_model_name, 'model_json':str(save_transfer_resp)})

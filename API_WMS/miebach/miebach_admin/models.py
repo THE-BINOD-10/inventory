@@ -876,6 +876,7 @@ class CustomerMaster(models.Model):
     id = BigAutoField(primary_key=True)
     user = models.PositiveIntegerField()
     customer_id = models.PositiveIntegerField(default=0)
+    customer_code = models.CharField(max_length=256, default='')
     name = models.CharField(max_length=256, default='')
     last_name = models.CharField(max_length=256, default='')
     address = models.CharField(max_length=256, default='')
@@ -905,8 +906,8 @@ class CustomerMaster(models.Model):
 
     class Meta:
         db_table = 'CUSTOMER_MASTER'
-        unique_together = ('user', 'customer_id')
-        index_together = ('user', 'customer_id')
+        unique_together = ('user', 'customer_id', 'customer_code')
+        index_together = ('user', 'customer_id', 'customer_code')
 
 
 class CustomerUserMapping(models.Model):

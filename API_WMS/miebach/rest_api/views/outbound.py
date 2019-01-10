@@ -1780,15 +1780,16 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
             sku_dict[ind['skuCode']] = ind['quantity']
         sku_code_list = list(set(sku_code_list))
 	partial = False
-        if len(order_id_dict[order_id]) != len(sku_code_list):
-            partial = True
-        if not partial:
-	    for sku_code_obj in order_id_dict[order_id]:
-		sku_code = sku_code_obj.keys()[0]
-		partial = False
-		if sku_code_obj[sku_code] != sku_dict[sku_code]:
-		    partial = True
-		    break
+	collect_all_skus = []
+	import pdb;pdb.set_trace()
+        for sku_code_obj in order_id_dict[order_id]:
+	    sku_code = sku_code_obj.keys()[0]
+	    collect_all_skus.append(sku_code)
+	collect_all_skus = list(set(collect_all_skus))
+	if len(collect_all_skus) != len(sku_code_list):
+	    partial = True
+	else:
+	    partial = False
         if not partial:
             data_dict_confirm["branchCode"] = rista_json['branchCode']
             data_dict_confirm["toBranch"] = {'branchCode' : str(rista_json['fromBranch']['branchCode'])}
@@ -1805,6 +1806,7 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
                 data_dict_confirm["taxes"] = rista_json['taxes']
                 data_dict_confirm["items"] = rista_json['items']
             data_dict_confirm["sourceInfo"] = {"orderDate": rista_json['indentDate'], "orderNumber": rista_json['indentNumber']}
+            import pdb;pdb.set_trace()
             save_transfer_resp = save_transfer_in_rista(data_dict_confirm)
             temp_json_model_name = 'rista<<>>transfer_in<<>>' + order_id
             TempJson.objects.create(**{'model_id':user.id, 'model_name':temp_json_model_name, 'model_json':str(save_transfer_resp)})

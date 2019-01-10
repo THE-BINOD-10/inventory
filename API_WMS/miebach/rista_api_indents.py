@@ -34,7 +34,6 @@ def make_request():
         "iss": apiKey,
         "iat": tokencreationtime
     }
-    import pdb;pdb.set_trace()
     token = jwt.encode(payload, secretKey, algorithm='HS256')
     headers =  {
         'x-api-key': apiKey,

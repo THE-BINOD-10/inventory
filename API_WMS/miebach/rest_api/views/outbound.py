@@ -1789,6 +1789,9 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
 	    partial = True
 	else:
 	    partial = False
+	    if sku_code_obj[sku_code] != sku_dict[sku_code]:
+		partial = True
+		break
         if not partial:
             data_dict_confirm["branchCode"] = rista_json['branchCode']
             data_dict_confirm["toBranch"] = {'branchCode' : str(rista_json['fromBranch']['branchCode'])}
@@ -14374,6 +14377,8 @@ def do_delegate_orders(request, user=''):
         result_data['output_msg'] = output_msg
         result_data['status'] = True
     return HttpResponse(json.dumps(result_data), content_type='application/json')
+
+
 @login_required
 @get_admin_user
 def print_pdf_shipment_info(request, user=''):

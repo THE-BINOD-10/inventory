@@ -25,7 +25,6 @@ import shutil
 from utils import *
 import os, math
 from rest_api.rista_save_transfer import *
-
 log = init_logger('logs/outbound.log')
 
 
@@ -2092,8 +2091,8 @@ def picklist_confirmation(request, user=''):
                         if picklist.order:
                             check_and_update_order(user.id, picklist.order.original_order_id)
                         all_pick_locations.filter(picklist_id=picklist.id, status=1).update(status=0)
-
-                    if user.username == "BW":
+                    int_obj = Integrations.objects.filter(**{'user':user.id, 'name':'rista', 'status':1})
+                    if int_obj:
                         original_order_id_str = str(picklist.order.original_order_id)
                         rista_order_id_list.append(original_order_id_str)
                         picking_count1 = int(picking_count1)
@@ -2144,7 +2143,6 @@ def picklist_confirmation(request, user=''):
                     create_intransit_order(auto_skus, user, sku_qty_map)
             else:
                 auto_po(auto_skus, user.id)
-	user_id = get_client_secret['id']
 	#Check DM Rista User
 	int_obj = Integrations.objects.filter(**{'user':user.id, 'name':'rista', 'status':1})
 	if int_obj:

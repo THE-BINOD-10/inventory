@@ -13,17 +13,18 @@ from django.db.models import Q
 from miebach_admin.models import *
 import datetime
 from rest_api.views.utils import *
+from miebach.settings import *
+import ConfigParser
 order_pull_rista_stockone_logs = init_logger('logs/rista_order_pull_stockone.log')
-
-apiKey = '945ae8b1-1886-43f4-9d0e-4986c0f383d3'
-secretKey = 'lolnJIoZK2otG_d_PUiAXFgWOWOuglfJ8wnwNvDhg-w'
-
-API_HOST = 'api.ristaapps.com'
-ENDPOINT = '/v1/inventory/indents/page'
-
 SCHEME = 'https'
+LOAD_CONFIG = ConfigParser.ConfigParser()
+LOAD_CONFIG.read(INTEGRATIONS_CFG_FILE)
+stockone_url = LOAD_CONFIG.get('rista', 'stockone_url', '')
+API_HOST = LOAD_CONFIG.get('rista', 'rista_app_url', '')
+ENDPOINT = LOAD_CONFIG.get('rista', 'inventory_indent_url', '')
+apiKey = LOAD_CONFIG.get('rista', 'rista_api_key', '')
+secretKey = LOAD_CONFIG.get('rista', 'rista_secret_key', '')
 
-stockone_url = 'http://beta.stockone.in:3331'
 
 def make_request():
     a = datetime.datetime.now()
@@ -56,18 +57,18 @@ def make_request():
             else:
                 lastKey = 0
         if resp_data:
-            send_to_stockone_resp = sendToStockOne({'data':resp_data})
+            send_to_stockone_resp = sendToStockOne({'data':resp_data}, branch_code)
     b = datetime.datetime.now()
     delta = b - a
     time_taken = str(delta.total_seconds() * 1000)
     order_pull_rista_stockone_logs.info('----- Ended - Order Push Rista to Stockone ------- ')
 
 
-def sendToStockOne(resp):
+def sendToStockOne(resp, branch_code):
     resp = resp['data']
     stockone_auth = {}
     write_order_resp = ''
-    get_client_secret = User.objects.filter(username='BW')
+    get_client_secret = User.objects.filter(username=branch_code)
     if get_client_secret:
 	get_client_secret = get_client_secret[0].oauth2_provider_application.values()
 	if get_client_secret:
@@ -82,9 +83,8 @@ def sendToStockOne(resp):
 	    access_token = getAuthToken(stockone_auth)
 	except:
 	    print "Error in generating Access Token"
-        import pdb;pdb.set_trace()
 	try:
-            user_id = get_client_secret['id']
+            user_id = get_client_secret['user_id']
 	    int_obj = Integrations.objects.filter(**{'user':user_id, 'name':'rista', 'status':1})
 	    if not int_obj:
 		Integrations.objects.create(**{'user':user_id, 'name':'rista', 'api_instance':'rista', 'status':1, 'client_id':stockone_auth['client_id'], 'secret':stockone_auth['client_secret']})
@@ -171,7 +171,7 @@ def writeOrders(access_token, resp):
                     "fulfillmentStatus": order['fulfillmentStatus']
 	    })
 	except:
-	    print "Order List Check"
+	    print "Error Occured Order List Check"
     payload = json.dumps(allOrders)
     data_dict['all_orders'] = json.dumps(allOrders)
     data_dict['resp'] = json.dumps(resp)

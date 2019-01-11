@@ -14,16 +14,16 @@ from miebach_admin.models import *
 import datetime
 from rest_api.views.utils import *
 import time
-
+import ConfigParser
+from miebach.settings import *
 save_transfer_in_logs = init_logger('logs/rista_save_transfer_in.log')
-
-apiKey = '945ae8b1-1886-43f4-9d0e-4986c0f383d3'
-secretKey = 'lolnJIoZK2otG_d_PUiAXFgWOWOuglfJ8wnwNvDhg-w'
-
-API_HOST = 'api.ristaapps.com'
-ENDPOINT = '/v1/inventory/transfer'
-
 SCHEME = 'https'
+LOAD_CONFIG = ConfigParser.ConfigParser()
+LOAD_CONFIG.read(INTEGRATIONS_CFG_FILE)
+API_HOST = LOAD_CONFIG.get('rista', 'rista_app_url', '')
+ENDPOINT = LOAD_CONFIG.get('rista', 'save_transfer_url', '')
+apiKey = LOAD_CONFIG.get('rista', 'rista_api_key', '')
+secretKey = LOAD_CONFIG.get('rista', 'rista_secret_key', '')
 
 def save_transfer_in_rista(input_data):
     a = datetime.datetime.now()

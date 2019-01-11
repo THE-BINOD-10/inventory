@@ -1804,6 +1804,9 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
             else:
                 data_dict_confirm["taxes"] = rista_json['taxes']
                 data_dict_confirm["items"] = rista_json['items']
+            for obj_item in data_dict_confirm["items"]:
+                if obj_item['taxAmount'] == 0:
+                    obj_item['taxes'] = []
             data_dict_confirm["sourceInfo"] = {"orderDate": rista_json['indentDate'], "orderNumber": rista_json['indentNumber']}
             save_transfer_resp = save_transfer_in_rista(data_dict_confirm)
             if save_transfer_resp['status'] != False:

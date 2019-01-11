@@ -2105,7 +2105,6 @@ def picklist_confirmation(request, user=''):
                                 rista_order_dict[original_order_id_str] = []
                                 rista_order_dict[original_order_id_str].append(sku_code_dict)
                     picklist.save()
-
                     if user_profile.user_type == 'marketplace_user' and picklist.order:
                         create_seller_order_summary(picklist, picking_count1, seller_pick_number, picks_all,
                                                     seller_stock_objs)
@@ -2150,7 +2149,6 @@ def picklist_confirmation(request, user=''):
 
         rista_order_id = list(set(rista_order_id_list))
 	rista_response = rista_inventory_transfer(rista_order_id, rista_order_dict, user)
-        print rista_response
         detailed_invoice = get_misc_value('detailed_invoice', user.id)
         if (detailed_invoice == 'false' and picklist.order and picklist.order.marketplace == "Offline"):
             check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)

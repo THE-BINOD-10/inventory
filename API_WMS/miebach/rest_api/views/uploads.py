@@ -3349,8 +3349,8 @@ def validate_customer_form(request, reader, user, no_of_rows, fname, file_type='
                         customer_master_obj = CustomerMaster.objects.filter(customer_id=cell_data, user=user.id)
                         if customer_master_obj:
                             customer_master = customer_master_obj[0]
-                #else:
-                #    index_status.setdefault(row_idx, set()).add('Customer ID is Missing')
+                else:
+                    index_status.setdefault(row_idx, set()).add('Customer ID is Missing')
 
             elif key == 'name':
                 if not cell_data and not customer_master:

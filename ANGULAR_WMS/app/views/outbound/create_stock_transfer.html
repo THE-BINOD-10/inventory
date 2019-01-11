@@ -48,7 +48,7 @@
                       <input id="quant1" type="text" name="order_quantity" class="form-control" ng-model="data.order_quantity" ng-keyup="showCase.changeUnitPrice(data)" ng-required="$first" ng-class="service.get_decimal_perm()">
                     </td>
                     <td>
-                      <input type="text" name="price" class="form-control" ng-model="data.price" decimal-number>
+                      <input type="text" name="price" class="form-control" ng-model="data.price"  ng-keyup="showCase.changeUnitPrice(data)" decimal-number>
                       <input type="hidden" name="id" value="">
                     </td>
                     <td>

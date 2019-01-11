@@ -6030,7 +6030,8 @@ def get_stock_transfer_report_data(search_params, user, sub_user):
         net_value = quantity * price
         total = (quantity * price) +cgst+sgst+igst
 
-        temp_data['aaData'].append(OrderedDict((('Date',date),('SKU Code', data.sku.sku_code), ('SKU Description',data.sku.sku_desc),('Invoice Number',0),\
+
+        temp_data['aaData'].append(OrderedDict((('Date',date),('SKU Code', data.sku.sku_code), ('SKU Description',data.sku.sku_desc),('Invoice Number',data.order_id),\
                                                 ('Quantity',quantity ),('Status',status),('Net Value',net_value),\
                                                 ('CGST',cgst),('SGST',sgst),('IGST',igst),('Price',price),('Total Value',total),\
                                                 ('Source Location',user.username),('Destination',destination))))

@@ -1791,7 +1791,6 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
 	    partial = False
 	    if sku_code_obj[sku_code] != sku_dict[sku_code]:
 		partial = True
-		break
         if not partial:
             data_dict_confirm["branchCode"] = rista_json['branchCode']
             data_dict_confirm["toBranch"] = {'branchCode' : str(rista_json['fromBranch']['branchCode'])}
@@ -2131,10 +2130,6 @@ def picklist_confirmation(request, user=''):
                         else:
                             picklists_send_mail.update(
                                 {picklist.order.order_id: {picklist.order.sku.sku_code: float(quantity)}})
-
-                            # picklists_send_mail.append({'order_id': picklist.order.order_id})
-                            # picklists_send_mail.append(data_count)
-
                     count = count - picking_count1
                     auto_skus.append(val['wms_code'])
         if auto_skus:
@@ -2149,10 +2144,13 @@ def picklist_confirmation(request, user=''):
                     create_intransit_order(auto_skus, user, sku_qty_map)
             else:
                 auto_po(auto_skus, user.id)
-
-        rista_order_id = list(set(rista_order_id_list))
-	rista_response = rista_inventory_transfer(rista_order_id, rista_order_dict, user)
-        detailed_invoice = get_misc_value('detailed_invoice', user.id)
+	user_id = get_client_secret['id']
+	#Check DM Rista User
+	int_obj = Integrations.objects.filter(**{'user':user.id, 'name':'rista', 'status':1})
+	if int_obj:
+	    rista_order_id = list(set(rista_order_id_list))
+	    rista_response = rista_inventory_transfer(rista_order_id, rista_order_dict, user)
+	detailed_invoice = get_misc_value('detailed_invoice', user.id)
         if (detailed_invoice == 'false' and picklist.order and picklist.order.marketplace == "Offline"):
             check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
         order_ids = picks_all.values_list('order_id', flat=True).distinct()

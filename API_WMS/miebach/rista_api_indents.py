@@ -66,6 +66,7 @@ def make_request():
 def sendToStockOne(resp):
     resp = resp['data']
     stockone_auth = {}
+    write_order_resp = ''
     get_client_secret = User.objects.filter(username='BW')
     if get_client_secret:
 	get_client_secret = get_client_secret[0].oauth2_provider_application.values()
@@ -77,14 +78,19 @@ def sendToStockOne(resp):
 	    stockone_auth['client_type'] = get_client_secret['client_type']
 	    stockone_auth['authorization_grant_type'] = 'client_credentials'
 	    stockone_auth['redirect_uris'] = get_client_secret['redirect_uris']
-    try:
-	access_token = getAuthToken(stockone_auth)
-    except:
-	print "Error in generating Access Token"
-    try:
-	write_order_resp = writeOrders(access_token, resp)
-    except:
-	print "Error in Creating Orders"
+    	try:
+	    access_token = getAuthToken(stockone_auth)
+	except:
+	    print "Error in generating Access Token"
+        import pdb;pdb.set_trace()
+	try:
+            user_id = get_client_secret['id']
+	    int_obj = Integrations.objects.filter(**{'user':user_id, 'name':'rista', 'status':1})
+	    if not int_obj:
+		Integrations.objects.create(**{'user':user_id, 'name':'rista', 'api_instance':'rista', 'status':1, 'client_id':stockone_auth['client_id'], 'secret':stockone_auth['client_secret']})
+	    write_order_resp = writeOrders(access_token, resp)
+	except:
+	    print "Error in Creating Orders"
     return write_order_resp
 
 

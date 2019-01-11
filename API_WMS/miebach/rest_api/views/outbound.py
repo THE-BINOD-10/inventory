@@ -1781,7 +1781,6 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
         sku_code_list = list(set(sku_code_list))
 	partial = False
 	collect_all_skus = []
-	import pdb;pdb.set_trace()
         for sku_code_obj in order_id_dict[order_id]:
 	    sku_code = sku_code_obj.keys()[0]
 	    collect_all_skus.append(sku_code)
@@ -1806,10 +1805,10 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
                 data_dict_confirm["taxes"] = rista_json['taxes']
                 data_dict_confirm["items"] = rista_json['items']
             data_dict_confirm["sourceInfo"] = {"orderDate": rista_json['indentDate'], "orderNumber": rista_json['indentNumber']}
-            import pdb;pdb.set_trace()
             save_transfer_resp = save_transfer_in_rista(data_dict_confirm)
-            temp_json_model_name = 'rista<<>>transfer_in<<>>' + order_id
-            TempJson.objects.create(**{'model_id':user.id, 'model_name':temp_json_model_name, 'model_json':str(save_transfer_resp)})
+            if save_transfer_resp['status'] != False:
+                temp_json_model_name = 'rista<<>>transfer_in<<>>' + order_id
+                TempJson.objects.create(**{'model_id':user.id, 'model_name':temp_json_model_name, 'model_json':str(save_transfer_resp)})
             rista_inv.append(save_transfer_resp)
         else:
             data_dict_confirm["taxes"] = []
@@ -1902,7 +1901,6 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
 	    temp_json_model_name = 'rista<<>>transfer_in<<>>' + order_id
 	    temp_json_obj = TempJson.objects.filter(**{'model_id':user.id, 'model_name':temp_json_model_name}).count()
             data_dict_confirm["sourceInfo"] = {"orderDate": rista_json['indentDate'], "orderNumber": str(rista_json['indentNumber']) + '-' + str(temp_json_obj + 1)}
-            import pdb;pdb.set_trace()
             data_dict_confirm['taxes'] = form_tax_dict.values()
             save_transfer_resp = save_transfer_in_rista(data_dict_confirm)
             if save_transfer_resp['status'] != False:

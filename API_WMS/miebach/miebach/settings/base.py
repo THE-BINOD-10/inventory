@@ -46,7 +46,7 @@ INSTALLED_APPS = (
     'api_calls',
     'rest_api',
     'oauth2_provider',
-    'reversion'
+    #'reversion'
 )
 
 #INSTALLED_APPS = ("longerusername",) + INSTALLED_APPS
@@ -57,7 +57,7 @@ AUTHENTICATION_BACKENDS = (
 '''
 MIDDLEWARE_CLASSES = (
     'oauth2_provider.middleware.OAuth2TokenMiddleware',
-    'reversion.middleware.RevisionMiddleware',
+    #'reversion.middleware.RevisionMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -68,7 +68,7 @@ MIDDLEWARE_CLASSES = (
     'corsheaders.middleware.CorsMiddleware',
 )
 '''
-MIDDLEWARE_CLASSES = [ 
+MIDDLEWARE_CLASSES = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',

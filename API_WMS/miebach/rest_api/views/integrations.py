@@ -1678,22 +1678,9 @@ def validate_orders_format_rista(orders, user='', company_name='', is_cancelled=
             filter_params1 = {'user': user.id, 'original_order_id': original_order_id}
 
             order_status = order['order_status']
-            #if order_status not in order_status_dict.keys():
-            #    error_message = 'Invalid Order Status - Should be ' + ','.join(order_status_dict.keys())
-            #    update_error_message(failed_status, 5024, error_message, original_order_id)
-            #    break
 
             if order.has_key('billing_address'):
                 order_details['customer_id'] = order['billing_address'].get('customer_id', 0)
-                #if order_details['customer_id']:
-                #    try:
-                #        customer_master = CustomerMaster.objects.filter(user=user.id, customer_id=order_details['customer_id'])
-                #    except:
-                #        customer_master = []
-                #    if not customer_master:
-                #        error_message = 'Invalid Customer ID %s' % str(order_details['customer_id'])
-                #        update_error_message(failed_status, 5024, error_message, original_order_id)
-                #        break
                 order_details['customer_id'] = order.get('customer_id', 0)
                 order_details['customer_name'] = order.get('customer_name', '')
                 order_details['telephone'] = order['billing_address'].get('phone_number', '')
@@ -1722,7 +1709,6 @@ def validate_orders_format_rista(orders, user='', company_name='', is_cancelled=
                 elif int(order_detail_present[0].status) == 4:
                     error_code = "5003"
                     message = 'Order is already cancelled at Stockone'
-                #update_error_message(failed_status, error_code, message, original_order_id)
                 continue
             for sku_item in sku_items:
                 try:
@@ -1736,7 +1722,6 @@ def validate_orders_format_rista(orders, user='', company_name='', is_cancelled=
                     filter_params['sku_id'] = sku_master[0].id
                     filter_params1['sku_id'] = sku_master[0].id
                 else:
-                    #update_error_message(failed_status, 5020, "SKU Not found in Stockone", original_order_id)
                     continue
 
                 if sku_master:
@@ -1805,14 +1790,6 @@ def validate_orders_format_rista(orders, user='', company_name='', is_cancelled=
                 order_fields['order_type'] = "order"
                 order_fields_list.append(order_fields)
             final_data_dict = check_and_add_dict(grouping_key, 'order_fields_list', order_fields_list, final_data_dict=final_data_dict)
-            #if len(failed_sku_status):
-                    #failed_status = {
-                    #    "OrderId": original_order_id,
-                    #    "Result": {
-                    #        "Errors": failed_sku_status
-                    #    }
-                    #}
-            #        continue
 	    final_data_dict[grouping_key]['status_type'] = order_status
     except Exception as e:
         import traceback
@@ -2154,8 +2131,6 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
                         }
                     }
                     break
-
-                #final_data_dict[grouping_key]['shipping_tax'] = eval(order_mapping.get('shipping_tax', ''))
                 final_data_dict[grouping_key]['status_type'] = order_status
     except Exception as e:
         import traceback

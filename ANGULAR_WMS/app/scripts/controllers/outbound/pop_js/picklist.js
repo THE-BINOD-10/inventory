@@ -125,7 +125,7 @@ function view_orders() {
   }
 
 }
-*/ 
+*/
     vm.getrecordSerialnumber = function(rowdata) {
       for(var i=0; i < vm.model_data.data.length; i++) {
         if(vm.model_data.data[i].wms_code == rowdata.wms_code) {
@@ -374,6 +374,11 @@ function pull_confirmation() {
       data.sub_data.splice(index,1);
     }
     vm.count_sku_quantity();
+  }
+
+  vm.get_sku_details = function(record,item, index){
+
+    record.manufactured_date = item.manufactured_date
   }
 
   vm.cal_quantity = cal_quantity;
@@ -1019,7 +1024,7 @@ angular
   vm.pop_data = {};
   vm.status_data = "";
   vm.status_data = [];
-  
+
   vm.getPoData = function(data){
     Service.apiCall(data.url, data.method, data.data, true).then(function(data){
       if(data.message) {

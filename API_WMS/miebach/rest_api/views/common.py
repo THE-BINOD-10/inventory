@@ -2251,7 +2251,7 @@ def search_batches(request, user=''):
     data_id = request.GET.get('q', '')
     row_data = json.loads(request.GET.get('type'))
     search_params = {'sku__user': user.id}
-    if row_data['sku_code']:
+    if row_data['wms_code']:
         search_params['sku__sku_code'] =  row_data['wms_code']
 
     if row_data['location']:
@@ -2274,12 +2274,13 @@ def search_batches(request, user=''):
         Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])). \
         filter(**search_params)
     batchno =[]
+    total_data =[]
     if stock_data:
         for stock in stock_data:
-            batchno.append(stock.batch_detail.batch_no)
+            manufactured_date = datetime.datetime.strftime(stock.batch_detail.manufactured_date, "%d/%m/%Y")
+            total_data.append({'batchno': stock.batch_detail.batch_no, 'manufactured_date':manufactured_date })
 
-
-    return HttpResponse(json.dumps(batchno))
+    return HttpResponse(json.dumps(total_data))
 
 
 

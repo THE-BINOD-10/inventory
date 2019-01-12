@@ -1783,13 +1783,14 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
         for sku_code_obj in order_id_dict[order_id]:
 	    sku_code = sku_code_obj.keys()[0]
 	    collect_all_skus.append(sku_code)
-	collect_all_skus = list(set(collect_all_skus))
-	if len(collect_all_skus) != len(sku_code_list):
-	    partial = True
-	else:
-	    partial = False
-	    if sku_code_obj[sku_code] != sku_dict[sku_code]:
+            if sku_code_obj[sku_code] != sku_dict[sku_code]:
+                partial = True
+        if not partial:
+	    collect_all_skus = list(set(collect_all_skus))
+	    if len(collect_all_skus) != len(sku_code_list):
 		partial = True
+	    else:
+		partial = False
         if not partial:
             data_dict_confirm["branchCode"] = rista_json['branchCode']
             data_dict_confirm["toBranch"] = {'branchCode' : str(rista_json['fromBranch']['branchCode'])}

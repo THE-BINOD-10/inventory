@@ -24,6 +24,7 @@ API_HOST = LOAD_CONFIG.get('rista', 'rista_app_url', '')
 ENDPOINT = LOAD_CONFIG.get('rista', 'inventory_indent_url', '')
 apiKey = LOAD_CONFIG.get('rista', 'rista_api_key', '')
 secretKey = LOAD_CONFIG.get('rista', 'rista_secret_key', '')
+branch_list = eval(LOAD_CONFIG.get('rista', 'branch_list', ''))
 
 
 def make_request():
@@ -36,7 +37,6 @@ def make_request():
         "iat": tokencreationtime
     }
     token = jwt.encode(payload, secretKey, algorithm='HS256')
-    branch_list = ['BW']
     headers =  {
         'x-api-key': apiKey,
         'x-api-token': token,

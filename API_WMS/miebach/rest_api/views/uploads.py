@@ -5290,6 +5290,18 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                         index_status.setdefault(count, set()).add('Invalid Warehouse Location')
                 except:
                     index_status.setdefault(count, set()).add('Invalid Warehouse Location')
+        if order_mapping.has_key('loan_proposal_id'):
+            try:
+                loan_proposal_id = str(int(get_cell_data(row_idx, order_mapping['loan_proposal_id'], reader, file_type)))
+            except:
+                loan_proposal_id = str(get_cell_data(row_idx, order_mapping['loan_proposal_id'], reader, file_type))
+            if not loan_proposal_id:
+                index_status.setdefault(count, set()).add('Invalid loan_proposal_id')
+
+            order_obj = OrderDetail.objects.filter(original_order_id = loan_proposal_id)
+            if order_obj :
+                index_status.setdefault(count, set()).add('loan_proposal_id existed previously')
+
         if order_mapping.has_key('sku_code'):
             try:
                 sku_id = str(int(get_cell_data(row_idx, order_mapping['sku_code'], reader, file_type)))

@@ -2354,7 +2354,7 @@ class TaxMaster(models.Model):
     class Meta:
         db_table = 'TAX_MASTER'
         # unique_together = ('user', 'product_type', 'inter_state', 'cgst_tax', 'sgst_tax', 'igst_tax')
-        index_together = ('user', 'product_type', 'inter_state')
+        index_together = (('user', 'product_type', 'inter_state'), ('cgst_tax', 'sgst_tax', 'igst_tax', 'cess_tax', 'user'))
 
     def json(self):
         return {

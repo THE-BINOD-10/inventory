@@ -1810,7 +1810,7 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
                 if obj_item['taxAmount'] == 0:
                     obj_item['taxes'] = []
             data_dict_confirm["sourceInfo"] = {"orderDate": rista_json['indentDate'], "orderNumber": rista_json['indentNumber']}
-            save_transfer_resp = save_transfer_in_rista(data_dict_confirm)
+            save_transfer_resp = save_transfer_in_rista(data_dict_confirm, user.username)
             if save_transfer_resp['status'] != False:
                 temp_json_model_name = 'rista<<>>transfer_in<<>>' + order_id
                 TempJson.objects.create(**{'model_id':user.id, 'model_name':temp_json_model_name, 'model_json':str(save_transfer_resp)})
@@ -1904,7 +1904,7 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
 	    temp_json_obj = TempJson.objects.filter(**{'model_id':user.id, 'model_name':temp_json_model_name}).count()
             data_dict_confirm["sourceInfo"] = {"orderDate": rista_json['indentDate'], "orderNumber": str(rista_json['indentNumber']) + '-' + str(temp_json_obj + 1)}
             data_dict_confirm['taxes'] = form_tax_dict.values()
-            save_transfer_resp = save_transfer_in_rista(data_dict_confirm)
+            save_transfer_resp = save_transfer_in_rista(data_dict_confirm, user.username)
             if save_transfer_resp['status'] != False:
                 TempJson.objects.create(**{'model_id':user.id, 'model_name':temp_json_model_name, 'model_json':str(save_transfer_resp)})
             rista_inv.append(save_transfer_resp)

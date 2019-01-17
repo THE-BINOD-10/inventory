@@ -22,15 +22,19 @@ LOAD_CONFIG = ConfigParser.ConfigParser()
 LOAD_CONFIG.read(INTEGRATIONS_CFG_FILE)
 API_HOST = LOAD_CONFIG.get('rista', 'rista_app_url', '')
 ENDPOINT = LOAD_CONFIG.get('rista', 'save_transfer_url', '')
-apiKey = LOAD_CONFIG.get('rista', 'rista_api_key', '')
-secretKey = LOAD_CONFIG.get('rista', 'rista_secret_key', '')
+#apiKey = LOAD_CONFIG.get('rista', 'rista_api_key', '')
+#secretKey = LOAD_CONFIG.get('rista', 'rista_secret_key', '')
+rista_location_keys = eval(LOAD_CONFIG.get('rista', 'rista_location_keys', ''))
 
-def save_transfer_in_rista(input_data):
+def save_transfer_in_rista(input_data, branch_code):
     a = datetime.datetime.now()
     save_transfer_in_logs.info(' ------ Started Transfer In - Rista ------')
     resp_data_dict = {}
     tokencreationtime = int(round(time.time()))
     jti = int(time.time() * 1000.0)
+    get_api_key_secret = rista_location_keys[branch_code]
+    apiKey = get_api_key_secret[0]
+    secretKey = get_api_key_secret[1]
     payload = {
         "jti": jti,
         "iss": apiKey,

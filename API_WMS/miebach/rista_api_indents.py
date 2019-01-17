@@ -25,25 +25,20 @@ ENDPOINT = LOAD_CONFIG.get('rista', 'inventory_indent_url', '')
 apiKey = LOAD_CONFIG.get('rista', 'rista_api_key', '')
 secretKey = LOAD_CONFIG.get('rista', 'rista_secret_key', '')
 branch_list = eval(LOAD_CONFIG.get('rista', 'branch_list', ''))
-
+rista_location_keys = eval(LOAD_CONFIG.get('rista', 'rista_location_keys', ''))
 
 def make_request():
     a = datetime.datetime.now()
     order_pull_rista_stockone_logs.info(' ----- Started - Order Push Rista to Stockone ------- ')
-    tokencreationtime = int(round(time.time()))
-    payload = {
-        "jti": tokencreationtime,
-        "iss": apiKey,
-        "iat": tokencreationtime
-    }
-    token = jwt.encode(payload, secretKey, algorithm='HS256')
-    headers =  {
-        'x-api-key': apiKey,
-        'x-api-token': token,
-        'content-type': 'application/json'
-    }
     url = "{}://{}{}".format(SCHEME, API_HOST, ENDPOINT)
     for branch_code in branch_list:
+        get_api_key_secret = rista_location_keys[branch_code]
+        apiKey = get_api_key_secret[0]
+        secretKey = get_api_key_secret[1]
+        tokencreationtime = int(round(time.time()))
+        payload = { "jti": tokencreationtime, "iss": apiKey, "iat": tokencreationtime }
+        token = jwt.encode(payload, secretKey, algorithm='HS256')
+        headers =  { 'x-api-key': apiKey, 'x-api-token': token, 'content-type': 'application/json' }
         inv_payload = {'branch' : branch_code, 'day' : str(datetime.datetime.now().date())}
         resp_data = []
         lastKey = 1
@@ -95,13 +90,13 @@ def sendToStockOne(resp, branch_code):
 
 
 def getAuthToken(stockone_auth):
-        url = stockone_url + "/o/token/"
-	dbData = [stockone_auth['client_id'], stockone_auth['client_secret'], stockone_auth['authorization_grant_type']]
-	payload = "------WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; name=\"client_id\"\r\n\r\n{}\r\n------WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; name=\"client_secret\"\r\n\r\n{}\r\n------WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; name=\"redirect_uri\n\n\"\r\n\r\nhttp://api.stockone.in/o/token/\r\n------WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; name=\"grant_type\"\r\n\r\n{}\r\n------WebKitFormBoundary7MA4YWxkTrZu0gW--".format(*dbData)
-        headers = {'content-type': 'multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW'}
-        response = requests.request("POST", url, data=payload,headers=headers)
-        accessToken = response.json()['access_token']
-    	return accessToken
+    url = stockone_url + "/o/token/"
+    dbData = [stockone_auth['client_id'], stockone_auth['client_secret'], stockone_auth['authorization_grant_type']]
+    payload = "------WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; name=\"client_id\"\r\n\r\n{}\r\n------WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; name=\"client_secret\"\r\n\r\n{}\r\n------WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; name=\"redirect_uri\n\n\"\r\n\r\nhttp://api.stockone.in/o/token/\r\n------WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Disposition: form-data; name=\"grant_type\"\r\n\r\n{}\r\n------WebKitFormBoundary7MA4YWxkTrZu0gW--".format(*dbData)
+    headers = {'content-type': 'multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW'}
+    response = requests.request("POST", url, data=payload,headers=headers)
+    accessToken = response.json()['access_token']
+    return accessToken
 
 
 def clearLineItems(order):

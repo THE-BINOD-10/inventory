@@ -11,7 +11,7 @@ import datetime
 LOAD_CONFIG = ConfigParser.ConfigParser()
 LOAD_CONFIG.read(INTEGRATIONS_CFG_FILE)
 log = init_logger('logs/integrations.log')
-
+dm_rista = init_logger('logs/dm_rista.log')
 
 def check_and_add_dict(grouping_key, key_name, adding_dat, final_data_dict={}, is_list=False):
     final_data_dict.setdefault(grouping_key, {})
@@ -1662,7 +1662,12 @@ def validate_orders_format_rista(orders, user='', company_name='', is_cancelled=
             orders = {}
         if isinstance(orders, dict):
             orders = [orders]
+        customer_code_list = CustomerMaster.objects.filter(**{'user':user.id}).values_list('customer_code', flat=True)
         for ind, order in enumerate(orders):
+            customer_code = order.get('customer_code', '')
+            if not customer_code in customer_code_list:
+                dm_rista.info(str(customer_code) + 'Customer not Present : Orders' + str(order))
+                continue
             try:
                 creation_date = datetime.datetime.strptime(order['order_date'], '%Y-%m-%d %H:%M:%S')
             except:
@@ -1680,8 +1685,8 @@ def validate_orders_format_rista(orders, user='', company_name='', is_cancelled=
             order_status = order['order_status']
 
             if order.has_key('billing_address'):
-                order_details['customer_id'] = order['billing_address'].get('customer_id', 0)
                 order_details['customer_id'] = order.get('customer_id', 0)
+                order_details['customer_code'] = order.get('customer_code', '')
                 order_details['customer_name'] = order.get('customer_name', '')
                 order_details['telephone'] = order['billing_address'].get('phone_number', '')
                 order_details['city'] = order['billing_address'].get('city', '')
@@ -1751,7 +1756,8 @@ def validate_orders_format_rista(orders, user='', company_name='', is_cancelled=
                         order_details['unit_price'] = float(unit_price)
                         order_details['creation_date'] = creation_date
                         order_details['customer_id'] = order.get('customer_id', 0)
-			order_details['customer_name'] = order.get('customer_name', '')
+                        order_details['customer_code'] = order.get('customer_code', '')
+                        order_details['customer_name'] = order.get('customer_name', '')
                         final_data_dict = check_and_add_dict(grouping_key, 'order_details', order_details,
                                                              final_data_dict=final_data_dict)
                     if not failed_status and not insert_status and sku_item.get('tax_percent', {}):

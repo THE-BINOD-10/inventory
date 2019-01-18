@@ -968,8 +968,6 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
     if sku_code in sum(insert_status.values(), []):
         return sku_master, insert_status, new_ean_objs
     product_type = ''
-    # if str(sku_master_dict['sku_code']) == '7991':
-    #     import pdb;pdb.set_trace()
     if taxes_dict and sum(taxes_dict.values()) > 0:
         product_type_dict = {}
         cgst_check = True
@@ -1052,11 +1050,15 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
             for ean in create_eans:
                 if not ean:
                     continue
-                new_ean_objs.append(EANNumbers(**{'ean_number': ean, 'sku_id': sku_master.id}))
+                try:
+                    ean = int(ean)
+                    new_ean_objs.append(EANNumbers(**{'ean_number': ean, 'sku_id': sku_master.id}))
+                except:
+                    pass
             #update_ean_sku_mapping(user, ean_numbers, sku_master, True)
         except:
             pass
-    print sku_master_dict['sku_code']
+    #print sku_master_dict['sku_code']
     return sku_master, insert_status, new_ean_objs
 
 

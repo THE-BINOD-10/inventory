@@ -101,7 +101,7 @@
                           <span class="fs16" ng-if="user.userName != 'campus_sutra'">Bill To,</span>
                           <!--<span class="fs16" ng-if="user.userName == 'campus_sutra'">CONSIGNEE,</span>-->
                         </strong><br>
-                        {% if marketplace|lower == 'offline' %}
+                        {% if marketplace|lower == 'offline' or marketplace|lower == 'drunken_monkey' %}
                         <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() == 'offline'">
                           {% if customer_details.0.name == '' %}
                           <p class="fs13 m0" ng-if= "showCase.pdf_data.customer_details[0].name == ''">{{marketplace}}</p>
@@ -127,10 +127,15 @@
                           {% endif %}
                         </div>
                         {% endif %}
-                        {% if marketplace|lower != 'offline' %}
-                        <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() != 'offline'" class="fs13">
-                          {{marketplace}}<br>
-                        </div>
+
+                        {% if marketplace|lower != 'offline' and marketplace|lower != 'drunken_monkey' %}
+                            <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() != 'offline'" class="fs13">
+                              <b>Marketplace: </b>{{marketplace}}<br>
+                            </div>
+                            <p class="fs13 p0 m0 pre-custom" ng-if="showCase.pdf_data.customer_details[0].address">{{customer_details.0.address}}
+                            <b>GSTIN No: </b>{{customer_details.0.tin_number}}</p>
+                            <b>Mobile No: </b>{{customer_details.0.phone_number}}</p>
+                            <b>Email: </b>{{customer_details.0.email_id}}</p>
                         {% endif %}
                       </address>
                       {% endif %}
@@ -150,11 +155,11 @@
                         <strong>
                           <span class="fs16">Ship To,</span>
                         </strong><br>
-                        {% if consignee %}
+                        {% if consignee and not marketplace|lower == 'drunken_monkey' %}
                         <div class="col-md-12 p0 fs13">
                           <p class="pre-custom p0">{{consignee}}</p>
                         </div>
-                        {% elif marketplace|lower == 'offline' %}
+                        {% elif marketplace|lower == 'drunken_monkey' or marketplace|lower == 'offline' %}
                         <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() == 'offline'">
                           {% if customer_details.0.name == '' %}
                           <p class="fs13 m0" ng-if= "showCase.pdf_data.customer_details[0].name == ''">{{marketplace}}</p>
@@ -170,16 +175,24 @@
                           <p class="fs13 m0" ng-if="showCase.pdf_data.customer_details[0].tin_number">
                             <b>GSTIN No: </b>{{customer_details.0.tin_number}}</p>
                           {% endif %}
-                          {% if customer_details.0.email_id %}
+						  {% if customer_details.0.phone_number %}
+                          <p class="fs13 m0" ng-if="showCase.pdf_data.customer_details[0].phone_number">
+                            <b>Mobile No: </b>{{customer_details.0.phone_number}}</p>
+                          {% endif %}
+						  {% if customer_details.0.email_id %}
                           <p class="fs13 m0" m0 ng-if="showCase.pdf_data.customer_details[0].email_id">
                             <b>Email: </b>{{customer_details.0.email_id}}</p>
                           {% endif %}
                         </div>
                         {% endif %}
-                        {% if marketplace|lower != 'offline' %}
+                        {% if marketplace|lower != 'offline' and  marketplace|lower != 'drunken_monkey' %}
                         <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() != 'offline'" class="fs13">
-                          {{marketplace}}<br>
-                        </div>
+                          <b>Marketplace: </b>{{marketplace}}<br>
+						</div>
+						<p class="fs13 p0 m0 pre-custom" ng-if="showCase.pdf_data.customer_details[0].address">{{customer_details.0.address}}
+                        <b>GSTIN No: </b>{{customer_details.0.tin_number}}</p>
+                        <b>Mobile No: </b>{{customer_details.0.phone_number}}</p>
+                        <b>Email: </b>{{customer_details.0.email_id}}</p>
                         {% endif %}
                       </address>
                       {% endif %}

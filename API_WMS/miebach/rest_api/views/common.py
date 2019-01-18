@@ -2723,7 +2723,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     """ Build Invoice Json Data"""
     # Initializing Default Values
     data, imei_data, customer_details = [], [], []
-    order_date, order_id, marketplace, consignee, order_no, purchase_type, seller_address, customer_address = '', '', '', '', '', '', '', ''
+    order_date, order_id, marketplace, consignee, order_no, purchase_type, seller_address, customer_address, email = '', '', '', '', '', '', '', '', ''
     tax_type, seller_company, order_reference, order_reference_date = '', '', '', ''
     invoice_header = ''
     total_quantity, total_amt, total_taxable_amt, total_invoice, total_tax, total_mrp, _total_tax = 0, 0, 0, 0, 0, 0, 0
@@ -2773,7 +2773,6 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 seller_address = seller.name + '\n' + seller.address + "\nCall: " \
                                  + seller.phone_number + "\nEmail: " + seller.email_id \
                                  + "\nGSTIN No: " + seller.tin_number
-        import pdb;pdb.set_trace()
         if order_data and order_data[0].customer_id:
             dat = order_data[0]
             gen_ord_customer_id = order_data[0].genericorderdetailmapping_set.values_list('customer_id', flat=True)
@@ -2795,14 +2794,20 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 if customer_details[0]['email_id']:
                     customer_address += ("\tEmail: " + customer_details[0]['email_id'])
                 consignee = customer_address
+                #email = customer_details[0]['email_id']
+                #gstin_no = customer_details[0]['gstin_no']
             else:
                 customer_id = dat.customer_id
                 customer_address = dat.customer_name + '\n' + dat.address + "\nCall: " \
                                    + str(dat.telephone) + "\nEmail: " + str(dat.email_id)
+                #email = str(dat.email_id)
+                #gstin_no = customer_details[0]['gstin_no']
         if not customer_address:
             dat = order_data[0]
             customer_address = dat.customer_name + '\n' + dat.address + "\nCall: " \
                                + dat.telephone + "\nEmail: " + dat.email_id
+            #email = str(dat.email_id)
+            #gstin_no = str(dat.gstin_no)
         if not customer_details and dat.address:
             customer_details.append({'id' : dat.customer_id, 'name' : dat.customer_name, 'address' : dat.address})
 
@@ -3049,6 +3054,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     if seller_address:
         company_address = seller.address
         email = seller.email_id
+        #if not gstin_no:
         gstin_no = seller.tin_number
         company_address = company_address.replace("\n", " ")
         company_name = seller.name #'SHPROC Procurement Pvt. Ltd.'
@@ -5451,7 +5457,6 @@ def build_invoice(invoice_data, user, css=False):
         empty_data = [""] * no_of_space
         invoice_data['data'].append({'data': temp, 'empty_data': empty_data})
     top = ''
-    import pdb;pdb.set_trace()
     if css:
         c = {'name': 'invoice'}
         top = loader.get_template('../miebach_admin/templates/toggle/invoice/top1.html')
@@ -8553,7 +8558,6 @@ def get_sub_users(user):
 
 def update_order_dicts_rista(orders, rista_resp, user='', company_name=''):
     from outbound import check_stocks
-    import pdb;pdb.set_trace()
     trans_mapping = {}
     collect_order_detail_list = []
     order_sku = {}
@@ -8588,7 +8592,6 @@ def update_order_dicts_rista(orders, rista_resp, user='', company_name=''):
 	    collect_order_detail_list.append(order_detail)
         else:
             del(order['order_details']['customer_code'])
-            import pdb;pdb.set_trace()
             order['order_details']['customer_name'] = customer_name
             order_detail = OrderDetail.objects.create(**order['order_details'])
             collect_order_detail_list.append(order_detail)

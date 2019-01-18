@@ -14126,13 +14126,14 @@ def do_delegate_orders(request, user=''):
                         'user': wh_id})
                     if get_existing_order:
                         get_existing_order = get_existing_order[0]
-                        get_existing_order.quantity = get_existing_order.quantity + 1
+                        #get_existing_order.quantity = get_existing_order.quantity + 1
                         get_existing_order.save()
                         order_fields.update(original_order_id=original_order_id)
                         interm_obj_filter.update(status=1)
                         if central_order_reassigning :
                             interm_obj_filter.update(order_id = get_existing_order.id)
                             interm_obj.order_id = get_existing_order.id
+                            interm_obj.status = 1
                             interm_obj.save()
 
                     else:
@@ -14143,6 +14144,7 @@ def do_delegate_orders(request, user=''):
                             interm_obj_filter.update(status=1)
                             if central_order_reassigning :
                                 interm_obj.order_id = ord_obj.id
+                                interm_obj.status = 1
                                 interm_obj.save()
 
 

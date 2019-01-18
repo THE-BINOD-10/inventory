@@ -370,6 +370,8 @@ urlpatterns = [
     url(r'^do_delegate_orders/$', do_delegate_orders),
     url(r'^app_shipment_info_data/$', app_shipment_info_data),
     url(r'^send_order_back/$', send_order_back),
+    url(r'^shipment_pack_ref/$', shipment_pack_ref),
+    url(r'^shipment_pack_ref_decrease/$', shipment_pack_ref_decrease),
 
 
 

@@ -270,7 +270,7 @@ def get_order_results(start_index, stop_index, temp_data, search_term, order_ter
 
             temp_data['aaData'].append(OrderedDict((('Central Order ID', data.original_order_id),('Batch Number',batch_number),
                                                     ('Batch Date',batch_date),('Branch ID',branch_id),('Branch Name',branch_name),('Loan Proposal ID',data.original_order_id),('Loan Proposal Code',loan_proposal_code),('Client Code',client_code),('Client ID',client_id),
-                                                    ('Customer Name',customer_name),('Address1',address1),('Address2',address2),('Landmark',landmark),('Village',village),('District',district),
+                                                    ('Customer Name',data.customer_name),('Address1',address1),('Address2',address2),('Landmark',landmark),('Village',village),('District',district),
                                                     ('State1',state),('Pincode',pincode),('Mobile Number',mobile_no),('Alternative Mobile Number',alternative_mobile_no),('SKU Code',sku_code),('Model',model),
                                                     ('Unit Price',unit_price),('CGST',cgst),('SGST',sgst),('IGST',igst),('Total Price',total_price),('Location',location.username))))
         else:
@@ -1656,7 +1656,7 @@ def check_req_min_order_val(user, skus):
     sku_qty_map = {}
     sku_objs = SKUMaster.objects.filter(wms_code__in=skus, user=user.id, threshold_quantity__gt=0)
     for sku in sku_objs:
-        qty = get_auto_po_quantity(sku)
+        qty, total_qty = get_auto_po_quantity(sku)
         supplier_id, price, taxes = auto_po_warehouses(sku, qty)
         sku_qty_map[sku.sku_code] = (qty, price)
         if price:
@@ -2869,6 +2869,22 @@ def get_customer_sku(request, user=''):
                                         'courier_name': courier_name}, cls=DjangoJSONEncoder))
     return HttpResponse(json.dumps({'status': 'No Orders found'}))
 
+
+@login_required
+@get_admin_user
+def shipment_pack_ref(request, user=''):
+    pack_ref_no = get_incremental(user, 'shipment_pack_ref')
+    return HttpResponse(json.dumps({'pack_ref_no': pack_ref_no}))
+
+@login_required
+@get_admin_user
+def shipment_pack_ref_decrease(request, user=''):
+    old_pack_ref_no = request.GET['pack_ref_no']
+    pack_ref_no = get_decremental(user, 'shipment_pack_ref', old_pack_ref_no)
+    if pack_ref_no == 'Success' :
+        return HttpResponse('Success')
+    else:
+        return  HttpResponse('Failed')
 
 @login_required
 @get_admin_user
@@ -5477,6 +5493,7 @@ def insert_shipment_info(request, user=''):
                 # Until Here
                 order_pack_instance = OrderPackaging.objects.filter(order_shipment_id=order_shipment.id,
                                                                     package_reference=myDict['package_reference'][i],
+                                                                    box_number=myDict['box_num'][i],
                                                                     order_shipment__user=user.id)
                 if not order_pack_instance:
                     data_dict['order_shipment_id'] = order_shipment.id
@@ -13165,7 +13182,7 @@ def print_cartons_data(request, user=''):
     company_info = user.userprofile.__dict__
     company_name = company_info['company_name']
     sel_carton = request.POST.get('sel_carton', '')
-    table_headers = ['S.No', 'Carton Number', 'SKU Code', 'SKU Description', 'Quantity']
+    table_headers = ['S.No', 'Carton Number', 'SKU Code', ' SKU Description', 'Quantity']
     address = company_info['address']
     shipment_number = request.POST.get('shipment_number', '')
     shipment_date = get_local_date(user, datetime.datetime.now(), True).strftime("%d %b, %Y")
@@ -13175,6 +13192,7 @@ def print_cartons_data(request, user=''):
     is_excel = request.POST.get('is_excel', '')
     data = OrderedDict()
     count = 1
+    total_quantity = 0
     customers_obj = OrderDetail.objects.select_related('customer_id', 'customer_name', 'marketplace').\
                                 filter(id__in=request_dict['id']).only('customer_id', 'customer_name', 'marketplace').\
                                 values('customer_id', 'customer_name', 'marketplace', 'address').distinct()
@@ -13189,6 +13207,7 @@ def print_cartons_data(request, user=''):
             customer_info = {'name': customers_obj[0]['customer_name'], 'address': customers_obj[0]['address']}
     for ind in xrange(0, len(request_dict['sku_code'])):
         pack_reference = request_dict['package_reference'][ind]
+        box_num = request_dict['box_num'][ind]
         if pack_reference != selected_carton:
             continue
         sku_code = request_dict['sku_code'][ind]
@@ -13202,12 +13221,14 @@ def print_cartons_data(request, user=''):
         quantity = request_dict['shipping_quantity'][ind]
         try:
             quantity = int(quantity)
+            total_quantity = quantity + total_quantity
         except:
             quantity = 0
         grouping_key = '%s:%s' % (str(pack_reference), str(sku_code))
         data.setdefault(grouping_key, [])
         if data[grouping_key]:
             data[grouping_key][4] = int(data[grouping_key][4]) + quantity
+            total_quantity = data[grouping_key][4] + total_quantity
         else:
             if not is_excel:
                 data[grouping_key] = [count, pack_reference, sku_code, title, quantity]
@@ -13218,7 +13239,7 @@ def print_cartons_data(request, user=''):
                   'customer_name': customer_info.get('name', ''), 'name': company_name,
                   'shipment_number': shipment_number, 'company_address': address,
                   'shipment_date': shipment_date, 'company_name': company_name, 'truck_number':truck_number,
-                  'courier_name': courier_name, 'data': data.values()}
+                  'courier_name': courier_name, 'data': data.values(), 'total_quantity':total_quantity}
     if not is_excel:
         return render(request, 'templates/toggle/print_cartons_wise_qty.html', final_data)
     else:
@@ -14111,6 +14132,8 @@ def do_delegate_orders(request, user=''):
                         interm_obj_filter.update(status=1)
                         if central_order_reassigning :
                             interm_obj_filter.update(order_id = get_existing_order.id)
+                            interm_obj.order_id = get_existing_order.id
+                            interm_obj.save()
 
                     else:
                         try:
@@ -14119,7 +14142,10 @@ def do_delegate_orders(request, user=''):
                             order_fields.update(original_order_id=original_order_id)
                             interm_obj_filter.update(status=1)
                             if central_order_reassigning :
-                                interm_obj_filter.update(order_id = ord_obj.id)
+                                interm_obj.order_id = ord_obj.id
+                                interm_obj.save()
+
+
 
                         except:
                             resp_dict[str(interm_obj.interm_order_id)] = 'Error in Saving Order ID'

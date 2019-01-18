@@ -1302,9 +1302,27 @@ def print_purchase_order_form(request, user=''):
     if not po_id:
         return HttpResponse("Purchase Order Id is missing")
     purchase_orders = PurchaseOrder.objects.filter(open_po__sku__user=user.id, order_id=po_id)
-    ean_flag = list(purchase_orders.exclude(open_po__sku__ean_number=0))
+    po_sku_ids = purchase_orders.values_list('open_po__sku_id', flat=True)
+    ean_flag = False
+    ean_data = SKUMaster.objects.filter(Q(ean_number__gt=0) | Q(eannumbers__ean_number__gt=0),
+                                        id__in=po_sku_ids, user=user.id)
+    if ean_data:
+        ean_flag = True
+    show_cess_tax = purchase_orders.filter(open_po__cess_tax__gt=0)
     display_remarks = get_misc_value('display_remarks_mail', user.id)
     po_data = []
+    if user.userprofile.industry_type == 'FMCG':
+        table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP',
+                         'Amt', 'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
+    else:
+        table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price',
+                         'Amt', 'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
+    if ean_flag:
+        table_headers.insert(1, 'EAN')
+    if display_remarks == 'true':
+        table_headers.append('Remarks')
+    if show_cess_tax:
+        table_headers.insert(table_headers.index('Total'), 'CESS (%)')
     for order in purchase_orders:
         open_po = order.open_po
         total_qty += open_po.order_quantity
@@ -1312,7 +1330,6 @@ def print_purchase_order_form(request, user=''):
         tax = open_po.cgst_tax + open_po.sgst_tax + open_po.igst_tax + open_po.utgst_tax
         if open_po.cess_tax:
             tax += open_po.cess_tax
-            show_cess_tax = True
         total += amount + ((amount / 100) * float(tax))
         total_tax_amt = (open_po.utgst_tax + open_po.sgst_tax + open_po.cgst_tax + open_po.igst_tax + open_po.cess_tax
             + open_po.utgst_tax) * (amount/100)
@@ -1320,17 +1337,24 @@ def print_purchase_order_form(request, user=''):
         if user.userprofile.industry_type == 'FMCG':
             po_temp_data = [open_po.sku.sku_code, open_po.supplier_code, open_po.sku.sku_desc,
                             open_po.order_quantity, open_po.measurement_unit, open_po.price, open_po.mrp,amount,
-                            open_po.sgst_tax, open_po.cgst_tax, open_po.igst_tax, open_po.cess_tax,
-                            open_po.utgst_tax, total_sku_amt]
+                            open_po.sgst_tax, open_po.cgst_tax, open_po.igst_tax,
+                            open_po.utgst_tax, open_po.cess_tax, total_sku_amt]
         else:
             po_temp_data = [open_po.sku.sku_code, open_po.supplier_code, open_po.sku.sku_desc,
                             open_po.order_quantity, open_po.measurement_unit, open_po.price, amount,
                             open_po.sgst_tax, open_po.cgst_tax, open_po.igst_tax, open_po.cess_tax,
-                            open_po.utgst_tax, total_sku_amt]
+                            open_po.utgst_tax, open_po.cess_tax, total_sku_amt]
+
         if ean_flag:
-            po_temp_data.insert(1, open_po.sku.ean_number)
+            ean_number = 0
+            eans = get_sku_ean_list(open_po.sku)
+            if eans:
+                ean_number = eans[0]
+            po_temp_data.insert(1, ean_number)
         if display_remarks == 'true':
             po_temp_data.append(open_po.remarks)
+        # if show_cess_tax:
+        #     po_temp_data.insert(table_headers.index('CESS (%)'), open_po.cess_tax)
         po_data.append(po_temp_data)
     order = purchase_orders[0]
     open_po = order.open_po
@@ -1370,18 +1394,6 @@ def print_purchase_order_form(request, user=''):
     wh_telephone = user.userprofile.wh_phone_number
     order_date = get_local_date(request.user, order.creation_date)
     po_reference = '%s%s_%s' % (order.prefix, str(order.creation_date).split(' ')[0].replace('-', ''), order_id)
-    if user.userprofile.industry_type == 'FMCG':
-        table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price', 'MRP',
-                         'Amt', 'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
-    else:
-        table_headers = ['WMS Code', 'Supplier Code', 'Desc', 'Qty', 'UOM', 'Unit Price',
-                         'Amt', 'SGST (%)', 'CGST (%)', 'IGST (%)', 'UTGST (%)', 'Total']
-    if ean_flag:
-        table_headers.insert(1, 'EAN')
-    if display_remarks == 'true':
-        table_headers.append('Remarks')
-    if show_cess_tax:
-        table_headers.insert(10, 'CESS (%)')
     total_amt_in_words = number_in_words(round(total)) + ' ONLY'
     round_value = float(round(total) - float(total))
     profile = user.userprofile

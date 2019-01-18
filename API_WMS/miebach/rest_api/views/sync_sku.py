@@ -85,7 +85,7 @@ def create_update_sku(all_skus, all_users):
             wh_type = user_profile[0].warehouse_type
     for user in all_users:
         for sku in all_skus:
-            if sku.user == user:
+            if not sku or sku.user == user:
                 continue
             update_sku_dict = {'sku_desc': sku.sku_desc, 'sku_group': sku.sku_group, 'sku_type': sku.sku_type,
                         'sku_category': sku.sku_category, 'sku_class': sku.sku_class, 'sku_brand': sku.sku_brand,

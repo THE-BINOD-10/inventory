@@ -167,7 +167,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       model_name: "auto_confirm_po",
       param_no: 50,
       class_name: "fa fa-server",
-      display: true
+      display: false
     },
     {
       name: "Display Place Sample option in Customer Portal",
@@ -407,7 +407,6 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, Session, Auth
       class_name: "fa fa-server",
       display: true
     },
-   },
    {
      name: "Central Order Reassigning",
      model_name: "central_order_reassigning",

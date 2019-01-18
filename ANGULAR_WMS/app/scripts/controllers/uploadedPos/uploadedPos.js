@@ -28,6 +28,7 @@ function ServerSideProcessingCtrl($scope, $http, $state, $timeout, Session, DTOp
         DTColumnBuilder.newColumn('uploaded_user').withTitle('Uploaded User'),
         DTColumnBuilder.newColumn('distributor').withTitle('Distributor'),
         DTColumnBuilder.newColumn('order_id').withTitle('Order ID'),
+        DTColumnBuilder.newColumn('emizaids').withTitle('Emiza Order IDs'),
         DTColumnBuilder.newColumn('po_number').withTitle('Po No'),
         DTColumnBuilder.newColumn('uploaded_date').withTitle('Date'),
         DTColumnBuilder.newColumn('customer_name').withTitle('Customer Name'),

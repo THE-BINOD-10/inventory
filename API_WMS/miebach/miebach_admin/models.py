@@ -371,6 +371,7 @@ class IntermediateOrders(models.Model):
 
     class Meta:
         db_table = "INTERMEDIATE_ORDERS"
+        index_together = (('user', ), ('user', 'interm_order_id'), ('sku', 'interm_order_id'))
         #unique_together = ('interm_order_id', 'sku')
 
     def json(self):
@@ -401,6 +402,7 @@ class OrderFields(models.Model):
 
     class Meta:
         db_table = 'ORDER_FIELDS'
+        index_together = (('user', 'original_order_id'), ('user', 'original_order_id', 'name'))
 
     def __unicode__(self):
         return str(self.original_order_id)

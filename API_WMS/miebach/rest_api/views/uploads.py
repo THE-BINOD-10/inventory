@@ -5277,6 +5277,7 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
     order_data = {}
     log.info("Validation Started %s" % datetime.datetime.now())
     log.info("Order data Processing Started %s" % (datetime.datetime.now()))
+    loan_proposal_ids_list = []
     sister_wh = get_sister_warehouse(user)
     sister_wh_names = dict(sister_wh.values_list('user__username', 'user_id'))
     sister_user_sku_map = {}
@@ -5309,6 +5310,10 @@ def central_order_xls_upload(request, reader, user, no_of_rows, fname, file_type
                 loan_proposal_id = str(get_cell_data(row_idx, order_mapping['loan_proposal_id'], reader, file_type))
             if not loan_proposal_id:
                 index_status.setdefault(count, set()).add('Invalid loan_proposal_id')
+            if loan_proposal_id in loan_proposal_ids_list:
+                index_status.setdefault(count, set()).add('Loan Proposal ID already present in same excel sheet')
+            else:
+                loan_proposal_ids_list.append(loan_proposal_id)
 
             order_obj = OrderDetail.objects.filter(original_order_id = loan_proposal_id,
                                                    user__in=sister_wh_names.values())

@@ -40,6 +40,7 @@ def make_request():
         token = jwt.encode(payload, secretKey, algorithm='HS256')
         headers =  { 'x-api-key': apiKey, 'x-api-token': token, 'content-type': 'application/json' }
         inv_payload = {'branch' : branch_code, 'day' : str(datetime.datetime.now().date())}
+        import pdb;pdb.set_trace()
         resp_data = []
         lastKey = 1
         while lastKey:

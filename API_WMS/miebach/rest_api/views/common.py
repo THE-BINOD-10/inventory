@@ -2773,21 +2773,21 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 seller_address = seller.name + '\n' + seller.address + "\nCall: " \
                                  + seller.phone_number + "\nEmail: " + seller.email_id \
                                  + "\nGSTIN No: " + seller.tin_number
-
+        import pdb;pdb.set_trace()
         if order_data and order_data[0].customer_id:
             dat = order_data[0]
             gen_ord_customer_id = order_data[0].genericorderdetailmapping_set.values_list('customer_id', flat=True)
             if gen_ord_customer_id and user.userprofile.warehouse_type == 'DIST':
                 customer_details = list(CustomerMaster.objects.filter(id=gen_ord_customer_id[0]).
-                                        values('id', 'customer_id', 'name', 'email_id', 'tin_number', 'address',
+                                        values('id', 'customer_id', 'name', 'email_id', 'tin_number', 'address', 'shipping_address',
                                                'credit_period', 'phone_number'))
             else:
                 customer_details = list(CustomerMaster.objects.filter(user=user.id, customer_id=dat.customer_id).
-                                        values('id', 'customer_id', 'name', 'email_id', 'tin_number', 'address',
+                                        values('id', 'customer_id', 'name', 'email_id', 'tin_number', 'address', 'shipping_address',
                                                'credit_period', 'phone_number'))
             if customer_details:
                 customer_id = customer_details[0]['id']
-                customer_address = customer_details[0]['name'] + '\n' + customer_details[0]['address']
+                customer_address = customer_details[0]['name'] + '\n' + customer_details[0]['shipping_address']
                 if customer_details[0]['tin_number']:
                     customer_address += ("\nGSTIN No: " + customer_details[0]['tin_number'])
                 if customer_details[0]['phone_number']:
@@ -5451,6 +5451,7 @@ def build_invoice(invoice_data, user, css=False):
         empty_data = [""] * no_of_space
         invoice_data['data'].append({'data': temp, 'empty_data': empty_data})
     top = ''
+    import pdb;pdb.set_trace()
     if css:
         c = {'name': 'invoice'}
         top = loader.get_template('../miebach_admin/templates/toggle/invoice/top1.html')
@@ -8552,6 +8553,7 @@ def get_sub_users(user):
 
 def update_order_dicts_rista(orders, rista_resp, user='', company_name=''):
     from outbound import check_stocks
+    import pdb;pdb.set_trace()
     trans_mapping = {}
     collect_order_detail_list = []
     order_sku = {}
@@ -8585,8 +8587,8 @@ def update_order_dicts_rista(orders, rista_resp, user='', company_name=''):
             order_detail = order_obj
 	    collect_order_detail_list.append(order_detail)
         else:
-            del(order['order_details']['telephone'])
-            del(order['order_details']['pin_code'])
+            del(order['order_details']['customer_code'])
+            import pdb;pdb.set_trace()
             order['order_details']['customer_name'] = customer_name
             order_detail = OrderDetail.objects.create(**order['order_details'])
             collect_order_detail_list.append(order_detail)

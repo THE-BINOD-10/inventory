@@ -11207,6 +11207,7 @@ def generate_customer_invoice(request, user=''):
             # invoice_no = user_profile.prefix + '/' + str(inv_month_year) + '/' + 'A-' + str(order.order_id)
             # invoice_data['order_id'] = sor_id
             invoice_data['sor_id'] = sor_id
+        import pdb;pdb.set_trace()
         if not len(set(sell_ids.get('pick_number__in', ''))) > 1:
             invoice_no = invoice_no + '/' + str(max(map(int, sell_ids.get('pick_number__in', ''))))
         invoice_data['invoice_no'] = invoice_no
@@ -11225,7 +11226,6 @@ def generate_customer_invoice(request, user=''):
             invoice_data = build_marketplace_invoice(invoice_data, user, False)
         else:
             invoice_data = build_invoice(invoice_data, user, False)
-
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())

@@ -1662,12 +1662,23 @@ def validate_orders_format_rista(orders, user='', company_name='', is_cancelled=
             orders = {}
         if isinstance(orders, dict):
             orders = [orders]
-        customer_code_list = CustomerMaster.objects.filter(**{'user':user.id}).values_list('customer_code', flat=True)
+        customer_obj = CustomerMaster.objects.filter(**{'user':user.id})
+        customer_code_list = customer_obj.values_list('customer_code', flat=True)
         for ind, order in enumerate(orders):
             customer_code = order.get('customer_code', '')
             if not customer_code in customer_code_list:
                 dm_rista.info(str(customer_code) + 'Customer not Present : Orders' + str(order))
                 continue
+            else:
+                customer_obj_get_cust_id = customer_obj.filter(**{'customer_code':customer_code})
+                if customer_obj:
+                    order['customer_id'] = customer_obj_get_cust_id[0].customer_id
+                    order['city'] = customer_obj_get_cust_id[0].city
+                    order['state'] = customer_obj_get_cust_id[0].state
+                    order['pincode'] = customer_obj_get_cust_id[0].pincode
+		    order['address'] = customer_obj_get_cust_id[0].address
+                    order['telephone'] = customer_obj_get_cust_id[0].phone_number
+                    order['email_id'] = customer_obj_get_cust_id[0].email_id
             try:
                 creation_date = datetime.datetime.strptime(order['order_date'], '%Y-%m-%d %H:%M:%S')
             except:
@@ -1688,11 +1699,16 @@ def validate_orders_format_rista(orders, user='', company_name='', is_cancelled=
                 order_details['customer_id'] = order.get('customer_id', 0)
                 order_details['customer_code'] = order.get('customer_code', '')
                 order_details['customer_name'] = order.get('customer_name', '')
-                order_details['telephone'] = order['billing_address'].get('phone_number', '')
-                order_details['city'] = order['billing_address'].get('city', '')
-                order_details['address'] = order['billing_address'].get('address', '')
-                order_details['pin_code'] = order['billing_address'].get('pincode', '')
-
+                #order_details['telephone'] = order['billing_address'].get('phone_number', '')
+                #order_details['city'] = order['billing_address'].get('city', '')
+                #order_details['address'] = order['billing_address'].get('address', '')
+                #order_details['pin_code'] = order['billing_address'].get('pincode', '')
+            #get_cust_address = CustomerMaster.objects.filter(**{'user':user.id, 'customer_code':order.get('customer_code', '')})
+            #if get_cust_address:
+	    order_details['address'] = order.get('address', '')
+	    order_details['city'] = order.get('city', '')
+	    order_details['pin_code'] = order.get('pincode', '')
+	    order_details['state'] = order.get('state', '')
             if order_code:
                 filter_params['order_code'] = order_code
             sku_items = order['items']
@@ -1700,7 +1716,7 @@ def validate_orders_format_rista(orders, user='', company_name='', is_cancelled=
             valid_order['marketplace'] = channel_name
             valid_order['original_order_id'] = original_order_id
             if order_details['status'] in [1]:
-                valid_order['status__in'] = [1, 2, 3, 4, 5]
+                valid_order['status__in'] = [0, 1, 2, 3, 4, 5]
             elif order_details['status'] in [3, 4]:
                 valid_order['status__in'] = [3, 4]
             order_detail_present = OrderDetail.objects.filter(**valid_order)

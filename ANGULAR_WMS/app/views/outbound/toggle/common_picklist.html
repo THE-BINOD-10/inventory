@@ -177,7 +177,10 @@
                          typeahead="address.batchno for address in pop.service.getSearchValues($viewValue, 'search_batches',record)"
                          ng-model="data.batchno" ng-blur="pop.service.checkSearchValue(record,'search_batches', $event, 'batchno', 'batchno')"
                          typeahead-on-select="pop.get_sku_details(data, $item, $index)"
-                         required></td>
+                         required>
+                  </td>
+                  <input type="hidden" name="batchno_{{data.id}}" value="{{data.batchno}}">
+
                   <td ng-if="pop.industry_type=='FMCG'"><input ng-model="data.manufactured_date" class="form-control" size="35" type="text" readonly></td>
                   <td ng-if="pop.industry_type=='FMCG'"><input ng-model="data.mrp" class="form-control" type="text" readonly></td>
                   <td ng-if="pop.permissions.pallet_switch"><input ng-if="data.load_unit_handle == 'pallet'" ng-model="record.pallet_code" class="form-control" type="text" ng-blur="pop.checkCapacity($index, data, 'pallet_code', $event);"></td>

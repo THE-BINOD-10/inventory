@@ -2277,7 +2277,11 @@ def search_batches(request, user=''):
     total_data =[]
     if stock_data:
         for stock in stock_data:
-            manufactured_date = datetime.datetime.strftime(stock.batch_detail.manufactured_date, "%d/%m/%Y")
+            try:
+                manufactured_date = datetime.datetime.strftime(stock.batch_detail.manufactured_date, "%d/%m/%Y")
+            except:
+                manufactured_date = ''
+
             total_data.append({'batchno': stock.batch_detail.batch_no, 'manufactured_date':manufactured_date })
 
     return HttpResponse(json.dumps(total_data))

@@ -905,7 +905,10 @@ def get_picklist_data(data_id, user_id):
                 if stock_id.batch_detail:
                     mrp = stock_id.batch_detail.mrp
                     batch_no = stock_id.batch_detail.batch_no
-                    manufactured_date = datetime.datetime.strftime(stock_id.batch_detail.manufactured_date, "%d/%m/%Y")
+                    try:
+                        manufactured_date = datetime.datetime.strftime(stock_id.batch_detail.manufactured_date, "%d/%m/%Y")
+                    except:
+                        manufactured_date =''
 
             match_condition = (location, batch_no, manufactured_date,pallet_detail, wms_code, sku_code, title)
             if match_condition not in batch_data:
@@ -1031,7 +1034,10 @@ def get_picklist_data(data_id, user_id):
                 if stock_id.batch_detail:
                     mrp = stock_id.batch_detail.mrp
                     batch_no = stock_id.batch_detail.batch_no
-                    manufactured_date = datetime.datetime.strftime(stock_id.batch_detail.manufactured_date, "%d/%m/%Y")
+                    try:
+                        manufactured_date = datetime.datetime.strftime(stock_id.batch_detail.manufactured_date, "%d/%m/%Y")
+                    except:
+                        manufactured_date = ''
             stock_left = get_sku_location_stock(wms_code, location, user_id, stock_skus, reserved_skus, stocks,
                                                 reserved_instances)
             last_picked_locs = ''
@@ -1104,7 +1110,10 @@ def get_picklist_data(data_id, user_id):
                 if stock_id.batch_detail:
                     mrp = stock_id.batch_detail.mrp
                     batch_no = stock_id.batch_detail.batch_no
-                    manufactured_date = datetime.datetime.strftime(stock_id.batch_detail.manufactured_date, "%d/%m/%Y")
+                    try:
+                        manufactured_date = datetime.datetime.strftime(stock_id.batch_detail.manufactured_date, "%d/%m/%Y")
+                    except:
+                        manufactured_date =''
 
             customer_name = ''
             if order.order:
@@ -1210,12 +1219,16 @@ def validate_location_stock(val, all_locations, all_skus, user, picklist):
                       'quantity__gt': 0}
     if 'pallet' in val and val['pallet']:
         pic_check_data['pallet_detail__pallet_code'] = val['pallet']
-    if picklist.stock and picklist.stock.batch_detail_id:
-        pic_check_data['batch_detail__mrp'] = picklist.stock.batch_detail.mrp
-        pic_check_data['batch_detail__batch_no'] = picklist.stock.batch_detail.batch_no
+
     if picklist.sellerorderdetail_set.filter(seller_order__isnull=False).exists():
         pic_check_data['sellerstock__seller_id'] = picklist.sellerorderdetail_set.\
                                                     filter(seller_order__isnull=False)[0].seller_order.seller_id
+    if val['location'] != val['orig_loc'] :
+        pic_check_data['batch_detail__batch_no'] = val['batchno']
+    else:
+        if picklist.stock and picklist.stock.batch_detail_id:
+            pic_check_data['batch_detail__mrp'] = picklist.stock.batch_detail.mrp
+            pic_check_data['batch_detail__batch_no'] = picklist.stock.batch_detail.batch_no
 
     pic_check = StockDetail.objects.filter(**pic_check_data)
     if not pic_check:

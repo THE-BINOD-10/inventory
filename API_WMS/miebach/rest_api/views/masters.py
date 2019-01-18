@@ -659,21 +659,29 @@ def location_master(request, user=''):
                                                                                          'group').distinct()
     for loc_type in distinct_loctype:
         filter_params = {'zone__zone': loc_type.zone, 'zone__user': user.id}
-        sub_zone_obj = loc_type.subzonemapping_set.filter()
+        sub_zone_objs = loc_type.subzonemapping_set.filter()
         sub_zone = ''
-        if sub_zone_obj:
-            sub_zone = sub_zone_obj[0].sub_zone.zone
-            del filter_params['zone__zone']
-            filter_params['zone__zone__in'] = [sub_zone, loc_type.zone]
+        temp_sub_zones = []
+        for sub_zone_obj in sub_zone_objs:
+            sub_zone = sub_zone_obj.sub_zone.zone
+            if 'zone__zone' in filter_params.keys():
+                del filter_params['zone__zone']
+            temp_sub_zones.append(sub_zone)
+        filter_params['zone__zone__in'] = [loc_type.zone]
+        if temp_sub_zones:
+            filter_params['zone__zone__in'] = list(chain(temp_sub_zones, filter_params['zone__zone__in']))
         loc = filter_by_values(LocationMaster, filter_params,
                                ['location', 'max_capacity', 'fill_sequence', 'pick_sequence', 'status',
-                                'pallet_capacity', 'lock_status'])
+                                'pallet_capacity', 'lock_status', 'zone__level', 'zone__zone'])
         for loc_location in loc:
             loc_group_dict = filter(lambda person: str(loc_location['location']) == str(person['location__location']),
                                     location_groups)
             loc_groups = map(lambda d: d['group'], loc_group_dict)
             loc_groups = [str(x).encode('UTF8') for x in loc_groups]
             loc_location['location_group'] = loc_groups
+            sub_zone = ''
+            if loc_location['zone__level'] == 1:
+                sub_zone = loc_location['zone__zone']
             loc_location['sub_zone'] = sub_zone
         new_loc.append(loc)
 

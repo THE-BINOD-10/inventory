@@ -3768,7 +3768,7 @@ def build_style_search_data(to_data, from_data, limit):
                                     'style_name': data['style_name']})
         return to_data
 
-
+@fn_timer
 def insert_update_brands(user):
     request = {}
     # user = User.objects.get(id=sku.user)
@@ -8167,7 +8167,7 @@ def send_push_notification(contents, users_list):
 
 def update_ean_sku_mapping(user, ean_numbers, data, remove_existing=False):
     ean_status = ''
-    exist_ean_list = list(EANNumbers.objects.filter(sku_id=data.id).annotate(str_eans=Cast('ean_number', CharField())).\
+    exist_ean_list = list(data.eannumbers_set.filter().annotate(str_eans=Cast('ean_number', CharField())).\
                           values_list('str_eans', flat=True))
     if data.ean_number:
         exist_ean_list.append(str(data.ean_number))

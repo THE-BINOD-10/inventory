@@ -128,9 +128,9 @@
                         </div>
                         {% endif %}
                         {% if marketplace|lower != 'offline' %}
-                            <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() != 'offline'" class="fs13">
-                              {{marketplace}}<br>
-                            </div>
+                        <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() != 'offline'" class="fs13">
+                          {{marketplace}}<br>
+                        </div>
                         {% endif %}
                       </address>
                       {% endif %}
@@ -170,7 +170,7 @@
                           <p class="fs13 m0" ng-if="showCase.pdf_data.customer_details[0].tin_number">
                             <b>GSTIN No: </b>{{customer_details.0.tin_number}}</p>
                           {% endif %}
-						  {% if customer_details.0.phone_number %}
+                          {% if customer_details.0.phone_number %}
                           <p class="fs13 m0" ng-if="showCase.pdf_data.customer_details[0].phone_number">
                             <b>Mobile No: </b>{{customer_details.0.phone_number}}</p>
                           {% endif %}
@@ -183,7 +183,7 @@
                         {% if marketplace|lower != 'offline' %}
                         <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() != 'offline'" class="fs13">
                           {{marketplace}}<br>
-						</div>
+                        </div>
                         {% endif %}
                       </address>
                       {% endif %}

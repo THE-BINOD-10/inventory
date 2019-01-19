@@ -237,6 +237,13 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
         }
       })
     }
+    vm.invoice_print = function(){
+      vm.service.apiCall("invoice_print_manifest/", "POST", {"shipment_id":vm.model_data.shipment_number}).then(function(data){
+        if(data.message){
+          vm.service.print_data(data.data, vm.model_data.manifest_number);
+        }
+      })
+    }
 
     $rootScope.$on("CallParentMethod", function(){
       $scope.awb_marketplace_filter_data();

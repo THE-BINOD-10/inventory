@@ -1232,7 +1232,7 @@ def validate_location_stock(val, all_locations, all_skus, user, picklist):
 
     pic_check = StockDetail.objects.filter(**pic_check_data)
     if not pic_check:
-        status.append("Insufficient Stock in given location")
+        status.append("Insufficient Stock in given location with batch number")
     location = all_locations.filter(location=val['location'], zone__user=user.id)
     if not location:
         if error_string:
@@ -2087,7 +2087,10 @@ def picklist_confirmation(request, user=''):
 
     if mod_locations:
         update_filled_capacity(list(set(mod_locations)), user.id)
-    return HttpResponse('Picklist Confirmed')
+    if status:
+        return HttpResponse(status)
+    else:
+        return HttpResponse('Picklist Confirmed')
 
 
 def serial_order_mapping(picklist, user):

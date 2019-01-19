@@ -8610,3 +8610,52 @@ def update_order_dicts_rista(orders, rista_resp, user='', company_name=''):
     status = {'status': 1, 'messages': ['Success']}
     return status
 
+
+def mysql_query_to_file(load_file, table_name, columns, values1, date_string='', update_string=''):
+    values = copy.deepcopy(values1)
+    columns_string = ','.join(columns)
+    query = 'insert into %s %s' % (table_name, '('+columns_string+')')
+    string_vals = str(tuple(map(str, values)))
+    if date_string:
+        string_vals = string_vals[:-1] + ',' + date_string + ')'
+    query += ' %s' % ('values' + string_vals)
+    if update_string:
+        query += ' on duplicate key update %s' % update_string
+    #file_str = query + ';'
+    file_str = "#<>#".join(values)
+    load_file.write('%s\n' % file_str)
+    load_file.flush()
+
+
+def load_by_file(load_file_name, table_name, columns, id_dependency=False):
+    db_name = settings.DATABASES['default']['NAME']
+    mysql_user = settings.DATABASES['default']['USER']
+    mysql_password = settings.DATABASES['default']['PASSWORD']
+    mysql_host = settings.DATABASES['default']['HOST']
+    base_cmd = 'mysql -u %s -p%s '
+    cmd_tuple = [mysql_user, mysql_password]
+    if mysql_host:
+        base_cmd = 'mysql -u %s -h %s -p%s '
+        cmd_tuple = [mysql_user, mysql_host, mysql_password]
+    if id_dependency:
+        cmd = base_cmd + db_name + ' < %s'
+        cmd_tuple.append(load_file_name)
+    else:
+        cmd = base_cmd + db_name + ' --local-infile=1 -e "%s"'
+        columns_string = '(' + ','.join(columns) +')'
+        query = "LOAD DATA LOCAL INFILE '%s' REPLACE INTO TABLE %s CHARACTER SET utf8 FIELDS TERMINATED BY '#<>#' lines terminated by '\n' %s" %\
+                (load_file_name, table_name, columns_string)
+        if table_name in ['SKU_ATTRIBUTES']:
+            query += " SET creation_date=NOW(), updation_date=NOW();"
+        else:
+            query += ";"
+        cmd_tuple.append(query)
+    try:
+        log.info("Loading Started for: %s" % load_file_name)
+        log.info(cmd % tuple(cmd_tuple))
+        cmd = cmd % tuple(cmd_tuple)
+        subprocess.check_output(cmd, stderr=subprocess.STDOUT,shell=True)
+        log.info('loading completed')
+    except:
+        pass
+

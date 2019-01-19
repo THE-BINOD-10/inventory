@@ -261,11 +261,14 @@ function view_orders() {
           vm.qty_validation = {};
           if(data.data == "Picklist Confirmed") {
             vm.ok("done");
-          } else if (typeof(data.data) == "string" && data.data.indexOf("print-invoice")) {
+          }
+          else if (data.data == 'Insufficient Stock in given location with batch number') {
+            Service.showNoty(data.data);
+          }
+          else if (typeof(data.data) == "string" && data.data.indexOf("print-invoice")) {
             vm.ok("html");
             vm.status_data.data = data.data;
           } else if (data.data.status == 'invoice') {
-
             vm.status_data.data = data.data.data;
             vm.ok("invoice");
           } else {

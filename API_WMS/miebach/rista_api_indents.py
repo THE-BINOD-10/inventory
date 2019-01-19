@@ -38,9 +38,7 @@ def make_request():
         payload = { "jti": jti, "iss": apiKey, "iat": tokencreationtime }
         token = jwt.encode(payload, secretKey, algorithm='HS256')
         headers =  { 'x-api-key': apiKey, 'x-api-token': token, 'content-type': 'application/json' }
-        #inv_payload = {'branch' : branch_code, 'day' : str(datetime.datetime.now().date())}
-        inv_payload = {'branch' : branch_code, 'day' : '2019-01-16'}
-        import pdb;pdb.set_trace()
+        inv_payload = {'branch' : branch_code, 'day' : str(datetime.datetime.now().date())}
         resp_data = []
         lastKey = 1
         while lastKey:

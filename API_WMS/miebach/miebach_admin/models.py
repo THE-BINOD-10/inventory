@@ -371,6 +371,7 @@ class IntermediateOrders(models.Model):
 
     class Meta:
         db_table = "INTERMEDIATE_ORDERS"
+        index_together = (('user', ), ('user', 'interm_order_id'), ('sku', 'interm_order_id'))
         #unique_together = ('interm_order_id', 'sku')
 
     def json(self):
@@ -401,6 +402,7 @@ class OrderFields(models.Model):
 
     class Meta:
         db_table = 'ORDER_FIELDS'
+        index_together = (('user', 'original_order_id'), ('user', 'original_order_id', 'name'))
 
     def __unicode__(self):
         return str(self.original_order_id)
@@ -2355,7 +2357,7 @@ class TaxMaster(models.Model):
     class Meta:
         db_table = 'TAX_MASTER'
         # unique_together = ('user', 'product_type', 'inter_state', 'cgst_tax', 'sgst_tax', 'igst_tax')
-        index_together = ('user', 'product_type', 'inter_state')
+        index_together = (('user', 'product_type', 'inter_state'), ('cgst_tax', 'sgst_tax', 'igst_tax', 'cess_tax', 'user'))
 
     def json(self):
         return {
@@ -2891,6 +2893,7 @@ class PrimarySegregation(models.Model):
     id = BigAutoField(primary_key=True)
     purchase_order = models.ForeignKey(PurchaseOrder, blank=True, null=True)
     batch_detail = models.ForeignKey(BatchDetail, blank=True, null=True)
+    seller_po_summary = models.ForeignKey(SellerPOSummary, blank=True, null=True)
     quantity = models.FloatField(default=0)
     sellable = models.FloatField(default=0)
     non_sellable = models.FloatField(default=0)
@@ -2900,7 +2903,7 @@ class PrimarySegregation(models.Model):
 
     class Meta:
         db_table = 'PRIMARY_SEGREGATION'
-        unique_together = ('purchase_order', 'batch_detail')
+        unique_together = ('purchase_order', 'batch_detail', 'seller_po_summary')
 
 
 

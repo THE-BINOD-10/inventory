@@ -856,7 +856,8 @@ def update_cancelled(orders, user='', company_name=''):
         traceback.print_exc()
 
 
-def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_status, user_attr_list, parent_sku=None):
+def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_status, user_attr_list, sizes_dict,
+                             new_ean_objs):
     sku_master = None
     sku_code = sku_data.get(sku_mapping['sku_code'], '')
     if sku_data.get(sku_mapping['sku_desc'], ''):
@@ -866,7 +867,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
         error_message = 'SKU Code should not be empty'
         update_error_message(failed_status, 5022, error_message, sku_data[sku_mapping['sku_desc']],
                              field_key='sku_desc')
-        return sku_master, insert_status
+        return sku_master, insert_status, new_ean_objs
     sku_ins = SKUMaster.objects.filter(user=user.id, sku_code=sku_code)
     if sku_ins:
         sku_master = sku_ins[0]
@@ -897,13 +898,15 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                                      field_key='sku_code')
                 continue
             elif sku_size and value:
-                size_master = SizeMaster.objects.filter(user=user.id, size_name=value)
-                if not size_master:
+                if not value in sizes_dict.keys():
+                # size_master = SizeMaster.objects.filter(user=user.id, size_name=value)
+                # if not size_master:
                     error_message = 'Size Type Invalid'
                     update_error_message(failed_status, 5027, error_message, sku_code,
                                          field_key='sku_code')
                 else:
-                    sizes = size_master[0].size_value.split("<<>>")
+                    #sizes = size_master[0].size_value.split("<<>>")
+                    sizes = sizes_dict[value].split('<<>>')
                     if sku_size not in sizes:
                         error_message = 'Size type and Size not matching'
                         update_error_message(failed_status, 5023, error_message, sku_code,
@@ -952,7 +955,10 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                                      field_key='sku_code')
         elif key == 'ean_number':
             if value:
-                ean_numbers = str(value)
+                try:
+                    ean_numbers = str(value.encode('utf-8').replace('\xc2\xa0', ''))
+                except:
+                    ean_numbers = ''
             continue
         if value == None:
             value = ''
@@ -961,7 +967,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
             setattr(sku_master, key, value)
 
     if sku_code in sum(insert_status.values(), []):
-        return sku_master, insert_status
+        return sku_master, insert_status, new_ean_objs
     product_type = ''
     if taxes_dict and sum(taxes_dict.values()) > 0:
         product_type_dict = {}
@@ -990,7 +996,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
             update_error_message(failed_status, 5028, error_message, sku_code,
                                  field_key='sku_code')
     if '%s:%s' % ('sku_code', str(sku_code)) in failed_status.keys():
-        return sku_master, insert_status
+        return sku_master, insert_status, new_ean_objs
     if sku_master:
         sku_master.save()
         insert_status['SKUS updated'].append(sku_code)
@@ -1012,8 +1018,8 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                 continue
             if option['name'] in option_not_created:
                 continue
-            sku_attributes = SKUAttributes.objects.filter(sku_id=sku_master.id, attribute_name=option['name'])
-            if sku_attributes:
+            sku_attributes = sku_master.skuattributes_set.filter(attribute_name=option['name'])
+            if sku_attributes.exists():
                 sku_attributes = sku_attributes[0]
                 sku_attributes.attribute_value = option['value']
                 sku_attributes.save()
@@ -1027,10 +1033,34 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
     if sku_master and ean_numbers:
         try:
             ean_numbers = ean_numbers.split(',')
-            update_ean_sku_mapping(user, ean_numbers, sku_master, True)
+            exist_eans = list(sku_master.eannumbers_set.filter(ean_number__gt=0).\
+                              annotate(str_eans=Cast('ean_number', CharField())).\
+                          values_list('str_eans', flat=True))
+            if sku_master.ean_number:
+                exist_eans.append(str(sku_master.ean_number))
+            rem_eans = set(exist_eans) - set(ean_numbers)
+            create_eans = set(ean_numbers) - set(exist_eans)
+            if rem_eans:
+                rem_ean_objs = sku_master.eannumbers_set.filter(ean_number__in=rem_eans)
+                if rem_ean_objs.exists():
+                    rem_ean_objs.delete()
+            if str(sku_master.ean_number) in rem_eans:
+                sku_master.ean_number = 0
+                sku_master.save()
+            new_ean_objs = []
+            for ean in create_eans:
+                if not ean:
+                    continue
+                try:
+                    ean = int(ean)
+                    new_ean_objs.append(EANNumbers(**{'ean_number': ean, 'sku_id': sku_master.id}))
+                except:
+                    pass
+            #update_ean_sku_mapping(user, ean_numbers, sku_master, True)
         except:
             pass
-    return sku_master, insert_status
+    #print sku_master_dict['sku_code']
+    return sku_master, insert_status, new_ean_objs
 
 
 def update_skus(skus, user='', company_name=''):
@@ -1062,14 +1092,15 @@ def update_skus(skus, user='', company_name=''):
         if not skus:
             skus = {}
         skus = skus.get(sku_mapping['skus'], [])
+        sizes_dict = dict(SizeMaster.objects.filter(user=user.id).values_list('size_name', 'size_value'))
+        new_ean_objs = []
         for sku_data in skus:
-            sku_master, insert_status = sku_master_insert_update(sku_data, user, sku_mapping, insert_status,
-                                                                 failed_status, user_attr_list)
+            sku_master, insert_status, new_ean_objs = sku_master_insert_update(sku_data, user, sku_mapping, insert_status,
+                                                                 failed_status, user_attr_list, sizes_dict,
+                                                                 new_ean_objs)
             all_sku_masters.append(sku_master)
             if sku_data.has_key('child_skus') and sku_data['child_skus'] and isinstance(sku_data['child_skus'], list):
                 for child_data in sku_data['child_skus']:
-                    #sku_master1, insert_status = sku_master_insert_update(child_data, user, sku_mapping, insert_status,
-                    #                                                      parent_sku=sku_master)
                     child_sku_master = SKUMaster.objects.filter(user=user.id, sku_code=child_data['sku_code'])
                     if not child_sku_master:
                         child_obj = SKUMaster.objects.create(sku_code=child_data['sku_code'],
@@ -1096,7 +1127,8 @@ def update_skus(skus, user='', company_name=''):
                             sku_relation.quantity = quantity
                             sku_relation.save()
                         all_sku_masters.append(child_obj)
-
+        if new_ean_objs:
+            EANNumbers.objects.bulk_create(new_ean_objs)
         insert_update_brands(user)
 
         all_users = get_related_users(user.id)

@@ -2041,8 +2041,8 @@ def validate_orders_format_rista(orders, user='', company_name='', is_cancelled=
         for ind, order in enumerate(orders):
             customer_code = order.get('customer_code', '')
             if not customer_code in customer_code_list:
-                dm_rista.info(str(customer_code) + 'Customer not Present : Orders' + str(order))
-                send_mail(['aravind@mieone.com'], 'Rista - DM', 'Hello DM')
+                dm_rista.info(str(customer_code) + ' - of Branch Code Customer not Present : Orders' + str(order))
+                send_mail(['aravind@mieone.com', 'srinivas@mieone.com', 'karthik@mieone.com', 'vimal@mieone.com'], 'Rista - DM', str(customer_code) + ' - of Branch Code Customer not Present : Orders' + str(order))
                 continue
             else:
                 customer_obj_get_cust_id = customer_obj.filter(**{'customer_code':customer_code})

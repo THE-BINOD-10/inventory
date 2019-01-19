@@ -856,7 +856,7 @@ def update_cancelled(orders, user='', company_name=''):
 
 
 def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_status, user_attr_list, sizes_dict,
-                             new_ean_objs):
+                             new_ean_objs, load_file, columns):
     sku_master = None
     sku_code = sku_data.get(sku_mapping['sku_code'], '')
     if sku_data.get(sku_mapping['sku_desc'], ''):
@@ -1017,15 +1017,20 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                 continue
             if option['name'] in option_not_created:
                 continue
-            sku_attributes = sku_master.skuattributes_set.filter(attribute_name=option['name'])
-            if sku_attributes.exists():
-                sku_attributes = sku_attributes[0]
-                sku_attributes.attribute_value = option['value']
-                sku_attributes.save()
-            else:
-                SKUAttributes.objects.create(sku_id=sku_master.id, attribute_name=option['name'],
-                                             attribute_value=option['value'],
-                                             creation_date=datetime.datetime.now())
+            column_vals = [str(sku_master.id), option['name'], option['value']]
+            update_string = "sku_id=%s, attribute_name='%s',updation_date=NOW()" % (str(sku_master.id), str(option['name']))
+            date_string = 'NOW(), NOW()'
+            mysql_query_to_file(load_file, 'SKU_ATTRIBUTES', columns,
+                                column_vals, date_string=date_string, update_string=update_string)
+            # sku_attributes = sku_master.skuattributes_set.filter(attribute_name=option['name'])
+            # if sku_attributes.exists():
+            #     sku_attributes = sku_attributes[0]
+            #     sku_attributes.attribute_value = option['value']
+            #     sku_attributes.save()
+            # else:
+            #     SKUAttributes.objects.create(sku_id=sku_master.id, attribute_name=option['name'],
+            #                                  attribute_value=option['value'],
+            #                                  creation_date=datetime.datetime.now())
     if sku_master and product_type:
         sku_master.product_type = product_type
         sku_master.save()
@@ -1092,11 +1097,17 @@ def update_skus(skus, user='', company_name=''):
             skus = {}
         skus = skus.get(sku_mapping['skus'], [])
         sizes_dict = dict(SizeMaster.objects.filter(user=user.id).values_list('size_name', 'size_value'))
+        mysql_file_path = 'static/mysql_files'
+        folder_check(mysql_file_path)
+        file_time_stamp = str(datetime.datetime.now()).replace(' ', '_').replace(':', '_').split('.')[0]
+        load_file_path = '%s/%s' % (mysql_file_path, 'sku_attr_' + file_time_stamp + '.txt')
+        load_file = open(load_file_path, 'w')
+        columns = ['sku_id', 'attribute_name', 'attribute_value']
         new_ean_objs = []
         for sku_data in skus:
             sku_master, insert_status, new_ean_objs = sku_master_insert_update(sku_data, user, sku_mapping, insert_status,
                                                                  failed_status, user_attr_list, sizes_dict,
-                                                                 new_ean_objs)
+                                                                 new_ean_objs, load_file, columns)
             all_sku_masters.append(sku_master)
             if sku_data.has_key('child_skus') and sku_data['child_skus'] and isinstance(sku_data['child_skus'], list):
                 for child_data in sku_data['child_skus']:
@@ -1132,6 +1143,7 @@ def update_skus(skus, user='', company_name=''):
 
         all_users = get_related_users(user.id)
         sync_sku_switch = get_misc_value('sku_sync', user.id)
+        load_by_file(load_file_path, 'SKU_ATTRIBUTES', columns)
         if all_users and sync_sku_switch == 'true' and all_sku_masters:
             create_update_sku(all_sku_masters, all_users)
         return insert_status, failed_status.values()

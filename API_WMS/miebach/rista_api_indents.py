@@ -36,7 +36,8 @@ def make_request():
         apiKey = get_api_key_secret[0]
         secretKey = get_api_key_secret[1]
         tokencreationtime = int(round(time.time()))
-        payload = { "jti": tokencreationtime, "iss": apiKey, "iat": tokencreationtime }
+        jti = int(time.time() * 1000.0)
+        payload = { "jti": jti, "iss": apiKey, "iat": tokencreationtime }
         token = jwt.encode(payload, secretKey, algorithm='HS256')
         headers =  { 'x-api-key': apiKey, 'x-api-token': token, 'content-type': 'application/json' }
         inv_payload = {'branch' : branch_code, 'day' : str(datetime.datetime.now().date())}
@@ -44,14 +45,21 @@ def make_request():
         resp_data = []
         lastKey = 1
         while lastKey:
-            resp = requests.get(url, headers=headers, params=inv_payload)
-            resp_json = resp.json()
-            resp_data += resp_json['data']
-            if 'lastKey' in resp_json.keys():
-                lastKey = 1
-                inv_payload['lastKey'] = resp_json['lastKey']
-            else:
+            response = requests.get(url, headers=headers, params=inv_payload)
+            if str(response.status_code) in ['500', '422', '409', '404', '403', '401', '400']:
+		#resp_data_dict['message'] = json.dumps(json_resp)
+		#resp_data_dict['status'] = False
                 lastKey = 0
+	    else:
+		#resp_data_dict['message'] = json.dumps(json_resp)
+		#resp_data_dict['status'] = True
+                resp_json = resp.json()
+                resp_data += resp_json['data']
+                if 'lastKey' in resp_json.keys():
+                    lastKey = 1
+                    inv_payload['lastKey'] = resp_json['lastKey']
+                else:
+                    lastKey = 0
         if resp_data:
             send_to_stockone_resp = sendToStockOne({'data':resp_data}, branch_code)
     b = datetime.datetime.now()

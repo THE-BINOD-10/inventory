@@ -1992,16 +1992,18 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
     return insert_status, failed_status.values(), final_data_dict
 
 
+
+
 def validate_orders_format_rista(orders, user='', company_name='', is_cancelled=False):
     order_status_dict = {'NEW': 1, 'RETURN': 3, 'CANCEL': 4}
     NOW = datetime.datetime.now()
-    insert_status = [] 
+    insert_status = []
     final_data_dict = OrderedDict()
-    try: 
+    try:
         seller_master_dict, valid_order, query_params = {}, {}, {}
         failed_status = OrderedDict()
         if not orders:
-            orders = {} 
+            orders = {}
         if isinstance(orders, dict):
             orders = [orders]
         import pdb;pdb.set_trace()

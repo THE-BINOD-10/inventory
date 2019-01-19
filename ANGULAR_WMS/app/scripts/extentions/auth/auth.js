@@ -185,7 +185,7 @@
         const stringManifest = JSON.stringify(manifest_json);
         const blob = new Blob([stringManifest], {type: 'application/json'});
         const manifestURL = URL.createObjectURL(blob);
-        //document.querySelector('#my-manifest-placeholder').setAttribute('href', manifestURL);
+        document.querySelector('#my-manifest-placeholder').setAttribute('href', manifestURL);
       };
 
   }]);

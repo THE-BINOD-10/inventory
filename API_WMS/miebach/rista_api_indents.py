@@ -65,6 +65,8 @@ def sendToStockOne(resp, branch_code):
     resp = resp['data']
     stockone_auth = {}
     write_order_resp = ''
+    if branch_code == 'BW':
+        branch_code = 'Drunken@Monkey'
     get_client_secret = User.objects.filter(username=branch_code)
     if get_client_secret:
 	get_client_secret = get_client_secret[0].oauth2_provider_application.values()

@@ -2794,20 +2794,14 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                 if customer_details[0]['email_id']:
                     customer_address += ("\tEmail: " + customer_details[0]['email_id'])
                 consignee = customer_address
-                #email = customer_details[0]['email_id']
-                #gstin_no = customer_details[0]['gstin_no']
             else:
                 customer_id = dat.customer_id
                 customer_address = dat.customer_name + '\n' + dat.address + "\nCall: " \
                                    + str(dat.telephone) + "\nEmail: " + str(dat.email_id)
-                #email = str(dat.email_id)
-                #gstin_no = customer_details[0]['gstin_no']
         if not customer_address:
             dat = order_data[0]
             customer_address = dat.customer_name + '\n' + dat.address + "\nCall: " \
                                + dat.telephone + "\nEmail: " + dat.email_id
-            #email = str(dat.email_id)
-            #gstin_no = str(dat.gstin_no)
         if not customer_details and dat.address:
             customer_details.append({'id' : dat.customer_id, 'name' : dat.customer_name, 'address' : dat.address})
 
@@ -3036,7 +3030,6 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     total_amt = "%.2f" % (float(total_invoice) - float(_total_tax))
     dispatch_through = "By Road"
     _total_invoice = round(total_invoice_amount)
-    # _invoice_no =  'TI/%s/%s' %(datetime.datetime.now().strftime('%m%y'), order_no)
     admin_user = get_admin(user)
     if admin_user.get_username() .lower()== '72Networks'.lower() :
         side_image = get_company_logo(admin_user, COMPANY_LOGO_PATHS)
@@ -3054,7 +3047,6 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
     if seller_address:
         company_address = seller.address
         email = seller.email_id
-        #if not gstin_no:
         gstin_no = seller.tin_number
         company_address = company_address.replace("\n", " ")
         company_name = seller.name #'SHPROC Procurement Pvt. Ltd.'

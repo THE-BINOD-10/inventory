@@ -101,7 +101,7 @@
                           <span class="fs16" ng-if="user.userName != 'campus_sutra'">Bill To,</span>
                           <!--<span class="fs16" ng-if="user.userName == 'campus_sutra'">CONSIGNEE,</span>-->
                         </strong><br>
-                        {% if marketplace|lower == 'offline' or marketplace|lower == 'drunken_monkey' %}
+                        {% if marketplace|lower == 'offline' %}
                         <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() == 'offline'">
                           {% if customer_details.0.name == '' %}
                           <p class="fs13 m0" ng-if= "showCase.pdf_data.customer_details[0].name == ''">{{marketplace}}</p>
@@ -128,7 +128,7 @@
                         </div>
                         {% endif %}
 
-                        {% if marketplace|lower != 'offline' and marketplace|lower != 'drunken_monkey' %}
+                        {% if marketplace|lower != 'offline' %}
                             <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() != 'offline'" class="fs13">
                               <b>Marketplace: </b>{{marketplace}}<br>
                             </div>
@@ -155,7 +155,7 @@
                         <div class="col-md-12 p0 fs13">
                           <p class="pre-custom p0">{{consignee}}</p>
                         </div>
-                        {% elif marketplace|lower == 'drunken_monkey' or marketplace|lower == 'offline' %}
+                        {% elif marketplace|lower == 'offline' %}
                         <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() == 'offline'">
                           {% if customer_details.0.name == '' %}
                           <p class="fs13 m0" ng-if= "showCase.pdf_data.customer_details[0].name == ''">{{marketplace}}</p>
@@ -181,7 +181,7 @@
                           {% endif %}
                         </div>
                         {% endif %}
-                        {% if marketplace|lower != 'offline' and  marketplace|lower != 'drunken_monkey' %}
+                        {% if marketplace|lower != 'offline' %}
                         <div ng-if = "showCase.pdf_data.marketplace.toLowerCase() != 'offline'" class="fs13">
                           <b>Marketplace: </b>{{marketplace}}<br>
 						</div>

@@ -50,7 +50,6 @@ def create_csv(data, branch_code):
 	obj.append(0)
 	obj.append('')
 	temp_data.append(obj)
-    import pdb;pdb.set_trace()
     path = '/root/aravind/rista_stockone/'
     if not os.path.exists(path):
         os.makedirs(path)
@@ -65,13 +64,11 @@ def create_csv(data, branch_code):
             try:
                 thedatawriter.writerow(data)
             except:
-                import pdb;pdb.set_trace()
-                print "RISTA"
+                print "RISTA Error"
             counter += 1
     return path
 
 def make_request():
-    import pdb;pdb.set_trace()
     url = "{}://{}{}".format(SCHEME, API_HOST, ENDPOINT)
     for branch_code in branch_list:
         get_api_key_secret = rista_location_keys[branch_code]

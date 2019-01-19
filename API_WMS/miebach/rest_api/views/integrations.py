@@ -7,6 +7,7 @@ from dateutil import parser
 import traceback
 import ConfigParser
 import datetime
+from rest_api.views.mail_server import send_mail
 
 LOAD_CONFIG = ConfigParser.ConfigParser()
 LOAD_CONFIG.read(INTEGRATIONS_CFG_FILE)
@@ -1662,12 +1663,14 @@ def validate_orders_format_rista(orders, user='', company_name='', is_cancelled=
             orders = {}
         if isinstance(orders, dict):
             orders = [orders]
+        import pdb;pdb.set_trace()
         customer_obj = CustomerMaster.objects.filter(**{'user':user.id})
         customer_code_list = customer_obj.values_list('customer_code', flat=True)
         for ind, order in enumerate(orders):
             customer_code = order.get('customer_code', '')
             if not customer_code in customer_code_list:
                 dm_rista.info(str(customer_code) + 'Customer not Present : Orders' + str(order))
+                send_mail(['aravind@mieone.com'], 'Rista - DM', 'Hello DM')
                 continue
             else:
                 customer_obj_get_cust_id = customer_obj.filter(**{'customer_code':customer_code})

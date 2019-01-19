@@ -18,7 +18,7 @@ import ConfigParser
 order_pull_rista_stockone_logs = init_logger('logs/rista_order_pull_stockone.log')
 SCHEME = 'https'
 LOAD_CONFIG = ConfigParser.ConfigParser()
-LOAD_CONFIG.read(INTEGRATIONS_CFG_FILE)
+LOAD_CONFIG.read('rest_api/views/configuration_prod.cfg')
 stockone_url = LOAD_CONFIG.get('rista', 'stockone_url', '')
 API_HOST = LOAD_CONFIG.get('rista', 'rista_app_url', '')
 ENDPOINT = LOAD_CONFIG.get('rista', 'inventory_indent_url', '')
@@ -40,7 +40,8 @@ def make_request():
         payload = { "jti": jti, "iss": apiKey, "iat": tokencreationtime }
         token = jwt.encode(payload, secretKey, algorithm='HS256')
         headers =  { 'x-api-key': apiKey, 'x-api-token': token, 'content-type': 'application/json' }
-        inv_payload = {'branch' : branch_code, 'day' : str(datetime.datetime.now().date())}
+        #inv_payload = {'branch' : branch_code, 'day' : str(datetime.datetime.now().date())}
+        inv_payload = {'branch' : branch_code, 'day' : '2019-01-16'}
         import pdb;pdb.set_trace()
         resp_data = []
         lastKey = 1
@@ -53,7 +54,7 @@ def make_request():
 	    else:
 		#resp_data_dict['message'] = json.dumps(json_resp)
 		#resp_data_dict['status'] = True
-                resp_json = resp.json()
+                resp_json = response.json()
                 resp_data += resp_json['data']
                 if 'lastKey' in resp_json.keys():
                     lastKey = 1

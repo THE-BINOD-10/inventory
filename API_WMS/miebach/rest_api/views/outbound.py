@@ -2092,6 +2092,7 @@ def picklist_confirmation(request, user=''):
                         if picklist.order:
                             check_and_update_order(user.id, picklist.order.original_order_id)
                         all_pick_locations.filter(picklist_id=picklist.id, status=1).update(status=0)
+                    #Rista DM Integration Code, collect SKU code
                     int_obj = Integrations.objects.filter(**{'user':user.id, 'name':'rista', 'status':1})
                     if int_obj:
                         original_order_id_str = str(picklist.order.original_order_id)
@@ -2106,6 +2107,7 @@ def picklist_confirmation(request, user=''):
                             else:
                                 rista_order_dict[original_order_id_str] = []
                                 rista_order_dict[original_order_id_str].append(sku_code_dict)
+
                     picklist.save()
                     if user_profile.user_type == 'marketplace_user' and picklist.order:
                         create_seller_order_summary(picklist, picking_count1, seller_pick_number, picks_all,

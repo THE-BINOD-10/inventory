@@ -22,8 +22,6 @@ LOAD_CONFIG.read('rest_api/views/configuration_prod.cfg')
 stockone_url = LOAD_CONFIG.get('rista', 'stockone_url', '')
 API_HOST = LOAD_CONFIG.get('rista', 'rista_app_url', '')
 ENDPOINT = LOAD_CONFIG.get('rista', 'inventory_indent_url', '')
-apiKey = LOAD_CONFIG.get('rista', 'rista_api_key', '')
-secretKey = LOAD_CONFIG.get('rista', 'rista_secret_key', '')
 branch_list = eval(LOAD_CONFIG.get('rista', 'branch_list', ''))
 rista_location_keys = eval(LOAD_CONFIG.get('rista', 'rista_location_keys', ''))
 
@@ -48,12 +46,8 @@ def make_request():
         while lastKey:
             response = requests.get(url, headers=headers, params=inv_payload)
             if str(response.status_code) in ['500', '422', '409', '404', '403', '401', '400']:
-		#resp_data_dict['message'] = json.dumps(json_resp)
-		#resp_data_dict['status'] = False
                 lastKey = 0
 	    else:
-		#resp_data_dict['message'] = json.dumps(json_resp)
-		#resp_data_dict['status'] = True
                 resp_json = response.json()
                 resp_data += resp_json['data']
                 if 'lastKey' in resp_json.keys():

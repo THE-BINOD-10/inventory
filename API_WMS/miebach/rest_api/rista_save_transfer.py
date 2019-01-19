@@ -22,8 +22,6 @@ LOAD_CONFIG = ConfigParser.ConfigParser()
 LOAD_CONFIG.read(INTEGRATIONS_CFG_FILE)
 API_HOST = LOAD_CONFIG.get('rista', 'rista_app_url', '')
 ENDPOINT = LOAD_CONFIG.get('rista', 'save_transfer_url', '')
-#apiKey = LOAD_CONFIG.get('rista', 'rista_api_key', '')
-#secretKey = LOAD_CONFIG.get('rista', 'rista_secret_key', '')
 rista_location_keys = eval(LOAD_CONFIG.get('rista', 'rista_location_keys', ''))
 
 def save_transfer_in_rista(input_data, branch_code):

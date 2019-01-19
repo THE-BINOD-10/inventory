@@ -6,7 +6,6 @@ from email import encoders
 
 
 def send_mail(send_to, subject, body):
-    import pdb;pdb.set_trace()
     if not send_to:
         return
 
@@ -24,7 +23,6 @@ def send_mail(send_to, subject, body):
     encoders.encode_base64(part)
 
     try:
-        import pdb;pdb.set_trace()
         server = smtplib.SMTP_SSL('smtp.gmail.com', '465')
         server.login(fromaddr, "no*reply!59")
         text = msg.as_string()

@@ -1834,8 +1834,6 @@ def validate_seller_orders_format(orders, user='', company_name='', is_cancelled
                         seller_order_dict['quantity'] = sku_item['quantity']
                         final_data_dict = check_and_add_dict(grouping_key, 'seller_order_dict', seller_order_dict,
                                                             final_data_dict=final_data_dict)
-
-                #final_data_dict[grouping_key]['shipping_tax'] = eval(order_mapping.get('shipping_tax', ''))
                 final_data_dict[grouping_key]['status_type'] = order_status
     except Exception as e:
         import traceback
@@ -2006,7 +2004,6 @@ def validate_orders_format_rista(orders, user='', company_name='', is_cancelled=
             orders = {}
         if isinstance(orders, dict):
             orders = [orders]
-        import pdb;pdb.set_trace()
         customer_obj = CustomerMaster.objects.filter(**{'user':user.id})
         customer_code_list = customer_obj.values_list('customer_code', flat=True)
         for ind, order in enumerate(orders):
@@ -2045,12 +2042,6 @@ def validate_orders_format_rista(orders, user='', company_name='', is_cancelled=
                 order_details['customer_id'] = order.get('customer_id', 0)
                 order_details['customer_code'] = order.get('customer_code', '')
                 order_details['customer_name'] = order.get('customer_name', '')
-                #order_details['telephone'] = order['billing_address'].get('phone_number', '')
-                #order_details['city'] = order['billing_address'].get('city', '')
-                #order_details['address'] = order['billing_address'].get('address', '')
-                #order_details['pin_code'] = order['billing_address'].get('pincode', '')
-            #get_cust_address = CustomerMaster.objects.filter(**{'user':user.id, 'customer_code':order.get('customer_code', '')})
-            #if get_cust_address:
             order_details['address'] = order.get('address', '')
             order_details['city'] = order.get('city', '')
             order_details['pin_code'] = order.get('pincode', '')

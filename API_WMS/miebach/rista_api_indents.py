@@ -18,7 +18,7 @@ import ConfigParser
 order_pull_rista_stockone_logs = init_logger('logs/rista_order_pull_stockone.log')
 SCHEME = 'https'
 LOAD_CONFIG = ConfigParser.ConfigParser()
-LOAD_CONFIG.read('rest_api/views/configuration_prod.cfg')
+LOAD_CONFIG.read(INTEGRATIONS_CFG_FILE)
 stockone_url = LOAD_CONFIG.get('rista', 'stockone_url', '')
 API_HOST = LOAD_CONFIG.get('rista', 'rista_app_url', '')
 ENDPOINT = LOAD_CONFIG.get('rista', 'inventory_indent_url', '')

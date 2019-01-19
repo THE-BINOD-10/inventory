@@ -25,6 +25,8 @@ ENDPOINT = LOAD_CONFIG.get('rista', 'save_transfer_url', '')
 rista_location_keys = eval(LOAD_CONFIG.get('rista', 'rista_location_keys', ''))
 
 def save_transfer_in_rista(input_data, branch_code):
+    if str(branch_code).lower() == "drunken@monkey":
+        branch_code = 'BW'
     a = datetime.datetime.now()
     save_transfer_in_logs.info(' ------ Started Transfer In - Rista ------')
     resp_data_dict = {}

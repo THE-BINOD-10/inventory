@@ -175,11 +175,11 @@
                   <td ng-if="pop.industry_type=='FMCG'">
                   <input type="text" autocomplete="off"  class="form-control" placeholder="Search batchno"
                          typeahead="address.batchno for address in pop.service.getSearchValues($viewValue, 'search_batches',record)"
-                         ng-model="data.batchno" ng-blur="pop.service.checkSearchValue(record,'search_batches', $event, 'batchno', 'batchno')"
+                         ng-model="record.batchno" ng-blur="pop.service.checkSearchValue(record,'search_batches', $event, 'batchno', 'batchno')"
                          typeahead-on-select="pop.get_sku_details(data, $item, $index)"
                          required>
                   </td>
-                  <input type="hidden" name="batchno_{{data.id}}" value="{{data.batchno}}">
+                  <input type="hidden" name="batchno_{{data.id}}" value="{{record.batchno}}">
 
                   <td ng-if="pop.industry_type=='FMCG'"><input ng-model="data.manufactured_date" class="form-control" size="35" type="text" readonly></td>
                   <td ng-if="pop.industry_type=='FMCG'"><input ng-model="data.mrp" class="form-control" type="text" readonly></td>

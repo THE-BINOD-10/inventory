@@ -2786,7 +2786,7 @@ def get_invoice_data(order_ids, user, merge_data="", is_seller_order=False, sell
                                                'credit_period', 'phone_number'))
             if customer_details:
                 customer_id = customer_details[0]['id']
-                customer_address = customer_details[0]['name'] + '\n' + customer_details[0]['shipping_address']
+                customer_address = customer_details[0]['name'] + '\n' + customer_details[0]['address']
                 if customer_details[0]['tin_number']:
                     customer_address += ("\nGSTIN No: " + customer_details[0]['tin_number'])
                 if customer_details[0]['phone_number']:

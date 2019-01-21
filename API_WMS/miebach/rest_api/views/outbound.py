@@ -798,6 +798,7 @@ def get_picklist_data(data_id, user_id):
     courier_name = ''
     sku_total_quantities = {}
     is_combo_picklist = False
+    manufactured_date =''
     picklist_orders = Picklist.objects.filter(Q(order__sku__user=user_id) | Q(stock__sku__user=user_id),
                                               picklist_number=data_id)
     pick_stocks = StockDetail.objects.filter(sku__user=user_id)

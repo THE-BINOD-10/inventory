@@ -5591,6 +5591,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
                                            'order__title', 'order__customer_name', 'order__quantity', 'shipping_quantity',
                                            'order_shipment__truck_number', 'creation_date',
                                            'order_shipment__courier_name',
+                                           'order_shipment__creation_date',
                                            'order__customerordersummary__payment_status',
                                            'order_packaging__package_reference')
 
@@ -5632,7 +5633,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
                 log.debug(traceback.format_exc())
                 log.info('Firebase query  failed for %s and params are %s and error statement is %s' % (
                 str(user.username), str(request.POST.dict()), str(e)))
-
+        delivered_time =''
         if result :
             try:
                 signed_invoice_copy = result['signed_invoice_copy']
@@ -5654,6 +5655,10 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
                 pod_status = result['pod_status']
             except:
                 pod_status = False
+            try :
+                delivered_time = result['time']
+            except:
+                delivered_time = ''
         else:
             signed_invoice_copy =''
             id_type =''
@@ -5671,6 +5676,11 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
             serial_number = serial_number[0].po_imei.imei_number
         else:
             serial_number = ''
+        dispatched_date =  get_local_date(user,data['order_shipment__creation_date'])
+
+        if delivered_time :
+            delivered_time = datetime.datetime.fromtimestamp(delivered_time / 1e3)
+            delivered_time = get_local_date(user,delivered_time)
 
 
         temp_data['aaData'].append(OrderedDict((('Shipment Number', data['order_shipment__shipment_number']),
@@ -5687,6 +5697,8 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
                                                 ('Serial Number' ,serial_number),
                                                 ('ID Proof Number' , id_proof_number),
                                                 ('Shipment Status',shipment_status ),
+                                                ('Dispatched Date',dispatched_date),
+                                                ('Delivered Date', delivered_time),
                                                 ('Courier Name', data['order_shipment__courier_name']),
                                                 ('Payment Status', data['order__customerordersummary__payment_status']),
                                                 ('Pack Reference', data['order_packaging__package_reference']))))

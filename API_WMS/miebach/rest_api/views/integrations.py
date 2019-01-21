@@ -2034,13 +2034,14 @@ def validate_orders_format(orders, user='', company_name='', is_cancelled=False)
     return insert_status, failed_status.values(), final_data_dict
 
 
-
-
 def validate_orders_format_rista(orders, user='', company_name='', is_cancelled=False):
     order_status_dict = {'NEW': 1, 'RETURN': 3, 'CANCEL': 4}
     NOW = datetime.datetime.now()
     insert_status = []
     final_data_dict = OrderedDict()
+    alert_message_for_email = LOAD_CONFIG.get('rista', 'alert_message_for_email', '')
+    send_alert_msg_to = eval(LOAD_CONFIG.get('rista', 'send_alert_msg_to', ''))
+    body_of_alert_email = LOAD_CONFIG.get('rista', 'body_of_alert_email', '')
     try:
         seller_master_dict, valid_order, query_params = {}, {}, {}
         failed_status = OrderedDict()
@@ -2053,8 +2054,8 @@ def validate_orders_format_rista(orders, user='', company_name='', is_cancelled=
         for ind, order in enumerate(orders):
             customer_code = order.get('customer_code', '')
             if not customer_code in customer_code_list:
-                dm_rista.info(str(customer_code) + ' - of Branch Code Customer not Present : Orders' + str(order))
-                send_mail(['aravind@mieone.com', 'srinivas@mieone.com', 'karthik@mieone.com', 'vimal@mieone.com'], 'Rista - DM', str(customer_code) + ' - of Branch Code Customer not Present : Orders' + str(order))
+                dm_rista.info('For User : ' + str(user.username) + ' , ' + str(customer_code) + str(alert_message_for_email) + str(order))
+                send_mail(send_alert_msg_to, body_of_alert_email, 'For User : ' + str(user.username) + ' , ' +  str(customer_code) + str(alert_message_for_email) + str(order))
                 continue
             else:
                 customer_obj_get_cust_id = customer_obj.filter(**{'customer_code':customer_code})

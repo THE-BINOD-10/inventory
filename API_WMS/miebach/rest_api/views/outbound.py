@@ -2114,7 +2114,7 @@ def picklist_confirmation(request, user=''):
                             check_and_update_order(user.id, picklist.order.original_order_id)
                         all_pick_locations.filter(picklist_id=picklist.id, status=1).update(status=0)
                     #Rista DM Integration Code, collect SKU code
-                    int_obj = Integrations.objects.filter(**{'user':user.id, 'name':'rista', 'status':1})
+                    int_obj = Integrations.objects.filter(**{'user':user.id, 'name':'rista', 'status':0})
                     if int_obj:
                         original_order_id_str = str(picklist.order.original_order_id)
                         rista_order_id_list.append(original_order_id_str)

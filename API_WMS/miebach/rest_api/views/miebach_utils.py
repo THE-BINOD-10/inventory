@@ -5679,7 +5679,7 @@ def get_shipment_report_data(search_params, user, sub_user, serial_view=False):
         dispatched_date =  get_local_date(user,data['order_shipment__creation_date'])
 
         if delivered_time :
-            delivered_time = datetime.datetime.fromtimestamp(delivered_time / 1e3)
+            delivered_time = datetime.datetime.fromtimestamp(delivered_time)
             delivered_time = get_local_date(user,delivered_time)
 
 

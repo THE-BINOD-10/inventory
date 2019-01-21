@@ -375,7 +375,6 @@ urlpatterns = [
 
 
 
-
     # Uploaded POs [SWISS MILITARY]
     url(r'^upload_po/$', upload_po),
     url(r'^get_updated_pos/$', get_updated_pos),
@@ -566,7 +565,6 @@ urlpatterns += [
     url(r'get_cust_profile_info/$', get_cust_profile_info),
     url(r'get_linked_warehouse_names/$', get_linked_warehouse_names),
     url(r'delete_temp_json/$', delete_temp_json),
-    url(r'^search_batches/$', search_batches),
 
     # Retailone
     url(r'^get_marketplace_data/$', get_marketplace_data),

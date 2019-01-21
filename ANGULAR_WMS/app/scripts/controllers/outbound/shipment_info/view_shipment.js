@@ -1,9 +1,9 @@
 'use strict';
 
 angular.module('urbanApp', ['datatables'])
-  .controller('ViewShipmentCtrl',['$scope', '$http', '$state', '$compile', '$rootScope', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'Service', '$modal', 'Data', ServerSideProcessingCtrl]);
+  .controller('ViewShipmentCtrl',['$scope', '$http', '$state','$timeout', '$compile', '$rootScope', 'Session', 'DTOptionsBuilder', 'DTColumnBuilder', 'Service', '$modal', 'Data', ServerSideProcessingCtrl]);
 
-function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, Session, DTOptionsBuilder, DTColumnBuilder, Service, $modal, Data) {
+function ServerSideProcessingCtrl($scope, $http, $state, $timeout,$compile, $rootScope, Session, DTOptionsBuilder, DTColumnBuilder, Service, $modal, Data) {
     var vm = this;
     vm.service = Service
     vm.selected = {};
@@ -240,9 +240,15 @@ function ServerSideProcessingCtrl($scope, $http, $state, $compile, $rootScope, S
     vm.invoice_print = function(){
       vm.service.apiCall("invoice_print_manifest/", "POST", {"shipment_id":vm.model_data.shipment_number}).then(function(data){
         if(data.message){
-          vm.service.print_data(data.data, vm.model_data.manifest_number);
+            $state.go("app.outbound.ShipmentInfo.InvoiceE");
+            vm.pdf_data = data.data;
+            $timeout(function () {
+              $(".modal-body:visible").html(vm.pdf_data)
+              }, 3000);
+
         }
       })
+
     }
 
     $rootScope.$on("CallParentMethod", function(){

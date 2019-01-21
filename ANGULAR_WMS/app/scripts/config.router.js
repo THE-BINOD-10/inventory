@@ -864,6 +864,7 @@ var app = angular.module('urbanApp')
           .state('app.inbound.SellerInvoice.InvoiceE', {
             url: '/InvoiceE',
             templateUrl: 'views/outbound/print/empty_invoice.html'
+
           })
 
         .state('app.inbound.SupplierInvoice', {
@@ -1513,6 +1514,10 @@ var app = angular.module('urbanApp')
             title: 'Shipment Info',
           }
         })
+        .state('app.outbound.ShipmentInfo.InvoiceE', {
+           url: '/InvoiceE',
+           templateUrl: 'views/outbound/print/manifest_invoice.html'
+         })
         .state('app.outbound.ShipmentInfo.Shipment', {
           url: '/Shipment',
           templateUrl: 'views/outbound/toggle/ship_tg.html'
@@ -1525,6 +1530,7 @@ var app = angular.module('urbanApp')
           url: '/STShipment',
           templateUrl: 'views/outbound/toggle/st_ship_tg.html'
         })
+
         .state('app.outbound.BackOrders', {
           url: '/BackOrders',
           templateUrl: 'views/outbound/back_orders.html',

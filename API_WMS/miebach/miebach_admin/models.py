@@ -2115,7 +2115,6 @@ class SellerOrderSummary(models.Model):
     challan_number = models.CharField(max_length=64, default='')
     order_status_flag = models.CharField(max_length=64, default='processed_orders')
     delivered_flag = models.IntegerField(default=0)
-    overall_discount = models.FloatField(default=0)
     creation_date = models.DateTimeField(auto_now_add=True)
     updation_date = models.DateTimeField(auto_now=True)
 

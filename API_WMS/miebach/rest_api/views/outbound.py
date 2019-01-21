@@ -2168,7 +2168,7 @@ def picklist_confirmation(request, user=''):
             else:
                 auto_po(auto_skus, user.id)
 	#Check DM Rista User
-	int_obj = Integrations.objects.filter(**{'user':user.id, 'name':'rista', 'status':1})
+	int_obj = Integrations.objects.filter(**{'user':user.id, 'name':'rista', 'status':0})
 	if int_obj:
 	    rista_order_id = list(set(rista_order_id_list))
 	    rista_response = rista_inventory_transfer(rista_order_id, rista_order_dict, user)

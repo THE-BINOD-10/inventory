@@ -29,7 +29,6 @@ def save_transfer_in_rista(input_data, branch_code):
     a = datetime.datetime.now()
     save_transfer_in_logs.info(' ------ Started Transfer In - Rista ------')
     resp_data_dict = {}
-    import pdb;pdb.set_trace()
     branch_code = [k for k,v in map_stockone_rista_username.items() if v == branch_code]
     if branch_code:
         branch_code = branch_code[0]

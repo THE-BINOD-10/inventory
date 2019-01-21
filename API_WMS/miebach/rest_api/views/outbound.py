@@ -1491,7 +1491,6 @@ def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail,
             if order_ids_list:
                 order_ids = [str(int(i)) for i in order_ids_list]
                 order_ids = ','.join(order_ids)
-
             nv_data = get_invoice_data(order_ids, user, picklists_send_mail[order_id], from_pos=from_pos)
             nv_data = modify_invoice_data(nv_data, user)
             ord_ids = order_ids.split(",")
@@ -1508,6 +1507,7 @@ def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail,
             file_name = str(user.id) + '_' + 'dispatch_invoice.html'
             pdf_file = '%s_%s.pdf' % (str(user.id), "dispatch_invoice")
             file_ = open(file_name, "w+b")
+            rendered = rendered.encode('ascii', 'ignore')
             file_.write(rendered)
             file_.close()
             os.system("./phantom/bin/phantomjs ./phantom/examples/rasterize.js ./%s ./%s A4" % (file_name, pdf_file))

@@ -23,13 +23,16 @@ LOAD_CONFIG.read(INTEGRATIONS_CFG_FILE)
 API_HOST = LOAD_CONFIG.get('rista', 'rista_app_url', '')
 ENDPOINT = LOAD_CONFIG.get('rista', 'save_transfer_url', '')
 rista_location_keys = eval(LOAD_CONFIG.get('rista', 'rista_location_keys', ''))
+map_stockone_rista_username = eval(LOAD_CONFIG.get('rista', 'map_stockone_rista_username', ''))
 
 def save_transfer_in_rista(input_data, branch_code):
-    if str(branch_code).lower() == "drunken@monkey":
-        branch_code = 'BW'
     a = datetime.datetime.now()
     save_transfer_in_logs.info(' ------ Started Transfer In - Rista ------')
     resp_data_dict = {}
+    import pdb;pdb.set_trace()
+    branch_code = [k for k,v in map_stockone_rista_username.items() if v == branch_code]
+    if branch_code:
+        branch_code = branch_code[0]
     tokencreationtime = int(round(time.time()))
     jti = int(time.time() * 1000.0)
     get_api_key_secret = rista_location_keys[branch_code]

@@ -22,8 +22,9 @@ LOAD_CONFIG.read(INTEGRATIONS_CFG_FILE)
 stockone_url = LOAD_CONFIG.get('rista', 'stockone_url', '')
 API_HOST = LOAD_CONFIG.get('rista', 'rista_app_url', '')
 ENDPOINT = LOAD_CONFIG.get('rista', 'inventory_indent_url', '')
-branch_list = eval(LOAD_CONFIG.get('rista', 'branch_list', ''))
 rista_location_keys = eval(LOAD_CONFIG.get('rista', 'rista_location_keys', ''))
+branch_list = rista_location_keys.keys()
+map_stockone_rista_username = eval(LOAD_CONFIG.get('rista', 'map_stockone_rista_username', ''))
 
 def make_request():
     a = datetime.datetime.now()
@@ -65,8 +66,7 @@ def sendToStockOne(resp, branch_code):
     resp = resp['data']
     stockone_auth = {}
     write_order_resp = ''
-    if branch_code == 'BW':
-        branch_code = 'Drunken@Monkey'
+    branch_code = map_stockone_rista_username[branch_code]
     get_client_secret = User.objects.filter(username=branch_code)
     if get_client_secret:
 	get_client_secret = get_client_secret[0].oauth2_provider_application.values()

@@ -28,7 +28,7 @@ map_stockone_rista_username = eval(LOAD_CONFIG.get('rista', 'map_stockone_rista_
 
 def make_request():
     a = datetime.datetime.now()
-    order_pull_rista_stockone_logs.info(' ----- Started - Order Push Rista to Stockone ------- ')
+    order_pull_rista_stockone_logs.info(' ----- Started - Order Push Rista to Stockone -------  branch_list' + str(branch_list))
     url = "{}://{}{}".format(SCHEME, API_HOST, ENDPOINT)
     for branch_code in branch_list:
         get_api_key_secret = rista_location_keys[branch_code]
@@ -54,6 +54,7 @@ def make_request():
                     inv_payload['lastKey'] = resp_json['lastKey']
                 else:
                     lastKey = 0
+        order_pull_rista_stockone_logs.info(' --- Response of Stockone - Branch Code' + branch_code + ' ------' + str(resp_data))
         if resp_data:
             send_to_stockone_resp = sendToStockOne({'data':resp_data}, branch_code)
     b = datetime.datetime.now()

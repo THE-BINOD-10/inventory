@@ -24,9 +24,7 @@ import datetime
 import shutil
 from utils import *
 import os, math
-
-
-
+from rest_api.rista_save_transfer import *
 log = init_logger('logs/outbound.log')
 
 
@@ -1785,6 +1783,155 @@ def validate_picklist_combos(data, all_picklists, picks_all):
     return combo_status, final_data_list
 
 
+def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
+    rista_inv = []
+    sku_code_list = []
+    for order_id in original_order_id_list:
+	data_dict_confirm = {}
+	rista_json = {}
+        model_name_value = 'rista<<>>indent_out<<>>' + order_id
+        temp_json = TempJson.objects.filter(model_id=int(user.id), model_name=model_name_value)
+        if temp_json:
+            rista_json = eval(temp_json[0].model_json)
+        get_all_sku_code = eval(temp_json[0].model_json)['items']
+        sku_dict = {}
+        for ind in get_all_sku_code:
+            sku_code_list.append(ind['skuCode'])
+            sku_dict[ind['skuCode']] = ind['quantity']
+        sku_code_list = list(set(sku_code_list))
+	partial = False
+	collect_all_skus = []
+        for sku_code_obj in order_id_dict[order_id]:
+	    sku_code = sku_code_obj.keys()[0]
+	    collect_all_skus.append(sku_code)
+            if sku_code_obj[sku_code] != sku_dict[sku_code]:
+                partial = True
+        if not partial:
+	    collect_all_skus = list(set(collect_all_skus))
+	    if len(collect_all_skus) != len(sku_code_list):
+		partial = True
+	    else:
+		partial = False
+        if not partial:
+            data_dict_confirm["branchCode"] = rista_json['branchCode']
+            data_dict_confirm["toBranch"] = {'branchCode' : str(rista_json['fromBranch']['branchCode'])}
+            data_dict_confirm["notes"] = ""
+            data_dict_confirm["itemsAmount"] = rista_json['itemsAmount']
+            data_dict_confirm["taxAmount"] = rista_json['taxAmount']
+            data_dict_confirm["totalAmount"] = rista_json['totalAmount']
+            if rista_json['taxAmount'] == 0:
+                data_dict_confirm["taxes"] = []
+                for obj in rista_json['items']:
+                    obj['taxes'] = []
+                data_dict_confirm["items"] = rista_json['items']
+            else:
+                data_dict_confirm["taxes"] = rista_json['taxes']
+                data_dict_confirm["items"] = rista_json['items']
+            for obj_item in data_dict_confirm["items"]:
+                if obj_item['taxAmount'] == 0:
+                    obj_item['taxes'] = []
+            data_dict_confirm["sourceInfo"] = {"orderDate": rista_json['indentDate'], "orderNumber": rista_json['indentNumber']}
+            save_transfer_resp = save_transfer_in_rista(data_dict_confirm, user.username)
+            if save_transfer_resp['status'] != False:
+                temp_json_model_name = 'rista<<>>transfer_in<<>>' + order_id
+                TempJson.objects.create(**{'model_id':user.id, 'model_name':temp_json_model_name, 'model_json':str(save_transfer_resp)})
+            rista_inv.append(save_transfer_resp)
+        else:
+            data_dict_confirm["taxes"] = []
+            data_dict_confirm["branchCode"] = rista_json['branchCode']
+            data_dict_confirm["toBranch"] = {'branchCode' : str(rista_json['fromBranch']['branchCode'])}
+            data_dict_confirm["notes"] = ""
+            data_dict_confirm["itemsAmount"] = 0
+            data_dict_confirm["taxAmount"] = 0
+            data_dict_confirm["totalAmount"] = 0
+            if rista_json['taxAmount'] == 0:
+                data_dict_confirm["taxes"] = []
+                for obj in rista_json['items']:
+                    obj['taxes'] = []
+                data_dict_confirm["items"] = rista_json['items']
+            else:
+                data_dict_confirm["items"] = rista_json['items']
+            sku_code_list_with_qty = order_id_dict[order_id]
+            sku_code_obj_list = []
+            for obj in rista_json['items']:
+                sku_code_obj = {}
+                sku_code_obj['totalAmount'] = 0
+                for sku_obj in sku_code_list_with_qty:
+                    for key, value in sku_obj.items():
+                        if obj['skuCode'] in key:
+                            sku_code_obj['skuCode'] = obj['skuCode']
+                            sku_code_obj['taxes'] = obj['taxes']
+                            for tax_data in obj['taxes']:
+                                data_dict_confirm["taxAmount"] += tax_data['taxAmount']
+                            sku_code_obj['measuringUnit'] = obj['measuringUnit']
+                            sku_code_obj['itemName'] = obj['itemName']
+                            sku_code_obj['unitCost'] = obj['unitCost']
+                            sku_code_obj['quantity'] = value
+                            sku_code_obj['itemAmount'] = obj['unitCost'] * value
+                            sku_code_obj['taxAmount'] = 0
+                            sku_code_obj['totalAmount'] += sku_code_obj['itemAmount']
+                            data_dict_confirm["itemsAmount"] += sku_code_obj['itemAmount']
+                            data_dict_confirm["totalAmount"] += sku_code_obj['totalAmount']
+                            for tax_data in obj['taxes']:
+                                tax_amount = (sku_code_obj['itemAmount'] * tax_data['percentage'])/100
+                                tax_data['taxAmount'] = tax_amount
+                                sku_code_obj['taxAmount'] += tax_amount
+				tax_data['taxableAmount'] = sku_code_obj['itemAmount']
+                                data_dict_confirm["taxAmount"] = 0
+                                if sku_code_obj['taxes']:
+                                    if obj["taxes"]:
+                                        for idx, tax_obj in enumerate(obj["taxes"]):
+                                            if tax_obj['taxName'] == sku_code_obj['taxes'][idx]['taxName']:
+                                                tax_obj['taxAmount'] = sku_code_obj['taxes'][idx]['taxAmount']
+                                                data_dict_confirm["taxAmount"] += sku_code_obj['taxes'][idx]['taxAmount']
+                                                tax_obj['percentage'] = sku_code_obj['taxes'][idx]['percentage']
+                                                tax_obj['taxableAmount'] = data_dict_confirm["itemsAmount"]
+                                                sku_code_obj['taxes'][idx]['taxableAmount'] = sku_code_obj['itemAmount']
+                                            else:
+                                                tax_obj['taxAmount'] = sku_code_obj['taxes'][idx]['taxAmount']
+                                                data_dict_confirm["taxAmount"] = sku_code_obj['taxes'][idx]['taxAmount']
+                                                tax_obj['percentage'] = sku_code_obj['taxes'][idx]['percentage']
+                                                tax_obj['taxableAmount'] = data_dict_confirm["itemsAmount"]
+                                                tax_obj['taxName'] = sku_code_obj['taxes'][idx]['taxName']
+                                                sku_code_obj['taxes'][idx]['taxableAmount'] = sku_code_obj['itemAmount']
+                                    for obj_dict in sku_code_obj['taxes']:
+                                        if obj_dict['taxAmount'] == 0:
+                                            sku_code_obj['taxes'] = []
+                            if sku_code_obj['taxes']:
+                                data_dict_confirm["taxes"] += (sku_code_obj['taxes'])
+                            sku_code_obj['totalAmount'] += sku_code_obj['taxAmount']
+                            sku_code_obj_list.append(sku_code_obj)
+	    data_dict_confirm["items"] = sku_code_obj_list
+	    data_dict_confirm["itemsAmount"] = 0
+	    data_dict_confirm["totalAmount"] = 0
+	    data_dict_confirm["taxAmount"] = 0
+	    for items_obj in data_dict_confirm["items"]:
+		data_dict_confirm["taxAmount"] += items_obj['taxAmount']
+		data_dict_confirm["itemsAmount"] += items_obj["itemAmount"]
+	    data_dict_confirm["totalAmount"] = data_dict_confirm["itemsAmount"] + data_dict_confirm["taxAmount"]
+            form_tax_dict = {}
+            for obj in data_dict_confirm["taxes"]:
+                if obj['taxName'] in form_tax_dict.keys():
+                    inner_tax_dict = form_tax_dict[obj['taxName']]
+                    inner_tax_dict['taxAmount'] += obj['taxAmount']
+                    inner_tax_dict['taxableAmount'] += obj['taxableAmount']
+                else:
+                    form_tax_dict[obj['taxName']] = {}
+                    form_tax_dict[obj['taxName']]['taxName'] = obj['taxName']
+                    form_tax_dict[obj['taxName']]['percentage'] = obj['percentage']
+                    form_tax_dict[obj['taxName']]['taxableAmount'] = obj['taxableAmount']
+                    form_tax_dict[obj['taxName']]['taxAmount'] = obj['taxAmount']
+	    temp_json_model_name = 'rista<<>>transfer_in<<>>' + order_id
+	    temp_json_obj = TempJson.objects.filter(**{'model_id':user.id, 'model_name':temp_json_model_name}).count()
+            data_dict_confirm["sourceInfo"] = {"orderDate": rista_json['indentDate'], "orderNumber": str(rista_json['indentNumber']) + '-' + str(temp_json_obj + 1)}
+            data_dict_confirm['taxes'] = form_tax_dict.values()
+            save_transfer_resp = save_transfer_in_rista(data_dict_confirm, user.username)
+            if save_transfer_resp['status'] != False:
+                TempJson.objects.create(**{'model_id':user.id, 'model_name':temp_json_model_name, 'model_json':str(save_transfer_resp)})
+            rista_inv.append(save_transfer_resp)
+    return rista_inv
+
+
 @csrf_exempt
 @login_required
 @get_admin_user
@@ -1804,8 +1951,12 @@ def picklist_confirmation(request, user=''):
                 data[picklist_id].append({})
             data[picklist_id][index][name] = val
 
+    rista_picklist_dict = {}
+
     log.info('Request params for ' + user.username + ' is ' + str(data))
     try:
+	rista_order_id_list = []
+	rista_order_dict = {}
         data = OrderedDict(sorted(data.items(), reverse=True))
         error_string = ''
         picklist_number = request.POST['picklist_number']
@@ -1835,28 +1986,6 @@ def picklist_confirmation(request, user=''):
         if combo_status:
             return HttpResponse(json.dumps({'message': 'Combo Quantities are not matching',
                                             'sku_codes': combo_status, 'status': 0}))
-        # for key, value in data.iteritems():
-        #     if key in ('name', 'number', 'order', 'sku', 'invoice'):
-        #         continue
-        #     picklist_batch = ''
-        #     picklist_order_id = value[0]['order_id']
-        #     if picklist_order_id:
-        #         picklist = all_picklists.get(order__order_id=picklist_order_id,
-        #                                      order__sku__sku_code=value[0]['wms_code'])
-        #     elif not key:
-        #         scan_wms_codes = map(lambda d: d['wms_code'], value)
-        #         picklist_batch = picks_all.filter(
-        #             Q(stock__sku__wms_code__in=scan_wms_codes) | Q(order__sku__wms_code=scan_wms_codes),
-        #             reserved_quantity__gt=0, status__icontains='open')
-        #
-        #     else:
-        #         picklist = picks_all.get(id=key)
-        #     count = 0
-        #     if not picklist_batch:
-        #         picklist_batch = get_picklist_batch(picklist, value, all_picklists)
-        #     for i in range(0, len(value)):
-        #         if value[i]['picked_quantity']:
-        #             count += float(value[i]['picked_quantity'])
         for picklist_dict in final_data_list:
             picklist = picklist_dict['picklist']
             picklist_batch = picklist_dict['picklist_batch']
@@ -1879,15 +2008,6 @@ def picklist_confirmation(request, user=''):
                     if count == 0:
                         continue
 
-                    # if val['wms_code'] == 'TEMP' and val.get('wmscode', ''):
-                    #     if picklist.order:
-                    #         map_status = create_market_mapping(picklist.order, val)
-                    #     if map_status == 'true':
-                    #         val['wms_code'] = val['wmscode']
-                    #     elif map_status == 'Invalid WMS Code':
-                    #         return HttpResponse(json.dumps({'message': map_status,
-                    #                                         'sku_codes': [], 'status': 0}))
-                    #         # return HttpResponse(map_status)
                     status = ''
                     if not val['location'] == 'NO STOCK':
                         pic_check_data, status = validate_location_stock(val, all_locations, all_skus, user,
@@ -1983,7 +2103,6 @@ def picklist_confirmation(request, user=''):
                     if not seller_pick_number:
                         seller_pick_number = get_seller_pick_id(picklist, user)
                     if picklist.reserved_quantity == 0:
-
                         # Auto Shipment check and Mapping the serial Number
                         if picklist.order and picklist.order.order_type == 'Transit':
                             serial_order_mapping(picklist, user)
@@ -1991,10 +2110,24 @@ def picklist_confirmation(request, user=''):
                             picklist.status = 'batch_picked'
                         else:
                             picklist.status = 'picked'
-
                         if picklist.order:
                             check_and_update_order(user.id, picklist.order.original_order_id)
                         all_pick_locations.filter(picklist_id=picklist.id, status=1).update(status=0)
+                    #Rista DM Integration Code, collect SKU code
+                    int_obj = Integrations.objects.filter(**{'user':user.id, 'name':'rista', 'status':1})
+                    if int_obj:
+                        original_order_id_str = str(picklist.order.original_order_id)
+                        rista_order_id_list.append(original_order_id_str)
+                        picking_count1 = int(picking_count1)
+                        if picking_count1:
+                            sku_code_str = picklist.order.sku.sku_code
+                            sku_code_dict = {}
+                            sku_code_dict[sku_code_str] = picking_count1
+                            if original_order_id_str in rista_order_dict.keys():
+                                rista_order_dict[original_order_id_str].append(sku_code_dict)
+                            else:
+                                rista_order_dict[original_order_id_str] = []
+                                rista_order_dict[original_order_id_str].append(sku_code_dict)
 
                     picklist.save()
                     if user_profile.user_type == 'marketplace_user' and picklist.order:
@@ -2020,13 +2153,8 @@ def picklist_confirmation(request, user=''):
                         else:
                             picklists_send_mail.update(
                                 {picklist.order.order_id: {picklist.order.sku.sku_code: float(quantity)}})
-
-                            # picklists_send_mail.append({'order_id': picklist.order.order_id})
-                            # picklists_send_mail.append(data_count)
-
                     count = count - picking_count1
                     auto_skus.append(val['wms_code'])
-
         if auto_skus:
             auto_skus = list(set(auto_skus))
             price_band_flag = get_misc_value('priceband_sync', user.id)
@@ -2039,8 +2167,12 @@ def picklist_confirmation(request, user=''):
                     create_intransit_order(auto_skus, user, sku_qty_map)
             else:
                 auto_po(auto_skus, user.id)
-
-        detailed_invoice = get_misc_value('detailed_invoice', user.id)
+	#Check DM Rista User
+	int_obj = Integrations.objects.filter(**{'user':user.id, 'name':'rista', 'status':1})
+	if int_obj:
+	    rista_order_id = list(set(rista_order_id_list))
+	    rista_response = rista_inventory_transfer(rista_order_id, rista_order_dict, user)
+	detailed_invoice = get_misc_value('detailed_invoice', user.id)
         if (detailed_invoice == 'false' and picklist.order and picklist.order.marketplace == "Offline"):
             check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail)
         order_ids = picks_all.values_list('order_id', flat=True).distinct()
@@ -2079,7 +2211,6 @@ def picklist_confirmation(request, user=''):
         #return HttpResponse(json.dumps({'message': 'Picklist Confirmation Failed',
         #                                'sku_codes': [], 'status': 0}))
         return HttpResponse('Picklist Confirmation Failed')
-
     end_time = datetime.datetime.now()
     duration = end_time - st_time
     log.info("process completed")
@@ -11120,7 +11251,6 @@ def generate_customer_invoice(request, user=''):
             invoice_data = build_marketplace_invoice(invoice_data, user, False)
         else:
             invoice_data = build_invoice(invoice_data, user, False)
-
     except Exception as e:
         import traceback
         log.debug(traceback.format_exc())
@@ -14274,6 +14404,8 @@ def do_delegate_orders(request, user=''):
         result_data['output_msg'] = output_msg
         result_data['status'] = True
     return HttpResponse(json.dumps(result_data), content_type='application/json')
+
+
 @login_required
 @get_admin_user
 def print_pdf_shipment_info(request, user=''):

@@ -2269,7 +2269,6 @@ def search_batches(request, user=''):
                    pallet_detail__pallet_code=request.GET['pallet_code'])
         if not stock_detail:
             return HttpResponse(json.dumps({'status': 0, 'message': 'Invalid Location and Pallet code Combination'}))
-
     stock_data = StockDetail.objects.exclude(
         Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])). \
         filter(**search_params)
@@ -2281,8 +2280,12 @@ def search_batches(request, user=''):
                 manufactured_date = datetime.datetime.strftime(stock.batch_detail.manufactured_date, "%d/%m/%Y")
             except:
                 manufactured_date = ''
+            try:
+                batchno =  stock.batch_detail.batch_no
+            except:
+                batchno  = ''
 
-            total_data.append({'batchno': stock.batch_detail.batch_no, 'manufactured_date':manufactured_date })
+            total_data.append({'batchno': batchno, 'manufactured_date':manufactured_date })
 
     return HttpResponse(json.dumps(total_data))
 

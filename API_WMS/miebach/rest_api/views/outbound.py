@@ -1230,7 +1230,8 @@ def validate_location_stock(val, all_locations, all_skus, user, picklist):
         if picklist.stock and picklist.stock.batch_detail_id:
             pic_check_data['batch_detail__mrp'] = picklist.stock.batch_detail.mrp
             pic_check_data['batch_detail__batch_no'] = picklist.stock.batch_detail.batch_no
-
+    if val['batchno'] :
+        pic_check_data['batch_detail__batch_no'] = val['batchno']
     pic_check = StockDetail.objects.filter(**pic_check_data)
     if not pic_check:
         status.append("Insufficient Stock in given location with batch number")
@@ -1490,7 +1491,6 @@ def check_and_send_mail(request, user, picklist, picks_all, picklists_send_mail,
             if order_ids_list:
                 order_ids = [str(int(i)) for i in order_ids_list]
                 order_ids = ','.join(order_ids)
-
 
             nv_data = get_invoice_data(order_ids, user, picklists_send_mail[order_id], from_pos=from_pos)
             nv_data = modify_invoice_data(nv_data, user)

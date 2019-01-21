@@ -2243,6 +2243,53 @@ def search_wms_codes(request, user=''):
 
     return HttpResponse(json.dumps(wms_codes))
 
+@csrf_exempt
+@login_required
+@get_admin_user
+def search_batches(request, user=''):
+    sku_master, sku_master_ids = get_sku_master(user, request.user)
+    data_id = request.GET.get('q', '')
+    row_data = json.loads(request.GET.get('type'))
+    search_params = {'sku__user': user.id}
+    if row_data['wms_code']:
+        search_params['sku__sku_code'] =  row_data['wms_code']
+
+    if row_data['location']:
+        location_master = LocationMaster.objects.filter(zone__user=user.id, location=row_data['location'])
+        if not location_master:
+            return HttpResponse(json.dumps({'status': 0, 'message': 'Invalid Location'}))
+        search_params['location__location'] = row_data['location']
+
+    if row_data['pallet_code']:
+        search_params['pallet_detail__pallet_code'] = row_data['pallet_code']
+        stock_detail = StockDetail.objects.exclude(
+            Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])). \
+            filter(location__location=request.GET.get('location', ''), sku__user=user.id,
+                   sku__sku_code=search_params['sku__sku_code'],
+                   pallet_detail__pallet_code=request.GET['pallet_code'])
+        if not stock_detail:
+            return HttpResponse(json.dumps({'status': 0, 'message': 'Invalid Location and Pallet code Combination'}))
+    stock_data = StockDetail.objects.exclude(
+        Q(receipt_number=0) | Q(location__zone__zone__in=['DAMAGED_ZONE', 'QC_ZONE'])). \
+        filter(**search_params)
+    batchno =[]
+    total_data =[]
+    if stock_data:
+        for stock in stock_data:
+            try:
+                manufactured_date = datetime.datetime.strftime(stock.batch_detail.manufactured_date, "%d/%m/%Y")
+            except:
+                manufactured_date = ''
+            try:
+                batchno =  stock.batch_detail.batch_no
+            except:
+                batchno  = ''
+
+            total_data.append({'batchno': batchno, 'manufactured_date':manufactured_date })
+
+    return HttpResponse(json.dumps(total_data))
+
+
 
 @csrf_exempt
 @login_required
@@ -8598,3 +8645,4 @@ def load_by_file(load_file_name, table_name, columns, id_dependency=False):
         log.info('loading completed')
     except:
         pass
+

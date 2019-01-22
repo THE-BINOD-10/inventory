@@ -1791,6 +1791,8 @@ def rista_inventory_transfer(original_order_id_list, order_id_dict, user):
         temp_json = TempJson.objects.filter(model_id=int(user.id), model_name=model_name_value)
         if temp_json:
             rista_json = eval(temp_json[0].model_json)
+        else:
+            continue
         get_all_sku_code = eval(temp_json[0].model_json)['items']
         sku_dict = {}
         for ind in get_all_sku_code:
@@ -2115,7 +2117,10 @@ def picklist_confirmation(request, user=''):
                     int_obj = Integrations.objects.filter(**{'user':user.id, 'name':'rista', 'status':0})
                     if int_obj:
                         original_order_id_str = str(picklist.order.original_order_id)
-                        rista_order_id_list.append(original_order_id_str)
+                        model_name_value = 'rista<<>>indent_out<<>>' + original_order_id_str
+                        temp_json = TempJson.objects.filter(model_id=int(user.id), model_name=model_name_value)
+                        if temp_json:
+                            rista_order_id_list.append(original_order_id_str)
                         picking_count1 = int(picking_count1)
                         if picking_count1:
                             sku_code_str = picklist.order.sku.sku_code
@@ -2168,7 +2173,7 @@ def picklist_confirmation(request, user=''):
         detailed_invoice = get_misc_value('detailed_invoice', user.id)
 	#Check DM Rista User
 	int_obj = Integrations.objects.filter(**{'user':user.id, 'name':'rista', 'status':0})
-	if int_obj:
+	if int_obj and rista_order_id_list:
 	    rista_order_id = list(set(rista_order_id_list))
 	    rista_response = rista_inventory_transfer(rista_order_id, rista_order_dict, user)
         if (detailed_invoice == 'false' and picklist.order and picklist.order.marketplace == "Offline"):

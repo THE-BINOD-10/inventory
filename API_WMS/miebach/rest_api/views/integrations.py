@@ -869,7 +869,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                              field_key='sku_desc')
         return sku_master, insert_status, new_ean_objs
     sku_ins = SKUMaster.objects.filter(user=user.id, sku_code=sku_code)
-    if sku_ins:
+    if sku_ins.exists():
         sku_master = sku_ins[0]
     sku_master_dict = {'user': user.id, 'creation_date': datetime.datetime.now()}
     exclude_list = ['skus', 'child_skus']
@@ -977,7 +977,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                                                     sgst_tax=taxes_dict.get('sgst_tax', 0), igst_tax=0,
                                                   cess_tax=taxes_dict.get('cess_tax', 0), user=user.id).\
                                         values_list('product_type', flat=True).distinct()
-            if tax_master_obj:
+            if tax_master_obj.exists():
                 product_type_dict['product_type__in'] = tax_master_obj
                 product_type = tax_master_obj[0]
             else:
@@ -987,7 +987,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
                                                         cess_tax=taxes_dict.get('cess_tax', 0), user=user.id,
                                                        **product_type_dict). \
                                             values_list('product_type', flat=True)
-            if not tax_master_obj:
+            if not tax_master_obj.exists():
                 product_type = ''
             else:
                 product_type = tax_master_obj[0]
@@ -1064,7 +1064,7 @@ def sku_master_insert_update(sku_data, user, sku_mapping, insert_status, failed_
             #update_ean_sku_mapping(user, ean_numbers, sku_master, True)
         except:
             pass
-    #print sku_master_dict['sku_code']
+    print sku_master_dict['sku_code']
     return sku_master, insert_status, new_ean_objs
 
 
@@ -1105,6 +1105,7 @@ def update_skus(skus, user='', company_name=''):
         load_file = open(load_file_path, 'w')
         columns = ['sku_id', 'attribute_name', 'attribute_value']
         new_ean_objs = []
+
         for sku_data in skus:
             sku_master, insert_status, new_ean_objs = sku_master_insert_update(sku_data, user, sku_mapping, insert_status,
                                                                  failed_status, user_attr_list, sizes_dict,
